@@ -109,17 +109,17 @@ timer outputs are disabled. No motion logic is implemented.
 | --- | --- | --- | --- | --- |
 | M1_STEP | PE9 | CN10 pin 4 / D6 | DM542T PUL− through Q1 below | TIM1_CH1 / AF1 |
 | M1_DIR | PE11 | CN10 pin 6 / D5 | DM542T DIR− through Q2 below | — |
-| M2_STEP | PC6 | CN7 pin 1 / D16 | First TMC2209 STEP | TIM8_CH1 / AF3 |
-| M2_DIR | PC7 | CN7 pin 11 / D21 | First TMC2209 DIR | — |
-| M3_STEP | PD14 | CN7 pin 16 / D10 | Second TMC2209 STEP | TIM4_CH3 / AF2 |
-| M3_DIR | PD15 | CN7 pin 18 / D9 | Second TMC2209 DIR | — |
+| M2_STEP | PD14 | CN7 pin 16 / D10 | First TMC2209 STEP | TIM4_CH3 / AF2 |
+| M2_DIR | PD15 | CN7 pin 18 / D9 | First TMC2209 DIR | — |
+| M3_STEP | PC6 | CN7 pin 1 / D16 | Second TMC2209 STEP | TIM8_CH1 / AF3 |
+| M3_DIR | PC7 | CN7 pin 11 / D21 | Second TMC2209 DIR | — |
 | STEPPERS_EN_N | PF3 | CN7 pin 20 / D8 | Both TMC2209 EN pins; DM542T ENA− through Q3 below | — |
 
 Connector positions follow [ST UM2407, tables 18 and 21](https://www.st.com/resource/en/user_manual/um2407-stm32h7-nucleo144-boards-mb1364-stmicroelectronics.pdf).
 PE9 uses the default routing to CN10 pin 4 (SB28 closed, SB70 open).
 The STEP pins use three separate timers for independent pulse rates; see
 the [STM32H753 alternate-function tables](https://www.st.com/resource/en/datasheet/stm32h753zi.pdf).
-TIM1, TIM8 and TIM4 are configured identically for STEP generation: active-high
+TIM1, TIM4 and TIM8 are configured identically for STEP generation: active-high
 PWM mode 1, prescaler 239, period 65535 and pulse width 0. At the current
 240 MHz timer clocks, each counter ticks at **1 MHz (1 µs per tick)**.
 Auto-reload and compare preload are enabled so future period and pulse-width
@@ -135,15 +135,15 @@ the number of steps, and explicitly start/stop the required channels.
 No PWM start calls, DMA transfers or STEP timer interrupts are enabled yet.
 
 The HAL output objects retain the timer connections with
-`alternate_function = 1` (M1), `3` (M2) and `2` (M3). GPIO
+`alternate_function = 1` (M1), `2` (M2) and `3` (M3). These AF numbers select
+fixed hardware connections on the chosen pins. GPIO
 `write()`/`toggle()` only affect their output latches, not the timer waveforms.
 
 These assignments are configured in `external/CubeMX/CubeMX.ioc`.
 The storage assignments above, Ethernet RMII, USART3 console,
 LEDs (PB0/PE1/PB14), user button (PC13), oscillator and ST-Link debug pins stay
 reserved. TIM2 remains assigned to the runtime timer and TIM6 to the HAL timebase.
-TIM3 is assigned to M1's encoder below, so M2's STEP timer is TIM8;
-its physical PC6 connection is unchanged.
+TIM3 is assigned to M1's encoder below, separate from the three STEP timers.
 
 ### Driver interface and shared enable
 

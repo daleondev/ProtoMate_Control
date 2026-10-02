@@ -39,21 +39,6 @@ int main()
       .speed = hal::gpio::Speed::Low,
     }) };
     [[maybe_unused]] const auto m2_step{ hal::gpio::createOutput({
-      .pin = { .port = hal::gpio::Port::C, .number = 6U },
-      .initial_level = hal::gpio::Level::Low,
-      .type = hal::gpio::OutputType::PushPull,
-      .pull = hal::gpio::Pull::None,
-      .speed = hal::gpio::Speed::Low,
-      .alternate_function = 3U,
-    }) };
-    [[maybe_unused]] const auto m2_dir{ hal::gpio::createOutput({
-      .pin = { .port = hal::gpio::Port::C, .number = 7U },
-      .initial_level = hal::gpio::Level::Low,
-      .type = hal::gpio::OutputType::PushPull,
-      .pull = hal::gpio::Pull::None,
-      .speed = hal::gpio::Speed::Low,
-    }) };
-    [[maybe_unused]] const auto m3_step{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::D, .number = 14U },
       .initial_level = hal::gpio::Level::Low,
       .type = hal::gpio::OutputType::PushPull,
@@ -61,8 +46,23 @@ int main()
       .speed = hal::gpio::Speed::Low,
       .alternate_function = 2U,
     }) };
-    [[maybe_unused]] const auto m3_dir{ hal::gpio::createOutput({
+    [[maybe_unused]] const auto m2_dir{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::D, .number = 15U },
+      .initial_level = hal::gpio::Level::Low,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+    }) };
+    [[maybe_unused]] const auto m3_step{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::C, .number = 6U },
+      .initial_level = hal::gpio::Level::Low,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+      .alternate_function = 3U,
+    }) };
+    [[maybe_unused]] const auto m3_dir{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::C, .number = 7U },
       .initial_level = hal::gpio::Level::Low,
       .type = hal::gpio::OutputType::PushPull,
       .pull = hal::gpio::Pull::None,
