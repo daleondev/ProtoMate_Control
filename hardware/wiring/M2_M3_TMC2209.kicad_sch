@@ -1,0 +1,430 @@
+(kicad_sch (version 20250114) (generator "eeschema") (uuid "cd377620-d4cd-51c4-94a8-4e61b8229013") (paper "A3") (title_block (title "ProtoMate SCARA — M2 and M3 - TMC2209") (date "2026-10-02") (rev "1.0") (company "ProtoMate Control") (comment 1 "Wiring schematic | no PCB | all voltages DC"))
+(lib_symbols
+(symbol "ProtoMate:Adafruit_6121" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board no) (property "Reference" "U" (at 0 48.26 0) (effects (font (size 1.27 1.27))))(property "Value" "Adafruit #6121 / TMC2209" (at 0 45.72 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Datasheet" "https://learn.adafruit.com/adafruit-tmc2209-stepper-motor-driver-breakout-board/pinouts" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Description" "Complete breakout, including current potentiometer and onboard bypass/bulk capacitors. Numbers JP1/JP4 from Adafruit Eagle schematic; connect by silkscreen." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(symbol "Adafruit_6121_0_1" (rectangle (start -30.48 41.91) (end 30.48 -41.91) (stroke (width 0.254) (type default)) (fill (type background))))(symbol "Adafruit_6121_1_1" (pin power_in line (at -35.56 34.29 0) (length 5.08) (name "VDD / 3.3 V" (effects (font (size 1.016 1.016)))) (number "JP4.1" (effects (font (size 0.889 0.889)))))(pin passive line (at -35.56 26.67 0) (length 5.08) (name "GND" (effects (font (size 1.016 1.016)))) (number "JP4.2" (effects (font (size 0.889 0.889)))))(pin input line (at -35.56 19.05 0) (length 5.08) (name "DIR" (effects (font (size 1.016 1.016)))) (number "JP4.3" (effects (font (size 0.889 0.889)))))(pin input line (at -35.56 11.43 0) (length 5.08) (name "STEP" (effects (font (size 1.016 1.016)))) (number "JP4.4" (effects (font (size 0.889 0.889)))))(pin input line (at -35.56 3.81 0) (length 5.08) (name "MS1" (effects (font (size 1.016 1.016)))) (number "JP4.5" (effects (font (size 0.889 0.889)))))(pin input line (at -35.56 -3.81 0) (length 5.08) (name "MS2" (effects (font (size 1.016 1.016)))) (number "JP4.6" (effects (font (size 0.889 0.889)))))(pin input line (at -35.56 -11.43 0) (length 5.08) (name "EN / active low" (effects (font (size 1.016 1.016)))) (number "JP4.10" (effects (font (size 0.889 0.889)))))(pin power_in line (at -35.56 -26.67 0) (length 5.08) (name "+ / VMOTOR" (effects (font (size 1.016 1.016)))) (number "JP1.6" (effects (font (size 0.889 0.889)))))(pin passive line (at -35.56 -34.29 0) (length 5.08) (name "- / GND" (effects (font (size 1.016 1.016)))) (number "JP1.5" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 34.29 180) (length 5.08) (name "1A" (effects (font (size 1.016 1.016)))) (number "JP1.2" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 26.67 180) (length 5.08) (name "1B" (effects (font (size 1.016 1.016)))) (number "JP1.1" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 19.05 180) (length 5.08) (name "2A" (effects (font (size 1.016 1.016)))) (number "JP1.3" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 11.43 180) (length 5.08) (name "2B" (effects (font (size 1.016 1.016)))) (number "JP1.4" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 -3.81 180) (length 5.08) (name "DIAG" (effects (font (size 1.016 1.016)))) (number "JP4.7" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 -11.43 180) (length 5.08) (name "INDEX" (effects (font (size 1.016 1.016)))) (number "JP4.8" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at 35.56 -19.05 180) (length 5.08) (name "UART / optional" (effects (font (size 1.016 1.016)))) (number "JP4.9" (effects (font (size 0.889 0.889)))))))
+(symbol "ProtoMate:C_Polarized"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0.254)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "C"
+			(at 0.635 2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "C_Polarized"
+			(at 0.635 -2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 0.9652 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Polarized capacitor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "cap capacitor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "CP_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "C_Polarized_0_1"
+			(rectangle
+				(start -2.286 0.508)
+				(end 2.286 1.016)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -1.778 2.286) (xy -0.762 2.286)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -1.27 2.794) (xy -1.27 1.778)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(rectangle
+				(start 2.286 -0.508)
+				(end -2.286 -1.016)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type outline)
+				)
+			)
+		)
+		(symbol "C_Polarized_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 2.794)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 2.794)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "ProtoMate:Motor_PH6" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board no) (property "Reference" "U" (at 0 33.02 0) (effects (font (size 1.27 1.27))))(property "Value" "2-phase stepper / PH-6" (at 0 30.48 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Description" "2-phase stepper / PH-6" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(symbol "Motor_PH6_0_1" (rectangle (start -25.4 26.67) (end 25.4 -26.67) (stroke (width 0.254) (type default)) (fill (type background))))(symbol "Motor_PH6_1_1" (pin passive line (at -30.48 19.05 0) (length 5.08) (name "A / winding 1" (effects (font (size 1.016 1.016)))) (number "1" (effects (font (size 0.889 0.889)))))(pin passive line (at -30.48 11.43 0) (length 5.08) (name "NC" (effects (font (size 1.016 1.016)))) (number "2" (effects (font (size 0.889 0.889)))))(pin passive line (at -30.48 3.81 0) (length 5.08) (name "B / winding 2" (effects (font (size 1.016 1.016)))) (number "3" (effects (font (size 0.889 0.889)))))(pin passive line (at -30.48 -3.81 0) (length 5.08) (name "C / winding 1" (effects (font (size 1.016 1.016)))) (number "4" (effects (font (size 0.889 0.889)))))(pin passive line (at -30.48 -11.43 0) (length 5.08) (name "NC" (effects (font (size 1.016 1.016)))) (number "5" (effects (font (size 0.889 0.889)))))(pin passive line (at -30.48 -19.05 0) (length 5.08) (name "D / winding 2" (effects (font (size 1.016 1.016)))) (number "6" (effects (font (size 0.889 0.889)))))))
+(symbol "ProtoMate:R"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "R"
+			(at 2.032 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "R"
+			(at 0 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at -1.778 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "R res resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "R_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "R_0_1"
+			(rectangle
+				(start -1.016 -2.54)
+				(end 1.016 2.54)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "R_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	))
+(text "M2 AND M3 - TMC2209" (at 15.24 12.7 0) (effects (font (size 2.54 2.54)) (justify left top)) (uuid "c5fc88fa-a7f2-5f15-9699-eb36f11bdff3"))
+(polyline (pts (xy 15.24 22.86) (xy 401.32 22.86)) (stroke (width 0.254) (type default)) (fill (type none)) (uuid "514c866a-87c8-5b04-b314-f8818a42318e"))
+(symbol (lib_id "ProtoMate:Adafruit_6121") (at 137.16 86.36 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "681b65ab-4605-538b-8e70-03d80ea82c2f") (property "Reference" "A3" (at 137.16 38.1 0) (effects (font (size 1.27 1.27))))(property "Value" "Adafruit #6121 / TMC2209" (at 137.16 40.64 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 137.16 86.36 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d89361d7-5cf9-5308-8fcb-557119f994a9" (reference "A3") (unit 1)))))
+(wire (pts (xy 101.6 52.07) (xy 91.44 52.07)) (stroke (width 0) (type default)) (uuid "1c66b452-1851-545b-8d2f-72160cd3b5d9"))
+(global_label "+3V3" (shape bidirectional) (at 91.44 52.07 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "55e3a2b8-a860-5c2b-a613-a0250512da7f") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 52.07 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 59.69) (xy 91.44 59.69)) (stroke (width 0) (type default)) (uuid "0a91e5ea-c17d-5006-b69e-383e5a8e0f90"))
+(global_label "GND" (shape bidirectional) (at 91.44 59.69 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "9650ef65-787f-52cc-95dd-7c7dd1c9a717") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 59.69 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 67.31) (xy 91.44 67.31)) (stroke (width 0) (type default)) (uuid "cf84d283-5e2a-5e0a-8284-4e8571cd70b7"))
+(global_label "M2_DIR" (shape bidirectional) (at 91.44 67.31 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "62e854fd-172f-5663-819e-17eb5e92659b") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 67.31 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 74.93) (xy 91.44 74.93)) (stroke (width 0) (type default)) (uuid "3a68b9bc-5e85-5521-bee4-7d5e36189a84"))
+(global_label "M2_STEP" (shape bidirectional) (at 91.44 74.93 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "bb362677-c40e-5f16-81bc-406f4b494e91") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 74.93 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 82.55) (xy 91.44 82.55)) (stroke (width 0) (type default)) (uuid "c6c7049d-e558-5c99-8235-83412d7cc087"))
+(global_label "+3V3" (shape bidirectional) (at 91.44 82.55 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "4e21438c-a4ab-5879-b373-40b070d23dd7") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 82.55 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 90.17) (xy 91.44 90.17)) (stroke (width 0) (type default)) (uuid "fb6b6b43-ca34-5165-be62-40fef52d8be1"))
+(global_label "+3V3" (shape bidirectional) (at 91.44 90.17 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "d6ff4fa1-f403-5b51-95ec-4698eb094a67") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 90.17 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 97.79) (xy 91.44 97.79)) (stroke (width 0) (type default)) (uuid "43d371f1-b73b-57cf-b929-b8a4f712d3ee"))
+(global_label "STEPPERS_EN_N" (shape bidirectional) (at 91.44 97.79 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "f7f24c6c-ee51-51a8-879d-3b15c89ae14d") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 97.79 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 113.03) (xy 91.44 113.03)) (stroke (width 0) (type default)) (uuid "3103192c-0eed-5e03-abe8-89ab61919435"))
+(global_label "+24V" (shape bidirectional) (at 91.44 113.03 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "1f212b4d-699a-5de2-9810-2f923a02717e") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 113.03 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 120.65) (xy 91.44 120.65)) (stroke (width 0) (type default)) (uuid "6e9b7cdc-94c4-5187-a0fa-4ee47757e2b2"))
+(global_label "GND" (shape bidirectional) (at 91.44 120.65 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "ee3d7523-7167-5665-81fd-d00cba5fe7d0") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 120.65 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(no_connect (at 172.72 90.17) (uuid "d54aa339-ef62-518c-83ab-1755e298cd84"))
+(no_connect (at 172.72 97.79) (uuid "1275d4ae-cfe8-5195-aa10-b6c4068d0cb2"))
+(no_connect (at 172.72 105.41) (uuid "ea6b7d3e-f862-5301-8c52-704cbd851d2e"))
+(symbol (lib_id "ProtoMate:Motor_PH6") (at 335.28 71.12 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "2223c30b-d18b-543a-9ff7-024b677b092e") (property "Reference" "M2" (at 335.28 38.1 0) (effects (font (size 1.27 1.27))))(property "Value" "C17HD2024-01N" (at 335.28 40.64 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 335.28 71.12 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d89361d7-5cf9-5308-8fcb-557119f994a9" (reference "M2") (unit 1)))))
+(wire (pts (xy 172.72 52.07) (xy 182.88 52.07)) (stroke (width 0) (type default)) (uuid "6b1ff22b-5104-5333-8f14-dc9785a192d7"))
+(global_label "M2_COIL_1A" (shape bidirectional) (at 182.88 52.07 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "42a30149-6590-56e7-8f1f-1d26f95b72d7") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 182.88 52.07 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 304.8 52.07) (xy 294.64 52.07)) (stroke (width 0) (type default)) (uuid "8bc0e27d-68b8-5783-a786-d8ce6d2092a5"))
+(global_label "M2_COIL_1A" (shape bidirectional) (at 294.64 52.07 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "1dda9d5b-a725-5b5a-8a4b-d85cd7310361") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 294.64 52.07 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 172.72 59.69) (xy 182.88 59.69)) (stroke (width 0) (type default)) (uuid "f9731dd6-bef0-5de0-91c3-e06868b7b084"))
+(global_label "M2_COIL_1B" (shape bidirectional) (at 182.88 59.69 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "62572a76-8ead-508b-864b-9d94fa78ac83") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 182.88 59.69 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 304.8 74.93) (xy 294.64 74.93)) (stroke (width 0) (type default)) (uuid "f65a4656-3bbd-533b-aa44-e4e39886fedd"))
+(global_label "M2_COIL_1B" (shape bidirectional) (at 294.64 74.93 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "66df406f-1901-5ec3-a481-6570d46de5b3") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 294.64 74.93 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 172.72 67.31) (xy 182.88 67.31)) (stroke (width 0) (type default)) (uuid "d2d34de6-a806-5b60-9f03-e6cd8d35a2ef"))
+(global_label "M2_COIL_2A" (shape bidirectional) (at 182.88 67.31 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "1579abc4-b0df-5149-9aa0-622ab8673273") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 182.88 67.31 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 304.8 67.31) (xy 294.64 67.31)) (stroke (width 0) (type default)) (uuid "a4bc2dc7-efed-5af7-bcd0-953ce0a7e2ef"))
+(global_label "M2_COIL_2A" (shape bidirectional) (at 294.64 67.31 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "2b7b40e0-c44a-55b5-b890-8ca7e9a4874e") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 294.64 67.31 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 172.72 74.93) (xy 182.88 74.93)) (stroke (width 0) (type default)) (uuid "292cb9f0-b3ae-5422-b4c1-ba3fd7a39845"))
+(global_label "M2_COIL_2B" (shape bidirectional) (at 182.88 74.93 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "7c9fe5ee-c4f6-5818-b01d-e8b5bd8d78e5") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 182.88 74.93 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 304.8 90.17) (xy 294.64 90.17)) (stroke (width 0) (type default)) (uuid "8c8fc2be-6130-5aae-abde-2b9b20272f88"))
+(global_label "M2_COIL_2B" (shape bidirectional) (at 294.64 90.17 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "46de00d0-9055-5e81-acd9-7bbbeb2d198a") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 294.64 90.17 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(no_connect (at 304.8 59.69) (uuid "af5fe7fd-57bd-5c1e-88ce-219b877a4932"))
+(no_connect (at 304.8 82.55) (uuid "a75cb7ea-6a6c-5939-b9fa-54214a4daffd"))
+(symbol (lib_id "ProtoMate:R") (at 43.18 86.36 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "17caa696-482d-5a58-a763-d808de9acd8b") (property "Reference" "R8" (at 46.99 85.09 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 46.99 87.63 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 43.18 86.36 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d89361d7-5cf9-5308-8fcb-557119f994a9" (reference "R8") (unit 1)))))
+(wire (pts (xy 43.18 82.55) (xy 43.18 78.74)) (stroke (width 0) (type default)) (uuid "cac0a44d-2993-5211-a1d8-676d44347f3a"))
+(global_label "M2_STEP" (shape bidirectional) (at 43.18 78.74 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "d067e0de-3085-5caa-9451-6f97af3345ba") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 43.18 78.74 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 43.18 90.17) (xy 43.18 93.98)) (stroke (width 0) (type default)) (uuid "083ccb00-39b5-57fa-9a7c-af30f4fadc34"))
+(global_label "GND" (shape bidirectional) (at 43.18 93.98 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "e0da8c51-f343-58b3-9858-785a6e34924b") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 43.18 93.98 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:C_Polarized") (at 226.06 109.22 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "71beabb6-857d-56df-9142-6c612db90979") (property "Reference" "C1" (at 229.87 107.95 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "100u / 50V" (at 229.87 110.49 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 226.06 109.22 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d89361d7-5cf9-5308-8fcb-557119f994a9" (reference "C1") (unit 1)))))
+(wire (pts (xy 226.06 105.41) (xy 226.06 101.6)) (stroke (width 0) (type default)) (uuid "4d127703-17fa-55b5-b9fd-b1861b2702be"))
+(global_label "+24V" (shape bidirectional) (at 226.06 101.6 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "b0a460ca-d390-5395-9eef-27961469ab45") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 226.06 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 226.06 113.03) (xy 226.06 116.84)) (stroke (width 0) (type default)) (uuid "7fb7da23-3fdb-59dc-a803-4a3c0a1fec97"))
+(global_label "GND" (shape bidirectional) (at 226.06 116.84 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "673ad13c-0f5d-5b63-aa5f-5d4246511269") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 226.06 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(text "Extra bulk capacitor near VMOTOR.\nOnboard bypass/bulk already included.\nKeep VMOTOR below 29 V including\ndeceleration transients." (at 259.08 101.6 0) (effects (font (size 1.016 1.016)) (justify left top)) (uuid "41dc2db9-1bb4-52d8-9204-7216fc3c163c"))
+(symbol (lib_id "ProtoMate:Adafruit_6121") (at 137.16 205.74 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "88bf602c-e898-534d-85f1-90f4086ed011") (property "Reference" "A4" (at 137.16 157.48 0) (effects (font (size 1.27 1.27))))(property "Value" "Adafruit #6121 / TMC2209" (at 137.16 160.02 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 137.16 205.74 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d89361d7-5cf9-5308-8fcb-557119f994a9" (reference "A4") (unit 1)))))
+(wire (pts (xy 101.6 171.45) (xy 91.44 171.45)) (stroke (width 0) (type default)) (uuid "ff1970f1-22bc-5ce1-bb4d-86edb457c320"))
+(global_label "+3V3" (shape bidirectional) (at 91.44 171.45 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "acf67c3e-c0e3-5e0e-8223-caebd9c46031") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 171.45 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 179.07) (xy 91.44 179.07)) (stroke (width 0) (type default)) (uuid "d7fd0a06-ef70-54e8-b868-b7cdfa798abf"))
+(global_label "GND" (shape bidirectional) (at 91.44 179.07 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "23b045bd-0516-5f27-8afc-1e07b30a8e9e") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 179.07 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 186.69) (xy 91.44 186.69)) (stroke (width 0) (type default)) (uuid "1b514b43-8fe0-5bd0-a421-3d251ed2684f"))
+(global_label "M3_DIR" (shape bidirectional) (at 91.44 186.69 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "4c3556ed-f642-5c7c-87c4-928399c1b4d7") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 186.69 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 194.31) (xy 91.44 194.31)) (stroke (width 0) (type default)) (uuid "005e694d-4bd3-5140-93b6-74aa8f17be42"))
+(global_label "M3_STEP" (shape bidirectional) (at 91.44 194.31 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "f50eb0c9-f898-500d-81d3-d5571a01994e") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 194.31 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 201.93) (xy 91.44 201.93)) (stroke (width 0) (type default)) (uuid "83014b32-541d-57fc-a1fe-0ab92d3da2c7"))
+(global_label "+3V3" (shape bidirectional) (at 91.44 201.93 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "9b53888e-9644-5ada-95ce-5ec70e599bf7") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 201.93 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 209.55) (xy 91.44 209.55)) (stroke (width 0) (type default)) (uuid "a7f6fc39-8417-55fb-9cd0-44be3adfad71"))
+(global_label "+3V3" (shape bidirectional) (at 91.44 209.55 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "9667d523-ba7a-5bed-98bb-12d34bcb18ba") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 209.55 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 217.17) (xy 91.44 217.17)) (stroke (width 0) (type default)) (uuid "9f533aa0-4ded-5f75-8acc-687b6b675452"))
+(global_label "STEPPERS_EN_N" (shape bidirectional) (at 91.44 217.17 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "3987ceac-e5c8-54e0-9767-d884d26e05ff") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 217.17 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 232.41) (xy 91.44 232.41)) (stroke (width 0) (type default)) (uuid "171adc1c-029c-570d-8161-df33e79e72ad"))
+(global_label "+24V" (shape bidirectional) (at 91.44 232.41 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "e3c33bf3-67e7-5c84-81f1-5e8dc8101f42") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 232.41 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 101.6 240.03) (xy 91.44 240.03)) (stroke (width 0) (type default)) (uuid "3a0ca64d-5ec4-5284-93a1-e8686d39358a"))
+(global_label "GND" (shape bidirectional) (at 91.44 240.03 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "41b52a08-e7af-58b5-84f4-81cada5174bd") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 91.44 240.03 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(no_connect (at 172.72 209.55) (uuid "d3a5cff9-85aa-5c8a-a15d-1f0a1aad85c8"))
+(no_connect (at 172.72 217.17) (uuid "504b8160-b398-5fd7-8d09-01f81abbc30e"))
+(no_connect (at 172.72 224.79) (uuid "40682afb-8949-5f7f-8560-84bf48c34352"))
+(symbol (lib_id "ProtoMate:Motor_PH6") (at 335.28 190.5 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "1c8d2d43-b898-5150-8971-925d40f6cdbd") (property "Reference" "M3" (at 335.28 157.48 0) (effects (font (size 1.27 1.27))))(property "Value" "BJ42D15-26V10" (at 335.28 160.02 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 335.28 190.5 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d89361d7-5cf9-5308-8fcb-557119f994a9" (reference "M3") (unit 1)))))
+(wire (pts (xy 172.72 171.45) (xy 182.88 171.45)) (stroke (width 0) (type default)) (uuid "c6e40ea3-ea23-5bcf-9db3-cd8cb33d9cdd"))
+(global_label "M3_COIL_1A" (shape bidirectional) (at 182.88 171.45 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "8f6bdb1e-5c44-59c6-a6bb-935e2635aad0") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 182.88 171.45 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 304.8 171.45) (xy 294.64 171.45)) (stroke (width 0) (type default)) (uuid "8b497687-42e3-50bd-ae32-cbc6678e11c6"))
+(global_label "M3_COIL_1A" (shape bidirectional) (at 294.64 171.45 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "0c6204dc-5efe-5de8-8b0d-0f685116bfbf") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 294.64 171.45 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 172.72 179.07) (xy 182.88 179.07)) (stroke (width 0) (type default)) (uuid "2d64eab5-4cfc-5416-88cf-30d2e143be3d"))
+(global_label "M3_COIL_1B" (shape bidirectional) (at 182.88 179.07 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "7e8bb8ed-069e-5b5d-aae0-6469503d387c") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 182.88 179.07 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 304.8 194.31) (xy 294.64 194.31)) (stroke (width 0) (type default)) (uuid "28e308d0-e953-5d2e-b47c-866b01ce4ad9"))
+(global_label "M3_COIL_1B" (shape bidirectional) (at 294.64 194.31 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "1469d659-fe0e-524d-9bf0-71a1992fcbdb") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 294.64 194.31 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 172.72 186.69) (xy 182.88 186.69)) (stroke (width 0) (type default)) (uuid "39b62a3c-4127-5f91-a1ae-aea148dc7c91"))
+(global_label "M3_COIL_2A" (shape bidirectional) (at 182.88 186.69 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "460de246-9f73-5f1e-a2b4-77e6e83fcf19") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 182.88 186.69 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 304.8 186.69) (xy 294.64 186.69)) (stroke (width 0) (type default)) (uuid "6eba1443-26d9-51d5-a6b6-981662e68163"))
+(global_label "M3_COIL_2A" (shape bidirectional) (at 294.64 186.69 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "cc86bdae-fdfe-5f42-b727-e6cd47322383") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 294.64 186.69 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 172.72 194.31) (xy 182.88 194.31)) (stroke (width 0) (type default)) (uuid "f866ccdf-9878-51b9-9143-dde0ea949422"))
+(global_label "M3_COIL_2B" (shape bidirectional) (at 182.88 194.31 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "c86e1dae-880d-5359-9ae9-1f68e4b3f428") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 182.88 194.31 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 304.8 209.55) (xy 294.64 209.55)) (stroke (width 0) (type default)) (uuid "d325e078-9a1f-563f-aff8-40cb76cadf8c"))
+(global_label "M3_COIL_2B" (shape bidirectional) (at 294.64 209.55 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "2016511a-78d0-592f-93ec-5c5893e617d2") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 294.64 209.55 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(no_connect (at 304.8 179.07) (uuid "bb7260b6-2086-594d-bde6-df6102770315"))
+(no_connect (at 304.8 201.93) (uuid "a8227700-509d-5194-8616-4e4b1362efa2"))
+(symbol (lib_id "ProtoMate:R") (at 43.18 205.74 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "205c37a8-0884-52bc-99e0-0912782c0ed2") (property "Reference" "R9" (at 46.99 204.47 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 46.99 207.01 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 43.18 205.74 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d89361d7-5cf9-5308-8fcb-557119f994a9" (reference "R9") (unit 1)))))
+(wire (pts (xy 43.18 201.93) (xy 43.18 198.12)) (stroke (width 0) (type default)) (uuid "60886ee6-1caa-5574-bbd6-7e42a9dd28f4"))
+(global_label "M3_STEP" (shape bidirectional) (at 43.18 198.12 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "6f6512bc-c299-53d7-b0dd-a9139c2be1b7") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 43.18 198.12 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 43.18 209.55) (xy 43.18 213.36)) (stroke (width 0) (type default)) (uuid "fb4af8a5-d6f2-5257-9b10-302a236f9a9e"))
+(global_label "GND" (shape bidirectional) (at 43.18 213.36 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "88b3da32-2207-52e1-b200-98346061f706") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 43.18 213.36 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:C_Polarized") (at 226.06 228.6 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "f304f1cc-f06e-51ad-858c-7e09d8fc5739") (property "Reference" "C2" (at 229.87 227.33 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "100u / 50V" (at 229.87 229.87 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 226.06 228.6 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d89361d7-5cf9-5308-8fcb-557119f994a9" (reference "C2") (unit 1)))))
+(wire (pts (xy 226.06 224.79) (xy 226.06 220.98)) (stroke (width 0) (type default)) (uuid "3b8ff78f-729f-56cc-9739-9e0f366de60c"))
+(global_label "+24V" (shape bidirectional) (at 226.06 220.98 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "7bc1d9f0-1582-59d4-b997-84ca2d406358") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 226.06 220.98 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 226.06 232.41) (xy 226.06 236.22)) (stroke (width 0) (type default)) (uuid "9f4f2dca-132c-579c-9491-8d3536a0bb8b"))
+(global_label "GND" (shape bidirectional) (at 226.06 236.22 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "b493dd32-24a7-5d20-a800-79e907cb8954") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 226.06 236.22 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(text "Extra bulk capacitor near VMOTOR.\nOnboard bypass/bulk already included.\nKeep VMOTOR below 29 V including\ndeceleration transients." (at 259.08 220.98 0) (effects (font (size 1.016 1.016)) (justify left top)) (uuid "cf280c6c-471d-5c42-acb5-46dde4f19647"))
+(text "MS1 = MS2 = VDD (3.3 V): 1/16 step, 3200 pulses/rev. No MCU pins needed.\nSPRD jumper open: factory StealthChop mode. Current set with each onboard potentiometer." (at 20.32 27.94 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "a3d6c681-a27c-531d-bcb8-719c5759713c"))
+(text "M2: 1.0 A/phase, 4.1 ohm, 8.5 mH; coil pairs 1-4 and 3-6 (user-confirmed).\nM3: 0.84 A/phase, 6.0 ohm, 8.8 mH; 20T / 2 mm pulley -> 40 mm/rev -> 80 pulses/mm.\nBoth motors: 1.8 deg. Adjust current separately; respect peak/RMS conventions.\nJP1/JP4 identifiers are Adafruit board contacts; follow the printed terminal labels." (at 20.32 264.16 0) (effects (font (size 1.016 1.016)) (justify left top)) (uuid "4ebb17bb-12b4-5575-b4aa-95314e64f0b9"))
+(embedded_fonts no))

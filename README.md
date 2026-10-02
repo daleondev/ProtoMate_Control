@@ -53,6 +53,56 @@ I/O uses the host filesystem; explicit FileX tests use simulated media images.
 The simulated LED state toggles inside the process; inspect it through the
 HAL or Linux debugger. Startup diagnostics and the boot message appear on the terminal.
 
+## KiCad wiring schematic
+
+Open [hardware/wiring/ProtoMate_Wiring.kicad_pro](hardware/wiring/ProtoMate_Wiring.kicad_pro)
+in **KiCad 10**. This is a schematic-only subproject with five linked sheets:
+controller and power, M1/DM542T, M2/M3/TMC2209, M1 encoder, and QSPI/SD storage.
+The project includes its own symbol library; no PCB is included.
+
+For a printable view, use [the complete schematic PDF](hardware/wiring/ProtoMate_Wiring.pdf).
+[Parts.csv](hardware/wiring/Parts.csv) lists the modules, motors and external
+components. `DNP` means a component is shown but is not fitted. Capacitors and
+pull-ups already present on storage modules need not be duplicated, as noted
+on the storage sheet. Purchased modules are represented by their external
+contacts, rather than reproducing their internal circuits.
+
+The supply arrangement is **24 V DC input**, with the user's **QIQIAZI
+24/12 V-to-5 V, 5 A buck converter** generating the logic/encoder supply.
+Connect its 5 V output to Nucleo **CN11 pin 6 (5V_EXT)** and ground to
+**CN11 pin 8**; select **JP2 pins 5–6 (EXT)**. The Nucleo's 3.3 V output on
+**CN8 pin 7** supplies the TMC logic, encoder buffer and storage. The board's
+5V_EXT input is rated **4.75–5.25 V, 500 mA maximum**, independently of the
+converter's 5 A rating. Apply external power before attaching ST-Link USB.
+See [ST UM2407, sections 7.4.3 and 7.4.6](https://www.st.com/resource/en/user_manual/um2407-stm32h7-nucleo144-boards-mb1364-stmicroelectronics.pdf).
+The buck symbol uses its marked input/output connections; wire colours are
+not assumed.
+
+Both TMC2209 boards have **MS1 and MS2 connected to their 3.3 V VDD** for
+**1/16 microstepping**. The M1 sheet documents the DM542T switches for the
+same resolution. All three 1.8° motors then require **3,200 STEP pulses per
+motor revolution**. Driver current settings must suit each motor; these
+hardware settings do not start the stopped timers in the firmware.
+
+M2's connector assignment was confirmed by the user to match M3: winding
+pairs **1–4 and 3–6**, with **2 and 5 unused**. M1's motor and encoder
+connections follow the drawings in `docs/` and the Oriental Motor manual.
+The 2N2222A symbols deliberately identify **B/C/E**, since package lead order
+depends on the actual transistor manufacturer. Encoder termination resistors
+are marked DNP; select termination for the cable and the encoder's output
+current limit before fitting them.
+
+The connector assignments were checked against the firmware, ST's board
+manual, the motor drawings, and
+[Adafruit's published breakout schematic](https://github.com/adafruit/Adafruit-TMC2209-Breakout-PCB/blob/main/Adafruit%20TMC2209%20Stepper%20Motor%20Driver.sch).
+KiCad's electrical-rules check reports no violations; the saved result is
+[ERC.rpt](hardware/wiring/ERC.rpt). To repeat the check from the repository root:
+
+```sh
+kicad-cli sch erc --severity-all --exit-code-violations \
+  -o /tmp/ProtoMate_Wiring-ERC.rpt hardware/wiring/ProtoMate_Wiring.kicad_sch
+```
+
 ## Storage and external wiring
 
 Hardware startup continues without readable storage by default; file access

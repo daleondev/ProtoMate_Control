@@ -1,0 +1,449 @@
+(kicad_sch (version 20250114) (generator "eeschema") (uuid "aba05670-e6ff-554b-98cc-ce1f2773bd89") (paper "A3") (title_block (title "ProtoMate SCARA — M1 - DM542T") (date "2026-10-02") (rev "1.0") (company "ProtoMate Control") (comment 1 "Wiring schematic | no PCB | all voltages DC"))
+(lib_symbols
+(symbol "ProtoMate:DM542T" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board no) (property "Reference" "U" (at 0 44.45 0) (effects (font (size 1.27 1.27))))(property "Value" "DM542T V4.0 / S2 = 5 V" (at 0 41.91 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Datasheet" "https://www.omc-stepperonline.com/download/DM542T_V4.0.pdf" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Description" "DM542T V4.0 / S2 = 5 V" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(symbol "DM542T_0_1" (rectangle (start -30.48 38.1) (end 30.48 -38.1) (stroke (width 0.254) (type default)) (fill (type background))))(symbol "DM542T_1_1" (pin passive line (at -35.56 30.48 0) (length 5.08) (name "PUL+" (effects (font (size 1.016 1.016)))) (number "PUL+" (effects (font (size 0.889 0.889)))))(pin passive line (at -35.56 22.86 0) (length 5.08) (name "PUL-" (effects (font (size 1.016 1.016)))) (number "PUL-" (effects (font (size 0.889 0.889)))))(pin passive line (at -35.56 15.24 0) (length 5.08) (name "DIR+" (effects (font (size 1.016 1.016)))) (number "DIR+" (effects (font (size 0.889 0.889)))))(pin passive line (at -35.56 7.62 0) (length 5.08) (name "DIR-" (effects (font (size 1.016 1.016)))) (number "DIR-" (effects (font (size 0.889 0.889)))))(pin passive line (at -35.56 0 0) (length 5.08) (name "ENA+" (effects (font (size 1.016 1.016)))) (number "ENA+" (effects (font (size 0.889 0.889)))))(pin passive line (at -35.56 -7.62 0) (length 5.08) (name "ENA-" (effects (font (size 1.016 1.016)))) (number "ENA-" (effects (font (size 0.889 0.889)))))(pin power_in line (at -35.56 -22.86 0) (length 5.08) (name "+Vdc" (effects (font (size 1.016 1.016)))) (number "+Vdc" (effects (font (size 0.889 0.889)))))(pin passive line (at -35.56 -30.48 0) (length 5.08) (name "GND" (effects (font (size 1.016 1.016)))) (number "GND" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 30.48 180) (length 5.08) (name "A+" (effects (font (size 1.016 1.016)))) (number "A+" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 22.86 180) (length 5.08) (name "A-" (effects (font (size 1.016 1.016)))) (number "A-" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 15.24 180) (length 5.08) (name "B+" (effects (font (size 1.016 1.016)))) (number "B+" (effects (font (size 0.889 0.889)))))(pin output line (at 35.56 7.62 180) (length 5.08) (name "B-" (effects (font (size 1.016 1.016)))) (number "B-" (effects (font (size 0.889 0.889)))))(pin passive line (at 35.56 -7.62 180) (length 5.08) (name "ALM+ / unused" (effects (font (size 1.016 1.016)))) (number "ALM+" (effects (font (size 0.889 0.889)))))(pin passive line (at 35.56 -15.24 180) (length 5.08) (name "ALM- / unused" (effects (font (size 1.016 1.016)))) (number "ALM-" (effects (font (size 0.889 0.889)))))))
+(symbol "ProtoMate:Motor_M1" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board no) (property "Reference" "U" (at 0 29.21 0) (effects (font (size 1.27 1.27))))(property "Value" "PKP245D23A2-R2FL" (at 0 26.67 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Description" "M1 motor connector. Separate encoder connector is on the encoder sheet." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(symbol "Motor_M1_0_1" (rectangle (start -27.94 22.86) (end 27.94 -22.86) (stroke (width 0.254) (type default)) (fill (type background))))(symbol "Motor_M1_1_1" (pin passive line (at -33.02 15.24 0) (length 5.08) (name "A / black" (effects (font (size 1.016 1.016)))) (number "1" (effects (font (size 0.889 0.889)))))(pin passive line (at -33.02 7.62 0) (length 5.08) (name "A- / green" (effects (font (size 1.016 1.016)))) (number "2" (effects (font (size 0.889 0.889)))))(pin passive line (at -33.02 0 0) (length 5.08) (name "NC" (effects (font (size 1.016 1.016)))) (number "3" (effects (font (size 0.889 0.889)))))(pin passive line (at -33.02 -7.62 0) (length 5.08) (name "B- / blue" (effects (font (size 1.016 1.016)))) (number "4" (effects (font (size 0.889 0.889)))))(pin passive line (at -33.02 -15.24 0) (length 5.08) (name "B / red" (effects (font (size 1.016 1.016)))) (number "5" (effects (font (size 0.889 0.889)))))))
+(symbol "ProtoMate:Q_NPN"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "Q"
+			(at 5.08 1.27 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Q_NPN"
+			(at 5.08 -1.27 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 5.08 2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "NPN bipolar junction transistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "BJT"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "Q_NPN_0_1"
+			(polyline
+				(pts
+					(xy -2.54 0) (xy 0.635 0)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0.635 1.905) (xy 0.635 -1.905)
+				)
+				(stroke
+					(width 0.508)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0.635 0.635) (xy 2.54 2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0.635 -0.635) (xy 2.54 -2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(circle
+				(center 1.27 0)
+				(radius 2.8194)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 1.27 -1.778) (xy 1.778 -1.27) (xy 2.286 -2.286) (xy 1.27 -1.778)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type outline)
+				)
+			)
+		)
+		(symbol "Q_NPN_1_1"
+			(pin input line
+				(at -5.08 0 0)
+				(length 2.54)
+				(name "B"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "B"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 2.54 5.08 270)
+				(length 2.54)
+				(name "C"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "C"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 2.54 -5.08 90)
+				(length 2.54)
+				(name "E"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "E"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "ProtoMate:R"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "R"
+			(at 2.032 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "R"
+			(at 0 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at -1.778 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "R res resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "R_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "R_0_1"
+			(rectangle
+				(start -1.016 -2.54)
+				(end 1.016 2.54)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "R_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	))
+(text "M1 - DM542T" (at 15.24 12.7 0) (effects (font (size 2.54 2.54)) (justify left top)) (uuid "8d454a92-2852-5fb6-a25b-34fcca82552f"))
+(polyline (pts (xy 15.24 22.86) (xy 401.32 22.86)) (stroke (width 0.254) (type default)) (fill (type none)) (uuid "128953db-76f2-503b-bb4a-d36c4ea00d4b"))
+(text "3.3 V MCU -> 2N2222A current sinks -> 5 V optoisolated inputs" (at 20.32 30.48 0) (effects (font (size 1.524 1.524)) (justify left top)) (uuid "6e65cfb1-ffd3-5796-b5f7-f94212214d03"))
+(symbol (lib_id "ProtoMate:R") (at 73.66 60.96 90) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "45805810-0f91-556d-abba-cc286d76185b") (property "Reference" "R1" (at 73.66 55.88 90) (effects (font (size 1.016 1.016))))(property "Value" "1k" (at 73.66 58.42 90) (effects (font (size 1.016 1.016))))(property "Footprint" "" (at 73.66 60.96 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "R1") (unit 1)))))
+(wire (pts (xy 69.85 60.96) (xy 57.15 60.96)) (stroke (width 0) (type default)) (uuid "8f4b71c7-c3ca-5a0a-aedb-83ab3697bb12"))
+(global_label "M1_STEP" (shape bidirectional) (at 57.15 60.96 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "6e6ed5a8-7af1-5d60-853f-bcc7f5dc1767") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 57.15 60.96 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:Q_NPN") (at 111.76 60.96 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "57470f4f-27ae-5062-a5aa-3834edc2e93a") (property "Reference" "Q1" (at 116.84 58.42 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "2N2222A" (at 116.84 60.96 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 111.76 60.96 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "Q1") (unit 1)))))
+(wire (pts (xy 77.47 60.96) (xy 93.98 60.96)) (stroke (width 0) (type default)) (uuid "1f3aed53-ee0d-581e-82b2-641836661a32"))
+(wire (pts (xy 93.98 60.96) (xy 106.68 60.96)) (stroke (width 0) (type default)) (uuid "36688f71-2db7-5d34-9acb-6904662c347a"))
+(junction (at 93.98 60.96) (diameter 0) (color 0 0 0 0) (uuid "995b6a40-9fe6-5d10-b548-9748c50cf3c5"))
+(symbol (lib_id "ProtoMate:R") (at 93.98 76.2 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "2a56d263-32a1-5a45-a097-ebf8ee962ea7") (property "Reference" "R2" (at 97.79 74.93 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 97.79 77.47 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 93.98 76.2 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "R2") (unit 1)))))
+(wire (pts (xy 93.98 60.96) (xy 93.98 72.39)) (stroke (width 0) (type default)) (uuid "3f33a18d-aae1-586f-bd59-263abfe6f683"))
+(wire (pts (xy 93.98 80.01) (xy 93.98 83.82)) (stroke (width 0) (type default)) (uuid "ae6fc539-9b8a-5cd0-801e-d173e0f5a797"))
+(global_label "GND" (shape bidirectional) (at 93.98 83.82 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "fd700025-9ea2-570a-8154-9b0fb59caba5") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 93.98 83.82 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 114.3 66.04) (xy 114.3 78.74)) (stroke (width 0) (type default)) (uuid "5ef6bb96-d82b-5c81-9d91-d7ed140b86be"))
+(global_label "GND" (shape bidirectional) (at 114.3 78.74 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "ac070a5c-ae04-5114-8eac-d22c932bc857") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 114.3 78.74 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 114.3 55.88) (xy 114.3 45.72)) (stroke (width 0) (type default)) (uuid "ca00b213-7fbf-546d-bc9e-517750a148b4"))
+(global_label "DM_PUL_N" (shape bidirectional) (at 114.3 45.72 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "bb68185b-cd93-55b1-8089-913d3972095d") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 114.3 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 73.66 111.76 90) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "bad616d5-11cc-548e-89c0-5530847723a6") (property "Reference" "R3" (at 73.66 106.68 90) (effects (font (size 1.016 1.016))))(property "Value" "1k" (at 73.66 109.22 90) (effects (font (size 1.016 1.016))))(property "Footprint" "" (at 73.66 111.76 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "R3") (unit 1)))))
+(wire (pts (xy 69.85 111.76) (xy 57.15 111.76)) (stroke (width 0) (type default)) (uuid "6d85be42-2064-501b-a300-1a72fb1d1f00"))
+(global_label "M1_DIR" (shape bidirectional) (at 57.15 111.76 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "0f5f3678-407c-53e2-a8d0-5f17a21a55cb") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 57.15 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:Q_NPN") (at 111.76 111.76 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "00b85889-f693-5256-8c55-22625b5898ff") (property "Reference" "Q2" (at 116.84 109.22 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "2N2222A" (at 116.84 111.76 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 111.76 111.76 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "Q2") (unit 1)))))
+(wire (pts (xy 77.47 111.76) (xy 93.98 111.76)) (stroke (width 0) (type default)) (uuid "e7060094-8ec7-59d9-a2b7-40c5810c5a7f"))
+(wire (pts (xy 93.98 111.76) (xy 106.68 111.76)) (stroke (width 0) (type default)) (uuid "b7b9904f-4f7b-5b1f-bc14-cec63ebe4c81"))
+(junction (at 93.98 111.76) (diameter 0) (color 0 0 0 0) (uuid "51412106-ff81-537b-a017-da31fbcda0c9"))
+(symbol (lib_id "ProtoMate:R") (at 93.98 127 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "c105a4b8-50e5-583c-91b7-d7f8d956434c") (property "Reference" "R4" (at 97.79 125.73 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 97.79 128.27 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 93.98 127 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "R4") (unit 1)))))
+(wire (pts (xy 93.98 111.76) (xy 93.98 123.19)) (stroke (width 0) (type default)) (uuid "83f42791-5556-50cc-973a-cd46dc8765f1"))
+(wire (pts (xy 93.98 130.81) (xy 93.98 134.62)) (stroke (width 0) (type default)) (uuid "58a577a6-aa1b-5deb-926a-485eb9380d66"))
+(global_label "GND" (shape bidirectional) (at 93.98 134.62 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "461f2762-dc6c-566e-bc77-707fbceee58f") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 93.98 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 114.3 116.84) (xy 114.3 129.54)) (stroke (width 0) (type default)) (uuid "dd81c1f4-effd-54a9-84a6-6aa752cece3e"))
+(global_label "GND" (shape bidirectional) (at 114.3 129.54 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "8206f8e4-4f74-5dfc-93b3-e428ad0e4d93") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 114.3 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 114.3 106.68) (xy 114.3 96.52)) (stroke (width 0) (type default)) (uuid "9a10fdb9-18ed-5684-8da0-ee8a312fe41b"))
+(global_label "DM_DIR_N" (shape bidirectional) (at 114.3 96.52 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "e0bed8d0-e641-5e54-8d07-88664d7477e3") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 114.3 96.52 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 73.66 162.56 90) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "6c2d67d2-1db2-5d72-b857-d6a5e308db97") (property "Reference" "R5" (at 73.66 157.48 90) (effects (font (size 1.016 1.016))))(property "Value" "1k" (at 73.66 160.02 90) (effects (font (size 1.016 1.016))))(property "Footprint" "" (at 73.66 162.56 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "R5") (unit 1)))))
+(wire (pts (xy 69.85 162.56) (xy 57.15 162.56)) (stroke (width 0) (type default)) (uuid "8c35ef08-3542-5e40-bfd2-f3572b16b85f"))
+(global_label "STEPPERS_EN_N" (shape bidirectional) (at 57.15 162.56 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "aa8017ce-c1e9-55a6-a99f-2a4153648e9e") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 57.15 162.56 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:Q_NPN") (at 111.76 162.56 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "63669a8f-a99e-5a61-a16f-7899c555a73a") (property "Reference" "Q3" (at 116.84 160.02 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "2N2222A" (at 116.84 162.56 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 111.76 162.56 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "Q3") (unit 1)))))
+(wire (pts (xy 77.47 162.56) (xy 93.98 162.56)) (stroke (width 0) (type default)) (uuid "e0ed7138-8cb5-5ebc-8801-0affa05ded97"))
+(wire (pts (xy 93.98 162.56) (xy 106.68 162.56)) (stroke (width 0) (type default)) (uuid "df04f565-9745-56af-80e0-c63a4cd39c17"))
+(junction (at 93.98 162.56) (diameter 0) (color 0 0 0 0) (uuid "4e9752e4-8861-5837-ae01-d953e83f8f1e"))
+(symbol (lib_id "ProtoMate:R") (at 93.98 177.8 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "86843177-1c6f-5c97-8df9-64ce30050d9b") (property "Reference" "R6" (at 97.79 176.53 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 97.79 179.07 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 93.98 177.8 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "R6") (unit 1)))))
+(wire (pts (xy 93.98 162.56) (xy 93.98 173.99)) (stroke (width 0) (type default)) (uuid "ba99ba7b-2de8-5243-a83f-ada57eb3e9be"))
+(wire (pts (xy 93.98 181.61) (xy 93.98 185.42)) (stroke (width 0) (type default)) (uuid "17fefd4c-32e2-54ee-a74e-ef41d0906f3c"))
+(global_label "GND" (shape bidirectional) (at 93.98 185.42 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "f8505914-a1c6-5f6b-98ac-073e1d15c75a") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 93.98 185.42 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 114.3 167.64) (xy 114.3 180.34)) (stroke (width 0) (type default)) (uuid "e06d928f-f68b-5f4f-9323-bb79e4248049"))
+(global_label "GND" (shape bidirectional) (at 114.3 180.34 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "d8720113-990b-5456-8931-8e7accac131d") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 114.3 180.34 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 114.3 157.48) (xy 114.3 147.32)) (stroke (width 0) (type default)) (uuid "01203915-2cd0-5c0d-a8c7-122aea11f727"))
+(global_label "DM_ENA_N" (shape bidirectional) (at 114.3 147.32 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "4c5579e1-d25c-5d8a-81b0-bb033d1462b4") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 114.3 147.32 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 35.56 137.16 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "0f04b425-e95b-5880-a938-fa7314c470f3") (property "Reference" "R7" (at 39.37 135.89 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "470R" (at 39.37 138.43 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 35.56 137.16 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "R7") (unit 1)))))
+(wire (pts (xy 35.56 133.35) (xy 35.56 129.54)) (stroke (width 0) (type default)) (uuid "2670c326-ac15-5c7b-9b4a-3b5a0a195aee"))
+(global_label "+3V3" (shape bidirectional) (at 35.56 129.54 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "6ea32c84-469e-5f85-a574-2d42088ca320") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 35.56 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 35.56 140.97) (xy 35.56 144.78)) (stroke (width 0) (type default)) (uuid "e65c7f76-5ce6-5eda-b547-6ccddd3326f7"))
+(global_label "STEPPERS_EN_N" (shape bidirectional) (at 35.56 144.78 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "cdfb0010-cc6f-5af2-8105-245121030ee8") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 35.56 144.78 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:DM542T") (at 246.38 96.52 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "c18213d2-e925-556b-9231-74711a06eab6") (property "Reference" "A2" (at 246.38 52.07 0) (effects (font (size 1.27 1.27))))(property "Value" "DM542T V4.0" (at 246.38 54.61 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 246.38 96.52 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "A2") (unit 1)))))
+(wire (pts (xy 210.82 66.04) (xy 200.66 66.04)) (stroke (width 0) (type default)) (uuid "ff1cdf5c-0933-5551-a640-69dc9f9fa7c4"))
+(global_label "+5V" (shape bidirectional) (at 200.66 66.04 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "c14bea0a-fe21-5968-904b-8cc1ca9144f2") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 200.66 66.04 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 210.82 73.66) (xy 200.66 73.66)) (stroke (width 0) (type default)) (uuid "6f69719a-3f85-57c4-80f1-07bdc9d3e318"))
+(global_label "DM_PUL_N" (shape bidirectional) (at 200.66 73.66 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "f0260ed1-1146-5aa0-8c66-4bd2ccce8f55") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 200.66 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 210.82 81.28) (xy 200.66 81.28)) (stroke (width 0) (type default)) (uuid "9f184896-8387-57d2-b7b9-b6f1c4a1fa63"))
+(global_label "+5V" (shape bidirectional) (at 200.66 81.28 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "113fb409-df01-5862-8828-e3567fcd419d") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 200.66 81.28 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 210.82 88.9) (xy 200.66 88.9)) (stroke (width 0) (type default)) (uuid "f6eef323-799e-50dd-a06f-517c391b96c4"))
+(global_label "DM_DIR_N" (shape bidirectional) (at 200.66 88.9 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "a39589a1-2375-5656-b438-b0ff1e6c2fa9") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 200.66 88.9 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 210.82 96.52) (xy 200.66 96.52)) (stroke (width 0) (type default)) (uuid "63d4de66-a328-5a2d-92f5-8350cb6b6490"))
+(global_label "+5V" (shape bidirectional) (at 200.66 96.52 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "eeb2aa11-6864-5164-91d6-f5eda6c895aa") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 200.66 96.52 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 210.82 104.14) (xy 200.66 104.14)) (stroke (width 0) (type default)) (uuid "1b4d66d6-4112-5929-b3e4-cc9f10078d58"))
+(global_label "DM_ENA_N" (shape bidirectional) (at 200.66 104.14 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "825cac61-b38f-503c-8c81-fd9a2f02ce89") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 200.66 104.14 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 210.82 119.38) (xy 200.66 119.38)) (stroke (width 0) (type default)) (uuid "aa2c64a3-a9fc-5bcd-b313-72c74fe75c0a"))
+(global_label "+24V" (shape bidirectional) (at 200.66 119.38 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "69dc539e-b8bf-591e-bedf-fc1ab5cda633") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 200.66 119.38 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 210.82 127) (xy 200.66 127)) (stroke (width 0) (type default)) (uuid "6f3e90ef-5b8c-58d8-b640-9af3285cbc56"))
+(global_label "GND" (shape bidirectional) (at 200.66 127 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "6435e783-70f2-5c46-98a0-9ffce17f1009") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 200.66 127 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:Motor_M1") (at 355.6 78.74 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "293d8a60-a357-525c-bcc2-c43c731f93f2") (property "Reference" "M1" (at 355.6 49.53 0) (effects (font (size 1.27 1.27))))(property "Value" "PKP245D23A2-R2FL" (at 355.6 52.07 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 355.6 78.74 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/baefecb6-37ea-5a4b-b5e2-46070f200f09" (reference "M1") (unit 1)))))
+(wire (pts (xy 281.94 66.04) (xy 287.02 66.04)) (stroke (width 0) (type default)) (uuid "580ea287-7a41-5f4a-9177-db8cfbd5fba1"))
+(global_label "M1_COIL_A_P" (shape bidirectional) (at 287.02 66.04 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "84f72b89-1fc8-5cc7-bdda-28fcbf3cf536") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 287.02 66.04 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 322.58 63.5) (xy 317.5 63.5)) (stroke (width 0) (type default)) (uuid "b89eba9c-9126-51a7-905e-dea5cf06308d"))
+(global_label "M1_COIL_A_P" (shape bidirectional) (at 317.5 63.5 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "8ea6f0b4-a33c-51f4-911a-706e14c0d484") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 317.5 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 281.94 73.66) (xy 287.02 73.66)) (stroke (width 0) (type default)) (uuid "76648576-e6a9-5e06-9115-3a09823fdd14"))
+(global_label "M1_COIL_A_N" (shape bidirectional) (at 287.02 73.66 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "85301952-7053-5a0b-a38f-62f80344a088") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 287.02 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 322.58 71.12) (xy 317.5 71.12)) (stroke (width 0) (type default)) (uuid "a62c31dc-b54a-558d-802a-9be1e2185885"))
+(global_label "M1_COIL_A_N" (shape bidirectional) (at 317.5 71.12 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "1885c7ae-5700-523c-88f3-fe70c3a5cd62") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 317.5 71.12 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 281.94 81.28) (xy 287.02 81.28)) (stroke (width 0) (type default)) (uuid "e222e9cb-e4d8-5f15-9793-7c07faed4712"))
+(global_label "M1_COIL_B_P" (shape bidirectional) (at 287.02 81.28 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "52d5b31e-4b8c-5ab8-a6a2-f7dd8527834e") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 287.02 81.28 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 322.58 93.98) (xy 317.5 93.98)) (stroke (width 0) (type default)) (uuid "6df6b323-58a0-536f-98e4-278093e2efbe"))
+(global_label "M1_COIL_B_P" (shape bidirectional) (at 317.5 93.98 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "43d0c58c-9240-5075-8ecf-513c63e9995d") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 317.5 93.98 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 281.94 88.9) (xy 287.02 88.9)) (stroke (width 0) (type default)) (uuid "69db6ddd-5463-5d0c-b50e-28c40b0ecc1a"))
+(global_label "M1_COIL_B_N" (shape bidirectional) (at 287.02 88.9 180) (effects (font (size 1.016 1.016)) (justify left)) (uuid "5a05c397-e671-51b1-a830-75ef25170638") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 287.02 88.9 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 322.58 86.36) (xy 317.5 86.36)) (stroke (width 0) (type default)) (uuid "a634eaf2-638a-5cab-8416-ba8339e9c20a"))
+(global_label "M1_COIL_B_N" (shape bidirectional) (at 317.5 86.36 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "5c7c6a32-3ac8-5ceb-b1db-e3bb7039ec2a") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 317.5 86.36 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(no_connect (at 281.94 104.14) (uuid "157ccbc8-acae-530e-b3a0-ac81d073735d"))
+(no_connect (at 281.94 111.76) (uuid "8a4cc75d-f054-58a0-85ae-89b158480e6f"))
+(no_connect (at 322.58 78.74) (uuid "d87e9a41-531b-55b6-86bf-6adde5f59f84"))
+(text "M1: 1.8 deg, 200 full steps/rev, 2.3 A/phase.\nMotor pin 3 unused. Encoder is on sheet 4.\nMotor wiring colours refer to the motor drawing." (at 289.56 119.38 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "afcc0d6e-a84e-5b6d-9a09-d594d196cbd2"))
+(text "DM542T SETTINGS / INITIAL COMMISSIONING\nS2 signal selector: 5 V.\n1/16 step: SW5 ON, SW6 ON, SW7 OFF, SW8 ON.\n3200 STEP pulses per motor revolution.\nConservative initial current: 2.03 A RMS / 2.84 A peak\nSW1 ON, SW2 ON, SW3 OFF; SW4 OFF (idle reduction).\nCheck the actual V4.0 label before setting switches." (at 193.04 160.02 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "9e332ada-f778-54d5-be5c-3f860f4a0019"))
+(text "SHARED ENABLE AND TIMING\nPF3 low: Q3 off, DM542T enabled, both TMC EN inputs low.\nPF3 high: Q3 on, DM542T disabled, both TMC EN inputs high.\nR7 pulls PF3 high during MCU reset; about 7 mA sink when enabled.\nAfter enable, wait >=200 ms. DIR setup >=5 us; STEP high/low >=2.5 us." (at 20.32 213.36 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "6927a3be-78de-5928-8afb-53b1a4c1009a"))
+(text "Q1-Q3 show functional B/C/E pins, not package lead numbers.\nVerify your 2N2222A manufacturer/package before assembly.\nFit each 10k between base and emitter. Keep PUL+/PUL- paired;\nseparate signal cables from motor power cables." (at 226.06 213.36 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "8dba707b-2837-58ed-86ba-f9236c000368"))
+(embedded_fonts no))

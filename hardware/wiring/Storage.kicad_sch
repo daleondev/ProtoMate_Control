@@ -1,0 +1,399 @@
+(kicad_sch (version 20250114) (generator "eeschema") (uuid "1c422410-ab1f-5709-a82f-444bdd6847e4") (paper "A3") (title_block (title "ProtoMate SCARA — QSPI flash and SD card") (date "2026-10-02") (rev "1.0") (company "ProtoMate Control") (comment 1 "Wiring schematic | no PCB | all voltages DC"))
+(lib_symbols
+(symbol "ProtoMate:C"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0.254)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "C"
+			(at 0.635 2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "C"
+			(at 0.635 -2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 0.9652 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "cap capacitor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "C_0_1"
+			(polyline
+				(pts
+					(xy -2.032 0.762) (xy 2.032 0.762)
+				)
+				(stroke
+					(width 0.508)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -2.032 -0.762) (xy 2.032 -0.762)
+				)
+				(stroke
+					(width 0.508)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "C_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 2.794)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 2.794)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "ProtoMate:Flash_Module" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board no) (property "Reference" "U" (at 0 40.64 0) (effects (font (size 1.27 1.27))))(property "Value" "W25Q128 / 3.3 V QSPI module" (at 0 38.1 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Description" "Module contacts identified by signal. Use a 3.3 V W25Q128 variant with all four IO lines exposed, not a 1.8 V device or SPI-only breakout." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(symbol "Flash_Module_0_1" (rectangle (start -35.56 34.29) (end 35.56 -34.29) (stroke (width 0.254) (type default)) (fill (type background))))(symbol "Flash_Module_1_1" (pin input line (at -40.64 26.67 0) (length 5.08) (name "CLK" (effects (font (size 1.016 1.016)))) (number "CLK" (effects (font (size 0.889 0.889)))))(pin input line (at -40.64 19.05 0) (length 5.08) (name "CS" (effects (font (size 1.016 1.016)))) (number "CS" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at -40.64 11.43 0) (length 5.08) (name "IO0" (effects (font (size 1.016 1.016)))) (number "IO0" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at -40.64 3.81 0) (length 5.08) (name "IO1" (effects (font (size 1.016 1.016)))) (number "IO1" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at -40.64 -3.81 0) (length 5.08) (name "IO2" (effects (font (size 1.016 1.016)))) (number "IO2" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at -40.64 -11.43 0) (length 5.08) (name "IO3" (effects (font (size 1.016 1.016)))) (number "IO3" (effects (font (size 0.889 0.889)))))(pin power_in line (at -40.64 -19.05 0) (length 5.08) (name "VCC" (effects (font (size 1.016 1.016)))) (number "VCC" (effects (font (size 0.889 0.889)))))(pin passive line (at -40.64 -26.67 0) (length 5.08) (name "GND" (effects (font (size 1.016 1.016)))) (number "GND" (effects (font (size 0.889 0.889)))))))
+(symbol "ProtoMate:R"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "R"
+			(at 2.032 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "R"
+			(at 0 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at -1.778 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "R res resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "R_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "R_0_1"
+			(rectangle
+				(start -1.016 -2.54)
+				(end 1.016 2.54)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "R_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "ProtoMate:SD_Module" (pin_names (offset 1.016)) (exclude_from_sim no) (in_bom yes) (on_board no) (property "Reference" "U" (at 0 52.07 0) (effects (font (size 1.27 1.27))))(property "Value" "microSD / native 4-bit interface" (at 0 49.53 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(property "Description" "Numbers 1-8 are standard card contacts. CD/CD_COM are socket switch terminals, closed when inserted. Use a 3.3 V native SD breakout, no SPI-only level shifters." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))(symbol "SD_Module_0_1" (rectangle (start -33.02 45.72) (end 33.02 -45.72) (stroke (width 0.254) (type default)) (fill (type background))))(symbol "SD_Module_1_1" (pin bidirectional line (at -38.1 38.1 0) (length 5.08) (name "DAT2" (effects (font (size 1.016 1.016)))) (number "1" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at -38.1 30.48 0) (length 5.08) (name "DAT3" (effects (font (size 1.016 1.016)))) (number "2" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at -38.1 22.86 0) (length 5.08) (name "CMD" (effects (font (size 1.016 1.016)))) (number "3" (effects (font (size 0.889 0.889)))))(pin power_in line (at -38.1 15.24 0) (length 5.08) (name "VDD / 3.3 V" (effects (font (size 1.016 1.016)))) (number "4" (effects (font (size 0.889 0.889)))))(pin input line (at -38.1 7.62 0) (length 5.08) (name "CLK" (effects (font (size 1.016 1.016)))) (number "5" (effects (font (size 0.889 0.889)))))(pin passive line (at -38.1 0 0) (length 5.08) (name "VSS" (effects (font (size 1.016 1.016)))) (number "6" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at -38.1 -7.62 0) (length 5.08) (name "DAT0" (effects (font (size 1.016 1.016)))) (number "7" (effects (font (size 0.889 0.889)))))(pin bidirectional line (at -38.1 -15.24 0) (length 5.08) (name "DAT1" (effects (font (size 1.016 1.016)))) (number "8" (effects (font (size 0.889 0.889)))))(pin passive line (at -38.1 -22.86 0) (length 5.08) (name "card detect" (effects (font (size 1.016 1.016)))) (number "CD" (effects (font (size 0.889 0.889)))))(pin passive line (at -38.1 -30.48 0) (length 5.08) (name "detect common" (effects (font (size 1.016 1.016)))) (number "CD_COM" (effects (font (size 0.889 0.889)))))(pin passive line (at -38.1 -38.1 0) (length 5.08) (name "socket shell" (effects (font (size 1.016 1.016)))) (number "SH" (effects (font (size 0.889 0.889))))))))
+(text "QSPI FLASH AND SD CARD" (at 15.24 12.7 0) (effects (font (size 2.54 2.54)) (justify left top)) (uuid "6493f89f-6f48-5264-a977-a3bccbe8078e"))
+(polyline (pts (xy 15.24 22.86) (xy 401.32 22.86)) (stroke (width 0.254) (type default)) (fill (type none)) (uuid "e11b1d4d-1d96-5336-9153-8503bcf8d1e5"))
+(symbol (lib_id "ProtoMate:Flash_Module") (at 114.3 91.44 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "2e105057-0a5b-5aef-b5f9-aa24f70184a2") (property "Reference" "A5" (at 114.3 50.8 0) (effects (font (size 1.27 1.27))))(property "Value" "W25Q128 / 3.3 V QSPI" (at 114.3 53.34 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 114.3 91.44 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "A5") (unit 1)))))
+(wire (pts (xy 73.66 64.77) (xy 63.5 64.77)) (stroke (width 0) (type default)) (uuid "5015d70f-e2fe-5c0f-9726-4b823b8c4512"))
+(global_label "FLASH_CLK" (shape bidirectional) (at 63.5 64.77 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "1771354a-f316-5a56-a72a-9aaf819226c8") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 63.5 64.77 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 73.66 72.39) (xy 63.5 72.39)) (stroke (width 0) (type default)) (uuid "e27be0a2-d063-55b0-a20b-6ba6e1601d5c"))
+(global_label "FLASH_CS_N" (shape bidirectional) (at 63.5 72.39 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "f81579d5-4232-5022-a9df-3fef55a780d4") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 63.5 72.39 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 73.66 80.01) (xy 63.5 80.01)) (stroke (width 0) (type default)) (uuid "c71498c4-aad8-5a42-90b7-50b1c2d3d6ef"))
+(global_label "FLASH_IO0" (shape bidirectional) (at 63.5 80.01 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "df3e22c3-76e6-598a-af76-d467dbbbd5e5") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 63.5 80.01 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 73.66 87.63) (xy 63.5 87.63)) (stroke (width 0) (type default)) (uuid "43a99b83-ebe0-53a7-b769-b5c8624c0fed"))
+(global_label "FLASH_IO1" (shape bidirectional) (at 63.5 87.63 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "2c67b3ce-681c-5d8b-a7d4-7ea57b3413b4") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 63.5 87.63 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 73.66 95.25) (xy 63.5 95.25)) (stroke (width 0) (type default)) (uuid "faf8e7a0-48bb-528e-b57b-dd706cdc84b4"))
+(global_label "FLASH_IO2" (shape bidirectional) (at 63.5 95.25 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "762e643e-7221-521a-9862-c7cbb54edb70") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 63.5 95.25 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 73.66 102.87) (xy 63.5 102.87)) (stroke (width 0) (type default)) (uuid "5d7f6770-316c-54f7-80f5-966a2a50c20e"))
+(global_label "FLASH_IO3" (shape bidirectional) (at 63.5 102.87 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "99319124-d2bd-534f-97ed-cc4ea3faa40b") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 63.5 102.87 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 73.66 110.49) (xy 63.5 110.49)) (stroke (width 0) (type default)) (uuid "93d0995a-4745-5229-827a-c400e52b32e6"))
+(global_label "+3V3" (shape bidirectional) (at 63.5 110.49 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "b2f58960-517a-5993-b5e8-afee0dc368c6") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 63.5 110.49 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 73.66 118.11) (xy 63.5 118.11)) (stroke (width 0) (type default)) (uuid "84129cbc-3ae0-5939-bf6e-069061829f04"))
+(global_label "GND" (shape bidirectional) (at 63.5 118.11 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "f029ba96-8c9b-5126-92ec-ff06798026e6") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 63.5 118.11 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:C") (at 76.2 167.64 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "7b7af6cf-b4d4-56d0-8b91-4713e61cf86f") (property "Reference" "C7" (at 80.01 166.37 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "100n" (at 80.01 168.91 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 76.2 167.64 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "C7") (unit 1)))))
+(wire (pts (xy 76.2 163.83) (xy 76.2 160.02)) (stroke (width 0) (type default)) (uuid "abd9d927-6e23-59e5-87ca-c351e8b0c8b8"))
+(global_label "+3V3" (shape bidirectional) (at 76.2 160.02 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "576874d9-e300-56fc-8e16-bd7c576ad54e") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 76.2 160.02 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 76.2 171.45) (xy 76.2 175.26)) (stroke (width 0) (type default)) (uuid "b9c6909d-287a-5979-a2b4-89dac614d9ba"))
+(global_label "GND" (shape bidirectional) (at 76.2 175.26 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "8f5ec142-86c9-599f-8185-6607a77277b5") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 76.2 175.26 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:C") (at 119.38 167.64 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "61b79772-6098-59dd-a364-e20006b96250") (property "Reference" "C8" (at 123.19 166.37 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10u" (at 123.19 168.91 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 119.38 167.64 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "C8") (unit 1)))))
+(wire (pts (xy 119.38 163.83) (xy 119.38 160.02)) (stroke (width 0) (type default)) (uuid "f546e596-e7f4-5a35-a152-cae6dbef8bd6"))
+(global_label "+3V3" (shape bidirectional) (at 119.38 160.02 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "6564088a-b17d-597a-9f8e-6762a96f6431") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 119.38 160.02 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 119.38 171.45) (xy 119.38 175.26)) (stroke (width 0) (type default)) (uuid "b6eb7b15-f78e-5fa3-927c-d88a0103895a"))
+(global_label "GND" (shape bidirectional) (at 119.38 175.26 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "36caf442-c46e-5105-9434-e0c693259b36") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 119.38 175.26 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 45.72 167.64 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "df2880e1-688e-5d63-9a98-5dbec66e3ec2") (property "Reference" "R13" (at 49.53 166.37 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 49.53 168.91 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 45.72 167.64 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "R13") (unit 1)))))
+(wire (pts (xy 45.72 163.83) (xy 45.72 160.02)) (stroke (width 0) (type default)) (uuid "1debe565-c6c7-5313-ab98-92af7b12c355"))
+(global_label "+3V3" (shape bidirectional) (at 45.72 160.02 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "68a677ca-ac7f-5917-9985-1fa18e3cedca") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 45.72 160.02 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 45.72 171.45) (xy 45.72 175.26)) (stroke (width 0) (type default)) (uuid "c90c0e0a-01c0-521e-9d14-26327c0291bd"))
+(global_label "FLASH_CS_N" (shape bidirectional) (at 45.72 175.26 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "d0a7e874-29bd-5a64-95b3-09065580395a") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 45.72 175.26 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:SD_Module") (at 330.2 106.68 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "2d7fbcf0-9f97-542e-904f-81d6d42b3aa9") (property "Reference" "J3" (at 330.2 54.61 0) (effects (font (size 1.27 1.27))))(property "Value" "microSD / 4-bit socket module" (at 330.2 57.15 0) (effects (font (size 1.27 1.27))))(property "Footprint" "" (at 330.2 106.68 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "J3") (unit 1)))))
+(wire (pts (xy 292.1 68.58) (xy 281.94 68.58)) (stroke (width 0) (type default)) (uuid "313bff95-af89-534b-86b4-eed7aa2a6a06"))
+(global_label "SD_D2" (shape bidirectional) (at 281.94 68.58 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "381ef7af-8c43-50f6-b881-f919f6c990d7") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 76.2) (xy 281.94 76.2)) (stroke (width 0) (type default)) (uuid "f0984d7d-6023-5452-a652-abdb049fe984"))
+(global_label "SD_D3" (shape bidirectional) (at 281.94 76.2 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "d528becb-ad9f-5593-abff-57c27c4b80a8") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 76.2 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 83.82) (xy 281.94 83.82)) (stroke (width 0) (type default)) (uuid "d14bbaa4-e3d8-5151-a422-d1c56763a462"))
+(global_label "SD_CMD" (shape bidirectional) (at 281.94 83.82 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "e1a4a476-b694-5698-9718-8e845788f089") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 83.82 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 91.44) (xy 281.94 91.44)) (stroke (width 0) (type default)) (uuid "c92e16ea-198f-5057-8cf9-ee739d0fe7a0"))
+(global_label "+3V3" (shape bidirectional) (at 281.94 91.44 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "e916587a-4b96-51ef-9714-0661d843973f") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 99.06) (xy 281.94 99.06)) (stroke (width 0) (type default)) (uuid "65e2073b-eb7f-50bb-9b51-c5d3261ead31"))
+(global_label "SD_CLK" (shape bidirectional) (at 281.94 99.06 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "cc6f0e11-16b1-5a86-a62f-acc5f9de089f") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 99.06 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 106.68) (xy 281.94 106.68)) (stroke (width 0) (type default)) (uuid "1933c61b-d640-5358-8546-6e051e4dc632"))
+(global_label "GND" (shape bidirectional) (at 281.94 106.68 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "8018317d-baff-5126-b780-021af75dd411") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 114.3) (xy 281.94 114.3)) (stroke (width 0) (type default)) (uuid "bbf23b1f-8109-53ea-9835-727d5d6a51a9"))
+(global_label "SD_D0" (shape bidirectional) (at 281.94 114.3 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "ec7d1765-2e4d-5328-888a-19a887df0683") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 114.3 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 121.92) (xy 281.94 121.92)) (stroke (width 0) (type default)) (uuid "3a09313b-402b-5700-8417-5dd19c94d3c5"))
+(global_label "SD_D1" (shape bidirectional) (at 281.94 121.92 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "8dd33037-8041-5472-8c14-6a1d1c402a47") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 121.92 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 129.54) (xy 281.94 129.54)) (stroke (width 0) (type default)) (uuid "4d425aa4-d2b0-5d01-997e-f74d26960d67"))
+(global_label "SD_CD_N" (shape bidirectional) (at 281.94 129.54 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "3639767e-4ff5-5305-9b48-9868e57f20a4") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 137.16) (xy 281.94 137.16)) (stroke (width 0) (type default)) (uuid "aa9c385a-1b01-5757-988e-59a74c1d3ef2"))
+(global_label "GND" (shape bidirectional) (at 281.94 137.16 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "ed2fe828-3d0c-5928-99a8-67433f05f546") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 137.16 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 144.78) (xy 281.94 144.78)) (stroke (width 0) (type default)) (uuid "49d75823-b83d-526b-b3b6-e33a44bc1952"))
+(global_label "GND" (shape bidirectional) (at 281.94 144.78 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "1cfabc86-4786-57c4-9dc6-4d3a5c57c40c") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 281.94 144.78 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 193.04 200.66 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "92402a2b-e854-547b-b937-87dc1d822fd9") (property "Reference" "R14" (at 196.85 199.39 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 196.85 201.93 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 193.04 200.66 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "R14") (unit 1)))))
+(wire (pts (xy 193.04 196.85) (xy 193.04 193.04)) (stroke (width 0) (type default)) (uuid "2ecedbf9-d506-59e0-9f42-2569be114b23"))
+(global_label "+3V3" (shape bidirectional) (at 193.04 193.04 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "a423815f-34bf-5e3a-9bcc-b38752fa12c2") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 193.04 193.04 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 193.04 204.47) (xy 193.04 208.28)) (stroke (width 0) (type default)) (uuid "8e5817ac-af35-5f52-a721-f098a0d20510"))
+(global_label "SD_D0" (shape bidirectional) (at 193.04 208.28 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "9da22ed1-76cc-501f-986a-28e41e5f7726") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 193.04 208.28 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 226.06 200.66 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "ef09050d-0f04-5d0b-8f6c-481cf73dcc89") (property "Reference" "R15" (at 229.87 199.39 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 229.87 201.93 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 226.06 200.66 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "R15") (unit 1)))))
+(wire (pts (xy 226.06 196.85) (xy 226.06 193.04)) (stroke (width 0) (type default)) (uuid "7445ef51-6d28-5369-8ace-f4d1d6f3ba18"))
+(global_label "+3V3" (shape bidirectional) (at 226.06 193.04 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "57ab8dca-41bb-5c18-8f52-6aa4e5b3a7ce") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 226.06 193.04 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 226.06 204.47) (xy 226.06 208.28)) (stroke (width 0) (type default)) (uuid "1fdbed18-ef18-5648-923e-43f5d38df4e9"))
+(global_label "SD_D1" (shape bidirectional) (at 226.06 208.28 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "cf2253ee-e9ee-563e-acc1-672798ca3803") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 226.06 208.28 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 259.08 200.66 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "601abed1-5103-52ed-b366-9471d417e101") (property "Reference" "R16" (at 262.89 199.39 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 262.89 201.93 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 259.08 200.66 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "R16") (unit 1)))))
+(wire (pts (xy 259.08 196.85) (xy 259.08 193.04)) (stroke (width 0) (type default)) (uuid "19a0af7a-218c-5393-81e6-3daa73404455"))
+(global_label "+3V3" (shape bidirectional) (at 259.08 193.04 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "79082d5e-55c5-59c5-953d-e9fc95fb8fb6") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 259.08 193.04 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 259.08 204.47) (xy 259.08 208.28)) (stroke (width 0) (type default)) (uuid "ab659fe5-f3a1-50f8-9bf6-7617527815b5"))
+(global_label "SD_D2" (shape bidirectional) (at 259.08 208.28 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "88968abf-3cd8-527a-83e9-6f5d9edf26d5") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 259.08 208.28 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 292.1 200.66 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "3b25c64b-9871-527a-ac3e-a4aba3c3a237") (property "Reference" "R17" (at 295.91 199.39 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 295.91 201.93 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 292.1 200.66 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "R17") (unit 1)))))
+(wire (pts (xy 292.1 196.85) (xy 292.1 193.04)) (stroke (width 0) (type default)) (uuid "5d2469a0-50e5-54c9-80db-8ff8becbb440"))
+(global_label "+3V3" (shape bidirectional) (at 292.1 193.04 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "f98a9b7c-211e-5c99-b151-c7dc601c4b48") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 292.1 193.04 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 292.1 204.47) (xy 292.1 208.28)) (stroke (width 0) (type default)) (uuid "1227942d-5558-5640-b98f-fb9d1d43d849"))
+(global_label "SD_D3" (shape bidirectional) (at 292.1 208.28 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "01fd7002-b300-584a-856a-c1b6f325afda") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 292.1 208.28 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 325.12 200.66 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "bf5741e2-a045-57cd-a523-c0faf498e76d") (property "Reference" "R18" (at 328.93 199.39 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 328.93 201.93 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 325.12 200.66 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "R18") (unit 1)))))
+(wire (pts (xy 325.12 196.85) (xy 325.12 193.04)) (stroke (width 0) (type default)) (uuid "69c8b0d6-965e-50ce-9a0e-4576f25297b4"))
+(global_label "+3V3" (shape bidirectional) (at 325.12 193.04 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "fdcc7fb2-c57a-546d-a499-16552736b736") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 325.12 193.04 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 325.12 204.47) (xy 325.12 208.28)) (stroke (width 0) (type default)) (uuid "6ea87699-2c83-5f53-a700-ba4c002b339f"))
+(global_label "SD_CMD" (shape bidirectional) (at 325.12 208.28 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "8bb4447d-db6e-5790-a3d9-b0dc36b5182a") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 325.12 208.28 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:R") (at 358.14 200.66 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "d580d4c9-06f1-5f8a-a37e-5f6c695643a7") (property "Reference" "R19" (at 361.95 199.39 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10k" (at 361.95 201.93 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 358.14 200.66 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "R19") (unit 1)))))
+(wire (pts (xy 358.14 196.85) (xy 358.14 193.04)) (stroke (width 0) (type default)) (uuid "0d9208c1-43a7-5284-ba15-70019ed6e4ba"))
+(global_label "+3V3" (shape bidirectional) (at 358.14 193.04 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "7715d1fc-0625-526c-a4de-3bf51b901320") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 358.14 193.04 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 358.14 204.47) (xy 358.14 208.28)) (stroke (width 0) (type default)) (uuid "41e4c823-a3ed-5125-9c80-f1fc4dac3a2a"))
+(global_label "SD_CD_N" (shape bidirectional) (at 358.14 208.28 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "17b79428-7705-5ab9-b379-4b8e51b8b37f") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 358.14 208.28 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:C") (at 254 248.92 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "b3d120c5-126a-5627-bd46-52cfd7423d58") (property "Reference" "C9" (at 257.81 247.65 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "100n" (at 257.81 250.19 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 254 248.92 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "C9") (unit 1)))))
+(wire (pts (xy 254 245.11) (xy 254 241.3)) (stroke (width 0) (type default)) (uuid "2321b4d1-327f-5d56-9790-2509c1b0878e"))
+(global_label "+3V3" (shape bidirectional) (at 254 241.3 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "deb3abe5-d24f-50a3-9ca7-8e00fba013ab") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 254 241.3 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 254 252.73) (xy 254 256.54)) (stroke (width 0) (type default)) (uuid "ac99504e-8b03-59f3-bec9-15e5f833d593"))
+(global_label "GND" (shape bidirectional) (at 254 256.54 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "01ba9062-d1a0-540f-ba7a-94353e01748d") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 254 256.54 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(symbol (lib_id "ProtoMate:C") (at 297.18 248.92 0) (unit 1) (in_bom yes) (on_board no) (dnp no) (uuid "b9f546ed-a9ba-51f0-8725-e2d7fb5f9c12") (property "Reference" "C10" (at 300.99 247.65 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Value" "10u" (at 300.99 250.19 0) (effects (font (size 1.016 1.016)) (justify left)))(property "Footprint" "" (at 297.18 248.92 0) (effects (font (size 1.27 1.27)) (hide yes)))(instances (project "ProtoMate_Wiring" (path "/c8cc4ec5-2ec6-5eef-bd6d-1c97d70567a6/d6ff7b4f-531e-5e15-b9ae-978d40b739ba" (reference "C10") (unit 1)))))
+(wire (pts (xy 297.18 245.11) (xy 297.18 241.3)) (stroke (width 0) (type default)) (uuid "5476603b-1add-59a6-93f3-63164b50d171"))
+(global_label "+3V3" (shape bidirectional) (at 297.18 241.3 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "20f952d1-713c-58e8-a4ff-300db887aa19") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 297.18 241.3 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(wire (pts (xy 297.18 252.73) (xy 297.18 256.54)) (stroke (width 0) (type default)) (uuid "b738b3db-5a31-5be8-a8dc-5ddab3cee548"))
+(global_label "GND" (shape bidirectional) (at 297.18 256.54 0) (effects (font (size 1.016 1.016)) (justify right)) (uuid "60688cb4-7c4c-552f-a102-42bf25e610ed") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 297.18 256.54 0) (effects (font (size 1.27 1.27)) (hide yes))))
+(text "3.3 V ONLY\nUse a W25Q128 module exposing IO0-IO3.\nIO2/WP and IO3/HOLD are data in quad mode;\ndo not hard-wire them to supply or ground.\nModule contacts are identified by signal name.\nC7/C8 and R13 may already exist on the module;\nfit them if absent. Keep the QSPI harness short." (at 20.32 210.82 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "5e612187-5bdc-507b-898f-2f8c4dd1775a"))
+(text "SD pins 1-8 use standard card-contact numbering.\nCD switch closes to GND when inserted (advisory input).\nPull-ups on CMD/D0-D3/CD; no pull-up on CLK.\nExisting equivalent module pull-ups/caps need not be duplicated." (at 190.5 27.94 0) (effects (font (size 1.016 1.016)) (justify left top)) (uuid "9456ba07-a0e8-51d4-9a9d-d838c0a02c46"))
+(embedded_fonts no))

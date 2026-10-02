@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "filename": "ProtoMate_Wiring.kicad_pro",
+    "version": 3
+  },
+  "schematic": {
+    "meta": {
+      "version": 1
+    }
+  },
+  "erc": {
+    "erc_exclusions": [],
+    "meta": {
+      "version": 0
+    }
+  },
+  "text_variables": {}
+}
