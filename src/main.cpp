@@ -1,4 +1,5 @@
 #include "hal/board/board.hpp"
+#include "hal/drivers/factory/gpio.hpp"
 #include "hal/hal.hpp"
 
 #include "pneumo/pneumo.hpp"
@@ -13,6 +14,57 @@ int main()
     pnm::log::initialize();
 
     pnm::log::info("Application started");
+
+    // Keep the drivers disabled and all STEP/DIR signals low at startup.
+    [[maybe_unused]] const auto steppers_enable_n{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::F, .number = 3U },
+      .initial_level = hal::gpio::Level::High,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+    }) };
+    [[maybe_unused]] const auto m1_step{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::E, .number = 9U },
+      .initial_level = hal::gpio::Level::Low,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+    }) };
+    [[maybe_unused]] const auto m1_dir{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::E, .number = 11U },
+      .initial_level = hal::gpio::Level::Low,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+    }) };
+    [[maybe_unused]] const auto m2_step{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::C, .number = 6U },
+      .initial_level = hal::gpio::Level::Low,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+    }) };
+    [[maybe_unused]] const auto m2_dir{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::C, .number = 7U },
+      .initial_level = hal::gpio::Level::Low,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+    }) };
+    [[maybe_unused]] const auto m3_step{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::D, .number = 14U },
+      .initial_level = hal::gpio::Level::Low,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+    }) };
+    [[maybe_unused]] const auto m3_dir{ hal::gpio::createOutput({
+      .pin = { .port = hal::gpio::Port::D, .number = 15U },
+      .initial_level = hal::gpio::Level::Low,
+      .type = hal::gpio::OutputType::PushPull,
+      .pull = hal::gpio::Pull::None,
+      .speed = hal::gpio::Speed::Low,
+    }) };
 
     const auto led{ hal::board::createLed(hal::board::LedId::Green) };
     if (!led) {

@@ -91,30 +91,34 @@ persistence matters. FAT timestamps use UTC and two-second precision.
 `RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT` is destructive recovery only; all shipped
 presets and the hardware runner set it to `OFF`.
 
-## Planned stepper GPIO assignment
+## Stepper GPIO assignment
 
-Reserve the following seven outputs on the **NUCLEO-H753ZI (MB1364)** for
+The following seven outputs on the **NUCLEO-H753ZI (MB1364)** control
 one STEPPERONLINE driver (M1) and two Adafruit TMC2209 #6121 boards (M2/M3).
-This is a wiring plan; these outputs are not yet configured in CubeMX or firmware.
+CubeMX configures them as push-pull outputs without internal pulls, at low GPIO
+speed. `src/main.cpp` instantiates all seven through the HAL GPIO wrapper and
+retains them for the application's lifetime. STEP and DIR start low; shared
+enable starts high (all drivers disabled). No motion logic is implemented.
 
 | Signal | STM32 pin | Board connector | Driver connection | Future STEP timer |
 | --- | --- | --- | --- | --- |
-| M1_STEP | PE9 | CN10 pin 4 / D6 | STEPPERONLINE PUL+ through interface below | TIM1_CH1 / AF1 |
-| M1_DIR | PE11 | CN10 pin 6 / D5 | STEPPERONLINE DIR+ through interface below | — |
+| M1_STEP | PE9 | CN10 pin 4 / D6 | DM542T PUL− through Q1 below | TIM1_CH1 / AF1 |
+| M1_DIR | PE11 | CN10 pin 6 / D5 | DM542T DIR− through Q2 below | — |
 | M2_STEP | PC6 | CN7 pin 1 / D16 | First TMC2209 STEP | TIM3_CH1 / AF2 |
 | M2_DIR | PC7 | CN7 pin 11 / D21 | First TMC2209 DIR | — |
 | M3_STEP | PD14 | CN7 pin 16 / D10 | Second TMC2209 STEP | TIM4_CH3 / AF2 |
 | M3_DIR | PD15 | CN7 pin 18 / D9 | Second TMC2209 DIR | — |
-| STEPPERS_EN_N | PF3 | CN7 pin 20 / D8 | Both TMC2209 EN pins; STEPPERONLINE ENA+ through interface below | — |
+| STEPPERS_EN_N | PF3 | CN7 pin 20 / D8 | Both TMC2209 EN pins; DM542T ENA− through Q3 below | — |
 
 Connector positions follow [ST UM2407, tables 18 and 21](https://www.st.com/resource/en/user_manual/um2407-stm32h7-nucleo144-boards-mb1364-stmicroelectronics.pdf).
 PE9 uses the default routing to CN10 pin 4 (SB28 closed, SB70 open).
 The STEP pins support three separate timers for independent pulse rates; see
 the [STM32H753 alternate-function tables](https://www.st.com/resource/en/datasheet/stm32h753zi.pdf).
-DIR and enable remain ordinary GPIO outputs when STEP uses timer alternate functions.
+All seven pins currently use GPIO mode; the timer alternatives are reserved for
+future pulse generation.
 
-All seven pins are unused by the current `external/CubeMX/CubeMX.ioc` and board
-configuration. The storage assignments above, Ethernet RMII, USART3 console,
+These assignments are configured in `external/CubeMX/CubeMX.ioc`.
+The storage assignments above, Ethernet RMII, USART3 console,
 LEDs (PB0/PE1/PB14), user button (PC13), oscillator and ST-Link debug pins stay
 reserved. TIM2 remains assigned to the runtime timer and TIM6 to the HAL timebase.
 
@@ -127,27 +131,29 @@ STEP/DIR mode with hardware current/microstep settings; UART, DIAG and INDEX
 need no GPIOs for this assignment. See the
 [Adafruit #6121 pinout](https://learn.adafruit.com/adafruit-tmc2209-stepper-motor-driver-breakout-board/pinouts).
 
-The STEPPERONLINE assignment assumes the **DM542T** associated with the linked
-product; check the delivered model/revision before wiring. Use three
-**non-inverting 3.3 V-to-5 V buffer channels**, each able to source the driver's
-7–16 mA input current. Connect their outputs to PUL+, DIR+ and ENA+ respectively,
-and connect PUL−, DIR− and ENA− to controller/interface ground (common cathode).
-Do not connect these optoisolated inputs directly to the STM32. On V4.0, set
-the S2 signal-voltage selector to **5 V**. In this wiring, 5 V across ENA+/ENA−
-disables the drive and 0 V enables it. See the
-[DM542T manual](https://www.omc-stepperonline.com/download/DM542T.pdf) and
-[V4.0 manual, section 3.1](https://www.omc-stepperonline.com/download/DM542T_V4.0.pdf).
+The STEPPERONLINE driver is **DM542T V4.0**, with S2 set to **5 V**.
+Use three **2N2222A NPN transistors** as a common-anode interface for its
+7–16 mA optoisolated inputs. Each GPIO drives a transistor base through **1 kΩ**;
+each emitter connects to controller ground, with **10 kΩ between base and
+emitter**. Q1's collector connects to PUL−, Q2's to DIR−, and Q3's to ENA−.
+Connect PUL+, DIR+ and ENA+ to regulated **+5 V**, sharing the supply ground
+with the controller. Check the transistor manufacturer's lead arrangement.
+See the [2N2222A datasheet](https://www.st.com/resource/en/datasheet/2n2222a.pdf)
+and [DM542T V4.0 manual, section 3.1](https://www.omc-stepperonline.com/download/DM542T_V4.0.pdf).
 
 One shared enable GPIO therefore controls all three drivers:
 
-| PF3 / STEPPERS_EN_N | TMC2209 EN (both boards) | Buffered DM542T ENA+ | Result |
+| PF3 / STEPPERS_EN_N | TMC2209 EN (both boards) | Q3 / DM542T ENA input current | Result |
 | --- | --- | --- | --- |
-| Low (0 V) | Low | 0 V | All enabled |
-| High (3.3 V) | High | 5 V | All disabled |
+| Low (0 V) | Low | Off / no current | All enabled |
+| High (3.3 V) | High | On / current flowing | All disabled |
 
-Fit an external 10 kΩ pull-up to **3.3 V** on STEPPERS_EN_N so MCU reset
-requests disable while the logic/interface supplies are present. Use external
-10 kΩ pull-downs on STEP outputs and initialize STEP low, enable high.
+Fit an external **470 Ω pull-up to 3.3 V on PF3**, on the GPIO side of Q3's
+1 kΩ base resistor. This supplies base current during MCU reset and keeps the
+shared TMC2209 EN inputs high while the control supplies are present. PF3 sinks
+about 7 mA when driven low. The weaker 10 kΩ pull-up used for a MOSFET or logic
+buffer interface is unsuitable for this shared NPN circuit. Fit external
+10 kΩ pull-downs on the directly connected TMC2209 STEP inputs as well.
 Keep DM542T ENA connected: an open enable input leaves that driver enabled.
 For V4.0, allow at least 200 ms after enabling before issuing motion commands,
 as specified in its manual.

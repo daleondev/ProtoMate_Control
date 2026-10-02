@@ -60,8 +60,22 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define STEPPERS_EN_N_Pin GPIO_PIN_3
+#define STEPPERS_EN_N_GPIO_Port GPIOF
+#define M1_STEP_Pin GPIO_PIN_9
+#define M1_STEP_GPIO_Port GPIOE
+#define M1_DIR_Pin GPIO_PIN_11
+#define M1_DIR_GPIO_Port GPIOE
+#define M3_STEP_Pin GPIO_PIN_14
+#define M3_STEP_GPIO_Port GPIOD
+#define M3_DIR_Pin GPIO_PIN_15
+#define M3_DIR_GPIO_Port GPIOD
 #define SD_CARD_DETECT_Pin GPIO_PIN_2
 #define SD_CARD_DETECT_GPIO_Port GPIOG
+#define M2_STEP_Pin GPIO_PIN_6
+#define M2_STEP_GPIO_Port GPIOC
+#define M2_DIR_Pin GPIO_PIN_7
+#define M2_DIR_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 
