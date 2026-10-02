@@ -1,4 +1,6 @@
-if(RUNTIME_HARDWARE_ETHERNET_TEST)
+if(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
+    set(application_source ${PROJECT_SOURCE_DIR}/platform/runtime/tests/hardware_storage_startup_test.cpp)
+elseif(RUNTIME_HARDWARE_ETHERNET_TEST)
     set(application_source ${PROJECT_SOURCE_DIR}/platform/hal/tests/hardware_ethernet_test.cpp)
 elseif(RUNTIME_HARDWARE_IO_TEST)
     set(application_source ${PROJECT_SOURCE_DIR}/platform/runtime/tests/hardware_io_test.cpp)

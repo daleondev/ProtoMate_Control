@@ -21,6 +21,9 @@ set_property(TARGET levelx PROPERTY SOURCES "${levelx_sources}")
 # the kernel and every consumer of tx_api.h.
 target_compile_definitions(threadx PUBLIC TX_ENABLE_STACK_CHECKING)
 
+include(${PROJECT_SOURCE_DIR}/cmake/patch_sdcard.cmake)
+runtime_patch_sdcard(runtime_sdcard_source)
+
 add_library(platform OBJECT)
 
 # Startup and ThreadX low-level objects must be present directly in the final
@@ -67,7 +70,7 @@ target_sources(platform
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_exti.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_rng.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_rng_ex.c
-        ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_sd.c
+        ${runtime_sdcard_source}
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_sd_ex.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_ll_sdmmc.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_rtc.c

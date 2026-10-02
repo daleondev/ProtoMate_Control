@@ -25,6 +25,10 @@ extern "C" UINT _fx_partition_offset_calculate(void* partition_sector,
                                                ULONG* partition_start,
                                                ULONG* partition_size);
 
+#if defined(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
+extern "C" volatile std::uint32_t hardware_storage_startup_test_volume_mask;
+#endif
+
 namespace
 {
     constexpr ULONG sector_size{ 512U };
@@ -63,6 +67,7 @@ namespace
     std::FILE* nor_file{};
 #endif
     bool nor_open{};
+    bool initialization_attempted{};
     bool flash_mounted{};
     bool sd_mounted{};
     // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
@@ -874,9 +879,19 @@ namespace runtime::storage
 {
     auto initialize() noexcept -> bool
     {
+        // Startup-only initialization: a completed failure is cached too.
+        if (initialization_attempted) {
+            return flash_mounted || sd_mounted;
+        }
         runtime_storage_diagnostics = {};
+#if defined(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
+        const bool flash_ok{ (hardware_storage_startup_test_volume_mask & 1U) != 0U && initialize_flash_media() };
+        const bool sd_ok{ (hardware_storage_startup_test_volume_mask & 2U) != 0U && initialize_sd_media() };
+#else
         const bool flash_ok{ initialize_flash_media() };
         const bool sd_ok{ initialize_sd_media() };
+#endif
+        initialization_attempted = true;
         return flash_ok || sd_ok;
     }
 

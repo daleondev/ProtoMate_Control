@@ -55,7 +55,8 @@ class SerialCapture:
 
     def _run(self):
         responses = {"CR": b"token-CR\r", "LF": b"token-LF\n",
-                     "CRLF": b"token-CRLF\r\n", "AFTER": b"token-AFTER\n"}
+                     "CRLF": b"token-CRLF\r\n", "AFTER": b"token-AFTER\n",
+                     "storage-input": b"storage-echo\n", "storage-input-after": b"storage-after\n"}
         try:
             with self.log.open("wb", buffering=0) as output:
                 while not self.stop_event.is_set():
@@ -68,7 +69,8 @@ class SerialCapture:
                     output.write(chunk)
                     if self.respond:
                         for label, payload in responses.items():
-                            if label not in self.sent and f"[io-input-{label}]".encode() in self.data:
+                            marker = f"[{label}]" if label.startswith("storage-") else f"[io-input-{label}]"
+                            if label not in self.sent and marker.encode() in self.data:
                                 remaining = memoryview(payload)
                                 while remaining:
                                     select.select([], [self.fd], [], 1.0)
@@ -146,10 +148,14 @@ def debugger_commands(symbol, port, io_test):
 
 
 def main():
+    if "--storage-startup" in sys.argv[1:]:
+        from storage_startup_validation import main as storage_main
+        return storage_main()
     parser = argparse.ArgumentParser(description=__doc__)
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--ethernet", action="store_true")
     modes.add_argument("--io", action="store_true")
+    modes.add_argument("--storage-startup", action="store_true", help="Storage startup probe; combine with --help for its options")
     parser.add_argument("--configuration", choices=["Debug", "Release"], default="Debug")
     parser.add_argument("--interface", help="Ethernet peer interface; starts and owns a peer when supplied")
     args = parser.parse_args()

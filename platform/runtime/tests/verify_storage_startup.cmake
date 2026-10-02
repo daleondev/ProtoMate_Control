@@ -1,0 +1,12 @@
+execute_process(COMMAND "${PROBE}" "${SCENARIO}"
+                RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error TIMEOUT 30)
+if(NOT result EQUAL EXPECTED_EXIT)
+    message(FATAL_ERROR "Storage startup ${SCENARIO}: exit ${result}, expected ${EXPECTED_EXIT}\n${output}\n${error}")
+endif()
+if(EXPECTED_EXIT EQUAL 42)
+    if(NOT output MATCHES "Persistent storage required but no volume is available" OR output MATCHES "application continued")
+        message(FATAL_ERROR "Required-storage panic was not verified\n${output}\n${error}")
+    endif()
+elseif(NOT output MATCHES "PASS: storage startup")
+    message(FATAL_ERROR "Startup probe did not complete\n${output}\n${error}")
+endif()

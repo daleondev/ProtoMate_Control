@@ -1,0 +1,25 @@
+# Keep the vendor checkout untouched; bound SD voltage negotiation by elapsed
+# time while preserving the original trial limit and runtime bus-width fallback.
+function(runtime_patch_sdcard output_variable)
+    set(source "${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_sd.c")
+    set(patch_file "${PROJECT_SOURCE_DIR}/platform/runtime/libc/patches/stm32-sd-power-on-deadline.patch")
+    set(output "${PROJECT_BINARY_DIR}/hal-patched/stm32h7xx_hal_sd.c")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${source}" "${patch_file}")
+    file(SHA256 "${source}" source_hash)
+    if(NOT source_hash STREQUAL "6e7507a8ee163e85703f4ed5c003a239ef3a50045fad052b199695f592530391")
+        message(FATAL_ERROR "Unexpected STM32 SD source; review dependency changes before updating the power-on deadline patch")
+    endif()
+    file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/hal-patched")
+    find_program(RUNTIME_SDCARD_PATCH_EXECUTABLE NAMES patch REQUIRED)
+    execute_process(COMMAND "${RUNTIME_SDCARD_PATCH_EXECUTABLE}" --batch --fuzz=0 --silent
+                    --output "${output}" "${source}" "${patch_file}"
+                    RESULT_VARIABLE patch_result)
+    if(NOT patch_result EQUAL 0)
+        message(FATAL_ERROR "STM32 SD power-on deadline patch failed: ${patch_result}")
+    endif()
+    file(SHA256 "${output}" output_hash)
+    if(NOT output_hash STREQUAL "a04e8edcdd14dad7e8ec68aad6c61a1e98b9b284b2ea43c334f430764db6c4a3")
+        message(FATAL_ERROR "STM32 SD patched source checksum does not match the reviewed fix")
+    endif()
+    set(${output_variable} "${output}" PARENT_SCOPE)
+endfunction()

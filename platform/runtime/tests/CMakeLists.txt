@@ -159,3 +159,20 @@ set_tests_properties(
     runtime.panic.override
     PROPERTIES TIMEOUT 10
 )
+
+# Each startup scenario runs in a separate ThreadX process.
+add_executable(runtime_storage_startup_probe storage_startup_probe.cpp)
+target_compile_definitions(runtime_storage_startup_probe PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(runtime_storage_startup_probe)
+foreach(scenario both flash sd none corrupt flash-corrupt-sd sd-corrupt-flash warning-failure)
+    set(expected_exit 0)
+    if(RUNTIME_STORAGE_REQUIRED AND scenario MATCHES "^(none|corrupt|warning-failure)$")
+        set(expected_exit 42)
+    endif()
+    add_test(NAME runtime.storage.startup.${scenario}
+        COMMAND ${CMAKE_COMMAND}
+            -DPROBE=$<TARGET_FILE:runtime_storage_startup_probe>
+            -DSCENARIO=${scenario} -DEXPECTED_EXIT=${expected_exit}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/verify_storage_startup.cmake)
+    set_tests_properties(runtime.storage.startup.${scenario} PROPERTIES TIMEOUT 35)
+endforeach()

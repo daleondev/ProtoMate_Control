@@ -55,8 +55,8 @@ HAL or Linux debugger. Startup diagnostics and the boot message appear on the te
 
 ## Storage and external wiring
 
-Hardware startup requires at least one readable storage volume. Full hardware
-conformance requires both the W25Q128 NOR module and an existing FAT SD card;
+Hardware startup continues without readable storage by default; file access
+then fails with `ENODEV`. Full hardware conformance requires both the W25Q128 NOR module and an existing FAT SD card;
 the reference SD self-test expects a card of at least 8 GiB.
 
 | Device signal | STM32 pin |

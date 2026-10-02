@@ -1,0 +1,23 @@
+--- a/stm32h7xx_hal_sd.c
++++ b/stm32h7xx_hal_sd.c
+@@ -3143,6 +3143,7 @@
+   uint32_t response = 0U;
+   uint32_t validvoltage = 0U;
+   uint32_t errorstate;
++  uint32_t power_on_started = HAL_GetTick();
+ #if (USE_SD_TRANSCEIVER != 0U)
+   uint32_t tickstart = HAL_GetTick();
+ #endif /* USE_SD_TRANSCEIVER  */
+@@ -3185,6 +3186,12 @@
+   /* Send ACMD41 SD_APP_OP_COND with Argument 0x80100000 */
+   while ((count < SDMMC_MAX_VOLT_TRIAL) && (validvoltage == 0U))
+   {
++    /* Bound negotiation on absent/unresponsive cards; retain the trial limit. */
++    if ((HAL_GetTick() - power_on_started) >= SDMMC_CMDTIMEOUT)
++    {
++      return HAL_SD_ERROR_TIMEOUT;
++    }
++
+     /* SEND CMD55 APP_CMD with RCA as 0 */
+     errorstate = SDMMC_CmdAppCommand(hsd->Instance, 0);
+     if (errorstate != HAL_SD_ERROR_NONE)

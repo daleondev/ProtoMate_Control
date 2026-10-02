@@ -33,6 +33,8 @@
 #include <sys/statvfs.h>
 #endif
 
+extern "C" int _write(int file, const char* buffer, int length);
+
 extern "C" int __io_putchar(int character) __attribute__((weak));
 extern "C" int __io_getchar() __attribute__((weak));
 
@@ -90,7 +92,8 @@ namespace
     std::array<runtime_filex_directory_stream, MAXIMUM_OPEN_DIRECTORIES> directories{};
 #endif
     std::array<char, MAXIMUM_PATH> current_directory{ '/' };
-    bool filesystem_initialized{};
+    enum class InitializationState { not_attempted, ready, unavailable };
+    InitializationState filesystem_state{ InitializationState::not_attempted };
     std::uint32_t rename_backup_sequence{};
     // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
@@ -99,7 +102,7 @@ namespace
       public:
         RegistryGuard() noexcept
         {
-            if (!filesystem_initialized) {
+            if (filesystem_state != InitializationState::ready) {
                 m_error = ENODEV;
                 return;
             }
@@ -176,7 +179,7 @@ namespace
             return false;
         }
 #endif
-        if (!filesystem_initialized) {
+        if (filesystem_state != InitializationState::ready) {
             errno = ENODEV;
             return false;
         }
@@ -645,7 +648,7 @@ namespace
 
 namespace runtime::filex
 {
-    auto initialized() noexcept -> bool { return filesystem_initialized; }
+    auto initialized() noexcept -> bool { return filesystem_state == InitializationState::ready; }
 
     auto normalizePath(const char* path, char (&output)[MAXIMUM_PATH]) noexcept -> int
     {
@@ -733,7 +736,7 @@ namespace runtime::filex
 
 extern "C" void runtime_filex_initialize()
 {
-    if (filesystem_initialized) {
+    if (filesystem_state != InitializationState::not_attempted) {
         return;
     }
     fx_system_initialize();
@@ -743,14 +746,23 @@ extern "C" void runtime_filex_initialize()
         Error_Handler();
     }
     if (!runtime::storage::initialize()) {
-        Error_Handler();
+        filesystem_state = InitializationState::unavailable;
+#if RUNTIME_STORAGE_REQUIRED
+        hal::panic("Persistent storage required but no volume is available");
+#else
+        constexpr char warning[]{ "[storage] unavailable; file access disabled\n" };
+        // Console descriptors bypass the filesystem guard. Reporting failure
+        // is best effort and must not make optional storage fatal.
+        static_cast<void>(_write(STDERR_FILENO, warning, sizeof(warning) - 1U));
+        return;
+#endif
     }
     current_directory.fill('\0');
     const char* const initial_directory{
         runtime::storage::mounted(runtime::storage::Volume::flash) ? "/flash" : "/sd"
     };
     std::memcpy(current_directory.data(), initial_directory, std::strlen(initial_directory) + 1U);
-    filesystem_initialized = true;
+    filesystem_state = InitializationState::ready;
 }
 
 #if defined(HAL_PLATFORM_STM32) || defined(HAL_PLATFORM_LINUX)

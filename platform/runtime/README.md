@@ -91,3 +91,38 @@ success. See the project README for recovery after an interrupted run.
 
 [PROVENANCE.md](PROVENANCE.md) records imported dependency revisions and every
 intentional platform difference, including the build-directory FileX patch.
+
+
+## Optional persistent storage
+
+By default, no mounted FileX volumes produce one console warning and application
+startup continues. File operations fail with `ENODEV`; console descriptors
+remain usable. `RUNTIME_STORAGE_REQUIRED=ON` restores a deliberate startup
+panic when neither volume mounts. One mounted volume satisfies this setting.
+Existing runtime and persistence conformance presets select required storage.
+
+`runtime_filex_initialize()` retains its void C ABI. Its completed outcome is
+cached, including unavailable storage; `runtime::filex::initialized()` is true
+only when file access is available. `runtime::storage::initialize()` also caches
+its result and retains diagnostics. Initialization is performed on the startup
+thread before application entry; no concurrent retry/remount API is provided.
+New media require reset. Missing and corrupt media follow the same policy, with
+existing blank-NOR initialization and no automatic physical SD formatting.
+
+The default policy intentionally differs from the reference's required-storage
+startup. Linux host filesystem behavior is unchanged. The dedicated startup
+probes validate explicit FileX adapters on Linux and Newlib/std-library file
+integration on STM32; physical and injected hardware evidence are reported
+separately. See the root README for build options, test commands, and restoration.
+
+The pinned STM32 HAL SD driver receives a reviewed build-copy patch adding
+a five-second elapsed-time check to operating-voltage negotiation.
+The original trial limit and four-bit/one-bit fallback remain active. Without
+this elapsed-time bound, an absent card can spend about 76 seconds negotiating
+across both attempts. The patch is in
+`platform/runtime/libc/patches/stm32-sd-power-on-deadline.patch`; CMake verifies
+both original and patched checksums and leaves the vendor submodule unchanged.
+This is an additional intentional difference from the reference runtime.
+
+[Storage validation results](STORAGE_VALIDATION.md) record passing checks and the physical
+configurations that remain untested.
