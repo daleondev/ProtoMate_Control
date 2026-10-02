@@ -1,0 +1,43 @@
+--- a/tx_thread_system_return.c
++++ b/tx_thread_system_return.c
+@@ -29,6 +29,7 @@
+ #include "tx_thread.h"
+ #include "tx_timer.h"
+ #include <stdio.h>
++#include "tx_thread_stack_info.hpp"
+ 
+ 
+ /**************************************************************************/
+@@ -84,6 +85,9 @@
+ pthread_t   thread_id;
+ int         exit_code = 0;
+ 
++    if ((_tx_linux_threadx_thread) && (_tx_thread_current_ptr != TX_NULL)) {
++        _tx_linux_thread_stack_capture_current(_tx_thread_current_ptr);
++    }
+ 
+     /* Debug entry.  */
+     _tx_linux_debug_entry_insert("SYSTEM_RETURN", __FILE__, __LINE__);
+@@ -109,6 +113,7 @@ int         exit_code = 0;
+            being allowed to run in order to cleanup its resources.  */
+         /* Unlock linux mutex. */
+         tx_linux_mutex_recursive_unlock(_tx_linux_mutex);
++        _tx_linux_thread_stack_unregister();
+         pthread_exit((void *)&exit_code);
+     }
+ 
+@@ -152,6 +157,7 @@
+     {
+ 
+         /* Exit the thread instead of waiting on the semaphore!  */
++        _tx_linux_thread_stack_unregister();
+         pthread_exit((void *)&exit_code);
+     }
+ 
+@@ -182,6 +188,7 @@
+ 
+         /* This indicates the Linux thread was actually terminated by ThreadX and is only
+            being allowed to run in order to cleanup its resources.  */
++        _tx_linux_thread_stack_unregister();
+         pthread_exit((void *)&exit_code);
+     }

@@ -1,0 +1,59 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM32H753ZI Debug",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/debug-stm32/Application.elf",
+            "loadFiles": [],
+            "device": "STM32H753ZI",
+            "servertype": "openocd",
+            "serverpath": "/usr/bin/openocd",
+            "gdbPath": "arm-none-eabi-gdb",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32h7x_dual_bank.cfg"
+            ],
+            "searchDir": [
+                "/usr/share/openocd/scripts"
+            ],
+            "preLaunchTask": "Debug Prerequisites",
+            "rtos": "ThreadX",
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none"
+        },
+        {
+            "name": "Linux Simulation Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/debug-linux/Application",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb",
+            "preLaunchTask": "Build Debug Linux",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Pass ThreadX suspend signal",
+                    "text": "handle SIGUSR1 nostop noprint pass",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Pass ThreadX resume signal",
+                    "text": "handle SIGUSR2 nostop noprint pass",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

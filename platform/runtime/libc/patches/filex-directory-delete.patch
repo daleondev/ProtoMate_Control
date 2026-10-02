@@ -1,0 +1,10 @@
+--- a/common/src/fx_directory_delete.c
++++ b/common/src/fx_directory_delete.c
+@@ -340,6 +340,7 @@
+ 
+ 
+     /* Walk through the directory's clusters and release them.  */
++    i =        0;
+     cluster =  search_directory.fx_dir_entry_cluster;
+ 
+     while (cluster < media_ptr -> fx_media_fat_reserved)

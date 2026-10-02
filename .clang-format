@@ -1,0 +1,25 @@
+BasedOnStyle: Mozilla
+NamespaceIndentation: All
+Standard: Latest
+IndentWidth: 4
+TabWidth: 4
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+PenaltyReturnTypeOnItsOwnLine: 1000
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+AllowShortFunctionsOnASingleLine: All
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterEnum: true
+  BeforeElse: true
+  AfterControlStatement: false
+
+LambdaBodyIndentation: OuterScope
+ColumnLimit: 110

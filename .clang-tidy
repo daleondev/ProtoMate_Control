@@ -1,0 +1,87 @@
+---
+Checks: >
+  readability-*,
+  bugprone-*,
+  modernize-*,
+  performance-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  -readability-identifier-length,
+  -readability-braces-around-statements,
+  -readability-implicit-bool-conversion,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-constant-array-index
+
+WarningsAsErrors: "*"
+HeaderFilterRegex: '.*/src/.*'
+CheckOptions:
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstexprVariableCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.LocalConstantCase
+    value: lower_case
+
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.FunctionIgnoredRegexp
+    value: '^(BSP_.*|Error_Handler|HAL_.*|MPU_Config_User|MX_.*|SCB_.*|SystemClock_Config|__.*)$'
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableIgnoredRegexp
+    value: '^__.*$'
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
+
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  # clang-tidy has no StaticClassMember category. The access-specific rules
+  # below handle instance members, leaving ClassMember as the static fallback.
+  - key: readability-identifier-naming.ClassMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ClassMemberPrefix
+    value: s_
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.ClassConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ClassConstantPrefix
+    value: ""
+
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructIgnoredRegexp
+    value: '^__lock$'
+  - key: readability-identifier-naming.StructMemberCase
+    value: lower_case
+  - key: readability-identifier-naming.StructMemberPrefix
+    value: ""
+  - key: readability-identifier-naming.StructMemberIgnoredRegexp
+    value: '^(BaudRate|HwFlowCtl|Instance|Parity|StopBits|WordLength)$'
+
+  - key: readability-identifier-naming.EnumConstantIgnoredRegexp
+    value: '^(BSP_.*|BUTTON_.*|BUTTONn|COM1|COM_.*|COMn|HAL_.*|LED_.*|LEDn)$'
+
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConceptCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+...

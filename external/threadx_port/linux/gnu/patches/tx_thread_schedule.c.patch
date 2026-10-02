@@ -1,0 +1,18 @@
+--- a/tx_thread_schedule.c
++++ b/tx_thread_schedule.c
+@@ -29,6 +29,7 @@
+ #include "tx_api.h"
+ #include "tx_thread.h"
+ #include "tx_timer.h"
++#include "tx_thread_stack_info.hpp"
+ #include <stdio.h>
+ #include <errno.h>
+ 
+@@ -225,6 +226,7 @@ VOID   _tx_thread_schedule(VOID)
+         nanosleep(&ts, &ts);
+     } while (1);
+     pthread_join(thread_id, NULL);
++    _tx_linux_thread_stack_release(thread_ptr);
+     sem_destroy(threadrunsemaphore);
+     TX_DISABLE
+ }

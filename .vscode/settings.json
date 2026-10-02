@@ -1,0 +1,6 @@
+{
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "cmake.configureOnOpen": true,
+    "C_Cpp.default.cppStandard": "c++26",
+    "C_Cpp.default.compileCommands": "${command:cmake.buildDirectory}/compile_commands.json"
+}

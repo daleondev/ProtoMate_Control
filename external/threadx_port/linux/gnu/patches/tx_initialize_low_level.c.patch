@@ -1,0 +1,77 @@
+--- a/tx_initialize_low_level.c
++++ b/tx_initialize_low_level.c
+@@ -33,6 +33,7 @@
+ #include <unistd.h>
+ #include <errno.h>
+ #include <sys/sysinfo.h>
++#include "tx_thread_stack_info.hpp"
+ 
+ 
+ /* Define various Linux objects used by the ThreadX port.  */
+@@ -62,8 +63,8 @@
+ sem_t               _tx_linux_isr_semaphore;
+ void               *_tx_linux_timer_interrupt(void *p);
+ 
+-void    _tx_linux_thread_resume_handler(int sig);
+-void    _tx_linux_thread_suspend_handler(int sig);
++void    _tx_linux_thread_resume_handler(int sig, siginfo_t* info, void* context);
++void    _tx_linux_thread_suspend_handler(int sig, siginfo_t* info, void* context);
+ void    _tx_linux_thread_suspend(pthread_t thread_id);
+ 
+ #ifdef TX_LINUX_DEBUG_ENABLE
+@@ -376,14 +377,27 @@
+ }
+ 
+ /* Define functions for linux thread. */
+-void    _tx_linux_thread_resume_handler(int sig)
++void    _tx_linux_thread_resume_handler(int sig, siginfo_t* info, void* context)
+ {
++    int saved_errno;
++
++    saved_errno = errno;
+     (VOID)sig;
++    (VOID)info;
++    (VOID)context;
++    errno = saved_errno;
+ }
+ 
+-void    _tx_linux_thread_suspend_handler(int sig)
++void    _tx_linux_thread_suspend_handler(int sig, siginfo_t* info, void* context)
+ {
++    int saved_errno;
++
++    saved_errno = errno;
+     (VOID)sig;
++    (VOID)info;
++
++    if(_tx_linux_threadx_thread)
++        _tx_linux_thread_stack_capture_signal_context(context);
+ 
+     if(pthread_equal(pthread_self(), _tx_linux_timer_id))
+         tx_linux_sem_post_nolock(&_tx_linux_thread_timer_wait);
+@@ -393,2 +407,5 @@
+     if(_tx_linux_thread_suspended)
++    {
++        errno = saved_errno;
+         return;
++    }
+@@ -396,4 +413,5 @@
+     _tx_linux_thread_suspended = 1;
+     sigsuspend(&_tx_linux_thread_wait_mask);
+     _tx_linux_thread_suspended = 0;
++    errno = saved_errno;
+ }
+@@ -434,11 +452,11 @@
+     sigdelset(&_tx_linux_thread_wait_mask, RESUME_SIG);
+ 
+     sigfillset(&sa.sa_mask);
+-    sa.sa_flags = 0;
+-    sa.sa_handler = _tx_linux_thread_resume_handler;
++    sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
++    sa.sa_sigaction = _tx_linux_thread_resume_handler;
+     sigaction(RESUME_SIG, &sa, NULL);
+ 
+-    sa.sa_handler = _tx_linux_thread_suspend_handler;
++    sa.sa_sigaction = _tx_linux_thread_suspend_handler;
+     sigaction(SUSPEND_SIG, &sa, NULL);
+ }

@@ -1,0 +1,12 @@
+build/
+
+# CubeMX user specific files
+.mxproject
+external/CubeMX/cmake/stm32cubemx/CMakeLists.txt
+
+todo.txt
+# Local reference checkout used for platform migration
+reference_project/
+
+# Python validation helpers
+__pycache__/
