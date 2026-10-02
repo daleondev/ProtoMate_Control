@@ -52,6 +52,8 @@ void MX_GPIO_Init(void);
 void MX_ETH_Init(void);
 void MX_RTC_Init(void);
 void MX_TIM2_Init(void);
+void MX_TIM3_Init(void);
+void MX_TIM8_Init(void);
 void MX_RNG_Init(void);
 void MX_FDCAN1_Init(void);
 

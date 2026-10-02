@@ -84,6 +84,10 @@ void MX_RTC_Init() { print_message("MX_RTC_Init"); }
 
 void MX_TIM2_Init() { print_message("MX_TIM2_Init"); }
 
+void MX_TIM3_Init() { print_message("MX_TIM3_Init"); }
+
+void MX_TIM8_Init() { print_message("MX_TIM8_Init"); }
+
 void MX_RNG_Init() { print_message("MX_RNG_Init"); }
 
 int32_t BSP_COM_Init(COM_TypeDef com, COM_InitTypeDef* com_init)

@@ -40,6 +40,38 @@ TEST(HalGpioDrivers, OutputSupportsAtomicStateOperationsAndExclusiveOwnership)
     EXPECT_EQ(invalid_pin_output, nullptr);
 }
 
+TEST(HalGpioDrivers, PeripheralInputRetainsExclusivePinOwnership)
+{
+    constexpr hal::gpio::Pin pin{ .port = B, .number = 4U };
+    EXPECT_EQ(hal::gpio::createInput({ .pin = pin, .alternate_function = 16U }), nullptr);
+    EXPECT_EQ(
+      hal::gpio::createInput({ .pin = pin, .edge = hal::gpio::Edge::Rising, .alternate_function = 2U }),
+      nullptr);
+
+    auto input{ hal::gpio::createInput({ .pin = pin, .alternate_function = 2U }) };
+    ASSERT_NE(input, nullptr);
+    EXPECT_EQ(hal::gpio::createOutput({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::createInput({ .pin = pin }), nullptr);
+
+    input.reset();
+    EXPECT_NE(hal::gpio::createOutput({ .pin = pin }), nullptr);
+}
+
+TEST(HalGpioDrivers, PeripheralOutputRetainsExclusivePinOwnership)
+{
+    constexpr hal::gpio::Pin pin{ .port = C, .number = 6U };
+    EXPECT_EQ(hal::gpio::createOutput({ .pin = pin, .alternate_function = 16U }), nullptr);
+
+    auto output{ hal::gpio::createOutput({ .pin = pin, .alternate_function = 3U }) };
+    ASSERT_NE(output, nullptr);
+    EXPECT_EQ(output->read(), hal::gpio::Level::Low);
+    EXPECT_EQ(hal::gpio::createInput({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::createOutput({ .pin = pin }), nullptr);
+
+    output.reset();
+    EXPECT_NE(hal::gpio::createInput({ .pin = pin }), nullptr);
+}
+
 TEST(HalGpioDevices, LedAppliesActivePolarity)
 {
     auto active_low_output{ hal::gpio::createOutput(hal::gpio::OutputConfiguration{

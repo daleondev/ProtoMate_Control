@@ -143,8 +143,11 @@ namespace hal
             return GPIO_MODE_INPUT;
         }
 
-        [[nodiscard]] auto output_mode(gpio::OutputType type) noexcept -> std::uint32_t
+        [[nodiscard]] auto output_mode(gpio::OutputType type, bool alternate) noexcept -> std::uint32_t
         {
+            if (alternate) {
+                return type == gpio::OutputType::OpenDrain ? GPIO_MODE_AF_OD : GPIO_MODE_AF_PP;
+            }
             return type == gpio::OutputType::OpenDrain ? GPIO_MODE_OUTPUT_OD : GPIO_MODE_OUTPUT_PP;
         }
 
@@ -193,9 +196,11 @@ namespace hal
 
         GPIO_InitTypeDef gpio_configuration{};
         gpio_configuration.Pin = m_pinMask;
-        gpio_configuration.Mode = input_mode(configuration.edge);
+        gpio_configuration.Mode =
+          configuration.alternate_function ? GPIO_MODE_AF_PP : input_mode(configuration.edge);
         gpio_configuration.Pull = hal_pull(configuration.pull);
         gpio_configuration.Speed = GPIO_SPEED_FREQ_LOW;
+        gpio_configuration.Alternate = configuration.alternate_function.value_or(0U);
         HAL_GPIO_Init(m_port, &gpio_configuration);
 
         if (configuration.edge != gpio::Edge::None) {
@@ -271,9 +276,11 @@ namespace hal
 
         GPIO_InitTypeDef gpio_configuration{};
         gpio_configuration.Pin = m_pinMask;
-        gpio_configuration.Mode = output_mode(configuration.type);
+        gpio_configuration.Mode =
+          output_mode(configuration.type, configuration.alternate_function.has_value());
         gpio_configuration.Pull = hal_pull(configuration.pull);
         gpio_configuration.Speed = output_speed(configuration.speed);
+        gpio_configuration.Alternate = configuration.alternate_function.value_or(0U);
         HAL_GPIO_Init(m_port, &gpio_configuration);
     }
 

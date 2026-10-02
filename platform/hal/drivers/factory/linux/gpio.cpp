@@ -53,11 +53,18 @@ namespace hal::gpio
 
     auto createInput(InputConfiguration configuration) -> std::shared_ptr<IDigitalInput>
     {
+        if (configuration.alternate_function &&
+            (*configuration.alternate_function > 15U || configuration.edge != Edge::None)) {
+            return {};
+        }
         return create_pin<IDigitalInput, GpioInput>(configuration);
     }
 
     auto createOutput(OutputConfiguration configuration) -> std::shared_ptr<IDigitalOutput>
     {
+        if (configuration.alternate_function && *configuration.alternate_function > 15U) {
+            return {};
+        }
         return create_pin<IDigitalOutput, GpioOutput>(configuration);
     }
 }

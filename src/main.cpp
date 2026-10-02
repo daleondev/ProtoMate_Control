@@ -15,7 +15,7 @@ int main()
 
     pnm::log::info("Application started");
 
-    // Keep the drivers disabled and all STEP/DIR signals low at startup.
+    // Keep drivers disabled; TIM8 PWM is initialized but stopped on M2_STEP.
     [[maybe_unused]] const auto steppers_enable_n{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::F, .number = 3U },
       .initial_level = hal::gpio::Level::High,
@@ -43,6 +43,7 @@ int main()
       .type = hal::gpio::OutputType::PushPull,
       .pull = hal::gpio::Pull::None,
       .speed = hal::gpio::Speed::Low,
+      .alternate_function = 3U,
     }) };
     [[maybe_unused]] const auto m2_dir{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::C, .number = 7U },
@@ -64,6 +65,25 @@ int main()
       .type = hal::gpio::OutputType::PushPull,
       .pull = hal::gpio::Pull::None,
       .speed = hal::gpio::Speed::Low,
+    }) };
+
+    // Preserve TIM3's AF2 inputs; no encoder counting or index callback yet.
+    [[maybe_unused]] const auto m1_encoder_a{ hal::gpio::createInput({
+      .pin = { .port = hal::gpio::Port::B, .number = 4U },
+      .pull = hal::gpio::Pull::None,
+      .edge = hal::gpio::Edge::None,
+      .alternate_function = 2U,
+    }) };
+    [[maybe_unused]] const auto m1_encoder_b{ hal::gpio::createInput({
+      .pin = { .port = hal::gpio::Port::B, .number = 5U },
+      .pull = hal::gpio::Pull::None,
+      .edge = hal::gpio::Edge::None,
+      .alternate_function = 2U,
+    }) };
+    [[maybe_unused]] const auto m1_encoder_z{ hal::gpio::createInput({
+      .pin = { .port = hal::gpio::Port::B, .number = 6U },
+      .pull = hal::gpio::Pull::None,
+      .edge = hal::gpio::Edge::Rising,
     }) };
 
     const auto led{ hal::board::createLed(hal::board::LedId::Green) };

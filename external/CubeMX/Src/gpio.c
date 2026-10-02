@@ -65,7 +65,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOD, M3_STEP_Pin|M3_DIR_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, M2_STEP_Pin|M2_DIR_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(M2_DIR_GPIO_Port, M2_DIR_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : STEPPERS_EN_N_Pin */
   GPIO_InitStruct.Pin = STEPPERS_EN_N_Pin;
@@ -102,12 +102,22 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(SD_CARD_DETECT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : M2_STEP_Pin M2_DIR_Pin */
-  GPIO_InitStruct.Pin = M2_STEP_Pin|M2_DIR_Pin;
+  /*Configure GPIO pin : M2_DIR_Pin */
+  GPIO_InitStruct.Pin = M2_DIR_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(M2_DIR_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : M1_ENC_Z_Pin */
+  GPIO_InitStruct.Pin = M1_ENC_Z_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(M1_ENC_Z_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 }
 

@@ -22,6 +22,8 @@ namespace hal
         MX_ETH_Init();
         MX_RTC_Init();
         MX_TIM2_Init();
+        MX_TIM3_Init();
+        MX_TIM8_Init();
         MX_RNG_Init();
 
         COM_InitTypeDef bsp_com_init{};
