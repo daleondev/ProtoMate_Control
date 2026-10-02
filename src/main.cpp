@@ -15,7 +15,7 @@ int main()
 
     pnm::log::info("Application started");
 
-    // Keep drivers disabled; TIM8 PWM is initialized but stopped on M2_STEP.
+    // Keep drivers disabled; all three STEP timers are initialized but stopped.
     [[maybe_unused]] const auto steppers_enable_n{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::F, .number = 3U },
       .initial_level = hal::gpio::Level::High,
@@ -29,6 +29,7 @@ int main()
       .type = hal::gpio::OutputType::PushPull,
       .pull = hal::gpio::Pull::None,
       .speed = hal::gpio::Speed::Low,
+      .alternate_function = 1U,
     }) };
     [[maybe_unused]] const auto m1_dir{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::E, .number = 11U },
@@ -58,6 +59,7 @@ int main()
       .type = hal::gpio::OutputType::PushPull,
       .pull = hal::gpio::Pull::None,
       .speed = hal::gpio::Speed::Low,
+      .alternate_function = 2U,
     }) };
     [[maybe_unused]] const auto m3_dir{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::D, .number = 15U },

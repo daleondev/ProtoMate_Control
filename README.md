@@ -96,36 +96,47 @@ presets and the hardware runner set it to `OFF`.
 The following seven outputs on the **NUCLEO-H753ZI (MB1364)** control
 one STEPPERONLINE DM542T driver with an Oriental Motor PKP245D23A2-R2FL
 motor (M1) and two Adafruit TMC2209 #6121 boards (M2/M3).
-CubeMX configures six as ordinary push-pull outputs and M2_STEP as a TIM8
-PWM alternate-function output, all without internal pulls and at low GPIO
-speed. `src/main.cpp` instantiates all seven through the HAL GPIO wrapper and
-retains them for the application's lifetime. Ordinary STEP/DIR outputs start
-low; shared enable starts high (all drivers disabled). M2's PWM is stopped,
-with zero pulse width and the external STEP pull-down described below.
-No motion logic is implemented.
+CubeMX configures **all three STEP pins as hardware timer PWM outputs**.
+The three DIR pins and shared ENABLE remain ordinary push-pull GPIO outputs.
+All seven use no internal pulls and low GPIO speed. `src/main.cpp` instantiates
+them through the HAL GPIO wrapper and retains them for the application's
+lifetime. DIR starts low; shared enable starts high (all drivers disabled).
+All three pulse timers are initialized but **stopped**, with zero pulse width.
+Use the external input biasing described below to hold STEP inactive while
+timer outputs are disabled. No motion logic is implemented.
 
 | Signal | STM32 pin | Board connector | Driver connection | STEP timer |
 | --- | --- | --- | --- | --- |
-| M1_STEP | PE9 | CN10 pin 4 / D6 | DM542T PUL− through Q1 below | TIM1_CH1 / AF1 (planned) |
+| M1_STEP | PE9 | CN10 pin 4 / D6 | DM542T PUL− through Q1 below | TIM1_CH1 / AF1 |
 | M1_DIR | PE11 | CN10 pin 6 / D5 | DM542T DIR− through Q2 below | — |
-| M2_STEP | PC6 | CN7 pin 1 / D16 | First TMC2209 STEP | TIM8_CH1 / AF3 (configured, stopped) |
+| M2_STEP | PC6 | CN7 pin 1 / D16 | First TMC2209 STEP | TIM8_CH1 / AF3 |
 | M2_DIR | PC7 | CN7 pin 11 / D21 | First TMC2209 DIR | — |
-| M3_STEP | PD14 | CN7 pin 16 / D10 | Second TMC2209 STEP | TIM4_CH3 / AF2 (planned) |
+| M3_STEP | PD14 | CN7 pin 16 / D10 | Second TMC2209 STEP | TIM4_CH3 / AF2 |
 | M3_DIR | PD15 | CN7 pin 18 / D9 | Second TMC2209 DIR | — |
 | STEPPERS_EN_N | PF3 | CN7 pin 20 / D8 | Both TMC2209 EN pins; DM542T ENA− through Q3 below | — |
 
 Connector positions follow [ST UM2407, tables 18 and 21](https://www.st.com/resource/en/user_manual/um2407-stm32h7-nucleo144-boards-mb1364-stmicroelectronics.pdf).
 PE9 uses the default routing to CN10 pin 4 (SB28 closed, SB70 open).
-The STEP pins support three separate timers for independent pulse rates; see
+The STEP pins use three separate timers for independent pulse rates; see
 the [STM32H753 alternate-function tables](https://www.st.com/resource/en/datasheet/stm32h753zi.pdf).
-M1_STEP and M3_STEP remain ordinary GPIOs, with their timer alternatives
-reserved for future pulse generation. M2_STEP already selects TIM8_CH1.
-TIM8 is initialized in active-high PWM mode 1 with prescaler 239, period 65535
-and pulse width 0; at the current 240 MHz timer clock this gives a 1 MHz
-counter clock. The channel remains stopped. Future motion code must set the
-desired period/pulse width and explicitly start it. The HAL output object
-uses `alternate_function = 3` to retain PC6's timer connection; GPIO
-`write()`/`toggle()` affect only its output latch, not the PWM waveform.
+TIM1, TIM8 and TIM4 are configured identically for STEP generation: active-high
+PWM mode 1, prescaler 239, period 65535 and pulse width 0. At the current
+240 MHz timer clocks, each counter ticks at **1 MHz (1 µs per tick)**.
+Auto-reload and compare preload are enabled so future period and pulse-width
+updates can take effect at timer update boundaries. These initial values are
+inactive defaults, not a commanded movement speed.
+
+Software will calculate movement and program timer periods/pulse widths;
+**the timers generate STEP edges in hardware**, without software GPIO toggling.
+At this prescaler, a running channel's frequency is `1 MHz / (ARR + 1)` and
+its high time is `CCR` microseconds. Future motion code must respect each
+driver's pulse timing, load the buffered settings before starting, control
+the number of steps, and explicitly start/stop the required channels.
+No PWM start calls, DMA transfers or STEP timer interrupts are enabled yet.
+
+The HAL output objects retain the timer connections with
+`alternate_function = 1` (M1), `3` (M2) and `2` (M3). GPIO
+`write()`/`toggle()` only affect their output latches, not the timer waveforms.
 
 These assignments are configured in `external/CubeMX/CubeMX.ioc`.
 The storage assignments above, Ethernet RMII, USART3 console,
@@ -199,7 +210,8 @@ period 65535, direct non-inverted inputs and input filters disabled. The
 to retain their timer connection, and a rising-edge input for Z. EXTI9_5 uses
 priority 5 and the HAL wrapper's shared interrupt dispatcher. There is no
 encoder start/read loop, index callback, homing or motion-control logic yet.
-The Linux backend reserves these pins but does not emulate TIM3 or TIM8.
+The Linux backend reserves these pins but does not emulate encoder counting
+or hardware STEP generation.
 
 Use three channels of the **AM26C32CN** differential receiver, followed by
 three channels of a **SN74LVC125A powered from 3.3 V**:
