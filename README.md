@@ -52,3 +52,41 @@ Linux simulates the HAL and uses the ThreadX Linux port. Standard Linux file
 I/O uses the host filesystem; explicit FileX tests use simulated media images.
 The simulated LED state toggles inside the process; inspect it through the
 HAL or Linux debugger. Startup diagnostics and the boot message appear on the terminal.
+
+## Storage and external wiring
+
+Hardware startup requires at least one readable storage volume. Full hardware
+conformance requires both the W25Q128 NOR module and an existing FAT SD card;
+the reference SD self-test expects a card of at least 8 GiB.
+
+| Device signal | STM32 pin |
+| --- | --- |
+| W25Q128 CLK | PB2 |
+| W25Q128 CS | PG6 |
+| W25Q128 IO0 / DI | PD11 |
+| W25Q128 IO1 / DO | PD12 |
+| W25Q128 IO2 / WP | PE2 |
+| W25Q128 IO3 / HOLD | PD13 |
+| SD D0, D1, D2, D3 | PC8, PC9, PC10, PC11 |
+| SD CLK | PC12 |
+| SD CMD | PD2 |
+| SD card detect, advisory | PG2 |
+
+Use 3.3 V supplies/signals and a shared ground. The CubeMX configuration is
+the pin/clock source of truth. PG2 is D49 on CN8 pin 14; CN8 pin 8 is PC11,
+which is already SD D3. SD data/command pins have configured pull-ups.
+
+`/flash` is a 12 MiB FAT volume on the 16 MiB NOR chip, with remaining capacity
+reserved for LevelX reclamation. Blank media is formatted on first use; invalid
+existing media is not automatically erased. `/sd` mounts the existing FAT
+volume and is never automatically formatted on hardware. A 4-bit SD read CRC
+failure can trigger the preserved 1-bit retry; diagnostics identify the final
+bus width and error. Startup chooses `/flash`, or `/sd` if flash is unavailable,
+and panics if neither mounts. The virtual root is read-only; cross-volume
+renames return `EXDEV`.
+
+Successful writable-file close and filesystem metadata operations flush the
+volume before returning. Explicitly close writers and check errors when
+persistence matters. FAT timestamps use UTC and two-second precision.
+`RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT` is destructive recovery only; all shipped
+presets and the hardware runner set it to `OFF`.
