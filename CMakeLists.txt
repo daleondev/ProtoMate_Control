@@ -106,6 +106,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     )
 endif()
 
+add_subdirectory(external/pneumo)
+
 add_subdirectory(platform/hal)
 add_subdirectory(platform/runtime)
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
