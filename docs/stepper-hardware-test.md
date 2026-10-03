@@ -11,10 +11,35 @@ An independent logic-analyzer or oscilloscope capture is needed to verify the
 electrical edges. A firmware `PASS` alone is not proof of the waveform or rotor motion.
 
 The [current hardware measurements](measurements/2026-10-03-step-generator/README.md)
-include sigrok captures, count comparisons and exported figures. Pulse counts
-and stop behavior match the firmware. Independent Hantek measurements confirm
-a fast STEP rate. The `c` test also measures TIM2 fast relative to the independent
-RTC crystal; absolute timing accuracy remains open.
+include logic-analyzer and Hantek captures, RTC comparisons, firmware pulse checks
+and exported figures for the current crystal-clock configuration. The report
+distinguishes physical waveform measurements from firmware-only checks.
+
+## Clock-source configuration
+
+This firmware requires **STLINK-V3 MCO = HSE/5**, a 5 MHz output derived from
+ST-Link's 25 MHz crystal. Configure this separately in STLinkUpgrade or
+STM32CubeProgrammer's ST-Link firmware/configuration dialog. Read the parameter
+back to verify **MCO: HSE/5** before programming the target. The connected
+NUCLEO-H753ZI already has this setting, with ST-Link firmware V3J16M9.
+
+For STLinkUpgrade 3.16.9, run from its `AllPlatforms` directory, substituting
+your board's serial number. This reapplies the same ST-Link firmware to persist
+the clock parameter; keep USB power connected until it reports success:
+
+```sh
+java -jar STLinkUpgrade.jar -sn SERIAL -d32_msc -mco_hse 5 -force_prog
+java -jar STLinkUpgrade.jar -sn SERIAL -checkParam
+```
+
+The matching CubeMX settings are HSE bypass = 5,000,000 Hz and PLL1
+M=1, N=192, P=2, Q=24, R=2, input range 4–8 MHz, wide VCO, FRACN=0.
+The CPU remains 480 MHz, AHB 240 MHz, APB buses 120 MHz and timer kernels
+240 MHz. TIM2's prescaler 23 gives a 10 MHz STEP counter; TIM5's prescaler
+239 gives a 1 MHz runtime counter. No software frequency correction is applied.
+Recheck ST-Link's MCO after replacing the board or updating its firmware;
+CubeMX cannot program that separate setting. See
+[ST's MCO guidance](https://community.st.com/stm32-mcus-60/how-to-use-stlink-v3-mco-output-on-nucleo-boards-as-a-precise-clock-source-for-stm32-140173).
 
 ## Build and program
 
@@ -113,8 +138,8 @@ especially at DMA boundaries; the waveform must not acquire software-sized gaps.
 
 ## Independent clock check (`c`)
 
-Build and flash the same `step-test-stm32` image using the commands above. Leave
-the existing ST-Link MCO and CubeMX clock settings as configured for this test.
+Build and flash the same `step-test-stm32` image using the commands above and
+the matching 5 MHz clock configuration described above.
 Connect the ST-Link USB serial port at **115200 baud, 8N1**, then send **`c` and
 Enter**. Wait about **31 seconds** for three result lines followed by `CLOCK VALID`
 and `READY for command`. B1 cancels; do not halt the debugger during acquisition.
@@ -131,8 +156,8 @@ Each result reports:
   nominally **100,000,000**.
 - `timer_hz`: counter frequency relative to the RTC's independent 32.768 kHz LSE
   crystal; nominally **10,000,000 Hz**.
-- `error_ppm`: positive means TIM2 is fast relative to LSE; **6400 ppm = +0.64%**.
-  An offset like the scope measurement would give about 10,064,000 Hz.
+- `error_ppm`: positive means TIM2 is fast relative to LSE; **100 ppm = +0.01%**.
+  Interpret this estimate together with its sampling bound and LSE tolerance.
 - `sampling_bound_ppm`: uncertainty allowance for polling and RTC shadow-register
   synchronization. It does **not** include the LSE crystal's own frequency error.
 - `screen`: `WITHIN_0.1_PERCENT`, `FAST`, `SLOW`, or `INCONCLUSIVE`. The 0.1% screen
@@ -154,10 +179,10 @@ and calendar snapshots. TIM5/`steady_clock` supplies only an abort timeout,
 never the measured elapsed time. RTC date, calibration and clock selection are
 left intact. Counter wrap uses the configured `ARR+1 = 0xFFFFFFFF` modulus.
 
-Repeat `c` after a few minutes to check repeatability. Similar positive errors
-in all windows would support a main-clock offset relative to LSE. Results close
-to zero would prompt investigation of the external capture setup or changing
-clock conditions. LSE is an independent reference, not a calibrated standard.
+Repeat `c` after a few minutes to check repeatability. Results near zero within
+the sampling bounds support agreement between the two board crystals. LSE is
+an independent reference, not a calibrated standard; this test cannot establish
+absolute frequency to precision finer than its sampling and reference limits.
 Keep the complete UART output. Use `3` with the Hantek for a separate waveform
 measurement if required; `c` deliberately generates no waveform.
 

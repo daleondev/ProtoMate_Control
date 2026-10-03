@@ -1,0 +1,51 @@
+{
+  "measurement_date": "2026-10-03\u201304",
+  "firmware_sha256": "3a41d6545001abc8447a94a02e6651ca0e23653c128ef48acdbf72f3a7cf3097",
+  "preset": "step-test-stm32",
+  "stlink_serial": "002F00313234510737333934",
+  "stlink_firmware": "V3J16M9",
+  "stlink_mco": "HSE/5",
+  "target_hse_hz": 5000000,
+  "cpu_hz": 480000000,
+  "timer_kernel_hz": 240000000,
+  "tim2_counter_hz": 10000000,
+  "pll1": {
+    "M": 1,
+    "N": 192,
+    "P": 2,
+    "Q": 24,
+    "R": 2,
+    "FRACN": 0
+  },
+  "scope": "Hantek 6022BE",
+  "sigrok_cli": "0.7.2",
+  "driver": "hantek-6xxx",
+  "scope_channels": {
+    "CH1": "M1 STEP PA0 CN10.29",
+    "CH2": "M2 STEP PB10 CN10.32"
+  },
+  "ground": "CN10.22",
+  "reference": "RTC/LSE 32768 Hz, prescalers 127/255, CALR=0",
+  "source_sha256": {
+    "external/CubeMX/CubeMX.ioc": "487b13ceb7d59b1ec31eab19756064a67c5e90dbf242b91b4bb387d05409ea2b",
+    "external/CubeMX/Src/main.c": "a124c3e11dee776632f165ce5fab19ba23a6f807c2a577fc1272a9c82d036272",
+    "external/CubeMX/Inc/stm32h7xx_hal_conf.h": "518d75877c96a817a90f87976a02d4e85ec2e1f555505b4b1c94e084432be64d",
+    "platform/hal/tests/hardware_step_test.cpp": "63ec8db00bda7f95d525c7c5cc20f8c5173af4309e3bd0658382948e744533fe"
+  },
+  "logic_analyzer": "AZDelivery 8 CH / fx2lafw",
+  "logic_channels": {
+    "D0": "M1 STEP PA0 CN10.29",
+    "D1": "M2 STEP PB10 CN10.32",
+    "D2": "M3 STEP PB11 CN10.34"
+  },
+  "logic_sampling": {
+    "cases_1_to_7": {
+      "samplerate_hz": 24000000,
+      "samples": 96000000
+    },
+    "case_8": {
+      "samplerate_hz": 4000000,
+      "samples": 1760000000
+    }
+  }
+}

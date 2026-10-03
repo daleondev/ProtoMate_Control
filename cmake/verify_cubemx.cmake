@@ -34,6 +34,25 @@ function(verify_cubemx_generation)
     )
 
     set(linker_script "${cubemx_directory}/STM32H753XX_FLASH.ld")
+    # The onboard STLINK-V3 MCO must be configured separately to HSE/5.
+    # Its 25 MHz crystal supplies the target's 5 MHz HSE bypass input.
+    foreach(assignment "RCC.HSE_VALUE=5000000" "RCC.DIVM1=1" "RCC.DIVN1=192"
+                       "RCC.DIVQ1=24" "RCC.SYSCLKFreq_VALUE=480000000"
+                       "RCC.Tim2OutputFreq_Value=240000000")
+        cubemx_require_text("${cubemx_directory}/CubeMX.ioc" "${assignment}\n"
+            "The clock tree must match the ST-Link crystal-derived 5 MHz MCO.")
+    endforeach()
+    foreach(required "RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;"
+                     "RCC_OscInitStruct.PLL.PLLM = 1;"
+                     "RCC_OscInitStruct.PLL.PLLN = 192;"
+                     "RCC_OscInitStruct.PLL.PLLP = 2;"
+                     "RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;")
+        cubemx_require_text("${cubemx_directory}/Src/main.c" "${required}"
+            "Regenerate the 5 MHz HSE bypass clock initialization.")
+    endforeach()
+    cubemx_require_text("${cubemx_directory}/Inc/stm32h7xx_hal_conf.h"
+        "#define HSE_VALUE    (5000000UL)"
+        "HAL clock calculations must use the 5 MHz ST-Link MCO input.")
     foreach(assignment
         "PA0.Signal=S_TIM2_CH1_ETR"
         "PB10.Signal=S_TIM2_CH3"

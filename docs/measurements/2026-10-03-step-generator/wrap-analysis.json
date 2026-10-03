@@ -1,0 +1,18 @@
+{
+  "physical_counts": [
+    435,
+    435,
+    435
+  ],
+  "max_interchannel_edge_difference_us": 0.25,
+  "period_mean_us": 999971.2482718894,
+  "period_min_us": 999970.5,
+  "period_max_us": 999972.5,
+  "max_consecutive_period_change_us": 0.25,
+  "wrap_interval_index": 429,
+  "wrap_interval_us": 999970.5,
+  "wrap_minus_preceding_20_interval_mean_us": -0.19999999995343387,
+  "mean_clock_residual_screen_passed": false,
+  "sampling_interval_us": 0.25,
+  "interpretation": "Slow relative clock drift; no resolved sudden period change at rollover. Original global-fit residual failure is retained."
+}

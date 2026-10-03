@@ -1,33 +1,104 @@
 {
-  "sample_rates_Hz": {
-    "case-1": 24000000,
-    "case-2": 24000000,
-    "case-3": 24000000,
-    "case-4": 24000000,
-    "case-5": 24000000,
-    "case-6": 24000000,
-    "case-7": 24000000,
-    "case-8": 4000000
+  "measurement_date": "2026-10-03\u201304",
+  "firmware_sha256": "3a41d6545001abc8447a94a02e6651ca0e23653c128ef48acdbf72f3a7cf3097",
+  "preset": "step-test-stm32",
+  "stlink_serial": "002F00313234510737333934",
+  "stlink_firmware": "V3J16M9",
+  "stlink_mco": "HSE/5",
+  "target_hse_hz": 5000000,
+  "cpu_hz": 480000000,
+  "timer_kernel_hz": 240000000,
+  "tim2_counter_hz": 10000000,
+  "pll1": {
+    "M": 1,
+    "N": 192,
+    "P": 2,
+    "Q": 24,
+    "R": 2,
+    "FRACN": 0
   },
-  "channels": {
-    "D0": "M1 STEP PA0 CN10.29",
-    "D1": "M2 STEP PB10 CN10.32",
-    "D2": "M3 STEP PB11 CN10.34",
-    "D3": "observed high (optional EN_N lead)"
-  },
-  "capture_directory": "docs/measurements/2026-10-03-step-generator/captures",
-  "edge_data": "edges.npz: absolute integer sample indices, rise/fall arrays per axis and capture",
-  "strict_screening": "capture.py uses 0.1% nominal-period and 2-sample residual checks; retained failures expose clock offset/variation, not just pulse counts",
-  "files": {
-    "build/step-test-stm32/validation/sigrok-20261003/current/firmware.bin": "b57c9aa969940a73cbe1300cfb11463e8fcdd6f228e4b7e2c7dc35bd99ce2c6f",
-    "docs/measurements/2026-10-03-step-generator/firmware-programming.log": "24cc4d0e337ef0bb74d5f5608118155c726464bd19937c7f67cafd69c6cb224f"
-  },
-  "scope_results": "scope-results.json",
+  "scope": "Hantek 6022BE",
+  "sigrok_cli": "0.7.2",
+  "driver": "hantek-6xxx",
   "scope_channels": {
     "CH1": "M1 STEP PA0 CN10.29",
     "CH2": "M2 STEP PB10 CN10.32"
   },
-  "scope_analysis": "First 1 ms excluded; interpolated midpoint crossings over all remaining samples; 30/50/70% threshold agreement checked.",
-  "clock_reference_results": "clock-reference-results.json",
-  "clock_reference_firmware_sha256": "e970fa9662bc0f75e0a1a5091dbc4dcef196cb20bab49e52a58a178dc6abff14"
+  "ground": "CN10.22",
+  "reference": "RTC/LSE 32768 Hz, prescalers 127/255, CALR=0",
+  "source_sha256": {
+    "external/CubeMX/CubeMX.ioc": "487b13ceb7d59b1ec31eab19756064a67c5e90dbf242b91b4bb387d05409ea2b",
+    "external/CubeMX/Src/main.c": "a124c3e11dee776632f165ce5fab19ba23a6f807c2a577fc1272a9c82d036272",
+    "external/CubeMX/Inc/stm32h7xx_hal_conf.h": "518d75877c96a817a90f87976a02d4e85ec2e1f555505b4b1c94e084432be64d",
+    "platform/hal/tests/hardware_step_test.cpp": "63ec8db00bda7f95d525c7c5cc20f8c5173af4309e3bd0658382948e744533fe"
+  },
+  "logic_analyzer": "AZDelivery 8 CH / fx2lafw",
+  "logic_channels": {
+    "D0": "M1 STEP PA0 CN10.29",
+    "D1": "M2 STEP PB10 CN10.32",
+    "D2": "M3 STEP PB11 CN10.34"
+  },
+  "logic_sampling": {
+    "cases_1_to_7": {
+      "samplerate_hz": 24000000,
+      "samples": 96000000
+    },
+    "case_8": {
+      "samplerate_hz": 4000000,
+      "samples": 1760000000
+    }
+  },
+  "logic_analysis": "Whole captures: counts, high widths, stopped levels, 0.1% nominal-period screen and two-sample fitted-period residual screen.",
+  "scope_analysis": "First 1 ms excluded; interpolated crossings over all remaining samples; 30/50/70% threshold agreement checked.",
+  "files": {
+    "captures/case-1.json": "7591b32af4c1d3bf2a530f7b2c86ae0aaf20e6bb7c08b740967dc90327735b45",
+    "captures/case-1.sigrok.log.gz": "62145b691b67d37d4c154cafe57eaa2d738ff7a046aa18ace1dae83e90aba6ce",
+    "captures/case-1.sr": "9e2dafe3e0110fd497c6cb574ff5b84f3a3c3899de7a9c38a74570edae89c85b",
+    "captures/case-1.uart.log": "ce410c969f7edf3fb008db8fb3e7f2d840be28b46cd85cbabaaa21b95cd11824",
+    "captures/case-2.json": "7c7824cf6d06f48fe2b5d028149722cebd6075fc276219c733f49417d4c78d29",
+    "captures/case-2.sigrok.log.gz": "e1ac35007fab4543eff847076f0e0632dbc4369a48834bbb77fd372eded6b069",
+    "captures/case-2.sr": "a064b88d9e36c71425bf67c25457576ed33ef8d958b559b23e8f2a340ecd84a2",
+    "captures/case-2.uart.log": "b08056a7e8e0ceacf55e047e8af18343dbd84ef95a9d737a80795a21451bc064",
+    "captures/case-3.json": "0e6145c48ddae3fb978efa7633cd25ad891267d856770457cc691a06430e38a3",
+    "captures/case-3.sigrok.log.gz": "2353f63e96ce7db0c1559d2f643bb2a38abe8101464b7445330691ca51642192",
+    "captures/case-3.sr": "a90345ac7ef913f65ba43599d2d2d7f8fecb06d65b1aba49955dfabdab112da3",
+    "captures/case-3.uart.log": "3f2433562d9409ad005501027df614b88784e94abd3e2de8a328e1350198474c",
+    "captures/case-4.json": "2039c9a0edc931eadc8fad5afc1d3ca02ab3abbbabe1a19c8151546113bb5943",
+    "captures/case-4.sigrok.log.gz": "a8f080c9b04b0ed839e1d82d76ec420f16b3ec6c40a40e9df353b325b23c2f19",
+    "captures/case-4.sr": "2e55931c274c56c97765b319be98bc11ed42b5d65efc1cbe413e02c87f5b8725",
+    "captures/case-4.uart.log": "faeaffa17b9036a8abfb26e398ba362ae1538d506759851e0430ab3680cbc742",
+    "captures/case-5.json": "c690aad1618d1c58063cb10cccc4c3db1760a8b492eeba4232194ba2c61003b2",
+    "captures/case-5.sigrok.log.gz": "8ca8d257385f374c7d282c94e4d216ce918b8a8749c21c48961f1a8edc3a48a8",
+    "captures/case-5.sr": "860609a4b5081bd729d5d7cffa2a7892a2b3136cf83691776fe517ff8247a1a4",
+    "captures/case-5.uart.log": "3a80c5bf7556f9922f25a6a6f6c84a98fbd7e379f2f56ddeaebf1e022d61f57b",
+    "captures/case-6.json": "7352512e32f64cb0ac18e8a4eed63596c6ba68b0b2789ab8cc5a7d6d10a648d5",
+    "captures/case-6.sigrok.log.gz": "ab9ef89dd0ce2e5553c6e2fc32c0bf0c7c2bb90f46eada1961a91fc516c4e070",
+    "captures/case-6.sr": "ebcb5031b6e38695366355305352c533186f0e0a87aae57c8e0a3990e1b66b85",
+    "captures/case-6.uart.log": "8b513da454cfe10860eb4eae0efe2566a28af816fc829e5407dc69ec101658e5",
+    "captures/case-7.json": "43818d7ea94d518d1e755e479154eca8df1ead569796cb1f461261b0e68b9f2e",
+    "captures/case-7.sigrok.log.gz": "36d2020223a60cd49f78a0ab5bdc61bda5354261ebafb1c5c3f1bf81b10ffd2e",
+    "captures/case-7.sr": "a275ea00d086cba13e1c33082a79ca8f6dc38381e91c690bb14af17af42a0b32",
+    "captures/case-7.uart.log": "d915bca508741e48bef1fcdc2d79833cff22a87f186fd14790c947c6d60b4f2b",
+    "captures/case-8.json": "8a858f1f9841317e31135ea40d114c32f71b5600e8705d694f0aaef30cb259c2",
+    "captures/case-8.sigrok.log.gz": "09a05ae3a36019c93fb3c3f9fbe1925cc36be62806753f58954bc6bbffaf713b",
+    "captures/case-8.sr": "0596fdd7dfef08f9393f4b7758c893cccd07fa8a42f7b3f69ae1cc133abfbc33",
+    "captures/case-8.uart.log": "62764ea8036c836315dfabd06f7028fb233f9f0f707137daff0cf1ec0cbbceb2",
+    "captures/counter-wrap.uart.log": "62764ea8036c836315dfabd06f7028fb233f9f0f707137daff0cf1ec0cbbceb2",
+    "captures/hantek-16mhz.acquisition.json": "0c5439bc3c7b373bb5d03c00ed3f5dc4deeba3def48af524aee7e75574068e2f",
+    "captures/hantek-16mhz.sigrok.log.gz": "ab713632adeb3ab9a532af6c14e209caee764ca1c6ce9b27d059f25a1e5017d9",
+    "captures/hantek-16mhz.sr": "ab4ad0a36d1a58d5f0fb9faa627e297b132a0d59ec93e140ed21992e40f21eb0",
+    "captures/hantek-16mhz.uart.log": "3f2433562d9409ad005501027df614b88784e94abd3e2de8a328e1350198474c",
+    "captures/hantek-8mhz.acquisition.json": "29be2946d2b261c17b0210a71da900f4c8b2f6320a3997e2e0fffc12a18272ba",
+    "captures/hantek-8mhz.sigrok.log.gz": "466bf54f9ebbe55b7afe1cfd1c6a871373498a39c4f2c2cb9c9d7bc60645fbce",
+    "captures/hantek-8mhz.sr": "ce1c05dbc5d77fb3ece73e340d7643730f733758de7a8f9e8039e36a25821657",
+    "captures/hantek-8mhz.uart.log": "3f2433562d9409ad005501027df614b88784e94abd3e2de8a328e1350198474c",
+    "captures/pulse-suite.uart.log": "3d0f7680cea5d5ebc1895c593048c4c61ea4051c746fc14358ea655f4b988c0d",
+    "captures/rtc-reference-1.uart.log": "1ddae239f6c28a544ceb275da8b74e46967f7d93ffcdef8426ec910eee7bf155",
+    "captures/rtc-reference-2.uart.log": "943e607f819cd5d265d024e9f5071e83f64f87a8ff88cabd19428224128e3891",
+    "captures/rtc-reference.acquisition.json": "984c516b042e902ad4fd95f03d279a724dfc8e3b208fc48cb21460e89f34aa2d",
+    "firmware-programming.log": "99fd90afaa3d1658183ff21bb5e2c54b1852f9ab08d13c16fa2a9dd989a86a79",
+    "stlink-parameters.log": "1dc03604ab9d70efa5048af398d1ef132a35492b1ba1f5feb0e8ec4cb12e3875",
+    "export_results.py": "54595818d8cffc5207402deebbe61d8fdde16d47471bec2de6be103cf22c130b",
+    "acquisition.json": "aaa04f4ceeca94bab29fb72f543473a74da569f77e5be48b1cf5db035647deeb"
+  }
 }

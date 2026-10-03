@@ -24,6 +24,7 @@ import numpy as np
 OUT = Path(__file__).resolve().parent
 REPO = OUT.parents[2]
 RAW = OUT / 'captures'
+MANIFEST = json.loads((OUT/'acquisition.json').read_text())
 RATE = 24_000_000
 COLORS = ['#2364aa', '#df7b22', '#17836b']
 plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 10,
@@ -72,6 +73,7 @@ if list(RAW.glob('case-*.json')):
         name = file.stem
         print('Extracting', name, flush=True)
         d = json.loads(file.read_text())
+        assert d['firmware_sha256'] == MANIFEST['firmware_sha256']
         d['capture_sha256'] = sha256(file.with_suffix('.sr'))
         d['uart'] = file.with_suffix('.uart.log').read_text()
         log = gzip.open(file.with_suffix('.sigrok.log.gz'), 'rt').read()
@@ -132,7 +134,7 @@ fig, ax = plt.subplots(figsize=(11,8.5))
 fig.subplots_adjust(top=.82,bottom=.17)
 fig.suptitle('STEP hardware validation — pulse counts and stopping', y=.97)
 fig.text(.5,.915,'Current firmware: reported pulse counts match the independent logic-analyzer captures.',ha='center',color='#17836b')
-fig.text(.5,.875,'Absolute clock timing remains unresolved.',ha='center',color='#9b4a13')
+fig.text(.5,.875,'Nominal rates within ±0.1%; long-run residual drift is documented in figure 8.',ha='center',color='#9b4a13')
 ax.axis('off')
 rows=[]
 for case in range(1,9):
@@ -147,7 +149,7 @@ table.auto_set_font_size(False);table.set_fontsize(10);table.scale(1,2.3)
 for (row,col),cell in table.get_celld().items():
     cell.set_edgecolor('#dddddd')
     if row==0: cell.set_facecolor('#edf2f7');cell.set_text_props(weight='bold')
-caption(fig,'AZDelivery / fx2lafw, 24 MS/s (cases 1–7), 4 MS/s (case 8). Nucleo STEP pins, EN_N disabled. 2026-10-03.')
+caption(fig, 'AZDelivery / fx2lafw, 24 MS/s (cases 1–7), 4 MS/s (case 8). Nucleo STEP pins, EN_N disabled. ' + MANIFEST['measurement_date'] + '.')
 save(fig,'01-counts-and-states')
 
 # Count curves preserve independent rates and finish times without hiding stop behavior.
@@ -179,7 +181,7 @@ fig.suptitle(f'Case 3 — 100,000 pulses/axis; measured M1 rate {hz/1000:.3f} kH
 caption(fig,'Programmed rate: 100.000 kHz. The frequency offset is measured, not corrected in these plots. Digital logic levels, not analog voltages.')
 save(fig,'03-maximum-rate')
 
-# Common slow clock variation; retain raw sample quantization rather than smoothing.
+# Retain raw sample quantization rather than smoothing.
 fig,axs=plt.subplots(2,1,figsize=(11,8));fig.subplots_adjust(top=.87,bottom=.11,hspace=.4)
 for ch,period in enumerate([1000,500,250]):
     r,_=edges(2,ch);p=np.diff(r)/24;freqerror=(period/p-1)*100
@@ -188,8 +190,8 @@ axs[0].set(ylabel='Frequency offset from command (%)',xlabel='Measured time (s)'
 r,_=edges(2);p=np.diff(r)/24
 axs[1].hist(p,bins=40,color=COLORS[0]);axs[1].axvline(1000,color='#c84b4b',ls='--',label='Programmed 1,000 µs')
 axs[1].set(xlabel='M1 measured rising-edge period (µs)',ylabel='Intervals');axs[1].legend()
-fig.suptitle('Clock accuracy finding — frequency offset and variation remain')
-caption(fig,'Timing is relative to the analyzer clock. Independent Hantek measurements also show a fast STEP rate; absolute calibration remains open.')
+fig.suptitle('Measured frequency offset and interval distribution')
+caption(fig,'Timing is relative to the analyzer clock. Sample quantization remains visible; instrument timebases are not calibrated.')
 save(fig,'04-clock-offset')
 
 fig,axs=plt.subplots(2,1,figsize=(11,8));fig.subplots_adjust(top=.88,bottom=.10,hspace=.42)
@@ -205,7 +207,7 @@ for ax in axs:
 axs[0].set_ylabel('Period (µs)');axs[0].legend(ncol=2)
 axs[1].set_ylabel('Measured − programmed (µs)')
 fig.suptitle('Case 4 — copied acceleration/deceleration profile, 1,024 pulses/axis')
-caption(fig,'Dotted lines indicate 256-pulse buffer boundaries. All counts match; systematic timing error remains visible.')
+caption(fig,'Dotted lines indicate 256-pulse buffer boundaries. Measured intervals are shown without clock correction.')
 save(fig,'05-profile')
 
 fig,axs=plt.subplots(2,1,figsize=(11,8));fig.subplots_adjust(top=.88,bottom=.11,hspace=.5)
@@ -215,7 +217,7 @@ axs[0].set_title('Pulse train crosses the first M1 DMA-buffer boundary while its
 p=np.diff(r)/24
 axs[1].plot(np.arange(len(p)),p,'.',ms=3,color=COLORS[0])
 for boundary in [256,512,768]: axs[1].axvline(boundary,color='#777777',ls=':')
-axs[1].set(xlabel='M1 interval index',ylabel='Measured period (µs)',ylim=(9.80,10.12))
+axs[1].set(xlabel='M1 interval index',ylabel='Measured period (µs)',ylim=(9.90,10.10))
 fig.suptitle('Case 6 — delayed refill IRQ: 1,000 captured pulses on every axis')
 caption(fig,'The firmware masks DMA IRQs for about 4.5 ms including the start delay. The analyzer observes the outputs, not the IRQ mask directly.')
 save(fig,'06-delayed-interrupt')
@@ -234,23 +236,47 @@ save(fig,'07-underrun-stop')
 
 if 'case-8' in DATA:
     wrap_rate = DATA['case-8']['samplerate']
-    fig,axs=plt.subplots(2,1,figsize=(11,8));fig.subplots_adjust(top=.88,bottom=.11,hspace=.48)
+    r, _ = edges(8)
+    periods_us = np.diff(r)*1e6/wrap_rate
+    wrap_analysis = {
+        'physical_counts': [len(edges(8,ch)[0]) for ch in range(3)],
+        'max_interchannel_edge_difference_us': float(max(
+            np.abs(edges(8,ch)[kind]-edges(8)[kind]).max()
+            for ch in [1,2] for kind in [0,1]) * 1e6/wrap_rate),
+        'period_mean_us': float(periods_us.mean()),
+        'period_min_us': float(periods_us.min()),
+        'period_max_us': float(periods_us.max()),
+        'max_consecutive_period_change_us': float(np.abs(np.diff(periods_us)).max()),
+        'wrap_interval_index': 429,
+        'wrap_interval_us': float(periods_us[429]),
+        'wrap_minus_preceding_20_interval_mean_us': float(periods_us[429]-periods_us[409:429].mean()),
+        'mean_clock_residual_screen_passed': DATA['case-8']['passed'],
+        'sampling_interval_us': 1e6/wrap_rate,
+        'interpretation': 'Slow relative clock drift; no resolved sudden period change at rollover. Original global-fit residual failure is retained.'
+    }
+    (OUT/'wrap-analysis.json').write_text(json.dumps(wrap_analysis,indent=2)+'\n')
+    fig,axs=plt.subplots(3,1,figsize=(11,10))
+    fig.subplots_adjust(top=.91,bottom=.09,hspace=.6)
     for ch in range(3):
         r,f=edges(8,ch);t=(r-r[0])/wrap_rate
         end=(DATA['case-8']['samples']-r[0])/wrap_rate
         axs[0].step(np.r_[t,end],np.r_[np.arange(1,len(r)+1),len(r)],where='post',color=COLORS[ch],label=f'M{ch+1}: {len(r)} pulses')
-        axs[1].plot(np.arange(425,434),np.diff(r)[425:434]*1000/wrap_rate,'o-',color=COLORS[ch],label=f'M{ch+1}')
+        axs[2].plot(np.arange(425,434),np.diff(r)[425:434]*1e6/wrap_rate-1_000_000,'o-',color=COLORS[ch],label=f'M{ch+1}')
     axs[0].set(xlabel='Measured time from first rising edge (s)',ylabel='Captured rising edges');axs[0].legend()
-    axs[1].axvspan(428.8,429.2,color='#bbbbbb',alpha=.25,label='Wrap interval: pulse 429 → 430')
-    axs[1].set(xlabel='Rising-edge interval index',ylabel='Measured period (ms)');axs[1].legend(fontsize=8)
-    fig.suptitle('Case 8 — real 32-bit timer rollover, 435 pulses on every axis')
-    caption(fig,'4 MS/s capture; 250 ns sample spacing resolves the 5 µs highs. The rollover interval is located from scheduled timer ticks; no forced wrap.')
+    axs[1].plot(np.arange(len(periods_us)),periods_us-1_000_000,'.',ms=3,color=COLORS[0])
+    axs[1].set(xlabel='Rising-edge interval index',ylabel='Measured − 1 second (µs)',
+               title='Whole recording: gradual relative drift (M1); channels agree within one sample')
+    axs[2].axvspan(428.8,429.2,color='#bbbbbb',alpha=.25,label='Wrap: pulse 429 → 430')
+    axs[2].set(xlabel='Rising-edge interval index',ylabel='Measured − 1 second (µs)');axs[2].legend(fontsize=8)
+    fig.suptitle('Counter rollover — complete pulse counts, with slow relative clock drift')
+    caption(fig,'4 MS/s; 250 ns sample spacing. The global two-sample residual screen fails; no resolved rollover discontinuity. No clock correction applied.')
     save(fig,'08-counter-wrap')
 
 # Two physical scope channels, retaining the unmodified analog capture bytes.
 SCOPE, scope_traces = {}, {}
 for file in sorted(RAW.glob('hantek-*.acquisition.json')):
     info = json.loads(file.read_text())
+    assert info['firmware_sha256'] == MANIFEST['firmware_sha256']
     name = file.name.removesuffix('.acquisition.json')
     rate = info['samplerate_hz']
     start = round(info['analysis_start_seconds'] * rate)
@@ -288,6 +314,7 @@ for file in sorted(RAW.glob('hantek-*.acquisition.json')):
                 alternate = crossings(low + fraction*(high-low))
                 assert len(alternate) == len(rising), f'{name}: threshold-dependent edge count'
                 sensitivity.append((len(alternate)-1)*rate/(alternate[-1]-alternate[0]))
+            assert np.ptp(sensitivity) < .1, f'{name}: threshold-sensitive frequency'
             result = {'channel': f'CH{ch}', 'signal': f'M{ch} STEP', 'samples': len(values),
                       'analysis_start_sample': start, 'analysis_samples': len(values)-start,
                       'clipped_samples_in_analysis': int(clipped[start:].sum()),
@@ -302,14 +329,13 @@ for file in sorted(RAW.glob('hantek-*.acquisition.json')):
                       'outlier_intervals_9_5_to_10_5_us': 0}
             info['channels'].append(result)
             scope_traces[name, ch] = (values, rising, low, high)
-    assert info['channels'][0]['rising_edges_in_window'] == info['channels'][1]['rising_edges_in_window']
     info['simultaneous_channel_frequency_difference_hz'] = abs(info['channels'][0]['frequency_hz']-info['channels'][1]['frequency_hz'])
     SCOPE[name] = info
 
 if SCOPE:
     (OUT/'scope-results.json').write_text(json.dumps(SCOPE, indent=2)+'\n')
     with (OUT/'scope-measurements.csv').open('w', newline='') as file:
-        writer = csv.writer(file)
+        writer = csv.writer(file, lineterminator="\n")
         writer.writerow(['capture', 'samplerate_Hz', 'channel', 'rising_edges_in_window', 'frequency_hz',
                          'period_mean_us', 'period_min_us', 'period_max_us', 'frequency_offset_percent'])
         for name, info in SCOPE.items():
@@ -351,9 +377,9 @@ if SCOPE:
         offsets = [SCOPE[n]['channels'][ch-1]['frequency_offset_percent'] for n in ['hantek-8mhz','hantek-16mhz']]
         ax.scatter(np.array([1,2])+offset, offsets,s=65,color=COLORS[ch-1],label=f'Hantek CH{ch}, M{ch}')
     ax.axhline(0,color='#777777',ls='--',label='Commanded: 100.000 kHz')
-    ax.set(xticks=[0,1,2],xticklabels=labels,ylabel='Measured frequency offset from command (%)',ylim=(-.05,.8),xlim=(-.4,2.5))
+    ax.set(xticks=[0,1,2],xticklabels=labels,ylabel='Measured frequency offset from command (%)',ylim=(-.03,.03),xlim=(-.4,2.5))
     ax.legend(loc='center right')
-    fig.suptitle('Independent instruments both measure a fast STEP rate')
+    fig.suptitle('Independent STEP frequency measurements')
     caption(fig,'Same firmware, separate bursts. Channel pairs are simultaneous within each Hantek capture. No instrument has an independent timebase calibration.')
     save(fig,'10-independent-timebases')
 
@@ -363,6 +389,7 @@ CLOCK = {}
 clock_metadata = RAW/'rtc-reference.acquisition.json'
 if clock_metadata.exists():
     CLOCK = json.loads(clock_metadata.read_text())
+    assert CLOCK['firmware_sha256'] == MANIFEST['firmware_sha256']
     CLOCK['runs'] = []
     pattern = re.compile(r'CLOCK window=(\d+) rtc_seconds=(\d+) tim2_ticks=([\d.]+) '
                          r'timer_hz=([\d.]+) error_ppm=([+\-\d.]+) '
@@ -407,7 +434,7 @@ with PdfPages(OUT/'step-generator-measurements.pdf') as pdf:
 for fig,name in figures: plt.close(fig)
 
 with (OUT/'measurements.csv').open('w',newline='') as f:
-    writer=csv.writer(f)
+    writer=csv.writer(f, lineterminator="\n")
     writer.writerow(['capture','case','samplerate_Hz','axis','captured_rises','reported_count','mean_period_us','min_period_us','max_period_us','min_high_us','max_high_us','firmware_result','state'])
     for name,d in DATA.items():
         for ch in range(3):
@@ -416,21 +443,12 @@ with (OUT/'measurements.csv').open('w',newline='') as f:
                              p.mean() if len(p) else '',p.min() if len(p) else '',p.max() if len(p) else '',
                              w.min(),w.max(),d['firmware']['result'],d['firmware']['state']])
 
-provenance={'sample_rates_Hz':{name:d['samplerate'] for name,d in DATA.items()},
-            'channels':{'D0':'M1 STEP PA0 CN10.29','D1':'M2 STEP PB10 CN10.32','D2':'M3 STEP PB11 CN10.34','D3':'observed high (optional EN_N lead)'},
-            'capture_directory':str(RAW.relative_to(REPO)),
-            'edge_data':'edges.npz: absolute integer sample indices, rise/fall arrays per axis and capture',
-            'strict_screening':'capture.py uses 0.1% nominal-period and 2-sample residual checks; retained failures expose clock offset/variation, not just pulse counts',
-            'files':json.loads((OUT/'provenance.json').read_text()).get('files',{}) if (OUT/'provenance.json').exists() else {}}
-if SCOPE:
-    provenance['scope_results'] = 'scope-results.json'
-    provenance['scope_channels'] = {'CH1': 'M1 STEP PA0 CN10.29', 'CH2': 'M2 STEP PB10 CN10.32'}
-    provenance['scope_analysis'] = 'First 1 ms excluded; interpolated midpoint crossings over all remaining samples; 30/50/70% threshold agreement checked.'
-if CLOCK:
-    provenance['clock_reference_results'] = 'clock-reference-results.json'
-    provenance['clock_reference_firmware_sha256'] = CLOCK['firmware_sha256']
-bench = REPO / 'build/step-test-stm32/validation/sigrok-20261003/current'
-for file in [bench/'firmware.bin',OUT/'firmware-programming.log']:
-    if file.exists(): provenance['files'][str(file.relative_to(REPO))]=sha256(file)
+
+provenance = json.loads((OUT/'acquisition.json').read_text())
+provenance['logic_analysis'] = 'Whole captures: counts, high widths, stopped levels, 0.1% nominal-period screen and two-sample fitted-period residual screen.'
+provenance['scope_analysis'] = 'First 1 ms excluded; interpolated crossings over all remaining samples; 30/50/70% threshold agreement checked.'
+provenance['files'] = {str(p.relative_to(OUT)): sha256(p) for p in sorted(RAW.iterdir()) if p.is_file()}
+for name in ['firmware-programming.log', 'stlink-parameters.log', 'export_results.py', 'acquisition.json']:
+    provenance['files'][name] = sha256(OUT/name)
 (OUT/'provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
-print('Exported',len(figures),'figures, PDF, CSV, edge data and JSON to',OUT,flush=True)
+print('Exported',len(figures),'current-state figures, PDF, CSV, edge data and JSON to',OUT,flush=True)

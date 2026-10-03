@@ -1,0 +1,10 @@
+-----Production parameters: -----
+Max Power parameter: 500mA
+Mass Storage Volume name: NOD_H753ZI 
+Mbed Board Id: 0842
+RPN not programmed
+Shortcut parameter not programmed
+MCO: HSE/5
+
+Detected firmware is up to date; use -force_prog to enforce reprogramming.
+Firmware version detected: V3J16M9

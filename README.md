@@ -147,6 +147,14 @@ Use 3.3 V supplies/signals and a shared ground. The CubeMX configuration is
 the pin/clock source of truth. PG2 is D49 on CN8 pin 14; CN8 pin 8 is PC11,
 which is already SD D3. SD data/command pins have configured pull-ups.
 
+The onboard **STLINK-V3 MCO must be set to HSE/5 (5 MHz)**, derived from its
+25 MHz crystal. This is a persistent ST-Link setting, separate from CubeMX;
+the connected board is configured accordingly. The target uses HSE bypass,
+PLL1 M=1/N=192/P=2/Q=24/R=2, giving 480 MHz CPU, 240 MHz timer kernels and
+the STEP counter's 10 MHz tick. See the
+[clock setup procedure](docs/stepper-hardware-test.md#clock-source-configuration)
+when preparing another board or changing ST-Link firmware.
+
 `/flash` is a 12 MiB FAT volume on the 16 MiB NOR chip, with remaining capacity
 reserved for LevelX reclamation. Blank media is formatted on first use; invalid
 existing media is not automatically erased. `/sd` mounts the existing FAT
@@ -307,11 +315,9 @@ needed. See the
 [hardware test procedure](docs/stepper-hardware-test.md) for flashing,
 analyzer connections, expected pulse counts and acceptance criteria.
 The [current measurement report](docs/measurements/2026-10-03-step-generator/README.md)
-includes logic-analyzer and two-channel oscilloscope captures with exported
-figures. Recorded pulse counts and stop behavior match; both instruments
-measure a fast STEP rate. The independent RTC comparison measures TIM2
-0.58–0.66% fast relative to LSE, with a polling/synchronization allowance of
-±0.022%. Main-clock source verification remains an open item.
+contains the current crystal-clock configuration, three-channel logic-analyzer
+captures, two-channel Hantek captures, RTC comparisons and exported figures. See the report for
+measured accuracy, uncertainty and the scope of physical validation.
 
 [IPwmOutput](platform/hal/drivers/itf/IPwmOutput.hpp) remains the general-purpose
 PWM interface. Its legacy counted one-pulse mode has interrupt-rearming gaps

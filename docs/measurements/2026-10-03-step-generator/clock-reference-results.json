@@ -1,104 +1,75 @@
 {
-  "date": "2026-10-03",
-  "command": "c",
-  "reference": "RTC/LSE, onboard 32768 Hz crystal",
-  "firmware_sha256": "e970fa9662bc0f75e0a1a5091dbc4dcef196cb20bab49e52a58a178dc6abff14",
-  "firmware_image": "build/step-test-stm32/Application.bin",
-  "programming_log": "../clock-reference-programming.log",
+  "firmware_sha256": "3a41d6545001abc8447a94a02e6651ca0e23653c128ef48acdbf72f3a7cf3097",
   "uart_logs": [
     "rtc-reference-1.uart.log",
     "rtc-reference-2.uart.log"
   ],
-  "pulse_suite_uart_log": "pulse-suite.uart.log",
-  "pulse_suite_cases": [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7
-  ],
-  "expected_timer_hz": 10000000,
-  "window_seconds": 10,
-  "screen_ppm": 1000,
-  "sampling_method": "Bracket RTC seconds transitions with TIM2 reads; three contiguous 10-second windows per run; nominal 100 us synchronization allowance per endpoint.",
-  "sampling_bound_excludes": "LSE crystal frequency tolerance",
-  "outputs": "STEP LOW, DIR LOW, EN_N HIGH during clock test",
-  "configured_hse_hz": 8000000,
-  "stlink_mco_selection": "not read or changed",
-  "rtc_registers": {
-    "BDCR": "00008103",
-    "CR": "00000000",
-    "PRER": "007f00ff",
-    "ISR": "00000027",
-    "CALR": "00000000"
-  },
-  "host_tests_passed": 31,
+  "reference": "RTC LSE 32768 Hz, uncalibrated crystal",
+  "nominal_counter_hz": 10000000,
   "runs": [
     {
       "uart_log": "rtc-reference-1.uart.log",
-      "uart_sha256": "6c1df542ddf4f9d49bc603756b787e8079b4fa1d0396ab59d02a6c51b92f37cd",
+      "uart_sha256": "1ddae239f6c28a544ceb275da8b74e46967f7d93ffcdef8426ec910eee7bf155",
       "windows": [
         {
           "window": 1,
           "rtc_seconds": 10,
-          "tim2_ticks": 100600000.0,
-          "timer_hz": 10060000.1,
-          "error_ppm": 6000.0,
+          "tim2_ticks": 100000001.0,
+          "timer_hz": 10000000.1,
+          "error_ppm": 0.0,
           "sampling_bound_ppm": 220.0,
-          "screen": "FAST"
+          "screen": "WITHIN_0.1_PERCENT"
         },
         {
           "window": 2,
           "rtc_seconds": 10,
-          "tim2_ticks": 100580001.0,
-          "timer_hz": 10058000.1,
-          "error_ppm": 5800.0,
+          "tim2_ticks": 99999998.0,
+          "timer_hz": 9999999.8,
+          "error_ppm": -0.0,
           "sampling_bound_ppm": 220.0,
-          "screen": "FAST"
+          "screen": "WITHIN_0.1_PERCENT"
         },
         {
           "window": 3,
           "rtc_seconds": 10,
-          "tim2_ticks": 100599999.0,
-          "timer_hz": 10059999.9,
-          "error_ppm": 6000.0,
+          "tim2_ticks": 100000001.0,
+          "timer_hz": 10000000.1,
+          "error_ppm": 0.0,
           "sampling_bound_ppm": 220.0,
-          "screen": "FAST"
+          "screen": "WITHIN_0.1_PERCENT"
         }
       ]
     },
     {
       "uart_log": "rtc-reference-2.uart.log",
-      "uart_sha256": "2adf0e5905402b13020b7f64bdda23403bf7297238f897af0e8ce152c66ea4e0",
+      "uart_sha256": "943e607f819cd5d265d024e9f5071e83f64f87a8ff88cabd19428224128e3891",
       "windows": [
         {
           "window": 1,
           "rtc_seconds": 10,
-          "tim2_ticks": 100659999.0,
-          "timer_hz": 10065999.9,
-          "error_ppm": 6600.0,
+          "tim2_ticks": 100000001.0,
+          "timer_hz": 10000000.1,
+          "error_ppm": 0.0,
           "sampling_bound_ppm": 220.0,
-          "screen": "FAST"
+          "screen": "WITHIN_0.1_PERCENT"
         },
         {
           "window": 2,
           "rtc_seconds": 10,
-          "tim2_ticks": 100640000.0,
-          "timer_hz": 10064000.1,
-          "error_ppm": 6400.0,
+          "tim2_ticks": 99999999.0,
+          "timer_hz": 9999999.9,
+          "error_ppm": -0.0,
           "sampling_bound_ppm": 220.0,
-          "screen": "FAST"
+          "screen": "WITHIN_0.1_PERCENT"
         },
         {
           "window": 3,
           "rtc_seconds": 10,
-          "tim2_ticks": 100640000.0,
-          "timer_hz": 10064000.0,
-          "error_ppm": 6400.0,
+          "tim2_ticks": 99980001.0,
+          "timer_hz": 9998000.1,
+          "error_ppm": -200.0,
           "sampling_bound_ppm": 220.0,
-          "screen": "FAST"
+          "screen": "WITHIN_0.1_PERCENT"
         }
       ]
     }

@@ -13,13 +13,7 @@
     "CH2": 1.0
   },
   "coupling": "DC",
-  "capture_scope": "interior segment of finite pulse burst",
-  "ch2_input_vdiv": "1V",
-  "firmware_result": "PASS case=3 state=Completed exact=1 counts=100000,100000,100000",
-  "capture": "hantek-8mhz.sr",
-  "analysis_start_seconds": 0.001,
-  "analysis_start_reason": "Exclude the first 1 ms of acquisition to avoid the scope/driver startup transient; full raw capture retained.",
-  "acquisition_command": [
+  "command": [
     "sigrok-cli",
     "-d",
     "hantek-6xxx",
@@ -34,8 +28,13 @@
     "-l",
     "3",
     "-o",
-    "/home/david/Dokumente/ProtoMate_Control/build/step-test-stm32/validation/hantek-20261003/dual-8mhz.sr",
+    "/home/david/Dokumente/ProtoMate_Control/build/step-test-stm32/validation/crystal-clock/hantek-8mhz.sr",
     "-c",
     "channel_group=CH2:vdiv=1V"
-  ]
+  ],
+  "capture_scope": "interior segment of finite pulse burst",
+  "firmware_result": "PASS case=3 state=Completed exact=1 counts=100000,100000,100000",
+  "capture": "hantek-8mhz.sr",
+  "firmware_sha256": "3a41d6545001abc8447a94a02e6651ca0e23653c128ef48acdbf72f3a7cf3097",
+  "analysis_start_seconds": 0.001
 }
