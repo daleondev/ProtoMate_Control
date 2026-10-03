@@ -246,6 +246,25 @@ TEST(HalEncoder, ReportsAmbiguousSamplesAndSignedOverflowUntilExplicitReset)
 TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
 {
     using enum hal::board::MotorId;
+    const auto enable_n{ hal::board::createSteppersEnableOutput() };
+    const auto first_dir{ hal::board::createStepperDirectionOutput(M1) };
+    const auto second_dir{ hal::board::createStepperDirectionOutput(M2) };
+    const auto third_dir{ hal::board::createStepperDirectionOutput(M3) };
+    ASSERT_NE(enable_n, nullptr);
+    ASSERT_NE(first_dir, nullptr);
+    ASSERT_NE(second_dir, nullptr);
+    ASSERT_NE(third_dir, nullptr);
+    EXPECT_EQ(enable_n->read(), hal::gpio::Level::High);
+    EXPECT_EQ(first_dir->read(), hal::gpio::Level::Low);
+    EXPECT_EQ(second_dir->read(), hal::gpio::Level::Low);
+    EXPECT_EQ(third_dir->read(), hal::gpio::Level::Low);
+    first_dir->write(hal::gpio::Level::High);
+    EXPECT_EQ(second_dir->read(), hal::gpio::Level::Low);
+    EXPECT_EQ(third_dir->read(), hal::gpio::Level::Low);
+    EXPECT_EQ(enable_n->read(), hal::gpio::Level::High);
+    EXPECT_EQ(hal::board::createSteppersEnableOutput(), nullptr);
+    EXPECT_EQ(hal::board::createStepperDirectionOutput(M1), nullptr);
+    EXPECT_EQ(first_dir->read(), hal::gpio::Level::High);
     const auto first{ hal::board::createStepperStepOutput(M1) };
     const auto second{ hal::board::createStepperStepOutput(M2) };
     const auto third{ hal::board::createStepperStepOutput(M3) };
@@ -265,6 +284,7 @@ TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
     EXPECT_EQ(hal::board::createEncoder(M2), nullptr);
     EXPECT_EQ(hal::board::createEncoderIndex(M3), nullptr);
     EXPECT_EQ(hal::board::createStepperStepOutput(static_cast<hal::board::MotorId>(255)), nullptr);
+    EXPECT_EQ(hal::board::createStepperDirectionOutput(static_cast<hal::board::MotorId>(255)), nullptr);
 
     const auto input{ std::dynamic_pointer_cast<hal::QuadratureEncoder>(hal::board::createEncoder(M1)) };
     const auto index{ std::dynamic_pointer_cast<hal::GpioInput>(hal::board::createEncoderIndex(M1)) };

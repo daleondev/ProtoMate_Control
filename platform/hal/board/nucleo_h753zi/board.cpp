@@ -15,6 +15,18 @@ namespace hal::board
     {
         using enum gpio::Port;
 
+        [[nodiscard]] auto make_stepper_output(gpio::Pin pin, gpio::Level initial_level)
+          -> std::shared_ptr<IDigitalOutput>
+        {
+            return gpio::createOutput({
+              .pin = pin,
+              .initial_level = initial_level,
+              .type = gpio::OutputType::PushPull,
+              .pull = gpio::Pull::None,
+              .speed = gpio::Speed::Low,
+            });
+        }
+
         [[nodiscard]] auto make_led(gpio::Pin pin) -> std::shared_ptr<device::ILed>
         {
             auto output{ gpio::createOutput(gpio::OutputConfiguration{
@@ -56,6 +68,25 @@ namespace hal::board
                 return pwm::create({ .timer = 8U, .channel = 1U, .pin = { C, 6U } });
         }
         return {};
+    }
+
+    auto createStepperDirectionOutput(MotorId id) -> std::shared_ptr<IDigitalOutput>
+    {
+        using enum gpio::Port;
+        switch (id) {
+            case MotorId::M1:
+                return make_stepper_output({ E, 11U }, gpio::Level::Low);
+            case MotorId::M2:
+                return make_stepper_output({ D, 15U }, gpio::Level::Low);
+            case MotorId::M3:
+                return make_stepper_output({ C, 7U }, gpio::Level::Low);
+        }
+        return {};
+    }
+
+    auto createSteppersEnableOutput() -> std::shared_ptr<IDigitalOutput>
+    {
+        return make_stepper_output({ gpio::Port::F, 3U }, gpio::Level::High);
     }
 
     auto createEncoder(MotorId id) -> std::shared_ptr<IQuadratureEncoder>

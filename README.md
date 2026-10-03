@@ -170,10 +170,10 @@ motor (M1) and two Adafruit TMC2209 #6121 boards (M2/M3).
 CubeMX configures **all three STEP pins as hardware timer PWM outputs**.
 The three DIR pins and shared ENABLE remain ordinary push-pull GPIO outputs.
 All seven use no internal pulls and low GPIO speed. `src/main.cpp` retains three
-`IPwmOutput` objects from the board factory, plus ordinary GPIO wrappers for
-DIR and shared ENABLE. DIR starts low; shared enable starts high (all drivers
-disabled). All three pulse timers are initialized but **stopped**, with no
-requested waveform. The PWM drivers hold STEP at push-pull low while stopped
+`IPwmOutput` objects plus ordinary GPIO wrappers for DIR and shared ENABLE,
+all created through `hal::board` factories. DIR starts low; shared enable starts
+high (all drivers disabled). All three pulse timers are initialized but
+**stopped**, with no requested waveform. The PWM drivers hold STEP at push-pull low while stopped
 and select the timer alternate function when started. The external input
 biasing below also holds STEP inactive during reset. No motion logic is implemented.
 
@@ -233,12 +233,17 @@ latched count-extension error cannot silently become a valid position. Reset
 or `setPosition()` clears that error while stopped. With M1's 400 P/R encoder,
 one shaft revolution corresponds to 1600 counts.
 
-Use `hal::board::createStepperStepOutput(MotorId::M1/M2/M3)` and
-`hal::board::createEncoder(MotorId::M1)` for the assigned hardware. These board
-factories return exclusive, uncached objects; repeated creation while an object
-is owned fails. Low-level `hal::pwm::create()` and `hal::encoder::create()`
-validate the supported timer/channel/pin routes. Each object reserves the
-whole timer and its GPIOs until destruction; unsuccessful creation releases
+Use `hal::board::createStepperStepOutput(MotorId::M1/M2/M3)`,
+`hal::board::createStepperDirectionOutput(MotorId::M1/M2/M3)` and
+`hal::board::createSteppersEnableOutput()` for the assigned motor outputs;
+`hal::board::createEncoder(MotorId::M1)` creates the encoder. DIR and ENABLE
+return `IDigitalOutput`: directions start low, and the single shared active-low
+enable starts high (disabled). Writing enable low enables all three drivers;
+writing it high disables them. These board factories return exclusive, uncached
+objects; repeated creation while an object is owned fails.
+Low-level `hal::pwm::create()` and `hal::encoder::create()`
+validate the supported timer/channel/pin routes. Each PWM/encoder object reserves
+the whole timer and its GPIOs until destruction; unsuccessful creation releases
 partial claims. The index factory returns the existing `IDigitalInput` type.
 It does not reset the encoder or implement homing policy.
 
