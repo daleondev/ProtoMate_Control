@@ -1,3 +1,4 @@
+add_subdirectory(control)
 add_subdirectory(cli)
 
 target_sources(${PROJECT_NAME}
@@ -13,7 +14,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} 
     PRIVATE 
-        platform::hal 
-        pneumo::pneumo
+        pneumo::units
+        application::control
         application::cli
 )

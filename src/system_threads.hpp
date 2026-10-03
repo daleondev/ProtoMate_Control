@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pneumo/pneumo.hpp"
+#include "pneumo/units.hpp"
 
 #include <thread>
 
@@ -24,6 +24,8 @@ namespace system_threads
     // ----------------------
     // Thread definitions
     // ----------------------
+
+    [[ = PRIO._3, = 16_KB ]] auto control() -> void;
 
     [[ = PRIO._5, = CLI_STACK_SIZE ]] auto cli() -> void;
 

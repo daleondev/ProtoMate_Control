@@ -6,9 +6,9 @@
 
 #if defined(HAL_PLATFORM_LINUX)
 #include "linux/Console.hpp"
-#endif
-
+#else
 #include <iostream>
+#endif
 
 auto system_threads::cli() -> void
 {
