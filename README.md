@@ -261,6 +261,47 @@ LEDs (PB0/PE1/PB14), user button (PC13), oscillator and ST-Link debug pins stay
 reserved. TIM2 remains assigned to the runtime timer and TIM6 to the HAL timebase.
 TIM3 is assigned to M1's encoder below, separate from the three STEP timers.
 
+### Reference limit switches
+
+Three Creality Ender-3 V2 mechanical switches provide one reference input per
+motor. The following pins are free of the existing motor, encoder, storage and
+on-board peripheral assignments. Their EXTI lines 7, 8 and 10 are distinct from
+the encoder index (6) and user button (13).
+
+| Signal | STM32 pin | Board connector | CubeMX configuration |
+| --- | --- | --- | --- |
+| M1_REF | PE7 | CN10 pin 20 / D41 (also CN12 pin 44) | EXTI7, rising/falling, pull-up |
+| M2_REF | PE8 | CN10 pin 18 / D42 (also CN12 pin 40) | EXTI8, rising/falling, pull-up |
+| M3_REF | PE10 | CN10 pin 24 / D40 (also CN12 pin 47) | EXTI10, rising/falling, pull-up |
+
+Use **CN10 pin 22 for ground**. Connector positions follow
+[ST UM2407, tables 21 and 22](https://www.st.com/resource/en/user_manual/um2407-stm32h7-nucleo144-boards-mb1364-stmicroelectronics.pdf).
+EXTI9_5 and EXTI15_10 use priority 5 and the HAL's existing shared dispatchers.
+These are digital inputs; no timer or alternate function is used.
+
+Wire each switch's **COM and normally closed (NC) contacts between its REF
+input and ground**; either contact orientation works. The pull-up is to the
+Nucleo's **3.3 V**: released/closed reads `Low`, pressed/open reads `High`, and
+a disconnected cable also reads `High`. The unused switch contact stays open.
+The pictured board appears to have no LED, resistors or other electronics
+populated, so this connection uses it as an **unpowered dry-contact switch**.
+Do not connect a supply to its connector based on the `V/G/S` printing alone.
+Before connecting it, use a continuity meter on the disconnected board to
+identify the pair that is closed when released and opens when pressed; the
+photo alone does not establish the connector contact mapping. No 5 V supply,
+transistor or optocoupler is needed for this dry-contact connection.
+
+`hal::board::createReferenceLimitSwitch(MotorId)` returns an exclusive
+`IDigitalInput` for each motor. `src/main.cpp` creates and retains all three
+and checks for creation failure. `read()` provides the raw level;
+`setEdgeCallback()` can later report both transitions (in interrupt context
+on STM32). No callbacks, debounce, homing or motor-stop behavior are installed
+by the application yet. Mechanical contact bounce and cable noise must be
+handled before using these inputs for motion control; route each signal with
+its ground return away from motor wiring. For longer cables, add a stronger
+external pull-up to **3.3 V** and input filtering as needed. These inputs do
+not implement an emergency stop.
+
 ### Driver interface and shared enable
 
 Use 3.3 V push-pull MCU outputs. Power both TMC2209 **VDD** pins from 3.3 V

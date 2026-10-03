@@ -299,3 +299,37 @@ TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
     EXPECT_EQ(events, 1U);
     EXPECT_EQ(input->position(), 37);
 }
+
+TEST(HalMotorBoard, ReferenceSwitchesReportOpenContactsAndBothTransitionsIndependently)
+{
+    using enum hal::board::MotorId;
+    using enum hal::gpio::Level;
+    constexpr std::array motors{ M1, M2, M3 };
+    std::array<std::shared_ptr<hal::GpioInput>, motors.size()> inputs;
+    std::array<unsigned, motors.size()> events{};
+    const auto index{ hal::board::createEncoderIndex(M1) };
+    ASSERT_NE(index, nullptr);
+    for (std::size_t i = 0; i < motors.size(); ++i) {
+        inputs[i] =
+          std::dynamic_pointer_cast<hal::GpioInput>(hal::board::createReferenceLimitSwitch(motors[i]));
+        ASSERT_NE(inputs[i], nullptr);
+        EXPECT_EQ(inputs[i]->read(), High); // Unconnected input is pulled high.
+        EXPECT_EQ(hal::board::createReferenceLimitSwitch(motors[i]), nullptr);
+        inputs[i]->setEdgeCallback([&, i](hal::gpio::Level) noexcept { ++events[i]; });
+        inputs[i]->setSimulatedLevel(Low); // Connect the released NC contact.
+    }
+    for (std::size_t i = 0; i < motors.size(); ++i) {
+        inputs[i]->setSimulatedLevel(High); // Actuate the switch / open the cable.
+        inputs[i]->setSimulatedLevel(High); // No extra edge for an unchanged level.
+        for (std::size_t j = 0; j < motors.size(); ++j) {
+            EXPECT_EQ(inputs[j]->read(), i == j ? High : Low);
+            EXPECT_EQ(events[j], j < i ? 3U : (j == i ? 2U : 1U));
+        }
+        inputs[i]->setSimulatedLevel(Low); // Release the switch again.
+        EXPECT_EQ(events[i], 3U);
+        inputs[i]->clearEdgeCallback();
+    }
+    inputs[0].reset();
+    EXPECT_NE(hal::board::createReferenceLimitSwitch(M1), nullptr);
+    EXPECT_EQ(hal::board::createReferenceLimitSwitch(static_cast<hal::board::MotorId>(255)), nullptr);
+}

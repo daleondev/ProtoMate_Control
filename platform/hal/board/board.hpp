@@ -43,4 +43,7 @@ namespace hal::board
     // Only M1 currently has an encoder. Index never changes its count implicitly.
     [[nodiscard]] auto createEncoder(MotorId id) -> std::shared_ptr<IQuadratureEncoder>;
     [[nodiscard]] auto createEncoderIndex(MotorId id) -> std::shared_ptr<IDigitalInput>;
+    // NC switch to ground: low = released, high = actuated or disconnected.
+    // Pull-up, both edges, exclusive ownership; raw levels without debounce.
+    [[nodiscard]] auto createReferenceLimitSwitch(MotorId id) -> std::shared_ptr<IDigitalInput>;
 }

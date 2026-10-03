@@ -25,8 +25,11 @@ int main()
 
     const auto m1_encoder{ hal::board::createEncoder(hal::board::MotorId::M1) };
     const auto m1_encoder_z{ hal::board::createEncoderIndex(hal::board::MotorId::M1) };
+    const auto m1_ref{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::M1) };
+    const auto m2_ref{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::M2) };
+    const auto m3_ref{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::M3) };
     if (!steppers_enable_n || !m1_step || !m1_dir || !m2_step || !m2_dir || !m3_step || !m3_dir ||
-        !m1_encoder || !m1_encoder_z) {
+        !m1_encoder || !m1_encoder_z || !m1_ref || !m2_ref || !m3_ref) {
         hal::panic("Motor interface creation failed");
     }
 

@@ -105,6 +105,25 @@ namespace hal::board
         return gpio::createInput({ .pin = { gpio::Port::B, 6U }, .edge = gpio::Edge::Rising });
     }
 
+    auto createReferenceLimitSwitch(MotorId id) -> std::shared_ptr<IDigitalInput>
+    {
+        gpio::Pin pin{};
+        switch (id) {
+            case MotorId::M1:
+                pin = { E, 7U };
+                break;
+            case MotorId::M2:
+                pin = { E, 8U };
+                break;
+            case MotorId::M3:
+                pin = { E, 10U };
+                break;
+            default:
+                return {};
+        }
+        return gpio::createInput({ .pin = pin, .pull = gpio::Pull::Up, .edge = gpio::Edge::Both });
+    }
+
     auto createLed(LedId id) -> std::shared_ptr<device::ILed>
     {
         switch (id) {

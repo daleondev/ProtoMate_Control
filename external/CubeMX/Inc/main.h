@@ -62,8 +62,17 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define STEPPERS_EN_N_Pin GPIO_PIN_3
 #define STEPPERS_EN_N_GPIO_Port GPIOF
+#define M1_REF_Pin GPIO_PIN_7
+#define M1_REF_GPIO_Port GPIOE
+#define M1_REF_EXTI_IRQn EXTI9_5_IRQn
+#define M2_REF_Pin GPIO_PIN_8
+#define M2_REF_GPIO_Port GPIOE
+#define M2_REF_EXTI_IRQn EXTI9_5_IRQn
 #define M1_STEP_Pin GPIO_PIN_9
 #define M1_STEP_GPIO_Port GPIOE
+#define M3_REF_Pin GPIO_PIN_10
+#define M3_REF_GPIO_Port GPIOE
+#define M3_REF_EXTI_IRQn EXTI15_10_IRQn
 #define M1_DIR_Pin GPIO_PIN_11
 #define M1_DIR_GPIO_Port GPIOE
 #define M2_STEP_Pin GPIO_PIN_14
