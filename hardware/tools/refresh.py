@@ -85,7 +85,7 @@ def verify(netlist, board):
     ioc = dict(line.split("=", 1) for line in
                (ROOT.parent / "external/CubeMX/CubeMX.ioc").read_text().splitlines()
                if "=" in line and not line.startswith("#"))
-    motor_routes = {
+    controller_routes = {
         "M1_STEP": ("PA0", "CN10.29", "S_TIM2_CH1_ETR"),
         "M2_STEP": ("PB10", "CN10.32", "S_TIM2_CH3"),
         "M3_STEP": ("PB11", "CN10.34", "S_TIM2_CH4"),
@@ -93,11 +93,40 @@ def verify(netlist, board):
         "M2_DIR": ("PE13", "CN10.10", "GPIO_Output"),
         "M3_DIR": ("PE14", "CN10.8", "GPIO_Output"),
         "STEPPERS_EN_N": ("PE15", "CN10.30", "GPIO_Output"),
+        "M1_ENC_A": (r"PB4\ (NJTRST)", "CN7.19", "S_TIM3_CH1"),
+        "M1_ENC_B": ("PB5", "CN7.13", "S_TIM3_CH2"),
+        "M1_ENC_Z": ("PB6", "CN12.17", "GPXTI6"),
+        "M1_REF": ("PE7", "CN10.20", "GPXTI7"),
+        "M2_REF": ("PE8", "CN10.18", "GPXTI8"),
+        "M3_REF": ("PE10", "CN10.24", "GPXTI10"),
+        "FLASH_CLK": ("PB2", "CN10.15", "QUADSPI_CLK"),
+        "FLASH_CS_N": ("PG6", "CN10.13", "QUADSPI_BK1_NCS"),
+        "FLASH_IO0": ("PD11", "CN10.23", "QUADSPI_BK1_IO0"),
+        "FLASH_IO1": ("PD12", "CN10.21", "QUADSPI_BK1_IO1"),
+        "FLASH_IO2": ("PE2", "CN10.25", "QUADSPI_BK1_IO2"),
+        "FLASH_IO3": ("PD13", "CN10.19", "QUADSPI_BK1_IO3"),
+        "SD_D0": ("PC8", "CN8.2", "SDMMC1_D0"),
+        "SD_D1": ("PC9", "CN8.4", "SDMMC1_D1"),
+        "SD_D2": ("PC10", "CN8.6", "SDMMC1_D2"),
+        "SD_D3": ("PC11", "CN8.8", "SDMMC1_D3"),
+        "SD_CLK": ("PC12", "CN8.10", "SDMMC1_CK"),
+        "SD_CMD": ("PD2", "CN8.12", "SDMMC1_CMD"),
+        "SD_CD_N": ("PG2", "CN8.14", "GPIO_Input"),
     }
-    for net, (pin, contact, signal) in motor_routes.items():
+    for net, (pin, contact, signal) in controller_routes.items():
         require(source.get(("A1", contact)) == net, f"Controller contact differs: {net}")
-        require(ioc.get(f"{pin}.GPIO_Label") == net and ioc.get(f"{pin}.Signal") == signal,
+        require(ioc.get(f"{pin}.Signal") == signal,
                 f"CubeMX GPIO/timer differs from wiring: {net}")
+        if net.startswith(("M1_", "M2_", "M3_", "STEPPERS_")):
+            require(ioc.get(f"{pin}.GPIO_Label") == net, f"CubeMX label differs: {net}")
+    for pin in ("PE7", "PE8", "PE10"):
+        require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLUP" and
+                ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING_FALLING",
+                f"NC reference input requires pull-up and both-edge EXTI: {pin}")
+    require(ioc.get("PB6.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
+            "Encoder index must use rising-edge EXTI after the polarity-preserving interface")
+    require(ioc.get("PE15.PinState") == "GPIO_PIN_SET",
+            "Shared active-low enable must start high (drivers disabled)")
     pads = {(ref, p.GetNumber()): p for ref, f in footprints.items() for p in f.Pads()}
     require(len({hole(p) for p in pads.values()}) == len(pads), "Two leads occupy one hole")
     for ref, footprint in footprints.items():
@@ -164,7 +193,8 @@ def verify(netlist, board):
               f"PASS: {len(pads)} unique component holes and {len(vias)} wire passages on the 2.54 mm grid.",
               f"PASS: {len(wires)} scheduled connections span all {len(netpads)} connected nets.",
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
-              "PASS: seven motor controller contacts agree with the CubeMX GPIO/timer assignments.",
+              f"PASS: {len(controller_routes)} motor, encoder, reference and storage contacts agree with CubeMX.",
+              "PASS: CubeMX reference pull-ups/edges, encoder index edge and disabled startup polarity match wiring.",
               "PASS: all parts on top; R10-R12 are DNP; no 24 V on perfboard.",
               "Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.",
               "Wire endpoints/passages are checked; routing lengths and sides need review after route edits.",

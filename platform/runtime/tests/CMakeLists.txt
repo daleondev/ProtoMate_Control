@@ -143,6 +143,14 @@ add_test(
             -P ${CMAKE_CURRENT_SOURCE_DIR}/verify_terminate.cmake
 )
 add_test(
+    NAME runtime.panic.fault_handler
+    COMMAND ${CMAKE_COMMAND}
+            -DPROBE=$<TARGET_FILE:runtime_terminate_probe>
+            -DPROBE_MODE=fault_handler
+            "-DEXPECTED_PANIC=HardFault"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/verify_terminate.cmake
+)
+add_test(
     NAME runtime.panic.override
     COMMAND ${CMAKE_COMMAND}
             -DPROBE=$<TARGET_FILE:runtime_panic_override_probe>
@@ -156,6 +164,7 @@ set_tests_properties(
     runtime.terminate.explicit
     runtime.terminate.bad_alloc
     runtime.panic.error_handler
+    runtime.panic.fault_handler
     runtime.panic.override
     PROPERTIES TIMEOUT 10
 )

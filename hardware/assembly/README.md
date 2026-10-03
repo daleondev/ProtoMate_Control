@@ -62,19 +62,17 @@ the 1.27 mm bulk variant. See the
 **U2 is AM26C32CN**, in a 16-pin DIP socket with 7.62 mm between rows. Its notch
 points toward row A. **U3 is the user's SN74HC126N**, in a **DIP-14 socket
 with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **K53**;
-pin 14 is at K56. Its notch points toward row A. The previous SOIC adapter
-has been removed from this layout. Both DIP chips mount on the top face.
+pin 14 is at K56. Its notch points toward row A. Both DIP chips mount on the top face.
 
 Q1–Q3 serve the DM542T. **Q4–Q6 convert the encoder receiver's 5 V outputs
-to 3.3 V for U3**. Each new stage has a 4.7 kΩ base resistor (R20/R23/R26),
+to 3.3 V for U3**. Each stage has a 4.7 kΩ base resistor (R20/R23/R26),
 a 10 kΩ base-to-emitter resistor (R21/R24/R27), and a 1 kΩ collector pull-up
 to 3.3 V (R22/R25/R28). All emitters connect to ground. Collectors connect
 to U3 inputs 2, 5 and 9 respectively.
 
-**U2's three differential input pairs have been reversed to cancel the
+**U2's three differential input pairs are reversed to cancel the
 transistor inversion:** encoder A+/A− go to U2 pins 1/2, B+/B− to 7/6,
-and Z+/Z− to 9/10. The external J107 cable pinout stays the same. Follow the
-updated wire table even if the previous encoder wiring is already assembled.
+and Z+/Z− to 9/10. Use the J107 cable pinout and wire table below.
 
 U3 pin 14 is **3.3 V**, pin 7 is ground. Its active-high enables **1, 4 and
 10 connect to 3.3 V**; unused enable 13 and unused input 12 connect to ground,
@@ -118,9 +116,9 @@ J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
 11→PE14/CN10.8, 13→PE15/CN10.30, 15→3V3/CN8.7.
 All STEP pins use TIM2 output compare / AF1 (channels 1, 3, 4).
 PA0 uses SB75 ON; keep the user button on PC13 (SB58 OFF).
-This revision changes the controller end of the J101 cable, not its perfboard
-pad numbers or internal wiring. PE9/PE11 and PC6/PC7 are reserved for future
-encoder inputs; do not connect the old STEP/DIR cable to those pins.
+PE9/PE11 and PC6/PC7 are reserved for future encoder inputs and have no cables fitted.
+Configure the onboard STLINK-V3 MCO to **HSE/5 = 5 MHz**, matching CubeMX's
+HSE bypass clock. See the [clock setup procedure](../../docs/stepper-hardware-test.md#clock-source-configuration).
 J102: 1→PB4/CN7.19, 3→PB5/CN7.13, 5→PB6/CN12.17.
 J108: 1→PE7/CN10.20, 3→PE8/CN10.18, 5→PE10/CN10.24;
 join its ground returns (pins 2/4/6) at Nucleo CN10.22.
@@ -134,12 +132,10 @@ left/right order changes when viewed from the mating side.
 
 ### Reference-switch cables
 
-The added headers occupy the previously empty top-left area. Existing component
-locations and routes are preserved. J108 pin 1 is **B4**, J109 pin 1 is **B10**,
+The reference headers occupy the top-left area. J108 pin 1 is **B4**, J109 pin 1 is **B10**,
 J110 pin 1 is **B14**, and J111 pin 1 is **B18**. Each switch header's adjacent
-pin 2 is ground. Add wires **W113–W121**; the three signals use the underside,
-while some ground links use insulated top jumpers. No new wire-passage holes
-or active components are needed.
+pin 2 is ground. Wires **W113–W121** connect them; the three signals use the
+underside, while some ground links use insulated top jumpers.
 
 SW1/SW2/SW3 are the external, unpowered Creality mechanical switches. The
 schematic identifies **COM, NC and NO by function**, not by PCB connector

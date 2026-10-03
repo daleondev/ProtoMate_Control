@@ -107,7 +107,12 @@ inline void HAL_NVIC_EnableIRQ(IRQn_Type irq) { irq_enabled[irq] = true; }
 inline void HAL_NVIC_DisableIRQ(IRQn_Type irq) { irq_enabled[irq] = false; }
 inline void HAL_NVIC_ClearPendingIRQ(IRQn_Type) {}
 inline void HAL_NVIC_SetPriority(IRQn_Type, uint32_t, uint32_t) {}
-inline void __HAL_RCC_TIM2_CLK_ENABLE() {}
+inline bool tim2_clock_enabled{}, gpio_a_clock_enabled{}, gpio_b_clock_enabled{}, gpio_e_clock_enabled{};
+inline void __HAL_RCC_TIM2_CLK_ENABLE() { tim2_clock_enabled = true; }
+inline bool __HAL_RCC_TIM2_IS_CLK_ENABLED() { return tim2_clock_enabled; }
+inline void __HAL_RCC_GPIOA_CLK_ENABLE() { gpio_a_clock_enabled = true; }
+inline void __HAL_RCC_GPIOB_CLK_ENABLE() { gpio_b_clock_enabled = true; }
+inline void __HAL_RCC_GPIOE_CLK_ENABLE() { gpio_e_clock_enabled = true; }
 inline void __HAL_RCC_DMA1_CLK_ENABLE() {}
 inline void __HAL_RCC_D2SRAM1_CLK_ENABLE() {}
 struct RCC_ClkInitTypeDef
@@ -130,11 +135,28 @@ inline uint32_t HAL_RCC_GetHCLKFreq() { return 240'000'000; }
 struct GPIO_TypeDef
 {
     uint32_t level{}, IDR{};
+    uint32_t MODER{}, OTYPER{}, OSPEEDR{}, PUPDR{};
+    struct SetReset
+    {
+        GPIO_TypeDef* port;
+        void operator=(uint32_t value)
+        {
+            port->level = (port->level & ~(value >> 16U)) | (value & 0xFFFFU);
+            port->IDR = port->level;
+        }
+    } BSRR{ this };
     std::array<uint32_t, 16> mode{}, alternate{};
 };
-inline GPIO_TypeDef gpio_a, gpio_b;
+inline GPIO_TypeDef gpio_a, gpio_b, gpio_e;
 inline auto* GPIOA = &gpio_a;
 inline auto* GPIOB = &gpio_b;
+inline auto* GPIOE = &gpio_e;
+inline auto* M1_STEP_GPIO_Port = GPIOA;
+inline auto* M2_STEP_GPIO_Port = GPIOB;
+inline auto* M3_STEP_GPIO_Port = GPIOB;
+inline auto* STEPPERS_EN_N_GPIO_Port = GPIOE;
+constexpr uint32_t M1_STEP_Pin = 1, M2_STEP_Pin = 1U << 10, M3_STEP_Pin = 1U << 11,
+                   STEPPERS_EN_N_Pin = 1U << 15;
 constexpr uint32_t GPIO_PIN_0 = 1, GPIO_PIN_10 = 1U << 10, GPIO_PIN_11 = 1U << 11, GPIO_PIN_RESET = 0;
 constexpr uint32_t GPIO_MODE_AF_PP = 2, GPIO_MODE_OUTPUT_PP = 1, GPIO_PULLDOWN = 2, GPIO_SPEED_FREQ_LOW = 0,
                    GPIO_AF1_TIM2 = 1;

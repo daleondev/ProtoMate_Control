@@ -17,6 +17,7 @@ add_executable(step_stm32_tests
     step_stm32_test.cpp
     ${project_root}/platform/hal/drivers/impl/StepGenerator.cpp
     ${project_root}/platform/hal/drivers/impl/stm32/StepHardware.cpp
+    ${project_root}/platform/hal/stm32/FaultShutdown.cpp
 )
 target_include_directories(step_stm32_tests BEFORE PRIVATE fakes ${project_root}/platform)
 target_compile_definitions(step_stm32_tests PRIVATE HAL_PLATFORM_STM32)

@@ -161,7 +161,8 @@ existing media is not automatically erased. `/sd` mounts the existing FAT
 volume and is never automatically formatted on hardware. A 4-bit SD read CRC
 failure can trigger the preserved 1-bit retry; diagnostics identify the final
 bus width and error. Startup chooses `/flash`, or `/sd` if flash is unavailable,
-and panics if neither mounts. The virtual root is read-only; cross-volume
+and panics if neither mounts only when `RUNTIME_STORAGE_REQUIRED=ON`.
+The virtual root is read-only; cross-volume
 renames return `EXDEV`.
 
 Successful writable-file close and filesystem metadata operations flush the
@@ -269,6 +270,13 @@ another axis may be frozen high until the handler drives the pins low; no new
 STEP edges are generated after the counter stops. The whole move is then
 reported as failed. Normal finite completion stops after the final falling edge.
 DMA errors also abort the group; neither mechanism replaces an external emergency stop.
+
+On STM32, `hal::panic()`, `Error_Handler()` and the Cortex NMI/fault handlers
+stop TIM2, drive all STEP pins low and drive `STEPPERS_EN_N` high before panic
+reporting. This terminal path uses direct registers without locks, allocation
+or interrupt service, including before normal GPIO initialization. Custom panic
+reporting hooks run after shutdown. A fault may truncate a pulse and invalidate
+position; disabling the drivers also removes holding torque.
 
 DMA1 streams 0–3 are exclusive to this engine. The 12,320-byte DMA allocation
 is in `.StepDmaSection` at **0x30000000**, covered by a dedicated **16 KiB,

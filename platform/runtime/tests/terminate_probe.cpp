@@ -11,6 +11,9 @@ int main(int argc, char** argv)
     if (argc == 2 && std::string_view{ argv[1] } == "error_handler") {
         Error_Handler();
     }
+    if (argc == 2 && std::string_view{ argv[1] } == "fault_handler") {
+        hal_fault_handler("HardFault");
+    }
 
     if (argc == 2 && std::string_view{ argv[1] } == "thread") {
         std::thread throwing_thread{ [] { throw std::runtime_error{ "uncaught thread exception" }; } };

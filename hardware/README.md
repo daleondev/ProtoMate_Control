@@ -43,11 +43,17 @@ Use the [assembly instructions](assembly/README.md) to build it.
 The STEP engine uses one 32-bit TIM2 with DMA: M1 = PA0/CN10.29,
 M2 = PB10/CN10.32, M3 = PB11/CN10.34 (channels 1/3/4, all AF1).
 DIR uses PE12/CN10.26, PE13/CN10.10, PE14/CN10.8; the shared active-low
-enable is PE15/CN10.30. These signals retain J101 pins 1/3/5/7/9/11/13
-and their existing perfboard nets. The harness table, Nucleo symbol and layout
-notes specify the new cable destinations. Keep PA0's SB75 ON and the user
+enable is PE15/CN10.30. These signals use J101 pins 1/3/5/7/9/11/13.
+The harness table, Nucleo symbol and layout notes specify the cable destinations.
+Keep PA0's SB75 ON and the user
 button on PC13. TIM5 is the runtime clock; PE9/PE11 (TIM1) and PC6/PC7
 (TIM8) are reserved for possible additional encoders, with no cables fitted.
+
+Set the onboard **STLINK-V3 MCO to HSE/5 (5 MHz)**. CubeMX uses that external
+clock in bypass mode for a 480 MHz CPU, 240 MHz timer kernels and 10 MHz STEP
+counter. This persistent ST-Link setting is configured separately from CubeMX;
+follow the [clock setup procedure](../docs/stepper-hardware-test.md#clock-source-configuration)
+when preparing a board.
 
 The three reference-switch cables connect to J109 (M1), J110 (M2), and J111
 (M3), each with pin 1 = REF and pin 2 = GND. J108 returns the signals to
@@ -78,7 +84,6 @@ pad identities. They resolve through `${KIPRJMOD}`, so moving or cloning the
 repository does not require personal library paths. The X/Y axial resistor
 patterns describe the two existing orientations of the assembly drawing.
 
-This replaces the former independent `wiring/` and `perfboard/` projects.
 There is no separate netlist-import step or second electrical design to maintain.
 KiCad's schematic-to-board check verifies the association, footprint identity,
 value, and pad connectivity in the saved project.
@@ -94,7 +99,9 @@ python3 hardware/tools/refresh.py
 Requires KiCad 10 (`kicad-cli` and its `pcbnew` Python module), Python 3 and
 Poppler's `pdfunite`. The command checks ERC, DRC **with schematic parity**,
 symbol links, pad nets, the hole grid, wire endpoints/connectivity and external
-harness destinations, including the seven motor GPIOs against CubeMX. It updates:
+harness destinations. All 26 motor, encoder, reference and storage signal contacts
+are checked against CubeMX, along with reference pull-ups/edges, encoder index
+polarity and the disabled startup level. It updates:
 
 - [Wiring.pdf](exports/Wiring.pdf): complete seven-sheet system schematic.
 - [Assembly.pdf](exports/Assembly.pdf): placement, top wires, mirrored underside
@@ -113,5 +120,4 @@ model, not solder joints or measured encoder-interface timing.
 Manufacturing silkscreen and missing-courtyard checks are waived for this
 hand-wiring map. Electrical clearance, unconnected pads, schematic parity and
 local footprint-library consistency are checked. No fabrication outputs are
-generated. Close any old project/editor windows and reopen the single project
-at the path above after this migration.
+generated.

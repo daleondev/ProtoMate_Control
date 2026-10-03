@@ -32,6 +32,11 @@ function(verify_cubemx_generation)
         "hal_error_handler();"
         "The generated error handler no longer delegates to the HAL panic path."
     )
+    foreach(fault NMI HardFault MemManage BusFault UsageFault)
+        cubemx_require_text("${cubemx_directory}/Src/stm32h7xx_it.c"
+            "hal_fault_handler(\"${fault}\");"
+            "Cortex fatal exceptions must enter the motor shutdown/panic path.")
+    endforeach()
 
     set(linker_script "${cubemx_directory}/STM32H753XX_FLASH.ld")
     # The onboard STLINK-V3 MCO must be configured separately to HSE/5.

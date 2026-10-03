@@ -3,13 +3,14 @@ PASS: 44 footprints linked to schematic symbols; values, library IDs and pins ma
 PASS: 168 unique component holes and 5 wire passages on the 2.54 mm grid.
 PASS: 121 scheduled connections span all 37 connected nets.
 PASS: 70 header positions and their external destinations match the schematic.
-PASS: seven motor controller contacts agree with the CubeMX GPIO/timer assignments.
+PASS: 26 motor, encoder, reference and storage contacts agree with CubeMX.
+PASS: CubeMX reference pull-ups/edges, encoder index edge and disabled startup polarity match wiring.
 PASS: all parts on top; R10-R12 are DNP; no 24 V on perfboard.
 Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.
 Wire endpoints/passages are checked; routing lengths and sides need review after route edits.
 This checks the wiring model, not an assembled circuit or transistor switching speed.
 Board SHA256: 216875631e4c4f235c5bf19adebca694a75ad99270c7e0d0ffe71b4fd6fe365d
-ProtoMate.kicad_sch SHA256: c449d2c944318554ee9199cddca55fdfb11c44503a85bc202f534e2aa952fb01
+ProtoMate.kicad_sch SHA256: 5933d164e110e8ffce1f65f58abd98507413050717bdd1aced60ef6cd3d03b75
 sheets/M1_DM542T.kicad_sch SHA256: 92770bf70bfa44f5d7e69c89b39fd3a5f4748322f3961c3206ca911785e02559
 sheets/M1_Encoder.kicad_sch SHA256: be5309fec5e61dd4de375c13dba40f8bd4a10a357447ce463ce407d741e9e460
 sheets/M2_M3_TMC2209.kicad_sch SHA256: b1479eaefdb4c649826ad03e2048eb9cb7a2ed778834e4b7d429e5e90268c7be

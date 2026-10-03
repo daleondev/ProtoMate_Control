@@ -2,6 +2,21 @@
 
 #include <cstdint>
 
+#if defined(HAL_PLATFORM_STM32)
+#include "hal/stm32/FaultShutdown.hpp"
+#endif
+
+namespace
+{
+    [[noreturn]] auto dispatch_panic(const HalPanicInfo* info) noexcept -> void
+    {
+#if defined(HAL_PLATFORM_STM32)
+        hal::stm32::shutdownMotionOnFault();
+#endif
+        hal_panic_handler(info);
+    }
+}
+
 namespace hal
 {
     auto initialize() noexcept -> void
@@ -60,7 +75,7 @@ namespace hal
             .function = location.function_name(),
             .line = location.line(),
         };
-        hal_panic_handler(&info);
+        dispatch_panic(&info);
     }
 }
 
@@ -73,7 +88,19 @@ extern "C" [[noreturn]] void hal_error_handler() noexcept
         .function = nullptr,
         .line = 0U,
     };
-    hal_panic_handler(&info);
+    dispatch_panic(&info);
+}
+
+extern "C" [[noreturn]] void hal_fault_handler(const char* fault) noexcept
+{
+    const HalPanicInfo info{
+        .message = fault,
+        .detail = nullptr,
+        .file = nullptr,
+        .function = nullptr,
+        .line = 0U,
+    };
+    dispatch_panic(&info);
 }
 
 // The STM32-generated main.h declares this without attributes. Keep this
