@@ -36,7 +36,7 @@ namespace hal::pwm
                 return {};
             }
             // Own a real low output while stopped. The STM32 driver selects AF
-            // only after the timer is running with an inactive output.
+            // with an inactive timer output before the first pulse.
             auto pin{ gpio::createOutput({ .pin = configuration.pin }) };
             if (!pin) {
                 return {};

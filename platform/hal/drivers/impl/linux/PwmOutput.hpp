@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hal/drivers/detail/PulseTrain.hpp"
 #include "hal/drivers/detail/PwmTiming.hpp"
 #include "hal/drivers/detail/TimerLease.hpp"
 #include "hal/drivers/factory/pwm.hpp"
@@ -23,14 +24,27 @@ namespace hal
         [[nodiscard]] auto configure(Timing timing) noexcept -> util::Result<> override;
         [[nodiscard]] auto timing() const noexcept -> Timing override;
         [[nodiscard]] auto start() noexcept -> util::Result<> override;
+        [[nodiscard]] auto startPulses(std::optional<PulseCount> count = std::nullopt) noexcept
+          -> util::Result<> override;
+        [[nodiscard]] auto pulseCount() const noexcept -> PulseCount override;
+        [[nodiscard]] auto setPulseCallback(PulseCallback callback) noexcept -> util::Result<> override;
         [[nodiscard]] auto stop() noexcept -> util::Result<> override;
         [[nodiscard]] auto isRunning() const noexcept -> bool override;
+
+        // Deterministic electrical-event simulation; no wall-clock scheduler.
+        auto beginSimulatedPulse() noexcept -> void;
+        auto finishSimulatedPulse() noexcept -> void;
+        auto advanceSimulatedPulses(PulseCount count) noexcept -> void;
 
       private:
         detail::TimerLease m_lease; // Released after the pin.
         std::shared_ptr<IDigitalOutput> m_pin;
-        mutable std::mutex m_mutex;
+        // Serialize event delivery/registration, while permitting callback queries.
+        mutable std::recursive_mutex m_mutex;
         detail::PwmTiming m_timing{};
+        detail::PulseTrain m_train;
+        PulseCallback m_callback;
+        bool m_counted{};
         bool m_running{};
     };
 }

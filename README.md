@@ -202,14 +202,16 @@ Software will calculate movement and program timer periods/pulse widths;
 **the timers generate STEP edges in hardware**, without software GPIO toggling.
 The frequency is `timer_input_hz / ((PSC + 1) * (ARR + 1))`; high time is
 `CCR * (PSC + 1) / timer_input_hz`. The HAL manages these registers. Motion
-code still needs to respect driver pulse timing and coordinate/count steps.
-The application does not call PWM start, start DMA or enable STEP interrupts.
+code still needs to respect driver pulse timing and coordinate motion.
+The application does not start the STEP outputs at boot. The PWM HAL enables
+STEP interrupts only when a counted pulse train is explicitly started.
 
 ### PWM and encoder HAL interfaces
 
 [IPwmOutput](platform/hal/drivers/itf/IPwmOutput.hpp) provides
-`configure({period, high_time})`, `timing()`, `start()`, `stop()` and
-`isRunning()`. Durations use `std::chrono::nanoseconds`; microseconds and other
+`configure({period, high_time})`, `timing()`, `start()`, `startPulses(count)`,
+`pulseCount()`, `setPulseCallback(callback)`, `stop()` and `isRunning()`.
+Durations use `std::chrono::nanoseconds`; microseconds and other
 exactly convertible durations can be passed directly. `timing()` returns the
 achievable timing, rounded up to whole nanoseconds. The 16-bit prescaler and
 compare range limit representable periods; invalid requests return an error
@@ -217,12 +219,71 @@ and preserve the previous configuration. Zero and 100% duty are supported.
 A request strictly between them must retain both high and low phases after
 quantization. PWM construction is stopped, and starting before configuration fails.
 
-Configuration is allowed **only while stopped**. Starting is idempotent and
+Configuration is allowed **only while stopped**. Continuous `start()` is idempotent and
 arms the pulse width at an update boundary after connecting the inactive timer
 output to the pin. The first high phase is complete; startup includes a low
 arming interval. `stop()` immediately drives the pin low and can shorten the
-last pulse. This API provides continuous PWM, not an exact finite pulse count,
-acceleration, coordinated motion or live frequency changes.
+last pulse. Continuous `start()` is uncounted and never calls the pulse callback.
+
+**Counted operation:** `startPulses(3200)` emits exactly 3,200 pulses, completes
+the final high phase, and stops low. `startPulses()` counts continuously until
+`stop()` (or the 64-bit counter reaches its maximum). Counted starts require
+both a high and a low phase; a zero target, 0% duty and 100% duty are rejected.
+Starting a counted train while either mode is running returns busy; `start()`
+also returns busy during a counted train. Configuration and callback registration
+are allowed only while stopped. Successful starts reset the count; rejected
+requests, configuration, completion and stop preserve the current count.
+
+`pulseCount()` returns a 64-bit count of emitted **rising edges**, including an
+edge awaiting interrupt service and an in-flight high phase. A callback registered
+with `setPulseCallback([](std::uint64_t count) noexcept { /* record progress */ })`
+receives the cumulative count once per rising edge. Apply the commanded direction
+to these counts in the motor abstraction to track commanded position; M1's encoder
+remains the independent measurement of actual movement. The callback for edge N
+does **not** mean the Nth high phase has finished: wait for `isRunning() == false`
+before changing direction or treating the move as complete. Completion becomes
+visible when the final update interrupt is serviced; the pin is already low.
+
+On STM32, callbacks run in interrupt context, or in the calling thread when
+`stop()` drains a pending edge. Keep them short and nonblocking: no logging,
+allocation, mutexes, futures/promises or changes to/destroying the PWM object.
+Read-only PWM queries are supported. Shared position data needs an ISR-safe
+handoff; do not assume a 64-bit atomic is lock-free on this 32-bit MCU. Captured
+objects must outlive the registered callback. Clear it while stopped with
+`setPulseCallback({})`. Destruction stops without invoking callbacks.
+
+**Timing limitation:** counted mode uses PWM mode 2 plus hardware one-pulse mode
+on TIM1, TIM4 and TIM8. Each pulse finishes and stops low in hardware; an interrupt
+rearms the next one. This guarantees the finite count even with delayed interrupts,
+but extends each low interval by interrupt/rearming time. `timing().period` is
+therefore a **minimum period** in counted mode, not a guaranteed step frequency.
+The high phase is hardware timed. There is one update interrupt per pulse, plus
+a rising-compare interrupt when a callback is installed (pending events can be
+handled together). The HAL owns TIM1_UP, TIM1_CC, TIM4, TIM8_UP_TIM13 and TIM8_CC
+at priority 5; TIM13 must remain unused because its vector is shared with TIM8.
+No additional timers, DMA streams or GPIO changes are needed. See the local
+[STM32 reference manual](docs/board/rm0433-stm32h742-stm32h743753-and-stm32h750-value-line-advanced-armbased-32bit-mcus-stmicroelectronics.pdf),
+sections 38.3.20 and 39.3.13. Uninterrupted high-rate motion will need a different
+hardware pulse scheduling implementation and measurements under interrupt load.
+
+`stop()` is an immediate abort: a shortened pulse still contributes its rising
+edge to the count, but the motor driver may not accept it. Re-establish the
+position if that uncertainty matters. Acceleration, homing, coordinated motion,
+live frequency changes and integration into the WIP `StepperMotor` are separate
+work; this change supplies the HAL pulse primitives only.
+
+The standalone PWM tests compile both the Linux simulation and the actual STM32
+driver against a timer register model. With GCC 16 and GoogleTest installed:
+
+```sh
+cmake -S platform/hal/tests/pwm_model -B /tmp/protomate-pwm-tests
+cmake --build /tmp/protomate-pwm-tests
+ctest --test-dir /tmp/protomate-pwm-tests --output-on-failure
+```
+
+The model checks all three STEP timers, delayed interrupts, the final pulse width,
+aborts with pending edges, mode changes and restart behavior. It does not measure
+physical pulse timing on the Nucleo.
 
 [IQuadratureEncoder](platform/hal/drivers/itf/IQuadratureEncoder.hpp) provides
 `start()`, `stop()`, `isRunning()`, `position()`, `setPosition(count)` and
@@ -248,7 +309,12 @@ partial claims. The index factory returns the existing `IDigitalInput` type.
 It does not reset the encoder or implement homing policy.
 
 The Linux backend models PWM configuration and run state without generating
-electrical edges. Its `hal::QuadratureEncoder::advanceSimulatedCounts(delta)`
+electrical edges or advancing with wall-clock time.
+`hal::PwmOutput::advanceSimulatedPulses(count)` injects complete counted pulses;
+`beginSimulatedPulse()` and `finishSimulatedPulse()` allow tests to stop during
+a high phase. Callbacks run synchronously on the injecting thread. Injections
+while stopped or in uncounted PWM mode are ignored. Its
+`hal::QuadratureEncoder::advanceSimulatedCounts(delta)`
 injects signed x4 counts, using the same count-extension arithmetic as STM32;
 movement injected while stopped is ignored. A/B GPIO levels are not decoded
 by this simulation. Index edges can be injected through the existing Linux
