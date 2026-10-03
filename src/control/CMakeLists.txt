@@ -4,6 +4,8 @@ add_library(application::control ALIAS application_control)
 target_sources(application_control
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.cpp
 )
 
 target_include_directories(application_control
@@ -17,6 +19,7 @@ target_link_libraries(application_control
     PRIVATE
         pneumo::pneumo
         runtime::runtime
+        platform::hal
 )
 
 target_compile_options(application_control

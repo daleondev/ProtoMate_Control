@@ -4,8 +4,11 @@ add_library(application::cli ALIAS application_cli)
 target_sources(application_cli
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Parser.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Parser.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/filesystem.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/filesystem.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/utilities.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/utilities.cpp
 )
 
@@ -33,6 +36,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     target_sources(application_cli
         PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/Console.hpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Console.cpp
     )
 
