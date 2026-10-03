@@ -1,3 +1,5 @@
+add_subdirectory(cli)
+
 if(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
     set(application_source ${PROJECT_SOURCE_DIR}/platform/runtime/tests/hardware_storage_startup_test.cpp)
 elseif(RUNTIME_HARDWARE_ETHERNET_TEST)
@@ -7,9 +9,21 @@ elseif(RUNTIME_HARDWARE_IO_TEST)
 elseif(RUNTIME_HARDWARE_SELF_TEST)
     set(application_source ${PROJECT_SOURCE_DIR}/platform/runtime/tests/hardware_self_test.cpp)
 else()
-    set(application_source ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+    set(application_source ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/system_threads.cpp)
 endif()
 
-target_sources(${PROJECT_NAME} PRIVATE ${application_source})
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE platform::hal pneumo::pneumo)
+target_sources(${PROJECT_NAME} 
+    PRIVATE 
+    ${application_source}
+)
+
+target_include_directories(${PROJECT_NAME} 
+    PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(${PROJECT_NAME} 
+    PRIVATE 
+    platform::hal 
+    pneumo::pneumo
+)

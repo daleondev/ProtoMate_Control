@@ -1,0 +1,67 @@
+add_library(application_cli STATIC)
+add_library(application::cli ALIAS application_cli)
+
+target_sources(application_cli
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/Parser.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/filesystem.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/utilities.cpp
+)
+
+target_include_directories(application_cli
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/src
+)
+
+target_link_libraries(application_cli
+    PUBLIC
+        project_compiler_settings
+        pneumo::meta
+    PRIVATE
+        runtime::runtime
+)
+
+target_compile_options(application_cli
+    PRIVATE
+        $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall;-Wextra;-Wpedantic>
+)
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
+)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CURSES_NEED_WIDE TRUE)
+    find_package(Curses REQUIRED)
+
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/Console.cpp
+    )
+
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+            _XOPEN_SOURCE_EXTENDED=1
+    )
+
+    target_include_directories(${PROJECT_NAME}
+        PRIVATE
+            ${CURSES_INCLUDE_DIRS}
+    )
+
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            ${CURSES_LIBRARY}
+            ${CURSES_EXTRA_LIBRARY}
+    )
+endif()
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        application::cli
+)
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

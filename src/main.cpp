@@ -1,58 +1,79 @@
 #include "hal/board/board.hpp"
+#include "hal/drivers/factory/ethernet.hpp"
 #include "hal/hal.hpp"
 
 #include "pneumo/pneumo.hpp"
+#include "system_threads.hpp"
+
+#if defined(HAL_PLATFORM_LINUX)
+#include "cli/linux/Console.hpp"
+#endif
 
 #include <chrono>
-#include <cstdio>
+#include <print>
 #include <thread>
+#include <utility>
 
-int main()
+namespace
 {
-    runtime::thread::publish_attributes({ .name = "Logging", .priority = 20, .stack_size = 8192UZ });
-    pnm::log::initialize();
+    using namespace pnm::units::literals;
+}
 
-    pnm::log::info("Application started");
-
-    // Keep drivers disabled; all three STEP timers are initialized but stopped.
-    const auto steppers_enable_n{ hal::board::createSteppersEnableOutput() };
-    const auto m1_step{ hal::board::createStepperStepOutput(hal::board::MotorId::M1) };
-    const auto m1_dir{ hal::board::createStepperDirectionOutput(hal::board::MotorId::M1) };
-    const auto m2_step{ hal::board::createStepperStepOutput(hal::board::MotorId::M2) };
-    const auto m2_dir{ hal::board::createStepperDirectionOutput(hal::board::MotorId::M2) };
-    const auto m3_step{ hal::board::createStepperStepOutput(hal::board::MotorId::M3) };
-    const auto m3_dir{ hal::board::createStepperDirectionOutput(hal::board::MotorId::M3) };
-
-    const auto m1_encoder{ hal::board::createEncoder(hal::board::MotorId::M1) };
-    const auto m1_encoder_z{ hal::board::createEncoderIndex(hal::board::MotorId::M1) };
-    const auto m1_ref{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::M1) };
-    const auto m2_ref{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::M2) };
-    const auto m3_ref{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::M3) };
-    if (!steppers_enable_n || !m1_step || !m1_dir || !m2_step || !m2_dir || !m3_step || !m3_dir ||
-        !m1_encoder || !m1_encoder_z || !m1_ref || !m2_ref || !m3_ref) {
-        hal::panic("Motor interface creation failed");
+auto system_threads::led() -> void
+{
+    const auto green_led{ hal::board::createLed(hal::board::LedId::Green) };
+    if (!green_led) {
+        throw(std::runtime_error("green LED creation failed"));
     }
-
-    const auto led{ hal::board::createLed(hal::board::LedId::Green) };
-    if (!led) {
-        hal::panic("Green LED creation failed");
-    }
-
-    auto t{ pnm::utils::concurrent::spawn_thread<std::thread>([] {
-        const auto led{ hal::board::createLed(hal::board::LedId::Yellow) };
-        if (!led) {
-            hal::panic("Yellow LED creation failed");
-        }
-        while (true) {
-            led->toggle();
-            std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
-        }
-    }) };
 
     while (true) {
-        led->toggle();
-        std::this_thread::sleep_for(std::chrono::milliseconds{ 500 });
+        green_led->toggle();
+        std::this_thread::sleep_for(500ms);
     }
 
-    return 0;
+    std::unreachable();
+}
+
+auto system_threads::button() -> void
+{
+    static_assert(std::atomic_bool::is_always_lock_free);
+    std::atomic_bool user_button_press_pending{};
+
+    const auto user_button{ hal::board::createButton(hal::board::ButtonId::User) };
+    if (!user_button) {
+        throw(std::runtime_error("user button creation failed"));
+    }
+    user_button->setStateChangedCallback(
+      [&user_button_press_pending](hal::device::IButton::State state) noexcept {
+        if (state == hal::device::IButton::State::Pressed) {
+            user_button_press_pending.store(true, std::memory_order_release);
+        }
+    });
+
+    while (true) {
+        if (user_button_press_pending.exchange(false, std::memory_order_acq_rel)) {
+            pnm::log::info("user button pressed");
+        }
+        std::this_thread::sleep_for(100ms);
+    }
+
+    std::unreachable();
+}
+
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
+{
+    runtime::thread::publish_attributes(
+      { .name = "Logging", .priority = system_threads::PRIO._20, .stack_size = 8192UZ });
+    pnm::log::initialize();
+#if defined(HAL_PLATFORM_LINUX)
+    cli::terminal::configureLogging();
+#endif
+
+    system_threads::start();
+
+    while (true) {
+        std::this_thread::sleep_for(1h);
+    }
+
+    std::unreachable();
 }
