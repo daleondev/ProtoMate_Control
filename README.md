@@ -304,6 +304,9 @@ three axes, acceleration, abort, delayed interrupts, autonomous underrun stop,
 and a real counter-wrap test. See the
 [hardware test procedure](docs/stepper-hardware-test.md) for flashing,
 analyzer connections, expected pulse counts and acceptance criteria.
+The [current measurement report](docs/measurements/2026-10-03-step-generator/README.md)
+includes native sigrok captures and exported figures. Recorded pulse counts
+and stop behavior match; clock accuracy remains an open item.
 
 [IPwmOutput](platform/hal/drivers/itf/IPwmOutput.hpp) remains the general-purpose
 PWM interface. Its legacy counted one-pulse mode has interrupt-rearming gaps

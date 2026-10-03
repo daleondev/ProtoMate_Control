@@ -10,6 +10,10 @@ monotonic callbacks, stopped GPIO levels, and the autonomous underrun stop.
 An independent logic-analyzer or oscilloscope capture is needed to verify the
 electrical edges. A firmware `PASS` alone is not proof of the waveform or rotor motion.
 
+The [current hardware measurements](measurements/2026-10-03-step-generator/README.md)
+include sigrok captures, count comparisons and exported figures. Pulse counts
+and stop behavior match the firmware; absolute timing accuracy remains open.
+
 ## Build and program
 
 Run from the repository root:

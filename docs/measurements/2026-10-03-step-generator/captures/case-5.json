@@ -1,0 +1,92 @@
+{
+  "case": 5,
+  "capture": "case-5.sr",
+  "samplerate": 24000000,
+  "samples": 96000000,
+  "seconds": 4.0,
+  "initial_byte": 248,
+  "final_byte": 248,
+  "all_channel_rising_counts": [
+    995,
+    498,
+    249,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "channels": [
+    {
+      "channel": 0,
+      "rising": 995,
+      "falling": 995,
+      "first_rise_seconds": 2.0115035833333335,
+      "last_fall_seconds": 2.1102614166666664,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.8897385833333333,
+      "period_us_min": 99.25,
+      "period_us_max": 99.41666666666667,
+      "mean_period_us": 99.34896881287726,
+      "clock_ratio": 0.9934896881287726,
+      "max_interval_residual_ns": 98.96881287725516
+    },
+    {
+      "channel": 1,
+      "rising": 498,
+      "falling": 498,
+      "first_rise_seconds": 2.0115035833333335,
+      "last_fall_seconds": 2.1102614166666664,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.8897385833333333,
+      "period_us_min": 198.54166666666666,
+      "period_us_max": 198.83333333333334,
+      "mean_period_us": 198.69793762575452,
+      "clock_ratio": 0.9934896881287726,
+      "max_interval_residual_ns": 156.27095908784364
+    },
+    {
+      "channel": 2,
+      "rising": 249,
+      "falling": 249,
+      "first_rise_seconds": 2.0115035833333335,
+      "last_fall_seconds": 2.11006275,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.88993725,
+      "period_us_min": 397.125,
+      "period_us_max": 397.625,
+      "mean_period_us": 397.396001344086,
+      "clock_ratio": 0.9934900033602151,
+      "max_interval_residual_ns": 271.0013440860166
+    }
+  ],
+  "failures": [
+    "D0: period differs from programmed timing by >0.1 percent",
+    "D0: period discontinuity >2 analyzer samples after clock correction",
+    "D1: period differs from programmed timing by >0.1 percent",
+    "D1: period discontinuity >2 analyzer samples after clock correction",
+    "D2: period differs from programmed timing by >0.1 percent",
+    "D2: period discontinuity >2 analyzer samples after clock correction"
+  ],
+  "firmware": {
+    "result": "PASS",
+    "state": "Stopped",
+    "exact": true,
+    "counts": [
+      995,
+      498,
+      249
+    ],
+    "callbacks": 12,
+    "guard_stopped": false
+  },
+  "first_edge_skew_ns": 0.0,
+  "D3_high_throughout": true,
+  "passed": false
+}

@@ -33,7 +33,16 @@ inline TIM_TypeDef timer;
 inline auto* TIM2 = &timer;
 struct DMA_Stream_TypeDef
 {
-    uint32_t CR{}, FCR{}, NDTR{};
+    struct Control
+    {
+        uint32_t value{};
+        operator uint32_t() const { return value; }
+        void operator=(uint32_t next);
+        void operator|=(uint32_t bits) { *this = value | bits; }
+        void operator&=(uint32_t bits) { *this = value & bits; }
+        void operator^=(uint32_t bits) { *this = value ^ bits; }
+    } CR;
+    uint32_t FCR{}, NDTR{};
     std::uintptr_t PAR{}, M0AR{}, M1AR{};
 };
 inline std::array<DMA_Stream_TypeDef, 4> dma_streams;
@@ -52,6 +61,20 @@ struct DMA_TypeDef
 };
 inline DMA_TypeDef dma;
 inline auto* DMA1 = &dma;
+inline void DMA_Stream_TypeDef::Control::operator=(uint32_t next)
+{
+    // RM0433 15.3.15/16: software interruption also raises TCIF. It does
+    // not imply that NDTR reached zero or that a double buffer completed.
+    if ((value & 1U) && !(next & 1U)) {
+        constexpr std::array shifts{ 0U, 6U, 16U, 22U };
+        for (unsigned i = 0; i < dma_streams.size(); ++i) {
+            if (this == &dma_streams[i].CR) {
+                dma.LISR |= 0x20U << shifts[i];
+            }
+        }
+    }
+    value = next;
+}
 struct DMAMUX_Channel_TypeDef
 {
     uint32_t CCR{};

@@ -230,10 +230,21 @@ namespace hal::stm32
                 CLEAR_BIT(TIM2->CR1, TIM_CR1_CEN);
                 __DSB();
                 TIM2->DIER = 0U;
+                const auto before_disable{ sample() };
                 for (std::size_t i = 0; i < streams.size(); ++i) {
                     disable(i);
                 }
-                const auto result{ sample() };
+                auto result{ sample() };
+                for (std::size_t i = 0; i < result.channels.size(); ++i) {
+                    // RM0433 15.3.15/16: clearing EN itself raises TCIF even
+                    // for a partial buffer. Preserve genuine completion flags
+                    // from before shutdown. With CEN stopped, at most one
+                    // pending edge can settle; a CT change captures a real
+                    // buffer completion during the disable handshake.
+                    auto& after{ result.channels[i] };
+                    const auto& before{ before_disable.channels[i] };
+                    after.transfer_complete = before.transfer_complete || after.target != before.target;
+                }
                 TIM2->CCER = 0U;
                 pinMode(false);
                 return result;

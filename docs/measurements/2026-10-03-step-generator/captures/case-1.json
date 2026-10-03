@@ -1,0 +1,83 @@
+{
+  "case": 1,
+  "capture": "case-1.sr",
+  "samplerate": 24000000,
+  "samples": 96000000,
+  "seconds": 4.0,
+  "initial_byte": 248,
+  "final_byte": 248,
+  "all_channel_rising_counts": [
+    1,
+    2,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "channels": [
+    {
+      "channel": 0,
+      "rising": 1,
+      "falling": 1,
+      "first_rise_seconds": 2.0106089166666665,
+      "last_fall_seconds": 2.010613875,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 4.958333333333333,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.989386125
+    },
+    {
+      "channel": 1,
+      "rising": 2,
+      "falling": 2,
+      "first_rise_seconds": 2.0106089166666665,
+      "last_fall_seconds": 2.0116077083333335,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 5.0,
+      "post_move_low_seconds": 1.9883922916666668,
+      "period_us_min": 993.7916666666666,
+      "period_us_max": 993.7916666666666,
+      "mean_period_us": 993.7916666666666,
+      "clock_ratio": 0.9937916666666666,
+      "max_interval_residual_ns": 0.0
+    },
+    {
+      "channel": 2,
+      "rising": 3,
+      "falling": 3,
+      "first_rise_seconds": 2.0106089166666665,
+      "last_fall_seconds": 2.0126012916666665,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.9873987083333333,
+      "period_us_min": 993.625,
+      "period_us_max": 993.7916666666666,
+      "mean_period_us": 993.7083333333334,
+      "clock_ratio": 0.9937083333333333,
+      "max_interval_residual_ns": 83.33333333333333
+    }
+  ],
+  "failures": [
+    "D1: period differs from programmed timing by >0.1 percent",
+    "D2: period differs from programmed timing by >0.1 percent"
+  ],
+  "firmware": {
+    "result": "PASS",
+    "state": "Completed",
+    "exact": true,
+    "counts": [
+      1,
+      2,
+      3
+    ],
+    "callbacks": 1,
+    "guard_stopped": false
+  },
+  "first_edge_skew_ns": 0.0,
+  "D3_high_throughout": true,
+  "passed": false
+}

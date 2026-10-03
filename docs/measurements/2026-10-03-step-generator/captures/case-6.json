@@ -1,0 +1,89 @@
+{
+  "case": 6,
+  "capture": "case-6.sr",
+  "samplerate": 24000000,
+  "samples": 96000000,
+  "seconds": 4.0,
+  "initial_byte": 248,
+  "final_byte": 248,
+  "all_channel_rising_counts": [
+    1000,
+    1000,
+    1000,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "channels": [
+    {
+      "channel": 0,
+      "rising": 1000,
+      "falling": 1000,
+      "first_rise_seconds": 2.010069666666667,
+      "last_fall_seconds": 2.01999275,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.98000725,
+      "period_us_min": 9.875,
+      "period_us_max": 9.958333333333334,
+      "mean_period_us": 9.928053053053054,
+      "clock_ratio": 0.9928053053053053,
+      "max_interval_residual_ns": 53.053053053053155
+    },
+    {
+      "channel": 1,
+      "rising": 1000,
+      "falling": 1000,
+      "first_rise_seconds": 2.010069666666667,
+      "last_fall_seconds": 2.029912791666667,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 5.0,
+      "post_move_low_seconds": 1.9700872083333334,
+      "period_us_min": 19.833333333333332,
+      "period_us_max": 19.875,
+      "mean_period_us": 19.857982982982982,
+      "clock_ratio": 0.9928991491491491,
+      "max_interval_residual_ns": 24.64964964964859
+    },
+    {
+      "channel": 2,
+      "rising": 1000,
+      "falling": 1000,
+      "first_rise_seconds": 2.010069666666667,
+      "last_fall_seconds": 2.049751875,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.950248125,
+      "period_us_min": 39.666666666666664,
+      "period_us_max": 39.75,
+      "mean_period_us": 39.71696696696697,
+      "clock_ratio": 0.9929241741741742,
+      "max_interval_residual_ns": 50.30030030030256
+    }
+  ],
+  "failures": [
+    "D0: period differs from programmed timing by >0.1 percent",
+    "D1: period differs from programmed timing by >0.1 percent",
+    "D2: period differs from programmed timing by >0.1 percent"
+  ],
+  "firmware": {
+    "result": "PASS",
+    "state": "Completed",
+    "exact": true,
+    "counts": [
+      1000,
+      1000,
+      1000
+    ],
+    "callbacks": 23,
+    "guard_stopped": false
+  },
+  "first_edge_skew_ns": 0.0,
+  "D3_high_throughout": true,
+  "passed": false
+}

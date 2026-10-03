@@ -1,0 +1,89 @@
+{
+  "case": 7,
+  "capture": "case-7.sr",
+  "samplerate": 24000000,
+  "samples": 96000000,
+  "seconds": 4.0,
+  "initial_byte": 248,
+  "final_byte": 248,
+  "all_channel_rising_counts": [
+    512,
+    256,
+    128,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "channels": [
+    {
+      "channel": 0,
+      "rising": 512,
+      "falling": 512,
+      "first_rise_seconds": 2.010673375,
+      "last_fall_seconds": 2.0157565,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 5.0,
+      "post_move_low_seconds": 1.9842435,
+      "period_us_min": 9.916666666666666,
+      "period_us_max": 9.958333333333334,
+      "mean_period_us": 9.937622309197652,
+      "clock_ratio": 0.9937622309197651,
+      "max_interval_residual_ns": 20.955642530984402
+    },
+    {
+      "channel": 1,
+      "rising": 256,
+      "falling": 256,
+      "first_rise_seconds": 2.010673375,
+      "last_fall_seconds": 2.0157465416666667,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.9842534583333333,
+      "period_us_min": 19.833333333333332,
+      "period_us_max": 19.916666666666668,
+      "mean_period_us": 19.875326797385622,
+      "clock_ratio": 0.9937663398692811,
+      "max_interval_residual_ns": 41.99346405228729
+    },
+    {
+      "channel": 2,
+      "rising": 128,
+      "falling": 128,
+      "first_rise_seconds": 2.010673375,
+      "last_fall_seconds": 2.0157266666666667,
+      "high_us_min": 4.958333333333333,
+      "high_us_max": 5.0,
+      "last_high_us": 4.958333333333333,
+      "post_move_low_seconds": 1.9842733333333333,
+      "period_us_min": 39.708333333333336,
+      "period_us_max": 39.791666666666664,
+      "mean_period_us": 39.750656167979,
+      "clock_ratio": 0.993766404199475,
+      "max_interval_residual_ns": 42.32283464566914
+    }
+  ],
+  "failures": [
+    "D0: period differs from programmed timing by >0.1 percent",
+    "D1: period differs from programmed timing by >0.1 percent",
+    "D2: period differs from programmed timing by >0.1 percent"
+  ],
+  "firmware": {
+    "result": "PASS",
+    "state": "Underrun",
+    "exact": true,
+    "counts": [
+      512,
+      256,
+      128
+    ],
+    "callbacks": 1,
+    "guard_stopped": true
+  },
+  "first_edge_skew_ns": 0.0,
+  "D3_high_throughout": true,
+  "passed": false
+}

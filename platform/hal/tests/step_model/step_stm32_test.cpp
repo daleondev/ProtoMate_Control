@@ -257,3 +257,36 @@ TEST_F(RegisterTest, LastAxisOwnerStopsHardwareAndDisconnectsPendingInterrupts)
     DMA1_Stream3_IRQHandler();
     EXPECT_EQ(dma.LISR, 0U);
 }
+
+TEST_F(RegisterTest, AbortingPartialDmaBuffersDoesNotCountShutdownTcifAsPulses)
+{
+    for (unsigned i = 0; i < 3U; ++i) {
+        ASSERT_TRUE(axes[i]->prepare({ std::chrono::microseconds{ 100U << i }, 5us }));
+    }
+    start();
+    advance(10'000U);
+    const auto stopped{ engine->stop() };
+    EXPECT_EQ(stopped.state, State::Stopped);
+    EXPECT_TRUE(stopped.counts_exact);
+    for (unsigned i = 0; i < 3U; ++i) {
+        EXPECT_EQ(stopped.pulses[i], rising[i].size());
+    }
+}
+
+TEST_F(RegisterTest, UnderrunDoesNotInventBlocksOnTheSlowerAxesDuringShutdown)
+{
+    for (unsigned i = 0; i < 3U; ++i) {
+        ASSERT_TRUE(axes[i]->prepare({ std::chrono::microseconds{ 10U << i }, 5us }));
+    }
+    start();
+    irqs = false;
+    advance(200'000U);
+    EXPECT_FALSE(timer.CR1 & TIM_CR1_CEN);
+    const auto stopped{ engine->status() };
+    EXPECT_EQ(stopped.state, State::Underrun);
+    EXPECT_TRUE(stopped.counts_exact);
+    for (unsigned i = 0; i < 3U; ++i) {
+        EXPECT_EQ(stopped.pulses[i], rising[i].size());
+        EXPECT_EQ(stopped.pulses[i], 512U >> i);
+    }
+}

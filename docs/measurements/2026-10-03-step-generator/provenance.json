@@ -1,0 +1,25 @@
+{
+  "sample_rates_Hz": {
+    "case-1": 24000000,
+    "case-2": 24000000,
+    "case-3": 24000000,
+    "case-4": 24000000,
+    "case-5": 24000000,
+    "case-6": 24000000,
+    "case-7": 24000000,
+    "case-8": 4000000
+  },
+  "channels": {
+    "D0": "M1 STEP PA0 CN10.29",
+    "D1": "M2 STEP PB10 CN10.32",
+    "D2": "M3 STEP PB11 CN10.34",
+    "D3": "observed high (optional EN_N lead)"
+  },
+  "capture_directory": "docs/measurements/2026-10-03-step-generator/captures",
+  "edge_data": "edges.npz: absolute integer sample indices, rise/fall arrays per axis and capture",
+  "strict_screening": "capture.py uses 0.1% nominal-period and 2-sample residual checks; retained failures expose clock offset/variation, not just pulse counts",
+  "files": {
+    "build/step-test-stm32/validation/sigrok-20261003/current/firmware.bin": "b57c9aa969940a73cbe1300cfb11463e8fcdd6f228e4b7e2c7dc35bd99ce2c6f",
+    "docs/measurements/2026-10-03-step-generator/firmware-programming.log": "24cc4d0e337ef0bb74d5f5608118155c726464bd19937c7f67cafd69c6cb224f"
+  }
+}

@@ -1,0 +1,9 @@
+[step-test] 1=1/2/3 pulses  2=independent rates  3=100 kHz x3  4=profile
+[step-test] 5=abort continuous  6=late IRQ  7=underrun  8=wrap (~7m15s)
+[step-test] 9=run cases 1..7  h=help; enter one command then Enter
+[step-test] EN_N remains HIGH and DIR LOW. PASS checks software; verify waveforms separately.
+[step-test] READY for command
+[step-test] CASE 8: arm the analyzer; starting in 2 seconds; B1 aborts
+[step-test] 435 pulses/axis at 1 Hz; real 32-bit counter wrap at about 429.497 s
+[step-test] PASS case=8 state=Completed exact=1 counts=435,435,435 callbacks=17 guard_stopped=0
+[step-test] READY for command
