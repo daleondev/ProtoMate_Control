@@ -3,9 +3,12 @@
 The current `step-test-stm32` firmware produces the requested finite pulse
 counts on all three outputs. Independently captured counts also match the
 firmware's counts for software abort and autonomous underrun stop.
-**Absolute timing accuracy remains unresolved:** a requested 100.000 kHz
-measures **100.643 kHz**, approximately **0.643% fast relative to the logic
-analyzer**. These measurements do not establish overall timing conformance.
+**Both instruments measure a fast STEP rate:** a requested 100.000 kHz
+measures **100.643 kHz on the logic analyzer** and **100.543–100.639 kHz on
+the Hantek oscilloscope**. Simultaneously measured M1 and M2 agree within
+0.02 Hz in each retained scope capture. This supports a board-clock error
+over a logic-analyzer-only explanation. Absolute calibration and the precise
+clock-source diagnosis remain open; overall timing conformance is not established.
 
 Measurements: 2026-10-03. The test firmware remains programmed on the Nucleo;
 its shared driver enable is inactive and it waits for a serial command.
@@ -16,7 +19,10 @@ its shared driver enable is inactive and it waits for a serial command.
 | --- | --- |
 | Controller | NUCLEO-H753ZI, production TIM2/DMA STEP generator |
 | Test image | `step-test-stm32`, optimized build with debugger symbols; OpenOCD programming verified |
-| Instrument | AZDelivery 8-channel logic analyzer, `fx2lafw`, `sigrok-cli 0.7.2` |
+| Logic analyzer | AZDelivery 8-channel logic analyzer, `fx2lafw`, `sigrok-cli 0.7.2` |
+| Oscilloscope | Hantek 6022BE, `hantek-6xxx`, `sigrok-cli 0.7.2`; two channels sampled together |
+| Scope captures | 8 and 16 MS/s, 1,048,576 samples per channel per capture, DC coupling |
+| Scope probes / ranges | Both probes set to ×10; CH1 100 mV/div and CH2 1 V/div at the instrument inputs |
 | Cases 1–7 | 24 MS/s, 41.667 ns sample spacing, 96,000,000 samples / 4 s per capture |
 | Case 8 | 4 MS/s, 250 ns sample spacing, 1,760,000,000 samples / 440 s; resolves each nominal 5 µs high phase |
 | Serial | ST-Link virtual COM port, 115200 baud, 8N1 |
@@ -39,12 +45,16 @@ The [bench source](../../../platform/hal/tests/hardware_step_test.cpp) and
 | D0 | M1 STEP, PA0 | CN10 pin 29 |
 | D1 | M2 STEP, PB10 | CN10 pin 32 |
 | D2 | M3 STEP, PB11 | CN10 pin 34 |
+| Hantek CH1 | M1 STEP, PA0 | CN10 pin 29 |
+| Hantek CH2 | M2 STEP, PB10 | CN10 pin 32 |
 | Ground | GND | CN10 pin 22 |
 
 Case 1's distinct 1/2/3 counts confirm the STEP channel mapping. D3 is high
 throughout the captures, but its physical connection to the optional EN_N
 probe is not independently established. Driver-control state is checked by
-the firmware. No analog voltage measurement is included.
+the firmware. Analog scope traces are retained, but their gain and offset
+are not calibrated; the report uses them for timing rather than an absolute
+voltage or overshoot specification.
 
 ## Pulse counts and stopping
 
@@ -112,11 +122,56 @@ nominal-period screen fails, and several captures also exceed the residual
 screen. Accordingly, `passed: false` in the measurement JSON is consistent
 with firmware `PASS` and matching physical pulse counts.
 
+### Independent oscilloscope measurements
+
+The Hantek captures M1 and M2 during case 3, using the same programmed image.
+The logic analyzer is disconnected for these measurements. The scope captures
+at different sample rates are also separate bursts, so differences between
+their mean frequencies include any change in the board clock between bursts.
+
+| Hantek sample rate | CH1 / M1 frequency | CH2 / M2 frequency | Rising edges per channel in analyzed segment |
+| --- | --- | --- | --- |
+| 8 MS/s | 100543.470 Hz | 100543.486 Hz | 13078 |
+| 16 MS/s | 100638.595 Hz | 100638.581 Hz | 6494 |
+
+Each capture contains 1,048,576 samples per channel: 131.072 ms at 8 MS/s
+or 65.536 ms at 16 MS/s. The first 1 ms is excluded from frequency analysis
+to avoid acquisition-start settling artifacts; the complete unmodified
+capture is retained. Every remaining interval is included. No period is
+removed as an outlier. All analyzed rising-edge periods are between 9.5 and
+10.5 µs, and both channels have the same edge count in each segment. Neither
+channel reaches the ADC rails in the analyzed window; CH2 reaches a rail only
+within the excluded startup region.
+
+Rising times use linear interpolation between adjacent ADC samples at the
+midpoint of the measured low/high levels. Frequency is `(edge count - 1)`
+divided by elapsed time between the first and last analyzed rising edges.
+Thresholds at 30%, 50% and 70% of the measured swing give the same edge count;
+their frequency spread is recorded in [scope-results.json](scope-results.json).
+
+Both scope channels agree on a positive frequency offset, at both retained
+sample rates. This is independent support for the fast-rate finding; it is
+not evidence of a disagreement between M1 and M2. It also does not prove
+which oscillator is inaccurate without a calibrated reference.
+
+The scope records interior segments, not the entire 100,000-pulse burst.
+UART reports `PASS`, `Completed`, `exact=1`, and 100000/100000/100000 for
+each run; complete physical pulse counting is provided by the logic-analyzer
+captures. The scope's voltage scale is not used to claim that the GPIO exceeds
+its supply voltage. CH2 uses the wider input range to avoid clipping.
+
+For this driver/setup, timing analysis uses 8 or 16 MS/s and a settled
+acquisition window. Higher-rate acquisition is not accepted for timing
+validation because its traces contain discontinuities. The upstream
+[Hantek driver](https://github.com/sigrokproject/libsigrok/blob/master/src/hardware/hantek-6xxx/api.c)
+transports both physical channels even when only one is exported; USB
+throughput is a plausible contributor, not a conclusively established cause.
+
 The firmware assumes an 8 MHz HSE bypass clock from ST-Link. ST documents
 an HSI/2 8 MHz STLINK-V3 MCO option and crystal-derived MCO alternatives.
 This makes the clock source a plausible contributor to the observed error;
-its selection and actual frequency were not measured independently. Both the
-MCU clock and the analyzer timebase remain uncalibrated. See
+its selection and actual frequency were not measured independently. The
+MCU clock and both instrument timebases remain uncalibrated. See
 [ST's MCO clock-source guidance](https://community.st.com/stm32-mcus-60/how-to-use-stlink-v3-mco-output-on-nucleo-boards-as-a-precise-clock-source-for-stm32-140173).
 
 The outstanding timing work is to verify the clock against a suitable
@@ -136,6 +191,8 @@ current firmware. Individual PNGs:
 6. [Delayed refill interrupt](06-delayed-interrupt.png)
 7. [Autonomous underrun stop](07-underrun-stop.png)
 8. [Real counter rollover](08-counter-wrap.png)
+9. [Simultaneous Hantek M1/M2 waveforms and frequency](09-oscilloscope-waveforms.png)
+10. [Independent instrument frequency measurements](10-independent-timebases.png)
 
 [measurements.csv](measurements.csv) contains per-axis statistics.
 [results.json](results.json) retains measurements, UART results and diagnostic
@@ -143,6 +200,10 @@ failures. [provenance.json](provenance.json) identifies sample rates, channel
 assignments and the firmware hash. The [captures directory](captures/) holds
 the native `.sr` sessions, UART logs, analysis metadata and compressed sigrok
 logs. Open the sessions with PulseView or process them with sigrok-cli.
+
+[scope-measurements.csv](scope-measurements.csv) and
+[scope-results.json](scope-results.json) contain the Hantek measurements,
+analysis window, threshold checks, UART results and capture hashes.
 
 [edges.npz](edges.npz) stores every captured rising and falling edge as an
 absolute integer sample index, with keys such as `case-3_D0_rise`. Divide by
@@ -156,7 +217,8 @@ python3 docs/measurements/2026-10-03-step-generator/export_results.py
 ```
 
 The exporter reads the native captures, or uses `edges.npz` and `results.json`
-if the capture directory is unavailable. For acquisition, arm sigrok before
+for the logic figures if the capture directory is unavailable. The scope
+figures require their native analog captures. For logic acquisition, arm sigrok before
 sending one test command over UART; the firmware supplies a two-second delay:
 
 ```sh
@@ -178,12 +240,28 @@ packaging is lossless and must retain every byte and the 4 MHz sample rate.
 The stored case-8 session is packed from the raw stream; its metadata records
 the raw-byte SHA-256 so the conversion can be checked independently.
 
+For the scope, start case 3 over UART, then acquire during its one-second
+pulse train following the two-second preparation delay. The capture command
+for 16 MS/s is:
+
+```sh
+sigrok-cli -d hantek-6xxx -C CH1,CH2 -c samplerate=16MHz \
+  -c channel_group=CH1:vdiv=100mV -c channel_group=CH2:vdiv=1V \
+  --samples 1048576 -o hantek-16mhz.sr
+```
+
+Use `samplerate=8MHz` for the other scope configuration. The scope driver does
+not provide a hardware edge trigger here; acquisition is timed from the UART
+command, and the retained captures are interior segments. The firmware remains
+idle with drivers disabled following each completed test.
+
 ## Scope
 
 These are unloaded Nucleo STEP measurements. They establish the recorded
 pulse counts and stopping behavior under the exercised conditions. The
 25 scheduler/register-model tests also pass, including sanitizer builds.
 
-The measurements do not cover transistor/driver propagation, analog signal
-integrity, actual motor motion, encoder feedback, homing, or operation under
-concurrent Ethernet/storage stress. Clock accuracy remains an open item.
+The measurements do not establish transistor/driver propagation, calibrated
+voltage or signal-integrity limits, actual motor motion, encoder feedback,
+homing, or operation under concurrent Ethernet/storage stress. Clock accuracy
+remains an open item.

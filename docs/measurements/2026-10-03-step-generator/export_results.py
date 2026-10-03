@@ -2,8 +2,10 @@
 """Export measured STEP edges, figures and provenance; no hardware access.
 
 Read the current sigrok sessions in the accompanying captures directory.
-If they are unavailable, regenerate figures from the accompanying edges.npz
-and results.json. No waveform interpolation or idealized replacement data.
+If the logic captures are unavailable, regenerate their figures from the
+accompanying edges.npz and results.json. Scope figures require the native
+analog captures. Scope timing uses interpolated threshold crossings between
+real adjacent samples; no idealized replacement waveforms are used.
 """
 import csv
 import gzip
@@ -187,7 +189,7 @@ r,_=edges(2);p=np.diff(r)/24
 axs[1].hist(p,bins=40,color=COLORS[0]);axs[1].axvline(1000,color='#c84b4b',ls='--',label='Programmed 1,000 µs')
 axs[1].set(xlabel='M1 measured rising-edge period (µs)',ylabel='Intervals');axs[1].legend()
 fig.suptitle('Clock accuracy finding — frequency offset and variation remain')
-caption(fig,'Timing is relative to the analyzer clock. The ST-Link MCO clock source is a possible contributor; neither clock was independently calibrated.')
+caption(fig,'Timing is relative to the analyzer clock. Independent Hantek measurements also show a fast STEP rate; absolute calibration remains open.')
 save(fig,'04-clock-offset')
 
 fig,axs=plt.subplots(2,1,figsize=(11,8));fig.subplots_adjust(top=.88,bottom=.10,hspace=.42)
@@ -245,6 +247,116 @@ if 'case-8' in DATA:
     caption(fig,'4 MS/s capture; 250 ns sample spacing resolves the 5 µs highs. The rollover interval is located from scheduled timer ticks; no forced wrap.')
     save(fig,'08-counter-wrap')
 
+# Two physical scope channels, retaining the unmodified analog capture bytes.
+SCOPE, scope_traces = {}, {}
+for file in sorted(RAW.glob('hantek-*.acquisition.json')):
+    info = json.loads(file.read_text())
+    name = file.name.removesuffix('.acquisition.json')
+    rate = info['samplerate_hz']
+    start = round(info['analysis_start_seconds'] * rate)
+    capture = RAW/info['capture']
+    log = gzip.open(RAW/f'{name}.sigrok.log.gz', 'rt').read()
+    assert 'Received SR_DF_END' in log and not re.search(r'\b(error|overflow|timeout|failed)\b', log, re.I)
+    info['capture_sha256'] = sha256(capture)
+    info['uart'] = (RAW/f'{name}.uart.log').read_text()
+    info['channels'] = []
+    with zipfile.ZipFile(capture) as session:
+        metadata = session.read('metadata').decode()
+        assert f'samplerate={rate//1_000_000} MHz' in metadata and 'total analog=2' in metadata
+        for ch in [1, 2]:
+            blocks = sorted((n for n in session.namelist() if n.startswith(f'analog-1-{ch}-')),
+                            key=lambda n: int(n.rsplit('-', 1)[1]))
+            values = np.concatenate([np.frombuffer(session.read(n), dtype='<f4') for n in blocks]).astype(float)
+            assert len(values) == info['requested_samples'] and np.isfinite(values).all()
+            rail = info['input_vdiv_volts'][f'CH{ch}'] * 5
+            clipped = (values <= -rail) | (values >= rail)
+            assert not clipped[start:].any(), f'{name}: CH{ch} clips in the analyzed window'
+            low, high = np.quantile(values[start:], [.1, .9])
+            threshold = (low + high) / 2
+
+            def crossings(level):
+                ix = np.flatnonzero((values[:-1] < level) & (values[1:] >= level))
+                crossing = ix + (level-values[ix])/(values[ix+1]-values[ix])
+                return crossing[crossing >= start]
+
+            rising = crossings(threshold)
+            periods = np.diff(rising) / rate
+            assert len(rising) > 1000 and np.all((periods > 9.5e-6) & (periods < 10.5e-6)), name
+            frequency = (len(rising)-1) * rate / (rising[-1]-rising[0])
+            sensitivity = []
+            for fraction in [.3, .5, .7]:
+                alternate = crossings(low + fraction*(high-low))
+                assert len(alternate) == len(rising), f'{name}: threshold-dependent edge count'
+                sensitivity.append((len(alternate)-1)*rate/(alternate[-1]-alternate[0]))
+            result = {'channel': f'CH{ch}', 'signal': f'M{ch} STEP', 'samples': len(values),
+                      'analysis_start_sample': start, 'analysis_samples': len(values)-start,
+                      'clipped_samples_in_analysis': int(clipped[start:].sum()),
+                      'clipped_samples_in_excluded_startup': int(clipped[:start].sum()),
+                      'rising_edges_in_window': len(rising), 'frequency_hz': float(frequency),
+                      'period_mean_us': float(periods.mean()*1e6),
+                      'period_min_us': float(periods.min()*1e6), 'period_max_us': float(periods.max()*1e6),
+                      'frequency_offset_percent': float((frequency/100_000-1)*100),
+                      'threshold_bnc_volts_uncalibrated': float(threshold),
+                      'low_bnc_volts_uncalibrated': float(low), 'high_bnc_volts_uncalibrated': float(high),
+                      'threshold_30_to_70_percent_frequency_span_hz': float(np.ptp(sensitivity)),
+                      'outlier_intervals_9_5_to_10_5_us': 0}
+            info['channels'].append(result)
+            scope_traces[name, ch] = (values, rising, low, high)
+    assert info['channels'][0]['rising_edges_in_window'] == info['channels'][1]['rising_edges_in_window']
+    info['simultaneous_channel_frequency_difference_hz'] = abs(info['channels'][0]['frequency_hz']-info['channels'][1]['frequency_hz'])
+    SCOPE[name] = info
+
+if SCOPE:
+    (OUT/'scope-results.json').write_text(json.dumps(SCOPE, indent=2)+'\n')
+    with (OUT/'scope-measurements.csv').open('w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['capture', 'samplerate_Hz', 'channel', 'rising_edges_in_window', 'frequency_hz',
+                         'period_mean_us', 'period_min_us', 'period_max_us', 'frequency_offset_percent'])
+        for name, info in SCOPE.items():
+            for ch in info['channels']:
+                writer.writerow([name, info['samplerate_hz']] + [ch[k] for k in
+                    ['channel', 'rising_edges_in_window', 'frequency_hz', 'period_mean_us',
+                     'period_min_us', 'period_max_us', 'frequency_offset_percent']])
+
+    fig, axs = plt.subplots(2, 1, figsize=(11,8))
+    fig.subplots_adjust(top=.87, bottom=.11, hspace=.45)
+    info = SCOPE['hantek-16mhz']; rate = info['samplerate_hz']
+    origin = scope_traces['hantek-16mhz', 1][1][0]
+    left, right = int(origin)-round(rate*3e-6), int(origin)+round(rate*57e-6)
+    for ch in [1,2]:
+        values, rising, low, high = scope_traces['hantek-16mhz', ch]
+        axs[0].plot((np.arange(left,right)-origin)*1e6/rate,
+                    (values[left:right]-low)/(high-low)+(2-ch)*1.5,
+                    color=COLORS[ch-1], lw=1, label=f'CH{ch}: M{ch} STEP')
+        block = 100
+        ix = np.arange(0, len(rising)-block, block)
+        hz = block*rate/(rising[ix+block]-rising[ix])
+        axs[1].plot((rising[ix]-rising[0])*1000/rate, hz/1000, 'o-', ms=3,
+                    lw=1, color=COLORS[ch-1], label=f'CH{ch}: {info["channels"][ch-1]["frequency_hz"]/1000:.3f} kHz mean')
+    axs[0].set(xlabel='Time from first analyzed CH1 rising edge (µs)', ylabel='Normalized channel levels, offset for display',
+               yticks=[0,1,1.5,2.5], yticklabels=['M2 low','M2 high','M1 low','M1 high'])
+    axs[0].legend(loc='lower right', bbox_to_anchor=(1,1.01), ncol=2)
+    axs[1].set(xlabel='Time within analyzed capture segment (ms)', ylabel='Frequency over 100 periods (kHz)')
+    axs[1].legend()
+    fig.suptitle('Hantek 6022BE — simultaneous M1 and M2 STEP measurements')
+    caption(fig,'16 MS/s. First 1 ms excluded for acquisition settling; full raw traces retained. Voltage levels are normalized, not calibrated.')
+    save(fig,'09-oscilloscope-waveforms')
+
+    fig, ax = plt.subplots(figsize=(11,6.5));fig.subplots_adjust(top=.85,bottom=.17,left=.16,right=.92)
+    labels = ['Logic analyzer\n24 MS/s, M1', 'Hantek\n8 MS/s', 'Hantek\n16 MS/s']
+    logic_rate = 1e6/DATA['case-3']['channels'][0]['mean_period_us']
+    ax.scatter([0],[(logic_rate/100000-1)*100],s=75,color='#555555',label='Logic analyzer, M1')
+    for ch in [1,2]:
+        offset = -.04 if ch==1 else .04
+        offsets = [SCOPE[n]['channels'][ch-1]['frequency_offset_percent'] for n in ['hantek-8mhz','hantek-16mhz']]
+        ax.scatter(np.array([1,2])+offset, offsets,s=65,color=COLORS[ch-1],label=f'Hantek CH{ch}, M{ch}')
+    ax.axhline(0,color='#777777',ls='--',label='Commanded: 100.000 kHz')
+    ax.set(xticks=[0,1,2],xticklabels=labels,ylabel='Measured frequency offset from command (%)',ylim=(-.05,.8),xlim=(-.4,2.5))
+    ax.legend(loc='center right')
+    fig.suptitle('Independent instruments both measure a fast STEP rate')
+    caption(fig,'Same firmware, separate bursts. Channel pairs are simultaneous within each Hantek capture. No instrument has an independent timebase calibration.')
+    save(fig,'10-independent-timebases')
+
 with PdfPages(OUT/'step-generator-measurements.pdf') as pdf:
     for fig,name in figures: pdf.savefig(fig)
 for fig,name in figures: plt.close(fig)
@@ -265,6 +377,10 @@ provenance={'sample_rates_Hz':{name:d['samplerate'] for name,d in DATA.items()},
             'edge_data':'edges.npz: absolute integer sample indices, rise/fall arrays per axis and capture',
             'strict_screening':'capture.py uses 0.1% nominal-period and 2-sample residual checks; retained failures expose clock offset/variation, not just pulse counts',
             'files':json.loads((OUT/'provenance.json').read_text()).get('files',{}) if (OUT/'provenance.json').exists() else {}}
+if SCOPE:
+    provenance['scope_results'] = 'scope-results.json'
+    provenance['scope_channels'] = {'CH1': 'M1 STEP PA0 CN10.29', 'CH2': 'M2 STEP PB10 CN10.32'}
+    provenance['scope_analysis'] = 'First 1 ms excluded; interpolated midpoint crossings over all remaining samples; 30/50/70% threshold agreement checked.'
 bench = REPO / 'build/step-test-stm32/validation/sigrok-20261003/current'
 for file in [bench/'firmware.bin',OUT/'firmware-programming.log']:
     if file.exists(): provenance['files'][str(file.relative_to(REPO))]=sha256(file)

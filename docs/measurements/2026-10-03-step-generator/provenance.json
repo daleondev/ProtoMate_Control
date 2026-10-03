@@ -21,5 +21,11 @@
   "files": {
     "build/step-test-stm32/validation/sigrok-20261003/current/firmware.bin": "b57c9aa969940a73cbe1300cfb11463e8fcdd6f228e4b7e2c7dc35bd99ce2c6f",
     "docs/measurements/2026-10-03-step-generator/firmware-programming.log": "24cc4d0e337ef0bb74d5f5608118155c726464bd19937c7f67cafd69c6cb224f"
-  }
+  },
+  "scope_results": "scope-results.json",
+  "scope_channels": {
+    "CH1": "M1 STEP PA0 CN10.29",
+    "CH2": "M2 STEP PB10 CN10.32"
+  },
+  "scope_analysis": "First 1 ms excluded; interpolated midpoint crossings over all remaining samples; 30/50/70% threshold agreement checked."
 }

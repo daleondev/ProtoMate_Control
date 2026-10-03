@@ -1,0 +1,41 @@
+{
+  "case": 3,
+  "samplerate_hz": 16000000,
+  "requested_samples": 1048576,
+  "channel": "CH1,CH2",
+  "signal": "M1 STEP PA0 CN10.29; M2 STEP PB10 CN10.32",
+  "probe_attenuation": {
+    "CH1": 10,
+    "CH2": 10
+  },
+  "input_vdiv_volts": {
+    "CH1": 0.1,
+    "CH2": 1.0
+  },
+  "coupling": "DC",
+  "capture_scope": "interior segment of finite pulse burst",
+  "ch2_input_vdiv": "1V",
+  "firmware_result": "PASS case=3 state=Completed exact=1 counts=100000,100000,100000",
+  "capture": "hantek-16mhz.sr",
+  "analysis_start_seconds": 0.001,
+  "analysis_start_reason": "Exclude the first 1 ms of acquisition to avoid the scope/driver startup transient; full raw capture retained.",
+  "acquisition_command": [
+    "sigrok-cli",
+    "-d",
+    "hantek-6xxx",
+    "-C",
+    "CH1,CH2",
+    "-c",
+    "samplerate=16MHz",
+    "-c",
+    "channel_group=CH1:vdiv=100mV",
+    "--samples",
+    "1048576",
+    "-l",
+    "3",
+    "-o",
+    "/home/david/Dokumente/ProtoMate_Control/build/step-test-stm32/validation/hantek-20261003/dual-16mhz-wide.sr",
+    "-c",
+    "channel_group=CH2:vdiv=1V"
+  ]
+}

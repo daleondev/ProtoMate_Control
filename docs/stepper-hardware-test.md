@@ -12,7 +12,8 @@ electrical edges. A firmware `PASS` alone is not proof of the waveform or rotor 
 
 The [current hardware measurements](measurements/2026-10-03-step-generator/README.md)
 include sigrok captures, count comparisons and exported figures. Pulse counts
-and stop behavior match the firmware; absolute timing accuracy remains open.
+and stop behavior match the firmware. Independent Hantek measurements confirm
+a fast STEP rate; absolute timing accuracy remains open.
 
 ## Build and program
 
