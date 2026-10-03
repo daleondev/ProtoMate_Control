@@ -298,6 +298,13 @@ all three outputs together with a logic analyzer under Ethernet/storage load,
 including final pulse width, refill deadlines and stop behavior. Host models and
 a firmware build do not establish DMA bus latency or transistor switching time.
 
+For physical measurements, build the dedicated `step-test-stm32` preset.
+It provides a serial menu for finite trains, independent rates, 100 kHz on
+three axes, acceleration, abort, delayed interrupts, autonomous underrun stop,
+and a real counter-wrap test. See the
+[hardware test procedure](docs/stepper-hardware-test.md) for flashing,
+analyzer connections, expected pulse counts and acceptance criteria.
+
 [IPwmOutput](platform/hal/drivers/itf/IPwmOutput.hpp) remains the general-purpose
 PWM interface. Its legacy counted one-pulse mode has interrupt-rearming gaps
 and is **not used by the step generator**. Generic PWM lazily initializes its

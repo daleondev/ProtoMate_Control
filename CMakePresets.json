@@ -26,6 +26,7 @@
                 "RUNTIME_HARDWARE_IO_TEST": false,
                 "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,
                 "RUNTIME_HARDWARE_STORAGE_STARTUP_TEST": false,
+                "HAL_HARDWARE_STEP_TEST": false,
                 "RUNTIME_STORAGE_REQUIRED": false
             }
         },
@@ -48,6 +49,16 @@
             "inherits": "base-stm32",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "step-test-stm32",
+            "displayName": "STM32 Step Generator Bench Test",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_STEP_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
             }
         },
         {
@@ -115,6 +126,10 @@
         }
     ],
     "buildPresets": [
+        {
+            "name": "step-test-stm32",
+            "configurePreset": "step-test-stm32"
+        },
         {
             "name": "debug-stm32",
             "configurePreset": "debug-stm32"

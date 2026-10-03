@@ -18,17 +18,18 @@ option(RUNTIME_HARDWARE_SELF_TEST "Build the board-resident runtime conformance 
 option(RUNTIME_HARDWARE_ETHERNET_TEST "Build the Ethernet cable test image" OFF)
 option(RUNTIME_HARDWARE_IO_TEST "Build the serial and reset-persistence test image" OFF)
 option(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST "Build the storage-startup test image" OFF)
+option(HAL_HARDWARE_STEP_TEST "Build the interactive hardware step-generator test image" OFF)
 option(RUNTIME_STORAGE_REQUIRED "Require at least one mounted FileX volume at startup" OFF)
 option(RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT
        "Destructively erase the external NOR flash before mounting (recovery only)"
        OFF)
 
-if((RUNTIME_HARDWARE_SELF_TEST OR RUNTIME_HARDWARE_ETHERNET_TEST OR RUNTIME_HARDWARE_IO_TEST OR RUNTIME_HARDWARE_STORAGE_STARTUP_TEST) AND
+if((RUNTIME_HARDWARE_SELF_TEST OR RUNTIME_HARDWARE_ETHERNET_TEST OR RUNTIME_HARDWARE_IO_TEST OR RUNTIME_HARDWARE_STORAGE_STARTUP_TEST OR HAL_HARDWARE_STEP_TEST) AND
    NOT CMAKE_SYSTEM_NAME STREQUAL "Generic")
     message(FATAL_ERROR "Hardware self-tests are only supported by the STM32 target")
 endif()
 set(hardware_image_count 0)
-foreach(image_option RUNTIME_HARDWARE_SELF_TEST RUNTIME_HARDWARE_ETHERNET_TEST RUNTIME_HARDWARE_IO_TEST RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
+foreach(image_option RUNTIME_HARDWARE_SELF_TEST RUNTIME_HARDWARE_ETHERNET_TEST RUNTIME_HARDWARE_IO_TEST RUNTIME_HARDWARE_STORAGE_STARTUP_TEST HAL_HARDWARE_STEP_TEST)
     if(${image_option})
         math(EXPR hardware_image_count "${hardware_image_count} + 1")
     endif()
@@ -68,7 +69,7 @@ target_compile_options(${PROJECT_NAME}
         $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall;-Wextra;-Wpedantic>
 )
 
-if(RUNTIME_HARDWARE_SELF_TEST OR RUNTIME_HARDWARE_ETHERNET_TEST OR RUNTIME_HARDWARE_IO_TEST OR RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
+if(hardware_image_count GREATER 0)
     target_compile_definitions(${PROJECT_NAME}
         PRIVATE
             RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U
@@ -116,7 +117,12 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_subdirectory(platform/hal/tests)
 endif()
 
-if(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
+if(HAL_HARDWARE_STEP_TEST)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_step_test.cpp
+    )
+elseif(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
     target_sources(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_storage_startup_test.cpp

@@ -97,6 +97,39 @@ TEST_F(StepTest, DelayedBufferInterruptDoesNotStretchPulseIntervals)
     EXPECT_EQ(generator->status().state, State::Completed);
 }
 
+TEST_F(StepTest, BenchIrqDelayAndUnderrunHaveTheDocumentedThreeAxisWaveforms)
+{
+    constexpr std::array periods{ 10us, 20us, 40us };
+    for (bool underrun : { false, true }) {
+        for (unsigned i = 0; i < 3U; ++i) {
+            ASSERT_TRUE(
+              outputs[i]->prepare({ periods[i], 5us }, underrun ? std::nullopt : std::optional{ 1000U }));
+        }
+        ASSERT_TRUE(generator->start(1ms));
+        hardware->interrupts_enabled = false;
+        hardware->advance(underrun ? 200'000U : 45'000U);
+        EXPECT_EQ(hardware->registers.running, !underrun);
+        EXPECT_TRUE(hardware->registers.channels[0].transfer_complete);
+        generator->service();
+        hardware->interrupts_enabled = true;
+        hardware->advance(1'000'000U);
+        const auto status{ generator->status() };
+        EXPECT_EQ(status.state, underrun ? State::Underrun : State::Completed);
+        const std::array expected{ underrun ? 512U : 1000U,
+                                   underrun ? 256U : 1000U,
+                                   underrun ? 128U : 1000U };
+        for (unsigned i = 0; i < 3U; ++i) {
+            const auto edges{ rises(i) };
+            ASSERT_EQ(edges.size(), expected[i]);
+            EXPECT_EQ(status.pulses[i], expected[i]);
+            EXPECT_FALSE(hardware->high[i]);
+            for (std::size_t edge = 1; edge < edges.size(); ++edge) {
+                EXPECT_EQ(edges[edge] - edges[edge - 1], periods[i].count() * 10U);
+            }
+        }
+    }
+}
+
 TEST_F(StepTest, MissedRefillStopsHardwareBeforeReplayingAStaleBuffer)
 {
     ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }));
