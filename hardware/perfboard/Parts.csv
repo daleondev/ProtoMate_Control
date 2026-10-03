@@ -1,12 +1,12 @@
 References,Quantity,Part,Mounting / note
-Q1 Q2 Q3,3,Diotec 2N2222A,TO-92; E1/B2/C3; 2.54 mm lead spacing
+Q1 Q2 Q3 Q4 Q5 Q6,6,Diotec 2N2222A,TO-92; E1/B2/C3; 2.54 mm lead spacing
 U2,1,AM26C32CN,DIP-16; 7.62 mm rows
 U2 socket,1,DIP-16 socket,7.62 mm rows
-U3,1,SN74LVC125AD,SOIC-14; must purchase
-U3 adapter,1,Adafruit 1210,17.78 mm square; 15.24 mm rows; SOIC side up; must purchase
-U3 adapter headers,2,1x7 male header,2.54 mm pitch; optional matching female strips
-R1 R3 R5,3,1 kohm resistor,Axial 0.25 W; 10.16 mm hole spacing
-R2 R4 R6 R8 R9,5,10 kohm resistor,Axial 0.25 W; 10.16 mm hole spacing
+U3,1,SN74HC126N,PDIP-14; 7.62 mm rows; user already owns
+U3 socket,1,DIP-14 socket,7.62 mm rows; notch toward row A
+R1 R3 R5 R22 R25 R28,6,1 kohm resistor,Axial 0.25 W; 10.16 mm hole spacing
+R2 R4 R6 R8 R9 R21 R24 R27,8,10 kohm resistor,Axial 0.25 W; 10.16 mm hole spacing
+R20 R23 R26,3,4.7 kohm resistor,Axial 0.25 W; 10.16 mm hole spacing
 R7,1,470 ohm resistor,Axial 0.25 W; 10.16 mm hole spacing
 R10 R11 R12,0,DNP termination resistors,Leave empty; 10.16 mm reserved hole spacing
 C3 C4,2,100 nF ceramic capacitor,Nonpolar; >=16 V; 2.54 mm lead spacing

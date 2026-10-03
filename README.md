@@ -107,15 +107,16 @@ kicad-cli sch erc --severity-all --exit-code-violations \
 
 The [perfboard subproject](hardware/perfboard/ProtoMate_Perfboard.kicad_pro)
 provides a placement and hand-wiring map for a **100 × 160 mm individual-pad
-board with 2.54 mm pitch**. It contains the three Diotec 2N2222A stages,
-AM26C32 encoder receiver, SN74LVC125A buffer, passive components and cable
+board with 2.54 mm pitch**. It contains six Diotec 2N2222A stages (three for
+the DM542T and three for encoder voltage conversion), the AM26C32 encoder
+receiver, SN74HC126N buffer, passive components and cable
 headers. Motor drivers, the Nucleo and the power converter connect externally.
 
 Use [Assembly.pdf](hardware/perfboard/Assembly.pdf) for placement, top jumpers
 and the mirrored solder-side view. The
 [assembly instructions](hardware/perfboard/README.md) include orientation,
-parts, hole coordinates and the complete wire/harness tables. U3 requires an
-**SN74LVC125AD and Adafruit 1210 adapter**, with 15.24 mm between header rows.
+parts, hole coordinates and the complete wire/harness tables. U3 is the user's
+**SN74HC126N in a DIP-14 socket**, with 7.62 mm between rows.
 The KiCad PCB file represents hand wiring on the purchased board; no
 fabrication outputs are supplied.
 
@@ -279,25 +280,53 @@ encoder start/read loop, index callback, homing or motion-control logic yet.
 The Linux backend reserves these pins but does not emulate encoder counting
 or hardware STEP generation.
 
-Use three channels of the **AM26C32CN** differential receiver, followed by
-three channels of a **SN74LVC125A powered from 3.3 V**:
+Use three channels of the **AM26C32CN** differential receiver, three additional
+**Diotec 2N2222A converters (Q4–Q6)**, then three channels of the user's
+**SN74HC126N powered from 3.3 V**. Each transistor converts a receiver output
+to 3.3 V logic and inverts it. **Reverse each encoder pair at the AM26C32
+inputs as shown below** to cancel that inversion. The motor connector pinout,
+MCU pins, A/B counting direction and rising-edge Z convention stay unchanged.
 
-| Encoder signal pair | AM26C32CN DIP-16 inputs (+ / −) | Receiver output | SN74LVC125A input → output | STM32 |
+| Encoder + / − wires | AM26C32CN pins for those wires (reversed) | Receiver output | Converter | SN74HC126N input → output | STM32 |
+| --- | --- | --- | --- | --- | --- |
+| A+ / A− | 1 / 2 | 3 | Q4 | 2 → 3 | PB4 |
+| B+ / B− | 7 / 6 | 5 | Q5 | 5 → 6 | PB5 |
+| Z+ / Z− | 9 / 10 | 11 | Q6 | 9 → 8 | PB6 |
+
+Each converter uses the following connections:
+
+| Function | A channel | B channel | Z channel | Connection |
 | --- | --- | --- | --- | --- |
-| A+ / A− | 2 / 1 | 3 | 2 → 3 | PB4 |
-| B+ / B− | 6 / 7 | 5 | 5 → 6 | PB5 |
-| Z+ / Z− | 10 / 9 | 11 | 9 → 8 | PB6 |
+| Base resistor, **4.7 kΩ** | R20 | R23 | R26 | Receiver output → transistor base |
+| Base-to-emitter resistor, **10 kΩ** | R21 | R24 | R27 | Base → ground |
+| Collector pull-up, **1 kΩ** | R22 | R25 | R28 | 3.3 V → collector |
+| Transistor | Q4 | Q5 | Q6 | Emitter → ground; collector → HC126 input |
+
+Diotec's 2N2222A lead order is **1 = E, 2 = B, 3 = C**; the schematic uses
+functional E/B/C pin names. At nominal supply voltage each conducting
+collector sinks about 3.3 mA. The HC126 inputs therefore receive either a
+low collector voltage or the 3.3 V pull-up voltage, without a direct 5 V input.
 
 AM26C32CN: pin 16 to regulated **5 V (±5%)**, pin 8 to ground, pin 4 to 5 V,
 pin 12 to ground. Its unused fourth receiver may remain unconnected.
-SN74LVC125A (14-pin SOIC/TSSOP): pin 14 to **3.3 V**, pin 7 to ground;
-enable the three used channels by grounding pins 1, 4 and 10. Disable its
-unused channel by tying pin 13 to 3.3 V, tie input pin 12 to ground and leave
+SN74HC126N (DIP-14): pin 14 to **3.3 V**, pin 7 to ground;
+enable the three used channels by tying pins **1, 4 and 10 to 3.3 V**.
+Disable its unused channel by tying **pin 13 to ground**, tie input pin 12 to ground and leave
 output pin 11 unconnected. Place **100 nF** at each IC's supply pins and
-share encoder, receiver, buffer and controller ground. The AM26C32 requires
-5 V and produces 5 V logic; the LVC buffer provides 3.3 V signals to the MCU.
+share encoder, receiver, transistors, buffer and controller ground. **Never
+connect the 5 V receiver outputs directly to HC126 inputs.** No SOIC adapter
+or 4N35 optocouplers are used. Q1–Q3 retain their existing DM542T function.
 See the [AM26C32 datasheet](https://www.ti.com/lit/ds/symlink/am26c32.pdf)
-and [SN74LVC125A datasheet](https://www.ti.com/lit/ds/symlink/sn74lvc125a.pdf).
+and [SN74HC126 datasheet](https://www.ti.com/lit/ds/symlink/sn74hc126.pdf), and
+the [Diotec transistor pinout](https://diotec.com/tl_files/diotec/files/pdf/datasheets/2n2222a.pdf).
+
+Keep each collector-to-HC126 connection short and local to the perfboard.
+The 1 kΩ pull-up gives an estimated 10–90% rise time of 220 ns at 100 pF
+total collector-node capacitance (2.2 × R × C). Transistor storage adds
+turn-off delay that is not specified in Diotec's data sheet: check all three
+waveforms with an oscilloscope at the intended speed before relying on the
+encoder for motion feedback. The static KiCad checks do not establish a
+maximum encoder frequency. Firmware and CubeMX settings are unchanged.
 
 On the motor's eight-pin encoder connector, pin 8 is +5 V, pin 1 is ground,
 and pins 2/3, 4/5 and 6/7 are A+/A−, B+/B− and Z+/Z− respectively.

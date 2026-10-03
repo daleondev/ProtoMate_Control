@@ -23,7 +23,7 @@ Commercial board margins vary: choose an actual hole near that position,
 mark it A1, and count holes from there. Preserve the relative hole positions;
 do not drill holes to match a manufacturer's different edge margin.
 
-All component leads and the seven wire side-change points fall on the
+All component leads and the five additional wire-passage holes fall on the
 **2.54 mm grid**. Lines between holes show the route of insulated wire, not
 additional holes or copper strips. Empty holes are the faint circles on
 `Dwgs.User`. A square in the drawing identifies header/IC pin 1; the purchased
@@ -34,7 +34,7 @@ Column 1 is therefore on the right. Hole names never change between views.
 All components are mounted on the top face.
 
 - [Holes.csv](Holes.csv): every component pin, its hole and its electrical net.
-- [Wires.csv](Wires.csv): all 91 required pad-to-pad connections, with endpoints,
+- [Wires.csv](Wires.csv): all 112 required pad-to-pad connections, with endpoints,
   side-change holes and routed lengths. Add handling/stripping allowance to
   these lengths. Tick off each connection as it is soldered.
 - [Harness.csv](Harness.csv): every external header pin and its destination.
@@ -47,11 +47,11 @@ wire table specifies the actual endpoint connections. A layer-change circle
 represents passing an insulated wire through an otherwise empty hole; it is
 not a plated via that the perfboard already contains. Top jumpers and component
 leads must both be soldered to their appropriate pads on the underside.
-Fit low-profile top jumpers before the socket/adapter that covers them.
+Fit low-profile top jumpers before the sockets that cover them.
 
 ## Parts and orientation
 
-**Q1–Q3 are the user's Diotec 2N2222A**, with emitter/base/collector identified
+**Q1–Q6 are Diotec 2N2222A**, with emitter/base/collector identified
 as **E/B/C** in the schematic, layout and tables. Diotec numbers these leads
 **1 = E, 2 = B, 3 = C**. In the top-view drawing E is on the left and C on the
 right; the flat/marked face points toward the bottom edge of the drawing.
@@ -60,21 +60,35 @@ the 1.27 mm bulk variant. See the
 [Diotec package drawing and pinout](https://diotec.com/tl_files/diotec/files/pdf/datasheets/2n2222a.pdf).
 
 **U2 is AM26C32CN**, in a 16-pin DIP socket with 7.62 mm between rows. Its notch
-points toward row A. **U3 is SN74LVC125AD**, the SOIC-14 version, on an
-[Adafruit 1210 SOIC-14/TSSOP-14 adapter](https://www.adafruit.com/product/1210).
-This adapter is 17.78 mm square with **15.24 mm between header rows** and
-2.54 mm pin pitch. Mount the **SOIC face upward**, with chip and adapter pin 1
-at K50. Use two 1×7 headers, optionally with matching female strips. An ordinary
-7.62 mm-wide DIP-14 adapter/socket does **not** fit these allocated holes.
-The dimensions and orientation follow
-[Adafruit's original adapter CAD](https://github.com/adafruit/Adafruit-SMT-Breakout-PCBs/blob/master/14-pin%20SOIC%2BTSSOP.brd).
+points toward row A. **U3 is the user's SN74HC126N**, in a **DIP-14 socket
+with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **K53**;
+pin 14 is at K56. Its notch points toward row A. The previous SOIC adapter
+has been removed from this layout. Both DIP chips mount on the top face.
 
-The buffer and adapter are purchase items; the user does not own them yet.
-Use the specified **LVC** device: it accepts the receiver's 5 V logic while
-powered from 3.3 V. A generic 74HC125 at 3.3 V is not a substitute. See
-[TI's SN74LVC125A data sheet](https://www.ti.com/lit/ds/symlink/sn74lvc125a.pdf).
+Q1–Q3 serve the DM542T. **Q4–Q6 convert the encoder receiver's 5 V outputs
+to 3.3 V for U3**. Each new stage has a 4.7 kΩ base resistor (R20/R23/R26),
+a 10 kΩ base-to-emitter resistor (R21/R24/R27), and a 1 kΩ collector pull-up
+to 3.3 V (R22/R25/R28). All emitters connect to ground. Collectors connect
+to U3 inputs 2, 5 and 9 respectively.
 
-R1–R9 are axial resistors with 10.16 mm between holes. C3/C4 are 100 nF
+**U2's three differential input pairs have been reversed to cancel the
+transistor inversion:** encoder A+/A− go to U2 pins 1/2, B+/B− to 7/6,
+and Z+/Z− to 9/10. The external J107 cable pinout stays the same. Follow the
+updated wire table even if the previous encoder wiring is already assembled.
+
+U3 pin 14 is **3.3 V**, pin 7 is ground. Its active-high enables **1, 4 and
+10 connect to 3.3 V**; unused enable 13 and unused input 12 connect to ground,
+and output 11 is unconnected. **No HC126 input connects directly to 5 V.**
+The resulting A/B/Z signals retain their original polarity, so the existing
+timer and rising-edge index configuration stays valid. See
+[TI's SN74HC126 data sheet](https://www.ti.com/lit/ds/symlink/sn74hc126.pdf).
+
+Keep the transistor collector connections short. Verify edge shape and
+turn-off delay at the intended encoder speed with an oscilloscope; saturated
+transistor storage delay is not established by the static wiring checks.
+No 4N35 optocouplers are needed for this circuit with a common ground.
+
+R1–R9 and R20–R28 are axial resistors with 10.16 mm between holes. C3/C4 are 100 nF
 nonpolar ceramic capacitors with 2.54 mm lead spacing, close to their IC supply
 connections; C5/C6 are 1 µF nonpolar capacitors with 5.08 mm lead spacing.
 R10–R12 reserve positions for encoder termination and are **DNP: leave them
