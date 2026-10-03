@@ -1,0 +1,66 @@
+Reference,Part or value,Quantity,Do not populate,Location
+A1,NUCLEO-H753ZI / MB1364,1,,External
+A2,DM542T V4.0,1,,External
+A3,Adafruit #6121 / TMC2209,1,,External
+A4,Adafruit #6121 / TMC2209,1,,External
+A5,W25Q128 / 3.3 V QSPI,1,,External
+C1,100u / 50V,1,,External
+C2,100u / 50V,1,,External
+C3,100n,1,,Perfboard
+C4,100n,1,,Perfboard
+C5,1u,1,,Perfboard
+C6,1u,1,,Perfboard
+C7,100n,1,,External
+C8,10u,1,,External
+C9,100n,1,,External
+C10,10u,1,,External
+J1,24 V input,1,,External
+J2,M1 encoder / 8-pin,1,,External
+J3,microSD / 4-bit socket module,1,,External
+J101,Nucleo outputs / 2x08,1,,Perfboard
+J102,Nucleo encoder / 2x03,1,,Perfboard
+J103,Buck 5V / 1x02,1,,Perfboard
+J104,DM542T / 1x06,1,,Perfboard
+J105,M2 TMC2209 / 1x10,1,,Perfboard
+J106,M3 TMC2209 / 1x10,1,,Perfboard
+J107,M1 encoder / 1x08,1,,Perfboard
+M1,PKP245D23A2-R2FL,1,,External
+M2,C17HD2024-01N,1,,External
+M3,BJ42D15-26V10,1,,External
+Q1,2N2222A,1,,Perfboard
+Q2,2N2222A,1,,Perfboard
+Q3,2N2222A,1,,Perfboard
+Q4,2N2222A,1,,Perfboard
+Q5,2N2222A,1,,Perfboard
+Q6,2N2222A,1,,Perfboard
+R1,1k,1,,Perfboard
+R2,10k,1,,Perfboard
+R3,1k,1,,Perfboard
+R4,10k,1,,Perfboard
+R5,1k,1,,Perfboard
+R6,10k,1,,Perfboard
+R7,470R,1,,Perfboard
+R8,10k,1,,Perfboard
+R9,10k,1,,Perfboard
+R10,DNP,1,DNP,Perfboard
+R11,DNP,1,DNP,Perfboard
+R12,DNP,1,DNP,Perfboard
+R13,10k,1,,External
+R14,10k,1,,External
+R15,10k,1,,External
+R16,10k,1,,External
+R17,10k,1,,External
+R18,10k,1,,External
+R19,10k,1,,External
+R20,4k7,1,,Perfboard
+R21,10k,1,,Perfboard
+R22,1k,1,,Perfboard
+R23,4k7,1,,Perfboard
+R24,10k,1,,Perfboard
+R25,1k,1,,Perfboard
+R26,4k7,1,,Perfboard
+R27,10k,1,,Perfboard
+R28,1k,1,,Perfboard
+U1,QIQIAZI 5 V / 5 A,1,,External
+U2,AM26C32CN / DIP-16,1,,Perfboard
+U3,SN74HC126N / DIP-14,1,,Perfboard

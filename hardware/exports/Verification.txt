@@ -1,0 +1,16 @@
+KiCad 10.0.6: native project verification
+PASS: 40 footprints linked to schematic symbols; values, library IDs and pins match.
+PASS: 156 unique component holes and 5 wire passages on the 2.54 mm grid.
+PASS: 112 scheduled connections span all 34 connected nets.
+PASS: 58 header positions and their external destinations match the schematic.
+PASS: all parts on top; R10-R12 are DNP; no 24 V on perfboard.
+Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.
+Wire endpoints/passages are checked; routing lengths and sides need review after route edits.
+This checks the wiring model, not an assembled circuit or transistor switching speed.
+Board SHA256: d133da25d4bbe161d2b337424251005c2ff34b35fe2b2ff4f4503d362b488741
+ProtoMate.kicad_sch SHA256: 96a59a6163f72aeb55d439b0ece82f9629a177a08c5475981bbc88b6fd238cf0
+sheets/M1_DM542T.kicad_sch SHA256: 3b135fab594c2f5d00bec5267798e1fdf3d109ee7dfbf7abe9365059d9447eb6
+sheets/M1_Encoder.kicad_sch SHA256: be5309fec5e61dd4de375c13dba40f8bd4a10a357447ce463ce407d741e9e460
+sheets/M2_M3_TMC2209.kicad_sch SHA256: b1479eaefdb4c649826ad03e2048eb9cb7a2ed778834e4b7d429e5e90268c7be
+sheets/Perfboard_Connectors.kicad_sch SHA256: 3a0bc826f2c692f75ad6791b42f38e6d9e642b7eb0d94da53d4433c5446fbae4
+sheets/Storage.kicad_sch SHA256: 05e746f4934a312b0a44f53c42a7ce1028f44eb125290488ca6e03564e129aa5

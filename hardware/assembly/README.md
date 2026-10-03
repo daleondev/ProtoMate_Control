@@ -1,11 +1,11 @@
 # Perfboard assembly
 
-Open [ProtoMate_Perfboard.kicad_pro](ProtoMate_Perfboard.kicad_pro) in KiCad 10,
+Open [ProtoMate.kicad_pro](../ProtoMate.kicad_pro) in KiCad 10,
 then open the PCB editor. This file is a **placement and hand-wiring map for a
 purchased 100 × 160 mm individual-pad perfboard**. The tracks represent wires;
 there are no Gerber files or custom-board fabrication instructions.
 
-[Assembly.pdf](Assembly.pdf) contains four actual-size A4 landscape sheets:
+[Assembly.pdf](../exports/Assembly.pdf) contains four actual-size A4 landscape sheets:
 
 1. Component placement, viewed from above.
 2. Component-side jumpers, in red.
@@ -126,23 +126,23 @@ left/right order changes when viewed from the mating side.
 The Nucleo, three motor drivers, buck converter, motor windings and storage
 modules remain external. The **24 V distribution and motor currents do not
 pass through this perfboard**. Connect those parts as shown in
-[the system wiring schematic](../wiring/ProtoMate_Wiring.pdf). In particular,
+[the system wiring schematic](../exports/Wiring.pdf). In particular,
 the Nucleo's 5 V input is supplied separately from the buck; J101 supplies this
 interface with the Nucleo's 3.3 V output, not the other way around.
 
 ## Checks
 
-[DRC.rpt](DRC.rpt) records KiCad's electrical clearance/connectivity check.
-[Verification.txt](Verification.txt) records the comparison of the saved
-layout with the existing schematic netlist, hole grid and wire table.
-The source schematic remains the electrical reference. This separate assembly
-map adds cable headers and is not intended for KiCad's automatic
-"Update PCB from Schematic" operation.
+[DRC.rpt](../exports/DRC.rpt) records KiCad's electrical clearance/connectivity
+and schematic-parity checks. [Verification.txt](../exports/Verification.txt)
+records checks of the saved layout's symbol links, nets, hole grid, wire table
+and harness destinations. The schematic includes J101–J107 and is the
+electrical reference for this layout. Use **Update PCB from Schematic (F8)**
+as described in the [project guide](../README.md).
 
-The model uses embedded footprints and PTH/via graphics to represent real
-component holes and wire passages. Manufacturing silkscreen, missing courtyard
-and library-copy checks are disabled for this assembly map; electrical
-clearance and unconnected-pad checks remain enabled. Passing those checks does
+The model uses project-local footprints and PTH/via graphics to represent real
+component holes and wire passages. Manufacturing silkscreen and missing-courtyard
+checks are waived for this assembly map; electrical clearance, unconnected-pad,
+schematic-parity and library-consistency checks remain enabled. Passing those checks does
 not verify a soldered assembly. Before fitting ICs or attaching the Nucleo,
 check continuity against the wire table and verify the 5 V and 3.3 V supplies
 are separate and neither is shorted to ground.
@@ -150,6 +150,5 @@ are separate and neither is shorted to ground.
 To repeat KiCad's check from the repository root:
 
 ```sh
-kicad-cli pcb drc --severity-all --exit-code-violations \
-  -o /tmp/ProtoMate_Perfboard-DRC.rpt hardware/perfboard/ProtoMate_Perfboard.kicad_pcb
+python3 hardware/tools/refresh.py --check-only
 ```

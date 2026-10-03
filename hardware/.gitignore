@@ -4,3 +4,4 @@
 ~*
 *-backups/
 _autosave-*
+__pycache__/

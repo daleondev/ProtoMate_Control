@@ -1,0 +1,1 @@
+(sym_lib_table (version 7) (lib (name "ProtoMate") (type "KiCad") (uri "${KIPRJMOD}/libraries/ProtoMate.kicad_sym") (options "") (descr "ProtoMate system wiring and interface symbols")))

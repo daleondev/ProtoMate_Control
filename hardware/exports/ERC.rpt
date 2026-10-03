@@ -1,4 +1,4 @@
-ERC report (2026-10-03T10:55:20, Encoding UTF8)
+ERC report (2026-10-03T13:25:50, Encoding UTF8)
 Report includes: Errors, Warnings, Exclusions
 
 ***** Sheet /
@@ -10,6 +10,8 @@ Report includes: Errors, Warnings, Exclusions
 ***** Sheet /M1 - encoder interface/
 
 ***** Sheet /QSPI flash and SD card/
+
+***** Sheet /Perfboard cable headers/
 
  ** ERC messages: 0  Errors 0  Warnings 0
 

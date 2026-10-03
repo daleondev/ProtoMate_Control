@@ -1,5 +1,5 @@
-** Drc report for ProtoMate_Perfboard.kicad_pcb **
-** Created on 2026-10-03T10:50:55 **
+** Drc report for ProtoMate.kicad_pcb **
+** Created on 2026-10-03T13:25:52 **
 ** Report includes: Errors, Warnings, Exclusions **
 
 ** Found 0 DRC violations **
@@ -16,7 +16,5 @@
     - Silkscreen clearance
     - Silkscreen clipped by solder mask
     - Footprint component type doesn't match footprint pads
-    - Footprint not found in libraries
-    - Footprint doesn't match copy in library
 
 ** End of Report **

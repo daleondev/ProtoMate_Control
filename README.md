@@ -53,16 +53,20 @@ I/O uses the host filesystem; explicit FileX tests use simulated media images.
 The simulated LED state toggles inside the process; inspect it through the
 HAL or Linux debugger. Startup diagnostics and the boot message appear on the terminal.
 
-## KiCad wiring schematic
+## KiCad hardware project
 
-Open [hardware/wiring/ProtoMate_Wiring.kicad_pro](hardware/wiring/ProtoMate_Wiring.kicad_pro)
-in **KiCad 10**. This is a schematic-only subproject with five linked sheets:
-controller and power, M1/DM542T, M2/M3/TMC2209, M1 encoder, and QSPI/SD storage.
-The project includes its own symbol library; no PCB is included.
+Open **[hardware/ProtoMate.kicad_pro](hardware/ProtoMate.kicad_pro)** in
+**KiCad 10**. One project contains the complete system schematic and its linked
+perfboard layout. Six sheets cover controller/power, M1/DM542T, M2/M3/TMC2209,
+M1 encoder, QSPI/SD storage and the perfboard cable headers. All 40 footprints
+are linked to schematic symbols; external equipment is marked **Exclude from
+board**. Symbols and footprints use project-local libraries. See the
+[hardware guide](hardware/README.md) for the structure and F8 update workflow.
 
-For a printable view, use [the complete schematic PDF](hardware/wiring/ProtoMate_Wiring.pdf).
-[Parts.csv](hardware/wiring/Parts.csv) lists the modules, motors and external
-components. `DNP` means a component is shown but is not fitted. Capacitors and
+For a printable view, use [the complete schematic PDF](hardware/exports/Wiring.pdf).
+[System_Parts.csv](hardware/assembly/System_Parts.csv) lists all components and
+identifies whether they mount on the perfboard or externally.
+`DNP` means a component is shown but is not fitted. Capacitors and
 pull-ups already present on storage modules need not be duplicated, as noted
 on the storage sheet. Purchased modules are represented by their external
 contacts, rather than reproducing their internal circuits.
@@ -95,26 +99,26 @@ current limit before fitting them.
 The connector assignments were checked against the firmware, ST's board
 manual, the motor drawings, and
 [Adafruit's published breakout schematic](https://github.com/adafruit/Adafruit-TMC2209-Breakout-PCB/blob/main/Adafruit%20TMC2209%20Stepper%20Motor%20Driver.sch).
-KiCad's electrical-rules check reports no violations; the saved result is
-[ERC.rpt](hardware/wiring/ERC.rpt). To repeat the check from the repository root:
+KiCad's electrical-rules and layout checks, including schematic-to-board parity,
+report no violations. Results are in [ERC.rpt](hardware/exports/ERC.rpt) and
+[DRC.rpt](hardware/exports/DRC.rpt). To repeat the checks from the repository root:
 
 ```sh
-kicad-cli sch erc --severity-all --exit-code-violations \
-  -o /tmp/ProtoMate_Wiring-ERC.rpt hardware/wiring/ProtoMate_Wiring.kicad_sch
+python3 hardware/tools/refresh.py --check-only
 ```
 
 ## KiCad perfboard layout
 
-The [perfboard subproject](hardware/perfboard/ProtoMate_Perfboard.kicad_pro)
+The same project's [perfboard layout](hardware/ProtoMate.kicad_pcb)
 provides a placement and hand-wiring map for a **100 × 160 mm individual-pad
 board with 2.54 mm pitch**. It contains six Diotec 2N2222A stages (three for
 the DM542T and three for encoder voltage conversion), the AM26C32 encoder
 receiver, SN74HC126N buffer, passive components and cable
 headers. Motor drivers, the Nucleo and the power converter connect externally.
 
-Use [Assembly.pdf](hardware/perfboard/Assembly.pdf) for placement, top jumpers
+Use [Assembly.pdf](hardware/exports/Assembly.pdf) for placement, top jumpers
 and the mirrored solder-side view. The
-[assembly instructions](hardware/perfboard/README.md) include orientation,
+[assembly instructions](hardware/assembly/README.md) include orientation,
 parts, hole coordinates and the complete wire/harness tables. U3 is the user's
 **SN74HC126N in a DIP-14 socket**, with 7.62 mm between rows.
 The KiCad PCB file represents hand wiring on the purchased board; no
