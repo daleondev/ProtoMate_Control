@@ -13,6 +13,8 @@ target_sources(application_cli
 )
 
 target_include_directories(application_cli
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -20,8 +22,8 @@ target_include_directories(application_cli
 target_link_libraries(application_cli
     PUBLIC
         project_compiler_settings
-    PRIVATE
         pneumo::meta
+    PRIVATE
         runtime::runtime
 )
 

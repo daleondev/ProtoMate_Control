@@ -14,6 +14,7 @@ target_link_libraries(hal_drivers
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_compile_definitions(hal_drivers PUBLIC HAL_PLATFORM_STM32)
+    target_link_libraries(hal_drivers PUBLIC runtime::cxx_abi)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(hal_drivers PUBLIC HAL_PLATFORM_LINUX)
 else()

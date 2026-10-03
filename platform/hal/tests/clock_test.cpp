@@ -111,7 +111,7 @@ TEST(HalClockDrivers, RtcProvidesRealtime)
 
 TEST(HalClockDrivers, TimerProvidesHighResolutionCounter)
 {
-    constexpr std::size_t high_resolution_timer_index{ 2U };
+    constexpr std::size_t high_resolution_timer_index{ 5U };
     const auto timer{ hal::timer::create(high_resolution_timer_index) };
     ASSERT_NE(timer, nullptr);
     ASSERT_GT(timer->getTickFrequencyHz(), 0U);
@@ -188,7 +188,7 @@ TEST(HalClockDrivers, TimerAcceptsTypeErasedPeriodElapsedCallback)
 
 TEST(HalClockDrivers, ChronoFallsBackAfterTimerStateChange)
 {
-    constexpr std::size_t high_resolution_timer_index{ 2U };
+    constexpr std::size_t high_resolution_timer_index{ 5U };
     const auto timer{ hal::timer::create(high_resolution_timer_index) };
     ASSERT_NE(timer, nullptr);
 

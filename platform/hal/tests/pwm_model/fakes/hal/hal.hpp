@@ -97,9 +97,26 @@ struct TIM_TypeDef
 struct TIM_HandleTypeDef
 {
     TIM_TypeDef* Instance;
+    struct
+    {
+        uint32_t Prescaler{}, CounterMode{}, Period{}, ClockDivision{}, RepetitionCounter{},
+          AutoReloadPreload{};
+    } Init{};
 };
 inline TIM_TypeDef timer1, timer4, timer8;
 inline TIM_HandleTypeDef htim1{ &timer1 }, htim4{ &timer4 }, htim8{ &timer8 };
+inline auto* TIM1{ &timer1 };
+inline auto* TIM4{ &timer4 };
+inline auto* TIM8{ &timer8 };
+inline void __HAL_RCC_TIM1_CLK_ENABLE() {}
+inline void __HAL_RCC_TIM4_CLK_ENABLE() {}
+inline void __HAL_RCC_TIM8_CLK_ENABLE() {}
+constexpr uint32_t TIM_COUNTERMODE_UP{}, TIM_CLOCKDIVISION_DIV1{}, TIM_AUTORELOAD_PRELOAD_ENABLE{ 1U };
+inline HAL_StatusTypeDef HAL_TIM_PWM_Init(TIM_HandleTypeDef*) { return HAL_OK; }
+namespace hal
+{
+    [[noreturn]] inline void panic(const char*) { std::terminate(); }
+}
 #define __HAL_TIM_SET_PRESCALER(h, value) ((h)->Instance->PSC = (value))
 #define __HAL_TIM_SET_AUTORELOAD(h, value) ((h)->Instance->ARR = (value))
 #define __HAL_TIM_SET_COMPARE(h, ch, value) ((h)->Instance->CCR = (value))

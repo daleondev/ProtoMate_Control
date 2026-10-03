@@ -12,9 +12,9 @@ namespace hal::timer
 {
     namespace
     {
-        constexpr std::size_t TIMER_2_INDEX{ 2U };
+        constexpr std::size_t TIMER_5_INDEX{ 5U };
 
-        [[nodiscard]] auto timer2_input_frequency_hz() noexcept -> std::uint32_t
+        [[nodiscard]] auto timer5_input_frequency_hz() noexcept -> std::uint32_t
         {
             RCC_ClkInitTypeDef clock_configuration{};
             std::uint32_t flash_latency{};
@@ -41,12 +41,12 @@ namespace hal::timer
 
     auto create(std::size_t index) -> std::shared_ptr<ITimer>
     {
-        if (index != TIMER_2_INDEX) {
+        if (index != TIMER_5_INDEX) {
             return {};
         }
 
         static auto timer{ std::make_shared<Timer>(Timer::Configuration{
-          .handle = htim2, .input_frequency_hz = timer2_input_frequency_hz(), .interrupt = TIM2_IRQn }) };
+          .handle = htim5, .input_frequency_hz = timer5_input_frequency_hz(), .interrupt = TIM5_IRQn }) };
         return timer;
     }
 }

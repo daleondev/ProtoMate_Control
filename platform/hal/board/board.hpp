@@ -4,8 +4,8 @@
 #include "hal/devices/itf/ILed.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
-#include "hal/drivers/itf/IPwmOutput.hpp"
 #include "hal/drivers/itf/IQuadratureEncoder.hpp"
+#include "hal/drivers/itf/IStepGenerator.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -35,7 +35,9 @@ namespace hal::board
     [[nodiscard]] auto createButton(ButtonId id) -> std::shared_ptr<device::IButton>;
 
     // Exclusive, uncached resources. Creation leaves outputs/counting stopped.
-    [[nodiscard]] auto createStepperStepOutput(MotorId id) -> std::shared_ptr<IPwmOutput>;
+    [[nodiscard]] auto createStepperGenerator() -> std::shared_ptr<IStepGenerator>;
+    [[nodiscard]] auto createStepperStepOutput(const std::shared_ptr<IStepGenerator>& generator, MotorId id)
+      -> std::shared_ptr<IStepOutput>;
     // DIR starts low; its meaning as a physical direction belongs to motor control.
     [[nodiscard]] auto createStepperDirectionOutput(MotorId id) -> std::shared_ptr<IDigitalOutput>;
     // One shared active-low enable: high disables all three drivers at creation.

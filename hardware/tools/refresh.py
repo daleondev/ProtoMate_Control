@@ -80,6 +80,24 @@ def verify(netlist, board):
     require(onboard.keys() == footprints.keys(), "Schematic/board component sets differ")
     source = {(n.get("ref"), n.get("pin")): net.get("name")
               for net in document.findall("./nets/net") for n in net.findall("node")}
+    # The external controller harness must agree with the firmware source of
+    # truth as well as with the perfboard. ERC alone cannot catch a stale GPIO.
+    ioc = dict(line.split("=", 1) for line in
+               (ROOT.parent / "external/CubeMX/CubeMX.ioc").read_text().splitlines()
+               if "=" in line and not line.startswith("#"))
+    motor_routes = {
+        "M1_STEP": ("PA0", "CN10.29", "S_TIM2_CH1_ETR"),
+        "M2_STEP": ("PB10", "CN10.32", "S_TIM2_CH3"),
+        "M3_STEP": ("PB11", "CN10.34", "S_TIM2_CH4"),
+        "M1_DIR": ("PE12", "CN10.26", "GPIO_Output"),
+        "M2_DIR": ("PE13", "CN10.10", "GPIO_Output"),
+        "M3_DIR": ("PE14", "CN10.8", "GPIO_Output"),
+        "STEPPERS_EN_N": ("PE15", "CN10.30", "GPIO_Output"),
+    }
+    for net, (pin, contact, signal) in motor_routes.items():
+        require(source.get(("A1", contact)) == net, f"Controller contact differs: {net}")
+        require(ioc.get(f"{pin}.GPIO_Label") == net and ioc.get(f"{pin}.Signal") == signal,
+                f"CubeMX GPIO/timer differs from wiring: {net}")
     pads = {(ref, p.GetNumber()): p for ref, f in footprints.items() for p in f.Pads()}
     require(len({hole(p) for p in pads.values()}) == len(pads), "Two leads occupy one hole")
     for ref, footprint in footprints.items():
@@ -146,6 +164,7 @@ def verify(netlist, board):
               f"PASS: {len(pads)} unique component holes and {len(vias)} wire passages on the 2.54 mm grid.",
               f"PASS: {len(wires)} scheduled connections span all {len(netpads)} connected nets.",
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
+              "PASS: seven motor controller contacts agree with the CubeMX GPIO/timer assignments.",
               "PASS: all parts on top; R10-R12 are DNP; no 24 V on perfboard.",
               "Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.",
               "Wire endpoints/passages are checked; routing lengths and sides need review after route edits.",

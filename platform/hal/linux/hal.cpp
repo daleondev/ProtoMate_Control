@@ -82,15 +82,13 @@ void MX_ETH_Init() { print_message("MX_ETH_Init"); }
 
 void MX_RTC_Init() { print_message("MX_RTC_Init"); }
 
-void MX_TIM1_Init() { print_message("MX_TIM1_Init"); }
+void MX_DMA_Init() { print_message("MX_DMA_Init"); }
 
 void MX_TIM2_Init() { print_message("MX_TIM2_Init"); }
 
 void MX_TIM3_Init() { print_message("MX_TIM3_Init"); }
 
-void MX_TIM4_Init() { print_message("MX_TIM4_Init"); }
-
-void MX_TIM8_Init() { print_message("MX_TIM8_Init"); }
+void MX_TIM5_Init() { print_message("MX_TIM5_Init"); }
 
 void MX_RNG_Init() { print_message("MX_RNG_Init"); }
 

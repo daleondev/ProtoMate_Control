@@ -155,7 +155,7 @@ namespace hal
 
     auto Timer::setPrescaler(Tick value) noexcept -> void
     {
-        // PSC is 16-bit even on TIM2's 32-bit counter. Saturate instead of
+        // PSC is 16-bit even on TIM5's 32-bit counter. Saturate instead of
         // allowing the peripheral to silently wrap an out-of-range request.
         value = std::min(value, MAXIMUM_PRESCALER);
         const bool restore_update_interrupt{ __HAL_TIM_GET_IT_SOURCE(&m_handle, TIM_IT_UPDATE) != RESET };
@@ -261,7 +261,7 @@ namespace hal
     auto Timer::setPeriodElapsedCallback(PeriodElapsedCallback callback) noexcept -> void
     {
         {
-            // Masking TIM2 alone still allows another task to preempt this
+            // Masking TIM5 alone still allows another task to preempt this
             // setter. Protect the swap against both tasks and callbacks, then
             // release the old callback with normal interrupt state restored.
             const stm32::InterruptGuard interrupt_guard;
@@ -285,11 +285,11 @@ namespace hal
     }
 }
 
-extern "C" void TIM2_IRQHandler()
+extern "C" void TIM5_IRQHandler()
 {
-    if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_UPDATE) != RESET &&
-        __HAL_TIM_GET_IT_SOURCE(&htim2, TIM_IT_UPDATE) != RESET) {
-        __HAL_TIM_CLEAR_IT(&htim2, TIM_IT_UPDATE);
-        hal::Timer::dispatchPeriodElapsed(&htim2);
+    if (__HAL_TIM_GET_FLAG(&htim5, TIM_FLAG_UPDATE) != RESET &&
+        __HAL_TIM_GET_IT_SOURCE(&htim5, TIM_IT_UPDATE) != RESET) {
+        __HAL_TIM_CLEAR_IT(&htim5, TIM_IT_UPDATE);
+        hal::Timer::dispatchPeriodElapsed(&htim5);
     }
 }

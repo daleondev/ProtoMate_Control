@@ -729,7 +729,7 @@ namespace
             !hardware_driver_checks::ethernet_loopback()) {
             return false;
         }
-        constexpr std::size_t TIMER_INDEX{ 2U };
+        constexpr std::size_t TIMER_INDEX{ 5U };
         constexpr std::uint32_t TEST_TICK_FREQUENCY_HZ{ 10'000U };
 
         const auto timer{ hal::timer::create(TIMER_INDEX) };

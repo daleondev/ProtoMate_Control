@@ -1,5 +1,7 @@
 #pragma once
 
+#include "hal/linux/Mutex.hpp"
+
 #include "hal/drivers/detail/PulseTrain.hpp"
 #include "hal/drivers/detail/PwmTiming.hpp"
 #include "hal/drivers/detail/TimerLease.hpp"
@@ -40,7 +42,7 @@ namespace hal
         detail::TimerLease m_lease; // Released after the pin.
         std::shared_ptr<IDigitalOutput> m_pin;
         // Serialize event delivery/registration, while permitting callback queries.
-        mutable std::recursive_mutex m_mutex;
+        mutable linux::Mutex m_mutex{ true };
         detail::PwmTiming m_timing{};
         detail::PulseTrain m_train;
         PulseCallback m_callback;

@@ -1,4 +1,5 @@
 #include "hal/drivers/factory/gpio.hpp"
+#include "hal/linux/Mutex.hpp"
 
 #include "hal/drivers/impl/linux/Gpio.hpp"
 
@@ -21,7 +22,7 @@ namespace hal::gpio
         };
 
         std::array<PinOwner, PIN_COUNT> owners;
-        std::mutex owners_mutex;
+        linux::Mutex owners_mutex;
 
         [[nodiscard]] auto pin_index(Pin pin) noexcept -> std::size_t
         {

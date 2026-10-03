@@ -40,6 +40,15 @@ The `.kicad_pcb` is a map for a purchased individual-pad board: F.Cu represents
 top jumpers, B.Cu represents solder-side wires, and vias represent wire passages.
 Use the [assembly instructions](assembly/README.md) to build it.
 
+The STEP engine uses one 32-bit TIM2 with DMA: M1 = PA0/CN10.29,
+M2 = PB10/CN10.32, M3 = PB11/CN10.34 (channels 1/3/4, all AF1).
+DIR uses PE12/CN10.26, PE13/CN10.10, PE14/CN10.8; the shared active-low
+enable is PE15/CN10.30. These signals retain J101 pins 1/3/5/7/9/11/13
+and their existing perfboard nets. The harness table, Nucleo symbol and layout
+notes specify the new cable destinations. Keep PA0's SB75 ON and the user
+button on PC13. TIM5 is the runtime clock; PE9/PE11 (TIM1) and PC6/PC7
+(TIM8) are reserved for possible additional encoders, with no cables fitted.
+
 The three reference-switch cables connect to J109 (M1), J110 (M2), and J111
 (M3), each with pin 1 = REF and pin 2 = GND. J108 returns the signals to
 PE7/CN10.20, PE8/CN10.18 and PE10/CN10.24 on odd pins 1/3/5; even pins
@@ -85,7 +94,7 @@ python3 hardware/tools/refresh.py
 Requires KiCad 10 (`kicad-cli` and its `pcbnew` Python module), Python 3 and
 Poppler's `pdfunite`. The command checks ERC, DRC **with schematic parity**,
 symbol links, pad nets, the hole grid, wire endpoints/connectivity and external
-harness destinations. It updates:
+harness destinations, including the seven motor GPIOs against CubeMX. It updates:
 
 - [Wiring.pdf](exports/Wiring.pdf): complete seven-sheet system schematic.
 - [Assembly.pdf](exports/Assembly.pdf): placement, top wires, mirrored underside

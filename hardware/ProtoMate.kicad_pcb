@@ -10,7 +10,7 @@
 	(title_block
 		(title "ProtoMate interface - perfboard hand wiring")
 		(date "2026-10-03")
-		(rev "4.0")
+		(rev "5.0")
 		(comment 1 "Assembly map for bought perfboard; no fabrication outputs")
 	)
 	(layers
@@ -33647,6 +33647,30 @@
 			(justify mirror)
 		)
 	)
+	(gr_text "J101 to Nucleo CN10: 1->29  3->26  5->32  7->10  9->34  11->8  13->30"
+		(at 125.73 158 0)
+		(layer "B.SilkS")
+		(uuid "925cea2c-2c86-4d27-80d0-bf9e60ded75f")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.12)
+			)
+			(justify mirror)
+		)
+	)
+	(gr_text "STEP: PA0 / PB10 / PB11, TIM2 AF1. DIR: PE12 / PE13 / PE14. EN_N: PE15. Pin 15 -> CN8.7 (3V3)."
+		(at 125.73 161 0)
+		(layer "B.SilkS")
+		(uuid "6830afce-c5a7-45de-ae75-15430fd51af0")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.12)
+			)
+			(justify mirror)
+		)
+	)
 	(gr_text "J108"
 		(at 59.69 50.8 0)
 		(layer "B.SilkS")
@@ -35396,6 +35420,28 @@
 			(font
 				(size 0.8 0.8)
 				(thickness 0.15)
+			)
+		)
+	)
+	(gr_text "J101 to Nucleo CN10: 1->29  3->26  5->32  7->10  9->34  11->8  13->30"
+		(at 125.73 158 0)
+		(layer "Cmts.User")
+		(uuid "58d84ec1-9f93-4f0b-be97-353c33e6127d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.12)
+			)
+		)
+	)
+	(gr_text "STEP: PA0 / PB10 / PB11, TIM2 AF1. DIR: PE12 / PE13 / PE14. EN_N: PE15. Pin 15 -> CN8.7 (3V3)."
+		(at 125.73 161 0)
+		(layer "Cmts.User")
+		(uuid "6067009d-3fd8-4b81-b4d6-b7545f893b6b")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.12)
 			)
 		)
 	)

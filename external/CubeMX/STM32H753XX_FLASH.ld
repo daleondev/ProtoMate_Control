@@ -79,6 +79,15 @@ ASSERT(LENGTH(DTCM_STACK) >= _Min_Stack_Size, "Stack too small")
 /* Define output sections */
 SECTIONS
 {
+  /* Dedicated non-cacheable MPU region 3: DMA1 cannot access DTCM. */
+  .StepDmaSection 0x30000000 (NOLOAD) :
+  {
+    . = ALIGN(32);
+    KEEP(*(.StepDmaSection))
+    . = ALIGN(32);
+  } >RAM_D2
+  ASSERT(SIZEOF(.StepDmaSection) <= 16K, "Step DMA exceeds its MPU window")
+
   /* The startup code goes first into FLASH */
   .isr_vector :
   {

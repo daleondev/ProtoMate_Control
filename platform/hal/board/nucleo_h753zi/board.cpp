@@ -4,7 +4,7 @@
 #include "hal/devices/impl/Led.hpp"
 #include "hal/drivers/factory/encoder.hpp"
 #include "hal/drivers/factory/gpio.hpp"
-#include "hal/drivers/factory/pwm.hpp"
+#include "hal/drivers/factory/step.hpp"
 
 #include <memory>
 #include <utility>
@@ -56,16 +56,21 @@ namespace hal::board
         }
     }
 
-    auto createStepperStepOutput(MotorId id) -> std::shared_ptr<IPwmOutput>
+    auto createStepperGenerator() -> std::shared_ptr<IStepGenerator> { return step::create(); }
+
+    auto createStepperStepOutput(const std::shared_ptr<IStepGenerator>& generator, MotorId id)
+      -> std::shared_ptr<IStepOutput>
     {
-        using enum gpio::Port;
+        if (!generator) {
+            return {};
+        }
         switch (id) {
             case MotorId::M1:
-                return pwm::create({ .timer = 1U, .channel = 1U, .pin = { E, 9U } });
+                return generator->output(step::Axis::M1);
             case MotorId::M2:
-                return pwm::create({ .timer = 4U, .channel = 3U, .pin = { D, 14U } });
+                return generator->output(step::Axis::M2);
             case MotorId::M3:
-                return pwm::create({ .timer = 8U, .channel = 1U, .pin = { C, 6U } });
+                return generator->output(step::Axis::M3);
         }
         return {};
     }
@@ -75,18 +80,18 @@ namespace hal::board
         using enum gpio::Port;
         switch (id) {
             case MotorId::M1:
-                return make_stepper_output({ E, 11U }, gpio::Level::Low);
+                return make_stepper_output({ E, 12U }, gpio::Level::Low);
             case MotorId::M2:
-                return make_stepper_output({ D, 15U }, gpio::Level::Low);
+                return make_stepper_output({ E, 13U }, gpio::Level::Low);
             case MotorId::M3:
-                return make_stepper_output({ C, 7U }, gpio::Level::Low);
+                return make_stepper_output({ E, 14U }, gpio::Level::Low);
         }
         return {};
     }
 
     auto createSteppersEnableOutput() -> std::shared_ptr<IDigitalOutput>
     {
-        return make_stepper_output({ gpio::Port::F, 3U }, gpio::Level::High);
+        return make_stepper_output({ gpio::Port::E, 15U }, gpio::Level::High);
     }
 
     auto createEncoder(MotorId id) -> std::shared_ptr<IQuadratureEncoder>

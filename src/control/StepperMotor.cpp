@@ -102,19 +102,21 @@ try {
                      ? std::chrono::steady_clock::time_point::max()
                      : start + std::chrono::ceil<std::chrono::steady_clock::duration>(timeout_time) };
 
-    {
-        std::scoped_lock lock{ m_mutex };
-        m_velocity = velocity;
-    }
-
     m_dirOutput->write(static_cast<hal::gpio::Level>(direction == Direction::Forward));
+
     if (!m_stepOutput->configure({ .period = period_time, .high_time = period_time / 2 })) {
         pnm::log::warn("Motor move rejected: failed to configure pwm");
         return Result::Rejected;
     }
+
     if (!m_stepOutput->start()) {
         pnm::log::warn("Motor move rejected: failed to start pwm");
         return Result::Rejected;
+    }
+
+    {
+        std::scoped_lock lock{ m_mutex };
+        m_velocity = velocity;
     }
 
     auto result{ Result::Stopped };

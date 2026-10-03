@@ -9,6 +9,7 @@ target_sources(hal_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/motor_peripheral_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pwm_pulse_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/rng_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/step_model/step_generator_test.cpp
 )
 
 target_link_libraries(hal_tests

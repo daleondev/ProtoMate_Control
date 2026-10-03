@@ -167,123 +167,142 @@ presets and the hardware runner set it to `OFF`.
 The following seven outputs on the **NUCLEO-H753ZI (MB1364)** control
 one STEPPERONLINE DM542T driver with an Oriental Motor PKP245D23A2-R2FL
 motor (M1) and two Adafruit TMC2209 #6121 boards (M2/M3).
-CubeMX configures **all three STEP pins as hardware timer PWM outputs**.
-The three DIR pins and shared ENABLE remain ordinary push-pull GPIO outputs.
-All seven use no internal pulls and low GPIO speed. `src/main.cpp` retains three
-`IPwmOutput` objects plus ordinary GPIO wrappers for DIR and shared ENABLE,
-all created through `hal::board` factories. DIR starts low; shared enable starts
-high (all drivers disabled). All three pulse timers are initialized but
-**stopped**, with no requested waveform. The PWM drivers hold STEP at push-pull low while stopped
-and select the timer alternate function when started. The external input
-biasing below also holds STEP inactive during reset. No motion logic is implemented.
+CubeMX configures the STEP pins as **TIM2 output-compare outputs**, with
+three independent DMA streams. The counter runs at **10 MHz (100 ns/tick)**.
+The DIR pins and shared enable are ordinary push-pull GPIO outputs. All seven
+use low GPIO speed (output slew rate, not pulse frequency); STEP additionally
+uses internal pull-downs. `src/main.cpp` creates one `IStepGenerator`, its three
+`IStepOutput` views, DIR/enable, the M1 encoder/index and reference switches.
+The timer and encoder remain stopped, STEP/DIR low, and enable high (disabled).
+There is no automatic movement, homing, or connection to the WIP `StepperMotor`.
 
-| Signal | STM32 pin | Board connector | Driver connection | STEP timer |
+| Signal | STM32 pin | Board connector | Driver connection | Function |
 | --- | --- | --- | --- | --- |
-| M1_STEP | PE9 | CN10 pin 4 / D6 | DM542T PUL− through Q1 below | TIM1_CH1 / AF1 |
-| M1_DIR | PE11 | CN10 pin 6 / D5 | DM542T DIR− through Q2 below | — |
-| M2_STEP | PD14 | CN7 pin 16 / D10 | First TMC2209 STEP | TIM4_CH3 / AF2 |
-| M2_DIR | PD15 | CN7 pin 18 / D9 | First TMC2209 DIR | — |
-| M3_STEP | PC6 | CN7 pin 1 / D16 | Second TMC2209 STEP | TIM8_CH1 / AF3 |
-| M3_DIR | PC7 | CN7 pin 11 / D21 | Second TMC2209 DIR | — |
-| STEPPERS_EN_N | PF3 | CN7 pin 20 / D8 | Both TMC2209 EN pins; DM542T ENA− through Q3 below | — |
+| M1_STEP | PA0 | CN10 pin 29 / D32 | DM542T PUL− through Q1 below | TIM2_CH1 / AF1 |
+| M1_DIR | PE12 | CN10 pin 26 / D39 | DM542T DIR− through Q2 below | GPIO |
+| M2_STEP | PB10 | CN10 pin 32 / D36 | First TMC2209 STEP | TIM2_CH3 / AF1 |
+| M2_DIR | PE13 | CN10 pin 10 / D3 | First TMC2209 DIR | GPIO |
+| M3_STEP | PB11 | CN10 pin 34 / D35 | Second TMC2209 STEP | TIM2_CH4 / AF1 |
+| M3_DIR | PE14 | CN10 pin 8 / D4 | Second TMC2209 DIR | GPIO |
+| STEPPERS_EN_N | PE15 | CN10 pin 30 / D37 | Both TMC2209 EN; DM542T ENA− through Q3 | GPIO |
 
-Connector positions follow [ST UM2407, tables 18 and 21](https://www.st.com/resource/en/user_manual/um2407-stm32h7-nucleo144-boards-mb1364-stmicroelectronics.pdf).
-PE9 uses the default routing to CN10 pin 4 (SB28 closed, SB70 open).
-The STEP pins use three separate timers for independent pulse rates; see
-the [STM32H753 alternate-function tables](https://www.st.com/resource/en/datasheet/stm32h753zi.pdf).
-TIM1, TIM4 and TIM8 are configured identically for STEP generation: active-high
-PWM mode 1, prescaler 239, period 65535 and pulse width 0. At the current
-240 MHz timer clocks, each counter ticks at **1 MHz (1 µs per tick)**.
-Auto-reload and compare preload are enabled. These CubeMX values are inactive
-defaults; `IPwmOutput` selects a prescaler and period for the requested timing
-when explicitly started.
+Connector positions follow [ST UM2407, table 21](https://www.st.com/resource/en/user_manual/um2407-stm32h7-nucleo144-boards-mb1364-stmicroelectronics.pdf).
+PA0 reaches CN10.29 through **SB75 ON**. Keep the user button on PC13
+(SB58 OFF). TIM2_CH2 has no external pin; PB3 remains available for SWO.
+The [STM32H753 alternate-function tables](https://www.st.com/resource/en/datasheet/stm32h753zi.pdf)
+confirm all three STEP routes as AF1. Existing signal-conditioning components
+and perfboard nets are unchanged; use the revised J101 harness destinations.
 
-Software will calculate movement and program timer periods/pulse widths;
-**the timers generate STEP edges in hardware**, without software GPIO toggling.
-The frequency is `timer_input_hz / ((PSC + 1) * (ARR + 1))`; high time is
-`CCR * (PSC + 1) / timer_input_hz`. The HAL manages these registers. Motion
-code still needs to respect driver pulse timing and coordinate motion.
-The application does not start the STEP outputs at boot. The PWM HAL enables
-STEP interrupts only when a counted pulse train is explicitly started.
+| Timer / DMA resource | Purpose |
+| --- | --- |
+| TIM2_CH1 / DMA1 stream 0 | M1 edge timestamps |
+| TIM2_CH3 / DMA1 stream 1 | M2 edge timestamps |
+| TIM2_CH4 / DMA1 stream 2 | M3 edge timestamps |
+| TIM2_CH2 / DMA1 stream 3 | Internal deadline: DMA writes CR1=0 to stop the counter |
+| TIM5 | 32-bit runtime clock, moved from TIM2; `hal::timer::create(5)` |
+| TIM6 | HAL timebase |
+| TIM3, PB4/PB5 | Existing M1 quadrature encoder |
+| TIM1, PE9/PE11 | Reserved for a future M2 encoder; not configured or connected |
+| TIM8, PC6/PC7 | Reserved for a future M3 encoder; not configured or connected |
+| TIM4 | Available |
 
-### PWM and encoder HAL interfaces
+### Hardware step generator and encoder HAL
 
-[IPwmOutput](platform/hal/drivers/itf/IPwmOutput.hpp) provides
-`configure({period, high_time})`, `timing()`, `start()`, `startPulses(count)`,
-`pulseCount()`, `setPulseCallback(callback)`, `stop()` and `isRunning()`.
-Durations use `std::chrono::nanoseconds`; microseconds and other
-exactly convertible durations can be passed directly. `timing()` returns the
-achievable timing, rounded up to whole nanoseconds. The 16-bit prescaler and
-compare range limit representable periods; invalid requests return an error
-and preserve the previous configuration. Zero and 100% duty are supported.
-A request strictly between them must retain both high and low phases after
-quantization. PWM construction is stopped, and starting before configuration fails.
+[IStepGenerator / IStepOutput](platform/hal/drivers/itf/IStepGenerator.hpp)
+replace ordinary PWM for the robot's STEP signals. Output compare toggles a
+pin at each queued rising/falling timestamp. Every axis has its own timestamps,
+so sharing TIM2 **does not force a shared speed or pulse count**. DMA updates
+CCRx after each edge, with compare preload disabled. The CPU does not rearm
+individual pulses; it fills the inactive DMA buffer while the other runs.
+See the local [RM0433](docs/board/rm0433-stm32h742-stm32h743753-and-stm32h750-value-line-advanced-armbased-32bit-mcus-stmicroelectronics.pdf),
+§39.3.8 (output compare), §39.4 (timer registers), and its DMA/DMAMUX chapters.
 
-Configuration is allowed **only while stopped**. Continuous `start()` is idempotent and
-arms the pulse width at an update boundary after connecting the inactive timer
-output to the pin. The first high phase is complete; startup includes a low
-arming interval. `stop()` immediately drives the pin low and can shorten the
-last pulse. Continuous `start()` is uncounted and never calls the pulse callback.
+Create one generator with `hal::board::createStepperGenerator()`, then obtain
+axes with `hal::board::createStepperStepOutput(generator, MotorId::M1/M2/M3)`.
+Views retain the shared generator. A second generator cannot claim its pins
+until the first generator and all its views are released.
 
-**Counted operation:** `startPulses(3200)` emits exactly 3,200 pulses, completes
-the final high phase, and stops low. `startPulses()` counts continuously until
-`stop()` (or the 64-bit counter reaches its maximum). Counted starts require
-both a high and a low phase; a zero target, 0% duty and 100% duty are rejected.
-Starting a counted train while either mode is running returns busy; `start()`
-also returns busy during a counted train. Configuration and callback registration
-are allowed only while stopped. Successful starts reset the count; rejected
-requests, configuration, completion and stop preserve the current count.
+- `axis->prepare({period, high_time}, count)` prepares exactly `count` pulses;
+  omit `count` for continuous counted operation. Zero count is rejected.
+- `axis->prepareSequence(timings)` copies one timing per pulse. Changing the
+  periods supplies an acceleration/deceleration profile; each period is measured
+  from that pulse's rising edge to the next. The controller calculates the profile.
+- `axis->clear()` excludes it from the next start. Preparing/clearing is stopped-only.
+- `generator->start(delay)` starts every prepared axis against the same epoch;
+  all first rising edges occur after the shared delay (default 1 ms). Calling it
+  while running returns busy. A later explicit restart resets the run counts.
+- `axis->pulseCount()` reports commanded rising edges, including an in-flight
+  high phase or compare awaiting its DMA write. Counts survive stop/completion.
+- `generator->status()` reports all counts and `Idle`, `Ready`, `Running`,
+  `Completed`, `Stopped`, `Underrun` or `DmaError`. DMA errors mark the counts
+  uncertain and make `pulseCount()` return an error.
+- `generator->stop()` aborts **all axes** and drives STEP low. A shortened final
+  pulse still counts as a rising edge but might not be accepted by its driver.
 
-`pulseCount()` returns a 64-bit count of emitted **rising edges**, including an
-edge awaiting interrupt service and an in-flight high phase. A callback registered
-with `setPulseCallback([](std::uint64_t count) noexcept { /* record progress */ })`
-receives the cumulative count once per rising edge. Apply the commanded direction
-to these counts in the motor abstraction to track commanded position; M1's encoder
-remains the independent measurement of actual movement. The callback for edge N
-does **not** mean the Nth high phase has finished: wait for `isRunning() == false`
-before changing direction or treating the move as complete. Completion becomes
-visible when the final update interrupt is serviced; the pin is already low.
+Timing uses nanoseconds, rounded up to 100 ns ticks. Both high and low phases
+must be at least **5 µs**, giving a configured ceiling of 100,000 steps/s per
+axis; periods up to **53.6870911 s** are representable. These are software
+limits, not measured electrical performance. DIR setup/hold and the DM542T's
+200 ms enable delay remain the controller's responsibility. The generator does
+not change DIR/enable or implement reference-switch stopping.
 
-On STM32, callbacks run in interrupt context, or in the calling thread when
-`stop()` drains a pending edge. Keep them short and nonblocking: no logging,
-allocation, mutexes, futures/promises or changes to/destroying the PWM object.
-Read-only PWM queries are supported. Shared position data needs an ISR-safe
-handoff; do not assume a 64-bit atomic is lock-free on this 32-bit MCU. Captured
-objects must outlive the registered callback. Clear it while stopped with
-`setPulseCallback({})`. Destruction stops without invoking callbacks.
+Each axis has two buffers of up to 512 edge timestamps (256 pulses each).
+Very slow profiles use smaller blocks so the queued horizon stays below a
+quarter counter cycle. The counter uses `ARR=0xFFFFFFFE`; `CCR=0xFFFFFFFF`
+parks a completed axis without a future output transition. Overflow may still
+raise a compare flag for this value, so completion, DMA progress and wrap
+handling are checked together. Finite completion includes the last full high
+phase and does not depend on an interrupt arriving in time to prevent pulse N+1.
 
-**Timing limitation:** counted mode uses PWM mode 2 plus hardware one-pulse mode
-on TIM1, TIM4 and TIM8. Each pulse finishes and stops low in hardware; an interrupt
-rearms the next one. This guarantees the finite count even with delayed interrupts,
-but extends each low interval by interrupt/rearming time. `timing().period` is
-therefore a **minimum period** in counted mode, not a guaranteed step frequency.
-The high phase is hardware timed. There is one update interrupt per pulse, plus
-a rising-compare interrupt when a callback is installed (pending events can be
-handled together). The HAL owns TIM1_UP, TIM1_CC, TIM4, TIM8_UP_TIM13 and TIM8_CC
-at priority 5; TIM13 must remain unused because its vector is shared with TIM8.
-No additional timers, DMA streams or GPIO changes are needed. See the local
-[STM32 reference manual](docs/board/rm0433-stm32h742-stm32h743753-and-stm32h750-value-line-advanced-armbased-32bit-mcus-stmicroelectronics.pdf),
-sections 38.3.20 and 39.3.13. Uninterrupted high-rate motion will need a different
-hardware pulse scheduling implementation and measurements under interrupt load.
+TIM2_CH2 provides an independent hardware deadline. It stops the counter if a
+buffer is not replenished before its validated schedule ends. A late interrupt
+cannot silently restart the timer or replay the old buffer. At an underrun,
+another axis may be frozen high until the handler drives the pins low; no new
+STEP edges are generated after the counter stops. The whole move is then
+reported as failed. Normal finite completion stops after the final falling edge.
+DMA errors also abort the group; neither mechanism replaces an external emergency stop.
 
-`stop()` is an immediate abort: a shortened pulse still contributes its rising
-edge to the count, but the motor driver may not accept it. Re-establish the
-position if that uncertainty matters. Acceleration, homing, coordinated motion,
-live frequency changes and integration into the WIP `StepperMotor` are separate
-work; this change supplies the HAL pulse primitives only.
+DMA1 streams 0–3 are exclusive to this engine. The 12,320-byte DMA allocation
+is in `.StepDmaSection` at **0x30000000**, covered by a dedicated **16 KiB,
+non-cacheable, execute-never MPU region**. Buffers are not in DTCM. CPU buffer
+writes are published before extending the deadline. DMA interrupts use priority
+5 and occur at buffer half/completion boundaries, not once per pulse.
 
-The standalone PWM tests compile both the Linux simulation and the actual STM32
-driver against a timer register model. With GCC 16 and GoogleTest installed:
+`setProgressCallback()` supplies **batched cumulative progress/completion**.
+It deliberately does not promise one callback per physical step: delayed
+interrupts can combine progress. Position comes from hardware/DMA progress,
+not from counting callbacks. A STEP-pad phase check distinguishes a pending DMA
+write from a missed compare timestamp, so elapsed time cannot invent a pulse. Callbacks run in a DMA ISR or a `stop()` caller;
+keep them short, nonblocking, allocation-free, and do not mutate/destroy the
+generator. Read-only queries are allowed. Register/clear callbacks while stopped.
+
+The Linux backend advances a logical timer/DMA simulation when queried, servicing
+virtual buffer interrupts. It does not generate electrical signals or promise
+real-time host scheduling. The deterministic test model additionally permits
+withholding interrupts or DMA transfers to exercise failure behavior.
+
+With GCC 16 and GoogleTest installed, run the scheduler tests independently:
 
 ```sh
-cmake -S platform/hal/tests/pwm_model -B /tmp/protomate-pwm-tests
-cmake --build /tmp/protomate-pwm-tests
-ctest --test-dir /tmp/protomate-pwm-tests --output-on-failure
+cmake -S platform/hal/tests/step_model -B /tmp/protomate-step-tests
+cmake --build /tmp/protomate-step-tests
+ctest --test-dir /tmp/protomate-step-tests --output-on-failure
 ```
 
-The model checks all three STEP timers, delayed interrupts, the final pulse width,
-aborts with pending edges, mode changes and restart behavior. It does not measure
-physical pulse timing on the Nucleo.
+The suite compiles the actual STM32 register adapter against a host peripheral
+model in addition to testing the common scheduler. Tests cover coordinated
+independent rates, finite and continuous trains,
+acceleration sequences, buffer boundaries, delayed/missed interrupts, pending
+DMA, wrap, abort, restart, callbacks and errors. Before operating motors, measure
+all three outputs together with a logic analyzer under Ethernet/storage load,
+including final pulse width, refill deadlines and stop behavior. Host models and
+a firmware build do not establish DMA bus latency or transistor switching time.
+
+[IPwmOutput](platform/hal/drivers/itf/IPwmOutput.hpp) remains the general-purpose
+PWM interface. Its legacy counted one-pulse mode has interrupt-rearming gaps
+and is **not used by the step generator**. Generic PWM lazily initializes its
+leased peripheral, so TIM1/TIM4/TIM8 are no longer boot-time motor resources.
+The existing standalone `platform/hal/tests/pwm_model` tests cover that interface.
 
 [IQuadratureEncoder](platform/hal/drivers/itf/IQuadratureEncoder.hpp) provides
 `start()`, `stop()`, `isRunning()`, `position()`, `setPosition(count)` and
@@ -294,14 +313,15 @@ latched count-extension error cannot silently become a valid position. Reset
 or `setPosition()` clears that error while stopped. With M1's 400 P/R encoder,
 one shaft revolution corresponds to 1600 counts.
 
-Use `hal::board::createStepperStepOutput(MotorId::M1/M2/M3)`,
+Use `hal::board::createStepperStepOutput(generator, MotorId::M1/M2/M3)`,
 `hal::board::createStepperDirectionOutput(MotorId::M1/M2/M3)` and
 `hal::board::createSteppersEnableOutput()` for the assigned motor outputs;
 `hal::board::createEncoder(MotorId::M1)` creates the encoder. DIR and ENABLE
 return `IDigitalOutput`: directions start low, and the single shared active-low
 enable starts high (disabled). Writing enable low enables all three drivers;
-writing it high disables them. These board factories return exclusive, uncached
-objects; repeated creation while an object is owned fails.
+writing it high disables them. The GPIO and encoder factories return exclusive, uncached
+objects; repeated creation while an object is owned fails. Axis views share the
+one exclusively owned step generator.
 Low-level `hal::pwm::create()` and `hal::encoder::create()`
 validate the supported timer/channel/pin routes. Each PWM/encoder object reserves
 the whole timer and its GPIOs until destruction; unsuccessful creation releases
@@ -324,8 +344,8 @@ of pulse shape, driver delays or hardware interrupt latency.
 These assignments are configured in `external/CubeMX/CubeMX.ioc`.
 The storage assignments above, Ethernet RMII, USART3 console,
 LEDs (PB0/PE1/PB14), user button (PC13), oscillator and ST-Link debug pins stay
-reserved. TIM2 remains assigned to the runtime timer and TIM6 to the HAL timebase.
-TIM3 is assigned to M1's encoder below, separate from the three STEP timers.
+reserved. TIM5 supplies the runtime clock and TIM6 the HAL timebase.
+TIM3 handles M1's encoder independently of the shared TIM2 STEP scheduler.
 
 ### Reference limit switches
 
@@ -393,14 +413,14 @@ and [DM542T V4.0 manual, section 3.1](https://www.omc-stepperonline.com/download
 
 One shared enable GPIO therefore controls all three drivers:
 
-| PF3 / STEPPERS_EN_N | TMC2209 EN (both boards) | Q3 / DM542T ENA input current | Result |
+| PE15 / STEPPERS_EN_N | TMC2209 EN (both boards) | Q3 / DM542T ENA input current | Result |
 | --- | --- | --- | --- |
 | Low (0 V) | Low | Off / no current | All enabled |
 | High (3.3 V) | High | On / current flowing | All disabled |
 
-Fit an external **470 Ω pull-up to 3.3 V on PF3**, on the GPIO side of Q3's
+Fit an external **470 Ω pull-up to 3.3 V on PE15**, on the GPIO side of Q3's
 1 kΩ base resistor. This supplies base current during MCU reset and keeps the
-shared TMC2209 EN inputs high while the control supplies are present. PF3 sinks
+shared TMC2209 EN inputs high while the control supplies are present. PE15 sinks
 about 7 mA when driven low. The weaker 10 kΩ pull-up used for a MOSFET or logic
 buffer interface is unsuitable for this shared NPN circuit. Fit external
 10 kΩ pull-downs on the directly connected TMC2209 STEP inputs as well.

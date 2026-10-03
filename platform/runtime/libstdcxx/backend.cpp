@@ -60,7 +60,7 @@ namespace runtime
             constexpr ULONG ROLLOVER_SAMPLE_TICKS{ 0x7FFFFFFFUL };
             constexpr ULONG MAX_FINITE_WAIT{ TX_WAIT_FOREVER - 1UL };
             constexpr std::uint64_t NANOSECONDS_PER_SECOND{ 1'000'000'000ULL };
-            constexpr std::size_t HIGH_RESOLUTION_TIMER_INDEX{ 2U };
+            constexpr std::size_t HIGH_RESOLUTION_TIMER_INDEX{ 5U };
 
             struct HighResolutionCounter
             {

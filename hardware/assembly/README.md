@@ -113,9 +113,14 @@ headers have 2.54 mm pitch. Use the harness table when preparing cables.
 | J108, 2×3 | Nucleo reference inputs: 1 = M1_REF, 3 = M2_REF, 5 = M3_REF; 2/4/6 = GND. |
 | J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
 
-J101 pin assignments: 1→PE9/CN10.4, 3→PE11/CN10.6,
-5→PD14/CN7.16, 7→PD15/CN7.18, 9→PC6/CN7.1,
-11→PC7/CN7.11, 13→PF3/CN7.20, 15→3V3/CN8.7.
+J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
+5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
+11→PE14/CN10.8, 13→PE15/CN10.30, 15→3V3/CN8.7.
+All STEP pins use TIM2 output compare / AF1 (channels 1, 3, 4).
+PA0 uses SB75 ON; keep the user button on PC13 (SB58 OFF).
+This revision changes the controller end of the J101 cable, not its perfboard
+pad numbers or internal wiring. PE9/PE11 and PC6/PC7 are reserved for future
+encoder inputs; do not connect the old STEP/DIR cable to those pins.
 J102: 1→PB4/CN7.19, 3→PB5/CN7.13, 5→PB6/CN12.17.
 J108: 1→PE7/CN10.20, 3→PE8/CN10.18, 5→PE10/CN10.24;
 join its ground returns (pins 2/4/6) at Nucleo CN10.22.

@@ -1,17 +1,17 @@
 Perfboard header,Pin,Hole (top view),Net,Schematic destination reference,Destination contact,Note
-J101,1,F4,M1_STEP,A1,CN10.4,
+J101,1,F4,M1_STEP,A1,CN10.29,PA0 / TIM2_CH1 AF1
 J101,2,F5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,3,G4,M1_DIR,A1,CN10.6,
+J101,3,G4,M1_DIR,A1,CN10.26,PE12 / M1 DIR
 J101,4,G5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,5,H4,M2_STEP,A1,CN7.16,
+J101,5,H4,M2_STEP,A1,CN10.32,PB10 / TIM2_CH3 AF1
 J101,6,H5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,7,I4,M2_DIR,A1,CN7.18,
+J101,7,I4,M2_DIR,A1,CN10.10,PE13 / M2 DIR
 J101,8,I5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,9,J4,M3_STEP,A1,CN7.1,
+J101,9,J4,M3_STEP,A1,CN10.34,PB11 / TIM2_CH4 AF1
 J101,10,J5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,11,K4,M3_DIR,A1,CN7.11,
+J101,11,K4,M3_DIR,A1,CN10.8,PE14 / M3 DIR
 J101,12,K5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,13,L4,STEPPERS_EN_N,A1,CN7.20,
+J101,13,L4,STEPPERS_EN_N,A1,CN10.30,"PE15 / shared enable, active low"
 J101,14,L5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
 J101,15,M4,+3V3,A1,CN8.7,
 J101,16,M5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end

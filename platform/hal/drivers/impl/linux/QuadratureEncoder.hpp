@@ -1,5 +1,7 @@
 #pragma once
 
+#include "hal/linux/Mutex.hpp"
+
 #include "hal/drivers/detail/EncoderCounter.hpp"
 #include "hal/drivers/detail/TimerLease.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
@@ -28,7 +30,7 @@ namespace hal
         detail::TimerLease m_lease;
         std::shared_ptr<IDigitalInput> m_a;
         std::shared_ptr<IDigitalInput> m_b;
-        mutable std::mutex m_mutex;
+        mutable linux::Mutex m_mutex;
         detail::EncoderCounter m_counter;
         std::uint16_t m_raw{};
         bool m_running{};

@@ -71,6 +71,30 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
     system_threads::start();
 
+    // Board resources only. Motion, homing, and driver enabling belong to the
+    // future controller; preparing an axis also never starts the shared timer.
+    const auto steppers_enable{ hal::board::createSteppersEnableOutput() };
+    const auto step_generator{ hal::board::createStepperGenerator() };
+    if (!steppers_enable || !step_generator) {
+        throw std::runtime_error("step generator creation failed");
+    }
+    using enum hal::board::MotorId;
+    const auto m1_step{ hal::board::createStepperStepOutput(step_generator, M1) };
+    const auto m2_step{ hal::board::createStepperStepOutput(step_generator, M2) };
+    const auto m3_step{ hal::board::createStepperStepOutput(step_generator, M3) };
+    const auto m1_dir{ hal::board::createStepperDirectionOutput(M1) };
+    const auto m2_dir{ hal::board::createStepperDirectionOutput(M2) };
+    const auto m3_dir{ hal::board::createStepperDirectionOutput(M3) };
+    const auto m1_encoder{ hal::board::createEncoder(M1) };
+    const auto m1_index{ hal::board::createEncoderIndex(M1) };
+    const auto m1_reference{ hal::board::createReferenceLimitSwitch(M1) };
+    const auto m2_reference{ hal::board::createReferenceLimitSwitch(M2) };
+    const auto m3_reference{ hal::board::createReferenceLimitSwitch(M3) };
+    if (!m1_step || !m2_step || !m3_step || !m1_dir || !m2_dir || !m3_dir || !m1_encoder || !m1_index ||
+        !m1_reference || !m2_reference || !m3_reference) {
+        throw std::runtime_error("motor board resource creation failed");
+    }
+
     while (true) {
         std::this_thread::sleep_for(1h);
     }

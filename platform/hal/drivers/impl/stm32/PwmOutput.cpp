@@ -11,13 +11,21 @@ namespace hal
     {
         auto timer_handle(std::uint8_t timer) -> TIM_HandleTypeDef&
         {
+            // Generic PWM is independent of the board's TIM2 step engine.
+            // These unused/reserved timers are initialized only when leased.
+            static TIM_HandleTypeDef pwm1{ .Instance = TIM1 };
+            static TIM_HandleTypeDef pwm4{ .Instance = TIM4 };
+            static TIM_HandleTypeDef pwm8{ .Instance = TIM8 };
             if (timer == 1U) {
-                return htim1;
+                __HAL_RCC_TIM1_CLK_ENABLE();
+                return pwm1;
             }
             if (timer == 4U) {
-                return htim4;
+                __HAL_RCC_TIM4_CLK_ENABLE();
+                return pwm4;
             }
-            return htim8;
+            __HAL_RCC_TIM8_CLK_ENABLE();
+            return pwm8;
         }
         auto timer_input_hz(std::uint8_t timer) noexcept -> std::uint32_t
         {
@@ -60,7 +68,13 @@ namespace hal
       , m_compareFlag{ m_channel == TIM_CHANNEL_1 ? TIM_FLAG_CC1 : TIM_FLAG_CC3 }
     {
         const stm32::InterruptGuard guard;
-        // CubeMX initializes the PWM peripheral. The driver owns its run state.
+        m_handle.Init.Prescaler = 0U;
+        m_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+        m_handle.Init.Period = 65535U;
+        m_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+        m_handle.Init.RepetitionCounter = 0U;
+        m_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+        if (HAL_TIM_PWM_Init(&m_handle) != HAL_OK) { hal::panic("PWM initialization failed"); }
         static_cast<void>(stopImpl(false));
         s_instances[m_timer] = this;
     }
