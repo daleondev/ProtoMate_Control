@@ -5,6 +5,7 @@ find_package(GTest REQUIRED)
 get_filename_component(project_root "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." ABSOLUTE)
 add_executable(step_generator_tests
     step_generator_test.cpp
+    ../clock_reference_test.cpp
     ${project_root}/platform/hal/drivers/impl/StepGenerator.cpp
 )
 target_include_directories(step_generator_tests PRIVATE ${project_root}/platform)

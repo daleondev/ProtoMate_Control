@@ -1,0 +1,16 @@
+[step-test] 1=1/2/3 pulses  2=independent rates  3=100 kHz x3  4=profile
+[step-test] 5=abort continuous  6=late IRQ  7=underrun  8=wrap (~7m15s)
+[step-test] 9=run cases 1..7  h=help; enter one command then Enter
+[step-test] c=TIM2 clock versus RTC crystal (~31 s, no STEP pulses)
+[step-test] EN_N remains HIGH and DIR LOW. PASS checks software; verify waveforms separately.
+[step-test] READY for command
+[step-test] CLOCK: TIM2 versus RTC/LSE; three 10-second windows (~31 s)
+[step-test] CLOCK: STEP stays LOW, EN_N HIGH; no scope needed; B1 cancels
+[step-test] CLOCK: HSE_VALUE=8000000 is an assumption, not a measured frequency
+[step-test] CLOCK registers: BDCR=00008103 RTC_CR=00000000 PRER=007f00ff ISR=00000027 CALR=00000000
+[step-test] CLOCK window=1 rtc_seconds=10 tim2_ticks=100600000 timer_hz=10060000.1 error_ppm=+6000.0 sampling_bound_ppm=220.0 screen=FAST
+[step-test] CLOCK window=2 rtc_seconds=10 tim2_ticks=100580001 timer_hz=10058000.1 error_ppm=+5800.0 sampling_bound_ppm=220.0 screen=FAST
+[step-test] CLOCK window=3 rtc_seconds=10 tim2_ticks=100599999 timer_hz=10059999.9 error_ppm=+6000.0 sampling_bound_ppm=220.0 screen=FAST
+[step-test] CLOCK VALID: positive ppm means TIM2 is fast relative to LSE; 10000 ppm = 1 percent
+[step-test] CLOCK: sampling bounds exclude LSE crystal tolerance; VALID is not timing PASS
+[step-test] READY for command

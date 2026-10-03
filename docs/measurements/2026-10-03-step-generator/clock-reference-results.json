@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-03",
+  "command": "c",
+  "reference": "RTC/LSE, onboard 32768 Hz crystal",
+  "firmware_sha256": "e970fa9662bc0f75e0a1a5091dbc4dcef196cb20bab49e52a58a178dc6abff14",
+  "firmware_image": "build/step-test-stm32/Application.bin",
+  "programming_log": "../clock-reference-programming.log",
+  "uart_logs": [
+    "rtc-reference-1.uart.log",
+    "rtc-reference-2.uart.log"
+  ],
+  "pulse_suite_uart_log": "pulse-suite.uart.log",
+  "pulse_suite_cases": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "expected_timer_hz": 10000000,
+  "window_seconds": 10,
+  "screen_ppm": 1000,
+  "sampling_method": "Bracket RTC seconds transitions with TIM2 reads; three contiguous 10-second windows per run; nominal 100 us synchronization allowance per endpoint.",
+  "sampling_bound_excludes": "LSE crystal frequency tolerance",
+  "outputs": "STEP LOW, DIR LOW, EN_N HIGH during clock test",
+  "configured_hse_hz": 8000000,
+  "stlink_mco_selection": "not read or changed",
+  "rtc_registers": {
+    "BDCR": "00008103",
+    "CR": "00000000",
+    "PRER": "007f00ff",
+    "ISR": "00000027",
+    "CALR": "00000000"
+  },
+  "host_tests_passed": 31,
+  "runs": [
+    {
+      "uart_log": "rtc-reference-1.uart.log",
+      "uart_sha256": "6c1df542ddf4f9d49bc603756b787e8079b4fa1d0396ab59d02a6c51b92f37cd",
+      "windows": [
+        {
+          "window": 1,
+          "rtc_seconds": 10,
+          "tim2_ticks": 100600000.0,
+          "timer_hz": 10060000.1,
+          "error_ppm": 6000.0,
+          "sampling_bound_ppm": 220.0,
+          "screen": "FAST"
+        },
+        {
+          "window": 2,
+          "rtc_seconds": 10,
+          "tim2_ticks": 100580001.0,
+          "timer_hz": 10058000.1,
+          "error_ppm": 5800.0,
+          "sampling_bound_ppm": 220.0,
+          "screen": "FAST"
+        },
+        {
+          "window": 3,
+          "rtc_seconds": 10,
+          "tim2_ticks": 100599999.0,
+          "timer_hz": 10059999.9,
+          "error_ppm": 6000.0,
+          "sampling_bound_ppm": 220.0,
+          "screen": "FAST"
+        }
+      ]
+    },
+    {
+      "uart_log": "rtc-reference-2.uart.log",
+      "uart_sha256": "2adf0e5905402b13020b7f64bdda23403bf7297238f897af0e8ce152c66ea4e0",
+      "windows": [
+        {
+          "window": 1,
+          "rtc_seconds": 10,
+          "tim2_ticks": 100659999.0,
+          "timer_hz": 10065999.9,
+          "error_ppm": 6600.0,
+          "sampling_bound_ppm": 220.0,
+          "screen": "FAST"
+        },
+        {
+          "window": 2,
+          "rtc_seconds": 10,
+          "tim2_ticks": 100640000.0,
+          "timer_hz": 10064000.1,
+          "error_ppm": 6400.0,
+          "sampling_bound_ppm": 220.0,
+          "screen": "FAST"
+        },
+        {
+          "window": 3,
+          "rtc_seconds": 10,
+          "tim2_ticks": 100640000.0,
+          "timer_hz": 10064000.0,
+          "error_ppm": 6400.0,
+          "sampling_bound_ppm": 220.0,
+          "screen": "FAST"
+        }
+      ]
+    }
+  ]
+}

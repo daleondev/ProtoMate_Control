@@ -301,13 +301,17 @@ a firmware build do not establish DMA bus latency or transistor switching time.
 For physical measurements, build the dedicated `step-test-stm32` preset.
 It provides a serial menu for finite trains, independent rates, 100 kHz on
 three axes, acceleration, abort, delayed interrupts, autonomous underrun stop,
-and a real counter-wrap test. See the
+and a real counter-wrap test. Command `c` compares TIM2 against the independent
+RTC crystal over three ten-second windows, with STEP held low; only UART is
+needed. See the
 [hardware test procedure](docs/stepper-hardware-test.md) for flashing,
 analyzer connections, expected pulse counts and acceptance criteria.
 The [current measurement report](docs/measurements/2026-10-03-step-generator/README.md)
 includes logic-analyzer and two-channel oscilloscope captures with exported
 figures. Recorded pulse counts and stop behavior match; both instruments
-measure a fast STEP rate, and clock accuracy remains an open item.
+measure a fast STEP rate. The independent RTC comparison measures TIM2
+0.58–0.66% fast relative to LSE, with a polling/synchronization allowance of
+±0.022%. Main-clock source verification remains an open item.
 
 [IPwmOutput](platform/hal/drivers/itf/IPwmOutput.hpp) remains the general-purpose
 PWM interface. Its legacy counted one-pulse mode has interrupt-rearming gaps

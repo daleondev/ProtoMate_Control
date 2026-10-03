@@ -1,3 +1,4 @@
+#include "clock_reference.hpp"
 #include "hal/board/board.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
@@ -204,6 +205,53 @@ namespace
             return report(passed);
         }
 
+        void runClockReference()
+        {
+            hardware_step_test_case = 10U; // UART command 'c'.
+            hardware_step_test_status = 0x52554E00U;
+            m_green->turnOff();
+            m_red->turnOff();
+            m_yellow->turnOn();
+            static_cast<void>(m_generator->stop());
+            log("CLOCK: TIM2 versus RTC/LSE; three 10-second windows (~31 s)");
+            log("CLOCK: STEP stays LOW, EN_N HIGH; no scope needed; B1 cancels");
+            log("CLOCK: HSE_VALUE=%lu is an assumption, not a measured frequency",
+                static_cast<unsigned long>(HSE_VALUE));
+            log("CLOCK registers: BDCR=%08lx RTC_CR=%08lx PRER=%08lx ISR=%08lx CALR=%08lx",
+                static_cast<unsigned long>(RCC->BDCR),
+                static_cast<unsigned long>(RTC->CR),
+                static_cast<unsigned long>(RTC->PRER),
+                static_cast<unsigned long>(RTC->ISR),
+                static_cast<unsigned long>(RTC->CALR));
+
+            std::array<clock_reference::Boundary, 4> boundaries{};
+            const bool valid{ acquireClockReference(boundaries) };
+            const bool stopped{ idle() };
+            if (valid && stopped) {
+                for (unsigned i = 0; i < 3U; ++i) {
+                    const auto result{ clock_reference::measure(boundaries[i], boundaries[i + 1U]) };
+                    log("CLOCK window=%u rtc_seconds=10 tim2_ticks=%.0f timer_hz=%.1f "
+                        "error_ppm=%+.1f sampling_bound_ppm=%.1f screen=%s",
+                        i + 1U,
+                        result.ticks,
+                        result.hz,
+                        result.error_ppm,
+                        result.sampling_bound_ppm,
+                        clock_reference::screenName(result.screen));
+                }
+                log("CLOCK VALID: positive ppm means TIM2 is fast relative to LSE; "
+                    "10000 ppm = 1 percent");
+                log("CLOCK: sampling bounds exclude LSE crystal tolerance; VALID is not timing PASS");
+            }
+            else {
+                log("CLOCK INVALID: no frequency conclusion; inspect CHECK FAILED above");
+            }
+            hardware_step_test_status = valid && stopped ? 0x600D600DU : 0xBAD0000AU;
+            m_yellow->turnOff();
+            (valid && stopped ? m_green : m_red)->turnOn();
+            hardware_step_test_complete();
+        }
+
       private:
         struct Progress
         {
@@ -229,6 +277,107 @@ namespace
                 }
             }
             return true;
+        }
+
+        auto rtcReferenceReady() const -> bool
+        {
+            // A clock derived from the main oscillator would not be an
+            // independent reference. Reject calendar adjustments as well.
+            return (RCC->BDCR & (RCC_BDCR_RTCSEL | RCC_BDCR_LSERDY | RCC_BDCR_RTCEN)) ==
+                     (RCC_RTCCLKSOURCE_LSE | RCC_BDCR_LSERDY | RCC_BDCR_RTCEN) &&
+                   RTC->PRER == ((127U << RTC_PRER_PREDIV_A_Pos) | 255U) &&
+                   (RTC->CR & (RTC_CR_BYPSHAD | RTC_CR_REFCKON)) == 0U && RTC->CALR == 0U &&
+                   // INITS reflects year != 00. The default year 2000 can
+                   // legitimately leave it clear while seconds advance.
+                   (RTC->ISR & (RTC_ISR_INIT | RTC_ISR_SHPF | RTC_ISR_RECALPF | RTC_ISR_RSF)) == RTC_ISR_RSF;
+        }
+
+        auto acquireClockReference(std::array<clock_reference::Boundary, 4>& boundaries) -> bool
+        {
+            if (!check(idle() && !m_button->isPressed(),
+                       "clock test requires idle outputs and released B1") ||
+                !check(rtcReferenceReady(), "RTC must use ready, unadjusted LSE with 127/255 prescalers") ||
+                !check(TIM2->PSC == 23U && TIM2->ARR == hal::detail::step_arr && TIM2->SMCR == 0U &&
+                         (TIM2->CR1 & (TIM_CR1_DIR | TIM_CR1_CMS | TIM_CR1_OPM)) == 0U,
+                       "TIM2 must be the configured 10 MHz up-counter")) {
+                return false;
+            }
+            for (auto* stream : { DMA1_Stream0, DMA1_Stream1, DMA1_Stream2, DMA1_Stream3 }) {
+                if (!check((stream->CR & DMA_SxCR_EN) == 0U, "step DMA must be stopped")) {
+                    return false;
+                }
+            }
+            // Bench-only counter measurement. The generator is stopped and its
+            // STEP owners hold the pads low as GPIOs. Disconnect every channel
+            // and request before starting the counter; no edges are generated.
+            struct StopCounter
+            {
+                ~StopCounter()
+                {
+                    CLEAR_BIT(TIM2->CR1, TIM_CR1_CEN);
+                    __DSB();
+                    TIM2->SR = 0U;
+                }
+            } stop_counter;
+            TIM2->DIER = 0U;
+            TIM2->CCER = 0U;
+            TIM2->CNT = 0U;
+            TIM2->SR = 0U;
+            SET_BIT(TIM2->CR1, TIM_CR1_CEN);
+
+            clock_reference::Tracker tracker;
+            unsigned transitions{};
+            bool aligned{};
+            // TIM5/steady_clock only bounds a stalled test. It never supplies
+            // the measurement's elapsed seconds: those come solely from RTC.
+            const auto deadline{ Clock::now() + 40s };
+            auto last_transition{ Clock::now() };
+            while (true) {
+                std::this_thread::sleep_for(1ms); // >1 RTCCLK between shadow reads (RM0433).
+                if (!check(!m_button->isPressed(), "B1 cancelled clock test") ||
+                    !check(rtcReferenceReady(), "RTC reference changed or stopped") ||
+                    !check(Clock::now() < deadline && Clock::now() - last_transition < 2s,
+                           "RTC transition timeout") ||
+                    !check(padsLow() && m_enable->read() == hal::gpio::Level::High &&
+                             (TIM2->CR1 & TIM_CR1_CEN) != 0U,
+                           "clock test output/counter state")) {
+                    return false;
+                }
+                clock_reference::Sample sample;
+                std::uint32_t seconds_bcd{};
+                {
+                    const hal::stm32::InterruptGuard lock;
+                    sample.before = TIM2->CNT;
+                    // Only seconds from one atomic TR read are needed. No
+                    // SSR/date tuple, hence no calendar-lock erratum ambiguity.
+                    seconds_bcd = RTC->TR & (RTC_TR_ST | RTC_TR_SU);
+                    static_cast<void>(RTC->DR); // Unlock the shadow registers.
+                    sample.after = TIM2->CNT;
+                }
+                if (!check((seconds_bcd & 0xFU) <= 9U, "valid RTC BCD seconds")) {
+                    return false;
+                }
+                sample.second = (seconds_bcd >> 4U) * 10U + (seconds_bcd & 0xFU);
+                const auto observation{ tracker.observe(sample) };
+                if (!check(
+                      observation != clock_reference::Observation::Invalid,
+                      "RTC jumped or sampling gap exceeded nominal 5 ms; rerun without debugger pauses")) {
+                    return false;
+                }
+                if (observation == clock_reference::Observation::Boundary) {
+                    last_transition = Clock::now();
+                    if (!aligned) {
+                        boundaries[0] = tracker.boundary();
+                        aligned = true;
+                    }
+                    else if (++transitions % clock_reference::window_seconds == 0U) {
+                        boundaries[transitions / clock_reference::window_seconds] = tracker.boundary();
+                        if (transitions == 3U * clock_reference::window_seconds) {
+                            return true;
+                        }
+                    }
+                }
+            }
         }
         auto constant(std::array<std::chrono::microseconds, 3> periods,
                       std::optional<Counts> counts = std::nullopt) -> bool
@@ -392,6 +541,7 @@ namespace
         log("1=1/2/3 pulses  2=independent rates  3=100 kHz x3  4=profile");
         log("5=abort continuous  6=late IRQ  7=underrun  8=wrap (~7m15s)");
         log("9=run cases 1..7  h=help; enter one command then Enter");
+        log("c=TIM2 clock versus RTC crystal (~31 s, no STEP pulses)");
         log("EN_N remains HIGH and DIR LOW. PASS checks software; verify waveforms separately.");
     }
 }
@@ -437,6 +587,9 @@ int main()
                     passed = bench.run(test);
                 }
                 log("SUITE %s (cases 1..7; wrap is separate)", passed ? "PASS" : "FAIL");
+            }
+            else if (line[0] == 'c') {
+                bench.runClockReference();
             }
             else {
                 menu();

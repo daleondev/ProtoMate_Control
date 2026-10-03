@@ -357,6 +357,51 @@ if SCOPE:
     caption(fig,'Same firmware, separate bursts. Channel pairs are simultaneous within each Hantek capture. No instrument has an independent timebase calibration.')
     save(fig,'10-independent-timebases')
 
+# Independent on-board reference. Parse the saved UART observations; do not
+# substitute the configured HSE value or the host's elapsed wall time.
+CLOCK = {}
+clock_metadata = RAW/'rtc-reference.acquisition.json'
+if clock_metadata.exists():
+    CLOCK = json.loads(clock_metadata.read_text())
+    CLOCK['runs'] = []
+    pattern = re.compile(r'CLOCK window=(\d+) rtc_seconds=(\d+) tim2_ticks=([\d.]+) '
+                         r'timer_hz=([\d.]+) error_ppm=([+\-\d.]+) '
+                         r'sampling_bound_ppm=([\d.]+) screen=(\S+)')
+    for name in CLOCK['uart_logs']:
+        file = RAW/name
+        uart = file.read_text()
+        assert 'CLOCK VALID:' in uart and 'READY for command' in uart
+        assert 'CHECK FAILED' not in uart and 'CLOCK INVALID' not in uart
+        windows = []
+        for match in pattern.finditer(uart):
+            index, seconds, ticks, hz, ppm, bound, screen = match.groups()
+            window = dict(window=int(index), rtc_seconds=int(seconds), tim2_ticks=float(ticks),
+                          timer_hz=float(hz), error_ppm=float(ppm), sampling_bound_ppm=float(bound),
+                          screen=screen)
+            assert window['rtc_seconds'] == 10 and window['sampling_bound_ppm'] <= 520
+            # UART fields are independently rounded for display.
+            assert abs((window['timer_hz']/10_000_000-1)*1e6-window['error_ppm']) < .1
+            windows.append(window)
+        assert [w['window'] for w in windows] == [1,2,3]
+        CLOCK['runs'].append(dict(uart_log=name, uart_sha256=sha256(file), windows=windows))
+    (OUT/'clock-reference-results.json').write_text(json.dumps(CLOCK, indent=2)+'\n')
+    fig, ax = plt.subplots(figsize=(11,6.5))
+    fig.subplots_adjust(top=.85,bottom=.18,left=.12,right=.96)
+    for run, data in enumerate(CLOCK['runs']):
+        windows = data['windows']
+        x = np.arange(1,4) + run*3
+        ax.errorbar(x, [w['error_ppm']/10000 for w in windows],
+                    yerr=[w['sampling_bound_ppm']/10000 for w in windows],
+                    fmt='o', capsize=6, ms=7, color=COLORS[run % len(COLORS)], label=f'Run {run+1}')
+    ax.axhspan(-.1,.1,color='#17836b',alpha=.1,label='Diagnostic ±0.1% screen')
+    ax.axhline(0,color='#777777',ls='--')
+    ax.set(xticks=np.arange(1,3*len(CLOCK['runs'])+1),
+           xlabel='Ten-second RTC measurement window', ylabel='TIM2 frequency offset relative to RTC (%)')
+    ax.legend(loc='lower right')
+    fig.suptitle('TIM2 measured against the independent RTC crystal')
+    caption(fig,'No external instrument. STEP held low. Error bars cover polling and synchronization; LSE crystal tolerance is additional.')
+    save(fig,'11-rtc-reference')
+
 with PdfPages(OUT/'step-generator-measurements.pdf') as pdf:
     for fig,name in figures: pdf.savefig(fig)
 for fig,name in figures: plt.close(fig)
@@ -381,6 +426,9 @@ if SCOPE:
     provenance['scope_results'] = 'scope-results.json'
     provenance['scope_channels'] = {'CH1': 'M1 STEP PA0 CN10.29', 'CH2': 'M2 STEP PB10 CN10.32'}
     provenance['scope_analysis'] = 'First 1 ms excluded; interpolated midpoint crossings over all remaining samples; 30/50/70% threshold agreement checked.'
+if CLOCK:
+    provenance['clock_reference_results'] = 'clock-reference-results.json'
+    provenance['clock_reference_firmware_sha256'] = CLOCK['firmware_sha256']
 bench = REPO / 'build/step-test-stm32/validation/sigrok-20261003/current'
 for file in [bench/'firmware.bin',OUT/'firmware-programming.log']:
     if file.exists(): provenance['files'][str(file.relative_to(REPO))]=sha256(file)

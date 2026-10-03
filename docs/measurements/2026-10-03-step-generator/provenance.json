@@ -27,5 +27,7 @@
     "CH1": "M1 STEP PA0 CN10.29",
     "CH2": "M2 STEP PB10 CN10.32"
   },
-  "scope_analysis": "First 1 ms excluded; interpolated midpoint crossings over all remaining samples; 30/50/70% threshold agreement checked."
+  "scope_analysis": "First 1 ms excluded; interpolated midpoint crossings over all remaining samples; 30/50/70% threshold agreement checked.",
+  "clock_reference_results": "clock-reference-results.json",
+  "clock_reference_firmware_sha256": "e970fa9662bc0f75e0a1a5091dbc4dcef196cb20bab49e52a58a178dc6abff14"
 }

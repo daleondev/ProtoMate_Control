@@ -13,7 +13,8 @@ electrical edges. A firmware `PASS` alone is not proof of the waveform or rotor 
 The [current hardware measurements](measurements/2026-10-03-step-generator/README.md)
 include sigrok captures, count comparisons and exported figures. Pulse counts
 and stop behavior match the firmware. Independent Hantek measurements confirm
-a fast STEP rate; absolute timing accuracy remains open.
+a fast STEP rate. The `c` test also measures TIM2 fast relative to the independent
+RTC crystal; absolute timing accuracy remains open.
 
 ## Build and program
 
@@ -102,12 +103,70 @@ after inspecting individual captures. `h` prints the menu.
 | `6` | 1000 / 1000 / 1000 | 10 / 20 / 40 µs | `Completed`; refill interrupt deliberately withheld, without a pulse gap |
 | `7` | 512 / 256 / 128 | 10 / 20 / 40 µs | **`Underrun` is the expected PASS**, with `guard_stopped=1` |
 | `8` | 435 / 435 / 435 | 1 / 1 / 1 second | Optional real counter-wrap test, about 7 min 15 s |
+| `c` | No pulses | TIM2 counter compared with RTC/LSE | Three 10-second clock measurements, about 31 s total |
 
 For all ordinary completed pulses, high time is **5 µs**, independent of the
 period. First rising edges on all three axes should align within measurement
 resolution. Clock tolerance and analyzer sample resolution affect absolute
 measurements. Look for extra edges or distinctly extended/missing periods,
 especially at DMA boundaries; the waveform must not acquire software-sized gaps.
+
+## Independent clock check (`c`)
+
+Build and flash the same `step-test-stm32` image using the commands above. Leave
+the existing ST-Link MCO and CubeMX clock settings as configured for this test.
+Connect the ST-Link USB serial port at **115200 baud, 8N1**, then send **`c` and
+Enter**. Wait about **31 seconds** for three result lines followed by `CLOCK VALID`
+and `READY for command`. B1 cancels; do not halt the debugger during acquisition.
+
+No measurement instrument or additional wiring is needed. Hantek probes can
+remain connected to CH1 / CN10.29 and CH2 / CN10.32 with their common ground;
+the logic analyzer can remain disconnected. STEP stays low, DIR stays low and
+EN_N stays high throughout this command. The test runs only TIM2's counter,
+with all output channels and DMA/interrupt requests disabled.
+
+Each result reports:
+
+- `tim2_ticks`: estimated ticks between RTC second boundaries ten seconds apart;
+  nominally **100,000,000**.
+- `timer_hz`: counter frequency relative to the RTC's independent 32.768 kHz LSE
+  crystal; nominally **10,000,000 Hz**.
+- `error_ppm`: positive means TIM2 is fast relative to LSE; **6400 ppm = +0.64%**.
+  An offset like the scope measurement would give about 10,064,000 Hz.
+- `sampling_bound_ppm`: uncertainty allowance for polling and RTC shadow-register
+  synchronization. It does **not** include the LSE crystal's own frequency error.
+- `screen`: `WITHIN_0.1_PERCENT`, `FAST`, `SLOW`, or `INCONCLUSIVE`. The 0.1% screen
+  is diagnostic, not a final motion accuracy specification. `INCONCLUSIVE` means
+  the sampling interval overlaps that threshold.
+
+`CLOCK VALID` means acquisition succeeded; it does not mean the clock met the
+timing screen. Green LED means valid acquisition, red means invalid acquisition.
+`CLOCK INVALID` gives no frequency conclusion; retain the preceding failure
+message. A stopped or incorrectly configured RTC, B1 cancellation, a skipped
+RTC second or a sampling gap exceeding a nominal 5 ms invalidates the run.
+
+The reference must be LSE with the existing 127/255 RTC dividers and no active
+calibration or time shift. The test brackets each observed RTC second transition
+with TIM2 reads, uses three consecutive ten-second windows, and includes a
+100 µs synchronization allowance per endpoint. It reads seconds from `RTC_TR`
+and unlocks with `RTC_DR`; it does not combine potentially inconsistent subsecond
+and calendar snapshots. TIM5/`steady_clock` supplies only an abort timeout,
+never the measured elapsed time. RTC date, calibration and clock selection are
+left intact. Counter wrap uses the configured `ARR+1 = 0xFFFFFFFF` modulus.
+
+Repeat `c` after a few minutes to check repeatability. Similar positive errors
+in all windows would support a main-clock offset relative to LSE. Results close
+to zero would prompt investigation of the external capture setup or changing
+clock conditions. LSE is an independent reference, not a calibrated standard.
+Keep the complete UART output. Use `3` with the Hantek for a separate waveform
+measurement if required; `c` deliberately generates no waveform.
+
+The clock check does not change ST-Link's clock source or apply any correction
+factor. Clock-source changes require a separate, matching update of ST-Link
+and CubeMX. See [ST's clock-source guidance](https://community.st.com/stm32-mcus-60/how-to-use-stlink-v3-mco-output-on-nucleo-boards-as-a-precise-clock-source-for-stm32-140173)
+and [RM0433, RTC calendar reading](https://www.st.com/resource/en/reference_manual/rm0433-stm32h742-stm32h743-753-and-stm32h750-value-line-advanced-armbased-32bit-mcus-stmicroelectronics.pdf).
+
+## Pulse profile and stopping checks
 
 Case 4 uses zero-based pulse index `i = 0..1023`:
 
