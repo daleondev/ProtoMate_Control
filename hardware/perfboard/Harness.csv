@@ -1,0 +1,59 @@
+Perfboard header,Pin,Hole (top view),Net,Schematic destination reference,Destination contact,Note
+J101,1,F4,M1_STEP,A1,CN10.4,
+J101,2,F5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,3,G4,M1_DIR,A1,CN10.6,
+J101,4,G5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,5,H4,M2_STEP,A1,CN7.16,
+J101,6,H5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,7,I4,M2_DIR,A1,CN7.18,
+J101,8,I5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,9,J4,M3_STEP,A1,CN7.1,
+J101,10,J5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,11,K4,M3_DIR,A1,CN7.11,
+J101,12,K5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,13,L4,STEPPERS_EN_N,A1,CN7.20,
+J101,14,L5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,15,M4,+3V3,A1,CN8.7,
+J101,16,M5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,1,Z55,M1_ENC_A,A1,CN7.19,
+J102,2,Z56,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,3,AA55,M1_ENC_B,A1,CN7.13,
+J102,4,AA56,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,5,AB55,M1_ENC_Z,A1,CN12.17,
+J102,6,AB56,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J103,1,AE7,+5V,U1,OUT+,Regulated buck output only
+J103,2,AE8,GND,U1,OUT-,Regulated buck output only
+J104,1,D25,+5V,A2,PUL+,
+J104,2,D26,DM_PUL_N,A2,PUL-,
+J104,3,D27,+5V,A2,DIR+,
+J104,4,D28,DM_DIR_N,A2,DIR-,
+J104,5,D29,+5V,A2,ENA+,
+J104,6,D30,DM_ENA_N,A2,ENA-,
+J105,1,AF22,+3V3,A3,JP4.1,
+J105,2,AF23,GND,A3,JP4.2,
+J105,3,AF24,M2_DIR,A3,JP4.3,
+J105,4,AF25,M2_STEP,A3,JP4.4,
+J105,5,AF26,+3V3,A3,JP4.5,
+J105,6,AF27,+3V3,A3,JP4.6,
+J105,7,AF28,NC,,,NC: leave harness position empty
+J105,8,AF29,NC,,,NC: leave harness position empty
+J105,9,AF30,NC,,,NC: leave harness position empty
+J105,10,AF31,STEPPERS_EN_N,A3,JP4.10,
+J106,1,AI22,+3V3,A4,JP4.1,
+J106,2,AI23,GND,A4,JP4.2,
+J106,3,AI24,M3_DIR,A4,JP4.3,
+J106,4,AI25,M3_STEP,A4,JP4.4,
+J106,5,AI26,+3V3,A4,JP4.5,
+J106,6,AI27,+3V3,A4,JP4.6,
+J106,7,AI28,NC,,,NC: leave harness position empty
+J106,8,AI29,NC,,,NC: leave harness position empty
+J106,9,AI30,NC,,,NC: leave harness position empty
+J106,10,AI31,STEPPERS_EN_N,A4,JP4.10,
+J107,1,D37,GND,J2,1,
+J107,2,D38,ENC_A_P,J2,2,
+J107,3,D39,ENC_A_N,J2,3,
+J107,4,D40,ENC_B_P,J2,4,
+J107,5,D41,ENC_B_N,J2,5,
+J107,6,D42,ENC_Z_P,J2,6,
+J107,7,D43,ENC_Z_N,J2,7,
+J107,8,D44,+5V,J2,8,

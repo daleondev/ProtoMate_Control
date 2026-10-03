@@ -1,0 +1,6 @@
+# KiCad local state, backups and lock files
+*.kicad_prl
+*.lck
+~*
+*-backups/
+_autosave-*

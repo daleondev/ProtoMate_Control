@@ -103,6 +103,22 @@ kicad-cli sch erc --severity-all --exit-code-violations \
   -o /tmp/ProtoMate_Wiring-ERC.rpt hardware/wiring/ProtoMate_Wiring.kicad_sch
 ```
 
+## KiCad perfboard layout
+
+The [perfboard subproject](hardware/perfboard/ProtoMate_Perfboard.kicad_pro)
+provides a placement and hand-wiring map for a **100 × 160 mm individual-pad
+board with 2.54 mm pitch**. It contains the three Diotec 2N2222A stages,
+AM26C32 encoder receiver, SN74LVC125A buffer, passive components and cable
+headers. Motor drivers, the Nucleo and the power converter connect externally.
+
+Use [Assembly.pdf](hardware/perfboard/Assembly.pdf) for placement, top jumpers
+and the mirrored solder-side view. The
+[assembly instructions](hardware/perfboard/README.md) include orientation,
+parts, hole coordinates and the complete wire/harness tables. U3 requires an
+**SN74LVC125AD and Adafruit 1210 adapter**, with 15.24 mm between header rows.
+The KiCad PCB file represents hand wiring on the purchased board; no
+fabrication outputs are supplied.
+
 ## Storage and external wiring
 
 Hardware startup continues without readable storage by default; file access
