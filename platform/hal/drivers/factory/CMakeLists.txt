@@ -1,3 +1,9 @@
+target_sources(hal_drivers
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/pwm.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/encoder.cpp
+)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_sources(hal_drivers
         PRIVATE

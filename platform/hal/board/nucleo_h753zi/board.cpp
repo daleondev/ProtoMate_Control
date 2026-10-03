@@ -2,7 +2,9 @@
 
 #include "hal/devices/impl/Button.hpp"
 #include "hal/devices/impl/Led.hpp"
+#include "hal/drivers/factory/encoder.hpp"
 #include "hal/drivers/factory/gpio.hpp"
+#include "hal/drivers/factory/pwm.hpp"
 
 #include <memory>
 #include <utility>
@@ -40,6 +42,36 @@ namespace hal::board
             }
             return std::make_shared<device::Button>(std::move(input), gpio::Level::High);
         }
+    }
+
+    auto createStepperStepOutput(MotorId id) -> std::shared_ptr<IPwmOutput>
+    {
+        using enum gpio::Port;
+        switch (id) {
+            case MotorId::M1:
+                return pwm::create({ .timer = 1U, .channel = 1U, .pin = { E, 9U } });
+            case MotorId::M2:
+                return pwm::create({ .timer = 4U, .channel = 3U, .pin = { D, 14U } });
+            case MotorId::M3:
+                return pwm::create({ .timer = 8U, .channel = 1U, .pin = { C, 6U } });
+        }
+        return {};
+    }
+
+    auto createEncoder(MotorId id) -> std::shared_ptr<IQuadratureEncoder>
+    {
+        if (id != MotorId::M1) {
+            return {};
+        }
+        return encoder::create({ .timer = 3U, .a = { gpio::Port::B, 4U }, .b = { gpio::Port::B, 5U } });
+    }
+
+    auto createEncoderIndex(MotorId id) -> std::shared_ptr<IDigitalInput>
+    {
+        if (id != MotorId::M1) {
+            return {};
+        }
+        return gpio::createInput({ .pin = { gpio::Port::B, 6U }, .edge = gpio::Edge::Rising });
     }
 
     auto createLed(LedId id) -> std::shared_ptr<device::ILed>

@@ -23,14 +23,7 @@ int main()
       .pull = hal::gpio::Pull::None,
       .speed = hal::gpio::Speed::Low,
     }) };
-    [[maybe_unused]] const auto m1_step{ hal::gpio::createOutput({
-      .pin = { .port = hal::gpio::Port::E, .number = 9U },
-      .initial_level = hal::gpio::Level::Low,
-      .type = hal::gpio::OutputType::PushPull,
-      .pull = hal::gpio::Pull::None,
-      .speed = hal::gpio::Speed::Low,
-      .alternate_function = 1U,
-    }) };
+    const auto m1_step{ hal::board::createStepperStepOutput(hal::board::MotorId::M1) };
     [[maybe_unused]] const auto m1_dir{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::E, .number = 11U },
       .initial_level = hal::gpio::Level::Low,
@@ -38,14 +31,7 @@ int main()
       .pull = hal::gpio::Pull::None,
       .speed = hal::gpio::Speed::Low,
     }) };
-    [[maybe_unused]] const auto m2_step{ hal::gpio::createOutput({
-      .pin = { .port = hal::gpio::Port::D, .number = 14U },
-      .initial_level = hal::gpio::Level::Low,
-      .type = hal::gpio::OutputType::PushPull,
-      .pull = hal::gpio::Pull::None,
-      .speed = hal::gpio::Speed::Low,
-      .alternate_function = 2U,
-    }) };
+    const auto m2_step{ hal::board::createStepperStepOutput(hal::board::MotorId::M2) };
     [[maybe_unused]] const auto m2_dir{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::D, .number = 15U },
       .initial_level = hal::gpio::Level::Low,
@@ -53,14 +39,7 @@ int main()
       .pull = hal::gpio::Pull::None,
       .speed = hal::gpio::Speed::Low,
     }) };
-    [[maybe_unused]] const auto m3_step{ hal::gpio::createOutput({
-      .pin = { .port = hal::gpio::Port::C, .number = 6U },
-      .initial_level = hal::gpio::Level::Low,
-      .type = hal::gpio::OutputType::PushPull,
-      .pull = hal::gpio::Pull::None,
-      .speed = hal::gpio::Speed::Low,
-      .alternate_function = 3U,
-    }) };
+    const auto m3_step{ hal::board::createStepperStepOutput(hal::board::MotorId::M3) };
     [[maybe_unused]] const auto m3_dir{ hal::gpio::createOutput({
       .pin = { .port = hal::gpio::Port::C, .number = 7U },
       .initial_level = hal::gpio::Level::Low,
@@ -69,24 +48,12 @@ int main()
       .speed = hal::gpio::Speed::Low,
     }) };
 
-    // Preserve TIM3's AF2 inputs; no encoder counting or index callback yet.
-    [[maybe_unused]] const auto m1_encoder_a{ hal::gpio::createInput({
-      .pin = { .port = hal::gpio::Port::B, .number = 4U },
-      .pull = hal::gpio::Pull::None,
-      .edge = hal::gpio::Edge::None,
-      .alternate_function = 2U,
-    }) };
-    [[maybe_unused]] const auto m1_encoder_b{ hal::gpio::createInput({
-      .pin = { .port = hal::gpio::Port::B, .number = 5U },
-      .pull = hal::gpio::Pull::None,
-      .edge = hal::gpio::Edge::None,
-      .alternate_function = 2U,
-    }) };
-    [[maybe_unused]] const auto m1_encoder_z{ hal::gpio::createInput({
-      .pin = { .port = hal::gpio::Port::B, .number = 6U },
-      .pull = hal::gpio::Pull::None,
-      .edge = hal::gpio::Edge::Rising,
-    }) };
+    const auto m1_encoder{ hal::board::createEncoder(hal::board::MotorId::M1) };
+    [[maybe_unused]] const auto m1_encoder_z{ hal::board::createEncoderIndex(hal::board::MotorId::M1) };
+    if (!steppers_enable_n || !m1_step || !m1_dir || !m2_step || !m2_dir || !m3_step || !m3_dir ||
+        !m1_encoder || !m1_encoder_z) {
+        hal::panic("Motor interface creation failed");
+    }
 
     const auto led{ hal::board::createLed(hal::board::LedId::Green) };
     if (!led) {

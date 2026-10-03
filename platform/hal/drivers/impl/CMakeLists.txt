@@ -4,6 +4,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Ethernet.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/PwmOutput.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/QuadratureEncoder.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rng.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rtc.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.cpp
@@ -15,6 +17,8 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Ethernet.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Gpio.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/PwmOutput.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/QuadratureEncoder.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Rng.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Rtc.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Timer.cpp

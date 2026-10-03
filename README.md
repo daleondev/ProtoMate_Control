@@ -169,12 +169,13 @@ one STEPPERONLINE DM542T driver with an Oriental Motor PKP245D23A2-R2FL
 motor (M1) and two Adafruit TMC2209 #6121 boards (M2/M3).
 CubeMX configures **all three STEP pins as hardware timer PWM outputs**.
 The three DIR pins and shared ENABLE remain ordinary push-pull GPIO outputs.
-All seven use no internal pulls and low GPIO speed. `src/main.cpp` instantiates
-them through the HAL GPIO wrapper and retains them for the application's
-lifetime. DIR starts low; shared enable starts high (all drivers disabled).
-All three pulse timers are initialized but **stopped**, with zero pulse width.
-Use the external input biasing described below to hold STEP inactive while
-timer outputs are disabled. No motion logic is implemented.
+All seven use no internal pulls and low GPIO speed. `src/main.cpp` retains three
+`IPwmOutput` objects from the board factory, plus ordinary GPIO wrappers for
+DIR and shared ENABLE. DIR starts low; shared enable starts high (all drivers
+disabled). All three pulse timers are initialized but **stopped**, with no
+requested waveform. The PWM drivers hold STEP at push-pull low while stopped
+and select the timer alternate function when started. The external input
+biasing below also holds STEP inactive during reset. No motion logic is implemented.
 
 | Signal | STM32 pin | Board connector | Driver connection | STEP timer |
 | --- | --- | --- | --- | --- |
@@ -193,22 +194,61 @@ the [STM32H753 alternate-function tables](https://www.st.com/resource/en/datashe
 TIM1, TIM4 and TIM8 are configured identically for STEP generation: active-high
 PWM mode 1, prescaler 239, period 65535 and pulse width 0. At the current
 240 MHz timer clocks, each counter ticks at **1 MHz (1 µs per tick)**.
-Auto-reload and compare preload are enabled so future period and pulse-width
-updates can take effect at timer update boundaries. These initial values are
-inactive defaults, not a commanded movement speed.
+Auto-reload and compare preload are enabled. These CubeMX values are inactive
+defaults; `IPwmOutput` selects a prescaler and period for the requested timing
+when explicitly started.
 
 Software will calculate movement and program timer periods/pulse widths;
 **the timers generate STEP edges in hardware**, without software GPIO toggling.
-At this prescaler, a running channel's frequency is `1 MHz / (ARR + 1)` and
-its high time is `CCR` microseconds. Future motion code must respect each
-driver's pulse timing, load the buffered settings before starting, control
-the number of steps, and explicitly start/stop the required channels.
-No PWM start calls, DMA transfers or STEP timer interrupts are enabled yet.
+The frequency is `timer_input_hz / ((PSC + 1) * (ARR + 1))`; high time is
+`CCR * (PSC + 1) / timer_input_hz`. The HAL manages these registers. Motion
+code still needs to respect driver pulse timing and coordinate/count steps.
+The application does not call PWM start, start DMA or enable STEP interrupts.
 
-The HAL output objects retain the timer connections with
-`alternate_function = 1` (M1), `2` (M2) and `3` (M3). These AF numbers select
-fixed hardware connections on the chosen pins. GPIO
-`write()`/`toggle()` only affect their output latches, not the timer waveforms.
+### PWM and encoder HAL interfaces
+
+[IPwmOutput](platform/hal/drivers/itf/IPwmOutput.hpp) provides
+`configure({period, high_time})`, `timing()`, `start()`, `stop()` and
+`isRunning()`. Durations use `std::chrono::nanoseconds`; microseconds and other
+exactly convertible durations can be passed directly. `timing()` returns the
+achievable timing, rounded up to whole nanoseconds. The 16-bit prescaler and
+compare range limit representable periods; invalid requests return an error
+and preserve the previous configuration. Zero and 100% duty are supported.
+A request strictly between them must retain both high and low phases after
+quantization. PWM construction is stopped, and starting before configuration fails.
+
+Configuration is allowed **only while stopped**. Starting is idempotent and
+arms the pulse width at an update boundary after connecting the inactive timer
+output to the pin. The first high phase is complete; startup includes a low
+arming interval. `stop()` immediately drives the pin low and can shorten the
+last pulse. This API provides continuous PWM, not an exact finite pulse count,
+acceleration, coordinated motion or live frequency changes.
+
+[IQuadratureEncoder](platform/hal/drivers/itf/IQuadratureEncoder.hpp) provides
+`start()`, `stop()`, `isRunning()`, `position()`, `setPosition(count)` and
+`reset()`. Position is a signed 64-bit count of x4 encoder edges, not motor
+steps or revolutions. Start/stop preserve position; changing the origin requires
+the encoder to be stopped. `position()` returns a `util::Result<Count>` so a
+latched count-extension error cannot silently become a valid position. Reset
+or `setPosition()` clears that error while stopped. With M1's 400 P/R encoder,
+one shaft revolution corresponds to 1600 counts.
+
+Use `hal::board::createStepperStepOutput(MotorId::M1/M2/M3)` and
+`hal::board::createEncoder(MotorId::M1)` for the assigned hardware. These board
+factories return exclusive, uncached objects; repeated creation while an object
+is owned fails. Low-level `hal::pwm::create()` and `hal::encoder::create()`
+validate the supported timer/channel/pin routes. Each object reserves the
+whole timer and its GPIOs until destruction; unsuccessful creation releases
+partial claims. The index factory returns the existing `IDigitalInput` type.
+It does not reset the encoder or implement homing policy.
+
+The Linux backend models PWM configuration and run state without generating
+electrical edges. Its `hal::QuadratureEncoder::advanceSimulatedCounts(delta)`
+injects signed x4 counts, using the same count-extension arithmetic as STM32;
+movement injected while stopped is ignored. A/B GPIO levels are not decoded
+by this simulation. Index edges can be injected through the existing Linux
+`GpioInput::setSimulatedLevel()` test interface. Simulation is not a measurement
+of pulse shape, driver delays or hardware interrupt latency.
 
 These assignments are configured in `external/CubeMX/CubeMX.ioc`.
 The storage assignments above, Ethernet RMII, USART3 console,
@@ -275,14 +315,24 @@ debugging remains available. Connector positions follow
 
 CubeMX configures TIM3 in **encoder mode TI1 and TI2 (x4)**, with prescaler 0,
 period 65535, direct non-inverted inputs and input filters disabled. The
-16-bit counter will wrap at 65536; future position tracking must handle this.
-`hal::initialize()` initializes TIM3 but leaves counting stopped.
-`src/main.cpp` creates HAL input objects for A/B with `alternate_function = 2`
-to retain their timer connection, and a rising-edge input for Z. EXTI9_5 uses
-priority 5 and the HAL wrapper's shared interrupt dispatcher. There is no
-encoder start/read loop, index callback, homing or motion-control logic yet.
-The Linux backend reserves these pins but does not emulate encoder counting
-or hardware STEP generation.
+16-bit counter wraps at 65536. The encoder HAL extends it using signed
+differences between counter samples. TIM3 update interrupts and internal CH3/CH4
+compare markers at `0x5555` and `0xAAAA` service the counter even without
+application reads. CH3/CH4 do not drive pins; A/B edges remain hardware-counted.
+This also handles direction reversals around a wrap without guessing from the
+instantaneous direction bit. **TIM3 interrupt latency must stay below the time
+for 10,922 encoder counts**, keeping samples less than 32,768 counts apart.
+For example, at 160,000 counts/s the latency budget is less than 68.26 ms.
+Multiple unserviced wraps cannot be recovered from a 16-bit counter. The driver
+reports an exactly ambiguous half-range sample or signed-position overflow;
+other excessive-latency aliasing cannot always be detected.
+
+`hal::initialize()` and construction leave counting stopped. `src/main.cpp`
+creates one encoder object for A/B and a rising-edge input for Z. TIM3's
+priority-5 interrupt is enabled only by encoder `start()` and disabled by
+`stop()`; its handler is project-owned. EXTI9_5 retains the HAL wrapper's shared
+priority-5 dispatcher. No encoder start/read loop, index callback, homing or
+motion-control logic runs in the application.
 
 Use three channels of the **AM26C32CN** differential receiver, three additional
 **Diotec 2N2222A converters (Q4–Q6)**, then three channels of the user's
