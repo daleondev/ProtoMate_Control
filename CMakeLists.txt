@@ -115,7 +115,30 @@ add_subdirectory(platform/runtime)
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_subdirectory(platform/hal/tests)
 endif()
-add_subdirectory(src)
+
+if(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_storage_startup_test.cpp
+    )
+elseif(RUNTIME_HARDWARE_ETHERNET_TEST)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_ethernet_test.cpp
+    )
+elseif(RUNTIME_HARDWARE_IO_TEST)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_io_test.cpp
+    )
+elseif(RUNTIME_HARDWARE_SELF_TEST)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_self_test.cpp
+    )
+else()
+    add_subdirectory(src)
+endif()
 
 if(ENABLE_CLANG_TIDY)
     # Older LLVM releases cannot parse the supported GCC 16 C++26 headers.
