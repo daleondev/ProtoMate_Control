@@ -1,1 +1,2 @@
 external/CubeMX/** whitespace=cr-at-eol
+hardware/assembly/*.csv whitespace=cr-at-eol

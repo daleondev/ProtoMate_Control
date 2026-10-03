@@ -65,6 +65,18 @@ J107,M1 encoder / 1x08,5,D41,ENC_B_N
 J107,M1 encoder / 1x08,6,D42,ENC_Z_P
 J107,M1 encoder / 1x08,7,D43,ENC_Z_N
 J107,M1 encoder / 1x08,8,D44,+5V
+J108,Nucleo references / 2x03,1,B4,M1_REF
+J108,Nucleo references / 2x03,2,B5,GND
+J108,Nucleo references / 2x03,3,C4,M2_REF
+J108,Nucleo references / 2x03,4,C5,GND
+J108,Nucleo references / 2x03,5,D4,M3_REF
+J108,Nucleo references / 2x03,6,D5,GND
+J109,M1 NC switch / 1x02,1,B10,M1_REF
+J109,M1 NC switch / 1x02,2,B11,GND
+J110,M2 NC switch / 1x02,1,B14,M2_REF
+J110,M2 NC switch / 1x02,2,B15,GND
+J111,M3 NC switch / 1x02,1,B18,M3_REF
+J111,M3 NC switch / 1x02,2,B19,GND
 Q1,2N2222A,B,G18,Net-(Q1-PadB)
 Q1,2N2222A,C,G19,DM_PUL_N
 Q1,2N2222A,E,G17,GND

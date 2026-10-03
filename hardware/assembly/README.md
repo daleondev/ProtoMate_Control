@@ -34,7 +34,7 @@ Column 1 is therefore on the right. Hole names never change between views.
 All components are mounted on the top face.
 
 - [Holes.csv](Holes.csv): every component pin, its hole and its electrical net.
-- [Wires.csv](Wires.csv): all 112 required pad-to-pad connections, with endpoints,
+- [Wires.csv](Wires.csv): all 121 required pad-to-pad connections, with endpoints,
   side-change holes and routed lengths. Add handling/stripping allowance to
   these lengths. Tick off each connection as it is soldered.
 - [Harness.csv](Harness.csv): every external header pin and its destination.
@@ -47,7 +47,7 @@ wire table specifies the actual endpoint connections. A layer-change circle
 represents passing an insulated wire through an otherwise empty hole; it is
 not a plated via that the perfboard already contains. Top jumpers and component
 leads must both be soldered to their appropriate pads on the underside.
-Fit low-profile top jumpers before the sockets that cover them.
+Fit low-profile top jumpers before the sockets or headers that cover them.
 
 ## Parts and orientation
 
@@ -110,11 +110,15 @@ headers have 2.54 mm pitch. Use the harness table when preparing cables.
 | J105, 1×10 | M2 Adafruit TMC2209 logic: VDD, GND, DIR, STEP, MS1, MS2, NC, NC, NC, EN. |
 | J106, 1×10 | M3 Adafruit TMC2209 logic, same order as J105. |
 | J107, 1×8 | Encoder: GND, A+, A−, B+, B−, Z+, Z−, +5 V, matching the motor's numbered encoder connector. |
+| J108, 2×3 | Nucleo reference inputs: 1 = M1_REF, 3 = M2_REF, 5 = M3_REF; 2/4/6 = GND. |
+| J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
 
 J101 pin assignments: 1→PE9/CN10.4, 3→PE11/CN10.6,
 5→PD14/CN7.16, 7→PD15/CN7.18, 9→PC6/CN7.1,
 11→PC7/CN7.11, 13→PF3/CN7.20, 15→3V3/CN8.7.
 J102: 1→PB4/CN7.19, 3→PB5/CN7.13, 5→PB6/CN12.17.
+J108: 1→PE7/CN10.20, 3→PE8/CN10.18, 5→PE10/CN10.24;
+join its ground returns (pins 2/4/6) at Nucleo CN10.22.
 Connect the ground conductors to Nucleo ground, common with buck output ground.
 The existing system schematic identifies CN11.8 as a Nucleo ground contact.
 
@@ -123,7 +127,30 @@ Both TMC MS1/MS2 pairs are connected to 3.3 V for 1/16 microstepping. Pins
 empty. Cable to the TMC contacts by their labels; a connector's apparent
 left/right order changes when viewed from the mating side.
 
-The Nucleo, three motor drivers, buck converter, motor windings and storage
+### Reference-switch cables
+
+The added headers occupy the previously empty top-left area. Existing component
+locations and routes are preserved. J108 pin 1 is **B4**, J109 pin 1 is **B10**,
+J110 pin 1 is **B14**, and J111 pin 1 is **B18**. Each switch header's adjacent
+pin 2 is ground. Add wires **W113–W121**; the three signals use the underside,
+while some ground links use insulated top jumpers. No new wire-passage holes
+or active components are needed.
+
+SW1/SW2/SW3 are the external, unpowered Creality mechanical switches. The
+schematic identifies **COM, NC and NO by function**, not by PCB connector
+position. With each switch disconnected, find the pair that has continuity
+when released and opens when pressed. Connect that pair to its REF/GND cable;
+leave the remaining contact unused. Do not apply power based on `V/G/S`
+silkscreen labels. Only the unpopulated dry-contact version is represented.
+
+The Nucleo supplies the signal bias through its configured internal **3.3 V
+pull-ups**: low = released, high = pressed or unplugged. The perfboard adds no
+pull-up, debounce or filter components. Route each signal with its ground
+return away from motor wiring. Before motion use, validate noise immunity and
+contact debounce with the actual cables; filtering and homing/stop logic are
+not implemented by this wiring addition.
+
+The Nucleo, three motor drivers, buck converter, motor windings, reference switches and storage
 modules remain external. The **24 V distribution and motor currents do not
 pass through this perfboard**. Connect those parts as shown in
 [the system wiring schematic](../exports/Wiring.pdf). In particular,
@@ -135,7 +162,7 @@ interface with the Nucleo's 3.3 V output, not the other way around.
 [DRC.rpt](../exports/DRC.rpt) records KiCad's electrical clearance/connectivity
 and schematic-parity checks. [Verification.txt](../exports/Verification.txt)
 records checks of the saved layout's symbol links, nets, hole grid, wire table
-and harness destinations. The schematic includes J101–J107 and is the
+and harness destinations. The schematic includes J101–J111 and is the
 electrical reference for this layout. Use **Update PCB from Schematic (F8)**
 as described in the [project guide](../README.md).
 

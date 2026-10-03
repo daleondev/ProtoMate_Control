@@ -9,7 +9,7 @@ hardware/
 ├── ProtoMate.kicad_pro       Project settings and electrical checks
 ├── ProtoMate.kicad_sch       Root sheet: controller, power, sheet navigation
 ├── ProtoMate.kicad_pcb       100 × 160 mm perfboard placement and hand wiring
-├── sheets/                  Motor interfaces, encoder, storage, cable headers
+├── sheets/                  Motor interfaces, encoder, storage, headers, switches
 ├── libraries/               Project-local symbols and perfboard footprints
 ├── sym-lib-table            Relative symbol-library registration
 ├── fp-lib-table             Relative footprint-library registration
@@ -20,16 +20,17 @@ hardware/
 
 ## Schematic and layout relationship
 
-The root schematic links five child sheets: M1/DM542T, M2/M3/TMC2209,
-M1 encoder, storage, and perfboard cable headers. Global net names connect
-these sheets electrically. The connector sheet explicitly defines J101–J107;
-its pin numbers match the layout and [harness table](assembly/Harness.csv).
+The root schematic links six child sheets: M1/DM542T, M2/M3/TMC2209,
+M1 encoder, storage, perfboard cable headers, and reference limit switches.
+Global net names connect these sheets electrically. The connector sheet defines
+J101–J107 and the reference-switch sheet defines J108–J111; their pin numbers
+match the layout and [harness table](assembly/Harness.csv).
 
-All **40 perfboard footprints** have assigned library footprints and native
+All **44 perfboard footprints** have assigned library footprints and native
 links to their schematic symbols. These comprise Q1–Q6, R1–R12, R20–R28,
-C3–C6, U2/U3 and J101–J107. R10–R12 remain on the layout and are marked DNP.
+C3–C6, U2/U3 and J101–J111. R10–R12 remain on the layout and are marked DNP.
 
-The Nucleo, motor drivers, motors, buck converter, storage modules and their
+The Nucleo, motor drivers, motors, reference switches, buck converter, storage modules and their
 external components are marked **Exclude from board** in the schematic.
 They remain part of the system wiring and system parts list, but KiCad does
 not add them to the perfboard. In particular, 24 V and motor currents stay
@@ -38,6 +39,15 @@ outside the perfboard.
 The `.kicad_pcb` is a map for a purchased individual-pad board: F.Cu represents
 top jumpers, B.Cu represents solder-side wires, and vias represent wire passages.
 Use the [assembly instructions](assembly/README.md) to build it.
+
+The three reference-switch cables connect to J109 (M1), J110 (M2), and J111
+(M3), each with pin 1 = REF and pin 2 = GND. J108 returns the signals to
+PE7/CN10.20, PE8/CN10.18 and PE10/CN10.24 on odd pins 1/3/5; even pins
+2/4/6 connect to Nucleo GND/CN10.22. This is passive wiring using the
+firmware's internal 3.3 V pull-ups. SW1–SW3 are shown released with COM–NC
+closed: low when released, high when pressed or unplugged. Their schematic
+contact names are functional identities, not an asserted Creality connector
+pin order; verify the normally closed pair by continuity before making cables.
 
 ## Editing workflow
 
@@ -77,7 +87,7 @@ Poppler's `pdfunite`. The command checks ERC, DRC **with schematic parity**,
 symbol links, pad nets, the hole grid, wire endpoints/connectivity and external
 harness destinations. It updates:
 
-- [Wiring.pdf](exports/Wiring.pdf): complete six-sheet system schematic.
+- [Wiring.pdf](exports/Wiring.pdf): complete seven-sheet system schematic.
 - [Assembly.pdf](exports/Assembly.pdf): placement, top wires, mirrored underside
   and combined overview, at actual size.
 - [Holes.csv](assembly/Holes.csv) and [System_Parts.csv](assembly/System_Parts.csv):

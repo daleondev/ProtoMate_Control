@@ -129,7 +129,7 @@ def verify(netlist, board):
         require(reached == terminals, f"Wire schedule does not connect all pads: {net}")
 
     harness = read_csv("Harness.csv")
-    header_pads = {key for key in pads if key[0].startswith("J10")}
+    header_pads = {key for key in pads if re.fullmatch(r"J\d+", key[0])}
     require({(r['Perfboard header'], r['Pin']) for r in harness} == header_pads,
             "Harness does not cover all header positions")
     for row in harness:

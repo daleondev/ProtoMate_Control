@@ -24,6 +24,10 @@ J104,DM542T / 1x06,1,,Perfboard
 J105,M2 TMC2209 / 1x10,1,,Perfboard
 J106,M3 TMC2209 / 1x10,1,,Perfboard
 J107,M1 encoder / 1x08,1,,Perfboard
+J108,Nucleo references / 2x03,1,,Perfboard
+J109,M1 NC switch / 1x02,1,,Perfboard
+J110,M2 NC switch / 1x02,1,,Perfboard
+J111,M3 NC switch / 1x02,1,,Perfboard
 M1,PKP245D23A2-R2FL,1,,External
 M2,C17HD2024-01N,1,,External
 M3,BJ42D15-26V10,1,,External
@@ -61,6 +65,9 @@ R25,1k,1,,Perfboard
 R26,4k7,1,,Perfboard
 R27,10k,1,,Perfboard
 R28,1k,1,,Perfboard
+SW1,M1 Ender-3 V2 / NC,1,,External
+SW2,M2 Ender-3 V2 / NC,1,,External
+SW3,M3 Ender-3 V2 / NC,1,,External
 U1,QIQIAZI 5 V / 5 A,1,,External
 U2,AM26C32CN / DIP-16,1,,Perfboard
 U3,SN74HC126N / DIP-14,1,,Perfboard

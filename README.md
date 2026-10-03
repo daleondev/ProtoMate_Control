@@ -57,8 +57,8 @@ HAL or Linux debugger. Startup diagnostics and the boot message appear on the te
 
 Open **[hardware/ProtoMate.kicad_pro](hardware/ProtoMate.kicad_pro)** in
 **KiCad 10**. One project contains the complete system schematic and its linked
-perfboard layout. Six sheets cover controller/power, M1/DM542T, M2/M3/TMC2209,
-M1 encoder, QSPI/SD storage and the perfboard cable headers. All 40 footprints
+perfboard layout. Seven sheets cover controller/power, M1/DM542T, M2/M3/TMC2209,
+M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 44 footprints
 are linked to schematic symbols; external equipment is marked **Exclude from
 board**. Symbols and footprints use project-local libraries. See the
 [hardware guide](hardware/README.md) for the structure and F8 update workflow.
@@ -283,6 +283,10 @@ Wire each switch's **COM and normally closed (NC) contacts between its REF
 input and ground**; either contact orientation works. The pull-up is to the
 Nucleo's **3.3 V**: released/closed reads `Low`, pressed/open reads `High`, and
 a disconnected cable also reads `High`. The unused switch contact stays open.
+The KiCad perfboard routes these signals through **J108** (Nucleo cable,
+odd pins 1/3/5 = M1/M2/M3, even pins 2/4/6 = GND) and **J109/J110/J111**
+(M1/M2/M3 switch cables, each pin 1 = REF, pin 2 = GND). Follow the
+[harness table](hardware/assembly/Harness.csv) for cable endpoints.
 The pictured board appears to have no LED, resistors or other electronics
 populated, so this connection uses it as an **unpowered dry-contact switch**.
 Do not connect a supply to its connector based on the `V/G/S` printing alone.

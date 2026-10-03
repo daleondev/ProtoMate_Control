@@ -12,8 +12,8 @@ R10 R11 R12,0,DNP termination resistors,Leave empty; 10.16 mm reserved hole spac
 C3 C4,2,100 nF ceramic capacitor,Nonpolar; >=16 V; 2.54 mm lead spacing
 C5 C6,2,1 uF nonpolar capacitor,>=16 V; 5.08 mm lead spacing
 J101,1,2x8 male header,2.54 mm pitch
-J102,1,2x3 male header,2.54 mm pitch
-J103,1,1x2 male header,2.54 mm pitch
+J102 J108,2,2x3 male header,2.54 mm pitch; encoder and reference returns to Nucleo
+J103 J109 J110 J111,4,1x2 male header,2.54 mm pitch; buck input and three NC switch cables
 J104,1,1x6 male header,2.54 mm pitch
 J105 J106,2,1x10 male header,2.54 mm pitch
 J107,1,1x8 male header,2.54 mm pitch

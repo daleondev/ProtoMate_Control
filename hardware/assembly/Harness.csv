@@ -57,3 +57,15 @@ J107,5,D41,ENC_B_N,J2,5,
 J107,6,D42,ENC_Z_P,J2,6,
 J107,7,D43,ENC_Z_N,J2,7,
 J107,8,D44,+5V,J2,8,
+J108,1,B4,M1_REF,A1,CN10.20,Reference input; internal 3.3 V pull-up
+J108,2,B5,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
+J108,3,C4,M2_REF,A1,CN10.18,Reference input; internal 3.3 V pull-up
+J108,4,C5,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
+J108,5,D4,M3_REF,A1,CN10.24,Reference input; internal 3.3 V pull-up
+J108,6,D5,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
+J109,1,B10,M1_REF,SW1,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J109,2,B11,GND,SW1,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J110,1,B14,M2_REF,SW2,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J110,2,B15,GND,SW2,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J111,1,B18,M3_REF,SW3,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J111,2,B19,GND,SW3,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
