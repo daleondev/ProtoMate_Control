@@ -1,6 +1,7 @@
+#include "../system_threads.hpp"
+
 #include "Parser.hpp"
 #include "filesystem.hpp"
-#include "system_threads.hpp"
 #include "utilities.hpp"
 
 #if defined(HAL_PLATFORM_LINUX)
