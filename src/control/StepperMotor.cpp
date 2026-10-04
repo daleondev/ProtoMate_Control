@@ -188,7 +188,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
 
     const auto now{ std::chrono::steady_clock::now() };
     const auto available{ (std::chrono::steady_clock::time_point::max() - now) / 2 };
-    if (timeout.toChrono<std::chrono::nanoseconds>() >= available) {
+    if (timeout >= available) {
         return Result::Rejected;
     }
 
