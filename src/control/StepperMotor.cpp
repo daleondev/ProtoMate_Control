@@ -1,6 +1,7 @@
 #include "StepperMotor.hpp"
 
 #include "pneumo/logging.hpp"
+#include "runtime/thread.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -93,58 +94,124 @@ StepperMotor::~StepperMotor()
     static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
 }
 
-std::future<StepperMotor::Result> StepperMotor::move(Direction direction,
-                                                     pnm::units::AngularVelocity velocity,
-                                                     pnm::units::Time timeout)
+std::future<StepperMotor::Result> StepperMotor::moveRel(pnm::units::Angle distance,
+                                                        pnm::units::AngularVelocity velocity,
+                                                        pnm::units::AngularAcceleration acceleration,
+                                                        pnm::units::AngularAcceleration deceleration,
+                                                        pnm::units::AngularJerk jerk,
+                                                        BufferMode mode,
+                                                        pnm::units::Time timeout)
 {
-    pnm::log::debug("Motor move requested: direction={}, velocity={} rpm, timeout={} s",
-                    direction,
-                    velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
-                    timeout.get<pnm::units::TimeUnits::s>());
+    return submitMove(distance, velocity, { acceleration, deceleration, jerk }, mode, timeout, true);
+}
 
-    return startMotion(
-      std::packaged_task<Result(std::stop_token)>([this, direction, velocity, timeout](std::stop_token stop) {
-        return performMotion(direction, velocity, timeout, stop);
-    }));
+std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target,
+                                                        pnm::units::AngularVelocity velocity,
+                                                        pnm::units::AngularAcceleration acceleration,
+                                                        pnm::units::AngularAcceleration deceleration,
+                                                        pnm::units::AngularJerk jerk,
+                                                        BufferMode mode,
+                                                        pnm::units::Time timeout)
+{
+    return submitMove(target, velocity, { acceleration, deceleration, jerk }, mode, timeout, false);
 }
 
 std::future<StepperMotor::Result> StepperMotor::moveRel(pnm::units::Angle distance,
                                                         pnm::units::AngularVelocity velocity,
                                                         pnm::units::Time timeout)
 {
-    pnm::log::debug("Relative motor move requested: distance={} °, velocity={} rpm, timeout={} s",
-                    distance.get<pnm::units::AngleUnits::deg>(),
-                    velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
-                    timeout.get<pnm::units::TimeUnits::s>());
-
-    return startMotion(
-      std::packaged_task<Result(std::stop_token)>([this, distance, velocity, timeout](std::stop_token stop) {
-        return performMotion(position() + distance, velocity, timeout, stop);
-    }));
+    return moveRel(distance, velocity, 0_rad_s2, 0_rad_s2, 0_rad_s3, BufferMode::Aborting, timeout);
 }
 
 std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target,
                                                         pnm::units::AngularVelocity velocity,
                                                         pnm::units::Time timeout)
 {
-    if (!isReferenced()) {
-        std::promise<Result> rejected;
-        rejected.set_value(Result::Rejected);
-        return rejected.get_future();
+    return moveAbs(target, velocity, 0_rad_s2, 0_rad_s2, 0_rad_s3, BufferMode::Aborting, timeout);
+}
+
+pnm::Result<> StepperMotor::setMotionDefaults(MotionDefaults defaults)
+{
+    if (!defaults.acceleration.isFinite() || defaults.acceleration <= 0_rad_s2 ||
+        !defaults.deceleration.isFinite() || defaults.deceleration <= 0_rad_s2 || !defaults.jerk.isFinite() ||
+        defaults.jerk < 0_rad_s3)
+        return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    std::scoped_lock lock{ m_queueMutex };
+    if (m_busy)
+        return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
+    m_motionDefaults = defaults;
+    return {};
+}
+
+StepperMotor::MotionDefaults StepperMotor::motionDefaults() const
+{
+    std::scoped_lock lock{ m_queueMutex };
+    return m_motionDefaults;
+}
+
+std::future<StepperMotor::Result> StepperMotor::submitMove(pnm::units::Angle position,
+                                                           pnm::units::AngularVelocity velocity,
+                                                           MotionDefaults dynamics,
+                                                           BufferMode mode,
+                                                           pnm::units::Time timeout,
+                                                           bool relative)
+{
+    const auto rejected = [] {
+        std::promise<Result> promise;
+        promise.set_value(Result::Rejected);
+        return promise.get_future();
+    };
+    const auto now{ std::chrono::steady_clock::now() };
+    if (!position.isFinite() || !timingFor(velocity) || !timeout.isFinite() || timeout < 0_s ||
+        timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2 ||
+        !dynamics.acceleration.isFinite() || dynamics.acceleration < 0_rad_s2 ||
+        !dynamics.deceleration.isFinite() || dynamics.deceleration < 0_rad_s2 || !dynamics.jerk.isFinite() ||
+        dynamics.jerk < 0_rad_s3 || mode < BufferMode::Aborting || mode > BufferMode::BlendingHigh ||
+        (!relative && !isReferenced()))
+        return rejected();
+    std::scoped_lock worker_lock{ m_workerMutex };
+    {
+        std::scoped_lock lock{ m_queueMutex };
+        if (dynamics.acceleration == 0_rad_s2)
+            dynamics.acceleration = m_motionDefaults.acceleration;
+        if (dynamics.deceleration == 0_rad_s2)
+            dynamics.deceleration = m_motionDefaults.deceleration;
+        if (dynamics.jerk == 0_rad_s3)
+            dynamics.jerk = m_motionDefaults.jerk;
     }
-
-    pnm::log::debug("Absolute motor move requested: target={} °, velocity={} rpm, timeout={} s",
-                    target.get<pnm::units::AngleUnits::deg>(),
-                    velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
-                    timeout.get<pnm::units::TimeUnits::s>());
-
-    return startMotion(
-      std::packaged_task<Result(std::stop_token)>([this, target, velocity, timeout](std::stop_token stop) {
-        if (!isReferenced()) {
-            return Result::Rejected;
+    auto command{ std::make_shared<Command>(
+      Command{ position, velocity, dynamics, mode, timeout, relative, {} }) };
+    auto future{ command->completion.get_future() };
+    if (mode != BufferMode::Aborting) {
+        std::scoped_lock lock{ m_queueMutex };
+        if (m_busy) {
+            if (m_homing || m_pending) {
+                command->completion.set_value(Result::Rejected);
+                return future;
+            }
+            m_pending = command;
+            m_events->notification.signal();
+            return future;
         }
-        return performMotion(target, velocity, timeout, stop);
-    }));
+    }
+    if (m_worker.joinable()) {
+        m_worker.request_stop();
+        m_worker.join();
+    }
+    {
+        std::scoped_lock lock{ m_queueMutex };
+        m_busy = true;
+        m_homing = false;
+    }
+    try {
+        m_worker = runtime::thread::create_jthread(
+          { .name = "motion", .stack_size = 16384U },
+          [this, command](std::stop_token stop) { runCommands(command, stop); });
+    } catch (...) {
+        command->completion.set_exception(std::current_exception());
+        finishQueue(Result::Faulted);
+    }
+    return future;
 }
 
 std::future<StepperMotor::Result> StepperMotor::reference(pnm::units::AngularVelocity seek_velocity,
@@ -222,6 +289,7 @@ void StepperMotor::accountEncoder(const hal::IQuadratureEncoder::Sample& sample)
         m_encoderHealthy.store(false);
         m_actualVelocity.store(0_rpm);
         m_previousEncoderSample.reset();
+        m_events->notification.signal();
         return;
     }
 
@@ -265,7 +333,11 @@ void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
                        ? m_motionSign * m_stepAngle / pnm::units::Time{ status.period }
                        : 0_rpm);
 
-    if (status.state != hal::step::State::Running) {
+    auto boundary{ m_wakeAtPulse.load() };
+    const bool reached{ status.pulses >= boundary &&
+                        m_wakeAtPulse.compare_exchange_strong(
+                          boundary, std::numeric_limits<hal::step::PulseCount>::max()) };
+    if (status.state != hal::step::State::Running || reached) {
         m_events->notification.signal();
     }
 }
@@ -314,16 +386,36 @@ std::optional<hal::step::Timing> StepperMotor::timingFor(pnm::units::AngularVelo
 
 pnm::Result<hal::step::PulseCount> StepperMotor::setVelocity(pnm::units::AngularVelocity velocity)
 {
-    const auto timing{ timingFor(velocity) };
-    if (!timing) {
+    if (!timingFor(velocity))
         return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    auto request{ std::make_shared<VelocityRequest>() };
+    request->velocity = velocity;
+    auto future{ request->completion.get_future() };
+    {
+        std::scoped_lock lock{ m_queueMutex };
+        if (!m_busy || m_homing || !m_profileActive.load() || m_velocityRequest)
+            return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+        m_velocityRequest = request;
+        m_events->notification.signal();
     }
+    return future.get();
+}
 
-    std::scoped_lock worker_lock{ m_workerMutex, m_mutex };
-    if (m_referencing.load()) {
-        return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+void StepperMotor::finishQueue(Result result) noexcept
+{
+    m_profileActive.store(false);
+    m_wakeAtPulse.store(std::numeric_limits<hal::step::PulseCount>::max());
+    std::scoped_lock lock{ m_queueMutex };
+    if (m_pending) {
+        m_pending->completion.set_value(result);
+        m_pending.reset();
     }
-    return m_stepOutput->updateTiming(*timing);
+    if (m_velocityRequest) {
+        m_velocityRequest->completion.set_value(
+          std::unexpected(std::make_error_code(std::errc::operation_canceled)));
+        m_velocityRequest.reset();
+    }
+    m_busy = m_homing = false;
 }
 
 std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<Result(std::stop_token)> task)
@@ -333,9 +425,20 @@ std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<R
         m_worker.request_stop();
         m_worker.join();
     }
-
     auto future{ task.get_future() };
-    m_worker = std::jthread(std::move(task));
+    {
+        std::scoped_lock queue_lock{ m_queueMutex };
+        m_busy = m_homing = true;
+    }
+    try {
+        m_worker = std::jthread([this, task = std::move(task)](std::stop_token stop) mutable {
+            task(stop);
+            finishQueue(Result::Stopped);
+        });
+    } catch (...) {
+        finishQueue(Result::Faulted);
+        throw;
+    }
     return future;
 }
 
@@ -349,7 +452,8 @@ StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity 
     if (!timingFor(seek_velocity) || !timingFor(latch_velocity) || latch_velocity >= seek_velocity ||
         !timeout.isFinite() || timeout <= 0_s ||
         timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2) {
-        pnm::log::debug("Motor {} reference rejected: invalid seek/latch speeds or overall timeout", motor_id);
+        pnm::log::debug("Motor {} reference rejected: invalid seek/latch speeds or overall timeout",
+                        motor_id);
         return Result::Rejected;
     }
 
@@ -510,25 +614,6 @@ StepperMotor::Result StepperMotor::applyReferencePosition(std::stop_token stop)
     }
     commit();
     return Result::Completed;
-}
-
-StepperMotor::Result StepperMotor::performMotion(pnm::units::Angle target,
-                                                 pnm::units::AngularVelocity velocity,
-                                                 pnm::units::Time timeout,
-                                                 std::stop_token stop)
-{
-    const auto distance{ target - position() };
-    const long double pulses{ std::round(std::abs(static_cast<long double>(distance / m_stepAngle))) };
-    if (!target.isFinite() || !std::isfinite(pulses) ||
-        pulses >= static_cast<long double>(std::numeric_limits<hal::step::PulseCount>::max())) {
-        pnm::log::warn("Motor move rejected: invalid parameters");
-        return Result::Rejected;
-    }
-    return performMotion(distance >= 0_deg ? Direction::Forward : Direction::Backward,
-                         velocity,
-                         timeout,
-                         stop,
-                         static_cast<hal::step::PulseCount>(pulses));
 }
 
 StepperMotor::Result StepperMotor::performMotion(Direction direction,

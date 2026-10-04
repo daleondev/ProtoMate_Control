@@ -43,6 +43,12 @@ namespace hal::detail
                                      const void* owner,
                                      IStepOutput::ProgressCallback callback) -> util::Result<>;
         auto updateTiming(std::size_t axis, step::Timing timing) noexcept -> util::Result<step::PulseCount>;
+        auto prepareSequence(std::size_t axis, std::shared_ptr<const step::Sequence> sequence)
+          -> util::Result<>;
+        auto scheduleCursor(std::size_t axis) noexcept -> util::Result<step::ScheduleCursor>;
+        auto replaceSequence(std::size_t axis,
+                             step::ScheduleCursor cursor,
+                             std::shared_ptr<const step::Sequence> sequence) -> util::Result<>;
 
       private:
         struct Timing
@@ -53,9 +59,11 @@ namespace hal::detail
         struct Axis
         {
             std::vector<Timing> timings;
-            std::array<std::uint32_t, 2> buffered_period{};
+            std::shared_ptr<const step::Sequence> sequence;
+            std::array<std::array<std::uint32_t, step_buffer_edges / 2U>, 2> periods{};
             std::optional<step::PulseCount> requested;
             std::uint64_t generated{};
+            std::uint64_t revision{};
             std::uint64_t completed_pulses{};
             std::uint32_t next_rise{};
             std::uint32_t last_fall{};
@@ -70,7 +78,7 @@ namespace hal::detail
             bool high{};
             unsigned blocks{};
         };
-        auto fill(std::size_t axis, unsigned buffer) noexcept -> void;
+        auto fill(std::size_t axis, unsigned buffer) noexcept -> bool;
         auto observe(std::size_t axis, const StepSample& sample) const noexcept -> Observed;
         auto updateCounts(const StepSample& sample) noexcept -> void;
         auto deadline(std::uint32_t now) const noexcept -> std::uint32_t;
@@ -83,6 +91,7 @@ namespace hal::detail
         std::array<std::shared_ptr<IDigitalOutput>, 3> m_pins;
         std::unique_ptr<StepHardware> m_hardware;
         std::array<Axis, 3> m_axes;
+        std::array<step::Timing, step_buffer_edges / 2U> m_sequenceTimings;
         step::Status m_status;
         step::Status m_notified;
         ProgressCallback m_callback;

@@ -6,6 +6,11 @@ target_sources(application_control
         ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotion.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/MotionProfile.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/MotionProfile.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/MotionSequence.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/MotionSequence.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ScaraKinematics.hpp
@@ -34,3 +39,8 @@ target_compile_options(application_control
 if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
     add_subdirectory(tests)
 endif()
+
+# Curve inversion runs in the DMA refill interrupt; speed matters more than
+# code size here. Keep normal debug stepping and retain IEEE floating-point rules.
+set_source_files_properties(MotionProfile.cpp MotionSequence.cpp PROPERTIES
+    COMPILE_OPTIONS "$<$<CONFIG:Release>:-O3>")

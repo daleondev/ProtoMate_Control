@@ -226,7 +226,7 @@ TEST_F(StepTest, TimebaseAndAxesHaveIndependentLifecycles)
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 2));
     EXPECT_FALSE(outputs[0]->prepare({ 1us, 1us }, 5));
     EXPECT_FALSE(outputs[0]->prepare({ 100us, 5us }, 0));
-    EXPECT_FALSE(outputs[0]->prepareSequence({}));
+    EXPECT_FALSE(outputs[0]->prepareSequence(std::span<const hal::step::Timing>{}));
     EXPECT_FALSE(outputs[0]->start(0ns));
     ASSERT_TRUE(outputs[0]->start(10us));
     EXPECT_FALSE(outputs[0]->start(10us));
@@ -631,9 +631,8 @@ TEST_F(StepTest, AxisProgressPublishesStartAutonomousBatchesAndFinalStateBeforeC
     std::vector<hal::step::AxisStatus> progress;
     progress.reserve(32);
     unsigned completions{};
-    ASSERT_TRUE(outputs[0]->setProgressCallback([&](const auto& status) noexcept {
-        progress.push_back(status);
-    }));
+    ASSERT_TRUE(
+      outputs[0]->setProgressCallback([&](const auto& status) noexcept { progress.push_back(status); }));
     ASSERT_TRUE(outputs[0]->setCompletionCallback([&](const auto& status) noexcept {
         ++completions;
         EXPECT_EQ(progress.back(), status);
@@ -689,8 +688,7 @@ TEST_F(StepTest, ExecutedPeriodFollowsBufferedPulsesAndSurvivesBufferRefill)
 
 TEST_F(StepTest, ExecutedPeriodTracksSequencesAndPendingDmaEdges)
 {
-    const std::array<hal::step::Timing, 3> sequence{ {
-      { 20us, 5us }, { 30us, 5us }, { 40us, 5us } } };
+    const std::array<hal::step::Timing, 3> sequence{ { { 20us, 5us }, { 30us, 5us }, { 40us, 5us } } };
     ASSERT_TRUE(outputs[0]->prepareSequence(sequence));
     ASSERT_TRUE(startMoves(10us));
     hardware->hold_dma[0] = true;
@@ -734,4 +732,93 @@ TEST_F(StepTest, AxisProgressOwnershipUnregistrationAndFaultDelivery)
     owner.reset();
     ASSERT_TRUE(outputs[0]->setProgressCallback([](const auto&) noexcept {}));
     ASSERT_TRUE(outputs[0]->setProgressCallback({}));
+}
+
+namespace
+{
+    class AnalyticSequence final : public hal::step::Sequence
+    {
+      public:
+        hal::step::PulseCount pulses{ 1600U };
+        std::chrono::nanoseconds period{ 100us }, maximum{ 100us };
+        std::optional<hal::step::PulseCount> invalid_at;
+        hal::step::PulseCount count() const noexcept override { return pulses; }
+        std::chrono::nanoseconds maximumPeriod() const noexcept override { return maximum; }
+        hal::util::Result<hal::step::Timing> timing(hal::step::PulseCount pulse) const noexcept override
+        {
+            if (invalid_at && pulse >= *invalid_at)
+                return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+            return hal::step::Timing{ period, 5us };
+        }
+    };
+}
+TEST_F(StepTest, AnalyticTailReplacementPreservesCommittedEdgesAndChangesFiniteEndpoint)
+{
+    auto original{ std::make_shared<AnalyticSequence>() };
+    ASSERT_TRUE(outputs[0]->prepareSequence(original));
+    ASSERT_TRUE(startMoves(10us));
+    hardware->advance(100'000U);
+    const auto cursor{ outputs[0]->scheduleCursor() };
+    ASSERT_TRUE(cursor);
+    EXPECT_EQ(cursor->first_uncommitted, 512U);
+    EXPECT_FALSE(cursor->terminal);
+    auto replacement{ std::make_shared<AnalyticSequence>() };
+    replacement->period = 200us;
+    replacement->maximum = 200us;
+    replacement->pulses = 1700U;
+    ASSERT_TRUE(outputs[0]->replaceSequence(*cursor, replacement));
+    const auto stale{ outputs[0]->replaceSequence(*cursor, original) };
+    ASSERT_FALSE(stale);
+    EXPECT_EQ(stale.error(), std::errc::resource_unavailable_try_again);
+    // The visible speed must still describe the executed, old DMA buffer.
+    EXPECT_EQ(outputs[0]->status().period, 100us);
+    hardware->advance(10'000'000U);
+    const auto edges{ rises(0) };
+    ASSERT_EQ(edges.size(), 1700U);
+    for (std::size_t i = 1; i < edges.size(); ++i)
+        EXPECT_EQ(edges[i] - edges[i - 1], i <= cursor->first_uncommitted ? 1000U : 2000U);
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
+    EXPECT_FALSE(hardware->high[0]);
+}
+
+TEST_F(StepTest, AnalyticCursorRejectsOldRefillsAndRunsAndImpossiblePeriods)
+{
+    const auto sequence{ std::make_shared<AnalyticSequence>() };
+    ASSERT_TRUE(outputs[0]->prepareSequence(sequence));
+    ASSERT_TRUE(startMoves(10us));
+    const auto cursor{ outputs[0]->scheduleCursor() };
+    ASSERT_TRUE(cursor);
+    hardware->advance(300'000U);
+    EXPECT_FALSE(outputs[0]->replaceSequence(*cursor, sequence));
+    static_cast<void>(outputs[0]->stop());
+    ASSERT_TRUE(outputs[0]->prepareSequence(sequence));
+    ASSERT_TRUE(outputs[0]->start());
+    EXPECT_FALSE(outputs[0]->replaceSequence(*cursor, sequence));
+    auto too_slow{ std::make_shared<AnalyticSequence>() };
+    too_slow->maximum = too_slow->period = 1s;
+    EXPECT_FALSE(outputs[0]->replaceSequence(*outputs[0]->scheduleCursor(), too_slow));
+    static_cast<void>(outputs[0]->stop());
+    auto short_move{ std::make_shared<AnalyticSequence>() };
+    short_move->pulses = 10U;
+    ASSERT_TRUE(outputs[0]->prepareSequence(short_move));
+    ASSERT_TRUE(outputs[0]->start());
+    EXPECT_TRUE(outputs[0]->scheduleCursor()->terminal);
+    EXPECT_FALSE(outputs[0]->replaceSequence(*outputs[0]->scheduleCursor(), sequence));
+}
+
+TEST_F(StepTest, InvalidAnalyticProviderStopsSafelyAndRetainsReconstructibleCounts)
+{
+    auto sequence{ std::make_shared<AnalyticSequence>() };
+    sequence->invalid_at = 600U;
+    ASSERT_TRUE(outputs[0]->prepareSequence(sequence));
+    ASSERT_TRUE(startMoves(10us));
+    hardware->advance(2'000'000U);
+    const auto status{ outputs[0]->status() };
+    EXPECT_EQ(status.state, State::DmaError);
+    EXPECT_EQ(status.pulses, rises(0).size());
+    EXPECT_FALSE(hardware->high[0]);
+    EXPECT_FALSE(hardware->registers.running);
+    const auto count{ rises(0).size() };
+    hardware->advance(hal::detail::step_park * 2ULL);
+    EXPECT_EQ(rises(0).size(), count);
 }

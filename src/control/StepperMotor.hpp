@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <future>
+#include <limits>
 #include <mutex>
 #include <optional>
 #include <thread>
@@ -31,6 +32,23 @@ class StepperMotor final
         Faulted
     };
 
+    enum class BufferMode
+    {
+        Aborting,
+        Buffered,
+        BlendingLow,
+        BlendingPrevious,
+        BlendingNext,
+        BlendingHigh
+    };
+    struct MotionDefaults
+    {
+        pnm::units::AngularAcceleration acceleration{ 3600_deg_s2 };
+        pnm::units::AngularAcceleration deceleration{ 3600_deg_s2 };
+        // A configured zero disables the jerk limit (trapezoidal profile).
+        pnm::units::AngularJerk jerk{ 36000_deg_s3 };
+    };
+
     StepperMotor(hal::board::MotorId id,
                  pnm::units::Angle reference_switch_position,
                  pnm::units::Angle full_step_angle,
@@ -43,23 +61,39 @@ class StepperMotor final
     StepperMotor(StepperMotor&&) = delete;
     StepperMotor& operator=(StepperMotor&&) = delete;
 
-    std::future<Result> move(Direction direction,
-                             pnm::units::AngularVelocity velocity,
-                             pnm::units::Time timeout = 0_s);
-
+    // Dynamics are positive magnitudes; zero selects the axis default.
+    // One pending successor; each call owns an independent completion future.
     std::future<Result> moveRel(pnm::units::Angle distance,
                                 pnm::units::AngularVelocity velocity,
+                                pnm::units::AngularAcceleration acceleration = 0_rad_s2,
+                                pnm::units::AngularAcceleration deceleration = 0_rad_s2,
+                                pnm::units::AngularJerk jerk = 0_rad_s3,
+                                BufferMode buffer_mode = BufferMode::Aborting,
                                 pnm::units::Time timeout = 0_s);
 
     std::future<Result> moveAbs(pnm::units::Angle target,
                                 pnm::units::AngularVelocity velocity,
+                                pnm::units::AngularAcceleration acceleration = 0_rad_s2,
+                                pnm::units::AngularAcceleration deceleration = 0_rad_s2,
+                                pnm::units::AngularJerk jerk = 0_rad_s3,
+                                BufferMode buffer_mode = BufferMode::Aborting,
                                 pnm::units::Time timeout = 0_s);
+    // Preserve the existing timeout-only call form.
+    std::future<Result> moveRel(pnm::units::Angle distance,
+                                pnm::units::AngularVelocity velocity,
+                                pnm::units::Time timeout);
+    std::future<Result> moveAbs(pnm::units::Angle target,
+                                pnm::units::AngularVelocity velocity,
+                                pnm::units::Time timeout);
+    pnm::Result<> setMotionDefaults(MotionDefaults defaults);
+    MotionDefaults motionDefaults() const;
 
     std::future<Result> reference(pnm::units::AngularVelocity seek_velocity = 5_rpm,
                                   pnm::units::AngularVelocity latch_velocity = 0.5_rpm,
                                   pnm::units::Time timeout = 30_s);
     bool isReferenced() const noexcept;
 
+    // Immediate abort (no deceleration ramp), also cancels queued commands.
     void stop() noexcept;
     void stopAndWait() noexcept;
 
@@ -74,10 +108,29 @@ class StepperMotor final
   private:
     std::future<Result> startMotion(std::packaged_task<Result(std::stop_token)> task);
 
-    Result performMotion(pnm::units::Angle position,
-                         pnm::units::AngularVelocity velocity,
-                         pnm::units::Time timeout,
-                         std::stop_token stop);
+    struct Command
+    {
+        pnm::units::Angle position;
+        pnm::units::AngularVelocity velocity;
+        MotionDefaults dynamics;
+        BufferMode mode;
+        pnm::units::Time timeout;
+        bool relative;
+        std::promise<Result> completion;
+    };
+    struct VelocityRequest
+    {
+        pnm::units::AngularVelocity velocity;
+        std::promise<pnm::Result<hal::step::PulseCount>> completion;
+    };
+    std::future<Result> submitMove(pnm::units::Angle position,
+                                   pnm::units::AngularVelocity velocity,
+                                   MotionDefaults overrides,
+                                   BufferMode mode,
+                                   pnm::units::Time timeout,
+                                   bool relative);
+    void runCommands(std::shared_ptr<Command> command, std::stop_token stop) noexcept;
+    void finishQueue(Result result) noexcept;
 
     Result performMotion(Direction direction,
                          pnm::units::AngularVelocity velocity,
@@ -123,6 +176,13 @@ class StepperMotor final
     mutable std::mutex m_mutex;
     std::mutex m_workerMutex;
     std::jthread m_worker;
+    mutable std::mutex m_queueMutex;
+    MotionDefaults m_motionDefaults;
+    bool m_busy{}, m_homing{};
+    std::shared_ptr<Command> m_pending;
+    std::shared_ptr<VelocityRequest> m_velocityRequest;
+    std::atomic_bool m_profileActive{};
+    std::atomic<hal::step::PulseCount> m_wakeAtPulse{ std::numeric_limits<hal::step::PulseCount>::max() };
 
     double m_motionSign{ 1.0 };
     hal::step::PulseCount m_accountedPulses{ 0U };

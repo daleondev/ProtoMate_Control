@@ -239,11 +239,10 @@ auto z_velocity = vertical.toAxisVelocity(m3.velocity());
 offsets. Angular positions remain unwrapped across multiple revolutions.
 `toAxisVelocity`/`toMotorVelocity` preserve signed motion, including direction
 inversion. `toAxisSpeed`/`toMotorSpeed` convert nonnegative magnitudes for
-`move`, `moveRel`, `moveAbs`, `reference` and `setVelocity`; they reject negative
+`moveRel`, `moveAbs`, `reference` and `setVelocity`; they reject negative
 speeds. A zero magnitude converts to zero, but the motor requires positive
-speeds for motion. Continuous `move()` still needs a motor `Direction` consistent
-with the desired signed joint velocity; referencing retains the motor's fixed
-Forward seek direction.
+speeds for motion. Move direction follows the signed displacement or target;
+referencing retains the motor's fixed Forward seek direction.
 
 The same position/velocity conversions apply to successful encoder results;
 retain errors from `actualPosition()`/`actualVelocity()` and ensure encoder
@@ -464,7 +463,7 @@ if (!generator->start()) throw std::runtime_error("step timebase failed");
 
 // After the controller enables the drivers and observes their settling time:
 auto motion1 = m1.moveRel(90_deg, 300_rpm);
-auto motion2 = m2.move(StepperMotor::Direction::Forward, 150_rpm);
+auto motion2 = m2.moveRel(10_rev, 150_rpm, 720_deg_s2, 1080_deg_s2, 7200_deg_s3);
 // Once m2 is running, a velocity change returns its first affected pulse:
 auto changed_at = m2.setVelocity(300_rpm); // Check the Result for rejection.
 m1.stop();                              // m2 continues.
@@ -473,24 +472,79 @@ auto result1 = motion1.get();
 auto result2 = motion2.get();
 ```
 
-`move`, `moveRel`, `moveAbs` and `reference` return futures. Replacing a motor's motion
-stops and joins only its previous worker. Finite moves round to the nearest
-microstep; `position()` tracks signed commanded pulses from a software zero.
-`m_position` and `m_velocity` are updated by per-axis progress callbacks, including
-the final stop/completion, without waking the motion worker. Both getters refresh
-hardware progress and return those same atomic fields. Position accumulates only
-new pulses; there is no separate position origin/cache. `velocity()` is signed,
-uses the timer-rounded period of the latest emitted pulse, and is zero before
-the first pulse and after stopping. A queued `setVelocity()` change is reflected
-only when its first affected pulse is emitted. `moveAbs()` returns `Rejected`
-until `isReferenced()` is true, including for a zero-distance request. A rejected
-unreferenced absolute request does not cancel a running reference sequence.
-Velocity arguments are positive magnitudes; direction comes from
-`Direction` or the signed target distance. A zero timeout means unlimited time.
-`setVelocity()` requires an active motion with unbuffered pulses; calling it
-immediately after the asynchronous `move()` can precede the start and be rejected.
-Automatic ramp planning, following-error handling and shared driver-enable
-policy remain controller work.
+`moveRel()` and `moveAbs()` accept `(position, velocity, acceleration,
+deceleration, jerk, buffer_mode, timeout)`. They return one future per command.
+Acceleration/deceleration use `pnm::units::AngularAcceleration` (`deg_s2`,
+`rad_s2`); jerk uses `AngularJerk` (`deg_s3`, `rad_s3`). Pneumo also provides
+linear `Jerk` (`mm_s3`, `m_s3`) and the corresponding time-based arithmetic.
+The three dynamics arguments default to zero, meaning **use the configured
+axis default**, not an instantaneous ramp. `setMotionDefaults()` configures
+positive acceleration/deceleration and nonnegative jerk while idle. Initial
+software defaults are 3600 °/s² acceleration/deceleration and 36000 °/s³ jerk;
+these must be tuned to the actual mechanics. A configured jerk of zero selects
+a trapezoidal profile. Positive jerk produces a continuous-acceleration S-curve.
+Short moves automatically reduce their peak speed to fit the available distance.
+Negative/nonfinite dynamics are rejected. The existing `(position, velocity,
+timeout)` overload remains available.
+
+`BufferMode` uses the following names (the equivalent PLC names have an `MC_`
+prefix). There is room for one active command and one queued successor:
+
+| Mode | Behavior when the axis is already moving |
+| --- | --- |
+| `Aborting` (default) | Immediately stop/join the current worker, cancel its queued successor, then start the new command from rest. |
+| `Buffered` | Complete the previous move at rest, then start the successor. |
+| `BlendingLow` | Request the lower of the two commanded speeds at their junction. |
+| `BlendingPrevious` | Request the previous command's speed at the junction. |
+| `BlendingNext` | Request the successor's speed at the junction. |
+| `BlendingHigh` | Request the higher of the two commanded speeds at the junction. |
+
+Blending joins same-direction commands within one hardware pulse stream.
+Velocity and acceleration are continuous at the replanned boundary. The planner
+reduces an infeasible junction speed; if the tail is already committed or no
+suitable splice fits, the successor executes from rest. A direction reversal
+always comes to rest. Submit successors early, before their predecessor's final
+DMA buffers are filled. Relative successors are relative to the predecessor's
+endpoint; absolute targets remain absolute. A second queued command returns
+`Rejected` and leaves accepted commands intact. A new `Aborting` command,
+`stop()`, switch activation toward the switch, timeout or fault cancels queued
+work. These abort paths remain **immediate stops**, not deceleration ramps.
+There is no coupled-slave axis mode in this API.
+
+```cpp
+auto first = m2.moveRel(-360_deg, 120_rpm, 1440_deg_s2, 2160_deg_s2, 14400_deg_s3);
+auto next = m2.moveRel(-180_deg, 60_rpm, 1440_deg_s2, 2160_deg_s2, 14400_deg_s3,
+                       StepperMotor::BufferMode::BlendingLow);
+// Each future belongs to a separate submitted command; inspect both results.
+```
+
+Finite moves round to the nearest microstep. `position()` tracks signed
+commanded pulses from a software zero. Per-axis progress callbacks update
+`m_position` and `m_velocity`, including the final stop/completion; both getters
+refresh hardware progress and return those atomic fields. `velocity()` uses the
+timer-rounded interval following the latest emitted pulse and is zero before
+the first pulse and after stopping. It is a discrete STEP-rate measurement,
+not an exact sample of the continuous mathematical velocity.
+`moveAbs()` is rejected until `isReferenced()` is true, including zero-distance
+requests. Velocity arguments are positive magnitudes. Zero timeout means no
+deadline; a buffered command's timeout starts when it becomes active.
+
+`setVelocity()` asks the motion worker to replan the uncommitted tail using the
+active acceleration/deceleration/jerk settings and returns the first affected
+pulse number. It preserves the finite endpoint and any accepted blend endpoint;
+it returns an error when the change cannot fit. This is a thread-context call,
+which waits for planning to finish. It requires an active, started motion with
+unbuffered pulses; calling immediately after asynchronous submission can precede
+startup and be rejected. Already committed pulses remain unchanged. Following-
+error handling and shared driver-enable policy remain controller work.
+
+The planner stores a bounded number of analytic phases, not an entry for every
+pulse. The HAL accepts an immutable `hal::step::Sequence`, evaluates its timing
+while refilling DMA, and supports `scheduleCursor()` / `replaceSequence()` to
+replace an uncommitted tail. A cursor is revision-checked: a refill, replacement
+or restart invalidates stale cursors. Providers must be allocation-free,
+nonblocking and bounded in ISR context. Invalid timing stops the generator;
+retired providers are released by the calling thread after the HAL unlocks.
 
 `StepperMotor` takes the reference-switch coordinate as its second constructor
 argument: `StepperMotor{Motor1, 135_deg, 1.8_deg, 16U, generator}`. The current
@@ -532,7 +586,8 @@ Motion workers block on an event until their axis completes/stops/faults, a stop
 request or reference-switch activation arrives, or the deadline expires. They do not poll every millisecond.
 Each motor owns its axis progress subscription and a pre-created
 `runtime::Notification`. The callback accounts new pulses and executed timing;
-only a terminal state signals the event. The worker stops the output when needed,
+a terminal state or a reached blend boundary signals the event. Queued commands
+and velocity-change requests also wake the worker. The worker stops the output when needed,
 checks the final status and resolves its future in thread context. Accounting is
 performed once in the callback, including the final count captured by `stop()`.
 Signals arriving before a wait are retained, and repeated signals coalesce.
@@ -588,17 +643,17 @@ not change DIR/enable or implement reference-switch stopping.
 Each axis has two buffers of up to 512 edge timestamps (256 pulses each).
 A live timing update therefore has up to **512 pulses of lookahead**: roughly
 5.12 ms at 100 kHz, or 512 ms at 1 kHz. It changes the high time of the returned
-pulse and its following rising-edge interval. For precisely planned acceleration,
-use `prepareSequence()` so every pulse's timing is known in advance. The motor
-wrapper currently exposes uniform moves and live velocity changes; it does not
-calculate acceleration profiles.
+pulse and its following rising-edge interval. The motor planner uses the immutable sequence API for ramps and blending.
+Its first pulse includes the time to accelerate through one microstep, plus a
+10 ms arming margin. Profile periods are quantized to timer ticks.
 
 Very slow profiles use smaller blocks so the queued horizon stays below a
 quarter counter cycle. Buffer length stays fixed during a motion. Live updates
 must also fit that horizon: with full 512-edge blocks, periods above
 **209.7151 ms** are rejected (about 4.77 steps/s minimum). More extreme slowdowns
 require a new motion or a prepared sequence. Updates are rejected once all
-finite pulses are buffered and for multi-pulse prepared sequences. Very small
+finite pulses are buffered. `updateTiming()` accepts uniform trains only; analytic
+profiles use a revision-checked replacement sequence. Very small
 blocks chosen for an initially slow move increase refill interrupt load when
 accelerated; use a prepared sequence spanning the intended speed range for
 large changes.

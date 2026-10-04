@@ -223,6 +223,13 @@ namespace
                 case 14:
                     passed = motors();
                     break;
+                case 15:
+                case 16:
+                case 17:
+                case 18:
+                case 19:
+                    passed = plannedMotors(test);
+                    break;
                 default:
                     break;
             }
@@ -482,6 +489,108 @@ namespace
             return check(delivered && deferred && masks_preserved && calls[0] == 2U,
                          "masked thread callback defers rescheduling until unlock");
         }
+        // All profile cases use Backward moves so an unconnected reference
+        // switch remains protective without needing extra bench jumpers.
+        auto plannedMotors(unsigned test) -> bool
+        {
+            m_directions = {};
+            struct RestoreDirections
+            {
+                decltype(m_directions)& directions;
+                ~RestoreDirections()
+                {
+                    for (unsigned i = 0; i < directions.size(); ++i)
+                        directions[i] =
+                          hal::board::createStepperDirectionOutput(static_cast<hal::board::MotorId>(i));
+                }
+            } restore{ m_directions };
+            using enum StepperMotor::Result;
+            using enum StepperMotor::BufferMode;
+            std::array<std::unique_ptr<StepperMotor>, 3> motors;
+            for (unsigned i = 0; i < 3; ++i) {
+                motors[i] = std::make_unique<StepperMotor>(
+                  static_cast<hal::board::MotorId>(i), 0_deg, 1.8_deg, 16U, m_generator);
+                if (!motors[i]->setMotionDefaults({ 1440_deg_s2, 2160_deg_s2, 14400_deg_s3 }))
+                    return false;
+            }
+            if (!m_generator->start())
+                return false;
+            std::array<std::future<StepperMotor::Result>, 3> active, following;
+            for (unsigned i = 0; i < 3; ++i) {
+                if (test == 15) {
+                    active[i] = motors[i]->moveRel(-360_deg - 180_deg * i, 120_rpm + 60_rpm * i);
+                }
+                else if (test == 16) {
+                    active[i] = motors[i]->moveRel(-360_deg, 120_rpm);
+                    following[i] = motors[i]->moveRel(-180_deg,
+                                                      60_rpm,
+                                                      0_rad_s2,
+                                                      0_rad_s2,
+                                                      0_rad_s3,
+                                                      i == 0   ? BlendingLow
+                                                      : i == 1 ? BlendingHigh
+                                                               : Buffered);
+                }
+                else if (test == 17) {
+                    active[i] = motors[i]->moveRel(-720_deg, 120_rpm);
+                }
+                else {
+                    active[i] = motors[i]->moveRel(test == 19 ? -14400_deg : -7200_deg,
+                                                   1875_rpm,
+                                                   100000_deg_s2,
+                                                   100000_deg_s2,
+                                                   1000000_deg_s3);
+                }
+                if (test == 19 && i < 2)
+                    std::this_thread::sleep_for(300ms);
+            }
+            if (test == 17 || test == 19) {
+                std::this_thread::sleep_for(test == 19 ? 100ms : 250ms);
+                const auto update{ motors[1]->setVelocity(test == 19 ? 1000_rpm : 240_rpm) };
+                if (!check(update.has_value(), "jerk-limited live velocity update accepted"))
+                    return false;
+                log("PLANNED velocity first_affected_pulse=%llu", static_cast<unsigned long long>(*update));
+            }
+            for (unsigned i = 0; i < 3; ++i) {
+                if (!check(active[i].wait_for(6s) == std::future_status::ready &&
+                             active[i].get() == Completed,
+                           "profile command completed"))
+                    return false;
+                if (test == 16 && !check(following[i].wait_for(6s) == std::future_status::ready &&
+                                           following[i].get() == Completed,
+                                         "successor completed"))
+                    return false;
+                const auto degrees{ test == 15   ? 360.0 + 180.0 * i
+                                    : test == 16 ? 540.0
+                                    : test == 17 ? 720.0
+                                    : test == 19 ? 14400.0
+                                                 : 7200.0 };
+                if (!check(std::abs(motors[i]->position().get<pnm::units::AngleUnits::deg>() + degrees) <
+                               1e-6 &&
+                             motors[i]->velocity() == 0_rpm,
+                           "profile final position and velocity"))
+                    return false;
+            }
+            log("PLANNED test=%u cumulative_counts=%u,%u,%u",
+                test,
+                test == 15   ? 3200U
+                : test == 16 ? 4800U
+                : test == 17 ? 6400U
+                : test == 19 ? 128000U
+                             : 64000U,
+                test == 15   ? 4800U
+                : test == 16 ? 4800U
+                : test == 17 ? 6400U
+                : test == 19 ? 128000U
+                             : 64000U,
+                test == 15   ? 6400U
+                : test == 16 ? 4800U
+                : test == 17 ? 6400U
+                : test == 19 ? 128000U
+                             : 64000U);
+            return check(padsLow() && m_enable->read() == hal::gpio::Level::High,
+                         "profile outputs low and drivers disabled");
+        }
         auto motors() -> bool
         {
             // Motor objects own DIR/reference resources; release the bench's DIR
@@ -499,44 +608,38 @@ namespace
             } restore{ m_directions };
             using namespace pnm::units::literals;
             using enum StepperMotor::Result;
-            {
-                // Release the preflight handles before the motors claim their inputs.
-                auto first_reference{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::Motor2) };
-                auto second_reference{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::Motor3) };
-                if (!check(first_reference && second_reference &&
-                             first_reference->read() == hal::gpio::Level::Low &&
-                             second_reference->read() == hal::gpio::Level::Low,
-                           "case m requires connected, released M2/M3 NC switches (REF LOW)"))
-                    return false;
-            }
+            // Backward motion is permitted with open reference inputs, so the
+            // bare-board bench needs no switch jumpers. Drivers stay disabled.
             StepperMotor first{ hal::board::MotorId::Motor2, 0_deg, 1.8_deg, 16U, m_generator };
             StepperMotor second{ hal::board::MotorId::Motor3, 0_deg, 1.8_deg, 16U, m_generator };
             if (!m_generator->start())
                 return false;
-            auto a{ first.moveRel(90_deg, 300_rpm) };
-            auto b{ second.move(StepperMotor::Direction::Backward, 300_rpm, 0.02_s) };
+            auto a{ first.moveRel(-90_deg, 300_rpm) };
+            auto b{ second.moveRel(-100_rev, 300_rpm, 0.02_s) };
             if (!check(a.wait_for(1s) == std::future_status::ready && a.get() == Completed,
                        "motor future completes without polling") ||
                 !check(b.wait_for(1s) == std::future_status::ready && b.get() == TimedOut,
                        "independent motor deadline wakes waiter"))
                 return false;
             if (!check(m_axes[1]->pulseCount() == 800U &&
-                         std::abs(first.position().get<pnm::units::AngleUnits::deg>() - 90.0) < 1e-9 &&
+                         std::abs(first.position().get<pnm::units::AngleUnits::deg>() + 90.0) < 1e-9 &&
                          first.velocity() == 0_rpm && second.velocity() == 0_rpm,
                        "final commanded position accounts for all pulses"))
                 return false;
-            auto moving{ first.move(StepperMotor::Direction::Backward, 9.375_rpm) };
-            std::this_thread::sleep_for(10ms);
+            auto moving{ first.moveRel(-100_rev, 9.375_rpm) };
+            std::this_thread::sleep_for(150ms);
             const auto boundary{ first.setVelocity(18.75_rpm) };
             const auto pending{ m_axes[1]->status() };
             if (!check(boundary.has_value() && pending.counts_exact && pending.pulses < *boundary &&
-                         std::abs(first.velocity().get<pnm::units::AngularVelocityUnits::rpm>() + 9.375) < 0.001,
+                         std::abs(first.velocity().get<pnm::units::AngularVelocityUnits::rpm>() + 9.375) <
+                           0.001,
                        "current velocity excludes pending DMA timing change"))
                 return false;
-            std::this_thread::sleep_for(1100ms);
+            std::this_thread::sleep_for(1200ms);
             const auto executed{ m_axes[1]->status() };
             if (!check(executed.counts_exact && executed.pulses >= *boundary &&
-                         std::abs(first.velocity().get<pnm::units::AngularVelocityUnits::rpm>() + 18.75) < 0.001,
+                         std::abs(first.velocity().get<pnm::units::AngularVelocityUnits::rpm>() + 18.75) <
+                           0.001,
                        "current signed velocity follows executed timing"))
                 return false;
             first.stop();
@@ -546,8 +649,8 @@ namespace
                        "stop publishes final motor state before worker completion"))
                 return false;
             for (unsigned i = 0; i < 10; ++i) {
-                auto old{ first.move(StepperMotor::Direction::Forward, 300_rpm) };
-                auto next{ first.moveRel(1.125_deg, 300_rpm) };
+                auto old{ first.moveRel(-100_rev, 300_rpm) };
+                auto next{ first.moveRel(-1.125_deg, 300_rpm) };
                 if (!check(old.wait_for(1s) == std::future_status::ready && old.get() == Stopped &&
                              next.wait_for(1s) == std::future_status::ready && next.get() == Completed,
                            "replacement wakes cancellation and completes next motion"))
@@ -771,8 +874,10 @@ namespace
         log("5=abort continuous  6=late IRQ  7=underrun  8=wrap (~7m15s)");
         log("9=run cases 1..7  i=independent start/stop/live speed  w=quick counter wrap  h=help");
         log("n=ISR/thread notification wait  m=StepperMotor completion/cancel/timeout");
+        log("p=three ramps  b=Low/High/Buffered  v=live ramp update  a=100kHz profile stress x3");
         log("c=TIM2 clock versus RTC crystal (~31 s, no STEP pulses)");
-        log("EN_N remains HIGH. DIR stays LOW except in case m. Verify waveforms separately.");
+        log("s=staggered 100kHz profiles with a live slowdown");
+        log("EN_N remains HIGH. DIR stays LOW in the bench cases. Verify waveforms separately.");
     }
 }
 
@@ -822,6 +927,15 @@ int main()
             }
             else if (line[0] == 'm') {
                 static_cast<void>(bench.run(14U));
+            }
+            else if (line[0] == 'p' || line[0] == 'b' || line[0] == 'v' || line[0] == 'a') {
+                static_cast<void>(bench.run(line[0] == 'p'   ? 15U
+                                            : line[0] == 'b' ? 16U
+                                            : line[0] == 'v' ? 17U
+                                                             : 18U));
+            }
+            else if (line[0] == 's') {
+                static_cast<void>(bench.run(19U));
             }
             else if (line[0] == '9') {
                 bool passed{ true };

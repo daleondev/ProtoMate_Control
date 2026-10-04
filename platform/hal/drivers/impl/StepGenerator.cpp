@@ -47,6 +47,19 @@ namespace hal::detail
             {
                 return m_generator->prepare(m_axis, sequence, sequence.size());
             }
+            auto prepareSequence(std::shared_ptr<const step::Sequence> sequence) -> util::Result<> override
+            {
+                return m_generator->prepareSequence(m_axis, std::move(sequence));
+            }
+            auto scheduleCursor() noexcept -> util::Result<step::ScheduleCursor> override
+            {
+                return m_generator->scheduleCursor(m_axis);
+            }
+            auto replaceSequence(step::ScheduleCursor cursor, std::shared_ptr<const step::Sequence> sequence)
+              -> util::Result<> override
+            {
+                return m_generator->replaceSequence(m_axis, cursor, std::move(sequence));
+            }
             auto start(std::chrono::nanoseconds delay) noexcept -> util::Result<> override
             {
                 return m_generator->startAxis(m_axis, delay);
@@ -55,7 +68,9 @@ namespace hal::detail
             auto status() noexcept -> step::AxisStatus override
             {
                 const auto group{ m_generator->status() };
-                return { group.axes[m_axis], group.pulses[m_axis], group.counts_exact, group.periods[m_axis] };
+                return {
+                    group.axes[m_axis], group.pulses[m_axis], group.counts_exact, group.periods[m_axis]
+                };
             }
             auto updateTiming(step::Timing timing) noexcept -> util::Result<step::PulseCount> override
             {
@@ -126,6 +141,7 @@ namespace hal::detail
             return fail(std::errc::invalid_argument);
         }
         std::vector<Timing> timings;
+        std::shared_ptr<const step::Sequence> retired;
         timings.reserve(sequence.size());
         for (const auto timing : sequence) {
             const auto converted{ convertTiming(timing) };
@@ -143,12 +159,15 @@ namespace hal::detail
             return fail(std::errc::device_or_resource_busy);
         }
         m_axes[index].timings.swap(timings); // Free retired allocation after unlock.
+        m_axes[index].sequence.swap(retired);
+        ++m_axes[index].revision;
         m_axes[index].requested = count;
         m_status.axes[index] = step::State::Ready;
         return {};
     }
     auto StepGenerator::clear(std::size_t index) noexcept -> util::Result<>
     {
+        std::shared_ptr<const step::Sequence> retired;
         STEP_LOCK;
         if (index >= m_axes.size()) {
             return fail(std::errc::invalid_argument);
@@ -161,6 +180,8 @@ namespace hal::detail
             return fail(std::errc::device_or_resource_busy);
         }
         m_axes[index].timings.clear();
+        m_axes[index].sequence.swap(retired);
+        ++m_axes[index].revision;
         m_status.axes[index] = step::State::Idle;
         return {};
     }
@@ -177,7 +198,7 @@ namespace hal::detail
         }
         service();
         auto& axis{ m_axes[index] };
-        if (m_status.state != step::State::Running || axis.finished || axis.terminal ||
+        if (m_status.state != step::State::Running || axis.finished || axis.terminal || axis.sequence ||
             axis.timings.size() != 1U) {
             return fail(std::errc::operation_not_permitted);
         }
@@ -190,17 +211,88 @@ namespace hal::detail
         axis.timings[0] = *converted;
         return axis.generated + 1U;
     }
-    auto StepGenerator::fill(std::size_t index, unsigned buffer) noexcept -> void
+    auto StepGenerator::prepareSequence(std::size_t index, std::shared_ptr<const step::Sequence> sequence)
+      -> util::Result<>
+    {
+        if (index >= m_axes.size() || !sequence || sequence->count() == 0U ||
+            !convertTiming({ sequence->maximumPeriod(), std::chrono::microseconds{ 5 } }))
+            return fail(std::errc::invalid_argument);
+        STEP_LOCK;
+        if (m_inCallback)
+            return fail(std::errc::device_or_resource_busy);
+        service();
+        auto& axis{ m_axes[index] };
+        if (!axis.finished)
+            return fail(std::errc::device_or_resource_busy);
+        axis.requested = sequence->count();
+        axis.sequence.swap(sequence);
+        ++axis.revision;
+        m_status.axes[index] = step::State::Ready;
+        return {};
+    }
+    auto StepGenerator::scheduleCursor(std::size_t index) noexcept -> util::Result<step::ScheduleCursor>
+    {
+        STEP_LOCK;
+        if (index >= m_axes.size())
+            return fail(std::errc::invalid_argument);
+        service();
+        const auto& axis{ m_axes[index] };
+        if (axis.finished || !axis.sequence)
+            return fail(std::errc::operation_not_permitted);
+        return step::ScheduleCursor{ axis.generated, axis.terminal, axis.revision };
+    }
+    auto StepGenerator::replaceSequence(std::size_t index,
+                                        step::ScheduleCursor cursor,
+                                        std::shared_ptr<const step::Sequence> sequence) -> util::Result<>
+    {
+        if (index >= m_axes.size() || !sequence || sequence->count() <= cursor.first_uncommitted)
+            return fail(std::errc::invalid_argument);
+        const auto longest{ convertTiming({ sequence->maximumPeriod(), std::chrono::microseconds{ 5 } }) };
+        if (!longest)
+            return std::unexpected(longest.error());
+        STEP_LOCK;
+        if (m_inCallback)
+            return fail(std::errc::device_or_resource_busy);
+        service();
+        auto& axis{ m_axes[index] };
+        if (axis.finished || axis.terminal || !axis.sequence)
+            return fail(std::errc::operation_not_permitted);
+        if (axis.generated != cursor.first_uncommitted || axis.revision != cursor.revision)
+            return fail(std::errc::resource_unavailable_try_again);
+        if (longest->period > step_horizon / axis.entries)
+            return fail(std::errc::result_out_of_range);
+        axis.requested = sequence->count();
+        axis.sequence.swap(sequence);
+        ++axis.revision;
+        return {};
+    }
+    auto StepGenerator::fill(std::size_t index, unsigned buffer) noexcept -> bool
     {
         auto& axis{ m_axes[index] };
         auto& data{ m_hardware->buffers()[index][buffer] };
-        axis.buffered_period[buffer] = axis.timings.front().period;
+        if (axis.sequence && !axis.terminal) {
+            const auto count{ std::min<step::PulseCount>(axis.entries / 2U,
+                                                         *axis.requested - axis.generated) };
+            if (!axis.sequence->generate(axis.generated, std::span{ m_sequenceTimings }.first(count)))
+                return false;
+        }
         for (std::size_t i = 0; i < axis.entries; i += 2U) {
             if (axis.terminal) {
                 data[i] = data[i + 1U] = step_park;
                 continue;
             }
-            const auto timing{ axis.timings[axis.timings.size() == 1U ? 0U : axis.generated] };
+            Timing timing{};
+            if (axis.sequence) {
+                const auto value{ m_sequenceTimings[i / 2U] };
+                const auto converted{ convertTiming(value) };
+                if (!converted || value.period > axis.sequence->maximumPeriod() ||
+                    converted->period > step_horizon / axis.entries)
+                    return false;
+                timing = *converted;
+            }
+            else
+                timing = axis.timings[axis.timings.size() == 1U ? 0U : axis.generated];
+            axis.periods[buffer][i / 2U] = timing.period;
             axis.last_fall = stepAdd(axis.next_rise, timing.high);
             axis.next_rise = stepAdd(axis.next_rise, timing.period);
             ++axis.generated;
@@ -208,6 +300,7 @@ namespace hal::detail
             data[i] = axis.last_fall;
             data[i + 1U] = axis.terminal ? step_park : axis.next_rise;
         }
+        return true;
     }
     auto StepGenerator::start() noexcept -> util::Result<>
     {
@@ -230,7 +323,8 @@ namespace hal::detail
             m_axes[i].finished = true;
             m_listeners[i].notified = true;
             m_progressListeners[i].active = false;
-            m_status.axes[i] = m_axes[i].timings.empty() ? step::State::Idle : step::State::Ready;
+            m_status.axes[i] =
+              m_axes[i].timings.empty() && !m_axes[i].sequence ? step::State::Idle : step::State::Ready;
         }
         m_hardware->start(step_park);
         m_status.state = step::State::Running;
@@ -250,7 +344,7 @@ namespace hal::detail
         }
         service();
         auto& axis{ m_axes[index] };
-        if (m_status.state != step::State::Running || axis.timings.empty()) {
+        if (m_status.state != step::State::Running || (axis.timings.empty() && !axis.sequence)) {
             return fail(std::errc::operation_not_permitted);
         }
         if (!axis.finished) {
@@ -266,15 +360,20 @@ namespace hal::detail
         axis.generated = axis.completed_pulses = 0U;
         axis.target = 0U;
         axis.terminal = false;
-        const auto longest{ std::ranges::max(axis.timings, {}, &Timing::period).period };
+        const auto longest{
+            axis.sequence
+              ? convertTiming({ axis.sequence->maximumPeriod(), std::chrono::microseconds{ 5 } })->period
+              : std::ranges::max(axis.timings, {}, &Timing::period).period
+        };
         axis.entries = 2U * std::min<std::uint32_t>(step_buffer_edges / 2U, step_horizon / (2U * longest));
         // Short finite moves must issue a completion IRQ on their final fall.
         if (axis.requested && *axis.requested < axis.entries / 2U) {
             axis.entries = static_cast<std::uint32_t>(*axis.requested * 2U);
         }
         axis.next_rise = first;
-        fill(index, 0U);
-        fill(index, 1U);
+        if (!fill(index, 0U) || !fill(index, 1U))
+            return fail(std::errc::invalid_argument);
+        ++axis.revision;
         m_hardware->publish();
         // First compare is still parked until arm validates its remaining lead.
         if (!m_hardware->arm(index, first, axis.entries)) {
@@ -372,9 +471,8 @@ namespace hal::detail
                     // Read before refilling: a just-completed buffer can still
                     // own the latest pulse until the next rising edge. Retain
                     // its period when subsequent samples see that same count.
-                    const auto period{ axis.timings.size() == 1U
-                                         ? axis.buffered_period[((pulses - 1U) / (axis.entries / 2U)) % 2U]
-                                         : axis.timings[pulses - 1U].period };
+                    const auto period{ axis.periods[((pulses - 1U) / (axis.entries / 2U)) % 2U]
+                                                   [(pulses - 1U) % (axis.entries / 2U)] };
                     m_status.periods[i] = std::chrono::nanoseconds{ std::uint64_t{ period } * step_tick_ns };
                 }
                 m_status.pulses[i] = pulses;
@@ -502,7 +600,9 @@ namespace hal::detail
     }
     auto StepGenerator::axisStatus(std::size_t index) const noexcept -> step::AxisStatus
     {
-        return { m_status.axes[index], m_status.pulses[index], m_status.counts_exact, m_status.periods[index] };
+        return {
+            m_status.axes[index], m_status.pulses[index], m_status.counts_exact, m_status.periods[index]
+        };
     }
     auto StepGenerator::notify() noexcept -> void
     {
@@ -576,7 +676,10 @@ namespace hal::detail
             axis.completed_pulses += axis.entries / 2U;
             axis.target = sample.channels[i].target;
             m_hardware->acknowledge(i);
-            fill(i, 1U - axis.target);
+            if (!fill(i, 1U - axis.target)) {
+                finish(step::State::DmaError, true);
+                return;
+            }
         }
         m_hardware->publish();
         sample = m_hardware->sample();

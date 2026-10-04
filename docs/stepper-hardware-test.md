@@ -1,9 +1,10 @@
 # Step-generator bench test (NUCLEO-H753ZI)
 
 This dedicated image runs the production TIM2/DMA step generator through a
-serial menu. It keeps **PE15 / EN_N high (disabled)**. DIR outputs stay low
-except during the motor-level `m` case, which restores them afterward. Each
-command starts a bounded test after a two-second capture preparation delay. Nothing pulses until you enter a command.
+serial menu. It keeps **PE15 / EN_N high (disabled)**. DIR outputs stay low;
+motor-level cases use backward moves, so open reference inputs need no jumpers.
+Each command starts a bounded test after a two-second capture preparation delay.
+Nothing pulses until you enter a command.
 
 The firmware checks DMA-derived pulse counts, completion/abort states,
 monotonic callbacks, stopped GPIO levels, and the autonomous underrun stop.
@@ -103,7 +104,7 @@ instrument's inputs and ground, not its supply output.
 | Ground | CN10.22 | Ground |
 
 Optional DIR probes are CN10.26 / PE12, CN10.10 / PE13, and CN10.8 / PE14;
-all stay low except during the motor-level `m` case. Connector numbering is also documented in the
+all stay low in these bench cases. Connector numbering is also documented in the
 [project pin assignment](../README.md#stepper-gpio-assignment).
 
 Select a rising-edge trigger on M1_STEP, sample at **20 MS/s or faster**, and
@@ -131,7 +132,12 @@ after inspecting individual captures. `h` prints the menu.
 | `i` | 100000 / 20000 / first burst + 333 | M1: 10 µs; M2: 40 → 20 µs; M3: 100 then 50 µs | Independent start/stop/restart and live timing change |
 | `w` | 64 / 64 / 64 | 100 / 200 / 400 µs | Fast wrap test: idle counter placed 5 ms before overflow |
 | `n` | 513 / 777 / 1000, then M1 stopped before its first pulse | 10 / 20 / 40 µs | ISR completion wakeups and interrupt-masked thread wakeup |
-| `m` | M2: 800 then ten 10-pulse replacements; M3: timeout-dependent | 62.5 µs | Real `StepperMotor` completion, cancellation and timeout |
+| `m` | M2: 800, a live speed-change run, then ten 10-pulse replacements; M3: timeout-dependent | Ramped motion | Real `StepperMotor` completion, cancellation and timeout |
+| `p` | 3200 / 4800 / 6400 | S-curves, target speeds 120 / 180 / 240 rpm | Independent profiles with exact endpoints |
+| `b` | 4800 / 4800 / 4800 total | 120 → 60 rpm commands; Low / High / Buffered | Continuous 60 / 120 rpm junctions on M1/M2; rest between M3 commands |
+| `v` | 6400 / 6400 / 6400 | 120 rpm commands; M2 changes to 240 rpm | Live jerk-limited replan; unchanged finite endpoints |
+| `a` | 64000 / 64000 / 64000 | S-curves to 1875 rpm (100 kHz STEP) | Three-axis profile refill stress test |
+| `s` | 128000 / 128000 / 128000 | Same ramps, starts staggered by 300 ms; M2 slows to 1000 rpm | Independent arming and replanning while other axes run at full speed |
 | `c` | No pulses | TIM2 counter compared with RTC/LSE | Three 10-second clock measurements, about 31 s total |
 
 For all ordinary completed pulses, high time is **5 µs**, independent of the
@@ -272,15 +278,14 @@ priority waiting thread must run only after that mask is released. The final
 M1 run count is zero because its second motion is stopped before the first edge;
 the earlier 513 pulses remain visible in the capture.
 
-Command `m` runs the actual `StepperMotor` workers. It requires connected,
-released NC switches on M2_REF and M3_REF (both LOW); an open input rejects the
-test before motion. M2 completes 800 pulses,
+Command `m` runs the actual `StepperMotor` workers using backward moves,
+which are allowed with open reference inputs. No switch jumpers are required. M2 completes 800 pulses,
 M3 independently times out, and ten replacement commands cancel their predecessors
 and complete 10 pulses each. M2 also checks a queued velocity change while moving
 backward. Worker futures must finish without polling status.
 An immediately replaced predecessor can emit pulses if it starts before the
-replacement arrives, so the total capture count is not fixed. DIR changes in
-this test and returns low afterward. Shared EN_N stays high throughout.
+replacement arrives, so the total capture count is not fixed. DIR remains low
+and shared EN_N stays high throughout.
 
 ## Interpret the result
 
@@ -322,3 +327,23 @@ cmake --build --preset debug-stm32
 openocd -f interface/stlink.cfg -f target/stm32h7x_dual_bank.cfg \
   -c "program build/debug-stm32/Application.elf verify reset exit"
 ```
+
+## Profile commands
+
+The motor-level cases use a 1.8° full step and 16 microsteps (0.1125° per STEP).
+`p`, `b`, and `v` use 1440°/s² acceleration, 2160°/s² deceleration and
+14400°/s³ jerk. A short move may finish before reaching its requested cruise
+speed. `a` uses 100000°/s² acceleration/deceleration and 1000000°/s³ jerk.
+`s` uses the same dynamics as `a`, doubles the distances, staggers the starts,
+and requests M2's slowdown 100 ms after starting M3.
+These are electrical bench parameters with driver enable held disabled.
+
+In `b`, inspect the interval between pulses 3200 and 3201. M1 crosses the
+junction at 60 rpm (312.5 µs); M2 at 120 rpm (156.25 µs, rounded upward to
+156.3 µs timer ticks). M3 finishes, waits at rest, then accelerates again.
+The total physical count is 4800 on every channel; M3's final run count is
+1600 because its buffered command starts a new run. In `v`, the UART prints
+the first affected pulse; earlier committed intervals must remain unchanged.
+For all these cases, verify 5 µs high phases, no extra pulses, and low outputs
+after completion. A 7-second, 24 MS/s capture armed before sending the command
+covers the preparation delay and complete motion.

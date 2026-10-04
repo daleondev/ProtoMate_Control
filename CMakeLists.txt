@@ -122,7 +122,12 @@ if(HAL_HARDWARE_STEP_TEST)
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_step_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/control/StepperMotor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/control/StepperMotion.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/control/MotionProfile.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/control/MotionSequence.cpp
     )
+    set_source_files_properties(src/control/MotionProfile.cpp src/control/MotionSequence.cpp PROPERTIES
+        COMPILE_OPTIONS "$<$<CONFIG:Release>:-O3>")
     target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(${PROJECT_NAME} PRIVATE pneumo::pneumo)
 elseif(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)

@@ -58,6 +58,37 @@ namespace hal
             std::chrono::nanoseconds period{};
             constexpr bool operator==(const AxisStatus&) const = default;
         };
+
+        // Immutable finite schedule evaluated while refilling DMA. Implementations
+        // must be bounded, allocation-free, nonblocking and safe in an ISR.
+        class Sequence
+        {
+          public:
+            virtual ~Sequence() = default;
+            virtual PulseCount count() const noexcept = 0;
+            virtual std::chrono::nanoseconds maximumPeriod() const noexcept = 0;
+            virtual util::Result<Timing> timing(PulseCount zero_based_pulse) const noexcept = 0;
+            // Batch evaluation may reuse local inversion work; the trajectory
+            // remains immutable and can be read concurrently by the planner.
+            virtual util::Result<> generate(PulseCount first, std::span<Timing> target) const noexcept
+            {
+                for (auto& entry : target) {
+                    const auto value{ timing(first++) };
+                    if (!value)
+                        return std::unexpected(value.error());
+                    entry = *value;
+                }
+                return {};
+            }
+        };
+        struct ScheduleCursor
+        {
+            // First period not committed to DMA. Its rising edge is already fixed
+            // by the preceding period; a replacement must start at that edge.
+            PulseCount first_uncommitted{};
+            bool terminal{};
+            std::uint64_t revision{};
+        };
     }
 
     // Axis view of a shared generator. Preparing never starts an output.
@@ -87,6 +118,22 @@ namespace hal
         // that pulse's rising edge. The sequence is copied before returning.
         [[nodiscard]] virtual auto prepareSequence(std::span<const step::Timing> sequence)
           -> util::Result<> = 0;
+        [[nodiscard]] virtual auto prepareSequence(std::shared_ptr<const step::Sequence>) -> util::Result<>
+        {
+            return std::unexpected(std::make_error_code(std::errc::not_supported));
+        }
+        [[nodiscard]] virtual auto scheduleCursor() noexcept -> util::Result<step::ScheduleCursor>
+        {
+            return std::unexpected(std::make_error_code(std::errc::not_supported));
+        }
+        // The cursor must still match. Replacements cannot change committed
+        // periods or the first uncommitted rising edge. Retired schedules are
+        // released in the calling thread after unlocking, never by an IRQ.
+        [[nodiscard]] virtual auto replaceSequence(step::ScheduleCursor,
+                                                   std::shared_ptr<const step::Sequence>) -> util::Result<>
+        {
+            return std::unexpected(std::make_error_code(std::errc::not_supported));
+        }
         // Start this prepared axis on the running timebase; never resets CNT
         // or another axis. Delay >= 5 us, default 1 ms. Very short delays may
         // be rejected with timed_out if setup consumes the scheduling margin.
