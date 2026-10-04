@@ -1,17 +1,22 @@
 #include "StepperMotor.hpp"
 
-#include "hal/drivers/factory/encoder.hpp"
-#include "hal/drivers/factory/gpio.hpp"
-#include "hal/drivers/factory/pwm.hpp"
-
 #include "pneumo/logging.hpp"
 
-StepperMotor::StepperMotor(pnm::units::Angle full_step_angle, size_t microsteps)
-  : m_full_step_angle{ full_step_angle }
+StepperMotor::StepperMotor(hal::board::MotorId id,
+                           pnm::units::Angle full_step_angle,
+                           size_t microsteps,
+                           const std::shared_ptr<hal::IStepGenerator>& step_generator)
+  : m_id{ id }
+  , m_fullStepAngle{ full_step_angle }
   , m_microsteps{ microsteps }
+  , m_stepOutput{ hal::board::createStepperStepOutput(step_generator, id) }
+  , m_dirOutput{ hal::board::createStepperDirectionOutput(id) }
+  , m_referenceSwitchInput{ hal::board::createReferenceLimitSwitch(id) }
+  , m_encoderInput{ hal::board::createEncoder(id) }
+  , m_encoderIndexInput{ hal::board::createEncoderIndex(id) }
 {
     pnm::log::debug("Motor initialized: {} degrees per microstep",
-                    m_step_angle.get<pnm::units::AngleUnits::deg>());
+                    m_stepAngle.get<pnm::units::AngleUnits::deg>());
 }
 
 StepperMotor::~StepperMotor()
@@ -34,9 +39,9 @@ std::future<StepperMotor::Result> StepperMotor::move(Direction direction,
                     velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
                     timeout.get<pnm::units::TimeUnits::s>());
 
-    return start_motion(
+    return startMotion(
       std::packaged_task<Result(std::stop_token)>([this, direction, velocity, timeout](std::stop_token stop) {
-        return perform_motion(direction, velocity, timeout, stop);
+        return performMotion(direction, velocity, timeout, stop);
     }));
 }
 
@@ -57,7 +62,7 @@ void StepperMotor::stopAndWait() noexcept
     }
 }
 
-std::future<StepperMotor::Result> StepperMotor::start_motion(std::packaged_task<Result(std::stop_token)> task)
+std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<Result(std::stop_token)> task)
 {
     std::scoped_lock lock{ m_workerMutex };
     if (m_worker.joinable()) {
@@ -70,11 +75,11 @@ std::future<StepperMotor::Result> StepperMotor::start_motion(std::packaged_task<
     return future;
 }
 
-StepperMotor::Result StepperMotor::perform_motion(Direction direction,
-                                                  pnm::units::AngularVelocity velocity,
-                                                  pnm::units::Time timeout,
-                                                  std::stop_token stop,
-                                                  std::move_only_function<bool() noexcept> should_stop)
+StepperMotor::Result StepperMotor::performMotion(Direction direction,
+                                                 pnm::units::AngularVelocity velocity,
+                                                 pnm::units::Time timeout,
+                                                 std::stop_token stop,
+                                                 std::move_only_function<bool() noexcept> should_stop)
 try {
 
     if (!std::isfinite(velocity.get()) || velocity <= 0.0_rpm || !std::isfinite(timeout.get()) ||
@@ -86,7 +91,7 @@ try {
     }
 
     constexpr auto minimum_pulse{ 1us };
-    auto period_time{ (m_step_angle / velocity).toChrono<std::chrono::nanoseconds>() };
+    auto period_time{ (m_stepAngle / velocity).toChrono<std::chrono::nanoseconds>() };
     auto timeout_time{ timeout.toChrono<std::chrono::nanoseconds>() };
 
     auto start{ std::chrono::steady_clock::now() };
