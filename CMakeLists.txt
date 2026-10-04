@@ -122,7 +122,6 @@ if(HAL_HARDWARE_STEP_TEST)
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_step_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/control/StepperMotor.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/control/StepperMotion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/control/MotionProfile.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/control/MotionSequence.cpp
     )

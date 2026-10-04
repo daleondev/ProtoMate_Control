@@ -304,8 +304,10 @@ The named parameter definitions in `docs/robot/SCARA_Robot.f3d` give
 358.4 mm for a centreline tool, including its forward offset. This is a reading
 of the stored parameter expressions, not a measurement of the evaluated linked
 assembly. Base/tool calibration, joint reference coordinates and actual travel
-limits remain application configuration; `main.cpp` does not configure or
-execute Cartesian motion yet.
+limits remain application configuration. `main.cpp` uses these nominal lengths
+with zero base translation/yaw, a 135 mm forward tool offset, zero tool yaw and
+no joint limits. Together with the dummy axis mechanics, these are calculation
+defaults, not calibrated robot coordinates.
 
 ```cpp
 #include "control/ScaraKinematics.hpp"
@@ -356,17 +358,44 @@ auto joint_velocity = kinematics.inverseVelocity(current, {10_mm_s, 0_mm_s, 0_mm
   resulting endpoint; inverse velocity checks its current joint position.
   Omitted limits mean unrestricted joint coordinates, not verified mechanical travel.
 
-Feed successful encoder measurements through the same axis converters to obtain
-measured joint state. With feedback only on M1, combining it with commanded
-M2/M3 coordinates gives an estimated tool pose, not a fully measured pose.
-Referencing, synchronized motion, collision checks and path validation remain
-controller/planner responsibilities. The geometry layer installs no callbacks
-and does not replace existing motor accounting.
+[`control::Robot`](src/control/Robot.hpp) connects this geometry to the existing
+`MotionController`. `main.cpp` constructs it with the same shared controller
+used by the motor and axis CLI modules. `Robot::status()` converts a fresh
+controller snapshot into joint coordinates, tool pose and tool velocity. It
+has no duplicate peripherals, worker or cached position. Conversions and motor
+readings come from the same controller snapshot; individual readings are
+sampled sequentially, not latched simultaneously in hardware.
+
+The commanded state uses emitted-step positions and signed motor velocities.
+The measured state requires valid position and velocity feedback on all three
+axes and preserves the failing axis/error if unavailable. Only M1 currently has
+an encoder, so a fully measured tool state is unavailable; `axis status` exposes
+the individual feedback. Unreferenced coordinates are explicitly identified,
+and the generator's pulse-count validity remains visible.
+
+The [robot CLI](src/cli/README.md#robot-kinematics) exposes live state and
+read-only calculations:
+
+```text
+robot status
+robot geometry
+robot fk 30 60 50
+robot ik 300 200 40 --branch positive
+```
+
+FK inputs are shoulder/elbow degrees and Z millimetres. IK takes world XYZ in
+millimetres and uses the current commanded joints as its seed. The default
+branch is `current`; `positive` and `negative` select a branch explicitly.
+These calculations start no motion. Synchronized Cartesian trajectories,
+command ownership, collision checks and path validation remain planner work.
+The geometry layer installs no callbacks and does not replace motor accounting.
 
 The `application.control` tests cover analytic poses, both elbow branches,
 multi-turn continuity, frame/tool offsets, workspace and joint-limit boundaries,
-singularities, velocity finite differences, and composition with the axis
-converters. Background on velocity singularities is available in
+singularities, velocity finite differences, composition with the axis
+converters, live robot state, and missing/faulted feedback. CLI tests cover
+coordinate calculations, input validation and shared controller state.
+Background on velocity singularities is available in
 [Modern Robotics, section 5.3](https://modernrobotics.northwestern.edu/nu-gm-book-resource/5-3-singularities/).
 
 ## Stepper GPIO assignment

@@ -141,7 +141,8 @@ All positions are **motor-shaft degrees** and speeds are positive **rpm
 magnitudes**, including M3. The sign of a relative displacement, or the
 absolute target relative to the current position, determines direction.
 Joint gearing and Z millimetres are available through the `axis` commands
-below. Cartesian coordinates belong to future `robot` commands.
+below. Tool coordinates and kinematics calculations are available through
+the `robot` commands.
 
 | Command | Behavior |
 | --- | --- |
@@ -295,12 +296,52 @@ joint names. `axis stop [axis|all]` works even before configuring mechanics.
 `axis enable`, `axis disable` and `axis reset` act on the shared driver enable
 and generator, exactly like the motor equivalents.
 
-### Ownership and future robot commands
+## Robot kinematics
+
+The `robot` commands use millimetres for tool XYZ/Z travel and degrees for
+shoulder/elbow angles. Tool yaw is derived from the two joints, not independently
+commandable. Run `robot` for an overview or `help robot ik` for argument details.
+
+| Command | Behavior |
+| --- | --- |
+| `robot status` | Live commanded joint/tool position and tool velocity; reference, generator and encoder validity. |
+| `robot geometry` | Arm lengths, base frame, tool offset/yaw, joint limits and singularity threshold. |
+| `robot fk <shoulder> <elbow> <z>` | Forward calculation from joint coordinates to tool XYZ and yaw. |
+| `robot ik <x> <y> <z> [--branch current\|positive\|negative]` | Inverse calculation using current commanded joints as the seed; outputs a joint endpoint. |
+
+```text
+robot status
+robot geometry
+robot fk 30 60 50
+robot ik 300 200 40 --branch positive
+```
+
+FK and IK are calculations and start no motion. IK preserves the current elbow
+branch by default, selects equivalent angles nearest the unwrapped seed, and
+checks configured joint limits. A singular seed requires an explicit branch.
+Unreachable targets, singular solutions and limit violations report errors.
+Selecting an endpoint does not validate a path or synchronize axis motions.
+
+`robot status` converts emitted-step coordinates and signed speeds through the
+axis conversions and SCARA geometry. Unreferenced coordinates lack a physical
+datum; uncertain pulse counts remain marked as uncertain. A fully measured tool
+state requires valid encoders on all three axes. With feedback only on M1 it is
+reported as unavailable; use `axis status` for individual encoder readings.
+Motor readings are sampled sequentially, not latched at one hardware instant.
+
+`main.cpp` supplies nominal CAD arm lengths of 205 and 223.4 mm and a 135 mm
+forward tool offset. Base translation/yaw and the remaining tool offsets/yaw are
+zero, with no configured joint limits. Axis mechanics remain explicit dummy
+values in code. Replace these configuration values with calibrated mechanics
+and frames before relying on physical tool coordinates.
+
+### Ownership
 
 `main()` is the composition point. It creates one
 `control::MotionController` with the three axis configurations, then passes
-its shared pointer to `cli::motion::setup(parser, controller)` and
-`cli::axis::setup(parser, controller)` before starting application threads.
+its shared pointer to `cli::motion::setup(parser, controller)`,
+`cli::axis::setup(parser, controller)` and `control::Robot`. It registers
+`cli::robot::setup(parser, robot)` before starting application threads.
 The controller owns the generator, shared enable, axis conversions and
 three motors; it starts the timebase once, serializes client operations and
 tracks command results. CLI callbacks retain that controller and never create
@@ -316,16 +357,13 @@ interleave between conversion and submission. Status includes the conversions
 from the same locked snapshot as the motor readings. The strong `AxisMove`,
 `AxisSpeed` and `AxisDefaults` variants reject rotary/linear unit mismatches.
 
-Construct the future `Robot` at that same composition point and inject the
-same controller. It can use `moveAxis`, `referenceAxis`, `setAxisVelocity` and
-the configured converters directly; kinematics and coordinated planning belong
-above this boundary. A separate command module can register
-`robot ...` paths with callbacks capturing that Robot, alongside these
-`motor ...` and `axis ...` commands. No second set of motors or global Robot singleton is
-needed. A future coordinated planner must arbitrate manual-axis commands
-against robot motions; per-call serialization alone is not coordinated-motion
-ownership or synchronized multi-axis execution. Cartesian command names are
-not registered until those operations exist.
+`Robot` owns the configured `ScaraKinematics` instance and retains the same
+controller. It computes state on demand without a second set of motors, another
+worker or a global singleton. The geometry class stays independent of HAL and
+motion execution. A future coordinated planner must arbitrate manual-axis
+commands against robot motions; per-call serialization alone is not
+coordinated-motion ownership or synchronized multi-axis execution. Cartesian
+motion commands are not registered until those operations exist.
 
 ## Linux terminal frontend
 

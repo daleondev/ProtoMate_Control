@@ -5,7 +5,9 @@
 #include "cli/Parser.hpp"
 #include "cli/axis.hpp"
 #include "cli/motion.hpp"
+#include "cli/robot.hpp"
 #include "control/MotionController.hpp"
+#include "control/Robot.hpp"
 #include "pneumo/pneumo.hpp"
 #include "system_threads.hpp"
 
@@ -74,7 +76,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 #endif
 
     // Compose hardware once, then inject the same controller into each client.
-    // A future Robot receives this controller too; it does not recreate axes.
+    // Robot receives this controller too; it does not recreate axes.
     const auto motion{ std::make_shared<control::MotionController>(
       std::array<control::MotionController::AxisConfig, 3>{ {
         { 135_deg, 1.8_deg, 16U },
@@ -107,8 +109,16 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
                             .motor_reference = motion->motorConfiguration(Motor3).reference_position,
                             .axis_reference = 0_mm,
                           } });
+    // Nominal CAD parameter lengths. Base/tool calibration and travel limits
+    // remain placeholders, like the mechanics above; this enables calculations.
+    const auto robot{ std::make_shared<control::Robot>(
+      motion,
+      ScaraKinematics::Config{ .first_arm_length = 205_mm,
+                               .second_arm_length = 223.4_mm,
+                               .tool_offset = { 135_mm, 0_mm, 0_mm } }) };
     cli::motion::setup(cli::registry(), motion);
     cli::axis::setup(cli::registry(), motion);
+    cli::robot::setup(cli::registry(), robot);
     system_threads::start();
 
     while (true) {

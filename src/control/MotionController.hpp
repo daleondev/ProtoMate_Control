@@ -11,7 +11,7 @@
 namespace control
 {
     // Application-owned hardware and command boundary shared by the CLI and a
-    // future Robot. Neither client creates peripherals or starts the timebase.
+    // Robot. Neither client creates peripherals or starts the timebase.
     // Methods are thread-safe, thread-context only; callbacks never enter here.
     class MotionController final
     {

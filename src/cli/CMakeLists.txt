@@ -9,6 +9,8 @@ target_sources(application_cli
         ${CMAKE_CURRENT_SOURCE_DIR}/motion_common.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/axis.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/axis.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/robot.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/robot.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Parser.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Parser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/filesystem.hpp
