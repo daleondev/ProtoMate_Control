@@ -151,9 +151,23 @@ std::future<StepperMotor::Result> StepperMotor::reference(pnm::units::AngularVel
                                                           pnm::units::AngularVelocity latch_velocity,
                                                           pnm::units::Time timeout)
 {
+    pnm::log::debug(
+      "Motor {} reference requested: seek={} rpm, latch={} rpm, timeout={} s, switch position={} deg",
+      static_cast<unsigned>(m_id) + 1U,
+      seek_velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
+      latch_velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
+      timeout.get<pnm::units::TimeUnits::s>(),
+      m_referenceSwitchPosition.get<pnm::units::AngleUnits::deg>());
+
     return startMotion(std::packaged_task<Result(std::stop_token)>(
       [this, seek_velocity, latch_velocity, timeout](std::stop_token stop) {
-        return performReference(seek_velocity, latch_velocity, timeout, stop);
+        const auto result{ performReference(seek_velocity, latch_velocity, timeout, stop) };
+        pnm::log::debug("Motor {} reference ended: {}, referenced={}, position={} deg",
+                        static_cast<unsigned>(m_id) + 1U,
+                        result,
+                        isReferenced(),
+                        m_position.load().get<pnm::units::AngleUnits::deg>());
+        return result;
     }));
 }
 
@@ -330,10 +344,12 @@ StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity 
                                                     pnm::units::Time timeout,
                                                     std::stop_token stop)
 {
+    const auto motor_id{ static_cast<unsigned>(m_id) + 1U };
     const auto now{ std::chrono::steady_clock::now() };
     if (!timingFor(seek_velocity) || !timingFor(latch_velocity) || latch_velocity >= seek_velocity ||
         !timeout.isFinite() || timeout <= 0_s ||
         timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2) {
+        pnm::log::debug("Motor {} reference rejected: invalid seek/latch speeds or overall timeout", motor_id);
         return Result::Rejected;
     }
 
@@ -360,37 +376,55 @@ StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity 
 
     using enum hal::gpio::Level;
     if (m_referenceSwitchInput->read() != High) {
+        pnm::log::debug("Motor {} reference: seeking first contact Forward at {} rpm",
+                        motor_id,
+                        seek_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
         const auto first{ seek(Direction::Forward, seek_velocity, High) };
         if (first != Result::Completed) {
             return first;
         }
     }
+    else {
+        pnm::log::debug("Motor {} reference: switch already active", motor_id);
+    }
 
+    pnm::log::debug("Motor {} reference: confirming first contact (10 ms stable HIGH)", motor_id);
     auto result{ waitReferenceLevel(High, deadline, stop) };
     if (result != Result::Completed) {
         return result;
     }
 
+    pnm::log::debug("Motor {} reference: backing off Backward at {} rpm until release",
+                    motor_id,
+                    seek_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
     result = seek(Direction::Backward, seek_velocity, Low);
     if (result != Result::Completed) {
         return result;
     }
 
+    pnm::log::debug("Motor {} reference: confirming release (10 ms stable LOW)", motor_id);
     result = waitReferenceLevel(Low, deadline, stop);
     if (result != Result::Completed) {
         return result;
     }
 
+    pnm::log::debug("Motor {} reference: seeking second contact Forward at {} rpm",
+                    motor_id,
+                    latch_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
     result = seek(Direction::Forward, latch_velocity, High);
     if (result != Result::Completed) {
         return result;
     }
 
+    pnm::log::debug("Motor {} reference: confirming second contact (10 ms stable HIGH)", motor_id);
     result = waitReferenceLevel(High, deadline, stop);
     if (result != Result::Completed) {
         return result;
     }
 
+    pnm::log::debug("Motor {} reference: applying switch position {} deg",
+                    motor_id,
+                    m_referenceSwitchPosition.get<pnm::units::AngleUnits::deg>());
     return applyReferencePosition(stop);
 }
 
