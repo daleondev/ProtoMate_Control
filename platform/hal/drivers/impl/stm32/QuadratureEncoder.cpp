@@ -11,6 +11,10 @@ namespace hal
     {
         constexpr std::uint32_t service_flags{ TIM_FLAG_UPDATE | TIM_FLAG_CC3 | TIM_FLAG_CC4 };
         constexpr std::uint32_t service_interrupts{ TIM_IT_UPDATE | TIM_IT_CC3 | TIM_IT_CC4 };
+        auto now() noexcept -> std::chrono::nanoseconds
+        {
+            return std::chrono::steady_clock::now().time_since_epoch();
+        }
     }
     QuadratureEncoder::QuadratureEncoder(detail::TimerLease lease,
                                          std::shared_ptr<IDigitalInput> a,
@@ -39,6 +43,7 @@ namespace hal
     QuadratureEncoder::~QuadratureEncoder()
     {
         const stm32::InterruptGuard guard;
+        m_sampler.setCallback({});
         static_cast<void>(stop());
         s_instance = nullptr;
     }
@@ -63,6 +68,8 @@ namespace hal
             return result;
         }
         m_running = true;
+        sample();
+        m_sampler.publish({ m_counter.position(), now(), true });
         // No CC1/CC2 interrupts: quadrature edges are counted by hardware.
         __HAL_TIM_ENABLE_IT(&htim3, service_interrupts);
         HAL_NVIC_SetPriority(TIM3_IRQn, 5U, 0U);
@@ -79,6 +86,7 @@ namespace hal
         HAL_NVIC_ClearPendingIRQ(TIM3_IRQn);
         if (result) {
             m_running = false;
+            m_sampler.publish({ m_counter.position(), now(), false });
         }
         return result;
     }
@@ -101,6 +109,24 @@ namespace hal
         }
         m_counter.reset(count, static_cast<std::uint16_t>(__HAL_TIM_GET_COUNTER(&htim3)));
         return {};
+    }
+    auto QuadratureEncoder::setSampleCallback(SampleCallback callback) -> void
+    {
+        const stm32::InterruptGuard guard;
+        m_sampler.setCallback(std::move(callback));
+        sample();
+        m_sampler.publish({ m_counter.position(), now(), m_running });
+    }
+    auto QuadratureEncoder::dispatchTimebase() noexcept -> void
+    {
+        const stm32::InterruptGuard guard;
+        if (s_instance == nullptr || !s_instance->m_running)
+            return;
+        const auto timestamp{ now() };
+        if (s_instance->m_sampler.due(timestamp)) {
+            s_instance->sample();
+            s_instance->m_sampler.publish({ s_instance->m_counter.position(), timestamp, true });
+        }
     }
     auto QuadratureEncoder::dispatchInterrupt() noexcept -> void
     {

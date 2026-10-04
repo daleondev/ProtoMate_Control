@@ -4,6 +4,7 @@
 
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/stm32/FaultShutdown.hpp"
+#include "hal/drivers/impl/stm32/QuadratureEncoder.hpp"
 #endif
 
 namespace
@@ -110,3 +111,15 @@ extern "C" [[noreturn]] void hal_fault_handler(const char* fault) noexcept
 // definition attribute-free so regenerating that header cannot create a C++
 // declaration mismatch. hal_error_handler() still guarantees no return.
 extern "C" void Error_Handler() { hal_error_handler(); }
+
+#if defined(HAL_PLATFORM_STM32)
+// CubeMX's generated definition is renamed at build time. Preserve its HAL
+// tick and use the same IRQ to schedule encoder feedback; no extra timer.
+extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* timer)
+{
+    if (timer->Instance == TIM6) {
+        HAL_IncTick();
+        hal::QuadratureEncoder::dispatchTimebase();
+    }
+}
+#endif

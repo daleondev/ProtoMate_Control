@@ -2,7 +2,9 @@
 
 #include "hal/utilities/Result.hpp"
 
+#include <chrono>
 #include <cstdint>
+#include <functional>
 
 namespace hal
 {
@@ -10,6 +12,14 @@ namespace hal
     {
       public:
         using Count = std::int64_t;
+        struct Sample
+        {
+            util::Result<Count> position;
+            std::chrono::nanoseconds timestamp; // Monotonic, sampled with the count.
+            bool running;
+        };
+        using SampleCallback = std::move_only_function<void(const Sample&) noexcept>;
+        static constexpr auto sample_period{ std::chrono::milliseconds{ 10 } };
 
         virtual ~IQuadratureEncoder() = default;
         IQuadratureEncoder(const IQuadratureEncoder&) = delete;
@@ -26,6 +36,15 @@ namespace hal
         // Stopped-only origin change; clears a latched count-extension error.
         [[nodiscard]] virtual auto setPosition(Count count) noexcept -> util::Result<> = 0;
         [[nodiscard]] auto reset() noexcept -> util::Result<> { return setPosition(0); }
+
+        // One subscriber; registration/start/stop publish immediately, then
+        // every 10 ms while running, including at rest. Delays coalesce; use
+        // timestamp differences for speed. Periodic STM32 callbacks run in
+        // interrupt context. Keep all callbacks short, nonblocking,
+        // and do not call encoder methods from them. Clearing waits for any
+        // in-flight callback; configure/clear from thread context only.
+        virtual auto setSampleCallback(SampleCallback callback) -> void = 0;
+        auto clearSampleCallback() -> void { setSampleCallback({}); }
 
       protected:
         IQuadratureEncoder() = default;

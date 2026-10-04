@@ -62,6 +62,12 @@ class StepperMotor final
     pnm::units::Angle position() const;
     pnm::units::AngularVelocity velocity() const;
 
+    // Latest encoder measurements, updated by timed callbacks even while STEP
+    // is stopped. Relative to construction, not a homed absolute position.
+    // No encoder: no_such_device. Invalid count: state_not_recoverable.
+    pnm::Result<pnm::units::Angle> actualPosition() const noexcept;
+    pnm::Result<pnm::units::AngularVelocity> actualVelocity() const noexcept;
+
   private:
     std::future<Result> startMotion(std::packaged_task<Result(std::stop_token)> task);
 
@@ -78,6 +84,7 @@ class StepperMotor final
 
     std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
     void accountProgress(const hal::step::AxisStatus& status) noexcept;
+    void accountEncoder(const hal::IQuadratureEncoder::Sample& sample) noexcept;
 
     hal::board::MotorId m_id;
     pnm::units::Angle m_fullStepAngle;
@@ -107,6 +114,9 @@ class StepperMotor final
     std::atomic_bool m_referenced{ false };
     std::atomic<pnm::units::Angle> m_position{ 0_deg };
     std::atomic<pnm::units::AngularVelocity> m_velocity{ 0_rpm };
-    pnm::units::Angle m_actualPosition{ 0_deg };           // todo: encoder
-    pnm::units::AngularVelocity m_actualVelocity{ 0_rpm }; // todo: encoder
+    pnm::units::Angle m_encoderCountAngle{ 0_deg };
+    std::optional<hal::IQuadratureEncoder::Sample> m_previousEncoderSample;
+    std::atomic_bool m_encoderHealthy{ false };
+    std::atomic<pnm::units::Angle> m_actualPosition{ 0_deg };
+    std::atomic<pnm::units::AngularVelocity> m_actualVelocity{ 0_rpm };
 };

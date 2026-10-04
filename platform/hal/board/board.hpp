@@ -44,6 +44,8 @@ namespace hal::board
     [[nodiscard]] auto createSteppersEnableOutput() -> std::shared_ptr<IDigitalOutput>;
     // Only M1 currently has an encoder. Index never changes its count implicitly.
     [[nodiscard]] auto createEncoder(MotorId id) -> std::shared_ptr<IQuadratureEncoder>;
+    // Counts at the motor shaft, after x4 decoding; zero means no encoder.
+    [[nodiscard]] auto encoderCountsPerRevolution(MotorId id) noexcept -> std::uint32_t;
     [[nodiscard]] auto createEncoderIndex(MotorId id) -> std::shared_ptr<IDigitalInput>;
     // NC switch to ground: low = released, high = actuated or disconnected.
     // Pull-up, both edges, exclusive ownership; raw levels without debounce.

@@ -1,5 +1,6 @@
 #include "hal/board/board.hpp"
 #include "hal/drivers/detail/EncoderCounter.hpp"
+#include "hal/drivers/detail/EncoderSampler.hpp"
 #include "hal/drivers/detail/PwmTiming.hpp"
 #include "hal/drivers/factory/encoder.hpp"
 #include "hal/drivers/factory/gpio.hpp"
@@ -17,6 +18,7 @@
 #include <limits>
 #include <memory>
 #include <thread>
+#include <vector>
 
 namespace
 {
@@ -166,6 +168,57 @@ TEST(HalEncoder, ExtendsMovementAcrossManyWrapsAndPreservesStoppedPosition)
     ASSERT_TRUE(input->start());
     ASSERT_TRUE(input->advanceSimulatedCounts(-1));
     EXPECT_EQ(input->position(), 999'999'999'999LL);
+}
+
+TEST(HalEncoder, SampleCadenceCoalescesDelayedServiceAndCanBeUnsubscribed)
+{
+    hal::detail::EncoderSampler sampler;
+    std::vector<hal::IQuadratureEncoder::Sample> samples;
+    sampler.setCallback([&](const auto& sample) noexcept { samples.push_back(sample); });
+    sampler.publish({ 12, 100ms, true });
+    EXPECT_FALSE(sampler.due(109ms));
+    ASSERT_TRUE(sampler.due(110ms));
+    sampler.publish({ 14, 110ms, true });
+    ASSERT_TRUE(sampler.due(155ms));
+    sampler.publish({ 30, 155ms, true });
+    ASSERT_EQ(samples.size(), 3U);
+    EXPECT_EQ(samples.back().timestamp - samples[1].timestamp, 45ms);
+    EXPECT_EQ(samples.back().position, 30);
+    EXPECT_FALSE(sampler.due(164ms));
+    sampler.setCallback({});
+    EXPECT_FALSE(sampler.due(1000ms));
+    sampler.publish({ 99, 1000ms, true });
+    EXPECT_EQ(samples.size(), 3U);
+}
+
+TEST(HalEncoder, SamplesAtRestWithoutReadsAndClearingDisconnectsCallbacks)
+{
+    const auto input{ hal::encoder::create(encoder) };
+    ASSERT_NE(input, nullptr);
+    std::atomic_uint samples{};
+    std::atomic_bool was_running{};
+    std::atomic<hal::IQuadratureEncoder::Count> position{};
+    input->setSampleCallback([&](const auto& sample) noexcept {
+        position.store(sample.position.value_or(-1));
+        was_running.store(sample.running);
+        samples.fetch_add(1U);
+    });
+    EXPECT_EQ(samples.load(), 1U); // Initial stopped snapshot.
+    ASSERT_TRUE(input->start());
+    const auto baseline{ samples.load() };
+    const auto deadline{ std::chrono::steady_clock::now() + 500ms };
+    while (samples.load() < baseline + 2U && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(1ms);
+    EXPECT_GE(samples.load(), baseline + 2U);
+    EXPECT_TRUE(was_running.load());
+    EXPECT_EQ(position.load(), 0);
+    ASSERT_TRUE(input->stop());
+    EXPECT_FALSE(was_running.load());
+    input->clearSampleCallback();
+    const auto cleared{ samples.load() };
+    ASSERT_TRUE(input->start());
+    std::this_thread::sleep_for(30ms);
+    EXPECT_EQ(samples.load(), cleared);
 }
 
 TEST(HalEncoder, RejectsUnsupportedRoutesAndRollsBackPartialPinClaims)

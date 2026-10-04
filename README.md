@@ -187,9 +187,10 @@ The DIR pins and shared enable are ordinary push-pull GPIO outputs. All seven
 use low GPIO speed (output slew rate, not pulse frequency); STEP additionally
 uses internal pull-downs. `src/main.cpp` creates one `IStepGenerator` and injects
 it into three `StepperMotor` objects, which claim their STEP/DIR, reference
-switch and encoder resources. Main starts the shared timebase once. All axes
-remain idle, the encoder remains stopped, STEP/DIR stay low, and the shared
-enable stays high (disabled). No movement or homing runs automatically.
+switch and encoder resources. M1 starts continuous encoder monitoring during
+construction. Main starts the shared timebase once and requests a +360° M1 move
+at 10 rpm; the reference input must permit that direction. The shared enable
+stays high (drivers disabled) until explicitly enabled. No homing runs automatically.
 
 | Signal | STM32 pin | Board connector | Driver connection | Function |
 | --- | --- | --- | --- | --- |
@@ -302,7 +303,7 @@ imply homing. Velocity arguments are positive magnitudes; direction comes from
 `Direction` or the signed target distance. A zero timeout means unlimited time.
 `setVelocity()` requires an active motion with unbuffered pulses; calling it
 immediately after the asynchronous `move()` can precede the start and be rejected.
-Encoder feedback, homing, automatic ramp planning and
+Homing, automatic ramp planning, following-error handling and
 shared driver-enable policy remain controller work.
 
 Motion workers block on an event until their axis completes/stops/faults, a stop
@@ -321,6 +322,26 @@ therefore update autonomously between reads at service cadence, and getters
 refresh them to the sampled hardware count. They describe commanded motion,
 not measured encoder position or rotor speed. If a DMA fault makes counts
 uncertain, position retains its last exact value and the reference is invalidated.
+
+`StepperMotor::actualPosition()` and `actualVelocity()` return encoder measurements
+as `pnm::Result<Angle>` / `pnm::Result<AngularVelocity>`. M1 uses the board's
+1,600 counts/revolution (0.225°/count), independently of its microstep setting.
+The HAL invokes a sample callback every 10 ms, including while the shaft is
+stationary. That callback updates `m_actualPosition` and `m_actualVelocity`;
+getters read these atomic fields without polling hardware. Velocity is signed
+count displacement divided by the actual monotonic sample interval. It is a
+window average, with about 3.75 rpm per count at a 10 ms interval and the current
+steady clock's 1 ms timestamp resolution. Slow rotation can therefore alternate
+between zero and nonzero speed samples; this is unfiltered encoder quantization.
+
+Counting continues when STEP is stopped, so manual shaft movement and coasting
+are measured. Position starts at zero when the motor object is constructed;
+it is incremental shaft position, not an absolute/homed robot coordinate. Its
+sign follows the A/B wiring, independently of commanded direction. No index
+reset, automatic position correction or stall response is applied. M2/M3 report
+`no_such_device` instead of substituting commanded motion. A latched encoder
+count error makes both measured getters report `state_not_recoverable`.
+Destruction disconnects the subscription and stops encoder counting.
 
 `runtime/synchronization/Notification.hpp` is built by
 `runtime::synchronization`. Shared ThreadX helpers live in `runtime/threadx/`;
@@ -469,6 +490,14 @@ the encoder to be stopped. `position()` returns a `util::Result<Count>` so a
 latched count-extension error cannot silently become a valid position. Reset
 or `setPosition()` clears that error while stopped. With M1's 400 P/R encoder,
 one shaft revolution corresponds to 1600 counts.
+`setSampleCallback()` installs one subscriber and immediately reports the current
+sample; `clearSampleCallback()` disconnects it and waits for any callback in
+progress. Samples contain the count result, monotonic timestamp and running
+state. Start/stop also publish samples. While running, the STM32 backend uses
+the existing TIM6 HAL timebase interrupt to schedule samples every 10 ms,
+coalescing delayed service. Callbacks must be short and nonblocking and must not
+call encoder methods. TIM3 still counts edges and handles count extension;
+there is no interrupt per encoder edge and STEP timing does not use this callback.
 
 Use `hal::board::createStepperStepOutput(generator, MotorId::Motor1/Motor2/Motor3)`,
 `hal::board::createStepperDirectionOutput(MotorId::Motor1/Motor2/Motor3)` and
@@ -493,7 +522,9 @@ a high phase. Callbacks run synchronously on the injecting thread. Injections
 while stopped or in uncounted PWM mode are ignored. Its
 `hal::QuadratureEncoder::advanceSimulatedCounts(delta)`
 injects signed x4 counts, using the same count-extension arithmetic as STM32;
-movement injected while stopped is ignored. A/B GPIO levels are not decoded
+movement injected while stopped is ignored. A background service delivers the
+same timed sample callbacks. `hal::encoder::simulatedEncoder(3)` accesses the
+already owned encoder for motion injection in tests. A/B GPIO levels are not decoded
 by this simulation. Index edges can be injected through the existing Linux
 `GpioInput::setSimulatedLevel()` test interface. Simulation is not a measurement
 of pulse shape, driver delays or hardware interrupt latency.
@@ -631,12 +662,14 @@ Multiple unserviced wraps cannot be recovered from a 16-bit counter. The driver
 reports an exactly ambiguous half-range sample or signed-position overflow;
 other excessive-latency aliasing cannot always be detected.
 
-`hal::initialize()` and construction leave counting stopped. `src/main.cpp`
-creates one encoder object for A/B and a rising-edge input for Z. TIM3's
-priority-5 interrupt is enabled only by encoder `start()` and disabled by
-`stop()`; its handler is project-owned. EXTI9_5 retains the HAL wrapper's shared
-priority-5 dispatcher. No encoder start/read loop, index callback, homing or
-motion-control logic runs in the application.
+`hal::initialize()` and bare encoder construction leave counting stopped.
+M1's `StepperMotor` installs the measurement callback and starts the encoder;
+its Z input remains available for future homing. TIM3's priority-5 interrupt is
+enabled by encoder `start()` and disabled by `stop()`; its handler is project-owned.
+TIM6 schedules measurement callbacks through the project-owned HAL period
+callback, while still incrementing the HAL tick. The generated CubeMX callback
+is renamed at build time, so regeneration preserves this integration.
+EXTI9_5 retains the HAL wrapper's shared priority-5 dispatcher.
 
 Use three channels of the **AM26C32CN** differential receiver, three additional
 **Diotec 2N2222A converters (Q4–Q6)**, then three channels of the user's

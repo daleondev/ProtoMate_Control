@@ -90,7 +90,7 @@ target_sources(platform
 set_source_files_properties(
     ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/main.c
     PROPERTIES
-        COMPILE_DEFINITIONS "Error_Handler=CubeMX_Error_Handler"
+        COMPILE_DEFINITIONS "Error_Handler=CubeMX_Error_Handler;HAL_TIM_PeriodElapsedCallback=CubeMX_HAL_TIM_PeriodElapsedCallback"
 )
 set_source_files_properties(
     ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/stm32h7xx_it.c

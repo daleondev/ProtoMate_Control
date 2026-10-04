@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hal/drivers/detail/EncoderCounter.hpp"
+#include "hal/drivers/detail/EncoderSampler.hpp"
 #include "hal/drivers/detail/TimerLease.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/hal.hpp"
@@ -21,7 +22,9 @@ namespace hal
         [[nodiscard]] auto isRunning() const noexcept -> bool override;
         [[nodiscard]] auto position() const noexcept -> util::Result<Count> override;
         [[nodiscard]] auto setPosition(Count count) noexcept -> util::Result<> override;
+        auto setSampleCallback(SampleCallback callback) -> void override;
         static auto dispatchInterrupt() noexcept -> void;
+        static auto dispatchTimebase() noexcept -> void;
 
       private:
         auto sample() const noexcept -> void;
@@ -29,6 +32,7 @@ namespace hal
         std::shared_ptr<IDigitalInput> m_a;
         std::shared_ptr<IDigitalInput> m_b;
         mutable detail::EncoderCounter m_counter;
+        detail::EncoderSampler m_sampler;
         bool m_running{};
         inline static QuadratureEncoder* s_instance{};
     };

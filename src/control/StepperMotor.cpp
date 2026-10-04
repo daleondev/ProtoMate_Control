@@ -31,27 +31,56 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         throw std::runtime_error("motor board resource is unavailable");
     }
 
-    if (!m_stepOutput->setProgressCallback(
-          [this](const hal::step::AxisStatus& status) noexcept { accountProgress(status); })) {
-        throw std::runtime_error("motor progress subscription unavailable");
-    }
+    try {
+        if (m_encoderInput) {
+            const auto counts{ hal::board::encoderCountsPerRevolution(id) };
+            if (counts == 0U) {
+                throw std::runtime_error("motor encoder resolution is unavailable");
+            }
 
-    static_assert(std::atomic_bool::is_always_lock_free);
-    m_referenceSwitchInput->setEdgeCallback([events = m_events](hal::gpio::Level level) noexcept {
-        if (level == hal::gpio::Level::High) {
-            events->referenceActivated.store(true);
-            events->notification.signal();
+            m_encoderCountAngle = 360_deg / static_cast<double>(counts);
+            m_encoderInput->setSampleCallback(
+              [this](const hal::IQuadratureEncoder::Sample& sample) noexcept { accountEncoder(sample); });
+
+            if (!m_encoderInput->start()) {
+                throw std::runtime_error("motor encoder could not start");
+            }
         }
-    });
 
-    pnm::log::debug("Motor initialized: {} degrees per microstep",
-                    m_stepAngle.get<pnm::units::AngleUnits::deg>());
+        if (!m_stepOutput->setProgressCallback(
+              [this](const hal::step::AxisStatus& status) noexcept { accountProgress(status); })) {
+            throw std::runtime_error("motor progress subscription unavailable");
+        }
+
+        static_assert(std::atomic_bool::is_always_lock_free);
+        m_referenceSwitchInput->setEdgeCallback([events = m_events](hal::gpio::Level level) noexcept {
+            if (level == hal::gpio::Level::High) {
+                events->referenceActivated.store(true);
+                events->notification.signal();
+            }
+        });
+
+        pnm::log::debug("Motor initialized: {} degrees per microstep",
+                        m_stepAngle.get<pnm::units::AngleUnits::deg>());
+    } catch (...) {
+        m_referenceSwitchInput->clearEdgeCallback();
+        if (m_encoderInput) {
+            m_encoderInput->clearSampleCallback();
+            static_cast<void>(m_encoderInput->stop());
+        }
+        static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
+        throw;
+    }
 }
 
 StepperMotor::~StepperMotor()
 {
-    m_referenceSwitchInput->clearEdgeCallback();
     stopAndWait();
+    if (m_encoderInput) {
+        static_cast<void>(m_encoderInput->stop());
+        m_encoderInput->clearSampleCallback();
+    }
+    m_referenceSwitchInput->clearEdgeCallback();
     static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
 }
 
@@ -112,6 +141,63 @@ pnm::units::AngularVelocity StepperMotor::velocity() const
     std::scoped_lock lock{ m_mutex };
     static_cast<void>(m_stepOutput->status());
     return m_velocity.load();
+}
+
+pnm::Result<pnm::units::Angle> StepperMotor::actualPosition() const noexcept
+{
+    if (!m_encoderInput) {
+        return std::unexpected(std::make_error_code(std::errc::no_such_device));
+    }
+
+    const auto position{ m_actualPosition.load() };
+    if (!m_encoderHealthy.load()) {
+        return std::unexpected(std::make_error_code(std::errc::state_not_recoverable));
+    }
+
+    return position;
+}
+
+pnm::Result<pnm::units::AngularVelocity> StepperMotor::actualVelocity() const noexcept
+{
+    if (!m_encoderInput) {
+        return std::unexpected(std::make_error_code(std::errc::no_such_device));
+    }
+
+    const auto velocity{ m_actualVelocity.load() };
+    if (!m_encoderHealthy.load()) {
+        return std::unexpected(std::make_error_code(std::errc::state_not_recoverable));
+    }
+
+    return velocity;
+}
+
+void StepperMotor::accountEncoder(const hal::IQuadratureEncoder::Sample& sample) noexcept
+{
+    if (!sample.position) {
+        m_encoderHealthy.store(false);
+        m_actualVelocity.store(0_rpm);
+        m_previousEncoderSample.reset();
+        return;
+    }
+
+    auto velocity{ 0_rpm };
+    if (sample.running && m_previousEncoderSample && m_previousEncoderSample->running &&
+        sample.timestamp > m_previousEncoderSample->timestamp) {
+        const auto current{ *sample.position };
+        const auto previous{ *m_previousEncoderSample->position };
+        const auto magnitude{ current >= previous
+                                ? static_cast<std::uint64_t>(current) - static_cast<std::uint64_t>(previous)
+                                : static_cast<std::uint64_t>(previous) -
+                                    static_cast<std::uint64_t>(current) };
+        const auto delta{ (current >= previous ? 1.0 : -1.0) * static_cast<double>(magnitude) };
+        velocity = m_encoderCountAngle * delta /
+                   pnm::units::Time{ sample.timestamp - m_previousEncoderSample->timestamp };
+    }
+
+    m_actualPosition.store(m_encoderCountAngle * static_cast<double>(*sample.position));
+    m_actualVelocity.store(velocity);
+    m_previousEncoderSample = sample;
+    m_encoderHealthy.store(true);
 }
 
 void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept

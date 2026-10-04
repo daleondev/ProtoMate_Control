@@ -94,6 +94,12 @@ namespace hal::board
         return make_stepper_output({ gpio::Port::E, 15U }, gpio::Level::High);
     }
 
+    auto encoderCountsPerRevolution(MotorId id) noexcept -> std::uint32_t
+    {
+        // PKP245D23A2-R2FL: 400 P/R, all four quadrature edges counted.
+        return id == MotorId::Motor1 ? 1600U : 0U;
+    }
+
     auto createEncoder(MotorId id) -> std::shared_ptr<IQuadratureEncoder>
     {
         if (id != MotorId::Motor1) {

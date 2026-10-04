@@ -1,9 +1,11 @@
 #include "../StepperMotor.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
+#include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
 
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cmath>
 #include <limits>
 
 namespace
@@ -42,6 +44,24 @@ namespace
     {
         EXPECT_EQ(motion.wait_for(2s), std::future_status::ready);
         return motion.get();
+    }
+
+    bool measuredAt(const StepperMotor& motor, pnm::units::Angle target)
+    {
+        const auto measured{ motor.actualPosition() };
+        return measured && std::abs((*measured - target).get<pnm::units::AngleUnits::deg>()) < 1e-8;
+    }
+
+    template<typename Predicate>
+    bool eventually(Predicate predicate)
+    {
+        const auto deadline{ std::chrono::steady_clock::now() + 500ms };
+        do {
+            if (predicate())
+                return true;
+            std::this_thread::sleep_for(1ms);
+        } while (std::chrono::steady_clock::now() < deadline);
+        return false;
     }
 
     // Deterministically inject switch edges inside prepare/start, after the
@@ -157,6 +177,110 @@ TEST(StepperMotor, IndependentStopRestartVelocityAndTimeoutLeaveOtherMotorRunnin
     first.stopAndWait();
     EXPECT_EQ(result(continuous), Stopped);
     EXPECT_EQ(generator->status().state, hal::step::State::Running);
+}
+
+TEST(StepperMotor, EncoderTracksExternalShaftMotionWhileStepGeneratorIsStopped)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    const auto started_before{ std::chrono::steady_clock::now() };
+    StepperMotor motor{ Motor1, 1.8_deg, 8U, generator };
+    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    ASSERT_NE(encoder, nullptr);
+    ASSERT_TRUE(encoder->isRunning());
+    ASSERT_TRUE(motor.actualPosition());
+    EXPECT_EQ(*motor.actualPosition(), 0_deg);
+    EXPECT_EQ(*motor.actualVelocity(), 0_rpm);
+
+    // A full measured shaft turn is 1600 counts, independent of microstepping.
+    ASSERT_TRUE(encoder->advanceSimulatedCounts(1600));
+    auto measured_velocity{ 0_rpm };
+    ASSERT_TRUE(eventually([&] {
+        if (!measuredAt(motor, 360_deg))
+            return false;
+        measured_velocity = motor.actualVelocity().value_or(0_rpm);
+        return measured_velocity > 0_rpm;
+    }));
+    // The first measured displacement took at least a sample period and no
+    // longer than construction-to-observation. Check the speed's magnitude,
+    // allowing scheduler delays without assuming an exact host wake-up time.
+    const pnm::units::Time maximum_elapsed{ std::chrono::steady_clock::now() - started_before };
+    EXPECT_GE(measured_velocity, 360_deg / maximum_elapsed - 0.000001_rpm);
+    EXPECT_LE(measured_velocity,
+              360_deg / pnm::units::Time{ hal::IQuadratureEncoder::sample_period } + 0.000001_rpm);
+    ASSERT_TRUE(eventually([&] { return motor.actualVelocity() == 0_rpm; }));
+    EXPECT_EQ(motor.position(), 0_deg); // No commanded pulses were generated.
+
+    ASSERT_TRUE(encoder->advanceSimulatedCounts(-2000));
+    ASSERT_TRUE(eventually([&] { return measuredAt(motor, -90_deg); }));
+    EXPECT_LT(*motor.actualVelocity(), 0_rpm);
+    ASSERT_TRUE(eventually([&] { return motor.actualVelocity() == 0_rpm; }));
+    motor.stopAndWait();
+    EXPECT_TRUE(encoder->isRunning()); // Stopping STEP must not stop measurement.
+    ASSERT_TRUE(encoder->advanceSimulatedCounts(1));
+    ASSERT_TRUE(eventually([&] { return measuredAt(motor, -89.775_deg); }));
+}
+
+TEST(StepperMotor, MeasuredPositionDoesNotPretendCommandedMotionOccurred)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    StepperMotor motor{ Motor1, 1.8_deg, 8U, generator };
+    releasedReference(Motor1);
+    ASSERT_TRUE(generator->start());
+    auto motion{ motor.moveRel(90_deg, 300_rpm) };
+    EXPECT_EQ(result(motion), Completed);
+    EXPECT_NEAR(motor.position().get<pnm::units::AngleUnits::deg>(), 90.0, 1e-9);
+    EXPECT_EQ(motor.actualPosition(), 0_deg);
+    EXPECT_EQ(motor.actualVelocity(), 0_rpm);
+}
+
+TEST(StepperMotor, MotorsWithoutEncodersReportFeedbackUnavailable)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    for (const auto id : { Motor2, Motor3 }) {
+        StepperMotor motor{ id, 1.8_deg, 16U, generator };
+        EXPECT_EQ(motor.actualPosition().error(), std::errc::no_such_device);
+        EXPECT_EQ(motor.actualVelocity().error(), std::errc::no_such_device);
+    }
+}
+
+TEST(StepperMotor, EncoderWrapsAndFaultsAreNotPresentedAsValidMeasuredMotion)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    StepperMotor motor{ Motor1, 1.8_deg, 8U, generator };
+    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    ASSERT_NE(encoder, nullptr);
+    ASSERT_TRUE(encoder->advanceSimulatedCounts(-800'000));
+    ASSERT_TRUE(eventually([&] { return measuredAt(motor, -180000_deg); }));
+    ASSERT_TRUE(encoder->advanceSimulatedCounts(1'600'000));
+    ASSERT_TRUE(eventually([&] { return measuredAt(motor, 180000_deg); }));
+    ASSERT_TRUE(encoder->stop());
+    ASSERT_TRUE(encoder->setPosition(std::numeric_limits<hal::IQuadratureEncoder::Count>::max()));
+    ASSERT_TRUE(encoder->start());
+    EXPECT_FALSE(encoder->advanceSimulatedCounts(1));
+    ASSERT_TRUE(eventually([&] { return !motor.actualPosition(); }));
+    EXPECT_EQ(motor.actualPosition().error(), std::errc::state_not_recoverable);
+    EXPECT_EQ(motor.actualVelocity().error(), std::errc::state_not_recoverable);
+}
+
+TEST(StepperMotor, DestructionDisconnectsEncoderCallbackAndStopsCounting)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    std::shared_ptr<hal::QuadratureEncoder> encoder;
+    {
+        StepperMotor motor{ Motor1, 1.8_deg, 8U, generator };
+        encoder = hal::encoder::simulatedEncoder(3U);
+        ASSERT_NE(encoder, nullptr);
+        ASSERT_TRUE(encoder->advanceSimulatedCounts(160));
+        ASSERT_TRUE(eventually([&] { return measuredAt(motor, 36_deg); }));
+    }
+    EXPECT_FALSE(encoder->isRunning());
+    ASSERT_TRUE(encoder->start());
+    ASSERT_TRUE(encoder->advanceSimulatedCounts(160));
+    std::this_thread::sleep_for(30ms); // No callback into the destroyed motor.
+    EXPECT_EQ(encoder->position(), 320);
+    encoder.reset();
+    StepperMotor replacement{ Motor1, 1.8_deg, 8U, generator };
+    EXPECT_EQ(replacement.actualPosition(), 0_deg);
 }
 
 TEST(StepperMotor, ReplacingMoveJoinsAndAccountsPreviousMotionBeforeRelativeTarget)
