@@ -122,6 +122,10 @@ at J103, using its 5 V output pins and two isolated input support pins.
 Its barrel jack receives 24 V. The 63 × 27 mm body follows the supplied STEP
 model; the mounting uses a nominal 5.08 mm pair pitch and 50.8 mm separation.
 
+Hand wiring uses 96 underside-only connections and 25 short top-side
+crossovers through dedicated free holes; all wire ends are soldered underneath.
+The assembly guide includes the soldering order and header orientation.
+
 Use [Assembly.pdf](hardware/exports/Assembly.pdf) for placement, top jumpers
 and the mirrored solder-side view. The
 [assembly instructions](hardware/assembly/README.md) include orientation,

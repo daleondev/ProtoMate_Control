@@ -205,6 +205,7 @@ def verify(netlist, board):
     # Wires.csv is an assembly schedule, maintained alongside routing changes.
     wires = read_csv("Wires.csv")
     graph = collections.defaultdict(set)
+    passages_used = collections.Counter()
     vias = {hole(t): t.GetNetname() for t in board.GetTracks() if isinstance(t, pcb.PCB_VIA)}
     occupied = {hole(p): p.GetNetname() for p in pads.values()}
     require(not (vias.keys() & occupied.keys()), "Wire passage overlaps a component lead")
@@ -217,9 +218,19 @@ def verify(netlist, board):
                 f"Stale wire endpoint: {wire['wire']}")
         graph[a].add(b)
         graph[b].add(a)
-        for passage in filter(None, wire["side_change_holes"].split(", ")):
-            require(vias.get(passage, occupied.get(passage)) == wire["net"],
+        passages = list(filter(None, wire["side_change_holes"].split(", ")))
+        require((wire["sides"] == "bottom wire" and not passages) or
+                (wire["sides"] == "bottom wire + top jumper" and len(passages) == 2),
+                f"Wire must stay underneath or use one crossover: {wire['wire']}")
+        for passage in passages:
+            require(vias.get(passage) == wire["net"],
                     f"Wrong wire passage: {wire['wire']}")
+            passages_used[passage] += 1
+    require(passages_used.keys() == vias.keys() and
+            all(count == 1 for count in passages_used.values()),
+            "Each crossover needs two dedicated free holes, without sharing wire passages")
+    require(all(len(neighbours) <= 3 for neighbours in graph.values()),
+            "More than three scheduled wire ends at one component solder joint")
     netpads = collections.defaultdict(set)
     for key, pad in pads.items():
         if connected_name(pad.GetNetname()):
@@ -252,6 +263,9 @@ def verify(netlist, board):
               f"PASS: {len(footprints)} footprints linked to schematic symbols; values, library IDs and pins match.",
               f"PASS: {len(pads)} unique component holes and {len(vias)} wire passages on the 2.54 mm grid.",
               f"PASS: {len(wires)} scheduled connections span all {len(netpads)} connected nets.",
+              f"PASS: {sum(w['sides'] == 'bottom wire' for w in wires)} underside-only wires; "
+              f"{sum(w['sides'] != 'bottom wire' for w in wires)} single crossovers with dedicated free holes.",
+              "PASS: at most three scheduled wire ends per component solder joint.",
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
               f"PASS: {len(controller_routes)} motor, encoder, reference and storage contacts agree with CubeMX.",
               "PASS: CubeMX reference pull-ups/edges, encoder index edge and disabled startup polarity match wiring.",

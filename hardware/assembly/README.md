@@ -35,6 +35,13 @@ The underside sheet flips the board **left/right**, keeping row A at the top.
 Column 1 is therefore on the right. Hole names never change between views.
 All components are mounted on the top face.
 
+The hand-wiring layout uses **96 underside-only connections and 25 short
+top-side crossovers**. About **89% of the scheduled wire length is underneath**.
+Each crossover uses its own pair of free holes; no wire shares a passage hole
+with another wire or a component lead. Each component solder joint carries
+at most three scheduled wire ends. The encoder transistor stages have their
+resistors grouped locally, and power/ground connections join nearby pads.
+
 - [Holes.csv](Holes.csv): every component pin, its hole and its electrical net.
 - [Wires.csv](Wires.csv): all 121 required pad-to-pad connections, with endpoints,
   side-change holes and routed lengths. Add handling/stripping allowance to
@@ -47,9 +54,26 @@ Strip only the ends. Intersecting red and blue lines are on opposite faces and
 are not joined. Routes belonging to the same net may share a drawn path; the
 wire table specifies the actual endpoint connections. A layer-change circle
 represents passing an insulated wire through an otherwise empty hole; it is
-not a plated via that the perfboard already contains. Top jumpers and component
-leads must both be soldered to their appropriate pads on the underside.
-Fit low-profile top jumpers before the sockets or headers that cover them.
+not a plated via that the perfboard already contains. **Every wire starts and
+ends on the underside**, where it is soldered to the specified component pads.
+Keep the insulation intact through passage holes and across other wires.
+The 50 passage holes are not additional electrical junctions.
+
+Fit the board in this order:
+
+1. Fit W001–W025, using the red crossover view and the two passage holes listed
+   for each wire. Leave their ends underneath for soldering to the component
+   pads. Use insulated wire that passes freely through the holes.
+2. Fit resistors, transistors, capacitors, headers and IC sockets. Keep the
+   crossovers low and leave clearance for their insulation beneath sockets.
+3. Solder the short underside links, then the longer underside wires, following
+   W026–W121. Consecutive ground pads on J101/J102/J108 can use a continuous
+   tinned wire soldered at each pad. Use insulated wire for longer routes.
+4. Fit the raised buck and TMC modules after completing the wiring beneath them.
+
+The wire lengths are projected routing lengths. Add allowance for stripping,
+the board thickness at each crossover, and comfortable bends. No schematic
+connection is implied by two insulated wires merely touching or crossing.
 
 ## Parts and orientation
 
@@ -63,8 +87,8 @@ the 1.27 mm bulk variant. See the
 
 **U2 is AM26C32CN**, in a 16-pin DIP socket with 7.62 mm between rows. Its notch
 points toward row A. **U3 is the user's SN74HC126N**, in a **DIP-14 socket
-with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **S33**;
-pin 14 is at S36. Its notch points toward row A. Both DIP chips mount on the top face.
+with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **Y32**;
+pin 14 is at Y35. Its notch points toward row A. Both DIP chips mount on the top face.
 
 Q1–Q3 serve the DM542T. **Q4–Q6 convert the encoder receiver's 5 V outputs
 to 3.3 V for U3**. Each stage has a 4.7 kΩ base resistor (R20/R23/R26),
@@ -117,6 +141,10 @@ Use the harness table for cables and direct module contacts.
 J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
 5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
 11→PE14/CN10.8, 13→PE15/CN10.30, 15→3V3/CN8.7.
+In the top view, **J101 pin 1 is at I9**, at the lower-right corner of the
+header. Odd pins run upward along column 9; the ground pins run upward along
+column 8. Pin 15 is B9 and pin 16 is B8. Follow the square pin-1 pad when
+orienting the cable.
 All STEP pins use TIM2 output compare / AF1 (channels 1, 3, 4).
 PA0 uses SB75 ON; keep the user button on PC13 (SB58 OFF).
 PE9/PE11 and PC6/PC7 are reserved for future encoder inputs and have no cables fitted.
@@ -175,10 +203,10 @@ Use the module's **OUT+ and OUT−** contacts for the 5 V and ground connections
 
 | J103 pin | Hole, top view | Connection |
 | --- | --- | --- |
-| 1 | AL23 | Buck OUT+ → perfboard 5 V |
-| 2 | AN23 | Buck OUT− → perfboard GND |
-| 3 | AN3 | VIN-side mechanical solder support; no perfboard wire |
-| 4 | AL3 | VIN-side mechanical solder support; no perfboard wire |
+| 1 | AM23 | Buck OUT+ → perfboard 5 V |
+| 2 | AO23 | Buck OUT− → perfboard GND |
+| 3 | AO3 | VIN-side mechanical solder support; no perfboard wire |
+| 4 | AM3 | VIN-side mechanical solder support; no perfboard wire |
 
 Feed **24 V through the existing barrel jack**. Solder the two input header
 pins to their isolated islands for support only. They still carry input
@@ -192,9 +220,9 @@ J101 carries the Nucleo's 3.3 V output.
 
 The reference headers occupy the lower-right area. J108 pin 1 is **AM28**,
 J109 pin 1 is **AM34**, J110 pin 1 is **AP34**, and J111 pin 1 is **AS34**.
-Each switch header's adjacent pin 2 is ground. Wires **W113–W121** connect them;
-use the current wire table
-for sides and wire-passage holes.
+Each switch header's adjacent pin 2 is ground. All three reference-signal
+connections stay on the underside. Use the wire table for their REF and GND
+connections.
 
 SW1/SW2/SW3 are the external, unpowered Creality mechanical switches. The
 schematic identifies **COM, NC and NO by function**, not by PCB connector

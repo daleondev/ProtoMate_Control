@@ -49,6 +49,9 @@ It uses one continuous **39-column × 48-row grid**, A1–AV39, at 2.54 mm pitch
 The outer hole centres span **96.52 × 119.38 mm**; the nominal outline is
 99.06 × 121.92 mm with half-pitch margins. Both TMC modules sit along the top
 edge, the buck at the lower left, and the reference headers at the lower right.
+Wiring uses 96 underside-only connections and 25 short crossovers through
+dedicated free holes. All wire ends are soldered underneath. J101's pin 1 is
+at I9, with its signal column facing the driver modules.
 Use the [assembly instructions](assembly/README.md) to build it.
 
 The STEP engine uses one 32-bit TIM2 with DMA: M1 = PA0/CN10.29,
