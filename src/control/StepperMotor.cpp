@@ -34,6 +34,12 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         throw std::runtime_error("motor progress subscription unavailable");
     }
 
+    m_referenceSwitchInput->setEdgeCallback([this](hal::gpio::Level level) noexcept {
+        if (level == hal::gpio::Level::Low) {
+            stop();
+        }
+    });
+
     pnm::log::debug("Motor initialized: {} degrees per microstep",
                     m_stepAngle.get<pnm::units::AngleUnits::deg>());
 }
@@ -41,6 +47,7 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
 StepperMotor::~StepperMotor()
 {
     stopAndWait();
+    m_referenceSwitchInput->clearEdgeCallback();
     static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
 }
 
@@ -202,6 +209,7 @@ StepperMotor::Result StepperMotor::performMotion(pnm::units::Angle target,
     const long double pulses{ std::round(std::abs(static_cast<long double>(distance / m_stepAngle))) };
     if (!target.isFinite() || !std::isfinite(pulses) ||
         pulses >= static_cast<long double>(std::numeric_limits<hal::step::PulseCount>::max())) {
+        pnm::log::warn("Motor move rejected: invalid parameters");
         return Result::Rejected;
     }
     return performMotion(distance >= 0_deg ? Direction::Forward : Direction::Backward,
@@ -217,14 +225,21 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                                                  std::stop_token stop,
                                                  std::optional<hal::step::PulseCount> count)
 {
+    if (m_referenceSwitchInput->read() == hal::gpio::Level::Low && direction == Direction::Forward) {
+        pnm::log::warn("Motor move rejected: reference limit switch active");
+        return Result::Rejected;
+    }
+
     const auto timing{ timingFor(velocity) };
     if (!timing || !timeout.isFinite() || timeout < 0_s) {
+        pnm::log::warn("Motor move rejected: invalid timeout={} s", timeout.get<pnm::units::TimeUnits::s>());
         return Result::Rejected;
     }
 
     const auto now{ std::chrono::steady_clock::now() };
     const auto available{ (std::chrono::steady_clock::time_point::max() - now) / 2 };
     if (timeout >= available) {
+        pnm::log::warn("Motor move rejected: invalid timeout={} s", timeout.get<pnm::units::TimeUnits::s>());
         return Result::Rejected;
     }
 
@@ -241,6 +256,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         return Result::Completed;
     }
     if (!m_stepOutput->prepare(*timing, count)) {
+        pnm::log::warn("Motor move rejected: invalid timing");
         return Result::Rejected;
     }
 
@@ -253,6 +269,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         m_dirOutput->write(direction == Direction::Forward ? hal::gpio::Level::High : hal::gpio::Level::Low);
         m_motionSign = direction == Direction::Forward ? 1.0 : -1.0;
         if (!m_stepOutput->start()) {
+            pnm::log::warn("Motor move rejected: step generation failed");
             return Result::Rejected;
         }
     }
@@ -264,6 +281,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
 
             if (status.state == hal::step::State::Underrun || status.state == hal::step::State::DmaError ||
                 !status.counts_exact) {
+                pnm::log::warn("Motor move faulted: {}", status.state);
                 result = Result::Faulted;
                 break;
             }
@@ -271,13 +289,16 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                 result = Result::Completed;
                 break;
             }
-            if (stop.stop_requested() || status.state == hal::step::State::Stopped)
+            if (stop.stop_requested() || status.state == hal::step::State::Stopped) {
                 break;
+            }
             if (status.state != hal::step::State::Running) {
+                pnm::log::warn("Motor move faulted: {}", status.state);
                 result = Result::Faulted;
                 break;
             }
             if (std::chrono::steady_clock::now() >= deadline) {
+                pnm::log::warn("Motor move timed out");
                 result = Result::TimedOut;
                 break;
             }

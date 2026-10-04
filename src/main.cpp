@@ -84,8 +84,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     if (!step_generator->start()) {
         throw std::runtime_error("step timebase start failed");
     }
-    // The timebase ticks, but every axis is idle and shared enable stays high.
-    // The future controller owns enabling/settling, homing and motion requests.
+
+    auto future{ motor1.moveRel(360_deg, 10_rpm) };
+    (void)future.get();
 
     while (true) {
         std::this_thread::sleep_for(1h);
