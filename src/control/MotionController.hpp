@@ -1,9 +1,11 @@
 #pragma once
 
+#include "AxisConversion.hpp"
 #include "StepperMotor.hpp"
 
 #include <array>
 #include <deque>
+#include <variant>
 #include <vector>
 
 namespace control
@@ -22,17 +24,34 @@ namespace control
             pnm::units::Angle full_step_angle;
             std::size_t microsteps;
         };
-        struct Move
+        template<typename Position, typename Speed, typename Acceleration, typename Jerk>
+        struct MoveRequest
         {
-            pnm::units::Angle position;
-            pnm::units::AngularVelocity velocity;
-            pnm::units::AngularAcceleration acceleration{ 0_rad_s2 };
-            pnm::units::AngularAcceleration deceleration{ 0_rad_s2 };
-            pnm::units::AngularJerk jerk{ 0_rad_s3 };
+            Position position;
+            Speed velocity;
+            Acceleration acceleration{};
+            Acceleration deceleration{};
+            Jerk jerk{};
             StepperMotor::BufferMode buffer{ StepperMotor::BufferMode::Aborting };
             pnm::units::Time timeout{ 0_s };
             bool absolute{};
         };
+        using Move = MoveRequest<pnm::units::Angle,
+                                 pnm::units::AngularVelocity,
+                                 pnm::units::AngularAcceleration,
+                                 pnm::units::AngularJerk>;
+        using LinearMove =
+          MoveRequest<pnm::units::Distance, pnm::units::Velocity, pnm::units::Acceleration, pnm::units::Jerk>;
+        using Conversion = std::variant<RotaryAxisConversion, LinearAxisConversion>;
+        using AxisMove = std::variant<Move, LinearMove>;
+        using AxisSpeed = std::variant<pnm::units::AngularVelocity, pnm::units::Velocity>;
+        struct LinearDefaults
+        {
+            pnm::units::Acceleration acceleration;
+            pnm::units::Acceleration deceleration;
+            pnm::units::Jerk jerk;
+        };
+        using AxisDefaults = std::variant<StepperMotor::MotionDefaults, LinearDefaults>;
         struct Motion
         {
             MotionId id;
@@ -53,6 +72,9 @@ namespace control
             bool referenced;
             bool reference_switch_active;
             std::size_t outstanding;
+            // Configuration and motor state from the same locked snapshot.
+            // Empty until the application's mechanics have been supplied.
+            std::optional<Conversion> conversion;
         };
         struct Status
         {
@@ -86,6 +108,22 @@ namespace control
         // Bounded to the most recent 32 commands, retaining outstanding ones.
         std::vector<Motion> motions();
 
+        AxisConfig motorConfiguration(MotorId motor) const;
+        // M1 = shoulder, M2 = relative elbow, M3 = Z. Reconfiguration requires
+        // disabled drivers. Reference coordinates must agree with the motor.
+        void configureAxis(MotorId motor, Conversion conversion);
+        Conversion axisConversion(MotorId motor) const;
+        // Strong axis units are converted under the same lock as submission,
+        // so configuration cannot change between conversion and execution.
+        Motion moveAxis(MotorId motor, const AxisMove& request);
+        Motion referenceAxis(MotorId motor,
+                             std::optional<AxisSpeed> seek = {},
+                             std::optional<AxisSpeed> latch = {},
+                             pnm::units::Time timeout = 30_s);
+        hal::step::PulseCount setAxisVelocity(MotorId motor, const AxisSpeed& velocity);
+        AxisDefaults axisDefaults(MotorId motor) const;
+        void setAxisDefaults(MotorId motor, const AxisDefaults& defaults);
+
       private:
         StepperMotor& axis(MotorId motor) const;
         void requireEnabled() const;
@@ -93,8 +131,17 @@ namespace control
         void collect();
         void reserveMotion(MotorId motor);
         Motion finishSubmission(std::future<StepperMotor::Result> future);
+        Motion moveLocked(MotorId motor, const Move& request);
+        Motion referenceLocked(MotorId motor,
+                               pnm::units::AngularVelocity seek,
+                               pnm::units::AngularVelocity latch,
+                               pnm::units::Time timeout);
+        hal::step::PulseCount setVelocityLocked(MotorId motor, pnm::units::AngularVelocity velocity);
+        const Conversion& conversionLocked(MotorId motor) const;
 
         mutable std::mutex m_mutex;
+        const std::array<AxisConfig, 3> m_configuration;
+        std::array<std::optional<Conversion>, 3> m_conversions;
         std::shared_ptr<hal::IDigitalOutput> m_enable;
         std::shared_ptr<hal::IStepGenerator> m_generator;
         std::array<std::unique_ptr<StepperMotor>, 3> m_motors;

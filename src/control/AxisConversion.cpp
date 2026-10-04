@@ -30,7 +30,7 @@ namespace
     Quantity speedInput(Quantity value)
     {
         if (finiteInput(value).get() < 0.0) {
-            throw std::invalid_argument("axis speed must be a nonnegative magnitude");
+            throw std::invalid_argument("axis speed/profile limit must be a nonnegative magnitude");
         }
         return value;
     }
@@ -116,6 +116,28 @@ pnm::units::AngularVelocity RotaryAxisConversion::toMotorSpeed(pnm::units::Angul
     return convert<pnm::units::AngularVelocity>(speedInput(axis_speed), std::abs(m_motorPerAxis));
 }
 
+pnm::units::AngularAcceleration RotaryAxisConversion::toAxisAcceleration(
+  pnm::units::AngularAcceleration motor) const
+{
+    return convert<pnm::units::AngularAcceleration>(speedInput(motor), std::abs(m_axisPerMotor));
+}
+
+pnm::units::AngularAcceleration RotaryAxisConversion::toMotorAcceleration(
+  pnm::units::AngularAcceleration axis) const
+{
+    return convert<pnm::units::AngularAcceleration>(speedInput(axis), std::abs(m_motorPerAxis));
+}
+
+pnm::units::AngularJerk RotaryAxisConversion::toAxisJerk(pnm::units::AngularJerk motor) const
+{
+    return convert<pnm::units::AngularJerk>(speedInput(motor), std::abs(m_axisPerMotor));
+}
+
+pnm::units::AngularJerk RotaryAxisConversion::toMotorJerk(pnm::units::AngularJerk axis) const
+{
+    return convert<pnm::units::AngularJerk>(speedInput(axis), std::abs(m_motorPerAxis));
+}
+
 LinearAxisConversion::LinearAxisConversion(Config config)
   : m_config{ config }
 {
@@ -170,4 +192,24 @@ pnm::units::Velocity LinearAxisConversion::toAxisSpeed(pnm::units::AngularVeloci
 pnm::units::AngularVelocity LinearAxisConversion::toMotorSpeed(pnm::units::Velocity axis_speed) const
 {
     return convert<pnm::units::AngularVelocity>(speedInput(axis_speed), std::abs(m_motorPerAxis));
+}
+
+pnm::units::Acceleration LinearAxisConversion::toAxisAcceleration(pnm::units::AngularAcceleration motor) const
+{
+    return convert<pnm::units::Acceleration>(speedInput(motor), std::abs(m_axisPerMotor));
+}
+
+pnm::units::AngularAcceleration LinearAxisConversion::toMotorAcceleration(pnm::units::Acceleration axis) const
+{
+    return convert<pnm::units::AngularAcceleration>(speedInput(axis), std::abs(m_motorPerAxis));
+}
+
+pnm::units::Jerk LinearAxisConversion::toAxisJerk(pnm::units::AngularJerk motor) const
+{
+    return convert<pnm::units::Jerk>(speedInput(motor), std::abs(m_axisPerMotor));
+}
+
+pnm::units::AngularJerk LinearAxisConversion::toMotorJerk(pnm::units::Jerk axis) const
+{
+    return convert<pnm::units::AngularJerk>(speedInput(axis), std::abs(m_motorPerAxis));
 }

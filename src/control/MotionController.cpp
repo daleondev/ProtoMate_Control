@@ -8,7 +8,8 @@ namespace control
     using namespace std::chrono_literals;
 
     MotionController::MotionController(const std::array<AxisConfig, 3>& configuration)
-      : m_enable{ hal::board::createSteppersEnableOutput() }
+      : m_configuration{ configuration }
+      , m_enable{ hal::board::createSteppersEnableOutput() }
       , m_generator{ hal::board::createStepperGenerator() }
     {
         if (!m_enable || !m_generator)
@@ -140,6 +141,11 @@ namespace control
     MotionController::Motion MotionController::move(MotorId motor, const Move& request)
     {
         std::scoped_lock lock{ m_mutex };
+        return moveLocked(motor, request);
+    }
+
+    MotionController::Motion MotionController::moveLocked(MotorId motor, const Move& request)
+    {
         auto& target{ axis(motor) };
         requireEnabled();
         if (request.absolute && !target.isReferenced())
@@ -172,6 +178,14 @@ namespace control
                                                          pnm::units::Time timeout)
     {
         std::scoped_lock lock{ m_mutex };
+        return referenceLocked(motor, seek, latch, timeout);
+    }
+
+    MotionController::Motion MotionController::referenceLocked(MotorId motor,
+                                                               pnm::units::AngularVelocity seek,
+                                                               pnm::units::AngularVelocity latch,
+                                                               pnm::units::Time timeout)
+    {
         auto& target{ axis(motor) };
         requireEnabled();
         reserveMotion(motor);
@@ -186,6 +200,12 @@ namespace control
     hal::step::PulseCount MotionController::setVelocity(MotorId motor, pnm::units::AngularVelocity velocity)
     {
         std::scoped_lock lock{ m_mutex };
+        return setVelocityLocked(motor, velocity);
+    }
+
+    hal::step::PulseCount MotionController::setVelocityLocked(MotorId motor,
+                                                              pnm::units::AngularVelocity velocity)
+    {
         requireEnabled();
         const auto result{ axis(motor).setVelocity(velocity) };
         if (!result)
@@ -224,10 +244,10 @@ namespace control
                                motor.actualVelocity(),
                                motor.isReferenced(),
                                motor.referenceSwitchActive(),
-                               static_cast<std::size_t>(
-                                 std::ranges::count_if(m_motions, [id](const auto& entry) {
-                return entry.motor == id && !entry.result;
-            })) };
+                               static_cast<std::size_t>(std::ranges::count_if(
+                                 m_motions,
+                                 [id](const auto& entry) { return entry.motor == id && !entry.result; })),
+                               m_conversions[i] };
         }
         return status;
     }

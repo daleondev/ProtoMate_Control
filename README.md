@@ -190,9 +190,12 @@ presets and the hardware runner set it to `OFF`.
 [`src/control/AxisConversion.hpp`](src/control/AxisConversion.hpp) provides
 `RotaryAxisConversion` for the shoulder/elbow and `LinearAxisConversion` for Z.
 They translate motor shaft coordinates into joint coordinates using
-`pnm::units` angles, distances and velocities. They contain no hardware access
-or mutable motion state. The application still owns and commands each
-`StepperMotor`.
+`pnm::units` angles, distances, velocities, acceleration and jerk. They contain
+no hardware access or mutable motion state. `control::MotionController` owns
+the motors and optional axis converters; both CLI command groups use that
+same controller. `axis` operates in joint degrees/deg/s or Z mm/mm/s;
+`motor` operates in shaft degrees/rpm. See the
+[joint-axis CLI documentation](src/cli/README.md#joint-axis-control).
 
 Configure a positive reduction (motor revolutions per output revolution), a
 direction, and a pair of reference coordinates describing the same physical
@@ -209,7 +212,7 @@ referenced or bypass `moveAbs()` rejection.
 using namespace pnm::units::literals;
 
 // Illustrative values only; the robot's reductions and joint home coordinates
-// have not yet been configured in main.cpp.
+// are placeholders in main.cpp, separate from the examples below.
 const RotaryAxisConversion shoulder{{
     .motor_revolutions_per_axis_revolution = 5.0,
     .direction = AxisDirection::OppositeToMotor,
@@ -241,7 +244,9 @@ offsets. Angular positions remain unwrapped across multiple revolutions.
 inversion. `toAxisSpeed`/`toMotorSpeed` convert nonnegative magnitudes for
 `moveRel`, `moveAbs`, `reference` and `setVelocity`; they reject negative
 speeds. A zero magnitude converts to zero, but the motor requires positive
-speeds for motion. Move direction follows the signed displacement or target;
+speeds for motion. `toAxisAcceleration`/`toMotorAcceleration` and
+`toAxisJerk`/`toMotorJerk` similarly convert nonnegative profile magnitudes,
+without offsets or direction inversion. Move direction follows the signed displacement or target;
 referencing retains the motor's fixed Forward seek direction.
 
 The same position/velocity conversions apply to successful encoder results;
@@ -252,7 +257,12 @@ configuration/inputs throw `std::invalid_argument`, and arithmetic overflow
 throws `std::overflow_error`. Pulse rounding stays in `StepperMotor`. Joint
 limits, coupled trajectories and SCARA forward/inverse kinematics belong above
 this layer. The configuration examples do not start or synchronize any motion
-in the firmware.
+in the firmware. `main.cpp` installs explicit dummy mechanics through
+`MotionController::configureAxis()`: 1:1 reductions, the same direction as each
+motor, zero joint coordinates at the reference switches, and 40 mm of Z travel
+per output revolution. Replace these placeholders in code once actual mechanics
+are known. Motor-side reference coordinates come from the existing motor
+configuration. There is no interactive mechanics configuration command.
 
 The Linux `application.control` tests cover conversions and their integration
 with motor referencing, switch rejection and pulse accounting:
@@ -373,8 +383,9 @@ which owns the shared generator, driver enable and three `StepperMotor` objects.
 The motors claim their STEP/DIR, reference-switch and encoder resources; M1
 starts encoder monitoring during construction. The controller starts the shared
 timebase once, with drivers disabled and no motion or homing at startup.
-It is injected into the CLI before application threads start. Use `motor` for
-the command overview or `help motor move` for detailed options; see the
+It is injected into both motor and joint-axis CLI modules before application
+threads start. Use `motor` or `axis` for command overviews, or `help axis move`
+for joint-unit motion options; see the
 [motor CLI and ownership documentation](src/cli/README.md#motor-control).
 
 | Signal | STM32 pin | Board connector | Driver connection | Function |

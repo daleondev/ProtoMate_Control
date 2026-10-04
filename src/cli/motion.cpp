@@ -1,4 +1,5 @@
 #include "motion.hpp"
+#include "motion_common.hpp"
 
 #include "Parser.hpp"
 #include "control/MotionController.hpp"
@@ -11,7 +12,7 @@
 
 namespace cli::motion
 {
-    namespace
+    namespace detail
     {
         using Controller = control::MotionController;
         using MotorId = Controller::MotorId;
@@ -64,7 +65,7 @@ namespace cli::motion
             return value;
         }
 
-        double magnitude(double value, std::string_view name, bool zero = true)
+        double magnitude(double value, std::string_view name, bool zero)
         {
             if (value < 0.0 || (!zero && value == 0.0))
                 throw std::invalid_argument(std::string(name) + (zero ? " must be >= 0" : " must be > 0"));
@@ -78,13 +79,13 @@ namespace cli::motion
             return args.flagValue(name);
         }
 
-        double numericOption(const Arguments& args, std::string_view name, double fallback, bool zero = true)
+        double numericOption(const Arguments& args, std::string_view name, double fallback, bool zero)
         {
             const auto value{ option(args, name) };
             return value ? magnitude(number(*value, name), name, zero) : fallback;
         }
 
-        StepperMotor::BufferMode bufferMode(const Arguments& args)
+        StepperMotor::BufferMode bufferMode(const Arguments& args, std::string_view family)
         {
             using enum StepperMotor::BufferMode;
             const auto value{ option(args, "buffer").value_or("aborting") };
@@ -100,7 +101,7 @@ namespace cli::motion
                 return BlendingNext;
             if (value == "blending-high")
                 return BlendingHigh;
-            throw std::invalid_argument("unknown buffer mode; see 'help motor move'");
+            throw std::invalid_argument("unknown buffer mode; see 'help " + std::string(family) + " move'");
         }
 
         std::string_view resultName(std::optional<StepperMotor::Result> result)
@@ -145,19 +146,63 @@ namespace cli::motion
             return "unknown";
         }
 
-        void printMotion(const Controller::Motion& value, std::ostream& out)
+        std::string_view axisName(MotorId motor)
         {
-            out << std::format(
-              "#{} m{} {}\n", value.id, static_cast<unsigned>(value.motor) + 1U, resultName(value.result));
+            switch (motor) {
+                case MotorId::Motor1:
+                    return "shoulder";
+                case MotorId::Motor2:
+                    return "elbow";
+                case MotorId::Motor3:
+                    return "z";
+            }
+            throw std::invalid_argument("invalid motor/axis");
         }
 
-        int submitted(const Controller::Motion& value, std::ostream& out)
+        void printMotion(const Controller::Motion& value, std::ostream& out, std::string_view family)
         {
-            printMotion(value, out);
+            const auto label{ family == "axis"
+                                ? std::string(axisName(value.motor))
+                                : std::format("m{}", static_cast<unsigned>(value.motor) + 1U) };
+            out << std::format("#{} {} {}\n", value.id, label, resultName(value.result));
+        }
+
+        int submitted(const Controller::Motion& value, std::ostream& out, std::string_view family)
+        {
+            printMotion(value, out, family);
             if (!value.result)
-                out << std::format("Check completion with: motor jobs {}\n", value.id);
+                out << std::format("Check completion with: {} jobs {}\n", family, value.id);
             else if (*value.result != StepperMotor::Result::Completed)
                 return 1;
+            return 0;
+        }
+
+        CallbackResult jobs(const Arguments& args,
+                            std::ostream& out,
+                            Controller& controller,
+                            std::string_view family)
+        {
+            std::optional<Controller::MotionId> selected;
+            if (const auto text{ args.get("id") }) {
+                Controller::MotionId id{};
+                const auto result{ std::from_chars(text->data(), text->data() + text->size(), id) };
+                if (result.ec != std::errc{} || result.ptr != text->data() + text->size() || id == 0)
+                    return callback_failure("id must be a positive integer");
+                selected = id;
+            }
+            bool found{};
+            for (const auto& motion : controller.motions()) {
+                if (selected && *selected != motion.id)
+                    continue;
+                found = true;
+                printMotion(motion, out, family);
+                if (selected && motion.result && *motion.result != StepperMotor::Result::Completed)
+                    return 1;
+            }
+            if (!found && selected)
+                return callback_failure("unknown or expired motion ID");
+            if (!found)
+                out << "No motions submitted.\n";
             return 0;
         }
 
@@ -174,8 +219,9 @@ namespace cli::motion
         }
     }
 
-    void setup(Parser& parser, std::shared_ptr<Controller> controller)
+    void setup(Parser& parser, std::shared_ptr<control::MotionController> controller)
     {
+        using namespace detail;
         if (!controller)
             throw std::invalid_argument("motion commands require a controller");
         const auto add = [&](Command command) {
@@ -348,7 +394,7 @@ namespace cli::motion
               numericOption(args, "jerk", defaults.jerk.get<AngularJerkUnits::deg_s3>()) * 1_deg_s3;
             if (args.hasFlag("accel") || args.hasFlag("decel") || args.hasFlag("jerk"))
                 controller->setDefaults(id, defaults);
-            out << std::format("m{}: accel={} deg/s^2  decel={} deg/s^2  jerk={} deg/s^3\n",
+            out << std::format("m{}: accel={:.6g} deg/s^2  decel={:.6g} deg/s^2  jerk={:.6g} deg/s^3\n",
                                static_cast<unsigned>(id) + 1U,
                                defaults.acceleration.get<AngularAccelerationUnits::deg_s2>(),
                                defaults.deceleration.get<AngularAccelerationUnits::deg_s2>(),
@@ -360,28 +406,7 @@ namespace cli::motion
               { { "id", "Optional motion ID", true } },
               {},
               [controller](const Arguments& args, std::ostream& out) -> CallbackResult {
-            std::optional<Controller::MotionId> selected;
-            if (const auto text{ args.get("id") }) {
-                Controller::MotionId id{};
-                const auto result{ std::from_chars(text->data(), text->data() + text->size(), id) };
-                if (result.ec != std::errc{} || result.ptr != text->data() + text->size() || id == 0)
-                    return callback_failure("id must be a positive integer");
-                selected = id;
-            }
-            bool found{};
-            for (const auto& motion : controller->motions()) {
-                if (selected && *selected != motion.id)
-                    continue;
-                found = true;
-                printMotion(motion, out);
-                if (selected && motion.result && *motion.result != StepperMotor::Result::Completed)
-                    return 1;
-            }
-            if (!found && selected)
-                return callback_failure("unknown or expired motion ID");
-            if (!found)
-                out << "No motions submitted.\n";
-            return 0;
+            return jobs(args, out, *controller, "motor");
         } });
     }
 }

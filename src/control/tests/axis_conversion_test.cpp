@@ -126,6 +126,55 @@ TEST(AxisConversion, FractionalRatiosAndMixedUnitsRoundTrip)
     }
 }
 
+TEST(AxisConversion, ProfileLimitsScaleWithoutDirectionOrReferenceOffsets)
+{
+    for (const auto direction : { AxisDirection::SameAsMotor, AxisDirection::OppositeToMotor }) {
+        const RotaryAxisConversion rotary{ { .motor_revolutions_per_axis_revolution = 5,
+                                             .direction = direction,
+                                             .motor_reference = 135_deg,
+                                             .axis_reference = 10_deg } };
+        const LinearAxisConversion linear{ { .travel_per_output_revolution = 40_mm,
+                                             .motor_revolutions_per_output_revolution = 2,
+                                             .direction = direction,
+                                             .motor_reference = 135_deg,
+                                             .axis_reference = 200_mm } };
+        expectNear(rotary.toMotorAcceleration(100_deg_s2), 500_deg_s2);
+        expectNear(rotary.toAxisAcceleration(500_deg_s2), 100_deg_s2);
+        expectNear(rotary.toMotorJerk(1000_deg_s3), 5000_deg_s3);
+        expectNear(rotary.toAxisJerk(5000_deg_s3), 1000_deg_s3);
+        expectNear(linear.toMotorAcceleration(10_mm_s2), 180_deg_s2);
+        expectNear(linear.toAxisAcceleration(180_deg_s2), 10_mm_s2);
+        expectNear(linear.toMotorJerk(100_mm_s3), 1800_deg_s3);
+        expectNear(linear.toAxisJerk(1800_deg_s3), 100_mm_s3);
+        expectNear(rotary.toMotorAcceleration(0_deg_s2), 0_deg_s2);
+        expectNear(rotary.toMotorJerk(0_deg_s3), 0_deg_s3);
+        expectNear(linear.toMotorAcceleration(0_mm_s2), 0_deg_s2);
+        expectNear(linear.toMotorJerk(0_mm_s3), 0_deg_s3);
+    }
+}
+
+TEST(AxisConversion, InvalidProfileLimitsAreRejectedBeforeTheyCanBecomeDefaults)
+{
+    const RotaryAxisConversion rotary{ { .motor_revolutions_per_axis_revolution = 5 } };
+    const LinearAxisConversion linear{ { .travel_per_output_revolution = 40_mm } };
+    for (const auto value :
+         { -1.0, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN() }) {
+        EXPECT_THROW(rotary.toMotorAcceleration(AngularAcceleration::create(value)), std::invalid_argument);
+        EXPECT_THROW(rotary.toAxisAcceleration(AngularAcceleration::create(value)), std::invalid_argument);
+        EXPECT_THROW(rotary.toMotorJerk(AngularJerk::create(value)), std::invalid_argument);
+        EXPECT_THROW(rotary.toAxisJerk(AngularJerk::create(value)), std::invalid_argument);
+        EXPECT_THROW(linear.toMotorAcceleration(Acceleration::create(value)), std::invalid_argument);
+        EXPECT_THROW(linear.toAxisAcceleration(AngularAcceleration::create(value)), std::invalid_argument);
+        EXPECT_THROW(linear.toMotorJerk(Jerk::create(value)), std::invalid_argument);
+        EXPECT_THROW(linear.toAxisJerk(AngularJerk::create(value)), std::invalid_argument);
+    }
+    const auto maximum{ std::numeric_limits<double>::max() };
+    EXPECT_THROW(rotary.toMotorAcceleration(AngularAcceleration::create(maximum)), std::overflow_error);
+    EXPECT_THROW(rotary.toMotorJerk(AngularJerk::create(maximum)), std::overflow_error);
+    EXPECT_THROW(linear.toMotorAcceleration(Acceleration::create(maximum)), std::overflow_error);
+    EXPECT_THROW(linear.toMotorJerk(Jerk::create(maximum)), std::overflow_error);
+}
+
 TEST(AxisConversion, InvalidTransmissionConfigurationIsRejected)
 {
     for (const auto ratio :

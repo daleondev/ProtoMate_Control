@@ -44,6 +44,12 @@ class RotaryAxisConversion final
     pnm::units::AngularVelocity toAxisSpeed(pnm::units::AngularVelocity motor_speed) const;
     pnm::units::AngularVelocity toMotorSpeed(pnm::units::AngularVelocity axis_speed) const;
 
+    // Nonnegative profile limits; direction inversion never negates them.
+    pnm::units::AngularAcceleration toAxisAcceleration(pnm::units::AngularAcceleration motor) const;
+    pnm::units::AngularAcceleration toMotorAcceleration(pnm::units::AngularAcceleration axis) const;
+    pnm::units::AngularJerk toAxisJerk(pnm::units::AngularJerk motor) const;
+    pnm::units::AngularJerk toMotorJerk(pnm::units::AngularJerk axis) const;
+
   private:
     Config m_config;
     double m_axisPerMotor{};
@@ -76,6 +82,11 @@ class LinearAxisConversion final
     pnm::units::AngularVelocity toMotorVelocity(pnm::units::Velocity axis_velocity) const;
     pnm::units::Velocity toAxisSpeed(pnm::units::AngularVelocity motor_speed) const;
     pnm::units::AngularVelocity toMotorSpeed(pnm::units::Velocity axis_speed) const;
+
+    pnm::units::Acceleration toAxisAcceleration(pnm::units::AngularAcceleration motor) const;
+    pnm::units::AngularAcceleration toMotorAcceleration(pnm::units::Acceleration axis) const;
+    pnm::units::Jerk toAxisJerk(pnm::units::AngularJerk motor) const;
+    pnm::units::AngularJerk toMotorJerk(pnm::units::Jerk axis) const;
 
   private:
     Config m_config;

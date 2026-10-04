@@ -140,8 +140,8 @@ the arguments and flags. Motor selectors are `m1`, `m2`, `m3` or `1`, `2`, `3`.
 All positions are **motor-shaft degrees** and speeds are positive **rpm
 magnitudes**, including M3. The sign of a relative displacement, or the
 absolute target relative to the current position, determines direction.
-Joint gearing, Z millimetres and Cartesian coordinates are not applied by
-these commands.
+Joint gearing and Z millimetres are available through the `axis` commands
+below. Cartesian coordinates belong to future `robot` commands.
 
 | Command | Behavior |
 | --- | --- |
@@ -224,12 +224,84 @@ Axis dynamics initially use 3600 degrees/s² acceleration/deceleration and
 36000 degrees/s³ jerk. `motor defaults m1 --jerk 0` selects trapezoidal motion;
 in a **move** command, `--jerk 0` instead selects the configured default.
 
+## Joint-axis control
+
+`axis ...` uses the existing `RotaryAxisConversion` and `LinearAxisConversion`
+layer. It commands the **same motors** as `motor ...`, with the same enable,
+reference state, active/queued motions, defaults and motion IDs. There is no
+separate axis timebase or polling thread. `axis` prints an overview and
+`help axis <command>` describes its options.
+
+| Axis | Motor | Selectors | Position | Speed | Acceleration/deceleration | Jerk |
+| --- | --- | --- | --- | --- | --- | --- |
+| Shoulder | M1 | `shoulder`, `a1`, `1` | degrees | degrees/s | degrees/s² | degrees/s³ |
+| Elbow, relative to first arm | M2 | `elbow`, `a2`, `2` | degrees | degrees/s | degrees/s² | degrees/s³ |
+| Vertical | M3 | `z`, `a3`, `3` | mm | mm/s | mm/s² | mm/s³ |
+
+`main.cpp` supplies editable **dummy mechanics** through
+`MotionController::configureAxis()` before the CLI starts:
+
+| Setting | Shoulder | Elbow | Z |
+| --- | --- | --- | --- |
+| Motor/output reduction | 1:1 | 1:1 | 1:1 |
+| Direction | Same as motor | Same as motor | Same as motor |
+| Joint coordinate at reference switch | 0 degrees | 0 degrees | 0 mm |
+| Travel per output revolution | — | — | 40 mm |
+
+These are placeholders, not measured mechanical values. Replace the values in
+`main.cpp` when the actual transmission and coordinate conventions are known.
+The motor-side reference is taken from the existing motor configuration, so
+both layers describe the same physical switch position. There is no interactive
+mechanics configuration command. Startup still leaves all drivers disabled and
+all motors unreferenced.
+
+The motion commands mirror the motor commands:
+
+```text
+axis status
+axis enable
+axis move shoulder -5 --speed 10 --accel 100 --decel 100 --jerk 1000
+axis jobs
+axis move z -2 --speed 1
+axis jobs
+axis stop shoulder
+axis disable
+```
+
+Use `axis moveto <axis> <position> --speed <value>` for absolute moves after
+successful referencing. `axis home <axis>` runs the same seek/release/latch
+sequence, assigning the configured joint home coordinate through the converter.
+Optional `--seek` and `--latch` are joint-speed magnitudes; omitted values retain
+the existing 5 rpm and 0.5 rpm **motor** speeds. With the dummy mechanics these
+are 30/3 degrees/s for shoulder/elbow and approximately 3.333/0.333 mm/s for Z.
+The overall `--timeout` defaults to 30 seconds.
+The seek direction remains motor Forward, which may be negative in joint
+coordinates when `AxisDirection::OppositeToMotor` is configured in code.
+
+`axis speed <axis> <value>` replans the active motion's remaining speed using
+joint units. `axis defaults <axis> [--accel ...] [--decel ...] [--jerk ...]`
+reads/writes the same motor profile limits through the converter. Zero move
+overrides select those defaults; a configured default jerk of zero selects a
+trapezoid. Move `--buffer` modes and `--timeout` have the same semantics as
+their motor-command equivalents. Relative moves use displacement conversion
+without reference offsets; absolute moves use position conversion with offsets.
+Speed and profile-limit magnitudes remain nonnegative under direction inversion.
+
+`axis status [axis|all]` displays signed joint velocities and converted encoder
+feedback, preserving missing/faulted encoder results. Before referencing, the
+displayed positions do not establish a physical datum. M2/M3 have no encoder
+feedback. `axis jobs [id]` shows the same result list as `motor jobs`, using
+joint names. `axis stop [axis|all]` works even before configuring mechanics.
+`axis enable`, `axis disable` and `axis reset` act on the shared driver enable
+and generator, exactly like the motor equivalents.
+
 ### Ownership and future robot commands
 
 `main()` is the composition point. It creates one
 `control::MotionController` with the three axis configurations, then passes
-its shared pointer to `cli::motion::setup(parser, controller)` before starting
-application threads. The controller owns the generator, shared enable and
+its shared pointer to `cli::motion::setup(parser, controller)` and
+`cli::axis::setup(parser, controller)` before starting application threads.
+The controller owns the generator, shared enable, axis conversions and
 three motors; it starts the timebase once, serializes client operations and
 tracks command results. CLI callbacks retain that controller and never create
 peripherals. Other application code can submit and inspect the same motions
@@ -238,11 +310,18 @@ Submission returns a handle containing a `shared_future` as well as the ID,
 so another client can await completion without polling `motions()`. A retained
 handle remains valid after its entry expires from the 32-command result list.
 
+Axis moves, home speeds, live speed updates and profile defaults are converted
+inside the controller under its submission lock. A calibration update cannot
+interleave between conversion and submission. Status includes the conversions
+from the same locked snapshot as the motor readings. The strong `AxisMove`,
+`AxisSpeed` and `AxisDefaults` variants reject rotary/linear unit mismatches.
+
 Construct the future `Robot` at that same composition point and inject the
-same controller. Robot-level axis conversion, kinematics and coordinated
-planning belong above this boundary. A separate command module can register
+same controller. It can use `moveAxis`, `referenceAxis`, `setAxisVelocity` and
+the configured converters directly; kinematics and coordinated planning belong
+above this boundary. A separate command module can register
 `robot ...` paths with callbacks capturing that Robot, alongside these
-`motor ...` commands. No second set of motors or global Robot singleton is
+`motor ...` and `axis ...` commands. No second set of motors or global Robot singleton is
 needed. A future coordinated planner must arbitrate manual-axis commands
 against robot motions; per-call serialization alone is not coordinated-motion
 ownership or synchronized multi-axis execution. Cartesian command names are

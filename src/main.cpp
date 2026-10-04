@@ -3,6 +3,7 @@
 #include "hal/hal.hpp"
 
 #include "cli/Parser.hpp"
+#include "cli/axis.hpp"
 #include "cli/motion.hpp"
 #include "control/MotionController.hpp"
 #include "pneumo/pneumo.hpp"
@@ -80,7 +81,34 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         { 135_deg, 1.8_deg, 16U },
         { 135_deg, 1.8_deg, 16U },
       } }) };
+
+    // DUMMY MECHANICS: replace these values with the robot's actual reductions,
+    // coordinate directions and switch coordinates when they are available.
+    using enum hal::board::MotorId;
+    motion->configureAxis(Motor1,
+                          RotaryAxisConversion{ {
+                            .motor_revolutions_per_axis_revolution = 1.0,
+                            .direction = AxisDirection::SameAsMotor,
+                            .motor_reference = motion->motorConfiguration(Motor1).reference_position,
+                            .axis_reference = 0_deg,
+                          } });
+    motion->configureAxis(Motor2,
+                          RotaryAxisConversion{ {
+                            .motor_revolutions_per_axis_revolution = 1.0,
+                            .direction = AxisDirection::SameAsMotor,
+                            .motor_reference = motion->motorConfiguration(Motor2).reference_position,
+                            .axis_reference = 0_deg,
+                          } });
+    motion->configureAxis(Motor3,
+                          LinearAxisConversion{ {
+                            .travel_per_output_revolution = 40_mm,
+                            .motor_revolutions_per_output_revolution = 1.0,
+                            .direction = AxisDirection::SameAsMotor,
+                            .motor_reference = motion->motorConfiguration(Motor3).reference_position,
+                            .axis_reference = 0_mm,
+                          } });
     cli::motion::setup(cli::registry(), motion);
+    cli::axis::setup(cli::registry(), motion);
     system_threads::start();
 
     while (true) {
