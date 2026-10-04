@@ -6,6 +6,8 @@ target_sources(application_control
         ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.cpp
 )
 
 target_include_directories(application_control

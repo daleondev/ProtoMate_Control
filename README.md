@@ -185,6 +185,84 @@ persistence matters. FAT timestamps use UTC and two-second precision.
 `RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT` is destructive recovery only; all shipped
 presets and the hardware runner set it to `OFF`.
 
+## Axis conversion
+
+[`src/control/AxisConversion.hpp`](src/control/AxisConversion.hpp) provides
+`RotaryAxisConversion` for the shoulder/elbow and `LinearAxisConversion` for Z.
+They translate motor shaft coordinates into joint coordinates using
+`pnm::units` angles, distances and velocities. They contain no hardware access
+or mutable motion state. The application still owns and commands each
+`StepperMotor`.
+
+Configure a positive reduction (motor revolutions per output revolution), a
+direction, and a pair of reference coordinates describing the same physical
+location. For Z, also supply the travel per output pulley/screw revolution:
+pulley teeth times belt pitch, or screw lead. The converter applies the
+reduction to that travel. `motor_reference` must equal the reference-switch
+coordinate passed to `StepperMotor`; `axis_reference` is the joint angle or
+height assigned to that switch. Absolute coordinates become physically valid
+after successful motor referencing. Conversion itself does not mark an axis
+referenced or bypass `moveAbs()` rejection.
+
+```cpp
+#include "control/AxisConversion.hpp"
+using namespace pnm::units::literals;
+
+// Illustrative values only; the robot's reductions and joint home coordinates
+// have not yet been configured in main.cpp.
+const RotaryAxisConversion shoulder{{
+    .motor_revolutions_per_axis_revolution = 5.0,
+    .direction = AxisDirection::OppositeToMotor,
+    .motor_reference = 135_deg, // Same value as m1's constructor argument.
+    .axis_reference = 10_deg,
+}};
+const LinearAxisConversion vertical{{
+    .travel_per_output_revolution = 40_mm,
+    .motor_revolutions_per_output_revolution = 2.0,
+    .direction = AxisDirection::OppositeToMotor,
+    .motor_reference = 135_deg,
+    .axis_reference = 200_mm,
+}};
+
+// With m1/m3 already constructed, referenced and ready for motion:
+auto shoulder_move = m1.moveAbs(shoulder.toMotorPosition(28_deg),
+                                shoulder.toMotorSpeed(6_rpm));
+auto z_move = m3.moveRel(vertical.toMotorDisplacement(5_mm),
+                         vertical.toMotorSpeed(10_mm_s));
+auto shoulder_position = shoulder.toAxisPosition(m1.position());
+auto z_velocity = vertical.toAxisVelocity(m3.velocity());
+// Observe both futures and handle StepperMotor::Result in the controller.
+```
+
+`toAxisPosition`/`toMotorPosition` apply both the scale and reference offset.
+`toAxisDisplacement`/`toMotorDisplacement` convert relative distances without
+offsets. Angular positions remain unwrapped across multiple revolutions.
+`toAxisVelocity`/`toMotorVelocity` preserve signed motion, including direction
+inversion. `toAxisSpeed`/`toMotorSpeed` convert nonnegative magnitudes for
+`move`, `moveRel`, `moveAbs`, `reference` and `setVelocity`; they reject negative
+speeds. A zero magnitude converts to zero, but the motor requires positive
+speeds for motion. Continuous `move()` still needs a motor `Direction` consistent
+with the desired signed joint velocity; referencing retains the motor's fixed
+Forward seek direction.
+
+The same position/velocity conversions apply to successful encoder results;
+retain errors from `actualPosition()`/`actualVelocity()` and ensure encoder
+polarity matches the motor coordinate. Conversion does not create measured
+feedback for M2/M3. Reduction, travel and coordinates must be finite; invalid
+configuration/inputs throw `std::invalid_argument`, and arithmetic overflow
+throws `std::overflow_error`. Pulse rounding stays in `StepperMotor`. Joint
+limits, coupled trajectories and SCARA forward/inverse kinematics belong above
+this layer. The configuration examples do not start or synchronize any motion
+in the firmware.
+
+The Linux `application.control` tests cover conversions and their integration
+with motor referencing, switch rejection and pulse accounting:
+
+```sh
+cmake --build --preset debug-linux --target application_control_tests
+ctest --test-dir build/debug-linux -R '^application.control$' --output-on-failure
+```
+
 ## Stepper GPIO assignment
 
 The following seven outputs on the **NUCLEO-H753ZI (MB1364)** control

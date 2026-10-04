@@ -1,4 +1,5 @@
 #include "../StepperMotor.hpp"
+#include "../AxisConversion.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 #include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
 
@@ -175,6 +176,31 @@ TEST(StepperMotor, RequiresExternalGeneratorStartAndReferenceBeforeAbsolutePosit
     EXPECT_EQ(result(origin), Completed);
     EXPECT_NEAR(motor.position().get<pnm::units::AngleUnits::deg>(), 0.0, 1e-9);
     EXPECT_EQ(generator->status().state, hal::step::State::Running);
+}
+
+TEST(StepperMotor, AxisConversionPreservesReferencingAndMovesAwayWithReversedJointCoordinates)
+{
+    const RotaryAxisConversion axis{ { .motor_revolutions_per_axis_revolution = 5.0,
+                                      .direction = AxisDirection::OppositeToMotor,
+                                      .motor_reference = 135_deg,
+                                      .axis_reference = 10_deg } };
+    const auto generator{ hal::board::createStepperGenerator() };
+    StepperMotor motor{ Motor2, axis.configuration().motor_reference, 1.8_deg, 16U, generator };
+    const auto input{ releasedReference(Motor2) };
+    ASSERT_TRUE(generator->start());
+    auto unreferenced{ motor.moveAbs(axis.toMotorPosition(28_deg), axis.toMotorSpeed(60_rpm)) };
+    EXPECT_EQ(result(unreferenced), Rejected);
+    ASSERT_EQ(referenceMotor(motor, input), Completed);
+    EXPECT_NEAR(axis.toAxisPosition(motor.position()).get<pnm::units::AngleUnits::deg>(), 10.0, 1e-9);
+
+    // Positive joint displacement is a backward motor move, away from the
+    // still-active switch. The speed magnitude must remain positive.
+    auto motion{ motor.moveAbs(axis.toMotorPosition(28_deg), axis.toMotorSpeed(60_rpm)) };
+    EXPECT_EQ(result(motion), Completed);
+    EXPECT_NEAR(motor.position().get<pnm::units::AngleUnits::deg>(), 45.0, 1e-9);
+    EXPECT_NEAR(axis.toAxisPosition(motor.position()).get<pnm::units::AngleUnits::deg>(), 28.0, 1e-9);
+    EXPECT_EQ(*generator->output(hal::step::Axis::_2)->pulseCount(), 800U);
+    EXPECT_FALSE(motor.actualPosition()); // Conversion cannot supply missing encoder feedback.
 }
 
 TEST(StepperMotor, IndependentStopRestartVelocityAndTimeoutLeaveOtherMotorRunning)
