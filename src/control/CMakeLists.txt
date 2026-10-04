@@ -8,6 +8,8 @@ target_sources(application_control
         ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ScaraKinematics.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ScaraKinematics.cpp
 )
 
 target_include_directories(application_control

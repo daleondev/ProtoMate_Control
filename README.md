@@ -263,6 +263,103 @@ cmake --build --preset debug-linux --target application_control_tests
 ctest --test-dir build/debug-linux -R '^application.control$' --output-on-failure
 ```
 
+## SCARA kinematics
+
+[`src/control/ScaraKinematics.hpp`](src/control/ScaraKinematics.hpp) implements
+the robot's two rotary joints and vertical Z axis. It uses configured instances
+with ordinary methods defined in the `.cpp`, just like the axis converters.
+All calculations are independent of the HAL and motor workers.
+
+`JointPosition` contains the shoulder angle relative to the base, the elbow
+angle relative to the first arm, and upward-positive Z carriage travel.
+Angles increase counterclockwise viewed from above. `CartesianPosition` is the
+tool tip's XYZ in the world frame. Base translation/yaw place the robot in that
+frame. The tool offset is measured from the Z attachment datum in the second
+arm's frame: X forward, Y left, Z up. A negative tool Z offset places the tip
+below the carriage. `tool_yaw` specifies the tool's fixed orientation relative
+to that frame; it does not rotate the offset vector.
+
+For `a = base_yaw + shoulder` and `b = a + elbow`, the forward position is:
+
+```text
+x = base.x + L1*cos(a) + (L2 + tool.x)*cos(b) - tool.y*sin(b)
+y = base.y + L1*sin(a) + (L2 + tool.x)*sin(b) + tool.y*cos(b)
+z = base.z + joint.z + tool.z
+yaw = b + tool_yaw
+```
+
+The named parameter definitions in `docs/robot/SCARA_Robot.f3d` give
+`R_Link1Length = 200 + 5 + 0 = 205 mm`,
+`R_Link2Length = 200 + 50 - 26.6 = 223.4 mm`, and
+`R_TCPForwardOffset = 135 mm`. These imply an effective second length of
+358.4 mm for a centreline tool, including its forward offset. This is a reading
+of the stored parameter expressions, not a measurement of the evaluated linked
+assembly. Base/tool calibration, joint reference coordinates and actual travel
+limits remain application configuration; `main.cpp` does not configure or
+execute Cartesian motion yet.
+
+```cpp
+#include "control/ScaraKinematics.hpp"
+using namespace pnm::units::literals;
+
+ScaraKinematics kinematics{{
+    .first_arm_length = 205_mm,
+    .second_arm_length = 223.4_mm,
+    .tool_offset = {135_mm, 0_mm, 0_mm},
+}}; // Geometry example; supply calibrated frames and mechanical limits for operation.
+
+// Joint coordinates from the three configured AxisConversion objects:
+ScaraKinematics::JointPosition current{30_deg, 60_deg, 50_mm};
+auto pose = kinematics.forward(current); // Result<ToolPose>: XYZ and derived yaw.
+auto target = kinematics.inverse({300_mm, 200_mm, 40_mm}, current);
+if (target) {
+    // Convert target->shoulder / target->elbow / target->z to motor coordinates
+    // for the future trajectory planner. This call itself starts no motors.
+}
+else {
+    auto reason = target.error(); // Handle ScaraKinematics::Error in the controller.
+}
+auto tool_velocity = kinematics.forwardVelocity(current, {1_rpm, -2_rpm, 5_mm_s});
+auto joint_velocity = kinematics.inverseVelocity(current, {10_mm_s, 0_mm_s, 0_mm_s});
+```
+
+- `inverse(target, reference)` preserves the reference's elbow branch and picks
+  equivalent joint angles nearest its unwrapped coordinates, subject to optional
+  inclusive `JointLimits`. It never silently changes branches to satisfy limits.
+  An explicit third argument (`ElbowBranch::Positive` or `Negative`) selects a
+  branch; this is required when the reference is singular. Selecting a different
+  branch calculates an endpoint, not a safe transition path.
+- With a sideways tool offset, branch/singularity calculations use the effective
+  elbow-to-tip vector. Its phase is `atan2(tool.y, L2 + tool.x)` and its length is
+  `hypot(L2 + tool.x, tool.y)`. The default inverse singularity threshold is
+  `abs(sin(elbow + phase)) <= 1e-6`. Straight/folded workspace boundaries return
+  `Singularity`; targets beyond the reachable annulus return `Unreachable`.
+- `forwardVelocity` and `inverseVelocity` apply the positional Jacobian to signed
+  velocities. Forward results also include derived tool yaw velocity. The robot
+  has no independent yaw axis. Inverse velocity rejects singularities; speed and
+  acceleration limits still need enforcement by the trajectory planner.
+- Calculations return `std::expected<T, Error>` with `InvalidInput`, `Unreachable`,
+  `JointLimitExceeded`, `Singularity` or `NumericOverflow`. Invalid configuration
+  throws `std::invalid_argument`. Floating-point roundoff at workspace/limit
+  boundaries is tolerated; unreachable points are not projected into the workspace.
+- Forward feedback remains available outside joint limits and at singularities.
+  Use `checkJointLimits` explicitly for state checks. Inverse position checks its
+  resulting endpoint; inverse velocity checks its current joint position.
+  Omitted limits mean unrestricted joint coordinates, not verified mechanical travel.
+
+Feed successful encoder measurements through the same axis converters to obtain
+measured joint state. With feedback only on M1, combining it with commanded
+M2/M3 coordinates gives an estimated tool pose, not a fully measured pose.
+Referencing, synchronized motion, collision checks and path validation remain
+controller/planner responsibilities. The geometry layer installs no callbacks
+and does not replace existing motor accounting.
+
+The `application.control` tests cover analytic poses, both elbow branches,
+multi-turn continuity, frame/tool offsets, workspace and joint-limit boundaries,
+singularities, velocity finite differences, and composition with the axis
+converters. Background on velocity singularities is available in
+[Modern Robotics, section 5.3](https://modernrobotics.northwestern.edu/nu-gm-book-resource/5-3-singularities/).
+
 ## Stepper GPIO assignment
 
 The following seven outputs on the **NUCLEO-H753ZI (MB1364)** control
