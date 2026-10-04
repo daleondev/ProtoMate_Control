@@ -26,6 +26,17 @@ namespace
                 outputs[i] = generator->output(static_cast<Axis>(i));
             }
         }
+        auto startMoves(std::chrono::nanoseconds delay) -> bool
+        {
+            static_cast<void>(generator->stop());
+            if (!generator->start())
+                return false;
+            for (const auto& axis : outputs) {
+                if (axis->status().state == State::Ready && !axis->start(delay))
+                    return false;
+            }
+            return true;
+        }
         auto rises(unsigned axis) const -> std::vector<std::uint64_t>
         {
             std::vector<std::uint64_t> result;
@@ -46,13 +57,14 @@ TEST_F(StepTest, FiniteMovesFinishLowWithoutAnInterruptOrExtraWrapPulse)
 {
     hardware->interrupts_enabled = false;
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 3));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->advance(hal::detail::step_park * 3ULL);
     EXPECT_EQ(rises(0), (std::vector<std::uint64_t>{ 100, 1100, 2100 }));
     EXPECT_FALSE(hardware->high[0]);
     EXPECT_FALSE(hardware->registers.running);
     auto status{ generator->status() };
-    EXPECT_EQ(status.state, State::Completed);
+    EXPECT_EQ(status.state, State::Underrun);
+    EXPECT_EQ(status.axes[0], State::Completed);
     EXPECT_EQ(status.pulses[0], 3U);
     EXPECT_TRUE(status.counts_exact);
 }
@@ -64,10 +76,11 @@ TEST_F(StepTest, ThreeIndependentRatesShareTheFirstEdgeAndKeepExactSpacingAcross
     for (unsigned i = 0; i < 3; ++i) {
         ASSERT_TRUE(outputs[i]->prepare({ periods[i], 5us }, counts[i]));
     }
-    ASSERT_TRUE(generator->start(1ms));
+    ASSERT_TRUE(startMoves(1ms));
     hardware->advance(3'000'000U);
     const auto status{ generator->status() };
-    EXPECT_EQ(status.state, State::Completed);
+    EXPECT_EQ(status.state, State::Running);
+    EXPECT_EQ(status.axes[0], State::Completed);
     for (unsigned axis = 0; axis < 3; ++axis) {
         const auto observed{ rises(axis) };
         ASSERT_EQ(observed.size(), counts[axis]);
@@ -83,7 +96,7 @@ TEST_F(StepTest, ThreeIndependentRatesShareTheFirstEdgeAndKeepExactSpacingAcross
 TEST_F(StepTest, DelayedBufferInterruptDoesNotStretchPulseIntervals)
 {
     ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }, 2000));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->interrupts_enabled = false;
     hardware->advance(40'000); // More than a buffer, less than the two-buffer guard.
     generator->service();
@@ -94,7 +107,8 @@ TEST_F(StepTest, DelayedBufferInterruptDoesNotStretchPulseIntervals)
     for (std::size_t i = 1; i < observed.size(); ++i) {
         EXPECT_EQ(observed[i] - observed[i - 1], 100U);
     }
-    EXPECT_EQ(generator->status().state, State::Completed);
+    EXPECT_EQ(generator->status().state, State::Running);
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
 }
 
 TEST_F(StepTest, BenchIrqDelayAndUnderrunHaveTheDocumentedThreeAxisWaveforms)
@@ -105,7 +119,7 @@ TEST_F(StepTest, BenchIrqDelayAndUnderrunHaveTheDocumentedThreeAxisWaveforms)
             ASSERT_TRUE(
               outputs[i]->prepare({ periods[i], 5us }, underrun ? std::nullopt : std::optional{ 1000U }));
         }
-        ASSERT_TRUE(generator->start(1ms));
+        ASSERT_TRUE(startMoves(1ms));
         hardware->interrupts_enabled = false;
         hardware->advance(underrun ? 200'000U : 45'000U);
         EXPECT_EQ(hardware->registers.running, !underrun);
@@ -114,7 +128,7 @@ TEST_F(StepTest, BenchIrqDelayAndUnderrunHaveTheDocumentedThreeAxisWaveforms)
         hardware->interrupts_enabled = true;
         hardware->advance(1'000'000U);
         const auto status{ generator->status() };
-        EXPECT_EQ(status.state, underrun ? State::Underrun : State::Completed);
+        EXPECT_EQ(status.state, underrun ? State::Underrun : State::Running);
         const std::array expected{ underrun ? 512U : 1000U,
                                    underrun ? 256U : 1000U,
                                    underrun ? 128U : 1000U };
@@ -134,7 +148,7 @@ TEST_F(StepTest, MissedRefillStopsHardwareBeforeReplayingAStaleBuffer)
 {
     ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }));
     ASSERT_TRUE(outputs[1]->prepare({ 31us, 9us }));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->interrupts_enabled = false;
     hardware->advance(hal::detail::step_park * 2ULL);
     EXPECT_FALSE(hardware->registers.running);
@@ -154,7 +168,7 @@ TEST_F(StepTest, MissedRefillStopsHardwareBeforeReplayingAStaleBuffer)
 TEST_F(StepTest, CountsAnEdgeWhoseDmaTransferIsStillPendingAndRetainsItAfterAbort)
 {
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 1));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->hold_dma[0] = true;
     hardware->advance(100U);
     EXPECT_EQ(outputs[0]->pulseCount(), 1U);
@@ -176,10 +190,11 @@ TEST_F(StepTest, SequenceIsCopiedAndAccelerationCrossesBufferBoundariesWithoutGa
     }
     ASSERT_TRUE(outputs[0]->prepareSequence(sequence));
     sequence.clear();
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->advance(expected_time + 100U);
     EXPECT_EQ(rises(0), expected);
-    EXPECT_EQ(generator->status().state, State::Completed);
+    EXPECT_EQ(generator->status().state, State::Running);
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
 }
 
 TEST_F(StepTest, CounterWrapDoesNotChangeSpacingAndParkedAxesStayLow)
@@ -187,9 +202,10 @@ TEST_F(StepTest, CounterWrapDoesNotChangeSpacingAndParkedAxesStayLow)
     ASSERT_TRUE(outputs[0]->prepare({ 17s, 5us }, 70));
     ASSERT_TRUE(outputs[1]->prepare({ 1s, 5us }, 429));
     ASSERT_TRUE(outputs[2]->prepare({ 1s, 5us }, 1));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->advance(12'000'000'000ULL);
-    EXPECT_EQ(generator->status().state, State::Completed);
+    EXPECT_EQ(generator->status().state, State::Running);
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
     ASSERT_EQ(rises(0).size(), 70U);
     ASSERT_EQ(rises(1).size(), 429U);
     ASSERT_EQ(rises(2).size(), 1U);
@@ -199,34 +215,41 @@ TEST_F(StepTest, CounterWrapDoesNotChangeSpacingAndParkedAxesStayLow)
     }
 }
 
-TEST_F(StepTest, ConfigurationAndRestartAreAtomicAndDoNotStartUnpreparedAxes)
+TEST_F(StepTest, TimebaseAndAxesHaveIndependentLifecycles)
 {
-    ASSERT_FALSE(generator->start(10us));
+    EXPECT_FALSE(outputs[0]->start());
+    ASSERT_TRUE(generator->start());
+    hardware->advance(hal::detail::step_park * 2ULL);
+    EXPECT_TRUE(hardware->registers.running);
+    EXPECT_TRUE(hardware->edges.empty());
     EXPECT_EQ(generator->output(static_cast<Axis>(255)), nullptr);
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 2));
     EXPECT_FALSE(outputs[0]->prepare({ 1us, 1us }, 5));
     EXPECT_FALSE(outputs[0]->prepare({ 100us, 5us }, 0));
     EXPECT_FALSE(outputs[0]->prepareSequence({}));
-    EXPECT_FALSE(generator->start(0ns));
-    ASSERT_TRUE(generator->start(10us));
-    EXPECT_FALSE(generator->start(10us));
-    EXPECT_FALSE(outputs[1]->prepare({ 100us, 5us }, 1));
+    EXPECT_FALSE(outputs[0]->start(0ns));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    EXPECT_FALSE(outputs[0]->start(10us));
+    EXPECT_FALSE(outputs[0]->prepare({ 100us, 5us }, 1));
+    ASSERT_TRUE(generator->start()); // Idempotent, does not reset counts/phase.
+    ASSERT_TRUE(outputs[1]->prepare({ 100us, 5us }, 1));
     EXPECT_FALSE(outputs[0]->clear());
     hardware->advance(3000U);
-    EXPECT_EQ(generator->status().state, State::Completed);
-    EXPECT_EQ(rises(1).size(), 0U);
-    ASSERT_TRUE(generator->start(10us));
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
+    EXPECT_EQ(rises(1).size(), 0U); // prepare alone never starts a channel.
+    ASSERT_TRUE(outputs[0]->start(10us));
     EXPECT_EQ(outputs[0]->pulseCount(), 0U);
     hardware->advance(3000U);
-    EXPECT_EQ(generator->status().pulses[0], 2U);
+    EXPECT_EQ(outputs[0]->pulseCount(), 2U);
     ASSERT_TRUE(outputs[0]->clear());
-    EXPECT_FALSE(generator->start(10us));
+    EXPECT_FALSE(outputs[0]->start());
+    EXPECT_TRUE(hardware->registers.running);
 }
 
 TEST_F(StepTest, ErrorDoesNotClaimAnExactPositionOrRestartMotion)
 {
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->advance(105U);
     hardware->registers.error = true;
     generator->service();
@@ -244,21 +267,22 @@ TEST_F(StepTest, BatchedCallbacksMayQueryStateButCannotMutateTheGenerator)
         ++callbacks;
         EXPECT_EQ(generator->status().pulses, status.pulses);
         EXPECT_FALSE(outputs[0]->clear());
-        EXPECT_FALSE(generator->start(10us));
+        EXPECT_FALSE(generator->start());
     }));
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 1300));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->advance(2'000'000U);
     EXPECT_GT(callbacks, 1U);
-    EXPECT_LT(callbacks, 20U);
-    EXPECT_EQ(generator->status().state, State::Completed);
+    EXPECT_LT(callbacks, 130U); // Batched DMA / 1 ms tail observations, not one per pulse.
+    EXPECT_EQ(generator->status().state, State::Running);
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
 }
 
 TEST_F(StepTest, LargeTargetsUseBoundedBuffersAndContinuousOperationCanBeAborted)
 {
     ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }, std::numeric_limits<std::uint64_t>::max()));
     ASSERT_TRUE(outputs[1]->prepare({ 20us, 5us }));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->advance(100'000U);
     EXPECT_EQ(generator->status().state, State::Running);
     EXPECT_EQ(generator->stop().state, State::Stopped);
@@ -273,9 +297,10 @@ TEST_F(StepTest, TerminalPulseAtEveryBufferBoundaryFinishesExactly)
     for (const unsigned count : { 1U, 127U, 128U, 129U, 255U, 256U, 257U, 511U, 512U, 513U, 768U, 769U }) {
         SCOPED_TRACE(count);
         ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }, count));
-        ASSERT_TRUE(generator->start(10us));
+        ASSERT_TRUE(startMoves(10us));
         hardware->advance(200'000U);
-        EXPECT_EQ(generator->status().state, State::Completed);
+        EXPECT_EQ(generator->status().state, State::Running);
+        EXPECT_EQ(outputs[0]->status().state, State::Completed);
         EXPECT_EQ(rises(0).size(), count);
         EXPECT_EQ(outputs[0]->pulseCount(), count);
         EXPECT_FALSE(hardware->high[0]);
@@ -286,14 +311,15 @@ TEST_F(StepTest, PendingTerminalDmaCannotLeaveAnOldCompareThatRepeatsAfterWrap)
 {
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 1));
     ASSERT_TRUE(outputs[1]->prepare({ 17s, 5us }, 30));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->advance(100U); // First rise loaded its falling timestamp.
     hardware->hold_dma[0] = true;
     hardware->advance(50U); // Last fall happened, terminal DMA still pending.
     generator->service();
     EXPECT_EQ(outputs[0]->pulseCount(), 1U);
     hardware->advance(6'000'000'000ULL);
-    EXPECT_EQ(generator->status().state, State::Completed);
+    EXPECT_EQ(generator->status().state, State::Running);
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
     EXPECT_EQ(rises(0).size(), 1U);
     EXPECT_EQ(rises(1).size(), 30U);
 }
@@ -315,9 +341,10 @@ TEST_F(StepTest, AnExpiringGuardDuringRefillCannotBeUndoneByPublishingNewData)
     auto port{ std::make_unique<SlowPublish>() };
     auto* slow{ port.get() };
     auto engine{ std::make_shared<hal::detail::StepGenerator>(std::move(port)) };
-    auto axis{ engine->output(Axis::M1) };
+    auto axis{ engine->output(Axis::_1) };
     ASSERT_TRUE(axis->prepare({ 10us, 5us }));
-    ASSERT_TRUE(engine->start(10us));
+    ASSERT_TRUE(engine->start());
+    ASSERT_TRUE(axis->start(10us));
     slow->interrupts_enabled = false;
     slow->advance(30'000U);
     slow->delay = true;
@@ -330,7 +357,7 @@ TEST_F(StepTest, AnExpiringGuardDuringRefillCannotBeUndoneByPublishingNewData)
 TEST_F(StepTest, DmaLoadingAMissedTimestampDoesNotInventAnEdgeFromStickyCompareFlags)
 {
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 10));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(startMoves(10us));
     hardware->advance(100U);
     hardware->hold_dma[0] = true;
     hardware->advance(1100U); // Last fall occurred; next rising timestamp was not loaded.
@@ -338,7 +365,179 @@ TEST_F(StepTest, DmaLoadingAMissedTimestampDoesNotInventAnEdgeFromStickyCompareF
     hardware->transfer(0U); // Loads an already missed rising compare.
     EXPECT_EQ(rises(0).size(), 1U);
     EXPECT_EQ(outputs[0]->pulseCount(), 1U);
-    hardware->advance(20'000U);
+    hardware->advance(40'000U);
     EXPECT_EQ(generator->status().state, State::Underrun);
     EXPECT_EQ(outputs[0]->pulseCount(), 1U);
+}
+
+TEST_F(StepTest, StaggeredStartStopRestartDoesNotChangeAnotherAxisTimeline)
+{
+    ASSERT_TRUE(generator->start());
+    ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }, 3000));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    hardware->advance(10'025U);
+    ASSERT_TRUE(outputs[1]->prepare({ 20us, 5us }));
+    ASSERT_TRUE(outputs[1]->start(10us));
+    hardware->advance(10'500U);
+    const auto stopped{ outputs[1]->stop() };
+    EXPECT_EQ(stopped.state, State::Stopped);
+    EXPECT_EQ(stopped.pulses, rises(1).size());
+    EXPECT_TRUE(hardware->registers.running);
+    EXPECT_EQ(outputs[0]->status().state, State::Running);
+    ASSERT_TRUE(outputs[1]->prepare({ 30us, 5us }, 10));
+    ASSERT_TRUE(outputs[1]->start(10us));
+    hardware->advance(400'000U);
+    EXPECT_EQ(outputs[1]->pulseCount(), 10U);
+    EXPECT_EQ(outputs[0]->pulseCount(), 3000U);
+    const auto edges{ rises(0) };
+    ASSERT_EQ(edges.size(), 3000U);
+    for (std::size_t i = 1; i < edges.size(); ++i)
+        EXPECT_EQ(edges[i] - edges[i - 1], 100U);
+    EXPECT_EQ(rises(2).size(), 0U);
+    EXPECT_TRUE(hardware->registers.running);
+}
+
+TEST_F(StepTest, LiveTimingChangesAtReportedPulseAndPreservesFiniteCount)
+{
+    ASSERT_TRUE(generator->start());
+    ASSERT_TRUE(outputs[0]->prepare({ 20us, 5us }, 1600));
+    ASSERT_TRUE(outputs[1]->prepare({ 30us, 5us }, 2000));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    ASSERT_TRUE(outputs[1]->start(10us));
+    hardware->advance(5000U);
+    const auto change{ outputs[0]->updateTiming({ 10us, 5us }) };
+    ASSERT_TRUE(change);
+    EXPECT_EQ(*change, 513U);
+    hardware->advance(20'000U);
+    const auto replacement{ outputs[0]->updateTiming({ 40us, 10us }) };
+    ASSERT_TRUE(replacement);
+    EXPECT_EQ(*replacement, *change); // Last update wins until that boundary is filled.
+    hardware->advance(1'000'000U);
+    const auto edges{ rises(0) };
+    ASSERT_EQ(edges.size(), 1600U);
+    for (std::size_t i = 1; i < edges.size(); ++i) {
+        EXPECT_EQ(edges[i] - edges[i - 1], i >= *change ? 400U : 200U);
+    }
+    const auto other{ rises(1) };
+    ASSERT_EQ(other.size(), 2000U);
+    for (std::size_t i = 1; i < other.size(); ++i)
+        EXPECT_EQ(other[i] - other[i - 1], 300U);
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
+    EXPECT_EQ(outputs[0]->pulseCount(), 1600U);
+    EXPECT_TRUE(hardware->registers.running);
+}
+
+TEST_F(StepTest, ContinuousTimingUpdateAndFailedUpdatesNeverResetPositionOrPhase)
+{
+    ASSERT_TRUE(generator->start());
+    ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    hardware->advance(7000U);
+    const auto count{ outputs[0]->pulseCount() };
+    EXPECT_FALSE(outputs[0]->updateTiming({ 5us, 5us }));
+    EXPECT_FALSE(outputs[0]->updateTiming({ 1s, 5us })); // Exceeds this move's buffer horizon.
+    EXPECT_EQ(outputs[0]->pulseCount(), count);
+    const auto change{ outputs[0]->updateTiming({ 20us, 5us }) };
+    ASSERT_TRUE(change);
+    hardware->advance(200'000U);
+    const auto final{ outputs[0]->stop() };
+    const auto edges{ rises(0) };
+    EXPECT_EQ(final.pulses, edges.size());
+    for (std::size_t i = 1; i < edges.size(); ++i) {
+        EXPECT_EQ(edges[i] - edges[i - 1], i >= *change ? 200U : 100U);
+    }
+    EXPECT_TRUE(hardware->registers.running);
+}
+
+TEST_F(StepTest, IndependentStartAcrossWrapAndShortCompletionDoNotStopTheClock)
+{
+    ASSERT_TRUE(generator->start());
+    hardware->advance(hal::detail::step_park - 75U);
+    ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }, 1));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    hardware->advance(500'000U);
+    EXPECT_EQ(rises(0), (std::vector<std::uint64_t>{ std::uint64_t{ hal::detail::step_park } + 25U }));
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
+    EXPECT_FALSE(hardware->completion_watch);
+    hardware->advance(hal::detail::step_park * 2ULL);
+    EXPECT_EQ(rises(0).size(), 1U);
+    EXPECT_TRUE(hardware->registers.running);
+}
+
+TEST_F(StepTest, AxisStopIncludesPendingDmaAndDoesNotDisarmTheOtherAxis)
+{
+    ASSERT_TRUE(generator->start());
+    for (auto& axis : outputs)
+        ASSERT_TRUE(axis->prepare({ 10us, 5us }));
+    for (auto& axis : outputs)
+        ASSERT_TRUE(axis->start(10us));
+    hardware->hold_dma[0] = true;
+    hardware->advance(100U);
+    EXPECT_EQ(outputs[0]->stop().pulses, 1U);
+    EXPECT_FALSE(hardware->high[0]);
+    hardware->advance(50'000U);
+    EXPECT_EQ(rises(0).size(), 1U);
+    EXPECT_EQ(rises(1).size(), 501U);
+    EXPECT_EQ(rises(2).size(), 501U);
+    EXPECT_EQ(outputs[1]->status().state, State::Running);
+}
+
+TEST_F(StepTest, FaultCannotBeSilentlyRestartedAndOnlyExplicitShutdownAcknowledgesIt)
+{
+    ASSERT_TRUE(startMoves(10us));
+    ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    hardware->interrupts_enabled = false;
+    hardware->advance(100'000U);
+    EXPECT_EQ(generator->status().state, State::Underrun);
+    EXPECT_FALSE(generator->start());
+    EXPECT_FALSE(outputs[0]->start());
+    static_cast<void>(generator->stop());
+    ASSERT_TRUE(generator->start());
+    EXPECT_EQ(outputs[0]->status().state, State::Ready);
+    EXPECT_EQ(rises(0).size(), 0U); // Restarting the service does not restart a move.
+}
+
+TEST(StepArming, MissedStartMarginRejectsOnlyTheNewAxisAndPreservesItsPreparedMove)
+{
+    class DelayedArm final : public hal::detail::SimulatedStepHardware
+    {
+      public:
+        bool delay{};
+        auto arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept -> bool override
+        {
+            if (delay)
+                advance(200U); // Setup consumed 20 us of a requested 10 us lead.
+            return SimulatedStepHardware::arm(axis, first, count);
+        }
+    };
+    auto backend{ std::make_unique<DelayedArm>() };
+    auto* hardware{ backend.get() };
+    auto engine{ std::make_shared<hal::detail::StepGenerator>(std::move(backend)) };
+    hardware->interrupt = [&] { engine->service(); };
+    const auto moving{ engine->output(Axis::_1) };
+    const auto joining{ engine->output(Axis::_2) };
+    ASSERT_TRUE(engine->start());
+    ASSERT_TRUE(moving->prepare({ 20us, 5us }, 100));
+    ASSERT_TRUE(moving->start(10us));
+    hardware->advance(1000U);
+    ASSERT_TRUE(joining->prepare({ 10us, 5us }, 1));
+    hardware->delay = true;
+    EXPECT_EQ(joining->start(10us).error(), std::errc::timed_out);
+    EXPECT_EQ(joining->status().state, State::Ready);
+    EXPECT_EQ(joining->pulseCount(), 0U);
+    EXPECT_EQ(moving->status().state, State::Running);
+    hardware->delay = false;
+    ASSERT_TRUE(joining->start(10us));
+    hardware->advance(100'000U);
+    EXPECT_EQ(joining->pulseCount(), 1U);
+    EXPECT_EQ(moving->pulseCount(), 100U);
+    std::uint64_t expected{ 100U };
+    for (const auto& edge : hardware->edges) {
+        if (edge.axis == 0U && edge.high) {
+            EXPECT_EQ(edge.tick, expected);
+            expected += 200U;
+        }
+    }
+    EXPECT_TRUE(hardware->registers.running);
 }

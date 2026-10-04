@@ -95,7 +95,7 @@ set_source_files_properties(
 set_source_files_properties(
     ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/stm32h7xx_it.c
     PROPERTIES
-        COMPILE_DEFINITIONS "EXTI15_10_IRQHandler=CubeMX_EXTI15_10_IRQHandler;EXTI9_5_IRQHandler=CubeMX_EXTI9_5_IRQHandler;DMA1_Stream0_IRQHandler=CubeMX_DMA1_Stream0_IRQHandler;DMA1_Stream1_IRQHandler=CubeMX_DMA1_Stream1_IRQHandler;DMA1_Stream2_IRQHandler=CubeMX_DMA1_Stream2_IRQHandler;DMA1_Stream3_IRQHandler=CubeMX_DMA1_Stream3_IRQHandler"
+        COMPILE_DEFINITIONS "EXTI15_10_IRQHandler=CubeMX_EXTI15_10_IRQHandler;EXTI9_5_IRQHandler=CubeMX_EXTI9_5_IRQHandler;DMA1_Stream0_IRQHandler=CubeMX_DMA1_Stream0_IRQHandler;DMA1_Stream1_IRQHandler=CubeMX_DMA1_Stream1_IRQHandler;DMA1_Stream2_IRQHandler=CubeMX_DMA1_Stream2_IRQHandler;DMA1_Stream3_IRQHandler=CubeMX_DMA1_Stream3_IRQHandler;TIM7_IRQHandler=CubeMX_TIM7_IRQHandler"
 )
 set_source_files_properties(
     ${PROJECT_SOURCE_DIR}/external/stm32h7xx-nucleo-bsp/stm32h7xx_nucleo.c

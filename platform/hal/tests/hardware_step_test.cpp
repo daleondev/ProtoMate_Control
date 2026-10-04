@@ -30,7 +30,8 @@ namespace
     constexpr std::array dma_irqs{ DMA1_Stream0_IRQn,
                                    DMA1_Stream1_IRQn,
                                    DMA1_Stream2_IRQn,
-                                   DMA1_Stream3_IRQn };
+                                   DMA1_Stream3_IRQn,
+                                   TIM7_IRQn };
 
     template<typename... Args>
     void log(const char* format, Args... args)
@@ -67,7 +68,7 @@ namespace
         return (GPIOA->IDR & GPIO_PIN_0) == 0U && (GPIOB->IDR & (GPIO_PIN_10 | GPIO_PIN_11)) == 0U;
     }
 
-    // Mask only the four CPU interrupt vectors. DMA and TIM2 keep running;
+    // Mask the four DMA vectors and the completion monitor. DMA and TIM2 keep running;
     // TIM5, the HAL tick, ThreadX and UART interrupts remain available.
     class WithholdDmaInterrupts final
     {
@@ -92,7 +93,7 @@ namespace
         }
 
       private:
-        std::array<bool, 4> m_enabled{};
+        std::array<bool, 5> m_enabled{};
     };
 
     void busyWait(std::chrono::microseconds duration)
@@ -136,7 +137,8 @@ namespace
                      ->setProgressCallback([this](const hal::step::Status& status) noexcept {
                 // No allocation, logging, RTOS calls or mutation from the ISR.
                 for (std::size_t i = 0; i < 3U; ++i) {
-                    m_progress.monotonic &= status.pulses[i] >= m_progress.last.pulses[i];
+                    m_progress.monotonic &= m_progress.last.axes[i] != State::Running ||
+                                            status.pulses[i] >= m_progress.last.pulses[i];
                 }
                 ++m_progress.calls;
                 m_progress.last = status;
@@ -198,6 +200,17 @@ namespace
                     log("435 pulses/axis at 1 Hz; real 32-bit counter wrap at about 429.497 s");
                     passed = constant({ 1s, 1s, 1s }, Counts{ 435U, 435U, 435U }) && startAndWait(437s) &&
                              final(State::Completed, Counts{ 435U, 435U, 435U });
+                    break;
+                case 11:
+                    passed = independent();
+                    break;
+                case 12:
+                    if (check(m_generator->start().has_value(), "start idle timebase")) {
+                        // Test-only: jump an idle counter to 5 ms before its real wrap.
+                        TIM2->CNT = 0xFFFFFFFEU - 50'000U;
+                        passed = constant({ 100us, 200us, 400us }, Counts{ 64U, 64U, 64U }) &&
+                                 startAndWait(100ms) && final(State::Completed, Counts{ 64U, 64U, 64U });
+                    }
                     break;
                 default:
                     break;
@@ -391,12 +404,69 @@ namespace
             }
             return true;
         }
+        auto motionStatus() -> hal::step::Status
+        {
+            auto status{ m_generator->status() };
+            if (status.state == State::Running) {
+                bool running{}, stopped{};
+                for (const auto axis : status.axes) {
+                    running |= axis == State::Running;
+                    stopped |= axis == State::Stopped;
+                }
+                if (!running)
+                    status.state = stopped ? State::Stopped : State::Completed;
+            }
+            return status;
+        }
+        auto startMoves() -> bool
+        {
+            if (!m_generator->start())
+                return false;
+            for (auto& axis : m_axes) {
+                if (axis->status().state == State::Ready && !axis->start())
+                    return false;
+            }
+            return true;
+        }
+        auto independent() -> bool
+        {
+            if (!check(m_generator->start().has_value(), "start idle timebase") ||
+                !check(m_axes[0]->prepare({ 10us, 5us }, 100000U).has_value(), "prepare M1") ||
+                !check(m_axes[0]->start().has_value(), "start M1"))
+                return false;
+            std::this_thread::sleep_for(100ms);
+            if (!check(m_axes[1]->prepare({ 40us, 5us }, 20000U).has_value(), "prepare M2 while M1 runs") ||
+                !check(m_axes[1]->start().has_value(), "start M2 later"))
+                return false;
+            std::this_thread::sleep_for(100ms);
+            const auto update{ m_axes[1]->updateTiming({ 20us, 5us }) };
+            if (!check(update.has_value(), "change M2 speed without restarting"))
+                return false;
+            log("INDEPENDENT M2 new_period_us=20 first_affected_pulse=%llu",
+                static_cast<unsigned long long>(*update));
+            if (!check(m_axes[2]->prepare({ 100us, 5us }).has_value(), "prepare M3") ||
+                !check(m_axes[2]->start().has_value(), "start M3"))
+                return false;
+            std::this_thread::sleep_for(100ms);
+            const auto stopped{ m_axes[2]->stop() };
+            log("INDEPENDENT M3 first_burst_pulses=%llu", static_cast<unsigned long long>(stopped.pulses));
+            if (!check(stopped.state == State::Stopped && stopped.counts_exact, "stop only M3") ||
+                !check(m_axes[0]->status().state == State::Running &&
+                         m_axes[1]->status().state == State::Running,
+                       "M1/M2 continue through M3 stop"))
+                return false;
+            std::this_thread::sleep_for(50ms);
+            if (!check(m_axes[2]->prepare({ 50us, 5us }, 333U).has_value(), "prepare M3 restart") ||
+                !check(m_axes[2]->start().has_value(), "restart only M3"))
+                return false;
+            return wait(2s) && final(State::Completed, Counts{ 100000U, 20000U, 333U });
+        }
         auto wait(std::chrono::milliseconds timeout) -> bool
         {
             const auto until{ Clock::now() + timeout };
             Counts previous{};
             while (true) {
-                const auto status{ m_generator->status() };
+                const auto status{ motionStatus() };
                 for (std::size_t i = 0; i < 3U; ++i) {
                     if (!check(status.pulses[i] >= previous[i], "monotonic polled pulse count")) {
                         return false;
@@ -415,25 +485,30 @@ namespace
         }
         auto startAndWait(std::chrono::milliseconds timeout) -> bool
         {
-            return check(m_generator->start(1ms).has_value(), "start") && wait(timeout);
+            return check(startMoves(), "start") && wait(timeout);
         }
         auto final(State expected, std::optional<Counts> counts = std::nullopt) -> bool
         {
-            const auto before{ m_generator->status() };
+            const auto before{ motionStatus() };
             // Check quiescence and allow a pending completion notification to run.
             std::this_thread::sleep_for(20ms);
-            const auto after{ m_generator->status() };
+            const auto after{ motionStatus() };
             Progress progress;
             {
                 const hal::stm32::InterruptGuard lock;
                 progress = m_progress;
             }
-            bool passed{ check(after.state == expected && after.counts_exact, "terminal state/exact count") &&
-                         check(before == after, "counts/state remain unchanged after stopping") &&
-                         check(idle(), "stopped counter, STEP/DIR low, enable high") &&
-                         check(!counts || after.pulses == *counts, "expected pulse counts") &&
-                         check(progress.calls > 0U && progress.monotonic && progress.last == after,
-                               "batched callback reports monotonic counts and terminal state") };
+            bool passed{
+                check(after.state == expected && after.counts_exact, "terminal state/exact count") &&
+                check(before == after, "counts/state remain unchanged after stopping") &&
+                check(padsLow() && m_enable->read() == hal::gpio::Level::High, "STEP low, enable high") &&
+                check(expected == State::Underrun || expected == State::Stopped ||
+                        (TIM2->CR1 & TIM_CR1_CEN) != 0U,
+                      "idle timebase remains running") &&
+                check(!counts || after.pulses == *counts, "expected pulse counts") &&
+                check(progress.calls > 0U && progress.monotonic && progress.last == m_generator->status(),
+                      "batched callback reports monotonic counts and terminal state")
+            };
             for (std::size_t i = 0; i < 3U; ++i) {
                 const auto count{ m_axes[i]->pulseCount() };
                 passed &= check(count && *count == after.pulses[i], "axis count agrees with group status");
@@ -460,8 +535,7 @@ namespace
         }
         auto abort() -> bool
         {
-            if (!constant({ 100us, 200us, 400us }) ||
-                !check(m_generator->start(1ms).has_value(), "start continuous train")) {
+            if (!constant({ 100us, 200us, 400us }) || !check(startMoves(), "start continuous train")) {
                 return false;
             }
             std::this_thread::sleep_for(100ms);
@@ -474,8 +548,7 @@ namespace
         {
             const std::optional<Counts> counts{ underrun ? std::nullopt
                                                          : std::optional{ Counts{ 1000U, 1000U, 1000U } } };
-            if (!constant({ 10us, 20us, 40us }, counts) ||
-                !check(m_generator->start(1ms).has_value(), "start IRQ delay test")) {
+            if (!constant({ 10us, 20us, 40us }, counts) || !check(startMoves(), "start IRQ delay test")) {
                 return false;
             }
             bool stopped{}, pending{};
@@ -493,14 +566,17 @@ namespace
             if (underrun) {
                 return check(stopped, "hardware stopped TIM2 while all DMA IRQs were masked") &&
                        check(pending, "DMA buffer completed while its IRQ was masked") &&
-                       final(State::Underrun, Counts{ 512U, 256U, 128U });
+                       check(m_generator->status().pulses[0] == 512U,
+                             "fast axis stops at its two-buffer horizon") &&
+                       final(State::Underrun);
             }
             return check(!stopped && pending, "delayed refill, counter still running") && wait(100ms) &&
                    final(State::Completed, Counts{ 1000U, 1000U, 1000U });
         }
         auto report(bool passed) -> bool
         {
-            const auto status{ m_generator->stop() };
+            const auto status{ motionStatus() };
+            static_cast<void>(m_generator->stop());
             Progress progress;
             {
                 const hal::stm32::InterruptGuard lock;
@@ -540,7 +616,7 @@ namespace
     {
         log("1=1/2/3 pulses  2=independent rates  3=100 kHz x3  4=profile");
         log("5=abort continuous  6=late IRQ  7=underrun  8=wrap (~7m15s)");
-        log("9=run cases 1..7  h=help; enter one command then Enter");
+        log("9=run cases 1..7  i=independent start/stop/live speed  w=quick counter wrap  h=help");
         log("c=TIM2 clock versus RTC crystal (~31 s, no STEP pulses)");
         log("EN_N remains HIGH and DIR LOW. PASS checks software; verify waveforms separately.");
     }
@@ -580,6 +656,12 @@ int main()
             }
             if (line[0] >= '1' && line[0] <= '8') {
                 static_cast<void>(bench.run(static_cast<unsigned>(line[0] - '0')));
+            }
+            else if (line[0] == 'i') {
+                static_cast<void>(bench.run(11U));
+            }
+            else if (line[0] == 'w') {
+                static_cast<void>(bench.run(12U));
             }
             else if (line[0] == '9') {
                 bool passed{ true };

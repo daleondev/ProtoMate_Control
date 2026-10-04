@@ -46,7 +46,8 @@ DIR uses PE12/CN10.26, PE13/CN10.10, PE14/CN10.8; the shared active-low
 enable is PE15/CN10.30. These signals use J101 pins 1/3/5/7/9/11/13.
 The harness table, Nucleo symbol and layout notes specify the cable destinations.
 Keep PA0's SB75 ON and the user
-button on PC13. TIM5 is the runtime clock; PE9/PE11 (TIM1) and PC6/PC7
+button on PC13. TIM5 is the runtime clock; TIM7 provides an internal finite-move
+completion check and uses no connector pin. PE9/PE11 (TIM1) and PC6/PC7
 (TIM8) are reserved for possible additional encoders, with no cables fitted.
 
 Set the onboard **STLINK-V3 MCO to HSE/5 (5 MHz)**. CubeMX uses that external

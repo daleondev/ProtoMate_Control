@@ -8,7 +8,7 @@
 namespace hal::detail
 {
     // One owner per timer: period/prescaler and internal compare channels are shared.
-    // TIM2 (step engine), TIM5 (runtime) and TIM6 (HAL tick) deliberately cannot be leased here.
+    // TIM2/TIM7 (step engine), TIM5 (runtime) and TIM6 (HAL tick) cannot be leased here.
     class TimerLease final
     {
       public:

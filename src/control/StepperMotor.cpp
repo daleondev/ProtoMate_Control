@@ -2,6 +2,10 @@
 
 #include "pneumo/logging.hpp"
 
+#include <cmath>
+#include <limits>
+#include <stdexcept>
+
 StepperMotor::StepperMotor(hal::board::MotorId id,
                            pnm::units::Angle full_step_angle,
                            size_t microsteps,
@@ -15,20 +19,19 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
   , m_encoderInput{ hal::board::createEncoder(id) }
   , m_encoderIndexInput{ hal::board::createEncoderIndex(id) }
 {
+    if (!std::isfinite(full_step_angle.get()) || full_step_angle <= 0_deg || microsteps == 0U) {
+        throw std::invalid_argument("invalid motor step angle or microstep count");
+    }
+    m_stepAngle = m_fullStepAngle / static_cast<double>(m_microsteps);
+    if (!m_stepOutput || !m_dirOutput || !m_referenceSwitchInput ||
+        (id == hal::board::MotorId::Motor1 && (!m_encoderInput || !m_encoderIndexInput))) {
+        throw std::runtime_error("motor board resource is unavailable");
+    }
     pnm::log::debug("Motor initialized: {} degrees per microstep",
                     m_stepAngle.get<pnm::units::AngleUnits::deg>());
 }
 
-StepperMotor::~StepperMotor()
-{
-    pnm::log::debug("Shutting down motor worker");
-    std::scoped_lock lock{ m_workerMutex };
-    if (m_worker.joinable()) {
-        m_worker.request_stop();
-        m_worker.join();
-    }
-    pnm::log::debug("Motor shutdown complete");
-}
+StepperMotor::~StepperMotor() { stopAndWait(); }
 
 std::future<StepperMotor::Result> StepperMotor::move(Direction direction,
                                                      pnm::units::AngularVelocity velocity,
@@ -45,21 +48,77 @@ std::future<StepperMotor::Result> StepperMotor::move(Direction direction,
     }));
 }
 
+std::future<StepperMotor::Result> StepperMotor::moveRel(pnm::units::Angle distance,
+                                                        pnm::units::AngularVelocity velocity,
+                                                        pnm::units::Time timeout)
+{
+    return startMotion(
+      std::packaged_task<Result(std::stop_token)>([this, distance, velocity, timeout](std::stop_token stop) {
+        return performMotion(position() + distance, velocity, timeout, stop);
+    }));
+}
+
+std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target,
+                                                        pnm::units::AngularVelocity velocity,
+                                                        pnm::units::Time timeout)
+{
+    return startMotion(
+      std::packaged_task<Result(std::stop_token)>([this, target, velocity, timeout](std::stop_token stop) {
+        return performMotion(target, velocity, timeout, stop);
+    }));
+}
+
+pnm::units::Angle StepperMotor::position() const
+{
+    std::scoped_lock lock{ m_mutex };
+    return m_position; // Commanded pulse position, not encoder feedback.
+}
+
 void StepperMotor::stop() noexcept
 {
-    std::scoped_lock lock{ m_workerMutex };
-    if (m_worker.request_stop()) {
-        pnm::log::trace("Motor stop requested");
-    }
+    std::scoped_lock worker_lock{ m_workerMutex };
+    m_worker.request_stop();
+    std::scoped_lock state_lock{ m_mutex };
+    static_cast<void>(m_stepOutput->stop());
 }
 
 void StepperMotor::stopAndWait() noexcept
 {
-    std::scoped_lock lock{ m_workerMutex };
+    std::scoped_lock worker_lock{ m_workerMutex };
     m_worker.request_stop();
-    if (m_worker.joinable()) {
-        m_worker.join();
+    {
+        std::scoped_lock state_lock{ m_mutex };
+        static_cast<void>(m_stepOutput->stop());
     }
+    if (m_worker.joinable())
+        m_worker.join();
+}
+
+std::optional<hal::step::Timing> StepperMotor::timingFor(pnm::units::AngularVelocity velocity) const noexcept
+{
+    if (!std::isfinite(velocity.get()) || velocity <= 0_rpm)
+        return std::nullopt;
+    const double seconds{ (m_stepAngle / velocity).get<pnm::units::TimeUnits::s>() };
+    // Validate floating quantities BEFORE converting to an integral duration.
+    if (!std::isfinite(seconds) || seconds < 0.000010 || seconds > 53.6870911)
+        return std::nullopt;
+    return hal::step::Timing{
+        .period = std::chrono::nanoseconds{ static_cast<std::int64_t>(std::ceil(seconds * 1e9)) },
+        .high_time = 5us,
+    };
+}
+
+util::Result<hal::step::PulseCount> StepperMotor::setVelocity(pnm::units::AngularVelocity velocity)
+{
+    const auto timing{ timingFor(velocity) };
+    if (!timing)
+        return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    std::scoped_lock worker_lock{ m_workerMutex };
+    std::scoped_lock state_lock{ m_mutex };
+    auto result{ m_stepOutput->updateTiming(*timing) };
+    if (result)
+        m_velocity = velocity; // Requested magnitude; takes effect at the returned pulse.
+    return result;
 }
 
 std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<Result(std::stop_token)> task)
@@ -75,93 +134,115 @@ std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<R
     return future;
 }
 
+StepperMotor::Result StepperMotor::performMotion(pnm::units::Angle target,
+                                                 pnm::units::AngularVelocity velocity,
+                                                 pnm::units::Time timeout,
+                                                 std::stop_token stop)
+{
+    const auto distance{ target - position() };
+    const long double pulses{ std::round(std::abs(static_cast<long double>(distance / m_stepAngle))) };
+    if (!std::isfinite(target.get()) || !std::isfinite(pulses) ||
+        pulses >= static_cast<long double>(std::numeric_limits<hal::step::PulseCount>::max())) {
+        return Result::Rejected;
+    }
+    return performMotion(distance >= 0_deg ? Direction::Forward : Direction::Backward,
+                         velocity,
+                         timeout,
+                         stop,
+                         static_cast<hal::step::PulseCount>(pulses));
+}
+
 StepperMotor::Result StepperMotor::performMotion(Direction direction,
                                                  pnm::units::AngularVelocity velocity,
                                                  pnm::units::Time timeout,
                                                  std::stop_token stop,
+                                                 std::optional<hal::step::PulseCount> count,
                                                  std::move_only_function<bool() noexcept> should_stop)
-try {
-
-    if (!std::isfinite(velocity.get()) || velocity <= 0.0_rpm || !std::isfinite(timeout.get()) ||
-        timeout < 0_s) {
-        pnm::log::warn("Motor move rejected: invalid velocity={} rpm or timeout={} s",
-                       velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
-                       timeout.get<pnm::units::TimeUnits::s>());
+{
+    const auto timing{ timingFor(velocity) };
+    if (!timing || !std::isfinite(timeout.get()) || timeout < 0_s ||
+        (direction != Direction::Forward && direction != Direction::Backward)) {
         return Result::Rejected;
     }
-
-    constexpr auto minimum_pulse{ 1us };
-    auto period_time{ (m_stepAngle / velocity).toChrono<std::chrono::nanoseconds>() };
-    auto timeout_time{ timeout.toChrono<std::chrono::nanoseconds>() };
-
-    auto start{ std::chrono::steady_clock::now() };
-    auto maximum_delay{ (std::chrono::steady_clock::time_point::max() - start) / 2 };
-
-    if (!std::isfinite(period_time.count()) || period_time < 2 * minimum_pulse ||
-        period_time >= maximum_delay || timeout_time >= maximum_delay) {
-        pnm::log::warn("Motor move rejected: pulse period or timeout outside supported timing range");
+    const auto now{ std::chrono::steady_clock::now() };
+    const auto available{ (std::chrono::steady_clock::time_point::max() - now) / 2 };
+    if (timeout.get<pnm::units::TimeUnits::s>() >= std::chrono::duration<double>{ available }.count()) {
         return Result::Rejected;
     }
-
-    auto deadline{ timeout == 0_s
-                     ? std::chrono::steady_clock::time_point::max()
-                     : start + std::chrono::ceil<std::chrono::steady_clock::duration>(timeout_time) };
-
-    m_dirOutput->write(static_cast<hal::gpio::Level>(direction == Direction::Forward));
-
-    if (!m_stepOutput->configure({ .period = period_time, .high_time = period_time / 2 })) {
-        pnm::log::warn("Motor move rejected: failed to configure pwm");
+    const auto deadline{ timeout == 0_s ? std::chrono::steady_clock::time_point::max()
+                                        : now + timeout.toChrono<std::chrono::steady_clock::duration>() };
+    if (stop.stop_requested())
+        return Result::Stopped;
+    if (count == 0U)
+        return Result::Completed;
+    if (!m_stepOutput->prepare(*timing, count))
         return Result::Rejected;
-    }
 
-    if (!m_stepOutput->start()) {
-        pnm::log::warn("Motor move rejected: failed to start pwm");
-        return Result::Rejected;
-    }
-
+    pnm::units::Angle start_position;
     {
+        // Serialize the start/cancellation handover. stop() cannot return and
+        // then have this worker start a late motion behind it.
         std::scoped_lock lock{ m_mutex };
+        if (stop.stop_requested())
+            return Result::Stopped;
+        m_dirOutput->write(direction == Direction::Forward ? hal::gpio::Level::High : hal::gpio::Level::Low);
+        if (!m_stepOutput->start())
+            return Result::Rejected; // 1 ms DIR setup margin.
+        start_position = m_position;
         m_velocity = velocity;
     }
-
+    const double sign{ direction == Direction::Forward ? 1.0 : -1.0 };
+    auto account = [&](const hal::step::AxisStatus& status, bool ended) {
+        std::scoped_lock lock{ m_mutex };
+        if (status.counts_exact) {
+            m_position = start_position + m_stepAngle * (sign * static_cast<double>(status.pulses));
+        }
+        else {
+            m_referenced = false;
+        }
+        if (ended)
+            m_velocity = 0_rpm;
+    };
     auto result{ Result::Stopped };
-    while (true) {
-
-        const auto now{ std::chrono::steady_clock::now() };
-        if (stop.stop_requested()) {
-            break;
+    try {
+        while (true) {
+            const auto status{ m_stepOutput->status() };
+            account(status, false);
+            if (status.state == hal::step::State::Underrun || status.state == hal::step::State::DmaError ||
+                !status.counts_exact) {
+                result = Result::Faulted;
+                break;
+            }
+            if (status.state == hal::step::State::Completed) {
+                result = Result::Completed;
+                break;
+            }
+            if (stop.stop_requested() || status.state == hal::step::State::Stopped)
+                break;
+            if (status.state != hal::step::State::Running) {
+                result = Result::Faulted;
+                break;
+            }
+            if (should_stop && should_stop()) {
+                result = Result::Completed;
+                break;
+            }
+            if (std::chrono::steady_clock::now() >= deadline) {
+                result = Result::TimedOut;
+                break;
+            }
+            pnm::utils::concurrent::sleep_for(1ms, stop);
         }
-        if (should_stop && should_stop()) {
-            result = Result::Completed;
-            break;
-        }
-        if (now >= deadline || deadline - now < minimum_pulse) {
-            result = Result::TimedOut;
-            break;
-        }
-
-        pnm::utils::concurrent::sleep_for(minimum_pulse, stop);
+    } catch (...) {
+        account(m_stepOutput->stop(), true); // Only this motor, never the generator.
+        throw;
     }
-    static_cast<void>(m_stepOutput->stop());
-
-    {
-        std::scoped_lock lock{ m_mutex };
-        m_velocity = 0_rpm;
-    }
-
+    const auto final{ m_stepOutput->stop() };
+    account(final, true);
+    if (!final.counts_exact || final.state == hal::step::State::DmaError ||
+        final.state == hal::step::State::Underrun)
+        result = Result::Faulted;
     pnm::log::debug(
-      "Motor motion ended: {}, position={} deg", result, m_position.get<pnm::units::AngleUnits::deg>());
-    if (result == Result::TimedOut && should_stop) {
-        pnm::log::warn("Motor timed out before reaching its target after {} s",
-                       timeout.get<pnm::units::TimeUnits::s>());
-    }
+      "Motor motion ended: {}, position={} deg", result, position().get<pnm::units::AngleUnits::deg>());
     return result;
-} catch (...) {
-    {
-        std::scoped_lock lock{ m_mutex };
-        m_velocity = 0_rpm;
-    }
-    static_cast<void>(m_stepOutput->stop());
-    pnm::log::error(pnm::log::immediate, "Motor motion failed; propagating exception through its future");
-    throw;
 }

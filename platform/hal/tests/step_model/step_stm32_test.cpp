@@ -12,6 +12,7 @@ extern "C" void DMA1_Stream0_IRQHandler();
 extern "C" void DMA1_Stream1_IRQHandler();
 extern "C" void DMA1_Stream2_IRQHandler();
 extern "C" void DMA1_Stream3_IRQHandler();
+extern "C" void TIM7_IRQHandler();
 
 namespace
 {
@@ -50,7 +51,12 @@ namespace
         }
         void start()
         {
-            ASSERT_TRUE(engine->start(10us));
+            ASSERT_TRUE(engine->start());
+            for (const auto& axis : axes) {
+                if (axis->status().state == State::Ready) {
+                    ASSERT_TRUE(axis->start(10us));
+                }
+            }
             for (unsigned i = 0; i < 4; ++i)
                 lengths[i] = dma_streams[i].NDTR;
         }
@@ -84,7 +90,9 @@ namespace
                     auto d = hal::detail::stepDistance(timer.CNT, target);
                     return d ? d : hal::detail::step_park;
                 };
-                auto next = distance(timer.CCR2);
+                auto next = (timer.DIER & TIM_DIER_CC2DE)
+                              ? distance(timer.CCR2)
+                              : std::uint64_t{ hal::detail::step_park } - timer.CNT;
                 std::array<std::uint64_t, 3> events;
                 for (unsigned i = 0; i < 3; ++i) {
                     events[i] = compare(i) == hal::detail::step_park
@@ -92,6 +100,9 @@ namespace
                                   : distance(compare(i));
                     next = std::min(next, events[i]);
                 }
+                const auto poll_tick{ (elapsed / 10'000U + 1U) * 10'000U };
+                if (TIM7->CR1 & TIM_CR1_CEN)
+                    next = std::min(next, poll_tick - elapsed);
                 if (next > ticks) {
                     timer.CNT = hal::detail::stepAdd(timer.CNT, ticks);
                     elapsed += ticks;
@@ -106,9 +117,9 @@ namespace
                 for (unsigned i = 0; i < 3; ++i)
                     if (events[i] == next) {
                         if (compare(i) != hal::detail::step_park && (timer.CCER & enable[i])) {
-                            high[i] = !high[i];
                             auto* gpio = i == 0U ? GPIOA : GPIOB;
                             const auto mask = i == 0U ? GPIO_PIN_0 : i == 1U ? GPIO_PIN_10 : GPIO_PIN_11;
+                            high[i] = !(gpio->IDR & mask);
                             gpio->IDR = (gpio->IDR & ~mask) | (high[i] ? mask : 0U);
                             (high[i] ? rising[i] : falling[i]).push_back(elapsed);
                         }
@@ -119,6 +130,8 @@ namespace
                 if (guard && (timer.DIER & TIM_DIER_CC2DE))
                     dmaTransfer(3);
                 if (irqs && !primask) {
+                    if (elapsed == poll_tick && irq_enabled[TIM7_IRQn] && (TIM7->CR1 & TIM_CR1_CEN))
+                        TIM7_IRQHandler();
                     constexpr std::array handlers{ DMA1_Stream0_IRQHandler,
                                                    DMA1_Stream1_IRQHandler,
                                                    DMA1_Stream2_IRQHandler,
@@ -220,7 +233,8 @@ TEST_F(RegisterTest, ThreeRealDmaStreamsCompleteAtDifferentRatesWithoutGaps)
         ASSERT_TRUE(axes[i]->prepare({ std::chrono::microseconds{ 10 + 10 * i }, 5us }, 1100 - i * 100));
     start();
     advance(1'000'000U);
-    EXPECT_EQ(engine->status().state, State::Completed);
+    EXPECT_EQ(engine->status().state, State::Running);
+    EXPECT_EQ(axes[0]->status().state, State::Completed);
     for (unsigned i = 0; i < 3; ++i) {
         ASSERT_EQ(rising[i].size(), 1100 - i * 100);
         ASSERT_EQ(falling[i].size(), rising[i].size());
@@ -245,7 +259,8 @@ TEST_F(RegisterTest, NormalFiniteGuardDoesNotNeedAnyIrqToPreventAnotherPulse)
     EXPECT_FALSE(timer.CR1 & TIM_CR1_CEN);
     EXPECT_EQ(rising[0].size(), 3U);
     EXPECT_EQ(falling[0].size(), 3U);
-    EXPECT_EQ(engine->status().state, State::Completed);
+    EXPECT_EQ(engine->status().state, State::Underrun);
+    EXPECT_EQ(axes[0]->status().state, State::Completed);
 }
 
 TEST_F(RegisterTest, WithheldRefillInterruptsStopCounterAtTheBufferHorizon)
@@ -276,7 +291,8 @@ TEST_F(RegisterTest, TerminalPendingDmaIsCountedAndItsCompareIsParked)
     advance(6'000'000'000ULL);
     EXPECT_EQ(rising[0].size(), 1U);
     EXPECT_EQ(rising[1].size(), 30U);
-    EXPECT_EQ(engine->status().state, State::Completed);
+    EXPECT_EQ(engine->status().state, State::Running);
+    EXPECT_EQ(axes[0]->status().state, State::Completed);
 }
 
 TEST_F(RegisterTest, DmaErrorIsLatchedAndDisablesAllOutputs)
@@ -346,4 +362,72 @@ TEST_F(RegisterTest, UnderrunDoesNotInventBlocksOnTheSlowerAxesDuringShutdown)
         EXPECT_EQ(stopped.pulses[i], rising[i].size());
         EXPECT_EQ(stopped.pulses[i], 512U >> i);
     }
+}
+
+TEST_F(RegisterTest, AxisStopAndRestartLeaveOtherChannelDmaAndPhaseUntouched)
+{
+    ASSERT_TRUE(axes[0]->prepare({ 10us, 5us }, 3000));
+    start();
+    advance(5000U);
+    ASSERT_TRUE(axes[1]->prepare({ 20us, 5us }));
+    ASSERT_TRUE(axes[1]->start(10us));
+    lengths[1] = dma_streams[1].NDTR;
+    advance(225U); // Stop M2 during a high phase, with a partial DMA buffer.
+    const auto before{ timer.CNT };
+    const auto stopped{ axes[1]->stop() };
+    EXPECT_EQ(stopped.pulses, rising[1].size());
+    EXPECT_EQ(timer.CNT, before);
+    EXPECT_TRUE(timer.CR1 & TIM_CR1_CEN);
+    EXPECT_TRUE(timer.CCER & TIM_CCER_CC1E);
+    EXPECT_TRUE(dma_streams[0].CR & DMA_SxCR_EN);
+    EXPECT_FALSE(timer.CCER & TIM_CCER_CC3E);
+    EXPECT_EQ(gpio_b.IDR & GPIO_PIN_10, 0U);
+    ASSERT_TRUE(axes[1]->prepare({ 30us, 5us }, 10));
+    ASSERT_TRUE(axes[1]->start(10us));
+    lengths[1] = dma_streams[1].NDTR;
+    advance(500'000U);
+    EXPECT_EQ(axes[1]->pulseCount(), 10U);
+    EXPECT_EQ(axes[0]->pulseCount(), 3000U);
+    ASSERT_EQ(rising[0].size(), 3000U);
+    for (std::size_t i = 1; i < rising[0].size(); ++i)
+        EXPECT_EQ(rising[0][i] - rising[0][i - 1], 100U);
+    EXPECT_TRUE(timer.CR1 & TIM_CR1_CEN);
+    EXPECT_EQ(timer.DIER & TIM_DIER_CC2DE, 0U); // No guard request at idle wrap.
+}
+
+TEST_F(RegisterTest, RuntimeTimingUpdatePreservesCountsAndOtherAxisWaveform)
+{
+    ASSERT_TRUE(axes[0]->prepare({ 20us, 5us }, 1600));
+    ASSERT_TRUE(axes[1]->prepare({ 10us, 5us }, 3000));
+    start();
+    advance(10'000U);
+    const auto update{ axes[0]->updateTiming({ 10us, 5us }) };
+    ASSERT_TRUE(update);
+    advance(500'000U);
+    ASSERT_EQ(rising[0].size(), 1600U);
+    ASSERT_EQ(rising[1].size(), 3000U);
+    EXPECT_EQ(axes[0]->pulseCount(), 1600U);
+    for (std::size_t i = 1; i < rising[0].size(); ++i) {
+        EXPECT_EQ(rising[0][i] - rising[0][i - 1], i >= *update ? 100U : 200U);
+    }
+    for (std::size_t i = 1; i < rising[1].size(); ++i)
+        EXPECT_EQ(rising[1][i] - rising[1][i - 1], 100U);
+}
+
+TEST_F(RegisterTest, IdleWrapDoesNotProducePulsesAndFiniteCompletionLeavesClockRunning)
+{
+    ASSERT_TRUE(engine->start());
+    advance(hal::detail::step_park * 2ULL);
+    EXPECT_TRUE(timer.CR1 & TIM_CR1_CEN);
+    EXPECT_TRUE(rising[0].empty());
+    EXPECT_EQ(timer.DIER & TIM_DIER_CC2DE, 0U);
+    ASSERT_TRUE(axes[0]->prepare({ 10us, 5us }, 1));
+    ASSERT_TRUE(axes[0]->start(10us));
+    lengths[0] = dma_streams[0].NDTR;
+    lengths[3] = dma_streams[3].NDTR;
+    advance(50'000U);
+    EXPECT_EQ(rising[0].size(), 1U);
+    EXPECT_EQ(axes[0]->status().state, State::Completed);
+    EXPECT_TRUE(timer.CR1 & TIM_CR1_CEN);
+    EXPECT_EQ(TIM7->CR1, 0U);
 }

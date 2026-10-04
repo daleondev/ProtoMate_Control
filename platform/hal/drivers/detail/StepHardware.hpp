@@ -53,12 +53,20 @@ namespace hal::detail
         virtual ~StepHardware() = default;
         virtual auto buffers() noexcept -> StepBuffers& = 0;
         virtual auto reset() noexcept -> bool = 0;
-        virtual auto arm(std::size_t axis, std::uint32_t first, std::uint32_t entries) noexcept -> void = 0;
+        // Buffers are ready before arming a single channel on a running timer.
+        // False means the first deadline became too close; no pulse was emitted.
+        virtual auto arm(std::size_t axis, std::uint32_t first, std::uint32_t entries) noexcept -> bool = 0;
         virtual auto start(std::uint32_t guard_tick) noexcept -> void = 0;
         virtual auto guard(std::uint32_t tick) noexcept -> void = 0;
+        // A finite tail may park before DMA HT/TC. Poll it every 1 ms using
+        // TIM7 while needed; this never schedules STEP edges or rearms pulses.
+        virtual auto completionWatch(bool enabled) noexcept -> void = 0;
         virtual auto sample() noexcept -> StepSample = 0;
         virtual auto acknowledge(std::size_t axis) noexcept -> void = 0;
         virtual auto finishAxis(std::size_t axis) noexcept -> void = 0;
+        // Settle this channel's DMA, park its compare and sample its final
+        // phase/count BEFORE forcing low. The counter/other channels keep running.
+        virtual auto stopAxis(std::size_t axis) noexcept -> StepSample = 0;
         // Freeze the counter, settle DMA, capture progress, then force pins low.
         virtual auto stop() noexcept -> StepSample = 0;
         // Called while the owning generator is still alive and locked. Prevent

@@ -180,10 +180,11 @@ CubeMX configures the STEP pins as **TIM2 output-compare outputs**, with
 three independent DMA streams. The counter runs at **10 MHz (100 ns/tick)**.
 The DIR pins and shared enable are ordinary push-pull GPIO outputs. All seven
 use low GPIO speed (output slew rate, not pulse frequency); STEP additionally
-uses internal pull-downs. `src/main.cpp` creates one `IStepGenerator`, its three
-`IStepOutput` views, DIR/enable, the M1 encoder/index and reference switches.
-The timer and encoder remain stopped, STEP/DIR low, and enable high (disabled).
-There is no automatic movement, homing, or connection to the WIP `StepperMotor`.
+uses internal pull-downs. `src/main.cpp` creates one `IStepGenerator` and injects
+it into three `StepperMotor` objects, which claim their STEP/DIR, reference
+switch and encoder resources. Main starts the shared timebase once. All axes
+remain idle, the encoder remains stopped, STEP/DIR stay low, and the shared
+enable stays high (disabled). No movement or homing runs automatically.
 
 | Signal | STM32 pin | Board connector | Driver connection | Function |
 | --- | --- | --- | --- | --- |
@@ -210,6 +211,7 @@ and perfboard nets are unchanged; use the revised J101 harness destinations.
 | TIM2_CH2 / DMA1 stream 3 | Internal deadline: DMA writes CR1=0 to stop the counter |
 | TIM5 | 32-bit runtime clock, moved from TIM2; `hal::timer::create(5)` |
 | TIM6 | HAL timebase |
+| TIM7 | Internal 1 ms finite-completion monitor; no output pin |
 | TIM3, PB4/PB5 | Existing M1 quadrature encoder |
 | TIM1, PE9/PE11 | Reserved for a future M2 encoder; not configured or connected |
 | TIM8, PC6/PC7 | Reserved for a future M3 encoder; not configured or connected |
@@ -227,26 +229,70 @@ See the local [RM0433](docs/board/rm0433-stm32h742-stm32h743753-and-stm32h750-va
 §39.3.8 (output compare), §39.4 (timer registers), and its DMA/DMAMUX chapters.
 
 Create one generator with `hal::board::createStepperGenerator()`, then obtain
-axes with `hal::board::createStepperStepOutput(generator, MotorId::M1/M2/M3)`.
+axes with `hal::board::createStepperStepOutput(generator, MotorId::Motor1/Motor2/Motor3)`.
 Views retain the shared generator. A second generator cannot claim its pins
 until the first generator and all its views are released.
 
+- `generator->start()` starts only the shared timebase. Call it once outside
+  the motors; repeated calls while running do not reset it or start any axis.
 - `axis->prepare({period, high_time}, count)` prepares exactly `count` pulses;
   omit `count` for continuous counted operation. Zero count is rejected.
-- `axis->prepareSequence(timings)` copies one timing per pulse. Changing the
-  periods supplies an acceleration/deceleration profile; each period is measured
-  from that pulse's rising edge to the next. The controller calculates the profile.
-- `axis->clear()` excludes it from the next start. Preparing/clearing is stopped-only.
-- `generator->start(delay)` starts every prepared axis against the same epoch;
-  all first rising edges occur after the shared delay (default 1 ms). Calling it
-  while running returns busy. A later explicit restart resets the run counts.
-- `axis->pulseCount()` reports commanded rising edges, including an in-flight
-  high phase or compare awaiting its DMA write. Counts survive stop/completion.
-- `generator->status()` reports all counts and `Idle`, `Ready`, `Running`,
-  `Completed`, `Stopped`, `Underrun` or `DmaError`. DMA errors mark the counts
-  uncertain and make `pulseCount()` return an error.
-- `generator->stop()` aborts **all axes** and drives STEP low. A shortened final
-  pulse still counts as a rising edge but might not be accepted by its driver.
+  Only the selected axis must be stopped; other axes can keep moving.
+- `axis->prepareSequence(timings)` copies one timing per pulse for a planned
+  acceleration/deceleration profile. Each period starts at that pulse's rising
+  edge. The controller calculates the profile.
+- `axis->start(delay)` starts only that axis on the running timebase. The default
+  delay is 1 ms; very short delays can return `timed_out` if setup consumes the
+  scheduling margin. Each successful start resets only that axis's run count.
+- `axis->updateTiming({period, high_time})` changes an active uniform train
+  without restarting it. It returns the **first affected pulse number (1-based)**.
+  Already buffered edges and the requested finite pulse count remain unchanged.
+  A later update can replace a pending update before another buffer is filled.
+- `axis->stop()` immediately aborts only that axis and drives its STEP low.
+  It can shorten the final high phase. Its count survives the stop.
+  `axis->clear()` discards a stopped axis's prepared motion.
+- `axis->status()` reports its state, pulse count and count validity;
+  `axis->pulseCount()` reports commanded rising edges, including an in-flight
+  high phase or compare awaiting its DMA write. This is not encoder position.
+- `generator->status()` reports the timebase state, all axis states and counts.
+  **The generator stays `Running` when individual axes complete or stop.**
+- `generator->stop()` shuts down the timebase and all axes. A DMA error or
+  refill underrun also stops the group and latches a fault. Recover explicitly
+  with `stop()` then `start()`; axes still need explicit starts afterward.
+
+The application API follows this ownership pattern:
+
+```cpp
+using namespace pnm::units::literals;
+using enum hal::board::MotorId;
+auto generator = hal::board::createStepperGenerator();
+if (!generator) throw std::runtime_error("step generator unavailable");
+StepperMotor m1{Motor1, 1.8_deg, 16U, generator};
+StepperMotor m2{Motor2, 1.8_deg, 16U, generator};
+StepperMotor m3{Motor3, 1.8_deg, 16U, generator};
+if (!generator->start()) throw std::runtime_error("step timebase failed");
+
+// After the controller enables the drivers and observes their settling time:
+auto motion1 = m1.moveRel(90_deg, 300_rpm);
+auto motion2 = m2.move(StepperMotor::Direction::Forward, 150_rpm);
+// Once m2 is running, a velocity change returns its first affected pulse:
+auto changed_at = m2.setVelocity(300_rpm); // Check the Result for rejection.
+m1.stop();                              // m2 continues.
+m2.stopAndWait();
+auto result1 = motion1.get();
+auto result2 = motion2.get();
+```
+
+`move`, `moveRel` and `moveAbs` return futures. Replacing a motor's motion
+stops and joins only its previous worker. Finite moves round to the nearest
+microstep; `position()` tracks signed commanded pulses from a software zero,
+updated by the worker and finalized on completion/join. Absolute moves do not
+imply homing. Velocity arguments are positive magnitudes; direction comes from
+`Direction` or the signed target distance. A zero timeout means unlimited time.
+`setVelocity()` requires an active motion with unbuffered pulses; calling it
+immediately after the asynchronous `move()` can precede the start and be rejected.
+Encoder feedback, homing, limit-switch stopping, automatic ramp planning and
+shared driver-enable policy remain controller work.
 
 Timing uses nanoseconds, rounded up to 100 ns ticks. Both high and low phases
 must be at least **5 µs**, giving a configured ceiling of 100,000 steps/s per
@@ -256,8 +302,24 @@ limits, not measured electrical performance. DIR setup/hold and the DM542T's
 not change DIR/enable or implement reference-switch stopping.
 
 Each axis has two buffers of up to 512 edge timestamps (256 pulses each).
+A live timing update therefore has up to **512 pulses of lookahead**: roughly
+5.12 ms at 100 kHz, or 512 ms at 1 kHz. It changes the high time of the returned
+pulse and its following rising-edge interval. For precisely planned acceleration,
+use `prepareSequence()` so every pulse's timing is known in advance. The motor
+wrapper currently exposes uniform moves and live velocity changes; it does not
+calculate acceleration profiles.
+
 Very slow profiles use smaller blocks so the queued horizon stays below a
-quarter counter cycle. The counter uses `ARR=0xFFFFFFFE`; `CCR=0xFFFFFFFF`
+quarter counter cycle. Buffer length stays fixed during a motion. Live updates
+must also fit that horizon: with full 512-edge blocks, periods above
+**209.7151 ms** are rejected (about 4.77 steps/s minimum). More extreme slowdowns
+require a new motion or a prepared sequence. Updates are rejected once all
+finite pulses are buffered and for multi-pulse prepared sequences. Very small
+blocks chosen for an initially slow move increase refill interrupt load when
+accelerated; use a prepared sequence spanning the intended speed range for
+large changes.
+
+The counter uses `ARR=0xFFFFFFFE`; `CCR=0xFFFFFFFF`
 parks a completed axis without a future output transition. Overflow may still
 raise a compare flag for this value, so completion, DMA progress and wrap
 handling are checked together. Finite completion includes the last full high
@@ -267,9 +329,13 @@ TIM2_CH2 provides an independent hardware deadline. It stops the counter if a
 buffer is not replenished before its validated schedule ends. A late interrupt
 cannot silently restart the timer or replay the old buffer. At an underrun,
 another axis may be frozen high until the handler drives the pins low; no new
-STEP edges are generated after the counter stops. The whole move is then
-reported as failed. Normal finite completion stops after the final falling edge.
-DMA errors also abort the group; neither mechanism replaces an external emergency stop.
+STEP edges are generated after the counter stops. The active motions are then
+reported as failed. Each finite axis parks after its final falling edge while
+TIM2 and other axes continue. TIM7 checks completion every 1 ms while a finite
+tail is buffered; it never schedules STEP edges. The terminal guard includes
+2 ms for completion service. Excessively delayed service still faults the group,
+even if the last requested pulse has already finished. DMA errors also abort
+the group; neither mechanism replaces an external emergency stop.
 
 On STM32, `hal::panic()`, `Error_Handler()` and the Cortex NMI/fault handlers
 stop TIM2, drive all STEP pins low and drive `STEPPERS_EN_N` high before panic
@@ -281,14 +347,15 @@ position; disabling the drivers also removes holding torque.
 DMA1 streams 0–3 are exclusive to this engine. The 12,320-byte DMA allocation
 is in `.StepDmaSection` at **0x30000000**, covered by a dedicated **16 KiB,
 non-cacheable, execute-never MPU region**. Buffers are not in DTCM. CPU buffer
-writes are published before extending the deadline. DMA interrupts use priority
-5 and occur at buffer half/completion boundaries, not once per pulse.
+writes are published before extending the deadline. DMA and TIM7 interrupts use priority 5. DMA interrupts occur at buffer
+half/completion boundaries, not once per pulse.
 
 `setProgressCallback()` supplies **batched cumulative progress/completion**.
 It deliberately does not promise one callback per physical step: delayed
 interrupts can combine progress. Position comes from hardware/DMA progress,
 not from counting callbacks. A STEP-pad phase check distinguishes a pending DMA
-write from a missed compare timestamp, so elapsed time cannot invent a pulse. Callbacks run in a DMA ISR or a `stop()` caller;
+write from a missed compare timestamp, so elapsed time cannot invent a pulse. Callbacks run in a DMA/TIM7 ISR or a caller that services the generator
+(including status queries and motion operations);
 keep them short, nonblocking, allocation-free, and do not mutate/destroy the
 generator. Read-only queries are allowed. Register/clear callbacks while stopped.
 
@@ -306,8 +373,8 @@ ctest --test-dir /tmp/protomate-step-tests --output-on-failure
 ```
 
 The suite compiles the actual STM32 register adapter against a host peripheral
-model in addition to testing the common scheduler. Tests cover coordinated
-independent rates, finite and continuous trains,
+model in addition to testing the common scheduler. Tests cover staggered
+starts, independent stop/restart, live timing changes, finite and continuous trains,
 acceleration sequences, buffer boundaries, delayed/missed interrupts, pending
 DMA, wrap, abort, restart, callbacks and errors. Before operating motors, measure
 all three outputs together with a logic analyzer under Ethernet/storage load,
@@ -317,13 +384,13 @@ a firmware build do not establish DMA bus latency or transistor switching time.
 For physical measurements, build the dedicated `step-test-stm32` preset.
 It provides a serial menu for finite trains, independent rates, 100 kHz on
 three axes, acceleration, abort, delayed interrupts, autonomous underrun stop,
-and a real counter-wrap test. Command `c` compares TIM2 against the independent
+independent starts/stops/live speed changes, and counter-wrap tests. Command `c` compares TIM2 against the independent
 RTC crystal over three ten-second windows, with STEP held low; only UART is
 needed. See the
 [hardware test procedure](docs/stepper-hardware-test.md) for flashing,
 analyzer connections, expected pulse counts and acceptance criteria.
-The [current measurement report](docs/measurements/2026-10-03-step-generator/README.md)
-contains the current crystal-clock configuration, three-channel logic-analyzer
+The [clock and waveform measurements](docs/measurements/2026-10-03-step-generator/README.md)
+document the crystal-clock configuration, three-channel logic-analyzer
 captures, two-channel Hantek captures, RTC comparisons and exported figures. See the report for
 measured accuracy, uncertainty and the scope of physical validation.
 
@@ -342,10 +409,10 @@ latched count-extension error cannot silently become a valid position. Reset
 or `setPosition()` clears that error while stopped. With M1's 400 P/R encoder,
 one shaft revolution corresponds to 1600 counts.
 
-Use `hal::board::createStepperStepOutput(generator, MotorId::M1/M2/M3)`,
-`hal::board::createStepperDirectionOutput(MotorId::M1/M2/M3)` and
+Use `hal::board::createStepperStepOutput(generator, MotorId::Motor1/Motor2/Motor3)`,
+`hal::board::createStepperDirectionOutput(MotorId::Motor1/Motor2/Motor3)` and
 `hal::board::createSteppersEnableOutput()` for the assigned motor outputs;
-`hal::board::createEncoder(MotorId::M1)` creates the encoder. DIR and ENABLE
+`hal::board::createEncoder(MotorId::Motor1)` creates the encoder. DIR and ENABLE
 return `IDigitalOutput`: directions start low, and the single shared active-low
 enable starts high (disabled). Writing enable low enables all three drivers;
 writing it high disables them. The GPIO and encoder factories return exclusive, uncached

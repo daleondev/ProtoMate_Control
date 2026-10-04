@@ -25,7 +25,8 @@ class StepperMotor final
         Completed,
         Stopped,
         TimedOut,
-        Rejected
+        Rejected,
+        Faulted
     };
 
     StepperMotor(hal::board::MotorId id,
@@ -54,6 +55,11 @@ class StepperMotor final
     void stop() noexcept;
     void stopAndWait() noexcept;
 
+    // Change an active uniform move without restarting it. The returned
+    // 1-based pulse number identifies when the new timing begins.
+    util::Result<hal::step::PulseCount> setVelocity(pnm::units::AngularVelocity velocity);
+    pnm::units::Angle position() const;
+
   private:
     std::future<Result> startMotion(std::packaged_task<Result(std::stop_token)> task);
 
@@ -66,12 +72,14 @@ class StepperMotor final
                          pnm::units::AngularVelocity velocity,
                          pnm::units::Time timeout,
                          std::stop_token stop,
+                         std::optional<hal::step::PulseCount> count = std::nullopt,
                          std::move_only_function<bool() noexcept> should_stop = nullptr);
+    std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
 
     hal::board::MotorId m_id;
     pnm::units::Angle m_fullStepAngle;
     size_t m_microsteps;
-    pnm::units::Angle m_stepAngle{ m_fullStepAngle / m_microsteps };
+    pnm::units::Angle m_stepAngle{};
 
     std::shared_ptr<hal::IStepOutput> m_stepOutput;
     std::shared_ptr<hal::IDigitalOutput> m_dirOutput;

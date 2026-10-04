@@ -247,9 +247,9 @@ TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
 {
     using enum hal::board::MotorId;
     const auto enable_n{ hal::board::createSteppersEnableOutput() };
-    const auto first_dir{ hal::board::createStepperDirectionOutput(M1) };
-    const auto second_dir{ hal::board::createStepperDirectionOutput(M2) };
-    const auto third_dir{ hal::board::createStepperDirectionOutput(M3) };
+    const auto first_dir{ hal::board::createStepperDirectionOutput(Motor1) };
+    const auto second_dir{ hal::board::createStepperDirectionOutput(Motor2) };
+    const auto third_dir{ hal::board::createStepperDirectionOutput(Motor3) };
     ASSERT_NE(enable_n, nullptr);
     ASSERT_NE(first_dir, nullptr);
     ASSERT_NE(second_dir, nullptr);
@@ -263,14 +263,14 @@ TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
     EXPECT_EQ(third_dir->read(), hal::gpio::Level::Low);
     EXPECT_EQ(enable_n->read(), hal::gpio::Level::High);
     EXPECT_EQ(hal::board::createSteppersEnableOutput(), nullptr);
-    EXPECT_EQ(hal::board::createStepperDirectionOutput(M1), nullptr);
+    EXPECT_EQ(hal::board::createStepperDirectionOutput(Motor1), nullptr);
     EXPECT_EQ(first_dir->read(), hal::gpio::Level::High);
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
     EXPECT_EQ(hal::board::createStepperGenerator(), nullptr);
-    const auto first{ hal::board::createStepperStepOutput(generator, M1) };
-    const auto second{ hal::board::createStepperStepOutput(generator, M2) };
-    const auto third{ hal::board::createStepperStepOutput(generator, M3) };
+    const auto first{ hal::board::createStepperStepOutput(generator, Motor1) };
+    const auto second{ hal::board::createStepperStepOutput(generator, Motor2) };
+    const auto third{ hal::board::createStepperStepOutput(generator, Motor3) };
     ASSERT_NE(first, nullptr);
     ASSERT_NE(second, nullptr);
     ASSERT_NE(third, nullptr);
@@ -278,18 +278,20 @@ TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
     ASSERT_TRUE(first->prepare({ 100us, 5us }, 3));
     ASSERT_TRUE(second->prepare({ 200us, 5us }, 2));
     ASSERT_TRUE(generator->start());
+    ASSERT_TRUE(first->start());
+    ASSERT_TRUE(second->start());
     EXPECT_FALSE(second->prepare({ 200us, 5us }, 2));
     EXPECT_EQ(third->pulseCount(), 0U);
     static_cast<void>(generator->stop());
     EXPECT_NE(hal::timer::create(5U), nullptr); // Runtime is independent of TIM2.
     EXPECT_EQ(hal::timer::create(2U), nullptr);
-    EXPECT_EQ(hal::board::createEncoder(M2), nullptr);
-    EXPECT_EQ(hal::board::createEncoderIndex(M3), nullptr);
+    EXPECT_EQ(hal::board::createEncoder(Motor2), nullptr);
+    EXPECT_EQ(hal::board::createEncoderIndex(Motor3), nullptr);
     EXPECT_EQ(hal::board::createStepperStepOutput(generator, static_cast<hal::board::MotorId>(255)), nullptr);
     EXPECT_EQ(hal::board::createStepperDirectionOutput(static_cast<hal::board::MotorId>(255)), nullptr);
 
-    const auto input{ std::dynamic_pointer_cast<hal::QuadratureEncoder>(hal::board::createEncoder(M1)) };
-    const auto index{ std::dynamic_pointer_cast<hal::GpioInput>(hal::board::createEncoderIndex(M1)) };
+    const auto input{ std::dynamic_pointer_cast<hal::QuadratureEncoder>(hal::board::createEncoder(Motor1)) };
+    const auto index{ std::dynamic_pointer_cast<hal::GpioInput>(hal::board::createEncoderIndex(Motor1)) };
     ASSERT_NE(input, nullptr);
     ASSERT_NE(index, nullptr);
     ASSERT_TRUE(input->start());
@@ -313,7 +315,7 @@ TEST(HalMotorBoard, SharedStepEngineRetainsAllPinsUntilItsLastViewIsReleased)
     blocker.reset();
     auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
-    auto axis{ hal::board::createStepperStepOutput(generator, hal::board::MotorId::M1) };
+    auto axis{ hal::board::createStepperStepOutput(generator, hal::board::MotorId::Motor1) };
     ASSERT_NE(axis, nullptr);
     for (const auto pin :
          std::array{ hal::gpio::Pin{ A, 0U }, hal::gpio::Pin{ B, 10U }, hal::gpio::Pin{ B, 11U } }) {
@@ -330,17 +332,19 @@ TEST(HalMotorBoard, LinuxStepSimulationCompletesAndReportsBatchedProgressWhenQue
 {
     auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
-    auto axis{ hal::board::createStepperStepOutput(generator, hal::board::MotorId::M1) };
+    auto axis{ hal::board::createStepperStepOutput(generator, hal::board::MotorId::Motor1) };
     ASSERT_TRUE(axis->prepare({ 10us, 5us }, 600U));
     unsigned completions{};
     ASSERT_TRUE(generator->setProgressCallback([&](const auto& status) noexcept {
-        if (status.state == hal::step::State::Completed) {
+        if (status.axes[0] == hal::step::State::Completed) {
             ++completions;
         }
     }));
-    ASSERT_TRUE(generator->start(10us));
+    ASSERT_TRUE(generator->start());
+    ASSERT_TRUE(axis->start());
     std::this_thread::sleep_for(10ms);
-    EXPECT_EQ(generator->status().state, hal::step::State::Completed);
+    EXPECT_EQ(generator->status().state, hal::step::State::Running);
+    EXPECT_EQ(axis->status().state, hal::step::State::Completed);
     EXPECT_EQ(axis->pulseCount(), 600U);
     EXPECT_EQ(completions, 1U);
 }
@@ -349,10 +353,10 @@ TEST(HalMotorBoard, ReferenceSwitchesReportOpenContactsAndBothTransitionsIndepen
 {
     using enum hal::board::MotorId;
     using enum hal::gpio::Level;
-    constexpr std::array motors{ M1, M2, M3 };
+    constexpr std::array motors{ Motor1, Motor2, Motor3 };
     std::array<std::shared_ptr<hal::GpioInput>, motors.size()> inputs;
     std::array<unsigned, motors.size()> events{};
-    const auto index{ hal::board::createEncoderIndex(M1) };
+    const auto index{ hal::board::createEncoderIndex(Motor1) };
     ASSERT_NE(index, nullptr);
     for (std::size_t i = 0; i < motors.size(); ++i) {
         inputs[i] =
@@ -375,6 +379,6 @@ TEST(HalMotorBoard, ReferenceSwitchesReportOpenContactsAndBothTransitionsIndepen
         inputs[i]->clearEdgeCallback();
     }
     inputs[0].reset();
-    EXPECT_NE(hal::board::createReferenceLimitSwitch(M1), nullptr);
+    EXPECT_NE(hal::board::createReferenceLimitSwitch(Motor1), nullptr);
     EXPECT_EQ(hal::board::createReferenceLimitSwitch(static_cast<hal::board::MotorId>(255)), nullptr);
 }

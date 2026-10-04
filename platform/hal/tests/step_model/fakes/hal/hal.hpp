@@ -7,7 +7,7 @@
 using std::uint32_t;
 #define SET_BIT(reg, bits) ((reg) = (reg) | (bits))
 #define CLEAR_BIT(reg, bits) ((reg) = (reg) & ~(bits))
-constexpr uint32_t TIM_CR1_CEN = 1, TIM_EGR_UG = 1, TIM_SR_UIF = 1;
+constexpr uint32_t TIM_CR1_CEN = 1, TIM_EGR_UG = 1, TIM_SR_UIF = 1, TIM_DIER_UIE = 1;
 constexpr uint32_t TIM_SR_CC1IF = 2, TIM_SR_CC3IF = 8, TIM_SR_CC4IF = 16;
 constexpr uint32_t TIM_DIER_CC1DE = 1U << 9, TIM_DIER_CC2DE = 1U << 10, TIM_DIER_CC3DE = 1U << 11,
                    TIM_DIER_CC4DE = 1U << 12;
@@ -29,7 +29,8 @@ struct TIM_TypeDef
         }
     } EGR{ this };
 };
-inline TIM_TypeDef timer;
+inline TIM_TypeDef timer, service_timer;
+inline auto* TIM7 = &service_timer;
 inline auto* TIM2 = &timer;
 struct DMA_Stream_TypeDef
 {
@@ -94,9 +95,10 @@ enum IRQn_Type
     DMA1_Stream0_IRQn,
     DMA1_Stream1_IRQn,
     DMA1_Stream2_IRQn,
-    DMA1_Stream3_IRQn
+    DMA1_Stream3_IRQn,
+    TIM7_IRQn
 };
-inline std::array<bool, 4> irq_enabled{};
+inline std::array<bool, 5> irq_enabled{};
 inline uint32_t primask{};
 inline uint32_t __get_PRIMASK() { return primask; }
 inline void __disable_irq() { primask = 1; }
@@ -113,6 +115,7 @@ inline bool __HAL_RCC_TIM2_IS_CLK_ENABLED() { return tim2_clock_enabled; }
 inline void __HAL_RCC_GPIOA_CLK_ENABLE() { gpio_a_clock_enabled = true; }
 inline void __HAL_RCC_GPIOB_CLK_ENABLE() { gpio_b_clock_enabled = true; }
 inline void __HAL_RCC_GPIOE_CLK_ENABLE() { gpio_e_clock_enabled = true; }
+inline void __HAL_RCC_TIM7_CLK_ENABLE() {}
 inline void __HAL_RCC_DMA1_CLK_ENABLE() {}
 inline void __HAL_RCC_D2SRAM1_CLK_ENABLE() {}
 struct RCC_ClkInitTypeDef

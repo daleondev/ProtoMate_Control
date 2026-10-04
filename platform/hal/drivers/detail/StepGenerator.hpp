@@ -22,16 +22,19 @@ namespace hal::detail
                                std::array<std::shared_ptr<IDigitalOutput>, 3> pins = {});
         ~StepGenerator() override;
         auto output(step::Axis axis) -> std::shared_ptr<IStepOutput> override;
-        auto start(std::chrono::nanoseconds delay) noexcept -> util::Result<> override;
+        auto start() noexcept -> util::Result<> override;
         auto stop() noexcept -> step::Status override;
         auto status() noexcept -> step::Status override;
         auto setProgressCallback(ProgressCallback callback) -> util::Result<> override;
-        // Called by DMA IRQs; on Linux, by virtual IRQs during queries.
+        // Called by DMA/TIM7 IRQs and API operations; Linux uses virtual IRQs.
         auto service() noexcept -> void;
         auto prepare(std::size_t axis,
                      std::span<const step::Timing> sequence,
                      std::optional<step::PulseCount> count) -> util::Result<>;
         auto clear(std::size_t axis) noexcept -> util::Result<>;
+        auto startAxis(std::size_t axis, std::chrono::nanoseconds delay) noexcept -> util::Result<>;
+        auto stopAxis(std::size_t axis) noexcept -> step::AxisStatus;
+        auto updateTiming(std::size_t axis, step::Timing timing) noexcept -> util::Result<step::PulseCount>;
 
       private:
         struct Timing
@@ -50,7 +53,7 @@ namespace hal::detail
             std::uint32_t entries{};
             std::uint8_t target{};
             bool terminal{};
-            bool finished{};
+            bool finished{ true };
         };
         struct Observed
         {
@@ -62,8 +65,10 @@ namespace hal::detail
         auto observe(std::size_t axis, const StepSample& sample) const noexcept -> Observed;
         auto updateCounts(const StepSample& sample) noexcept -> void;
         auto deadline(std::uint32_t now) const noexcept -> std::uint32_t;
+        auto guard(std::uint32_t now) noexcept -> void;
         auto finish(step::State reason, bool notify) noexcept -> void;
         auto notify() noexcept -> void;
+        static auto convertTiming(step::Timing timing) noexcept -> util::Result<Timing>;
         // Outlives the hardware, which must disconnect AF before pins release.
         std::array<std::shared_ptr<IDigitalOutput>, 3> m_pins;
         std::unique_ptr<StepHardware> m_hardware;

@@ -53,19 +53,25 @@ namespace hal::stm32
             }
             __DSB();
         }
-        auto pinMode(bool alternate) noexcept -> void
+        auto pinMode(std::size_t axis, bool alternate) noexcept -> void
         {
-            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10 | GPIO_PIN_11, GPIO_PIN_RESET);
+            auto* port{ axis == 0U ? GPIOA : GPIOB };
+            const auto pin{ axis == 0U ? GPIO_PIN_0 : axis == 1U ? GPIO_PIN_10 : GPIO_PIN_11 };
+            HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
             GPIO_InitTypeDef config{};
             config.Mode = alternate ? GPIO_MODE_AF_PP : GPIO_MODE_OUTPUT_PP;
             config.Pull = GPIO_PULLDOWN;
             config.Speed = GPIO_SPEED_FREQ_LOW;
             config.Alternate = GPIO_AF1_TIM2;
-            config.Pin = GPIO_PIN_0;
-            HAL_GPIO_Init(GPIOA, &config);
-            config.Pin = GPIO_PIN_10 | GPIO_PIN_11;
-            HAL_GPIO_Init(GPIOB, &config);
+            config.Pin = pin;
+            HAL_GPIO_Init(port, &config);
+        }
+        auto outputMode(std::size_t axis, std::uint32_t mode) noexcept -> void
+        {
+            auto& reg{ axis == 0U ? TIM2->CCMR1 : TIM2->CCMR2 };
+            const auto shift{ axis == 2U ? 8U : 0U };
+            // Preserve the other channel sharing this CCMR register.
+            reg = (reg & ~((0xFFU | (1U << 16U)) << shift)) | (mode << shift);
         }
         class Hardware final : public detail::StepHardware
         {
@@ -83,12 +89,15 @@ namespace hal::stm32
                     HAL_NVIC_DisableIRQ(irq);
                     HAL_NVIC_ClearPendingIRQ(irq);
                 }
+                HAL_NVIC_DisableIRQ(TIM7_IRQn);
+                HAL_NVIC_ClearPendingIRQ(TIM7_IRQn);
             }
             auto buffers() noexcept -> detail::StepBuffers& override { return memory.edges; }
             auto reset() noexcept -> bool override
             {
                 static_cast<void>(stop());
                 __HAL_RCC_TIM2_CLK_ENABLE();
+                __HAL_RCC_TIM7_CLK_ENABLE();
                 __HAL_RCC_DMA1_CLK_ENABLE();
                 __HAL_RCC_D2SRAM1_CLK_ENABLE();
                 // The CubeMX timer kernel is 240 MHz. Reject stale clock setup.
@@ -127,7 +136,6 @@ namespace hal::stm32
                 while ((TIM2->SR & TIM_SR_UIF) == 0U) {
                 }
                 TIM2->SR = 0U;
-                m_enabled = m_requests = 0U;
                 memory.stop_counter = 0U; // DMA writes CR1: CEN=0, no restart.
                 for (std::size_t i = 0; i < streams.size(); ++i) {
                     DMA1->LIFCR = all_flags << shifts[i];
@@ -146,39 +154,84 @@ namespace hal::stm32
                 guard->PAR = reinterpret_cast<std::uintptr_t>(&TIM2->CR1);
                 guard->M0AR = reinterpret_cast<std::uintptr_t>(&memory.stop_counter);
                 guard->NDTR = 1U;
+                TIM7->CR1 = 0U;
+                TIM7->DIER = 0U;
+                TIM7->PSC = 239U;
+                TIM7->ARR = 999U; // 1 ms completion monitor; no output pins.
+                TIM7->EGR = TIM_EGR_UG;
+                while ((TIM7->SR & TIM_SR_UIF) == 0U) {
+                }
+                TIM7->SR = 0U;
+                HAL_NVIC_SetPriority(TIM7_IRQn, 5U, 0U);
+                HAL_NVIC_ClearPendingIRQ(TIM7_IRQn);
+                HAL_NVIC_EnableIRQ(TIM7_IRQn);
                 return true;
             }
-            auto arm(std::size_t axis, std::uint32_t first, std::uint32_t entries) noexcept -> void override
+            auto arm(std::size_t axis, std::uint32_t first, std::uint32_t entries) noexcept -> bool override
             {
                 auto* stream{ streams[axis] };
+                CLEAR_BIT(TIM2->DIER, cc_dma[axis]);
+                CLEAR_BIT(TIM2->CCER, cc_enable[axis]);
+                disable(axis);
+                compare(axis) = detail::step_park;
+                outputMode(axis, TIM_OCMODE_FORCED_INACTIVE);
+                pinMode(axis, true);
+                DMA1->LIFCR = all_flags << shifts[axis];
+                TIM2->SR = ~cc_flags[axis];
+                CLEAR_BIT(stream->CR, DMA_SxCR_CT);
                 stream->PAR = reinterpret_cast<std::uintptr_t>(&compare(axis));
                 stream->M0AR = reinterpret_cast<std::uintptr_t>(memory.edges[axis][0].data());
                 stream->M1AR = reinterpret_cast<std::uintptr_t>(memory.edges[axis][1].data());
                 stream->NDTR = entries;
                 SET_BIT(stream->CR, DMA_SxCR_DBM | DMA_SxCR_CIRC | DMA_SxCR_MINC | DMA_SxCR_HTIE);
-                compare(axis) = first;
-                m_enabled |= cc_enable[axis];
-                m_requests |= cc_dma[axis];
+                const auto lead{ detail::stepDistance(TIM2->CNT, first) };
+                if ((TIM2->CR1 & TIM_CR1_CEN) == 0U || lead < detail::step_min_phase ||
+                    lead > detail::step_horizon) {
+                    pinMode(axis, false);
+                    return false;
+                }
                 SET_BIT(stream->CR, DMA_SxCR_EN);
+                outputMode(axis, TIM_OCMODE_TOGGLE);
+                SET_BIT(TIM2->CCER, cc_enable[axis]);
+                SET_BIT(TIM2->DIER, cc_dma[axis]);
+                __DSB();
+                compare(axis) = first; // Last: expose a future edge on the running counter.
+                return true;
             }
             auto start(std::uint32_t deadline) noexcept -> void override
             {
-                TIM2->CCR2 = deadline;
-                TIM2->CCMR1 = TIM_OCMODE_TOGGLE; // CH2 internal timing, no output/preload.
-                TIM2->CCMR2 = TIM_OCMODE_TOGGLE | (TIM_OCMODE_TOGGLE << 8U);
-                TIM2->CCER = m_enabled;
-                pinMode(true);
                 SET_BIT(streams[3]->CR, DMA_SxCR_EN);
-                TIM2->DIER = m_requests | TIM_DIER_CC2DE;
+                guard(deadline);
                 __DSB();
                 TIM2->CR1 = TIM_CR1_CEN;
             }
             auto guard(std::uint32_t tick) noexcept -> void override
             {
-                TIM2->CCR2 = tick;
+                if (tick == detail::step_park) {
+                    // CCR > ARR can still generate a compare request at wrap!
+                    CLEAR_BIT(TIM2->DIER, TIM_DIER_CC2DE);
+                    TIM2->CCR2 = detail::step_park;
+                }
+                else {
+                    TIM2->CCR2 = tick;
+                    SET_BIT(TIM2->DIER, TIM_DIER_CC2DE);
+                }
                 __DSB();
             }
             auto publish() noexcept -> void override { __DMB(); }
+            auto completionWatch(bool enabled) noexcept -> void override
+            {
+                if (!enabled) {
+                    TIM7->CR1 = 0U;
+                    TIM7->DIER = 0U;
+                }
+                else if ((TIM7->CR1 & TIM_CR1_CEN) == 0U) {
+                    TIM7->CNT = 0U;
+                    TIM7->SR = 0U;
+                    TIM7->DIER = TIM_DIER_UIE;
+                    TIM7->CR1 = TIM_CR1_CEN;
+                }
+            }
             auto sample() noexcept -> detail::StepSample override
             {
                 detail::StepSample result;
@@ -216,17 +269,32 @@ namespace hal::stm32
             {
                 DMA1->LIFCR = (complete_flag | half_flag) << shifts[axis];
             }
-            auto finishAxis(std::size_t axis) noexcept -> void override
+            auto stopAxis(std::size_t axis) noexcept -> detail::StepSample override
             {
+                // Keep the pad connected while disabling requests and settling
+                // DMA. The remaining compare can occur once; sample its phase
+                // after parking so that edge is included in the final count.
                 CLEAR_BIT(TIM2->DIER, cc_dma[axis]);
+                const auto before{ sample().channels[axis] };
                 disable(axis);
-                // The final falling compare may still be awaiting DMA. Do not
-                // leave that old timestamp able to toggle again after wrap.
+                const auto last_compare{ compare(axis) };
                 compare(axis) = detail::step_park;
-                acknowledge(axis);
+                __DSB();
+                auto result{ sample() };
+                auto& after{ result.channels[axis] };
+                after.compare = last_compare;
+                after.transfer_complete = before.transfer_complete || after.target != before.target;
+                CLEAR_BIT(TIM2->CCER, cc_enable[axis]);
+                pinMode(axis, false);
+                outputMode(axis, TIM_OCMODE_FORCED_INACTIVE);
+                DMA1->LIFCR = all_flags << shifts[axis];
+                TIM2->SR = ~cc_flags[axis];
+                return result;
             }
+            auto finishAxis(std::size_t axis) noexcept -> void override { static_cast<void>(stopAxis(axis)); }
             auto stop() noexcept -> detail::StepSample override
             {
+                completionWatch(false);
                 CLEAR_BIT(TIM2->CR1, TIM_CR1_CEN);
                 __DSB();
                 TIM2->DIER = 0U;
@@ -246,12 +314,11 @@ namespace hal::stm32
                     after.transfer_complete = before.transfer_complete || after.target != before.target;
                 }
                 TIM2->CCER = 0U;
-                pinMode(false);
+                for (std::size_t i = 0; i < 3U; ++i) {
+                    pinMode(i, false);
+                }
                 return result;
             }
-
-          private:
-            std::uint32_t m_enabled{}, m_requests{};
         };
     }
     auto makeStepHardware() -> std::unique_ptr<detail::StepHardware> { return std::make_unique<Hardware>(); }
@@ -276,3 +343,8 @@ extern "C" void DMA1_Stream0_IRQHandler() { hal::stm32::stepInterrupt(); }
 extern "C" void DMA1_Stream1_IRQHandler() { hal::stm32::stepInterrupt(); }
 extern "C" void DMA1_Stream2_IRQHandler() { hal::stm32::stepInterrupt(); }
 extern "C" void DMA1_Stream3_IRQHandler() { hal::stm32::stepInterrupt(); }
+extern "C" void TIM7_IRQHandler()
+{
+    TIM7->SR = 0U;
+    hal::stm32::stepInterrupt();
+}

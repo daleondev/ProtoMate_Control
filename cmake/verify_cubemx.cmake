@@ -68,6 +68,8 @@ function(verify_cubemx_generation)
         "PE15.GPIO_Label=STEPPERS_EN_N"
         "TIM2.Prescaler=23"
         "TIM2.Period=4294967294"
+        "TIM7.Prescaler=239"
+        "TIM7.Period=999"
         "TIM5.Prescaler=239"
         "TIM5.Period=4294967295"
         "Dma.TIM2_CH1.0.Instance=DMA1_Stream0"
@@ -81,9 +83,11 @@ function(verify_cubemx_generation)
             "The shared step engine or runtime resource assignment was overwritten.")
     endforeach()
     foreach(required "htim5.Instance = TIM5;" "htim2.Init.Prescaler = 23;"
-                     "htim2.Init.Period = 4294967294;" "TIM_OCMODE_TOGGLE")
+                     "htim2.Init.Period = 4294967294;" "TIM_OCMODE_TOGGLE"
+                     "htim7.Init.Prescaler = 239;" "htim7.Init.Period = 999;"
+                     "HAL_NVIC_SetPriority(TIM7_IRQn, 5, 0);")
         cubemx_require_text("${cubemx_directory}/Src/tim.c" "${required}"
-            "Regenerate the TIM2 DMA step engine and TIM5 runtime initialization.")
+            "Regenerate the TIM2 step engine, TIM7 completion monitor and TIM5 runtime initialization.")
     endforeach()
     cubemx_require_text("${linker_script}" ".StepDmaSection 0x30000000"
         "The dedicated non-cacheable step DMA allocation was overwritten.")

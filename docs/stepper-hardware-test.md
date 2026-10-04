@@ -126,13 +126,15 @@ after inspecting individual captures. `h` prints the menu.
 | `4` | 1024 / 1024 / 1024 | All follow the profile below | `Completed`; changing periods across DMA buffer boundaries |
 | `5` | Variable, printed after stop | 100 / 200 / 400 µs | `Stopped`; continuous operation aborted about 100 ms after start |
 | `6` | 1000 / 1000 / 1000 | 10 / 20 / 40 µs | `Completed`; refill interrupt deliberately withheld, without a pulse gap |
-| `7` | 512 / 256 / 128 | 10 / 20 / 40 µs | **`Underrun` is the expected PASS**, with `guard_stopped=1` |
+| `7` | M1: 512; M2/M3: printed counts | 10 / 20 / 40 µs | **`Underrun` is the expected PASS**, with `guard_stopped=1` |
 | `8` | 435 / 435 / 435 | 1 / 1 / 1 second | Optional real counter-wrap test, about 7 min 15 s |
+| `i` | 100000 / 20000 / first burst + 333 | M1: 10 µs; M2: 40 → 20 µs; M3: 100 then 50 µs | Independent start/stop/restart and live timing change |
+| `w` | 64 / 64 / 64 | 100 / 200 / 400 µs | Fast wrap test: idle counter placed 5 ms before overflow |
 | `c` | No pulses | TIM2 counter compared with RTC/LSE | Three 10-second clock measurements, about 31 s total |
 
 For all ordinary completed pulses, high time is **5 µs**, independent of the
-period. First rising edges on all three axes should align within measurement
-resolution. Clock tolerance and analyzer sample resolution affect absolute
+period. Axes start through separate calls, so their first rising edges are
+staggered by setup time; simultaneous first edges are not an acceptance criterion. Clock tolerance and analyzer sample resolution affect absolute
 measurements. Look for extra edges or distinctly extended/missing periods,
 especially at DMA boundaries; the waveform must not acquire software-sized gaps.
 
@@ -219,20 +221,22 @@ to the menu. B1 is a test convenience, not an emergency-stop mechanism. The
 IRQ-withholding sections are bounded to at most about 20 ms; case 5 is bounded
 to about 100 ms. Serial commands are read only between cases.
 
-Case 6 masks only DMA1 stream 0–3 interrupt vectors for about 4.5 ms, including
+Case 6 masks DMA1 stream 0–3 and TIM7 completion-monitor interrupt vectors
+for about 4.5 ms, including
 the 1 ms start delay. DMA transfers and timer comparisons continue. At least
 the M1 transfer-complete flag must be pending when interrupts are restored.
 There must be no elongated STEP periods during the delay or when refilling resumes.
 
 Case 7 masks those vectors for about 20 ms, exceeding the queued horizon.
 The hardware guard should stop TIM2 after M1's 512th falling edge, approximately
-**5.115 ms after the first rising edge**. At these chosen periods all three
-outputs are already low at that instant. There must be no pulses during the
-remaining interrupt delay, and restoring interrupts must not restart them.
+**5.115 ms after M1's first rising edge**. M2/M3 start slightly later, so
+compare their captured counts with UART rather than expecting an exact 2:1
+ratio. There must be no new rising edges during the remaining interrupt delay,
+and restoring interrupts must not restart them.
 `guard_stopped=1` means the test observed `TIM2.CEN=0` **before** restoring IRQs
-or calling the generator's status/stop methods. Other rate combinations can
-freeze an axis high until the fault handler runs; this test's rates avoid that
-ambiguity in the capture.
+or calling the generator's status/stop methods. An axis can freeze high until
+the fault handler runs; a prolonged final high phase is possible on this
+intentional fault test.
 
 Case 8 uses the real counter rollover at 429.4967295 seconds after timer
 start, without changing its clock or counter registers. Use a long,
@@ -240,6 +244,25 @@ transition-compressed capture that still resolves the narrow 5 µs highs;
 reducing the sample rate to suit the 1 Hz repetition can miss those pulses.
 Check that the 1-second rising-edge spacing remains uninterrupted around
 429–430 seconds and that exactly 435 pulses occur on each axis.
+
+Case `i` keeps M1 running at 100 kHz while M2 starts 100 ms later, changes
+from 25 kHz to 50 kHz, and completes 20,000 pulses. UART reports the 1-based
+first pulse using the new period. Its following rising-edge interval is 20 µs;
+all earlier intervals are 40 µs. M3 starts later at 10 kHz, is aborted after
+about 100 ms, then restarts with 333 pulses at 20 kHz. Its first burst count is
+printed separately; the final M3 count of 333 belongs to the restarted motion.
+Check that M1 has no period disturbance at any of these operations. Capture
+about 1.2 s after M1's first edge.
+
+Case `w` exercises a real counter overflow in a short acquisition by setting
+CNT **only while all axes are idle**. Every axis crosses the wrap with 64 full
+pulses and constant spacing. Case 8 additionally exercises long unattended
+operation without altering CNT.
+
+Normal axis completion leaves the generator timebase running. The test's
+summary aggregates axis states as `Completed`/`Stopped`, then shuts down the
+generator before returning to the menu. TIM7 only detects finite completion;
+TIM2/DMA generates all pulse edges.
 
 ## Interpret the result
 
