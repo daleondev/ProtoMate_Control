@@ -1,4 +1,4 @@
-#include "runtime/Notification.hpp"
+#include "runtime/synchronization/Notification.hpp"
 #include <future>
 #include <gtest/gtest.h>
 #include <thread>

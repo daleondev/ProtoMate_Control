@@ -172,3 +172,35 @@ TEST(StepperMotor, GlobalStopWakesAllMotorsAndEachCanBeUsedAfterAnExplicitRestar
     auto next{ first.moveRel(1.125_deg, 300_rpm) };
     EXPECT_EQ(result(next), Completed);
 }
+
+TEST(StepperMotor, CurrentVelocityIsSignedAndChangesWhenQueuedTimingExecutes)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    ASSERT_NE(generator, nullptr);
+    StepperMotor motor{ Motor2, 1.8_deg, 16U, generator };
+    const auto axis{ generator->output(hal::step::Axis::_2) };
+    ASSERT_TRUE(generator->start());
+    EXPECT_EQ(motor.velocity(), 0_rpm);
+    // 2 ms per pulse leaves ample time to inspect a pending timing change.
+    auto motion{ motor.move(StepperMotor::Direction::Backward, 9.375_rpm) };
+    ASSERT_TRUE(running(axis));
+    std::this_thread::sleep_for(10ms);
+    EXPECT_LT(motor.position(), 0_deg);
+    EXPECT_NEAR(motor.velocity().get<pnm::units::AngularVelocityUnits::rpm>(), -9.375, 0.001);
+    const auto boundary{ motor.setVelocity(18.75_rpm) };
+    ASSERT_TRUE(boundary);
+    ASSERT_LT(*axis->pulseCount(), *boundary);
+    EXPECT_NEAR(motor.velocity().get<pnm::units::AngularVelocityUnits::rpm>(), -9.375, 0.001);
+    std::this_thread::sleep_for(1100ms);
+    EXPECT_GE(*axis->pulseCount(), *boundary);
+    EXPECT_NEAR(motor.velocity().get<pnm::units::AngularVelocityUnits::rpm>(), -18.75, 0.001);
+    motor.stop(); // Final state is published synchronously, before joining the worker.
+    const auto stopped{ motor.position() };
+    EXPECT_EQ(motor.velocity(), 0_rpm);
+    EXPECT_EQ(result(motion), Stopped);
+    EXPECT_EQ(motor.position(), stopped);
+    auto next{ motor.moveRel(1.125_deg, 300_rpm) };
+    EXPECT_EQ(result(next), Completed);
+    EXPECT_NEAR((motor.position() - stopped).get<pnm::units::AngleUnits::deg>(), 1.125, 1e-9);
+    EXPECT_EQ(motor.velocity(), 0_rpm);
+}

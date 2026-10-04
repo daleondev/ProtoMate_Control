@@ -3,7 +3,7 @@
 #include "hal/board/board.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
-#include "runtime/Notification.hpp"
+#include "runtime/synchronization/Notification.hpp"
 #include "runtime/thread.hpp"
 
 #include <array>
@@ -511,8 +511,29 @@ namespace
                        "independent motor deadline wakes waiter"))
                 return false;
             if (!check(m_axes[1]->pulseCount() == 800U &&
-                         std::abs(first.position().get<pnm::units::AngleUnits::deg>() - 90.0) < 1e-9,
+                         std::abs(first.position().get<pnm::units::AngleUnits::deg>() - 90.0) < 1e-9 &&
+                         first.velocity() == 0_rpm && second.velocity() == 0_rpm,
                        "final commanded position accounts for all pulses"))
+                return false;
+            auto moving{ first.move(StepperMotor::Direction::Backward, 9.375_rpm) };
+            std::this_thread::sleep_for(10ms);
+            const auto boundary{ first.setVelocity(18.75_rpm) };
+            const auto pending{ m_axes[1]->status() };
+            if (!check(boundary.has_value() && pending.counts_exact && pending.pulses < *boundary &&
+                         std::abs(first.velocity().get<pnm::units::AngularVelocityUnits::rpm>() + 9.375) < 0.001,
+                       "current velocity excludes pending DMA timing change"))
+                return false;
+            std::this_thread::sleep_for(1100ms);
+            const auto executed{ m_axes[1]->status() };
+            if (!check(executed.counts_exact && executed.pulses >= *boundary &&
+                         std::abs(first.velocity().get<pnm::units::AngularVelocityUnits::rpm>() + 18.75) < 0.001,
+                       "current signed velocity follows executed timing"))
+                return false;
+            first.stop();
+            const auto stopped_position{ first.position() };
+            if (!check(first.velocity() == 0_rpm && moving.wait_for(1s) == std::future_status::ready &&
+                         moving.get() == Stopped && first.position() == stopped_position,
+                       "stop publishes final motor state before worker completion"))
                 return false;
             for (unsigned i = 0; i < 10; ++i) {
                 auto old{ first.move(StepperMotor::Direction::Forward, 300_rpm) };
@@ -522,7 +543,7 @@ namespace
                            "replacement wakes cancellation and completes next motion"))
                     return false;
             }
-            log("MOTORS finite=800 replacement=10x10 timeout=PASS event_wait=PASS");
+            log("MOTORS finite=800 replacement=10x10 timeout=PASS event_wait=PASS current_state=PASS");
             return check(m_axes[1]->pulseCount() == 10U && m_generator->status().state == State::Running,
                          "replacement count and persistent timebase");
         }

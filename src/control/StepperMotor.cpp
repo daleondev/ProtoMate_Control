@@ -29,9 +29,9 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         throw std::runtime_error("motor board resource is unavailable");
     }
 
-    if (!m_stepOutput->setCompletionCallback(
-          [this](const hal::step::AxisStatus&) noexcept { m_notification.signal(); })) {
-        throw std::runtime_error("motor completion subscription unavailable");
+    if (!m_stepOutput->setProgressCallback(
+          [this](const hal::step::AxisStatus& status) noexcept { accountProgress(status); })) {
+        throw std::runtime_error("motor progress subscription unavailable");
     }
 
     pnm::log::debug("Motor initialized: {} degrees per microstep",
@@ -41,7 +41,7 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
 StepperMotor::~StepperMotor()
 {
     stopAndWait();
-    static_cast<void>(m_stepOutput->setCompletionCallback(nullptr));
+    static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
 }
 
 std::future<StepperMotor::Result> StepperMotor::move(Direction direction,
@@ -92,13 +92,34 @@ std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target
 pnm::units::Angle StepperMotor::position() const
 {
     std::scoped_lock lock{ m_mutex };
-    if (m_motionActive) {
-        const auto status{ m_stepOutput->status() };
-        if (status.counts_exact) {
-            return m_motionOrigin + m_stepAngle * (m_motionSign * static_cast<double>(status.pulses));
-        }
+    static_cast<void>(m_stepOutput->status()); // Refreshes the same fields via accountProgress.
+    return m_position.load();
+}
+
+pnm::units::AngularVelocity StepperMotor::velocity() const
+{
+    std::scoped_lock lock{ m_mutex };
+    static_cast<void>(m_stepOutput->status());
+    return m_velocity.load();
+}
+
+void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
+{
+    if (status.state == hal::step::State::Running && status.pulses == 0U)
+        m_accountedPulses = 0U; // Synchronous start notification establishes each new run.
+    if (status.counts_exact) {
+        const auto delta{ status.pulses - m_accountedPulses };
+        m_position.store(m_position.load() + m_stepAngle * (m_motionSign * static_cast<double>(delta)));
+        m_accountedPulses = status.pulses;
     }
-    return m_position;
+    else {
+        m_referenced.store(false);
+    }
+    m_velocity.store(status.state == hal::step::State::Running && status.period.count() > 0
+                       ? m_motionSign * m_stepAngle / pnm::units::Time{ status.period }
+                       : 0_rpm);
+    if (status.state != hal::step::State::Running)
+        m_notification.signal(); // State is final before the worker can resume.
 }
 
 void StepperMotor::stop() noexcept
@@ -151,11 +172,7 @@ pnm::Result<hal::step::PulseCount> StepperMotor::setVelocity(pnm::units::Angular
     }
 
     std::scoped_lock worker_lock{ m_workerMutex, m_mutex };
-    const auto result{ m_stepOutput->updateTiming(*timing) };
-    if (result) {
-        m_velocity = velocity;
-    }
-    return result;
+    return m_stepOutput->updateTiming(*timing);
 }
 
 std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<Result(std::stop_token)> task)
@@ -222,7 +239,6 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         return Result::Rejected;
     }
 
-    pnm::units::Angle start_position;
     {
         std::scoped_lock lock{ m_mutex };
         if (stop.stop_requested()) {
@@ -230,37 +246,16 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         }
 
         m_dirOutput->write(direction == Direction::Forward ? hal::gpio::Level::High : hal::gpio::Level::Low);
+        m_motionSign = direction == Direction::Forward ? 1.0 : -1.0;
         if (!m_stepOutput->start()) {
             return Result::Rejected;
         }
-
-        start_position = m_position;
-        m_motionOrigin = start_position;
-        m_motionSign = direction == Direction::Forward ? 1.0 : -1.0;
-        m_motionActive = true;
-        m_velocity = velocity;
     }
-
-    const double sign{ direction == Direction::Forward ? 1.0 : -1.0 };
-    auto account = [&](const hal::step::AxisStatus& status, bool ended) {
-        std::scoped_lock lock{ m_mutex };
-        if (status.counts_exact) {
-            m_position = start_position + m_stepAngle * (sign * static_cast<double>(status.pulses));
-        }
-        else {
-            m_referenced = false;
-        }
-        if (ended) {
-            m_motionActive = false;
-            m_velocity = 0_rpm;
-        }
-    };
 
     auto result{ Result::Stopped };
     try {
         while (true) {
             const auto status{ m_stepOutput->status() };
-            account(status, false);
 
             if (status.state == hal::step::State::Underrun || status.state == hal::step::State::DmaError ||
                 !status.counts_exact) {
@@ -286,12 +281,11 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
             static_cast<void>(m_notification.waitUntil(deadline));
         }
     } catch (...) {
-        account(m_stepOutput->stop(), true);
+        static_cast<void>(m_stepOutput->stop());
         throw;
     }
 
     const auto final{ m_stepOutput->stop() };
-    account(final, true);
 
     if (!final.counts_exact || final.state == hal::step::State::DmaError ||
         final.state == hal::step::State::Underrun) {

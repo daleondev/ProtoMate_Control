@@ -625,3 +625,113 @@ TEST_F(StepTest, FaultWakesEveryActiveAxisCompletionObserver)
     generator->service();
     EXPECT_EQ(calls, (std::array<unsigned, 3>{ 1, 1, 1 }));
 }
+
+TEST_F(StepTest, AxisProgressPublishesStartAutonomousBatchesAndFinalStateBeforeCompletion)
+{
+    std::vector<hal::step::AxisStatus> progress;
+    progress.reserve(32);
+    unsigned completions{};
+    ASSERT_TRUE(outputs[0]->setProgressCallback([&](const auto& status) noexcept {
+        progress.push_back(status);
+    }));
+    ASSERT_TRUE(outputs[0]->setCompletionCallback([&](const auto& status) noexcept {
+        ++completions;
+        EXPECT_EQ(progress.back(), status);
+    }));
+    ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }, 600));
+    ASSERT_TRUE(startMoves(10us));
+    ASSERT_EQ(progress.size(), 1U);
+    EXPECT_EQ(progress.back().state, State::Running);
+    EXPECT_EQ(progress.back().pulses, 0U);
+    EXPECT_EQ(progress.back().period, 0ns);
+    hardware->advance(13'000U); // DMA half interrupt, without any status queries.
+    EXPECT_GT(progress.back().pulses, 0U);
+    EXPECT_EQ(progress.back().period, 10us);
+    hardware->advance(100'000U);
+    EXPECT_EQ(progress.back().state, State::Completed);
+    EXPECT_EQ(progress.back().pulses, 600U);
+    EXPECT_EQ(progress.back().period, 0ns);
+    EXPECT_EQ(completions, 1U);
+    const auto calls{ progress.size() };
+    static_cast<void>(outputs[0]->stop());
+    static_cast<void>(generator->status());
+    EXPECT_EQ(progress.size(), calls);
+    ASSERT_TRUE(outputs[0]->start(10us));
+    EXPECT_EQ(progress.back().pulses, 0U);
+    hardware->advance(100'000U);
+    EXPECT_EQ(progress.back().pulses, 600U);
+    EXPECT_EQ(completions, 2U);
+}
+
+TEST_F(StepTest, ExecutedPeriodFollowsBufferedPulsesAndSurvivesBufferRefill)
+{
+    ASSERT_TRUE(outputs[0]->prepare({ 60'050ns, 5us }));
+    ASSERT_TRUE(startMoves(10us));
+    EXPECT_EQ(outputs[0]->status().period, 0ns);
+    hardware->advance(100U);
+    EXPECT_EQ(outputs[0]->status().period, 60'100ns);
+    const auto changed{ outputs[0]->updateTiming({ 20us, 5us }) };
+    ASSERT_TRUE(changed);
+    ASSERT_EQ(*changed, 513U);
+    for (const auto pulses : { 256U, 512U }) {
+        const auto fall{ 100U + (pulses - 1U) * 601U + 50U };
+        hardware->advance(fall - hardware->elapsed);
+        EXPECT_EQ(outputs[0]->status().pulses, pulses);
+        EXPECT_EQ(outputs[0]->status().period, 60'100ns);
+        hardware->advance(1U); // Re-query after the old buffer was overwritten.
+        EXPECT_EQ(outputs[0]->status().period, 60'100ns);
+    }
+    hardware->advance(100U + 512U * 601U - hardware->elapsed);
+    EXPECT_EQ(outputs[0]->status().pulses, 513U);
+    EXPECT_EQ(outputs[0]->status().period, 20us);
+    EXPECT_EQ(outputs[0]->stop().period, 0ns);
+}
+
+TEST_F(StepTest, ExecutedPeriodTracksSequencesAndPendingDmaEdges)
+{
+    const std::array<hal::step::Timing, 3> sequence{ {
+      { 20us, 5us }, { 30us, 5us }, { 40us, 5us } } };
+    ASSERT_TRUE(outputs[0]->prepareSequence(sequence));
+    ASSERT_TRUE(startMoves(10us));
+    hardware->hold_dma[0] = true;
+    hardware->advance(100U); // Physical rising edge precedes its DMA transfer.
+    EXPECT_EQ(outputs[0]->status().pulses, 1U);
+    EXPECT_EQ(outputs[0]->status().period, 20us);
+    hardware->hold_dma[0] = false;
+    static_cast<void>(hardware->transfer(0));
+    hardware->advance(200U);
+    EXPECT_EQ(outputs[0]->status().period, 30us);
+    hardware->advance(300U);
+    EXPECT_EQ(outputs[0]->status().period, 40us);
+    hardware->advance(50U);
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
+    EXPECT_EQ(outputs[0]->status().period, 0ns);
+}
+
+TEST_F(StepTest, AxisProgressOwnershipUnregistrationAndFaultDelivery)
+{
+    auto owner{ generator->output(Axis::_1) };
+    hal::step::AxisStatus observed;
+    unsigned calls{};
+    ASSERT_TRUE(owner->setProgressCallback([&](const auto& status) noexcept {
+        observed = status;
+        ++calls;
+    }));
+    EXPECT_FALSE(outputs[0]->setProgressCallback([](const auto&) noexcept {}));
+    EXPECT_FALSE(outputs[0]->setProgressCallback({}));
+    ASSERT_TRUE(owner->prepare({ 10us, 5us }));
+    ASSERT_TRUE(startMoves(10us));
+    EXPECT_FALSE(owner->setProgressCallback([](const auto&) noexcept {}));
+    hardware->advance(1000U);
+    hardware->registers.error = true;
+    generator->service();
+    EXPECT_EQ(observed.state, State::DmaError);
+    EXPECT_FALSE(observed.counts_exact);
+    EXPECT_EQ(observed.period, 0ns);
+    const auto notified{ calls };
+    generator->service();
+    EXPECT_EQ(calls, notified);
+    owner.reset();
+    ASSERT_TRUE(outputs[0]->setProgressCallback([](const auto&) noexcept {}));
+    ASSERT_TRUE(outputs[0]->setProgressCallback({}));
+}

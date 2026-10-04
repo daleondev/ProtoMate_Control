@@ -1,5 +1,7 @@
 #pragma once
 
+#include "runtime/threadx/Support.hpp"
+
 #include <tx_api.h>
 
 #include <cstdint>
@@ -122,9 +124,9 @@ namespace runtime
                                                         std::uint32_t current) noexcept;
         [[nodiscard]] std::int64_t steady_time_nanoseconds() noexcept;
         [[nodiscard]] std::int64_t system_time_nanoseconds() noexcept;
-        [[nodiscard]] ULONG duration_to_ticks(std::uint64_t nanoseconds) noexcept;
+        using threadx::duration_to_ticks;
         void sleep_for(std::uint64_t nanoseconds) noexcept;
 
-        [[noreturn]] void fatal_error(const char* operation, UINT status) noexcept;
+        using threadx::fatal_error;
     }
 }

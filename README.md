@@ -285,8 +285,14 @@ auto result2 = motion2.get();
 
 `move`, `moveRel` and `moveAbs` return futures. Replacing a motor's motion
 stops and joins only its previous worker. Finite moves round to the nearest
-microstep; `position()` tracks signed commanded pulses from a software zero,
-read from the axis pulse count on demand and finalized on completion/join. Absolute moves do not
+microstep; `position()` tracks signed commanded pulses from a software zero.
+`m_position` and `m_velocity` are updated by per-axis progress callbacks, including
+the final stop/completion, without waking the motion worker. Both getters refresh
+hardware progress and return those same atomic fields. Position accumulates only
+new pulses; there is no separate position origin/cache. `velocity()` is signed,
+uses the timer-rounded period of the latest emitted pulse, and is zero before
+the first pulse and after stopping. A queued `setVelocity()` change is reflected
+only when its first affected pulse is emitted. Absolute moves do not
 imply homing. Velocity arguments are positive magnitudes; direction comes from
 `Direction` or the signed target distance. A zero timeout means unlimited time.
 `setVelocity()` requires an active motion with unbuffered pulses; calling it
@@ -296,13 +302,25 @@ shared driver-enable policy remain controller work.
 
 Motion workers block on an event until their axis completes/stops/faults, a stop
 request arrives, or the deadline expires. They do not poll every millisecond.
-Each motor owns its axis completion subscription and a pre-created
-`runtime::Notification`; the callback only signals this event. The worker
-reads final status, updates position and resolves its future in thread context.
+Each motor owns its axis progress subscription and a pre-created
+`runtime::Notification`. The callback accounts new pulses and executed timing;
+only a terminal state signals the event. The worker stops the output when needed,
+checks the final status and resolves its future in thread context. Accounting is
+performed once in the callback, including the final count captured by `stop()`.
 Signals arriving before a wait are retained, and repeated signals coalesce.
 Cancellation also signals the event. A replacement joins the old worker before
 clearing old notifications and starting its next motion. Completion notification
-still uses the existing DMA/TIM7 service; STEP timing is unchanged.
+still uses the existing DMA/TIM7 service; STEP timing is unchanged. Progress is
+batched at those service points, not an interrupt for every pulse. The fields
+therefore update autonomously between reads at service cadence, and getters
+refresh them to the sampled hardware count. They describe commanded motion,
+not measured encoder position or rotor speed. If a DMA fault makes counts
+uncertain, position retains its last exact value and the reference is invalidated.
+
+`runtime/synchronization/Notification.hpp` is built by
+`runtime::synchronization`. Shared ThreadX helpers live in `runtime/threadx/`;
+the synchronization component has no dependency on `libstdcxx` implementation
+headers. The umbrella `runtime::runtime` target links these components together.
 
 `runtime::Notification::signal()` supports ISR and interrupt-masked callers.
 On STM32 it preserves the caller's interrupt mask and defers any required
@@ -367,7 +385,7 @@ non-cacheable, execute-never MPU region**. Buffers are not in DTCM. CPU buffer
 writes are published before extending the deadline. DMA and TIM7 interrupts use priority 5. DMA interrupts occur at buffer
 half/completion boundaries, not once per pulse.
 
-`setProgressCallback()` supplies **batched cumulative progress/completion**.
+`generator->setProgressCallback()` supplies **batched cumulative progress/completion**.
 It deliberately does not promise one callback per physical step: delayed
 interrupts can combine progress. Position comes from hardware/DMA progress,
 not from counting callbacks. A STEP-pad phase check distinguishes a pending DMA
@@ -375,6 +393,15 @@ write from a missed compare timestamp, so elapsed time cannot invent a pulse. Ca
 (including status queries and motion operations);
 keep them short, nonblocking, allocation-free, and do not mutate/destroy the
 generator. Read-only queries are allowed. Register/clear callbacks while stopped.
+
+`axis->setProgressCallback()` observes one axis independently. It receives a
+synchronous start event with zero pulses, then batched progress and a final
+completion/stop/fault event. `AxisStatus::period` describes the timing of the
+latest emitted pulse, including queued timing changes and per-pulse sequences;
+it is zero before the first pulse and after stopping. One view owns each axis's
+progress subscription. Register while that axis is stopped; clearing or view
+destruction synchronizes with dispatch. This callback runs before the axis's
+completion callback and follows the same ISR restrictions.
 
 `axis->setCompletionCallback()` is a separate, once-per-motion notification
 for completion, stop or fault. It sends no pulse-progress or start events, and

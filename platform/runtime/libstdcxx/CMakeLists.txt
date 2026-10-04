@@ -1,26 +1,6 @@
 add_library(runtime_libstdcxx STATIC)
 add_library(runtime::libstdcxx ALIAS runtime_libstdcxx)
 
-# HAL factories and application code exchange C++ objects. On Arm, the
-# toolchain otherwise defaults shared_ptr to the single-threaded policy in
-# HAL and the atomic policy in the ThreadX application. Share headers and
-# ABI definitions without making the lower HAL depend on runtime binaries.
-add_library(runtime_cxx_abi INTERFACE)
-add_library(runtime::cxx_abi ALIAS runtime_cxx_abi)
-target_include_directories(runtime_cxx_abi BEFORE INTERFACE
-    ${PROJECT_SOURCE_DIR}/platform
-    ${PROJECT_SOURCE_DIR}/platform/runtime
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-target_compile_definitions(runtime_cxx_abi INTERFACE
-    THREADX_STD_ENABLED=1
-    _GLIBCXX_HAS_GTHREADS=1
-    _GLIBCXX_HAVE_POSIX_SEMAPHORE=1
-    _GLIBCXX_USE_SCHED_YIELD=1
-    $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Generic>:RUNTIME_LIBSTDCXX_HAVE_TLS=1>
-)
-target_link_libraries(runtime_cxx_abi INTERFACE threadx)
-
 # The vendored filesystem and atomic sources are identical in GCC 16.1
 # and 16.2, so both toolchains use the same source snapshot.
 set(RUNTIME_LIBSTDCXX_VENDOR_DIR
@@ -29,7 +9,6 @@ set(RUNTIME_LIBSTDCXX_VENDOR_DIR
 
 target_sources(runtime_libstdcxx
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Notification.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/atomic.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/backend.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/clock.cpp
@@ -69,6 +48,7 @@ target_include_directories(runtime_libstdcxx
 target_link_libraries(runtime_libstdcxx
     PRIVATE
         platform::hal
+        runtime::threadx
     PUBLIC
         runtime::cxx_abi
         runtime::libc

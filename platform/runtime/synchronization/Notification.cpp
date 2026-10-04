@@ -1,5 +1,5 @@
 #include "Notification.hpp"
-#include "libstdcxx/backend.hpp"
+#include "runtime/threadx/Support.hpp"
 
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/hal.hpp"
@@ -12,7 +12,7 @@ namespace runtime
 {
     Notification::Notification()
     {
-        if (!detail::in_thread_context() ||
+        if (!threadx::in_thread_context() ||
             tx_event_flags_create(&m_event, const_cast<char*>("notification")) != TX_SUCCESS) {
             throw std::runtime_error("notification creation failed");
         }
@@ -21,7 +21,7 @@ namespace runtime
     {
         const auto status{ tx_event_flags_delete(&m_event) };
         if (status != TX_SUCCESS)
-            detail::fatal_error("notification delete", status);
+            threadx::fatal_error("notification delete", status);
     }
     void Notification::signal() noexcept
     {
@@ -40,14 +40,14 @@ namespace runtime
         static_cast<void>(tx_interrupt_control(posture));
 #endif
         if (status != TX_SUCCESS)
-            detail::fatal_error("notification signal", status);
+            threadx::fatal_error("notification signal", status);
     }
     void Notification::clear()
     {
         ULONG flags{};
         const auto status{ tx_event_flags_get(&m_event, 1U, TX_OR_CLEAR, &flags, TX_NO_WAIT) };
         if (status != TX_SUCCESS && status != TX_NO_EVENTS) {
-            detail::fatal_error("notification clear", status);
+            threadx::fatal_error("notification clear", status);
         }
     }
     bool Notification::waitUntil(std::chrono::steady_clock::time_point deadline)
@@ -58,7 +58,7 @@ namespace runtime
                 deadline == std::chrono::steady_clock::time_point::max() ? TX_WAIT_FOREVER
                 : deadline <= now
                   ? TX_NO_WAIT
-                  : detail::duration_to_ticks(static_cast<std::uint64_t>(
+                  : threadx::duration_to_ticks(static_cast<std::uint64_t>(
                       std::chrono::duration_cast<std::chrono::nanoseconds>(deadline - now).count()))
             };
             ULONG flags{};
@@ -66,7 +66,7 @@ namespace runtime
             if (status == TX_SUCCESS)
                 return true;
             if (status != TX_NO_EVENTS)
-                detail::fatal_error("notification wait", status);
+                threadx::fatal_error("notification wait", status);
             if (std::chrono::steady_clock::now() >= deadline)
                 return false;
             // A tick-based timeout may return just before a steady-clock deadline.

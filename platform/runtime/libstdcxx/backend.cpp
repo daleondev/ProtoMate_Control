@@ -374,23 +374,12 @@ namespace runtime
                 return candidate > previous ? candidate : previous;
             }
 
-            [[nodiscard]] bool interrupt_context() noexcept
-            {
-#if defined(__arm__) || defined(__thumb__)
-                std::uint32_t ipsr{};
-                asm volatile("mrs %0, ipsr" : "=r"(ipsr));
-                return ipsr != 0U;
-#else
-                return false;
-#endif
-            }
-
             [[nodiscard]] int require_thread_context() noexcept
             {
                 if (!initialized) {
                     return EAGAIN;
                 }
-                if (interrupt_context() || tx_thread_identify() == TX_NULL) {
+                if (threadx::interrupt_context() || tx_thread_identify() == TX_NULL) {
                     return EPERM;
                 }
                 return 0;
@@ -797,7 +786,7 @@ namespace runtime
 
         bool in_thread_context() noexcept
         {
-            return initialized && !interrupt_context() && tx_thread_identify() != TX_NULL;
+            return initialized && !threadx::interrupt_context() && tx_thread_identify() != TX_NULL;
         }
 
         int thread_create(ThreadHandle* thread,
@@ -1476,23 +1465,6 @@ namespace runtime
             return publish_system_time(system_clock_epoch_nanoseconds + elapsed);
         }
 
-        ULONG duration_to_ticks(std::uint64_t nanoseconds) noexcept
-        {
-            if (nanoseconds == 0U) {
-                return TX_NO_WAIT;
-            }
-            constexpr std::uint64_t tick_rate{ TX_TIMER_TICKS_PER_SECOND };
-            const std::uint64_t whole_seconds{ nanoseconds / NANOSECONDS_PER_SECOND };
-            const std::uint64_t remainder{ nanoseconds % NANOSECONDS_PER_SECOND };
-            if (whole_seconds > std::numeric_limits<ULONG>::max() / tick_rate) {
-                return MAX_FINITE_WAIT;
-            }
-            const std::uint64_t ticks{ whole_seconds * tick_rate +
-                                       (remainder * tick_rate + NANOSECONDS_PER_SECOND - 1U) /
-                                         NANOSECONDS_PER_SECOND };
-            return static_cast<ULONG>(std::min<std::uint64_t>(ticks, MAX_FINITE_WAIT));
-        }
-
         void sleep_for(std::uint64_t nanoseconds) noexcept
         {
             if (require_thread_context() != 0 || nanoseconds == 0U) {
@@ -1514,13 +1486,6 @@ namespace runtime
                 }
                 ticks -= chunk;
             }
-        }
-
-        [[noreturn]] void fatal_error(const char* operation, UINT status) noexcept
-        {
-            static_cast<void>(operation);
-            static_cast<void>(status);
-            std::terminate();
         }
     }
 

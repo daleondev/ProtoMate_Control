@@ -45,6 +45,9 @@ namespace hal
             std::array<State, 3> axes{};
             // False after a DMA error: the last edge may not be reconstructible.
             bool counts_exact{ true };
+            // Period of each axis's latest emitted pulse, rounded to hardware
+            // ticks. Zero before its first pulse and after it stops.
+            std::array<std::chrono::nanoseconds, 3> periods{};
             constexpr bool operator==(const Status&) const = default;
         };
         struct AxisStatus
@@ -52,6 +55,7 @@ namespace hal
             State state{ State::Idle };
             PulseCount pulses{};
             bool counts_exact{ true };
+            std::chrono::nanoseconds period{};
             constexpr bool operator==(const AxisStatus&) const = default;
         };
     }
@@ -61,6 +65,7 @@ namespace hal
     {
       public:
         using CompletionCallback = std::move_only_function<void(const step::AxisStatus&) noexcept>;
+        using ProgressCallback = std::move_only_function<void(const step::AxisStatus&) noexcept>;
         virtual ~IStepOutput() = default;
         // Once per started motion on completion, stop or fault. No progress/start
         // notification. One owning view per axis; another view cannot replace/clear it.
@@ -68,6 +73,11 @@ namespace hal
         // Clearing/view destruction synchronizes with callback execution. ISR rules
         // match the generator callback. Capture must outlive registration.
         [[nodiscard]] virtual auto setCompletionCallback(CompletionCallback callback) -> util::Result<> = 0;
+        // Start (Running, zero pulses), batched progress, and final stop/fault.
+        // Runs under the generator lock, before the completion callback. Same
+        // ownership/lifetime/ISR rules as completion; never one IRQ per pulse.
+        // status() refreshes this subscription too. Only started runs notify.
+        [[nodiscard]] virtual auto setProgressCallback(ProgressCallback callback) -> util::Result<> = 0;
         // Only this axis must be stopped. nullopt is an unlimited counted train.
         // Nonzero count, high/low >= 5 us; timing rounds up to 100 ns ticks.
         [[nodiscard]] virtual auto prepare(step::Timing timing,

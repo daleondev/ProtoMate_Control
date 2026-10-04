@@ -27,7 +27,12 @@ namespace hal::detail
             }
             ~StepOutput() override
             {
+                static_cast<void>(m_generator->setAxisProgressCallback(m_axis, this, {}));
                 static_cast<void>(m_generator->setCompletionCallback(m_axis, this, {}));
+            }
+            auto setProgressCallback(ProgressCallback callback) -> util::Result<> override
+            {
+                return m_generator->setAxisProgressCallback(m_axis, this, std::move(callback));
             }
             auto setCompletionCallback(CompletionCallback callback) -> util::Result<> override
             {
@@ -50,7 +55,7 @@ namespace hal::detail
             auto status() noexcept -> step::AxisStatus override
             {
                 const auto group{ m_generator->status() };
-                return { group.axes[m_axis], group.pulses[m_axis], group.counts_exact };
+                return { group.axes[m_axis], group.pulses[m_axis], group.counts_exact, group.periods[m_axis] };
             }
             auto updateTiming(step::Timing timing) noexcept -> util::Result<step::PulseCount> override
             {
@@ -189,6 +194,7 @@ namespace hal::detail
     {
         auto& axis{ m_axes[index] };
         auto& data{ m_hardware->buffers()[index][buffer] };
+        axis.buffered_period[buffer] = axis.timings.front().period;
         for (std::size_t i = 0; i < axis.entries; i += 2U) {
             if (axis.terminal) {
                 data[i] = data[i + 1U] = step_park;
@@ -223,6 +229,7 @@ namespace hal::detail
         for (std::size_t i = 0; i < m_axes.size(); ++i) {
             m_axes[i].finished = true;
             m_listeners[i].notified = true;
+            m_progressListeners[i].active = false;
             m_status.axes[i] = m_axes[i].timings.empty() ? step::State::Idle : step::State::Ready;
         }
         m_hardware->start(step_park);
@@ -277,15 +284,24 @@ namespace hal::detail
         axis.finished = false;
         m_listeners[index].notified = false;
         m_status.pulses[index] = 0U;
+        m_status.periods[index] = {};
         m_status.axes[index] = step::State::Running;
+        // Establish this run's accounting before any progress/fault callback.
+        auto& listener{ m_progressListeners[index] };
+        listener.active = true;
+        listener.notified = axisStatus(index);
+        if (listener.callback) {
+            m_inCallback = true;
+            listener.callback(listener.notified);
+            m_inCallback = false;
+        }
         const auto armed{ m_hardware->sample() };
         if (!armed.running || armed.error) {
             finish(step::State::Underrun, true);
             return fail(std::errc::io_error);
         }
         guard(armed.tick);
-        // No callback on start: progress is zero, and an existing observer may
-        // use start's return as the handover point for its new move bookkeeping.
+        // Preserve the generator-wide callback's no-start notification contract.
         m_notified = m_status;
         return {};
     }
@@ -306,6 +322,7 @@ namespace hal::detail
                     ? step::State::Completed
                     : step::State::Stopped;
                 m_axes[index].finished = true;
+                m_status.periods[index] = {};
                 if (!sample.running || sample.error) {
                     finish(step::State::Underrun, true);
                 }
@@ -315,7 +332,7 @@ namespace hal::detail
                 }
             }
         }
-        return { m_status.axes[index], m_status.pulses[index], m_status.counts_exact };
+        return axisStatus(index);
     }
     auto StepGenerator::observe(std::size_t i, const StepSample& sample) const noexcept -> Observed
     {
@@ -349,7 +366,18 @@ namespace hal::detail
     {
         for (std::size_t i = 0; i < m_axes.size(); ++i) {
             if (!m_axes[i].finished) {
-                m_status.pulses[i] = observe(i, sample).pulses;
+                const auto pulses{ observe(i, sample).pulses };
+                const auto& axis{ m_axes[i] };
+                if (pulses != m_status.pulses[i] && pulses != 0U) {
+                    // Read before refilling: a just-completed buffer can still
+                    // own the latest pulse until the next rising edge. Retain
+                    // its period when subsequent samples see that same count.
+                    const auto period{ axis.timings.size() == 1U
+                                         ? axis.buffered_period[((pulses - 1U) / (axis.entries / 2U)) % 2U]
+                                         : axis.timings[pulses - 1U].period };
+                    m_status.periods[i] = std::chrono::nanoseconds{ std::uint64_t{ period } * step_tick_ns };
+                }
+                m_status.pulses[i] = pulses;
             }
         }
         if (sample.error) {
@@ -398,6 +426,7 @@ namespace hal::detail
                 ? step::State::Completed
                 : failure;
             m_axes[i].finished = true;
+            m_status.periods[i] = {};
         }
         m_status.state = failure;
         if (send_notification) {
@@ -453,6 +482,28 @@ namespace hal::detail
         listener.callback.swap(callback); // Retired capture is destroyed after unlocking.
         return {};
     }
+    auto StepGenerator::setAxisProgressCallback(std::size_t index,
+                                                const void* owner,
+                                                IStepOutput::ProgressCallback callback) -> util::Result<>
+    {
+        STEP_LOCK;
+        if (index >= m_axes.size())
+            return fail(std::errc::invalid_argument);
+        if (m_inCallback)
+            return fail(std::errc::device_or_resource_busy);
+        auto& listener{ m_progressListeners[index] };
+        if (listener.owner != nullptr && listener.owner != owner)
+            return fail(std::errc::device_or_resource_busy);
+        if (callback && !m_axes[index].finished)
+            return fail(std::errc::device_or_resource_busy);
+        listener.owner = callback ? owner : nullptr;
+        listener.callback.swap(callback);
+        return {};
+    }
+    auto StepGenerator::axisStatus(std::size_t index) const noexcept -> step::AxisStatus
+    {
+        return { m_status.axes[index], m_status.pulses[index], m_status.counts_exact, m_status.periods[index] };
+    }
     auto StepGenerator::notify() noexcept -> void
     {
         if (m_inCallback || m_status == m_notified)
@@ -462,11 +513,20 @@ namespace hal::detail
         if (m_callback)
             m_callback(m_notified);
         for (std::size_t i = 0; i < m_axes.size(); ++i) {
+            auto& progress{ m_progressListeners[i] };
+            const auto current{ axisStatus(i) };
+            if (progress.active && current != progress.notified) {
+                progress.notified = current;
+                if (m_axes[i].finished)
+                    progress.active = false;
+                if (progress.callback)
+                    progress.callback(current);
+            }
             auto& listener{ m_listeners[i] };
             if (!listener.notified && m_axes[i].finished) {
                 listener.notified = true;
                 if (listener.callback) {
-                    listener.callback({ m_status.axes[i], m_status.pulses[i], m_status.counts_exact });
+                    listener.callback(current);
                 }
             }
         }
@@ -498,6 +558,7 @@ namespace hal::detail
                 m_hardware->finishAxis(i);
                 axis.finished = true;
                 m_status.axes[i] = step::State::Completed;
+                m_status.periods[i] = {};
                 continue;
             }
             if (observed.blocks == 0U) {

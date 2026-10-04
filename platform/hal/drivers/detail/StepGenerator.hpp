@@ -39,6 +39,9 @@ namespace hal::detail
         auto setCompletionCallback(std::size_t axis,
                                    const void* owner,
                                    IStepOutput::CompletionCallback callback) -> util::Result<>;
+        auto setAxisProgressCallback(std::size_t axis,
+                                     const void* owner,
+                                     IStepOutput::ProgressCallback callback) -> util::Result<>;
         auto updateTiming(std::size_t axis, step::Timing timing) noexcept -> util::Result<step::PulseCount>;
 
       private:
@@ -50,6 +53,7 @@ namespace hal::detail
         struct Axis
         {
             std::vector<Timing> timings;
+            std::array<std::uint32_t, 2> buffered_period{};
             std::optional<step::PulseCount> requested;
             std::uint64_t generated{};
             std::uint64_t completed_pulses{};
@@ -73,6 +77,7 @@ namespace hal::detail
         auto guard(std::uint32_t now) noexcept -> void;
         auto finish(step::State reason, bool notify) noexcept -> void;
         auto notify() noexcept -> void;
+        auto axisStatus(std::size_t axis) const noexcept -> step::AxisStatus;
         static auto convertTiming(step::Timing timing) noexcept -> util::Result<Timing>;
         // Outlives the hardware, which must disconnect AF before pins release.
         std::array<std::shared_ptr<IDigitalOutput>, 3> m_pins;
@@ -88,6 +93,14 @@ namespace hal::detail
             bool notified{ true };
         };
         std::array<CompletionListener, 3> m_listeners;
+        struct ProgressListener
+        {
+            const void* owner{};
+            IStepOutput::ProgressCallback callback;
+            step::AxisStatus notified;
+            bool active{};
+        };
+        std::array<ProgressListener, 3> m_progressListeners;
         bool m_inCallback{};
 #if defined(HAL_STEP_THREADX)
         mutable linux::ThreadMutex m_mutex;

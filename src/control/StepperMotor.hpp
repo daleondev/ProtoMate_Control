@@ -1,8 +1,9 @@
 #pragma once
 
 #include "pneumo/units.hpp"
-#include "runtime/Notification.hpp"
+#include "runtime/synchronization/Notification.hpp"
 
+#include <atomic>
 #include <future>
 #include <mutex>
 #include <optional>
@@ -57,7 +58,10 @@ class StepperMotor final
     void stopAndWait() noexcept;
 
     pnm::Result<hal::step::PulseCount> setVelocity(pnm::units::AngularVelocity velocity);
+    // Signed commanded state, updated by axis progress and refreshed on read.
+    // Velocity reflects the emitted pulse timing, not pending timing changes.
     pnm::units::Angle position() const;
+    pnm::units::AngularVelocity velocity() const;
 
   private:
     std::future<Result> startMotion(std::packaged_task<Result(std::stop_token)> task);
@@ -74,6 +78,7 @@ class StepperMotor final
                          std::optional<hal::step::PulseCount> count = std::nullopt);
 
     std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
+    void accountProgress(const hal::step::AxisStatus& status) noexcept;
 
     hal::board::MotorId m_id;
     pnm::units::Angle m_fullStepAngle;
@@ -91,13 +96,16 @@ class StepperMotor final
     std::mutex m_workerMutex;
     std::jthread m_worker;
 
-    bool m_motionActive{};
-    pnm::units::Angle m_motionOrigin{ 0_deg };
+    // Set before starting a run; count bookkeeping is owned exclusively by
+    // the serialized HAL progress callback. No duplicate position cache.
     double m_motionSign{ 1.0 };
+    hal::step::PulseCount m_accountedPulses{};
 
-    bool m_referenced{ false };
-    pnm::units::Angle m_position{ 0_deg };
-    pnm::units::AngularVelocity m_velocity{ 0_rpm };
+    std::atomic_bool m_referenced{ false };
+    // The runtime's 64-bit atomics use short interrupt-masked accesses on
+    // STM32; callbacks never take a thread mutex or block.
+    std::atomic<pnm::units::Angle> m_position{ 0_deg };
+    std::atomic<pnm::units::AngularVelocity> m_velocity{ 0_rpm };
     pnm::units::Angle m_actualPosition{ 0_deg };           // todo: encoder
     pnm::units::AngularVelocity m_actualVelocity{ 0_rpm }; // todo: encoder
 };
