@@ -1,8 +1,8 @@
 Reference,Part or value,Quantity,Do not populate,Location
 A1,NUCLEO-H753ZI / MB1364,1,,External
 A2,DM542T V4.0,1,,External
-A3,Adafruit #6121 / TMC2209,1,,External
-A4,Adafruit #6121 / TMC2209,1,,External
+A3,Adafruit #6121 / TMC2209,1,,Perfboard module on J105
+A4,Adafruit #6121 / TMC2209,1,,Perfboard module on J106
 A5,W25Q128 / 3.3 V QSPI,1,,External
 C1,100u / 50V,1,,External
 C2,100u / 50V,1,,External
@@ -19,10 +19,10 @@ J2,M1 encoder / 8-pin,1,,External
 J3,microSD / 4-bit socket module,1,,External
 J101,Nucleo outputs / 2x08,1,,Perfboard
 J102,Nucleo encoder / 2x03,1,,Perfboard
-J103,Buck 5V / 1x02,1,,Perfboard
+J103,U1 buck direct mount,1,,Perfboard
 J104,DM542T / 1x06,1,,Perfboard
-J105,M2 TMC2209 / 1x10,1,,Perfboard
-J106,M3 TMC2209 / 1x10,1,,Perfboard
+J105,M2 TMC2209 direct mount,1,,Perfboard
+J106,M3 TMC2209 direct mount,1,,Perfboard
 J107,M1 encoder / 1x08,1,,Perfboard
 J108,Nucleo references / 2x03,1,,Perfboard
 J109,M1 NC switch / 1x02,1,,Perfboard
@@ -68,6 +68,6 @@ R28,1k,1,,Perfboard
 SW1,M1 Ender-3 V2 / NC,1,,External
 SW2,M2 Ender-3 V2 / NC,1,,External
 SW3,M3 Ender-3 V2 / NC,1,,External
-U1,QIQIAZI 5 V / 5 A,1,,External
+U1,QIQIAZI 5 V / 5 A,1,,Perfboard module on J103
 U2,AM26C32CN / DIP-16,1,,Perfboard
 U3,SN74HC126N / DIP-14,1,,Perfboard

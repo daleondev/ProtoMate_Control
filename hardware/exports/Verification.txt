@@ -1,19 +1,21 @@
 KiCad 10.0.6: native project verification
 PASS: 44 footprints linked to schematic symbols; values, library IDs and pins match.
-PASS: 168 unique component holes and 5 wire passages on the 2.54 mm grid.
+PASS: 170 unique component holes and 7 wire passages on the 2.54 mm grid.
 PASS: 121 scheduled connections span all 37 connected nets.
-PASS: 70 header positions and their external destinations match the schematic.
+PASS: 72 header positions and their external destinations match the schematic.
 PASS: 26 motor, encoder, reference and storage contacts agree with CubeMX.
 PASS: CubeMX reference pull-ups/edges, encoder index edge and disabled startup polarity match wiring.
-PASS: all parts on top; R10-R12 are DNP; no 24 V on perfboard.
+PASS: all three module bodies fit; direct mounting contacts match system wiring.
+PASS: buck VIN support islands have no perfboard wires; native keepout protects both faces.
+PASS: all parts on top; R10-R12 are DNP; no 24 V distribution routed on perfboard.
 Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.
 Wire endpoints/passages are checked; routing lengths and sides need review after route edits.
 This checks the wiring model, not an assembled circuit or transistor switching speed.
-Board SHA256: 216875631e4c4f235c5bf19adebca694a75ad99270c7e0d0ffe71b4fd6fe365d
-ProtoMate.kicad_sch SHA256: 5933d164e110e8ffce1f65f58abd98507413050717bdd1aced60ef6cd3d03b75
-sheets/M1_DM542T.kicad_sch SHA256: 92770bf70bfa44f5d7e69c89b39fd3a5f4748322f3961c3206ca911785e02559
+Board SHA256: 62d68d858d58cb8b57b134cf8a6797f55bb6409f630bb586fad433b8dbfb378b
+ProtoMate.kicad_sch SHA256: b640969398337058325a254c4ebcb9c088beec12465e4efb642fd69c6f5ddcaf
+sheets/M1_DM542T.kicad_sch SHA256: f2beb575ee602c030ea7268fc64d94b0797b1052405e220718b9b8489ec1b410
 sheets/M1_Encoder.kicad_sch SHA256: be5309fec5e61dd4de375c13dba40f8bd4a10a357447ce463ce407d741e9e460
-sheets/M2_M3_TMC2209.kicad_sch SHA256: b1479eaefdb4c649826ad03e2048eb9cb7a2ed778834e4b7d429e5e90268c7be
-sheets/Perfboard_Connectors.kicad_sch SHA256: 2f8470fbeda569f54261b1176e5ebe6f8b976b93b021e7279a1f5559d61c55c4
+sheets/M2_M3_TMC2209.kicad_sch SHA256: df08ab8e1aecf909fc292a70e98a54b9b05bd3368cd99d11d1bdd1b5a03100ff
+sheets/Perfboard_Connectors.kicad_sch SHA256: 57beb695dd490f2102df9bbfb0bb6db7e9306fb1f9fe6087a338bd2157f1fc9b
 sheets/Reference_Switches.kicad_sch SHA256: f6fe0ff0acaa2daaf3f06b8ce3ec8e6f6ba45cb7a67f967121bd608cff0492d5
 sheets/Storage.kicad_sch SHA256: 05e746f4934a312b0a44f53c42a7ce1028f44eb125290488ca6e03564e129aa5

@@ -10,7 +10,7 @@ hardware/
 ├── ProtoMate.kicad_sch       Root sheet: controller, power, sheet navigation
 ├── ProtoMate.kicad_pcb       100 × 160 mm perfboard placement and hand wiring
 ├── sheets/                  Motor interfaces, encoder, storage, headers, switches
-├── libraries/               Project-local symbols and perfboard footprints
+├── libraries/               Project-local symbols, footprints and buck 3D model
 ├── sym-lib-table            Relative symbol-library registration
 ├── fp-lib-table             Relative footprint-library registration
 ├── assembly/                Build instructions, parts, hole/wire/harness tables
@@ -30,11 +30,18 @@ All **44 perfboard footprints** have assigned library footprints and native
 links to their schematic symbols. These comprise Q1–Q6, R1–R12, R20–R28,
 C3–C6, U2/U3 and J101–J111. R10–R12 remain on the layout and are marked DNP.
 
-The Nucleo, motor drivers, motors, reference switches, buck converter, storage modules and their
-external components are marked **Exclude from board** in the schematic.
-They remain part of the system wiring and system parts list, but KiCad does
-not add them to the perfboard. In particular, 24 V and motor currents stay
-outside the perfboard.
+The **buck U1 and Adafruit A3/A4 modules mount directly at J103/J105/J106**.
+These footprints represent their soldered mounting pins and full module
+outlines. The module symbols remain excluded from separate PCB placement:
+the DC jack and JP1 power/motor terminals are on the modules, not additional
+perfboard holes. The system parts table identifies their physical mounting
+through these headers. J103 has two output contacts and two isolated VIN
+support islands; its no-connect flags mean **no perfboard wire**, not no voltage.
+The Nucleo, DM542T, motors, switches and storage modules remain external.
+Motor power and winding cables connect directly to the drivers; their currents
+do not use the perfboard wiring. The buck's 63 × 27 mm body follows the supplied
+STEP model; its nominal mounting grid is 5.08 mm within each pair and 50.8 mm
+between pairs. Its barrel jack receives 24 V at the left edge.
 
 The `.kicad_pcb` is a map for a purchased individual-pad board: F.Cu represents
 top jumpers, B.Cu represents solder-side wires, and vias represent wire passages.
@@ -99,8 +106,9 @@ python3 hardware/tools/refresh.py
 
 Requires KiCad 10 (`kicad-cli` and its `pcbnew` Python module), Python 3 and
 Poppler's `pdfunite`. The command checks ERC, DRC **with schematic parity**,
-symbol links, pad nets, the hole grid, wire endpoints/connectivity and external
-harness destinations. All 26 motor, encoder, reference and storage signal contacts
+symbol links, pad nets, the hole grid, wire endpoints/connectivity, module body
+clearance, mounting contacts and harness destinations.
+All 26 motor, encoder, reference and storage signal contacts
 are checked against CubeMX, along with reference pull-ups/edges, encoder index
 polarity and the disabled startup level. It updates:
 

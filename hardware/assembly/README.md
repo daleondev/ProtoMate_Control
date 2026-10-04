@@ -23,7 +23,7 @@ Commercial board margins vary: choose an actual hole near that position,
 mark it A1, and count holes from there. Preserve the relative hole positions;
 do not drill holes to match a manufacturer's different edge margin.
 
-All component leads and the five additional wire-passage holes fall on the
+All component leads and the additional wire-passage holes fall on the
 **2.54 mm grid**. Lines between holes show the route of insulated wire, not
 additional holes or copper strips. Empty holes are the faint circles on
 `Dwgs.User`. A square in the drawing identifies header/IC pin 1; the purchased
@@ -37,7 +37,7 @@ All components are mounted on the top face.
 - [Wires.csv](Wires.csv): all 121 required pad-to-pad connections, with endpoints,
   side-change holes and routed lengths. Add handling/stripping allowance to
   these lengths. Tick off each connection as it is soldered.
-- [Harness.csv](Harness.csv): every external header pin and its destination.
+- [Harness.csv](Harness.csv): every header pin and its cable or direct module contact.
 - [Parts.csv](Parts.csv): parts and mounting dimensions for this perfboard.
 
 Use insulated hookup wire except for short, unambiguous adjacent-pad bridges.
@@ -97,16 +97,17 @@ encoder's output-current limit as described in the main README.
 ## External connections
 
 These are **perfboard header numbers**, not Nucleo connector numbers. All
-headers have 2.54 mm pitch. Use the harness table when preparing cables.
+contacts land on the 2.54 mm grid; J103's pairs span two intervals (5.08 mm).
+Use the harness table for cables and direct module contacts.
 
 | Header | Connection |
 | --- | --- |
 | J101, 2×8 | Nucleo STEP/DIR/enable outputs and 3.3 V. Odd pins carry signals/power; every even pin is ground. |
 | J102, 2×3 | Encoder A/B/Z returns to the Nucleo; each paired even pin is ground. |
-| J103, 1×2 | Regulated buck output: pin 1 = +5 V, pin 2 = GND. |
+| J103, four module pins | Buck: 1 = OUT+ / 5 V, 2 = OUT− / GND; 3/4 = isolated VIN support pads, no perfboard wires. |
 | J104, 1×6 | DM542T: PUL+, PUL−, DIR+, DIR−, ENA+, ENA−, in pin order. Keep the DM542T signal selector at 5 V. |
-| J105, 1×10 | M2 Adafruit TMC2209 logic: VDD, GND, DIR, STEP, MS1, MS2, NC, NC, NC, EN. |
-| J106, 1×10 | M3 Adafruit TMC2209 logic, same order as J105. |
+| J105, 1×10 | Direct soldered JP4 header of M2 / A3: VDD, GND, DIR, STEP, MS1, MS2, DIAG, INDEX, UART, EN. |
+| J106, 1×10 | Direct soldered JP4 header of M3 / A4, same order as J105. |
 | J107, 1×8 | Encoder: GND, A+, A−, B+, B−, Z+, Z−, +5 V, matching the motor's numbered encoder connector. |
 | J108, 2×3 | Nucleo reference inputs: 1 = M1_REF, 3 = M2_REF, 5 = M3_REF; 2/4/6 = GND. |
 | J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
@@ -126,16 +127,70 @@ Connect the ground conductors to Nucleo ground, common with buck output ground.
 The existing system schematic identifies CN11.8 as a Nucleo ground contact.
 
 Both TMC MS1/MS2 pairs are connected to 3.3 V for 1/16 microstepping. Pins
-7–9 of J105/J106 have no perfboard connection; leave their harness positions
-empty. Cable to the TMC contacts by their labels; a connector's apparent
-left/right order changes when viewed from the mating side.
+7–9 of J105/J106 have isolated landing pads: fit the complete ten-pin header,
+but add no perfboard wires to DIAG, INDEX or UART. No logic cable is required.
+
+### Directly mounted TMC2209 modules
+
+Fit each module component-side up, with its **JP4 male header pointing down**
+through the perfboard. J105 pin 1 (VDD) is **Q21** and its pin 10 (EN) is
+**Q30**. J106 pin 1 is **AF26** and its pin 10 is **AF35**. Pin numbers increase
+left to right in the top view. Both modules' screw terminals face toward row A.
+
+The footprints include the **26.67 × 24.13 mm** module bodies and the terminal
+blocks, measured from [Adafruit's official PCB drawing](https://github.com/adafruit/Adafruit-TMC2209-Breakout-PCB).
+The four larger circles inside each outline are mounting holes **in the
+Adafruit module**, not new holes to drill in the perfboard. Their spacing does
+not match the perfboard grid. Use insulating supports under the terminal side
+so tightening screws does not bend the header or its solder joints.
+
+Use long-tail headers and supports to leave **at least 6 mm between the module
+underside and the perfboard top**. Check the actual terminal solder tails clear
+all jumper insulation, solder joints and pads. Fit low-profile insulated wires
+first, then supports and modules. Keep the driver chip and current-adjustment
+potentiometer accessible from above; allow space above for cooling.
+
+Retain each driver's JP1 screw terminals. Connect its 24 V pair, motor cable
+and local bulk capacitor directly there, as shown in the system schematic.
+Do not route winding currents or 24 V through the ten-pin control header.
+
+### Buck converter mounting
+
+The **63 × 27 mm PCB** sits at the lower left, with its barrel jack pointing
+outward at the left edge and USB connector toward the right. The body follows
+the supplied [BuckConverter.step](../../docs/BuckConverter.step); mounting pins
+use a nominal **5.08 mm pair pitch** and **50.8 mm pair separation**,
+based on the model's terminal blocks. R6 lies horizontally above the buck.
+
+Remove both screw-terminal blocks and fit four long-tail header pins, keeping
+the module component-side up and at least 6 mm above the perfboard. The
+project's buck 3D model shows this arrangement, retaining the barrel jack and
+USB socket. With the barrel jack facing left, the output positive contact is
+above the negative contact, following the
+[XY-3606 terminal layout](https://roboticsdna.in/product/24v-12v-to-5v-5a-power-module-dc-dc-xy-3606-power-converter/).
+Use the module's **OUT+ and OUT−** contacts for the 5 V and ground connections.
+
+| J103 pin | Hole, top view | Connection |
+| --- | --- | --- |
+| 1 | AB22 | Buck OUT+ → perfboard 5 V |
+| 2 | AD22 | Buck OUT− → perfboard GND |
+| 3 | AD2 | VIN-side mechanical solder support; no perfboard wire |
+| 4 | AB2 | VIN-side mechanical solder support; no perfboard wire |
+
+Feed **24 V through the existing barrel jack**. Solder the two input header
+pins to their isolated islands for support only. They still carry input
+ground and 24 V through the module; the no-connect marks mean no added
+perfboard connection. The layout reserves a wire-free area on **both faces**
+around these pads. Keep that area free of jumper wires and solder bridges.
+The Nucleo 5 V supply remains a separate branch from the buck output;
+J101 carries the Nucleo's 3.3 V output.
 
 ### Reference-switch cables
 
 The reference headers occupy the top-left area. J108 pin 1 is **B4**, J109 pin 1 is **B10**,
 J110 pin 1 is **B14**, and J111 pin 1 is **B18**. Each switch header's adjacent
-pin 2 is ground. Wires **W113–W121** connect them; the three signals use the
-underside, while some ground links use insulated top jumpers.
+pin 2 is ground. Wires **W113–W121** connect them; use the current wire table
+for sides and wire-passage holes.
 
 SW1/SW2/SW3 are the external, unpowered Creality mechanical switches. The
 schematic identifies **COM, NC and NO by function**, not by PCB connector
@@ -151,9 +206,11 @@ return away from motor wiring. Before motion use, validate noise immunity and
 contact debounce with the actual cables; filtering and homing/stop logic are
 not implemented by this wiring addition.
 
-The Nucleo, three motor drivers, buck converter, motor windings, reference switches and storage
-modules remain external. The **24 V distribution and motor currents do not
-pass through this perfboard**. Connect those parts as shown in
+The Nucleo, DM542T, motors, reference switches and storage modules remain
+external. U1/A3/A4 sit directly on J103/J105/J106; **24 V distribution and motor
+currents do not pass through the perfboard wiring**. The buck input support
+islands are energized through the module but have no hand wires.
+Connect those parts as shown in
 [the system wiring schematic](../exports/Wiring.pdf). In particular,
 the Nucleo's 5 V input is supplied separately from the buck; J101 supplies this
 interface with the Nucleo's 3.3 V output, not the other way around.

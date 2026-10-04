@@ -25,6 +25,8 @@ ASSEMBLY = ROOT / "assembly"
 EXPORTS = ROOT / "exports"
 BOARD = ROOT / "ProtoMate.kicad_pcb"
 SCHEMATIC = ROOT / "ProtoMate.kicad_sch"
+MODULE_MOUNTS = {"A3": "J105", "A4": "J106"}
+MOUNTED_MODULES = {"U1": "J103", **MODULE_MOUNTS}
 # Compatibility with KiCad 10's SWIG wrappers on Python 3.14.
 pcb.SwigPyIterator.next = pcb.SwigPyIterator.__next__
 
@@ -144,6 +146,43 @@ def verify(netlist, board):
             "Unexpected DNP parts")
     require(all(p.GetNetname() != "+24V" for p in pads.values()), "24 V on perfboard")
 
+    # The modules land through their mounting pins only. Barrel-jack and TMC
+    # JP1 power/motor terminals are not additional perfboard holes.
+    for module, header in MOUNTED_MODULES.items():
+        f = footprints[header]
+        is_buck = module == "U1"
+        footprint_name = ("QIQIAZI_XY3606_DirectMount" if is_buck else
+                          "Adafruit_6121_JP4_DirectMount")
+        require(f.GetFPIDAsString() == f"ProtoMate_Perfboard:{footprint_name}",
+                f"Missing module envelope: {module}")
+        require(f.GetOrientationDegrees() == 0, f"Unexpected module rotation: {module}")
+        contacts = {1: "OUT+", 2: "OUT-"} if is_buck else {n: f"JP4.{n}" for n in range(1, 11)}
+        for pin, contact in contacts.items():
+            require(connected_name(source[(module, contact)]) ==
+                    connected_name(pads[header, str(pin)].GetNetname()),
+                    f"Direct module header differs: {module} {contact}")
+        if is_buck:
+            require(source[("U1", "IN+")] == "+24V" and source[("U1", "IN-")] == "GND",
+                    "Buck input supply differs from system schematic")
+            for pin in ("3", "4"):
+                require(not connected_name(pads[header, pin].GetNetname()),
+                        "Buck input support island has a perfboard connection")
+        x, y = (pcb.ToMM(v) for v in (f.GetPosition().x, f.GetPosition().y))
+        body = ((x - 56.8, y - 8.5, x + 6.2, y + 18.5) if is_buck else
+                (x - 1.905, y - 21.59, x + 24.765, y + 2.54))
+        require(45.72 <= body[0] and body[2] <= 205.72 and
+                45.72 <= body[1] and body[3] <= 145.72,
+                f"Module body extends beyond perfboard: {module}")
+        for other, part in footprints.items():
+            if other == header:
+                continue
+            bounds = part.GetBoundingBox(False, False)
+            left, top, width, height = (pcb.ToMM(v) for v in
+                                       (bounds.GetX(), bounds.GetY(), bounds.GetWidth(), bounds.GetHeight()))
+            require(body[2] <= left or left + width <= body[0] or
+                    body[3] <= top or top + height <= body[1],
+                    f"Module body overlaps {other}: {module}")
+
     # Wires.csv is an assembly schedule, maintained alongside routing changes.
     wires = read_csv("Wires.csv")
     graph = collections.defaultdict(set)
@@ -195,7 +234,9 @@ def verify(netlist, board):
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
               f"PASS: {len(controller_routes)} motor, encoder, reference and storage contacts agree with CubeMX.",
               "PASS: CubeMX reference pull-ups/edges, encoder index edge and disabled startup polarity match wiring.",
-              "PASS: all parts on top; R10-R12 are DNP; no 24 V on perfboard.",
+              "PASS: all three module bodies fit; direct mounting contacts match system wiring.",
+              "PASS: buck VIN support islands have no perfboard wires; native keepout protects both faces.",
+              "PASS: all parts on top; R10-R12 are DNP; no 24 V distribution routed on perfboard.",
               "Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.",
               "Wire endpoints/passages are checked; routing lengths and sides need review after route edits.",
               "This checks the wiring model, not an assembled circuit or transistor switching speed.",
@@ -214,7 +255,8 @@ def tables(components, footprints, pads):
     write_csv("System_Parts.csv", ["Reference", "Part or value", "Quantity", "Do not populate", "Location"],
               [[ref, components[ref].findtext("value"), 1,
                 "DNP" if components[ref].find("property[@name='dnp']") is not None else "",
-                "Perfboard" if ref in footprints else "External"]
+                (f"Perfboard module on {MOUNTED_MODULES[ref]}" if ref in MOUNTED_MODULES else
+                 "Perfboard" if ref in footprints else "External")]
                for ref in sorted(components, key=natural)])
 
 

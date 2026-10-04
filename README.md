@@ -113,8 +113,13 @@ The same project's [perfboard layout](hardware/ProtoMate.kicad_pcb)
 provides a placement and hand-wiring map for a **100 × 160 mm individual-pad
 board with 2.54 mm pitch**. It contains six Diotec 2N2222A stages (three for
 the DM542T and three for encoder voltage conversion), the AM26C32 encoder
-receiver, SN74HC126N buffer, passive components and cable
-headers. Motor drivers, the Nucleo and the power converter connect externally.
+receiver, SN74HC126N buffer, passive components and headers. The two Adafruit
+TMC2209 modules mount directly at J105/J106 through their soldered control
+headers; their 24 V and motor cables connect directly to their screw terminals.
+The Nucleo and DM542T remain external. The buck mounts in the lower-left area
+at J103, using its 5 V output pins and two isolated input support pins.
+Its barrel jack receives 24 V. The 63 × 27 mm body follows the supplied STEP
+model; the mounting uses a nominal 5.08 mm pair pitch and 50.8 mm separation.
 
 Use [Assembly.pdf](hardware/exports/Assembly.pdf) for placement, top jumpers
 and the mirrored solder-side view. The
