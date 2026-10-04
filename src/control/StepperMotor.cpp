@@ -771,7 +771,12 @@ std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<R
         m_busy = m_homing = true;
     }
     try {
-        m_worker = std::jthread([this, task = std::move(task)](std::stop_token stop) mutable {
+        // Homing keeps packaged_task/call_once frames alive through motion and
+        // formatted debug logging. The default 4 KiB stack is too small on ARM
+        // and corrupts the thread's TLS/control block before cancellation ends.
+        m_worker = runtime::thread::create_jthread(
+          { .name = "homing", .stack_size = 16384U },
+          [this, task = std::move(task)](std::stop_token stop) mutable {
             task(stop);
             finishQueue(Result::Stopped);
             // Publish completion before waking the coordinator, including when

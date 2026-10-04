@@ -198,6 +198,57 @@ TEST_F(CliRobot, MotionCommandsAreAnnotatedAndRejectInvalidOrUnreferencedRequest
     EXPECT_FALSE(controller->status().enabled);
 }
 
+TEST_F(CliRobot, AxisAndRobotHomingCanBeStoppedAndRestartedRepeatedly)
+{
+    using namespace std::chrono_literals;
+    constexpr std::array<std::uint8_t, 3> pins{ 7, 8, 10 };
+    for (const auto pin : pins) {
+        const auto input{ hal::gpio::simulatedInput({ hal::gpio::Port::E, pin }) };
+        ASSERT_TRUE(input);
+        input->setSimulatedLevel(hal::gpio::Level::Low);
+    }
+    ASSERT_TRUE(run("robot enable"));
+    for (unsigned repeat{}; repeat < 3U; ++repeat) {
+        for (const auto command : { "axis home shoulder", "axis home elbow", "axis home z", "robot home" }) {
+            SCOPED_TRACE(command);
+            SCOPED_TRACE(repeat);
+            ASSERT_TRUE(run(command));
+            const bool group{ std::string_view{ command } == "robot home" };
+            const auto completion{ group ? robot->motions().back().completion
+                                          : controller->motions().back().completion };
+            const auto deadline{ std::chrono::steady_clock::now() + 1s };
+            bool started{};
+            do {
+                const auto state{ controller->status() };
+                for (const auto& axis : state.axes)
+                    started |= axis.velocity != 0_rpm;
+                if (started)
+                    break;
+                std::this_thread::sleep_for(1ms);
+            } while (std::chrono::steady_clock::now() < deadline);
+            ASSERT_TRUE(started);
+            // All entry points must stop the shared operation and permit an
+            // immediate new home without stale workers, notifications or jobs.
+            ASSERT_TRUE(run(group ? "axis stop shoulder" : "robot stop"));
+            ASSERT_EQ(completion.wait_for(0s), std::future_status::ready);
+            EXPECT_EQ(completion.get(), StepperMotor::Result::Stopped);
+            const auto state{ controller->status() };
+            EXPECT_FALSE(state.coordinated);
+            EXPECT_TRUE(state.generator.counts_exact);
+            for (const auto& axis : state.axes) {
+                EXPECT_EQ(axis.velocity, 0_rpm);
+                EXPECT_FALSE(axis.referenced);
+            }
+        }
+    }
+    // A stopped home must also release the ordinary motion worker path.
+    ASSERT_TRUE(run("axis move elbow -1 --speed 30"));
+    const auto completion{ controller->motions().back().completion };
+    ASSERT_EQ(completion.wait_for(2s), std::future_status::ready);
+    EXPECT_EQ(completion.get(), StepperMotor::Result::Completed);
+    ASSERT_TRUE(run("robot disable"));
+}
+
 TEST_F(CliRobot, HomesAndMovesThroughAnnotatedCommandsUsingTheSameAxes)
 {
     using namespace std::chrono_literals;
