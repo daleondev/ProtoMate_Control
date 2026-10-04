@@ -58,8 +58,7 @@ class StepperMotor final
     void stopAndWait() noexcept;
 
     pnm::Result<hal::step::PulseCount> setVelocity(pnm::units::AngularVelocity velocity);
-    // Signed commanded state, updated by axis progress and refreshed on read.
-    // Velocity reflects the emitted pulse timing, not pending timing changes.
+
     pnm::units::Angle position() const;
     pnm::units::AngularVelocity velocity() const;
 
@@ -96,14 +95,10 @@ class StepperMotor final
     std::mutex m_workerMutex;
     std::jthread m_worker;
 
-    // Set before starting a run; count bookkeeping is owned exclusively by
-    // the serialized HAL progress callback. No duplicate position cache.
     double m_motionSign{ 1.0 };
     hal::step::PulseCount m_accountedPulses{};
 
     std::atomic_bool m_referenced{ false };
-    // The runtime's 64-bit atomics use short interrupt-masked accesses on
-    // STM32; callbacks never take a thread mutex or block.
     std::atomic<pnm::units::Angle> m_position{ 0_deg };
     std::atomic<pnm::units::AngularVelocity> m_velocity{ 0_rpm };
     pnm::units::Angle m_actualPosition{ 0_deg };           // todo: encoder

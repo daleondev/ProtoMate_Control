@@ -92,7 +92,7 @@ std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target
 pnm::units::Angle StepperMotor::position() const
 {
     std::scoped_lock lock{ m_mutex };
-    static_cast<void>(m_stepOutput->status()); // Refreshes the same fields via accountProgress.
+    static_cast<void>(m_stepOutput->status());
     return m_position.load();
 }
 
@@ -105,8 +105,10 @@ pnm::units::AngularVelocity StepperMotor::velocity() const
 
 void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
 {
-    if (status.state == hal::step::State::Running && status.pulses == 0U)
-        m_accountedPulses = 0U; // Synchronous start notification establishes each new run.
+    if (status.state == hal::step::State::Running && status.pulses == 0U) {
+        m_accountedPulses = 0U;
+    }
+
     if (status.counts_exact) {
         const auto delta{ status.pulses - m_accountedPulses };
         m_position.store(m_position.load() + m_stepAngle * (m_motionSign * static_cast<double>(delta)));
@@ -115,11 +117,14 @@ void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
     else {
         m_referenced.store(false);
     }
+
     m_velocity.store(status.state == hal::step::State::Running && status.period.count() > 0
                        ? m_motionSign * m_stepAngle / pnm::units::Time{ status.period }
                        : 0_rpm);
-    if (status.state != hal::step::State::Running)
-        m_notification.signal(); // State is final before the worker can resume.
+
+    if (status.state != hal::step::State::Running) {
+        m_notification.signal();
+    }
 }
 
 void StepperMotor::stop() noexcept
@@ -225,10 +230,10 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
 
     const auto deadline{ timeout == 0_s ? std::chrono::steady_clock::time_point::max()
                                         : now + timeout.toChrono<std::chrono::steady_clock::duration>() };
-    // The previous worker is joined before reuse. Completion notifications
-    // carry no run data: after waking we always read this motion's status.
+
     m_notification.clear();
     const std::stop_callback cancellation{ stop, [this] { m_notification.signal(); } };
+
     if (stop.stop_requested()) {
         return Result::Stopped;
     }
@@ -276,8 +281,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                 result = Result::TimedOut;
                 break;
             }
-            // Signal-before-wait is retained, so completion/cancellation cannot
-            // get lost between the status check and entering the blocked wait.
+
             static_cast<void>(m_notification.waitUntil(deadline));
         }
     } catch (...) {
