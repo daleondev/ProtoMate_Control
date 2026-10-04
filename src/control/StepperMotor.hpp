@@ -14,6 +14,8 @@
 
 using namespace pnm::units::literals;
 
+namespace control { class MotionController; }
+
 class StepperMotor final
 {
   public:
@@ -113,6 +115,11 @@ class StepperMotor final
     pnm::Result<pnm::units::AngularVelocity> actualVelocity() const noexcept;
 
   private:
+    friend class control::MotionController;
+    // Used only while the controller owns all axes; independent workers are
+    // joined before preparing. Accounting still uses the normal callbacks.
+    bool prepareCoordinated(bool forward, std::shared_ptr<const hal::step::Sequence> sequence);
+    bool coordinatedBlocked() const noexcept;
     std::future<Result> startMotion(std::packaged_task<Result(std::stop_token)> task);
 
     struct Command
@@ -171,6 +178,8 @@ class StepperMotor final
         std::atomic_bool referenceActivated{};
         std::atomic_bool referenceReleased{};
         std::atomic_uint32_t referenceChanges{};
+        // Installed once before the generator starts; owned by MotionController.
+        std::atomic<runtime::Notification*> groupNotification{};
     };
     std::shared_ptr<MotionEvents> m_events{ std::make_shared<MotionEvents>() };
 

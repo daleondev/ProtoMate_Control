@@ -5,6 +5,7 @@
 
 #include <array>
 #include <deque>
+#include <functional>
 #include <variant>
 #include <vector>
 
@@ -81,7 +82,32 @@ namespace control
             bool enabled;
             hal::step::Status generator;
             std::array<AxisStatus, 3> axes;
+            bool coordinated{};
         };
+
+        struct CoordinatedPlan
+        {
+            // Empty sequence means this axis holds its position.
+            std::array<std::shared_ptr<const hal::step::Sequence>, 3> sequences;
+            std::array<std::optional<std::chrono::nanoseconds>, 3> delays;
+            std::array<bool, 3> forward{};
+            pnm::units::Time duration{};
+        };
+        enum class Operation
+        {
+            Move,
+            Reference
+        };
+        struct GroupMotion
+        {
+            MotionId id;
+            Operation operation;
+            pnm::units::Time duration;
+            std::optional<StepperMotor::Result> result;
+            std::shared_future<StepperMotor::Result> completion;
+        };
+        using Planner =
+          std::function<CoordinatedPlan(const Status&, const std::array<StepperMotor::MotionDefaults, 3>&)>;
 
         explicit MotionController(const std::array<AxisConfig, 3>& configuration);
         ~MotionController();
@@ -107,6 +133,14 @@ namespace control
         Status status();
         // Bounded to the most recent 32 commands, retaining outstanding ones.
         std::vector<Motion> motions();
+
+        // Require idle axes and reserve all three through completion/cancellation.
+        // Planner runs synchronously under the submission lock: its snapshot
+        // cannot go stale before the hardware is prepared. It must not call back
+        // into this controller. A zero-pulse plan completes without arming.
+        GroupMotion coordinate(const Planner& planner, pnm::units::Time timeout = 0_s);
+        GroupMotion referenceAll(pnm::units::Time timeout = 90_s);
+        std::vector<GroupMotion> groupMotions();
 
         AxisConfig motorConfiguration(MotorId motor) const;
         // M1 = shoulder, M2 = relative elbow, M3 = Z. Reconfiguration requires
@@ -138,14 +172,29 @@ namespace control
                                pnm::units::Time timeout);
         hal::step::PulseCount setVelocityLocked(MotorId motor, pnm::units::AngularVelocity velocity);
         const Conversion& conversionLocked(MotorId motor) const;
+        Status statusLocked();
+        void requireManualAccess() const;
+        void requireIdleGroup();
+        GroupMotion launchGroup(Operation operation, CoordinatedPlan plan, pnm::units::Time timeout);
+        void runGroup(Operation operation,
+                      CoordinatedPlan plan,
+                      pnm::units::Time timeout,
+                      std::shared_ptr<std::promise<StepperMotor::Result>> completion,
+                      std::stop_token stop) noexcept;
 
         mutable std::mutex m_mutex;
         const std::array<AxisConfig, 3> m_configuration;
         std::array<std::optional<Conversion>, 3> m_conversions;
+        runtime::Notification m_groupNotification;
+        std::mutex m_groupActionMutex;
+        std::atomic_bool m_groupActive{};
         std::shared_ptr<hal::IDigitalOutput> m_enable;
         std::shared_ptr<hal::IStepGenerator> m_generator;
         std::array<std::unique_ptr<StepperMotor>, 3> m_motors;
         std::deque<Motion> m_motions;
         MotionId m_nextId{ 1 };
+        std::deque<GroupMotion> m_groupMotions;
+        MotionId m_nextGroupId{ 1 };
+        std::jthread m_groupWorker;
     };
 }

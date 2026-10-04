@@ -5,8 +5,9 @@
 
 namespace motion
 {
-    // Monotone, one-dimensional profile. SI angular units: rad, rad/s,
-    // rad/s^2 and rad/s^3. All phases are analytic constant-jerk polynomials.
+    // Monotone, one-dimensional profile in consistent scalar units (radians for
+    // motors, normalized path progress for coordinated moves), with seconds as
+    // time. All phases are analytic constant-jerk polynomials.
     // Storage and evaluation time are bounded independently of pulse count.
     class Profile final
     {

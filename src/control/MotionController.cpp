@@ -1,4 +1,5 @@
 #include "MotionController.hpp"
+#include "runtime/thread.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -23,6 +24,7 @@ namespace control
                                                          config.full_step_angle,
                                                          config.microsteps,
                                                          m_generator);
+            m_motors[i]->m_events->groupNotification.store(&m_groupNotification);
         }
         if (const auto result{ m_generator->start() }; !result)
             throw std::runtime_error("step timebase start failed: " + result.error().message());
@@ -63,6 +65,21 @@ namespace control
 
     void MotionController::stopLocked(std::optional<MotorId> motor)
     {
+        if (motor)
+            static_cast<void>(axis(*motor));
+        if (m_groupActive.load()) {
+            // Serialize cancellation with the worker's arm/reference submission.
+            // Release this lock before joining: the worker never takes m_mutex.
+            {
+                std::scoped_lock action{ m_groupActionMutex };
+                m_groupWorker.request_stop();
+                for (auto& entry : m_motors)
+                    entry->stop();
+            }
+            if (m_groupWorker.joinable())
+                m_groupWorker.join();
+            motor.reset();
+        }
         if (motor) {
             axis(*motor).stopAndWait();
         }
@@ -147,6 +164,7 @@ namespace control
 
     MotionController::Motion MotionController::moveLocked(MotorId motor, const Move& request)
     {
+        requireManualAccess();
         auto& target{ axis(motor) };
         requireEnabled();
         if (request.absolute && !target.isReferenced())
@@ -187,6 +205,7 @@ namespace control
                                                                pnm::units::AngularVelocity latch,
                                                                pnm::units::Time timeout)
     {
+        requireManualAccess();
         auto& target{ axis(motor) };
         requireEnabled();
         reserveMotion(motor);
@@ -207,6 +226,7 @@ namespace control
     hal::step::PulseCount MotionController::setVelocityLocked(MotorId motor,
                                                               pnm::units::AngularVelocity velocity)
     {
+        requireManualAccess();
         requireEnabled();
         const auto result{ axis(motor).setVelocity(velocity) };
         if (!result)
@@ -223,6 +243,7 @@ namespace control
     void MotionController::setDefaults(MotorId motor, StepperMotor::MotionDefaults defaults)
     {
         std::scoped_lock lock{ m_mutex };
+        requireManualAccess();
         if (const auto result{ axis(motor).setMotionDefaults(defaults) }; !result)
             throw std::runtime_error("cannot set motion defaults: " + result.error().message());
     }
@@ -230,11 +251,17 @@ namespace control
     MotionController::Status MotionController::status()
     {
         std::scoped_lock lock{ m_mutex };
+        return statusLocked();
+    }
+
+    MotionController::Status MotionController::statusLocked()
+    {
         const auto generator{ m_generator->status() };
         collect();
         Status status{ .enabled = m_enable->read() == hal::gpio::Level::Low,
                        .generator = generator,
-                       .axes = {} };
+                       .axes = {},
+                       .coordinated = m_groupActive.load() };
         for (std::size_t i{}; i < m_motors.size(); ++i) {
             const auto& motor{ *m_motors[i] };
             const auto id{ static_cast<MotorId>(i) };
@@ -292,6 +319,7 @@ namespace control
     void MotionController::configureAxis(MotorId motor, Conversion conversion)
     {
         std::scoped_lock lock{ m_mutex };
+        requireManualAccess();
         const auto config{ motorConfiguration(motor) };
         if ((motor == MotorId::Motor3) != std::holds_alternative<LinearAxisConversion>(conversion))
             throw std::invalid_argument(
@@ -378,6 +406,7 @@ namespace control
     void MotionController::setAxisDefaults(MotorId motor, const AxisDefaults& defaults)
     {
         std::scoped_lock lock{ m_mutex };
+        requireManualAccess();
         const auto converted{ std::visit([&]<typename Converter>(const Converter& conversion) {
             const auto& value{ typed<Defaults<Converter>>(defaults) };
             return StepperMotor::MotionDefaults{ conversion.toMotorAcceleration(value.acceleration),
@@ -386,5 +415,252 @@ namespace control
         }, conversionLocked(motor)) };
         if (const auto result{ axis(motor).setMotionDefaults(converted) }; !result)
             throw std::runtime_error("cannot set axis motion defaults: " + result.error().message());
+    }
+
+    void MotionController::requireManualAccess() const
+    {
+        if (m_groupActive.load())
+            throw std::runtime_error("robot operation owns all axes; stop it before manual commands");
+    }
+
+    void MotionController::requireIdleGroup()
+    {
+        requireManualAccess();
+        requireEnabled();
+        collect();
+        if (std::ranges::any_of(m_motions, [](const auto& motion) { return !motion.result; }))
+            throw std::runtime_error("stop or finish individual motor/axis motions before a robot operation");
+        if (m_groupWorker.joinable())
+            m_groupWorker.join();
+    }
+
+    namespace
+    {
+        void validateGroupTimeout(pnm::units::Time timeout, bool homing)
+        {
+            const auto now{ std::chrono::steady_clock::now() };
+            if (!timeout.isFinite() || timeout < 0_s || (homing && timeout == 0_s) ||
+                timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2)
+                throw std::invalid_argument("invalid robot operation timeout");
+        }
+    }
+
+    MotionController::GroupMotion MotionController::coordinate(const Planner& planner,
+                                                               pnm::units::Time timeout)
+    {
+        validateGroupTimeout(timeout, false);
+        if (!planner)
+            throw std::invalid_argument("coordinated move requires a planner");
+        std::scoped_lock lock{ m_mutex };
+        requireIdleGroup();
+        const auto snapshot{ statusLocked() };
+        if (!snapshot.generator.counts_exact ||
+            std::ranges::any_of(snapshot.axes, [](const auto& axis) { return !axis.referenced; }))
+            throw std::runtime_error("reference all axes before a robot move");
+        std::array<StepperMotor::MotionDefaults, 3> defaults;
+        for (std::size_t i{}; i < defaults.size(); ++i)
+            defaults[i] = m_motors[i]->motionDefaults();
+        auto plan{ planner(snapshot, defaults) };
+        if (!plan.duration.isFinite() || plan.duration < 0_s)
+            throw std::invalid_argument("invalid coordinated move duration");
+        // Check every participating axis before changing any DIR or preparation.
+        for (std::size_t i{}; i < m_motors.size(); ++i) {
+            if (bool(plan.sequences[i]) != plan.delays[i].has_value() ||
+                (plan.sequences[i] && (plan.sequences[i]->count() == 0U || *plan.delays[i] < 5us ||
+                                       *plan.delays[i] > 53'687'091'100ns)))
+                throw std::invalid_argument("invalid coordinated axis schedule");
+            if (plan.sequences[i] && plan.forward[i] && m_motors[i]->referenceSwitchActive())
+                throw std::runtime_error("robot target moves an axis towards its active reference switch");
+        }
+        try {
+            for (std::size_t i{}; i < m_motors.size(); ++i) {
+                if (plan.sequences[i] && !m_motors[i]->prepareCoordinated(plan.forward[i], plan.sequences[i]))
+                    throw std::runtime_error("cannot prepare coordinated motor motion");
+            }
+            return launchGroup(Operation::Move, std::move(plan), timeout);
+        } catch (...) {
+            for (auto& motor : m_motors)
+                motor->stopAndWait();
+            throw;
+        }
+    }
+
+    MotionController::GroupMotion MotionController::referenceAll(pnm::units::Time timeout)
+    {
+        validateGroupTimeout(timeout, true);
+        std::scoped_lock lock{ m_mutex };
+        requireIdleGroup();
+        return launchGroup(Operation::Reference, {}, timeout);
+    }
+
+    MotionController::GroupMotion MotionController::launchGroup(Operation operation,
+                                                                CoordinatedPlan plan,
+                                                                pnm::units::Time timeout)
+    {
+        if (m_groupMotions.size() == 32U)
+            m_groupMotions.pop_front(); // All preceding group operations are complete.
+        auto completion{ std::make_shared<std::promise<StepperMotor::Result>>() };
+        GroupMotion result{ m_nextGroupId++, operation, plan.duration, {}, completion->get_future().share() };
+        m_groupMotions.push_back(result);
+        m_groupNotification.clear();
+        m_groupActive.store(true);
+        try {
+            m_groupWorker = runtime::thread::create_jthread(
+              { .name = "robot-motion", .stack_size = 16384U },
+              [this, operation, plan = std::move(plan), timeout, completion](std::stop_token stop) mutable {
+                runGroup(operation, std::move(plan), timeout, std::move(completion), stop);
+            });
+        } catch (...) {
+            m_groupActive.store(false);
+            m_groupMotions.pop_back();
+            throw;
+        }
+        return result;
+    }
+
+    void MotionController::runGroup(Operation operation,
+                                    CoordinatedPlan plan,
+                                    pnm::units::Time timeout,
+                                    std::shared_ptr<std::promise<StepperMotor::Result>> completion,
+                                    std::stop_token stop) noexcept
+    {
+        using Result = StepperMotor::Result;
+        using Clock = std::chrono::steady_clock;
+        auto result{ Result::Faulted };
+        const std::stop_callback cancellation{ stop, [this] { m_groupNotification.signal(); } };
+        try {
+            const auto deadline{ timeout == 0_s ? Clock::time_point::max()
+                                                : Clock::now() + timeout.toChrono<Clock::duration>() };
+            if (operation == Operation::Reference) {
+                result = Result::Completed;
+                std::array<bool, 3> referenced{};
+                // Reference Z first, then the shoulder and relative elbow.
+                for (const auto index : { 2U, 0U, 1U }) {
+                    std::future<Result> homing;
+                    {
+                        std::scoped_lock action{ m_groupActionMutex };
+                        if (stop.stop_requested()) {
+                            result = Result::Stopped;
+                            break;
+                        }
+                        const auto remaining{ deadline - Clock::now() };
+                        if (remaining <= Clock::duration::zero()) {
+                            result = Result::TimedOut;
+                            break;
+                        }
+                        homing = m_motors[index]->reference(5_rpm, 0.5_rpm, pnm::units::Time{ remaining });
+                    }
+                    for (;;) {
+                        const auto state{ m_generator->status() };
+                        bool invalid{};
+                        for (std::size_t i{}; i < referenced.size(); ++i)
+                            invalid |= referenced[i] && !m_motors[i]->isReferenced();
+                        if (stop.stop_requested()) {
+                            result = Result::Stopped;
+                            break;
+                        }
+                        if (!state.counts_exact || state.state != hal::step::State::Running || invalid) {
+                            result = Result::Faulted;
+                            break;
+                        }
+                        if (homing.wait_for(0s) == std::future_status::ready) {
+                            result = homing.get();
+                            if (result == Result::Completed && !m_motors[index]->isReferenced())
+                                result = Result::Faulted;
+                            break;
+                        }
+                        if (Clock::now() >= deadline) {
+                            result = Result::TimedOut;
+                            break;
+                        }
+                        static_cast<void>(m_groupNotification.waitUntil(deadline));
+                    }
+                    if (result != Result::Completed)
+                        break;
+                    referenced[index] = true;
+                }
+            }
+            else {
+                const bool moving{ std::ranges::any_of(plan.sequences,
+                                                       [](const auto& p) { return bool(p); }) };
+                bool started{};
+                {
+                    std::scoped_lock action{ m_groupActionMutex };
+                    bool blocked{};
+                    for (std::size_t i{}; i < m_motors.size(); ++i)
+                        blocked |= !m_motors[i]->isReferenced() ||
+                                   (plan.sequences[i] && m_motors[i]->coordinatedBlocked());
+                    if (stop.stop_requested())
+                        result = Result::Stopped;
+                    else if (blocked)
+                        result = Result::Rejected;
+                    else if (!moving)
+                        result = Result::Completed;
+                    else {
+                        started = bool(m_generator->startPrepared(plan.delays));
+                        if (!started)
+                            result = Result::Faulted;
+                    }
+                }
+                while (started) {
+                    const auto state{ m_generator->status() };
+                    bool finished{ true }, blocked{}, invalid{};
+                    for (std::size_t i{}; i < m_motors.size(); ++i) {
+                        invalid |= !m_motors[i]->isReferenced();
+                        if (!plan.sequences[i])
+                            continue;
+                        finished &= state.axes[i] == hal::step::State::Completed;
+                        blocked |= m_motors[i]->coordinatedBlocked();
+                        invalid |= state.axes[i] != hal::step::State::Running &&
+                                   state.axes[i] != hal::step::State::Completed;
+                    }
+                    if (stop.stop_requested()) {
+                        result = Result::Stopped;
+                        break;
+                    }
+                    if (!state.counts_exact || state.state != hal::step::State::Running || invalid) {
+                        result = Result::Faulted;
+                        break;
+                    }
+                    if (blocked) {
+                        result = Result::Stopped;
+                        break;
+                    }
+                    if (finished) {
+                        result = Result::Completed;
+                        break;
+                    }
+                    if (Clock::now() >= deadline) {
+                        result = Result::TimedOut;
+                        break;
+                    }
+                    static_cast<void>(m_groupNotification.waitUntil(deadline));
+                }
+            }
+        } catch (...) {
+            result = Result::Faulted;
+        }
+        for (auto& motor : m_motors)
+            motor->stop();
+        for (auto& motor : m_motors)
+            motor->stopAndWait();
+        if (!m_generator->status().counts_exact)
+            result = Result::Faulted;
+        else if (stop.stop_requested() && result == Result::Completed)
+            result = Result::Stopped;
+        // No further hardware access after releasing ownership. A new group
+        // joins this worker before replacing it; retained futures stay valid.
+        m_groupActive.store(false);
+        completion->set_value(result);
+    }
+
+    std::vector<MotionController::GroupMotion> MotionController::groupMotions()
+    {
+        std::scoped_lock lock{ m_mutex };
+        for (auto& entry : m_groupMotions) {
+            if (!entry.result && entry.completion.wait_for(0s) == std::future_status::ready)
+                entry.result = entry.completion.get();
+        }
+        return { m_groupMotions.begin(), m_groupMotions.end() };
     }
 }

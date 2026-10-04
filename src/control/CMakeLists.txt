@@ -14,6 +14,8 @@ target_sources(application_control
         ${CMAKE_CURRENT_SOURCE_DIR}/MotionProfile.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/MotionSequence.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/MotionSequence.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/SynchronizedSequence.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/SynchronizedSequence.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ScaraKinematics.hpp
@@ -46,5 +48,5 @@ endif()
 
 # Curve inversion runs in the DMA refill interrupt; speed matters more than
 # code size here. Keep normal debug stepping and retain IEEE floating-point rules.
-set_source_files_properties(MotionProfile.cpp MotionSequence.cpp PROPERTIES
+set_source_files_properties(MotionProfile.cpp MotionSequence.cpp SynchronizedSequence.cpp PROPERTIES
     COMPILE_OPTIONS "$<$<CONFIG:Release>:-O3>")

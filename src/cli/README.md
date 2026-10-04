@@ -301,7 +301,7 @@ joint names. `axis stop [axis|all]` works even before configuring mechanics.
 `axis enable`, `axis disable` and `axis reset` act on the shared driver enable
 and generator, exactly like the motor equivalents.
 
-## Robot kinematics
+## Robot control
 
 The `robot` commands use millimetres for tool XYZ/Z travel and degrees for
 shoulder/elbow angles. Tool yaw is derived from the two joints, not independently
@@ -313,6 +313,14 @@ commandable. Run `robot` for an overview or `help robot ik` for argument details
 | `robot geometry` | Arm lengths, base frame, tool offset/yaw, joint limits and singularity threshold. |
 | `robot fk <shoulder> <elbow> <z>` | Forward calculation from joint coordinates to tool XYZ and yaw. |
 | `robot ik <x> <y> <z> [--branch current\|positive\|negative]` | Inverse calculation using current commanded joints as the seed; outputs a joint endpoint. |
+| `robot enable` / `robot disable` | Shared driver enable; disabling stops motion and invalidates references. |
+| `robot home [--timeout seconds]` | Home Z, then shoulder, then elbow; default 90 s for the whole sequence. |
+| `robot moveto <x> <y> <z>` | Move to an absolute world XYZ target through IK and synchronized joint motion. |
+| `robot move <dx> <dy> <dz>` | Move by a relative world XYZ displacement. |
+| `robot joints <shoulder> <elbow> <z>` | Move to absolute joint coordinates: degrees, degrees, mm. |
+| `robot jobs [id]` | Show outstanding/completed robot operations, retaining the most recent 32. |
+| `robot stop` | Cancel the whole operation; drivers remain enabled. |
+| `robot reset` | Restart the generator while drivers are disabled; re-reference afterwards. |
 
 ```text
 robot status
@@ -326,6 +334,38 @@ branch by default, selects equivalent angles nearest the unwrapped seed, and
 checks configured joint limits. A singular seed requires an explicit branch.
 Unreachable targets, singular solutions and limit violations report errors.
 Selecting an endpoint does not validate a path or synchronize axis motions.
+
+Motion commands require enabled drivers and all three axes referenced and idle.
+They return immediately with a robot job ID; inspect `robot jobs <id>` to see
+completion, stop, timeout, rejection or fault. Robot job IDs are separate from
+the IDs shown by `motor jobs` / `axis jobs`. `robot home` performs each motor's
+seek, backoff and slow second contact at 5/0.5 motor RPM.
+
+All three move commands accept `--speed <percent>` (greater than 0 through 100,
+default 20) and `--timeout <seconds>` (default 0, unlimited). Cartesian moves
+also accept `--branch current|positive|negative`. Speed scales the configured
+joint limits, initially 60 degrees/s for shoulder/elbow and 20 mm/s for Z;
+it is not a tool feed rate in mm/s. `robot geometry` displays these limits.
+Acceleration, deceleration and jerk come from the existing motor/axis defaults.
+
+For example, after a completed `robot home`, `robot joints -5 -5 -1 --speed 20`
+requests those absolute joint coordinates, and `robot move 0 0 -1` requests a
+1 mm downward displacement. These values use the application's current dummy
+mechanics and zero joint reference coordinates; calibrate them for the robot.
+Wait for the current job to complete before submitting the next robot move.
+
+Motion follows a common rest-to-rest profile in joint space, ending all moving
+axes on the same hardware timer tick. Tool paths can curve. Endpoints are rounded
+to microsteps and rechecked against joint limits; no collision checks, straight
+Cartesian path interpolation, robot command queue or live robot speed changes
+are provided. Very slow schedules beyond the timer's per-pulse horizon fail
+with an error before arming.
+
+A robot operation reserves all axes, including stationary ones. Individual
+motor/axis moves, homing, speed changes and profile-default changes are rejected
+until it finishes. `axis stop <any-axis>` or `motor stop <any-motor>` cancels the
+entire robot operation. Reference-switch activation towards the switch, encoder
+faults that invalidate referencing, timer faults and timeouts also stop the group.
 
 `robot status` converts emitted-step coordinates and signed speeds through the
 axis conversions and SCARA geometry. Unreferenced coordinates lack a physical
@@ -363,12 +403,15 @@ from the same locked snapshot as the motor readings. The strong `AxisMove`,
 `AxisSpeed` and `AxisDefaults` variants reject rotary/linear unit mismatches.
 
 `Robot` owns the configured `ScaraKinematics` instance and retains the same
-controller. It computes state on demand without a second set of motors, another
-worker or a global singleton. The geometry class stays independent of HAL and
-motion execution. A future coordinated planner must arbitrate manual-axis
-commands against robot motions; per-call serialization alone is not
-coordinated-motion ownership or synchronized multi-axis execution. Cartesian
-motion commands are not registered until those operations exist.
+controller. It computes state on demand without a second set of motors or a
+global singleton. The geometry class stays independent of HAL and motion
+execution. Robot planning runs under the controller's submission lock, so axis
+conversions and starting coordinates cannot change before preparation. The
+controller owns the robot worker, reserves all three axes until completion, and
+waits on callback notifications or homing futures. Prepared pulse sequences are
+armed against a common timer origin; changing an individual axis cannot distort
+an active robot trajectory. The CLI uses the same annotation/reflection
+registration as the motor, axis and filesystem modules.
 
 ## Linux terminal frontend
 

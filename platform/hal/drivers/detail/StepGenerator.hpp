@@ -25,6 +25,8 @@ namespace hal::detail
         ~StepGenerator() override;
         auto output(step::Axis axis) -> std::shared_ptr<IStepOutput> override;
         auto start() noexcept -> util::Result<> override;
+        auto startPrepared(const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays) noexcept
+          -> util::Result<> override;
         auto stop() noexcept -> step::Status override;
         auto status() noexcept -> step::Status override;
         auto setProgressCallback(ProgressCallback callback) -> util::Result<> override;

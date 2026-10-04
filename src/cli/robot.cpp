@@ -1,6 +1,7 @@
 #include "robot.hpp"
 #include "control_common.hpp"
 
+#include <charconv>
 #include <format>
 #include <ostream>
 
@@ -79,23 +80,70 @@ namespace cli::robot
                 return Kinematics::ElbowBranch::Negative;
             throw std::invalid_argument("--branch must be current, positive or negative");
         }
+        control::Robot::MoveOptions options(const Arguments& args, bool cartesian)
+        {
+            const auto speed{ numericOption(args, "speed", 20, false) };
+            if (speed > 100)
+                throw std::invalid_argument("--speed must be greater than 0 and at most 100 percent");
+            return { speed / 100,
+                     numericOption(args, "timeout", 0) * 1_s,
+                     cartesian ? branch(args) : std::nullopt };
+        }
+
+        int submitted(const control::Robot::Motion& motion, std::ostream& out)
+        {
+            out << std::format("Robot #{} submitted", motion.id);
+            if (motion.duration > 0_s)
+                out << std::format(" (planned duration {:.3f} s)", motion.duration / 1_s);
+            out << std::format(". Check completion with: robot jobs {}\n", motion.id);
+            return 0;
+        }
+
+        std::string_view resultName(std::optional<StepperMotor::Result> result)
+        {
+            if (!result)
+                return "outstanding";
+            using enum StepperMotor::Result;
+            switch (*result) {
+                case Completed:
+                    return "completed";
+                case Stopped:
+                    return "stopped";
+                case TimedOut:
+                    return "timed-out";
+                case Rejected:
+                    return "rejected";
+                case Faulted:
+                    return "faulted";
+            }
+            std::unreachable();
+        }
     }
 
     namespace commands
     {
         using namespace pnm::meta::string::literals;
 
-        [[ = "SCARA coordinates and kinematics calculations"_fs,
+        [[ = "SCARA motion, homing, state and kinematics calculations"_fs,
            = Name{ "robot"_fs } ]] static auto overview(control::Robot&, const Arguments&, std::ostream& out)
           -> CallbackResult
         {
-            out << "Robot kinematics (distances in mm, joint angles in degrees):\n"
+            out << "Robot control (distances in mm, joint angles in degrees):\n"
                    "  robot status                  Live commanded tool position and velocity\n"
                    "  robot geometry                Configured arm lengths, frames and limits\n"
                    "  robot fk <shoulder> <elbow> <z>    Joint coordinates to tool pose\n"
                    "  robot ik <x> <y> <z>          Tool position to joint coordinates\n"
                    "    --branch current|positive|negative (default: current)\n"
-                   "Calculations do not move the robot. Use 'axis' for individual joint motion.\n";
+                   "  robot enable / disable / stop / reset     Shared driver and motion control\n"
+                   "  robot home [--timeout seconds]            Reference Z, shoulder, then elbow\n"
+                   "  robot moveto <x> <y> <z>                   Absolute Cartesian target\n"
+                   "  robot move <dx> <dy> <dz>                  Relative Cartesian target\n"
+                   "  robot joints <shoulder> <elbow> <z>        Absolute joint target\n"
+                   "    --speed percent (default 20), --timeout seconds (default unlimited)\n"
+                   "    Cartesian moves also accept --branch current|positive|negative.\n"
+                   "  robot jobs [id]                            Operation completion/results\n"
+                   "Moves are synchronized point-to-point joint motion; tool paths can curve.\n"
+                   "FK/IK calculations do not move the robot. All moves require referenced, idle axes.\n";
             return 0;
         }
 
@@ -110,6 +158,7 @@ namespace cli::robot
                                stateName(status.motors.generator.state),
                                status.motors.generator.counts_exact ? "exact" : "uncertain",
                                status.referenced ? "yes" : "no");
+            out << "Robot operation: " << (status.motors.coordinated ? "active" : "idle") << '\n';
             if (!status.referenced)
                 out << "Unreferenced coordinates have no established physical datum.\n";
             out << "Commanded state (from emitted steps):\n";
@@ -158,6 +207,12 @@ namespace cli::robot
             else
                 out << "Joint limits: not configured\n";
             out << std::format("Minimum bend sine: {:g}\n", config.minimum_bend_sine);
+            const auto limits{ robot.maximumVelocity() };
+            out << std::format(
+              "Joint speed limits: shoulder={:.3f} deg/s  elbow={:.3f} deg/s  z={:.3f} mm/s\n",
+              limits.shoulder / degrees_per_second,
+              limits.elbow / degrees_per_second,
+              limits.z / 1_mm_s);
             return 0;
         }
 
@@ -204,6 +259,161 @@ namespace cli::robot
                 out << "Seed is unreferenced; joint coordinates have no established physical datum.\n";
             return 0;
         }
+        [[ = "Enable all drivers and wait for settling"_fs,
+           = Name{ "robot enable"_fs } ]] static auto enable(control::Robot& robot,
+                                                             const Arguments&,
+                                                             std::ostream& out) -> CallbackResult
+        {
+            robot.enable();
+            out << "All drivers enabled and settled.\n";
+            return 0;
+        }
+
+        [[
+            = "Abort robot/motor motions, disable drivers and invalidate references"_fs,
+            = Name{ "robot disable"_fs }
+        ]] static auto disable(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        {
+            robot.disable();
+            out << "All drivers disabled; references invalidated.\n";
+            return 0;
+        }
+
+        [[
+            = "Abort the whole robot operation immediately; keep holding torque"_fs,
+            = Name{ "robot stop"_fs }
+        ]] static auto stop(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        {
+            robot.stop();
+            out << "Robot motion stopped; driver enable unchanged.\n";
+            return 0;
+        }
+
+        [[
+            = "Recover shared timebase while drivers are disabled"_fs,
+            = Name{ "robot reset"_fs }
+        ]] static auto reset(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        {
+            robot.reset();
+            out << "Timebase restarted; drivers remain disabled.\n";
+            return 0;
+        }
+
+        [[
+            = "Reference all axes sequentially: Z, shoulder, elbow; requires idle axes"_fs,
+            = Name{ "robot home"_fs },
+            = Flag{ .name = "timeout"_fs,
+                    .description = "Overall homing timeout, default 90 (>0)"_fs,
+                    .value_name = "seconds"_fs }
+        ]] static auto home(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
+        {
+            return submitted(robot.reference(numericOption(args, "timeout", 90, false) * 1_s), out);
+        }
+
+        [[
+            = "Synchronized joint PTP to Cartesian XYZ; tool path may curve"_fs,
+            = Name{ "robot moveto"_fs },
+            = Arg{ .name = "x"_fs, .description = "World x (mm)"_fs },
+            = Arg{ .name = "y"_fs, .description = "World y (mm)"_fs },
+            = Arg{ .name = "z"_fs, .description = "World z (mm)"_fs },
+            = Flag{ .name = "speed"_fs,
+                    .description = "Fraction of configured joint speed limits (0..100, default 20)"_fs,
+                    .value_name = "percent"_fs },
+            = Flag{ .name = "timeout"_fs,
+                    .description = "Overall execution timeout; 0 means unlimited"_fs,
+                    .value_name = "seconds"_fs },
+            = Flag{ .name = "branch"_fs,
+                    .description =
+                      "current (default), positive, negative; choose explicitly at singular home"_fs,
+                    .value_name = "name"_fs }
+        ]] static auto moveto(control::Robot& robot, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
+            const Kinematics::CartesianPosition target{ number(args.require("x"), "x") * 1_mm,
+                                                        number(args.require("y"), "y") * 1_mm,
+                                                        number(args.require("z"), "z") * 1_mm };
+            return submitted(robot.moveAbs(target, options(args, true)), out);
+        }
+
+        [[
+            = "Synchronized joint PTP by Cartesian displacement; tool path may curve"_fs,
+            = Name{ "robot move"_fs },
+            = Arg{ .name = "dx"_fs, .description = "World dx (mm)"_fs },
+            = Arg{ .name = "dy"_fs, .description = "World dy (mm)"_fs },
+            = Arg{ .name = "dz"_fs, .description = "World dz (mm)"_fs },
+            = Flag{ .name = "speed"_fs,
+                    .description = "Fraction of configured joint speed limits (0..100, default 20)"_fs,
+                    .value_name = "percent"_fs },
+            = Flag{ .name = "timeout"_fs,
+                    .description = "Overall execution timeout; 0 means unlimited"_fs,
+                    .value_name = "seconds"_fs },
+            = Flag{ .name = "branch"_fs,
+                    .description =
+                      "current (default), positive, negative; choose explicitly at singular home"_fs,
+                    .value_name = "name"_fs }
+        ]] static auto move(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
+        {
+            const Kinematics::CartesianPosition target{ number(args.require("dx"), "dx") * 1_mm,
+                                                        number(args.require("dy"), "dy") * 1_mm,
+                                                        number(args.require("dz"), "dz") * 1_mm };
+            return submitted(robot.moveRel(target, options(args, true)), out);
+        }
+
+        [[
+            = "Synchronized PTP to shoulder/elbow degrees and Z mm; reference required"_fs,
+            = Name{ "robot joints"_fs },
+            = Arg{ .name = "shoulder"_fs, .description = "Shoulder angle (degrees)"_fs },
+            = Arg{ .name = "elbow"_fs, .description = "Relative elbow angle (degrees)"_fs },
+            = Arg{ .name = "z"_fs, .description = "Z carriage coordinate (mm)"_fs },
+            = Flag{ .name = "speed"_fs,
+                    .description = "Fraction of configured joint speed limits (0..100, default 20)"_fs,
+                    .value_name = "percent"_fs },
+            = Flag{ .name = "timeout"_fs,
+                    .description = "Overall execution timeout; 0 means unlimited"_fs,
+                    .value_name = "seconds"_fs }
+        ]] static auto joints(control::Robot& robot, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
+            const Kinematics::JointPosition target{ number(args.require("shoulder"), "shoulder") * 1_deg,
+                                                    number(args.require("elbow"), "elbow") * 1_deg,
+                                                    number(args.require("z"), "z") * 1_mm };
+            return submitted(robot.moveJoints(target, options(args, false)), out);
+        }
+
+        [[
+            = "Most recent 32 robot operation results; retained handles remain valid"_fs,
+            = Name{ "robot jobs"_fs },
+            = Arg{ .name = "id"_fs, .description = "Optional robot operation ID"_fs, .optional = true }
+        ]] static auto jobs(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
+        {
+            std::optional<control::MotionController::MotionId> selected;
+            if (const auto text{ args.get("id") }) {
+                control::MotionController::MotionId id{};
+                const auto parsed{ std::from_chars(text->data(), text->data() + text->size(), id) };
+                if (parsed.ec != std::errc{} || parsed.ptr != text->data() + text->size() || id == 0)
+                    return callback_failure("id must be a positive integer");
+                selected = id;
+            }
+            bool found{};
+            for (const auto& job : robot.motions()) {
+                if (selected && *selected != job.id)
+                    continue;
+                found = true;
+                out << std::format("Robot #{} {} {}\n",
+                                   job.id,
+                                   job.operation == control::MotionController::Operation::Reference ? "home"
+                                                                                                    : "move",
+                                   resultName(job.result));
+                if (selected && job.result && *job.result != StepperMotor::Result::Completed)
+                    return 1;
+            }
+            if (!found && selected)
+                return callback_failure("unknown or expired robot operation ID");
+            if (!found)
+                out << "No robot operations submitted.\n";
+            return 0;
+        }
+
     }
 
     void setup(Parser& parser, std::shared_ptr<control::Robot> robot)

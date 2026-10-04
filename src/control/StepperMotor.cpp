@@ -70,6 +70,8 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
             }
             events->referenceChanges.fetch_add(1U);
             events->notification.signal();
+            if (auto* notification{ events->groupNotification.load() })
+                notification->signal();
         });
 
         pnm::log::debug("Motor initialized: {} degrees per microstep",
@@ -601,6 +603,8 @@ void StepperMotor::accountEncoder(const hal::IQuadratureEncoder::Sample& sample)
     if (!sample.position) {
         m_referenced.store(false);
         m_encoderHealthy.store(false);
+        if (auto* notification{ m_events->groupNotification.load() })
+            notification->signal();
         m_actualVelocity.store(0_rpm);
         m_previousEncoderSample.reset();
         m_events->notification.signal();
@@ -654,6 +658,28 @@ void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
     if (status.state != hal::step::State::Running || reached) {
         m_events->notification.signal();
     }
+    if (auto* notification{ m_events->groupNotification.load() })
+        notification->signal();
+}
+
+bool StepperMotor::prepareCoordinated(bool forward, std::shared_ptr<const hal::step::Sequence> sequence)
+{
+    stopAndWait();
+    std::scoped_lock lock{ m_mutex };
+    m_events->referenceActivated.store(false);
+    m_events->referenceReleased.store(false);
+    if (!isReferenced() || (forward && referenceSwitchActive()) ||
+        !m_stepOutput->prepareSequence(std::move(sequence)))
+        return false;
+    m_motionSign = forward ? 1.0 : -1.0;
+    m_dirOutput->write(forward ? hal::gpio::Level::High : hal::gpio::Level::Low);
+    return true;
+}
+
+bool StepperMotor::coordinatedBlocked() const noexcept
+{
+    return m_motionSign > 0.0 &&
+      (m_events->referenceActivated.load() || referenceSwitchActive());
 }
 
 void StepperMotor::stop() noexcept
@@ -748,6 +774,10 @@ std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<R
         m_worker = std::jthread([this, task = std::move(task)](std::stop_token stop) mutable {
             task(stop);
             finishQueue(Result::Stopped);
+            // Publish completion before waking the coordinator, including when
+            // homing ended without another STEP or GPIO callback.
+            if (auto* notification{ m_events->groupNotification.load() })
+                notification->signal();
         });
     } catch (...) {
         finishQueue(Result::Faulted);

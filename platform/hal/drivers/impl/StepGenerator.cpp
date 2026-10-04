@@ -404,6 +404,115 @@ namespace hal::detail
         m_notified = m_status;
         return {};
     }
+    auto StepGenerator::startPrepared(
+      const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays) noexcept -> util::Result<>
+    {
+        bool selected{};
+        for (const auto delay : delays) {
+            if (!delay)
+                continue;
+            selected = true;
+            if (*delay < std::chrono::microseconds{ 5 } ||
+                delay->count() > std::int64_t{ step_horizon / 2U } * step_tick_ns)
+                return fail(std::errc::invalid_argument);
+        }
+        if (!selected)
+            return fail(std::errc::invalid_argument);
+        STEP_LOCK;
+        if (m_inCallback)
+            return fail(std::errc::device_or_resource_busy);
+        service();
+        if (m_status.state != step::State::Running)
+            return fail(std::errc::operation_not_permitted);
+        for (std::size_t i{}; i < m_axes.size(); ++i) {
+            if (!delays[i])
+                continue;
+            if (!m_axes[i].finished)
+                return fail(std::errc::device_or_resource_busy);
+            if (m_axes[i].timings.empty() && !m_axes[i].sequence)
+                return fail(std::errc::operation_not_permitted);
+        }
+        // Generate relative timestamps first: trajectory inversion can take
+        // appreciable time, especially in a debug build, and must not consume
+        // the common start lead time.
+        for (std::size_t i{}; i < m_axes.size(); ++i) {
+            if (!delays[i])
+                continue;
+            auto& axis{ m_axes[i] };
+            axis.generated = axis.completed_pulses = 0U;
+            axis.target = 0U;
+            axis.terminal = false;
+            const auto longest{
+                axis.sequence
+                  ? convertTiming({ axis.sequence->maximumPeriod(), std::chrono::microseconds{ 5 } })->period
+                  : std::ranges::max(axis.timings, {}, &Timing::period).period
+            };
+            axis.entries =
+              2U * std::min<std::uint32_t>(step_buffer_edges / 2U, step_horizon / (2U * longest));
+            if (axis.requested && *axis.requested < axis.entries / 2U)
+                axis.entries = static_cast<std::uint32_t>(*axis.requested * 2U);
+            axis.next_rise =
+              static_cast<std::uint32_t>((delays[i]->count() + step_tick_ns - 1U) / step_tick_ns);
+            if (!fill(i, 0U) || !fill(i, 1U))
+                return fail(std::errc::invalid_argument);
+            ++axis.revision;
+        }
+        const auto origin{ m_hardware->sample() };
+        if (!origin.running || origin.error) {
+            finish(step::State::Underrun, true);
+            return fail(std::errc::io_error);
+        }
+        for (std::size_t i{}; i < m_axes.size(); ++i) {
+            if (!delays[i])
+                continue;
+            auto& axis{ m_axes[i] };
+            for (auto& buffer : m_hardware->buffers()[i]) {
+                for (std::size_t j{}; j < axis.entries; ++j) {
+                    if (buffer[j] != step_park)
+                        buffer[j] = stepAdd(origin.tick, buffer[j]);
+                }
+            }
+            axis.next_rise = stepAdd(origin.tick, axis.next_rise);
+            axis.last_fall = stepAdd(origin.tick, axis.last_fall);
+        }
+        m_hardware->publish();
+        for (std::size_t i{}; i < m_axes.size(); ++i) {
+            if (!delays[i])
+                continue;
+            const auto first{ stepAdd(
+              origin.tick,
+              static_cast<std::uint32_t>((delays[i]->count() + step_tick_ns - 1U) / step_tick_ns)) };
+            if (!m_hardware->arm(i, first, m_axes[i].entries)) {
+                for (std::size_t j{}; j < m_axes.size(); ++j) {
+                    if (delays[j])
+                        static_cast<void>(stopAxis(j));
+                }
+                return fail(std::errc::timed_out);
+            }
+            m_axes[i].finished = false;
+            m_listeners[i].notified = false;
+            m_status.pulses[i] = 0U;
+            m_status.periods[i] = {};
+            m_status.axes[i] = step::State::Running;
+            auto& listener{ m_progressListeners[i] };
+            listener.active = true;
+            listener.notified = axisStatus(i);
+            if (listener.callback) {
+                m_inCallback = true;
+                listener.callback(listener.notified);
+                m_inCallback = false;
+            }
+        }
+        const auto armed{ m_hardware->sample() };
+        if (!armed.running || armed.error) {
+            finish(step::State::Underrun, true);
+            return fail(std::errc::io_error);
+        }
+        guard(armed.tick);
+        m_notified = m_status;
+        return {};
+    }
+
     auto StepGenerator::stopAxis(std::size_t index) noexcept -> step::AxisStatus
     {
         STEP_LOCK;

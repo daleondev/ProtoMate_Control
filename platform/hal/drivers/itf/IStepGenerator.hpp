@@ -169,6 +169,17 @@ namespace hal
         // have been prepared. Idempotent while running. Axes start explicitly.
         // A fault is latched until stop() followed by start(); no auto-recovery.
         [[nodiscard]] virtual auto start() noexcept -> util::Result<> = 0;
+        // Arm selected prepared outputs relative to ONE timer sample, taken
+        // after filling their buffers. nullopt leaves an axis untouched. Delays
+        // specify each first rising edge, allowing phase-aligned trajectories
+        // with different pulse counts. Does not reset the running timebase.
+        // Invalid/unprepared selections emit nothing. An arming failure stops
+        // every selected axis and retains any counts already emitted.
+        [[nodiscard]] virtual auto startPrepared(
+          const std::array<std::optional<std::chrono::nanoseconds>, 3>&) noexcept -> util::Result<>
+        {
+            return std::unexpected(std::make_error_code(std::errc::not_supported));
+        }
         // Shut down the timebase and every axis immediately; drive STEP low.
         // Can shorten a pulse, which a motor driver may reject.
         virtual auto stop() noexcept -> step::Status = 0;

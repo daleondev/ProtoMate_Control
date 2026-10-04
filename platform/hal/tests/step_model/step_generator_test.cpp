@@ -542,6 +542,37 @@ TEST(StepArming, MissedStartMarginRejectsOnlyTheNewAxisAndPreservesItsPreparedMo
     EXPECT_TRUE(hardware->registers.running);
 }
 
+TEST(StepArming, PartialGroupArmFailureStopsSelectedAxesAndRetainsEmittedCounts)
+{
+    class DelayedSecondArm final : public hal::detail::SimulatedStepHardware
+    {
+      public:
+        auto arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept -> bool override
+        {
+            if (axis == 1U)
+                advance(200U); // First axis emits a pulse before the second misses its lead time.
+            return SimulatedStepHardware::arm(axis, first, count);
+        }
+    };
+    auto backend{ std::make_unique<DelayedSecondArm>() };
+    auto* hardware{ backend.get() };
+    auto engine{ std::make_shared<hal::detail::StepGenerator>(std::move(backend)) };
+    ASSERT_TRUE(engine->start());
+    for (const auto axis : { Axis::_1, Axis::_2, Axis::_3 })
+        ASSERT_TRUE(engine->output(axis)->prepare({ 100us, 5us }, 10));
+    EXPECT_EQ(engine->startPrepared({ 10us, 10us, 10us }).error(), std::errc::timed_out);
+    const auto state{ engine->status() };
+    EXPECT_TRUE(state.counts_exact);
+    EXPECT_EQ(state.pulses, (std::array<hal::step::PulseCount, 3>{ 1U, 0U, 0U }));
+    for (unsigned axis{}; axis < 3U; ++axis) {
+        EXPECT_NE(state.axes[axis], State::Running);
+        EXPECT_FALSE(hardware->high[axis]);
+    }
+    const auto edges{ hardware->edges.size() };
+    hardware->advance(100'000U);
+    EXPECT_EQ(hardware->edges.size(), edges);
+}
+
 TEST_F(StepTest, AxisCompletionCallbackIsOncePerRunAndIndependentOfProgressObserver)
 {
     std::array<unsigned, 3> completions{};
@@ -821,4 +852,42 @@ TEST_F(StepTest, InvalidAnalyticProviderStopsSafelyAndRetainsReconstructibleCoun
     const auto count{ rises(0).size() };
     hardware->advance(hal::detail::step_park * 2ULL);
     EXPECT_EQ(rises(0).size(), count);
+}
+
+TEST_F(StepTest, PreparedGroupUsesOneClockOriginAcrossRolloverAndLeavesOtherAxesAlone)
+{
+    ASSERT_TRUE(generator->start());
+    hardware->advance(hal::detail::step_park - 2000ULL);
+    const auto origin{hardware->elapsed};
+    ASSERT_TRUE(outputs[0]->prepare({100us,5us},3));
+    ASSERT_TRUE(outputs[1]->prepare({200us,5us},2));
+    ASSERT_TRUE(outputs[2]->prepare({100us,5us},1));
+    ASSERT_TRUE(generator->startPrepared({100us,100us,300us}));
+    hardware->advance(20000U);
+    EXPECT_EQ(rises(0),(std::vector<std::uint64_t>{origin+1000,origin+2000,origin+3000}));
+    EXPECT_EQ(rises(1),(std::vector<std::uint64_t>{origin+1000,origin+3000}));
+    EXPECT_EQ(rises(2),(std::vector<std::uint64_t>{origin+3000}));
+    for (auto state: generator->status().axes) EXPECT_EQ(state,State::Completed);
+    ASSERT_TRUE(outputs[0]->prepare({100us,5us},20));
+    ASSERT_TRUE(outputs[1]->prepare({100us,5us},1));
+    ASSERT_TRUE(outputs[0]->start(100us));
+    ASSERT_TRUE(generator->startPrepared({std::nullopt,100us,std::nullopt}));
+    hardware->advance(30000U);
+    EXPECT_EQ(outputs[0]->status().pulses,20U);
+    EXPECT_EQ(outputs[1]->status().pulses,1U);
+}
+
+TEST_F(StepTest, PreparedGroupValidatesEveryAxisBeforeEmittingAnyPulse)
+{
+    ASSERT_TRUE(outputs[0]->prepare({100us,5us},5));
+    ASSERT_TRUE(generator->start());
+    EXPECT_FALSE(generator->startPrepared({100us,100us,std::nullopt})); // Axis 2 unprepared.
+    EXPECT_FALSE(generator->startPrepared({1us,std::nullopt,std::nullopt}));
+    EXPECT_FALSE(generator->startPrepared({}));
+    hardware->advance(20000U);
+    EXPECT_TRUE(hardware->edges.empty());
+    ASSERT_TRUE(generator->startPrepared({100us,std::nullopt,std::nullopt}));
+    EXPECT_FALSE(generator->startPrepared({100us,std::nullopt,std::nullopt}));
+    hardware->advance(20000U);
+    EXPECT_EQ(rises(0).size(),5U);
 }

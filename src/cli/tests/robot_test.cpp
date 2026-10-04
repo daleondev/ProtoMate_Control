@@ -1,6 +1,7 @@
 #include "cli/axis.hpp"
 #include "cli/motor.hpp"
 #include "cli/robot.hpp"
+#include "hal/drivers/impl/linux/Gpio.hpp"
 
 #include <gtest/gtest.h>
 
@@ -75,7 +76,7 @@ TEST_F(CliRobot, HelpAndGeometryExplainCoordinateUnitsAndReadOnlyScope)
     EXPECT_NE(output.str().find("second=100.0000 mm"), std::string::npos);
     EXPECT_NE(output.str().find("Joint limits: not configured"), std::string::npos);
     EXPECT_FALSE(parser.contains("axis configure"));
-    EXPECT_FALSE(parser.contains("robot move"));
+    EXPECT_TRUE(parser.contains("robot move"));
 }
 
 TEST_F(CliRobot, ForwardAndInverseUseSharedGeometryAndPreserveLiveBranch)
@@ -158,4 +159,95 @@ TEST_F(CliRobot, InverseHonorsConfiguredJointLimits)
     EXPECT_NE(rejected.message.find("joint limit exceeded"), std::string::npos);
     EXPECT_TRUE(limited_parser.execute("robot ik 200 100 10 --branch negative", output));
     EXPECT_TRUE(controller->motions().empty());
+}
+
+TEST_F(CliRobot, MotionCommandsAreAnnotatedAndRejectInvalidOrUnreferencedRequests)
+{
+    for (const auto command : { "robot move", "robot moveto", "robot joints", "robot home", "robot jobs" }) {
+        ASSERT_TRUE(parser.contains(command));
+        ASSERT_TRUE(run(std::string("help ") + command));
+    }
+    ASSERT_TRUE(run("help robot moveto"));
+    EXPECT_NE(output.str().find("--speed"), std::string::npos);
+    EXPECT_NE(output.str().find("--branch"), std::string::npos);
+    ASSERT_TRUE(run("robot enable"));
+    for (const auto command : { "robot move 1 2 3",
+                                "robot moveto 200 100 0",
+                                "robot joints 0 90 0",
+                                "robot joints 0 90 0 --speed 101",
+                                "robot joints 0 90 0 --speed 0",
+                                "robot joints 0 90 0 --branch positive",
+                                "robot home --timeout 0",
+                                "robot move nan 0 0",
+                                "robot jobs abc",
+                                "robot jobs 123" }) {
+        SCOPED_TRACE(command);
+        EXPECT_FALSE(run(command));
+    }
+    ASSERT_TRUE(run("robot jobs"));
+    EXPECT_NE(output.str().find("No robot operations"), std::string::npos);
+    ASSERT_TRUE(run("robot home --timeout 0.05"));
+    EXPECT_NE(output.str().find("Robot #1 submitted"), std::string::npos);
+    const auto job{ robot->motions().front() };
+    ASSERT_EQ(job.completion.wait_for(std::chrono::seconds{ 2 }), std::future_status::ready);
+    EXPECT_EQ(run("robot jobs 1").exit_code, 1);
+    EXPECT_NE(output.str().find("timed-out"), std::string::npos);
+    ASSERT_TRUE(run("robot disable"));
+    ASSERT_TRUE(run("robot reset"));
+    ASSERT_TRUE(run("robot stop"));
+    EXPECT_FALSE(controller->status().enabled);
+}
+
+TEST_F(CliRobot, HomesAndMovesThroughAnnotatedCommandsUsingTheSameAxes)
+{
+    using namespace std::chrono_literals;
+    const auto wait = [&](auto predicate) {
+        const auto deadline{std::chrono::steady_clock::now()+2s};
+        do {
+            if (predicate()) return true;
+            std::this_thread::sleep_for(1ms);
+        } while (std::chrono::steady_clock::now()<deadline);
+        return false;
+    };
+    std::array<std::shared_ptr<hal::GpioInput>,3> switches;
+    constexpr std::array pins{7U,8U,10U};
+    for (std::size_t i{}; i<pins.size(); ++i) {
+        switches[i]=hal::gpio::simulatedInput({hal::gpio::Port::E,static_cast<std::uint8_t>(pins[i])});
+        ASSERT_TRUE(switches[i]);
+        switches[i]->setSimulatedLevel(hal::gpio::Level::Low);
+    }
+    ASSERT_TRUE(run("robot enable"));
+    ASSERT_TRUE(run("robot home --timeout 5"));
+    for (auto i:{2U,0U,1U}) {
+        ASSERT_TRUE(wait([&]{return controller->status().axes[i].velocity>0_rpm;}));
+        switches[i]->setSimulatedLevel(hal::gpio::Level::High);
+        ASSERT_TRUE(wait([&]{return controller->status().axes[i].velocity<0_rpm;}));
+        switches[i]->setSimulatedLevel(hal::gpio::Level::Low);
+        ASSERT_TRUE(wait([&]{return controller->status().axes[i].velocity>0_rpm;}));
+        switches[i]->setSimulatedLevel(hal::gpio::Level::High);
+        ASSERT_TRUE(wait([&]{return controller->status().axes[i].referenced;}));
+        switches[i]->setSimulatedLevel(hal::gpio::Level::Low);
+    }
+    ASSERT_EQ(robot->motions().front().completion.wait_for(2s),std::future_status::ready);
+    ASSERT_TRUE(run("robot joints 130 220 24 --speed 100"));
+    auto job{robot->motions().back()};
+    ASSERT_EQ(job.completion.wait_for(3s),std::future_status::ready);
+    ASSERT_EQ(job.completion.get(),StepperMotor::Result::Completed);
+    ASSERT_TRUE(run("robot jobs 2"));
+    EXPECT_NE(output.str().find("completed"),std::string::npos);
+    ASSERT_TRUE(run("axis status z"));
+    EXPECT_NE(output.str().find("position=24.0000 mm"),std::string::npos);
+    ASSERT_TRUE(run("robot move 0 0 1 --speed 100"));
+    job=robot->motions().back();
+    ASSERT_EQ(job.completion.wait_for(3s),std::future_status::ready);
+    EXPECT_EQ(job.completion.get(),StepperMotor::Result::Completed);
+    EXPECT_NEAR(robot->status().commanded.joints.z/1_mm,25,1e-8);
+    ASSERT_TRUE(run("robot joints 100 190 10 --speed 1"));
+    job=robot->motions().back();
+    EXPECT_FALSE(run("axis move z 1 --speed 1"));
+    EXPECT_FALSE(run("motor speed m1 1"));
+    ASSERT_TRUE(run("axis stop shoulder"));
+    ASSERT_EQ(job.completion.wait_for(2s),std::future_status::ready);
+    EXPECT_EQ(job.completion.get(),StepperMotor::Result::Stopped);
+    ASSERT_TRUE(run("robot disable"));
 }

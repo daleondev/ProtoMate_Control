@@ -324,8 +324,8 @@ ScaraKinematics::JointPosition current{30_deg, 60_deg, 50_mm};
 auto pose = kinematics.forward(current); // Result<ToolPose>: XYZ and derived yaw.
 auto target = kinematics.inverse({300_mm, 200_mm, 40_mm}, current);
 if (target) {
-    // Convert target->shoulder / target->elbow / target->z to motor coordinates
-    // for the future trajectory planner. This call itself starts no motors.
+    // Inspect target->shoulder / target->elbow / target->z without moving.
+    // Robot::moveAbs combines this calculation with coordinated execution.
 }
 else {
     auto reason = target.error(); // Handle ScaraKinematics::Error in the controller.
@@ -373,28 +373,65 @@ an encoder, so a fully measured tool state is unavailable; `axis status` exposes
 the individual feedback. Unreferenced coordinates are explicitly identified,
 and the generator's pulse-count validity remains visible.
 
-The [robot CLI](src/cli/README.md#robot-kinematics) exposes live state and
-read-only calculations:
+`Robot::moveAbs`, `moveRel` and `moveJoints` execute synchronized, rest-to-rest
+point-to-point motion. Cartesian targets are converted through IK; interpolation
+is linear in joint coordinates, so the tool path can curve. Each moving axis
+samples one shared acceleration/deceleration/jerk profile. The HAL arms their
+prepared sequences against one timer origin, with absolute pulse times rounded
+to 100 ns ticks; all moving axes emit their final step on the same tick.
+Targets are rounded to the nearest microstep and checked against joint limits
+again after rounding. Stationary axes hold their positions.
+
+The default maximum joint speeds are 60 degrees/s for shoulder and elbow and
+20 mm/s for Z. `MoveOptions::speed` scales those limits from greater than zero
+through 1 (default 0.2). The profile also respects each motor's configured
+acceleration, deceleration and jerk, plus the STEP rate limit. A move has a
+10 ms setup lead, 5 microsecond high pulses and an optional overall timeout.
+Very slow schedules exceeding the timer's roughly 53.68 s per-pulse horizon
+are rejected. No straight Cartesian interpolation, collision checking, robot
+command buffering or live robot speed override is implemented.
+
+The controller reserves all three axes for a robot operation, rejects conflicting
+motor/axis commands and releases ownership after completion or cancellation.
+All axes must be idle and referenced before a robot move. Stopping any axis
+stops the entire robot operation; a reference-switch activation while moving
+towards it also stops the group. `Robot::reference()` homes Z, shoulder and elbow
+in that order, using the existing seek/backoff/slow-latch sequence at 5/0.5 motor
+RPM and a default 90 s overall timeout. Disabling drivers invalidates references.
+Operations return an ID and a shared completion future; the controller keeps
+the most recent 32 robot results separately from individual-axis commands.
+Execution waits for progress/switch notifications and completion futures.
+
+The [robot CLI](src/cli/README.md#robot-control) exposes these operations,
+live state and read-only calculations:
 
 ```text
 robot status
 robot geometry
 robot fk 30 60 50
 robot ik 300 200 40 --branch positive
+robot enable
+robot home
+robot jobs
 ```
 
 FK inputs are shoulder/elbow degrees and Z millimetres. IK takes world XYZ in
 millimetres and uses the current commanded joints as its seed. The default
 branch is `current`; `positive` and `negative` select a branch explicitly.
-These calculations start no motion. Synchronized Cartesian trajectories,
-command ownership, collision checks and path validation remain planner work.
+FK/IK calculations start no motion. `robot moveto` and `robot move` execute
+absolute and relative XYZ targets; `robot joints` executes a joint target.
+`--speed` is a percentage of the joint speed limits (default 20), rather than
+a Cartesian feed rate. `robot stop` cancels motion while keeping drivers enabled.
 The geometry layer installs no callbacks and does not replace motor accounting.
 
 The `application.control` tests cover analytic poses, both elbow branches,
 multi-turn continuity, frame/tool offsets, workspace and joint-limit boundaries,
 singularities, velocity finite differences, composition with the axis
-converters, live robot state, and missing/faulted feedback. CLI tests cover
-coordinate calculations, input validation and shared controller state.
+converters, live robot state, missing/faulted feedback, coordinated profiles,
+homing, command ownership, switch activation, cancellation and timeout handling.
+CLI tests cover annotated commands, coordinate calculations, simulated robot
+execution and shared controller state. Timer-model tests check the common start
+origin, rollover, exact pulse accounting and partial arming failures.
 Background on velocity singularities is available in
 [Modern Robotics, section 5.3](https://modernrobotics.northwestern.edu/nu-gm-book-resource/5-3-singularities/).
 
@@ -475,6 +512,11 @@ until the first generator and all its views are released.
 - `axis->start(delay)` starts only that axis on the running timebase. The default
   delay is 1 ms; very short delays can return `timed_out` if setup consumes the
   scheduling margin. Each successful start resets only that axis's run count.
+- `generator->startPrepared({delay1, delay2, delay3})` arms selected, already
+  prepared axes against one common timer origin. `std::nullopt` leaves that
+  axis untouched. Initial buffers are generated before sampling the origin;
+  an arming failure stops all selected axes and retains any emitted counts.
+  Robot motion uses different first-pulse delays to sample one shared profile.
 - `axis->updateTiming({period, high_time})` changes an active uniform train
   without restarting it. It returns the **first affected pulse number (1-based)**.
   Already buffered edges and the requested finite pulse count remain unchanged.
