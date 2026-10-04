@@ -110,8 +110,9 @@ python3 hardware/tools/refresh.py --check-only
 ## KiCad perfboard layout
 
 The same project's [perfboard layout](hardware/ProtoMate.kicad_pcb)
-provides a placement and hand-wiring map for a **100 × 160 mm individual-pad
-board with 2.54 mm pitch**. It contains six Diotec 2N2222A stages (three for
+provides a placement and hand-wiring map for one continuous **39-column × 48-row
+individual-pad board with 2.54 mm pitch** (holes A1–AV39). The outer hole centres
+span 96.52 × 119.38 mm. It contains six Diotec 2N2222A stages (three for
 the DM542T and three for encoder voltage conversion), the AM26C32 encoder
 receiver, SN74HC126N buffer, passive components and headers. The two Adafruit
 TMC2209 modules mount directly at J105/J106 through their soldered control

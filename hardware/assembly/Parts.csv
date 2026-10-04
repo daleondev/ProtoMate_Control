@@ -17,7 +17,7 @@ J109 J110 J111,3,1x2 male header,2.54 mm pitch; three NC switch cables
 J104,1,1x6 male header,2.54 mm pitch
 J105 J106,2,1x10 long-tail male header,2.54 mm pitch; solder each Adafruit #6121 directly to perfboard; >=6 mm clear gap; support terminal side with insulating spacers
 J107,1,1x8 male header,2.54 mm pitch
-Board,1,100 x 160 mm individual-pad perfboard,2.54 mm grid; at least 60 x 36 usable holes
+Board,1,39 x 48 hole individual-pad perfboard,One continuous 2.54 mm grid; A1:AV39; 96.52 x 119.38 mm outer hole-centre span
 Wiring,As required,Insulated hookup wire and mating connectors,Signal/logic only; follow Wires.csv and Harness.csv
 A3 A4,2,Adafruit #6121 TMC2209 module,26.67 x 24.13 mm; directly mounted at J105/J106; retain JP1 screw terminals; power/motor wiring stays on module
 A3 A4 supports,As required,Insulating spacers/support pads,Support terminal-block side at >=6 mm gap; do not force module mounting holes onto perfboard grid

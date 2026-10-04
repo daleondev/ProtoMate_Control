@@ -2,8 +2,9 @@
 
 Open [ProtoMate.kicad_pro](../ProtoMate.kicad_pro) in KiCad 10,
 then open the PCB editor. This file is a **placement and hand-wiring map for a
-purchased 100 × 160 mm individual-pad perfboard**. The tracks represent wires;
-there are no Gerber files or custom-board fabrication instructions.
+purchased individual-pad perfboard with one continuous 39 × 48 hole grid**.
+The tracks represent wires; there are no Gerber files or custom-board
+fabrication instructions.
 
 [Assembly.pdf](../exports/Assembly.pdf) contains four actual-size A4 landscape sheets:
 
@@ -13,15 +14,16 @@ there are no Gerber files or custom-board fabrication instructions.
 4. Both sets of wires together, viewed from above.
 
 Print at **100% / actual size**, without fitting to the page. Check that the
-outline measures 160 × 100 mm and ten hole intervals measure 25.4 mm.
+nominal outline measures 99.06 × 121.92 mm and ten hole intervals measure 25.4 mm.
 
 ## Hole coordinates and wiring
 
-Use a 60-column × 36-row area of the board. Columns are **1–60**, rows
-**A–Z, AA–AJ**. The nominal A1 centre is 5.08 mm from the left and top edges.
-Commercial board margins vary: choose an actual hole near that position,
-mark it A1, and count holes from there. Preserve the relative hole positions;
-do not drill holes to match a manufacturer's different edge margin.
+Use the entire **39-column × 48-row grid** as one board. Columns are **1–39**,
+rows **A–Z, AA–AV**, giving 1,872 holes. A1 is the upper-left hole in the top
+view. The distance between outer hole centres is **96.52 × 119.38 mm**.
+The drawing puts the outline half a pitch (1.27 mm) beyond the outer hole
+centres; assembly coordinates are defined by the holes, independently of the
+physical edge margins. The grid continues uniformly across the whole assembly.
 
 All component leads and the additional wire-passage holes fall on the
 **2.54 mm grid**. Lines between holes show the route of insulated wire, not
@@ -61,8 +63,8 @@ the 1.27 mm bulk variant. See the
 
 **U2 is AM26C32CN**, in a 16-pin DIP socket with 7.62 mm between rows. Its notch
 points toward row A. **U3 is the user's SN74HC126N**, in a **DIP-14 socket
-with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **K53**;
-pin 14 is at K56. Its notch points toward row A. Both DIP chips mount on the top face.
+with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **S33**;
+pin 14 is at S36. Its notch points toward row A. Both DIP chips mount on the top face.
 
 Q1–Q3 serve the DM542T. **Q4–Q6 convert the encoder receiver's 5 V outputs
 to 3.3 V for U3**. Each stage has a 4.7 kΩ base resistor (R20/R23/R26),
@@ -133,9 +135,10 @@ but add no perfboard wires to DIAG, INDEX or UART. No logic cable is required.
 ### Directly mounted TMC2209 modules
 
 Fit each module component-side up, with its **JP4 male header pointing down**
-through the perfboard. J105 pin 1 (VDD) is **Q21** and its pin 10 (EN) is
-**Q30**. J106 pin 1 is **AF26** and its pin 10 is **AF35**. Pin numbers increase
-left to right in the top view. Both modules' screw terminals face toward row A.
+through the perfboard. J105 pin 1 (VDD) is **J13** and its pin 10 (EN) is
+**J22**. J106 pin 1 is **J27** and its pin 10 is **J36**. Pin numbers increase
+left to right in the top view. Both modules sit side by side along the top edge,
+with their screw terminals facing toward row A.
 
 The footprints include the **26.67 × 24.13 mm** module bodies and the terminal
 blocks, measured from [Adafruit's official PCB drawing](https://github.com/adafruit/Adafruit-TMC2209-Breakout-PCB).
@@ -172,10 +175,10 @@ Use the module's **OUT+ and OUT−** contacts for the 5 V and ground connections
 
 | J103 pin | Hole, top view | Connection |
 | --- | --- | --- |
-| 1 | AB22 | Buck OUT+ → perfboard 5 V |
-| 2 | AD22 | Buck OUT− → perfboard GND |
-| 3 | AD2 | VIN-side mechanical solder support; no perfboard wire |
-| 4 | AB2 | VIN-side mechanical solder support; no perfboard wire |
+| 1 | AL23 | Buck OUT+ → perfboard 5 V |
+| 2 | AN23 | Buck OUT− → perfboard GND |
+| 3 | AN3 | VIN-side mechanical solder support; no perfboard wire |
+| 4 | AL3 | VIN-side mechanical solder support; no perfboard wire |
 
 Feed **24 V through the existing barrel jack**. Solder the two input header
 pins to their isolated islands for support only. They still carry input
@@ -187,9 +190,10 @@ J101 carries the Nucleo's 3.3 V output.
 
 ### Reference-switch cables
 
-The reference headers occupy the top-left area. J108 pin 1 is **B4**, J109 pin 1 is **B10**,
-J110 pin 1 is **B14**, and J111 pin 1 is **B18**. Each switch header's adjacent
-pin 2 is ground. Wires **W113–W121** connect them; use the current wire table
+The reference headers occupy the lower-right area. J108 pin 1 is **AM28**,
+J109 pin 1 is **AM34**, J110 pin 1 is **AP34**, and J111 pin 1 is **AS34**.
+Each switch header's adjacent pin 2 is ground. Wires **W113–W121** connect them;
+use the current wire table
 for sides and wire-passage holes.
 
 SW1/SW2/SW3 are the external, unpowered Creality mechanical switches. The

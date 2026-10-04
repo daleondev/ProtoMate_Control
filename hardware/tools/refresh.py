@@ -27,6 +27,11 @@ BOARD = ROOT / "ProtoMate.kicad_pcb"
 SCHEMATIC = ROOT / "ProtoMate.kicad_sch"
 MODULE_MOUNTS = {"A3": "J105", "A4": "J106"}
 MOUNTED_MODULES = {"U1": "J103", **MODULE_MOUNTS}
+GRID_COLUMNS, GRID_ROWS = 39, 48
+GRID_ORIGIN, GRID_PITCH = 50.8, 2.54
+BOARD_LEFT = BOARD_TOP = round(GRID_ORIGIN - GRID_PITCH / 2, 6)
+BOARD_RIGHT = round(BOARD_LEFT + GRID_COLUMNS * GRID_PITCH, 6)
+BOARD_BOTTOM = round(BOARD_TOP + GRID_ROWS * GRID_PITCH, 6)
 # Compatibility with KiCad 10's SWIG wrappers on Python 3.14.
 pcb.SwigPyIterator.next = pcb.SwigPyIterator.__next__
 
@@ -62,10 +67,11 @@ def natural(text):
 
 def hole(item):
     pos = item.GetPosition()
-    x, y = ((pcb.ToMM(n) - 50.8) / 2.54 for n in (pos.x, pos.y))
+    x, y = ((pcb.ToMM(n) - GRID_ORIGIN) / GRID_PITCH for n in (pos.x, pos.y))
     require(abs(x - round(x)) < 1e-6 and abs(y - round(y)) < 1e-6,
             f"Off-grid position: {pos}")
-    require(0 <= round(x) < 60 and 0 <= round(y) < 36, "Position outside A1:AJ60")
+    require(0 <= round(x) < GRID_COLUMNS and 0 <= round(y) < GRID_ROWS,
+            "Position outside the 39 x 48 hole field A1:AV39")
     row, letters = round(y) + 1, ""
     while row:
         row, remainder = divmod(row - 1, 26)
@@ -74,6 +80,19 @@ def hole(item):
 
 
 def verify(netlist, board):
+    edges = [item for item in board.GetDrawings() if item.GetLayer() == pcb.Edge_Cuts]
+    corners = {(round(pcb.ToMM(v.x), 6), round(pcb.ToMM(v.y), 6))
+               for edge in edges for v in (edge.GetStart(), edge.GetEnd())}
+    require(len(edges) == 4 and corners == {
+        (BOARD_LEFT, BOARD_TOP), (BOARD_RIGHT, BOARD_TOP),
+        (BOARD_RIGHT, BOARD_BOTTOM), (BOARD_LEFT, BOARD_BOTTOM)},
+        "Board outline differs from the 39 x 48 grid with half-pitch margins")
+    grid = [item for item in board.GetDrawings()
+            if isinstance(item, pcb.PCB_SHAPE) and item.GetLayer() == pcb.Dwgs_User
+            and item.GetShape() == pcb.SHAPE_T_CIRCLE]
+    require(len(grid) == GRID_COLUMNS * GRID_ROWS and
+            len({hole(item) for item in grid}) == GRID_COLUMNS * GRID_ROWS,
+            "Drawing must show all 1872 holes exactly once")
     document = ET.parse(netlist).getroot()
     components = {c.get("ref"): c for c in document.findall("./components/comp")}
     onboard = {ref: c for ref, c in components.items()
@@ -170,8 +189,8 @@ def verify(netlist, board):
         x, y = (pcb.ToMM(v) for v in (f.GetPosition().x, f.GetPosition().y))
         body = ((x - 56.8, y - 8.5, x + 6.2, y + 18.5) if is_buck else
                 (x - 1.905, y - 21.59, x + 24.765, y + 2.54))
-        require(45.72 <= body[0] and body[2] <= 205.72 and
-                45.72 <= body[1] and body[3] <= 145.72,
+        require(BOARD_LEFT <= body[0] and body[2] <= BOARD_RIGHT and
+                BOARD_TOP <= body[1] and body[3] <= BOARD_BOTTOM,
                 f"Module body extends beyond perfboard: {module}")
         for other, part in footprints.items():
             if other == header:
@@ -228,6 +247,8 @@ def verify(netlist, board):
             require(source[destination] == net, f"Harness destination mismatch: {key}")
 
     report = [f"KiCad {pcb.GetBuildVersion()}: native project verification",
+              "PASS: one continuous 39 x 48 hole grid (A1:AV39), 2.54 mm pitch, 1872 holes.",
+              "PASS: nominal outline 99.06 x 121.92 mm; outer hole-centre span 96.52 x 119.38 mm.",
               f"PASS: {len(footprints)} footprints linked to schematic symbols; values, library IDs and pins match.",
               f"PASS: {len(pads)} unique component holes and {len(vias)} wire passages on the 2.54 mm grid.",
               f"PASS: {len(wires)} scheduled connections span all {len(netpads)} connected nets.",

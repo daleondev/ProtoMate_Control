@@ -8,7 +8,7 @@ share the same project name and component identities.
 hardware/
 ├── ProtoMate.kicad_pro       Project settings and electrical checks
 ├── ProtoMate.kicad_sch       Root sheet: controller, power, sheet navigation
-├── ProtoMate.kicad_pcb       100 × 160 mm perfboard placement and hand wiring
+├── ProtoMate.kicad_pcb       39 × 48 hole perfboard placement and hand wiring
 ├── sheets/                  Motor interfaces, encoder, storage, headers, switches
 ├── libraries/               Project-local symbols, footprints and buck 3D model
 ├── sym-lib-table            Relative symbol-library registration
@@ -45,6 +45,10 @@ between pairs. Its barrel jack receives 24 V at the left edge.
 
 The `.kicad_pcb` is a map for a purchased individual-pad board: F.Cu represents
 top jumpers, B.Cu represents solder-side wires, and vias represent wire passages.
+It uses one continuous **39-column × 48-row grid**, A1–AV39, at 2.54 mm pitch.
+The outer hole centres span **96.52 × 119.38 mm**; the nominal outline is
+99.06 × 121.92 mm with half-pitch margins. Both TMC modules sit along the top
+edge, the buck at the lower left, and the reference headers at the lower right.
 Use the [assembly instructions](assembly/README.md) to build it.
 
 The STEP engine uses one 32-bit TIM2 with DMA: M1 = PA0/CN10.29,

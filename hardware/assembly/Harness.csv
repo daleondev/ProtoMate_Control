@@ -1,73 +1,73 @@
 Perfboard header,Pin,Hole (top view),Net,Schematic destination reference,Destination contact,Note
-J101,1,F4,M1_STEP,A1,CN10.29,PA0 / TIM2_CH1 AF1
-J101,2,F5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,3,G4,M1_DIR,A1,CN10.26,PE12 / M1 DIR
-J101,4,G5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,5,H4,M2_STEP,A1,CN10.32,PB10 / TIM2_CH3 AF1
-J101,6,H5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,7,I4,M2_DIR,A1,CN10.10,PE13 / M2 DIR
-J101,8,I5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,9,J4,M3_STEP,A1,CN10.34,PB11 / TIM2_CH4 AF1
-J101,10,J5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,11,K4,M3_DIR,A1,CN10.8,PE14 / M3 DIR
-J101,12,K5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,13,L4,STEPPERS_EN_N,A1,CN10.30,"PE15 / shared enable, active low"
-J101,14,L5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J101,15,M4,+3V3,A1,CN8.7,
-J101,16,M5,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J102,1,Z55,M1_ENC_A,A1,CN7.19,
-J102,2,Z56,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J102,3,AA55,M1_ENC_B,A1,CN7.13,
-J102,4,AA56,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J102,5,AB55,M1_ENC_Z,A1,CN12.17,
-J102,6,AB56,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J103,1,AB22,+5V,U1,OUT+,Direct U1 output pin; no cable
-J103,2,AD22,GND,U1,OUT-,Direct U1 output pin; no cable
-J104,1,D25,+5V,A2,PUL+,
-J104,2,D26,DM_PUL_N,A2,PUL-,
-J104,3,D27,+5V,A2,DIR+,
-J104,4,D28,DM_DIR_N,A2,DIR-,
-J104,5,D29,+5V,A2,ENA+,
-J104,6,D30,DM_ENA_N,A2,ENA-,
-J105,1,Q21,+3V3,A3,JP4.1,Direct soldered module header: A3 VDD; no cable
-J105,2,Q22,GND,A3,JP4.2,Direct soldered module header: A3 GND; no cable
-J105,3,Q23,M2_DIR,A3,JP4.3,Direct soldered module header: A3 DIR; no cable
-J105,4,Q24,M2_STEP,A3,JP4.4,Direct soldered module header: A3 STEP; no cable
-J105,5,Q25,+3V3,A3,JP4.5,Direct soldered module header: A3 MS1; no cable
-J105,6,Q26,+3V3,A3,JP4.6,Direct soldered module header: A3 MS2; no cable
-J105,7,Q27,NC,A3,JP4.7,"Direct soldered module header: A3 DIAG; no cable; isolated landing pad, no perfboard wire"
-J105,8,Q28,NC,A3,JP4.8,"Direct soldered module header: A3 INDEX; no cable; isolated landing pad, no perfboard wire"
-J105,9,Q29,NC,A3,JP4.9,"Direct soldered module header: A3 UART; no cable; isolated landing pad, no perfboard wire"
-J105,10,Q30,STEPPERS_EN_N,A3,JP4.10,Direct soldered module header: A3 EN; no cable
-J106,1,AF26,+3V3,A4,JP4.1,Direct soldered module header: A4 VDD; no cable
-J106,2,AF27,GND,A4,JP4.2,Direct soldered module header: A4 GND; no cable
-J106,3,AF28,M3_DIR,A4,JP4.3,Direct soldered module header: A4 DIR; no cable
-J106,4,AF29,M3_STEP,A4,JP4.4,Direct soldered module header: A4 STEP; no cable
-J106,5,AF30,+3V3,A4,JP4.5,Direct soldered module header: A4 MS1; no cable
-J106,6,AF31,+3V3,A4,JP4.6,Direct soldered module header: A4 MS2; no cable
-J106,7,AF32,NC,A4,JP4.7,"Direct soldered module header: A4 DIAG; no cable; isolated landing pad, no perfboard wire"
-J106,8,AF33,NC,A4,JP4.8,"Direct soldered module header: A4 INDEX; no cable; isolated landing pad, no perfboard wire"
-J106,9,AF34,NC,A4,JP4.9,"Direct soldered module header: A4 UART; no cable; isolated landing pad, no perfboard wire"
-J106,10,AF35,STEPPERS_EN_N,A4,JP4.10,Direct soldered module header: A4 EN; no cable
-J107,1,D37,GND,J2,1,
-J107,2,D38,ENC_A_P,J2,2,
-J107,3,D39,ENC_A_N,J2,3,
-J107,4,D40,ENC_B_P,J2,4,
-J107,5,D41,ENC_B_N,J2,5,
-J107,6,D42,ENC_Z_P,J2,6,
-J107,7,D43,ENC_Z_N,J2,7,
-J107,8,D44,+5V,J2,8,
-J108,1,B4,M1_REF,A1,CN10.20,Reference input; internal 3.3 V pull-up
-J108,2,B5,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
-J108,3,C4,M2_REF,A1,CN10.18,Reference input; internal 3.3 V pull-up
-J108,4,C5,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
-J108,5,D4,M3_REF,A1,CN10.24,Reference input; internal 3.3 V pull-up
-J108,6,D5,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
-J109,1,B10,M1_REF,SW1,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J109,2,B11,GND,SW1,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J110,1,B14,M2_REF,SW2,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J110,2,B15,GND,SW2,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J111,1,B18,M3_REF,SW3,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J111,2,B19,GND,SW3,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J103,3,AD2,NC,U1,IN-,"Mechanical solder support only; input ground via module, no perfboard wire"
-J103,4,AB2,NC,U1,IN+,"Mechanical solder support only; live +24 V via module, no perfboard wire"
+J101,1,B2,M1_STEP,A1,CN10.29,PA0 / TIM2_CH1 AF1
+J101,2,B3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,3,C2,M1_DIR,A1,CN10.26,PE12 / M1 DIR
+J101,4,C3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,5,D2,M2_STEP,A1,CN10.32,PB10 / TIM2_CH3 AF1
+J101,6,D3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,7,E2,M2_DIR,A1,CN10.10,PE13 / M2 DIR
+J101,8,E3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,9,F2,M3_STEP,A1,CN10.34,PB11 / TIM2_CH4 AF1
+J101,10,F3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,11,G2,M3_DIR,A1,CN10.8,PE14 / M3 DIR
+J101,12,G3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,13,H2,STEPPERS_EN_N,A1,CN10.30,"PE15 / shared enable, active low"
+J101,14,H3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,15,I2,+3V3,A1,CN8.7,
+J101,16,I3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,1,AC37,M1_ENC_A,A1,CN7.19,
+J102,2,AC38,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,3,AD37,M1_ENC_B,A1,CN7.13,
+J102,4,AD38,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,5,AE37,M1_ENC_Z,A1,CN12.17,
+J102,6,AE38,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J103,1,AL23,+5V,U1,OUT+,Direct U1 output pin; no cable
+J103,2,AN23,GND,U1,OUT-,Direct U1 output pin; no cable
+J104,1,M2,+5V,A2,PUL+,
+J104,2,M3,DM_PUL_N,A2,PUL-,
+J104,3,M4,+5V,A2,DIR+,
+J104,4,M5,DM_DIR_N,A2,DIR-,
+J104,5,M6,+5V,A2,ENA+,
+J104,6,M7,DM_ENA_N,A2,ENA-,
+J105,1,J13,+3V3,A3,JP4.1,Direct soldered module header: A3 VDD; no cable
+J105,2,J14,GND,A3,JP4.2,Direct soldered module header: A3 GND; no cable
+J105,3,J15,M2_DIR,A3,JP4.3,Direct soldered module header: A3 DIR; no cable
+J105,4,J16,M2_STEP,A3,JP4.4,Direct soldered module header: A3 STEP; no cable
+J105,5,J17,+3V3,A3,JP4.5,Direct soldered module header: A3 MS1; no cable
+J105,6,J18,+3V3,A3,JP4.6,Direct soldered module header: A3 MS2; no cable
+J105,7,J19,NC,A3,JP4.7,"Direct soldered module header: A3 DIAG; no cable; isolated landing pad, no perfboard wire"
+J105,8,J20,NC,A3,JP4.8,"Direct soldered module header: A3 INDEX; no cable; isolated landing pad, no perfboard wire"
+J105,9,J21,NC,A3,JP4.9,"Direct soldered module header: A3 UART; no cable; isolated landing pad, no perfboard wire"
+J105,10,J22,STEPPERS_EN_N,A3,JP4.10,Direct soldered module header: A3 EN; no cable
+J106,1,J27,+3V3,A4,JP4.1,Direct soldered module header: A4 VDD; no cable
+J106,2,J28,GND,A4,JP4.2,Direct soldered module header: A4 GND; no cable
+J106,3,J29,M3_DIR,A4,JP4.3,Direct soldered module header: A4 DIR; no cable
+J106,4,J30,M3_STEP,A4,JP4.4,Direct soldered module header: A4 STEP; no cable
+J106,5,J31,+3V3,A4,JP4.5,Direct soldered module header: A4 MS1; no cable
+J106,6,J32,+3V3,A4,JP4.6,Direct soldered module header: A4 MS2; no cable
+J106,7,J33,NC,A4,JP4.7,"Direct soldered module header: A4 DIAG; no cable; isolated landing pad, no perfboard wire"
+J106,8,J34,NC,A4,JP4.8,"Direct soldered module header: A4 INDEX; no cable; isolated landing pad, no perfboard wire"
+J106,9,J35,NC,A4,JP4.9,"Direct soldered module header: A4 UART; no cable; isolated landing pad, no perfboard wire"
+J106,10,J36,STEPPERS_EN_N,A4,JP4.10,Direct soldered module header: A4 EN; no cable
+J107,1,O13,GND,J2,1,
+J107,2,O14,ENC_A_P,J2,2,
+J107,3,O15,ENC_A_N,J2,3,
+J107,4,O16,ENC_B_P,J2,4,
+J107,5,O17,ENC_B_N,J2,5,
+J107,6,O18,ENC_Z_P,J2,6,
+J107,7,O19,ENC_Z_N,J2,7,
+J107,8,O20,+5V,J2,8,
+J108,1,AM28,M1_REF,A1,CN10.20,Reference input; internal 3.3 V pull-up
+J108,2,AM29,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
+J108,3,AN28,M2_REF,A1,CN10.18,Reference input; internal 3.3 V pull-up
+J108,4,AN29,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
+J108,5,AO28,M3_REF,A1,CN10.24,Reference input; internal 3.3 V pull-up
+J108,6,AO29,GND,A1,CN10.22,Common Nucleo ground; join paired ground returns at CN10.22
+J109,1,AM34,M1_REF,SW1,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J109,2,AM35,GND,SW1,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J110,1,AP34,M2_REF,SW2,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J110,2,AP35,GND,SW2,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J111,1,AS34,M3_REF,SW3,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J111,2,AS35,GND,SW3,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J103,3,AN3,NC,U1,IN-,"Mechanical solder support only; input ground via module, no perfboard wire"
+J103,4,AL3,NC,U1,IN+,"Mechanical solder support only; live +24 V via module, no perfboard wire"
