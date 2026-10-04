@@ -65,12 +65,12 @@ namespace hal::board
             return {};
         }
         switch (id) {
-            case MotorId::M1:
-                return generator->output(step::Axis::M1);
-            case MotorId::M2:
-                return generator->output(step::Axis::M2);
-            case MotorId::M3:
-                return generator->output(step::Axis::M3);
+            case MotorId::Motor1:
+                return generator->output(step::Axis::_1);
+            case MotorId::Motor2:
+                return generator->output(step::Axis::_2);
+            case MotorId::Motor3:
+                return generator->output(step::Axis::_3);
         }
         return {};
     }
@@ -79,11 +79,11 @@ namespace hal::board
     {
         using enum gpio::Port;
         switch (id) {
-            case MotorId::M1:
+            case MotorId::Motor1:
                 return make_stepper_output({ E, 12U }, gpio::Level::Low);
-            case MotorId::M2:
+            case MotorId::Motor2:
                 return make_stepper_output({ E, 13U }, gpio::Level::Low);
-            case MotorId::M3:
+            case MotorId::Motor3:
                 return make_stepper_output({ E, 14U }, gpio::Level::Low);
         }
         return {};
@@ -96,7 +96,7 @@ namespace hal::board
 
     auto createEncoder(MotorId id) -> std::shared_ptr<IQuadratureEncoder>
     {
-        if (id != MotorId::M1) {
+        if (id != MotorId::Motor1) {
             return {};
         }
         return encoder::create({ .timer = 3U, .a = { gpio::Port::B, 4U }, .b = { gpio::Port::B, 5U } });
@@ -104,7 +104,7 @@ namespace hal::board
 
     auto createEncoderIndex(MotorId id) -> std::shared_ptr<IDigitalInput>
     {
-        if (id != MotorId::M1) {
+        if (id != MotorId::Motor1) {
             return {};
         }
         return gpio::createInput({ .pin = { gpio::Port::B, 6U }, .edge = gpio::Edge::Rising });
@@ -114,13 +114,13 @@ namespace hal::board
     {
         gpio::Pin pin{};
         switch (id) {
-            case MotorId::M1:
+            case MotorId::Motor1:
                 pin = { E, 7U };
                 break;
-            case MotorId::M2:
+            case MotorId::Motor2:
                 pin = { E, 8U };
                 break;
-            case MotorId::M3:
+            case MotorId::Motor3:
                 pin = { E, 10U };
                 break;
             default:

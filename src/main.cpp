@@ -79,17 +79,17 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         throw std::runtime_error("step generator creation failed");
     }
     using enum hal::board::MotorId;
-    const auto m1_step{ hal::board::createStepperStepOutput(step_generator, M1) };
-    const auto m2_step{ hal::board::createStepperStepOutput(step_generator, M2) };
-    const auto m3_step{ hal::board::createStepperStepOutput(step_generator, M3) };
-    const auto m1_dir{ hal::board::createStepperDirectionOutput(M1) };
-    const auto m2_dir{ hal::board::createStepperDirectionOutput(M2) };
-    const auto m3_dir{ hal::board::createStepperDirectionOutput(M3) };
-    const auto m1_encoder{ hal::board::createEncoder(M1) };
-    const auto m1_index{ hal::board::createEncoderIndex(M1) };
-    const auto m1_reference{ hal::board::createReferenceLimitSwitch(M1) };
-    const auto m2_reference{ hal::board::createReferenceLimitSwitch(M2) };
-    const auto m3_reference{ hal::board::createReferenceLimitSwitch(M3) };
+    const auto m1_step{ hal::board::createStepperStepOutput(step_generator, Motor1) };
+    const auto m2_step{ hal::board::createStepperStepOutput(step_generator, Motor2) };
+    const auto m3_step{ hal::board::createStepperStepOutput(step_generator, Motor3) };
+    const auto m1_dir{ hal::board::createStepperDirectionOutput(Motor1) };
+    const auto m2_dir{ hal::board::createStepperDirectionOutput(Motor2) };
+    const auto m3_dir{ hal::board::createStepperDirectionOutput(Motor3) };
+    const auto m1_encoder{ hal::board::createEncoder(Motor1) };
+    const auto m1_index{ hal::board::createEncoderIndex(Motor1) };
+    const auto m1_reference{ hal::board::createReferenceLimitSwitch(Motor1) };
+    const auto m2_reference{ hal::board::createReferenceLimitSwitch(Motor2) };
+    const auto m3_reference{ hal::board::createReferenceLimitSwitch(Motor3) };
     if (!m1_step || !m2_step || !m3_step || !m1_dir || !m2_dir || !m3_dir || !m1_encoder || !m1_index ||
         !m1_reference || !m2_reference || !m3_reference) {
         throw std::runtime_error("motor board resource creation failed");

@@ -16,9 +16,9 @@ namespace hal
     {
         enum class Axis : std::uint8_t
         {
-            M1,
-            M2,
-            M3
+            _1,
+            _2,
+            _3
         };
         using PulseCount = std::uint64_t;
         struct Timing

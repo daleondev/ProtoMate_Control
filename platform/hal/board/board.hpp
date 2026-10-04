@@ -26,9 +26,9 @@ namespace hal::board
 
     enum class MotorId : std::uint8_t
     {
-        M1,
-        M2,
-        M3
+        Motor1,
+        Motor2,
+        Motor3
     };
 
     [[nodiscard]] auto createLed(LedId id) -> std::shared_ptr<device::ILed>;
