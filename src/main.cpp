@@ -78,9 +78,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         throw std::runtime_error("step generator creation failed");
     }
     using enum hal::board::MotorId;
-    StepperMotor motor1{ Motor1, 1.8_deg, 16U, step_generator };
-    StepperMotor motor2{ Motor2, 1.8_deg, 16U, step_generator };
-    StepperMotor motor3{ Motor3, 1.8_deg, 16U, step_generator };
+    StepperMotor motor1{ Motor1, 135_deg, 1.8_deg, 16U, step_generator };
+    StepperMotor motor2{ Motor2, 135_deg, 1.8_deg, 16U, step_generator };
+    StepperMotor motor3{ Motor3, 135_deg, 1.8_deg, 16U, step_generator };
     if (!step_generator->start()) {
         throw std::runtime_error("step timebase start failed");
     }

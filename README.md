@@ -273,9 +273,9 @@ using namespace pnm::units::literals;
 using enum hal::board::MotorId;
 auto generator = hal::board::createStepperGenerator();
 if (!generator) throw std::runtime_error("step generator unavailable");
-StepperMotor m1{Motor1, 1.8_deg, 16U, generator};
-StepperMotor m2{Motor2, 1.8_deg, 16U, generator};
-StepperMotor m3{Motor3, 1.8_deg, 16U, generator};
+StepperMotor m1{Motor1, 135_deg, 1.8_deg, 16U, generator};
+StepperMotor m2{Motor2, 135_deg, 1.8_deg, 16U, generator};
+StepperMotor m3{Motor3, 135_deg, 1.8_deg, 16U, generator};
 if (!generator->start()) throw std::runtime_error("step timebase failed");
 
 // After the controller enables the drivers and observes their settling time:
@@ -289,7 +289,7 @@ auto result1 = motion1.get();
 auto result2 = motion2.get();
 ```
 
-`move`, `moveRel` and `moveAbs` return futures. Replacing a motor's motion
+`move`, `moveRel`, `moveAbs` and `reference` return futures. Replacing a motor's motion
 stops and joins only its previous worker. Finite moves round to the nearest
 microstep; `position()` tracks signed commanded pulses from a software zero.
 `m_position` and `m_velocity` are updated by per-axis progress callbacks, including
@@ -298,13 +298,51 @@ hardware progress and return those same atomic fields. Position accumulates only
 new pulses; there is no separate position origin/cache. `velocity()` is signed,
 uses the timer-rounded period of the latest emitted pulse, and is zero before
 the first pulse and after stopping. A queued `setVelocity()` change is reflected
-only when its first affected pulse is emitted. Absolute moves do not
-imply homing. Velocity arguments are positive magnitudes; direction comes from
+only when its first affected pulse is emitted. `moveAbs()` returns `Rejected`
+until `isReferenced()` is true, including for a zero-distance request. A rejected
+unreferenced absolute request does not cancel a running reference sequence.
+Velocity arguments are positive magnitudes; direction comes from
 `Direction` or the signed target distance. A zero timeout means unlimited time.
 `setVelocity()` requires an active motion with unbuffered pulses; calling it
 immediately after the asynchronous `move()` can precede the start and be rejected.
-Homing, automatic ramp planning, following-error handling and
-shared driver-enable policy remain controller work.
+Automatic ramp planning, following-error handling and shared driver-enable
+policy remain controller work.
+
+`StepperMotor` takes the reference-switch coordinate as its second constructor
+argument: `StepperMotor{Motor1, 135_deg, 1.8_deg, 16U, generator}`. The current
+`main.cpp` configures 135° for each motor. Calling `reference()` performs a
+switch reference sequence; it does not enable the drivers or start the shared
+generator. Defaults are 5 rpm for seeking/backing off, 0.5 rpm for the second
+approach, and a 30 s overall timeout. Both speeds must be positive and the second
+must be slower; the timeout must be finite and greater than zero.
+
+```cpp
+auto homing = m1.reference(5_rpm, 0.5_rpm, 30_s);
+if (homing.get() == StepperMotor::Result::Completed) {
+    auto motion = m1.moveAbs(90_deg, 10_rpm); // Choose a target away from the switch.
+    auto result = motion.get();
+}
+```
+
+The sequence approaches Forward until activation, backs off Backward until
+release, then approaches Forward at the second speed until activation again.
+An initially active switch starts with backoff. Every contact/release stops the
+axis immediately when the worker handles the event, then requires 10 ms of
+stable switch level before advancing. Bounce wakes the worker and restarts that
+settling interval. The timeout covers all phases, including settling; a missing
+activation or release cannot leave an endless seek running.
+
+Only successful completion sets `m_position` and the encoder coordinate to
+`m_referenceSwitchPosition` and marks the axis referenced. The encoder continues
+counting; a synchronized coordinate offset preserves the origin through later
+callbacks without resetting the raw count or creating an artificial velocity
+jump. The origin is assigned at the stopped, confirmed second contact, so the
+reference accuracy includes switch repeatability and worker stopping latency.
+M2/M3 still report measured feedback unavailable. Starting a valid reference
+attempt clears the old referenced flag; timeout, cancellation or failure leaves
+it clear. `stop()`/`stopAndWait()` cancel any phase, and replacing the command
+stops/joins its worker. `setVelocity()` is rejected during referencing so its
+configured seek speeds are preserved. Other axes continue independently.
 
 Motion workers block on an event until their axis completes/stops/faults, a stop
 request or reference-switch activation arrives, or the deadline expires. They do not poll every millisecond.
@@ -336,11 +374,12 @@ between zero and nonzero speed samples; this is unfiltered encoder quantization.
 
 Counting continues when STEP is stopped, so manual shaft movement and coasting
 are measured. Position starts at zero when the motor object is constructed;
-it is incremental shaft position, not an absolute/homed robot coordinate. Its
-sign follows the A/B wiring, independently of commanded direction. No index
-reset, automatic position correction or stall response is applied. M2/M3 report
+a successful `reference()` anchors its coordinate to the configured switch
+position. Its sign follows the A/B wiring, independently of commanded direction.
+No index reset, closed-loop position correction or stall response is applied. M2/M3 report
 `no_such_device` instead of substituting commanded motion. A latched encoder
-count error makes both measured getters report `state_not_recoverable`.
+count error makes both measured getters report `state_not_recoverable` and
+invalidates the referenced flag.
 Destruction disconnects the subscription and stops encoder counting.
 
 `runtime/synchronization/Notification.hpp` is built by
@@ -573,7 +612,8 @@ transistor or optocoupler is needed for this dry-contact connection.
 `IDigitalInput` for each motor. `StepperMotor` claims it during construction. Its direction
 convention is **Forward toward the reference switch; Backward away**. A HIGH
 input rejects toward moves with `Rejected`; away moves remain allowed. A zero
-distance move requires no pulses and completes even with an active switch.
+distance relative move requires no pulses and completes even with an active switch;
+an absolute move additionally requires successful referencing.
 
 A LOW-to-HIGH activation during a toward move latches a stop request and wakes
 the worker, which stops that axis and returns `Stopped`. The interrupt callback
@@ -586,8 +626,9 @@ Stopping takes effect when the worker runs, so additional pulses can occur
 during scheduling latency. This is not a hardware emergency stop.
 
 The first activation is acted on without a debounce delay; contact bounce cannot
-cancel an already requested stop. Homing and input noise filtering remain
-controller/hardware work. Route each signal with its ground return away from
+cancel an already requested stop. `reference()` additionally confirms each stopped
+contact/release with a 10 ms stable-level interval. Electrical input noise filtering
+remains hardware work. Route each signal with its ground return away from
 motor wiring. For longer cables, add a stronger external pull-up to **3.3 V**
 and input filtering as needed.
 

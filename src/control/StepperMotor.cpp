@@ -2,15 +2,18 @@
 
 #include "pneumo/logging.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
 
 StepperMotor::StepperMotor(hal::board::MotorId id,
+                           pnm::units::Angle reference_switch_position,
                            pnm::units::Angle full_step_angle,
                            size_t microsteps,
                            const std::shared_ptr<hal::IStepGenerator>& step_generator)
   : m_id{ id }
+  , m_referenceSwitchPosition{ reference_switch_position }
   , m_fullStepAngle{ full_step_angle }
   , m_microsteps{ microsteps }
   , m_stepOutput{ hal::board::createStepperStepOutput(step_generator, id) }
@@ -21,8 +24,9 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
 {
     PNM_ASSERT(m_referenceSwitchInput, "Motor %d has no reference switch", static_cast<int>(id) + 1);
 
-    if (!full_step_angle.isFinite() || full_step_angle <= 0_deg || microsteps == 0U) {
-        throw std::invalid_argument("invalid motor step angle or microstep count");
+    if (!reference_switch_position.isFinite() || !full_step_angle.isFinite() || full_step_angle <= 0_deg ||
+        microsteps == 0U) {
+        throw std::invalid_argument("invalid reference position, step angle or microstep count");
     }
     m_stepAngle = m_fullStepAngle / static_cast<double>(m_microsteps);
 
@@ -53,11 +57,16 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         }
 
         static_assert(std::atomic_bool::is_always_lock_free);
+        static_assert(std::atomic_uint32_t::is_always_lock_free);
         m_referenceSwitchInput->setEdgeCallback([events = m_events](hal::gpio::Level level) noexcept {
             if (level == hal::gpio::Level::High) {
                 events->referenceActivated.store(true);
-                events->notification.signal();
             }
+            else {
+                events->referenceReleased.store(true);
+            }
+            events->referenceChanges.fetch_add(1U);
+            events->notification.signal();
         });
 
         pnm::log::debug("Motor initialized: {} degrees per microstep",
@@ -118,6 +127,12 @@ std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target
                                                         pnm::units::AngularVelocity velocity,
                                                         pnm::units::Time timeout)
 {
+    if (!isReferenced()) {
+        std::promise<Result> rejected;
+        rejected.set_value(Result::Rejected);
+        return rejected.get_future();
+    }
+
     pnm::log::debug("Absolute motor move requested: target={} °, velocity={} rpm, timeout={} s",
                     target.get<pnm::units::AngleUnits::deg>(),
                     velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
@@ -125,9 +140,24 @@ std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target
 
     return startMotion(
       std::packaged_task<Result(std::stop_token)>([this, target, velocity, timeout](std::stop_token stop) {
+        if (!isReferenced()) {
+            return Result::Rejected;
+        }
         return performMotion(target, velocity, timeout, stop);
     }));
 }
+
+std::future<StepperMotor::Result> StepperMotor::reference(pnm::units::AngularVelocity seek_velocity,
+                                                          pnm::units::AngularVelocity latch_velocity,
+                                                          pnm::units::Time timeout)
+{
+    return startMotion(std::packaged_task<Result(std::stop_token)>(
+      [this, seek_velocity, latch_velocity, timeout](std::stop_token stop) {
+        return performReference(seek_velocity, latch_velocity, timeout, stop);
+    }));
+}
+
+bool StepperMotor::isReferenced() const noexcept { return m_referenced.load(); }
 
 pnm::units::Angle StepperMotor::position() const
 {
@@ -174,6 +204,7 @@ pnm::Result<pnm::units::AngularVelocity> StepperMotor::actualVelocity() const no
 void StepperMotor::accountEncoder(const hal::IQuadratureEncoder::Sample& sample) noexcept
 {
     if (!sample.position) {
+        m_referenced.store(false);
         m_encoderHealthy.store(false);
         m_actualVelocity.store(0_rpm);
         m_previousEncoderSample.reset();
@@ -194,7 +225,8 @@ void StepperMotor::accountEncoder(const hal::IQuadratureEncoder::Sample& sample)
                    pnm::units::Time{ sample.timestamp - m_previousEncoderSample->timestamp };
     }
 
-    m_actualPosition.store(m_encoderCountAngle * static_cast<double>(*sample.position));
+    m_actualPosition.store(m_encoderPositionOffset +
+                           m_encoderCountAngle * static_cast<double>(*sample.position));
     m_actualVelocity.store(velocity);
     m_previousEncoderSample = sample;
     m_encoderHealthy.store(true);
@@ -274,6 +306,9 @@ pnm::Result<hal::step::PulseCount> StepperMotor::setVelocity(pnm::units::Angular
     }
 
     std::scoped_lock worker_lock{ m_workerMutex, m_mutex };
+    if (m_referencing.load()) {
+        return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+    }
     return m_stepOutput->updateTiming(*timing);
 }
 
@@ -288,6 +323,159 @@ std::future<StepperMotor::Result> StepperMotor::startMotion(std::packaged_task<R
     auto future{ task.get_future() };
     m_worker = std::jthread(std::move(task));
     return future;
+}
+
+StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity seek_velocity,
+                                                    pnm::units::AngularVelocity latch_velocity,
+                                                    pnm::units::Time timeout,
+                                                    std::stop_token stop)
+{
+    const auto now{ std::chrono::steady_clock::now() };
+    if (!timingFor(seek_velocity) || !timingFor(latch_velocity) || latch_velocity >= seek_velocity ||
+        !timeout.isFinite() || timeout <= 0_s ||
+        timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2) {
+        return Result::Rejected;
+    }
+
+    m_referencing.store(true);
+    m_referenced.store(false);
+    struct FinishReferencing
+    {
+        std::atomic_bool& flag;
+        ~FinishReferencing() { flag.store(false); }
+    } finish{ m_referencing };
+
+    const auto deadline{ now + timeout.toChrono<std::chrono::steady_clock::duration>() };
+    const std::stop_callback cancellation{ stop, [this] { m_events->notification.signal(); } };
+    const auto seek = [&](Direction direction, pnm::units::AngularVelocity speed, hal::gpio::Level level) {
+        if (stop.stop_requested()) {
+            return Result::Stopped;
+        }
+        const auto remaining{ deadline - std::chrono::steady_clock::now() };
+        if (remaining <= std::chrono::steady_clock::duration::zero()) {
+            return Result::TimedOut;
+        }
+        return performMotion(direction, speed, pnm::units::Time{ remaining }, stop, std::nullopt, level);
+    };
+
+    using enum hal::gpio::Level;
+    if (m_referenceSwitchInput->read() != High) {
+        const auto first{ seek(Direction::Forward, seek_velocity, High) };
+        if (first != Result::Completed) {
+            return first;
+        }
+    }
+
+    auto result{ waitReferenceLevel(High, deadline, stop) };
+    if (result != Result::Completed) {
+        return result;
+    }
+
+    result = seek(Direction::Backward, seek_velocity, Low);
+    if (result != Result::Completed) {
+        return result;
+    }
+
+    result = waitReferenceLevel(Low, deadline, stop);
+    if (result != Result::Completed) {
+        return result;
+    }
+
+    result = seek(Direction::Forward, latch_velocity, High);
+    if (result != Result::Completed) {
+        return result;
+    }
+
+    result = waitReferenceLevel(High, deadline, stop);
+    if (result != Result::Completed) {
+        return result;
+    }
+
+    return applyReferencePosition(stop);
+}
+
+StepperMotor::Result StepperMotor::waitReferenceLevel(hal::gpio::Level level,
+                                                      std::chrono::steady_clock::time_point deadline,
+                                                      std::stop_token stop)
+{
+    constexpr auto settle_time{ 10ms };
+    std::optional<std::chrono::steady_clock::time_point> stable_since;
+    auto changes{ m_events->referenceChanges.load() };
+    while (true) {
+        if (stop.stop_requested()) {
+            return Result::Stopped;
+        }
+
+        const auto now{ std::chrono::steady_clock::now() };
+        if (now >= deadline) {
+            return Result::TimedOut;
+        }
+
+        const auto current_changes{ m_events->referenceChanges.load() };
+        const auto current_level{ m_referenceSwitchInput->read() };
+        if (current_changes != changes || current_level != level) {
+            stable_since.reset();
+        }
+
+        if (!stable_since && current_level == level) {
+            stable_since = now;
+        }
+
+        changes = current_changes;
+        if (stable_since && now >= *stable_since + settle_time &&
+            m_events->referenceChanges.load() == current_changes) {
+            return Result::Completed;
+        }
+
+        static_cast<void>(m_events->notification.waitUntil(
+          stable_since ? std::min(deadline, *stable_since + settle_time) : deadline));
+    }
+}
+
+StepperMotor::Result StepperMotor::applyReferencePosition(std::stop_token stop)
+{
+    std::scoped_lock lock{ m_mutex };
+    if (stop.stop_requested()) {
+        return Result::Stopped;
+    }
+
+    const auto status{ m_stepOutput->status() };
+    if (!status.counts_exact || status.state == hal::step::State::DmaError ||
+        status.state == hal::step::State::Underrun ||
+        m_referenceSwitchInput->read() != hal::gpio::Level::High) {
+        return Result::Faulted;
+    }
+
+    const auto commit = [&] {
+        m_position.store(m_referenceSwitchPosition);
+        m_velocity.store(0_rpm);
+        m_referenced.store(true);
+    };
+
+    if (m_encoderInput) {
+        m_encoderInput->clearSampleCallback();
+
+        const auto count{ m_encoderInput->position() };
+        const bool cancelled{ stop.stop_requested() };
+        if (count && !cancelled) {
+            m_encoderPositionOffset =
+              m_referenceSwitchPosition - m_encoderCountAngle * static_cast<double>(*count);
+            commit();
+        }
+
+        m_encoderInput->setSampleCallback(
+          [this](const hal::IQuadratureEncoder::Sample& sample) noexcept { accountEncoder(sample); });
+        if (cancelled) {
+            return Result::Stopped;
+        }
+
+        return count && m_referenced.load() ? Result::Completed : Result::Faulted;
+    }
+    else {
+        m_actualPosition.store(m_referenceSwitchPosition);
+    }
+    commit();
+    return Result::Completed;
 }
 
 StepperMotor::Result StepperMotor::performMotion(pnm::units::Angle target,
@@ -313,7 +501,8 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                                                  pnm::units::AngularVelocity velocity,
                                                  pnm::units::Time timeout,
                                                  std::stop_token stop,
-                                                 std::optional<hal::step::PulseCount> count)
+                                                 std::optional<hal::step::PulseCount> count,
+                                                 std::optional<hal::gpio::Level> switch_target)
 {
     const auto timing{ timingFor(velocity) };
     if (!timing || !timeout.isFinite() || timeout < 0_s) {
@@ -342,7 +531,14 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
     }
 
     m_events->referenceActivated.store(false);
+    m_events->referenceReleased.store(false);
     const bool toward_reference{ direction == Direction::Forward };
+    const auto target_reached = [&] {
+        return switch_target &&
+               (m_referenceSwitchInput->read() == *switch_target ||
+                (*switch_target == hal::gpio::Level::High ? m_events->referenceActivated.load()
+                                                          : m_events->referenceReleased.load()));
+    };
 
     if (!m_stepOutput->prepare(*timing, count)) {
         pnm::log::warn("Motor move rejected: invalid timing");
@@ -354,8 +550,14 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         if (stop.stop_requested()) {
             return Result::Stopped;
         }
-        if (toward_reference && (m_events->referenceActivated.load() ||
-                                 m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
+
+        if (switch_target && target_reached()) {
+            return Result::Completed;
+        }
+
+        if (!switch_target && toward_reference &&
+            (m_events->referenceActivated.load() ||
+             m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
             pnm::log::warn("Motor move rejected: reference limit switch active");
             return Result::Rejected;
         }
@@ -371,7 +573,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
     auto result{ Result::Stopped };
     try {
         while (true) {
-            if (toward_reference && m_events->referenceActivated.load()) {
+            if (!switch_target && toward_reference && m_events->referenceActivated.load()) {
                 break;
             }
             const auto status{ m_stepOutput->status() };
@@ -397,6 +599,10 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
             if (std::chrono::steady_clock::now() >= deadline) {
                 pnm::log::warn("Motor move timed out");
                 result = Result::TimedOut;
+                break;
+            }
+            if (target_reached()) {
+                result = Result::Completed;
                 break;
             }
 

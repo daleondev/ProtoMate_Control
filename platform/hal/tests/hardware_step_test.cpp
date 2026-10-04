@@ -509,8 +509,8 @@ namespace
                            "case m requires connected, released M2/M3 NC switches (REF LOW)"))
                     return false;
             }
-            StepperMotor first{ hal::board::MotorId::Motor2, 1.8_deg, 16U, m_generator };
-            StepperMotor second{ hal::board::MotorId::Motor3, 1.8_deg, 16U, m_generator };
+            StepperMotor first{ hal::board::MotorId::Motor2, 0_deg, 1.8_deg, 16U, m_generator };
+            StepperMotor second{ hal::board::MotorId::Motor3, 0_deg, 1.8_deg, 16U, m_generator };
             if (!m_generator->start())
                 return false;
             auto a{ first.moveRel(90_deg, 300_rpm) };

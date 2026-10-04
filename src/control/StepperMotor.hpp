@@ -32,6 +32,7 @@ class StepperMotor final
     };
 
     StepperMotor(hal::board::MotorId id,
+                 pnm::units::Angle reference_switch_position,
                  pnm::units::Angle full_step_angle,
                  size_t microsteps,
                  const std::shared_ptr<hal::IStepGenerator>& step_generator);
@@ -54,6 +55,11 @@ class StepperMotor final
                                 pnm::units::AngularVelocity velocity,
                                 pnm::units::Time timeout = 0_s);
 
+    std::future<Result> reference(pnm::units::AngularVelocity seek_velocity = 5_rpm,
+                                  pnm::units::AngularVelocity latch_velocity = 0.5_rpm,
+                                  pnm::units::Time timeout = 30_s);
+    bool isReferenced() const noexcept;
+
     void stop() noexcept;
     void stopAndWait() noexcept;
 
@@ -62,9 +68,6 @@ class StepperMotor final
     pnm::units::Angle position() const;
     pnm::units::AngularVelocity velocity() const;
 
-    // Latest encoder measurements, updated by timed callbacks even while STEP
-    // is stopped. Relative to construction, not a homed absolute position.
-    // No encoder: no_such_device. Invalid count: state_not_recoverable.
     pnm::Result<pnm::units::Angle> actualPosition() const noexcept;
     pnm::Result<pnm::units::AngularVelocity> actualVelocity() const noexcept;
 
@@ -80,13 +83,24 @@ class StepperMotor final
                          pnm::units::AngularVelocity velocity,
                          pnm::units::Time timeout,
                          std::stop_token stop,
-                         std::optional<hal::step::PulseCount> count = std::nullopt);
+                         std::optional<hal::step::PulseCount> count = std::nullopt,
+                         std::optional<hal::gpio::Level> switch_target = std::nullopt);
+
+    Result performReference(pnm::units::AngularVelocity seek_velocity,
+                            pnm::units::AngularVelocity latch_velocity,
+                            pnm::units::Time timeout,
+                            std::stop_token stop);
+    Result waitReferenceLevel(hal::gpio::Level level,
+                              std::chrono::steady_clock::time_point deadline,
+                              std::stop_token stop);
+    Result applyReferencePosition(std::stop_token stop);
 
     std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
     void accountProgress(const hal::step::AxisStatus& status) noexcept;
     void accountEncoder(const hal::IQuadratureEncoder::Sample& sample) noexcept;
 
     hal::board::MotorId m_id;
+    pnm::units::Angle m_referenceSwitchPosition;
     pnm::units::Angle m_fullStepAngle;
     size_t m_microsteps;
     pnm::units::Angle m_stepAngle;
@@ -95,6 +109,8 @@ class StepperMotor final
     {
         runtime::Notification notification;
         std::atomic_bool referenceActivated{};
+        std::atomic_bool referenceReleased{};
+        std::atomic_uint32_t referenceChanges{};
     };
     std::shared_ptr<MotionEvents> m_events{ std::make_shared<MotionEvents>() };
 
@@ -112,9 +128,11 @@ class StepperMotor final
     hal::step::PulseCount m_accountedPulses{ 0U };
 
     std::atomic_bool m_referenced{ false };
+    std::atomic_bool m_referencing{ false };
     std::atomic<pnm::units::Angle> m_position{ 0_deg };
     std::atomic<pnm::units::AngularVelocity> m_velocity{ 0_rpm };
     pnm::units::Angle m_encoderCountAngle{ 0_deg };
+    pnm::units::Angle m_encoderPositionOffset{ 0_deg };
     std::optional<hal::IQuadratureEncoder::Sample> m_previousEncoderSample;
     std::atomic_bool m_encoderHealthy{ false };
     std::atomic<pnm::units::Angle> m_actualPosition{ 0_deg };
