@@ -479,7 +479,7 @@ TEST(CliParser, RejectsInvalidRegistrations)
     const auto callback{ [](const cli::Arguments&, std::ostream&) { return 0; } };
 
     EXPECT_FALSE(parser.registerCommand({
-      .name = "bad name",
+      .name = "bad  name",
       .description = {},
       .arguments = {},
       .flags = {},
@@ -654,4 +654,54 @@ TEST(CliParser, RunsAnInteractivePromptUntilEndOfInput)
     parser.run(input, output, "$ ");
 
     EXPECT_EQ(output.str(), "$ pong\n$ error: unknown command 'missing'\n$ $ ");
+}
+
+TEST(CliParser, ResolvesLongestCommandPathsWithIndependentHelpAndFlags)
+{
+    cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({ "robot", "Robot commands", {}, {},
+      [](const cli::Arguments&, std::ostream& out) { out << "group\n"; return 0; } }));
+    ASSERT_TRUE(parser.registerCommand({ "robot axis move", "Move one robot axis",
+      { { "distance", "Signed distance" } },
+      { { "speed", 's', "Speed", "value" } },
+      [](const cli::Arguments& args, std::ostream& out) {
+          out << args.require("distance") << ' ' << args.flagValue("speed").value_or("unset") << '\n';
+          return 0;
+      } }));
+    std::ostringstream output;
+    ASSERT_TRUE(parser.execute("robot axis move -9e-1 --speed 2", output));
+    EXPECT_EQ(output.str(), "-9e-1 2\n");
+    output.str({});
+    ASSERT_TRUE(parser.execute("help robot axis move", output));
+    EXPECT_NE(output.str().find("Usage: robot axis move"), std::string::npos);
+    EXPECT_NE(output.str().find("Signed distance"), std::string::npos);
+    EXPECT_FALSE(parser.execute("robot axis move 1 --unknown", output));
+    EXPECT_FALSE(parser.execute("robot unknown", output));
+    EXPECT_TRUE(parser.contains("robot axis move"));
+}
+
+TEST(CliParser, NegativeNumbersRemainArgumentsUnlessTheNumericShortFlagIsRegistered)
+{
+    cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({ "number", {}, { { "value", {} } }, {},
+      [](const cli::Arguments& args, std::ostream& out) { out << args.require("value"); return 0; } }));
+    ASSERT_TRUE(parser.registerCommand({ "numericflag", {}, {}, { { "one", '1', {}, std::nullopt } },
+      [](const cli::Arguments& args, std::ostream& out) { out << args.hasFlag("one"); return 0; } }));
+    for (const auto number : { "-90", "-.5", "-1e-3" }) {
+        std::ostringstream output;
+        ASSERT_TRUE(parser.execute(std::string("number ") + number, output));
+        EXPECT_EQ(output.str(), number);
+    }
+    std::ostringstream output;
+    ASSERT_TRUE(parser.execute("numericflag -1", output));
+    EXPECT_EQ(output.str(), "1");
+    EXPECT_FALSE(parser.execute("number -typo", output));
+}
+
+TEST(CliParser, RejectsMalformedCommandPathsAndReservedHelpPaths)
+{
+    cli::Parser parser;
+    for (const auto name : { " motor", "motor ", "motor  move", "motor\tmove", "help motor" })
+        EXPECT_FALSE(parser.registerCommand({ name, {}, {}, {},
+          [](const cli::Arguments&, std::ostream&) { return 0; } }));
 }

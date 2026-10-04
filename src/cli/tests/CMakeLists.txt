@@ -3,11 +3,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ${CMAKE_CURRENT_SOURCE_DIR}/filesystem_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/utilities_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/motion_test.cpp
     )
 
     target_link_libraries(application_cli_tests
         PRIVATE
             application::cli
+            application::control
             GTest::gtest_main
     )
 
@@ -26,5 +28,5 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     runtime_attach(application_cli_tests)
 
     add_test(NAME application.cli COMMAND application_cli_tests --gtest_color=no)
-    set_tests_properties(application.cli PROPERTIES TIMEOUT 10)
+    set_tests_properties(application.cli PROPERTIES TIMEOUT 30)
 endif()

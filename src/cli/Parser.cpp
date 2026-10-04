@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cerrno>
+#include <charconv>
 #include <cstdint>
 #include <exception>
 #include <fstream>
@@ -108,6 +109,27 @@ namespace
         return !name.empty() && std::ranges::all_of(name, [](unsigned char character) {
             return std::isalnum(character) != 0 || character == '_' || character == '-' || character == '.';
         });
+    }
+
+    [[nodiscard]] auto valid_command_name(std::string_view name) noexcept -> bool
+    {
+        // Command paths use single spaces; argument and flag names still use
+        // valid_name. This permits independent motor/robot command modules.
+        while (true) {
+            const auto end{ name.find(' ') };
+            if (!valid_name(name.substr(0, end)))
+                return false;
+            if (end == std::string_view::npos)
+                return true;
+            name.remove_prefix(end + 1U);
+        }
+    }
+
+    [[nodiscard]] auto negative_number(std::string_view value) noexcept -> bool
+    {
+        double number{};
+        const auto result{ std::from_chars(value.data(), value.data() + value.size(), number) };
+        return result.ec == std::errc{} && result.ptr == value.data() + value.size();
     }
 
     [[nodiscard]] auto tokenize(std::string_view line) -> std::expected<std::vector<Token>, std::string>
@@ -353,10 +375,10 @@ namespace cli
 
     auto Parser::registerCommand(Command command) -> std::expected<void, std::string>
     {
-        if (!valid_name(command.name)) {
-            return std::unexpected("command name must contain only letters, digits, '_', '-' or '.'");
+        if (!valid_command_name(command.name)) {
+            return std::unexpected("command path must contain valid names separated by single spaces");
         }
-        if (command.name == "help") {
+        if (command.name == "help" || command.name.starts_with("help ")) {
             return std::unexpected("'help' is reserved by the CLI");
         }
         if (find(command.name) != nullptr) {
@@ -569,16 +591,16 @@ namespace cli
                 stage.insert(stage.end(), expanded->begin(), expanded->end());
             }
 
-            const std::string& command_name{ stage.front() };
+            std::string command_name{ stage.front() };
             if (command_name == "help") {
-                if (stage.size() > 2U) {
-                    return {
-                        .error = ExecutionError::InvalidArguments,
-                        .message = "usage: help [command]",
-                    };
+                std::string path;
+                for (std::size_t i{ 1U }; i < stage.size(); ++i) {
+                    if (!path.empty())
+                        path += ' ';
+                    path += stage[i];
                 }
                 const std::optional<std::string_view> requested{
-                    stage.size() == 2U ? std::optional<std::string_view>{ stage[1] } : std::nullopt
+                    path.empty() ? std::nullopt : std::optional<std::string_view>{ path }
                 };
                 if (requested && *requested != "help" && find(*requested) == nullptr) {
                     return {
@@ -590,7 +612,20 @@ namespace cli
                 return {};
             }
 
-            const Command* const command{ find(command_name) };
+            // Resolve the longest registered command path before parsing its
+            // arguments. Existing one-word commands keep their semantics.
+            const Command* command{ find(command_name) };
+            std::size_t argument_begin{ 1U };
+            std::string candidate{ command_name };
+            for (std::size_t i{ 1U }; i < stage.size(); ++i) {
+                candidate += ' ';
+                candidate += stage[i];
+                if (const auto* match{ find(candidate) }) {
+                    command = match;
+                    command_name = candidate;
+                    argument_begin = i + 1U;
+                }
+            }
             if (command == nullptr) {
                 return {
                     .error = ExecutionError::UnknownCommand,
@@ -619,7 +654,7 @@ namespace cli
                 return static_cast<std::size_t>(iterator - command->flags.begin());
             };
 
-            for (std::size_t index{ 1U }; index < stage.size(); ++index) {
+            for (std::size_t index{ argument_begin }; index < stage.size(); ++index) {
                 const std::string& token{ stage[index] };
                 if (parse_flags && token == "--") {
                     parse_flags = false;
@@ -660,7 +695,8 @@ namespace cli
                     continue;
                 }
 
-                if (parse_flags && token.starts_with('-') && token.size() > 1U) {
+                if (parse_flags && token.starts_with('-') && token.size() > 1U &&
+                    (short_flag(token[1]) != command->flags.end() || !negative_number(token))) {
                     for (std::size_t offset{ 1U }; offset < token.size(); ++offset) {
                         const char name{ token[offset] };
                         const auto specification{ short_flag(name) };

@@ -4,6 +4,8 @@ add_library(application::cli ALIAS application_cli)
 target_sources(application_cli
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/motion.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/motion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Parser.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Parser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/filesystem.hpp
@@ -25,6 +27,7 @@ target_link_libraries(application_cli
         pneumo::meta
     PRIVATE
         runtime::runtime
+        application::control
 )
 
 target_compile_options(application_cli

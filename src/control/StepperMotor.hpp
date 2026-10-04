@@ -41,6 +41,7 @@ class StepperMotor final
         BlendingNext,
         BlendingHigh
     };
+
     struct MotionDefaults
     {
         pnm::units::AngularAcceleration acceleration{ 3600_deg_s2 };
@@ -92,6 +93,12 @@ class StepperMotor final
                                   pnm::units::AngularVelocity latch_velocity = 0.5_rpm,
                                   pnm::units::Time timeout = 30_s);
     bool isReferenced() const noexcept;
+    bool referenceSwitchActive() const noexcept
+    {
+        return m_referenceSwitchInput->read() == hal::gpio::Level::High;
+    }
+    // Call after stopping when holding torque or the physical datum is lost.
+    void invalidateReference() noexcept { m_referenced.store(false); }
 
     // Immediate abort (no deceleration ramp), also cancels queued commands.
     void stop() noexcept;

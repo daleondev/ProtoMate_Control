@@ -368,12 +368,14 @@ CubeMX configures the STEP pins as **TIM2 output-compare outputs**, with
 three independent DMA streams. The counter runs at **10 MHz (100 ns/tick)**.
 The DIR pins and shared enable are ordinary push-pull GPIO outputs. All seven
 use low GPIO speed (output slew rate, not pulse frequency); STEP additionally
-uses internal pull-downs. `src/main.cpp` creates one `IStepGenerator` and injects
-it into three `StepperMotor` objects, which claim their STEP/DIR, reference
-switch and encoder resources. M1 starts continuous encoder monitoring during
-construction. Main starts the shared timebase once and requests a +360° M1 move
-at 10 rpm; the reference input must permit that direction. The shared enable
-stays high (drivers disabled) until explicitly enabled. No homing runs automatically.
+uses internal pull-downs. `src/main.cpp` creates one `control::MotionController`,
+which owns the shared generator, driver enable and three `StepperMotor` objects.
+The motors claim their STEP/DIR, reference-switch and encoder resources; M1
+starts encoder monitoring during construction. The controller starts the shared
+timebase once, with drivers disabled and no motion or homing at startup.
+It is injected into the CLI before application threads start. Use `motor` for
+the command overview or `help motor move` for detailed options; see the
+[motor CLI and ownership documentation](src/cli/README.md#motor-control).
 
 | Signal | STM32 pin | Board connector | Driver connection | Function |
 | --- | --- | --- | --- | --- |
@@ -536,7 +538,9 @@ it returns an error when the change cannot fit. This is a thread-context call,
 which waits for planning to finish. It requires an active, started motion with
 unbuffered pulses; calling immediately after asynchronous submission can precede
 startup and be rejected. Already committed pulses remain unchanged. Following-
-error handling and shared driver-enable policy remain controller work.
+error handling remains future controller work. `control::MotionController`
+owns shared driver enable, enforces the 200 ms settling delay before accepting
+motion, and tracks bounded asynchronous command results for all clients.
 
 The planner stores a bounded number of analytic phases, not an entry for every
 pulse. The HAL accepts an immutable `hal::step::Sequence`, evaluates its timing

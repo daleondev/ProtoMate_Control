@@ -142,6 +142,7 @@ namespace cli
 
     struct Command
     {
+        // One or more name components, e.g. "motor move" or "robot status".
         std::string name;
         std::string description;
         std::vector<ArgumentSpec> arguments;

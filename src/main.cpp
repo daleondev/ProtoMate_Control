@@ -2,7 +2,9 @@
 #include "hal/drivers/factory/ethernet.hpp"
 #include "hal/hal.hpp"
 
-#include "control/StepperMotor.hpp"
+#include "cli/Parser.hpp"
+#include "cli/motion.hpp"
+#include "control/MotionController.hpp"
 #include "pneumo/pneumo.hpp"
 #include "system_threads.hpp"
 
@@ -70,23 +72,16 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     cli::terminal::configureLogging();
 #endif
 
+    // Compose hardware once, then inject the same controller into each client.
+    // A future Robot receives this controller too; it does not recreate axes.
+    const auto motion{ std::make_shared<control::MotionController>(
+      std::array<control::MotionController::AxisConfig, 3>{ {
+        { 135_deg, 1.8_deg, 16U },
+        { 135_deg, 1.8_deg, 16U },
+        { 135_deg, 1.8_deg, 16U },
+      } }) };
+    cli::motion::setup(cli::registry(), motion);
     system_threads::start();
-
-    const auto steppers_enable{ hal::board::createSteppersEnableOutput() };
-    const auto step_generator{ hal::board::createStepperGenerator() };
-    if (!steppers_enable || !step_generator) {
-        throw std::runtime_error("step generator creation failed");
-    }
-    using enum hal::board::MotorId;
-    StepperMotor motor1{ Motor1, 135_deg, 1.8_deg, 16U, step_generator };
-    StepperMotor motor2{ Motor2, 135_deg, 1.8_deg, 16U, step_generator };
-    StepperMotor motor3{ Motor3, 135_deg, 1.8_deg, 16U, step_generator };
-    if (!step_generator->start()) {
-        throw std::runtime_error("step timebase start failed");
-    }
-
-    auto future{ motor1.moveRel(360_deg, 10_rpm) };
-    (void)future.get();
 
     while (true) {
         std::this_thread::sleep_for(1h);
