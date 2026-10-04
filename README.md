@@ -297,18 +297,18 @@ imply homing. Velocity arguments are positive magnitudes; direction comes from
 `Direction` or the signed target distance. A zero timeout means unlimited time.
 `setVelocity()` requires an active motion with unbuffered pulses; calling it
 immediately after the asynchronous `move()` can precede the start and be rejected.
-Encoder feedback, homing, limit-switch stopping, automatic ramp planning and
+Encoder feedback, homing, automatic ramp planning and
 shared driver-enable policy remain controller work.
 
 Motion workers block on an event until their axis completes/stops/faults, a stop
-request arrives, or the deadline expires. They do not poll every millisecond.
+request or reference-switch activation arrives, or the deadline expires. They do not poll every millisecond.
 Each motor owns its axis progress subscription and a pre-created
 `runtime::Notification`. The callback accounts new pulses and executed timing;
 only a terminal state signals the event. The worker stops the output when needed,
 checks the final status and resolves its future in thread context. Accounting is
 performed once in the callback, including the final count captured by `stop()`.
 Signals arriving before a wait are retained, and repeated signals coalesce.
-Cancellation also signals the event. A replacement joins the old worker before
+Cancellation and the reference-input callback also signal the event. A replacement joins the old worker before
 clearing old notifications and starting its next motion. Completion notification
 still uses the existing DMA/TIM7 service; STEP timing is unchanged. Progress is
 batched at those service points, not an interrupt for every pulse. The fields
@@ -534,15 +534,27 @@ photo alone does not establish the connector contact mapping. No 5 V supply,
 transistor or optocoupler is needed for this dry-contact connection.
 
 `hal::board::createReferenceLimitSwitch(MotorId)` returns an exclusive
-`IDigitalInput` for each motor. `src/main.cpp` creates and retains all three
-and checks for creation failure. `read()` provides the raw level;
-`setEdgeCallback()` can later report both transitions (in interrupt context
-on STM32). No callbacks, debounce, homing or motor-stop behavior are installed
-by the application yet. Mechanical contact bounce and cable noise must be
-handled before using these inputs for motion control; route each signal with
-its ground return away from motor wiring. For longer cables, add a stronger
-external pull-up to **3.3 V** and input filtering as needed. These inputs do
-not implement an emergency stop.
+`IDigitalInput` for each motor. `StepperMotor` claims it by default, or accepts
+a pre-created input as its optional fifth constructor argument. Its direction
+convention is **Forward toward the reference switch; Backward away**. A HIGH
+input rejects toward moves with `Rejected`; away moves remain allowed. A zero
+distance move requires no pulses and completes even with an active switch.
+
+A LOW-to-HIGH activation during a toward move latches a stop request and wakes
+the worker, which stops that axis and returns `Stopped`. The interrupt callback
+uses a lock-free flag and an ISR-safe notification; it never locks a thread mutex
+or calls `StepperMotor::stop()`. Release does not stop a move or clear a pending
+activation. Activations during retreat also leave retreat running. Each new move
+clears the previous trip before checking the physical level; checks around
+preparation/arming and the retained event prevent a brief activation being lost.
+Stopping takes effect when the worker runs, so additional pulses can occur
+during scheduling latency. This is not a hardware emergency stop.
+
+The first activation is acted on without a debounce delay; contact bounce cannot
+cancel an already requested stop. Homing and input noise filtering remain
+controller/hardware work. Route each signal with its ground return away from
+motor wiring. For longer cables, add a stronger external pull-up to **3.3 V**
+and input filtering as needed.
 
 ### Driver interface and shared enable
 

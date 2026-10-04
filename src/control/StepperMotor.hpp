@@ -18,8 +18,8 @@ class StepperMotor final
   public:
     enum class Direction
     {
-        Forward,
-        Backward
+        Forward, // Toward the reference switch.
+        Backward // Away from the reference switch.
     };
 
     enum class Result
@@ -31,6 +31,8 @@ class StepperMotor final
         Faulted
     };
 
+    // An optional pre-created NC input can be injected; otherwise claim the
+    // board's reference input. HIGH means pressed/open/disconnected.
     StepperMotor(hal::board::MotorId id,
                  pnm::units::Angle full_step_angle,
                  size_t microsteps,
@@ -82,9 +84,15 @@ class StepperMotor final
     hal::board::MotorId m_id;
     pnm::units::Angle m_fullStepAngle;
     size_t m_microsteps;
-    pnm::units::Angle m_stepAngle{};
+    pnm::units::Angle m_stepAngle;
 
-    runtime::Notification m_notification;
+    struct MotionEvents
+    {
+        runtime::Notification notification;
+        std::atomic_bool referenceActivated{};
+    };
+    std::shared_ptr<MotionEvents> m_events{ std::make_shared<MotionEvents>() };
+
     std::shared_ptr<hal::IStepOutput> m_stepOutput;
     std::shared_ptr<hal::IDigitalOutput> m_dirOutput;
     std::shared_ptr<hal::IDigitalInput> m_referenceSwitchInput;
@@ -96,7 +104,7 @@ class StepperMotor final
     std::jthread m_worker;
 
     double m_motionSign{ 1.0 };
-    hal::step::PulseCount m_accountedPulses{};
+    hal::step::PulseCount m_accountedPulses{ 0U };
 
     std::atomic_bool m_referenced{ false };
     std::atomic<pnm::units::Angle> m_position{ 0_deg };

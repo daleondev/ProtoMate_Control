@@ -272,9 +272,12 @@ priority waiting thread must run only after that mask is released. The final
 M1 run count is zero because its second motion is stopped before the first edge;
 the earlier 513 pulses remain visible in the capture.
 
-Command `m` runs the actual `StepperMotor` workers. M2 completes 800 pulses,
+Command `m` runs the actual `StepperMotor` workers. It requires connected,
+released NC switches on M2_REF and M3_REF (both LOW); an open input rejects the
+test before motion. M2 completes 800 pulses,
 M3 independently times out, and ten replacement commands cancel their predecessors
-and complete 10 pulses each. Worker futures must finish without polling status.
+and complete 10 pulses each. M2 also checks a queued velocity change while moving
+backward. Worker futures must finish without polling status.
 An immediately replaced predecessor can emit pulses if it starts before the
 replacement arrives, so the total capture count is not fixed. DIR changes in
 this test and returns low afterward. Shared EN_N stays high throughout.

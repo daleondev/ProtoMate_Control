@@ -19,6 +19,8 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
   , m_encoderInput{ hal::board::createEncoder(id) }
   , m_encoderIndexInput{ hal::board::createEncoderIndex(id) }
 {
+    PNM_ASSERT(m_referenceSwitchInput, "Motor %d has no reference switch", static_cast<int>(id) + 1);
+
     if (!full_step_angle.isFinite() || full_step_angle <= 0_deg || microsteps == 0U) {
         throw std::invalid_argument("invalid motor step angle or microstep count");
     }
@@ -34,9 +36,11 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         throw std::runtime_error("motor progress subscription unavailable");
     }
 
-    m_referenceSwitchInput->setEdgeCallback([this](hal::gpio::Level level) noexcept {
-        if (level == hal::gpio::Level::Low) {
-            stop();
+    static_assert(std::atomic_bool::is_always_lock_free);
+    m_referenceSwitchInput->setEdgeCallback([events = m_events](hal::gpio::Level level) noexcept {
+        if (level == hal::gpio::Level::High) {
+            events->referenceActivated.store(true);
+            events->notification.signal();
         }
     });
 
@@ -46,8 +50,8 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
 
 StepperMotor::~StepperMotor()
 {
-    stopAndWait();
     m_referenceSwitchInput->clearEdgeCallback();
+    stopAndWait();
     static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
 }
 
@@ -130,7 +134,7 @@ void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
                        : 0_rpm);
 
     if (status.state != hal::step::State::Running) {
-        m_notification.signal();
+        m_events->notification.signal();
     }
 }
 
@@ -225,14 +229,9 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                                                  std::stop_token stop,
                                                  std::optional<hal::step::PulseCount> count)
 {
-    if (m_referenceSwitchInput->read() == hal::gpio::Level::Low && direction == Direction::Forward) {
-        pnm::log::warn("Motor move rejected: reference limit switch active");
-        return Result::Rejected;
-    }
-
     const auto timing{ timingFor(velocity) };
     if (!timing || !timeout.isFinite() || timeout < 0_s) {
-        pnm::log::warn("Motor move rejected: invalid timeout={} s", timeout.get<pnm::units::TimeUnits::s>());
+        pnm::log::warn("Motor move rejected: invalid velocity or timeout");
         return Result::Rejected;
     }
 
@@ -246,8 +245,8 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
     const auto deadline{ timeout == 0_s ? std::chrono::steady_clock::time_point::max()
                                         : now + timeout.toChrono<std::chrono::steady_clock::duration>() };
 
-    m_notification.clear();
-    const std::stop_callback cancellation{ stop, [this] { m_notification.signal(); } };
+    m_events->notification.clear();
+    const std::stop_callback cancellation{ stop, [this] { m_events->notification.signal(); } };
 
     if (stop.stop_requested()) {
         return Result::Stopped;
@@ -255,6 +254,10 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
     if (count == 0U) {
         return Result::Completed;
     }
+
+    m_events->referenceActivated.store(false);
+    const bool toward_reference{ direction == Direction::Forward };
+
     if (!m_stepOutput->prepare(*timing, count)) {
         pnm::log::warn("Motor move rejected: invalid timing");
         return Result::Rejected;
@@ -264,6 +267,11 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         std::scoped_lock lock{ m_mutex };
         if (stop.stop_requested()) {
             return Result::Stopped;
+        }
+        if (toward_reference && (m_events->referenceActivated.load() ||
+                                 m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
+            pnm::log::warn("Motor move rejected: reference limit switch active");
+            return Result::Rejected;
         }
 
         m_dirOutput->write(direction == Direction::Forward ? hal::gpio::Level::High : hal::gpio::Level::Low);
@@ -277,6 +285,9 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
     auto result{ Result::Stopped };
     try {
         while (true) {
+            if (toward_reference && m_events->referenceActivated.load()) {
+                break;
+            }
             const auto status{ m_stepOutput->status() };
 
             if (status.state == hal::step::State::Underrun || status.state == hal::step::State::DmaError ||
@@ -303,7 +314,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                 break;
             }
 
-            static_cast<void>(m_notification.waitUntil(deadline));
+            static_cast<void>(m_events->notification.waitUntil(deadline));
         }
     } catch (...) {
         static_cast<void>(m_stepOutput->stop());
