@@ -57,6 +57,45 @@ TEST(HalGpioDrivers, PeripheralInputRetainsExclusivePinOwnership)
     EXPECT_NE(hal::gpio::createOutput({ .pin = pin }), nullptr);
 }
 
+TEST(HalGpioDrivers, SimulationAccessDrivesExistingInputWithoutClaimingAnotherPin)
+{
+    constexpr hal::gpio::Pin pin{ .port = A, .number = 3U };
+    EXPECT_EQ(hal::gpio::simulatedInput(pin), nullptr);
+    EXPECT_EQ(hal::gpio::simulatedInput({ .port = A, .number = 16U }), nullptr);
+    EXPECT_EQ(hal::gpio::simulatedInput({ .port = static_cast<hal::gpio::Port>(UINT8_MAX), .number = 0U }),
+              nullptr);
+
+    auto input{ hal::gpio::createInput({ .pin = pin, .pull = hal::gpio::Pull::Up,
+                                       .edge = hal::gpio::Edge::Both }) };
+    ASSERT_NE(input, nullptr);
+    auto simulated{ hal::gpio::simulatedInput(pin) };
+    ASSERT_EQ(simulated, input);
+    EXPECT_EQ(hal::gpio::createInput({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::createOutput({ .pin = pin }), nullptr);
+
+    unsigned callbacks{};
+    input->setEdgeCallback([&](hal::gpio::Level level) noexcept {
+        ++callbacks;
+        // Callbacks run outside the registry lock and see the updated level.
+        const auto observed{ hal::gpio::simulatedInput(pin) };
+        ASSERT_EQ(observed, input);
+        EXPECT_EQ(observed->read(), level);
+    });
+    simulated->setSimulatedLevel(hal::gpio::Level::Low);
+    EXPECT_EQ(input->read(), hal::gpio::Level::Low);
+    EXPECT_EQ(callbacks, 1U);
+    simulated->setSimulatedLevel(hal::gpio::Level::High);
+    EXPECT_EQ(input->read(), hal::gpio::Level::High);
+    EXPECT_EQ(callbacks, 2U);
+
+    input.reset();
+    simulated.reset();
+    EXPECT_EQ(hal::gpio::simulatedInput(pin), nullptr);
+    auto output{ hal::gpio::createOutput({ .pin = pin }) };
+    ASSERT_NE(output, nullptr);
+    EXPECT_EQ(hal::gpio::simulatedInput(pin), nullptr);
+}
+
 TEST(HalGpioDrivers, PeripheralOutputRetainsExclusivePinOwnership)
 {
     constexpr hal::gpio::Pin pin{ .port = C, .number = 6U };

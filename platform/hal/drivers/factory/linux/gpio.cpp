@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <memory>
 #include <mutex>
+#include <type_traits>
 
 namespace hal::gpio
 {
@@ -19,6 +20,7 @@ namespace hal::gpio
         struct PinOwner
         {
             std::weak_ptr<void> instance;
+            std::weak_ptr<GpioInput> input;
         };
 
         std::array<PinOwner, PIN_COUNT> owners;
@@ -48,8 +50,22 @@ namespace hal::gpio
             }
             auto instance{ std::make_shared<Implementation>(configuration) };
             owner.instance = instance;
+            if constexpr (std::is_same_v<Implementation, GpioInput>) {
+                owner.input = instance;
+            } else {
+                owner.input.reset();
+            }
             return instance;
         }
+    }
+
+    auto simulatedInput(Pin pin) -> std::shared_ptr<GpioInput>
+    {
+        if (!valid(pin)) {
+            return {};
+        }
+        const std::scoped_lock lock{ owners_mutex };
+        return owners[pin_index(pin)].input.lock();
     }
 
     auto createInput(InputConfiguration configuration) -> std::shared_ptr<IDigitalInput>

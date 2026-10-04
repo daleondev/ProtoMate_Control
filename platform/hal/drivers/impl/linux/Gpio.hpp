@@ -48,4 +48,11 @@ namespace hal
       private:
         std::atomic<gpio::Level> m_level;
     };
+
+    namespace gpio
+    {
+        // Linux simulation access to an input already created through the factory.
+        // Returns null for invalid, unowned or output pins; never creates an input.
+        [[nodiscard]] auto simulatedInput(Pin pin) -> std::shared_ptr<GpioInput>;
+    }
 }

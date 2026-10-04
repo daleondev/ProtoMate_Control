@@ -534,8 +534,7 @@ photo alone does not establish the connector contact mapping. No 5 V supply,
 transistor or optocoupler is needed for this dry-contact connection.
 
 `hal::board::createReferenceLimitSwitch(MotorId)` returns an exclusive
-`IDigitalInput` for each motor. `StepperMotor` claims it by default, or accepts
-a pre-created input as its optional fifth constructor argument. Its direction
+`IDigitalInput` for each motor. `StepperMotor` claims it during construction. Its direction
 convention is **Forward toward the reference switch; Backward away**. A HIGH
 input rejects toward moves with `Rejected`; away moves remain allowed. A zero
 distance move requires no pulses and completes even with an active switch.

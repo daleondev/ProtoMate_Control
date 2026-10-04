@@ -499,15 +499,18 @@ namespace
             } restore{ m_directions };
             using namespace pnm::units::literals;
             using enum StepperMotor::Result;
-            auto first_reference{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::Motor2) };
-            auto second_reference{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::Motor3) };
-            if (!check(first_reference && second_reference &&
-                         first_reference->read() == hal::gpio::Level::Low &&
-                         second_reference->read() == hal::gpio::Level::Low,
-                       "case m requires connected, released M2/M3 NC switches (REF LOW)"))
-                return false;
-            StepperMotor first{ hal::board::MotorId::Motor2, 1.8_deg, 16U, m_generator, first_reference };
-            StepperMotor second{ hal::board::MotorId::Motor3, 1.8_deg, 16U, m_generator, second_reference };
+            {
+                // Release the preflight handles before the motors claim their inputs.
+                auto first_reference{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::Motor2) };
+                auto second_reference{ hal::board::createReferenceLimitSwitch(hal::board::MotorId::Motor3) };
+                if (!check(first_reference && second_reference &&
+                             first_reference->read() == hal::gpio::Level::Low &&
+                             second_reference->read() == hal::gpio::Level::Low,
+                           "case m requires connected, released M2/M3 NC switches (REF LOW)"))
+                    return false;
+            }
+            StepperMotor first{ hal::board::MotorId::Motor2, 1.8_deg, 16U, m_generator };
+            StepperMotor second{ hal::board::MotorId::Motor3, 1.8_deg, 16U, m_generator };
             if (!m_generator->start())
                 return false;
             auto a{ first.moveRel(90_deg, 300_rpm) };

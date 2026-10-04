@@ -18,8 +18,8 @@ class StepperMotor final
   public:
     enum class Direction
     {
-        Forward, // Toward the reference switch.
-        Backward // Away from the reference switch.
+        Forward,
+        Backward
     };
 
     enum class Result
@@ -31,8 +31,6 @@ class StepperMotor final
         Faulted
     };
 
-    // An optional pre-created NC input can be injected; otherwise claim the
-    // board's reference input. HIGH means pressed/open/disconnected.
     StepperMotor(hal::board::MotorId id,
                  pnm::units::Angle full_step_angle,
                  size_t microsteps,
