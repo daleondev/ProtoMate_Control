@@ -32,6 +32,7 @@ namespace hal::step
         auto* model{ hardware.get() };
         auto generator{ std::make_shared<detail::StepGenerator>(std::move(hardware), std::move(owners)) };
         model->interrupt = [instance = generator.get()] { instance->service(); };
+        model->beginService(*generator);
 #endif
         return generator;
     }

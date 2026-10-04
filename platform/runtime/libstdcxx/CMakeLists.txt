@@ -29,6 +29,7 @@ set(RUNTIME_LIBSTDCXX_VENDOR_DIR
 
 target_sources(runtime_libstdcxx
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Notification.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/atomic.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/backend.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/clock.cpp

@@ -29,11 +29,20 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         throw std::runtime_error("motor board resource is unavailable");
     }
 
+    if (!m_stepOutput->setCompletionCallback(
+          [this](const hal::step::AxisStatus&) noexcept { m_notification.signal(); })) {
+        throw std::runtime_error("motor completion subscription unavailable");
+    }
+
     pnm::log::debug("Motor initialized: {} degrees per microstep",
                     m_stepAngle.get<pnm::units::AngleUnits::deg>());
 }
 
-StepperMotor::~StepperMotor() { stopAndWait(); }
+StepperMotor::~StepperMotor()
+{
+    stopAndWait();
+    static_cast<void>(m_stepOutput->setCompletionCallback(nullptr));
+}
 
 std::future<StepperMotor::Result> StepperMotor::move(Direction direction,
                                                      pnm::units::AngularVelocity velocity,
@@ -83,6 +92,12 @@ std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target
 pnm::units::Angle StepperMotor::position() const
 {
     std::scoped_lock lock{ m_mutex };
+    if (m_motionActive) {
+        const auto status{ m_stepOutput->status() };
+        if (status.counts_exact) {
+            return m_motionOrigin + m_stepAngle * (m_motionSign * static_cast<double>(status.pulses));
+        }
+    }
     return m_position;
 }
 
@@ -178,8 +193,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                                                  pnm::units::AngularVelocity velocity,
                                                  pnm::units::Time timeout,
                                                  std::stop_token stop,
-                                                 std::optional<hal::step::PulseCount> count,
-                                                 std::move_only_function<bool() noexcept> should_stop)
+                                                 std::optional<hal::step::PulseCount> count)
 {
     const auto timing{ timingFor(velocity) };
     if (!timing || !timeout.isFinite() || timeout < 0_s) {
@@ -194,6 +208,10 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
 
     const auto deadline{ timeout == 0_s ? std::chrono::steady_clock::time_point::max()
                                         : now + timeout.toChrono<std::chrono::steady_clock::duration>() };
+    // The previous worker is joined before reuse. Completion notifications
+    // carry no run data: after waking we always read this motion's status.
+    m_notification.clear();
+    const std::stop_callback cancellation{ stop, [this] { m_notification.signal(); } };
     if (stop.stop_requested()) {
         return Result::Stopped;
     }
@@ -217,6 +235,9 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         }
 
         start_position = m_position;
+        m_motionOrigin = start_position;
+        m_motionSign = direction == Direction::Forward ? 1.0 : -1.0;
+        m_motionActive = true;
         m_velocity = velocity;
     }
 
@@ -230,6 +251,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
             m_referenced = false;
         }
         if (ended) {
+            m_motionActive = false;
             m_velocity = 0_rpm;
         }
     };
@@ -255,15 +277,13 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                 result = Result::Faulted;
                 break;
             }
-            if (should_stop && should_stop()) {
-                result = Result::Completed;
-                break;
-            }
             if (std::chrono::steady_clock::now() >= deadline) {
                 result = Result::TimedOut;
                 break;
             }
-            pnm::utils::concurrent::sleep_for(1ms, stop);
+            // Signal-before-wait is retained, so completion/cancellation cannot
+            // get lost between the status check and entering the blocked wait.
+            static_cast<void>(m_notification.waitUntil(deadline));
         }
     } catch (...) {
         account(m_stepOutput->stop(), true);

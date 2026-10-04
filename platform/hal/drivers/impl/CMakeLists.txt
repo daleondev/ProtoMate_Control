@@ -15,6 +15,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     )
 
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # Only the service thread uses the runtime C++ ABI; the Linux HAL retains
+    # its native ABI and crosses this boundary through an opaque service object.
+    add_library(hal_linux_step_service STATIC linux/StepService.cpp)
+    target_link_libraries(hal_linux_step_service PRIVATE runtime::cxx_abi project_compiler_settings)
+    target_compile_definitions(hal_linux_step_service PRIVATE HAL_PLATFORM_LINUX HAL_STEP_THREADX)
+    target_link_libraries(hal_drivers PRIVATE hal_linux_step_service)
+
 
     target_sources(hal_drivers
         PRIVATE

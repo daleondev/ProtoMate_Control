@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pneumo/units.hpp"
+#include "runtime/Notification.hpp"
 
 #include <future>
 #include <mutex>
@@ -70,8 +71,7 @@ class StepperMotor final
                          pnm::units::AngularVelocity velocity,
                          pnm::units::Time timeout,
                          std::stop_token stop,
-                         std::optional<hal::step::PulseCount> count = std::nullopt,
-                         std::move_only_function<bool() noexcept> should_stop = nullptr);
+                         std::optional<hal::step::PulseCount> count = std::nullopt);
 
     std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
 
@@ -80,6 +80,7 @@ class StepperMotor final
     size_t m_microsteps;
     pnm::units::Angle m_stepAngle{};
 
+    runtime::Notification m_notification;
     std::shared_ptr<hal::IStepOutput> m_stepOutput;
     std::shared_ptr<hal::IDigitalOutput> m_dirOutput;
     std::shared_ptr<hal::IDigitalInput> m_referenceSwitchInput;
@@ -89,6 +90,10 @@ class StepperMotor final
     mutable std::mutex m_mutex;
     std::mutex m_workerMutex;
     std::jthread m_worker;
+
+    bool m_motionActive{};
+    pnm::units::Angle m_motionOrigin{ 0_deg };
+    double m_motionSign{ 1.0 };
 
     bool m_referenced{ false };
     pnm::units::Angle m_position{ 0_deg };

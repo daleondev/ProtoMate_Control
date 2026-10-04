@@ -130,3 +130,45 @@ TEST(StepperMotor, InvalidRequestsAndDestructionDoNotStopOtherAxis)
     first.stopAndWait();
     EXPECT_EQ(result(continuous), Stopped);
 }
+
+TEST(StepperMotor, CompletionAndCancellationWakeBlockedWorkersAcrossManyReplacements)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    ASSERT_NE(generator, nullptr);
+    StepperMotor motor{ Motor2, 1.8_deg, 16U, generator };
+    ASSERT_TRUE(generator->start());
+    for (unsigned i = 0; i < 30; ++i) {
+        auto previous{ motor.move(StepperMotor::Direction::Forward, 300_rpm) };
+        // Replace even when the prior worker has not reached its wait/start yet.
+        auto next{ motor.moveRel(0.1125_deg, 300_rpm) };
+        EXPECT_EQ(result(previous), Stopped);
+        EXPECT_EQ(result(next), Completed);
+    }
+    auto moving{ motor.move(StepperMotor::Direction::Forward, 300_rpm) };
+    ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
+    std::this_thread::sleep_for(10ms);
+    const auto before{ motor.position() };
+    std::this_thread::sleep_for(10ms);
+    EXPECT_GT(motor.position(), before); // Position refreshes without waking the motion worker.
+    motor.stopAndWait();
+    EXPECT_EQ(result(moving), Stopped);
+}
+
+TEST(StepperMotor, GlobalStopWakesAllMotorsAndEachCanBeUsedAfterAnExplicitRestart)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    ASSERT_NE(generator, nullptr);
+    StepperMotor first{ Motor2, 1.8_deg, 16U, generator };
+    StepperMotor second{ Motor3, 1.8_deg, 16U, generator };
+    ASSERT_TRUE(generator->start());
+    auto a{ first.move(StepperMotor::Direction::Forward, 300_rpm) };
+    auto b{ second.move(StepperMotor::Direction::Forward, 300_rpm) };
+    ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
+    ASSERT_TRUE(running(generator->output(hal::step::Axis::_3)));
+    static_cast<void>(generator->stop());
+    EXPECT_EQ(result(a), Stopped);
+    EXPECT_EQ(result(b), Stopped);
+    ASSERT_TRUE(generator->start());
+    auto next{ first.moveRel(1.125_deg, 300_rpm) };
+    EXPECT_EQ(result(next), Completed);
+}

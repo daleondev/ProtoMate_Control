@@ -1,14 +1,19 @@
 #include "clock_reference.hpp"
+#include "control/StepperMotor.hpp"
 #include "hal/board/board.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
+#include "runtime/Notification.hpp"
+#include "runtime/thread.hpp"
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <exception>
+#include <future>
 #include <thread>
 #include <vector>
 
@@ -212,6 +217,12 @@ namespace
                                  startAndWait(100ms) && final(State::Completed, Counts{ 64U, 64U, 64U });
                     }
                     break;
+                case 13:
+                    passed = notifications();
+                    break;
+                case 14:
+                    passed = motors();
+                    break;
                 default:
                     break;
             }
@@ -403,6 +414,117 @@ namespace
                 }
             }
             return true;
+        }
+        auto notifications() -> bool
+        {
+            std::array<runtime::Notification, 3> events;
+            std::array<unsigned, 3> calls{}, from_isr{};
+            bool masks_preserved{ true };
+            struct Retire
+            {
+                decltype(m_axes)& axes;
+                ~Retire()
+                {
+                    for (auto& axis : axes)
+                        static_cast<void>(axis->setCompletionCallback({}));
+                }
+            } retire{ m_axes };
+            for (unsigned i = 0; i < 3; ++i) {
+                if (!m_axes[i]->setCompletionCallback([&, i](const auto&) noexcept {
+                    ++calls[i];
+                    if (__get_IPSR() != 0U)
+                        ++from_isr[i];
+                    const auto mask{ __get_PRIMASK() };
+                    events[i].signal();
+                    masks_preserved &= mask == 1U && __get_PRIMASK() == mask;
+                }))
+                    return false;
+            }
+            if (!constant({ 10us, 20us, 40us }, Counts{ 513U, 777U, 1000U }) || !startMoves())
+                return false;
+            for (auto& event : events) {
+                if (!check(event.waitUntil(Clock::now() + 1s), "completion wakes blocked waiter"))
+                    return false;
+            }
+            if (!check(calls == std::array<unsigned, 3>{ 1, 1, 1 } && from_isr == calls && masks_preserved,
+                       "one ISR callback per completed axis, interrupts remain masked") ||
+                !final(State::Completed, Counts{ 513U, 777U, 1000U }))
+                return false;
+
+            // Wake a HIGHER priority worker from an API-triggered callback while
+            // the caller still owns an outer PRIMASK lock. It must not run yet.
+            std::promise<bool> awake;
+            auto result{ awake.get_future() };
+            std::atomic_bool resumed{};
+            auto waiter{ runtime::thread::create_jthread(
+              { .name = "event test", .priority = 4, .stack_size = 8192U }, [&] {
+                const auto received{ events[0].waitUntil(Clock::now() + 1s) };
+                resumed = true;
+                awake.set_value(received);
+            }) };
+            if (!m_axes[0]->prepare({ 1ms, 5us }) || !m_axes[0]->start())
+                return false;
+            bool deferred{};
+            {
+                const hal::stm32::InterruptGuard lock;
+                static_cast<void>(m_axes[0]->stop());
+                deferred = __get_PRIMASK() == 1U && !resumed.load();
+            }
+            const bool delivered{ result.wait_for(1s) == std::future_status::ready && result.get() };
+            waiter.join();
+            log("NOTIFICATIONS ISR=%u,%u,%u thread=%u mask_preserved=%u deferred=%u",
+                from_isr[0],
+                from_isr[1],
+                from_isr[2],
+                calls[0] - from_isr[0],
+                masks_preserved,
+                deferred);
+            return check(delivered && deferred && masks_preserved && calls[0] == 2U,
+                         "masked thread callback defers rescheduling until unlock");
+        }
+        auto motors() -> bool
+        {
+            // Motor objects own DIR/reference resources; release the bench's DIR
+            // handles for this case and restore the usual idle wiring afterward.
+            m_directions = {};
+            struct RestoreDirections
+            {
+                decltype(m_directions)& directions;
+                ~RestoreDirections()
+                {
+                    for (unsigned i = 0; i < directions.size(); ++i)
+                        directions[i] =
+                          hal::board::createStepperDirectionOutput(static_cast<hal::board::MotorId>(i));
+                }
+            } restore{ m_directions };
+            using namespace pnm::units::literals;
+            using enum StepperMotor::Result;
+            StepperMotor first{ hal::board::MotorId::Motor2, 1.8_deg, 16U, m_generator };
+            StepperMotor second{ hal::board::MotorId::Motor3, 1.8_deg, 16U, m_generator };
+            if (!m_generator->start())
+                return false;
+            auto a{ first.moveRel(90_deg, 300_rpm) };
+            auto b{ second.move(StepperMotor::Direction::Backward, 300_rpm, 0.02_s) };
+            if (!check(a.wait_for(1s) == std::future_status::ready && a.get() == Completed,
+                       "motor future completes without polling") ||
+                !check(b.wait_for(1s) == std::future_status::ready && b.get() == TimedOut,
+                       "independent motor deadline wakes waiter"))
+                return false;
+            if (!check(m_axes[1]->pulseCount() == 800U &&
+                         std::abs(first.position().get<pnm::units::AngleUnits::deg>() - 90.0) < 1e-9,
+                       "final commanded position accounts for all pulses"))
+                return false;
+            for (unsigned i = 0; i < 10; ++i) {
+                auto old{ first.move(StepperMotor::Direction::Forward, 300_rpm) };
+                auto next{ first.moveRel(1.125_deg, 300_rpm) };
+                if (!check(old.wait_for(1s) == std::future_status::ready && old.get() == Stopped &&
+                             next.wait_for(1s) == std::future_status::ready && next.get() == Completed,
+                           "replacement wakes cancellation and completes next motion"))
+                    return false;
+            }
+            log("MOTORS finite=800 replacement=10x10 timeout=PASS event_wait=PASS");
+            return check(m_axes[1]->pulseCount() == 10U && m_generator->status().state == State::Running,
+                         "replacement count and persistent timebase");
         }
         auto motionStatus() -> hal::step::Status
         {
@@ -617,8 +739,9 @@ namespace
         log("1=1/2/3 pulses  2=independent rates  3=100 kHz x3  4=profile");
         log("5=abort continuous  6=late IRQ  7=underrun  8=wrap (~7m15s)");
         log("9=run cases 1..7  i=independent start/stop/live speed  w=quick counter wrap  h=help");
+        log("n=ISR/thread notification wait  m=StepperMotor completion/cancel/timeout");
         log("c=TIM2 clock versus RTC crystal (~31 s, no STEP pulses)");
-        log("EN_N remains HIGH and DIR LOW. PASS checks software; verify waveforms separately.");
+        log("EN_N remains HIGH. DIR stays LOW except in case m. Verify waveforms separately.");
     }
 }
 
@@ -662,6 +785,12 @@ int main()
             }
             else if (line[0] == 'w') {
                 static_cast<void>(bench.run(12U));
+            }
+            else if (line[0] == 'n') {
+                static_cast<void>(bench.run(13U));
+            }
+            else if (line[0] == 'm') {
+                static_cast<void>(bench.run(14U));
             }
             else if (line[0] == '9') {
                 bool passed{ true };

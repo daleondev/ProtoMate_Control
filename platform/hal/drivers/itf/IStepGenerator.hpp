@@ -60,7 +60,14 @@ namespace hal
     class IStepOutput
     {
       public:
+        using CompletionCallback = std::move_only_function<void(const step::AxisStatus&) noexcept>;
         virtual ~IStepOutput() = default;
+        // Once per started motion on completion, stop or fault. No progress/start
+        // notification. One owning view per axis; another view cannot replace/clear it.
+        // Register while this axis is stopped; clear at any time outside callbacks.
+        // Clearing/view destruction synchronizes with callback execution. ISR rules
+        // match the generator callback. Capture must outlive registration.
+        [[nodiscard]] virtual auto setCompletionCallback(CompletionCallback callback) -> util::Result<> = 0;
         // Only this axis must be stopped. nullopt is an unlimited counted train.
         // Nonzero count, high/low >= 5 us; timing rounds up to 100 ns ticks.
         [[nodiscard]] virtual auto prepare(step::Timing timing,

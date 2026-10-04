@@ -3,7 +3,9 @@
 #include "hal/drivers/detail/StepHardware.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
-#if !defined(HAL_PLATFORM_STM32)
+#if defined(HAL_STEP_THREADX)
+#include "hal/linux/ThreadMutex.hpp"
+#elif !defined(HAL_PLATFORM_STM32)
 #include "hal/linux/Mutex.hpp"
 #endif
 
@@ -34,6 +36,9 @@ namespace hal::detail
         auto clear(std::size_t axis) noexcept -> util::Result<>;
         auto startAxis(std::size_t axis, std::chrono::nanoseconds delay) noexcept -> util::Result<>;
         auto stopAxis(std::size_t axis) noexcept -> step::AxisStatus;
+        auto setCompletionCallback(std::size_t axis,
+                                   const void* owner,
+                                   IStepOutput::CompletionCallback callback) -> util::Result<>;
         auto updateTiming(std::size_t axis, step::Timing timing) noexcept -> util::Result<step::PulseCount>;
 
       private:
@@ -76,8 +81,17 @@ namespace hal::detail
         step::Status m_status;
         step::Status m_notified;
         ProgressCallback m_callback;
+        struct CompletionListener
+        {
+            const void* owner{};
+            IStepOutput::CompletionCallback callback;
+            bool notified{ true };
+        };
+        std::array<CompletionListener, 3> m_listeners;
         bool m_inCallback{};
-#if !defined(HAL_PLATFORM_STM32)
+#if defined(HAL_STEP_THREADX)
+        mutable linux::ThreadMutex m_mutex;
+#elif !defined(HAL_PLATFORM_STM32)
         mutable linux::Mutex m_mutex{ true };
 #endif
     };

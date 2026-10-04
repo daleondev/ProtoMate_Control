@@ -541,3 +541,87 @@ TEST(StepArming, MissedStartMarginRejectsOnlyTheNewAxisAndPreservesItsPreparedMo
     }
     EXPECT_TRUE(hardware->registers.running);
 }
+
+TEST_F(StepTest, AxisCompletionCallbackIsOncePerRunAndIndependentOfProgressObserver)
+{
+    std::array<unsigned, 3> completions{};
+    std::array<hal::step::AxisStatus, 3> final{};
+    unsigned progress{};
+    ASSERT_TRUE(generator->setProgressCallback([&](const auto&) noexcept { ++progress; }));
+    for (unsigned i = 0; i < 3; ++i) {
+        ASSERT_TRUE(outputs[i]->setCompletionCallback([&, i](const auto& status) noexcept {
+            ++completions[i];
+            final[i] = status;
+        }));
+        ASSERT_TRUE(outputs[i]->prepare({ 10us, 5us }, 600U + i));
+    }
+    ASSERT_TRUE(generator->start());
+    ASSERT_TRUE(outputs[0]->start(10us));
+    ASSERT_TRUE(outputs[1]->start(10us));
+    hardware->advance(10'000U);
+    EXPECT_EQ(completions, (std::array<unsigned, 3>{}));
+    static_cast<void>(outputs[1]->stop());
+    EXPECT_EQ(completions[1], 1U);
+    EXPECT_EQ(final[1].state, State::Stopped);
+    hardware->advance(100'000U);
+    EXPECT_EQ(completions, (std::array<unsigned, 3>{ 1, 1, 0 }));
+    EXPECT_EQ(final[0].state, State::Completed);
+    EXPECT_EQ(final[0].pulses, 600U);
+    EXPECT_GT(progress, 1U);
+    static_cast<void>(outputs[0]->status());
+    static_cast<void>(outputs[0]->stop());
+    EXPECT_EQ(completions[0], 1U);
+    ASSERT_TRUE(outputs[0]->start(10us));
+    hardware->advance(100'000U);
+    EXPECT_EQ(completions[0], 2U);
+}
+
+TEST_F(StepTest, CompletionSubscriptionBelongsToItsViewAndCanDetachWhileOtherAxesRun)
+{
+    unsigned calls{};
+    auto observer{ generator->output(Axis::_1) };
+    ASSERT_TRUE(observer->setCompletionCallback([&](const auto&) noexcept { ++calls; }));
+    EXPECT_FALSE(outputs[0]->setCompletionCallback([](const auto&) noexcept {}));
+    // A different view cannot erase the owner's subscription.
+    EXPECT_FALSE(outputs[0]->setCompletionCallback({}));
+    ASSERT_TRUE(generator->start());
+    ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }, 2));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    EXPECT_FALSE(observer->setCompletionCallback([](const auto&) noexcept {}));
+    observer.reset(); // Synchronizes with dispatch and removes its capture.
+    hardware->advance(1000U);
+    EXPECT_EQ(calls, 0U);
+    ASSERT_TRUE(outputs[0]->setCompletionCallback([&](const auto&) noexcept { ++calls; }));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    hardware->advance(1000U);
+    EXPECT_EQ(calls, 1U);
+    ASSERT_TRUE(outputs[0]->setCompletionCallback({}));
+    ASSERT_TRUE(outputs[0]->start(10us));
+    hardware->advance(1000U);
+    EXPECT_EQ(calls, 1U);
+}
+
+TEST_F(StepTest, FaultWakesEveryActiveAxisCompletionObserver)
+{
+    std::array<unsigned, 3> calls{};
+    std::array<hal::step::AxisStatus, 3> final{};
+    ASSERT_TRUE(generator->start());
+    for (unsigned i = 0; i < 3; ++i) {
+        ASSERT_TRUE(outputs[i]->setCompletionCallback([&, i](const auto& status) noexcept {
+            ++calls[i];
+            final[i] = status;
+        }));
+        ASSERT_TRUE(outputs[i]->prepare({ 10us, 5us }));
+        ASSERT_TRUE(outputs[i]->start(10us));
+    }
+    hardware->advance(1000U);
+    hardware->registers.error = true;
+    generator->service();
+    for (unsigned i = 0; i < 3; ++i) {
+        EXPECT_EQ(calls[i], 1U);
+        EXPECT_EQ(final[i].state, State::DmaError);
+        EXPECT_FALSE(final[i].counts_exact);
+    }
+    generator->service();
+    EXPECT_EQ(calls, (std::array<unsigned, 3>{ 1, 1, 1 }));
+}

@@ -69,6 +69,8 @@ namespace hal::detail
         virtual auto stopAxis(std::size_t axis) noexcept -> StepSample = 0;
         // Freeze the counter, settle DMA, capture progress, then force pins low.
         virtual auto stop() noexcept -> StepSample = 0;
+        // Stop/join any autonomous host service BEFORE acquiring the generator lock.
+        virtual auto stopService() noexcept -> void {}
         // Called while the owning generator is still alive and locked. Prevent
         // pending IRQs from dispatching into partially destroyed state.
         virtual auto shutdown() noexcept -> void { static_cast<void>(stop()); }

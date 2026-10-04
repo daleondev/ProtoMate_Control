@@ -382,3 +382,23 @@ TEST(HalMotorBoard, ReferenceSwitchesReportOpenContactsAndBothTransitionsIndepen
     EXPECT_NE(hal::board::createReferenceLimitSwitch(Motor1), nullptr);
     EXPECT_EQ(hal::board::createReferenceLimitSwitch(static_cast<hal::board::MotorId>(255)), nullptr);
 }
+
+TEST(HalMotorBoard, CompletionArrivesWithoutAnyQueriesAndSubscriptionCanBeRetired)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    const auto axis{ generator->output(hal::step::Axis::_1) };
+    ASSERT_TRUE(generator->start());
+    std::atomic_uint completions{};
+    ASSERT_TRUE(axis->setCompletionCallback([&](const auto& status) noexcept {
+        if (status.state == hal::step::State::Completed) ++completions;
+    }));
+    ASSERT_TRUE(axis->prepare({ 10us, 5us }, 513U)); // Tail parks between DMA interrupt boundaries.
+    ASSERT_TRUE(axis->start());
+    std::this_thread::sleep_for(20ms); // No status/pulseCount/service calls.
+    EXPECT_EQ(completions.load(), 1U);
+    ASSERT_TRUE(axis->setCompletionCallback({}));
+    ASSERT_TRUE(axis->prepare({ 10us, 5us }, 1U));
+    ASSERT_TRUE(axis->start());
+    std::this_thread::sleep_for(5ms);
+    EXPECT_EQ(completions.load(), 1U);
+}

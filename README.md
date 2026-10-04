@@ -286,13 +286,30 @@ auto result2 = motion2.get();
 `move`, `moveRel` and `moveAbs` return futures. Replacing a motor's motion
 stops and joins only its previous worker. Finite moves round to the nearest
 microstep; `position()` tracks signed commanded pulses from a software zero,
-updated by the worker and finalized on completion/join. Absolute moves do not
+read from the axis pulse count on demand and finalized on completion/join. Absolute moves do not
 imply homing. Velocity arguments are positive magnitudes; direction comes from
 `Direction` or the signed target distance. A zero timeout means unlimited time.
 `setVelocity()` requires an active motion with unbuffered pulses; calling it
 immediately after the asynchronous `move()` can precede the start and be rejected.
 Encoder feedback, homing, limit-switch stopping, automatic ramp planning and
 shared driver-enable policy remain controller work.
+
+Motion workers block on an event until their axis completes/stops/faults, a stop
+request arrives, or the deadline expires. They do not poll every millisecond.
+Each motor owns its axis completion subscription and a pre-created
+`runtime::Notification`; the callback only signals this event. The worker
+reads final status, updates position and resolves its future in thread context.
+Signals arriving before a wait are retained, and repeated signals coalesce.
+Cancellation also signals the event. A replacement joins the old worker before
+clearing old notifications and starting its next motion. Completion notification
+still uses the existing DMA/TIM7 service; STEP timing is unchanged.
+
+`runtime::Notification::signal()` supports ISR and interrupt-masked callers.
+On STM32 it preserves the caller's interrupt mask and defers any required
+context switch until interrupts can run. Standard condition-variable or
+semaphore methods in this runtime must not be called from an ISR. Notification
+creation, destruction and waiting require thread context, with no producer or
+waiter remaining when the object is destroyed.
 
 Timing uses nanoseconds, rounded up to 100 ns ticks. Both high and low phases
 must be at least **5 µs**, giving a configured ceiling of 100,000 steps/s per
@@ -359,9 +376,21 @@ write from a missed compare timestamp, so elapsed time cannot invent a pulse. Ca
 keep them short, nonblocking, allocation-free, and do not mutate/destroy the
 generator. Read-only queries are allowed. Register/clear callbacks while stopped.
 
-The Linux backend advances a logical timer/DMA simulation when queried, servicing
-virtual buffer interrupts. It does not generate electrical signals or promise
-real-time host scheduling. The deterministic test model additionally permits
+`axis->setCompletionCallback()` is a separate, once-per-motion notification
+for completion, stop or fault. It sends no pulse-progress or start events, and
+coexists with the generator's progress callback. One output view owns the
+subscription for an axis; another view cannot replace it. Register while that
+axis is stopped (other axes may run); clearing and view destruction synchronize
+with dispatch and release the capture. Clear it before destroying captured data.
+The same ISR restrictions apply; an interrupt-safe notification is appropriate.
+
+The Linux backend advances a logical timer/DMA simulation from a background
+ThreadX worker as well as synchronous queries. Blocked motor workers therefore
+receive completion events without polling. Shutdown joins the simulation worker
+before releasing hardware or callback captures. Its generator lock uses the
+ThreadX C API so callbacks can safely wake application threads across the
+native-HAL/runtime ABI boundary. It does not generate electrical signals or
+promise real-time host scheduling. The deterministic test model additionally permits
 withholding interrupts or DMA transfers to exercise failure behavior.
 
 With GCC 16 and GoogleTest installed, run the scheduler tests independently:

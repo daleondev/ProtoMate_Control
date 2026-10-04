@@ -25,6 +25,14 @@ namespace hal::detail
               , m_axis{ axis }
             {
             }
+            ~StepOutput() override
+            {
+                static_cast<void>(m_generator->setCompletionCallback(m_axis, this, {}));
+            }
+            auto setCompletionCallback(CompletionCallback callback) -> util::Result<> override
+            {
+                return m_generator->setCompletionCallback(m_axis, this, std::move(callback));
+            }
             auto prepare(step::Timing timing, std::optional<step::PulseCount> count)
               -> util::Result<> override
             {
@@ -72,6 +80,7 @@ namespace hal::detail
     }
     StepGenerator::~StepGenerator()
     {
+        m_hardware->stopService();
         ProgressCallback retired;
         STEP_LOCK;
         retired.swap(m_callback);
@@ -213,6 +222,7 @@ namespace hal::detail
         m_status = {};
         for (std::size_t i = 0; i < m_axes.size(); ++i) {
             m_axes[i].finished = true;
+            m_listeners[i].notified = true;
             m_status.axes[i] = m_axes[i].timings.empty() ? step::State::Idle : step::State::Ready;
         }
         m_hardware->start(step_park);
@@ -265,6 +275,7 @@ namespace hal::detail
             return fail(std::errc::timed_out);
         }
         axis.finished = false;
+        m_listeners[index].notified = false;
         m_status.pulses[index] = 0U;
         m_status.axes[index] = step::State::Running;
         const auto armed{ m_hardware->sample() };
@@ -423,22 +434,43 @@ namespace hal::detail
         m_callback.swap(callback); // The previous capture is destroyed after unlock.
         return {};
     }
+    auto StepGenerator::setCompletionCallback(std::size_t index,
+                                              const void* owner,
+                                              IStepOutput::CompletionCallback callback) -> util::Result<>
+    {
+        STEP_LOCK;
+        if (index >= m_axes.size())
+            return fail(std::errc::invalid_argument);
+        if (m_inCallback)
+            return fail(std::errc::device_or_resource_busy);
+        auto& listener{ m_listeners[index] };
+        if (listener.owner != nullptr && listener.owner != owner) {
+            return fail(std::errc::device_or_resource_busy);
+        }
+        if (callback && !m_axes[index].finished)
+            return fail(std::errc::device_or_resource_busy);
+        listener.owner = callback ? owner : nullptr;
+        listener.callback.swap(callback); // Retired capture is destroyed after unlocking.
+        return {};
+    }
     auto StepGenerator::notify() noexcept -> void
     {
-        if (m_status != m_notified) {
-            m_notified = m_status;
-            if (m_callback && !m_inCallback) {
-                m_inCallback = true;
-                m_callback(m_notified);
-                m_inCallback = false;
-                // A read-only callback query may observe a guard completion.
-                // Deliver that terminal transition once, without looping on
-                // ordinary count changes while the hardware keeps running.
-                if (m_status.state != step::State::Running && m_status.state != m_notified.state) {
-                    notify();
+        if (m_inCallback || m_status == m_notified)
+            return;
+        m_notified = m_status;
+        m_inCallback = true;
+        if (m_callback)
+            m_callback(m_notified);
+        for (std::size_t i = 0; i < m_axes.size(); ++i) {
+            auto& listener{ m_listeners[i] };
+            if (!listener.notified && m_axes[i].finished) {
+                listener.notified = true;
+                if (listener.callback) {
+                    listener.callback({ m_status.axes[i], m_status.pulses[i], m_status.counts_exact });
                 }
             }
         }
+        m_inCallback = false;
     }
     auto StepGenerator::service() noexcept -> void
     {

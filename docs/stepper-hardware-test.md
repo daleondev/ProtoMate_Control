@@ -1,9 +1,9 @@
 # Step-generator bench test (NUCLEO-H753ZI)
 
 This dedicated image runs the production TIM2/DMA step generator through a
-serial menu. It tests the pulse engine; it keeps **PE15 / EN_N high (disabled)**
-and **all DIR outputs low**. Each command starts a bounded test after a two-second
-capture preparation delay. Nothing pulses until you enter a command.
+serial menu. It keeps **PE15 / EN_N high (disabled)**. DIR outputs stay low
+except during the motor-level `m` case, which restores them afterward. Each
+command starts a bounded test after a two-second capture preparation delay. Nothing pulses until you enter a command.
 
 The firmware checks DMA-derived pulse counts, completion/abort states,
 monotonic callbacks, stopped GPIO levels, and the autonomous underrun stop.
@@ -103,7 +103,7 @@ instrument's inputs and ground, not its supply output.
 | Ground | CN10.22 | Ground |
 
 Optional DIR probes are CN10.26 / PE12, CN10.10 / PE13, and CN10.8 / PE14;
-all should stay low throughout. Connector numbering is also documented in the
+all stay low except during the motor-level `m` case. Connector numbering is also documented in the
 [project pin assignment](../README.md#stepper-gpio-assignment).
 
 Select a rising-edge trigger on M1_STEP, sample at **20 MS/s or faster**, and
@@ -130,6 +130,8 @@ after inspecting individual captures. `h` prints the menu.
 | `8` | 435 / 435 / 435 | 1 / 1 / 1 second | Optional real counter-wrap test, about 7 min 15 s |
 | `i` | 100000 / 20000 / first burst + 333 | M1: 10 µs; M2: 40 → 20 µs; M3: 100 then 50 µs | Independent start/stop/restart and live timing change |
 | `w` | 64 / 64 / 64 | 100 / 200 / 400 µs | Fast wrap test: idle counter placed 5 ms before overflow |
+| `n` | 513 / 777 / 1000, then M1 stopped before its first pulse | 10 / 20 / 40 µs | ISR completion wakeups and interrupt-masked thread wakeup |
+| `m` | M2: 800 then ten 10-pulse replacements; M3: timeout-dependent | 62.5 µs | Real `StepperMotor` completion, cancellation and timeout |
 | `c` | No pulses | TIM2 counter compared with RTC/LSE | Three 10-second clock measurements, about 31 s total |
 
 For all ordinary completed pulses, high time is **5 µs**, independent of the
@@ -263,6 +265,19 @@ Normal axis completion leaves the generator timebase running. The test's
 summary aggregates axis states as `Completed`/`Stopped`, then shuts down the
 generator before returning to the menu. TIM7 only detects finite completion;
 TIM2/DMA generates all pulse edges.
+
+Command `n` waits for each completion event without querying progress, then
+checks an API-triggered stop callback under an outer interrupt mask. A higher
+priority waiting thread must run only after that mask is released. The final
+M1 run count is zero because its second motion is stopped before the first edge;
+the earlier 513 pulses remain visible in the capture.
+
+Command `m` runs the actual `StepperMotor` workers. M2 completes 800 pulses,
+M3 independently times out, and ten replacement commands cancel their predecessors
+and complete 10 pulses each. Worker futures must finish without polling status.
+An immediately replaced predecessor can emit pulses if it starts before the
+replacement arrives, so the total capture count is not fixed. DIR changes in
+this test and returns low afterward. Shared EN_N stays high throughout.
 
 ## Interpret the result
 

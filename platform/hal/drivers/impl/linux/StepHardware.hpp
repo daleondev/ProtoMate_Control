@@ -7,12 +7,15 @@
 
 namespace hal::detail
 {
-    // Linux is a logical simulation. Queries advance virtual hardware and
-    // service its DMA interrupts; it makes no real-time GPIO guarantee.
+    // Linux is a logical simulation, serviced by a background ThreadX worker
+    // and synchronous queries. It makes no real-time GPIO guarantee.
     class LinuxStepHardware final : public SimulatedStepHardware
     {
       public:
-        LinuxStepHardware() { trace_edges = false; }
+        LinuxStepHardware();
+        ~LinuxStepHardware() override;
+        void beginService(StepGenerator& generator);
+        void stopService() noexcept override;
         auto start(std::uint32_t tick) noexcept -> void override
         {
             m_last = std::chrono::steady_clock::now();
@@ -30,6 +33,8 @@ namespace hal::detail
         }
 
       private:
+        struct Service;
+        std::unique_ptr<Service> m_service;
         auto update() noexcept -> void
         {
             if (m_advancing || !registers.running) {

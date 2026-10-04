@@ -121,7 +121,10 @@ if(HAL_HARDWARE_STEP_TEST)
     target_sources(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_step_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/control/StepperMotor.cpp
     )
+    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(${PROJECT_NAME} PRIVATE pneumo::pneumo)
 elseif(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
     target_sources(${PROJECT_NAME}
         PRIVATE
