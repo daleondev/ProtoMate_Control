@@ -55,9 +55,7 @@ class StepperMotor final
     void stop() noexcept;
     void stopAndWait() noexcept;
 
-    // Change an active uniform move without restarting it. The returned
-    // 1-based pulse number identifies when the new timing begins.
-    util::Result<hal::step::PulseCount> setVelocity(pnm::units::AngularVelocity velocity);
+    pnm::Result<hal::step::PulseCount> setVelocity(pnm::units::AngularVelocity velocity);
     pnm::units::Angle position() const;
 
   private:
@@ -74,6 +72,7 @@ class StepperMotor final
                          std::stop_token stop,
                          std::optional<hal::step::PulseCount> count = std::nullopt,
                          std::move_only_function<bool() noexcept> should_stop = nullptr);
+
     std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
 
     hal::board::MotorId m_id;

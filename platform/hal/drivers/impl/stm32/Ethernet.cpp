@@ -69,7 +69,7 @@ namespace
     };
 
     template<typename T = void>
-    [[nodiscard]] auto error_result(std::errc error) noexcept -> util::Result<T>
+    [[nodiscard]] auto error_result(std::errc error) noexcept -> hal::util::Result<T>
     {
         return std::unexpected(std::make_error_code(error));
     }

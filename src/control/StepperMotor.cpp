@@ -128,7 +128,7 @@ std::optional<hal::step::Timing> StepperMotor::timingFor(pnm::units::AngularVelo
     };
 }
 
-util::Result<hal::step::PulseCount> StepperMotor::setVelocity(pnm::units::AngularVelocity velocity)
+pnm::Result<hal::step::PulseCount> StepperMotor::setVelocity(pnm::units::AngularVelocity velocity)
 {
     const auto timing{ timingFor(velocity) };
     if (!timing) {

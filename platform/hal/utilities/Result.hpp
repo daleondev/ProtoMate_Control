@@ -4,17 +4,14 @@
 #include <system_error>
 #include <utility>
 
-namespace util
+namespace hal::util
 {
     template<typename T = void>
     using Result = std::expected<T, std::error_code>;
 
     namespace result
     {
-        constexpr auto success() noexcept -> Result<>
-        {
-            return {};
-        }
+        constexpr auto success() noexcept -> Result<> { return {}; }
 
         template<typename T>
         constexpr auto success(T value) -> Result<T>
