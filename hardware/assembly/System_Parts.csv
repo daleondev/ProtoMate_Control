@@ -4,8 +4,8 @@ A2,DM542T V4.0,1,,External
 A3,Adafruit #6121 / TMC2209,1,,Perfboard module on J105
 A4,Adafruit #6121 / TMC2209,1,,Perfboard module on J106
 A5,W25Q128 / 3.3 V QSPI,1,,External
-C1,100u / 50V,1,,External
-C2,100u / 50V,1,,External
+C1,100u / 50V,1,,Perfboard
+C2,100u / 50V,1,,Perfboard
 C3,100n,1,,Perfboard
 C4,100n,1,,Perfboard
 C5,1u,1,,Perfboard
@@ -14,7 +14,7 @@ C7,100n,1,,External
 C8,10u,1,,External
 C9,100n,1,,External
 C10,10u,1,,External
-J1,24 V input,1,,External
+J1,U1 barrel jack / 24 V,1,,On U1 (existing barrel jack)
 J2,M1 encoder / 8-pin,1,,External
 J3,microSD / 4-bit socket module,1,,External
 J101,Nucleo outputs / 2x08,1,,Perfboard
@@ -28,6 +28,7 @@ J108,Nucleo references / 2x03,1,,Perfboard
 J109,M1 NC switch / 1x02,1,,Perfboard
 J110,M2 NC switch / 1x02,1,,Perfboard
 J111,M3 NC switch / 1x02,1,,Perfboard
+J112,DM542T power / 5.08 mm,1,,Perfboard
 M1,PKP245D23A2-R2FL,1,,External
 M2,C17HD2024-01N,1,,External
 M3,BJ42D15-26V10,1,,External

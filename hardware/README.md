@@ -23,23 +23,24 @@ hardware/
 The root schematic links six child sheets: M1/DM542T, M2/M3/TMC2209,
 M1 encoder, storage, perfboard cable headers, and reference limit switches.
 Global net names connect these sheets electrically. The connector sheet defines
-J101–J107 and the reference-switch sheet defines J108–J111; their pin numbers
+J101–J107 plus J112, and the reference-switch sheet defines J108–J111; their pin numbers
 match the layout and [harness table](assembly/Harness.csv).
 
-All **44 perfboard footprints** have assigned library footprints and native
+All **47 perfboard footprints** have assigned library footprints and native
 links to their schematic symbols. These comprise Q1–Q6, R1–R12, R20–R28,
-C3–C6, U2/U3 and J101–J111. R10–R12 remain on the layout and are marked DNP.
+C1–C6, U2/U3 and J101–J112. R10–R12 remain on the layout and are marked DNP.
 
 The **buck U1 and Adafruit A3/A4 modules mount directly at J103/J105/J106**.
 These footprints represent their soldered mounting pins and full module
 outlines. The module symbols remain excluded from separate PCB placement:
-the DC jack and JP1 power/motor terminals are on the modules, not additional
-perfboard holes. The system parts table identifies their physical mounting
-through these headers. J103 has two output contacts and two isolated VIN
-support islands; its no-connect flags mean **no perfboard wire**, not no voltage.
-The Nucleo, DM542T, motors, switches and storage modules remain external.
-Motor power and winding cables connect directly to the drivers; their currents
-do not use the perfboard wiring. The buck's 63 × 27 mm body follows the supplied
+the barrel jack and four-way motor terminals remain on their modules.
+J103 has four electrical contacts: 5 V output, output ground, VIN ground and
+24 V input. J105/J106 each have ten JP4 control pins plus two JP1 power pins.
+J112 provides the DM542T power cable connection and the two power-distribution
+star joints. Dedicated underside supply/return branches feed each TMC module
+through its local C1/C2 bulk capacitor connections. Motor winding cables
+connect directly to the drivers. The Nucleo, DM542T, motors, switches and
+storage modules remain external. The buck's 63 × 27 mm body follows the supplied
 STEP model; its nominal mounting grid is 5.08 mm within each pair and 50.8 mm
 between pairs. Its barrel jack receives 24 V at the left edge.
 
@@ -49,9 +50,11 @@ It uses one continuous **39-column × 48-row grid**, A1–AV39, at 2.54 mm pitch
 The outer hole centres span **96.52 × 119.38 mm**; the nominal outline is
 99.06 × 121.92 mm with half-pitch margins. Both TMC modules sit along the top
 edge, the buck at the lower left, and the reference headers at the lower right.
-Wiring uses 96 underside-only connections and 25 short crossovers through
+Wiring uses 100 underside-only connections and 32 short crossovers through
 dedicated free holes. All wire ends are soldered underneath. J101's pin 1 is
-at I9, with its signal column facing the driver modules.
+at I9, with its signal column facing the driver modules. The 11 designated
+power connections all stay underneath and use 0.5 mm² insulated copper wire;
+wire drawing width does not specify conductor size.
 Use the [assembly instructions](assembly/README.md) to build it.
 
 The STEP engine uses one 32-bit TIM2 with DMA: M1 = PA0/CN10.29,
@@ -114,7 +117,7 @@ python3 hardware/tools/refresh.py
 Requires KiCad 10 (`kicad-cli` and its `pcbnew` Python module), Python 3 and
 Poppler's `pdfunite`. The command checks ERC, DRC **with schematic parity**,
 symbol links, pad nets, the hole grid, wire endpoints/connectivity, module body
-clearance, mounting contacts and harness destinations.
+clearance, mounting contacts, dedicated power branches and harness destinations.
 All 26 motor, encoder, reference and storage signal contacts
 are checked against CubeMX, along with reference pull-ups/edges, encoder index
 polarity and the disabled startup level. It updates:

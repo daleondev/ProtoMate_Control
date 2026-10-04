@@ -18,9 +18,13 @@ J104,1,1x6 male header,2.54 mm pitch
 J105 J106,2,1x10 long-tail male header,2.54 mm pitch; solder each Adafruit #6121 directly to perfboard; >=6 mm clear gap; support terminal side with insulating spacers
 J107,1,1x8 male header,2.54 mm pitch
 Board,1,39 x 48 hole individual-pad perfboard,One continuous 2.54 mm grid; A1:AV39; 96.52 x 119.38 mm outer hole-centre span
-Wiring,As required,Insulated hookup wire and mating connectors,Signal/logic only; follow Wires.csv and Harness.csv
-A3 A4,2,Adafruit #6121 TMC2209 module,26.67 x 24.13 mm; directly mounted at J105/J106; retain JP1 screw terminals; power/motor wiring stays on module
+Wiring,As required,Insulated hookup wire and mating connectors,0.5 mm2 insulated copper for power-class wires; thin hookup wire for signals; Wires.csv gives routes
+A3 A4,2,Adafruit #6121 TMC2209 module,26.67 x 24.13 mm; direct JP4 + two-pin JP1 power mount; replace six-way terminal with four-way 2.54 mm motor terminal
 A3 A4 supports,As required,Insulating spacers/support pads,Support terminal-block side at >=6 mm gap; do not force module mounting holes onto perfboard grid
 U1,1,QIQIAZI XY-3606 / HCW-P715 buck module,63 x 27 mm; directly mounted at J103; remove VIN/VOUT screw blocks; retain barrel jack and USB
-J103,4 pins,Long-tail male header pins,Nominal 5.08 mm within pairs; 50.8 mm between pairs; >=6 mm clearance; VIN pair isolated support only
+J103,4 pins,Long-tail male header pins,5.08 mm within pairs; 50.8 mm between pairs; >=6 mm gap; all four pins wired (5 V/GND and 24 V/GND)
 U1 support,As required,Insulating supports / strain relief,Match 6 mm module gap; support barrel-jack side against cable forces
+C1 C2,2,100 uF / 50 V radial electrolytic,Polarized; body <=10 mm; 5.08 mm formed lead pitch; square pad positive
+J105 J106 power pins,2,1x2 long-tail male header,2.54 mm pitch; JP1.6 (+) / JP1.5 (-); downward direct mount at same module height as JP4
+A3 A4 motor terminals,2,4-way screw terminal,2.54 mm pitch; JP1.4-1; motor order 2B/2A/1A/1B; upward on module
+J112,1,2-way 5.08 mm screw terminal,Reuse a removed buck terminal; 1=24 V / 2=GND; DM542T cable outlet and underside power star joints

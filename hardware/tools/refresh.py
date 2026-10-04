@@ -163,19 +163,23 @@ def verify(netlist, board):
         require(expected == actual, f"Pin/net mismatch: {ref}")
     require({r for r, f in footprints.items() if f.IsDNP()} == {"R10", "R11", "R12"},
             "Unexpected DNP parts")
-    require(all(p.GetNetname() != "+24V" for p in pads.values()), "24 V on perfboard")
+    power_positive = {("J103", "4"), ("J112", "1"), ("J105", "11"),
+                      ("J106", "11"), ("C1", "1"), ("C2", "1")}
+    require({key for key, p in pads.items() if p.GetNetname() == "+24V"} == power_positive,
+            "24 V must connect only to the buck VIN, driver power pins and bulk capacitors")
 
-    # The modules land through their mounting pins only. Barrel-jack and TMC
-    # JP1 power/motor terminals are not additional perfboard holes.
+    # TMC modules land on JP4 and JP1's two power contacts. Winding terminals
+    # and the buck's barrel jack remain on the modules.
     for module, header in MOUNTED_MODULES.items():
         f = footprints[header]
         is_buck = module == "U1"
         footprint_name = ("QIQIAZI_XY3606_DirectMount" if is_buck else
-                          "Adafruit_6121_JP4_DirectMount")
+                          "Adafruit_6121_JP4_Power_DirectMount")
         require(f.GetFPIDAsString() == f"ProtoMate_Perfboard:{footprint_name}",
                 f"Missing module envelope: {module}")
         require(f.GetOrientationDegrees() == 0, f"Unexpected module rotation: {module}")
-        contacts = {1: "OUT+", 2: "OUT-"} if is_buck else {n: f"JP4.{n}" for n in range(1, 11)}
+        contacts = ({1: "OUT+", 2: "OUT-", 3: "IN-", 4: "IN+"} if is_buck else
+                    {**{n: f"JP4.{n}" for n in range(1, 11)}, 11: "JP1.6", 12: "JP1.5"})
         for pin, contact in contacts.items():
             require(connected_name(source[(module, contact)]) ==
                     connected_name(pads[header, str(pin)].GetNetname()),
@@ -183,9 +187,6 @@ def verify(netlist, board):
         if is_buck:
             require(source[("U1", "IN+")] == "+24V" and source[("U1", "IN-")] == "GND",
                     "Buck input supply differs from system schematic")
-            for pin in ("3", "4"):
-                require(not connected_name(pads[header, pin].GetNetname()),
-                        "Buck input support island has a perfboard connection")
         x, y = (pcb.ToMM(v) for v in (f.GetPosition().x, f.GetPosition().y))
         body = ((x - 56.8, y - 8.5, x + 6.2, y + 18.5) if is_buck else
                 (x - 1.905, y - 21.59, x + 24.765, y + 2.54))
@@ -204,6 +205,16 @@ def verify(netlist, board):
 
     # Wires.csv is an assembly schedule, maintained alongside routing changes.
     wires = read_csv("Wires.csv")
+    # Power branches must have dedicated copper returns, not a route through
+    # the signal-ground tree. J112's two solder joints are the star points.
+    power_links = set()
+    for buck_pin, terminal_pin, module_pin in (("4", "1", "11"), ("3", "2", "12")):
+        power_links.add(frozenset((("J103", buck_pin), ("J112", terminal_pin))))
+        for cap, module in (("C1", "J105"), ("C2", "J106")):
+            power_links.add(frozenset((("J112", terminal_pin), (cap, terminal_pin))))
+            power_links.add(frozenset(((cap, terminal_pin), (module, module_pin))))
+    power_links.add(frozenset((("J103", "3"), ("J103", "2"))))
+    found_power_links = set()
     graph = collections.defaultdict(set)
     passages_used = collections.Counter()
     vias = {hole(t): t.GetNetname() for t in board.GetTracks() if isinstance(t, pcb.PCB_VIA)}
@@ -212,6 +223,12 @@ def verify(netlist, board):
     for wire in wires:
         a = wire["from_ref"], wire["from_pin"]
         b = wire["to_ref"], wire["to_pin"]
+        link = frozenset((a, b))
+        require(wire["wire_class"] == ("power" if link in power_links else "signal"),
+                f"Wrong conductor class: {wire['wire']}")
+        if link in power_links:
+            require(wire["sides"] == "bottom wire", "Power branch must stay underneath")
+            found_power_links.add(link)
         require(pads[a].GetNetname() == wire["net"] == pads[b].GetNetname(),
                 f"Wrong wire net: {wire['wire']}")
         require(hole(pads[a]) == wire["from_hole"] and hole(pads[b]) == wire["to_hole"],
@@ -231,6 +248,10 @@ def verify(netlist, board):
             "Each crossover needs two dedicated free holes, without sharing wire passages")
     require(all(len(neighbours) <= 3 for neighbours in graph.values()),
             "More than three scheduled wire ends at one component solder joint")
+    require(found_power_links == power_links, "Missing dedicated power branch")
+    for module, resistor in (("J105", "R8"), ("J106", "R9")):
+        require(graph[module, "2"] == {(module, "12"), (resistor, "2")},
+                f"Driver logic ground must join its local power ground: {module}")
     netpads = collections.defaultdict(set)
     for key, pad in pads.items():
         if connected_name(pad.GetNetname()):
@@ -270,8 +291,10 @@ def verify(netlist, board):
               f"PASS: {len(controller_routes)} motor, encoder, reference and storage contacts agree with CubeMX.",
               "PASS: CubeMX reference pull-ups/edges, encoder index edge and disabled startup polarity match wiring.",
               "PASS: all three module bodies fit; direct mounting contacts match system wiring.",
-              "PASS: buck VIN support islands have no perfboard wires; native keepout protects both faces.",
-              "PASS: all parts on top; R10-R12 are DNP; no 24 V distribution routed on perfboard.",
+              "PASS: buck VIN feeds J112 and separate TMC power branches; all 11 power links are underneath.",
+              "PASS: TMC logic grounds join local power returns; motor current has dedicated return wiring.",
+              "PASS: 24 V appears only on designated power pads; C1/C2 polarity and module power contacts match.",
+              "PASS: all parts on top; R10-R12 are DNP; 24 V and logic rails remain distinct.",
               "Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.",
               "Wire endpoints/passages are checked; routing lengths and sides need review after route edits.",
               "This checks the wiring model, not an assembled circuit or transistor switching speed.",
@@ -290,7 +313,8 @@ def tables(components, footprints, pads):
     write_csv("System_Parts.csv", ["Reference", "Part or value", "Quantity", "Do not populate", "Location"],
               [[ref, components[ref].findtext("value"), 1,
                 "DNP" if components[ref].find("property[@name='dnp']") is not None else "",
-                (f"Perfboard module on {MOUNTED_MODULES[ref]}" if ref in MOUNTED_MODULES else
+                ("On U1 (existing barrel jack)" if ref == "J1" else
+                 f"Perfboard module on {MOUNTED_MODULES[ref]}" if ref in MOUNTED_MODULES else
                  "Perfboard" if ref in footprints else "External")]
                for ref in sorted(components, key=natural)])
 

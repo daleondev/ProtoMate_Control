@@ -1,25 +1,27 @@
 KiCad 10.0.6: native project verification
 PASS: one continuous 39 x 48 hole grid (A1:AV39), 2.54 mm pitch, 1872 holes.
 PASS: nominal outline 99.06 x 121.92 mm; outer hole-centre span 96.52 x 119.38 mm.
-PASS: 44 footprints linked to schematic symbols; values, library IDs and pins match.
-PASS: 170 unique component holes and 50 wire passages on the 2.54 mm grid.
-PASS: 121 scheduled connections span all 37 connected nets.
-PASS: 96 underside-only wires; 25 single crossovers with dedicated free holes.
+PASS: 47 footprints linked to schematic symbols; values, library IDs and pins match.
+PASS: 180 unique component holes and 64 wire passages on the 2.54 mm grid.
+PASS: 132 scheduled connections span all 38 connected nets.
+PASS: 100 underside-only wires; 32 single crossovers with dedicated free holes.
 PASS: at most three scheduled wire ends per component solder joint.
-PASS: 72 header positions and their external destinations match the schematic.
+PASS: 78 header positions and their external destinations match the schematic.
 PASS: 26 motor, encoder, reference and storage contacts agree with CubeMX.
 PASS: CubeMX reference pull-ups/edges, encoder index edge and disabled startup polarity match wiring.
 PASS: all three module bodies fit; direct mounting contacts match system wiring.
-PASS: buck VIN support islands have no perfboard wires; native keepout protects both faces.
-PASS: all parts on top; R10-R12 are DNP; no 24 V distribution routed on perfboard.
+PASS: buck VIN feeds J112 and separate TMC power branches; all 11 power links are underneath.
+PASS: TMC logic grounds join local power returns; motor current has dedicated return wiring.
+PASS: 24 V appears only on designated power pads; C1/C2 polarity and module power contacts match.
+PASS: all parts on top; R10-R12 are DNP; 24 V and logic rails remain distinct.
 Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.
 Wire endpoints/passages are checked; routing lengths and sides need review after route edits.
 This checks the wiring model, not an assembled circuit or transistor switching speed.
-Board SHA256: 51d026cc4eb617b87c1f1689fae96483d20951b604378005b425aa4669240e77
-ProtoMate.kicad_sch SHA256: b640969398337058325a254c4ebcb9c088beec12465e4efb642fd69c6f5ddcaf
-sheets/M1_DM542T.kicad_sch SHA256: f2beb575ee602c030ea7268fc64d94b0797b1052405e220718b9b8489ec1b410
+Board SHA256: f2522a0ab7872485eac92cb900d1018115b939aded7854a47e0389b747c438b7
+ProtoMate.kicad_sch SHA256: c528dd0543ad45a7cb21daf82c4b1859be2ae49c80448af3961635fd8f4a8c50
+sheets/M1_DM542T.kicad_sch SHA256: 82b9c727d0d5b7dc3bc0ce70fafcaec7dc4c8eb8237a57759d286d38823fa18e
 sheets/M1_Encoder.kicad_sch SHA256: be5309fec5e61dd4de375c13dba40f8bd4a10a357447ce463ce407d741e9e460
-sheets/M2_M3_TMC2209.kicad_sch SHA256: df08ab8e1aecf909fc292a70e98a54b9b05bd3368cd99d11d1bdd1b5a03100ff
-sheets/Perfboard_Connectors.kicad_sch SHA256: 57beb695dd490f2102df9bbfb0bb6db7e9306fb1f9fe6087a338bd2157f1fc9b
+sheets/M2_M3_TMC2209.kicad_sch SHA256: 68efb5137e0d92843306c5f07f38e10627ac32a22dddce5226d538d6a335a816
+sheets/Perfboard_Connectors.kicad_sch SHA256: ca662c69f76696f7d0791b2fd2844edf10d3b8d5788804721210e640563f627d
 sheets/Reference_Switches.kicad_sch SHA256: f6fe0ff0acaa2daaf3f06b8ce3ec8e6f6ba45cb7a67f967121bd608cff0492d5
 sheets/Storage.kicad_sch SHA256: 05e746f4934a312b0a44f53c42a7ce1028f44eb125290488ca6e03564e129aa5

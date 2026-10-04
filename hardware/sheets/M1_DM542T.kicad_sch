@@ -100,4 +100,6 @@
 (text "SHARED ENABLE AND TIMING\nPE15 low: Q3 off, DM542T enabled, both TMC EN inputs low.\nPE15 high: Q3 on, DM542T disabled, both TMC EN inputs high.\nR7 pulls PE15 high during MCU reset; about 7 mA sink when enabled.\nAfter enable, wait >=200 ms. DIR setup >=5 us; STEP high/low >=2.5 us." (at 20.32 213.36 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "6927a3be-78de-5928-8afb-53b1a4c1009a"))
 (text "Q1-Q3 show functional B/C/E pins, not package lead numbers.\nVerify your 2N2222A manufacturer/package before assembly.\nFit each 10k between base and emitter. Keep PUL+/PUL- paired;\nseparate signal cables from motor power cables." (at 226.06 213.36 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "8dba707b-2837-58ed-86ba-f9236c000368"))
 (embedded_fonts no)
+(text "24 V power cable: J112.1 -> +Vdc; J112.2 -> GND.
+Signal cable: J104. Motor winding cable stays on A2." (at 193.04 137.16 0) (effects (font (size 1.016 1.016)) (justify left top)) (uuid "3ac35564-5d05-4e47-a2b6-f6001238d8ca"))
 )

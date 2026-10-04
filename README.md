@@ -58,7 +58,7 @@ HAL or Linux debugger. Startup diagnostics and the boot message appear on the te
 Open **[hardware/ProtoMate.kicad_pro](hardware/ProtoMate.kicad_pro)** in
 **KiCad 10**. One project contains the complete system schematic and its linked
 perfboard layout. Seven sheets cover controller/power, M1/DM542T, M2/M3/TMC2209,
-M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 44 footprints
+M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 47 footprints
 are linked to schematic symbols; external equipment is marked **Exclude from
 board**. Symbols and footprints use project-local libraries. See the
 [hardware guide](hardware/README.md) for the structure and F8 update workflow.
@@ -73,6 +73,9 @@ contacts, rather than reproducing their internal circuits.
 
 The supply arrangement is **24 V DC input**, with the user's **QIQIAZI
 24/12 V-to-5 V, 5 A buck converter** generating the logic/encoder supply.
+The buck’s barrel jack is the 24 V system inlet. Its VIN header pins feed
+separate underside power/return branches to both TMC modules and the
+DM542T power terminal J112.
 Connect its 5 V output to Nucleo **CN11 pin 6 (5V_EXT)** and ground to
 **CN11 pin 8**; select **JP2 pins 5–6 (EXT)**. The Nucleo's 3.3 V output on
 **CN8 pin 7** supplies the TMC logic, encoder buffer and storage. The board's
@@ -115,14 +118,15 @@ individual-pad board with 2.54 mm pitch** (holes A1–AV39). The outer hole cent
 span 96.52 × 119.38 mm. It contains six Diotec 2N2222A stages (three for
 the DM542T and three for encoder voltage conversion), the AM26C32 encoder
 receiver, SN74HC126N buffer, passive components and headers. The two Adafruit
-TMC2209 modules mount directly at J105/J106 through their soldered control
-headers; their 24 V and motor cables connect directly to their screw terminals.
-The Nucleo and DM542T remain external. The buck mounts in the lower-left area
-at J103, using its 5 V output pins and two isolated input support pins.
-Its barrel jack receives 24 V. The 63 × 27 mm body follows the supplied STEP
+TMC2209 modules mount directly at J105/J106 through soldered ten-pin control
+headers and separate two-pin power headers. Their four-way motor terminals
+remain on the modules. C1/C2 provide local bulk capacitance on the perfboard.
+The Nucleo and DM542T remain external; J112 supplies the DM542T’s 24 V/GND
+cable. The buck mounts in the lower-left area at J103, using all four
+input/output pins. Its barrel jack receives 24 V. The 63 × 27 mm body follows the supplied STEP
 model; the mounting uses a nominal 5.08 mm pair pitch and 50.8 mm separation.
 
-Hand wiring uses 96 underside-only connections and 25 short top-side
+Hand wiring uses 100 underside-only connections and 32 short top-side
 crossovers through dedicated free holes; all wire ends are soldered underneath.
 The assembly guide includes the soldering order and header orientation.
 

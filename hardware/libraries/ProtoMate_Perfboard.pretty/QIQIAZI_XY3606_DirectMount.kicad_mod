@@ -1,5 +1,9 @@
-(footprint "QIQIAZI_XY3606_DirectMount" (version 20260206) (generator "pcbnew") (layer "F.Cu")
-(descr "Nominal mounting from user BuckConverter.step: PCB 63x27 mm. Mounting centres use 5.08 mm pair pitch / 50.8 mm pair separation. VIN support pads are live via module; no perfboard wires.")
+(footprint
+"QIQIAZI_XY3606_DirectMount"
+(version 20260206)
+(generator "pcbnew")
+(layer "F.Cu")
+(descr "QIQIAZI buck direct mount: 63 x 27 mm body; 5.08 mm pin-pair pitch, 50.8 mm separation. VIN+ / VIN- feed perfboard 24 V distribution; OUT+ / OUT- supply 5 V.")
 (attr through_hole)
 (property "Reference" "REF**" (at -25.3 2 0) (layer "F.SilkS") (effects (font (size 1.1 1.1) (thickness .15))))
 (property "Value" "U1 buck direct mount" (at -25.3 4 0) (layer "F.Fab") (hide yes) (effects (font (size 1 1) (thickness .15))))
@@ -13,8 +17,8 @@
 (fp_text user "5 V OUTPUT TO PERFBOARD" (at -25.3 5 0) (layer "F.Fab") (effects (font (size 0.75 0.75) (thickness .12))))
 (fp_text user "24 V JACK" (at -48.6 12 0) (layer "F.Fab") (effects (font (size 0.7 0.7) (thickness .12))))
 (fp_text user "USB" (at -0.8 12 0) (layer "F.Fab") (effects (font (size 0.7 0.7) (thickness .12))))
-(fp_text user "VIN SUPPORTS" (at -47.5 -11 0) (layer "F.Fab") (effects (font (size 0.75 0.75) (thickness .12))))
-(fp_text user "LIVE / NO WIRES" (at -47.5 -9.7 0) (layer "F.Fab") (effects (font (size 0.65 0.65) (thickness .12))))
+(fp_text user "24 V DISTRIBUTION" (at -47.5 -11 0) (layer "F.Fab") (effects (font (size 0.75 0.75) (thickness .12))))
+(fp_text user "4 VIN+ / 3 VIN-" (at -47.5 -9.7 0) (layer "F.Fab") (effects (font (size 0.65 0.65) (thickness .12))))
 (fp_text user "OUT+ / 5V" (at 0 -7.5 0) (layer "F.Fab") (effects (font (size 0.6 0.6) (thickness .12))))
 (fp_text user "OUT- / GND" (at 0 2.5 0) (layer "F.Fab") (effects (font (size 0.6 0.6) (thickness .12))))
 (pad "1" thru_hole rect (at 0 -5.08) (size 1.7 1.7) (drill 1) (layers "*.Cu" "*.Mask"))

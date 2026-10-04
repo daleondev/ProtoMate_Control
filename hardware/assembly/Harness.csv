@@ -23,6 +23,8 @@ J102,5,AB37,M1_ENC_Z,A1,CN12.17,
 J102,6,AB38,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
 J103,1,AM23,+5V,U1,OUT+,Direct U1 output pin; no cable
 J103,2,AO23,GND,U1,OUT-,Direct U1 output pin; no cable
+J103,3,AO3,GND,U1,IN-,Direct U1 VIN pin; dedicated underside power distribution
+J103,4,AM3,+24V,U1,IN+,Direct U1 VIN pin; dedicated underside power distribution
 J104,1,M2,+5V,A2,PUL+,
 J104,2,M3,DM_PUL_N,A2,PUL-,
 J104,3,M4,+5V,A2,DIR+,
@@ -39,6 +41,8 @@ J105,7,J19,NC,A3,JP4.7,"Direct soldered module header: A3 DIAG; no cable; isolat
 J105,8,J20,NC,A3,JP4.8,"Direct soldered module header: A3 INDEX; no cable; isolated landing pad, no perfboard wire"
 J105,9,J21,NC,A3,JP4.9,"Direct soldered module header: A3 UART; no cable; isolated landing pad, no perfboard wire"
 J105,10,J22,STEPPERS_EN_N,A3,JP4.10,Direct soldered module header: A3 EN; no cable
+J105,11,C15,+24V,A3,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
+J105,12,C16,GND,A3,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
 J106,1,J27,+3V3,A4,JP4.1,Direct soldered module header: A4 VDD; no cable
 J106,2,J28,GND,A4,JP4.2,Direct soldered module header: A4 GND; no cable
 J106,3,J29,M3_DIR,A4,JP4.3,Direct soldered module header: A4 DIR; no cable
@@ -49,6 +53,8 @@ J106,7,J33,NC,A4,JP4.7,"Direct soldered module header: A4 DIAG; no cable; isolat
 J106,8,J34,NC,A4,JP4.8,"Direct soldered module header: A4 INDEX; no cable; isolated landing pad, no perfboard wire"
 J106,9,J35,NC,A4,JP4.9,"Direct soldered module header: A4 UART; no cable; isolated landing pad, no perfboard wire"
 J106,10,J36,STEPPERS_EN_N,A4,JP4.10,Direct soldered module header: A4 EN; no cable
+J106,11,C29,+24V,A4,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
+J106,12,C30,GND,A4,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
 J107,1,N11,GND,J2,1,
 J107,2,N12,ENC_A_P,J2,2,
 J107,3,N13,ENC_A_N,J2,3,
@@ -69,5 +75,5 @@ J110,1,AP34,M2_REF,SW2,NC,"Functional switch contact, not connector pin number; 
 J110,2,AP35,GND,SW2,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
 J111,1,AS34,M3_REF,SW3,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
 J111,2,AS35,GND,SW3,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J103,3,AO3,NC,U1,IN-,"Mechanical solder support only; input ground via module, no perfboard wire"
-J103,4,AM3,NC,U1,IN+,"Mechanical solder support only; live +24 V via module, no perfboard wire"
+J112,1,AI12,+24V,A2,+Vdc,DM542T power cable; underside solder joint is the distribution star point
+J112,2,AI14,GND,A2,GND,DM542T power cable; underside solder joint is the distribution star point
