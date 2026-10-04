@@ -3,7 +3,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ${CMAKE_CURRENT_SOURCE_DIR}/filesystem_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/utilities_test.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/motion_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/motor_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/axis_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/robot_test.cpp
     )

@@ -1,5 +1,5 @@
 #include "cli/Parser.hpp"
-#include "cli/motion.hpp"
+#include "cli/motor.hpp"
 #include "control/MotionController.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 
@@ -36,7 +36,7 @@ namespace
                 ASSERT_TRUE(switches[i]);
                 switches[i]->setSimulatedLevel(Low);
             }
-            cli::motion::setup(parser, controller);
+            cli::motor::setup(parser, controller);
         }
 
         cli::ExecutionResult run(std::string_view command)
@@ -151,7 +151,7 @@ TEST_F(CliMotion, NegativeMoveCompletesAndReportsItsResultWithoutBlockingTheProm
 TEST_F(CliMotion, SharedClientsControlTheSameAxesAndStoppingOneLeavesTheOtherRunning)
 {
     cli::Parser second_client;
-    cli::motion::setup(second_client, controller);
+    cli::motor::setup(second_client, controller);
     ASSERT_TRUE(run("motor enable"));
     ASSERT_TRUE(run("motor move m1 -720 --speed 10"));
     ASSERT_TRUE(run("motor move m2 -720 --speed 10"));

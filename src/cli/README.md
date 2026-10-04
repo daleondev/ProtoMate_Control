@@ -46,52 +46,57 @@ backslash, remain ordinary argument text. Redirection must follow the final
 pipeline command. Intermediate pipeline output is bounded to 32 KiB so a
 command cannot exhaust STM32 memory.
 
-Register commands before `system_threads::start()` launches the CLI thread:
+Commands are annotated functions in their module's `commands` namespace,
+registered through `register_commands()` before `system_threads::start()`
+launches the CLI thread. The first annotation is the description; `Arg` and
+`Flag` annotations supply parser validation and help text. The function name
+is used by default. An optional `Name` annotation supplies a multiword command
+path or another explicit name.
 
 ```cpp
 #include "cli/Parser.hpp"
+#include <ostream>
 
-auto result = cli::registry().registerCommand({
-  .name = "copy",
-  .description = "Copy a source to an optional destination",
-  .arguments =
+namespace cli::example
+{
+    namespace commands
     {
-      { .name = "source", .description = "Source path" },
-      { .name = "destination", .description = "Destination path", .optional = true },
-    },
-  .flags =
-    {
-      {
-        .name = "force",
-        .short_name = 'f',
-        .description = "Replace an existing destination",
-        .value_name = std::nullopt,
-      },
-      {
-        .name = "mode",
-        .short_name = 'm',
-        .description = "Select the copy mode",
-        .value_name = "name",
-      },
-    },
-  .callback =
-    [](const cli::Arguments& arguments, std::ostream& output) {
-        output << "source: " << arguments.require("source") << '\n';
-        if (const auto destination = arguments.get("destination")) {
-            output << "destination: " << *destination << '\n';
-        }
-        output << "force: " << arguments.hasFlag("force") << '\n';
-        if (const auto mode = arguments.flagValue("mode")) {
-            output << "mode: " << *mode << '\n';
-        }
-        return 0;
-    },
-});
+        using namespace pnm::meta::string::literals;
 
-if (!result) {
-    throw std::runtime_error(result.error());
+        [[
+            = "Show a source and optional destination."_fs,
+            = Name{ "example copy"_fs },
+            = Arg{ .name = "source"_fs, .description = "Source path"_fs },
+            = Arg{ .name = "destination"_fs, .description = "Destination path"_fs,
+                   .optional = true },
+            = Flag{ .name = "force"_fs, .short_name = 'f',
+                    .description = "Replace destination"_fs },
+            = Flag{ .name = "mode"_fs, .short_name = 'm',
+                    .description = "Copy mode"_fs, .value_name = "name"_fs }
+        ]] static auto copy(const Arguments& args, std::ostream& out) -> CallbackResult
+        {
+            out << args.require("source") << '\n';
+            if (const auto destination{ args.get("destination") })
+                out << *destination << '\n';
+            return 0;
+        }
+    }
+
+    void setup() { register_commands(); }
 }
 ```
+
+`register_commands(parser, bind)` registers into a specific parser and applies
+`bind` to each reflected function to obtain its callback. Motor, axis and robot
+modules use this to capture their application-owned controller/robot, then pass
+it by reference to the annotated handler. Each parser retains its own bindings;
+there is no global controller. The stateless filesystem and utility modules
+use the default identity binding and application registry.
+
+The command modules are `motor.cpp`, `axis.cpp` and `robot.cpp`. Shared parsing
+and result formatting live in `control_common.cpp`; command descriptions,
+arguments and flags live beside their handlers. `Parser::registerCommand()`
+remains the underlying runtime API used by the reflection registrar.
 
 Callbacks returning `int` remain supported, and that value is exposed as
 `ExecutionResult::exit_code`. For an operational failure, return
@@ -339,7 +344,7 @@ and frames before relying on physical tool coordinates.
 
 `main()` is the composition point. It creates one
 `control::MotionController` with the three axis configurations, then passes
-its shared pointer to `cli::motion::setup(parser, controller)`,
+its shared pointer to `cli::motor::setup(parser, controller)`,
 `cli::axis::setup(parser, controller)` and `control::Robot`. It registers
 `cli::robot::setup(parser, robot)` before starting application threads.
 The controller owns the generator, shared enable, axis conversions and

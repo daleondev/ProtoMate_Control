@@ -1,4 +1,5 @@
 #include "cli/axis.hpp"
+#include "cli/motor.hpp"
 #include "cli/robot.hpp"
 
 #include <gtest/gtest.h>
@@ -48,7 +49,7 @@ namespace
                                       } });
             robot = std::make_shared<control::Robot>(
               controller, Kinematics::Config{ .first_arm_length = 200_mm, .second_arm_length = 100_mm });
-            cli::motion::setup(parser, controller);
+            cli::motor::setup(parser, controller);
             cli::axis::setup(parser, controller);
             cli::robot::setup(parser, robot);
         }

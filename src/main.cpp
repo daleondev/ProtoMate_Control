@@ -4,7 +4,7 @@
 
 #include "cli/Parser.hpp"
 #include "cli/axis.hpp"
-#include "cli/motion.hpp"
+#include "cli/motor.hpp"
 #include "cli/robot.hpp"
 #include "control/MotionController.hpp"
 #include "control/Robot.hpp"
@@ -116,7 +116,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
       ScaraKinematics::Config{ .first_arm_length = 205_mm,
                                .second_arm_length = 223.4_mm,
                                .tool_offset = { 135_mm, 0_mm, 0_mm } }) };
-    cli::motion::setup(cli::registry(), motion);
+    cli::motor::setup(cli::registry(), motion);
     cli::axis::setup(cli::registry(), motion);
     cli::robot::setup(cli::registry(), robot);
     system_threads::start();

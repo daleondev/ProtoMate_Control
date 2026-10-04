@@ -1,5 +1,5 @@
 #include "axis.hpp"
-#include "motion_common.hpp"
+#include "control_common.hpp"
 
 #include <format>
 #include <ostream>
@@ -12,7 +12,7 @@ namespace cli::axis
         using Controller = control::MotionController;
         using MotorId = Controller::MotorId;
         using namespace pnm::units;
-        using namespace motion::detail;
+        using namespace control_detail;
 
         constexpr auto degrees_per_second{ 1_deg / 1_s };
         constexpr std::string_view guide{
@@ -49,7 +49,7 @@ namespace cli::axis
             return !value || *value == "all" ? std::nullopt : std::optional{ axisId(*value) };
         }
 
-        Controller::AxisSpeed speed(MotorId id, double value)
+        Controller::AxisSpeed axisSpeed(MotorId id, double value)
         {
             if (id == MotorId::Motor3)
                 return value * 1_mm_s;
@@ -83,36 +83,39 @@ namespace cli::axis
                 .absolute = absolute,
             };
         }
+        auto performMove(Controller& controller, const Arguments& args, std::ostream& out, bool absolute)
+          -> CallbackResult
+        {
+            const auto id{ axisId(args.require("axis")) };
+            const auto request{ id == MotorId::Motor3 ? moveRequest<true>(args, absolute)
+                                                      : moveRequest<false>(args, absolute) };
+            return submitted(controller.moveAxis(id, request), out, "axis");
+        }
     }
 
-    void setup(Parser& parser, std::shared_ptr<Controller> controller)
+    namespace commands
     {
-        if (!controller)
-            throw std::invalid_argument("axis commands require a controller");
-        const auto add = [&](Command command) {
-            if (const auto result{ parser.registerCommand(std::move(command)) }; !result)
-                throw std::runtime_error(result.error());
-        };
-        const std::vector<ArgumentSpec> one_axis{ { "axis",
-                                                    "shoulder, elbow or z (also a1/a2/a3 or 1/2/3)" } };
-        const std::vector<ArgumentSpec> optional_axis{
-            { "axis", "shoulder, elbow, z or all (default)", true }
-        };
-        add({ "axis",
-              "Joint-axis commands in degrees/deg/s or mm/mm/s",
-              {},
-              {},
-              [](const Arguments&, std::ostream& out) {
+        using namespace pnm::meta::string::literals;
+
+        [[ = "Joint-axis commands in degrees/deg/s or mm/mm/s"_fs,
+           = Name{ "axis"_fs } ]] static auto overview(Controller&, const Arguments&, std::ostream& out)
+          -> CallbackResult
+        {
             out << guide;
             return 0;
-        } });
-        add({ "axis status",
-              "Joint coordinates and signed velocities; unreferenced positions lack a physical datum",
-              optional_axis,
-              {},
-              [controller](const Arguments& args, std::ostream& out) {
+        }
+
+        [[
+            = "Joint coordinates and signed velocities; unreferenced positions lack a physical datum"_fs,
+            = Name{ "axis status"_fs },
+            = Arg{ .name = "axis"_fs,
+                   .description = "shoulder, elbow, z or all (default)"_fs,
+                   .optional = true }
+        ]] static auto status(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
             const auto selected{ selection(args) };
-            const auto status{ controller->status() };
+            const auto status{ controller.status() };
             out << std::format("Drivers: {} | timebase: {} | pulse counts: {}\n",
                                status.enabled ? "enabled" : "disabled",
                                stateName(status.generator.state),
@@ -163,69 +166,132 @@ namespace cli::axis
                 }, *axis.conversion);
             }
             return 0;
-        } });
-        for (const bool absolute : { false, true }) {
-            auto arguments{ one_axis };
-            arguments.push_back({ "value",
-                                  absolute ? "Joint target (degrees, or mm for Z)"
-                                           : "Signed joint displacement (degrees, or mm for Z)" });
-            add({ absolute ? "axis moveto" : "axis move",
-                  absolute ? "Absolute joint move; reference required"
-                           : "Relative joint move; sign follows configured axis direction",
-                  std::move(arguments),
-                  { flag("speed", "Required positive joint speed: deg/s or mm/s for Z", "value"),
-                    flag("accel", "Acceleration magnitude: deg/s^2 or mm/s^2; 0 uses default", "value"),
-                    flag("decel", "Deceleration magnitude: deg/s^2 or mm/s^2; 0 uses default", "value"),
-                    flag("jerk", "Jerk magnitude: deg/s^3 or mm/s^3; 0 uses default", "value"),
-                    flag("timeout", "Execution timeout; 0 means unlimited", "seconds"),
-                    flag("buffer",
-                         "aborting (default), buffered, blending-low, blending-previous, blending-next, "
-                         "blending-high",
-                         "mode") },
-                  [controller, absolute](const Arguments& args, std::ostream& out) {
-                const auto id{ axisId(args.require("axis")) };
-                const auto request{ id == MotorId::Motor3 ? moveRequest<true>(args, absolute)
-                                                          : moveRequest<false>(args, absolute) };
-                return submitted(controller->moveAxis(id, request), out, "axis");
-            } });
         }
-        add({ "axis home",
-              "Reference one axis; omitted speeds retain 5/0.5 motor rpm. Direction remains motor Forward",
-              one_axis,
-              { flag("seek", "Seek speed: deg/s or mm/s for Z (>0)", "value"),
-                flag("latch", "Latch speed: deg/s or mm/s for Z; slower than seek (>0)", "value"),
-                flag("timeout", "Overall timeout (>0, default 30)", "seconds") },
-              [controller](const Arguments& args, std::ostream& out) {
+
+        [[
+            = "Relative joint move; sign follows configured axis direction"_fs,
+            = Name{ "axis move"_fs },
+            = Arg{ .name = "axis"_fs, .description = "shoulder, elbow or z (also a1/a2/a3 or 1/2/3)"_fs },
+            = Arg{ .name = "value"_fs, .description = "Signed joint displacement (degrees, or mm for Z)"_fs },
+            = Flag{ .name = "speed"_fs,
+                    .description = "Required positive joint speed: deg/s or mm/s for Z"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "accel"_fs,
+                    .description = "Acceleration magnitude: deg/s^2 or mm/s^2; 0 uses default"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "decel"_fs,
+                    .description = "Deceleration magnitude: deg/s^2 or mm/s^2; 0 uses default"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "jerk"_fs,
+                    .description = "Jerk magnitude: deg/s^3 or mm/s^3; 0 uses default"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "timeout"_fs,
+                    .description = "Execution timeout; 0 means unlimited"_fs,
+                    .value_name = "seconds"_fs },
+            =
+              Flag{
+                .name = "buffer"_fs,
+                .description =
+                  "aborting (default), buffered, blending-low, blending-previous, blending-next, blending-high"_fs,
+                .value_name = "mode"_fs }
+        ]] static auto move(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
+            return performMove(controller, args, out, false);
+        }
+
+        [[
+            = "Absolute joint move; reference required"_fs,
+            = Name{ "axis moveto"_fs },
+            = Arg{ .name = "axis"_fs, .description = "shoulder, elbow or z (also a1/a2/a3 or 1/2/3)"_fs },
+            = Arg{ .name = "value"_fs, .description = "Joint target (degrees, or mm for Z)"_fs },
+            = Flag{ .name = "speed"_fs,
+                    .description = "Required positive joint speed: deg/s or mm/s for Z"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "accel"_fs,
+                    .description = "Acceleration magnitude: deg/s^2 or mm/s^2; 0 uses default"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "decel"_fs,
+                    .description = "Deceleration magnitude: deg/s^2 or mm/s^2; 0 uses default"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "jerk"_fs,
+                    .description = "Jerk magnitude: deg/s^3 or mm/s^3; 0 uses default"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "timeout"_fs,
+                    .description = "Execution timeout; 0 means unlimited"_fs,
+                    .value_name = "seconds"_fs },
+            =
+              Flag{
+                .name = "buffer"_fs,
+                .description =
+                  "aborting (default), buffered, blending-low, blending-previous, blending-next, blending-high"_fs,
+                .value_name = "mode"_fs }
+        ]] static auto moveto(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
+            return performMove(controller, args, out, true);
+        }
+
+        [[
+            = "Reference one axis; omitted speeds retain 5/0.5 motor rpm. Direction remains motor Forward"_fs,
+            = Name{ "axis home"_fs },
+            = Arg{ .name = "axis"_fs, .description = "shoulder, elbow or z (also a1/a2/a3 or 1/2/3)"_fs },
+            = Flag{ .name = "seek"_fs,
+                    .description = "Seek speed: deg/s or mm/s for Z (>0)"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "latch"_fs,
+                    .description = "Latch speed: deg/s or mm/s for Z; slower than seek (>0)"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "timeout"_fs,
+                    .description = "Overall timeout (>0, default 30)"_fs,
+                    .value_name = "seconds"_fs }
+        ]] static auto home(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
             const auto id{ axisId(args.require("axis")) };
             const auto optional_speed = [&](std::string_view name) -> std::optional<Controller::AxisSpeed> {
                 if (const auto value{ option(args, name) })
-                    return speed(id, magnitude(number(*value, name), name, false));
+                    return axisSpeed(id, magnitude(number(*value, name), name, false));
                 return {};
             };
             const auto seek{ optional_speed("seek") }, latch{ optional_speed("latch") };
             const auto timeout{ numericOption(args, "timeout", 30, false) * 1_s };
-            return submitted(controller->referenceAxis(id, seek, latch, timeout), out, "axis");
-        } });
-        add({ "axis speed",
-              "Replan remaining motion at positive joint speed (endpoint unchanged)",
-              { one_axis.front(), { "value", "deg/s for shoulder/elbow, mm/s for Z" } },
-              {},
-              [controller](const Arguments& args, std::ostream& out) {
+            return submitted(controller.referenceAxis(id, seek, latch, timeout), out, "axis");
+        }
+
+        [[
+            = "Replan remaining motion at positive joint speed (endpoint unchanged)"_fs,
+            = Name{ "axis speed"_fs },
+            = Arg{ .name = "axis"_fs, .description = "shoulder, elbow or z (also a1/a2/a3 or 1/2/3)"_fs },
+            = Arg{ .name = "value"_fs, .description = "deg/s for shoulder/elbow, mm/s for Z"_fs }
+        ]] static auto speed(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
             const auto id{ axisId(args.require("axis")) };
             const auto value{ magnitude(number(args.require("value"), "speed"), "speed", false) };
             out << std::format("Speed update scheduled from pulse {} (1-based).\n",
-                               controller->setAxisVelocity(id, speed(id, value)));
+                               controller.setAxisVelocity(id, axisSpeed(id, value)));
             return 0;
-        } });
-        add({ "axis defaults",
-              "Show/update idle-axis profile limits in joint units (same settings as motor defaults)",
-              one_axis,
-              { flag("accel", "Positive acceleration: deg/s^2 or mm/s^2", "value"),
-                flag("decel", "Positive deceleration: deg/s^2 or mm/s^2", "value"),
-                flag("jerk", "Nonnegative jerk: deg/s^3 or mm/s^3; 0 selects trapezoid", "value") },
-              [controller](const Arguments& args, std::ostream& out) {
+        }
+
+        [[
+            = "Show/update idle-axis profile limits in joint units (same settings as motor defaults)"_fs,
+            = Name{ "axis defaults"_fs },
+            = Arg{ .name = "axis"_fs, .description = "shoulder, elbow or z (also a1/a2/a3 or 1/2/3)"_fs },
+            = Flag{ .name = "accel"_fs,
+                    .description = "Positive acceleration: deg/s^2 or mm/s^2"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "decel"_fs,
+                    .description = "Positive deceleration: deg/s^2 or mm/s^2"_fs,
+                    .value_name = "value"_fs },
+            = Flag{ .name = "jerk"_fs,
+                    .description = "Nonnegative jerk: deg/s^3 or mm/s^3; 0 selects trapezoid"_fs,
+                    .value_name = "value"_fs }
+        ]] static auto defaults(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
             const auto id{ axisId(args.require("axis")) };
-            auto defaults{ controller->axisDefaults(id) };
+            auto defaults{ controller.axisDefaults(id) };
             std::visit([&]<typename Defaults>(Defaults& value) {
                 constexpr bool linear{ std::is_same_v<Defaults, Controller::LinearDefaults> };
                 constexpr auto acceleration_unit{ [] {
@@ -249,7 +315,7 @@ namespace cli::axis
                 value.jerk = numericOption(args, "jerk", value.jerk / jerk_unit) * jerk_unit;
             }, defaults);
             if (args.hasFlag("accel") || args.hasFlag("decel") || args.hasFlag("jerk"))
-                controller->setAxisDefaults(id, defaults);
+                controller.setAxisDefaults(id, defaults);
             std::visit([&]<typename Defaults>(const Defaults& value) {
                 constexpr bool linear{ std::is_same_v<Defaults, Controller::LinearDefaults> };
                 constexpr auto acceleration_unit{ [] {
@@ -274,49 +340,71 @@ namespace cli::axis
                                    linear ? "mm/s^3" : "deg/s^3");
             }, defaults);
             return 0;
-        } });
-        add({ "axis enable",
-              "Enable ALL drivers and wait 200 ms",
-              {},
-              {},
-              [controller](const Arguments&, std::ostream& out) {
-            controller->enable();
+        }
+
+        [[ = "Enable ALL drivers and wait 200 ms"_fs,
+           = Name{ "axis enable"_fs } ]] static auto enable(Controller& controller,
+                                                            const Arguments&,
+                                                            std::ostream& out) -> CallbackResult
+        {
+            controller.enable();
             out << "All drivers enabled and settled.\n";
             return 0;
-        } });
-        add({ "axis disable",
-              "Stop ALL motors, disable holding torque and invalidate references",
-              {},
-              {},
-              [controller](const Arguments&, std::ostream& out) {
-            controller->disable();
+        }
+
+        [[
+            = "Stop ALL motors, disable holding torque and invalidate references"_fs,
+            = Name{ "axis disable"_fs }
+        ]] static auto disable(Controller& controller, const Arguments&, std::ostream& out) -> CallbackResult
+        {
+            controller.disable();
             out << "All drivers disabled; references invalidated.\n";
             return 0;
-        } });
-        add({ "axis stop",
-              "Immediate abort of selected axis or all; retains holding torque",
-              optional_axis,
-              {},
-              [controller](const Arguments& args, std::ostream& out) {
-            controller->stop(selection(args));
+        }
+
+        [[
+            = "Immediate abort of selected axis or all; retains holding torque"_fs,
+            = Name{ "axis stop"_fs },
+            = Arg{ .name = "axis"_fs,
+                   .description = "shoulder, elbow, z or all (default)"_fs,
+                   .optional = true }
+        ]] static auto stop(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
+            controller.stop(selection(args));
             out << "Motion stopped; driver enable unchanged.\n";
             return 0;
-        } });
-        add({ "axis reset",
-              "Restart shared timebase while drivers are disabled",
-              {},
-              {},
-              [controller](const Arguments&, std::ostream& out) {
-            controller->reset();
+        }
+
+        [[ = "Restart shared timebase while drivers are disabled"_fs,
+           = Name{ "axis reset"_fs } ]] static auto reset(Controller& controller,
+                                                          const Arguments&,
+                                                          std::ostream& out) -> CallbackResult
+        {
+            controller.reset();
             out << "Timebase restarted; drivers remain disabled.\n";
             return 0;
-        } });
-        add({ "axis jobs",
-              "Same 32 motion results as motor jobs, labelled by joint axis",
-              { { "id", "Optional motion ID", true } },
-              {},
-              [controller](const Arguments& args, std::ostream& out) {
-            return jobs(args, out, *controller, "axis");
-        } });
+        }
+
+        [[
+            = "Same 32 motion results as motor jobs, labelled by joint axis"_fs,
+            = Name{ "axis jobs"_fs },
+            = Arg{ .name = "id"_fs, .description = "Optional motion ID"_fs, .optional = true }
+        ]] static auto jobs(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
+        {
+            return control_detail::jobs(args, out, controller, "axis");
+        }
+    }
+
+    void setup(Parser& parser, std::shared_ptr<control::MotionController> controller)
+    {
+        if (!controller)
+            throw std::invalid_argument("axis commands require a controller");
+        register_commands(parser, [controller](auto command) {
+            return [controller, command](const Arguments& args, std::ostream& out) {
+                return command(*controller, args, out);
+            };
+        });
     }
 }

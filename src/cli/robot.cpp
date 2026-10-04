@@ -1,5 +1,5 @@
 #include "robot.hpp"
-#include "motion_common.hpp"
+#include "control_common.hpp"
 
 #include <format>
 #include <ostream>
@@ -10,7 +10,7 @@ namespace cli::robot
     {
         using Kinematics = ScaraKinematics;
         using namespace pnm::units;
-        using namespace motion::detail;
+        using namespace control_detail;
         constexpr auto degrees_per_second{ 1_deg / 1_s };
 
         std::string_view errorName(Kinematics::Error error)
@@ -81,19 +81,14 @@ namespace cli::robot
         }
     }
 
-    void setup(Parser& parser, std::shared_ptr<control::Robot> robot)
+    namespace commands
     {
-        if (!robot)
-            throw std::invalid_argument("robot commands require a robot");
-        const auto add = [&](Command command) {
-            if (const auto result{ parser.registerCommand(std::move(command)) }; !result)
-                throw std::runtime_error(result.error());
-        };
-        add({ "robot",
-              "SCARA coordinates and kinematics calculations",
-              {},
-              {},
-              [](const Arguments&, std::ostream& out) {
+        using namespace pnm::meta::string::literals;
+
+        [[ = "SCARA coordinates and kinematics calculations"_fs,
+           = Name{ "robot"_fs } ]] static auto overview(control::Robot&, const Arguments&, std::ostream& out)
+          -> CallbackResult
+        {
             out << "Robot kinematics (distances in mm, joint angles in degrees):\n"
                    "  robot status                  Live commanded tool position and velocity\n"
                    "  robot geometry                Configured arm lengths, frames and limits\n"
@@ -102,13 +97,14 @@ namespace cli::robot
                    "    --branch current|positive|negative (default: current)\n"
                    "Calculations do not move the robot. Use 'axis' for individual joint motion.\n";
             return 0;
-        } });
-        add({ "robot status",
-              "Live tool pose/velocity from axis coordinates, with reference and feedback validity",
-              {},
-              {},
-              [robot](const Arguments&, std::ostream& out) {
-            const auto status{ robot->status() };
+        }
+
+        [[
+            = "Live tool pose/velocity from axis coordinates, with reference and feedback validity"_fs,
+            = Name{ "robot status"_fs }
+        ]] static auto status(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        {
+            const auto status{ robot.status() };
             out << std::format("Drivers: {} | timebase: {} | pulse counts: {} | referenced={}\n",
                                status.motors.enabled ? "enabled" : "disabled",
                                stateName(status.motors.generator.state),
@@ -132,13 +128,14 @@ namespace cli::robot
                 out << ". See 'axis status' for individual feedback.\n";
             }
             return 0;
-        } });
-        add({ "robot geometry",
-              "Show configured arm lengths, base/tool frames and joint limits",
-              {},
-              {},
-              [robot](const Arguments&, std::ostream& out) {
-            const auto& config{ robot->kinematics().configuration() };
+        }
+
+        [[
+            = "Show configured arm lengths, base/tool frames and joint limits"_fs,
+            = Name{ "robot geometry"_fs }
+        ]] static auto geometry(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        {
+            const auto& config{ robot.kinematics().configuration() };
             out << std::format("Arms: first={:.4f} mm  second={:.4f} mm\n",
                                config.first_arm_length / 1_mm,
                                config.second_arm_length / 1_mm);
@@ -162,15 +159,17 @@ namespace cli::robot
                 out << "Joint limits: not configured\n";
             out << std::format("Minimum bend sine: {:g}\n", config.minimum_bend_sine);
             return 0;
-        } });
-        add({ "robot fk",
-              "Calculate tool pose from shoulder/elbow angles and Z; does not move",
-              { { "shoulder", "Shoulder angle (degrees)" },
-                { "elbow", "Elbow angle relative to first arm (degrees)" },
-                { "z", "Z carriage coordinate (mm)" } },
-              {},
-              [robot](const Arguments& args, std::ostream& out) -> CallbackResult {
-            const auto pose{ robot->kinematics().forward(
+        }
+
+        [[
+            = "Calculate tool pose from shoulder/elbow angles and Z; does not move"_fs,
+            = Name{ "robot fk"_fs },
+            = Arg{ .name = "shoulder"_fs, .description = "Shoulder angle (degrees)"_fs },
+            = Arg{ .name = "elbow"_fs, .description = "Elbow angle relative to first arm (degrees)"_fs },
+            = Arg{ .name = "z"_fs, .description = "Z carriage coordinate (mm)"_fs }
+        ]] static auto fk(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
+        {
+            const auto pose{ robot.kinematics().forward(
               { number(args.require("shoulder"), "shoulder") * 1_deg,
                 number(args.require("elbow"), "elbow") * 1_deg,
                 number(args.require("z"), "z") * 1_mm }) };
@@ -178,21 +177,25 @@ namespace cli::robot
                 return callback_failure(std::string(errorName(pose.error())));
             printPose(out, *pose);
             return 0;
-        } });
-        add({ "robot ik",
-              "Calculate a joint endpoint using current commanded joints as seed; does not move",
-              { { "x", "Tool X in world frame (mm)" },
-                { "y", "Tool Y in world frame (mm)" },
-                { "z", "Tool Z in world frame (mm)" } },
-              { flag("branch", "Elbow branch: current (default), positive, negative", "name") },
-              [robot](const Arguments& args, std::ostream& out) -> CallbackResult {
+        }
+
+        [[
+            = "Calculate a joint endpoint using current commanded joints as seed; does not move"_fs,
+            = Name{ "robot ik"_fs },
+            = Arg{ .name = "x"_fs, .description = "Tool X in world frame (mm)"_fs },
+            = Arg{ .name = "y"_fs, .description = "Tool Y in world frame (mm)"_fs },
+            = Arg{ .name = "z"_fs, .description = "Tool Z in world frame (mm)"_fs },
+            = Flag{ .name = "branch"_fs,
+                    .description = "Elbow branch: current (default), positive, negative"_fs,
+                    .value_name = "name"_fs }
+        ]] static auto ik(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
+        {
             const Kinematics::CartesianPosition target{ number(args.require("x"), "x") * 1_mm,
                                                         number(args.require("y"), "y") * 1_mm,
                                                         number(args.require("z"), "z") * 1_mm };
             const auto selected_branch{ branch(args) };
-            const auto status{ robot->status() };
-            const auto result{ robot->kinematics().inverse(
-              target, status.commanded.joints, selected_branch) };
+            const auto status{ robot.status() };
+            const auto result{ robot.kinematics().inverse(target, status.commanded.joints, selected_branch) };
             if (!result)
                 return callback_failure(std::string(errorName(result.error())));
             printJoints(out, *result);
@@ -200,6 +203,17 @@ namespace cli::robot
             if (!status.referenced)
                 out << "Seed is unreferenced; joint coordinates have no established physical datum.\n";
             return 0;
-        } });
+        }
+    }
+
+    void setup(Parser& parser, std::shared_ptr<control::Robot> robot)
+    {
+        if (!robot)
+            throw std::invalid_argument("robot commands require a robot");
+        register_commands(parser, [robot](auto command) {
+            return [robot, command](const Arguments& args, std::ostream& out) {
+                return command(*robot, args, out);
+            };
+        });
     }
 }

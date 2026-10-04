@@ -4,11 +4,122 @@
 
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unistd.h>
+
+namespace annotated_cli_fixture
+{
+    namespace commands
+    {
+        using namespace pnm::meta::string::literals;
+
+        [[
+            = "Echo annotated arguments."_fs,
+            = cli::Arg{ .name = "text"_fs, .description = "Text to echo"_fs },
+            = cli::Arg{ .name = "suffix"_fs, .description = "Optional suffix"_fs, .optional = true },
+            = cli::Flag{ .name = "upper"_fs, .short_name = 'u', .description = "Mark as upper"_fs },
+            = cli::Flag{ .name = "prefix"_fs,
+                         .short_name = 'p',
+                         .description = "Text prefix"_fs,
+                         .value_name = "text"_fs }
+        ]] static auto echo(const cli::Arguments& args, std::ostream& out) -> cli::CallbackResult
+        {
+            out << args.flagValue("prefix").value_or("") << args.require("text")
+                << args.get("suffix").value_or("") << (args.hasFlag("upper") ? "!" : "");
+            return 0;
+        }
+
+        [[ = "Forward pipeline input."_fs,
+           = cli::Name{ "meta stream"_fs } ]] static auto stream(const cli::Arguments&, cli::CommandIO& io)
+          -> cli::CallbackResult
+        {
+            io.output << io.input.rdbuf();
+            return 0;
+        }
+    }
+}
+
+namespace bound_cli_fixture
+{
+    struct Context
+    {
+        int calls{};
+    };
+
+    namespace commands
+    {
+        using namespace pnm::meta::string::literals;
+
+        [[ = "Count calls on the injected context."_fs,
+           = cli::Name{ "meta count"_fs } ]] static auto count(Context& context,
+                                                               const cli::Arguments&,
+                                                               cli::CommandIO& io) -> cli::CallbackResult
+        {
+            io.output << ++context.calls;
+            return 0;
+        }
+    }
+
+    void setup(cli::Parser& parser, std::shared_ptr<Context> context)
+    {
+        cli::register_commands(parser, [context](auto command) {
+            return [context, command](const cli::Arguments& args, cli::CommandIO& io) {
+                return command(*context, args, io);
+            };
+        });
+    }
+}
+
+TEST(CliParser, RegistersAnnotationsWithInferredAndMultiwordNames)
+{
+    cli::Parser parser;
+    cli::register_commands<^^annotated_cli_fixture>(parser);
+    EXPECT_TRUE(parser.contains("echo"));
+    EXPECT_TRUE(parser.contains("meta stream"));
+    EXPECT_FALSE(parser.contains("stream"));
+    EXPECT_FALSE(cli::registry().contains("meta stream"));
+
+    std::ostringstream output;
+    ASSERT_TRUE(parser.execute("echo hello world -u --prefix=hi: | meta stream", output));
+    EXPECT_EQ(output.str(), "hi:helloworld!");
+    output.str({});
+    ASSERT_TRUE(parser.execute("echo only", output));
+    EXPECT_EQ(output.str(), "only");
+    EXPECT_EQ(parser.execute("echo", output).error, cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(parser.execute("echo ok --unknown", output).error, cli::ExecutionError::InvalidArguments);
+    const auto help{ parser.help("echo") };
+    EXPECT_NE(help.find("Echo annotated arguments."), std::string::npos);
+    EXPECT_NE(help.find("Optional suffix"), std::string::npos);
+    EXPECT_NE(help.find("--prefix"), std::string::npos);
+    EXPECT_THROW(cli::register_commands<^^annotated_cli_fixture>(parser), std::runtime_error);
+}
+
+TEST(CliParser, AnnotationBindingsRetainContextAndKeepParsersIndependent)
+{
+    auto first{ std::make_shared<bound_cli_fixture::Context>() };
+    auto second{ std::make_shared<bound_cli_fixture::Context>() };
+    std::weak_ptr<bound_cli_fixture::Context> lifetime{ first };
+    {
+        cli::Parser first_parser, second_parser;
+        bound_cli_fixture::setup(first_parser, first);
+        bound_cli_fixture::setup(second_parser, second);
+        first.reset();
+        EXPECT_FALSE(lifetime.expired());
+        std::ostringstream output;
+        ASSERT_TRUE(first_parser.execute("meta count", output));
+        ASSERT_TRUE(first_parser.execute("meta count", output));
+        ASSERT_TRUE(second_parser.execute("meta count", output));
+        EXPECT_EQ(output.str(), "121");
+        EXPECT_EQ(lifetime.lock()->calls, 2);
+        EXPECT_EQ(second->calls, 1);
+        EXPECT_FALSE(cli::registry().contains("meta count"));
+    }
+    EXPECT_TRUE(lifetime.expired());
+}
 
 namespace
 {
@@ -659,15 +770,19 @@ TEST(CliParser, RunsAnInteractivePromptUntilEndOfInput)
 TEST(CliParser, ResolvesLongestCommandPathsWithIndependentHelpAndFlags)
 {
     cli::Parser parser;
-    ASSERT_TRUE(parser.registerCommand({ "robot", "Robot commands", {}, {},
-      [](const cli::Arguments&, std::ostream& out) { out << "group\n"; return 0; } }));
-    ASSERT_TRUE(parser.registerCommand({ "robot axis move", "Move one robot axis",
-      { { "distance", "Signed distance" } },
-      { { "speed", 's', "Speed", "value" } },
-      [](const cli::Arguments& args, std::ostream& out) {
-          out << args.require("distance") << ' ' << args.flagValue("speed").value_or("unset") << '\n';
-          return 0;
-      } }));
+    ASSERT_TRUE(parser.registerCommand(
+      { "robot", "Robot commands", {}, {}, [](const cli::Arguments&, std::ostream& out) {
+        out << "group\n";
+        return 0;
+    } }));
+    ASSERT_TRUE(parser.registerCommand({ "robot axis move",
+                                         "Move one robot axis",
+                                         { { "distance", "Signed distance" } },
+                                         { { "speed", 's', "Speed", "value" } },
+                                         [](const cli::Arguments& args, std::ostream& out) {
+        out << args.require("distance") << ' ' << args.flagValue("speed").value_or("unset") << '\n';
+        return 0;
+    } }));
     std::ostringstream output;
     ASSERT_TRUE(parser.execute("robot axis move -9e-1 --speed 2", output));
     EXPECT_EQ(output.str(), "-9e-1 2\n");
@@ -683,10 +798,19 @@ TEST(CliParser, ResolvesLongestCommandPathsWithIndependentHelpAndFlags)
 TEST(CliParser, NegativeNumbersRemainArgumentsUnlessTheNumericShortFlagIsRegistered)
 {
     cli::Parser parser;
-    ASSERT_TRUE(parser.registerCommand({ "number", {}, { { "value", {} } }, {},
-      [](const cli::Arguments& args, std::ostream& out) { out << args.require("value"); return 0; } }));
-    ASSERT_TRUE(parser.registerCommand({ "numericflag", {}, {}, { { "one", '1', {}, std::nullopt } },
-      [](const cli::Arguments& args, std::ostream& out) { out << args.hasFlag("one"); return 0; } }));
+    ASSERT_TRUE(parser.registerCommand(
+      { "number", {}, { { "value", {} } }, {}, [](const cli::Arguments& args, std::ostream& out) {
+        out << args.require("value");
+        return 0;
+    } }));
+    ASSERT_TRUE(parser.registerCommand({ "numericflag",
+                                         {},
+                                         {},
+                                         { { "one", '1', {}, std::nullopt } },
+                                         [](const cli::Arguments& args, std::ostream& out) {
+        out << args.hasFlag("one");
+        return 0;
+    } }));
     for (const auto number : { "-90", "-.5", "-1e-3" }) {
         std::ostringstream output;
         ASSERT_TRUE(parser.execute(std::string("number ") + number, output));
@@ -702,6 +826,6 @@ TEST(CliParser, RejectsMalformedCommandPathsAndReservedHelpPaths)
 {
     cli::Parser parser;
     for (const auto name : { " motor", "motor ", "motor  move", "motor\tmove", "help motor" })
-        EXPECT_FALSE(parser.registerCommand({ name, {}, {}, {},
-          [](const cli::Arguments&, std::ostream&) { return 0; } }));
+        EXPECT_FALSE(parser.registerCommand(
+          { name, {}, {}, {}, [](const cli::Arguments&, std::ostream&) { return 0; } }));
 }

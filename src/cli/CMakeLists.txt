@@ -4,9 +4,10 @@ add_library(application::cli ALIAS application_cli)
 target_sources(application_cli
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/motion.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/motion.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/motion_common.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/motor.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/motor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/control_common.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/control_common.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/axis.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/axis.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/robot.hpp

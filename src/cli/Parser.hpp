@@ -207,6 +207,14 @@ namespace cli
         bool variadic{ false };
     };
 
+    // Optional command path override, e.g. "motor status". Without this
+    // annotation the reflected function identifier is the command name.
+    template<size_t N>
+    struct Name
+    {
+        pnm::meta::string::FixedString<N> name;
+    };
+
     template<size_t N1, size_t N2, size_t N3 = 0UZ>
     struct Flag
     {
@@ -218,6 +226,19 @@ namespace cli
 
     namespace detail
     {
+        template<typename T>
+        struct is_name : std::false_type
+        {
+        };
+
+        template<size_t N>
+        struct is_name<Name<N>> : std::true_type
+        {
+        };
+
+        template<typename T>
+        concept IsName = is_name<std::remove_cvref_t<T>>::value;
+
         template<typename T>
         struct is_arg : std::false_type
         {
@@ -251,8 +272,11 @@ namespace cli
         concept IsFlag = is_flag_v<T>;
     }
 
-    template<std::meta::info ns = std::meta::current_namespace()>
-    constexpr auto register_commands() -> void
+    // Bind adapts a reflected function to Callback (for example by capturing
+    // an application-owned controller). Stateless modules use the identity
+    // binding and the application registry, as before.
+    template<std::meta::info ns = std::meta::current_namespace(), typename Bind = std::identity>
+    constexpr auto register_commands(Parser& parser = registry(), Bind bind = {}) -> void
     {
         static constexpr auto command_functions{ [] {
             std::vector<std::meta::info> functions;
@@ -265,7 +289,6 @@ namespace cli
             return std::define_static_array(functions);
         }() };
 
-        auto& parser{ registry() };
         template for (constexpr auto command_function : command_functions)
         {
             constexpr auto annotations{ std::define_static_array(
@@ -283,16 +306,21 @@ namespace cli
                          .description = std::string(description),
                          .arguments = {},
                          .flags = {},
-                         .callback = [:command_function:] };
+                         .callback = bind([:command_function:]) };
 
             template for (constexpr auto annotation :
                           std::span(annotations.data() + 1, annotations.size() - 1))
             {
                 using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
-                static_assert(detail::IsArg<Type> || detail::IsFlag<Type>,
+                static_assert(detail::IsName<Type> || detail::IsArg<Type> || detail::IsFlag<Type>,
                               "Invalid type for secondary annotation!");
 
-                if constexpr (detail::IsArg<Type>) {
+                if constexpr (detail::IsName<Type>) {
+                    constexpr auto name_override{ std::meta::extract<Type>(annotation) };
+                    static_assert(!name_override.name.empty(), "Command name must not be empty.");
+                    cmd.name = std::string(name_override.name);
+                }
+                else if constexpr (detail::IsArg<Type>) {
                     constexpr auto arg{ std::meta::extract<Type>(annotation) };
                     cmd.arguments.emplace_back(
                       std::string(arg.name), std::string(arg.description), arg.optional, arg.variadic);
@@ -307,7 +335,7 @@ namespace cli
                 }
             }
 
-            auto registration{ parser.registerCommand(cmd) };
+            auto registration{ parser.registerCommand(std::move(cmd)) };
             if (!registration) {
                 throw std::runtime_error{ registration.error() };
             }

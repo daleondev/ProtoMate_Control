@@ -1,5 +1,6 @@
 #include "cli/Parser.hpp"
 #include "cli/axis.hpp"
+#include "cli/motor.hpp"
 #include "control/MotionController.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 #include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
@@ -40,7 +41,7 @@ namespace
                 ASSERT_TRUE(switches[i]);
                 switches[i]->setSimulatedLevel(Low);
             }
-            cli::motion::setup(parser, controller);
+            cli::motor::setup(parser, controller);
             cli::axis::setup(parser, controller);
         }
 
