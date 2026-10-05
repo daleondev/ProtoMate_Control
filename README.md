@@ -998,6 +998,10 @@ as specified in its manual.
 
 ### TMC2209 UART configuration and diagnostics
 
+For temporary wiring and an interactive image that tests **one** driver with
+an unloaded motor, see the [single-TMC2209 bench test](docs/tmc2209-hardware-test.md)
+and the `tmc-test-stm32` build preset. The normal robot application requires both drivers.
+
 M2 and M3 share **USART2 at 115200 baud, 8N1**, separate from the USART3 CLI.
 All signals use **3.3 V logic**. The board factory creates one `IUart` transport;
 `MotionController` owns and serializes the two `hal::device::Tmc2209` devices.

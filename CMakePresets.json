@@ -27,7 +27,8 @@
                 "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,
                 "RUNTIME_HARDWARE_STORAGE_STARTUP_TEST": false,
                 "HAL_HARDWARE_STEP_TEST": false,
-                "RUNTIME_STORAGE_REQUIRED": false
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "HAL_HARDWARE_TMC_TEST": false
             }
         },
         {
@@ -57,6 +58,16 @@
             "inherits": "release-stm32",
             "cacheVariables": {
                 "HAL_HARDWARE_STEP_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "tmc-test-stm32",
+            "displayName": "STM32 Single TMC2209 Bench Test",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_TMC_TEST": true,
                 "RUNTIME_STORAGE_REQUIRED": false,
                 "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
             }
@@ -166,6 +177,10 @@
         {
             "name": "storage-startup-test-stm32",
             "configurePreset": "storage-startup-test-stm32"
+        },
+        {
+            "name": "tmc-test-stm32",
+            "configurePreset": "tmc-test-stm32"
         }
     ]
 }
