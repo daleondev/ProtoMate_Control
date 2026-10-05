@@ -1043,7 +1043,7 @@ conversion. The hardware STEP generator remains responsible for all motion.
 | Requested run / hold current | 650 / 650 mA RMS | 550 / 550 mA RMS |
 | Nominal quantized run / hold current | 625 / 625 mA RMS | 511 / 511 mA RMS |
 | CLI run-current ceiling | 700 mA RMS | 590 mA RMS |
-| Initial mode | SpreadCycle | SpreadCycle |
+| Initial mode | StealthChop | StealthChop |
 | External microsteps / interpolation | 16 / 256 enabled | 16 / 256 enabled |
 
 The calculation uses the Adafruit board's **0.05 Ω sense resistors** and
@@ -1059,8 +1059,8 @@ holding torque. Settings are volatile; boot restores the defaults above.
 ```text
 motor driver status
 motor disable
-motor driver configure m2 --run 650 --hold 500 --mode spreadcycle --interpolate on
-motor driver configure m3 --run 550 --mode spreadcycle
+motor driver configure m2 --run 650 --hold 500 --mode stealthchop --interpolate on
+motor driver configure m3 --run 550 --mode stealthchop
 motor driver status m3
 motor driver init
 ```
@@ -1070,9 +1070,10 @@ and invalidate references. `motor driver init` reinitializes both devices and
 leaves them disabled. `motor reset` resets the step timebase and performs the
 same driver initialization. `motor enable` verifies both again before asserting
 shared enable and waiting 200 ms. `axis` and `robot` share this controller.
-StealthChop is selectable with `--mode stealthchop`; it requires a nominal
-requested current of at least 512 mA RMS for the recommended minimum IRUN scale.
-SpreadCycle is the initial mode; no automatic mode switch is configured.
+StealthChop is the initial mode; it requires a requested run current of at
+least 512 mA RMS for the recommended minimum IRUN scale. The 200 ms enable
+delay allows its initial standstill auto-tuning before motion. SpreadCycle
+remains selectable with `--mode spreadcycle`; no automatic mode switch is configured.
 
 A monitor polls each driver's GSTAT, DRV_STATUS, IOIN, SG_RESULT and readable
 configuration approximately every **100 ms plus transaction/scheduling time**.

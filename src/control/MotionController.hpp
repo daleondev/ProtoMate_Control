@@ -220,8 +220,8 @@ namespace control
         std::array<std::unique_ptr<hal::device::Tmc2209>, 2> m_drivers;
         std::array<std::shared_ptr<hal::IDigitalInput>, 2> m_diagnostics;
         std::array<DriverConfiguration, 2> m_driverConfigurations{{
-            { .run_milliamps = 650, .hold_milliamps = 650 },
-            { .run_milliamps = 550, .hold_milliamps = 550 },
+            { .run_milliamps = 650, .hold_milliamps = 650, .mode = hal::device::Tmc2209::Mode::StealthChop },
+            { .run_milliamps = 550, .hold_milliamps = 550, .mode = hal::device::Tmc2209::Mode::StealthChop },
         }};
         std::array<std::optional<hal::device::Tmc2209::Status>, 2> m_driverStatus;
         std::array<std::string, 2> m_driverErrors;

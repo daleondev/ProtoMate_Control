@@ -28,7 +28,7 @@ and VDD long enough for the rails to discharge. A Nucleo reset or firmware
 flash does not clear the driver's previous UART register settings. Our tests
 do not program OTP memory; normal volatile settings reset on driver power-up.
 
-**The potentiometer now sets motor current.** The old firmware's 400 mA
+**The potentiometer sets motor current.** The UART bench's digital current
 setting is not applied. Do not assume the potentiometer's existing position
 is suitable, and do not run `hold`/motion until it is set.
 
@@ -40,8 +40,8 @@ I_RMS = 0.325 / ((0.05 + 0.02) × sqrt(2)) × VREF / 2.5
       ≈ 1.31 × VREF  [A, with VREF in volts]
 ```
 
-**VREF around 0.30 V gives approximately 0.39 A RMS**, close to the earlier
-bench current. Measure VREF at the potentiometer wiper relative to GND with
+**VREF around 0.30 V gives approximately 0.39 A RMS**, a conservative initial
+standalone test current. Measure VREF at the potentiometer wiper relative to GND with
 the driver powered and **EN high**, then adjust the potentiometer. Keep the
 probe away from adjacent contacts. This is a conservative initial test point,
 not a precision current calibration: the datasheet recommends a higher VREF

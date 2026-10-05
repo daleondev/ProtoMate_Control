@@ -174,7 +174,7 @@ Driver configuration is shared by motor, axis and robot commands:
 Boot verifies both TMC2209 devices while enable is HIGH. An absent/faulted driver
 blocks enable and motion on every axis; the console stays available. M1 retains
 DM542T DIP-switch configuration and has no UART. Defaults are M2 650 mA RMS,
-M3 550 mA RMS, hold equal to run, SpreadCycle and 16 external microsteps with
+M3 550 mA RMS, hold equal to run, StealthChop and 16 external microsteps with
 256 interpolation. Current scales round down (625/511 mA nominal actual).
 M2 is capped at 700 mA RMS, M3 at 590 mA RMS; the minimum request is 100 mA.
 Z hold must equal run; changing `--run` on M3 also changes hold unless supplied
@@ -185,7 +185,7 @@ UART digital current control bypasses the Adafruit potentiometers.
 ```text
 motor driver status
 motor disable
-motor driver configure m2 --run 650 --hold 500 --mode spreadcycle
+motor driver configure m2 --run 650 --hold 500 --mode stealthchop
 motor driver init
 motor driver status m3
 ```

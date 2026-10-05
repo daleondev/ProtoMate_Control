@@ -35,7 +35,7 @@ USB-powered setup. Retain the project's crystal-derived ST-Link MCO setting
 | MS2 | GND |
 | UART | **CN9 pin 4 / PD6** directly, plus **1 kΩ to CN9 pin 6 / PD5** |
 | DIAG | **CN9 pin 8 / PD4** |
-| INDEX | Unconnected |
+| INDEX | Logic analyzer D7, optional; no MCU connection |
 
 Leave **SPRD open**. The UART wire is one node connecting the Adafruit UART
 pin, PD6 RX and the far end of the 1 kΩ TX resistor:
@@ -72,12 +72,14 @@ Attach only its inputs and GND, not a power-output lead.
 | D1 | DIR / CN10.10 |
 | D2 | EN / CN10.30 |
 | D3 | MCU TX / CN9.6, before the 1 kΩ resistor |
-| D4 | UART bus / CN9.4, after the resistor |
-| D5 | DIAG / CN9.8 |
+| D4 | MCU TX / CN9.6, duplicate of D3 in the current bench wiring |
+| D5 | UART bus / CN9.4, after the resistor |
+| D6 | DIAG / CN9.8 |
+| D7 | Adafruit INDEX |
 | GND | CN10.22 |
 
-D6/D7 are unused. Decode D3/D4 as **115200 baud, 8N1, LSB first**. D3 contains
-MCU requests; D4 contains those requests and the driver's replies. D4's local
+Decode D3/D5 as **115200 baud, 8N1, LSB first**. D3 contains
+MCU requests; D5 contains those requests and the driver's replies. D5's local
 echo is expected. Idle is high on UART and EN, low on STEP and DIAG.
 
 ## Build and flash
@@ -109,10 +111,11 @@ supply. Commands are complete lines followed by Enter; CR/LF/CRLF work.
 
 | Command | Action |
 | --- | --- |
+| `mode spread` / `mode stealth` | Select SpreadCycle / StealthChop while idle and disabled. Invalidates the previous check; run `check` to apply and verify. Startup selection is SpreadCycle. |
 | `check` | UART/configuration suite, always with EN high and STEP stopped. Required before `hold` or `move`. |
-| `status` | Print raw GSTAT, DRV_STATUS, IOIN and SG_RESULT without enabling. Useful after a failure. |
-| `hold` | After a 2 s preparation delay, enable briefly without STEP, then disable. |
-| `move` | After a 2 s delay, enable/settle, emit 400 pulses with DIR low, wait 300 ms, emit 400 with DIR high, then disable. |
+| `status` | Print selected mode/qualification, raw GSTAT, DRV_STATUS, IOIN and SG_RESULT, reported chopper mode and current scale without enabling. A selected mode is not applied until `check` passes. |
+| `hold` | After a 2 s preparation delay, enable/settle for 1 s, hold for 5 s without STEP, then disable. |
+| `move` | After a 2 s delay, enable/settle for 1 s, emit 400 pulses with DIR low, wait 300 ms, emit 400 with DIR high, then disable. |
 | `stop` | Immediately raise EN, wake the worker and abort; another `check` is required before motion. |
 | `address 0` / `address 1` | Select the physically strapped node; disable and invalidate the previous check. All signal wires stay on M2 pins. |
 | `help` | Print the menu. |
@@ -132,8 +135,9 @@ Run `check` first. It verifies:
   unexpectedly accepted): IFCNT must not change.
 - Timeout at the absent address, followed by successful communication with the
   selected address.
-- A disabled configuration round trip through 32 microsteps / StealthChop /
-  interpolation off, then restoration of the motion settings.
+- A disabled configuration round trip through the opposite chopper mode,
+  reduced hold current, 32 microsteps and interpolation off, then restoration
+  of the selected comparison settings.
 - 100 repeated status/configuration checks, including reply CRCs.
 - All three controller STEP pads remain low.
 
@@ -141,22 +145,60 @@ Expect `PASS check; EN disabled`, followed by `READY for command`. On failure,
 EN stays high; correct wiring/power, optionally read `status`, and rerun `check`.
 Do not induce a hardware short circuit or overheat the driver to test DIAG.
 
-Motion settings are **400 mA RMS requested**, approximately **397 mA nominal
+Both chopper modes use **550 mA RMS requested**, approximately **511 mA nominal
 quantized current**, with hold equal to run, **16 microsteps**, interpolation
-on and **SpreadCycle**. This is a conservative unloaded test setting for both
-project motors. UART current control bypasses the potentiometer. The alternate
-550 mA / StealthChop configuration is exercised only with outputs disabled.
+on and identical pulse timing. UART current control bypasses the potentiometer.
+The digital current scale is **IRUN=IHOLD=8**, within the datasheet's specified
+8–31 range for StealthChop operation. The current readback is the driver's
+digital scale, not a measurement of physical winding current. The 1 s enabled
+settling interval permits StealthChop's initial standstill auto-tuning and is
+the same in both modes.
 
-After `check`, `hold` verifies actual ENN low/high readback without rotating.
-Then capture approximately seven seconds around `move`:
+### Compare holding noise and motion
+
+Enter each command separately and wait for completion before the next:
+
+```text
+mode spread
+check
+hold
+mode stealth
+check
+hold
+```
+
+Compare buzzing, fine vibration and holding strength during the five-second
+`HOLD` interval. A small initial alignment movement on enabling is distinct
+from sustained holding vibration. No pulse is scheduled during either hold.
+The test checks ENN, active chopper mode and `CS_ACTUAL=8` after settling,
+checks STEP low during the hold, and verifies standstill, unchanged internal
+microstep counter (`MSCNT`) and no register writes (`IFCNT`) during the hold.
+The internal counter is commanded electrical phase, not a rotor encoder.
+
+If StealthChop is quieter with solid holding, the chopper mode accounts for
+the difference. The UART link remains active, performing the same diagnostic
+reads in both cases. The test reports electrical/configuration checks as
+`PASS`; sound, vibration and shaft behavior still require observation.
+
+Compare motion separately using `mode spread` → `check` → `move`, then
+`mode stealth` → `check` → `move`. Mode/address changes while an operation is
+busy are rejected; `stop` and B1 remain available. Selecting a mode alone
+never enables the motor. Keep the same motor, supply and wiring for both modes.
+
+### Expected logic-analyzer signals
+
+Capture approximately eight seconds around `move` (ten seconds around `hold`):
 
 - D0 has **two bursts of exactly 400 rising edges**, 800 total.
 - Within each burst, the period is **2.5 ms / 400 Hz**, high time **5 µs**.
 - D1 is low for the first burst and high for the second, with no pulses at the
   direction transition; both bursts finish with STEP low.
 - D2 is low only during the enabled test, returning high at completion.
-- D3/D4 show diagnostic reads during motion; pulse timing should remain uniform.
-- D5 remains low in a healthy run.
+- D3/D5 show diagnostic reads during motion; pulse timing should remain uniform.
+- D6 remains low in a healthy run.
+- D7 INDEX repeats every 64 STEP pulses at 16 microsteps, about 160 ms at
+  this speed. Its phase depends on the internal microstep counter; INDEX
+  confirms sequencer activity, not physical rotor motion.
 
 For a 1.8° motor this requests **45° in each direction at 7.5 rpm**. Observe
 that the unloaded shaft moves out and back. Firmware counts prove commanded
