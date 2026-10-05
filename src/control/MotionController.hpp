@@ -2,6 +2,7 @@
 
 #include "AxisConversion.hpp"
 #include "StepperMotor.hpp"
+#include "hal/devices/impl/Tmc2209.hpp"
 
 #include <array>
 #include <deque>
@@ -85,6 +86,22 @@ namespace control
             bool coordinated{};
         };
 
+        using DriverConfiguration = hal::device::Tmc2209::Configuration;
+        struct DriverStatus
+        {
+            MotorId motor;
+            std::uint8_t address;
+            DriverConfiguration configuration;
+            std::optional<hal::device::Tmc2209::Status> diagnostics;
+            std::string error;
+            bool ready;
+            bool fault_latched;
+        };
+        std::array<DriverStatus, 2> driverStatus() const;
+        // Explicit recovery, disabled only. Never automatically resumes motion.
+        void initializeDrivers();
+        void configureDriver(MotorId motor, DriverConfiguration configuration);
+
         struct CoordinatedPlan
         {
             // Empty sequence means this axis holds its position.
@@ -161,6 +178,9 @@ namespace control
       private:
         StepperMotor& axis(MotorId motor) const;
         void requireEnabled() const;
+        void initializeDriversLocked();
+        void monitorDrivers(std::stop_token stop);
+        void driverFaultLocked(std::size_t index, std::string reason);
         void stopLocked(std::optional<MotorId> motor);
         void collect();
         void reserveMotion(MotorId motor);
@@ -196,5 +216,18 @@ namespace control
         std::deque<GroupMotion> m_groupMotions;
         MotionId m_nextGroupId{ 1 };
         std::jthread m_groupWorker;
+        std::shared_ptr<hal::IUart> m_driverBus;
+        std::array<std::unique_ptr<hal::device::Tmc2209>, 2> m_drivers;
+        std::array<std::shared_ptr<hal::IDigitalInput>, 2> m_diagnostics;
+        std::array<DriverConfiguration, 2> m_driverConfigurations{{
+            { .run_milliamps = 650, .hold_milliamps = 650 },
+            { .run_milliamps = 550, .hold_milliamps = 550 },
+        }};
+        std::array<std::optional<hal::device::Tmc2209::Status>, 2> m_driverStatus;
+        std::array<std::string, 2> m_driverErrors;
+        bool m_driversReady{};
+        std::atomic_uint m_driverFaults{};
+        runtime::Notification m_driverNotification;
+        std::jthread m_driverWorker;
     };
 }

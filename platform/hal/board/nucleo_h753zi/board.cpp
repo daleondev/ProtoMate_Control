@@ -5,6 +5,7 @@
 #include "hal/drivers/factory/encoder.hpp"
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/factory/step.hpp"
+#include "hal/drivers/factory/uart.hpp"
 
 #include <memory>
 #include <utility>
@@ -57,6 +58,15 @@ namespace hal::board
     }
 
     auto createStepperGenerator() -> std::shared_ptr<IStepGenerator> { return step::create(); }
+
+    auto createStepperDriverBus() -> std::shared_ptr<IUart> { return uart::createStepperBus(); }
+
+    auto createStepperDiagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>
+    {
+        if (id != MotorId::Motor2 && id != MotorId::Motor3) return {};
+        return gpio::createInput({ .pin = { D, static_cast<std::uint8_t>(id == MotorId::Motor2 ? 4 : 3) },
+                                   .pull = gpio::Pull::Down, .edge = gpio::Edge::Rising });
+    }
 
     auto createStepperStepOutput(const std::shared_ptr<IStepGenerator>& generator, MotorId id)
       -> std::shared_ptr<IStepOutput>

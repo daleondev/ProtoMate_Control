@@ -1,5 +1,6 @@
 #include "MotionController.hpp"
 #include "runtime/thread.hpp"
+#include "pneumo/pneumo.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -28,10 +29,41 @@ namespace control
         }
         if (const auto result{ m_generator->start() }; !result)
             throw std::runtime_error("step timebase start failed: " + result.error().message());
+        m_driverBus = hal::board::createStepperDriverBus();
+        if (!m_driverBus) throw std::runtime_error("stepper UART creation failed");
+        for (std::size_t i{}; i < 2; ++i) {
+            const auto microsteps = configuration[i + 1].microsteps;
+            if (microsteps == 0 || microsteps > 256 || (microsteps & (microsteps - 1)))
+                throw std::invalid_argument("TMC2209 microsteps must be a power of two in 1..256");
+            m_drivers[i] = std::make_unique<hal::device::Tmc2209>(m_driverBus, i);
+            m_driverConfigurations[i].microsteps = static_cast<std::uint16_t>(microsteps);
+            m_diagnostics[i] = hal::board::createStepperDiagnostic(static_cast<MotorId>(i + 1));
+            if (!m_diagnostics[i]) throw std::runtime_error("stepper DIAG creation failed");
+        }
+        // Missing/unpowered drivers leave the console usable for diagnosis.
+        try { initializeDriversLocked(); }
+        catch (const std::exception& e) { pnm::log::error("TMC2209 initialization: {}", e.what()); }
+        m_driverWorker = runtime::thread::create_jthread(
+            // Below motion workers (16): polling must not delay switch stops.
+            // DIAG disables the shared output immediately in interrupt context.
+            { .name = "Driver monitor", .priority = 18, .stack_size = 8192 },
+            [this](std::stop_token stop) { monitorDrivers(stop); });
+        for (std::size_t i{}; i < 2; ++i)
+            m_diagnostics[i]->setEdgeCallback([this, i](hal::gpio::Level level) noexcept {
+                if (level != hal::gpio::Level::High) return;
+                m_driverFaults.fetch_or(1U << i, std::memory_order_release);
+                // ISR performs no UART, allocation, logging or mutex operations.
+                m_enable->write(hal::gpio::Level::High);
+                m_driverNotification.signal();
+            });
     }
 
     MotionController::~MotionController()
     {
+        for (auto& input : m_diagnostics) input->setEdgeCallback({});
+        m_driverWorker.request_stop();
+        m_driverNotification.signal();
+        if (m_driverWorker.joinable()) m_driverWorker.join();
         disable();
         static_cast<void>(m_generator->stop());
     }
@@ -46,6 +78,8 @@ namespace control
 
     void MotionController::requireEnabled() const
     {
+        if (!m_driversReady || m_driverFaults.load(std::memory_order_acquire))
+            throw std::runtime_error("stepper driver fault/not initialized; inspect 'motor driver status' then reset while disabled");
         if (m_enable->read() != hal::gpio::Level::Low)
             throw std::runtime_error("drivers disabled; enable drivers before requesting motion");
         if (m_generator->status().state != hal::step::State::Running)
@@ -59,8 +93,24 @@ namespace control
             throw std::runtime_error("step generator fault/stopped; disable drivers and reset the timebase");
         if (m_enable->read() == hal::gpio::Level::Low)
             return;
+        if (!m_driversReady || m_driverFaults.load())
+            throw std::runtime_error("TMC2209 not ready; inspect 'motor driver status' and run 'motor driver init'");
+        // Catch a reset/disconnection since the last periodic poll before EN.
+        for (std::size_t i{}; i < 2; ++i) {
+            auto verified = m_drivers[i]->verify();
+            auto state = m_drivers[i]->status();
+            if (!verified || !state || state->fault() || state->reset() ||
+                m_diagnostics[i]->read() == hal::gpio::Level::High) {
+                driverFaultLocked(i, "driver verification failed before enable");
+                throw std::runtime_error(m_driverErrors[i]);
+            }
+        }
         m_enable->write(hal::gpio::Level::Low);
         std::this_thread::sleep_for(200ms);
+        if (m_driverFaults.load() || m_enable->read() != hal::gpio::Level::Low) {
+            driverFaultLocked((m_driverFaults.load() & 2U) ? 1 : 0, "driver fault during enable settling");
+            throw std::runtime_error("driver fault during enable settling");
+        }
     }
 
     void MotionController::stopLocked(std::optional<MotorId> motor)
@@ -119,6 +169,7 @@ namespace control
         static_cast<void>(m_generator->stop());
         if (const auto result{ m_generator->start() }; !result)
             throw std::runtime_error("step timebase restart failed: " + result.error().message());
+        initializeDriversLocked();
     }
 
     void MotionController::collect()

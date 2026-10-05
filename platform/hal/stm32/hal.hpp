@@ -11,6 +11,7 @@ extern "C" {
 #include "rng.h"
 #include "rtc.h"
 #include "tim.h"
+#include "usart.h"
 
 void SystemClock_Config(void);
 void MPU_Config_User(void);

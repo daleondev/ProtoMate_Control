@@ -6,6 +6,7 @@
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IQuadratureEncoder.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
+#include "hal/drivers/itf/IUart.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -50,4 +51,7 @@ namespace hal::board
     // NC switch to ground: low = released, high = actuated or disconnected.
     // Pull-up, both edges, exclusive ownership; raw levels without debounce.
     [[nodiscard]] auto createReferenceLimitSwitch(MotorId id) -> std::shared_ptr<IDigitalInput>;
+    [[nodiscard]] auto createStepperDriverBus() -> std::shared_ptr<IUart>;
+    // M2 PD4/CN9.8, M3 PD3/CN9.10: active-high DIAG, pull-down, rising EXTI.
+    [[nodiscard]] auto createStepperDiagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>;
 }

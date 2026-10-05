@@ -41,6 +41,7 @@ namespace hal
         MX_TIM2_Init();
 #if defined(HAL_PLATFORM_STM32)
         MX_TIM7_Init();
+        MX_USART2_UART_Init();
 #endif
         MX_TIM3_Init();
         MX_TIM5_Init();

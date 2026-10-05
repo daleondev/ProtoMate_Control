@@ -6,6 +6,7 @@ target_sources(application_control
         ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/MotionController.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/MotionController.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/DriverControl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Robot.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Robot.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.hpp

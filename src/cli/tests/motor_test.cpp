@@ -2,6 +2,7 @@
 #include "cli/motor.hpp"
 #include "control/MotionController.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
+#include "hal/drivers/impl/linux/TmcUart.hpp"
 
 #include <gtest/gtest.h>
 
@@ -245,4 +246,61 @@ TEST_F(CliMotion, ResultsStayBoundedAndAllBufferModesAreAccepted)
     EXPECT_FALSE(run("motor jobs 1"));
     ASSERT_TRUE(run("motor jobs 42"));
     EXPECT_EQ(output.str(), "#42 m3 completed\n");
+}
+
+TEST_F(CliMotion, DriverCommandsInitializeConfigureAndEnforceMotorLimits)
+{
+    ASSERT_TRUE(run("motor driver status"));
+    EXPECT_NE(output.str().find("UART address=0"), std::string::npos);
+    EXPECT_NE(output.str().find("UART address=1"), std::string::npos);
+    ASSERT_TRUE(run("motor driver init"));
+    ASSERT_TRUE(run("motor driver configure m2 --run 600 --hold 400 --mode spreadcycle --interpolate off"));
+    ASSERT_TRUE(run("motor driver configure m3 --run 550 --mode stealthchop"));
+    EXPECT_EQ(controller->driverStatus()[1].configuration.hold_milliamps, 550);
+    for (auto command : {"motor driver configure m1 --run 500", "motor driver configure m2 --run 701",
+                         "motor driver configure m3 --run 591", "motor driver configure m3 --hold 400",
+                         "motor driver configure m2 --run -1", "motor driver configure m2 --run 500.5",
+                         "motor driver configure m2 --run nan", "motor driver configure m2 --mode unknown",
+                         "motor driver configure m2 --interpolate yes", "motor driver configure m2 --run 100 --hold 100 --mode stealthchop"})
+        EXPECT_FALSE(run(command)) << command;
+    ASSERT_TRUE(run("motor enable"));
+    EXPECT_FALSE(run("motor driver init"));
+    EXPECT_FALSE(run("motor driver configure m2 --run 600"));
+    ASSERT_TRUE(run("motor disable"));
+}
+
+TEST_F(CliMotion, DriverResetOrLostCommunicationLatchesFaultUntilExplicitRecovery)
+{
+    auto bus = hal::uart::simulatedStepperBus(); ASSERT_TRUE(bus);
+    ASSERT_TRUE(run("motor enable"));
+    ASSERT_TRUE(run("motor move m2 -360 --speed 1"));
+    bus->reset(0);
+    ASSERT_TRUE(eventually([&] { return !controller->status().enabled; }));
+    EXPECT_FALSE(run("motor enable"));
+    EXPECT_FALSE(run("motor move m1 -10 --speed 1"));
+    ASSERT_TRUE(run("motor driver init"));
+    ASSERT_TRUE(run("motor enable"));
+    bus->setConnected(1, false);
+    ASSERT_TRUE(eventually([&] { return !controller->status().enabled; }));
+    EXPECT_FALSE(run("motor driver init"));
+    EXPECT_FALSE(run("motor enable"));
+    bus->setConnected(1, true);
+    ASSERT_TRUE(run("motor driver init"));
+    EXPECT_FALSE(controller->status().enabled);
+    ASSERT_TRUE(run("motor enable"));
+}
+
+TEST_F(CliMotion, DiagnosticEdgeDisablesAllDriversAndStopsMotion)
+{
+    auto diag = hal::gpio::simulatedInput({hal::gpio::Port::D, 3}); ASSERT_TRUE(diag);
+    ASSERT_TRUE(run("motor enable"));
+    ASSERT_TRUE(run("motor move m1 -360 --speed 1"));
+    diag->setSimulatedLevel(High);
+    EXPECT_FALSE(controller->status().enabled);
+    ASSERT_TRUE(finished(1));
+    EXPECT_FALSE(run("motor enable"));
+    EXPECT_FALSE(run("motor driver init"));
+    diag->setSimulatedLevel(Low);
+    ASSERT_TRUE(run("motor driver init"));
+    EXPECT_FALSE(controller->status().enabled);
 }

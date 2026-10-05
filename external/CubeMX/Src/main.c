@@ -26,6 +26,7 @@
 #include "rtc.h"
 #include "sdmmc.h"
 #include "tim.h"
+#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/

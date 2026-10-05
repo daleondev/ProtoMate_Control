@@ -58,7 +58,7 @@ HAL or Linux debugger. Startup diagnostics and the boot message appear on the te
 Open **[hardware/ProtoMate.kicad_pro](hardware/ProtoMate.kicad_pro)** in
 **KiCad 10**. One project contains the complete system schematic and its linked
 perfboard layout. Seven sheets cover controller/power, M1/DM542T, M2/M3/TMC2209,
-M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 47 footprints
+M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 49 footprints
 are linked to schematic symbols; external equipment is marked **Exclude from
 board**. Symbols and footprints use project-local libraries. See the
 [hardware guide](hardware/README.md) for the structure and F8 update workflow.
@@ -85,11 +85,13 @@ See [ST UM2407, sections 7.4.3 and 7.4.6](https://www.st.com/resource/en/user_ma
 The buck symbol uses its marked input/output connections; wire colours are
 not assumed.
 
-Both TMC2209 boards have **MS1 and MS2 connected to their 3.3 V VDD** for
-**1/16 microstepping**. The M1 sheet documents the DM542T switches for the
-same resolution. All three 1.8° motors then require **3,200 STEP pulses per
-motor revolution**. Driver current settings must suit each motor; these
-hardware settings do not start the stopped timers in the firmware.
+The TMC2209 address straps are **M2: MS1/MS2 = GND/GND (address 0)** and
+**M3: MS1/MS2 = 3.3 V/GND (address 1)**. Both use the shared USART2 bus;
+firmware selects **1/16 microstepping** and verifies the settings before enabling
+any driver. Leave both **SPRD jumpers open**. The M1 sheet documents the DM542T
+DIP switches for the same resolution. All three 1.8° motors require
+**3,200 STEP pulses per motor revolution**. UART current control bypasses the
+Adafruit potentiometers; see [driver configuration](#tmc2209-uart-configuration-and-diagnostics).
 
 M2's connector assignment was confirmed by the user to match M3: winding
 pairs **1–4 and 3–6**, with **2 and 5 unused**. M1's motor and encoder
@@ -126,7 +128,7 @@ cable. The buck mounts in the lower-left area at J103, using all four
 input/output pins. Its barrel jack receives 24 V. The 63 × 27 mm body follows the supplied STEP
 model; the mounting uses a nominal 5.08 mm pair pitch and 50.8 mm separation.
 
-Hand wiring uses 100 underside-only connections and 32 short top-side
+Hand wiring uses 105 underside-only connections and 37 short top-side
 crossovers through dedicated free holes; all wire ends are soldered underneath.
 The assembly guide includes the soldering order and header orientation.
 
@@ -961,9 +963,10 @@ and input filtering as needed.
 
 Use 3.3 V push-pull MCU outputs. Power both TMC2209 **VDD** pins from 3.3 V
 and join their GND pins to controller ground. Their STEP, DIR and EN inputs
-can connect directly to the assigned GPIOs; EN is active low. Use standalone
-STEP/DIR mode with hardware current/microstep settings; UART, DIAG and INDEX
-need no GPIOs for this assignment. See the
+can connect directly to the assigned GPIOs; EN is active low. Hardware-timed
+STEP/DIR remains the motion interface. USART2 configures the drivers and reads
+diagnostics; individual DIAG inputs report electrical faults. INDEX remains
+unconnected. See the
 [Adafruit #6121 pinout](https://learn.adafruit.com/adafruit-tmc2209-stepper-motor-driver-breakout-board/pinouts).
 
 The STEPPERONLINE driver is **DM542T V4.0**, with S2 set to **5 V**.
@@ -992,6 +995,108 @@ buffer interface is unsuitable for this shared NPN circuit. Fit external
 Keep DM542T ENA connected: an open enable input leaves that driver enabled.
 For V4.0, allow at least 200 ms after enabling before issuing motion commands,
 as specified in its manual.
+
+### TMC2209 UART configuration and diagnostics
+
+M2 and M3 share **USART2 at 115200 baud, 8N1**, separate from the USART3 CLI.
+All signals use **3.3 V logic**. The board factory creates one `IUart` transport;
+`MotionController` owns and serializes the two `hal::device::Tmc2209` devices.
+The normal application initializes both at boot, while the shared enable stays
+HIGH. Missing/unpowered drivers leave the CLI available but block motor, axis
+and robot enable/motion commands, including M1 because enable is shared.
+
+| Signal | Nucleo contact | Perfboard J113 | Connection |
+| --- | --- | --- | --- |
+| USART2 TX / PD5 / AF7 | **CN9 pin 6 / D53** | 1 | R29 **1 kΩ**, then shared UART bus |
+| USART2 RX / PD6 / AF7 | **CN9 pin 4 / D52** | 3 | Directly to shared UART bus |
+| M2_DIAG / PD4 | **CN9 pin 8 / D54** | 5 | J105.7 / M2 DIAG; rising-edge EXTI, pull-down |
+| M3_DIAG / PD3 | **CN9 pin 10 / D55** | 7 | J106.7 / M3 DIAG; rising-edge EXTI, pull-down |
+| Ground | CN11 pin 8 | 2, 4, 6, 8 | Paired signal returns |
+
+R29 pin 2, J113.3, J105.9 and J106.9 form the **same** `TMC_UART_RX`
+bidirectional bus. Only TX passes through R29. This is ordinary full-duplex
+MCU UART hardware wired to the TMC single-wire interface; firmware consumes
+and validates the local TX echo before decoding each reply. RX FIFO is enabled
+to retain the request echo plus reply. Transactions have a bounded timeout,
+CRC and frame validation; writes verify the driver's wrapping IFCNT counter.
+No motion timer, DMA stream or console peripheral is repurposed.
+
+The address straps are M2 **0** (MS1/MS2 LOW/LOW) and M3 **1** (HIGH/LOW).
+Leave **SPRD open** on both modules. Software checks the strap inputs and
+chip identity. It writes digital current, microstep resolution, interpolation,
+chopper settings and reply delay, verifies readable configuration registers,
+and checks diagnostics. `mstep_reg_select` overrides the straps, so both
+motors retain the axis configuration's **16 microsteps**. Microsteps are not
+independently adjustable through the CLI because that would change position
+conversion. The hardware STEP generator remains responsible for all motion.
+
+| Setting | M2 / C17HD2024-01N | M3 / BJ42D15-26V10 |
+| --- | --- | --- |
+| Requested run / hold current | 650 / 650 mA RMS | 550 / 550 mA RMS |
+| Nominal quantized run / hold current | 625 / 625 mA RMS | 511 / 511 mA RMS |
+| CLI run-current ceiling | 700 mA RMS | 590 mA RMS |
+| Initial mode | SpreadCycle | SpreadCycle |
+| External microsteps / interpolation | 16 / 256 enabled | 16 / 256 enabled |
+
+The calculation uses the Adafruit board's **0.05 Ω sense resistors** and
+TMC2209's 180 mV sense range, including the internal 20 mΩ contribution.
+Settings round down to the available current scale. These conservative initial
+limits keep the nominal sine-wave peak below the drawings' phase-current
+ratings (M2 1.0 A, M3 0.84 A); torque and temperature still need characterization
+on the assembled robot. **The onboard current potentiometers are bypassed
+while this UART configuration is active.** M2 hold current can be reduced;
+M3 hold must equal run to preserve Z holding torque. Disabling drivers removes
+holding torque. Settings are volatile; boot restores the defaults above.
+
+```text
+motor driver status
+motor disable
+motor driver configure m2 --run 650 --hold 500 --mode spreadcycle --interpolate on
+motor driver configure m3 --run 550 --mode spreadcycle
+motor driver status m3
+motor driver init
+```
+
+Configuration and explicit recovery require disabled drivers, stop all motion,
+and invalidate references. `motor driver init` reinitializes both devices and
+leaves them disabled. `motor reset` resets the step timebase and performs the
+same driver initialization. `motor enable` verifies both again before asserting
+shared enable and waiting 200 ms. `axis` and `robot` share this controller.
+StealthChop is selectable with `--mode stealthchop`; it requires a nominal
+requested current of at least 512 mA RMS for the recommended minimum IRUN scale.
+SpreadCycle is the initial mode; no automatic mode switch is configured.
+
+A monitor polls each driver's GSTAT, DRV_STATUS, IOIN, SG_RESULT and readable
+configuration approximately every **100 ms plus transaction/scheduling time**.
+CRC/timeout/configuration errors, a driver reset, overtemperature shutdown,
+short-circuit flags or charge-pump undervoltage latch a fault, disable **all
+three** drivers, stop their jobs and invalidate referencing. The DIAG ISR
+immediately raises shared enable and wakes that worker; UART and logging run
+only in thread context. Recovery requires correcting the cause, running
+`motor driver init` while disabled, enabling explicitly and re-homing. No fault
+automatically resumes motion. This software monitoring is not an emergency-stop
+circuit; a UART-only fault is detected at the next successful monitor cycle or timeout.
+
+Overtemperature prewarning is logged. Open-load and StallGuard readings are
+reported for diagnosis, not used as reliable homing or position feedback.
+Open-load detection depends on current/mode/motion, and StallGuard needs
+mechanical characterization. CoolStep, sensorless homing, the internal velocity
+generator, freewheeling and OTP programming remain disabled/unused. Physical NC
+reference switches and the M1 encoder keep their existing roles.
+
+Protocol and application tests use the Linux two-driver model, including reset,
+disconnect, malformed replies, unacknowledged writes, independent addresses and
+DIAG shutdown. **UART communication with the assembled Adafruit boards has not
+been measured yet.** For first bring-up, wire J113 and the straps as above,
+power both modules, and run `motor driver status`: both must show `ready=true`,
+no latched fault, the intended microsteps/current and no error. `motor driver
+init` retries after wiring/power corrections; motion remains disabled until
+explicitly enabled. Use `help motor driver configure` for option details.
+
+References: [TMC2209 register and UART specification](https://www.analog.com/media/en/technical-documentation/data-sheets/TMC2209_datasheet_rev1.09.pdf),
+[Adafruit pinout](https://learn.adafruit.com/adafruit-tmc2209-stepper-motor-driver-breakout-board/pinouts),
+[Adafruit board schematic / sense resistors](https://github.com/adafruit/Adafruit-TMC2209-Breakout-PCB/blob/main/Adafruit%20TMC2209%20Stepper%20Motor%20Driver.sch),
+[ST UM2407 connector assignments](https://www.st.com/resource/en/user_manual/um2407-stm32h7-nucleo144-boards-mb1364-stmicroelectronics.pdf).
 
 ### Motor 1 encoder
 

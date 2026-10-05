@@ -120,6 +120,10 @@ def verify(netlist, board):
         "M1_REF": ("PE7", "CN10.20", "GPXTI7"),
         "M2_REF": ("PE8", "CN10.18", "GPXTI8"),
         "M3_REF": ("PE10", "CN10.24", "GPXTI10"),
+        "TMC_UART_TX": ("PD5", "CN9.6", "USART2_TX"),
+        "TMC_UART_RX": ("PD6", "CN9.4", "USART2_RX"),
+        "M2_DIAG": ("PD4", "CN9.8", "GPXTI4"),
+        "M3_DIAG": ("PD3", "CN9.10", "GPXTI3"),
         "FLASH_CLK": ("PB2", "CN10.15", "QUADSPI_CLK"),
         "FLASH_CS_N": ("PG6", "CN10.13", "QUADSPI_BK1_NCS"),
         "FLASH_IO0": ("PD11", "CN10.23", "QUADSPI_BK1_IO0"),
@@ -138,7 +142,7 @@ def verify(netlist, board):
         require(source.get(("A1", contact)) == net, f"Controller contact differs: {net}")
         require(ioc.get(f"{pin}.Signal") == signal,
                 f"CubeMX GPIO/timer differs from wiring: {net}")
-        if net.startswith(("M1_", "M2_", "M3_", "STEPPERS_")):
+        if net.startswith(("M1_", "M2_", "M3_", "STEPPERS_", "TMC_")):
             require(ioc.get(f"{pin}.GPIO_Label") == net, f"CubeMX label differs: {net}")
     for pin in ("PE7", "PE8", "PE10"):
         require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLUP" and
@@ -148,6 +152,20 @@ def verify(netlist, board):
             "Encoder index must use rising-edge EXTI after the polarity-preserving interface")
     require(ioc.get("PE15.PinState") == "GPIO_PIN_SET",
             "Shared active-low enable must start high (drivers disabled)")
+    for pin in ("PD3", "PD4"):
+        require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN" and
+                ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
+                f"Driver DIAG requires pull-down and rising-edge EXTI: {pin}")
+    require(ioc.get("USART2.BaudRate") == "115200" and
+            ioc.get("USART2.FIFOMode") == "FIFOMODE_ENABLE",
+            "Shared driver UART must preserve 115200 baud and RX FIFO")
+    for module, ms1 in (("A3", "GND"), ("A4", "+3V3")):
+        require(source[module, "JP4.5"] == ms1 and source[module, "JP4.6"] == "GND" and
+                source[module, "JP4.9"] == "TMC_UART_RX",
+                f"Driver UART address/bus wiring differs: {module}")
+    require(source["R29", "1"] == "TMC_UART_TX" and source["R29", "2"] == "TMC_UART_RX"
+            and components["R29"].findtext("value") == "1k",
+            "UART TX must join the shared RX bus through R29, 1k")
     pads = {(ref, p.GetNumber()): p for ref, f in footprints.items() for p in f.Pads()}
     require(len({hole(p) for p in pads.values()}) == len(pads), "Two leads occupy one hole")
     for ref, footprint in footprints.items():
@@ -289,7 +307,8 @@ def verify(netlist, board):
               "PASS: at most three scheduled wire ends per component solder joint.",
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
               f"PASS: {len(controller_routes)} motor, encoder, reference and storage contacts agree with CubeMX.",
-              "PASS: CubeMX reference pull-ups/edges, encoder index edge and disabled startup polarity match wiring.",
+              "PASS: CubeMX reference/DIAG pulls and edges, encoder index edge and disabled startup polarity match wiring.",
+              "PASS: shared USART2 bus, 1k TX resistor, RX FIFO and driver address straps 0/1 match firmware.",
               "PASS: all three module bodies fit; direct mounting contacts match system wiring.",
               "PASS: buck VIN feeds J112 and separate TMC power branches; all 11 power links are underneath.",
               "PASS: TMC logic grounds join local power returns; motor current has dedicated return wiring.",

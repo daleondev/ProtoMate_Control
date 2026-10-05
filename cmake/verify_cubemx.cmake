@@ -39,6 +39,24 @@ function(verify_cubemx_generation)
     endforeach()
 
     set(linker_script "${cubemx_directory}/STM32H753XX_FLASH.ld")
+    foreach(assignment "PD5.Signal=USART2_TX" "PD6.Signal=USART2_RX"
+                       "PD4.GPIO_Label=M2_DIAG" "PD3.GPIO_Label=M3_DIAG"
+                       "PD4.Signal=GPXTI4" "PD3.Signal=GPXTI3"
+                       "PD3.GPIO_PuPd=GPIO_PULLDOWN" "PD4.GPIO_PuPd=GPIO_PULLDOWN"
+                       "PD3.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_RISING"
+                       "PD4.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_RISING"
+                       "USART2.BaudRate=115200" "USART2.FIFOMode=FIFOMODE_ENABLE")
+        cubemx_require_text("${cubemx_directory}/CubeMX.ioc" "${assignment}\n"
+            "The shared TMC2209 UART and DIAG assignment was overwritten.")
+    endforeach()
+    foreach(required "huart2.Instance = USART2;" "huart2.Init.BaudRate = 115200;"
+                     "huart2.Init.WordLength = UART_WORDLENGTH_8B;"
+                     "huart2.Init.StopBits = UART_STOPBITS_1;"
+                     "huart2.Init.Parity = UART_PARITY_NONE;"
+                     "HAL_UARTEx_EnableFifoMode(&huart2)" "GPIO_AF7_USART2")
+        cubemx_require_text("${cubemx_directory}/Src/usart.c" "${required}"
+            "Regenerate USART2: 115200 8N1 with RX FIFO for request echo and reply.")
+    endforeach()
     # The onboard STLINK-V3 MCO must be configured separately to HSE/5.
     # Its 25 MHz crystal supplies the target's 5 MHz HSE bypass input.
     foreach(assignment "RCC.HSE_VALUE=5000000" "RCC.DIVM1=1" "RCC.DIVN1=192"

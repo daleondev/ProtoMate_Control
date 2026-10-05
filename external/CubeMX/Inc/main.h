@@ -85,6 +85,16 @@ void Error_Handler(void);
 #define M3_STEP_GPIO_Port GPIOB
 #define SD_CARD_DETECT_Pin GPIO_PIN_2
 #define SD_CARD_DETECT_GPIO_Port GPIOG
+#define M3_DIAG_Pin GPIO_PIN_3
+#define M3_DIAG_GPIO_Port GPIOD
+#define M3_DIAG_EXTI_IRQn EXTI3_IRQn
+#define M2_DIAG_Pin GPIO_PIN_4
+#define M2_DIAG_GPIO_Port GPIOD
+#define M2_DIAG_EXTI_IRQn EXTI4_IRQn
+#define TMC_UART_TX_Pin GPIO_PIN_5
+#define TMC_UART_TX_GPIO_Port GPIOD
+#define TMC_UART_RX_Pin GPIO_PIN_6
+#define TMC_UART_RX_GPIO_Port GPIOD
 #define M1_ENC_A_Pin GPIO_PIN_4
 #define M1_ENC_A_GPIO_Port GPIOB
 #define M1_ENC_B_Pin GPIO_PIN_5

@@ -35,11 +35,11 @@ J105,1,J13,+3V3,A3,JP4.1,Direct soldered module header: A3 VDD; no cable
 J105,2,J14,GND,A3,JP4.2,Direct soldered module header: A3 GND; no cable
 J105,3,J15,M2_DIR,A3,JP4.3,Direct soldered module header: A3 DIR; no cable
 J105,4,J16,M2_STEP,A3,JP4.4,Direct soldered module header: A3 STEP; no cable
-J105,5,J17,+3V3,A3,JP4.5,Direct soldered module header: A3 MS1; no cable
-J105,6,J18,+3V3,A3,JP4.6,Direct soldered module header: A3 MS2; no cable
-J105,7,J19,NC,A3,JP4.7,"Direct soldered module header: A3 DIAG; no cable; isolated landing pad, no perfboard wire"
+J105,5,J17,GND,A3,JP4.5,MS1 address strap
+J105,6,J18,GND,A3,JP4.6,MS2 address strap
+J105,7,J19,M2_DIAG,A3,JP4.7,Active-high driver fault to Nucleo
 J105,8,J20,NC,A3,JP4.8,"Direct soldered module header: A3 INDEX; no cable; isolated landing pad, no perfboard wire"
-J105,9,J21,NC,A3,JP4.9,"Direct soldered module header: A3 UART; no cable; isolated landing pad, no perfboard wire"
+J105,9,J21,TMC_UART_RX,A3,JP4.9,Shared 3.3 V UART bus
 J105,10,J22,STEPPERS_EN_N,A3,JP4.10,Direct soldered module header: A3 EN; no cable
 J105,11,C15,+24V,A3,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
 J105,12,C16,GND,A3,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
@@ -47,11 +47,11 @@ J106,1,J27,+3V3,A4,JP4.1,Direct soldered module header: A4 VDD; no cable
 J106,2,J28,GND,A4,JP4.2,Direct soldered module header: A4 GND; no cable
 J106,3,J29,M3_DIR,A4,JP4.3,Direct soldered module header: A4 DIR; no cable
 J106,4,J30,M3_STEP,A4,JP4.4,Direct soldered module header: A4 STEP; no cable
-J106,5,J31,+3V3,A4,JP4.5,Direct soldered module header: A4 MS1; no cable
-J106,6,J32,+3V3,A4,JP4.6,Direct soldered module header: A4 MS2; no cable
-J106,7,J33,NC,A4,JP4.7,"Direct soldered module header: A4 DIAG; no cable; isolated landing pad, no perfboard wire"
+J106,5,J31,+3V3,A4,JP4.5,MS1 address strap
+J106,6,J32,GND,A4,JP4.6,MS2 address strap
+J106,7,J33,M3_DIAG,A4,JP4.7,Active-high driver fault to Nucleo
 J106,8,J34,NC,A4,JP4.8,"Direct soldered module header: A4 INDEX; no cable; isolated landing pad, no perfboard wire"
-J106,9,J35,NC,A4,JP4.9,"Direct soldered module header: A4 UART; no cable; isolated landing pad, no perfboard wire"
+J106,9,J35,TMC_UART_RX,A4,JP4.9,Shared 3.3 V UART bus
 J106,10,J36,STEPPERS_EN_N,A4,JP4.10,Direct soldered module header: A4 EN; no cable
 J106,11,C29,+24V,A4,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
 J106,12,C30,GND,A4,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
@@ -77,3 +77,11 @@ J111,1,AS34,M3_REF,SW3,NC,"Functional switch contact, not connector pin number; 
 J111,2,AS35,GND,SW3,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
 J112,1,AI12,+24V,A2,+Vdc,DM542T power cable; underside solder joint is the distribution star point
 J112,2,AI14,GND,A2,GND,DM542T power cable; underside solder joint is the distribution star point
+J113,1,R29,TMC_UART_TX,A1,CN9.6,PD5 USART2 TX via R29 1k
+J113,2,R30,GND,A1,CN11.8,Common ground
+J113,3,S29,TMC_UART_RX,A1,CN9.4,PD6 USART2 RX / shared bus
+J113,4,S30,GND,A1,CN11.8,Common ground
+J113,5,T29,M2_DIAG,A1,CN9.8,PD4 M2 DIAG
+J113,6,T30,GND,A1,CN11.8,Common ground
+J113,7,U29,M3_DIAG,A1,CN9.10,PD3 M3 DIAG
+J113,8,U30,GND,A1,CN11.8,Common ground

@@ -23,12 +23,12 @@ hardware/
 The root schematic links six child sheets: M1/DM542T, M2/M3/TMC2209,
 M1 encoder, storage, perfboard cable headers, and reference limit switches.
 Global net names connect these sheets electrically. The connector sheet defines
-J101–J107 plus J112, and the reference-switch sheet defines J108–J111; their pin numbers
+J101–J107 plus J112/J113, and the reference-switch sheet defines J108–J111; their pin numbers
 match the layout and [harness table](assembly/Harness.csv).
 
-All **47 perfboard footprints** have assigned library footprints and native
-links to their schematic symbols. These comprise Q1–Q6, R1–R12, R20–R28,
-C1–C6, U2/U3 and J101–J112. R10–R12 remain on the layout and are marked DNP.
+All **49 perfboard footprints** have assigned library footprints and native
+links to their schematic symbols. These comprise Q1–Q6, R1–R12, R20–R29,
+C1–C6, U2/U3 and J101–J113. R10–R12 remain on the layout and are marked DNP.
 
 The **buck U1 and Adafruit A3/A4 modules mount directly at J103/J105/J106**.
 These footprints represent their soldered mounting pins and full module
@@ -44,13 +44,21 @@ storage modules remain external. The buck's 63 × 27 mm body follows the supplie
 STEP model; its nominal mounting grid is 5.08 mm within each pair and 50.8 mm
 between pairs. Its barrel jack receives 24 V at the left edge.
 
+J113 adds four paired signal/ground connections to the Nucleo: TX (PD5),
+RX (PD6), M2 DIAG (PD4) and M3 DIAG (PD3). R29 is the shared UART's 1 kΩ TX
+series resistor. J105/J106 pin 9 is UART, pin 7 is DIAG and pin 8 remains NC.
+Address straps are M2 MS1/MS2 = GND/GND and M3 = 3.3 V/GND. Both SPRD jumpers
+stay open. Firmware configures current and 16 microsteps before enable; the
+potentiometers do not set current in UART mode. See the
+[UART wiring and firmware settings](../README.md#tmc2209-uart-configuration-and-diagnostics).
+
 The `.kicad_pcb` is a map for a purchased individual-pad board: F.Cu represents
 top jumpers, B.Cu represents solder-side wires, and vias represent wire passages.
 It uses one continuous **39-column × 48-row grid**, A1–AV39, at 2.54 mm pitch.
 The outer hole centres span **96.52 × 119.38 mm**; the nominal outline is
 99.06 × 121.92 mm with half-pitch margins. Both TMC modules sit along the top
 edge, the buck at the lower left, and the reference headers at the lower right.
-Wiring uses 100 underside-only connections and 32 short crossovers through
+Wiring uses 105 underside-only connections and 37 short crossovers through
 dedicated free holes. All wire ends are soldered underneath. J101's pin 1 is
 at I9, with its signal column facing the driver modules. The 11 designated
 power connections all stay underneath and use 0.5 mm² insulated copper wire;
@@ -118,9 +126,9 @@ Requires KiCad 10 (`kicad-cli` and its `pcbnew` Python module), Python 3 and
 Poppler's `pdfunite`. The command checks ERC, DRC **with schematic parity**,
 symbol links, pad nets, the hole grid, wire endpoints/connectivity, module body
 clearance, mounting contacts, dedicated power branches and harness destinations.
-All 26 motor, encoder, reference and storage signal contacts
+All 30 motor, encoder, reference, UART/DIAG and storage signal contacts
 are checked against CubeMX, along with reference pull-ups/edges, encoder index
-polarity and the disabled startup level. It updates:
+polarity, DIAG pulls/edges, UART settings/address straps and the disabled startup level. It updates:
 
 - [Wiring.pdf](exports/Wiring.pdf): complete seven-sheet system schematic.
 - [Assembly.pdf](exports/Assembly.pdf): placement, top wires, mirrored underside

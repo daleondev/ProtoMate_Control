@@ -35,15 +35,15 @@ The underside sheet flips the board **left/right**, keeping row A at the top.
 Column 1 is therefore on the right. Hole names never change between views.
 All components are mounted on the top face.
 
-The hand-wiring layout uses **100 underside-only connections and 32 short
-top-side crossovers**. About **94% of the scheduled wire length is underneath**.
+The hand-wiring layout uses **105 underside-only connections and 37 short
+top-side crossovers**. The layout prioritizes underside wiring.
 Each crossover uses its own pair of free holes; no wire shares a passage hole
 with another wire or a component lead. Each component solder joint carries
 at most three scheduled wire ends. The encoder transistor stages have their
 resistors grouped locally, and power/ground connections join nearby pads.
 
 - [Holes.csv](Holes.csv): every component pin, its hole and its electrical net.
-- [Wires.csv](Wires.csv): all 132 required pad-to-pad connections, with endpoints,
+- [Wires.csv](Wires.csv): all 142 required pad-to-pad connections, with endpoints,
   side-change holes and routed lengths. Add handling/stripping allowance to
   these lengths. The `wire_class` column identifies the heavier power wiring.
   Tick off each connection as it is soldered.
@@ -62,17 +62,17 @@ representation, not the specified wire diameter. Keep the power conductors
 low against the underside, following the power branches in the drawing. **Every wire starts and
 ends on the underside**, where it is soldered to the specified component pads.
 Keep the insulation intact through passage holes and across other wires.
-The 64 passage holes are not additional electrical junctions.
+The 74 passage holes are not additional electrical junctions.
 
 Fit the board in this order:
 
-1. Fit W001–W032, using the red crossover view and the two passage holes listed
+1. Fit every wire marked `bottom wire + top jumper`, using the red crossover view and the two passage holes listed
    for each wire. Leave their ends underneath for soldering to the component
    pads. Use insulated wire that passes freely through the holes.
 2. Fit resistors, transistors, capacitors, headers and IC sockets. Keep the
    crossovers low and leave clearance for their insulation beneath sockets.
 3. Solder the short underside links, then the longer underside wires, following
-   W033–W132. Consecutive ground pads on J101/J102/J108 can use a continuous
+   the `bottom wire` rows in Wires.csv. Consecutive ground pads on J101/J102/J108/J113 can use a continuous
    tinned wire soldered at each pad. Use insulated wire for longer routes.
 4. Fit C1/C2 with positive leads in their square pads. Complete the 11 `power`
    connections using 0.5 mm² insulated copper wire, including their ground
@@ -121,7 +121,7 @@ turn-off delay at the intended encoder speed with an oscilloscope; saturated
 transistor storage delay is not established by the static wiring checks.
 No 4N35 optocouplers are needed for this circuit with a common ground.
 
-R1–R9 and R20–R28 are axial resistors with 10.16 mm between holes. C3/C4 are 100 nF
+R1–R9 and R20–R29 are axial resistors with 10.16 mm between holes. C3/C4 are 100 nF
 nonpolar ceramic capacitors with 2.54 mm lead spacing, close to their IC supply
 connections; C5/C6 are 1 µF nonpolar capacitors with 5.08 mm lead spacing.
 R10–R12 reserve positions for encoder termination and are **DNP: leave them
@@ -147,6 +147,7 @@ Use the harness table for cables and direct module contacts.
 | J108, 2×3 | Nucleo reference inputs: 1 = M1_REF, 3 = M2_REF, 5 = M3_REF; 2/4/6 = GND. |
 | J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
 | J112, 2-way 5.08 mm terminal | DM542T power cable: 1 = +24 V to +Vdc; 2 = GND. The underside solder joints are the power star points. |
+| J113, 2×4 | Nucleo UART/diagnostics: 1 = TX, 3 = RX / shared UART, 5 = M2_DIAG, 7 = M3_DIAG; all even pins GND. |
 
 J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
 5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
@@ -166,9 +167,20 @@ join its ground returns (pins 2/4/6) at Nucleo CN10.22.
 Connect the ground conductors to Nucleo ground, common with buck output ground.
 The existing system schematic identifies CN11.8 as a Nucleo ground contact.
 
-Both TMC MS1/MS2 pairs are connected to 3.3 V for 1/16 microstepping. Pins
-7–9 of J105/J106 have isolated landing pads: fit the complete ten-pin header,
-but add no perfboard wires to DIAG, INDEX or UART. No logic cable is required.
+**UART address straps:** M2/J105 pin 5 (MS1) and pin 6 (MS2) connect to GND
+(address 0); M3/J106 pin 5 connects to 3.3 V and pin 6 to GND (address 1).
+Firmware overrides the straps for 1/16 microstepping. Keep both **SPRD jumpers
+open**. UART current settings bypass the onboard potentiometers.
+
+**J113 is at rows R–U, columns 29–30.** Pin 1 is R29, pin 2 R30; odd pins run
+down column 29, even ground pins down column 30. Connect 1→CN9.6 (PD5 TX),
+3→CN9.4 (PD6 RX), 5→CN9.8 (PD4 M2 DIAG), 7→CN9.10 (PD3 M3 DIAG), with
+2/4/6/8 returning to Nucleo GND. These are **CN9** contacts, not CN10 STEP pins.
+
+**R29 is 1 kΩ, with leads at P28 and P32.** Its pin 1 connects to J113.1;
+its pin 2 joins J113.3 and both modules' pin 9 (UART). Only TX passes through
+the resistor. Module pin 7 is the respective DIAG signal; pin 8 (INDEX) stays
+isolated. Fit the complete ten-pin headers. All bus signals are 3.3 V.
 
 ### Directly mounted TMC2209 modules
 
@@ -194,8 +206,8 @@ so tightening screws does not bend the header or its solder joints.
 Use long-tail headers and supports to leave **at least 6 mm between the module
 underside and the perfboard top**. Check the actual terminal solder tails clear
 all jumper insulation, solder joints and pads. Fit low-profile insulated wires
-first, then supports and modules. Keep the driver chip and current-adjustment
-potentiometer accessible from above; allow space above for cooling.
+first, then supports and modules. Keep the driver chip accessible from above and allow space for cooling.
+Firmware sets current; no potentiometer adjustment is used in UART mode.
 
 Remove each six-way JP1 terminal block. Fit a **two-pin 2.54 mm long-tail
 header downward** in JP1.6 (+) and JP1.5 (−), and a **four-way 2.54 mm terminal
@@ -281,7 +293,7 @@ interface with the Nucleo's 3.3 V output, not the other way around.
 [DRC.rpt](../exports/DRC.rpt) records KiCad's electrical clearance/connectivity
 and schematic-parity checks. [Verification.txt](../exports/Verification.txt)
 records checks of the saved layout's symbol links, nets, hole grid, wire table
-and harness destinations. The schematic includes J101–J112 and is the
+and harness destinations. The schematic includes J101–J113 and is the
 electrical reference for this layout. Use **Update PCB from Schematic (F8)**
 as described in the [project guide](../README.md).
 

@@ -2,6 +2,7 @@
 #include "control_common.hpp"
 
 #include <format>
+#include <cmath>
 #include <ostream>
 #include <stdexcept>
 
@@ -24,6 +25,9 @@ namespace cli::motor
             "  motor speed <motor> <rpm>           Replan remaining motion at a new speed\n"
             "  motor stop [m1|m2|m3|all]            Immediate abort; retains holding torque\n"
             "  motor defaults <motor>              Show/change axis dynamics\n"
+            "  motor driver status [m2|m3]         UART configuration and diagnostics\n"
+            "  motor driver configure <motor>     Current/mode settings; disabled only\n"
+            "  motor driver init                  Recover both UART drivers; disabled only\n"
             "  motor jobs [id]                     Outstanding and recent motion results\n"
             "  motor reset                         Reset timebase while drivers are disabled\n"
             "Use 'help motor move', 'help motor home', etc. for options.\n"
@@ -123,7 +127,86 @@ namespace cli::motor
             return 0;
         }
 
-        [[ = "Enable all drivers and wait 200 ms for settling"_fs,
+        [[ = "Read cached M2/M3 driver diagnostics (100 ms polling); M1 uses DIP switches"_fs,
+           = Name{ "motor driver status"_fs },
+           = Arg{ .name = "motor"_fs, .description = "m2, m3 or all (default)"_fs, .optional = true } ]]
+        static auto driverStatus(Controller& controller, const Arguments& args, std::ostream& out) -> CallbackResult
+        {
+            using Driver = hal::device::Tmc2209;
+            auto selected = selection(args);
+            if (selected == MotorId::Motor1) {
+                out << "m1: DM542T; configuration via DIP switches, no UART.\n";
+                return 0;
+            }
+            for (const auto& d : controller.driverStatus()) {
+                if (selected && *selected != d.motor) continue;
+                auto run = Driver::currentScale(d.configuration.run_milliamps);
+                auto hold = Driver::currentScale(d.configuration.hold_milliamps);
+                out << std::format("m{}: UART address={} ready={} fault-latched={} mode={} microsteps={} interpolation={}\n"
+                                   "    run={} mA RMS (nominal quantized {}), hold={} mA RMS (nominal quantized {})\n",
+                    static_cast<unsigned>(d.motor) + 1, d.address, d.ready, d.fault_latched,
+                    d.configuration.mode == Driver::Mode::SpreadCycle ? "spreadcycle" : "stealthchop",
+                    d.configuration.microsteps, d.configuration.interpolate,
+                    d.configuration.run_milliamps, run ? Driver::currentMilliamps(*run) : 0,
+                    d.configuration.hold_milliamps, hold ? Driver::currentMilliamps(*hold) : 0);
+                if (d.diagnostics) {
+                    const auto& s = *d.diagnostics;
+                    out << std::format("    reset={} fault={} overtemperature-warning={} open-load={} standstill={}\n"
+                                       "    GSTAT=0x{:08x} DRV_STATUS=0x{:08x} IOIN=0x{:08x} SG_RESULT={}\n",
+                        s.reset(), s.fault(), s.warning(), s.openLoad(), s.standstill(),
+                        s.global, s.driver, s.input, s.load);
+                }
+                if (!d.error.empty()) out << "    error: " << d.error << '\n';
+            }
+            out << "Temperature flags are thresholds, not measured degrees. Open-load can be false at standstill.\n"
+                   "SG_RESULT needs StealthChop at suitable speed; it is not encoder feedback.\n";
+            return 0;
+        }
+
+        [[ = "Initialize and verify both UART drivers; disabled only, invalidates references"_fs,
+           = Name{ "motor driver init"_fs } ]]
+        static auto driverInit(Controller& controller, const Arguments&, std::ostream& out) -> CallbackResult
+        {
+            controller.initializeDrivers();
+            out << "Both TMC2209 drivers verified; drivers remain disabled.\n";
+            return 0;
+        }
+
+        [[ = "Configure M2/M3 in RAM while disabled; microsteps follow axis configuration"_fs,
+           = Name{ "motor driver configure"_fs },
+           = Arg{ .name = "motor"_fs, .description = "m2 or m3"_fs },
+           = Flag{ .name = "run"_fs, .description = "RMS current: M2 100..700, M3 100..590; rounded down"_fs, .value_name = "mA"_fs },
+           = Flag{ .name = "hold"_fs, .description = "RMS holding current <= run; Z must equal run"_fs, .value_name = "mA"_fs },
+           = Flag{ .name = "mode"_fs, .description = "spreadcycle or stealthchop (>=512 mA)"_fs, .value_name = "mode"_fs },
+           = Flag{ .name = "interpolate"_fs, .description = "Internal 256-microstep interpolation: on or off"_fs, .value_name = "state"_fs } ]]
+        static auto driverConfigure(Controller& controller, const Arguments& args, std::ostream& out) -> CallbackResult
+        {
+            const auto id = motorId(args.require("motor"));
+            if (id == MotorId::Motor1) return callback_failure("m1 uses the DM542T DIP switches");
+            auto config = controller.driverStatus()[static_cast<unsigned>(id) - 1].configuration;
+            auto current = [&](std::string_view name, std::uint16_t fallback) {
+                const auto value = numericOption(args, name, fallback, false);
+                if (value > 1800 || std::floor(value) != value)
+                    throw std::invalid_argument("current must be an integer in mA RMS");
+                return static_cast<std::uint16_t>(value);
+            };
+            config.run_milliamps = current("run", config.run_milliamps);
+            config.hold_milliamps = current("hold", id == MotorId::Motor3 ? config.run_milliamps : config.hold_milliamps);
+            if (auto mode = option(args, "mode")) {
+                if (*mode == "spreadcycle") config.mode = hal::device::Tmc2209::Mode::SpreadCycle;
+                else if (*mode == "stealthchop") config.mode = hal::device::Tmc2209::Mode::StealthChop;
+                else return callback_failure("mode must be spreadcycle or stealthchop");
+            }
+            if (auto interpolate = option(args, "interpolate")) {
+                if (*interpolate != "on" && *interpolate != "off") return callback_failure("interpolate must be on or off");
+                config.interpolate = *interpolate == "on";
+            }
+            controller.configureDriver(id, config);
+            out << "Driver settings applied and verified in RAM; drivers remain disabled.\n";
+            return 0;
+        }
+
+        [[ = "Verify UART drivers, enable all drivers and wait 200 ms for settling"_fs,
            = Name{ "motor enable"_fs } ]] static auto enable(Controller& controller,
                                                              const Arguments&,
                                                              std::ostream& out) -> CallbackResult

@@ -152,7 +152,7 @@ the `robot` commands.
 | Command | Behavior |
 | --- | --- |
 | `motor status [motor\|all]` | Live commanded position/speed, encoder feedback, reference/switch state, outstanding command count and generator state. Defaults to all. |
-| `motor enable` | Enable all three drivers and wait 200 ms for settling. |
+| `motor enable` | Verify both UART drivers, enable all three drivers and wait 200 ms for settling. |
 | `motor disable` | Abort all active/queued motions, remove holding torque and invalidate all references. |
 | `motor home <motor>` | Reference one motor: seek, back off, slowly re-latch and set its configured reference position. |
 | `motor move <motor> <degrees> --speed <rpm>` | Relative move; negative angles move away from the reference switch. |
@@ -161,7 +161,43 @@ the `robot` commands.
 | `motor stop [motor\|all]` | Immediately abort active and queued motions, without a deceleration ramp. Holding torque stays enabled. Defaults to all. |
 | `motor defaults <motor>` | Show dynamics; optionally change `--accel`, `--decel`, `--jerk` while that motor is idle. Settings are held in RAM. |
 | `motor jobs [id]` | Show the latest 32 commands or one result; outstanding commands are retained. |
-| `motor reset` | Explicitly restart a stopped/faulted timebase. Requires disabled drivers and leaves them disabled/unreferenced. |
+| `motor reset` | Restart the timebase and reinitialize both UART drivers. Requires disabled drivers and leaves them disabled/unreferenced. |
+
+Driver configuration is shared by motor, axis and robot commands:
+
+| Command | Behavior |
+| --- | --- |
+| `motor driver status [m2\|m3\|all]` | Cached UART configuration/diagnostics, quantized RMS current, fault latch and error; refreshed approximately every 100 ms. |
+| `motor driver configure <m2\|m3>` | Optional `--run <mA>`, `--hold <mA>`, `--mode spreadcycle\|stealthchop`, `--interpolate on\|off`; disabled only, settings in RAM. |
+| `motor driver init` | Explicitly reinitialize/verify both devices after a fault or wiring/power correction; disabled only. |
+
+Boot verifies both TMC2209 devices while enable is HIGH. An absent/faulted driver
+blocks enable and motion on every axis; the console stays available. M1 retains
+DM542T DIP-switch configuration and has no UART. Defaults are M2 650 mA RMS,
+M3 550 mA RMS, hold equal to run, SpreadCycle and 16 external microsteps with
+256 interpolation. Current scales round down (625/511 mA nominal actual).
+M2 is capped at 700 mA RMS, M3 at 590 mA RMS; the minimum request is 100 mA.
+Z hold must equal run; changing `--run` on M3 also changes hold unless supplied
+explicitly. StealthChop requires at least 512 mA requested run current.
+Microsteps follow axis configuration and cannot be changed independently here.
+UART digital current control bypasses the Adafruit potentiometers.
+
+```text
+motor driver status
+motor disable
+motor driver configure m2 --run 650 --hold 500 --mode spreadcycle
+motor driver init
+motor driver status m3
+```
+
+Configuration/recovery stops all motions and invalidates references. A DIAG
+fault raises shared enable immediately; the monitor stops jobs and invalidates
+reference state. UART errors, resets or configuration mismatches also latch
+shutdown. Correct the cause, run `motor driver init` while disabled, explicitly
+enable, then re-home. Diagnostics after a latched fault are the last captured
+state; `init` refreshes them. Overtemperature prewarning is logged; open-load
+and StallGuard readings are informational, not a replacement for switches or
+encoders. See [wiring, register configuration and bring-up](../../README.md#tmc2209-uart-configuration-and-diagnostics).
 
 For example, enter these interactively, inspecting each motion's result before
 issuing a dependent command:
