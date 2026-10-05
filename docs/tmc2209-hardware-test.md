@@ -1,5 +1,10 @@
 # Single TMC2209 bench test
 
+For a separate image that **never uses the driver UART**, see the
+[standalone STEP/DIR test](tmc2209-standalone-test.md), preset
+`tmc-standalone-test-stm32`. Its current setting and power-cycle instructions
+differ from this UART-controlled test.
+
 This image tests one Adafruit #6121 with the production USART2 transport,
 TMC2209 device driver, board factories and TIM2/DMA STEP generator. It does
 not instantiate the robot's `MotionController`; the normal application still

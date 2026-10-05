@@ -28,7 +28,8 @@
                 "RUNTIME_HARDWARE_STORAGE_STARTUP_TEST": false,
                 "HAL_HARDWARE_STEP_TEST": false,
                 "RUNTIME_STORAGE_REQUIRED": false,
-                "HAL_HARDWARE_TMC_TEST": false
+                "HAL_HARDWARE_TMC_TEST": false,
+                "HAL_HARDWARE_TMC_STANDALONE_TEST": false
             }
         },
         {
@@ -68,6 +69,16 @@
             "inherits": "release-stm32",
             "cacheVariables": {
                 "HAL_HARDWARE_TMC_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "tmc-standalone-test-stm32",
+            "displayName": "STM32 TMC2209 STEP/DIR Test (No Driver UART)",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_TMC_STANDALONE_TEST": true,
                 "RUNTIME_STORAGE_REQUIRED": false,
                 "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
             }
@@ -181,6 +192,10 @@
         {
             "name": "tmc-test-stm32",
             "configurePreset": "tmc-test-stm32"
+        },
+        {
+            "name": "tmc-standalone-test-stm32",
+            "configurePreset": "tmc-standalone-test-stm32"
         }
     ]
 }

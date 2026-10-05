@@ -41,7 +41,17 @@ namespace hal
         MX_TIM2_Init();
 #if defined(HAL_PLATFORM_STM32)
         MX_TIM7_Init();
+#if defined(HAL_HARDWARE_TMC_STANDALONE_TEST)
+        // Standalone comparison: never initialize the driver UART or drive its
+        // pins, including during startup. USART3 remains the USB console.
+        GPIO_InitTypeDef unused_uart_pins{};
+        unused_uart_pins.Pin = GPIO_PIN_5 | GPIO_PIN_6;
+        unused_uart_pins.Mode = GPIO_MODE_ANALOG;
+        unused_uart_pins.Pull = GPIO_NOPULL;
+        HAL_GPIO_Init(GPIOD, &unused_uart_pins);
+#else
         MX_USART2_UART_Init();
+#endif
 #endif
         MX_TIM3_Init();
         MX_TIM5_Init();
