@@ -94,6 +94,33 @@ TEST(Tmc2209, RejectsCorruptMisdirectedMissingAndUnacknowledgedTraffic)
     EXPECT_FALSE(driver.initialize({})); // wrong straps
 }
 
+TEST(Tmc2209, IndexStepSelectionIsVerifiedWithoutEnablingInternalMotion)
+{
+    auto bus = std::make_shared<FaultyBus>();
+    Driver driver{ bus, 0 };
+    Driver::Configuration config{
+        .run_milliamps = 550, .hold_milliamps = 550, .mode = Driver::Mode::StealthChop, .index_step = true
+    };
+    for (const bool interpolate : { true, false }) {
+        config.interpolate = interpolate;
+        ASSERT_TRUE(driver.initialize(config));
+        EXPECT_EQ(bus->model.getRegister(0, 0x00), 0x1E0U); // Only index_step added to StealthChop GCONF.
+        EXPECT_EQ(bool(bus->model.getRegister(0, 0x6C) & (1U << 28U)), interpolate);
+        EXPECT_EQ(bus->model.getRegister(0, 0x22), 0U); // VACTUAL stays zero: external STEP/DIR.
+        EXPECT_EQ(bus->model.getRegister(0, 0x10) & 0x1F1FU, 0x0808U); // Same run/hold scale.
+        ASSERT_TRUE(driver.verify());
+        bus->model.setRegister(0, 0x00, 0x1C0U);
+        EXPECT_FALSE(driver.verify()); // Lost index_step setting must be detected.
+    }
+    config.index_step = false;
+    config.interpolate = true;
+    ASSERT_TRUE(driver.initialize(config));
+    EXPECT_EQ(bus->model.getRegister(0, 0x00), 0x1C0U);
+    EXPECT_TRUE(bus->model.getRegister(0, 0x6C) & (1U << 28U));
+    EXPECT_EQ(bus->model.getRegister(0, 0x22), 0U);
+    EXPECT_TRUE(driver.verify());
+}
+
 TEST(Tmc2209, DecodesFaultsWithoutTreatingOpenLoadAsReliableAtStandstill)
 {
     auto bus = std::make_shared<FaultyBus>();

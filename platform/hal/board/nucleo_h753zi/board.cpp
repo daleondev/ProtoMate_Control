@@ -68,6 +68,13 @@ namespace hal::board
                                    .pull = gpio::Pull::Down, .edge = gpio::Edge::Rising });
     }
 
+    auto createStepperIndex(MotorId id) -> std::shared_ptr<IDigitalInput>
+    {
+        if (id != MotorId::Motor2 && id != MotorId::Motor3) return {};
+        return gpio::createInput({ .pin = { D, static_cast<std::uint8_t>(id == MotorId::Motor2 ? 0 : 1) },
+                                   .pull = gpio::Pull::Down, .edge = gpio::Edge::Both });
+    }
+
     auto createStepperStepOutput(const std::shared_ptr<IStepGenerator>& generator, MotorId id)
       -> std::shared_ptr<IStepOutput>
     {

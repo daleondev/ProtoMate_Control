@@ -272,24 +272,13 @@ namespace cli
         concept IsFlag = is_flag_v<T>;
     }
 
-    // Bind adapts a reflected function to Callback (for example by capturing
-    // an application-owned controller). Stateless modules use the identity
-    // binding and the application registry, as before.
-    template<std::meta::info ns = std::meta::current_namespace(), typename Bind = std::identity>
-    constexpr auto register_commands(Parser& parser = registry(), Bind bind = {}) -> void
+    namespace detail
     {
-        static constexpr auto command_functions{ [] {
-            std::vector<std::meta::info> functions;
-            for (auto func :
-                 std::meta::members_of(^^[:ns:] ::commands, std::meta::access_context::current())) {
-                if (std::meta::is_function(func)) {
-                    functions.push_back(func);
-                }
-            }
-            return std::define_static_array(functions);
-        }() };
-
-        template for (constexpr auto command_function : command_functions)
+        // Keep each command's temporaries in a separate frame. Expanding every
+        // command into register_commands accumulated their stack storage at -O0
+        // and overflowed the embedded application thread during startup.
+        template<std::meta::info command_function, typename Bind>
+        [[gnu::noinline]] constexpr auto register_command(Parser& parser, Bind& bind) -> void
         {
             constexpr auto annotations{ std::define_static_array(
               std::meta::annotations_of(command_function)) };
@@ -339,6 +328,29 @@ namespace cli
             if (!registration) {
                 throw std::runtime_error{ registration.error() };
             }
+        }
+    }
+
+    // Bind adapts a reflected function to Callback (for example by capturing
+    // an application-owned controller). Stateless modules use the identity
+    // binding and the application registry, as before.
+    template<std::meta::info ns = std::meta::current_namespace(), typename Bind = std::identity>
+    constexpr auto register_commands(Parser& parser = registry(), Bind bind = {}) -> void
+    {
+        static constexpr auto command_functions{ [] {
+            std::vector<std::meta::info> functions;
+            for (auto func :
+                 std::meta::members_of(^^[:ns:] ::commands, std::meta::access_context::current())) {
+                if (std::meta::is_function(func)) {
+                    functions.push_back(func);
+                }
+            }
+            return std::define_static_array(functions);
+        }() };
+
+        template for (constexpr auto command_function : command_functions)
+        {
+            detail::register_command<command_function>(parser, bind);
         }
     }
 }

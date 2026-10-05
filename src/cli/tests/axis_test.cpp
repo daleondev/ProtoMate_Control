@@ -175,7 +175,7 @@ TEST_F(CliAxis, RelativeMovesUseDisplacementsAndBothCommandGroupsShareJobs)
     EXPECT_NE(output.str().find("position=38.8000 deg"), std::string::npos);
     ASSERT_TRUE(run("axis status z"));
     EXPECT_NE(output.str().find("position=208.5000 mm"), std::string::npos);
-    EXPECT_NE(output.str().find("encoder: not fitted"), std::string::npos);
+    EXPECT_NE(output.str().find("driver INDEX (pseudo): waiting for INDEX"), std::string::npos);
     EXPECT_FALSE(run("axis moveto z 200 --speed 1"));
 }
 
@@ -273,7 +273,7 @@ TEST_F(CliAxis, EncoderFeedbackUsesSignedAxisConversionAndPreservesErrors)
     ASSERT_TRUE(run("axis status shoulder"));
     EXPECT_NE(output.str().find("encoder: position=19.0000 deg"), std::string::npos);
     ASSERT_TRUE(run("axis status elbow"));
-    EXPECT_NE(output.str().find("encoder: not fitted"), std::string::npos);
+    EXPECT_NE(output.str().find("driver INDEX (pseudo): waiting for INDEX"), std::string::npos);
     ASSERT_TRUE(encoder->stop());
     ASSERT_TRUE(encoder->setPosition(std::numeric_limits<hal::IQuadratureEncoder::Count>::max()));
     ASSERT_TRUE(encoder->start());

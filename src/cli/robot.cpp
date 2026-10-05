@@ -164,14 +164,18 @@ namespace cli::robot
             out << "Commanded state (from emitted steps):\n";
             printState(out, status.commanded);
             if (status.actual) {
-                out << "Measured state (all three encoders):\n";
+                out << "Feedback state (M1 shaft encoder; M2/M3 coarse driver INDEX estimates):\n";
                 printState(out, *status.actual);
             }
             else {
                 const auto& error{ status.actual.error() };
-                out << "Measured tool state unavailable: " << axisName(error.motor) << " encoder ";
+                out << "Feedback tool state unavailable: " << axisName(error.motor) << ' '
+                    << (status.motors.axes[static_cast<std::size_t>(error.motor)].feedback_source ==
+                          StepperMotor::FeedbackSource::DriverIndex ? "driver INDEX " : "encoder ");
                 if (error.reason == std::errc::no_such_device)
                     out << "not fitted";
+                else if (error.reason == std::errc::no_message_available)
+                    out << "waiting for INDEX";
                 else
                     out << "unavailable (" << error.reason.message() << ')';
                 out << ". See 'axis status' for individual feedback.\n";

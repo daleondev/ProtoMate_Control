@@ -151,7 +151,7 @@ the `robot` commands.
 
 | Command | Behavior |
 | --- | --- |
-| `motor status [motor\|all]` | Live commanded position/speed, encoder feedback, reference/switch state, outstanding command count and generator state. Defaults to all. |
+| `motor status [motor\|all]` | Live commanded position/speed, labelled shaft-encoder or driver-INDEX feedback, reference/switch state, outstanding command count and generator state. Defaults to all. |
 | `motor enable` | Verify both UART drivers, enable all three drivers and wait 200 ms for settling. |
 | `motor disable` | Abort all active/queued motions, remove holding torque and invalidate all references. |
 | `motor home <motor>` | Reference one motor: seek, back off, slowly re-latch and set its configured reference position. |
@@ -329,10 +329,10 @@ their motor-command equivalents. Relative moves use displacement conversion
 without reference offsets; absolute moves use position conversion with offsets.
 Speed and profile-limit magnitudes remain nonnegative under direction inversion.
 
-`axis status [axis|all]` displays signed joint velocities and converted encoder
-feedback, preserving missing/faulted encoder results. Before referencing, the
-displayed positions do not establish a physical datum. M2/M3 have no encoder
-feedback. `axis jobs [id]` shows the same result list as `motor jobs`, using
+`axis status [axis|all]` displays signed joint velocities and converted
+feedback, preserving missing/faulted results. M1 uses its shaft encoder;
+M2/M3 use coarse driver INDEX estimates, labelled `driver INDEX (pseudo)`.
+Before referencing, displayed positions do not establish a physical datum. `axis jobs [id]` shows the same result list as `motor jobs`, using
 joint names. `axis stop [axis|all]` works even before configuring mechanics.
 `axis enable`, `axis disable` and `axis reset` act on the shared driver enable
 and generator, exactly like the motor equivalents.
@@ -405,9 +405,10 @@ faults that invalidate referencing, timer faults and timeouts also stop the grou
 
 `robot status` converts emitted-step coordinates and signed speeds through the
 axis conversions and SCARA geometry. Unreferenced coordinates lack a physical
-datum; uncertain pulse counts remain marked as uncertain. A fully measured tool
-state requires valid encoders on all three axes. With feedback only on M1 it is
-reported as unavailable; use `axis status` for individual encoder readings.
+datum; uncertain pulse counts remain marked as uncertain. The feedback tool state
+requires valid results on all three axes. It combines M1 shaft feedback with
+M2/M3 coarse driver estimates and is labelled accordingly; use `axis status`
+for individual sources and errors.
 Motor readings are sampled sequentially, not latched at one hardware instant.
 
 `main.cpp` supplies nominal CAD arm lengths of 205 and 223.4 mm and a 135 mm

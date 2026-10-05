@@ -11,6 +11,7 @@ target_sources(hal_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/pwm_pulse_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/rng_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tmc2209_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/index_feedback_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/step_model/step_generator_test.cpp
 )
 

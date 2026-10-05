@@ -11,6 +11,7 @@
 #include <thread>
 
 #include "hal/board/board.hpp"
+#include "hal/devices/impl/IndexFeedback.hpp"
 
 using namespace pnm::units::literals;
 
@@ -100,7 +101,7 @@ class StepperMotor final
         return m_referenceSwitchInput->read() == hal::gpio::Level::High;
     }
     // Call after stopping when holding torque or the physical datum is lost.
-    void invalidateReference() noexcept { m_referenced.store(false); }
+    void invalidateReference() noexcept;
 
     // Immediate abort (no deceleration ramp), also cancels queued commands.
     void stop() noexcept;
@@ -113,6 +114,19 @@ class StepperMotor final
 
     pnm::Result<pnm::units::Angle> actualPosition() const noexcept;
     pnm::Result<pnm::units::AngularVelocity> actualVelocity() const noexcept;
+    enum class FeedbackSource
+    {
+        ShaftEncoder,
+        DriverIndex
+    };
+    FeedbackSource feedbackSource() const noexcept
+    {
+        return m_encoderInput ? FeedbackSource::ShaftEncoder : FeedbackSource::DriverIndex;
+    }
+    pnm::units::Angle feedbackResolution() const noexcept
+    {
+        return m_encoderInput ? m_encoderCountAngle : m_fullStepAngle * 4.0;
+    }
 
   private:
     friend class control::MotionController;
@@ -210,7 +224,11 @@ class StepperMotor final
     pnm::units::Angle m_encoderCountAngle{ 0_deg };
     pnm::units::Angle m_encoderPositionOffset{ 0_deg };
     std::optional<hal::IQuadratureEncoder::Sample> m_previousEncoderSample;
-    std::atomic_bool m_encoderHealthy{ false };
+    void accountIndex(const hal::device::IndexFeedback::Sample& sample) noexcept;
+    std::atomic_bool m_feedbackHealthy{ false };
+    std::atomic<std::errc> m_feedbackError{ std::errc::state_not_recoverable };
+    std::unique_ptr<hal::device::IndexFeedback> m_indexFeedback;
+    pnm::units::Angle m_indexPositionOffset{ 0_deg };
     std::atomic<pnm::units::Angle> m_actualPosition{ 0_deg };
     std::atomic<pnm::units::AngularVelocity> m_actualVelocity{ 0_rpm };
 };

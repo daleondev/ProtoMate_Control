@@ -1,5 +1,6 @@
 #include "hal/board/board.hpp"
 #include "hal/devices/impl/Tmc2209.hpp"
+#include "hal/devices/impl/IndexFeedback.hpp"
 #include "hal/drivers/common.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
@@ -145,19 +146,25 @@ namespace
                 log("Selected address %u; STEP/DIR/DIAG remain on M2 pins. Run check.", unsigned(m_address));
                 return;
             }
-            if (command != "check" && command != "status" && command != "hold" && command != "move") {
+            if (command != "check" && command != "status" && command != "hold" && command != "move" &&
+                command != "index" && command != "feedback") {
                 menu();
                 return;
             }
-            if ((command == "hold" || command == "move") && !m_ready.load()) {
+            if ((command == "hold" || command == "move" || command == "index" || command == "feedback") && !m_ready.load()) {
                 log("REJECTED: check must pass before enabling the motor.");
+                return;
+            }
+            if ((command == "index" || command == "feedback") && m_configuration.mode != Driver::Mode::StealthChop) {
+                log("REJECTED: use mode stealth, then check, before index.");
                 return;
             }
             // The selected operation outlives the input buffer; capture a value.
             const auto operation = command == "check"    ? 0
                                    : command == "status" ? 1
                                    : command == "hold"   ? 2
-                                                         : 3;
+                                   : command == "move"   ? 3
+                                   : command == "index"  ? 4 : 5;
             if (operation == 0) {
                 const hal::stm32::InterruptGuard guard;
                 m_abort.store(false);
@@ -180,6 +187,8 @@ namespace
             log("mode stealth|spread = select chopper while disabled; run check after selecting");
             log("hold = settle 1 s then hold 5 s without STEP; move = +400 then -400 pulses, 400 Hz / 5 us "
                 "high");
+            log("index = three external-STEP/INDEX phases; StealthChop required; capture D0 and D7");
+            log("feedback = normal INDEX callback test; connect INDEX to PD0/CN9.25; D0 STEP, D1 INDEX");
             log("stop = disable/abort; address 0|1 = select strapped node; help = this menu");
             log("Only ONE TMC2209. Physical M2 pins for either address; no robot/perfboard required.");
             log("Both modes: 550 mA RMS requested (nominal 511 mA), run=hold, 16 microsteps, interpolation "
@@ -300,10 +309,10 @@ namespace
             require(m_ready.load(), "check cancelled before qualification");
         }
 
-        void enable()
+        void enable(const Driver::Configuration& configuration)
         {
             require(m_ready.load(), "run check before enabling");
-            require(m_driver->configuration() == m_configuration, "unexpected motion configuration");
+            require(m_driver->configuration() == configuration, "unexpected motion configuration");
             static_cast<void>(sample(false));
             bool enabled{};
             {
@@ -319,9 +328,9 @@ namespace
             // Allow StealthChop's standstill auto-tuning, identically in both modes.
             dwell(1s, true);
             const auto state = sample(true);
-            require(bool(state.driver & (1U << 30U)) == (m_configuration.mode == Driver::Mode::StealthChop),
+            require(bool(state.driver & (1U << 30U)) == (configuration.mode == Driver::Mode::StealthChop),
                     "driver reports wrong active chopper mode");
-            const auto scale = Driver::currentScale(m_configuration.run_milliamps);
+            const auto scale = Driver::currentScale(configuration.run_milliamps);
             require(scale, "comparison current scale");
             require(((state.driver >> 16U) & 31U) == *scale, "driver reports wrong current scale");
             printStatus(state);
@@ -354,18 +363,21 @@ namespace
                 static_cast<unsigned long>(phase));
         }
 
-        void leg(unsigned index, Level direction)
+        void leg(unsigned index,
+                 Level direction,
+                 hal::step::PulseCount pulses = 400,
+                 std::chrono::microseconds period = 2500us)
         {
             active();
             m_dir->write(direction);
-            require(m_step->prepare({ 2500us, 5us }, 400), "prepare 400-pulse move");
+            require(m_step->prepare({ period, 5us }, pulses), "prepare finite move");
             require(m_step->start(2ms), "start finite move");
-            const auto deadline = Clock::now() + 2s;
+            const auto deadline = Clock::now() + period * static_cast<std::int64_t>(pulses) + 1s;
             for (;;) {
                 active();
                 const auto state = m_step->status();
                 if (state.state == hal::step::State::Completed) {
-                    require(state.counts_exact && state.pulses == 400, "finite pulse count");
+                    require(state.counts_exact && state.pulses == pulses, "finite pulse count");
                     hardware_tmc_test_pulses[index] = state.pulses;
                     require((GPIOB->IDR & GPIO_PIN_10) == 0, "M2 STEP stopped low");
                     static_cast<void>(sample(true));
@@ -383,9 +395,134 @@ namespace
             }
         }
 
+        void indexLeg(unsigned index, Level direction, std::chrono::microseconds period)
+        {
+            constexpr hal::step::PulseCount pulses = 129; // Odd count distinguishes edges from full cycles.
+            const auto before = readRegister(0x6A);
+            const auto writes = readCounter();
+            log("INDEX LEG %u: DIR=%u pulses=129 period=%lld us high=5 us MSCNT_before=%lu",
+                index + 1,
+                direction == Level::High ? 1U : 0U,
+                static_cast<long long>(period.count()),
+                static_cast<unsigned long>(before));
+            leg(index, direction, pulses, period);
+            dwell(200ms, true); // Let interpolation finish before checking the final electrical phase.
+            const auto after = readRegister(0x6A);
+            const auto delta =
+              static_cast<std::uint32_t>(pulses * (256U / m_configuration.microsteps)) & 1023U;
+            const auto expected = (before + (direction == Level::Low ? delta : 1024U - delta)) & 1023U;
+            log("INDEX LEG %u: MSCNT_after=%lu expected=%lu",
+                index + 1,
+                static_cast<unsigned long>(after),
+                static_cast<unsigned long>(expected));
+            require(after == expected, "external STEP/DIR did not produce the expected MSCNT change");
+            require(readCounter() == writes, "unexpected register write during INDEX leg");
+        }
+
+        void indexTest()
+        {
+            require(m_configuration.mode == Driver::Mode::StealthChop, "INDEX test requires StealthChop");
+            log("INDEX: capture D0 STEP, D1 DIR, D2 EN and D7 INDEX for 25 s starting now.");
+            log("Three phases; each moves 129 pulses out at 100 Hz, back at 400 Hz. VACTUAL stays zero.");
+            log("Enabling in 2 seconds; stop/B1 aborts.");
+            dwell(2s, false);
+            for (unsigned phase{}; phase < 3; ++phase) {
+                active();
+                quiesce();
+                auto configuration = m_configuration;
+                configuration.index_step = phase != 0;
+                configuration.interpolate = phase != 2;
+                require(m_driver->initialize(configuration), "configure INDEX test phase while disabled");
+                static_cast<void>(sample(false));
+                log("INDEX PHASE %u/3: index_step=%u interpolation=%u GCONF=%08lx CHOPCONF=%08lx",
+                    phase + 1,
+                    unsigned(configuration.index_step),
+                    unsigned(configuration.interpolate),
+                    static_cast<unsigned long>(readRegister(0x00)),
+                    static_cast<unsigned long>(readRegister(0x6C)));
+                enable(configuration);
+                const auto origin = readRegister(0x6A);
+                indexLeg(0, Level::Low, 10ms);
+                dwell(300ms, true);
+                indexLeg(1, Level::High, 2500us);
+                require(readRegister(0x6A) == origin, "INDEX phase failed to return to its initial MSCNT");
+                quiesce();
+                dwell(500ms, false); // Disabled gap separates phases in the capture.
+            }
+            // run() restores the selected configuration on success AND failure.
+            log("INDEX sequence complete. D7 is analyzer-only: inspect capture to determine its behavior.");
+        }
+
+        void feedbackTest()
+        {
+            hal::device::IndexFeedback feedback{ hal::board::createStepperIndex(motor) };
+            std::atomic<std::int64_t> cycles{};
+            std::atomic<double> velocity{}, peak_forward{}, peak_reverse{};
+            std::atomic_bool valid{};
+            feedback.setCallback([&](const auto& value) noexcept {
+                valid.store(bool(value.cycles));
+                if (value.cycles) cycles.store(*value.cycles);
+                velocity.store(value.cycles_per_second);
+                if (value.cycles_per_second > peak_forward.load()) peak_forward.store(value.cycles_per_second);
+                if (value.cycles_per_second < peak_reverse.load()) peak_reverse.store(value.cycles_per_second);
+            });
+            struct Cleanup
+            {
+                Bench& bench;
+                hal::device::IndexFeedback& feedback;
+                ~Cleanup()
+                {
+                    bench.quiesce();
+                    static_cast<void>(bench.m_step->setProgressCallback({}));
+                    feedback.clearCallback();
+                }
+            } cleanup{ *this, feedback };
+            require(m_step->setProgressCallback([&](const hal::step::AxisStatus& state) noexcept {
+                feedback.motion(state.state == hal::step::State::Running, m_dir->read() == Level::High,
+                                state.period * 64);
+            }), "INDEX progress subscription");
+            log("FEEDBACK: normal INDEX, PD0/CN9.25, 64 STEP per cycle, 7.2 deg per cycle.");
+            log("Enabling in 2 seconds; stop/B1 aborts.");
+            dwell(2s, false);
+            enable(m_configuration);
+            leg(0, Level::High, 128, 2500us); // Establish phase before comparing closed excursions.
+            dwell(200ms, true);
+            require(valid.load(), "no INDEX callback: check PD0/CN9.25 wiring");
+            const auto origin{ cycles.load() };
+            const auto phase{ readRegister(0x6A) };
+            peak_forward.store(0);
+            peak_reverse.store(0);
+            leg(0, Level::High, 256, 10ms);
+            dwell(200ms, true);
+            log("FEEDBACK forward: cycles=%lld expected=%lld peak=%f cycles/s stopped=%f",
+                static_cast<long long>(cycles.load()), static_cast<long long>(origin + 4),
+                peak_forward.load(), velocity.load());
+            require(valid.load() && cycles.load() == origin + 4 && velocity.load() == 0,
+                    "forward INDEX cycles/stop velocity");
+            leg(1, Level::Low, 256, 2500us);
+            dwell(200ms, true);
+            log("FEEDBACK reverse: cycles=%lld expected=%lld peak=%f cycles/s stopped=%f",
+                static_cast<long long>(cycles.load()), static_cast<long long>(origin),
+                peak_reverse.load(), velocity.load());
+            require(valid.load() && cycles.load() == origin && velocity.load() == 0,
+                    "reverse INDEX cycles/stop velocity");
+            require(peak_forward.load() > 1.5 && peak_forward.load() < 1.65 &&
+                    peak_reverse.load() < -6.1 && peak_reverse.load() > -6.4,
+                    "INDEX velocity at 100/400 Hz STEP");
+            // Cross and recross a boundary with short moves as well.
+            leg(0, Level::High, 16, 10ms);
+            dwell(200ms, true);
+            leg(1, Level::Low, 16, 10ms);
+            dwell(200ms, true);
+            require(valid.load() && cycles.load() == origin && velocity.load() == 0,
+                    "short reversal produced INDEX count drift");
+            require(readRegister(0x6A) == phase, "feedback test final electrical phase");
+            log("FEEDBACK verified: forward, reverse, short reversal, measured speeds, stopped velocity.");
+        }
+
         void run(int operation) noexcept
         {
-            const auto name = std::array{ "check", "status", "hold", "move" }[operation];
+            const auto name = std::array{ "check", "status", "hold", "move", "index", "feedback" }[operation];
             hardware_tmc_test_status = 0x52554E00U;
             bool passed{};
             try {
@@ -408,15 +545,21 @@ namespace
                 else {
                     hardware_tmc_test_pulses[0] = 0;
                     hardware_tmc_test_pulses[1] = 0;
-                    log("Enabling in 2 seconds; stop/B1 aborts.");
-                    dwell(2s, false);
-                    enable();
-                    if (operation == 2)
-                        hold();
+                    if (operation == 4)
+                        indexTest();
+                    else if (operation == 5)
+                        feedbackTest();
                     else {
-                        leg(0, Level::Low);
-                        dwell(300ms, true);
-                        leg(1, Level::High);
+                        log("Enabling in 2 seconds; stop/B1 aborts.");
+                        dwell(2s, false);
+                        enable(m_configuration);
+                        if (operation == 2)
+                            hold();
+                        else {
+                            leg(0, Level::Low);
+                            dwell(300ms, true);
+                            leg(1, Level::High);
+                        }
                     }
                     quiesce();
                     printStatus(sample(false));
@@ -432,6 +575,27 @@ namespace
                 log("FAIL %s: unexpected exception", name);
             }
             quiesce();
+            if (operation == 4) {
+                // No enable, STEP or motion retry during cleanup. A lost UART
+                // leaves qualification false until a complete check succeeds.
+                try {
+                    require(m_driver->initialize(m_configuration), "restore normal INDEX configuration");
+                    log("INDEX restored: index_step=0, interpolation=1; EN disabled.");
+                } catch (const std::exception& error) {
+                    passed = false;
+                    m_ready.store(false);
+                    log("FAIL INDEX restore: %s; EN disabled; run check.", error.what());
+                } catch (...) {
+                    passed = false;
+                    m_ready.store(false);
+                    log("FAIL INDEX restore: unexpected exception; EN disabled; run check.");
+                }
+                if (passed && (m_abort.load() || m_fault.load())) {
+                    passed = false;
+                    m_ready.store(false);
+                    log("FAIL index: stopped during cleanup; EN disabled; run check.");
+                }
+            }
             hardware_tmc_test_status = passed ? 0x600D600DU : 0xBAD00000U | operation;
             hardware_tmc_test_complete();
             if (passed)

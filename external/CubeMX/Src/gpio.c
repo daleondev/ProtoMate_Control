@@ -87,6 +87,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(SD_CARD_DETECT_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : M2_INDEX_Pin M3_INDEX_Pin */
+  GPIO_InitStruct.Pin = M2_INDEX_Pin|M3_INDEX_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
   /*Configure GPIO pins : M3_DIAG_Pin M2_DIAG_Pin */
   GPIO_InitStruct.Pin = M3_DIAG_Pin|M2_DIAG_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
@@ -100,6 +106,12 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(M1_ENC_Z_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
   HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 

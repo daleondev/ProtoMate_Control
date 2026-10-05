@@ -329,14 +329,62 @@ TEST(StepperMotor, MeasuredPositionDoesNotPretendCommandedMotionOccurred)
     EXPECT_EQ(motor.actualVelocity(), 0_rpm);
 }
 
-TEST(StepperMotor, MotorsWithoutEncodersReportFeedbackUnavailable)
+TEST(StepperMotor, IndexFeedbackWaitsForRealTransitions)
 {
     const auto generator{ hal::board::createStepperGenerator() };
     for (const auto id : { Motor2, Motor3 }) {
         StepperMotor motor{ id, 0_deg, 1.8_deg, 16U, generator };
-        EXPECT_EQ(motor.actualPosition().error(), std::errc::no_such_device);
-        EXPECT_EQ(motor.actualVelocity().error(), std::errc::no_such_device);
+        EXPECT_EQ(motor.actualPosition().error(), std::errc::no_message_available);
+        EXPECT_EQ(motor.actualVelocity().error(), std::errc::no_message_available);
     }
+}
+
+TEST(StepperMotor, IndexCallbacksUpdateActualValuesAndHomingRebasesFeedback)
+{
+    using enum hal::gpio::Level;
+    const auto generator{ hal::board::createStepperGenerator() };
+    StepperMotor motor{ Motor2, 23.5_deg, 1.8_deg, 16U, generator };
+    auto reference{ releasedReference(Motor2) };
+    auto index{ hal::gpio::simulatedInput({ hal::gpio::Port::D, 0 }) };
+    ASSERT_TRUE(index);
+    EXPECT_EQ(motor.feedbackSource(), StepperMotor::FeedbackSource::DriverIndex);
+    EXPECT_EQ(motor.feedbackResolution(), 7.2_deg);
+    ASSERT_TRUE(generator->start());
+    auto motion{ motor.moveRel(10_rev, 5_rpm) };
+    ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
+    index->setSimulatedLevel(High); // First marker establishes the coarse origin.
+    EXPECT_TRUE(measuredAt(motor, 0_deg));
+    index->setSimulatedLevel(Low);
+    std::this_thread::sleep_for(15ms);
+    index->setSimulatedLevel(High);
+    EXPECT_TRUE(measuredAt(motor, 7.2_deg));
+    ASSERT_TRUE(motor.actualVelocity());
+    EXPECT_GT(*motor.actualVelocity(), 0_rpm);
+    motor.stopAndWait();
+    EXPECT_EQ(result(motion), Stopped);
+    EXPECT_EQ(motor.actualVelocity(), 0_rpm);
+    EXPECT_EQ(referenceMotor(motor, reference), Completed);
+    EXPECT_EQ(motor.actualPosition(), 23.5_deg);
+    EXPECT_EQ(motor.actualVelocity(), 0_rpm);
+    EXPECT_EQ(motor.position(), 23.5_deg);
+    motor.invalidateReference();
+    EXPECT_FALSE(motor.isReferenced());
+    EXPECT_EQ(motor.actualPosition().error(), std::errc::no_message_available);
+}
+
+TEST(StepperMotor, IndexResourcesAndCallbacksAreReleasedAfterDestruction)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    std::shared_ptr<hal::GpioInput> input;
+    {
+        StepperMotor motor{ Motor3, 0_deg, 1.8_deg, 16U, generator };
+        input = hal::gpio::simulatedInput({ hal::gpio::Port::D, 1 });
+        ASSERT_TRUE(input);
+    }
+    input->setSimulatedLevel(hal::gpio::Level::High);
+    input->setSimulatedLevel(hal::gpio::Level::Low);
+    input.reset();
+    EXPECT_TRUE(hal::board::createStepperIndex(Motor3));
 }
 
 TEST(StepperMotor, EncoderWrapsAndFaultsAreNotPresentedAsValidMeasuredMotion)
@@ -442,7 +490,7 @@ TEST(StepperMotor, ReferenceStartingOnSwitchBacksAwayBeforeApproaching)
     EXPECT_EQ(referenceMotor(motor, input), Completed);
     EXPECT_TRUE(motor.isReferenced());
     EXPECT_EQ(motor.position(), -12_deg);
-    EXPECT_EQ(motor.actualPosition().error(), std::errc::no_such_device);
+    EXPECT_EQ(motor.actualPosition().error(), std::errc::no_message_available);
     auto zero{ motor.moveAbs(-12_deg, 5_rpm) };
     EXPECT_EQ(result(zero), Completed);
 }

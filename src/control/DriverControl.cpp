@@ -86,7 +86,7 @@ namespace control
         auto hold = hal::device::Tmc2209::currentScale(configuration.hold_milliamps);
         if (!run || !hold || configuration.run_milliamps > limit ||
             configuration.hold_milliamps > configuration.run_milliamps ||
-            configuration.microsteps != m_configuration[i + 1].microsteps ||
+            configuration.microsteps != m_configuration[i + 1].microsteps || configuration.index_step ||
             (configuration.mode != hal::device::Tmc2209::Mode::SpreadCycle &&
              configuration.mode != hal::device::Tmc2209::Mode::StealthChop) ||
             (configuration.mode == hal::device::Tmc2209::Mode::StealthChop && *run < 8) ||

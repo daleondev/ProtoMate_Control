@@ -44,9 +44,9 @@ storage modules remain external. The buck's 63 × 27 mm body follows the supplie
 STEP model; its nominal mounting grid is 5.08 mm within each pair and 50.8 mm
 between pairs. Its barrel jack receives 24 V at the left edge.
 
-J113 adds four paired signal/ground connections to the Nucleo: TX (PD5),
-RX (PD6), M2 DIAG (PD4) and M3 DIAG (PD3). R29 is the shared UART's 1 kΩ TX
-series resistor. J105/J106 pin 9 is UART, pin 7 is DIAG and pin 8 remains NC.
+J113 adds six paired signal/ground connections to the Nucleo: TX (PD5),
+RX (PD6), M2 DIAG (PD4), M3 DIAG (PD3), M2 INDEX (PD0) and M3 INDEX (PD1). R29 is the shared UART's 1 kΩ TX
+series resistor. J105/J106 pin 9 is UART, pin 7 is DIAG and pin 8 is INDEX.
 Address straps are M2 MS1/MS2 = GND/GND and M3 = 3.3 V/GND. Both SPRD jumpers
 stay open. Firmware configures current and 16 microsteps before enable; the
 potentiometers do not set current in UART mode. See the

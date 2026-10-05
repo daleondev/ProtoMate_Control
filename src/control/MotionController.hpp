@@ -77,6 +77,8 @@ namespace control
             // Configuration and motor state from the same locked snapshot.
             // Empty until the application's mechanics have been supplied.
             std::optional<Conversion> conversion;
+            StepperMotor::FeedbackSource feedback_source;
+            pnm::units::Angle feedback_resolution;
         };
         struct Status
         {

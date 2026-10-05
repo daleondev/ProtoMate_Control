@@ -140,4 +140,8 @@ W138,TMC_UART_RX,J113,3,S29,R29,2,P32,bottom wire,,11.9,signal
 W139,TMC_UART_RX,R29,2,P32,J106,9,J35,bottom wire + top jumper,"O32, N33",18.4,signal
 W140,TMC_UART_RX,J106,9,J35,J105,9,J21,bottom wire + top jumper,"K34, K21",40.6,signal
 W141,M2_DIAG,J113,5,T29,J105,7,J19,bottom wire + top jumper,"P26, L21",37.4,signal
-W142,M3_DIAG,J113,7,U29,J106,7,J33,bottom wire + top jumper,"Q31, M33",36.9,signal
+W142,GND,J113,8,U30,J113,10,V30,bottom wire,,2.5,signal
+W143,GND,J113,10,V30,J113,12,W30,bottom wire,,2.5,signal
+W144,M2_INDEX,J113,9,V29,J105,8,J20,bottom wire + top jumper,"T27, L20",47.9,signal
+W145,M3_INDEX,J113,11,W29,J106,8,J34,bottom wire + top jumper,"Q31, M33",41.9,signal
+W146,M3_DIAG,J113,7,U29,J106,7,J33,bottom wire + top jumper,"V28, R33",55.9,signal

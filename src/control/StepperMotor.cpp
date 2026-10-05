@@ -53,6 +53,12 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
                 throw std::runtime_error("motor encoder could not start");
             }
         }
+        else {
+            m_indexFeedback = std::make_unique<hal::device::IndexFeedback>(
+              hal::board::createStepperIndex(id));
+            m_indexFeedback->setCallback(
+              [this](const hal::device::IndexFeedback::Sample& sample) noexcept { accountIndex(sample); });
+        }
 
         if (!m_stepOutput->setProgressCallback(
               [this](const hal::step::AxisStatus& status) noexcept { accountProgress(status); })) {
@@ -77,6 +83,7 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         pnm::log::debug("Motor initialized: {} degrees per microstep",
                         m_stepAngle.get<pnm::units::AngleUnits::deg>());
     } catch (...) {
+        if (m_indexFeedback) m_indexFeedback->clearCallback();
         m_referenceSwitchInput->clearEdgeCallback();
         if (m_encoderInput) {
             m_encoderInput->clearSampleCallback();
@@ -96,6 +103,7 @@ StepperMotor::~StepperMotor()
     }
     m_referenceSwitchInput->clearEdgeCallback();
     static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
+    if (m_indexFeedback) m_indexFeedback->clearCallback();
 }
 
 std::future<StepperMotor::Result> StepperMotor::moveRel(pnm::units::Angle distance,
@@ -556,6 +564,12 @@ std::future<StepperMotor::Result> StepperMotor::reference(pnm::units::AngularVel
 
 bool StepperMotor::isReferenced() const noexcept { return m_referenced.load(); }
 
+void StepperMotor::invalidateReference() noexcept
+{
+    m_referenced.store(false);
+    if (m_indexFeedback) m_indexFeedback->invalidate();
+}
+
 pnm::units::Angle StepperMotor::position() const
 {
     std::scoped_lock lock{ m_mutex };
@@ -572,13 +586,13 @@ pnm::units::AngularVelocity StepperMotor::velocity() const
 
 pnm::Result<pnm::units::Angle> StepperMotor::actualPosition() const noexcept
 {
-    if (!m_encoderInput) {
+    if (!m_encoderInput && !m_indexFeedback) {
         return std::unexpected(std::make_error_code(std::errc::no_such_device));
     }
 
     const auto position{ m_actualPosition.load() };
-    if (!m_encoderHealthy.load()) {
-        return std::unexpected(std::make_error_code(std::errc::state_not_recoverable));
+    if (!m_feedbackHealthy.load()) {
+        return std::unexpected(std::make_error_code(m_feedbackError.load()));
     }
 
     return position;
@@ -586,13 +600,13 @@ pnm::Result<pnm::units::Angle> StepperMotor::actualPosition() const noexcept
 
 pnm::Result<pnm::units::AngularVelocity> StepperMotor::actualVelocity() const noexcept
 {
-    if (!m_encoderInput) {
+    if (!m_encoderInput && !m_indexFeedback) {
         return std::unexpected(std::make_error_code(std::errc::no_such_device));
     }
 
     const auto velocity{ m_actualVelocity.load() };
-    if (!m_encoderHealthy.load()) {
-        return std::unexpected(std::make_error_code(std::errc::state_not_recoverable));
+    if (!m_feedbackHealthy.load()) {
+        return std::unexpected(std::make_error_code(m_feedbackError.load()));
     }
 
     return velocity;
@@ -601,8 +615,9 @@ pnm::Result<pnm::units::AngularVelocity> StepperMotor::actualVelocity() const no
 void StepperMotor::accountEncoder(const hal::IQuadratureEncoder::Sample& sample) noexcept
 {
     if (!sample.position) {
+        m_feedbackError.store(std::errc::state_not_recoverable);
         m_referenced.store(false);
-        m_encoderHealthy.store(false);
+        m_feedbackHealthy.store(false);
         if (auto* notification{ m_events->groupNotification.load() })
             notification->signal();
         m_actualVelocity.store(0_rpm);
@@ -629,7 +644,22 @@ void StepperMotor::accountEncoder(const hal::IQuadratureEncoder::Sample& sample)
                            m_encoderCountAngle * static_cast<double>(*sample.position));
     m_actualVelocity.store(velocity);
     m_previousEncoderSample = sample;
-    m_encoderHealthy.store(true);
+    m_feedbackHealthy.store(true);
+}
+
+void StepperMotor::accountIndex(const hal::device::IndexFeedback::Sample& sample) noexcept
+{
+    if (!sample.cycles) {
+        m_feedbackError.store(sample.cycles.error() == std::errc::no_message_available
+                                ? std::errc::no_message_available : std::errc::state_not_recoverable);
+        m_feedbackHealthy.store(false);
+        m_actualVelocity.store(0_rpm);
+        return;
+    }
+    const auto cycle_angle{ m_fullStepAngle * 4.0 };
+    m_actualPosition.store(m_indexPositionOffset + cycle_angle * static_cast<double>(*sample.cycles));
+    m_actualVelocity.store(cycle_angle * sample.cycles_per_second / 1_s);
+    m_feedbackHealthy.store(true);
 }
 
 void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
@@ -650,6 +680,23 @@ void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
     m_velocity.store(status.state == hal::step::State::Running && status.period.count() > 0
                        ? m_motionSign * m_stepAngle / pnm::units::Time{ status.period }
                        : 0_rpm);
+
+    if (m_indexFeedback) {
+        if (!status.counts_exact) {
+            m_indexFeedback->invalidate();
+        }
+        else {
+            auto cycle_period{ std::chrono::nanoseconds::max() };
+            const auto maximum{ cycle_period.count() };
+            if (m_microsteps <= static_cast<std::uint64_t>(maximum / 4)) {
+                const auto multiplier{ static_cast<std::int64_t>(4 * m_microsteps) };
+                if (status.period.count() <= maximum / multiplier)
+                    cycle_period = status.period * multiplier;
+            }
+            m_indexFeedback->motion(status.state == hal::step::State::Running, m_motionSign > 0,
+                                     cycle_period);
+        }
+    }
 
     auto boundary{ m_wakeAtPulse.load() };
     const bool reached{ status.pulses >= boundary &&
@@ -958,8 +1005,13 @@ StepperMotor::Result StepperMotor::applyReferencePosition(std::stop_token stop)
 
         return count && m_referenced.load() ? Result::Completed : Result::Faulted;
     }
-    else {
+    else if (m_indexFeedback) {
+        m_indexFeedback->clearCallback();
+        m_indexPositionOffset = m_referenceSwitchPosition;
+        m_indexFeedback->reference();
         m_actualPosition.store(m_referenceSwitchPosition);
+        m_indexFeedback->setCallback(
+          [this](const hal::device::IndexFeedback::Sample& sample) noexcept { accountIndex(sample); });
     }
     commit();
     return Result::Completed;

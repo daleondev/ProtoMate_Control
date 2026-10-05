@@ -103,7 +103,7 @@ TEST_F(CliRobot, StateShowsReferenceValidityAndDoesNotInventEncoderCoordinates)
     ASSERT_TRUE(run("robot status"));
     EXPECT_NE(output.str().find("referenced=no"), std::string::npos);
     EXPECT_NE(output.str().find("x=200.0000 mm  y=100.0000 mm  z=10.0000 mm"), std::string::npos);
-    EXPECT_NE(output.str().find("elbow encoder not fitted"), std::string::npos);
+    EXPECT_NE(output.str().find("elbow driver INDEX waiting for INDEX"), std::string::npos);
     ASSERT_TRUE(run("motor enable"));
     ASSERT_TRUE(run("robot status"));
     EXPECT_NE(output.str().find("Drivers: enabled"), std::string::npos);

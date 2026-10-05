@@ -148,17 +148,21 @@ namespace cli::axis
                                        linear ? "mm" : "deg",
                                        conversion.toAxisVelocity(axis.velocity) / speed_unit,
                                        linear ? "mm/s" : "deg/s");
+                    const auto source{ axis.feedback_source == StepperMotor::FeedbackSource::DriverIndex
+                                         ? "driver INDEX (pseudo)" : "encoder" };
                     if (axis.actual_position && axis.actual_velocity)
-                        out << std::format("    encoder: position={:.4f} {}  velocity={:.3f} {}\n",
+                        out << std::format("    {}: position={:.4f} {}  velocity={:.3f} {}\n", source,
                                            conversion.toAxisPosition(*axis.actual_position) / position_unit,
                                            linear ? "mm" : "deg",
                                            conversion.toAxisVelocity(*axis.actual_velocity) / speed_unit,
                                            linear ? "mm/s" : "deg/s");
                     else if (!axis.actual_position &&
                              axis.actual_position.error() == std::errc::no_such_device)
-                        out << "    encoder: not fitted\n";
+                        out << "    " << source << ": not fitted\n";
+                    else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_message_available)
+                        out << "    " << source << ": waiting for INDEX\n";
                     else
-                        out << "    encoder: unavailable ("
+                        out << "    " << source << ": unavailable ("
                             << (!axis.actual_position ? axis.actual_position.error()
                                                       : axis.actual_velocity.error())
                                  .message()

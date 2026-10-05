@@ -326,7 +326,7 @@ namespace control
                                static_cast<std::size_t>(std::ranges::count_if(
                                  m_motions,
                                  [id](const auto& entry) { return entry.motor == id && !entry.result; })),
-                               m_conversions[i] };
+                               m_conversions[i], motor.feedbackSource(), motor.feedbackResolution() };
         }
         return status;
     }

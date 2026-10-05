@@ -43,7 +43,7 @@ at most three scheduled wire ends. The encoder transistor stages have their
 resistors grouped locally, and power/ground connections join nearby pads.
 
 - [Holes.csv](Holes.csv): every component pin, its hole and its electrical net.
-- [Wires.csv](Wires.csv): all 142 required pad-to-pad connections, with endpoints,
+- [Wires.csv](Wires.csv): all 146 required pad-to-pad connections, with endpoints,
   side-change holes and routed lengths. Add handling/stripping allowance to
   these lengths. The `wire_class` column identifies the heavier power wiring.
   Tick off each connection as it is soldered.
@@ -147,7 +147,7 @@ Use the harness table for cables and direct module contacts.
 | J108, 2×3 | Nucleo reference inputs: 1 = M1_REF, 3 = M2_REF, 5 = M3_REF; 2/4/6 = GND. |
 | J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
 | J112, 2-way 5.08 mm terminal | DM542T power cable: 1 = +24 V to +Vdc; 2 = GND. The underside solder joints are the power star points. |
-| J113, 2×4 | Nucleo UART/diagnostics: 1 = TX, 3 = RX / shared UART, 5 = M2_DIAG, 7 = M3_DIAG; all even pins GND. |
+| J113, 2×6 | Nucleo UART/diagnostics: 1 = TX, 3 = RX / shared UART, 5 = M2_DIAG, 7 = M3_DIAG, 9 = M2_INDEX, 11 = M3_INDEX; all even pins GND. |
 
 J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
 5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
@@ -172,15 +172,15 @@ The existing system schematic identifies CN11.8 as a Nucleo ground contact.
 Firmware overrides the straps for 1/16 microstepping. Keep both **SPRD jumpers
 open**. UART current settings bypass the onboard potentiometers.
 
-**J113 is at rows R–U, columns 29–30.** Pin 1 is R29, pin 2 R30; odd pins run
+**J113 is at rows R–W, columns 29–30.** Pin 1 is R29, pin 2 R30; odd pins run
 down column 29, even ground pins down column 30. Connect 1→CN9.6 (PD5 TX),
-3→CN9.4 (PD6 RX), 5→CN9.8 (PD4 M2 DIAG), 7→CN9.10 (PD3 M3 DIAG), with
-2/4/6/8 returning to Nucleo GND. These are **CN9** contacts, not CN10 STEP pins.
+3→CN9.4 (PD6 RX), 5→CN9.8 (PD4 M2 DIAG), 7→CN9.10 (PD3 M3 DIAG),
+9→CN9.25 (PD0 M2 INDEX), 11→CN9.27 (PD1 M3 INDEX), with
+2/4/6/8/10/12 returning to Nucleo GND. These are **CN9** contacts, not CN10 STEP pins.
 
 **R29 is 1 kΩ, with leads at P28 and P32.** Its pin 1 connects to J113.1;
 its pin 2 joins J113.3 and both modules' pin 9 (UART). Only TX passes through
-the resistor. Module pin 7 is the respective DIAG signal; pin 8 (INDEX) stays
-isolated. Fit the complete ten-pin headers. All bus signals are 3.3 V.
+the resistor. Module pin 7 is the respective DIAG signal; pin 8 (INDEX) connects to the respective PD0/PD1 feedback input. Fit the complete ten-pin headers. All bus signals are 3.3 V.
 
 ### Directly mounted TMC2209 modules
 

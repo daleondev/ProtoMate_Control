@@ -38,7 +38,7 @@ J105,4,J16,M2_STEP,A3,JP4.4,Direct soldered module header: A3 STEP; no cable
 J105,5,J17,GND,A3,JP4.5,MS1 address strap
 J105,6,J18,GND,A3,JP4.6,MS2 address strap
 J105,7,J19,M2_DIAG,A3,JP4.7,Active-high driver fault to Nucleo
-J105,8,J20,NC,A3,JP4.8,"Direct soldered module header: A3 INDEX; no cable; isolated landing pad, no perfboard wire"
+J105,8,J20,M2_INDEX,A3,JP4.8,Normal electrical INDEX to Nucleo; both-edge EXTI
 J105,9,J21,TMC_UART_RX,A3,JP4.9,Shared 3.3 V UART bus
 J105,10,J22,STEPPERS_EN_N,A3,JP4.10,Direct soldered module header: A3 EN; no cable
 J105,11,C15,+24V,A3,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
@@ -50,7 +50,7 @@ J106,4,J30,M3_STEP,A4,JP4.4,Direct soldered module header: A4 STEP; no cable
 J106,5,J31,+3V3,A4,JP4.5,MS1 address strap
 J106,6,J32,GND,A4,JP4.6,MS2 address strap
 J106,7,J33,M3_DIAG,A4,JP4.7,Active-high driver fault to Nucleo
-J106,8,J34,NC,A4,JP4.8,"Direct soldered module header: A4 INDEX; no cable; isolated landing pad, no perfboard wire"
+J106,8,J34,M3_INDEX,A4,JP4.8,Normal electrical INDEX to Nucleo; both-edge EXTI
 J106,9,J35,TMC_UART_RX,A4,JP4.9,Shared 3.3 V UART bus
 J106,10,J36,STEPPERS_EN_N,A4,JP4.10,Direct soldered module header: A4 EN; no cable
 J106,11,C29,+24V,A4,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
@@ -85,3 +85,7 @@ J113,5,T29,M2_DIAG,A1,CN9.8,PD4 M2 DIAG
 J113,6,T30,GND,A1,CN11.8,Common ground
 J113,7,U29,M3_DIAG,A1,CN9.10,PD3 M3 DIAG
 J113,8,U30,GND,A1,CN11.8,Common ground
+J113,9,V29,M2_INDEX,A1,CN9.25,PD0 M2 INDEX; both edges
+J113,10,V30,GND,A1,CN11.8,Common ground
+J113,11,W29,M3_INDEX,A1,CN9.27,PD1 M3 INDEX; both edges
+J113,12,W30,GND,A1,CN11.8,Common ground

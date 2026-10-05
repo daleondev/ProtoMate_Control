@@ -35,7 +35,7 @@ USB-powered setup. Retain the project's crystal-derived ST-Link MCO setting
 | MS2 | GND |
 | UART | **CN9 pin 4 / PD6** directly, plus **1 kΩ to CN9 pin 6 / PD5** |
 | DIAG | **CN9 pin 8 / PD4** |
-| INDEX | Logic analyzer D7, optional; no MCU connection |
+| INDEX | Logic analyzer D7 (required for `index`); no MCU connection |
 
 Leave **SPRD open**. The UART wire is one node connecting the Adafruit UART
 pin, PD6 RX and the far end of the 1 kΩ TX resistor:
@@ -112,10 +112,11 @@ supply. Commands are complete lines followed by Enter; CR/LF/CRLF work.
 | Command | Action |
 | --- | --- |
 | `mode spread` / `mode stealth` | Select SpreadCycle / StealthChop while idle and disabled. Invalidates the previous check; run `check` to apply and verify. Startup selection is SpreadCycle. |
-| `check` | UART/configuration suite, always with EN high and STEP stopped. Required before `hold` or `move`. |
+| `check` | UART/configuration suite, always with EN high and STEP stopped. Required before `hold`, `move` or `index`. |
 | `status` | Print selected mode/qualification, raw GSTAT, DRV_STATUS, IOIN and SG_RESULT, reported chopper mode and current scale without enabling. A selected mode is not applied until `check` passes. |
 | `hold` | After a 2 s preparation delay, enable/settle for 1 s, hold for 5 s without STEP, then disable. |
 | `move` | After a 2 s delay, enable/settle for 1 s, emit 400 pulses with DIR low, wait 300 ms, emit 400 with DIR high, then disable. |
+| `index` | StealthChop only. Compare normal INDEX with `index_step`, with interpolation on/off, using external STEP/DIR. Three small out-and-back movements; D7 capture determines the result. |
 | `stop` | Immediately raise EN, wake the worker and abort; another `check` is required before motion. |
 | `address 0` / `address 1` | Select the physically strapped node; disable and invalidate the previous check. All signal wires stay on M2 pins. |
 | `help` | Print the menu. |
@@ -212,6 +213,83 @@ failure/abort rather than pretending all 400 pulses completed. Run `check`
 again, then confirm another `move` succeeds. After a fault/abort no motion
 resumes automatically.
 
+### Test `index_step` with external STEP/DIR
+
+This test determines whether `GCONF.index_step` is useful as feedback with our
+external STEP source. The datasheet describes this signal as toggling on steps
+from the **internal** pulse generator; its behavior with our external STEP and
+MicroPlyer interpolation must be measured, not assumed.
+
+Retain the current wiring, including **D7 → Adafruit INDEX**, D0 → STEP,
+D1 → DIR and D2 → EN. No additional Nucleo connection is required.
+
+```text
+mode stealth
+check
+```
+
+Wait for `check` to pass. Start a **25-second, 24 MHz** logic-analyzer capture,
+then enter **`index`** promptly. There is a two-second preparation delay.
+The command runs these phases in order, with EN high during reconfiguration
+and a separate enabled interval for each phase:
+
+| Phase | `index_step` | Interpolation | Purpose |
+| --- | --- | --- | --- |
+| 1 | 0 | On | Normal electrical-cycle INDEX; verify the D7 connection |
+| 2 | 1 | On | Test step-toggle INDEX with our normal interpolation |
+| 3 | 1 | Off | Determine whether interpolation changes the output behavior |
+
+Each phase uses StealthChop, 550 mA requested run/hold current and 16 external
+microsteps. After one second of enabled settling, it sends **129 pulses with
+DIR low at 100 Hz**, pauses, then **129 pulses with DIR high at 400 Hz**.
+Every STEP high time is 5 µs. This commands about **14.51° out and back** on
+a 1.8° motor, three times in total. The odd pulse count helps distinguish
+output *transitions* from complete high/low cycles. There are **six bursts,
+129 rising STEP edges each, 774 total**. The first/second burst in each phase
+uses a 10 ms / 2.5 ms STEP period respectively.
+
+Firmware checks configuration readback, exact generated pulse counts and the
+`MSCNT` change after each burst. At 16 microsteps, 129 pulses should advance
+the electrical counter by **16 modulo 1024** with DIR low and decrease it by
+16 with DIR high. It waits 200 ms after each burst before reading that counter
+so interpolation can settle, and verifies that each phase returns to its
+initial counter. `VACTUAL` is written as zero during every initialization;
+this test never starts the internal velocity generator. No driver registers
+are written during a burst.
+
+Inspect D7 separately for each phase and direction:
+
+- **Phase 1:** normal INDEX markers, spaced by 64 STEP pulses in one direction.
+  Their initial phase can vary. Missing activity here makes a flat trace in
+  later phases inconclusive; verify D7/INDEX first.
+- **Phases 2/3:** if the pin toggles once per external STEP, expect **129 total
+  transitions per burst**, not 129 rising edges. Each STEP rising edge should
+  correspond to one INDEX transition, with no unrelated edges while idle.
+  A stable toggling output then has half the STEP frequency: 50 Hz / 200 Hz.
+- If INDEX stays flat while STEP counts and `MSCNT` checks pass, that mode
+  does not expose external steps in the tested configuration.
+- If there are multiple transitions per STEP or activity extending into the
+  pause, compare phases 2 and 3 for interpolation-related behavior. Record
+  the observed ratio and timing rather than treating it as one edge per STEP.
+
+Ignore INDEX transitions caused by changing its function while EN is high;
+measure the burst and settling intervals after the one-second enable delay.
+Check both output polarities, both directions, and both STEP rates before
+deciding that it is suitable for counting feedback.
+
+**`PASS index` means the stimulus, configuration and microstep-counter checks
+passed. It does not mean INDEX followed external STEP:** the Nucleo does not
+read D7. The captured waveform supplies that answer. It also does not establish
+physical rotor position or performance at higher STEP rates.
+
+On completion, stop or failure, firmware disables the driver and attempts to
+restore normal INDEX and interpolation on. A restoration failure is reported
+and blocks further motion until `check` succeeds. A reset during the test also
+requires `check` before motion. `stop` and B1 remain available throughout.
+
+Reference: [TMC2209 datasheet, GCONF on p. 23, MSCNT on p. 31, INDEX on
+p. 66 and internal pulse generator on p. 67](https://www.analog.com/media/en/technical-documentation/data-sheets/TMC2209_datasheet_rev1.09.pdf).
+
 ## Check address 1 with the same board
 
 After the driver is disabled, switch off **24 V and USB power**, move **MS1
@@ -234,3 +312,14 @@ For debugging, inspect `hardware_tmc_test_status` and
 `hardware_tmc_test_pulses[0..1]` at `hardware_tmc_test_complete` **after** a
 case has stopped. `0x600D600D` means pass; `0xBAD00000 | case` means failure.
 Do not halt the CPU while the motor is enabled.
+
+### Callback feedback provider test
+
+Also connect **INDEX to PD0 / CN9 pin 25**; leave analyzer D0 on STEP and D1
+on INDEX. Run `mode stealth`, `check`, then `feedback`. This exercises the same
+`hal::device::IndexFeedback` provider used by the application, with normal INDEX,
+1/16 stepping and interpolation enabled. It checks 128 settling pulses, a
+256-pulse forward leg at 100 Hz, a 256-pulse return at 400 Hz, and a 16-pulse
+out-and-back reversal. Counts, signed velocity and zero velocity at stop are
+checked in firmware; STEP remains 5 µs high. All exits disable the motor.
+Restore normal firmware using the `debug-stm32` preset after bench testing.

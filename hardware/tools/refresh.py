@@ -122,6 +122,8 @@ def verify(netlist, board):
         "M3_REF": ("PE10", "CN10.24", "GPXTI10"),
         "TMC_UART_TX": ("PD5", "CN9.6", "USART2_TX"),
         "TMC_UART_RX": ("PD6", "CN9.4", "USART2_RX"),
+        "M2_INDEX": ("PD0", "CN9.25", "GPXTI0"),
+        "M3_INDEX": ("PD1", "CN9.27", "GPXTI1"),
         "M2_DIAG": ("PD4", "CN9.8", "GPXTI4"),
         "M3_DIAG": ("PD3", "CN9.10", "GPXTI3"),
         "FLASH_CLK": ("PB2", "CN10.15", "QUADSPI_CLK"),
@@ -152,6 +154,10 @@ def verify(netlist, board):
             "Encoder index must use rising-edge EXTI after the polarity-preserving interface")
     require(ioc.get("PE15.PinState") == "GPIO_PIN_SET",
             "Shared active-low enable must start high (drivers disabled)")
+    for pin in ("PD0", "PD1"):
+        require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN" and
+                ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING_FALLING",
+                f"Driver INDEX requires pull-down and both-edge EXTI: {pin}")
     for pin in ("PD3", "PD4"):
         require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN" and
                 ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",

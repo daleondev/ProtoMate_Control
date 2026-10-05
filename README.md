@@ -253,8 +253,7 @@ referencing retains the motor's fixed Forward seek direction.
 
 The same position/velocity conversions apply to successful encoder results;
 retain errors from `actualPosition()`/`actualVelocity()` and ensure encoder
-polarity matches the motor coordinate. Conversion does not create measured
-feedback for M2/M3. Reduction, travel and coordinates must be finite; invalid
+polarity matches the motor coordinate. M2/M3 use coarse electrical INDEX estimates, not shaft encoders. Reduction, travel and coordinates must be finite; invalid
 configuration/inputs throw `std::invalid_argument`, and arithmetic overflow
 throws `std::overflow_error`. Pulse rounding stays in `StepperMotor`. Joint
 limits, coupled trajectories and SCARA forward/inverse kinematics belong above
@@ -369,10 +368,11 @@ readings come from the same controller snapshot; individual readings are
 sampled sequentially, not latched simultaneously in hardware.
 
 The commanded state uses emitted-step positions and signed motor velocities.
-The measured state requires valid position and velocity feedback on all three
-axes and preserves the failing axis/error if unavailable. Only M1 currently has
-an encoder, so a fully measured tool state is unavailable; `axis status` exposes
-the individual feedback. Unreferenced coordinates are explicitly identified,
+The feedback state requires valid position and velocity results on all three
+axes and preserves the failing axis/error if unavailable. M1 uses its shaft
+encoder; M2/M3 use coarse driver INDEX estimates. A combined feedback tool pose
+is therefore an estimate, not a fully measured physical pose. `axis status`
+identifies each source and its availability. Unreferenced coordinates are explicitly identified,
 and the generator's pulse-count validity remains visible.
 
 `Robot::moveAbs`, `moveRel` and `moveJoints` execute synchronized, rest-to-rest
@@ -664,7 +664,8 @@ counting; a synchronized coordinate offset preserves the origin through later
 callbacks without resetting the raw count or creating an artificial velocity
 jump. The origin is assigned at the stopped, confirmed second contact, so the
 reference accuracy includes switch repeatability and worker stopping latency.
-M2/M3 still report measured feedback unavailable. Starting a valid reference
+M2/M3 rebase their coarse INDEX coordinates at the same reference position;
+an input with no observed INDEX transition remains unavailable. Starting a valid reference
 attempt clears the old referenced flag; timeout, cancellation or failure leaves
 it clear. `stop()`/`stopAndWait()` cancel any phase, and replacing the command
 stops/joins its worker. `setVelocity()` is rejected during referencing so its
@@ -703,8 +704,9 @@ Counting continues when STEP is stopped, so manual shaft movement and coasting
 are measured. Position starts at zero when the motor object is constructed;
 a successful `reference()` anchors its coordinate to the configured switch
 position. Its sign follows the A/B wiring, independently of commanded direction.
-No index reset, closed-loop position correction or stall response is applied. M2/M3 report
-`no_such_device` instead of substituting commanded motion. A latched encoder
+No encoder-index reset, closed-loop position correction or stall response is applied.
+M2/M3 use the [callback-based driver INDEX provider](#callback-based-driver-index-feedback)
+without substituting commanded steps for missing feedback. A latched shaft-encoder
 count error makes both measured getters report `state_not_recoverable` and
 invalidates the referenced flag.
 Destruction disconnects the subscription and stops encoder counting.
@@ -959,14 +961,50 @@ remains hardware work. Route each signal with its ground return away from
 motor wiring. For longer cables, add a stronger external pull-up to **3.3 V**
 and input filtering as needed.
 
+### Callback-based driver INDEX feedback
+
+`hal::device::IndexFeedback` subscribes to the M2/M3 GPIOs from
+`hal::board::createStepperIndex()`. `StepperMotor` owns one provider per TMC axis;
+callbacks update `m_actualPosition` and `m_actualVelocity`. M1 keeps its TIM3
+shaft encoder. `feedbackSource()` and `feedbackResolution()` identify the source;
+`motor status`, `axis status` and `robot status` distinguish these estimates.
+
+Use **normal INDEX** (`index_step=0`, `index_otpw=0`, `VACTUAL=0`). One electrical
+cycle covers **four full steps: 7.2° at the motor shaft, or 64 STEP pulses at
+1/16 microstepping**. The first observed boundary establishes a coarse relative
+origin; subsequent crossings update position. Successful homing rebases this
+coordinate to the reference-switch position. Position holds between boundaries,
+with up to one electrical cycle of unresolved sub-cycle displacement/phase;
+short moves can produce no position update. This is driver phase feedback and
+cannot detect mechanical stalls, slipped belts or shaft motion while disabled.
+See [TMC2209 datasheet, sections 13.4 and 14](https://www.analog.com/media/en/technical-documentation/data-sheets/TMC2209_datasheet_rev1.09.pdf).
+
+Both GPIO edges are enabled: forward rising and backward falling transitions
+represent the same boundary, so crossing it and reversing cancels the count.
+Direction comes from the motor command. Velocity is the signed average between
+same-direction boundaries over at least 10 ms (multiple cycles are accumulated
+at high speed because the monotonic clock resolves 1 ms); it is zero until a complete interval is
+available after startup/reversal/resume, and immediately zero on STEP stop.
+Callbacks also accept the last settling INDEX edge after stopping. No UART polls
+or new motion timer are involved; timer/DMA STEP scheduling stays unchanged.
+
+Until an INDEX boundary is observed, `actualPosition()` / `actualVelocity()`
+return `no_message_available`. Progress callbacks detect overdue feedback after
+three electrical periods (using the slowest period since the last boundary,
+with a 20 ms minimum). Lost feedback becomes unavailable until homing or driver
+reinitialization; it never silently reconstructs lost cycles from commanded
+steps. This is diagnostic feedback, not an automatic following-error stop.
+Driver disable, reset and reconfiguration invalidate its phase. M2/M3 callbacks
+are short and serialized; destruction stops motion and disconnects callbacks.
+
 ### Driver interface and shared enable
 
 Use 3.3 V push-pull MCU outputs. Power both TMC2209 **VDD** pins from 3.3 V
 and join their GND pins to controller ground. Their STEP, DIR and EN inputs
 can connect directly to the assigned GPIOs; EN is active low. Hardware-timed
 STEP/DIR remains the motion interface. USART2 configures the drivers and reads
-diagnostics; individual DIAG inputs report electrical faults. INDEX remains
-unconnected. See the
+diagnostics; individual DIAG inputs report electrical faults. Each normal
+INDEX output also connects to its dedicated Nucleo feedback input below. See the
 [Adafruit #6121 pinout](https://learn.adafruit.com/adafruit-tmc2209-stepper-motor-driver-breakout-board/pinouts).
 
 The STEPPERONLINE driver is **DM542T V4.0**, with S2 set to **5 V**.
@@ -1019,7 +1057,9 @@ and robot enable/motion commands, including M1 because enable is shared.
 | USART2 RX / PD6 / AF7 | **CN9 pin 4 / D52** | 3 | Directly to shared UART bus |
 | M2_DIAG / PD4 | **CN9 pin 8 / D54** | 5 | J105.7 / M2 DIAG; rising-edge EXTI, pull-down |
 | M3_DIAG / PD3 | **CN9 pin 10 / D55** | 7 | J106.7 / M3 DIAG; rising-edge EXTI, pull-down |
-| Ground | CN11 pin 8 | 2, 4, 6, 8 | Paired signal returns |
+| M2_INDEX / PD0 | **CN9 pin 25 / D67** | 9 | J105.8 / M2 INDEX; both-edge EXTI, pull-down |
+| M3_INDEX / PD1 | **CN9 pin 27 / D66** | 11 | J106.8 / M3 INDEX; both-edge EXTI, pull-down |
+| Ground | CN11 pin 8 | 2, 4, 6, 8, 10, 12 | Paired signal returns |
 
 R29 pin 2, J113.3, J105.9 and J106.9 form the **same** `TMC_UART_RX`
 bidirectional bus. Only TX passes through R29. This is ordinary full-duplex

@@ -84,7 +84,7 @@ TEST_F(CliMotion, StartupIsIdleAndMotionRequiresExplicitEnable)
     ASSERT_TRUE(run("motor status"));
     EXPECT_NE(output.str().find("Drivers: disabled"), std::string::npos);
     EXPECT_NE(output.str().find("switch=released"), std::string::npos);
-    EXPECT_NE(output.str().find("encoder: not fitted"), std::string::npos);
+    EXPECT_NE(output.str().find("driver INDEX (pseudo): waiting for INDEX"), std::string::npos);
     switches[0]->setSimulatedLevel(High);
     ASSERT_TRUE(run("motor status 1"));
     EXPECT_NE(output.str().find("switch=active/open"), std::string::npos);

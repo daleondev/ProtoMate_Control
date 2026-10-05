@@ -40,6 +40,11 @@ function(verify_cubemx_generation)
 
     set(linker_script "${cubemx_directory}/STM32H753XX_FLASH.ld")
     foreach(assignment "PD5.Signal=USART2_TX" "PD6.Signal=USART2_RX"
+                       "PD0.GPIO_Label=M2_INDEX" "PD1.GPIO_Label=M3_INDEX"
+                       "PD0.Signal=GPXTI0" "PD1.Signal=GPXTI1"
+                       "PD0.GPIO_PuPd=GPIO_PULLDOWN" "PD1.GPIO_PuPd=GPIO_PULLDOWN"
+                       "PD0.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_RISING_FALLING"
+                       "PD1.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_RISING_FALLING"
                        "PD4.GPIO_Label=M2_DIAG" "PD3.GPIO_Label=M3_DIAG"
                        "PD4.Signal=GPXTI4" "PD3.Signal=GPXTI3"
                        "PD3.GPIO_PuPd=GPIO_PULLDOWN" "PD4.GPIO_PuPd=GPIO_PULLDOWN"

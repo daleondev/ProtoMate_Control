@@ -22,6 +22,9 @@ namespace hal::device
             std::uint16_t microsteps{ 16 };
             Mode mode{ Mode::SpreadCycle };
             bool interpolate{ true };
+            // GCONF.index_step selects the internal step-toggle output instead
+            // of the electrical-cycle marker. Neither is shaft feedback.
+            bool index_step{ false };
             bool operator==(const Configuration&) const = default;
         };
         struct Status

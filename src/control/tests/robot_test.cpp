@@ -145,7 +145,7 @@ TEST_F(RobotState, ConvertsOffsetsReductionsAndDirectionsBeforeComputingToolStat
     EXPECT_EQ(state.velocity->yaw, 0_rpm);
     ASSERT_FALSE(status.actual);
     EXPECT_EQ(status.actual.error().motor, Motor2);
-    EXPECT_EQ(status.actual.error().reason, std::errc::no_such_device);
+    EXPECT_EQ(status.actual.error().reason, std::errc::no_message_available);
     EXPECT_TRUE(controller->motions().empty());
 }
 
@@ -192,7 +192,7 @@ TEST_F(RobotState, FeedbackRemainsDistinctFromCommandedStateAndPropagatesFaults)
     EXPECT_NEAR(state.commanded.joints.shoulder / 1_deg, 0, 1e-9);
     ASSERT_FALSE(state.actual);
     EXPECT_EQ(state.actual.error().motor, Motor2);
-    EXPECT_EQ(state.actual.error().reason, std::errc::no_such_device);
+    EXPECT_EQ(state.actual.error().reason, std::errc::no_message_available);
     ASSERT_TRUE(encoder->stop());
     ASSERT_TRUE(encoder->setPosition(std::numeric_limits<std::int64_t>::max()));
     ASSERT_TRUE(encoder->start());
@@ -202,7 +202,7 @@ TEST_F(RobotState, FeedbackRemainsDistinctFromCommandedStateAndPropagatesFaults)
         return !status.actual && status.actual.error().motor == Motor1;
     }));
     const auto faulted{ robot.status() };
-    EXPECT_NE(faulted.actual.error().reason, std::errc::no_such_device);
+    EXPECT_NE(faulted.actual.error().reason, std::errc::no_message_available);
     EXPECT_TRUE(faulted.commanded.pose);
 }
 

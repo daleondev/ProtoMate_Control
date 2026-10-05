@@ -115,7 +115,8 @@ namespace hal::device
         m_configuration = config;
         // Digital current scaling: the board potentiometer is intentionally
         // bypassed. External Rsense; preserve STEP/DIR polarity; UART, MRES.
-        m_gconf = (1U << 6U) | (1U << 7U) | (1U << 8U) | (config.mode == Mode::SpreadCycle ? 4U : 0U);
+        m_gconf = (1U << 6U) | (1U << 7U) | (1U << 8U) | (config.mode == Mode::SpreadCycle ? 4U : 0U) |
+                  (config.index_step ? (1U << 5U) : 0U);
         m_chopconf = 0x00020053U | ((8U - std::countr_zero(config.microsteps)) << 24U) |
                      (config.interpolate ? (1U << 28U) : 0U);
         const std::array<std::pair<std::uint8_t, std::uint32_t>, 11> registers{

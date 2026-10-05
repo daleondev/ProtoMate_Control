@@ -28,4 +28,4 @@ C1 C2,2,100 uF / 50 V radial electrolytic,Polarized; body <=10 mm; 5.08 mm forme
 J105 J106 power pins,2,1x2 long-tail male header,2.54 mm pitch; JP1.6 (+) / JP1.5 (-); downward direct mount at same module height as JP4
 A3 A4 motor terminals,2,4-way screw terminal,2.54 mm pitch; JP1.4-1; motor order 2B/2A/1A/1B; upward on module
 J112,1,2-way 5.08 mm screw terminal,Reuse a removed buck terminal; 1=24 V / 2=GND; DM542T cable outlet and underside power star joints
-J113,1,2x4 male header,2.54 mm pitch; shared UART TX/RX and two DIAG signals with paired ground returns
+J113,1,2x6 male header,2.54 mm pitch; UART TX/RX plus two DIAG and two INDEX signals with paired ground returns

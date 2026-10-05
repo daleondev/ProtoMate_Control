@@ -54,4 +54,7 @@ namespace hal::board
     [[nodiscard]] auto createStepperDriverBus() -> std::shared_ptr<IUart>;
     // M2 PD4/CN9.8, M3 PD3/CN9.10: active-high DIAG, pull-down, rising EXTI.
     [[nodiscard]] auto createStepperDiagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>;
+    // Normal electrical INDEX (not index_step): M2 PD0/CN9.25, M3 PD1/CN9.27.
+    // 3.3 V, pull-down, both edges; four full steps per electrical cycle.
+    [[nodiscard]] auto createStepperIndex(MotorId id) -> std::shared_ptr<IDigitalInput>;
 }

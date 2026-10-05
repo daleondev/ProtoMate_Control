@@ -86,7 +86,7 @@ namespace cli::motor
         }
 
         [[
-            = "Live commanded/encoder values; all units refer to motor shafts"_fs,
+            = "Live commanded and feedback values; all units refer to motor shafts"_fs,
             = Name{ "motor status"_fs },
             = Arg{ .name = "motor"_fs, .description = "m1, m2, m3 or all (default)"_fs, .optional = true }
         ]] static auto status(Controller& controller, const Arguments& args, std::ostream& out)
@@ -111,18 +111,25 @@ namespace cli::motor
                                    axis.reference_switch_active ? "active/open" : "released",
                                    axis.outstanding,
                                    stateName(status.generator.axes[i]));
+                const auto source{ axis.feedback_source == StepperMotor::FeedbackSource::DriverIndex
+                                     ? "driver INDEX (pseudo)" : "encoder" };
                 if (axis.actual_position && axis.actual_velocity)
-                    out << std::format("    encoder: position={:.4f} deg  velocity={:.3f} rpm\n",
+                    out << std::format("    {}: position={:.4f} deg  velocity={:.3f} rpm\n", source,
                                        axis.actual_position->get<AngleUnits::deg>(),
                                        axis.actual_velocity->get<AngularVelocityUnits::rpm>());
                 else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_such_device)
-                    out << "    encoder: not fitted\n";
+                    out << "    " << source << ": not fitted\n";
+                else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_message_available)
+                    out << "    " << source << ": waiting for INDEX\n";
                 else
-                    out << "    encoder: unavailable ("
+                    out << "    " << source << ": unavailable ("
                         << (!axis.actual_position ? axis.actual_position.error()
                                                   : axis.actual_velocity.error())
                              .message()
                         << ")\n";
+                if (axis.feedback_source == StepperMotor::FeedbackSource::DriverIndex)
+                    out << std::format("    resolution={:.4f} deg; electrical phase, not shaft sensing\n",
+                                       axis.feedback_resolution.get<AngleUnits::deg>());
             }
             return 0;
         }
