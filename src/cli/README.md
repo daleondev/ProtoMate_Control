@@ -167,11 +167,11 @@ Driver configuration is shared by motor, axis and robot commands:
 
 | Command | Behavior |
 | --- | --- |
-| `motor driver status [m2\|m3\|all]` | Cached UART configuration/diagnostics, quantized RMS current, fault latch and error; refreshed approximately every 100 ms. |
+| `motor driver status [m1\|m2\|m3\|all]` | Live M1 ALM level/latch; M2/M3 cached UART configuration/diagnostics, quantized RMS current, fault latch and error; refreshed approximately every 100 ms. |
 | `motor driver configure <m2\|m3>` | Optional `--run <mA>`, `--hold <mA>`, `--mode spreadcycle\|stealthchop`, `--interpolate on\|off`; disabled only, settings in RAM. |
-| `motor driver init` | Explicitly reinitialize/verify both devices after a fault or wiring/power correction; disabled only. |
+| `motor driver init` | Check M1 ALM and explicitly reinitialize/verify both UART devices after a fault or wiring/power correction; disabled only. |
 
-Boot verifies both TMC2209 devices while enable is HIGH. An absent/faulted driver
+Boot checks M1 ALM and verifies both TMC2209 devices while enable is HIGH. An absent/faulted driver
 blocks enable and motion on every axis; the console stays available. M1 retains
 DM542T DIP-switch configuration and has no UART. Defaults are M2 650 mA RMS,
 M3 550 mA RMS, hold equal to run, StealthChop and 16 external microsteps with
@@ -190,9 +190,10 @@ motor driver init
 motor driver status m3
 ```
 
-Configuration/recovery stops all motions and invalidates references. A DIAG
+Configuration/recovery stops all motions and invalidates references. An ALM/DIAG
 fault raises shared enable immediately; the monitor stops jobs and invalidates
-reference state. UART errors, resets or configuration mismatches also latch
+reference state. M1 ALM is high on fault/open cable and must return low before
+recovery. Clearing the signal alone does not clear the latch. UART errors, resets or configuration mismatches also latch
 shutdown. Correct the cause, run `motor driver init` while disabled, explicitly
 enable, then re-home. Diagnostics after a latched fault are the last captured
 state; `init` refreshes them. Overtemperature prewarning is logged; open-load

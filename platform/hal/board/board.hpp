@@ -52,6 +52,8 @@ namespace hal::board
     // Pull-up, both edges, exclusive ownership; raw levels without debounce.
     [[nodiscard]] auto createReferenceLimitSwitch(MotorId id) -> std::shared_ptr<IDigitalInput>;
     [[nodiscard]] auto createStepperDriverBus() -> std::shared_ptr<IUart>;
+    // M1 PF2/CN9.17: DM542T ALM+, pull-up, rising EXTI; ALM- to GND.
+    // Default normally conducting ALM: low = healthy, high = fault/open cable.
     // M2 PD4/CN9.8, M3 PD3/CN9.10: active-high DIAG, pull-down, rising EXTI.
     [[nodiscard]] auto createStepperDiagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>;
     // Normal electrical INDEX (not index_step): M2 PD0/CN9.25, M3 PD1/CN9.27.

@@ -30,6 +30,10 @@ namespace
               { 135_deg, 1.8_deg, 16U },
               { 135_deg, 1.8_deg, 16U },
             } });
+            auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
+            ASSERT_TRUE(alarm);
+            alarm->setSimulatedLevel(hal::gpio::Level::Low); // Healthy, powered DM542T.
+            controller->initializeDrivers();
             controller->configureAxis(Motor1,
                                       RotaryAxisConversion{ {
                                         .motor_revolutions_per_axis_revolution = 1,

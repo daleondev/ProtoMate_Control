@@ -35,7 +35,7 @@ The underside sheet flips the board **left/right**, keeping row A at the top.
 Column 1 is therefore on the right. Hole names never change between views.
 All components are mounted on the top face.
 
-The hand-wiring layout uses **105 underside-only connections and 37 short
+The hand-wiring layout uses **112 underside-only connections and 39 short
 top-side crossovers**. The layout prioritizes underside wiring.
 Each crossover uses its own pair of free holes; no wire shares a passage hole
 with another wire or a component lead. Each component solder joint carries
@@ -43,7 +43,7 @@ at most three scheduled wire ends. The encoder transistor stages have their
 resistors grouped locally, and power/ground connections join nearby pads.
 
 - [Holes.csv](Holes.csv): every component pin, its hole and its electrical net.
-- [Wires.csv](Wires.csv): all 146 required pad-to-pad connections, with endpoints,
+- [Wires.csv](Wires.csv): all 151 required pad-to-pad connections, with endpoints,
   side-change holes and routed lengths. Add handling/stripping allowance to
   these lengths. The `wire_class` column identifies the heavier power wiring.
   Tick off each connection as it is soldered.
@@ -62,7 +62,7 @@ representation, not the specified wire diameter. Keep the power conductors
 low against the underside, following the power branches in the drawing. **Every wire starts and
 ends on the underside**, where it is soldered to the specified component pads.
 Keep the insulation intact through passage holes and across other wires.
-The 74 passage holes are not additional electrical junctions.
+The 78 passage holes are not additional electrical junctions.
 
 Fit the board in this order:
 
@@ -83,6 +83,12 @@ Fit the board in this order:
 The wire lengths are projected routing lengths. Add allowance for stripping,
 the board thickness at each crossover, and comfortable bends. No schematic
 connection is implied by two insulated wires merely touching or crossing.
+
+The DM542T alarm uses R30 (4.7 kΩ): B6 = 3.3 V, B2 = ALM. J114/J115
+and R30 sit at the upper left. ALM is low when healthy and high for an open
+cable or driver fault; its output uses the default normally conducting polarity.
+Do not connect this alarm circuit to 5 V or 24 V. All five connections are
+underside wires; no extra crossovers are required.
 
 ## Parts and orientation
 
@@ -121,7 +127,7 @@ turn-off delay at the intended encoder speed with an oscilloscope; saturated
 transistor storage delay is not established by the static wiring checks.
 No 4N35 optocouplers are needed for this circuit with a common ground.
 
-R1–R9 and R20–R29 are axial resistors with 10.16 mm between holes. C3/C4 are 100 nF
+R1–R9 and R20–R30 are axial resistors with 10.16 mm between holes. C3/C4 are 100 nF
 nonpolar ceramic capacitors with 2.54 mm lead spacing, close to their IC supply
 connections; C5/C6 are 1 µF nonpolar capacitors with 5.08 mm lead spacing.
 R10–R12 reserve positions for encoder termination and are **DNP: leave them
@@ -148,6 +154,8 @@ Use the harness table for cables and direct module contacts.
 | J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
 | J112, 2-way 5.08 mm terminal | DM542T power cable: 1 = +24 V to +Vdc; 2 = GND. The underside solder joints are the power star points. |
 | J113, 2×6 | Nucleo UART/diagnostics: 1 = TX, 3 = RX / shared UART, 5 = M2_DIAG, 7 = M3_DIAG, 9 = M2_INDEX, 11 = M3_INDEX; all even pins GND. |
+| J114, 1×2 | DM542T alarm cable: 1 / C2 = ALM+, 2 / C3 = ALM− / GND. |
+| J115, 1×2 | Nucleo alarm cable: 1 / D5 = PF2 / CN9.17, 2 / D6 = GND / CN11.8. |
 
 J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
 5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
@@ -293,7 +301,7 @@ interface with the Nucleo's 3.3 V output, not the other way around.
 [DRC.rpt](../exports/DRC.rpt) records KiCad's electrical clearance/connectivity
 and schematic-parity checks. [Verification.txt](../exports/Verification.txt)
 records checks of the saved layout's symbol links, nets, hole grid, wire table
-and harness destinations. The schematic includes J101–J113 and is the
+and harness destinations. The schematic includes J101–J115 and is the
 electrical reference for this layout. Use **Update PCB from Schematic (F8)**
 as described in the [project guide](../README.md).
 

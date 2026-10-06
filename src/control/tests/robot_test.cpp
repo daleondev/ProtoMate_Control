@@ -33,6 +33,10 @@ namespace
               { 135_deg, 1.8_deg, 16U },
               { 135_deg, 1.8_deg, 16U },
             } });
+            auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
+            ASSERT_TRUE(alarm);
+            alarm->setSimulatedLevel(hal::gpio::Level::Low); // Healthy, powered DM542T.
+            controller->initializeDrivers();
             for (const auto pin : { 7U, 8U, 10U }) {
                 auto input{ hal::gpio::simulatedInput(
                   { hal::gpio::Port::E, static_cast<std::uint8_t>(pin) }) };

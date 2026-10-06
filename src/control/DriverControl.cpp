@@ -9,6 +9,13 @@ namespace control
         using namespace std::chrono_literals;
     }
 
+    MotionController::AlarmStatus MotionController::alarmStatus() const
+    {
+        std::scoped_lock lock{ m_mutex };
+        return { m_alarm->read() == hal::gpio::Level::High,
+                 bool(m_driverFaults.load(std::memory_order_acquire) & AlarmFault) };
+    }
+
     std::array<MotionController::DriverStatus, 2> MotionController::driverStatus() const
     {
         std::scoped_lock lock{ m_mutex };
@@ -33,9 +40,12 @@ namespace control
             motor->invalidateReference();
         m_driversReady = false;
         m_driverFaults.store(0);
+        m_alarmHandled = false;
+        if (m_alarm->read() == hal::gpio::Level::High)
+            m_driverFaults.fetch_or(AlarmFault);
         constexpr std::array<std::uint8_t, 2> addresses{ 0, 1 };
         if (auto result = hal::device::Tmc2209::prepareBus(*m_driverBus, addresses); !result) {
-            m_driverFaults.store(3);
+            m_driverFaults.fetch_or(3);
             m_driverErrors.fill(result.error().message());
             throw std::runtime_error("TMC2209 UART bus preparation failed");
         }
@@ -59,6 +69,10 @@ namespace control
                 m_driverFaults.fetch_or(1U << i);
                 failed = true;
             }
+        }
+        if ((m_driverFaults.load() & AlarmFault) || m_alarm->read() == hal::gpio::Level::High) {
+            alarmFaultLocked();
+            throw std::runtime_error("M1 DM542T ALM fault/open cable; inspect 'motor driver status m1'");
         }
         if (failed || m_driverFaults.load())
             throw std::runtime_error("TMC2209 initialization failed; inspect 'motor driver status'");
@@ -116,6 +130,20 @@ namespace control
                         m_driverErrors[index]);
     }
 
+    void MotionController::alarmFaultLocked()
+    {
+        m_driverFaults.fetch_or(AlarmFault, std::memory_order_release);
+        m_driversReady = false;
+        m_enable->write(hal::gpio::Level::High);
+        if (m_alarmHandled) return;
+        stopLocked(std::nullopt);
+        for (auto& motor : m_motors)
+            motor->invalidateReference();
+        m_alarmHandled = true;
+        pnm::log::error("M1 DM542T ALM fault/open cable. All motions stopped; references invalidated. "
+                        "Clear the cause, then reset while disabled.");
+    }
+
     void MotionController::monitorDrivers(std::stop_token stop)
     {
         while (!stop.stop_requested()) {
@@ -123,6 +151,11 @@ namespace control
             if (stop.stop_requested())
                 return;
             std::scoped_lock lock{ m_mutex };
+            // M1 is monitored even if a UART driver is absent or already faulted.
+            if ((m_driverFaults.load() & AlarmFault) || m_alarm->read() == hal::gpio::Level::High) {
+                alarmFaultLocked();
+                continue;
+            }
             if (!m_driversReady)
                 continue;
             for (std::size_t i{}; i < 2; ++i) {

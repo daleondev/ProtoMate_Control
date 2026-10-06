@@ -107,6 +107,7 @@ def verify(netlist, board):
                (ROOT.parent / "external/CubeMX/CubeMX.ioc").read_text().splitlines()
                if "=" in line and not line.startswith("#"))
     controller_routes = {
+        "M1_ALM": ("PF2", "CN9.17", "GPXTI2"),
         "M1_STEP": ("PA0", "CN10.29", "S_TIM2_CH1_ETR"),
         "M2_STEP": ("PB10", "CN10.32", "S_TIM2_CH3"),
         "M3_STEP": ("PB11", "CN10.34", "S_TIM2_CH4"),
@@ -162,6 +163,15 @@ def verify(netlist, board):
         require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN" and
                 ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
                 f"Driver DIAG requires pull-down and rising-edge EXTI: {pin}")
+    require(ioc.get("PF2.GPIO_PuPd") == "GPIO_PULLUP" and
+            ioc.get("PF2.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
+            "DM542T ALM requires pull-up and rising-edge EXTI2")
+    for ref, pin, net in (("A2", "ALM+", "M1_ALM"), ("A2", "ALM-", "GND"),
+                          ("R30", "1", "+3V3"), ("R30", "2", "M1_ALM"),
+                          ("J114", "1", "M1_ALM"), ("J114", "2", "GND"),
+                          ("J115", "1", "M1_ALM"), ("J115", "2", "GND")):
+        require(source.get((ref, pin)) == net, f"DM542T alarm connection differs: {ref}.{pin}")
+    require(components["R30"].findtext("value") == "4k7", "ALM needs its 4.7k external 3.3 V pull-up")
     require(ioc.get("USART2.BaudRate") == "115200" and
             ioc.get("USART2.FIFOMode") == "FIFOMODE_ENABLE",
             "Shared driver UART must preserve 115200 baud and RX FIFO")
@@ -313,7 +323,8 @@ def verify(netlist, board):
               "PASS: at most three scheduled wire ends per component solder joint.",
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
               f"PASS: {len(controller_routes)} motor, encoder, reference and storage contacts agree with CubeMX.",
-              "PASS: CubeMX reference/DIAG pulls and edges, encoder index edge and disabled startup polarity match wiring.",
+              "PASS: CubeMX reference/ALM/DIAG pulls and edges, encoder index edge and disabled startup polarity match wiring.",
+              "PASS: DM542T ALM uses PF2/CN9.17, 4.7k pull-up to 3.3 V and GND return; high = fault/open.",
               "PASS: shared USART2 bus, 1k TX resistor, RX FIFO and driver address straps 0/1 match firmware.",
               "PASS: all three module bodies fit; direct mounting contacts match system wiring.",
               "PASS: buck VIN feeds J112 and separate TMC power branches; all 11 power links are underneath.",

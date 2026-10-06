@@ -31,6 +31,13 @@ namespace
               { 135_deg, 1.8_deg, 16U },
               { 135_deg, 1.8_deg, 16U },
             } });
+            auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
+            ASSERT_TRUE(alarm);
+            EXPECT_TRUE(controller->alarmStatus().active);
+            EXPECT_TRUE(controller->alarmStatus().fault_latched);
+            EXPECT_THROW(controller->enable(), std::runtime_error);
+            alarm->setSimulatedLevel(hal::gpio::Level::Low); // Healthy, powered DM542T.
+            controller->initializeDrivers();
             constexpr std::array<std::uint8_t, 3> pins{ 7, 8, 10 };
             for (std::size_t i{}; i < pins.size(); ++i) {
                 switches[i] = hal::gpio::simulatedInput({ hal::gpio::Port::E, pins[i] });
@@ -303,4 +310,81 @@ TEST_F(CliMotion, DiagnosticEdgeDisablesAllDriversAndStopsMotion)
     diag->setSimulatedLevel(Low);
     ASSERT_TRUE(run("motor driver init"));
     EXPECT_FALSE(controller->status().enabled);
+}
+
+TEST_F(CliMotion, Dm542AlarmStopsAllAxesAndRequiresExplicitRecoveryAfterTheSignalClears)
+{
+    auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
+    ASSERT_TRUE(run("motor driver status m1"));
+    EXPECT_NE(output.str().find("ALM=healthy fault-latched=false"), std::string::npos);
+    ASSERT_TRUE(run("motor enable"));
+    ASSERT_TRUE(run("motor move m1 -360 --speed 1"));
+    ASSERT_TRUE(run("motor move m2 -360 --speed 1"));
+    alarm->setSimulatedLevel(High);
+    EXPECT_FALSE(controller->status().enabled);
+    EXPECT_TRUE(controller->alarmStatus().fault_latched);
+    ASSERT_TRUE(finished(2));
+    EXPECT_FALSE(run("motor enable"));
+    EXPECT_FALSE(run("motor reset"));
+    EXPECT_FALSE(run("motor driver init"));
+    ASSERT_TRUE(run("motor driver status"));
+    EXPECT_NE(output.str().find("ALM=fault/open fault-latched=true"), std::string::npos);
+    alarm->setSimulatedLevel(Low);
+    EXPECT_FALSE(controller->alarmStatus().active);
+    EXPECT_TRUE(controller->alarmStatus().fault_latched);
+    EXPECT_FALSE(run("motor enable"));
+    EXPECT_FALSE(run("motor move m3 -10 --speed 1"));
+    ASSERT_TRUE(run("motor reset"));
+    EXPECT_FALSE(controller->alarmStatus().fault_latched);
+    EXPECT_FALSE(controller->status().enabled);
+    ASSERT_TRUE(run("motor enable"));
+}
+
+TEST_F(CliMotion, Dm542AlarmIsLatchedEvenWhenAUartDriverIsUnavailable)
+{
+    auto bus = hal::uart::simulatedStepperBus();
+    bus->setConnected(1, false);
+    EXPECT_FALSE(run("motor driver init"));
+    auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
+    alarm->setSimulatedLevel(High);
+    alarm->setSimulatedLevel(Low); // A short alarm must not be lost between polls.
+    EXPECT_TRUE(controller->alarmStatus().fault_latched);
+    EXPECT_FALSE(run("motor enable"));
+    bus->setConnected(1, true);
+    ASSERT_TRUE(run("motor driver init"));
+    EXPECT_FALSE(controller->alarmStatus().fault_latched);
+}
+
+TEST_F(CliMotion, Dm542AlarmDuringEnableSettlingCannotLeaveDriversEnabled)
+{
+    auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
+    std::jthread fault([alarm] {
+        std::this_thread::sleep_for(50ms);
+        alarm->setSimulatedLevel(High);
+    });
+    EXPECT_FALSE(run("motor enable"));
+    EXPECT_FALSE(controller->status().enabled);
+    EXPECT_TRUE(controller->alarmStatus().fault_latched);
+}
+
+TEST_F(CliMotion, Dm542AlarmInvalidatesAReferencedAxis)
+{
+    ASSERT_TRUE(run("motor enable"));
+    ASSERT_TRUE(run("motor home m2 --seek 5 --latch .5 --timeout 2"));
+    ASSERT_TRUE(eventually([&] { return controller->status().axes[1].velocity > 0_rpm; }));
+    switches[1]->setSimulatedLevel(High);
+    ASSERT_TRUE(eventually([&] { return controller->status().axes[1].velocity < 0_rpm; }));
+    switches[1]->setSimulatedLevel(Low);
+    ASSERT_TRUE(eventually([&] { return controller->status().axes[1].velocity > 0_rpm; }));
+    switches[1]->setSimulatedLevel(High);
+    ASSERT_TRUE(finished(1));
+    ASSERT_TRUE(controller->status().axes[1].referenced);
+    auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
+    alarm->setSimulatedLevel(High);
+    ASSERT_TRUE(eventually([&] { return !controller->status().axes[1].referenced; }));
+    EXPECT_FALSE(controller->status().enabled);
+    alarm->setSimulatedLevel(Low);
+    ASSERT_TRUE(run("motor driver init"));
+    ASSERT_TRUE(run("motor enable"));
+    EXPECT_FALSE(run("motor moveto m2 130 --speed 10"));
 }

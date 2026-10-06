@@ -436,6 +436,28 @@ TEST(HalMotorBoard, ReferenceSwitchesReportOpenContactsAndBothTransitionsIndepen
     EXPECT_EQ(hal::board::createReferenceLimitSwitch(static_cast<hal::board::MotorId>(255)), nullptr);
 }
 
+TEST(HalMotorBoard, Dm542AlarmDefaultsToFaultAndOnlyNotifiesOnActivation)
+{
+    auto input = hal::board::createStepperDiagnostic(hal::board::MotorId::Motor1);
+    auto simulated = hal::gpio::simulatedInput({ F, 2 });
+    ASSERT_TRUE(input);
+    ASSERT_TRUE(simulated);
+    EXPECT_EQ(input->read(), hal::gpio::Level::High);
+    EXPECT_EQ(hal::board::createStepperDiagnostic(hal::board::MotorId::Motor1), nullptr);
+    unsigned events{};
+    input->setEdgeCallback([&](hal::gpio::Level level) noexcept {
+        EXPECT_EQ(level, hal::gpio::Level::High);
+        ++events;
+    });
+    simulated->setSimulatedLevel(hal::gpio::Level::Low);
+    EXPECT_EQ(events, 0U);
+    simulated->setSimulatedLevel(hal::gpio::Level::High);
+    EXPECT_EQ(events, 1U);
+    simulated->setSimulatedLevel(hal::gpio::Level::Low);
+    EXPECT_EQ(events, 1U);
+    input->clearEdgeCallback();
+}
+
 TEST(HalMotorBoard, CompletionArrivesWithoutAnyQueriesAndSubscriptionCanBeRetired)
 {
     const auto generator{ hal::board::createStepperGenerator() };

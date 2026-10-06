@@ -30,6 +30,8 @@ J110,M2 NC switch / 1x02,1,,Perfboard
 J111,M3 NC switch / 1x02,1,,Perfboard
 J112,DM542T power / 5.08 mm,1,,Perfboard
 J113,Nucleo UART / DIAG / INDEX / 2x06,1,,Perfboard
+J114,DM542T ALM / 1x02,1,,Perfboard
+J115,Nucleo ALM / 1x02,1,,Perfboard
 M1,PKP245D23A2-R2FL,1,,External
 M2,C17HD2024-01N,1,,External
 M3,BJ42D15-26V10,1,,External
@@ -68,6 +70,7 @@ R26,4k7,1,,Perfboard
 R27,10k,1,,Perfboard
 R28,1k,1,,Perfboard
 R29,1k,1,,Perfboard
+R30,4k7,1,,Perfboard
 SW1,M1 Ender-3 V2 / NC,1,,External
 SW2,M2 Ender-3 V2 / NC,1,,External
 SW3,M3 Ender-3 V2 / NC,1,,External

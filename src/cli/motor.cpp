@@ -134,16 +134,18 @@ namespace cli::motor
             return 0;
         }
 
-        [[ = "Read cached M2/M3 driver diagnostics (100 ms polling); M1 uses DIP switches"_fs,
+        [[ = "Read M1 ALM and cached M2/M3 UART diagnostics (100 ms polling)"_fs,
            = Name{ "motor driver status"_fs },
-           = Arg{ .name = "motor"_fs, .description = "m2, m3 or all (default)"_fs, .optional = true } ]]
+           = Arg{ .name = "motor"_fs, .description = "m1, m2, m3 or all (default)"_fs, .optional = true } ]]
         static auto driverStatus(Controller& controller, const Arguments& args, std::ostream& out) -> CallbackResult
         {
             using Driver = hal::device::Tmc2209;
             auto selected = selection(args);
-            if (selected == MotorId::Motor1) {
-                out << "m1: DM542T; configuration via DIP switches, no UART.\n";
-                return 0;
+            if (!selected || selected == MotorId::Motor1) {
+                const auto alarm = controller.alarmStatus();
+                out << std::format("m1: DM542T ALM={} fault-latched={}; configuration via DIP switches, no UART.\n",
+                                   alarm.active ? "fault/open" : "healthy", alarm.fault_latched);
+                if (selected) return 0;
             }
             for (const auto& d : controller.driverStatus()) {
                 if (selected && *selected != d.motor) continue;
@@ -170,12 +172,12 @@ namespace cli::motor
             return 0;
         }
 
-        [[ = "Initialize and verify both UART drivers; disabled only, invalidates references"_fs,
+        [[ = "Check M1 ALM and initialize both UART drivers; disabled only, invalidates references"_fs,
            = Name{ "motor driver init"_fs } ]]
         static auto driverInit(Controller& controller, const Arguments&, std::ostream& out) -> CallbackResult
         {
             controller.initializeDrivers();
-            out << "Both TMC2209 drivers verified; drivers remain disabled.\n";
+            out << "M1 ALM healthy; both TMC2209 drivers verified; drivers remain disabled.\n";
             return 0;
         }
 

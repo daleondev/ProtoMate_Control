@@ -145,3 +145,8 @@ W143,GND,J113,10,V30,J113,12,W30,bottom wire,,2.5,signal
 W144,M2_INDEX,J113,9,V29,J105,8,J20,bottom wire + top jumper,"T27, L20",47.9,signal
 W145,M3_INDEX,J113,11,W29,J106,8,J34,bottom wire + top jumper,"Q31, M33",41.9,signal
 W146,M3_DIAG,J113,7,U29,J106,7,J33,bottom wire + top jumper,"V28, R33",55.9,signal
+W147,M1_ALM,J114,1,C2,J115,1,D5,bottom wire,,10.2,signal
+W148,GND,J114,2,C3,J115,2,D6,bottom wire,,10.2,signal
+W149,M1_ALM,J114,1,C2,R30,2,B2,bottom wire,,2.5,signal
+W150,+3V3,R30,1,B6,J101,15,B9,bottom wire,,10.2,signal
+W151,GND,J115,2,D6,J101,6,G8,bottom wire,,12.7,signal

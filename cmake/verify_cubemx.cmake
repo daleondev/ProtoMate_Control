@@ -39,6 +39,22 @@ function(verify_cubemx_generation)
     endforeach()
 
     set(linker_script "${cubemx_directory}/STM32H753XX_FLASH.ld")
+    foreach(assignment "PF2.GPIO_Label=M1_ALM" "PF2.Signal=GPXTI2"
+                       "PF2.GPIO_PuPd=GPIO_PULLUP"
+                       "PF2.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_RISING")
+        cubemx_require_text("${cubemx_directory}/CubeMX.ioc" "${assignment}\n"
+            "DM542T ALM must be a pulled-up, rising-edge fault input on PF2.")
+    endforeach()
+    foreach(required "GPIO_InitStruct.Pin = M1_ALM_Pin;"
+                     "HAL_GPIO_Init(M1_ALM_GPIO_Port, &GPIO_InitStruct);"
+                     "__HAL_RCC_GPIOF_CLK_ENABLE();"
+                     "HAL_NVIC_SetPriority(EXTI2_IRQn, 5, 0);"
+                     "HAL_NVIC_EnableIRQ(EXTI2_IRQn);")
+        cubemx_require_text("${cubemx_directory}/Src/gpio.c" "${required}"
+            "Regenerate the DM542T ALM GPIO and EXTI2 initialization.")
+    endforeach()
+    cubemx_require_text("${cubemx_directory}/Src/stm32h7xx_it.c"
+        "HAL_GPIO_EXTI_IRQHandler(M1_ALM_Pin);" "DM542T ALM interrupt dispatch is missing.")
     foreach(assignment "PD5.Signal=USART2_TX" "PD6.Signal=USART2_RX"
                        "PD0.GPIO_Label=M2_INDEX" "PD1.GPIO_Label=M3_INDEX"
                        "PD0.Signal=GPXTI0" "PD1.Signal=GPXTI1"

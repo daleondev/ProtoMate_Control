@@ -23,12 +23,13 @@ hardware/
 The root schematic links six child sheets: M1/DM542T, M2/M3/TMC2209,
 M1 encoder, storage, perfboard cable headers, and reference limit switches.
 Global net names connect these sheets electrically. The connector sheet defines
-J101–J107 plus J112/J113, and the reference-switch sheet defines J108–J111; their pin numbers
+J101–J107 plus J112/J113, and the reference-switch sheet defines J108–J111. The M1 sheet adds ALM
+headers J114/J115 and pull-up R30; their pin numbers
 match the layout and [harness table](assembly/Harness.csv).
 
-All **49 perfboard footprints** have assigned library footprints and native
-links to their schematic symbols. These comprise Q1–Q6, R1–R12, R20–R29,
-C1–C6, U2/U3 and J101–J113. R10–R12 remain on the layout and are marked DNP.
+All **52 perfboard footprints** have assigned library footprints and native
+links to their schematic symbols. These comprise Q1–Q6, R1–R12, R20–R30,
+C1–C6, U2/U3 and J101–J115. R10–R12 remain on the layout and are marked DNP.
 
 The **buck U1 and Adafruit A3/A4 modules mount directly at J103/J105/J106**.
 These footprints represent their soldered mounting pins and full module
@@ -58,7 +59,7 @@ It uses one continuous **39-column × 48-row grid**, A1–AV39, at 2.54 mm pitch
 The outer hole centres span **96.52 × 119.38 mm**; the nominal outline is
 99.06 × 121.92 mm with half-pitch margins. Both TMC modules sit along the top
 edge, the buck at the lower left, and the reference headers at the lower right.
-Wiring uses 105 underside-only connections and 37 short crossovers through
+Wiring uses 112 underside-only connections and 39 short crossovers through
 dedicated free holes. All wire ends are soldered underneath. J101's pin 1 is
 at I9, with its signal column facing the driver modules. The 11 designated
 power connections all stay underneath and use 0.5 mm² insulated copper wire;
@@ -89,6 +90,12 @@ firmware's internal 3.3 V pull-ups. SW1–SW3 are shown released with COM–NC
 closed: low when released, high when pressed or unplugged. Their schematic
 contact names are functional identities, not an asserted Creality connector
 pin order; verify the normally closed pair by continuity before making cables.
+
+J114.1/2 connects DM542T ALM+/ALM−; J115.1/2 returns the signal and ground
+to PF2/CN9.17 and Nucleo GND. R30 pulls ALM+ to 3.3 V through 4.7 kΩ.
+The default normally conducting alarm reads low when healthy and high on a
+fault or open cable. All five ALM connections stay underneath. See the
+[alarm wiring and recovery behavior](../README.md#dm542t-alarm-input).
 
 ## Editing workflow
 
@@ -126,7 +133,7 @@ Requires KiCad 10 (`kicad-cli` and its `pcbnew` Python module), Python 3 and
 Poppler's `pdfunite`. The command checks ERC, DRC **with schematic parity**,
 symbol links, pad nets, the hole grid, wire endpoints/connectivity, module body
 clearance, mounting contacts, dedicated power branches and harness destinations.
-All 30 motor, encoder, reference, UART/DIAG and storage signal contacts
+All 33 motor, encoder, reference, ALM/UART/DIAG and storage signal contacts
 are checked against CubeMX, along with reference pull-ups/edges, encoder index
 polarity, DIAG pulls/edges, UART settings/address straps and the disabled startup level. It updates:
 

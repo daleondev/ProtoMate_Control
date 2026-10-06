@@ -63,6 +63,9 @@ namespace hal::board
 
     auto createStepperDiagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>
     {
+        if (id == MotorId::Motor1)
+            return gpio::createInput({ .pin = { F, 2 }, .pull = gpio::Pull::Up,
+                                       .edge = gpio::Edge::Rising });
         if (id != MotorId::Motor2 && id != MotorId::Motor3) return {};
         return gpio::createInput({ .pin = { D, static_cast<std::uint8_t>(id == MotorId::Motor2 ? 4 : 3) },
                                    .pull = gpio::Pull::Down, .edge = gpio::Edge::Rising });

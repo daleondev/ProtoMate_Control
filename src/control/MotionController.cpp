@@ -2,6 +2,10 @@
 #include "runtime/thread.hpp"
 #include "pneumo/pneumo.hpp"
 
+#ifdef HAL_PLATFORM_STM32
+#include "hal/stm32/InterruptGuard.hpp"
+#endif
+
 #include <algorithm>
 #include <stdexcept>
 #include <type_traits>
@@ -31,6 +35,8 @@ namespace control
             throw std::runtime_error("step timebase start failed: " + result.error().message());
         m_driverBus = hal::board::createStepperDriverBus();
         if (!m_driverBus) throw std::runtime_error("stepper UART creation failed");
+        m_alarm = hal::board::createStepperDiagnostic(MotorId::Motor1);
+        if (!m_alarm) throw std::runtime_error("DM542T ALM creation failed");
         for (std::size_t i{}; i < 2; ++i) {
             const auto microsteps = configuration[i + 1].microsteps;
             if (microsteps == 0 || microsteps > 256 || (microsteps & (microsteps - 1)))
@@ -42,12 +48,18 @@ namespace control
         }
         // Missing/unpowered drivers leave the console usable for diagnosis.
         try { initializeDriversLocked(); }
-        catch (const std::exception& e) { pnm::log::error("TMC2209 initialization: {}", e.what()); }
+        catch (const std::exception& e) { pnm::log::error("Stepper driver initialization: {}", e.what()); }
         m_driverWorker = runtime::thread::create_jthread(
             // Below motion workers (16): polling must not delay switch stops.
-            // DIAG disables the shared output immediately in interrupt context.
+            // ALM/DIAG disable the shared output immediately in interrupt context.
             { .name = "Driver monitor", .priority = 18, .stack_size = 8192 },
             [this](std::stop_token stop) { monitorDrivers(stop); });
+        m_alarm->setEdgeCallback([this](hal::gpio::Level level) noexcept {
+            if (level != hal::gpio::Level::High) return;
+            m_driverFaults.fetch_or(AlarmFault, std::memory_order_release);
+            m_enable->write(hal::gpio::Level::High);
+            m_driverNotification.signal();
+        });
         for (std::size_t i{}; i < 2; ++i)
             m_diagnostics[i]->setEdgeCallback([this, i](hal::gpio::Level level) noexcept {
                 if (level != hal::gpio::Level::High) return;
@@ -60,6 +72,7 @@ namespace control
 
     MotionController::~MotionController()
     {
+        m_alarm->setEdgeCallback({});
         for (auto& input : m_diagnostics) input->setEdgeCallback({});
         m_driverWorker.request_stop();
         m_driverNotification.signal();
@@ -78,7 +91,8 @@ namespace control
 
     void MotionController::requireEnabled() const
     {
-        if (!m_driversReady || m_driverFaults.load(std::memory_order_acquire))
+        if (!m_driversReady || m_driverFaults.load(std::memory_order_acquire) ||
+            m_alarm->read() == hal::gpio::Level::High)
             throw std::runtime_error("stepper driver fault/not initialized; inspect 'motor driver status' then reset while disabled");
         if (m_enable->read() != hal::gpio::Level::Low)
             throw std::runtime_error("drivers disabled; enable drivers before requesting motion");
@@ -91,10 +105,14 @@ namespace control
         std::scoped_lock lock{ m_mutex };
         if (m_generator->status().state != hal::step::State::Running)
             throw std::runtime_error("step generator fault/stopped; disable drivers and reset the timebase");
+        if ((m_driverFaults.load() & AlarmFault) || m_alarm->read() == hal::gpio::Level::High) {
+            alarmFaultLocked();
+            throw std::runtime_error("M1 DM542T ALM fault/open cable; clear cause, then reset while disabled");
+        }
+        if (!m_driversReady || m_driverFaults.load())
+            throw std::runtime_error("drivers not ready; inspect 'motor driver status' and run 'motor driver init'");
         if (m_enable->read() == hal::gpio::Level::Low)
             return;
-        if (!m_driversReady || m_driverFaults.load())
-            throw std::runtime_error("TMC2209 not ready; inspect 'motor driver status' and run 'motor driver init'");
         // Catch a reset/disconnection since the last periodic poll before EN.
         for (std::size_t i{}; i < 2; ++i) {
             auto verified = m_drivers[i]->verify();
@@ -105,8 +123,29 @@ namespace control
                 throw std::runtime_error(m_driverErrors[i]);
             }
         }
-        m_enable->write(hal::gpio::Level::Low);
+        bool permitted{};
+        {
+#ifdef HAL_PLATFORM_STM32
+            // A fault interrupt must never be overwritten by our enable write.
+            const hal::stm32::InterruptGuard guard;
+#endif
+            unsigned observed = m_alarm->read() == hal::gpio::Level::High ? AlarmFault : 0U;
+            for (std::size_t i{}; i < m_diagnostics.size(); ++i)
+                if (m_diagnostics[i]->read() == hal::gpio::Level::High)
+                    observed |= 1U << i;
+            permitted = (m_driverFaults.fetch_or(observed) | observed) == 0;
+            if (permitted)
+                m_enable->write(hal::gpio::Level::Low);
+        }
+        if (!permitted) {
+            m_driverNotification.signal();
+            throw std::runtime_error("driver fault before enable");
+        }
         std::this_thread::sleep_for(200ms);
+        if ((m_driverFaults.load() & AlarmFault) || m_alarm->read() == hal::gpio::Level::High) {
+            alarmFaultLocked();
+            throw std::runtime_error("M1 DM542T ALM fault during enable settling");
+        }
         if (m_driverFaults.load() || m_enable->read() != hal::gpio::Level::Low) {
             driverFaultLocked((m_driverFaults.load() & 2U) ? 1 : 0, "driver fault during enable settling");
             throw std::runtime_error("driver fault during enable settling");

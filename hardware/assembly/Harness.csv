@@ -89,3 +89,7 @@ J113,9,V29,M2_INDEX,A1,CN9.25,PD0 M2 INDEX; both edges
 J113,10,V30,GND,A1,CN11.8,Common ground
 J113,11,W29,M3_INDEX,A1,CN9.27,PD1 M3 INDEX; both edges
 J113,12,W30,GND,A1,CN11.8,Common ground
+J114,1,C2,M1_ALM,A2,ALM+,Normally conducting alarm output; 3.3 V pull-up R30
+J114,2,C3,GND,A2,ALM-,Alarm return; pair with ALM+
+J115,1,D5,M1_ALM,A1,CN9.17,PF2 / EXTI2; high = fault or disconnected
+J115,2,D6,GND,A1,CN11.8,Paired Nucleo ground return

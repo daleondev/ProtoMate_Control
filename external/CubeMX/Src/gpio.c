@@ -48,6 +48,7 @@ void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -59,6 +60,12 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(STEPPERS_EN_N_GPIO_Port, STEPPERS_EN_N_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin : M1_ALM_Pin */
+  GPIO_InitStruct.Pin = M1_ALM_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(M1_ALM_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : M1_REF_Pin M2_REF_Pin M3_REF_Pin */
   GPIO_InitStruct.Pin = M1_REF_Pin|M2_REF_Pin|M3_REF_Pin;
@@ -111,6 +118,9 @@ void MX_GPIO_Init(void)
 
   HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
   HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI3_IRQn);

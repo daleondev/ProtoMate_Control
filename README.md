@@ -58,7 +58,7 @@ HAL or Linux debugger. Startup diagnostics and the boot message appear on the te
 Open **[hardware/ProtoMate.kicad_pro](hardware/ProtoMate.kicad_pro)** in
 **KiCad 10**. One project contains the complete system schematic and its linked
 perfboard layout. Seven sheets cover controller/power, M1/DM542T, M2/M3/TMC2209,
-M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 49 footprints
+M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 52 footprints
 are linked to schematic symbols; external equipment is marked **Exclude from
 board**. Symbols and footprints use project-local libraries. See the
 [hardware guide](hardware/README.md) for the structure and F8 update workflow.
@@ -128,7 +128,7 @@ cable. The buck mounts in the lower-left area at J103, using all four
 input/output pins. Its barrel jack receives 24 V. The 63 × 27 mm body follows the supplied STEP
 model; the mounting uses a nominal 5.08 mm pair pitch and 50.8 mm separation.
 
-Hand wiring uses 105 underside-only connections and 37 short top-side
+Hand wiring uses 112 underside-only connections and 39 short top-side
 crossovers through dedicated free holes; all wire ends are soldered underneath.
 The assembly guide includes the soldering order and header orientation.
 
@@ -1034,11 +1034,53 @@ Keep DM542T ENA connected: an open enable input leaves that driver enabled.
 For V4.0, allow at least 200 ms after enabling before issuing motion commands,
 as specified in its manual.
 
+### DM542T alarm input
+
+The DM542T V4.0 **ALM+/ALM− output conducts when healthy and opens on a
+fault in its default configuration**. It reports a driver protection fault,
+not its specific cause, shaft movement or lost steps. The fault output is
+separate from the 5 V PUL/DIR/ENA inputs; **S2 does not set its voltage**.
+See [the V4.0 manual, sections 3.2, 4.2 and 11](https://www.omc-stepperonline.com/download/DM542T_V4.0.pdf).
+
+| Connection | Assignment |
+| --- | --- |
+| ALM+ | J114.1 → `M1_ALM` → J115.1 → **PF2 / CN9 pin 17 / D70** |
+| ALM− | J114.2 → GND |
+| Nucleo ground return | J115.2 → CN11 pin 8 / GND |
+| R30 | **4.7 kΩ from M1_ALM to 3.3 V**, about 0.7 mA when conducting |
+| CubeMX / HAL | GPIO input, pull-up, rising-edge EXTI2, interrupt priority 5 |
+
+No extra transistor or optocoupler is needed for this output. Do not connect
+ALM or PF2 to 5 V or 24 V. The external pull-up is on the perfboard; the MCU
+pull-up also makes a disconnected Nucleo harness read high. **Low = healthy;
+high = fault or open cable.** A signal short to ground is not detectable by
+this interface. Use the default normally conducting alarm polarity.
+
+`hal::board::createStepperDiagnostic(MotorId::Motor1)` creates the exclusive
+input, owned by `MotionController`. Its interrupt callback latches the fault,
+raises shared enable to disable all three drivers, and notifies the driver
+monitor without UART, logging or thread locks. The monitor stops every motion
+and invalidates all references. Startup and enable check the input level, so
+an already open ALM blocks operation even without an edge. M1 remains monitored
+when a TMC2209 is unavailable. Clearing ALM never resumes a motion.
+
+Use `motor driver status m1` (or `motor driver status` for all drivers) to read
+the live ALM level and retained fault latch. Correct the cause first; a DM542T
+protection fault may require power cycling the driver as described in its manual.
+Then run `motor reset` or `motor driver init` while disabled, explicitly enable,
+and re-home. Recovery also verifies both TMC2209s. **Normal firmware now requires
+the DM542T ALM connection as well as both TMC2209s.** The single-TMC bench images
+only own their selected TMC DIAG input and do not require M1.
+
+On the 39 × 48 perfboard, J114 uses C2/C3, J115 uses D5/D6, and R30 uses
+B6 (+3.3 V) / B2 (ALM). All five added connections run underneath, with no
+additional crossovers; see [the harness and assembly tables](hardware/assembly/README.md).
+
 ### TMC2209 UART configuration and diagnostics
 
 For temporary wiring and an interactive image that tests **one** driver with
 an unloaded motor, see the [single-TMC2209 bench test](docs/tmc2209-hardware-test.md)
-and the `tmc-test-stm32` build preset. The normal robot application requires both drivers.
+and the `tmc-test-stm32` build preset. The normal robot application requires both drivers and the M1 ALM connection.
 For a comparison using only STEP/DIR and hardware driver settings, use
 [`tmc-standalone-test-stm32`](docs/tmc2209-standalone-test.md). That image leaves
 USART2 disabled and never accesses driver registers; power-cycle the driver
