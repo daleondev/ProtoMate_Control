@@ -29,6 +29,7 @@
                 "HAL_HARDWARE_STEP_TEST": false,
                 "RUNTIME_STORAGE_REQUIRED": false,
                 "HAL_HARDWARE_TMC_TEST": false,
+                "HAL_HARDWARE_MOTOR_TEST": false,
                 "HAL_HARDWARE_TMC_STANDALONE_TEST": false
             }
         },
@@ -59,6 +60,16 @@
             "inherits": "release-stm32",
             "cacheVariables": {
                 "HAL_HARDWARE_STEP_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "motor-test-stm32",
+            "displayName": "STM32 M1 DM542T and M2 TMC2209 Bench Test",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_MOTOR_TEST": true,
                 "RUNTIME_STORAGE_REQUIRED": false,
                 "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
             }
@@ -148,6 +159,10 @@
         }
     ],
     "buildPresets": [
+        {
+            "name": "motor-test-stm32",
+            "configurePreset": "motor-test-stm32"
+        },
         {
             "name": "step-test-stm32",
             "configurePreset": "step-test-stm32"

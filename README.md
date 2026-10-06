@@ -1077,6 +1077,11 @@ B6 (+3.3 V) / B2 (ALM). The ALM return shares the motion harness ground; see [th
 
 ### TMC2209 UART configuration and diagnostics
 
+For **M1 / DM542T plus M2 / TMC2209 together**, use the
+[`motor-test-stm32` bench image](docs/motor-hardware-test.md). M2 defaults to
+StealthChop. It tests holding, individual/concurrent/independent moves and
+M1 encoder / M2 INDEX feedback, monitors both fault inputs, and requires no M3.
+
 For temporary wiring and an interactive image that tests **one** driver with
 an unloaded motor, see the [single-TMC2209 bench test](docs/tmc2209-hardware-test.md)
 and the `tmc-test-stm32` build preset. The normal robot application requires both drivers and the M1 ALM connection.

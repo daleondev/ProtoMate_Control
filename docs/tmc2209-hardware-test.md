@@ -1,5 +1,9 @@
 # Single TMC2209 bench test
 
+For **M1 / DM542T and M2 / TMC2209 together**, use the
+[combined motor test](motor-hardware-test.md), preset `motor-test-stm32`.
+It defaults M2 to StealthChop and monitors both drivers' fault inputs.
+
 For a separate image that **never uses the driver UART**, see the
 [standalone STEP/DIR test](tmc2209-standalone-test.md), preset
 `tmc-standalone-test-stm32`. Its current setting and power-cycle instructions
