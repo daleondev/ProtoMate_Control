@@ -169,7 +169,7 @@ def verify(netlist, board):
     for ref, pin, net in (("A2", "ALM+", "M1_ALM"), ("A2", "ALM-", "GND"),
                           ("R30", "1", "+3V3"), ("R30", "2", "M1_ALM"),
                           ("J114", "1", "M1_ALM"), ("J114", "2", "GND"),
-                          ("J115", "1", "M1_ALM"), ("J115", "2", "GND")):
+                          ("J101", "4", "M1_ALM")):
         require(source.get((ref, pin)) == net, f"DM542T alarm connection differs: {ref}.{pin}")
     require(components["R30"].findtext("value") == "4k7", "ALM needs its 4.7k external 3.3 V pull-up")
     require(ioc.get("USART2.BaudRate") == "115200" and
@@ -312,6 +312,31 @@ def verify(netlist, board):
             destination = row["Schematic destination reference"], row["Destination contact"]
             require(source[destination] == net, f"Harness destination mismatch: {key}")
 
+    # Compact controller harness: one contact per signal/supply, with selected
+    # shared ground returns. In particular, the even columns are not GND buses.
+    controller_harness = [r for r in harness
+                          if r["Schematic destination reference"] == "A1"]
+    expected_headers = {
+        "J101": ["M1_STEP", "GND", "M1_DIR", "M1_ALM", "M2_STEP", "GND",
+                 "M2_DIR", "+3V3", "M3_STEP", "GND", "M3_DIR", "STEPPERS_EN_N"],
+        "J102": ["M1_ENC_A", "GND", "M1_ENC_B", "GND", "M1_ENC_Z", "GND"],
+        "J108": ["M1_REF", "M2_REF", "M3_REF", "GND"],
+        "J113": ["TMC_UART_TX", "GND", "TMC_UART_RX", "M2_INDEX",
+                 "M2_DIAG", "M3_INDEX", "M3_DIAG", "GND"],
+    }
+    require({r["Perfboard header"] for r in controller_harness} == expected_headers.keys(),
+            "Unexpected or missing Nucleo harness header")
+    for ref, nets in expected_headers.items():
+        require({pin: p.GetNetname() for (r, pin), p in pads.items() if r == ref}
+                == {str(i): net for i, net in enumerate(nets, 1)},
+                f"Compact controller header pinout differs: {ref}")
+    counts = collections.Counter(r["Net"] for r in controller_harness)
+    expected_signals = {net for net in controller_routes
+                        if net.startswith(("M1_", "M2_", "M3_", "STEPPERS_", "TMC_"))}
+    require(counts.pop("GND", 0) == 9 and set(counts) == expected_signals | {"+3V3"}
+            and all(count == 1 for count in counts.values()),
+            "Controller harness needs each signal/supply once and nine deliberate ground returns")
+
     report = [f"KiCad {pcb.GetBuildVersion()}: native project verification",
               "PASS: one continuous 39 x 48 hole grid (A1:AV39), 2.54 mm pitch, 1872 holes.",
               "PASS: nominal outline 99.06 x 121.92 mm; outer hole-centre span 96.52 x 119.38 mm.",
@@ -322,6 +347,8 @@ def verify(netlist, board):
               f"{sum(w['sides'] != 'bottom wire' for w in wires)} single crossovers with dedicated free holes.",
               "PASS: at most three scheduled wire ends per component solder joint.",
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
+              "PASS: four Nucleo harnesses; 21 distinct signal/supply contacts and nine ground returns.",
+              "PASS: STEP and encoder pairs retain ground returns; reference/UART/DIAG share returns; ALM uses J101.4.",
               f"PASS: {len(controller_routes)} motor, encoder, reference and storage contacts agree with CubeMX.",
               "PASS: CubeMX reference/ALM/DIAG pulls and edges, encoder index edge and disabled startup polarity match wiring.",
               "PASS: DM542T ALM uses PF2/CN9.17, 4.7k pull-up to 3.3 V and GND return; high = fault/open.",

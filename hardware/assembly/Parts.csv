@@ -11,8 +11,9 @@ R7,1,470 ohm resistor,Axial 0.25 W; 10.16 mm hole spacing
 R10 R11 R12,0,DNP termination resistors,Leave empty; 10.16 mm reserved hole spacing
 C3 C4,2,100 nF ceramic capacitor,Nonpolar; >=16 V; 2.54 mm lead spacing
 C5 C6,2,1 uF nonpolar capacitor,>=16 V; 5.08 mm lead spacing
-J101,1,2x8 male header,2.54 mm pitch
-J102 J108,2,2x3 male header,2.54 mm pitch; encoder and reference returns to Nucleo
+J101,1,2x6 male header,2.54 mm pitch
+J102,1,2x3 male header,2.54 mm pitch; paired encoder returns to Nucleo
+J108,1,1x4 male header,2.54 mm pitch; three reference signals and shared ground
 J109 J110 J111,3,1x2 male header,2.54 mm pitch; three NC switch cables
 J104,1,1x6 male header,2.54 mm pitch
 J105 J106,2,1x10 long-tail male header,2.54 mm pitch; solder each Adafruit #6121 directly to perfboard; >=6 mm clear gap; support terminal side with insulating spacers
@@ -28,5 +29,5 @@ C1 C2,2,100 uF / 50 V radial electrolytic,Polarized; body <=10 mm; 5.08 mm forme
 J105 J106 power pins,2,1x2 long-tail male header,2.54 mm pitch; JP1.6 (+) / JP1.5 (-); downward direct mount at same module height as JP4
 A3 A4 motor terminals,2,4-way screw terminal,2.54 mm pitch; JP1.4-1; motor order 2B/2A/1A/1B; upward on module
 J112,1,2-way 5.08 mm screw terminal,Reuse a removed buck terminal; 1=24 V / 2=GND; DM542T cable outlet and underside power star joints
-J113,1,2x6 male header,2.54 mm pitch; UART TX/RX plus two DIAG and two INDEX signals with paired ground returns
-J114 J115,2,1x2 male header,2.54 mm pitch; DM542T ALM input and Nucleo PF2 return
+J113,1,2x4 male header,2.54 mm pitch; UART TX/RX plus two DIAG and two INDEX signals; GND pins 2 and 8
+J114,1,1x2 male header,2.54 mm pitch; DM542T ALM input; Nucleo PF2 uses J101.4

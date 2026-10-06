@@ -35,7 +35,7 @@ The underside sheet flips the board **left/right**, keeping row A at the top.
 Column 1 is therefore on the right. Hole names never change between views.
 All components are mounted on the top face.
 
-The hand-wiring layout uses **112 underside-only connections and 39 short
+The hand-wiring layout uses **100 underside-only connections and 39 short
 top-side crossovers**. The layout prioritizes underside wiring.
 Each crossover uses its own pair of free holes; no wire shares a passage hole
 with another wire or a component lead. Each component solder joint carries
@@ -43,7 +43,7 @@ at most three scheduled wire ends. The encoder transistor stages have their
 resistors grouped locally, and power/ground connections join nearby pads.
 
 - [Holes.csv](Holes.csv): every component pin, its hole and its electrical net.
-- [Wires.csv](Wires.csv): all 151 required pad-to-pad connections, with endpoints,
+- [Wires.csv](Wires.csv): all 139 required pad-to-pad connections, with endpoints,
   side-change holes and routed lengths. Add handling/stripping allowance to
   these lengths. The `wire_class` column identifies the heavier power wiring.
   Tick off each connection as it is soldered.
@@ -72,8 +72,9 @@ Fit the board in this order:
 2. Fit resistors, transistors, capacitors, headers and IC sockets. Keep the
    crossovers low and leave clearance for their insulation beneath sockets.
 3. Solder the short underside links, then the longer underside wires, following
-   the `bottom wire` rows in Wires.csv. Consecutive ground pads on J101/J102/J108/J113 can use a continuous
-   tinned wire soldered at each pad. Use insulated wire for longer routes.
+   the `bottom wire` rows in Wires.csv. Only consecutive GND pads on J102 may
+   use a continuous tinned link. J101/J108/J113 mix signals and grounds;
+   follow the individual scheduled wires. Use insulated wire for longer routes.
 4. Fit C1/C2 with positive leads in their square pads. Complete the 11 `power`
    connections using 0.5 mm² insulated copper wire, including their ground
    returns. J112’s two solder joints each join three power wires; make the
@@ -84,11 +85,11 @@ The wire lengths are projected routing lengths. Add allowance for stripping,
 the board thickness at each crossover, and comfortable bends. No schematic
 connection is implied by two insulated wires merely touching or crossing.
 
-The DM542T alarm uses R30 (4.7 kΩ): B6 = 3.3 V, B2 = ALM. J114/J115
-and R30 sit at the upper left. ALM is low when healthy and high for an open
+The DM542T alarm uses R30 (4.7 kΩ): B6 = 3.3 V, B2 = ALM. J114 and R30 sit
+at the upper left; J101.4 carries ALM to the Nucleo. ALM is low when healthy and high for an open
 cable or driver fault; its output uses the default normally conducting polarity.
-Do not connect this alarm circuit to 5 V or 24 V. All five connections are
-underside wires; no extra crossovers are required.
+Do not connect this alarm circuit to 5 V or 24 V. Follow the ALM and ground
+routes in Wires.csv, including the ALM crossover.
 
 ## Parts and orientation
 
@@ -143,48 +144,56 @@ Use the harness table for cables and direct module contacts.
 
 | Header | Connection |
 | --- | --- |
-| J101, 2×8 | Nucleo STEP/DIR/enable outputs and 3.3 V. Odd pins carry signals/power; every even pin is ground. |
+| J101, 2×6 | Nucleo STEP/DIR/enable, ALM and 3.3 V. STEP/GND pairs 1/2, 5/6, 9/10; ALM 4; 3.3 V 8; enable 12. |
 | J102, 2×3 | Encoder A/B/Z returns to the Nucleo; each paired even pin is ground. |
 | J103, four module pins | Buck: 1 = OUT+ / 5 V, 2 = OUT− / GND, 3 = VIN− / GND, 4 = VIN+ / 24 V. |
 | J104, 1×6 | DM542T: PUL+, PUL−, DIR+, DIR−, ENA+, ENA−, in pin order. Keep the DM542T signal selector at 5 V. |
 | J105, 10 + 2 module pins | M2 / A3: pins 1–10 = JP4 control header; 11 = JP1.6 / 24 V; 12 = JP1.5 / GND. |
 | J106, 10 + 2 module pins | M3 / A4, same order as J105. |
 | J107, 1×8 | Encoder: GND, A+, A−, B+, B−, Z+, Z−, +5 V, matching the motor's numbered encoder connector. |
-| J108, 2×3 | Nucleo reference inputs: 1 = M1_REF, 3 = M2_REF, 5 = M3_REF; 2/4/6 = GND. |
+| J108, 1×4 | Nucleo reference inputs: 1 = M1_REF, 2 = M2_REF, 3 = M3_REF; 4 = shared GND. |
 | J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
 | J112, 2-way 5.08 mm terminal | DM542T power cable: 1 = +24 V to +Vdc; 2 = GND. The underside solder joints are the power star points. |
-| J113, 2×6 | Nucleo UART/diagnostics: 1 = TX, 3 = RX / shared UART, 5 = M2_DIAG, 7 = M3_DIAG, 9 = M2_INDEX, 11 = M3_INDEX; all even pins GND. |
+| J113, 2×4 | Nucleo UART/diagnostics: 1 = TX, 3 = RX, 4 = M2_INDEX, 5 = M2_DIAG, 6 = M3_INDEX, 7 = M3_DIAG; 2/8 = GND. |
 | J114, 1×2 | DM542T alarm cable: 1 / C2 = ALM+, 2 / C3 = ALM− / GND. |
-| J115, 1×2 | Nucleo alarm cable: 1 / D5 = PF2 / CN9.17, 2 / D6 = GND / CN11.8. |
 
 J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
 5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
-11→PE14/CN10.8, 13→PE15/CN10.30, 15→3V3/CN8.7.
+11→PE14/CN10.8, 12→PE15/CN10.30, 8→3V3/CN8.7,
+4→PF2/CN9.17 (ALM); grounds 2/6/10→CN11.8.
 In the top view, **J101 pin 1 is at I9**, at the lower-right corner of the
-header. Odd pins run upward along column 9; the ground pins run upward along
-column 8. Pin 15 is B9 and pin 16 is B8. Follow the square pin-1 pad when
-orienting the cable.
+header. Odd pins run upward along column 9; even pins run upward along
+column 8, ending at pin 11 / D9 and pin 12 / D8. **Only pins 2/6/10 are GND.**
+Follow the square pin-1 pad when orienting the cable.
 All STEP pins use TIM2 output compare / AF1 (channels 1, 3, 4).
 PA0 uses SB75 ON; keep the user button on PC13 (SB58 OFF).
 PE9/PE11 and PC6/PC7 are reserved for future encoder inputs and have no cables fitted.
 Configure the onboard STLINK-V3 MCO to **HSE/5 = 5 MHz**, matching CubeMX's
 HSE bypass clock. See the [clock setup procedure](../../docs/stepper-hardware-test.md#clock-source-configuration).
 J102: 1→PB4/CN7.19, 3→PB5/CN7.13, 5→PB6/CN12.17.
-J108: 1→PE7/CN10.20, 3→PE8/CN10.18, 5→PE10/CN10.24;
-join its ground returns (pins 2/4/6) at Nucleo CN10.22.
+J108: 1→PE7/CN10.20, 2→PE8/CN10.18, 3→PE10/CN10.24;
+connect its shared ground (pin 4) to Nucleo CN10.22.
 Connect the ground conductors to Nucleo ground, common with buck output ground.
 The existing system schematic identifies CN11.8 as a Nucleo ground contact.
+
+The four Nucleo harnesses carry 21 distinct signal/supply contacts and nine
+shared-net ground returns. Pair each STEP and encoder signal with its assigned
+ground conductor; use shared returns for DIR/enable/ALM, reference switches and
+UART/diagnostics. Join returns at a small ground bus immediately beside the
+Nucleo, with a short solid connection to its GND. Keep these local harnesses
+short and separate from motor wiring. Do not use them as motor-power returns.
+All perfboard ground links in Wires.csv still need to be fitted.
 
 **UART address straps:** M2/J105 pin 5 (MS1) and pin 6 (MS2) connect to GND
 (address 0); M3/J106 pin 5 connects to 3.3 V and pin 6 to GND (address 1).
 Firmware overrides the straps for 1/16 microstepping. Keep both **SPRD jumpers
 open**. UART current settings bypass the onboard potentiometers.
 
-**J113 is at rows R–W, columns 29–30.** Pin 1 is R29, pin 2 R30; odd pins run
-down column 29, even ground pins down column 30. Connect 1→CN9.6 (PD5 TX),
+**J113 spans rows R–S, columns 29–32.** Pin 1 is S29 and pin 2 is R29;
+odd pins run right along row S, even pins along row R. Connect 1→CN9.6 (PD5 TX),
 3→CN9.4 (PD6 RX), 5→CN9.8 (PD4 M2 DIAG), 7→CN9.10 (PD3 M3 DIAG),
-9→CN9.25 (PD0 M2 INDEX), 11→CN9.27 (PD1 M3 INDEX), with
-2/4/6/8/10/12 returning to Nucleo GND. These are **CN9** contacts, not CN10 STEP pins.
+4→CN9.25 (PD0 M2 INDEX), 6→CN9.27 (PD1 M3 INDEX), with pins 2/8 returning
+to Nucleo GND. These are **CN9** contacts, not CN10 STEP pins.
 
 **R29 is 1 kΩ, with leads at P28 and P32.** Its pin 1 connects to J113.1;
 its pin 2 joins J113.3 and both modules' pin 9 (UART). Only TX passes through
@@ -301,7 +310,7 @@ interface with the Nucleo's 3.3 V output, not the other way around.
 [DRC.rpt](../exports/DRC.rpt) records KiCad's electrical clearance/connectivity
 and schematic-parity checks. [Verification.txt](../exports/Verification.txt)
 records checks of the saved layout's symbol links, nets, hole grid, wire table
-and harness destinations. The schematic includes J101–J115 and is the
+and harness destinations. The schematic includes J101–J114 and is the
 electrical reference for this layout. Use **Update PCB from Schematic (F8)**
 as described in the [project guide](../README.md).
 

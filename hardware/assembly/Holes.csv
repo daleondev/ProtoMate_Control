@@ -11,22 +11,18 @@ C5,1u,1,R23,+5V
 C5,1u,2,R25,GND
 C6,1u,1,AG34,+3V3
 C6,1u,2,AG36,GND
-J101,Nucleo outputs / 2x08,1,I9,M1_STEP
-J101,Nucleo outputs / 2x08,2,I8,GND
-J101,Nucleo outputs / 2x08,3,H9,M1_DIR
-J101,Nucleo outputs / 2x08,4,H8,GND
-J101,Nucleo outputs / 2x08,5,G9,M2_STEP
-J101,Nucleo outputs / 2x08,6,G8,GND
-J101,Nucleo outputs / 2x08,7,F9,M2_DIR
-J101,Nucleo outputs / 2x08,8,F8,GND
-J101,Nucleo outputs / 2x08,9,E9,M3_STEP
-J101,Nucleo outputs / 2x08,10,E8,GND
-J101,Nucleo outputs / 2x08,11,D9,M3_DIR
-J101,Nucleo outputs / 2x08,12,D8,GND
-J101,Nucleo outputs / 2x08,13,C9,STEPPERS_EN_N
-J101,Nucleo outputs / 2x08,14,C8,GND
-J101,Nucleo outputs / 2x08,15,B9,+3V3
-J101,Nucleo outputs / 2x08,16,B8,GND
+J101,Nucleo motion / 2x06,1,I9,M1_STEP
+J101,Nucleo motion / 2x06,2,I8,GND
+J101,Nucleo motion / 2x06,3,H9,M1_DIR
+J101,Nucleo motion / 2x06,4,H8,M1_ALM
+J101,Nucleo motion / 2x06,5,G9,M2_STEP
+J101,Nucleo motion / 2x06,6,G8,GND
+J101,Nucleo motion / 2x06,7,F9,M2_DIR
+J101,Nucleo motion / 2x06,8,F8,+3V3
+J101,Nucleo motion / 2x06,9,E9,M3_STEP
+J101,Nucleo motion / 2x06,10,E8,GND
+J101,Nucleo motion / 2x06,11,D9,M3_DIR
+J101,Nucleo motion / 2x06,12,D8,STEPPERS_EN_N
 J102,Nucleo encoder / 2x03,1,Z37,M1_ENC_A
 J102,Nucleo encoder / 2x03,2,Z38,GND
 J102,Nucleo encoder / 2x03,3,AA37,M1_ENC_B
@@ -75,12 +71,10 @@ J107,M1 encoder / 1x08,5,N15,ENC_B_N
 J107,M1 encoder / 1x08,6,N16,ENC_Z_P
 J107,M1 encoder / 1x08,7,N17,ENC_Z_N
 J107,M1 encoder / 1x08,8,N18,+5V
-J108,Nucleo references / 2x03,1,AM28,M1_REF
-J108,Nucleo references / 2x03,2,AM29,GND
-J108,Nucleo references / 2x03,3,AN28,M2_REF
-J108,Nucleo references / 2x03,4,AN29,GND
-J108,Nucleo references / 2x03,5,AO28,M3_REF
-J108,Nucleo references / 2x03,6,AO29,GND
+J108,Nucleo references / 1x04,1,AM28,M1_REF
+J108,Nucleo references / 1x04,2,AN28,M2_REF
+J108,Nucleo references / 1x04,3,AO28,M3_REF
+J108,Nucleo references / 1x04,4,AP28,GND
 J109,M1 NC switch / 1x02,1,AM34,M1_REF
 J109,M1 NC switch / 1x02,2,AM35,GND
 J110,M2 NC switch / 1x02,1,AP34,M2_REF
@@ -89,22 +83,16 @@ J111,M3 NC switch / 1x02,1,AS34,M3_REF
 J111,M3 NC switch / 1x02,2,AS35,GND
 J112,DM542T power / 5.08 mm,1,AI12,+24V
 J112,DM542T power / 5.08 mm,2,AI14,GND
-J113,Nucleo UART / DIAG / INDEX / 2x06,1,R29,TMC_UART_TX
-J113,Nucleo UART / DIAG / INDEX / 2x06,2,R30,GND
-J113,Nucleo UART / DIAG / INDEX / 2x06,3,S29,TMC_UART_RX
-J113,Nucleo UART / DIAG / INDEX / 2x06,4,S30,GND
-J113,Nucleo UART / DIAG / INDEX / 2x06,5,T29,M2_DIAG
-J113,Nucleo UART / DIAG / INDEX / 2x06,6,T30,GND
-J113,Nucleo UART / DIAG / INDEX / 2x06,7,U29,M3_DIAG
-J113,Nucleo UART / DIAG / INDEX / 2x06,8,U30,GND
-J113,Nucleo UART / DIAG / INDEX / 2x06,9,V29,M2_INDEX
-J113,Nucleo UART / DIAG / INDEX / 2x06,10,V30,GND
-J113,Nucleo UART / DIAG / INDEX / 2x06,11,W29,M3_INDEX
-J113,Nucleo UART / DIAG / INDEX / 2x06,12,W30,GND
+J113,Nucleo UART / DIAG / INDEX / 2x04,1,S29,TMC_UART_TX
+J113,Nucleo UART / DIAG / INDEX / 2x04,2,R29,GND
+J113,Nucleo UART / DIAG / INDEX / 2x04,3,S30,TMC_UART_RX
+J113,Nucleo UART / DIAG / INDEX / 2x04,4,R30,M2_INDEX
+J113,Nucleo UART / DIAG / INDEX / 2x04,5,S31,M2_DIAG
+J113,Nucleo UART / DIAG / INDEX / 2x04,6,R31,M3_INDEX
+J113,Nucleo UART / DIAG / INDEX / 2x04,7,S32,M3_DIAG
+J113,Nucleo UART / DIAG / INDEX / 2x04,8,R32,GND
 J114,DM542T ALM / 1x02,1,C2,M1_ALM
 J114,DM542T ALM / 1x02,2,C3,GND
-J115,Nucleo ALM / 1x02,1,D5,M1_ALM
-J115,Nucleo ALM / 1x02,2,D6,GND
 Q1,2N2222A,B,Q9,Net-(Q1-PadB)
 Q1,2N2222A,C,Q10,DM_PUL_N
 Q1,2N2222A,E,Q8,GND

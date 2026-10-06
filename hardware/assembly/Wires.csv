@@ -1,152 +1,140 @@
 wire,net,from_ref,from_pin,from_hole,to_ref,to_pin,to_hole,sides,side_change_holes,length_mm,wire_class
-W001,GND,J101,4,H8,J101,2,I8,bottom wire + top jumper,"H7, I7",7.6,signal
-W002,+5V,J104,3,M4,J104,1,M2,bottom wire + top jumper,"N3, N2",10.2,signal
-W003,+5V,U2,16,Q20,C3,1,O20,bottom wire + top jumper,"Q19, O19",10.2,signal
-W004,GND,J105,2,J14,R8,2,L14,bottom wire + top jumper,"I14, K14",10.2,signal
-W005,Net-(Q1-PadB),R2,1,S6,R1,2,Q6,bottom wire + top jumper,"S7, Q7",10.2,signal
-W006,GND,J101,6,G8,J101,4,H8,bottom wire + top jumper,"G6, H6",12.7,signal
-W007,Net-(Q4-PadB),Q4,B,Z26,R20,2,Z23,bottom wire + top jumper,"Y24, Y23",12.7,signal
-W008,Net-(Q5-PadB),R23,2,AD23,Q5,B,AD26,bottom wire + top jumper,"AC23, AC26",12.7,signal
-W009,Net-(Q6-PadB),Q6,B,AH26,R26,2,AH23,bottom wire + top jumper,"AG26, AG23",12.7,signal
-W010,ENC_A_P,U2,1,Q17,R10,1,Q11,bottom wire + top jumper,"Q16, Q13",17.8,signal
-W011,GND,C5,2,R25,C3,2,O21,bottom wire + top jumper,"P24, P23",17.8,signal
-W012,GND,J109,2,AM35,C6,2,AG36,bottom wire + top jumper,"AL35, AJ35",17.8,signal
-W013,GND,R27,2,AJ26,J108,2,AM29,bottom wire + top jumper,"AJ27, AL27",17.8,signal
-W014,+5V,U2,16,Q20,C5,1,R23,bottom wire + top jumper,"Q18, Q22",20.3,signal
-W015,ENC_B_P,U2,7,W17,R11,1,U11,bottom wire + top jumper,"W11, V11",20.3,signal
-W016,GND,J105,12,C16,J105,2,J14,bottom wire + top jumper,"D14, G14",25.4,signal
-W017,ENC_A_INV5V,U2,3,S17,R20,1,Z19,bottom wire + top jumper,"U16, W19",27.9,signal
-W018,ENC_B_INV5V,U2,5,U17,R23,1,AD19,bottom wire + top jumper,"T18, V18",33.0,signal
-W019,ENC_Z_N,U2,10,W20,R12,2,Y15,bottom wire + top jumper,"AA19, AA17",40.6,signal
-W020,ENC_Z_P,U2,9,X20,J107,6,N16,bottom wire + top jumper,"P21, P20",40.6,signal
-W021,STEPPERS_EN_N,J105,10,J22,J106,10,J36,bottom wire + top jumper,"I22, I30",40.6,signal
-W022,+3V3,J105,1,J13,J101,15,B9,bottom wire + top jumper,"G11, F7",43.2,signal
-W023,GND,J106,12,C30,J106,2,J28,bottom wire + top jumper,"K26, K28",43.2,signal
-W024,+5V,J107,8,N18,J104,5,M6,bottom wire + top jumper,"O17, O9",45.7,signal
-W025,+5V,C5,1,R23,J103,1,AM23,bottom wire + top jumper,"AJ21, AL21",63.5,signal
-W026,ENC_Z_3V3,R28,2,AF27,U3,9,AD35,bottom wire + top jumper,"AD38, AD36",63.5,signal
-W027,DM_ENA_N,Q3,C,AG10,J104,6,M7,bottom wire + top jumper,"O4, O6",73.7,signal
-W028,M3_DIR,J106,3,J29,J101,11,D9,bottom wire + top jumper,"C26, B26",76.2,signal
-W029,M3_STEP,J106,4,J30,J101,9,E9,bottom wire + top jumper,"O24, O23",91.4,signal
-W030,STEPPERS_EN_N,R7,2,AF2,J101,13,C9,bottom wire + top jumper,"E6, D10",106.7,signal
-W031,+3V3,R7,1,AB2,R25,1,AB31,bottom wire + top jumper,"AL25, AJ25",144.8,signal
-W032,+3V3,U3,4,AB32,R25,1,AB31,bottom wire,,2.5,signal
-W033,GND,J101,8,F8,J101,6,G8,bottom wire,,2.5,signal
-W034,GND,J101,10,E8,J101,8,F8,bottom wire,,2.5,signal
-W035,GND,J101,12,D8,J101,10,E8,bottom wire,,2.5,signal
-W036,GND,J101,14,C8,J101,12,D8,bottom wire,,2.5,signal
-W037,GND,J101,16,B8,J101,14,C8,bottom wire,,2.5,signal
-W038,GND,J102,4,AA38,J102,2,Z38,bottom wire,,2.5,signal
-W039,GND,J102,6,AB38,J102,4,AA38,bottom wire,,2.5,signal
-W040,GND,J108,4,AN29,J108,2,AM29,bottom wire,,2.5,signal
-W041,GND,J108,6,AO29,J108,4,AN29,bottom wire,,2.5,signal
-W042,GND,U3,13,Z35,U3,12,AA35,bottom wire,,2.5,signal
-W043,STEPPERS_EN_N,R7,2,AF2,R5,1,AG2,bottom wire,,2.5,signal
-W044,+3V3,C4,1,W35,U3,14,Y35,bottom wire,,5.1,signal
-W045,+3V3,U3,1,Y32,R22,1,X31,bottom wire,,5.1,signal
-W046,ENC_A_3V3,Q4,C,Z27,R22,2,X27,bottom wire,,5.1,signal
-W047,ENC_B_3V3,R25,2,AB27,Q5,C,AD27,bottom wire,,5.1,signal
-W048,ENC_Z_3V3,R28,2,AF27,Q6,C,AH27,bottom wire,,5.1,signal
-W049,GND,J106,2,J28,R9,2,L28,bottom wire,,5.1,signal
-W050,+3V3,U3,14,Y35,U3,1,Y32,bottom wire,,7.6,signal
-W051,+5V,J104,5,M6,J104,3,M4,bottom wire,,7.6,signal
-W052,ENC_A_N,U2,2,R17,R10,2,Q15,bottom wire,,7.6,signal
-W053,ENC_B_N,U2,6,V17,R11,2,U15,bottom wire,,7.6,signal
-W054,GND,J110,2,AP35,J111,2,AS35,bottom wire,,7.6,signal
-W055,GND,J110,2,AP35,J109,2,AM35,bottom wire,,7.6,signal
-W056,GND,Q4,E,Z25,R21,2,AB26,bottom wire,,7.6,signal
-W057,GND,Q5,E,AD25,R21,2,AB26,bottom wire,,7.6,signal
-W058,GND,R24,2,AF26,Q5,E,AD25,bottom wire,,7.6,signal
-W059,GND,R24,2,AF26,Q6,E,AH25,bottom wire,,7.6,signal
-W060,GND,R6,2,AI9,Q3,E,AG8,bottom wire,,7.6,signal
-W061,Net-(Q3-PadB),R6,1,AI5,R5,2,AG6,bottom wire,,7.6,signal
-W062,Net-(Q4-PadB),R20,2,Z23,R21,1,AB22,bottom wire,,7.6,signal
-W063,Net-(Q5-PadB),R24,1,AF22,R23,2,AD23,bottom wire,,7.6,signal
-W064,Net-(Q6-PadB),R27,1,AJ22,R26,2,AH23,bottom wire,,7.6,signal
-W065,+3V3,R28,1,AF31,C6,1,AG34,bottom wire,,10.2,signal
-W066,ENC_A_P,R10,1,Q11,J107,2,N12,bottom wire,,10.2,signal
-W067,GND,J102,2,Z38,U3,13,Z35,bottom wire,,10.2,signal
-W068,GND,Q3,E,AG8,R4,2,AE6,bottom wire,,10.2,signal
-W069,M2_STEP,J105,4,J16,R8,1,L18,bottom wire,,10.2,signal
-W070,M3_STEP,J106,4,J30,R9,1,L32,bottom wire,,10.2,signal
-W071,Net-(Q1-PadB),R1,2,Q6,Q1,B,Q9,bottom wire,,10.2,signal
-W072,Net-(Q2-PadB),R3,2,Y6,Q2,B,Y9,bottom wire,,10.2,signal
-W073,+3V3,U3,4,AB32,U3,1,Y32,bottom wire,,12.7,signal
-W074,ENC_A_3V3,Q4,C,Z27,U3,2,Z32,bottom wire,,12.7,signal
-W075,GND,R27,2,AJ26,Q6,E,AH25,bottom wire,,12.7,signal
-W076,M1_ENC_Z,J102,5,AB37,U3,8,AE35,bottom wire,,12.7,signal
-W077,+5V,U2,16,Q20,U2,4,T17,bottom wire,,15.2,signal
-W078,ENC_B_3V3,U3,5,AC32,Q5,C,AD27,bottom wire,,15.2,signal
-W079,GND,U2,12,U20,U2,8,X17,bottom wire,,15.2,signal
-W080,GND,U3,7,AE32,C6,2,AG36,bottom wire,,15.2,signal
-W081,+3V3,J106,5,J31,J106,1,J27,bottom wire,,17.8,signal
-W082,+5V,C3,1,O20,J107,8,N18,bottom wire,,17.8,signal
-W083,ENC_A_N,R10,2,Q15,J107,3,N13,bottom wire,,17.8,signal
-W084,GND,J109,2,AM35,J108,2,AM29,bottom wire,,17.8,signal
-W085,GND,Q1,E,Q8,J107,1,N11,bottom wire,,17.8,signal
-W086,M1_ENC_A,J102,1,Z37,U3,3,AA32,bottom wire,,17.8,signal
-W087,M1_REF,J109,1,AM34,J108,1,AM28,bottom wire,,17.8,signal
-W088,ENC_B_N,R11,2,U15,J107,5,N15,bottom wire,,20.3,signal
-W089,GND,C4,2,W36,U3,13,Z35,bottom wire,,20.3,signal
-W090,GND,J101,2,I8,J107,1,N11,bottom wire,,20.3,signal
-W091,GND,R2,2,W6,Q2,E,Y8,bottom wire,,20.3,signal
-W092,M1_ENC_B,J102,3,AA37,U3,6,AD32,bottom wire,,20.3,signal
-W093,M2_REF,J110,1,AP34,J108,3,AN28,bottom wire,,20.3,signal
-W094,Net-(Q3-PadB),R5,2,AG6,Q3,B,AG9,bottom wire,,22.9,signal
-W095,ENC_B_P,R11,1,U11,J107,4,N14,bottom wire,,25.4,signal
-W096,M2_DIR,J105,3,J15,J101,7,F9,bottom wire,,25.4,signal
-W097,M3_REF,J108,5,AO28,J111,1,AS34,bottom wire,,25.4,signal
-W098,GND,U3,12,AA35,C6,2,AG36,bottom wire,,27.9,signal
-W099,M2_STEP,J105,4,J16,J101,5,G9,bottom wire,,27.9,signal
-W100,GND,C5,2,R25,Q4,E,Z25,bottom wire,,30.5,signal
-W101,+24V,J103,4,AM3,J112,1,AI12,bottom wire,,33.0,power
-W102,DM_PUL_N,Q1,C,Q10,J104,2,M3,bottom wire,,33.0,signal
-W103,ENC_Z_INV5V,U2,11,V20,R26,1,AH19,bottom wire,,33.0,signal
-W104,ENC_Z_N,U2,10,W20,J107,7,N17,bottom wire,,33.0,signal
-W105,GND,C3,2,O21,J107,1,N11,bottom wire,,33.0,signal
-W106,GND,J103,2,AO23,J108,6,AO29,bottom wire,,33.0,signal
-W107,+3V3,R28,1,AF31,R25,1,AB31,bottom wire,,35.6,signal
-W108,GND,Q1,E,Q8,Q2,E,Y8,bottom wire,,35.6,signal
-W109,DM_DIR_N,Q2,C,Y10,J104,4,M5,bottom wire,,43.2,signal
-W110,GND,J103,3,AO3,J112,2,AI14,bottom wire,,43.2,power
-W111,+24V,C1,1,N23,J105,11,C15,bottom wire,,48.3,power
-W112,+3V3,U3,10,AC35,U3,4,AB32,bottom wire,,48.3,signal
-W113,+24V,C2,1,O36,J106,11,C29,bottom wire,,50.8,power
-W114,GND,C1,2,N25,J105,12,C16,bottom wire,,50.8,power
-W115,GND,C2,2,O38,J106,12,C30,bottom wire,,50.8,power
-W116,GND,J103,3,AO3,J103,2,AO23,bottom wire,,50.8,power
-W117,M1_STEP,R1,1,Q2,J101,1,I9,bottom wire,,50.8,signal
-W118,STEPPERS_EN_N,J105,10,J22,J101,13,C9,bottom wire,,53.3,signal
-W119,M1_DIR,J101,3,H9,R3,1,Y2,bottom wire,,61.0,signal
-W120,GND,R4,2,AE6,Q2,E,Y8,bottom wire,,66.0,signal
-W121,Net-(Q2-PadB),R4,1,AA6,R3,2,Y6,bottom wire,,71.1,signal
-W122,ENC_Z_P,U2,9,X20,R12,1,Y11,bottom wire,,73.7,signal
-W123,GND,U2,12,U20,C3,2,O21,bottom wire,,83.8,signal
-W124,+24V,J112,1,AI12,C1,1,N23,bottom wire,,96.5,power
-W125,GND,J112,2,AI14,C2,2,O38,bottom wire,,129.5,power
-W126,+24V,J112,1,AI12,C2,1,O36,bottom wire,,137.2,power
-W127,GND,J112,2,AI14,C1,2,N25,bottom wire,,223.5,power
-W128,+3V3,J106,5,J31,R22,1,X31,bottom wire,,38.7,signal
-W129,GND,J105,5,J17,J105,6,J18,bottom wire,,2.5,signal
-W130,GND,J105,5,J17,R8,2,L14,bottom wire,,19.9,signal
-W131,GND,J106,6,J32,R9,2,L28,bottom wire + top jumper,"K33, K29",17.3,signal
-W132,+3V3,J105,1,J13,J106,1,J27,bottom wire + top jumper,"I13, J26",40.2,signal
-W133,GND,J113,2,R30,J113,4,S30,bottom wire,,2.5,signal
-W134,GND,J113,4,S30,J113,6,T30,bottom wire,,2.5,signal
-W135,GND,J113,6,T30,J113,8,U30,bottom wire,,2.5,signal
-W136,GND,J113,8,U30,C5,2,R25,bottom wire,,17.5,signal
-W137,TMC_UART_TX,J113,1,R29,R29,1,P28,bottom wire,,6.1,signal
-W138,TMC_UART_RX,J113,3,S29,R29,2,P32,bottom wire,,11.9,signal
-W139,TMC_UART_RX,R29,2,P32,J106,9,J35,bottom wire + top jumper,"O32, N33",18.4,signal
-W140,TMC_UART_RX,J106,9,J35,J105,9,J21,bottom wire + top jumper,"K34, K21",40.6,signal
-W141,M2_DIAG,J113,5,T29,J105,7,J19,bottom wire + top jumper,"P26, L21",37.4,signal
-W142,GND,J113,8,U30,J113,10,V30,bottom wire,,2.5,signal
-W143,GND,J113,10,V30,J113,12,W30,bottom wire,,2.5,signal
-W144,M2_INDEX,J113,9,V29,J105,8,J20,bottom wire + top jumper,"T27, L20",47.9,signal
-W145,M3_INDEX,J113,11,W29,J106,8,J34,bottom wire + top jumper,"Q31, M33",41.9,signal
-W146,M3_DIAG,J113,7,U29,J106,7,J33,bottom wire + top jumper,"V28, R33",55.9,signal
-W147,M1_ALM,J114,1,C2,J115,1,D5,bottom wire,,10.2,signal
-W148,GND,J114,2,C3,J115,2,D6,bottom wire,,10.2,signal
-W149,M1_ALM,J114,1,C2,R30,2,B2,bottom wire,,2.5,signal
-W150,+3V3,R30,1,B6,J101,15,B9,bottom wire,,10.2,signal
-W151,GND,J115,2,D6,J101,6,G8,bottom wire,,12.7,signal
+W001,+5V,J104,3,M4,J104,1,M2,bottom wire + top jumper,"N3, N2",10.2,signal
+W002,+5V,U2,16,Q20,C3,1,O20,bottom wire + top jumper,"Q19, O19",10.2,signal
+W003,GND,J105,2,J14,R8,2,L14,bottom wire + top jumper,"I14, K14",10.2,signal
+W004,Net-(Q1-PadB),R2,1,S6,R1,2,Q6,bottom wire + top jumper,"S7, Q7",10.2,signal
+W005,Net-(Q4-PadB),Q4,B,Z26,R20,2,Z23,bottom wire + top jumper,"Y24, Y23",12.7,signal
+W006,Net-(Q5-PadB),R23,2,AD23,Q5,B,AD26,bottom wire + top jumper,"AC23, AC26",12.7,signal
+W007,Net-(Q6-PadB),Q6,B,AH26,R26,2,AH23,bottom wire + top jumper,"AG26, AG23",12.7,signal
+W008,ENC_A_P,U2,1,Q17,R10,1,Q11,bottom wire + top jumper,"Q16, Q13",17.8,signal
+W009,GND,C5,2,R25,C3,2,O21,bottom wire + top jumper,"P24, P23",17.8,signal
+W010,GND,J109,2,AM35,C6,2,AG36,bottom wire + top jumper,"AL35, AJ35",17.8,signal
+W011,GND,R27,2,AJ26,J108,4,AP28,bottom wire + top jumper,"AJ27, AL27",20.3,signal
+W012,+5V,U2,16,Q20,C5,1,R23,bottom wire + top jumper,"Q18, Q22",20.3,signal
+W013,ENC_B_P,U2,7,W17,R11,1,U11,bottom wire + top jumper,"W11, V11",20.3,signal
+W014,GND,J105,12,C16,J105,2,J14,bottom wire + top jumper,"D14, G14",25.4,signal
+W015,ENC_A_INV5V,U2,3,S17,R20,1,Z19,bottom wire + top jumper,"U16, W19",27.9,signal
+W016,ENC_B_INV5V,U2,5,U17,R23,1,AD19,bottom wire + top jumper,"T18, V18",33.0,signal
+W017,ENC_Z_N,U2,10,W20,R12,2,Y15,bottom wire + top jumper,"AA19, AA17",40.6,signal
+W018,ENC_Z_P,U2,9,X20,J107,6,N16,bottom wire + top jumper,"P21, P20",40.6,signal
+W019,STEPPERS_EN_N,J105,10,J22,J106,10,J36,bottom wire + top jumper,"I22, I30",40.6,signal
+W020,+3V3,J105,1,J13,J101,8,F8,bottom wire,,22.9,signal
+W021,GND,J106,12,C30,J106,2,J28,bottom wire,,40.6,signal
+W022,+5V,J107,8,N18,J104,5,M6,bottom wire + top jumper,"O17, O9",45.7,signal
+W023,+5V,C5,1,R23,J103,1,AM23,bottom wire + top jumper,"AJ21, AL21",63.5,signal
+W024,ENC_Z_3V3,R28,2,AF27,U3,9,AD35,bottom wire + top jumper,"AD38, AD36",63.5,signal
+W025,DM_ENA_N,Q3,C,AG10,J104,6,M7,bottom wire + top jumper,"O4, O6",73.7,signal
+W026,M3_DIR,J106,3,J29,J101,11,D9,bottom wire + top jumper,"C26, B26",76.2,signal
+W027,M3_STEP,J106,4,J30,J101,9,E9,bottom wire + top jumper,"O24, O23",91.4,signal
+W028,STEPPERS_EN_N,R7,2,AF2,J101,12,D8,bottom wire,,102.9,signal
+W029,+3V3,R7,1,AB2,R25,1,AB31,bottom wire + top jumper,"AL25, AJ25",144.8,signal
+W030,+3V3,U3,4,AB32,R25,1,AB31,bottom wire,,2.5,signal
+W031,GND,J102,4,AA38,J102,2,Z38,bottom wire,,2.5,signal
+W032,GND,J102,6,AB38,J102,4,AA38,bottom wire,,2.5,signal
+W033,GND,U3,13,Z35,U3,12,AA35,bottom wire,,2.5,signal
+W034,STEPPERS_EN_N,R7,2,AF2,R5,1,AG2,bottom wire,,2.5,signal
+W035,+3V3,C4,1,W35,U3,14,Y35,bottom wire,,5.1,signal
+W036,+3V3,U3,1,Y32,R22,1,X31,bottom wire,,5.1,signal
+W037,ENC_A_3V3,Q4,C,Z27,R22,2,X27,bottom wire,,5.1,signal
+W038,ENC_B_3V3,R25,2,AB27,Q5,C,AD27,bottom wire,,5.1,signal
+W039,ENC_Z_3V3,R28,2,AF27,Q6,C,AH27,bottom wire,,5.1,signal
+W040,GND,J106,2,J28,R9,2,L28,bottom wire,,5.1,signal
+W041,+3V3,U3,14,Y35,U3,1,Y32,bottom wire,,7.6,signal
+W042,+5V,J104,5,M6,J104,3,M4,bottom wire,,7.6,signal
+W043,ENC_A_N,U2,2,R17,R10,2,Q15,bottom wire,,7.6,signal
+W044,ENC_B_N,U2,6,V17,R11,2,U15,bottom wire,,7.6,signal
+W045,GND,J110,2,AP35,J111,2,AS35,bottom wire,,7.6,signal
+W046,GND,J110,2,AP35,J109,2,AM35,bottom wire,,7.6,signal
+W047,GND,Q4,E,Z25,R21,2,AB26,bottom wire,,7.6,signal
+W048,GND,Q5,E,AD25,R21,2,AB26,bottom wire,,7.6,signal
+W049,GND,R24,2,AF26,Q5,E,AD25,bottom wire,,7.6,signal
+W050,GND,R24,2,AF26,Q6,E,AH25,bottom wire,,7.6,signal
+W051,GND,R6,2,AI9,Q3,E,AG8,bottom wire,,7.6,signal
+W052,Net-(Q3-PadB),R6,1,AI5,R5,2,AG6,bottom wire,,7.6,signal
+W053,Net-(Q4-PadB),R20,2,Z23,R21,1,AB22,bottom wire,,7.6,signal
+W054,Net-(Q5-PadB),R24,1,AF22,R23,2,AD23,bottom wire,,7.6,signal
+W055,Net-(Q6-PadB),R27,1,AJ22,R26,2,AH23,bottom wire,,7.6,signal
+W056,+3V3,R28,1,AF31,C6,1,AG34,bottom wire,,10.2,signal
+W057,ENC_A_P,R10,1,Q11,J107,2,N12,bottom wire,,10.2,signal
+W058,GND,J102,2,Z38,U3,13,Z35,bottom wire,,10.2,signal
+W059,GND,Q3,E,AG8,R4,2,AE6,bottom wire,,10.2,signal
+W060,M2_STEP,J105,4,J16,R8,1,L18,bottom wire,,10.2,signal
+W061,M3_STEP,J106,4,J30,R9,1,L32,bottom wire,,10.2,signal
+W062,Net-(Q1-PadB),R1,2,Q6,Q1,B,Q9,bottom wire,,10.2,signal
+W063,Net-(Q2-PadB),R3,2,Y6,Q2,B,Y9,bottom wire,,10.2,signal
+W064,+3V3,U3,4,AB32,U3,1,Y32,bottom wire,,12.7,signal
+W065,ENC_A_3V3,Q4,C,Z27,U3,2,Z32,bottom wire,,12.7,signal
+W066,GND,R27,2,AJ26,Q6,E,AH25,bottom wire,,12.7,signal
+W067,M1_ENC_Z,J102,5,AB37,U3,8,AE35,bottom wire,,12.7,signal
+W068,+5V,U2,16,Q20,U2,4,T17,bottom wire,,15.2,signal
+W069,ENC_B_3V3,U3,5,AC32,Q5,C,AD27,bottom wire,,15.2,signal
+W070,GND,U2,12,U20,U2,8,X17,bottom wire,,15.2,signal
+W071,GND,U3,7,AE32,C6,2,AG36,bottom wire,,15.2,signal
+W072,+3V3,J106,5,J31,J106,1,J27,bottom wire,,17.8,signal
+W073,+5V,C3,1,O20,J107,8,N18,bottom wire,,17.8,signal
+W074,ENC_A_N,R10,2,Q15,J107,3,N13,bottom wire,,17.8,signal
+W075,GND,J109,2,AM35,J108,4,AP28,bottom wire,,33.0,signal
+W076,GND,Q1,E,Q8,J107,1,N11,bottom wire,,17.8,signal
+W077,M1_ENC_A,J102,1,Z37,U3,3,AA32,bottom wire,,17.8,signal
+W078,M1_REF,J109,1,AM34,J108,1,AM28,bottom wire,,17.8,signal
+W079,ENC_B_N,R11,2,U15,J107,5,N15,bottom wire,,20.3,signal
+W080,GND,C4,2,W36,U3,13,Z35,bottom wire,,20.3,signal
+W081,GND,J101,2,I8,J107,1,N11,bottom wire,,20.3,signal
+W082,GND,R2,2,W6,Q2,E,Y8,bottom wire,,20.3,signal
+W083,M1_ENC_B,J102,3,AA37,U3,6,AD32,bottom wire,,20.3,signal
+W084,M2_REF,J110,1,AP34,J108,2,AN28,bottom wire,,20.3,signal
+W085,Net-(Q3-PadB),R5,2,AG6,Q3,B,AG9,bottom wire,,22.9,signal
+W086,ENC_B_P,R11,1,U11,J107,4,N14,bottom wire,,25.4,signal
+W087,M2_DIR,J105,3,J15,J101,7,F9,bottom wire,,25.4,signal
+W088,M3_REF,J108,3,AO28,J111,1,AS34,bottom wire,,38.1,signal
+W089,GND,U3,12,AA35,C6,2,AG36,bottom wire,,27.9,signal
+W090,M2_STEP,J105,4,J16,J101,5,G9,bottom wire,,27.9,signal
+W091,GND,C5,2,R25,Q4,E,Z25,bottom wire,,30.5,signal
+W092,+24V,J103,4,AM3,J112,1,AI12,bottom wire,,33.0,power
+W093,DM_PUL_N,Q1,C,Q10,J104,2,M3,bottom wire,,33.0,signal
+W094,ENC_Z_INV5V,U2,11,V20,R26,1,AH19,bottom wire,,33.0,signal
+W095,ENC_Z_N,U2,10,W20,J107,7,N17,bottom wire,,33.0,signal
+W096,GND,C3,2,O21,J107,1,N11,bottom wire,,33.0,signal
+W097,GND,J103,2,AO23,J108,4,AP28,bottom wire,,33.0,signal
+W098,+3V3,R28,1,AF31,R25,1,AB31,bottom wire,,35.6,signal
+W099,GND,Q1,E,Q8,Q2,E,Y8,bottom wire,,35.6,signal
+W100,DM_DIR_N,Q2,C,Y10,J104,4,M5,bottom wire,,43.2,signal
+W101,GND,J103,3,AO3,J112,2,AI14,bottom wire,,43.2,power
+W102,+24V,C1,1,N23,J105,11,C15,bottom wire,,48.3,power
+W103,+3V3,U3,10,AC35,U3,4,AB32,bottom wire,,48.3,signal
+W104,+24V,C2,1,O36,J106,11,C29,bottom wire,,50.8,power
+W105,GND,C1,2,N25,J105,12,C16,bottom wire,,50.8,power
+W106,GND,C2,2,O38,J106,12,C30,bottom wire,,50.8,power
+W107,GND,J103,3,AO3,J103,2,AO23,bottom wire,,50.8,power
+W108,M1_STEP,R1,1,Q2,J101,1,I9,bottom wire,,50.8,signal
+W109,STEPPERS_EN_N,J105,10,J22,J101,12,D8,bottom wire + top jumper,"C10, C9",58.4,signal
+W110,M1_DIR,J101,3,H9,R3,1,Y2,bottom wire,,61.0,signal
+W111,GND,R4,2,AE6,Q2,E,Y8,bottom wire,,66.0,signal
+W112,Net-(Q2-PadB),R4,1,AA6,R3,2,Y6,bottom wire,,71.1,signal
+W113,ENC_Z_P,U2,9,X20,R12,1,Y11,bottom wire,,73.7,signal
+W114,GND,U2,12,U20,C3,2,O21,bottom wire,,83.8,signal
+W115,+24V,J112,1,AI12,C1,1,N23,bottom wire,,96.5,power
+W116,GND,J112,2,AI14,C2,2,O38,bottom wire,,129.5,power
+W117,+24V,J112,1,AI12,C2,1,O36,bottom wire,,137.2,power
+W118,GND,J112,2,AI14,C1,2,N25,bottom wire,,223.5,power
+W119,+3V3,J106,5,J31,R22,1,X31,bottom wire,,38.7,signal
+W120,GND,J105,5,J17,J105,6,J18,bottom wire,,2.5,signal
+W121,GND,J105,5,J17,R8,2,L14,bottom wire,,19.9,signal
+W122,GND,J106,6,J32,R9,2,L28,bottom wire + top jumper,"K33, K29",17.3,signal
+W123,+3V3,J105,1,J13,J106,1,J27,bottom wire + top jumper,"I13, J26",40.2,signal
+W124,GND,J113,2,R29,J113,8,R32,bottom wire,,10.2,signal
+W125,GND,J113,8,R32,C5,2,R25,bottom wire,,20.3,signal
+W126,TMC_UART_TX,J113,1,S29,R29,1,P28,bottom wire + top jumper,"T29, Q28",15.2,signal
+W127,TMC_UART_RX,J113,3,S30,R29,2,P32,bottom wire + top jumper,"T30, Q31",17.8,signal
+W128,TMC_UART_RX,R29,2,P32,J106,9,J35,bottom wire + top jumper,"O32, N33",18.4,signal
+W129,TMC_UART_RX,J106,9,J35,J105,9,J21,bottom wire + top jumper,"K34, K21",40.6,signal
+W130,M2_DIAG,J113,5,S31,J105,7,J19,bottom wire + top jumper,"S28, K19",61.0,signal
+W131,M2_INDEX,J113,4,R30,J105,8,J20,bottom wire + top jumper,"R27, L21",48.3,signal
+W132,M3_INDEX,J113,6,R31,J106,8,J34,bottom wire + top jumper,"T31, M33",40.6,signal
+W133,M3_DIAG,J113,7,S32,J106,7,J33,bottom wire + top jumper,"T32, T33",45.7,signal
+W134,M1_ALM,J114,1,C2,J101,4,H8,bottom wire + top jumper,"G7, H7",27.9,signal
+W135,M1_ALM,J114,1,C2,R30,2,B2,bottom wire,,2.5,signal
+W136,+3V3,R30,1,B6,J101,8,F8,bottom wire,,17.8,signal
+W137,GND,J101,2,I8,J101,6,G8,bottom wire + top jumper,"I6, F6",20.3,signal
+W138,GND,J101,6,G8,J101,10,E8,bottom wire,,7.6,signal
+W139,GND,J114,2,C3,J101,10,E8,bottom wire,,17.8,signal

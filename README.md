@@ -58,7 +58,7 @@ HAL or Linux debugger. Startup diagnostics and the boot message appear on the te
 Open **[hardware/ProtoMate.kicad_pro](hardware/ProtoMate.kicad_pro)** in
 **KiCad 10**. One project contains the complete system schematic and its linked
 perfboard layout. Seven sheets cover controller/power, M1/DM542T, M2/M3/TMC2209,
-M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 52 footprints
+M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 51 footprints
 are linked to schematic symbols; external equipment is marked **Exclude from
 board**. Symbols and footprints use project-local libraries. See the
 [hardware guide](hardware/README.md) for the structure and F8 update workflow.
@@ -128,7 +128,7 @@ cable. The buck mounts in the lower-left area at J103, using all four
 input/output pins. Its barrel jack receives 24 V. The 63 × 27 mm body follows the supplied STEP
 model; the mounting uses a nominal 5.08 mm pair pitch and 50.8 mm separation.
 
-Hand wiring uses 112 underside-only connections and 39 short top-side
+Hand wiring uses 100 underside-only connections and 39 short top-side
 crossovers through dedicated free holes; all wire ends are soldered underneath.
 The assembly guide includes the soldering order and header orientation.
 
@@ -926,7 +926,7 @@ input and ground**; either contact orientation works. The pull-up is to the
 Nucleo's **3.3 V**: released/closed reads `Low`, pressed/open reads `High`, and
 a disconnected cable also reads `High`. The unused switch contact stays open.
 The KiCad perfboard routes these signals through **J108** (Nucleo cable,
-odd pins 1/3/5 = M1/M2/M3, even pins 2/4/6 = GND) and **J109/J110/J111**
+pins 1/2/3 = M1/M2/M3, pin 4 = shared GND) and **J109/J110/J111**
 (M1/M2/M3 switch cables, each pin 1 = REF, pin 2 = GND). Follow the
 [harness table](hardware/assembly/Harness.csv) for cable endpoints.
 The pictured board appears to have no LED, resistors or other electronics
@@ -1044,9 +1044,9 @@ See [the V4.0 manual, sections 3.2, 4.2 and 11](https://www.omc-stepperonline.co
 
 | Connection | Assignment |
 | --- | --- |
-| ALM+ | J114.1 → `M1_ALM` → J115.1 → **PF2 / CN9 pin 17 / D70** |
+| ALM+ | J114.1 → `M1_ALM` → J101.4 → **PF2 / CN9 pin 17 / D70** |
 | ALM− | J114.2 → GND |
-| Nucleo ground return | J115.2 → CN11 pin 8 / GND |
+| Nucleo ground return | J101.2/6/10 → CN11 pin 8 / GND (shared returns) |
 | R30 | **4.7 kΩ from M1_ALM to 3.3 V**, about 0.7 mA when conducting |
 | CubeMX / HAL | GPIO input, pull-up, rising-edge EXTI2, interrupt priority 5 |
 
@@ -1072,9 +1072,8 @@ and re-home. Recovery also verifies both TMC2209s. **Normal firmware now require
 the DM542T ALM connection as well as both TMC2209s.** The single-TMC bench images
 only own their selected TMC DIAG input and do not require M1.
 
-On the 39 × 48 perfboard, J114 uses C2/C3, J115 uses D5/D6, and R30 uses
-B6 (+3.3 V) / B2 (ALM). All five added connections run underneath, with no
-additional crossovers; see [the harness and assembly tables](hardware/assembly/README.md).
+On the 39 × 48 perfboard, J114 uses C2/C3, J101.4 uses H8, and R30 uses
+B6 (+3.3 V) / B2 (ALM). The ALM return shares the motion harness ground; see [the harness and assembly tables](hardware/assembly/README.md).
 
 ### TMC2209 UART configuration and diagnostics
 
@@ -1099,9 +1098,9 @@ and robot enable/motion commands, including M1 because enable is shared.
 | USART2 RX / PD6 / AF7 | **CN9 pin 4 / D52** | 3 | Directly to shared UART bus |
 | M2_DIAG / PD4 | **CN9 pin 8 / D54** | 5 | J105.7 / M2 DIAG; rising-edge EXTI, pull-down |
 | M3_DIAG / PD3 | **CN9 pin 10 / D55** | 7 | J106.7 / M3 DIAG; rising-edge EXTI, pull-down |
-| M2_INDEX / PD0 | **CN9 pin 25 / D67** | 9 | J105.8 / M2 INDEX; both-edge EXTI, pull-down |
-| M3_INDEX / PD1 | **CN9 pin 27 / D66** | 11 | J106.8 / M3 INDEX; both-edge EXTI, pull-down |
-| Ground | CN11 pin 8 | 2, 4, 6, 8, 10, 12 | Paired signal returns |
+| M2_INDEX / PD0 | **CN9 pin 25 / D67** | 4 | J105.8 / M2 INDEX; both-edge EXTI, pull-down |
+| M3_INDEX / PD1 | **CN9 pin 27 / D66** | 6 | J106.8 / M3 INDEX; both-edge EXTI, pull-down |
+| Ground | CN11 pin 8 | 2, 8 | Shared logic returns |
 
 R29 pin 2, J113.3, J105.9 and J106.9 form the **same** `TMC_UART_RX`
 bidirectional bus. Only TX passes through R29. This is ordinary full-duplex
