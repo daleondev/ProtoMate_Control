@@ -11,7 +11,7 @@
 #include <thread>
 
 #include "hal/board/board.hpp"
-#include "hal/devices/impl/IndexFeedback.hpp"
+#include "hal/devices/itf/IMotorFeedback.hpp"
 
 using namespace pnm::units::literals;
 
@@ -58,6 +58,12 @@ class StepperMotor final
                  pnm::units::Angle full_step_angle,
                  size_t microsteps,
                  const std::shared_ptr<hal::IStepGenerator>& step_generator);
+    StepperMotor(hal::board::MotorId id,
+                 pnm::units::Angle reference_switch_position,
+                 pnm::units::Angle full_step_angle,
+                 size_t microsteps,
+                 const std::shared_ptr<hal::IStepGenerator>& step_generator,
+                 std::shared_ptr<hal::device::IMotorFeedback> feedback);
     ~StepperMotor();
 
     StepperMotor(const StepperMotor&) = delete;
@@ -114,18 +120,14 @@ class StepperMotor final
 
     pnm::Result<pnm::units::Angle> actualPosition() const noexcept;
     pnm::Result<pnm::units::AngularVelocity> actualVelocity() const noexcept;
-    enum class FeedbackSource
-    {
-        ShaftEncoder,
-        DriverIndex
-    };
+    using FeedbackSource = hal::device::IMotorFeedback::Source;
     FeedbackSource feedbackSource() const noexcept
     {
-        return m_encoderInput ? FeedbackSource::ShaftEncoder : FeedbackSource::DriverIndex;
+        return m_feedback->source();
     }
     pnm::units::Angle feedbackResolution() const noexcept
     {
-        return m_encoderInput ? m_encoderCountAngle : m_fullStepAngle * 4.0;
+        return m_feedback->resolution();
     }
 
   private:
@@ -178,7 +180,7 @@ class StepperMotor final
 
     std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
     void accountProgress(const hal::step::AxisStatus& status) noexcept;
-    void accountEncoder(const hal::IQuadratureEncoder::Sample& sample) noexcept;
+    void accountFeedback(const hal::device::IMotorFeedback::Sample& sample) noexcept;
 
     hal::board::MotorId m_id;
     pnm::units::Angle m_referenceSwitchPosition;
@@ -200,8 +202,7 @@ class StepperMotor final
     std::shared_ptr<hal::IStepOutput> m_stepOutput;
     std::shared_ptr<hal::IDigitalOutput> m_dirOutput;
     std::shared_ptr<hal::IDigitalInput> m_referenceSwitchInput;
-    std::shared_ptr<hal::IQuadratureEncoder> m_encoderInput;
-    std::shared_ptr<hal::IDigitalInput> m_encoderIndexInput;
+    std::shared_ptr<hal::device::IMotorFeedback> m_feedback;
 
     mutable std::mutex m_mutex;
     std::mutex m_workerMutex;
@@ -221,14 +222,9 @@ class StepperMotor final
     std::atomic_bool m_referencing{ false };
     std::atomic<pnm::units::Angle> m_position{ 0_deg };
     std::atomic<pnm::units::AngularVelocity> m_velocity{ 0_rpm };
-    pnm::units::Angle m_encoderCountAngle{ 0_deg };
-    pnm::units::Angle m_encoderPositionOffset{ 0_deg };
-    std::optional<hal::IQuadratureEncoder::Sample> m_previousEncoderSample;
-    void accountIndex(const hal::device::IndexFeedback::Sample& sample) noexcept;
     std::atomic_bool m_feedbackHealthy{ false };
+    std::atomic_bool m_feedbackReferenceLost{ false };
     std::atomic<std::errc> m_feedbackError{ std::errc::state_not_recoverable };
-    std::unique_ptr<hal::device::IndexFeedback> m_indexFeedback;
-    pnm::units::Angle m_indexPositionOffset{ 0_deg };
     std::atomic<pnm::units::Angle> m_actualPosition{ 0_deg };
     std::atomic<pnm::units::AngularVelocity> m_actualVelocity{ 0_rpm };
 };

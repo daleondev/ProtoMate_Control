@@ -695,7 +695,26 @@ refresh them to the sampled hardware count. They describe commanded motion,
 not measured encoder position or rotor speed. If a DMA fault makes counts
 uncertain, position retains its last exact value and the reference is invalidated.
 
-`StepperMotor::actualPosition()` and `actualVelocity()` return encoder measurements
+`StepperMotor` receives one
+[`hal::device::IMotorFeedback`](platform/hal/devices/itf/IMotorFeedback.hpp).
+The board factory `hal::board::createMotorFeedback(id, {full_step_angle, microsteps})`
+selects `QuadratureEncoderFeedback` for M1 and `IndexFeedback` for M2/M3.
+Both implementations live in `hal/devices/impl`; the raw timer-backed
+`IQuadratureEncoder` remains in `hal/drivers`. Providers convert their inputs
+into motor-shaft angle, signed angular velocity and validity. Gearing and joint
+coordinates remain the responsibility of `AxisConversion`.
+
+`MotionController` creates each provider through the board factory and injects
+it as the sixth `StepperMotor` constructor argument. The five-argument convenience
+constructor uses that same factory. Providers are created stopped; the motor
+subscribes and starts observation, supplies STEP direction/timing hints and asks
+the provider to rebase after homing. One common callback updates the motor's
+measured state; the motor contains no encoder/INDEX conversion branches.
+Callbacks may run in interrupt context and must be short, nonblocking and avoid
+calling back into the provider. Clearing the callback synchronizes with in-flight
+publications; motor destruction stops observation and disconnects it.
+
+`StepperMotor::actualPosition()` and `actualVelocity()` return feedback
 as `pnm::Result<Angle>` / `pnm::Result<AngularVelocity>`. M1 uses the board's
 1,600 counts/revolution (0.225°/count), independently of its microstep setting.
 The HAL invokes a sample callback every 10 ms, including while the shaft is
@@ -969,10 +988,11 @@ and input filtering as needed.
 
 ### Callback-based driver INDEX feedback
 
-`hal::device::IndexFeedback` subscribes to the M2/M3 GPIOs from
-`hal::board::createStepperIndex()`. `StepperMotor` owns one provider per TMC axis;
-callbacks update `m_actualPosition` and `m_actualVelocity`. M1 keeps its TIM3
-shaft encoder. `feedbackSource()` and `feedbackResolution()` identify the source;
+The board's `createMotorFeedback()` wraps the M2/M3 INDEX GPIOs in
+`hal::device::IndexFeedback`. Each motor receives its provider through
+`IMotorFeedback`; callbacks update `m_actualPosition` and `m_actualVelocity`.
+M1 receives `QuadratureEncoderFeedback` over its TIM3 shaft encoder.
+`feedbackSource()` and `feedbackResolution()` identify the source;
 `motor status`, `axis status` and `robot status` distinguish these estimates.
 
 Use **normal INDEX** (`index_step=0`, `index_otpw=0`, `VACTUAL=0`). One electrical
@@ -993,6 +1013,8 @@ at high speed because the monotonic clock resolves 1 ms); it is zero until a com
 available after startup/reversal/resume, and immediately zero on STEP stop.
 Callbacks also accept the last settling INDEX edge after stopping. No UART polls
 or new motion timer are involved; timer/DMA STEP scheduling stays unchanged.
+The provider's `motion()` hint takes the period of one STEP pulse; the provider
+uses its configured microstep setting to calculate the expected INDEX interval.
 
 Until an INDEX boundary is observed, `actualPosition()` / `actualVelocity()`
 return `no_message_available`. Progress callbacks detect overdue feedback after
@@ -1234,9 +1256,10 @@ Multiple unserviced wraps cannot be recovered from a 16-bit counter. The driver
 reports an exactly ambiguous half-range sample or signed-position overflow;
 other excessive-latency aliasing cannot always be detected.
 
-`hal::initialize()` and bare encoder construction leave counting stopped.
-M1's `StepperMotor` installs the measurement callback and starts the encoder;
-its Z input remains available for future homing. TIM3's priority-5 interrupt is
+`hal::initialize()` and feedback/encoder construction leave counting stopped.
+M1's `StepperMotor` subscribes to and starts its `QuadratureEncoderFeedback`,
+which owns the raw encoder subscription and reserves Z without zeroing on its
+edges. TIM3's priority-5 interrupt is
 enabled by encoder `start()` and disabled by `stop()`; its handler is project-owned.
 TIM6 schedules measurement callbacks through the project-owned HAL period
 callback, while still incrementing the HAL tick. The generated CubeMX callback

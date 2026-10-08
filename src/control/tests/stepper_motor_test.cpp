@@ -316,6 +316,39 @@ TEST(StepperMotor, EncoderTracksExternalShaftMotionWhileStepGeneratorIsStopped)
     ASSERT_TRUE(eventually([&] { return measuredAt(motor, -89.775_deg); }));
 }
 
+TEST(StepperMotor, InjectedFeedbackDeterminesMeasurementIndependentlyOfMotorId)
+{
+    const auto generator{ hal::board::createStepperGenerator() };
+    auto feedback{ hal::board::createMotorFeedback(Motor1, { 1.8_deg, 16U }) };
+    ASSERT_TRUE(feedback);
+    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    ASSERT_TRUE(encoder);
+    {
+        StepperMotor motor{ Motor2, 42.1_deg, 1.8_deg, 16U, generator, feedback };
+        const auto input{ releasedReference(Motor2) };
+        EXPECT_EQ(motor.feedbackSource(), StepperMotor::FeedbackSource::ShaftEncoder);
+        EXPECT_EQ(motor.feedbackResolution(), 0.225_deg);
+        EXPECT_TRUE(hal::board::createStepperIndex(Motor2)); // Not implicitly claimed by the motor.
+        ASSERT_TRUE(encoder->advanceSimulatedCounts(800));
+        ASSERT_TRUE(eventually([&] { return measuredAt(motor, 180_deg); }));
+        EXPECT_EQ(motor.position(), 0_deg);
+        ASSERT_TRUE(generator->start());
+        ASSERT_EQ(referenceMotor(motor, input), Completed);
+        EXPECT_TRUE(measuredAt(motor, 42.1_deg));
+        EXPECT_EQ(encoder->position(), 800);
+        motor.stopAndWait();
+        motor.invalidateReference();
+        ASSERT_TRUE(encoder->advanceSimulatedCounts(40));
+        ASSERT_TRUE(eventually([&] { return measuredAt(motor, 51.1_deg); }));
+    }
+    EXPECT_FALSE(encoder->isRunning());
+    // Even an externally retained provider must no longer call the destroyed motor.
+    ASSERT_TRUE(feedback->start());
+    ASSERT_TRUE(encoder->advanceSimulatedCounts(40));
+    ASSERT_TRUE(feedback->reference(0_deg));
+    ASSERT_TRUE(feedback->stop());
+}
+
 TEST(StepperMotor, MeasuredPositionDoesNotPretendCommandedMotionOccurred)
 {
     const auto generator{ hal::board::createStepperGenerator() };

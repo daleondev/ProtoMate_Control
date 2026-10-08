@@ -2,6 +2,7 @@
 
 #include "hal/devices/itf/IButton.hpp"
 #include "hal/devices/itf/ILed.hpp"
+#include "hal/devices/itf/IMotorFeedback.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IQuadratureEncoder.hpp"
@@ -59,4 +60,15 @@ namespace hal::board
     // Normal electrical INDEX (not index_step): M2 PD0/CN9.25, M3 PD1/CN9.27.
     // 3.3 V, pull-down, both edges; four full steps per electrical cycle.
     [[nodiscard]] auto createStepperIndex(MotorId id) -> std::shared_ptr<IDigitalInput>;
+
+    struct MotorFeedbackConfig
+    {
+        pnm::units::Angle full_step_angle;
+        std::size_t microsteps;
+    };
+    // M1: measured shaft angle via quadrature. M2/M3: driver electrical INDEX.
+    // Owns the exclusive inputs; leaves observation stopped. Scaling comes from
+    // motor configuration; encoder resolution and pin selection belong here.
+    [[nodiscard]] auto createMotorFeedback(MotorId id, const MotorFeedbackConfig& config)
+      -> std::shared_ptr<device::IMotorFeedback>;
 }

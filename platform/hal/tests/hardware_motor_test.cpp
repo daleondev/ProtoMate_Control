@@ -1,7 +1,7 @@
 #include "motor_bench/Commands.hpp"
 
 #include "hal/board/board.hpp"
-#include "hal/devices/impl/IndexFeedback.hpp"
+#include "hal/devices/itf/IMotorFeedback.hpp"
 #include "hal/devices/impl/Tmc2209.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
@@ -28,6 +28,7 @@ volatile std::uint32_t hardware_motor_test_pulses[2]{};
 namespace
 {
     using namespace std::chrono_literals;
+    using namespace pnm::units::literals;
     using hal::gpio::Level;
     using Motor = hal::board::MotorId;
     using Driver = hal::device::Tmc2209;
@@ -93,7 +94,8 @@ namespace
                 m_z = hal::board::createEncoderIndex(Motor::Motor1);
                 require(m_button && m_bus && m_encoder && m_z, "bench resources unavailable");
                 m_driver = std::make_unique<Driver>(m_bus, 0);
-                m_index = std::make_unique<hal::device::IndexFeedback>(hal::board::createStepperIndex(Motor::Motor2));
+                m_index = hal::board::createMotorFeedback(Motor::Motor2, { 1.8_deg, configuration.microsteps });
+                require(bool(m_index), "INDEX feedback unavailable");
                 for (unsigned i{}; i < motors.size(); ++i) {
                     require(m_steps[i]->setCompletionCallback([this](const auto&) noexcept {
                         m_notification.signal();
@@ -125,12 +127,13 @@ namespace
                     const hal::stm32::InterruptGuard guard;
                     if (level == Level::High) ++m_feedback.z_edges;
                 });
-                m_index->setCallback([this](const hal::device::IndexFeedback::Sample& sample) noexcept {
+                const auto index_resolution{ m_index->resolution() };
+                m_index->setCallback([this, index_resolution](const hal::device::IMotorFeedback::Sample& sample) noexcept {
                     const hal::stm32::InterruptGuard guard;
                     auto& f = m_feedback;
-                    f.index_valid = bool(sample.cycles);
-                    if (sample.cycles) f.cycles = *sample.cycles;
-                    f.index_velocity = sample.cycles_per_second;
+                    f.index_valid = bool(sample.position);
+                    if (sample.position) f.cycles = std::llround(*sample.position / index_resolution);
+                    f.index_velocity = sample.velocity / (index_resolution / 1_s);
                     f.index_positive = std::max(f.index_positive, f.index_velocity);
                     f.index_negative = std::min(f.index_negative, f.index_velocity);
                     ++f.index_samples;
@@ -138,8 +141,9 @@ namespace
                 require(m_steps[1]->setProgressCallback([this](const hal::step::AxisStatus& state) noexcept {
                     const auto period = state.period.count() > 0 ? state.period :
                                         std::chrono::nanoseconds{ m_m2Period.load() };
-                    m_index->motion(state.state == hal::step::State::Running, m_m2Forward.load(), period * 64);
+                    m_index->motion(state.state == hal::step::State::Running, m_m2Forward.load(), period);
                 }), "INDEX progress callback");
+                require(m_index->start(), "start M2 INDEX feedback");
                 require(m_encoder->start(), "start M1 encoder sampling");
                 require(m_generator->start(), "start idle STEP timebase");
                 if (const auto faults = levels()) trip(faults);
@@ -573,7 +577,7 @@ namespace
         std::unique_ptr<Driver> m_driver;
         std::shared_ptr<hal::IQuadratureEncoder> m_encoder;
         std::shared_ptr<hal::IDigitalInput> m_z;
-        std::unique_ptr<hal::device::IndexFeedback> m_index;
+        std::shared_ptr<hal::device::IMotorFeedback> m_index;
         Feedback m_feedback{};
         std::atomic_uint m_faults{}, m_m2Period{ 5'000'000 };
         std::atomic_bool m_abort{}, m_ready{}, m_busy{}, m_m2Forward{};

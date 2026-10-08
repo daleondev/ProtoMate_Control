@@ -4,4 +4,5 @@ target_sources(hal_drivers
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/Led.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/Tmc2209.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/IndexFeedback.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/impl/QuadratureEncoderFeedback.cpp
 )

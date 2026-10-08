@@ -1,6 +1,6 @@
 #include "hal/board/board.hpp"
 #include "hal/devices/impl/Tmc2209.hpp"
-#include "hal/devices/impl/IndexFeedback.hpp"
+#include "hal/devices/itf/IMotorFeedback.hpp"
 #include "hal/drivers/common.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
@@ -11,6 +11,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <stdexcept>
 #include <string_view>
@@ -26,6 +27,7 @@ volatile std::uint32_t hardware_tmc_test_pulses[2]{};
 namespace
 {
     using namespace std::chrono_literals;
+    using namespace pnm::units::literals;
     using Clock = std::chrono::steady_clock;
     using Driver = hal::device::Tmc2209;
     using hal::gpio::Level;
@@ -455,21 +457,25 @@ namespace
 
         void feedbackTest()
         {
-            hal::device::IndexFeedback feedback{ hal::board::createStepperIndex(motor) };
+            auto provider{ hal::board::createMotorFeedback(motor, { 1.8_deg, m_configuration.microsteps }) };
+            require(bool(provider), "INDEX feedback unavailable");
+            auto& feedback{ *provider };
             std::atomic<std::int64_t> cycles{};
             std::atomic<double> velocity{}, peak_forward{}, peak_reverse{};
             std::atomic_bool valid{};
-            feedback.setCallback([&](const auto& value) noexcept {
-                valid.store(bool(value.cycles));
-                if (value.cycles) cycles.store(*value.cycles);
-                velocity.store(value.cycles_per_second);
-                if (value.cycles_per_second > peak_forward.load()) peak_forward.store(value.cycles_per_second);
-                if (value.cycles_per_second < peak_reverse.load()) peak_reverse.store(value.cycles_per_second);
+            const auto resolution{ feedback.resolution() };
+            feedback.setCallback([&, resolution](const auto& value) noexcept {
+                valid.store(bool(value.position));
+                if (value.position) cycles.store(std::llround(*value.position / resolution));
+                const auto rate{ value.velocity / (resolution / 1_s) };
+                velocity.store(rate);
+                if (rate > peak_forward.load()) peak_forward.store(rate);
+                if (rate < peak_reverse.load()) peak_reverse.store(rate);
             });
             struct Cleanup
             {
                 Bench& bench;
-                hal::device::IndexFeedback& feedback;
+                hal::device::IMotorFeedback& feedback;
                 ~Cleanup()
                 {
                     bench.quiesce();
@@ -477,9 +483,10 @@ namespace
                     feedback.clearCallback();
                 }
             } cleanup{ *this, feedback };
+            require(feedback.start(), "start INDEX feedback");
             require(m_step->setProgressCallback([&](const hal::step::AxisStatus& state) noexcept {
                 feedback.motion(state.state == hal::step::State::Running, m_dir->read() == Level::High,
-                                state.period * 64);
+                                state.period);
             }), "INDEX progress subscription");
             log("FEEDBACK: normal INDEX, PD0/CN9.25, 64 STEP per cycle, 7.2 deg per cycle.");
             log("Enabling in 2 seconds; stop/B1 aborts.");

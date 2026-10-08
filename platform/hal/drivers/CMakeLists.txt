@@ -10,6 +10,7 @@ target_link_libraries(hal_drivers
     PUBLIC
         platform
         project_compiler_settings
+        pneumo::units
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")

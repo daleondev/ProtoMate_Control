@@ -2,12 +2,15 @@
 
 #include "hal/devices/impl/Button.hpp"
 #include "hal/devices/impl/Led.hpp"
+#include "hal/devices/impl/IndexFeedback.hpp"
+#include "hal/devices/impl/QuadratureEncoderFeedback.hpp"
 #include "hal/drivers/factory/encoder.hpp"
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/factory/step.hpp"
 #include "hal/drivers/factory/uart.hpp"
 
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 namespace hal::board
@@ -76,6 +79,27 @@ namespace hal::board
         if (id != MotorId::Motor2 && id != MotorId::Motor3) return {};
         return gpio::createInput({ .pin = { D, static_cast<std::uint8_t>(id == MotorId::Motor2 ? 0 : 1) },
                                    .pull = gpio::Pull::Down, .edge = gpio::Edge::Both });
+    }
+
+    auto createMotorFeedback(MotorId id, const MotorFeedbackConfig& config)
+      -> std::shared_ptr<device::IMotorFeedback>
+    {
+        if (!config.full_step_angle.isFinite() || config.full_step_angle.get() <= 0.0 || !config.microsteps)
+            throw std::invalid_argument("invalid motor feedback configuration");
+        if (id == MotorId::Motor1) {
+            auto encoder{ createEncoder(id) };
+            auto index{ createEncoderIndex(id) };
+            if (!encoder || !index) return {};
+            return std::make_shared<device::QuadratureEncoderFeedback>(
+              std::move(encoder), encoderCountsPerRevolution(id), std::move(index));
+        }
+        if (id == MotorId::Motor2 || id == MotorId::Motor3) {
+            auto index{ createStepperIndex(id) };
+            if (!index) return {};
+            return std::make_shared<device::IndexFeedback>(std::move(index), config.full_step_angle,
+                                                         config.microsteps);
+        }
+        return {};
     }
 
     auto createStepperStepOutput(const std::shared_ptr<IStepGenerator>& generator, MotorId id)

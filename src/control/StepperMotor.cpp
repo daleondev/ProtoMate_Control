@@ -15,6 +15,17 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
                            pnm::units::Angle full_step_angle,
                            size_t microsteps,
                            const std::shared_ptr<hal::IStepGenerator>& step_generator)
+  : StepperMotor{ id, reference_switch_position, full_step_angle, microsteps, step_generator,
+                  hal::board::createMotorFeedback(id, { full_step_angle, microsteps }) }
+{
+}
+
+StepperMotor::StepperMotor(hal::board::MotorId id,
+                           pnm::units::Angle reference_switch_position,
+                           pnm::units::Angle full_step_angle,
+                           size_t microsteps,
+                           const std::shared_ptr<hal::IStepGenerator>& step_generator,
+                           std::shared_ptr<hal::device::IMotorFeedback> feedback)
   : m_id{ id }
   , m_referenceSwitchPosition{ reference_switch_position }
   , m_fullStepAngle{ full_step_angle }
@@ -22,8 +33,7 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
   , m_stepOutput{ hal::board::createStepperStepOutput(step_generator, id) }
   , m_dirOutput{ hal::board::createStepperDirectionOutput(id) }
   , m_referenceSwitchInput{ hal::board::createReferenceLimitSwitch(id) }
-  , m_encoderInput{ hal::board::createEncoder(id) }
-  , m_encoderIndexInput{ hal::board::createEncoderIndex(id) }
+  , m_feedback{ std::move(feedback) }
 {
     PNM_ASSERT(m_referenceSwitchInput, "Motor %d has no reference switch", static_cast<int>(id) + 1);
 
@@ -33,32 +43,16 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
     }
     m_stepAngle = m_fullStepAngle / static_cast<double>(m_microsteps);
 
-    if (!m_stepOutput || !m_dirOutput || !m_referenceSwitchInput ||
-        (id == hal::board::MotorId::Motor1 && (!m_encoderInput || !m_encoderIndexInput))) {
+    if (!m_stepOutput || !m_dirOutput || !m_referenceSwitchInput || !m_feedback) {
         throw std::runtime_error("motor board resource is unavailable");
     }
 
     try {
-        if (m_encoderInput) {
-            const auto counts{ hal::board::encoderCountsPerRevolution(id) };
-            if (counts == 0U) {
-                throw std::runtime_error("motor encoder resolution is unavailable");
-            }
-
-            m_encoderCountAngle = 360_deg / static_cast<double>(counts);
-            m_encoderInput->setSampleCallback(
-              [this](const hal::IQuadratureEncoder::Sample& sample) noexcept { accountEncoder(sample); });
-
-            if (!m_encoderInput->start()) {
-                throw std::runtime_error("motor encoder could not start");
-            }
-        }
-        else {
-            m_indexFeedback = std::make_unique<hal::device::IndexFeedback>(
-              hal::board::createStepperIndex(id));
-            m_indexFeedback->setCallback(
-              [this](const hal::device::IndexFeedback::Sample& sample) noexcept { accountIndex(sample); });
-        }
+        m_feedback->setCallback([this](const hal::device::IMotorFeedback::Sample& sample) noexcept {
+            accountFeedback(sample);
+        });
+        if (!m_feedback->start())
+            throw std::runtime_error("motor feedback could not start");
 
         if (!m_stepOutput->setProgressCallback(
               [this](const hal::step::AxisStatus& status) noexcept { accountProgress(status); })) {
@@ -83,12 +77,9 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         pnm::log::debug("Motor initialized: {} degrees per microstep",
                         m_stepAngle.get<pnm::units::AngleUnits::deg>());
     } catch (...) {
-        if (m_indexFeedback) m_indexFeedback->clearCallback();
+        m_feedback->clearCallback();
+        static_cast<void>(m_feedback->stop());
         m_referenceSwitchInput->clearEdgeCallback();
-        if (m_encoderInput) {
-            m_encoderInput->clearSampleCallback();
-            static_cast<void>(m_encoderInput->stop());
-        }
         static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
         throw;
     }
@@ -97,13 +88,10 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
 StepperMotor::~StepperMotor()
 {
     stopAndWait();
-    if (m_encoderInput) {
-        static_cast<void>(m_encoderInput->stop());
-        m_encoderInput->clearSampleCallback();
-    }
+    static_cast<void>(m_feedback->stop());
+    m_feedback->clearCallback();
     m_referenceSwitchInput->clearEdgeCallback();
     static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
-    if (m_indexFeedback) m_indexFeedback->clearCallback();
 }
 
 std::future<StepperMotor::Result> StepperMotor::moveRel(pnm::units::Angle distance,
@@ -567,7 +555,7 @@ bool StepperMotor::isReferenced() const noexcept { return m_referenced.load(); }
 void StepperMotor::invalidateReference() noexcept
 {
     m_referenced.store(false);
-    if (m_indexFeedback) m_indexFeedback->invalidate();
+    m_feedback->invalidate();
 }
 
 pnm::units::Angle StepperMotor::position() const
@@ -586,7 +574,7 @@ pnm::units::AngularVelocity StepperMotor::velocity() const
 
 pnm::Result<pnm::units::Angle> StepperMotor::actualPosition() const noexcept
 {
-    if (!m_encoderInput && !m_indexFeedback) {
+    if (!m_feedback) {
         return std::unexpected(std::make_error_code(std::errc::no_such_device));
     }
 
@@ -600,7 +588,7 @@ pnm::Result<pnm::units::Angle> StepperMotor::actualPosition() const noexcept
 
 pnm::Result<pnm::units::AngularVelocity> StepperMotor::actualVelocity() const noexcept
 {
-    if (!m_encoderInput && !m_indexFeedback) {
+    if (!m_feedback) {
         return std::unexpected(std::make_error_code(std::errc::no_such_device));
     }
 
@@ -612,53 +600,23 @@ pnm::Result<pnm::units::AngularVelocity> StepperMotor::actualVelocity() const no
     return velocity;
 }
 
-void StepperMotor::accountEncoder(const hal::IQuadratureEncoder::Sample& sample) noexcept
+void StepperMotor::accountFeedback(const hal::device::IMotorFeedback::Sample& sample) noexcept
 {
-    if (!sample.position) {
-        m_feedbackError.store(std::errc::state_not_recoverable);
+    m_feedbackReferenceLost.store(sample.reference_lost);
+    if (sample.reference_lost) {
         m_referenced.store(false);
-        m_feedbackHealthy.store(false);
         if (auto* notification{ m_events->groupNotification.load() })
             notification->signal();
-        m_actualVelocity.store(0_rpm);
-        m_previousEncoderSample.reset();
         m_events->notification.signal();
-        return;
     }
-
-    auto velocity{ 0_rpm };
-    if (sample.running && m_previousEncoderSample && m_previousEncoderSample->running &&
-        sample.timestamp > m_previousEncoderSample->timestamp) {
-        const auto current{ *sample.position };
-        const auto previous{ *m_previousEncoderSample->position };
-        const auto magnitude{ current >= previous
-                                ? static_cast<std::uint64_t>(current) - static_cast<std::uint64_t>(previous)
-                                : static_cast<std::uint64_t>(previous) -
-                                    static_cast<std::uint64_t>(current) };
-        const auto delta{ (current >= previous ? 1.0 : -1.0) * static_cast<double>(magnitude) };
-        velocity = m_encoderCountAngle * delta /
-                   pnm::units::Time{ sample.timestamp - m_previousEncoderSample->timestamp };
-    }
-
-    m_actualPosition.store(m_encoderPositionOffset +
-                           m_encoderCountAngle * static_cast<double>(*sample.position));
-    m_actualVelocity.store(velocity);
-    m_previousEncoderSample = sample;
-    m_feedbackHealthy.store(true);
-}
-
-void StepperMotor::accountIndex(const hal::device::IndexFeedback::Sample& sample) noexcept
-{
-    if (!sample.cycles) {
-        m_feedbackError.store(sample.cycles.error() == std::errc::no_message_available
-                                ? std::errc::no_message_available : std::errc::state_not_recoverable);
-        m_feedbackHealthy.store(false);
+    if (!sample.position) {
+        m_feedbackError.store(static_cast<std::errc>(sample.position.error().value()));
         m_actualVelocity.store(0_rpm);
+        m_feedbackHealthy.store(false);
         return;
     }
-    const auto cycle_angle{ m_fullStepAngle * 4.0 };
-    m_actualPosition.store(m_indexPositionOffset + cycle_angle * static_cast<double>(*sample.cycles));
-    m_actualVelocity.store(cycle_angle * sample.cycles_per_second / 1_s);
+    m_actualPosition.store(*sample.position);
+    m_actualVelocity.store(sample.velocity);
     m_feedbackHealthy.store(true);
 }
 
@@ -681,22 +639,10 @@ void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
                        ? m_motionSign * m_stepAngle / pnm::units::Time{ status.period }
                        : 0_rpm);
 
-    if (m_indexFeedback) {
-        if (!status.counts_exact) {
-            m_indexFeedback->invalidate();
-        }
-        else {
-            auto cycle_period{ std::chrono::nanoseconds::max() };
-            const auto maximum{ cycle_period.count() };
-            if (m_microsteps <= static_cast<std::uint64_t>(maximum / 4)) {
-                const auto multiplier{ static_cast<std::int64_t>(4 * m_microsteps) };
-                if (status.period.count() <= maximum / multiplier)
-                    cycle_period = status.period * multiplier;
-            }
-            m_indexFeedback->motion(status.state == hal::step::State::Running, m_motionSign > 0,
-                                     cycle_period);
-        }
-    }
+    if (!status.counts_exact)
+        m_feedback->invalidate();
+    else
+        m_feedback->motion(status.state == hal::step::State::Running, m_motionSign > 0, status.period);
 
     auto boundary{ m_wakeAtPulse.load() };
     const bool reached{ status.pulses >= boundary &&
@@ -980,41 +926,19 @@ StepperMotor::Result StepperMotor::applyReferencePosition(std::stop_token stop)
         return Result::Faulted;
     }
 
-    const auto commit = [&] {
-        m_position.store(m_referenceSwitchPosition);
-        m_velocity.store(0_rpm);
-        m_referenced.store(true);
-    };
+    if (!m_feedback->reference(m_referenceSwitchPosition))
+        return Result::Faulted;
+    if (stop.stop_requested())
+        return Result::Stopped;
 
-    if (m_encoderInput) {
-        m_encoderInput->clearSampleCallback();
-
-        const auto count{ m_encoderInput->position() };
-        const bool cancelled{ stop.stop_requested() };
-        if (count && !cancelled) {
-            m_encoderPositionOffset =
-              m_referenceSwitchPosition - m_encoderCountAngle * static_cast<double>(*count);
-            commit();
-        }
-
-        m_encoderInput->setSampleCallback(
-          [this](const hal::IQuadratureEncoder::Sample& sample) noexcept { accountEncoder(sample); });
-        if (cancelled) {
-            return Result::Stopped;
-        }
-
-        return count && m_referenced.load() ? Result::Completed : Result::Faulted;
-    }
-    else if (m_indexFeedback) {
-        m_indexFeedback->clearCallback();
-        m_indexPositionOffset = m_referenceSwitchPosition;
-        m_indexFeedback->reference();
-        m_actualPosition.store(m_referenceSwitchPosition);
-        m_indexFeedback->setCallback(
-          [this](const hal::device::IndexFeedback::Sample& sample) noexcept { accountIndex(sample); });
-    }
-    commit();
-    return Result::Completed;
+    m_position.store(m_referenceSwitchPosition);
+    m_velocity.store(0_rpm);
+    m_referenced.store(true);
+    // Do not overwrite a counter-fault callback racing with this commit. INDEX
+    // may remain unavailable after homing without invalidating the switch datum.
+    if (m_feedbackReferenceLost.load())
+        m_referenced.store(false);
+    return m_referenced.load() ? Result::Completed : Result::Faulted;
 }
 
 StepperMotor::Result StepperMotor::performMotion(Direction direction,

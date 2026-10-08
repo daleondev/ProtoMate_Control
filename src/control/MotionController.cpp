@@ -28,7 +28,10 @@ namespace control
                                                          config.reference_position,
                                                          config.full_step_angle,
                                                          config.microsteps,
-                                                         m_generator);
+                                                         m_generator,
+                                                         hal::board::createMotorFeedback(
+                                                           static_cast<MotorId>(i),
+                                                           { config.full_step_angle, config.microsteps }));
             m_motors[i]->m_events->groupNotification.store(&m_groupNotification);
         }
         if (const auto result{ m_generator->start() }; !result)
