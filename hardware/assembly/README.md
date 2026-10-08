@@ -25,9 +25,13 @@ The drawing puts the outline half a pitch (1.27 mm) beyond the outer hole
 centres; assembly coordinates are defined by the holes, independently of the
 physical edge margins. The grid continues uniformly across the whole assembly.
 J104 and both TMC2209 modules occupy the top edge, with cable entries facing
-outward. The DM542T transistor stages run down the left side at 30.48 mm
-spacing; the encoder stages occupy the centre/right at 15.24 mm spacing.
-The buck sits at the bottom left and reference connectors at the bottom right.
+outward. J107 sits directly below J104, grouping the motor-1 driver and encoder
+cables in the upper-left area. The four Nucleo headers form a bank along the
+left edge, with 9.1 mm between connector bodies and all pin-1 pads at the bottom.
+The encoder receiver and conversion stages occupy the centre-left; the DM542T
+transistor stages run down the right interior at 30.48 mm spacing. The encoder
+transistor stages have 15.24 mm spacing. The buck sits at the bottom left and
+the three switch cable connectors at the bottom right.
 The buck's barrel jack remains accessible from the left edge.
 
 All component leads and the additional wire-passage holes fall on the
@@ -91,11 +95,11 @@ The wire lengths are projected routing lengths. Add allowance for stripping,
 the board thickness at each crossover, and comfortable bends. No schematic
 connection is implied by two insulated wires merely touching or crossing.
 
-The DM542T alarm uses R30 (4.7 kΩ): H7 = 3.3 V, H3 = ALM. J104 and R30 sit
-at the upper left; J101.4 carries ALM to the Nucleo. ALM is low when healthy and high for an open
+The DM542T alarm uses R30 (4.7 kΩ): H18 = 3.3 V, H14 = ALM. J104 and R30 sit
+at the upper left; J101.4 at Y3 carries ALM to the Nucleo. ALM is low when healthy and high for an open
 cable or driver fault; its output uses the default normally conducting polarity.
 Do not connect this alarm circuit to 5 V or 24 V. Follow the ALM and ground
-routes in Wires.csv, including the ALM crossover.
+routes in Wires.csv.
 
 ## Parts and orientation
 
@@ -109,8 +113,8 @@ the 1.27 mm bulk variant. See the
 
 **U2 is AM26C32CN**, in a 16-pin DIP socket with 7.62 mm between rows. Its notch
 points toward row A. **U3 is the user's SN74HC126N**, in a **DIP-14 socket
-with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **AN39**;
-pin 14 is at AN42. Its notch points toward row A. Both DIP chips mount on the top face.
+with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **AJ21**;
+pin 14 is at AJ24. Its notch points toward row A. Both DIP chips mount on the top face.
 
 Q1–Q3 serve the DM542T. **Q4–Q6 convert the encoder receiver's 5 V outputs
 to 3.3 V for U3**. Each stage has a 4.7 kΩ base resistor (R20/R23/R26),
@@ -183,13 +187,31 @@ Use 0.5 mm² power conductors for pins 9/10. Pin 8 is the alarm signal return;
 run it alongside ALM+ and keep motor supply return current in pin 10's dedicated
 power wiring. Connect by these labels; terminal numbering is local to J104.
 
+J107 is horizontal immediately below J104. Its pin 1 is **L3**, with pins
+increasing to the right through pin 8 at **L10**. This keeps the encoder cable
+beside the other motor-1 connections without crowding the screw terminal.
+
+The Nucleo connectors share a straight left-edge bank. In the top view,
+double-row headers have odd pins up column 4 and even pins up column 3;
+J108 is a single column. Pin 1 is at the bottom of every header:
+
+| Header | Pin 1 | Last pin | Function |
+| --- | --- | --- | --- |
+| J101 | Z4 | U3 (pin 12) | STEP/DIR/enable, ALM, 3.3 V |
+| J113 | AH4 | AE3 (pin 8) | UART, DIAG, INDEX |
+| J102 | AO4 | AM3 (pin 6) | Encoder A/B/Z |
+| J108 | AW3 | AT3 (pin 4) | Reference inputs |
+
+The 9.1 mm body gaps leave room to grip the cable plugs. Keep these cables
+exiting toward the left edge and the motor cables toward the top edge.
+
 J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
 5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
 11→PE14/CN10.8, 12→PE15/CN10.30, 8→3V3/CN8.7,
 4→PF2/CN9.17 (ALM); grounds 2/6/10→CN11.8.
-In the top view, **J101 pin 1 is at O10**, at the lower-right corner of the
-header. Odd pins run upward along column 10; even pins run upward along
-column 9, ending at pin 11 / J10 and pin 12 / J9. **Only pins 2/6/10 are GND.**
+In the top view, **J101 pin 1 is at Z4**, at the lower-right corner of the
+header. Odd pins run upward along column 4; even pins run upward along
+column 3, ending at pin 11 / U4 and pin 12 / U3. **Only pins 2/6/10 are GND.**
 Follow the square pin-1 pad when orienting the cable.
 All STEP pins use TIM2 output compare / AF1 (channels 1, 3, 4).
 PA0 uses SB75 ON; keep the user button on PC13 (SB58 OFF).
@@ -215,13 +237,13 @@ All perfboard ground links in Wires.csv still need to be fitted.
 Firmware overrides the straps for 1/16 microstepping. Keep both **SPRD jumpers
 open**. UART current settings bypass the onboard potentiometers.
 
-**J113 spans rows V–W, columns 36–39.** Pin 1 is W36 and pin 2 is V36;
-odd pins run right along row W, even pins along row V. Connect 1→CN9.6 (PD5 TX),
+**J113 spans rows AE–AH, columns 3–4.** Pin 1 is AH4 and pin 2 is AH3;
+odd pins run up column 4, even pins up column 3. Connect 1→CN9.6 (PD5 TX),
 3→CN9.4 (PD6 RX), 5→CN9.8 (PD4 M2 DIAG), 7→CN9.10 (PD3 M3 DIAG),
 4→CN9.25 (PD0 M2 INDEX), 6→CN9.27 (PD1 M3 INDEX), with pins 2/8 returning
 to Nucleo GND. These are **CN9** contacts, not CN10 STEP pins.
 
-**R29 is 1 kΩ, with leads at S35 and S39.** Its pin 1 connects to J113.1;
+**R29 is 1 kΩ, with leads at AB8 and AB12.** Its pin 1 connects to J113.1;
 its pin 2 joins J113.3 and both modules' pin 9 (UART). Only TX passes through
 the resistor. Module pin 7 is the respective DIAG signal; pin 8 (INDEX) connects to the respective PD0/PD1 feedback input. Fit the complete ten-pin headers. All bus signals are 3.3 V.
 
@@ -271,7 +293,7 @@ The **63 × 27 mm PCB** sits at the lower left, with its barrel jack pointing
 outward at the left edge and USB connector toward the right. The body follows
 the supplied [BuckConverter.step](../../docs/BuckConverter.step); mounting pins
 use a nominal **5.08 mm pair pitch** and **50.8 mm pair separation**,
-based on the model's terminal blocks. R6 lies horizontally above the buck.
+based on the model's terminal blocks.
 
 Remove both screw-terminal blocks and fit four long-tail header pins, keeping
 the module component-side up and at least 6 mm above the perfboard. The
@@ -283,10 +305,10 @@ Use the module's **OUT+ and OUT−** contacts for the 5 V and ground connections
 
 | J103 pin | Hole, top view | Connection |
 | --- | --- | --- |
-| 1 | BE24 | Buck OUT+ → perfboard 5 V |
-| 2 | BG24 | Buck OUT− → perfboard GND |
-| 3 | BG4 | Buck VIN− → power distribution GND |
-| 4 | BE4 | Buck VIN+ → power distribution 24 V |
+| 1 | BC24 | Buck OUT+ → perfboard 5 V |
+| 2 | BE24 | Buck OUT− → perfboard GND |
+| 3 | BE4 | Buck VIN− → power distribution GND |
+| 4 | BC4 | Buck VIN+ → power distribution 24 V |
 
 Feed **24 V through the existing barrel jack**. Both VIN header pins are
 electrical distribution connections. Route their supply and return to
@@ -301,11 +323,11 @@ J101 carries the Nucleo's 3.3 V output.
 
 ### Reference-switch cables
 
-The reference headers occupy the lower-right area. J108 pin 1 is **BF32**,
-J109 pin 1 is **BC41**, J110 pin 1 is **BG41**, and J111 pin 1 is **BK41**.
-Each switch header's adjacent pin 2 is ground. All three reference-signal
-connections stay on the underside. Use the wire table for their REF and GND
-connections.
+The three switch headers occupy the lower-right area: J109 pin 1 is **BC41**,
+J110 pin 1 is **BG41**, and J111 pin 1 is **BK41**. Each switch header's
+adjacent pin 2 is ground. J108 returns their signals to the Nucleo from the
+left-edge connector bank, with pin 1 at **AW3**. Follow Wires.csv for each
+REF and GND route and any top-side crossovers.
 
 SW1/SW2/SW3 are the external, unpowered Creality mechanical switches. The
 schematic identifies **COM, NC and NO by function**, not by PCB connector

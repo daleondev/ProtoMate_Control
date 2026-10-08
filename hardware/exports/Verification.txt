@@ -2,9 +2,9 @@ KiCad 10.0.6: native project verification
 PASS: one continuous 47 x 65 hole grid (A1:BM47), 2.54 mm pitch, 3055 holes.
 PASS: nominal outline 119.38 x 165.10 mm; outer hole-centre span 116.84 x 162.56 mm.
 PASS: 49 footprints linked to schematic symbols; values, library IDs and pins match.
-PASS: 188 unique component holes and 104 wire passages on the 2.54 mm grid.
+PASS: 188 unique component holes and 114 wire passages on the 2.54 mm grid.
 PASS: 139 scheduled connections span all 45 connected nets.
-PASS: 90 underside-only wires; 49 wires use 52 crossovers with dedicated free holes.
+PASS: 83 underside-only wires; 56 wires use 57 crossovers with dedicated free holes.
 PASS: at most three scheduled wire ends per component solder joint.
 PASS: 82 header positions and their external destinations match the schematic.
 PASS: four Nucleo harnesses; 21 distinct signal/supply contacts and nine ground returns.
@@ -22,7 +22,7 @@ PASS: all parts on top; R10-R12 are DNP; 24 V and logic rails remain distinct.
 Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.
 Wire endpoints/passages are checked; routing lengths and sides need review after route edits.
 This checks the wiring model, not an assembled circuit or transistor switching speed.
-Board SHA256: 2893d1a2cdbbf67524252fc00f1d409e7da2007285cf7aa9ca1e2f83ad5da85b
+Board SHA256: 30fcef69b7aa7dd4e57ba6b380ee6207f0995d68f362f3db74b9a6b8cbc654f6
 ProtoMate.kicad_sch SHA256: 09a5c3463fdc40b66cb12ac9936f201c82d5207fbc3ce808b07b07dec89039ad
 sheets/M1_DM542T.kicad_sch SHA256: 8dcadb967e0561bd023220f1c8ba9ea5795c5292530b806278a4e74caedd17f5
 sheets/M1_Encoder.kicad_sch SHA256: be5309fec5e61dd4de375c13dba40f8bd4a10a357447ce463ce407d741e9e460

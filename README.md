@@ -120,6 +120,9 @@ board, oriented as 47 columns × 65 rows with 2.54 mm pitch** (holes A1–BM47).
 The outer hole centres span 116.84 × 162.56 mm. Components are spread across the board, with separate areas for motor interfaces,
 encoder circuitry and power. The ten-way DM542T screw terminal faces outward
 along the top edge beside both TMC2209 modules.
+J107 sits just below J104, grouping the motor-1 encoder and driver cables.
+J101, J113, J102 and J108 form a Nucleo connector bank along the left edge,
+with 9.1 mm between header bodies and every pin 1 at the bottom.
 It contains six Diotec 2N2222A stages (three for
 the DM542T and three for encoder voltage conversion), the AM26C32 encoder
 receiver, SN74HC126N buffer, passive components and headers. The two Adafruit
@@ -1075,8 +1078,8 @@ and re-home. Recovery also verifies both TMC2209s. **Normal firmware now require
 the DM542T ALM connection as well as both TMC2209s.** The single-TMC bench images
 only own their selected TMC DIAG input and do not require M1.
 
-On the 47-column × 65-row perfboard, J104.7/8 use D14/D16, J101.4 uses N9, and R30 uses
-H7 (+3.3 V) / H3 (ALM). The ALM return shares the motion harness ground; see [the harness and assembly tables](hardware/assembly/README.md).
+On the 47-column × 65-row perfboard, J104.7/8 use D14/D16, J101.4 uses Y3, and R30 uses
+H18 (+3.3 V) / H14 (ALM). The ALM return shares the motion harness ground; see [the harness and assembly tables](hardware/assembly/README.md).
 
 ### TMC2209 UART configuration and diagnostics
 

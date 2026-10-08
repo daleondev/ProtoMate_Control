@@ -59,15 +59,18 @@ top jumpers, B.Cu represents solder-side wires, and vias represent wire passages
 Use the **65 × 47-hole board**, oriented as **47 columns × 65 rows**, A1–BM47,
 at 2.54 mm pitch. The outer hole centres span **116.84 × 162.56 mm**; the
 nominal outline is 119.38 × 165.10 mm with half-pitch margins. J104 and both TMC modules
-sit along the top edge with their cable entries facing outward. The DM542T
-transistor stages occupy the left side; the encoder receiver and level converters
-occupy the centre and right. The buck sits at the bottom left, with reference
-headers at the bottom right. Q1–Q3 have 30.48 mm between stages; Q4–Q6 have
+sit along the top edge with their cable entries facing outward. J107 sits below
+J104, keeping both motor-1 cables together. J101, J113, J102 and J108 form a
+left-edge Nucleo connector bank with 9.1 mm gaps between bodies and pin 1 at
+the bottom of every header. The encoder receiver and level converters occupy
+the centre-left; the DM542T transistor stages occupy the right interior.
+The buck sits at the bottom left, with the three switch cable headers at the
+bottom right. Q1–Q3 have 30.48 mm between stages; Q4–Q6 have
 15.24 mm between stages. Decoupling capacitors stay close to their ICs.
 The barrel jack faces the left edge.
 The wire schedule specifies underside routes and insulated top crossovers
 through dedicated free holes. All wire ends are soldered underneath. J101's pin 1 is
-at O10, with its signal column facing the driver modules. The 11 designated
+at Z4; odd pins run up column 4 and even pins up column 3. The 11 designated
 power connections all stay underneath and use 0.5 mm² insulated copper wire;
 wire drawing width does not specify conductor size.
 Use the [assembly instructions](assembly/README.md) to build it.

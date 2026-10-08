@@ -1,22 +1,22 @@
 Perfboard header,Pin,Hole (top view),Net,Schematic destination reference,Destination contact,Note
-J101,1,O10,M1_STEP,A1,CN10.29,PA0 / TIM2_CH1 AF1
-J101,2,O9,GND,A1,CN11.8,Return for STEP on pin 1; twist with STEP; common Nucleo ground bus
-J101,3,N10,M1_DIR,A1,CN10.26,PE12 / M1 DIR
-J101,4,N9,M1_ALM,A1,CN9.17,PF2 / EXTI2; high = fault or disconnected
-J101,5,M10,M2_STEP,A1,CN10.32,PB10 / TIM2_CH3 AF1
-J101,6,M9,GND,A1,CN11.8,Return for STEP on pin 5; twist with STEP; common Nucleo ground bus
-J101,7,L10,M2_DIR,A1,CN10.10,PE13 / M2 DIR
-J101,8,L9,+3V3,A1,CN8.7,
-J101,9,K10,M3_STEP,A1,CN10.34,PB11 / TIM2_CH4 AF1
-J101,10,K9,GND,A1,CN11.8,Return for STEP on pin 9; twist with STEP; common Nucleo ground bus
-J101,11,J10,M3_DIR,A1,CN10.8,PE14 / M3 DIR
-J101,12,J9,STEPPERS_EN_N,A1,CN10.30,"PE15 / shared enable, active low"
-J102,1,AO45,M1_ENC_A,A1,CN7.19,
-J102,2,AO46,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J102,3,AP45,M1_ENC_B,A1,CN7.13,
-J102,4,AP46,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J102,5,AQ45,M1_ENC_Z,A1,CN12.17,
-J102,6,AQ46,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J101,1,Z4,M1_STEP,A1,CN10.29,PA0 / TIM2_CH1 AF1
+J101,2,Z3,GND,A1,CN11.8,Return for STEP on pin 1; twist with STEP; common Nucleo ground bus
+J101,3,Y4,M1_DIR,A1,CN10.26,PE12 / M1 DIR
+J101,4,Y3,M1_ALM,A1,CN9.17,PF2 / EXTI2; high = fault or disconnected
+J101,5,X4,M2_STEP,A1,CN10.32,PB10 / TIM2_CH3 AF1
+J101,6,X3,GND,A1,CN11.8,Return for STEP on pin 5; twist with STEP; common Nucleo ground bus
+J101,7,W4,M2_DIR,A1,CN10.10,PE13 / M2 DIR
+J101,8,W3,+3V3,A1,CN8.7,
+J101,9,V4,M3_STEP,A1,CN10.34,PB11 / TIM2_CH4 AF1
+J101,10,V3,GND,A1,CN11.8,Return for STEP on pin 9; twist with STEP; common Nucleo ground bus
+J101,11,U4,M3_DIR,A1,CN10.8,PE14 / M3 DIR
+J101,12,U3,STEPPERS_EN_N,A1,CN10.30,"PE15 / shared enable, active low"
+J102,1,AO4,M1_ENC_A,A1,CN7.19,
+J102,2,AO3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,3,AN4,M1_ENC_B,A1,CN7.13,
+J102,4,AN3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,5,AM4,M1_ENC_Z,A1,CN12.17,
+J102,6,AM3,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
 J103,1,BC24,+5V,U1,OUT+,Direct U1 output pin; no cable
 J103,2,BE24,GND,U1,OUT-,Direct U1 output pin; no cable
 J103,3,BE4,GND,U1,IN-,Direct U1 VIN pin; dedicated underside power distribution
@@ -55,29 +55,29 @@ J106,9,L44,TMC_UART_RX,A4,JP4.9,Shared 3.3 V UART bus
 J106,10,L45,STEPPERS_EN_N,A4,JP4.10,Direct soldered module header: A4 EN; no cable
 J106,11,E38,+24V,A4,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
 J106,12,E39,GND,A4,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
-J107,1,U17,GND,J2,1,
-J107,2,U18,ENC_A_P,J2,2,
-J107,3,U19,ENC_A_N,J2,3,
-J107,4,U20,ENC_B_P,J2,4,
-J107,5,U21,ENC_B_N,J2,5,
-J107,6,U22,ENC_Z_P,J2,6,
-J107,7,U23,ENC_Z_N,J2,7,
-J107,8,U24,+5V,J2,8,
-J108,1,BF32,M1_REF,A1,CN10.20,Reference input; internal 3.3 V pull-up
-J108,2,BG32,M2_REF,A1,CN10.18,Reference input; internal 3.3 V pull-up
-J108,3,BH32,M3_REF,A1,CN10.24,Reference input; internal 3.3 V pull-up
-J108,4,BI32,GND,A1,CN10.22,Shared logic return; join at Nucleo ground bus; no motor supply current
+J107,1,L3,GND,J2,1,
+J107,2,L4,ENC_A_P,J2,2,
+J107,3,L5,ENC_A_N,J2,3,
+J107,4,L6,ENC_B_P,J2,4,
+J107,5,L7,ENC_B_N,J2,5,
+J107,6,L8,ENC_Z_P,J2,6,
+J107,7,L9,ENC_Z_N,J2,7,
+J107,8,L10,+5V,J2,8,
+J108,1,AW3,M1_REF,A1,CN10.20,Reference input; internal 3.3 V pull-up
+J108,2,AV3,M2_REF,A1,CN10.18,Reference input; internal 3.3 V pull-up
+J108,3,AU3,M3_REF,A1,CN10.24,Reference input; internal 3.3 V pull-up
+J108,4,AT3,GND,A1,CN10.22,Shared logic return; join at Nucleo ground bus; no motor supply current
 J109,1,BC41,M1_REF,SW1,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
 J109,2,BC42,GND,SW1,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
 J110,1,BG41,M2_REF,SW2,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
 J110,2,BG42,GND,SW2,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
 J111,1,BK41,M3_REF,SW3,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
 J111,2,BK42,GND,SW3,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J113,1,W36,TMC_UART_TX,A1,CN9.6,PD5 USART2 TX via R29 1k
-J113,2,V36,GND,A1,CN11.8,Shared logic return; join at Nucleo ground bus; no motor supply current
-J113,3,W37,TMC_UART_RX,A1,CN9.4,PD6 USART2 RX / shared bus
-J113,4,V37,M2_INDEX,A1,CN9.25,PD0 M2 INDEX; both edges
-J113,5,W38,M2_DIAG,A1,CN9.8,PD4 M2 DIAG
-J113,6,V38,M3_INDEX,A1,CN9.27,PD1 M3 INDEX; both edges
-J113,7,W39,M3_DIAG,A1,CN9.10,PD3 M3 DIAG
-J113,8,V39,GND,A1,CN11.8,Shared logic return; join at Nucleo ground bus; no motor supply current
+J113,1,AH4,TMC_UART_TX,A1,CN9.6,PD5 USART2 TX via R29 1k
+J113,2,AH3,GND,A1,CN11.8,Shared logic return; join at Nucleo ground bus; no motor supply current
+J113,3,AG4,TMC_UART_RX,A1,CN9.4,PD6 USART2 RX / shared bus
+J113,4,AG3,M2_INDEX,A1,CN9.25,PD0 M2 INDEX; both edges
+J113,5,AF4,M2_DIAG,A1,CN9.8,PD4 M2 DIAG
+J113,6,AF3,M3_INDEX,A1,CN9.27,PD1 M3 INDEX; both edges
+J113,7,AE4,M3_DIAG,A1,CN9.10,PD3 M3 DIAG
+J113,8,AE3,GND,A1,CN11.8,Shared logic return; join at Nucleo ground bus; no motor supply current
