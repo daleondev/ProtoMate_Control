@@ -8,7 +8,7 @@ share the same project name and component identities.
 hardware/
 ├── ProtoMate.kicad_pro       Project settings and electrical checks
 ├── ProtoMate.kicad_sch       Root sheet: controller, power, sheet navigation
-├── ProtoMate.kicad_pcb       39 × 48 hole perfboard placement and hand wiring
+├── ProtoMate.kicad_pcb       47 × 65 hole perfboard placement and hand wiring
 ├── sheets/                  Motor interfaces, encoder, storage, headers, switches
 ├── libraries/               Project-local symbols, footprints and buck 3D model
 ├── sym-lib-table            Relative symbol-library registration
@@ -23,14 +23,14 @@ hardware/
 The root schematic links six child sheets: M1/DM542T, M2/M3/TMC2209,
 M1 encoder, storage, perfboard cable headers, and reference limit switches.
 Global net names connect these sheets electrically. The connector sheet defines
-J101–J107 plus J112/J113, and the reference-switch sheet defines J108–J111.
-The M1 sheet defines ALM header J114 and pull-up R30; J101 carries ALM to the
-Nucleo. All connector pin numbers match the layout and
+J101–J107 and J113, and the reference-switch sheet defines J108–J111.
+J104 is the ten-way DM542T screw terminal for control, ALM and 24 V power.
+The M1 sheet defines pull-up R30; J101 carries ALM to the Nucleo. All connector pin numbers match the layout and
 [harness table](assembly/Harness.csv).
 
-All **51 perfboard footprints** have assigned library footprints and native
+All **49 perfboard footprints** have assigned library footprints and native
 links to their schematic symbols. These comprise Q1–Q6, R1–R12, R20–R30,
-C1–C6, U2/U3 and J101–J114. R10–R12 remain on the layout and are marked DNP.
+C1–C6, U2/U3, J101–J111 and J113. R10–R12 remain on the layout and are marked DNP.
 
 The **buck U1 and Adafruit A3/A4 modules mount directly at J103/J105/J106**.
 These footprints represent their soldered mounting pins and full module
@@ -38,7 +38,7 @@ outlines. The module symbols remain excluded from separate PCB placement:
 the barrel jack and four-way motor terminals remain on their modules.
 J103 has four electrical contacts: 5 V output, output ground, VIN ground and
 24 V input. J105/J106 each have ten JP4 control pins plus two JP1 power pins.
-J112 provides the DM542T power cable connection and the two power-distribution
+J104.9/10 provide the DM542T power connection and the two power-distribution
 star joints. Dedicated underside supply/return branches feed each TMC module
 through its local C1/C2 bulk capacitor connections. Motor winding cables
 connect directly to the drivers. The Nucleo, DM542T, motors, switches and
@@ -56,13 +56,18 @@ potentiometers do not set current in UART mode. See the
 
 The `.kicad_pcb` is a map for a purchased individual-pad board: F.Cu represents
 top jumpers, B.Cu represents solder-side wires, and vias represent wire passages.
-It uses one continuous **39-column × 48-row grid**, A1–AV39, at 2.54 mm pitch.
-The outer hole centres span **96.52 × 119.38 mm**; the nominal outline is
-99.06 × 121.92 mm with half-pitch margins. Both TMC modules sit along the top
-edge, the buck at the lower left, and the reference headers at the lower right.
-Wiring uses 100 underside-only connections and 39 short crossovers through
-dedicated free holes. All wire ends are soldered underneath. J101's pin 1 is
-at I9, with its signal column facing the driver modules. The 11 designated
+Use the **65 × 47-hole board**, oriented as **47 columns × 65 rows**, A1–BM47,
+at 2.54 mm pitch. The outer hole centres span **116.84 × 162.56 mm**; the
+nominal outline is 119.38 × 165.10 mm with half-pitch margins. J104 and both TMC modules
+sit along the top edge with their cable entries facing outward. The DM542T
+transistor stages occupy the left side; the encoder receiver and level converters
+occupy the centre and right. The buck sits at the bottom left, with reference
+headers at the bottom right. Q1–Q3 have 30.48 mm between stages; Q4–Q6 have
+15.24 mm between stages. Decoupling capacitors stay close to their ICs.
+The barrel jack faces the left edge.
+The wire schedule specifies underside routes and insulated top crossovers
+through dedicated free holes. All wire ends are soldered underneath. J101's pin 1 is
+at O10, with its signal column facing the driver modules. The 11 designated
 power connections all stay underneath and use 0.5 mm² insulated copper wire;
 wire drawing width does not specify conductor size.
 Use the [assembly instructions](assembly/README.md) to build it.
@@ -93,7 +98,7 @@ closed: low when released, high when pressed or unplugged. Their schematic
 contact names are functional identities, not an asserted Creality connector
 pin order; verify the normally closed pair by continuity before making cables.
 
-J114.1/2 connects DM542T ALM+/ALM−; J101.4 returns the signal
+J104.7/8 connects DM542T ALM+/ALM−; J101.4 returns the signal
 to PF2/CN9.17, sharing the motion harness ground. R30 pulls ALM+ to 3.3 V through 4.7 kΩ.
 The default normally conducting alarm reads low when healthy and high on a
 fault or open cable. See the

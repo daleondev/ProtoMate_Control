@@ -2,11 +2,11 @@
 
 Open [ProtoMate.kicad_pro](../ProtoMate.kicad_pro) in KiCad 10,
 then open the PCB editor. This file is a **placement and hand-wiring map for a
-purchased individual-pad perfboard with one continuous 39 × 48 hole grid**.
+purchased 65 × 47-hole individual-pad perfboard, oriented as 47 columns × 65 rows**.
 The tracks represent wires; there are no Gerber files or custom-board
 fabrication instructions.
 
-[Assembly.pdf](../exports/Assembly.pdf) contains four actual-size A4 landscape sheets:
+[Assembly.pdf](../exports/Assembly.pdf) contains four actual-size A4 portrait sheets:
 
 1. Component placement, viewed from above.
 2. Component-side jumpers, in red.
@@ -14,16 +14,21 @@ fabrication instructions.
 4. Both sets of wires together, viewed from above.
 
 Print at **100% / actual size**, without fitting to the page. Check that the
-nominal outline measures 99.06 × 121.92 mm and ten hole intervals measure 25.4 mm.
+nominal outline measures 119.38 × 165.10 mm and ten hole intervals measure 25.4 mm.
 
 ## Hole coordinates and wiring
 
-Use the entire **39-column × 48-row grid** as one board. Columns are **1–39**,
-rows **A–Z, AA–AV**, giving 1,872 holes. A1 is the upper-left hole in the top
-view. The distance between outer hole centres is **96.52 × 119.38 mm**.
+Place the board with its **65-hole edge vertical**. Columns are **1–47**,
+rows **A–Z, AA–AZ, BA–BM**, giving 3,055 holes. A1 is the upper-left hole in the
+top view. The distance between outer hole centres is **116.84 × 162.56 mm**.
 The drawing puts the outline half a pitch (1.27 mm) beyond the outer hole
 centres; assembly coordinates are defined by the holes, independently of the
 physical edge margins. The grid continues uniformly across the whole assembly.
+J104 and both TMC2209 modules occupy the top edge, with cable entries facing
+outward. The DM542T transistor stages run down the left side at 30.48 mm
+spacing; the encoder stages occupy the centre/right at 15.24 mm spacing.
+The buck sits at the bottom left and reference connectors at the bottom right.
+The buck's barrel jack remains accessible from the left edge.
 
 All component leads and the additional wire-passage holes fall on the
 **2.54 mm grid**. Lines between holes show the route of insulated wire, not
@@ -35,8 +40,8 @@ The underside sheet flips the board **left/right**, keeping row A at the top.
 Column 1 is therefore on the right. Hole names never change between views.
 All components are mounted on the top face.
 
-The hand-wiring layout uses **100 underside-only connections and 39 short
-top-side crossovers**. The layout prioritizes underside wiring.
+The layout prioritizes underside wiring. Wires.csv identifies each connection
+and any insulated top-side crossovers.
 Each crossover uses its own pair of free holes; no wire shares a passage hole
 with another wire or a component lead. Each component solder joint carries
 at most three scheduled wire ends. The encoder transistor stages have their
@@ -62,12 +67,13 @@ representation, not the specified wire diameter. Keep the power conductors
 low against the underside, following the power branches in the drawing. **Every wire starts and
 ends on the underside**, where it is soldered to the specified component pads.
 Keep the insulation intact through passage holes and across other wires.
-The 78 passage holes are not additional electrical junctions.
+Passage holes are not additional electrical junctions. Read side-change holes
+in order from the first endpoint: each consecutive pair is one top crossover.
 
 Fit the board in this order:
 
-1. Fit every wire marked `bottom wire + top jumper`, using the red crossover view and the two passage holes listed
-   for each wire. Leave their ends underneath for soldering to the component
+1. Fit every wire marked `bottom wire + top jumper`, using the red crossover view
+   and each consecutive pair of passage holes listed for that wire. Leave their ends underneath for soldering to the component
    pads. Use insulated wire that passes freely through the holes.
 2. Fit resistors, transistors, capacitors, headers and IC sockets. Keep the
    crossovers low and leave clearance for their insulation beneath sockets.
@@ -77,7 +83,7 @@ Fit the board in this order:
    follow the individual scheduled wires. Use insulated wire for longer routes.
 4. Fit C1/C2 with positive leads in their square pads. Complete the 11 `power`
    connections using 0.5 mm² insulated copper wire, including their ground
-   returns. J112’s two solder joints each join three power wires; make the
+   returns. J104.9/10’s solder joints each join three power wires; make the
    copper-to-lead connections mechanically secure before soldering.
 5. Fit the raised buck and TMC modules after completing the wiring beneath them.
 
@@ -85,7 +91,7 @@ The wire lengths are projected routing lengths. Add allowance for stripping,
 the board thickness at each crossover, and comfortable bends. No schematic
 connection is implied by two insulated wires merely touching or crossing.
 
-The DM542T alarm uses R30 (4.7 kΩ): B6 = 3.3 V, B2 = ALM. J114 and R30 sit
+The DM542T alarm uses R30 (4.7 kΩ): H7 = 3.3 V, H3 = ALM. J104 and R30 sit
 at the upper left; J101.4 carries ALM to the Nucleo. ALM is low when healthy and high for an open
 cable or driver fault; its output uses the default normally conducting polarity.
 Do not connect this alarm circuit to 5 V or 24 V. Follow the ALM and ground
@@ -103,8 +109,8 @@ the 1.27 mm bulk variant. See the
 
 **U2 is AM26C32CN**, in a 16-pin DIP socket with 7.62 mm between rows. Its notch
 points toward row A. **U3 is the user's SN74HC126N**, in a **DIP-14 socket
-with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **Y32**;
-pin 14 is at Y35. Its notch points toward row A. Both DIP chips mount on the top face.
+with 7.62 mm between rows** and 2.54 mm pin pitch. Pin 1 is at **AN39**;
+pin 14 is at AN42. Its notch points toward row A. Both DIP chips mount on the top face.
 
 Q1–Q3 serve the DM542T. **Q4–Q6 convert the encoder receiver's 5 V outputs
 to 3.3 V for U3**. Each stage has a 4.7 kΩ base resistor (R20/R23/R26),
@@ -139,7 +145,7 @@ encoder's output-current limit as described in the main README.
 ## External connections
 
 These are **perfboard header numbers**, not Nucleo connector numbers. All
-contacts land on the 2.54 mm grid; J103's pairs and J112 span two intervals (5.08 mm).
+contacts land on the 2.54 mm grid; J103's pairs and J104's terminal pitch span two intervals (5.08 mm).
 Use the harness table for cables and direct module contacts.
 
 | Header | Connection |
@@ -147,23 +153,43 @@ Use the harness table for cables and direct module contacts.
 | J101, 2×6 | Nucleo STEP/DIR/enable, ALM and 3.3 V. STEP/GND pairs 1/2, 5/6, 9/10; ALM 4; 3.3 V 8; enable 12. |
 | J102, 2×3 | Encoder A/B/Z returns to the Nucleo; each paired even pin is ground. |
 | J103, four module pins | Buck: 1 = OUT+ / 5 V, 2 = OUT− / GND, 3 = VIN− / GND, 4 = VIN+ / 24 V. |
-| J104, 1×6 | DM542T: PUL+, PUL−, DIR+, DIR−, ENA+, ENA−, in pin order. Keep the DM542T signal selector at 5 V. |
+| J104, 10-way 5.08 mm screw terminal | DM542T: PUL+, PUL−, DIR+, DIR−, ENA+, ENA−, ALM+, ALM−, +24 V, GND, in pin order. Signal selector stays at 5 V. |
 | J105, 10 + 2 module pins | M2 / A3: pins 1–10 = JP4 control header; 11 = JP1.6 / 24 V; 12 = JP1.5 / GND. |
 | J106, 10 + 2 module pins | M3 / A4, same order as J105. |
 | J107, 1×8 | Encoder: GND, A+, A−, B+, B−, Z+, Z−, +5 V, matching the motor's numbered encoder connector. |
 | J108, 1×4 | Nucleo reference inputs: 1 = M1_REF, 2 = M2_REF, 3 = M3_REF; 4 = shared GND. |
 | J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
-| J112, 2-way 5.08 mm terminal | DM542T power cable: 1 = +24 V to +Vdc; 2 = GND. The underside solder joints are the power star points. |
 | J113, 2×4 | Nucleo UART/diagnostics: 1 = TX, 3 = RX, 4 = M2_INDEX, 5 = M2_DIAG, 6 = M3_INDEX, 7 = M3_DIAG; 2/8 = GND. |
-| J114, 1×2 | DM542T alarm cable: 1 / C2 = ALM+, 2 / C3 = ALM− / GND. |
+
+J104 mounts horizontally at the top left, **wire entries toward row A**, beside
+both TMC2209 modules. Use a ten-way, single-row **5.08 mm** screw terminal with
+the shown 50.8 × 8 mm body envelope and through-hole leads. Viewed from above,
+pins increase left to right:
+
+| J104 pin | Hole | DM542T contact |
+| --- | --- | --- |
+| 1 | D2 | PUL+ / 5 V |
+| 2 | D4 | PUL− |
+| 3 | D6 | DIR+ / 5 V |
+| 4 | D8 | DIR− |
+| 5 | D10 | ENA+ / 5 V |
+| 6 | D12 | ENA− |
+| 7 | D14 | ALM+ / 3.3 V signal |
+| 8 | D16 | ALM− / GND |
+| 9 | D18 | +Vdc / 24 V |
+| 10 | D20 | Power GND |
+
+Use 0.5 mm² power conductors for pins 9/10. Pin 8 is the alarm signal return;
+run it alongside ALM+ and keep motor supply return current in pin 10's dedicated
+power wiring. Connect by these labels; terminal numbering is local to J104.
 
 J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
 5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
 11→PE14/CN10.8, 12→PE15/CN10.30, 8→3V3/CN8.7,
 4→PF2/CN9.17 (ALM); grounds 2/6/10→CN11.8.
-In the top view, **J101 pin 1 is at I9**, at the lower-right corner of the
-header. Odd pins run upward along column 9; even pins run upward along
-column 8, ending at pin 11 / D9 and pin 12 / D8. **Only pins 2/6/10 are GND.**
+In the top view, **J101 pin 1 is at O10**, at the lower-right corner of the
+header. Odd pins run upward along column 10; even pins run upward along
+column 9, ending at pin 11 / J10 and pin 12 / J9. **Only pins 2/6/10 are GND.**
 Follow the square pin-1 pad when orienting the cable.
 All STEP pins use TIM2 output compare / AF1 (channels 1, 3, 4).
 PA0 uses SB75 ON; keep the user button on PC13 (SB58 OFF).
@@ -189,29 +215,29 @@ All perfboard ground links in Wires.csv still need to be fitted.
 Firmware overrides the straps for 1/16 microstepping. Keep both **SPRD jumpers
 open**. UART current settings bypass the onboard potentiometers.
 
-**J113 spans rows R–S, columns 29–32.** Pin 1 is S29 and pin 2 is R29;
-odd pins run right along row S, even pins along row R. Connect 1→CN9.6 (PD5 TX),
+**J113 spans rows V–W, columns 36–39.** Pin 1 is W36 and pin 2 is V36;
+odd pins run right along row W, even pins along row V. Connect 1→CN9.6 (PD5 TX),
 3→CN9.4 (PD6 RX), 5→CN9.8 (PD4 M2 DIAG), 7→CN9.10 (PD3 M3 DIAG),
 4→CN9.25 (PD0 M2 INDEX), 6→CN9.27 (PD1 M3 INDEX), with pins 2/8 returning
 to Nucleo GND. These are **CN9** contacts, not CN10 STEP pins.
 
-**R29 is 1 kΩ, with leads at P28 and P32.** Its pin 1 connects to J113.1;
+**R29 is 1 kΩ, with leads at S35 and S39.** Its pin 1 connects to J113.1;
 its pin 2 joins J113.3 and both modules' pin 9 (UART). Only TX passes through
 the resistor. Module pin 7 is the respective DIAG signal; pin 8 (INDEX) connects to the respective PD0/PD1 feedback input. Fit the complete ten-pin headers. All bus signals are 3.3 V.
 
 ### Directly mounted TMC2209 modules
 
 Fit each module component-side up, with its **JP4 male header pointing down**
-through the perfboard. J105 pin 1 (VDD) is **J13** and its pin 10 (EN) is
-**J22**. J106 pin 1 is **J27** and its pin 10 is **J36**. Pin numbers increase
+through the perfboard. J105 pin 1 (VDD) is **L23** and its pin 10 (EN) is
+**L32**. J106 pin 1 is **L36** and its pin 10 is **L45**. Pin numbers increase
 left to right in the top view. Both modules sit side by side along the top edge,
 with their motor screw terminals facing toward row A. The additional
 power pins also point down into the perfboard:
 
 | Module mount | Pin 11: +24 V / JP1.6 | Pin 12: GND / JP1.5 |
 | --- | --- | --- |
-| J105 / M2 | C15 | C16 |
-| J106 / M3 | C29 | C30 |
+| J105 / M2 | E25 | E26 |
+| J106 / M3 | E38 | E39 |
 
 The footprints include the **26.67 × 24.13 mm** module bodies and the terminal
 blocks, measured from [Adafruit's official PCB drawing](https://github.com/adafruit/Adafruit-TMC2209-Breakout-PCB).
@@ -257,18 +283,17 @@ Use the module's **OUT+ and OUT−** contacts for the 5 V and ground connections
 
 | J103 pin | Hole, top view | Connection |
 | --- | --- | --- |
-| 1 | AM23 | Buck OUT+ → perfboard 5 V |
-| 2 | AO23 | Buck OUT− → perfboard GND |
-| 3 | AO3 | Buck VIN− → power distribution GND |
-| 4 | AM3 | Buck VIN+ → power distribution 24 V |
+| 1 | BE24 | Buck OUT+ → perfboard 5 V |
+| 2 | BG24 | Buck OUT− → perfboard GND |
+| 3 | BG4 | Buck VIN− → power distribution GND |
+| 4 | BE4 | Buck VIN+ → power distribution 24 V |
 
 Feed **24 V through the existing barrel jack**. Both VIN header pins are
-electrical distribution connections. Route their supply and return to J112,
-then branch separately to C1/M2 and C2/M3. J112 is at **AI12 (+24 V)** and
-**AI14 (GND)**; its two screw contacts accept the external DM542T supply cable.
-Use a two-way 5.08 mm screw terminal, reusing a removed buck terminal block.
-Its underside joints are the star points, not extra connections inside the
-screw clamp. Driver logic grounds join their local power grounds; the
+electrical distribution connections. Route their supply and return to
+**J104.9 / D18 (+24 V)** and **J104.10 / D20 (GND)**, then branch separately to
+C1/M2 and C2/M3. These two contacts accept the external DM542T supply cable.
+Their underside joints are the star points, not extra connections inside the
+screw clamps. Driver logic grounds join their local power grounds; the
 remaining logic ground joins the buck output ground. Follow the specified
 return paths instead of using thin signal-ground wires for motor power.
 The Nucleo 5 V supply remains a separate branch from the buck output;
@@ -276,8 +301,8 @@ J101 carries the Nucleo's 3.3 V output.
 
 ### Reference-switch cables
 
-The reference headers occupy the lower-right area. J108 pin 1 is **AM28**,
-J109 pin 1 is **AM34**, J110 pin 1 is **AP34**, and J111 pin 1 is **AS34**.
+The reference headers occupy the lower-right area. J108 pin 1 is **BF32**,
+J109 pin 1 is **BC41**, J110 pin 1 is **BG41**, and J111 pin 1 is **BK41**.
 Each switch header's adjacent pin 2 is ground. All three reference-signal
 connections stay on the underside. Use the wire table for their REF and GND
 connections.
@@ -310,7 +335,7 @@ interface with the Nucleo's 3.3 V output, not the other way around.
 [DRC.rpt](../exports/DRC.rpt) records KiCad's electrical clearance/connectivity
 and schematic-parity checks. [Verification.txt](../exports/Verification.txt)
 records checks of the saved layout's symbol links, nets, hole grid, wire table
-and harness destinations. The schematic includes J101–J114 and is the
+and harness destinations. The schematic includes J101–J111 and J113 and is the
 electrical reference for this layout. Use **Update PCB from Schematic (F8)**
 as described in the [project guide](../README.md).
 

@@ -27,7 +27,8 @@ BOARD = ROOT / "ProtoMate.kicad_pcb"
 SCHEMATIC = ROOT / "ProtoMate.kicad_sch"
 MODULE_MOUNTS = {"A3": "J105", "A4": "J106"}
 MOUNTED_MODULES = {"U1": "J103", **MODULE_MOUNTS}
-GRID_COLUMNS, GRID_ROWS = 39, 48
+# The purchased 65 x 47 hole board is mounted with its long edge vertical.
+GRID_COLUMNS, GRID_ROWS = 47, 65
 GRID_ORIGIN, GRID_PITCH = 50.8, 2.54
 BOARD_LEFT = BOARD_TOP = round(GRID_ORIGIN - GRID_PITCH / 2, 6)
 BOARD_RIGHT = round(BOARD_LEFT + GRID_COLUMNS * GRID_PITCH, 6)
@@ -65,18 +66,22 @@ def natural(text):
     return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", text)]
 
 
+def row_name(row):
+    letters = ""
+    while row:
+        row, remainder = divmod(row - 1, 26)
+        letters = chr(65 + remainder) + letters
+    return letters
+
+
 def hole(item):
     pos = item.GetPosition()
     x, y = ((pcb.ToMM(n) - GRID_ORIGIN) / GRID_PITCH for n in (pos.x, pos.y))
     require(abs(x - round(x)) < 1e-6 and abs(y - round(y)) < 1e-6,
             f"Off-grid position: {pos}")
     require(0 <= round(x) < GRID_COLUMNS and 0 <= round(y) < GRID_ROWS,
-            "Position outside the 39 x 48 hole field A1:AV39")
-    row, letters = round(y) + 1, ""
-    while row:
-        row, remainder = divmod(row - 1, 26)
-        letters = chr(65 + remainder) + letters
-    return letters + str(round(x) + 1)
+            f"Position outside the {GRID_COLUMNS} x {GRID_ROWS} hole field")
+    return row_name(round(y) + 1) + str(round(x) + 1)
 
 
 def verify(netlist, board):
@@ -86,13 +91,13 @@ def verify(netlist, board):
     require(len(edges) == 4 and corners == {
         (BOARD_LEFT, BOARD_TOP), (BOARD_RIGHT, BOARD_TOP),
         (BOARD_RIGHT, BOARD_BOTTOM), (BOARD_LEFT, BOARD_BOTTOM)},
-        "Board outline differs from the 39 x 48 grid with half-pitch margins")
+        f"Board outline differs from the {GRID_COLUMNS} x {GRID_ROWS} grid with half-pitch margins")
     grid = [item for item in board.GetDrawings()
             if isinstance(item, pcb.PCB_SHAPE) and item.GetLayer() == pcb.Dwgs_User
             and item.GetShape() == pcb.SHAPE_T_CIRCLE]
     require(len(grid) == GRID_COLUMNS * GRID_ROWS and
             len({hole(item) for item in grid}) == GRID_COLUMNS * GRID_ROWS,
-            "Drawing must show all 1872 holes exactly once")
+            f"Drawing must show all {GRID_COLUMNS * GRID_ROWS} holes exactly once")
     document = ET.parse(netlist).getroot()
     components = {c.get("ref"): c for c in document.findall("./components/comp")}
     onboard = {ref: c for ref, c in components.items()
@@ -168,7 +173,7 @@ def verify(netlist, board):
             "DM542T ALM requires pull-up and rising-edge EXTI2")
     for ref, pin, net in (("A2", "ALM+", "M1_ALM"), ("A2", "ALM-", "GND"),
                           ("R30", "1", "+3V3"), ("R30", "2", "M1_ALM"),
-                          ("J114", "1", "M1_ALM"), ("J114", "2", "GND"),
+                          ("J104", "7", "M1_ALM"), ("J104", "8", "GND"),
                           ("J101", "4", "M1_ALM")):
         require(source.get((ref, pin)) == net, f"DM542T alarm connection differs: {ref}.{pin}")
     require(components["R30"].findtext("value") == "4k7", "ALM needs its 4.7k external 3.3 V pull-up")
@@ -197,10 +202,21 @@ def verify(netlist, board):
         require(expected == actual, f"Pin/net mismatch: {ref}")
     require({r for r, f in footprints.items() if f.IsDNP()} == {"R10", "R11", "R12"},
             "Unexpected DNP parts")
-    power_positive = {("J103", "4"), ("J112", "1"), ("J105", "11"),
+    power_positive = {("J103", "4"), ("J104", "9"), ("J105", "11"),
                       ("J106", "11"), ("C1", "1"), ("C2", "1")}
     require({key for key, p in pads.items() if p.GetNetname() == "+24V"} == power_positive,
             "24 V must connect only to the buck VIN, driver power pins and bulk capacitors")
+    dm_terminal = ["+5V", "DM_PUL_N", "+5V", "DM_DIR_N", "+5V", "DM_ENA_N",
+                   "M1_ALM", "GND", "+24V", "GND"]
+    require({pin: p.GetNetname() for (ref, pin), p in pads.items() if ref == "J104"}
+            == {str(i): net for i, net in enumerate(dm_terminal, 1)},
+            "DM542T terminal needs control 1-6, alarm 7/8 and 24 V/GND 9/10")
+    require(footprints["J104"].GetFPIDAsString() ==
+            "ProtoMate_Perfboard:TerminalBlock_1x10_P5.08mm_DM542T"
+            and footprints["J104"].GetOrientationDegrees() == 0,
+            "DM542T needs a ten-way 5.08 mm screw terminal facing the top edge")
+    require("J112" not in components and "J114" not in components,
+            "DM542T power and alarm connections must be combined in J104")
 
     # TMC modules land on JP4 and JP1's two power contacts. Winding terminals
     # and the buck's barrel jack remain on the modules.
@@ -240,12 +256,13 @@ def verify(netlist, board):
     # Wires.csv is an assembly schedule, maintained alongside routing changes.
     wires = read_csv("Wires.csv")
     # Power branches must have dedicated copper returns, not a route through
-    # the signal-ground tree. J112's two solder joints are the star points.
+    # the signal-ground tree. J104.9/10 are the power star points.
     power_links = set()
     for buck_pin, terminal_pin, module_pin in (("4", "1", "11"), ("3", "2", "12")):
-        power_links.add(frozenset((("J103", buck_pin), ("J112", terminal_pin))))
+        star_pin = str(int(terminal_pin) + 8)
+        power_links.add(frozenset((("J103", buck_pin), ("J104", star_pin))))
         for cap, module in (("C1", "J105"), ("C2", "J106")):
-            power_links.add(frozenset((("J112", terminal_pin), (cap, terminal_pin))))
+            power_links.add(frozenset((("J104", star_pin), (cap, terminal_pin))))
             power_links.add(frozenset(((cap, terminal_pin), (module, module_pin))))
     power_links.add(frozenset((("J103", "3"), ("J103", "2"))))
     found_power_links = set()
@@ -271,8 +288,8 @@ def verify(netlist, board):
         graph[b].add(a)
         passages = list(filter(None, wire["side_change_holes"].split(", ")))
         require((wire["sides"] == "bottom wire" and not passages) or
-                (wire["sides"] == "bottom wire + top jumper" and len(passages) == 2),
-                f"Wire must stay underneath or use one crossover: {wire['wire']}")
+                (wire["sides"] == "bottom wire + top jumper" and len(passages) in (2, 4)),
+                f"Wire must stay underneath or list each crossover's pair of holes: {wire['wire']}")
         for passage in passages:
             require(vias.get(passage) == wire["net"],
                     f"Wrong wire passage: {wire['wire']}")
@@ -338,13 +355,18 @@ def verify(netlist, board):
             "Controller harness needs each signal/supply once and nine deliberate ground returns")
 
     report = [f"KiCad {pcb.GetBuildVersion()}: native project verification",
-              "PASS: one continuous 39 x 48 hole grid (A1:AV39), 2.54 mm pitch, 1872 holes.",
-              "PASS: nominal outline 99.06 x 121.92 mm; outer hole-centre span 96.52 x 119.38 mm.",
+              f"PASS: one continuous {GRID_COLUMNS} x {GRID_ROWS} hole grid "
+              f"(A1:{row_name(GRID_ROWS)}{GRID_COLUMNS}), {GRID_PITCH} mm pitch, "
+              f"{GRID_COLUMNS * GRID_ROWS} holes.",
+              f"PASS: nominal outline {GRID_COLUMNS * GRID_PITCH:.2f} x {GRID_ROWS * GRID_PITCH:.2f} mm; "
+              f"outer hole-centre span {(GRID_COLUMNS - 1) * GRID_PITCH:.2f} x "
+              f"{(GRID_ROWS - 1) * GRID_PITCH:.2f} mm.",
               f"PASS: {len(footprints)} footprints linked to schematic symbols; values, library IDs and pins match.",
               f"PASS: {len(pads)} unique component holes and {len(vias)} wire passages on the 2.54 mm grid.",
               f"PASS: {len(wires)} scheduled connections span all {len(netpads)} connected nets.",
               f"PASS: {sum(w['sides'] == 'bottom wire' for w in wires)} underside-only wires; "
-              f"{sum(w['sides'] != 'bottom wire' for w in wires)} single crossovers with dedicated free holes.",
+              f"{sum(w['sides'] != 'bottom wire' for w in wires)} wires use "
+              f"{len(vias) // 2} crossovers with dedicated free holes.",
               "PASS: at most three scheduled wire ends per component solder joint.",
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
               "PASS: four Nucleo harnesses; 21 distinct signal/supply contacts and nine ground returns.",
@@ -354,7 +376,8 @@ def verify(netlist, board):
               "PASS: DM542T ALM uses PF2/CN9.17, 4.7k pull-up to 3.3 V and GND return; high = fault/open.",
               "PASS: shared USART2 bus, 1k TX resistor, RX FIFO and driver address straps 0/1 match firmware.",
               "PASS: all three module bodies fit; direct mounting contacts match system wiring.",
-              "PASS: buck VIN feeds J112 and separate TMC power branches; all 11 power links are underneath.",
+              "PASS: J104 combines DM542T control 1-6, ALM 7/8 and 24 V/GND 9/10 in one outward-facing screw terminal.",
+              "PASS: buck VIN feeds J104.9/10 and separate TMC power branches; all 11 power links are underneath.",
               "PASS: TMC logic grounds join local power returns; motor current has dedicated return wiring.",
               "PASS: 24 V appears only on designated power pads; C1/C2 polarity and module power contacts match.",
               "PASS: all parts on top; R10-R12 are DNP; 24 V and logic rails remain distinct.",
@@ -388,6 +411,11 @@ def assembly_pdf(tmp):
     colors.mkdir(parents=True)
     shutil.copyfile(ROOT / "tools/perfboard-print.json", colors / "perfboard-print.json")
     env = dict(os.environ, KICAD_CONFIG_HOME=str(config))
+    # Keep page coordinates at 1:1 for both faces. Without a drawing sheet,
+    # KiCad 10 offsets mirrored plots and can clip headings on portrait pages.
+    # An empty sheet preserves the origin without adding a frame or title block.
+    sheet = tmp / "assembly.kicad_wks"
+    sheet.write_text('(kicad_wks (version 20231118) (generator "pl_editor"))\n')
     views = [
         ("COMPONENT PLACEMENT - TOP VIEW", "F.Fab,F.SilkS,Dwgs.User,Cmts.User,Edge.Cuts", ["--sketch-pads-on-fab-layers"]),
         ("TOP JUMPERS - COMPONENT SIDE", "F.Cu,F.SilkS,Dwgs.User,Cmts.User,Edge.Cuts", []),
@@ -404,7 +432,8 @@ def assembly_pdf(tmp):
         pcb.SaveBoard(str(path), board)
         pdfs.append(path.with_suffix(".pdf"))
         run("kicad-cli", "pcb", "export", "pdf", "--theme", "perfboard-print",
-            "--mode-single", "--layers", layers, "-o", pdfs[-1], *flags, path, env=env)
+            "--mode-single", "--scale", "1", "--include-border-title", "--drawing-sheet", sheet,
+            "--layers", layers, "-o", pdfs[-1], *flags, path, env=env)
     run("pdfunite", *pdfs, EXPORTS / "Assembly.pdf")
 
 

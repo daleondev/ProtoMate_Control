@@ -1,83 +1,83 @@
 Perfboard header,Pin,Hole (top view),Net,Schematic destination reference,Destination contact,Note
-J101,1,I9,M1_STEP,A1,CN10.29,PA0 / TIM2_CH1 AF1
-J101,2,I8,GND,A1,CN11.8,Return for STEP on pin 1; twist with STEP; common Nucleo ground bus
-J101,3,H9,M1_DIR,A1,CN10.26,PE12 / M1 DIR
-J101,4,H8,M1_ALM,A1,CN9.17,PF2 / EXTI2; high = fault or disconnected
-J101,5,G9,M2_STEP,A1,CN10.32,PB10 / TIM2_CH3 AF1
-J101,6,G8,GND,A1,CN11.8,Return for STEP on pin 5; twist with STEP; common Nucleo ground bus
-J101,7,F9,M2_DIR,A1,CN10.10,PE13 / M2 DIR
-J101,8,F8,+3V3,A1,CN8.7,
-J101,9,E9,M3_STEP,A1,CN10.34,PB11 / TIM2_CH4 AF1
-J101,10,E8,GND,A1,CN11.8,Return for STEP on pin 9; twist with STEP; common Nucleo ground bus
-J101,11,D9,M3_DIR,A1,CN10.8,PE14 / M3 DIR
-J101,12,D8,STEPPERS_EN_N,A1,CN10.30,"PE15 / shared enable, active low"
-J102,1,Z37,M1_ENC_A,A1,CN7.19,
-J102,2,Z38,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J102,3,AA37,M1_ENC_B,A1,CN7.13,
-J102,4,AA38,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J102,5,AB37,M1_ENC_Z,A1,CN12.17,
-J102,6,AB38,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
-J103,1,AM23,+5V,U1,OUT+,Direct U1 output pin; no cable
-J103,2,AO23,GND,U1,OUT-,Direct U1 output pin; no cable
-J103,3,AO3,GND,U1,IN-,Direct U1 VIN pin; dedicated underside power distribution
-J103,4,AM3,+24V,U1,IN+,Direct U1 VIN pin; dedicated underside power distribution
-J104,1,M2,+5V,A2,PUL+,
-J104,2,M3,DM_PUL_N,A2,PUL-,
-J104,3,M4,+5V,A2,DIR+,
-J104,4,M5,DM_DIR_N,A2,DIR-,
-J104,5,M6,+5V,A2,ENA+,
-J104,6,M7,DM_ENA_N,A2,ENA-,
-J105,1,J13,+3V3,A3,JP4.1,Direct soldered module header: A3 VDD; no cable
-J105,2,J14,GND,A3,JP4.2,Direct soldered module header: A3 GND; no cable
-J105,3,J15,M2_DIR,A3,JP4.3,Direct soldered module header: A3 DIR; no cable
-J105,4,J16,M2_STEP,A3,JP4.4,Direct soldered module header: A3 STEP; no cable
-J105,5,J17,GND,A3,JP4.5,MS1 address strap
-J105,6,J18,GND,A3,JP4.6,MS2 address strap
-J105,7,J19,M2_DIAG,A3,JP4.7,Active-high driver fault to Nucleo
-J105,8,J20,M2_INDEX,A3,JP4.8,Normal electrical INDEX to Nucleo; both-edge EXTI
-J105,9,J21,TMC_UART_RX,A3,JP4.9,Shared 3.3 V UART bus
-J105,10,J22,STEPPERS_EN_N,A3,JP4.10,Direct soldered module header: A3 EN; no cable
-J105,11,C15,+24V,A3,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
-J105,12,C16,GND,A3,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
-J106,1,J27,+3V3,A4,JP4.1,Direct soldered module header: A4 VDD; no cable
-J106,2,J28,GND,A4,JP4.2,Direct soldered module header: A4 GND; no cable
-J106,3,J29,M3_DIR,A4,JP4.3,Direct soldered module header: A4 DIR; no cable
-J106,4,J30,M3_STEP,A4,JP4.4,Direct soldered module header: A4 STEP; no cable
-J106,5,J31,+3V3,A4,JP4.5,MS1 address strap
-J106,6,J32,GND,A4,JP4.6,MS2 address strap
-J106,7,J33,M3_DIAG,A4,JP4.7,Active-high driver fault to Nucleo
-J106,8,J34,M3_INDEX,A4,JP4.8,Normal electrical INDEX to Nucleo; both-edge EXTI
-J106,9,J35,TMC_UART_RX,A4,JP4.9,Shared 3.3 V UART bus
-J106,10,J36,STEPPERS_EN_N,A4,JP4.10,Direct soldered module header: A4 EN; no cable
-J106,11,C29,+24V,A4,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
-J106,12,C30,GND,A4,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
-J107,1,N11,GND,J2,1,
-J107,2,N12,ENC_A_P,J2,2,
-J107,3,N13,ENC_A_N,J2,3,
-J107,4,N14,ENC_B_P,J2,4,
-J107,5,N15,ENC_B_N,J2,5,
-J107,6,N16,ENC_Z_P,J2,6,
-J107,7,N17,ENC_Z_N,J2,7,
-J107,8,N18,+5V,J2,8,
-J108,1,AM28,M1_REF,A1,CN10.20,Reference input; internal 3.3 V pull-up
-J108,2,AN28,M2_REF,A1,CN10.18,Reference input; internal 3.3 V pull-up
-J108,3,AO28,M3_REF,A1,CN10.24,Reference input; internal 3.3 V pull-up
-J108,4,AP28,GND,A1,CN10.22,Shared logic return; join at Nucleo ground bus; no motor supply current
-J109,1,AM34,M1_REF,SW1,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J109,2,AM35,GND,SW1,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J110,1,AP34,M2_REF,SW2,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J110,2,AP35,GND,SW2,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J111,1,AS34,M3_REF,SW3,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J111,2,AS35,GND,SW3,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
-J112,1,AI12,+24V,A2,+Vdc,DM542T power cable; underside solder joint is the distribution star point
-J112,2,AI14,GND,A2,GND,DM542T power cable; underside solder joint is the distribution star point
-J113,1,S29,TMC_UART_TX,A1,CN9.6,PD5 USART2 TX via R29 1k
-J113,2,R29,GND,A1,CN11.8,Shared logic return; join at Nucleo ground bus; no motor supply current
-J113,3,S30,TMC_UART_RX,A1,CN9.4,PD6 USART2 RX / shared bus
-J113,4,R30,M2_INDEX,A1,CN9.25,PD0 M2 INDEX; both edges
-J113,5,S31,M2_DIAG,A1,CN9.8,PD4 M2 DIAG
-J113,6,R31,M3_INDEX,A1,CN9.27,PD1 M3 INDEX; both edges
-J113,7,S32,M3_DIAG,A1,CN9.10,PD3 M3 DIAG
-J113,8,R32,GND,A1,CN11.8,Shared logic return; join at Nucleo ground bus; no motor supply current
-J114,1,C2,M1_ALM,A2,ALM+,Normally conducting alarm output; 3.3 V pull-up R30
-J114,2,C3,GND,A2,ALM-,Alarm return; pair with ALM+
+J101,1,O10,M1_STEP,A1,CN10.29,PA0 / TIM2_CH1 AF1
+J101,2,O9,GND,A1,CN11.8,Return for STEP on pin 1; twist with STEP; common Nucleo ground bus
+J101,3,N10,M1_DIR,A1,CN10.26,PE12 / M1 DIR
+J101,4,N9,M1_ALM,A1,CN9.17,PF2 / EXTI2; high = fault or disconnected
+J101,5,M10,M2_STEP,A1,CN10.32,PB10 / TIM2_CH3 AF1
+J101,6,M9,GND,A1,CN11.8,Return for STEP on pin 5; twist with STEP; common Nucleo ground bus
+J101,7,L10,M2_DIR,A1,CN10.10,PE13 / M2 DIR
+J101,8,L9,+3V3,A1,CN8.7,
+J101,9,K10,M3_STEP,A1,CN10.34,PB11 / TIM2_CH4 AF1
+J101,10,K9,GND,A1,CN11.8,Return for STEP on pin 9; twist with STEP; common Nucleo ground bus
+J101,11,J10,M3_DIR,A1,CN10.8,PE14 / M3 DIR
+J101,12,J9,STEPPERS_EN_N,A1,CN10.30,"PE15 / shared enable, active low"
+J102,1,AO45,M1_ENC_A,A1,CN7.19,
+J102,2,AO46,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,3,AP45,M1_ENC_B,A1,CN7.13,
+J102,4,AP46,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J102,5,AQ45,M1_ENC_Z,A1,CN12.17,
+J102,6,AQ46,GND,A1,CN11.8,Common Nucleo ground; join paired ground returns at controller end
+J103,1,BC24,+5V,U1,OUT+,Direct U1 output pin; no cable
+J103,2,BE24,GND,U1,OUT-,Direct U1 output pin; no cable
+J103,3,BE4,GND,U1,IN-,Direct U1 VIN pin; dedicated underside power distribution
+J103,4,BC4,+24V,U1,IN+,Direct U1 VIN pin; dedicated underside power distribution
+J104,1,D2,+5V,A2,PUL+,
+J104,2,D4,DM_PUL_N,A2,PUL-,
+J104,3,D6,+5V,A2,DIR+,
+J104,4,D8,DM_DIR_N,A2,DIR-,
+J104,5,D10,+5V,A2,ENA+,
+J104,6,D12,DM_ENA_N,A2,ENA-,
+J104,7,D14,M1_ALM,A2,ALM+,Normally conducting alarm output; 3.3 V pull-up R30
+J104,8,D16,GND,A2,ALM-,Alarm return; pair with ALM+
+J104,9,D18,+24V,A2,+Vdc,DM542T power cable; underside solder joint is the distribution star point
+J104,10,D20,GND,A2,GND,DM542T power cable; underside solder joint is the distribution star point
+J105,1,L23,+3V3,A3,JP4.1,Direct soldered module header: A3 VDD; no cable
+J105,2,L24,GND,A3,JP4.2,Direct soldered module header: A3 GND; no cable
+J105,3,L25,M2_DIR,A3,JP4.3,Direct soldered module header: A3 DIR; no cable
+J105,4,L26,M2_STEP,A3,JP4.4,Direct soldered module header: A3 STEP; no cable
+J105,5,L27,GND,A3,JP4.5,MS1 address strap
+J105,6,L28,GND,A3,JP4.6,MS2 address strap
+J105,7,L29,M2_DIAG,A3,JP4.7,Active-high driver fault to Nucleo
+J105,8,L30,M2_INDEX,A3,JP4.8,Normal electrical INDEX to Nucleo; both-edge EXTI
+J105,9,L31,TMC_UART_RX,A3,JP4.9,Shared 3.3 V UART bus
+J105,10,L32,STEPPERS_EN_N,A3,JP4.10,Direct soldered module header: A3 EN; no cable
+J105,11,E25,+24V,A3,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
+J105,12,E26,GND,A3,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
+J106,1,L36,+3V3,A4,JP4.1,Direct soldered module header: A4 VDD; no cable
+J106,2,L37,GND,A4,JP4.2,Direct soldered module header: A4 GND; no cable
+J106,3,L38,M3_DIR,A4,JP4.3,Direct soldered module header: A4 DIR; no cable
+J106,4,L39,M3_STEP,A4,JP4.4,Direct soldered module header: A4 STEP; no cable
+J106,5,L40,+3V3,A4,JP4.5,MS1 address strap
+J106,6,L41,GND,A4,JP4.6,MS2 address strap
+J106,7,L42,M3_DIAG,A4,JP4.7,Active-high driver fault to Nucleo
+J106,8,L43,M3_INDEX,A4,JP4.8,Normal electrical INDEX to Nucleo; both-edge EXTI
+J106,9,L44,TMC_UART_RX,A4,JP4.9,Shared 3.3 V UART bus
+J106,10,L45,STEPPERS_EN_N,A4,JP4.10,Direct soldered module header: A4 EN; no cable
+J106,11,E38,+24V,A4,JP1.6,Direct two-pin power header; no cable; separate from JP4 control header
+J106,12,E39,GND,A4,JP1.5,Direct two-pin power header; no cable; separate from JP4 control header
+J107,1,U17,GND,J2,1,
+J107,2,U18,ENC_A_P,J2,2,
+J107,3,U19,ENC_A_N,J2,3,
+J107,4,U20,ENC_B_P,J2,4,
+J107,5,U21,ENC_B_N,J2,5,
+J107,6,U22,ENC_Z_P,J2,6,
+J107,7,U23,ENC_Z_N,J2,7,
+J107,8,U24,+5V,J2,8,
+J108,1,BF32,M1_REF,A1,CN10.20,Reference input; internal 3.3 V pull-up
+J108,2,BG32,M2_REF,A1,CN10.18,Reference input; internal 3.3 V pull-up
+J108,3,BH32,M3_REF,A1,CN10.24,Reference input; internal 3.3 V pull-up
+J108,4,BI32,GND,A1,CN10.22,Shared logic return; join at Nucleo ground bus; no motor supply current
+J109,1,BC41,M1_REF,SW1,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J109,2,BC42,GND,SW1,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J110,1,BG41,M2_REF,SW2,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J110,2,BG42,GND,SW2,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J111,1,BK41,M3_REF,SW3,NC,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J111,2,BK42,GND,SW3,COM,"Functional switch contact, not connector pin number; verify continuity before wiring; no supply"
+J113,1,W36,TMC_UART_TX,A1,CN9.6,PD5 USART2 TX via R29 1k
+J113,2,V36,GND,A1,CN11.8,Shared logic return; join at Nucleo ground bus; no motor supply current
+J113,3,W37,TMC_UART_RX,A1,CN9.4,PD6 USART2 RX / shared bus
+J113,4,V37,M2_INDEX,A1,CN9.25,PD0 M2 INDEX; both edges
+J113,5,W38,M2_DIAG,A1,CN9.8,PD4 M2 DIAG
+J113,6,V38,M3_INDEX,A1,CN9.27,PD1 M3 INDEX; both edges
+J113,7,W39,M3_DIAG,A1,CN9.10,PD3 M3 DIAG
+J113,8,V39,GND,A1,CN11.8,Shared logic return; join at Nucleo ground bus; no motor supply current

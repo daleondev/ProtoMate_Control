@@ -58,7 +58,7 @@ HAL or Linux debugger. Startup diagnostics and the boot message appear on the te
 Open **[hardware/ProtoMate.kicad_pro](hardware/ProtoMate.kicad_pro)** in
 **KiCad 10**. One project contains the complete system schematic and its linked
 perfboard layout. Seven sheets cover controller/power, M1/DM542T, M2/M3/TMC2209,
-M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 51 footprints
+M1 encoder, QSPI/SD storage, perfboard cable headers and reference switches. All 49 footprints
 are linked to schematic symbols; external equipment is marked **Exclude from
 board**. Symbols and footprints use project-local libraries. See the
 [hardware guide](hardware/README.md) for the structure and F8 update workflow.
@@ -75,7 +75,7 @@ The supply arrangement is **24 V DC input**, with the user's **QIQIAZI
 24/12 V-to-5 V, 5 A buck converter** generating the logic/encoder supply.
 The buck’s barrel jack is the 24 V system inlet. Its VIN header pins feed
 separate underside power/return branches to both TMC modules and the
-DM542T power terminal J112.
+DM542T terminal J104.9/10.
 Connect its 5 V output to Nucleo **CN11 pin 6 (5V_EXT)** and ground to
 **CN11 pin 8**; select **JP2 pins 5–6 (EXT)**. The Nucleo's 3.3 V output on
 **CN8 pin 7** supplies the TMC logic, encoder buffer and storage. The board's
@@ -115,21 +115,24 @@ python3 hardware/tools/refresh.py --check-only
 ## KiCad perfboard layout
 
 The same project's [perfboard layout](hardware/ProtoMate.kicad_pcb)
-provides a placement and hand-wiring map for one continuous **39-column × 48-row
-individual-pad board with 2.54 mm pitch** (holes A1–AV39). The outer hole centres
-span 96.52 × 119.38 mm. It contains six Diotec 2N2222A stages (three for
+provides a placement and hand-wiring map for the **65 × 47-hole individual-pad
+board, oriented as 47 columns × 65 rows with 2.54 mm pitch** (holes A1–BM47).
+The outer hole centres span 116.84 × 162.56 mm. Components are spread across the board, with separate areas for motor interfaces,
+encoder circuitry and power. The ten-way DM542T screw terminal faces outward
+along the top edge beside both TMC2209 modules.
+It contains six Diotec 2N2222A stages (three for
 the DM542T and three for encoder voltage conversion), the AM26C32 encoder
 receiver, SN74HC126N buffer, passive components and headers. The two Adafruit
 TMC2209 modules mount directly at J105/J106 through soldered ten-pin control
 headers and separate two-pin power headers. Their four-way motor terminals
 remain on the modules. C1/C2 provide local bulk capacitance on the perfboard.
-The Nucleo and DM542T remain external; J112 supplies the DM542T’s 24 V/GND
-cable. The buck mounts in the lower-left area at J103, using all four
+The Nucleo and DM542T remain external. J104 combines all DM542T connections:
+1–6 = PUL+/−, DIR+/−, ENA+/−; 7/8 = ALM+/−; 9/10 = +24 V/GND. The buck mounts in the lower-left area at J103, using all four
 input/output pins. Its barrel jack receives 24 V. The 63 × 27 mm body follows the supplied STEP
 model; the mounting uses a nominal 5.08 mm pair pitch and 50.8 mm separation.
 
-Hand wiring uses 100 underside-only connections and 39 short top-side
-crossovers through dedicated free holes; all wire ends are soldered underneath.
+Hand wiring prioritizes underside routes, with insulated top crossovers through
+dedicated free holes; all wire ends are soldered underneath.
 The assembly guide includes the soldering order and header orientation.
 
 Use [Assembly.pdf](hardware/exports/Assembly.pdf) for placement, top jumpers
@@ -1044,8 +1047,8 @@ See [the V4.0 manual, sections 3.2, 4.2 and 11](https://www.omc-stepperonline.co
 
 | Connection | Assignment |
 | --- | --- |
-| ALM+ | J114.1 → `M1_ALM` → J101.4 → **PF2 / CN9 pin 17 / D70** |
-| ALM− | J114.2 → GND |
+| ALM+ | J104.7 → `M1_ALM` → J101.4 → **PF2 / CN9 pin 17 / D70** |
+| ALM− | J104.8 → GND |
 | Nucleo ground return | J101.2/6/10 → CN11 pin 8 / GND (shared returns) |
 | R30 | **4.7 kΩ from M1_ALM to 3.3 V**, about 0.7 mA when conducting |
 | CubeMX / HAL | GPIO input, pull-up, rising-edge EXTI2, interrupt priority 5 |
@@ -1072,8 +1075,8 @@ and re-home. Recovery also verifies both TMC2209s. **Normal firmware now require
 the DM542T ALM connection as well as both TMC2209s.** The single-TMC bench images
 only own their selected TMC DIAG input and do not require M1.
 
-On the 39 × 48 perfboard, J114 uses C2/C3, J101.4 uses H8, and R30 uses
-B6 (+3.3 V) / B2 (ALM). The ALM return shares the motion harness ground; see [the harness and assembly tables](hardware/assembly/README.md).
+On the 47-column × 65-row perfboard, J104.7/8 use D14/D16, J101.4 uses N9, and R30 uses
+H7 (+3.3 V) / H3 (ALM). The ALM return shares the motion harness ground; see [the harness and assembly tables](hardware/assembly/README.md).
 
 ### TMC2209 UART configuration and diagnostics
 
