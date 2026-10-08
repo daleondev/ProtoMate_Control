@@ -5,6 +5,10 @@
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/stm32/FaultShutdown.hpp"
 #include "hal/drivers/impl/stm32/QuadratureEncoder.hpp"
+// ThreadX waits for work inside the lowest-priority PendSV handler. Its idle
+// loop can only be interrupted by a strictly higher-priority HAL timebase.
+static_assert(TICK_INT_PRIORITY < (1UL << __NVIC_PRIO_BITS) - 1UL,
+              "TIM6 must preempt ThreadX PendSV to keep time and sampling alive while idle");
 #endif
 
 namespace

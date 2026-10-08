@@ -118,6 +118,11 @@ add_subdirectory(platform/hal)
 add_subdirectory(platform/runtime)
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_subdirectory(platform/hal/tests)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_test(NAME platform.timebase_priority_guard
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/cmake/tests/verify_timebase_priority_test.py
+            --source ${PROJECT_SOURCE_DIR} --cmake ${CMAKE_COMMAND})
+    set_tests_properties(platform.timebase_priority_guard PROPERTIES TIMEOUT 30)
 endif()
 
 if(HAL_HARDWARE_MOTOR_TEST)

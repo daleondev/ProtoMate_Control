@@ -38,6 +38,13 @@ function(verify_cubemx_generation)
             "Cortex fatal exceptions must enter the motor shutdown/panic path.")
     endforeach()
 
+    cubemx_require_text("${cubemx_directory}/CubeMX.ioc"
+        "NVIC.TIM6_DAC_IRQn=true\\:14\\:0"
+        "TIM6 must preempt ThreadX's lowest-priority PendSV idle handler.")
+    cubemx_require_text("${cubemx_directory}/Inc/stm32h7xx_hal_conf.h"
+        "TICK_INT_PRIORITY            (14UL)"
+        "The HAL tick priority must match CubeMX and preempt ThreadX idle.")
+
     set(linker_script "${cubemx_directory}/STM32H753XX_FLASH.ld")
     foreach(assignment "PF2.GPIO_Label=M1_ALM" "PF2.Signal=GPXTI2"
                        "PF2.GPIO_PuPd=GPIO_PULLUP"

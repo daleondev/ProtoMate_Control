@@ -897,6 +897,15 @@ coalescing delayed service. Callbacks must be short and nonblocking and must not
 call encoder methods. TIM3 still counts edges and handles count extension;
 there is no interrupt per encoder edge and STEP timing does not use this callback.
 
+TIM6 uses interrupt priority **14**, above ThreadX's lowest-priority PendSV
+handler (15). ThreadX waits for work inside PendSV while idle; giving TIM6
+priority 15 starves the HAL tick and encoder sampling while application threads
+sleep. CubeMX's TIM6 priority and `TICK_INT_PRIORITY` must both remain 14.
+A compile-time assertion and regeneration guards protect this setting;
+`platform.timebase_priority_guard` tests valid and regressed configurations
+using disposable copies. The correction was established by Debug and Release
+bare-board hardware tests in the NUCLEO-H753ZI template with the same runtime.
+
 Use `hal::board::createStepperStepOutput(generator, MotorId::Motor1/Motor2/Motor3)`,
 `hal::board::createStepperDirectionOutput(MotorId::Motor1/Motor2/Motor3)` and
 `hal::board::createSteppersEnableOutput()` for the assigned motor outputs;
