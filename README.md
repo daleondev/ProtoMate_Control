@@ -1133,6 +1133,8 @@ reject unready drivers and check for faults during movement, homing and coordina
 operations. Callback teardown synchronizes with in-flight publications.
 
 `configuration()` returns an optional `IConfigurableStepperDriver` capability.
+That interface extends `IStepperDriver`; `Tmc2209Driver` inherits it directly,
+while `Dm542tDriver` inherits only `IStepperDriver`.
 M1 has none; M2/M3 expose settings and cached UART diagnostics through it.
 Configuration validates motor current limits, Z holding current, matching microsteps
 and normal INDEX operation. Staging settings leaves the driver unready until explicit

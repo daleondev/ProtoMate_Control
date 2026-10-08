@@ -2,7 +2,7 @@
 
 #include "AxisConversion.hpp"
 #include "StepperMotor.hpp"
-#include "hal/devices/itf/IStepperDriver.hpp"
+#include "hal/devices/itf/IConfigurableStepperDriver.hpp"
 
 #include <array>
 #include <deque>

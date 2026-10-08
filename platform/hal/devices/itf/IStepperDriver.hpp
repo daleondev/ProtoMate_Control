@@ -1,12 +1,14 @@
 #pragma once
 
-#include "IConfigurableStepperDriver.hpp"
+#include "hal/utilities/Result.hpp"
 
 #include <functional>
 #include <string_view>
 
 namespace hal::device
 {
+    class IConfigurableStepperDriver;
+
     class IStepperDriver
     {
       public:

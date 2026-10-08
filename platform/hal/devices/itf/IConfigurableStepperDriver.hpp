@@ -1,15 +1,15 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "IStepperDriver.hpp"
 
 #include <cstdint>
 #include <optional>
 
 namespace hal::device
 {
-    // Optional configuration/telemetry capability of our programmable drivers.
+    // Stepper driver with an optional configuration/telemetry capability.
     // GPIO-only drivers do not implement it. No raw UART is exposed to callers.
-    class IConfigurableStepperDriver
+    class IConfigurableStepperDriver : public IStepperDriver
     {
       public:
         enum class Mode { SpreadCycle, StealthChop };
@@ -46,7 +46,8 @@ namespace hal::device
             std::uint8_t address;
             std::uint16_t nominal_run_milliamps{}, nominal_hold_milliamps{};
         };
-        virtual ~IConfigurableStepperDriver() = default;
+        ~IConfigurableStepperDriver() override = default;
+        IConfigurableStepperDriver* configuration() noexcept final { return this; }
         virtual Snapshot snapshot() const = 0; // Cached; no UART transaction.
         // Disabled only. Validate and stage settings, leaving the driver unready.
         // Explicit initialize() applies/verifies them. Microsteps must continue
