@@ -1,3 +1,4 @@
+#include "hal/tests/support/SignalOnlyDriver.hpp"
 #include "clock_reference.hpp"
 #include "control/StepperMotor.hpp"
 #include "hal/board/board.hpp"
@@ -509,7 +510,7 @@ namespace
             std::array<std::unique_ptr<StepperMotor>, 3> motors;
             for (unsigned i = 0; i < 3; ++i) {
                 motors[i] = std::make_unique<StepperMotor>(
-                  static_cast<hal::board::MotorId>(i), 0_deg, 1.8_deg, 16U, m_generator);
+                  static_cast<hal::board::MotorId>(i), 0_deg, 1.8_deg, 16U, m_generator, hal::test::signalOnlyDriver());
                 if (!motors[i]->setMotionDefaults({ 1440_deg_s2, 2160_deg_s2, 14400_deg_s3 }))
                     return false;
             }
@@ -610,8 +611,8 @@ namespace
             using enum StepperMotor::Result;
             // Backward motion is permitted with open reference inputs, so the
             // bare-board bench needs no switch jumpers. Drivers stay disabled.
-            StepperMotor first{ hal::board::MotorId::Motor2, 0_deg, 1.8_deg, 16U, m_generator };
-            StepperMotor second{ hal::board::MotorId::Motor3, 0_deg, 1.8_deg, 16U, m_generator };
+            StepperMotor first{ hal::board::MotorId::Motor2, 0_deg, 1.8_deg, 16U, m_generator, hal::test::signalOnlyDriver() };
+            StepperMotor second{ hal::board::MotorId::Motor3, 0_deg, 1.8_deg, 16U, m_generator, hal::test::signalOnlyDriver() };
             if (!m_generator->start())
                 return false;
             auto a{ first.moveRel(-90_deg, 300_rpm) };

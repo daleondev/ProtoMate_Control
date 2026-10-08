@@ -541,16 +541,21 @@ until the first generator and all its views are released.
   refill underrun also stops the group and latches a fault. Recover explicitly
   with `stop()` then `start()`; axes still need explicit starts afterward.
 
-The application API follows this ownership pattern:
+The application API follows this ownership pattern (the controller also installs
+the shared shutdown callbacks and manages enable):
 
 ```cpp
 using namespace pnm::units::literals;
 using enum hal::board::MotorId;
 auto generator = hal::board::createStepperGenerator();
 if (!generator) throw std::runtime_error("step generator unavailable");
-StepperMotor m1{Motor1, 135_deg, 1.8_deg, 16U, generator};
-StepperMotor m2{Motor2, 135_deg, 1.8_deg, 16U, generator};
-StepperMotor m3{Motor3, 135_deg, 1.8_deg, 16U, generator};
+auto enable = hal::board::createSteppersEnableOutput();
+auto drivers = hal::board::createStepperDrivers({16U, 16U, 16U}, enable);
+StepperMotor m1{Motor1, 135_deg, 1.8_deg, 16U, generator, drivers[0]};
+StepperMotor m2{Motor2, 135_deg, 1.8_deg, 16U, generator, drivers[1]};
+StepperMotor m3{Motor3, 135_deg, 1.8_deg, 16U, generator, drivers[2]};
+for (auto& driver : drivers)
+    if (!driver || !driver->initialize()) throw std::runtime_error("driver unavailable");
 if (!generator->start()) throw std::runtime_error("step timebase failed");
 
 // After the controller enables the drivers and observes their settling time:
@@ -641,7 +646,7 @@ nonblocking and bounded in ISR context. Invalid timing stops the generator;
 retired providers are released by the calling thread after the HAL unlocks.
 
 `StepperMotor` takes the reference-switch coordinate as its second constructor
-argument: `StepperMotor{Motor1, 135_deg, 1.8_deg, 16U, generator}`. The current
+argument: `StepperMotor{Motor1, 135_deg, 1.8_deg, 16U, generator, driver}`. The current
 `main.cpp` configures 135° for each motor. Calling `reference()` performs a
 switch reference sequence; it does not enable the drivers or start the shared
 generator. Defaults are 5 rpm for seeking/backing off, 0.5 rpm for the second
@@ -705,8 +710,8 @@ into motor-shaft angle, signed angular velocity and validity. Gearing and joint
 coordinates remain the responsibility of `AxisConversion`.
 
 `MotionController` creates each provider through the board factory and injects
-it as the sixth `StepperMotor` constructor argument. The five-argument convenience
-constructor uses that same factory. Providers are created stopped; the motor
+it as the seventh `StepperMotor` constructor argument, after the required driver.
+Omitting feedback uses that same factory. Providers are created stopped; the motor
 subscribes and starts observation, supplies STEP direction/timing hints and asks
 the provider to rebase after homing. One common callback updates the motor's
 measured state; the motor contains no encoder/INDEX conversion branches.
@@ -1103,6 +1108,43 @@ only own their selected TMC DIAG input and do not require M1.
 On the 47-column × 65-row perfboard, J104.7/8 use D14/D16, J101.4 uses Y3, and R30 uses
 H18 (+3.3 V) / H14 (ALM). The ALM return shares the motion harness ground; see [the harness and assembly tables](hardware/assembly/README.md).
 
+### Driver abstraction and fault handling
+
+Each `StepperMotor` owns an injected
+[`IStepperDriver`](platform/hal/devices/itf/IStepperDriver.hpp), alongside its
+`IMotorFeedback`. `hal::board::createStepperDrivers()` creates M1's
+`Dm542tDriver` and M2/M3's `Tmc2209Driver`, sharing one serialized `Tmc2209Bus`.
+The bus prepares both UART addresses before initialization reads. Factory creation
+does not initialize or enable the drivers. Initialization and recovery are
+coordinated by `MotionController` while the shared enable remains high.
+
+The common driver interface provides cached readiness/fault status, explicit
+initialization/recovery, verification, periodic service and a fault callback.
+ALM and DIAG use the same latched fault handling; a released input never clears
+the latch automatically. DM542T readiness means its alarm input is healthy; it
+cannot verify the physical DIP settings. Our ALM wiring detects an open cable;
+the pull-down DIAG wiring does not provide equivalent cable detection.
+
+Each implementation owns its diagnostic GPIO, configuration, status and errors.
+`MotionController` retains shared enable, the monitoring worker and group shutdown
+policy. Driver callbacks wake the motor and immediately disable the shared enable;
+thread context stops all motions and invalidates references. Motor methods also
+reject unready drivers and check for faults during movement, homing and coordinated
+operations. Callback teardown synchronizes with in-flight publications.
+
+`configuration()` returns an optional `IConfigurableStepperDriver` capability.
+M1 has none; M2/M3 expose settings and cached UART diagnostics through it.
+Configuration validates motor current limits, Z holding current, matching microsteps
+and normal INDEX operation. Staging settings leaves the driver unready until explicit
+initialization applies and verifies them. The CLI performs that initialization as
+part of `motor driver configure`. `motor driver status [m1|m2|m3|all]` reports common
+status for every motor and additional telemetry only where supported.
+
+UART is an optional interface capability, but is required by the configured M2/M3
+implementations: missing communication latches a fault, with no automatic standalone
+fallback. `SignalOnlyDriver` is an explicit substitute used only in motion unit tests
+and the unpowered STEP bench; it is never selected by the application board factory.
+
 ### TMC2209 UART configuration and diagnostics
 
 For **M1 / DM542T plus M2 / TMC2209 together**, use the
@@ -1193,7 +1235,7 @@ A monitor polls each driver's GSTAT, DRV_STATUS, IOIN, SG_RESULT and readable
 configuration approximately every **100 ms plus transaction/scheduling time**.
 CRC/timeout/configuration errors, a driver reset, overtemperature shutdown,
 short-circuit flags or charge-pump undervoltage latch a fault, disable **all
-three** drivers, stop their jobs and invalidate referencing. The DIAG ISR
+three** drivers, stop their jobs and invalidate referencing. The ALM/DIAG fault callback
 immediately raises shared enable and wakes that worker; UART and logging run
 only in thread context. Recovery requires correcting the cause, running
 `motor driver init` while disabled, enabling explicitly and re-homing. No fault

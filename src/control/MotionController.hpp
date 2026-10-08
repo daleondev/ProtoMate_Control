@@ -2,7 +2,7 @@
 
 #include "AxisConversion.hpp"
 #include "StepperMotor.hpp"
-#include "hal/devices/impl/Tmc2209.hpp"
+#include "hal/devices/itf/IStepperDriver.hpp"
 
 #include <array>
 #include <deque>
@@ -88,24 +88,15 @@ namespace control
             bool coordinated{};
         };
 
-        using DriverConfiguration = hal::device::Tmc2209::Configuration;
+        using DriverConfiguration = hal::device::IConfigurableStepperDriver::Configuration;
         struct DriverStatus
         {
             MotorId motor;
-            std::uint8_t address;
-            DriverConfiguration configuration;
-            std::optional<hal::device::Tmc2209::Status> diagnostics;
-            std::string error;
-            bool ready;
-            bool fault_latched;
+            std::string_view name;
+            hal::device::IStepperDriver::Status status;
+            std::optional<hal::device::IConfigurableStepperDriver::Snapshot> configuration;
         };
-        std::array<DriverStatus, 2> driverStatus() const;
-        struct AlarmStatus
-        {
-            bool active; // DM542T ALM is open (fault or disconnected cable).
-            bool fault_latched;
-        };
-        AlarmStatus alarmStatus() const;
+        std::array<DriverStatus, 3> driverStatus() const;
         // Explicit recovery, disabled only. Never automatically resumes motion.
         void initializeDrivers();
         void configureDriver(MotorId motor, DriverConfiguration configuration);
@@ -188,8 +179,8 @@ namespace control
         void requireEnabled() const;
         void initializeDriversLocked();
         void monitorDrivers(std::stop_token stop);
-        void driverFaultLocked(std::size_t index, std::string reason);
-        void alarmFaultLocked();
+        bool driversReady() const noexcept;
+        void handleDriverFaultsLocked();
         void stopLocked(std::optional<MotorId> motor);
         void collect();
         void reserveMotion(MotorId motor);
@@ -225,20 +216,9 @@ namespace control
         std::deque<GroupMotion> m_groupMotions;
         MotionId m_nextGroupId{ 1 };
         std::jthread m_groupWorker;
-        std::shared_ptr<hal::IUart> m_driverBus;
-        std::array<std::unique_ptr<hal::device::Tmc2209>, 2> m_drivers;
-        std::array<std::shared_ptr<hal::IDigitalInput>, 2> m_diagnostics;
-        std::shared_ptr<hal::IDigitalInput> m_alarm;
-        static constexpr unsigned AlarmFault = 1U << 2;
-        bool m_alarmHandled{};
-        std::array<DriverConfiguration, 2> m_driverConfigurations{{
-            { .run_milliamps = 650, .hold_milliamps = 650, .mode = hal::device::Tmc2209::Mode::StealthChop },
-            { .run_milliamps = 550, .hold_milliamps = 550, .mode = hal::device::Tmc2209::Mode::StealthChop },
-        }};
-        std::array<std::optional<hal::device::Tmc2209::Status>, 2> m_driverStatus;
-        std::array<std::string, 2> m_driverErrors;
-        bool m_driversReady{};
+        // Aggregate shutdown events only; each motor's driver owns its state.
         std::atomic_uint m_driverFaults{};
+        unsigned m_handledDriverFaults{};
         runtime::Notification m_driverNotification;
         std::jthread m_driverWorker;
     };

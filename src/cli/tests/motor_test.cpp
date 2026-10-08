@@ -33,8 +33,8 @@ namespace
             } });
             auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
             ASSERT_TRUE(alarm);
-            EXPECT_TRUE(controller->alarmStatus().active);
-            EXPECT_TRUE(controller->alarmStatus().fault_latched);
+            EXPECT_TRUE(controller->driverStatus()[0].status.fault_active);
+            EXPECT_TRUE(controller->driverStatus()[0].status.fault_latched);
             EXPECT_THROW(controller->enable(), std::runtime_error);
             alarm->setSimulatedLevel(hal::gpio::Level::Low); // Healthy, powered DM542T.
             controller->initializeDrivers();
@@ -263,7 +263,7 @@ TEST_F(CliMotion, DriverCommandsInitializeConfigureAndEnforceMotorLimits)
     ASSERT_TRUE(run("motor driver init"));
     ASSERT_TRUE(run("motor driver configure m2 --run 600 --hold 400 --mode spreadcycle --interpolate off"));
     ASSERT_TRUE(run("motor driver configure m3 --run 550 --mode stealthchop"));
-    EXPECT_EQ(controller->driverStatus()[1].configuration.hold_milliamps, 550);
+    EXPECT_EQ(controller->driverStatus()[2].configuration->configuration.hold_milliamps, 550);
     for (auto command : {"motor driver configure m1 --run 500", "motor driver configure m2 --run 701",
                          "motor driver configure m3 --run 591", "motor driver configure m3 --hold 400",
                          "motor driver configure m2 --run -1", "motor driver configure m2 --run 500.5",
@@ -316,26 +316,26 @@ TEST_F(CliMotion, Dm542AlarmStopsAllAxesAndRequiresExplicitRecoveryAfterTheSigna
 {
     auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
     ASSERT_TRUE(run("motor driver status m1"));
-    EXPECT_NE(output.str().find("ALM=healthy fault-latched=false"), std::string::npos);
+    EXPECT_NE(output.str().find("fault-input=clear fault-latched=false"), std::string::npos);
     ASSERT_TRUE(run("motor enable"));
     ASSERT_TRUE(run("motor move m1 -360 --speed 1"));
     ASSERT_TRUE(run("motor move m2 -360 --speed 1"));
     alarm->setSimulatedLevel(High);
     EXPECT_FALSE(controller->status().enabled);
-    EXPECT_TRUE(controller->alarmStatus().fault_latched);
+    EXPECT_TRUE(controller->driverStatus()[0].status.fault_latched);
     ASSERT_TRUE(finished(2));
     EXPECT_FALSE(run("motor enable"));
     EXPECT_FALSE(run("motor reset"));
     EXPECT_FALSE(run("motor driver init"));
     ASSERT_TRUE(run("motor driver status"));
-    EXPECT_NE(output.str().find("ALM=fault/open fault-latched=true"), std::string::npos);
+    EXPECT_NE(output.str().find("fault-input=active/open fault-latched=true"), std::string::npos);
     alarm->setSimulatedLevel(Low);
-    EXPECT_FALSE(controller->alarmStatus().active);
-    EXPECT_TRUE(controller->alarmStatus().fault_latched);
+    EXPECT_FALSE(controller->driverStatus()[0].status.fault_active);
+    EXPECT_TRUE(controller->driverStatus()[0].status.fault_latched);
     EXPECT_FALSE(run("motor enable"));
     EXPECT_FALSE(run("motor move m3 -10 --speed 1"));
     ASSERT_TRUE(run("motor reset"));
-    EXPECT_FALSE(controller->alarmStatus().fault_latched);
+    EXPECT_FALSE(controller->driverStatus()[0].status.fault_latched);
     EXPECT_FALSE(controller->status().enabled);
     ASSERT_TRUE(run("motor enable"));
 }
@@ -348,11 +348,11 @@ TEST_F(CliMotion, Dm542AlarmIsLatchedEvenWhenAUartDriverIsUnavailable)
     auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
     alarm->setSimulatedLevel(High);
     alarm->setSimulatedLevel(Low); // A short alarm must not be lost between polls.
-    EXPECT_TRUE(controller->alarmStatus().fault_latched);
+    EXPECT_TRUE(controller->driverStatus()[0].status.fault_latched);
     EXPECT_FALSE(run("motor enable"));
     bus->setConnected(1, true);
     ASSERT_TRUE(run("motor driver init"));
-    EXPECT_FALSE(controller->alarmStatus().fault_latched);
+    EXPECT_FALSE(controller->driverStatus()[0].status.fault_latched);
 }
 
 TEST_F(CliMotion, Dm542AlarmDuringEnableSettlingCannotLeaveDriversEnabled)
@@ -364,7 +364,7 @@ TEST_F(CliMotion, Dm542AlarmDuringEnableSettlingCannotLeaveDriversEnabled)
     });
     EXPECT_FALSE(run("motor enable"));
     EXPECT_FALSE(controller->status().enabled);
-    EXPECT_TRUE(controller->alarmStatus().fault_latched);
+    EXPECT_TRUE(controller->driverStatus()[0].status.fault_latched);
 }
 
 TEST_F(CliMotion, Dm542AlarmInvalidatesAReferencedAxis)

@@ -3,6 +3,8 @@
 #include "hal/devices/itf/IButton.hpp"
 #include "hal/devices/itf/ILed.hpp"
 #include "hal/devices/itf/IMotorFeedback.hpp"
+#include "hal/devices/itf/IStepperDriver.hpp"
+#include <array>
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IQuadratureEncoder.hpp"
@@ -60,6 +62,12 @@ namespace hal::board
     // Normal electrical INDEX (not index_step): M2 PD0/CN9.25, M3 PD1/CN9.27.
     // 3.3 V, pull-down, both edges; four full steps per electrical cycle.
     [[nodiscard]] auto createStepperIndex(MotorId id) -> std::shared_ptr<IDigitalInput>;
+
+    // Creates all driver endpoints over one shared, serialized UART connection.
+    // No initialization or enable; M1 ALM and M2/M3 DIAG are monitored immediately.
+    [[nodiscard]] auto createStepperDrivers(const std::array<std::size_t, 3>& microsteps,
+                                            const std::shared_ptr<IDigitalOutput>& enable)
+      -> std::array<std::shared_ptr<device::IStepperDriver>, 3>;
 
     struct MotorFeedbackConfig
     {

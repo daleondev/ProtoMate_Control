@@ -14,18 +14,10 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
                            pnm::units::Angle reference_switch_position,
                            pnm::units::Angle full_step_angle,
                            size_t microsteps,
-                           const std::shared_ptr<hal::IStepGenerator>& step_generator)
-  : StepperMotor{ id, reference_switch_position, full_step_angle, microsteps, step_generator,
-                  hal::board::createMotorFeedback(id, { full_step_angle, microsteps }) }
-{
-}
-
-StepperMotor::StepperMotor(hal::board::MotorId id,
-                           pnm::units::Angle reference_switch_position,
-                           pnm::units::Angle full_step_angle,
-                           size_t microsteps,
                            const std::shared_ptr<hal::IStepGenerator>& step_generator,
-                           std::shared_ptr<hal::device::IMotorFeedback> feedback)
+                           std::shared_ptr<hal::device::IStepperDriver> driver,
+                           std::shared_ptr<hal::device::IMotorFeedback> feedback,
+                           hal::device::IStepperDriver::FaultCallback shutdown)
   : m_id{ id }
   , m_referenceSwitchPosition{ reference_switch_position }
   , m_fullStepAngle{ full_step_angle }
@@ -33,7 +25,8 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
   , m_stepOutput{ hal::board::createStepperStepOutput(step_generator, id) }
   , m_dirOutput{ hal::board::createStepperDirectionOutput(id) }
   , m_referenceSwitchInput{ hal::board::createReferenceLimitSwitch(id) }
-  , m_feedback{ std::move(feedback) }
+  , m_feedback{ feedback ? std::move(feedback) : hal::board::createMotorFeedback(id, { full_step_angle, microsteps }) }
+  , m_driver{ std::move(driver) }
 {
     PNM_ASSERT(m_referenceSwitchInput, "Motor %d has no reference switch", static_cast<int>(id) + 1);
 
@@ -43,11 +36,17 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
     }
     m_stepAngle = m_fullStepAngle / static_cast<double>(m_microsteps);
 
-    if (!m_stepOutput || !m_dirOutput || !m_referenceSwitchInput || !m_feedback) {
+    if (!m_stepOutput || !m_dirOutput || !m_referenceSwitchInput || !m_feedback || !m_driver) {
         throw std::runtime_error("motor board resource is unavailable");
     }
 
     try {
+        m_driver->setFaultCallback([this, shutdown = std::move(shutdown)]() mutable noexcept {
+            m_referenced.store(false);
+            if (shutdown) shutdown(); // Central shared-enable shutdown, ISR-safe.
+            m_events->notification.signal();
+            if (auto* notification{ m_events->groupNotification.load() }) notification->signal();
+        });
         m_feedback->setCallback([this](const hal::device::IMotorFeedback::Sample& sample) noexcept {
             accountFeedback(sample);
         });
@@ -77,6 +76,7 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         pnm::log::debug("Motor initialized: {} degrees per microstep",
                         m_stepAngle.get<pnm::units::AngleUnits::deg>());
     } catch (...) {
+        m_driver->clearFaultCallback();
         m_feedback->clearCallback();
         static_cast<void>(m_feedback->stop());
         m_referenceSwitchInput->clearEdgeCallback();
@@ -88,6 +88,7 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
 StepperMotor::~StepperMotor()
 {
     stopAndWait();
+    m_driver->clearFaultCallback();
     static_cast<void>(m_feedback->stop());
     m_feedback->clearCallback();
     m_referenceSwitchInput->clearEdgeCallback();
@@ -162,7 +163,7 @@ std::future<StepperMotor::Result> StepperMotor::submitMove(pnm::units::Angle pos
         return promise.get_future();
     };
     const auto now{ std::chrono::steady_clock::now() };
-    if (!position.isFinite() || !timingFor(velocity) || !timeout.isFinite() || timeout < 0_s ||
+    if (!m_driver->status().ready || !position.isFinite() || !timingFor(velocity) || !timeout.isFinite() || timeout < 0_s ||
         timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2 ||
         !dynamics.acceleration.isFinite() || dynamics.acceleration < 0_rad_s2 ||
         !dynamics.deceleration.isFinite() || dynamics.deceleration < 0_rad_s2 || !dynamics.jerk.isFinite() ||
@@ -262,6 +263,10 @@ void StepperMotor::runCommands(std::shared_ptr<Command> command, std::stop_token
         while (command) {
             resolved = false;
             m_wakeAtPulse.store(std::numeric_limits<Count>::max());
+            if (!m_driver->status().ready) {
+                complete(Result::Faulted);
+                break;
+            }
             if (stop.stop_requested()) {
                 complete(Result::Stopped);
                 break;
@@ -391,6 +396,10 @@ void StepperMotor::runCommands(std::shared_ptr<Command> command, std::stop_token
             }
             {
                 std::scoped_lock lock{ m_mutex };
+                if (!m_driver->status().ready) {
+                    complete(Result::Faulted);
+                    break;
+                }
                 if (stop.stop_requested()) {
                     complete(Result::Stopped);
                     break;
@@ -414,7 +423,7 @@ void StepperMotor::runCommands(std::shared_ptr<Command> command, std::stop_token
             auto result{ Result::Stopped };
             while (true) {
                 const auto status{ m_stepOutput->status() };
-                if (!status.counts_exact || status.state == Underrun || status.state == DmaError) {
+                if (!m_driver->status().ready || !status.counts_exact || status.state == Underrun || status.state == DmaError) {
                     result = Result::Faulted;
                     break;
                 }
@@ -661,7 +670,7 @@ bool StepperMotor::prepareCoordinated(bool forward, std::shared_ptr<const hal::s
     std::scoped_lock lock{ m_mutex };
     m_events->referenceActivated.store(false);
     m_events->referenceReleased.store(false);
-    if (!isReferenced() || (forward && referenceSwitchActive()) ||
+    if (!m_driver->status().ready || !isReferenced() || (forward && referenceSwitchActive()) ||
         !m_stepOutput->prepareSequence(std::move(sequence)))
         return false;
     m_motionSign = forward ? 1.0 : -1.0;
@@ -719,6 +728,8 @@ std::optional<hal::step::Timing> StepperMotor::timingFor(pnm::units::AngularVelo
 
 pnm::Result<hal::step::PulseCount> StepperMotor::setVelocity(pnm::units::AngularVelocity velocity)
 {
+    if (!m_driver->status().ready)
+        return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
     if (!timingFor(velocity))
         return std::unexpected(std::make_error_code(std::errc::invalid_argument));
     auto request{ std::make_shared<VelocityRequest>() };
@@ -791,7 +802,7 @@ StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity 
 {
     const auto motor_id{ static_cast<unsigned>(m_id) + 1U };
     const auto now{ std::chrono::steady_clock::now() };
-    if (!timingFor(seek_velocity) || !timingFor(latch_velocity) || latch_velocity >= seek_velocity ||
+    if (!m_driver->status().ready || !timingFor(seek_velocity) || !timingFor(latch_velocity) || latch_velocity >= seek_velocity ||
         !timeout.isFinite() || timeout <= 0_s ||
         timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2) {
         pnm::log::debug("Motor {} reference rejected: invalid seek/latch speeds or overall timeout",
@@ -882,6 +893,7 @@ StepperMotor::Result StepperMotor::waitReferenceLevel(hal::gpio::Level level,
     std::optional<std::chrono::steady_clock::time_point> stable_since;
     auto changes{ m_events->referenceChanges.load() };
     while (true) {
+        if (!m_driver->status().ready) return Result::Faulted;
         if (stop.stop_requested()) {
             return Result::Stopped;
         }
@@ -926,6 +938,7 @@ StepperMotor::Result StepperMotor::applyReferencePosition(std::stop_token stop)
         return Result::Faulted;
     }
 
+    if (!m_driver->status().ready) return Result::Faulted;
     if (!m_feedback->reference(m_referenceSwitchPosition))
         return Result::Faulted;
     if (stop.stop_requested())
@@ -936,7 +949,7 @@ StepperMotor::Result StepperMotor::applyReferencePosition(std::stop_token stop)
     m_referenced.store(true);
     // Do not overwrite a counter-fault callback racing with this commit. INDEX
     // may remain unavailable after homing without invalidating the switch datum.
-    if (m_feedbackReferenceLost.load())
+    if (m_feedbackReferenceLost.load() || !m_driver->status().ready)
         m_referenced.store(false);
     return m_referenced.load() ? Result::Completed : Result::Faulted;
 }
@@ -948,6 +961,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
                                                  std::optional<hal::step::PulseCount> count,
                                                  std::optional<hal::gpio::Level> switch_target)
 {
+    if (!m_driver->status().ready) return Result::Rejected;
     const auto timing{ timingFor(velocity) };
     if (!timing || !timeout.isFinite() || timeout < 0_s) {
         pnm::log::warn("Motor move rejected: invalid velocity or timeout");
@@ -995,6 +1009,8 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
             return Result::Stopped;
         }
 
+        if (!m_driver->status().ready) return Result::Faulted;
+
         if (switch_target && target_reached()) {
             return Result::Completed;
         }
@@ -1022,7 +1038,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
             }
             const auto status{ m_stepOutput->status() };
 
-            if (status.state == hal::step::State::Underrun || status.state == hal::step::State::DmaError ||
+            if (!m_driver->status().ready || status.state == hal::step::State::Underrun || status.state == hal::step::State::DmaError ||
                 !status.counts_exact) {
                 pnm::log::warn("Motor move faulted: {}", status.state);
                 result = Result::Faulted;

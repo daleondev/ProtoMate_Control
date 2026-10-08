@@ -53,17 +53,17 @@ class StepperMotor final
         pnm::units::AngularJerk jerk{ 36000_deg_s3 };
     };
 
-    StepperMotor(hal::board::MotorId id,
-                 pnm::units::Angle reference_switch_position,
-                 pnm::units::Angle full_step_angle,
-                 size_t microsteps,
-                 const std::shared_ptr<hal::IStepGenerator>& step_generator);
+    // Driver is required, initialized by the shared controller while disabled.
+    // An omitted feedback provider is selected through the board factory.
     StepperMotor(hal::board::MotorId id,
                  pnm::units::Angle reference_switch_position,
                  pnm::units::Angle full_step_angle,
                  size_t microsteps,
                  const std::shared_ptr<hal::IStepGenerator>& step_generator,
-                 std::shared_ptr<hal::device::IMotorFeedback> feedback);
+                 std::shared_ptr<hal::device::IStepperDriver> driver,
+                 std::shared_ptr<hal::device::IMotorFeedback> feedback = {},
+                 hal::device::IStepperDriver::FaultCallback shutdown = {});
+    hal::device::IStepperDriver& driver() const noexcept { return *m_driver; }
     ~StepperMotor();
 
     StepperMotor(const StepperMotor&) = delete;
@@ -203,6 +203,7 @@ class StepperMotor final
     std::shared_ptr<hal::IDigitalOutput> m_dirOutput;
     std::shared_ptr<hal::IDigitalInput> m_referenceSwitchInput;
     std::shared_ptr<hal::device::IMotorFeedback> m_feedback;
+    std::shared_ptr<hal::device::IStepperDriver> m_driver;
 
     mutable std::mutex m_mutex;
     std::mutex m_workerMutex;

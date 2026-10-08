@@ -9,6 +9,9 @@
 #include "hal/drivers/factory/step.hpp"
 #include "hal/drivers/factory/uart.hpp"
 
+#include "hal/devices/impl/Dm542tDriver.hpp"
+#include "hal/devices/impl/Tmc2209Driver.hpp"
+#include <bit>
 #include <memory>
 #include <stdexcept>
 #include <utility>
@@ -100,6 +103,38 @@ namespace hal::board
                                                          config.microsteps);
         }
         return {};
+    }
+
+    auto createStepperDrivers(const std::array<std::size_t, 3>& microsteps,
+                              const std::shared_ptr<IDigitalOutput>& enable)
+      -> std::array<std::shared_ptr<device::IStepperDriver>, 3>
+    {
+        if (!microsteps[0] || !std::has_single_bit(microsteps[1]) || microsteps[1] > 256 ||
+            !std::has_single_bit(microsteps[2]) || microsteps[2] > 256)
+            throw std::invalid_argument("invalid driver microsteps");
+        if (!enable) return {};
+        auto uart{ createStepperDriverBus() };
+        if (!uart) return {};
+        auto bus{ std::make_shared<device::Tmc2209Bus>(std::move(uart), std::vector<std::uint8_t>{ 0, 1 }) };
+        std::array<std::shared_ptr<device::IStepperDriver>, 3> drivers;
+        auto alarm{ createStepperDiagnostic(MotorId::Motor1) };
+        if (!alarm) return {};
+        drivers[0] = std::make_shared<device::Dm542tDriver>(std::move(alarm), enable);
+        for (std::size_t i{ 1 }; i < drivers.size(); ++i) {
+            auto diag{ createStepperDiagnostic(static_cast<MotorId>(i)) };
+            if (!diag) return {};
+            device::IConfigurableStepperDriver::Configuration config{
+                .run_milliamps = static_cast<std::uint16_t>(i == 1 ? 650 : 550),
+                .hold_milliamps = static_cast<std::uint16_t>(i == 1 ? 650 : 550),
+                .microsteps = static_cast<std::uint16_t>(microsteps[i]),
+                .mode = device::IConfigurableStepperDriver::Mode::StealthChop };
+            // Motor phase-current limits; Z must retain its full holding current.
+            device::IConfigurableStepperDriver::Limits limits{
+                static_cast<std::uint16_t>(i == 1 ? 700 : 590), i == 2 };
+            drivers[i] = std::make_shared<device::Tmc2209Driver>(bus, static_cast<std::uint8_t>(i - 1),
+                                                               std::move(diag), enable, config, limits);
+        }
+        return drivers;
     }
 
     auto createStepperStepOutput(const std::shared_ptr<IStepGenerator>& generator, MotorId id)
