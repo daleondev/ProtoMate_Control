@@ -62,7 +62,9 @@ namespace
 #if defined(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
         hardware_storage_startup_test_select();
 #endif
+#if !defined(RUNTIME_SKIP_STORAGE_INIT)
         runtime_filex_initialize();
+#endif
 #endif
         int exit_status{};
         try {

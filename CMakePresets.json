@@ -30,7 +30,8 @@
                 "RUNTIME_STORAGE_REQUIRED": false,
                 "HAL_HARDWARE_TMC_TEST": false,
                 "HAL_HARDWARE_MOTOR_TEST": false,
-                "HAL_HARDWARE_TMC_STANDALONE_TEST": false
+                "HAL_HARDWARE_TMC_STANDALONE_TEST": false,
+                "HAL_HARDWARE_SPI_TEST": false
             }
         },
         {
@@ -52,6 +53,16 @@
             "inherits": "base-stm32",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "ethercat-test-stm32",
+            "displayName": "STM32 LAN9255 SPI Feasibility Test",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_SPI_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
             }
         },
         {
@@ -211,6 +222,10 @@
         {
             "name": "tmc-standalone-test-stm32",
             "configurePreset": "tmc-standalone-test-stm32"
+        },
+        {
+            "name": "ethercat-test-stm32",
+            "configurePreset": "ethercat-test-stm32"
         }
     ]
 }

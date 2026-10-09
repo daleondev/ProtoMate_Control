@@ -1,0 +1,69 @@
+{
+  "device": "LAN9255/ZMX020 (integrated SAM E53)",
+  "device_id": "0x61830355",
+  "probe": "Atmel-ICE",
+  "probe_serial": "J42700063820",
+  "transport": "SWD",
+  "clock_khz": 1000,
+  "openocd_version": "Open On-Chip Debugger 0.12.0-01004-g9ea7f3d64-dirty (2026-08-27-22:55)",
+  "started_utc": "2026-10-09T07:44:53.481083+00:00",
+  "verified_utc": "2026-10-09T07:48:17.154811+00:00",
+  "method": "Two independent OpenOCD dump_image reads of every archived region, compared byte-for-byte; SHA-256 recorded.",
+  "target_actions": {
+    "reset": false,
+    "halt": false,
+    "flash_programming": false,
+    "flash_erasure": false,
+    "configuration_writes": false
+  },
+  "protection": {
+    "dsu_statusb": "0x12",
+    "security_protected": false,
+    "chip_erase_locked": false,
+    "nvmctrl_status": "0x0f11",
+    "bootprot": 15,
+    "protected_boot_bytes": 0,
+    "user_region_locks": "0xffffffff"
+  },
+  "watchdog_startup_fuses": {
+    "enable": false,
+    "always_on": false
+  },
+  "regions": [
+    {
+      "file": "flash.bin",
+      "address": "0x00000000",
+      "size_bytes": 1048576,
+      "sha256": "5e54a58a2b0195a6c5628c38c0456d13d3290811508df2cd0d216e8b9d7ba3ff",
+      "independent_read_matches": true
+    },
+    {
+      "file": "user-page.bin",
+      "address": "0x00804000",
+      "size_bytes": 512,
+      "sha256": "20a51d0295549bb0e0a3be9afcd5214ec2fc7bd4064db2c63dbe8e947d0b9349",
+      "independent_read_matches": true
+    },
+    {
+      "file": "factory-calibration.bin",
+      "address": "0x00800080",
+      "size_bytes": 16,
+      "sha256": "79487ee00e6e03bb077b55318390ddb7a1dfc49cec9d8788672fe625a22076e6",
+      "independent_read_matches": true
+    },
+    {
+      "file": "temperature-calibration.bin",
+      "address": "0x00800100",
+      "size_bytes": 12,
+      "sha256": "472cc355e7092d80ac2371ef0b33ac8ace3337fb2ea8ecbedf5ef6b1b6a6d72a",
+      "independent_read_matches": true
+    }
+  ],
+  "memory_map_source": "Microchip LAN9255_DFP 1.4.138, LAN9255ZMX020.atdf",
+  "temperature_calibration_scope": "Only the three documented TEMP_LOG_WORD registers (12 bytes at 0x00800100) are archived. Undefined padding beyond the calibration fields is excluded.",
+  "restore_notes": "flash.bin is the complete 1 MiB program-flash image at 0x00000000. user-page.bin is the separate 512-byte configuration page. Calibration files are archived for reference and are not part of a program-flash restore.",
+  "external_esc_eeprom": {
+    "backed_up": false,
+    "reason": "The EVB 24FC512 EEPROM is on the ESC I2C interface, not in the SAM memory map. This capture contains only SAM memory."
+  }
+}

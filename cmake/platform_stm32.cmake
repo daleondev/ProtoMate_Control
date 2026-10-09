@@ -39,6 +39,7 @@ target_sources(platform
         ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/rng.c
         ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/rtc.c
         ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/sdmmc.c
+        ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/spi.c
         ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/tim.c
         ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/usart.c
         ${PROJECT_SOURCE_DIR}/external/CubeMX/Src/stm32h7xx_it.c
@@ -66,6 +67,8 @@ target_sources(platform
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_pwr.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_pwr_ex.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_qspi.c
+        ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_spi.c
+        ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_spi_ex.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_i2c.c
         ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src/stm32h7xx_hal_i2c_ex.c

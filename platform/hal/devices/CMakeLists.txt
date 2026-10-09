@@ -1,5 +1,6 @@
 target_sources(hal_drivers
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/impl/Lan9253.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/detail/DriverFaultMonitor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/Dm542tDriver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/Tmc2209Bus.cpp

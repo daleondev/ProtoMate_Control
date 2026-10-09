@@ -1,0 +1,22 @@
+Open On-Chip Debugger 0.12.0-01004-g9ea7f3d64-dirty (2026-08-27-22:55)
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+swd
+adapter speed: 1000 kHz
+
+Info : CMSIS-DAP: SWD supported
+Info : CMSIS-DAP: JTAG supported
+Info : CMSIS-DAP: FW Version = 1.0
+Info : CMSIS-DAP: Serial# = J42700063820
+Info : CMSIS-DAP: Interface Initialised (SWD)
+Info : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 1 nTRST = 0 nRESET = 1
+Info : CMSIS-DAP: Interface ready
+Info : clock speed 1000 kHz
+Info : SWD DPIDR 0x2ba01477
+Info : [atsame5.cpu] Cortex-M4 r0p1 processor detected
+Info : [atsame5.cpu] target has 6 breakpoints, 4 watchpoints
+Info : gdb port disabled
+Reading the three documented temperature calibration words only.
+Temperature calibration read twice; no target programming.
+shutdown command invoked

@@ -8,6 +8,7 @@
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/factory/step.hpp"
 #include "hal/drivers/factory/uart.hpp"
+#include "hal/drivers/factory/spi.hpp"
 
 #include "hal/devices/impl/Dm542tDriver.hpp"
 #include "hal/devices/impl/Tmc2209Driver.hpp"
@@ -64,6 +65,14 @@ namespace hal::board
     }
 
     auto createStepperGenerator() -> std::shared_ptr<IStepGenerator> { return step::create(); }
+
+    auto createEthercatSpi() -> std::shared_ptr<ISpi> { return spi::createEthercatBus(); }
+
+    auto createEthercatChipSelect() -> std::shared_ptr<IDigitalOutput>
+    {
+        return gpio::createOutput({ .pin = { gpio::Port::F, 6U },
+            .initial_level = gpio::Level::High, .pull = gpio::Pull::Up });
+    }
 
     auto createStepperDriverBus() -> std::shared_ptr<IUart> { return uart::createStepperBus(); }
 

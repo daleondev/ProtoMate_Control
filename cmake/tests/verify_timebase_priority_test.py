@@ -20,7 +20,7 @@ def main():
     files = (ioc, header, "external/CubeMX/STM32H753XX_FLASH.ld",
              "external/CubeMX/Src/main.c", "external/CubeMX/Src/stm32h7xx_it.c",
              "external/CubeMX/Src/gpio.c", "external/CubeMX/Src/usart.c",
-             "external/CubeMX/Src/tim.c")
+             "external/CubeMX/Src/tim.c", "external/CubeMX/Src/spi.c")
     with tempfile.TemporaryDirectory(prefix="protomate-timebase-guard-") as directory:
         fixture = Path(directory)
         for name in files:

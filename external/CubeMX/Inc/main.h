@@ -63,6 +63,8 @@ void Error_Handler(void);
 #define M1_ALM_Pin GPIO_PIN_2
 #define M1_ALM_GPIO_Port GPIOF
 #define M1_ALM_EXTI_IRQn EXTI2_IRQn
+#define ESC_CS_N_Pin GPIO_PIN_6
+#define ESC_CS_N_GPIO_Port GPIOF
 #define M1_STEP_Pin GPIO_PIN_0
 #define M1_STEP_GPIO_Port GPIOA
 #define M1_REF_Pin GPIO_PIN_7

@@ -12,6 +12,7 @@ target_sources(hal_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/pwm_pulse_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/rng_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tmc2209_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/lan9253_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stepper_driver_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/index_feedback_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/motor_feedback_test.cpp

@@ -12,6 +12,30 @@ endfunction()
 function(verify_cubemx_generation)
     set(cubemx_directory "${PROJECT_SOURCE_DIR}/external/CubeMX")
 
+    foreach(assignment "PF6.GPIO_Label=ESC_CS_N" "PF6.PinState=GPIO_PIN_SET"
+                       "PF6.Signal=GPIO_Output" "PF7.Signal=SPI5_SCK"
+                       "PF8.Signal=SPI5_MISO" "PF9.Signal=SPI5_MOSI"
+                       "SPI5.Mode=SPI_MODE_MASTER" "SPI5.DataSize=SPI_DATASIZE_8BIT"
+                       "SPI5.BaudRatePrescaler=SPI_BAUDRATEPRESCALER_128"
+                       "SPI5.CLKPolarity=SPI_POLARITY_LOW" "SPI5.CLKPhase=SPI_PHASE_1EDGE"
+                       "SPI5.MasterKeepIOState=SPI_MASTER_KEEP_IO_STATE_ENABLE")
+        cubemx_require_text("${cubemx_directory}/CubeMX.ioc" "${assignment}\n"
+            "LAN9255 bench requires SPI5 mode 0 and a deasserted PF6 chip select.")
+    endforeach()
+    foreach(required "hspi5.Init.DataSize = SPI_DATASIZE_8BIT;"
+                     "hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;"
+                     "hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;"
+                     "hspi5.Init.NSS = SPI_NSS_SOFT;"
+                     "hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;"
+                     "hspi5.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_ENABLE;"
+                     "GPIO_AF5_SPI5")
+        cubemx_require_text("${cubemx_directory}/Src/spi.c" "${required}"
+            "Regenerate the LAN9255 SPI5 configuration.")
+    endforeach()
+    cubemx_require_text("${cubemx_directory}/Src/gpio.c"
+        "HAL_GPIO_WritePin(ESC_CS_N_GPIO_Port, ESC_CS_N_Pin, GPIO_PIN_SET);"
+        "ESC chip select must start deasserted.")
+
     cubemx_require_text(
         "${cubemx_directory}/CubeMX.ioc"
         "ProjectManager.KeepUserCode=true"

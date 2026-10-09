@@ -53,6 +53,11 @@ I/O uses the host filesystem; explicit FileX tests use simulated media images.
 The simulated LED state toggles inside the process; inspect it through the
 HAL or Linux debugger. Startup diagnostics and the boot message appear on the terminal.
 
+For the bare Nucleo + EVB-LAN9255 SPI feasibility test, build
+`ethercat-test-stm32`. The [SPI test instructions](docs/ethercat/spi-test.md)
+cover loopback, J17 straps, wiring, flashing, identification and repeated reads.
+This image needs no motor hardware or external storage.
+
 ## Planned migration to Arduino GIGA R1 WiFi
 
 **Status: future design; not implemented.** The current target remains the

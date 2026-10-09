@@ -1,6 +1,7 @@
 #include "hal.hpp"
 
 #include <cstdint>
+#include <initializer_list>
 
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/stm32/FaultShutdown.hpp"
@@ -39,6 +40,14 @@ namespace hal
         SystemClock_Config();
 
         MX_GPIO_Init();
+#if defined(HAL_HARDWARE_SPI_TEST)
+        // Bare Nucleo + ESC bench: no motor timers/UART, Ethernet or storage.
+        // Keep the generated EN_N high. Unconnected motor inputs must not IRQ.
+        for (const auto irq : { EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn,
+                                EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn })
+            HAL_NVIC_DisableIRQ(irq);
+        MX_RTC_Init();
+#else
         MX_DMA_Init();
         MX_ETH_Init();
         MX_RTC_Init();
@@ -58,6 +67,7 @@ namespace hal
 #endif
 #endif
         MX_TIM3_Init();
+#endif
         MX_TIM5_Init();
         MX_RNG_Init();
 

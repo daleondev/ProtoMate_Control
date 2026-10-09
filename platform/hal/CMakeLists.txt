@@ -38,6 +38,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     if(HAL_HARDWARE_TMC_STANDALONE_TEST)
         target_compile_definitions(hal PRIVATE HAL_HARDWARE_TMC_STANDALONE_TEST)
     endif()
+    if(HAL_HARDWARE_SPI_TEST)
+        target_compile_definitions(hal PRIVATE HAL_HARDWARE_SPI_TEST)
+    endif()
     target_compile_definitions(hal
         PUBLIC
             HAL_PLATFORM_STM32

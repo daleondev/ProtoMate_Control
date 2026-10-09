@@ -10,6 +10,7 @@
 #include "hal/drivers/itf/IQuadratureEncoder.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
 #include "hal/drivers/itf/IUart.hpp"
+#include "hal/drivers/itf/ISpi.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -37,6 +38,11 @@ namespace hal::board
 
     [[nodiscard]] auto createLed(LedId id) -> std::shared_ptr<device::ILed>;
     [[nodiscard]] auto createButton(ButtonId id) -> std::shared_ptr<device::IButton>;
+
+    // LAN9255 ESC: SPI5 PF7/PF8/PF9, mode 0 at 937.5 kHz; CS PF6 active low.
+    // Create CS first. Bus ownership is exclusive; no automatic SPI traffic.
+    [[nodiscard]] auto createEthercatSpi() -> std::shared_ptr<ISpi>;
+    [[nodiscard]] auto createEthercatChipSelect() -> std::shared_ptr<IDigitalOutput>;
 
     // Exclusive, uncached resources. Creation leaves outputs/counting stopped.
     [[nodiscard]] auto createStepperGenerator() -> std::shared_ptr<IStepGenerator>;
