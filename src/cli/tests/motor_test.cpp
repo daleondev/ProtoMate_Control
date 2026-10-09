@@ -2,7 +2,7 @@
 #include "cli/motor.hpp"
 #include "control/MotionController.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
-#include "hal/board/nucleo_h753zi/simulation.hpp"
+#include "hal/devices/impl/linux/Tmc2209Model.hpp"
 
 #include <gtest/gtest.h>
 
@@ -19,6 +19,7 @@ namespace
     class CliMotion : public testing::Test
     {
       protected:
+        std::shared_ptr<hal::device::Tmc2209Model> driverBus{ std::make_shared<hal::device::Tmc2209Model>() };
         std::shared_ptr<Controller> controller;
         cli::Parser parser;
         std::ostringstream output;
@@ -30,7 +31,9 @@ namespace
               { 135_deg, 1.8_deg, 16U },
               { 135_deg, 1.8_deg, 16U },
               { 135_deg, 1.8_deg, 16U },
-            } });
+            } }, [bus = driverBus](const auto& microsteps, const auto& enable) {
+                return hal::board::createStepperDrivers(microsteps, enable, bus);
+            });
             auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });
             ASSERT_TRUE(alarm);
             EXPECT_TRUE(controller->driverStatus()[0].status.fault_active);
@@ -278,7 +281,7 @@ TEST_F(CliMotion, DriverCommandsInitializeConfigureAndEnforceMotorLimits)
 
 TEST_F(CliMotion, DriverResetOrLostCommunicationLatchesFaultUntilExplicitRecovery)
 {
-    auto bus = hal::board::simulatedStepperBus(); ASSERT_TRUE(bus);
+    const auto& bus = driverBus;
     ASSERT_TRUE(run("motor enable"));
     ASSERT_TRUE(run("motor move m2 -360 --speed 1"));
     bus->reset(0);
@@ -342,7 +345,7 @@ TEST_F(CliMotion, Dm542AlarmStopsAllAxesAndRequiresExplicitRecoveryAfterTheSigna
 
 TEST_F(CliMotion, Dm542AlarmIsLatchedEvenWhenAUartDriverIsUnavailable)
 {
-    auto bus = hal::board::simulatedStepperBus();
+    const auto& bus = driverBus;
     bus->setConnected(1, false);
     EXPECT_FALSE(run("motor driver init"));
     auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });

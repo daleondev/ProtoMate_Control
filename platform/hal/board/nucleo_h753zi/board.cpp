@@ -1,5 +1,6 @@
 #include "hal/board/board.hpp"
 
+#include "hal/devices/factory/tmc2209.hpp"
 #include "hal/devices/impl/Button.hpp"
 #include "hal/devices/impl/Led.hpp"
 #include "hal/devices/impl/IndexFeedback.hpp"
@@ -7,17 +8,10 @@
 #include "hal/drivers/factory/encoder.hpp"
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/factory/step.hpp"
-#include "hal/drivers/factory/uart.hpp"
 #include "hal/drivers/factory/spi.hpp"
 
 #include "hal/devices/impl/Dm542tDriver.hpp"
 #include "hal/devices/impl/Tmc2209Driver.hpp"
-#if defined(HAL_PLATFORM_LINUX)
-#include "hal/board/nucleo_h753zi/simulation.hpp"
-#include "hal/drivers/impl/linux/Uart.hpp"
-#include "hal/linux/Mutex.hpp"
-#include <mutex>
-#endif
 #include <bit>
 #include <memory>
 #include <stdexcept>
@@ -28,10 +22,6 @@ namespace hal::board
     namespace
     {
         using enum gpio::Port;
-#if defined(HAL_PLATFORM_LINUX)
-        linux::Mutex model_mutex;
-        std::weak_ptr<device::Tmc2209Uart> stepper_uart_model;
-#endif
 
         [[nodiscard]] auto make_stepper_output(gpio::Pin pin, gpio::Level initial_level)
           -> std::shared_ptr<IDigitalOutput>
@@ -89,35 +79,13 @@ namespace hal::board
 
     auto createStepperDriverBus() -> std::shared_ptr<IUart>
     {
-#if defined(HAL_PLATFORM_LINUX)
-        const std::scoped_lock lock{ model_mutex };
-        // A retained model is still owned by a simulation client.
-        if (!stepper_uart_model.expired()) return {};
-#endif
-        // PD5 TX is coupled to PD6 RX through a resistor. Allow late replies
-        // to finish before flushing the line and beginning another request.
-        auto bus{ uart::create({
+        // PD5 TX is coupled to PD6 RX through a resistor. Let late replies finish
+        // before flushing the line and beginning another request.
+        return device::tmc2209::createTransport({
           .peripheral = uart::Peripheral::Usart2,
           .transport = { .local_echo = true, .settle_time = std::chrono::milliseconds{ 1 } },
-        }) };
-#if defined(HAL_PLATFORM_LINUX)
-        if (bus) {
-            auto model{ std::make_shared<device::Tmc2209Uart>() };
-            std::static_pointer_cast<Uart>(bus)->setExchangeHandler(
-                [model](auto tx, auto rx, auto timeout) { return model->exchange(tx, rx, timeout); });
-            stepper_uart_model = model;
-        }
-#endif
-        return bus;
+        });
     }
-
-#if defined(HAL_PLATFORM_LINUX)
-    auto simulatedStepperBus() -> std::shared_ptr<device::Tmc2209Uart>
-    {
-        const std::scoped_lock lock{ model_mutex };
-        return stepper_uart_model.lock();
-    }
-#endif
 
     auto createStepperDiagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>
     {
@@ -158,14 +126,15 @@ namespace hal::board
     }
 
     auto createStepperDrivers(const std::array<std::size_t, 3>& microsteps,
-                              const std::shared_ptr<IDigitalOutput>& enable)
+                              const std::shared_ptr<IDigitalOutput>& enable,
+                              std::shared_ptr<IUart> uart)
       -> std::array<std::shared_ptr<device::IStepperDriver>, 3>
     {
         if (!microsteps[0] || !std::has_single_bit(microsteps[1]) || microsteps[1] > 256 ||
             !std::has_single_bit(microsteps[2]) || microsteps[2] > 256)
             throw std::invalid_argument("invalid driver microsteps");
         if (!enable) return {};
-        auto uart{ createStepperDriverBus() };
+        if (!uart) uart = createStepperDriverBus();
         if (!uart) return {};
         auto bus{ std::make_shared<device::Tmc2209Bus>(std::move(uart), std::vector<std::uint8_t>{ 0, 1 }) };
         std::array<std::shared_ptr<device::IStepperDriver>, 3> drivers;

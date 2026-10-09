@@ -1,4 +1,6 @@
 #include "hal/board/board.hpp"
+#include "hal/devices/factory/tmc2209.hpp"
+#include "hal/devices/impl/Tmc2209.hpp"
 #include "hal/drivers/factory/spi.hpp"
 #include "hal/drivers/factory/uart.hpp"
 #include "hal/drivers/impl/linux/Spi.hpp"
@@ -71,6 +73,38 @@ TEST(HalUart, GenericFactoryIsIndependentOfAttachedStepperDevices)
     EXPECT_EQ(bus->exchange(request, reply, 20ms).error(), std::errc::not_connected);
     bus.reset();
     EXPECT_TRUE(hal::board::createStepperDriverBus());
+}
+
+TEST(HalUart, LinuxBoardOwnsFreshDeviceModelsForEachBusLifetime)
+{
+    for (unsigned lifetime{}; lifetime < 2; ++lifetime) {
+        auto bus{ hal::board::createStepperDriverBus() };
+        ASSERT_TRUE(bus);
+        EXPECT_FALSE(hal::board::createStepperDriverBus());
+        for (std::uint8_t address{}; address < 2; ++address) {
+            hal::device::Tmc2209 driver{ bus, address };
+            auto status{ driver.status() };
+            ASSERT_TRUE(status);
+            EXPECT_TRUE(status->reset());
+            ASSERT_TRUE(driver.initialize({}));
+            status = driver.status();
+            ASSERT_TRUE(status);
+            EXPECT_FALSE(status->reset());
+        }
+    }
+}
+
+TEST(HalUart, TmcTransportFactoryUsesTheRequestedPeripheral)
+{
+    auto occupied{ hal::uart::create({ .peripheral = hal::uart::Peripheral::Usart2 }) };
+    ASSERT_TRUE(occupied);
+    EXPECT_FALSE(hal::device::tmc2209::createTransport({ .peripheral = hal::uart::Peripheral::Usart2 }));
+    auto transport{ hal::device::tmc2209::createTransport({ .peripheral = hal::uart::Peripheral::Usart1 }) };
+    ASSERT_TRUE(std::dynamic_pointer_cast<hal::Uart>(transport));
+    EXPECT_FALSE(hal::uart::create({ .peripheral = hal::uart::Peripheral::Usart1 }));
+    hal::device::Tmc2209 driver{ transport, 0 };
+    ASSERT_TRUE(driver.initialize({}));
+    EXPECT_TRUE(driver.verify());
 }
 
 TEST(HalUart, ArbitraryLengthRequestReplyAndWriteOnlyExchanges)

@@ -71,8 +71,10 @@ namespace hal::board
 
     // Creates all driver endpoints over one shared, serialized UART connection.
     // No initialization or enable; M1 ALM and M2/M3 DIAG are monitored immediately.
+    // An injected transport replaces the board bus; empty selects its default.
     [[nodiscard]] auto createStepperDrivers(const std::array<std::size_t, 3>& microsteps,
-                                            const std::shared_ptr<IDigitalOutput>& enable)
+                                            const std::shared_ptr<IDigitalOutput>& enable,
+                                            std::shared_ptr<IUart> uart = {})
       -> std::array<std::shared_ptr<device::IStepperDriver>, 3>;
 
     struct MotorFeedbackConfig

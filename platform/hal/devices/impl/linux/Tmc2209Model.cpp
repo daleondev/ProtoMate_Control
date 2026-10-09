@@ -1,14 +1,14 @@
-#include "Tmc2209Uart.hpp"
+#include "Tmc2209Model.hpp"
 #include "hal/devices/impl/Tmc2209.hpp"
 
 namespace hal::device
 {
-    Tmc2209Uart::Tmc2209Uart()
+    Tmc2209Model::Tmc2209Model()
     {
         reset(0);
         reset(1);
     }
-    void Tmc2209Uart::reset(unsigned address)
+    void Tmc2209Model::reset(unsigned address)
     {
         for (auto& reg : m_registers.at(address))
             reg = 0;
@@ -19,16 +19,16 @@ namespace hal::device
         m_registers[address][0x6F] = 0x80000000;
         m_registers[address][0x70] = 0xC10D0024;
     }
-    void Tmc2209Uart::setRegister(unsigned address, unsigned reg, std::uint32_t value)
+    void Tmc2209Model::setRegister(unsigned address, unsigned reg, std::uint32_t value)
     {
         m_registers.at(address).at(reg) = value;
     }
-    std::uint32_t Tmc2209Uart::getRegister(unsigned address, unsigned reg) const
+    std::uint32_t Tmc2209Model::getRegister(unsigned address, unsigned reg) const
     {
         return m_registers.at(address).at(reg);
     }
-    void Tmc2209Uart::setConnected(unsigned address, bool connected) { m_connected.at(address) = connected; }
-    util::Result<> Tmc2209Uart::exchange(std::span<const std::uint8_t> request,
+    void Tmc2209Model::setConnected(unsigned address, bool connected) { m_connected.at(address) = connected; }
+    util::Result<> Tmc2209Model::exchange(std::span<const std::uint8_t> request,
                                          std::span<std::uint8_t> reply,
                                          std::chrono::milliseconds)
     {

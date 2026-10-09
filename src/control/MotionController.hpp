@@ -125,7 +125,12 @@ namespace control
         using Planner =
           std::function<CoordinatedPlan(const Status&, const std::array<StepperMotor::MotionDefaults, 3>&)>;
 
-        explicit MotionController(const std::array<AxisConfig, 3>& configuration);
+        using DriverFactory = std::function<std::array<std::shared_ptr<hal::device::IStepperDriver>, 3>(
+          const std::array<std::size_t, 3>&, const std::shared_ptr<hal::IDigitalOutput>&)>;
+        // Empty factory selects the board's drivers. Alternate compositions can
+        // supply the same interfaces without exposing transports to this class.
+        explicit MotionController(const std::array<AxisConfig, 3>& configuration,
+                                  DriverFactory driver_factory = {});
         ~MotionController();
         MotionController(const MotionController&) = delete;
         MotionController& operator=(const MotionController&) = delete;

@@ -1370,13 +1370,17 @@ and set its potentiometer current before running it.
 M2 and M3 share **USART2 at 115200 baud, 8N1**, separate from the USART3 CLI.
 All signals use **3.3 V logic**. The board factory creates one `IUart` transport;
 the two TMC2209 driver objects share a serialized `hal::device::Tmc2209Bus`.
-`hal::board::createStepperDriverBus()` selects `hal::uart::create({ .peripheral = hal::uart::Peripheral::Usart2, .transport = configuration })`
-with local echo enabled and a 1 ms settling interval. The concrete `hal::Uart`
+`hal::board::createStepperDriverBus()` selects USART2 with local echo enabled
+and a 1 ms settling interval. The concrete `hal::Uart`
 has its declaration in the platform's `Uart.hpp` and is constructed by the
 platform factory; USART2 initializes when the transport is created. The UART
-driver contains no motor register protocol. On Linux, the board attaches the
-device-layer `Tmc2209Uart` model to the generic UART transport; tests access that
-model through `hal::board::simulatedStepperBus()`.
+driver contains no motor register protocol. `board.cpp` assigns USART2 and passes
+its configuration to `hal::device::tmc2209::createTransport()`. This device factory
+uses the real UART on STM32 and attaches a `Tmc2209Model` on Linux; CMake selects
+the implementation. The transport owns that model for its lifetime. Fault-injection
+tests own their models and pass them to `createStepperDrivers()` explicitly;
+controller tests supply a `MotionController::DriverFactory`. Shared board code
+has no simulation registry or simulation-access API.
 The normal application initializes both at boot, while the shared enable stays
 HIGH. Missing/unpowered drivers leave the CLI available but block motor, axis
 and robot enable/motion commands, including M1 because enable is shared.

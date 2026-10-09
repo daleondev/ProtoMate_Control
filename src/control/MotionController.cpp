@@ -14,7 +14,8 @@ namespace control
 {
     using namespace std::chrono_literals;
 
-    MotionController::MotionController(const std::array<AxisConfig, 3>& configuration)
+    MotionController::MotionController(const std::array<AxisConfig, 3>& configuration,
+                                       DriverFactory driver_factory)
       : m_configuration{ configuration }
       , m_enable{ hal::board::createSteppersEnableOutput() }
       , m_generator{ hal::board::createStepperGenerator() }
@@ -23,8 +24,10 @@ namespace control
             throw std::runtime_error("step generator/enable creation failed");
         m_enable->write(hal::gpio::Level::High);
         try {
-            auto drivers{ hal::board::createStepperDrivers(
-              { configuration[0].microsteps, configuration[1].microsteps, configuration[2].microsteps }, m_enable) };
+            const std::array microsteps{
+              configuration[0].microsteps, configuration[1].microsteps, configuration[2].microsteps };
+            auto drivers{ driver_factory ? driver_factory(microsteps, m_enable)
+                                         : hal::board::createStepperDrivers(microsteps, m_enable) };
             for (std::size_t i{}; i < m_motors.size(); ++i) {
                 const auto& config{ configuration[i] };
                 m_motors[i] = std::make_unique<StepperMotor>(static_cast<MotorId>(i),

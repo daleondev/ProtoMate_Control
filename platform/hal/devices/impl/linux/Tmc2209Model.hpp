@@ -7,10 +7,10 @@
 namespace hal::device
 {
     // Linux model only. Fault injection is deliberately unavailable on STM32.
-    class Tmc2209Uart final : public IUart
+    class Tmc2209Model final : public IUart
     {
       public:
-        Tmc2209Uart();
+        Tmc2209Model();
         util::Result<> exchange(std::span<const std::uint8_t> request,
                                 std::span<std::uint8_t> reply,
                                 std::chrono::milliseconds timeout) override;
