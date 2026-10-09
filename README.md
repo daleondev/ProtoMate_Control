@@ -58,6 +58,11 @@ For the bare Nucleo + EVB-LAN9255 SPI feasibility test, build
 cover loopback, J17 straps, wiring, flashing, identification and repeated reads.
 This image needs no motor hardware or external storage.
 
+For a complete standalone SOES echo slave, build **`ethercat-slave-stm32`**.
+It exchanges one `UDINT` in each direction, without robot functions. See the
+[example instructions](docs/ethercat/slave-example.md) and install its
+[ESI file](examples/ethercat_slave/ProtoMateEcho.xml) in the EtherCAT master.
+
 ## Planned migration to Arduino GIGA R1 WiFi
 
 **Status: future design; not implemented.** The current target remains the

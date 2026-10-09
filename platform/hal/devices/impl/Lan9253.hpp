@@ -31,7 +31,9 @@ namespace hal::device
         [[nodiscard]] util::Result<> writeSystemRegister(
           std::uint16_t address, std::uint32_t value,
           std::chrono::milliseconds timeout = std::chrono::milliseconds{ 100 });
-        // CSR accesses use aligned sizes 1, 2 or 4, within 0x0000..0x0fff.
+        // Indirect accesses use aligned sizes 1, 2 or 4, within 0x0000..0x2fff.
+        // Process RAM (0x1000..0x2fff) is also accessible through this interface
+        // (DS00003421B 11.13.1); FIFO transfers are a future optimization.
         // Before READY, only use these for the EEPROM-emulation bootstrap
         // described by DS00003421B section 13.4, after BYTE_TEST succeeds.
         [[nodiscard]] util::Result<std::uint32_t> readEscRegister(

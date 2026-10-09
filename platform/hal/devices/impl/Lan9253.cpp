@@ -21,7 +21,7 @@ namespace
 
     bool validCsr(std::uint16_t address, std::uint8_t size)
     {
-        return (size == 1 || size == 2 || size == 4) && address < 0x1000 && address % size == 0;
+        return (size == 1 || size == 2 || size == 4) && address < 0x3000 && address % size == 0;
     }
 
     struct Select

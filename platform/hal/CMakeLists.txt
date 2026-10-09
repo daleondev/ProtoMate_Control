@@ -38,7 +38,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     if(HAL_HARDWARE_TMC_STANDALONE_TEST)
         target_compile_definitions(hal PRIVATE HAL_HARDWARE_TMC_STANDALONE_TEST)
     endif()
-    if(HAL_HARDWARE_SPI_TEST)
+    if(HAL_HARDWARE_SPI_TEST OR HAL_HARDWARE_ETHERCAT_SLAVE)
         target_compile_definitions(hal PRIVATE HAL_HARDWARE_SPI_TEST)
     endif()
     target_compile_definitions(hal

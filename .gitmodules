@@ -22,3 +22,6 @@
 [submodule "external/pneumo"]
 	path = external/pneumo
 	url = https://github.com/daleondev/pneumo.git
+[submodule "external/SOES"]
+	path = external/SOES
+	url = git@github.com:OpenEtherCATsociety/SOES.git

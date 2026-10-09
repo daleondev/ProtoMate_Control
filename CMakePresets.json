@@ -31,7 +31,8 @@
                 "HAL_HARDWARE_TMC_TEST": false,
                 "HAL_HARDWARE_MOTOR_TEST": false,
                 "HAL_HARDWARE_TMC_STANDALONE_TEST": false,
-                "HAL_HARDWARE_SPI_TEST": false
+                "HAL_HARDWARE_SPI_TEST": false,
+                "HAL_HARDWARE_ETHERCAT_SLAVE": false
             }
         },
         {
@@ -61,6 +62,16 @@
             "inherits": "release-stm32",
             "cacheVariables": {
                 "HAL_HARDWARE_SPI_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "ethercat-slave-stm32",
+            "displayName": "STM32 SOES EtherCAT Echo Slave",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_ETHERCAT_SLAVE": true,
                 "RUNTIME_STORAGE_REQUIRED": false,
                 "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
             }
@@ -226,6 +237,10 @@
         {
             "name": "ethercat-test-stm32",
             "configurePreset": "ethercat-test-stm32"
+        },
+        {
+            "name": "ethercat-slave-stm32",
+            "configurePreset": "ethercat-slave-stm32"
         }
     ]
 }

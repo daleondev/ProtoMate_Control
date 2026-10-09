@@ -196,11 +196,15 @@ TEST(Lan9253, SystemWriteAndIndirectCsrFramingAlignmentAndBusyHandshake)
     EXPECT_EQ(bus.csrValues[0x508], 0xabcdef98U);
     EXPECT_EQ(bus.values[0x304], 0x00040508U);
     const auto transfers = bus.requests.size();
-    for (const auto& [address, size] : { std::pair{0x501, 2}, {0x502, 4}, {0x1000, 4}, {0x500, 3}, {0x500, 0} }) {
+    for (const auto& [address, size] : { std::pair{0x501, 2}, {0x502, 4}, {0x3000, 4}, {0x500, 3}, {0x500, 0} }) {
         EXPECT_FALSE(esc.readEscRegister(address, size));
         EXPECT_FALSE(esc.writeEscRegister(address, size, 0));
     }
     EXPECT_EQ(bus.requests.size(), transfers);
+    ASSERT_TRUE(esc.writeEscRegister(0x1000, 4, 0x12345678));
+    EXPECT_EQ(esc.readEscRegister(0x1000, 4).value(), 0x12345678U);
+    ASSERT_TRUE(esc.writeEscRegister(0x2ffc, 4, 0x87654321));
+    EXPECT_EQ(esc.readEscRegister(0x2ffc, 4).value(), 0x87654321U);
     bus.values[0x304] = 0x80000000;
     EXPECT_EQ(esc.writeEscRegister(0x508, 4, 0, 2ms).error(), std::errc::timed_out);
     EXPECT_EQ(bus.csrValues[0x508], 0xabcdef98U); // Busy interface was not overwritten.
