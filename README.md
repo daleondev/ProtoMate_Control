@@ -53,6 +53,142 @@ I/O uses the host filesystem; explicit FileX tests use simulated media images.
 The simulated LED state toggles inside the process; inspect it through the
 HAL or Linux debugger. Startup diagnostics and the boot message appear on the terminal.
 
+## Planned migration to Arduino GIGA R1 WiFi
+
+**Status: future design; not implemented.** The current target remains the
+NUCLEO-H753ZI. The build, flashing instructions, CubeMX configuration and KiCad
+wiring in this repository still describe that board. Migration to the GIGA is
+planned, but is a separate implementation task.
+
+### Controller responsibilities
+
+Use the GIGA's STM32H747 as two controllers, with separate firmware images and
+separate application state:
+
+| IO controller: Cortex-M4, 240 MHz | UI controller: Cortex-M7, 480 MHz |
+| --- | --- |
+| `Robot`, axes, `MotionController` and `StepperMotor` | TouchGFX screens and touch input |
+| Kinematics, complete motion planning and profile generation | CLI parsing, help and output |
+| STEP timer/DMA scheduling and motor-driver configuration | Submit commands from GUI and CLI |
+| Encoder/INDEX feedback, homing, reference switches and fault handling | Present position, velocity, progress and diagnostics |
+| Validate commands and own authoritative robot state/configuration | Maintain presentation state and pending command IDs |
+
+All robot control, including motion planning, belongs to the IO controller.
+The UI sends high-level requests; it does not generate pulse schedules or
+access robot objects, motor GPIOs, driver UARTs or motion timers. Display/touch
+peripherals and the CLI console belong to the UI. GUI and CLI use the same
+controller client, and the IO controller can operate without either frontend.
+
+TouchGFX runs on the M7 to use its higher processing speed and caches for
+graphics. All motion calculations move to the M4 with the rest of robot
+control. The M4 has a single-precision FPU, so the existing double-precision
+profile calculations require software arithmetic. Benchmark profile generation
+and DMA refill deadlines for three simultaneous axes on the M4 before migration.
+Any necessary optimization must preserve the required numerical accuracy and
+keep motion planning within the IO controller.
+See [TouchGFX hardware guidance](https://support.touchgfx.com/docs/development/hardware-selection/hardware-components/hardware-selection-mcu).
+
+### Shared-memory command interface
+
+The proposed `ControllerClient` on the M7 serves GUI and CLI. A
+`ControllerServer` on the M4 dispatches requests into robot control. These are
+planned interfaces, not existing classes. Keep message definitions independent
+of the transport so a future UART or CAN connection can preserve the same
+controller responsibilities.
+
+Use two bounded, single-producer/single-consumer queues in shared RAM:
+
+| Queue | Payloads |
+| --- | --- |
+| UI to IO | Move, jog, home, configuration and status requests |
+| IO to UI | Command acceptance/rejection, completion, faults and status updates |
+
+Each controller has one communication worker that owns its outgoing queue and
+consumes its incoming queue. GUI/CLI requests and IO events from other local
+threads or callbacks are serialized through that worker. Hardware interrupt
+handlers notify local workers rather than execute commands or become additional
+producers of the shared queue.
+
+Commands carry correlation IDs. Acceptance means a command was admitted;
+completion or failure is a separate response. GUI and CLI can therefore track
+asynchronous operations independently. IO performs the authoritative state,
+limit and parameter checks, regardless of any validation performed by the UI.
+
+Messages contain explicitly defined data: message type, protocol version,
+session/command IDs, payload length, numeric values with defined units, and
+status/error codes. Specify field widths and numeric representation rather
+than copying compiler-dependent object layouts. Do not send pointers, virtual
+objects, `std::string`, callbacks or futures between firmware images. Each
+controller may build local C++ abstractions around received messages.
+
+The transport must provide these behaviours:
+
+- Bound queue capacity and message size. Report backpressure explicitly; never
+  silently discard commands, command results or fault events. IO must not wait
+  indefinitely for the UI to consume messages.
+- Coalesce frequent position/velocity updates into the latest status rather
+  than letting telemetry exhaust capacity needed for command results.
+- Give stop requests a dedicated urgent path, such as a latched shared request
+  with its own notification and acknowledgement, so ordinary queue congestion
+  cannot delay their delivery. IO continues to handle hardware faults and
+  reference inputs locally.
+- Establish a versioned startup handshake and session identity. Detect a peer
+  restart, invalidate stale pending requests and do not replay motion commands
+  from an earlier session. Define link-loss behaviour, including expiry of
+  continuously commanded jogging, before enabling remote motion.
+
+### Memory and notification rules
+
+Reserve a dedicated shared region, initially targeting **SRAM4**, in both
+linker scripts. Exclude it from private heaps, stacks and independent startup
+clearing. Coordinate initialization so one core cannot erase live queues when
+it boots or restarts. Configure the region as non-cacheable on the M7 (UI).
+Use aligned indices plus explicit inter-core memory ordering: finish writing
+the payload before publishing it, and finish reading it before releasing its slot.
+Neither `volatile` nor disabling interrupts on one core is sufficient for
+cross-core synchronization.
+
+Use **HSEM notifications** to wake the receiving controller's local worker.
+Notifications may coalesce: the queue is the source of truth, and the receiver
+drains it and uses a recheck-before-sleep protocol to avoid lost wakeups. HSEM
+provides the notification; queue correctness still depends on publication and
+consumption ordering. ST documents shared SRAM, MPU/cache handling and HSEM
+notifications in [AN5617](https://www.st.com/resource/en/application_note/an5617-stm32h745755-and-stm32h747757-lines-interprocessor-communications-stmicroelectronics.pdf).
+
+Do not share a normal ThreadX queue, semaphore or mutex between the two kernel
+instances. Each firmware owns its RTOS objects; the shared transport uses a
+defined inter-core protocol. Separate CPU execution does not isolate the
+shared buses, clocks or peripherals, so assign resource ownership and validate
+motion timing under graphics and communication load.
+
+### Migration work and validation
+
+The H747 provides the timer capabilities needed to retain TIM2 channels 1/3/4
+for STEP, channel 2 for the internal deadline, TIM3 for quadrature feedback,
+TIM5 for runtime timekeeping, TIM6 for the HAL tick and TIM7 for completion
+monitoring. Assign these peripherals and their interrupts to the M4 IO core.
+Give the UI runtime its own timebase; UI initialization must not reconfigure
+IO timers or shared clocks after robot control starts. The GIGA pin map,
+display-dependent pin conflicts and peripheral interrupt routing still need
+their own CubeMX configuration; the Nucleo wiring tables below are not a GIGA
+assignment. See the [H747 datasheet](https://www.st.com/resource/en/datasheet/stm32h747xi.pdf)
+and [GIGA pinout](https://docs.arduino.cc/resources/pinouts/ABX00063-full-pinout.pdf).
+
+Migration includes board-specific startup/clocks, core boot coordination,
+memory partitioning for both images and any bootloader, DMA/MPU configuration,
+SWD debugging, the UI console, storage/network adapters and updated KiCad
+connections. Retain CMake/GCC, the HAL and the IO runtime; using the GIGA does
+not require adopting the Arduino application framework. Integrate the M7's
+TouchGFX runtime and board drivers separately.
+
+Before switching the project target, validate GUI performance on the M7 and
+motion computation/refill headroom on the M4. Validate transport ordering,
+saturation, notifications and peer restarts; then repeat the motion, feedback,
+homing and fault tests on the GIGA, including maximum GUI/CLI traffic. The final
+display, queue sizes, update rates and memory allocation remain implementation
+decisions to establish by those checks. No GIGA hardware verification is
+claimed by this plan.
+
 ## KiCad hardware project
 
 Open **[hardware/ProtoMate.kicad_pro](hardware/ProtoMate.kicad_pro)** in
