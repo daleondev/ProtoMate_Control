@@ -90,8 +90,8 @@ namespace hal::device
     }
 
     pnm::units::Angle QuadratureEncoderFeedback::resolution() const noexcept { return m_state->count_angle; }
-    util::Result<> QuadratureEncoderFeedback::start() noexcept { return m_encoder->start(); }
-    util::Result<> QuadratureEncoderFeedback::stop() noexcept { return m_encoder->stop(); }
+    hal::util::Result<> QuadratureEncoderFeedback::start() noexcept { return m_encoder->start(); }
+    hal::util::Result<> QuadratureEncoderFeedback::stop() noexcept { return m_encoder->stop(); }
 
     void QuadratureEncoderFeedback::setCallback(Callback callback)
     {
@@ -100,7 +100,7 @@ namespace hal::device
         if (m_state->callback) m_state->callback(m_state->latest);
     }
 
-    util::Result<> QuadratureEncoderFeedback::reference(pnm::units::Angle position)
+    hal::util::Result<> QuadratureEncoderFeedback::reference(pnm::units::Angle position)
     {
         if (!position.isFinite())
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
@@ -108,7 +108,7 @@ namespace hal::device
         // that lock. Temporarily detach callbacks while the counter keeps running.
         m_encoder->clearSampleCallback();
         const auto count{ m_encoder->position() };
-        util::Result<> result;
+        hal::util::Result<> result;
         if (count) {
             const auto offset{ position - m_state->count_angle * static_cast<double>(*count) };
             if (!offset.isFinite())

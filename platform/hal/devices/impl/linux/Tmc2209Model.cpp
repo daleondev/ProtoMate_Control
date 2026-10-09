@@ -28,7 +28,7 @@ namespace hal::device
         return m_registers.at(address).at(reg);
     }
     void Tmc2209Model::setConnected(unsigned address, bool connected) { m_connected.at(address) = connected; }
-    util::Result<> Tmc2209Model::exchange(std::span<const std::uint8_t> request,
+    hal::util::Result<> Tmc2209Model::exchange(std::span<const std::uint8_t> request,
                                          std::span<std::uint8_t> reply,
                                          std::chrono::milliseconds)
     {

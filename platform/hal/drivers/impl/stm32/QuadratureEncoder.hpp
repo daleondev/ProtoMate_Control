@@ -1,8 +1,8 @@
 #pragma once
 
-#include "hal/drivers/detail/EncoderCounter.hpp"
-#include "hal/drivers/detail/EncoderSampler.hpp"
-#include "hal/drivers/detail/TimerLease.hpp"
+#include "hal/drivers/util/EncoderCounter.hpp"
+#include "hal/drivers/util/EncoderSampler.hpp"
+#include "hal/drivers/util/TimerLease.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/hal.hpp"
 
@@ -13,7 +13,7 @@ namespace hal
     class QuadratureEncoder final : public IQuadratureEncoder
     {
       public:
-        QuadratureEncoder(detail::TimerLease lease,
+        QuadratureEncoder(util::TimerLease lease,
                           std::shared_ptr<IDigitalInput> a,
                           std::shared_ptr<IDigitalInput> b);
         ~QuadratureEncoder() override;
@@ -28,11 +28,11 @@ namespace hal
 
       private:
         auto sample() const noexcept -> void;
-        detail::TimerLease m_lease;
+        util::TimerLease m_lease;
         std::shared_ptr<IDigitalInput> m_a;
         std::shared_ptr<IDigitalInput> m_b;
-        mutable detail::EncoderCounter m_counter;
-        detail::EncoderSampler m_sampler;
+        mutable util::EncoderCounter m_counter;
+        util::EncoderSampler m_sampler;
         bool m_running{};
         inline static QuadratureEncoder* s_instance{};
     };

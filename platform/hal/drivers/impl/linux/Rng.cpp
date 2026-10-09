@@ -1,6 +1,6 @@
 #include "Rng.hpp"
 
-#include "hal/drivers/common.hpp"
+#include <system_error>
 
 #include <cerrno>
 #include <cstddef>
@@ -21,10 +21,10 @@ namespace hal
                 if (errno == EINTR) {
                     continue;
                 }
-                return make_error_result<Value>(HalError::Error);
+                return std::unexpected(std::error_code{ errno, std::generic_category() });
             }
             if (result == 0) {
-                return make_error_result<Value>(HalError::Error);
+                return std::unexpected(std::make_error_code(std::errc::io_error));
             }
             generated += static_cast<std::size_t>(result);
         }

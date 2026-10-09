@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
 #include <chrono>
 #include <cstdint>
 #include <span>
@@ -25,5 +25,27 @@ namespace hal
         virtual util::Result<> exchange(std::span<const std::uint8_t> request,
                                         std::span<std::uint8_t> reply,
                                         std::chrono::milliseconds timeout) = 0;
+    };
+}
+
+namespace hal::uart
+{
+    enum class Peripheral : std::uint8_t
+    {
+        Usart1,
+        Usart2,
+        Usart3,
+        Uart4,
+        Uart5,
+        Usart6,
+        Uart7,
+        Uart8,
+        Lpuart1
+    };
+
+    struct Configuration
+    {
+        Peripheral peripheral;
+        IUart::Configuration transport{};
     };
 }

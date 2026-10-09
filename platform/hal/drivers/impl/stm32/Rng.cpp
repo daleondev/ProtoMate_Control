@@ -1,6 +1,6 @@
 #include "Rng.hpp"
 
-#include "hal/drivers/common.hpp"
+#include "hal/stm32/HalResult.hpp"
 
 #include <exception>
 

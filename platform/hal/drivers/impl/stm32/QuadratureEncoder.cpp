@@ -1,6 +1,6 @@
 #include "QuadratureEncoder.hpp"
 
-#include "hal/drivers/common.hpp"
+#include "hal/stm32/HalResult.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 
 #include <utility>
@@ -16,7 +16,7 @@ namespace hal
             return std::chrono::steady_clock::now().time_since_epoch();
         }
     }
-    QuadratureEncoder::QuadratureEncoder(detail::TimerLease lease,
+    QuadratureEncoder::QuadratureEncoder(util::TimerLease lease,
                                          std::shared_ptr<IDigitalInput> a,
                                          std::shared_ptr<IDigitalInput> b)
       : m_lease{ std::move(lease) }

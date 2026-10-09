@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
 
 #include <functional>
 #include <string_view>
@@ -26,8 +26,8 @@ namespace hal::device
         // short interrupt-masked shared-enable decision. GPIO level is live.
         virtual Status status() const noexcept = 0;
         // Disabled only; explicit initialization/recovery never enables a motor.
-        virtual util::Result<> initialize() = 0;
-        virtual util::Result<> verify() = 0;
+        virtual hal::util::Result<> initialize() = 0;
+        virtual hal::util::Result<> verify() = 0;
         virtual void service() = 0; // Thread context: poll extended diagnostics.
         virtual IConfigurableStepperDriver* configuration() noexcept { return nullptr; }
         // One observer; registration delivers an already latched fault. May run

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <span>
 
-namespace hal::detail
+namespace hal::util
 {
     inline constexpr std::uint32_t step_tick_ns{ 100U };
     inline constexpr std::uint32_t step_min_phase{ 50U };

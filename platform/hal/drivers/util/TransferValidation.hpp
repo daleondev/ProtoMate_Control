@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace hal::detail
+namespace hal::util
 {
     // STM32 polling APIs use 16-bit byte counts and a 32-bit millisecond
     // budget. The all-ones timeout is reserved for an unbounded HAL wait.

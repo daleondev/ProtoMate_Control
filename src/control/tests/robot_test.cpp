@@ -2,7 +2,7 @@
 #include "control/SynchronizedSequence.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 #include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
-#include "hal/drivers/detail/SimulatedStepHardware.hpp"
+#include "hal/drivers/impl/linux/SimulatedStepHardware.hpp"
 #include "hal/drivers/impl/StepGenerator.hpp"
 
 #include <gtest/gtest.h>
@@ -259,9 +259,9 @@ TEST(SynchronizedSequence, UnequalCountsShareTheFinalTickWithoutAccumulatedRound
 
 TEST(SynchronizedSequence, SharedProfileProducesExactEdgesThroughDmaRefillsAndRollover)
 {
-    auto port{ std::make_unique<hal::detail::SimulatedStepHardware>() };
+    auto port{ std::make_unique<hal::util::SimulatedStepHardware>() };
     auto* hardware{ port.get() };
-    auto generator{ std::make_shared<hal::detail::StepGenerator>(std::move(port)) };
+    auto generator{ std::make_shared<hal::util::StepGenerator>(std::move(port)) };
     hardware->interrupt = [&] { generator->service(); };
     const auto profile{ motion::Profile::create(1.0, { 0.73, 1.1, 0.6, 4.2 }) };
     ASSERT_TRUE(profile);
@@ -269,7 +269,7 @@ TEST(SynchronizedSequence, SharedProfileProducesExactEdgesThroughDmaRefillsAndRo
     std::array<std::shared_ptr<motion::SynchronizedSequence>, 3> sequences;
     std::array<std::optional<std::chrono::nanoseconds>, 3> delays;
     ASSERT_TRUE(generator->start());
-    hardware->advance(hal::detail::step_park - 1000U);
+    hardware->advance(hal::util::step_park - 1000U);
     const auto origin{ hardware->elapsed };
     for (unsigned i{}; i < 3U; ++i) {
         sequences[i] = std::make_shared<motion::SynchronizedSequence>(*profile, counts[i]);

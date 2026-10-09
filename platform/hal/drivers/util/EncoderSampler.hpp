@@ -4,7 +4,7 @@
 
 #include <utility>
 
-namespace hal::detail
+namespace hal::util
 {
     // Access is serialized by the encoder backend. Position queries and wrap
     // service must not change the velocity sampling window.

@@ -5,7 +5,7 @@
 
 namespace hal
 {
-    // In-process transport model. The board/test attaches any device behavior.
+    // In-process transport model. Device factories/tests attach peer behavior.
     class Spi final : public ISpi
     {
       public:

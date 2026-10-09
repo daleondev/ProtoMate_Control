@@ -1,4 +1,5 @@
 #include "hal/devices/factory/tmc2209.hpp"
+#include "hal/drivers/factory/uart.hpp"
 
 namespace hal::device::tmc2209
 {

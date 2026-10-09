@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
 
 #include <chrono>
 #include <concepts>
@@ -71,5 +71,37 @@ namespace hal
           -> Tick = 0;
 
         virtual auto setPeriodImpl(std::chrono::nanoseconds duration) noexcept -> void = 0;
+    };
+}
+
+namespace hal::timer
+{
+    enum class Peripheral : std::uint8_t
+    {
+        Tim1 = 1,
+        Tim2,
+        Tim3,
+        Tim4,
+        Tim5,
+        Tim6,
+        Tim7,
+        Tim8,
+        Tim12 = 12,
+        Tim13,
+        Tim14,
+        Tim15,
+        Tim16,
+        Tim17
+    };
+    enum class Channel : std::uint8_t
+    {
+        Channel1 = 1,
+        Channel2,
+        Channel3,
+        Channel4
+    };
+    struct Configuration
+    {
+        Peripheral peripheral;
     };
 }

@@ -1,6 +1,6 @@
 #include "Timer.hpp"
 
-#include "hal/drivers/common.hpp"
+#include <system_error>
 
 #include <cerrno>
 #include <chrono>
@@ -113,7 +113,7 @@ namespace hal
     {
         PthreadLock lock{ m_mutex };
         if (getTickFrequencyHzUnlocked() == 0U) {
-            return make_error_result(HalError::Error);
+            return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
 
         const auto now{ monotonic_nanoseconds() };
@@ -141,7 +141,7 @@ namespace hal
     {
         PthreadLock lock{ m_mutex };
         if (getTickFrequencyHzUnlocked() == 0U) {
-            return make_error_result(HalError::Error);
+            return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
 
         const auto now{ monotonic_nanoseconds() };

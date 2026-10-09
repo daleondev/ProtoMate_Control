@@ -1,6 +1,7 @@
 #pragma once
 
-#include "hal/drivers/factory/uart.hpp"
+#include "hal/drivers/itf/IUart.hpp"
+#include <memory>
 
 namespace hal::device::tmc2209
 {

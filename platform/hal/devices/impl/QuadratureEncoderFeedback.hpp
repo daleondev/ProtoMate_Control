@@ -18,9 +18,9 @@ namespace hal::device
 
         Source source() const noexcept override { return Source::ShaftEncoder; }
         pnm::units::Angle resolution() const noexcept override;
-        util::Result<> start() noexcept override;
-        util::Result<> stop() noexcept override;
-        util::Result<> reference(pnm::units::Angle position) override;
+        hal::util::Result<> start() noexcept override;
+        hal::util::Result<> stop() noexcept override;
+        hal::util::Result<> reference(pnm::units::Angle position) override;
         void invalidate() noexcept override {} // Shaft counts survive driver disable/reset.
         void motion(bool, bool, std::chrono::nanoseconds) noexcept override {}
         void setCallback(Callback callback) override;

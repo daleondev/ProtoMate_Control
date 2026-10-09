@@ -22,12 +22,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Background services use the runtime C++ ABI; the remaining Linux HAL
     # retains its native ABI and crosses through opaque service objects.
-    add_library(hal_linux_services STATIC linux/StepService.cpp linux/QuadratureEncoder.cpp)
+    add_library(hal_linux_services OBJECT linux/StepHardware.cpp linux/QuadratureEncoder.cpp)
     target_include_directories(hal_linux_services PRIVATE ${PROJECT_SOURCE_DIR}/platform)
     target_link_libraries(hal_linux_services PRIVATE runtime::cxx_abi project_compiler_settings)
     target_compile_definitions(hal_linux_services PRIVATE HAL_PLATFORM_LINUX HAL_STEP_THREADX)
-    target_link_libraries(hal_drivers PRIVATE hal_linux_services)
-
+    target_sources(hal_drivers PRIVATE $<TARGET_OBJECTS:hal_linux_services>)
 
     target_sources(hal_drivers
         PRIVATE
@@ -39,6 +38,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Timer.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Uart.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Spi.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/SimulatedStepHardware.cpp
     )
 
 else()

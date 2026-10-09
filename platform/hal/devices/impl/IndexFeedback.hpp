@@ -31,13 +31,13 @@ namespace hal::device
         void motion(bool running, bool forward, std::chrono::nanoseconds step_period) noexcept override;
         Source source() const noexcept override { return Source::DriverIndex; }
         pnm::units::Angle resolution() const noexcept override;
-        util::Result<> start() noexcept override;
-        util::Result<> stop() noexcept override;
+        hal::util::Result<> start() noexcept override;
+        hal::util::Result<> stop() noexcept override;
         // Disable/reconfigure/reset loses the driver's electrical phase.
         void invalidate() noexcept override;
         // Rebase while stopped at the reference switch. Sub-cycle position is unresolved;
         // feedback stays unavailable until an INDEX transition has been seen.
-        util::Result<> reference(pnm::units::Angle position) override;
+        hal::util::Result<> reference(pnm::units::Angle position) override;
         // One subscriber. Callbacks are serialized and may run in EXTI/progress
         // interrupt context: no blocking, allocation, or calls into this object.
         // Clearing waits for an in-flight callback. Thread-context configuration only.

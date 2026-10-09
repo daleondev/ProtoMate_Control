@@ -1,5 +1,5 @@
 #include "Spi.hpp"
-#include "hal/drivers/detail/TransferValidation.hpp"
+#include "hal/drivers/util/TransferValidation.hpp"
 #include <utility>
 
 namespace hal
@@ -13,8 +13,8 @@ namespace hal
                        std::span<std::uint8_t> rx,
                        std::chrono::milliseconds timeout) -> util::Result<>
     {
-        if (tx.empty() || tx.size() != rx.size() || !detail::validTransferSize(tx.size()) ||
-            !detail::validTransferTimeout(timeout))
+        if (tx.empty() || tx.size() != rx.size() || !util::validTransferSize(tx.size()) ||
+            !util::validTransferTimeout(timeout))
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         if (!m_handler)
             return std::unexpected(std::make_error_code(std::errc::not_connected));

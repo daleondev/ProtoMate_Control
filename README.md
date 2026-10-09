@@ -72,7 +72,69 @@ It exchanges one `UDINT` in each direction, without robot functions. See the
 [example instructions](docs/ethercat/slave-example.md) and install its
 [ESI file](examples/ethercat_slave/ProtoMateEcho.xml) in the EtherCAT master.
 
-## HAL factory selection
+## HAL architecture
+
+The HAL provides peripheral access and device behavior. Robot motion planning,
+homing policy, gearing, kinematics and CLI commands belong to `src/control` and
+`src/cli`. Thread scheduling, the C++ runtime and filesystem integration belong
+to `platform/runtime`.
+
+### Layers and responsibilities
+
+Paths in this table are relative to [`platform/hal`](platform/hal).
+
+| Location | Responsibility | Dependencies within the HAL |
+| --- | --- | --- |
+| `drivers/itf` | Peripheral capability interfaces (`ISpi`, `IUart`, `IDigitalInput`, etc.) and their configuration/value types | Other driver contracts and common `util` |
+| `drivers/impl/stm32`, `drivers/impl/linux` | Concrete classes implementing those interfaces using the selected platform | Driver contracts, driver helpers and platform support |
+| `drivers/impl` | Shared step-generator/output algorithms | Driver contracts, helpers and the internal `StepHardware` backend boundary |
+| `drivers/factory` | Select a backend, validate a supported resource/route, claim ownership and return its interface | Driver implementations and other driver factories |
+| `devices/itf` | Device capabilities such as `IMotorFeedback`, `IStepperDriver`, `IButton` and `ILed` | Device/driver contracts and common `util` |
+| `devices/impl` | Device behavior and protocols: TMC2209, DM542T, LAN9253, feedback, button and LED adapters | Injected driver interfaces and device helpers |
+| `devices/factory` | Construction that differs by platform, currently TMC2209 transport/model composition | Driver factories and the selected device model |
+| `board/board.hpp`, `board/nucleo_h753zi/board.cpp` | Translate robot/board roles into pins, peripherals, driver addresses and device compositions | Public factories and portable device implementations |
+| `hal.hpp/.cpp`, `stm32`, `linux` | Platform startup, console, panic handling, interrupt dispatch and platform synchronization | Selected platform/vendor facilities |
+| `util`, `drivers/util`, `devices/util` | Common result types or helpers private to their respective layer | Same-layer or lower-level contracts; never board/application policy |
+
+Each compiled layer has its own target. The public dependency chain is:
+
+```text
+platform::hal → hal::board → hal::devices → hal::drivers
+```
+
+Each target compiles only its own sources; CMake selects the STM32 or Linux
+backend. The Linux step and encoder workers are compiled as `hal_linux_services`
+objects using the runtime's C++ ABI and included in `hal_drivers`. Their opaque
+service objects keep that ABI boundary out of public interfaces.
+
+Interfaces and public factory headers contain no vendor handles, platform
+headers or board wiring. Configuration types live beside the interface, so an
+implementation never needs a factory header to obtain its own types.
+[`GpioTypes.hpp`](platform/hal/drivers/itf/GpioTypes.hpp) contains GPIO values and
+configuration; the actual input/output interfaces are separate.
+
+Concrete classes are declared in `.hpp` files and implemented in matching `.cpp`
+files. Coherent families can share a pair, as `GpioInput` and `GpioOutput` do in
+`Gpio.hpp/.cpp`. Shared algorithms stay in the common implementation directory;
+platform models stay in `impl/linux`. Small inline methods and template helpers
+remain in headers. Helper directories and namespaces consistently use **`util`**:
+`hal::util` for common/driver helpers and `hal::device::util` for device helpers.
+
+Device behavior uses injected interfaces and contains no peripheral selection
+or MCU register access. The explicit platform exception is synchronization:
+`InterruptGuard`, `Mutex` and `ThreadMutex` protect callbacks and shared state.
+TMC2209 and LAN9253 protocol classes can be concrete portable classes; capability
+interfaces are introduced where callers need interchangeable implementations.
+`IConfigurableStepperDriver` extends `IStepperDriver` with optional configuration.
+
+The board layer defines wiring and composes those objects. It contains no host
+simulation registry or simulated register behavior. The Linux TMC2209 device
+factory attaches `Tmc2209Model` to a generic UART; tests can instead construct
+and inject their own model/transport. Generic SPI/UART drivers contain no motor
+or EtherCAT protocol. `hal.hpp` is the startup/vendor bridge and is not a header
+for ordinary device implementations or public contracts.
+
+### Factories and resource selection
 
 Configurable factories take a typed `Configuration` describing hardware resources.
 GPIO selects pins; buses select a peripheral; PWM/encoder configurations select a
@@ -112,6 +174,51 @@ retain their existing ownership through the PWM, encoder and step factories.
 The single RNG, RTC and fixed step engine need no selector. Existing ownership
 rules remain: shared system services return their existing instance, while GPIO,
 SPI/UART, PWM, encoder and step resources require exclusive ownership.
+
+| Factory | Selection and lifetime |
+| --- | --- |
+| `gpio::createInput/createOutput` | Pin and electrical configuration; exclusive pin ownership |
+| `spi::create`, `uart::create` | Typed peripheral selector; exclusive instance per bus, retained through complete driver destruction |
+| `timer::create` | Typed selector; currently the shared TIM5 runtime timer |
+| `pwm::create` | Timer/channel/pin route; exclusive timer and pin |
+| `encoder::create` | Timer and A/B pins; exclusive timer and both pins |
+| `step::create` | One fixed TIM2/DMA engine; each axis view retains its generator and its GPIO ownership |
+| `rng::create`, `rtc::create` | Shared single system service |
+| `ethernet::create` | One shared STM32 MAC, requiring matching configuration; Linux creates host packet-socket instances |
+
+Factories return `std::shared_ptr` to the requested interface. Resource factories
+reject unsupported or busy selections with null; operations also validate their
+own arguments. Constructors accept dependencies and establish the initial state;
+starting motion requires an explicit call. SPI/UART hardware setup occurs when
+their factory creates an instance, using CubeMX's generated initialization.
+The owning device serializes complete SPI chip-select transactions or UART
+request/reply sequences; selecting an exclusive bus does not itself serialize
+concurrent callers.
+
+Operations report failures using `hal::util::Result` and `std::error_code`.
+The STM32 HAL-status conversion lives in `stm32/HalResult.hpp`; Linux failures
+use standard error codes or the host's `errno`. Callback context and permitted
+operations are specified on each interface. STM32 interrupt callbacks must be
+short and nonblocking; callers must respect callback lifetime and unregister/
+stop requirements before releasing their dependencies.
+
+### Checking the structure
+
+[`verify_hal_architecture.py`](cmake/tests/verify_hal_architecture.py) checks
+production includes, helper naming, interface/factory boundaries, selected
+platform sources and CMake source ownership. It is registered as
+`hal.architecture` in the Linux CTest suite. Both build selections can be checked
+explicitly after configuring them:
+
+```sh
+python3 cmake/tests/verify_hal_architecture.py --source . --build build/debug-linux
+python3 cmake/tests/verify_hal_architecture.py --source . --build build/debug-stm32 --platform stm32
+ctest --test-dir build/debug-linux --output-on-failure
+```
+
+The native transport, PWM and step tests also exercise STM32 implementations
+against recording register/HAL models. Structural checks and host models verify
+software boundaries and behavior; electrical timing remains a hardware test.
 
 ## Planned migration to Arduino GIGA R1 WiFi
 

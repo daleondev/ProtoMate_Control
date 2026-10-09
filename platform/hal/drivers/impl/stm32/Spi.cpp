@@ -1,6 +1,6 @@
 #include "Spi.hpp"
-#include "hal/drivers/common.hpp"
-#include "hal/drivers/detail/TransferValidation.hpp"
+#include "hal/stm32/HalResult.hpp"
+#include "hal/drivers/util/TransferValidation.hpp"
 
 namespace hal
 {
@@ -23,7 +23,7 @@ namespace hal
                        std::chrono::milliseconds timeout) -> util::Result<>
     {
         if (__get_IPSR() != 0 || tx.empty() || tx.size() != rx.size() ||
-            !detail::validTransferSize(tx.size()) || !detail::validTransferTimeout(timeout))
+            !util::validTransferSize(tx.size()) || !util::validTransferTimeout(timeout))
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
 
         // This interface transfers bytes in full duplex. A wider CubeMX frame

@@ -1,6 +1,6 @@
 #include "PwmOutput.hpp"
 
-#include "hal/drivers/common.hpp"
+#include "hal/stm32/HalResult.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 
 #include <utility>
@@ -46,7 +46,7 @@ namespace hal
     }
     PwmOutput::PwmOutput(pwm::Configuration configuration,
                          std::uint8_t alternate,
-                         detail::TimerLease lease,
+                         util::TimerLease lease,
                          std::shared_ptr<IDigitalOutput> pin)
       : m_lease{ std::move(lease) }
       , m_pin{ std::move(pin) }
@@ -99,7 +99,7 @@ namespace hal
     }
     auto PwmOutput::configure(Timing requested) noexcept -> util::Result<>
     {
-        const auto result{ detail::pwmTiming(requested, m_inputHz) };
+        const auto result{ util::pwmTiming(requested, m_inputHz) };
         const stm32::InterruptGuard guard;
         if (m_running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));

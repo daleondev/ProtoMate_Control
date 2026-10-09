@@ -2,7 +2,7 @@
 
 #include "hal/drivers/itf/IStepGenerator.hpp"
 
-namespace hal::detail
+namespace hal::util
 {
     class StepGenerator;
 

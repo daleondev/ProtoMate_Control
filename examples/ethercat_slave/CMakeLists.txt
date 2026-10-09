@@ -16,7 +16,7 @@ add_library(ethercat_echo STATIC
 target_include_directories(ethercat_echo PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR} ${generated})
 target_include_directories(ethercat_echo SYSTEM PUBLIC ${soes_root} ${soes_root}/include/sys/gcc)
-target_link_libraries(ethercat_echo PUBLIC hal::drivers project_compiler_settings)
+target_link_libraries(ethercat_echo PUBLIC hal::devices project_compiler_settings)
 set_target_properties(ethercat_echo PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
 # C stack frames must unwind if a bounded transport operation reports failure
 # through our C-linkage C++ callbacks. The top-level worker catches it.

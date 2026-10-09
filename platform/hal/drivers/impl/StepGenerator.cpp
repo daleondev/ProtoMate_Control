@@ -13,7 +13,7 @@
 #include <limits>
 #include <utility>
 
-namespace hal::detail
+namespace hal::util
 {
     namespace
     {

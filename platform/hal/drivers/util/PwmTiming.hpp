@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <system_error>
 
-namespace hal::detail
+namespace hal::util
 {
     struct PwmTiming
     {

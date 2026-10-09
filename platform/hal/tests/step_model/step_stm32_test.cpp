@@ -21,7 +21,7 @@ namespace
     class RegisterTest : public ::testing::Test
     {
       protected:
-        std::shared_ptr<hal::detail::StepGenerator> engine;
+        std::shared_ptr<hal::util::StepGenerator> engine;
         std::array<std::shared_ptr<hal::IStepOutput>, 3> axes;
         std::array<unsigned, 4> lengths{};
         std::array<bool, 3> high{}, hold_dma{};
@@ -35,8 +35,8 @@ namespace
             dma_streams = {};
             primask = 0;
             timer.CR1 = 0;
-            auto hardware{ hal::stm32::makeStepHardware() };
-            engine = std::make_shared<hal::detail::StepGenerator>(std::move(hardware));
+            auto hardware{ std::make_unique<hal::stm32::StepHardware>() };
+            engine = std::make_shared<hal::util::StepGenerator>(std::move(hardware));
             hal::stm32::registerStepGenerator(engine.get());
             for (unsigned i = 0; i < 3; ++i)
                 axes[i] = engine->output(static_cast<hal::step::Axis>(i));
@@ -87,16 +87,16 @@ namespace
         {
             while (ticks && (timer.CR1 & TIM_CR1_CEN)) {
                 auto distance = [](uint32_t target) -> std::uint64_t {
-                    auto d = hal::detail::stepDistance(timer.CNT, target);
-                    return d ? d : hal::detail::step_park;
+                    auto d = hal::util::stepDistance(timer.CNT, target);
+                    return d ? d : hal::util::step_park;
                 };
                 auto next = (timer.DIER & TIM_DIER_CC2DE)
                               ? distance(timer.CCR2)
-                              : std::uint64_t{ hal::detail::step_park } - timer.CNT;
+                              : std::uint64_t{ hal::util::step_park } - timer.CNT;
                 std::array<std::uint64_t, 3> events;
                 for (unsigned i = 0; i < 3; ++i) {
-                    events[i] = compare(i) == hal::detail::step_park
-                                  ? std::uint64_t{ hal::detail::step_park } - timer.CNT
+                    events[i] = compare(i) == hal::util::step_park
+                                  ? std::uint64_t{ hal::util::step_park } - timer.CNT
                                   : distance(compare(i));
                     next = std::min(next, events[i]);
                 }
@@ -104,19 +104,19 @@ namespace
                 if (TIM7->CR1 & TIM_CR1_CEN)
                     next = std::min(next, poll_tick - elapsed);
                 if (next > ticks) {
-                    timer.CNT = hal::detail::stepAdd(timer.CNT, ticks);
+                    timer.CNT = hal::util::stepAdd(timer.CNT, ticks);
                     elapsed += ticks;
                     return;
                 }
                 const bool guard = next == distance(timer.CCR2);
                 ticks -= next;
                 elapsed += next;
-                timer.CNT = hal::detail::stepAdd(timer.CNT, next);
+                timer.CNT = hal::util::stepAdd(timer.CNT, next);
                 constexpr std::array flag{ 2U, 8U, 16U }, enable{ 1U, 256U, 4096U },
                   request{ 512U, 2048U, 4096U };
                 for (unsigned i = 0; i < 3; ++i)
                     if (events[i] == next) {
-                        if (compare(i) != hal::detail::step_park && (timer.CCER & enable[i])) {
+                        if (compare(i) != hal::util::step_park && (timer.CCER & enable[i])) {
                             auto* gpio = i == 0U ? GPIOA : GPIOB;
                             const auto mask = i == 0U ? GPIO_PIN_0 : i == 1U ? GPIO_PIN_10 : GPIO_PIN_11;
                             high[i] = !(gpio->IDR & mask);
@@ -201,7 +201,7 @@ TEST_F(RegisterTest, FatalShutdownStopsActiveDmaMotionWithoutDriverOrInterruptSe
     // Even an already pending DMA request cannot restart output generation.
     for (unsigned i = 0; i < 4; ++i)
         dmaTransfer(i);
-    advance(hal::detail::step_park * 2ULL);
+    advance(hal::util::step_park * 2ULL);
     for (const auto& edges : rising)
         EXPECT_EQ(edges.size(), 1U);
 }
@@ -255,7 +255,7 @@ TEST_F(RegisterTest, NormalFiniteGuardDoesNotNeedAnyIrqToPreventAnotherPulse)
     ASSERT_TRUE(axes[0]->prepare({ 10us, 5us }, 3));
     start();
     irqs = false;
-    advance(hal::detail::step_park * 2ULL);
+    advance(hal::util::step_park * 2ULL);
     EXPECT_FALSE(timer.CR1 & TIM_CR1_CEN);
     EXPECT_EQ(rising[0].size(), 3U);
     EXPECT_EQ(falling[0].size(), 3U);
@@ -268,7 +268,7 @@ TEST_F(RegisterTest, WithheldRefillInterruptsStopCounterAtTheBufferHorizon)
     ASSERT_TRUE(axes[0]->prepare({ 10us, 5us }));
     start();
     irqs = false;
-    advance(hal::detail::step_park * 2ULL);
+    advance(hal::util::step_park * 2ULL);
     EXPECT_FALSE(timer.CR1 & TIM_CR1_CEN);
     EXPECT_EQ(rising[0].size(), 512U);
     EXPECT_EQ(engine->status().state, State::Underrun);
@@ -287,7 +287,7 @@ TEST_F(RegisterTest, TerminalPendingDmaIsCountedAndItsCompareIsParked)
     advance(50U);
     EXPECT_EQ(axes[0]->pulseCount(), 1U);
     engine->service();
-    EXPECT_EQ(timer.CCR1, hal::detail::step_park);
+    EXPECT_EQ(timer.CCR1, hal::util::step_park);
     advance(6'000'000'000ULL);
     EXPECT_EQ(rising[0].size(), 1U);
     EXPECT_EQ(rising[1].size(), 30U);
@@ -417,7 +417,7 @@ TEST_F(RegisterTest, RuntimeTimingUpdatePreservesCountsAndOtherAxisWaveform)
 TEST_F(RegisterTest, IdleWrapDoesNotProducePulsesAndFiniteCompletionLeavesClockRunning)
 {
     ASSERT_TRUE(engine->start());
-    advance(hal::detail::step_park * 2ULL);
+    advance(hal::util::step_park * 2ULL);
     EXPECT_TRUE(timer.CR1 & TIM_CR1_CEN);
     EXPECT_TRUE(rising[0].empty());
     EXPECT_EQ(timer.DIER & TIM_DIER_CC2DE, 0U);

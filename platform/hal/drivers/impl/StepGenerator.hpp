@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/drivers/detail/StepHardware.hpp"
+#include "hal/drivers/util/StepHardware.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
 #if defined(HAL_STEP_THREADX)
@@ -13,7 +13,7 @@
 #include <mutex>
 #include <vector>
 
-namespace hal::detail
+namespace hal::util
 {
     class StepGenerator final
       : public IStepGenerator

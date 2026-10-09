@@ -8,6 +8,7 @@ add_executable(step_generator_tests
     ../clock_reference_test.cpp
     ${project_root}/platform/hal/drivers/impl/StepGenerator.cpp
     ${project_root}/platform/hal/drivers/impl/StepOutput.cpp
+    ${project_root}/platform/hal/drivers/impl/linux/SimulatedStepHardware.cpp
 )
 target_include_directories(step_generator_tests PRIVATE ${project_root}/platform)
 target_compile_options(step_generator_tests PRIVATE -std=c++26 -Wall -Wextra -Wpedantic)
@@ -19,7 +20,6 @@ add_executable(step_stm32_tests
     ${project_root}/platform/hal/drivers/impl/StepGenerator.cpp
     ${project_root}/platform/hal/drivers/impl/StepOutput.cpp
     ${project_root}/platform/hal/drivers/impl/stm32/StepHardware.cpp
-    ${project_root}/platform/hal/drivers/factory/stm32/step.cpp
     ${project_root}/platform/hal/stm32/FaultShutdown.cpp
 )
 target_include_directories(step_stm32_tests BEFORE PRIVATE fakes ${project_root}/platform)

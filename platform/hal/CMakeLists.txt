@@ -28,7 +28,7 @@ endif()
 
 target_link_libraries(hal
     PUBLIC
-        hal::drivers
+        hal::board
         platform
         project_compiler_settings
 )

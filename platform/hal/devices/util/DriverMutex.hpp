@@ -7,7 +7,7 @@
 #include "hal/linux/Mutex.hpp"
 #endif
 
-namespace hal::device::detail
+namespace hal::device::util
 {
 #if defined(HAL_PLATFORM_LINUX) && defined(HAL_STEP_THREADX)
     using DriverMutex = linux::ThreadMutex;

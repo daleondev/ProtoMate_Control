@@ -2,10 +2,10 @@
 
 #include "hal/linux/Mutex.hpp"
 
-#include "hal/drivers/detail/PulseTrain.hpp"
-#include "hal/drivers/detail/PwmTiming.hpp"
-#include "hal/drivers/detail/TimerLease.hpp"
-#include "hal/drivers/factory/pwm.hpp"
+#include "hal/drivers/util/PulseTrain.hpp"
+#include "hal/drivers/util/PwmTiming.hpp"
+#include "hal/drivers/util/TimerLease.hpp"
+#include "hal/drivers/itf/IPwmOutput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 
 #include <memory>
@@ -20,7 +20,7 @@ namespace hal
       public:
         PwmOutput(pwm::Configuration configuration,
                   std::uint8_t alternate,
-                  detail::TimerLease lease,
+                  util::TimerLease lease,
                   std::shared_ptr<IDigitalOutput> pin);
         ~PwmOutput() override;
         [[nodiscard]] auto configure(Timing timing) noexcept -> util::Result<> override;
@@ -39,12 +39,12 @@ namespace hal
         auto advanceSimulatedPulses(PulseCount count) noexcept -> void;
 
       private:
-        detail::TimerLease m_lease; // Released after the pin.
+        util::TimerLease m_lease; // Released after the pin.
         std::shared_ptr<IDigitalOutput> m_pin;
         // Serialize event delivery/registration, while permitting callback queries.
         mutable linux::Mutex m_mutex{ true };
-        detail::PwmTiming m_timing{};
-        detail::PulseTrain m_train;
+        util::PwmTiming m_timing{};
+        util::PulseTrain m_train;
         PulseCallback m_callback;
         bool m_counted{};
         bool m_running{};

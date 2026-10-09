@@ -13,7 +13,7 @@ namespace hal
             return std::chrono::steady_clock::now().time_since_epoch();
         }
     }
-    // Use the same C++ runtime as application threads (see StepService.cpp).
+    // Use the same C++ runtime as application threads (see StepHardware.cpp).
     struct QuadratureEncoder::Service
     {
         explicit Service(QuadratureEncoder& encoder)
@@ -28,7 +28,7 @@ namespace hal
         std::jthread worker;
     };
 
-    QuadratureEncoder::QuadratureEncoder(detail::TimerLease lease,
+    QuadratureEncoder::QuadratureEncoder(util::TimerLease lease,
                                          std::shared_ptr<IDigitalInput> a,
                                          std::shared_ptr<IDigitalInput> b)
       : m_lease{ std::move(lease) }

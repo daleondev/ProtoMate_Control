@@ -1,9 +1,8 @@
 #include "hal/drivers/factory/spi.hpp"
 #include "hal/drivers/impl/stm32/Spi.hpp"
+#include "hal/drivers/util/ExclusiveInstances.hpp"
 #include "spi.h"
 
-#include <array>
-#include <mutex>
 #include <optional>
 #include <utility>
 
@@ -40,14 +39,7 @@ namespace hal::spi
         const auto selected{ hardware(configuration.peripheral) };
         if (!selected)
             return {};
-        static std::mutex mutex;
-        static std::array<std::weak_ptr<ISpi>, 6> owners;
-        const std::scoped_lock lock{ mutex };
-        auto& owner{ owners[std::to_underlying(configuration.peripheral)] };
-        if (!owner.expired())
-            return {};
-        auto bus{ std::make_shared<Spi>(*selected) };
-        owner = bus;
-        return bus;
+        static util::ExclusiveInstances<6> instances;
+        return instances.create<Spi>(std::to_underlying(configuration.peripheral), *selected);
     }
 }

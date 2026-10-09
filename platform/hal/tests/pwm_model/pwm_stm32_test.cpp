@@ -37,7 +37,7 @@ namespace
                                                   : id == 4U ? hal::pwm::Configuration{ hal::timer::Peripheral::Tim4, hal::timer::Channel::Channel3, { D, 14U } }
                                                              : hal::pwm::Configuration{ hal::timer::Peripheral::Tim8, hal::timer::Channel::Channel1, { C, 6U } };
             output = std::make_unique<hal::PwmOutput>(
-              route, 1U, hal::detail::TimerLease{ static_cast<hal::timer::Peripheral>(id) }, std::make_shared<Pin>());
+              route, 1U, hal::util::TimerLease{ static_cast<hal::timer::Peripheral>(id) }, std::make_shared<Pin>());
             ASSERT_TRUE(output->configure({ 100ns, 50ns })); // 24 ticks, 12 ticks high.
         }
         bool high() const { return port->mode == GPIO_MODE_AF_PP ? timer->high() : port->latch != 0U; }

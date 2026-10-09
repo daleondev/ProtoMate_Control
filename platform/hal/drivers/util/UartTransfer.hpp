@@ -1,9 +1,9 @@
 #pragma once
 
-#include "hal/drivers/detail/TransferValidation.hpp"
+#include "hal/drivers/util/TransferValidation.hpp"
 #include "hal/drivers/itf/IUart.hpp"
 
-namespace hal::detail
+namespace hal::util
 {
     // Polling transmit completes before receive starts. When local echo is
     // enabled the RX FIFO must fit both the echo and an immediate reply.

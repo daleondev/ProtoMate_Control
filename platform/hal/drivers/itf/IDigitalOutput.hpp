@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/drivers/itf/IGpio.hpp"
+#include "hal/drivers/itf/GpioTypes.hpp"
 
 namespace hal
 {

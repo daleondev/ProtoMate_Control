@@ -6,7 +6,7 @@ namespace hal
 {
     PwmOutput::PwmOutput(pwm::Configuration,
                          std::uint8_t,
-                         detail::TimerLease lease,
+                         util::TimerLease lease,
                          std::shared_ptr<IDigitalOutput> pin)
       : m_lease{ std::move(lease) }
       , m_pin{ std::move(pin) }
@@ -20,7 +20,7 @@ namespace hal
         if (m_running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
-        const auto result{ detail::pwmTiming(requested, 240'000'000U) };
+        const auto result{ util::pwmTiming(requested, 240'000'000U) };
         if (!result) {
             return std::unexpected(result.error());
         }

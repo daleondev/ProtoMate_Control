@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/drivers/factory/timer.hpp"
+#include "hal/drivers/itf/ITimer.hpp"
 
 #if defined(HAL_STEP_THREADX)
 #include "hal/linux/ThreadMutex.hpp"
@@ -8,9 +8,9 @@
 #include "hal/linux/Mutex.hpp"
 #endif
 
-#include "hal/drivers/detail/EncoderCounter.hpp"
-#include "hal/drivers/detail/EncoderSampler.hpp"
-#include "hal/drivers/detail/TimerLease.hpp"
+#include "hal/drivers/util/EncoderCounter.hpp"
+#include "hal/drivers/util/EncoderSampler.hpp"
+#include "hal/drivers/util/TimerLease.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 
 #include <memory>
@@ -21,7 +21,7 @@ namespace hal
     class QuadratureEncoder final : public IQuadratureEncoder
     {
       public:
-        QuadratureEncoder(detail::TimerLease lease,
+        QuadratureEncoder(util::TimerLease lease,
                           std::shared_ptr<IDigitalInput> a,
                           std::shared_ptr<IDigitalInput> b);
         ~QuadratureEncoder() override;
@@ -39,7 +39,7 @@ namespace hal
         auto service() noexcept -> void;
 
       private:
-        detail::TimerLease m_lease;
+        util::TimerLease m_lease;
         std::shared_ptr<IDigitalInput> m_a;
         std::shared_ptr<IDigitalInput> m_b;
 #if defined(HAL_STEP_THREADX)
@@ -47,8 +47,8 @@ namespace hal
 #else
         mutable linux::Mutex m_mutex;
 #endif
-        detail::EncoderCounter m_counter;
-        detail::EncoderSampler m_sampler;
+        util::EncoderCounter m_counter;
+        util::EncoderSampler m_sampler;
         std::uint16_t m_raw{};
         bool m_running{};
         struct Service;

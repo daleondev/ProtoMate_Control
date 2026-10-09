@@ -12,12 +12,12 @@ namespace hal::stm32
     {
         struct alignas(32) DmaMemory
         {
-            detail::StepBuffers edges;
+            util::StepBuffers edges;
             std::uint32_t stop_counter;
         };
         // Explicitly initialized on reset: this linker section is NOLOAD.
         __attribute__((section(".StepDmaSection"), aligned(32))) DmaMemory memory;
-        detail::StepGenerator* generator{};
+        util::StepGenerator* generator{};
         const std::array streams{ DMA1_Stream0, DMA1_Stream1, DMA1_Stream2, DMA1_Stream3 };
         constexpr std::array<unsigned, 4> shifts{ 0U, 6U, 16U, 22U };
         constexpr std::uint32_t error_flags{ 0x0DU }; // FEIF, DMEIF, TEIF
@@ -91,7 +91,7 @@ namespace hal::stm32
         HAL_NVIC_DisableIRQ(TIM7_IRQn);
         HAL_NVIC_ClearPendingIRQ(TIM7_IRQn);
     }
-    auto StepHardware::buffers() noexcept -> detail::StepBuffers& { return memory.edges; }
+    auto StepHardware::buffers() noexcept -> util::StepBuffers& { return memory.edges; }
     auto StepHardware::reset() noexcept -> bool
     {
         static_cast<void>(stop());
@@ -125,12 +125,12 @@ namespace hal::stm32
         TIM2->CCMR1 = TIM_OCMODE_FORCED_INACTIVE;
         TIM2->CCMR2 = TIM_OCMODE_FORCED_INACTIVE | (TIM_OCMODE_FORCED_INACTIVE << 8U);
         TIM2->PSC = 23U;
-        TIM2->ARR = detail::step_arr;
+        TIM2->ARR = util::step_arr;
         TIM2->CNT = 0U;
-        TIM2->CCR1 = detail::step_park;
-        TIM2->CCR2 = detail::step_park;
-        TIM2->CCR3 = detail::step_park;
-        TIM2->CCR4 = detail::step_park;
+        TIM2->CCR1 = util::step_park;
+        TIM2->CCR2 = util::step_park;
+        TIM2->CCR3 = util::step_park;
+        TIM2->CCR4 = util::step_park;
         TIM2->EGR = TIM_EGR_UG;
         while ((TIM2->SR & TIM_SR_UIF) == 0U) {
         }
@@ -172,7 +172,7 @@ namespace hal::stm32
         CLEAR_BIT(TIM2->DIER, cc_dma[axis]);
         CLEAR_BIT(TIM2->CCER, cc_enable[axis]);
         disable(axis);
-        compare(axis) = detail::step_park;
+        compare(axis) = util::step_park;
         outputMode(axis, TIM_OCMODE_FORCED_INACTIVE);
         pinMode(axis, true);
         DMA1->LIFCR = all_flags << shifts[axis];
@@ -183,8 +183,8 @@ namespace hal::stm32
         stream->M1AR = reinterpret_cast<std::uintptr_t>(memory.edges[axis][1].data());
         stream->NDTR = entries;
         SET_BIT(stream->CR, DMA_SxCR_DBM | DMA_SxCR_CIRC | DMA_SxCR_MINC | DMA_SxCR_HTIE);
-        const auto lead{ detail::stepDistance(TIM2->CNT, first) };
-        if ((TIM2->CR1 & TIM_CR1_CEN) == 0U || lead < detail::step_min_phase || lead > detail::step_horizon) {
+        const auto lead{ util::stepDistance(TIM2->CNT, first) };
+        if ((TIM2->CR1 & TIM_CR1_CEN) == 0U || lead < util::step_min_phase || lead > util::step_horizon) {
             pinMode(axis, false);
             return false;
         }
@@ -205,10 +205,10 @@ namespace hal::stm32
     }
     auto StepHardware::guard(std::uint32_t tick) noexcept -> void
     {
-        if (tick == detail::step_park) {
+        if (tick == util::step_park) {
             // CCR > ARR can still generate a compare request at wrap!
             CLEAR_BIT(TIM2->DIER, TIM_DIER_CC2DE);
-            TIM2->CCR2 = detail::step_park;
+            TIM2->CCR2 = util::step_park;
         }
         else {
             TIM2->CCR2 = tick;
@@ -230,9 +230,9 @@ namespace hal::stm32
             TIM7->CR1 = TIM_CR1_CEN;
         }
     }
-    auto StepHardware::sample() noexcept -> detail::StepSample
+    auto StepHardware::sample() noexcept -> util::StepSample
     {
-        detail::StepSample result;
+        util::StepSample result;
         for (std::size_t i = 0; i < 3U; ++i) {
             auto& channel{ result.channels[i] };
             auto* stream{ streams[i] };
@@ -267,7 +267,7 @@ namespace hal::stm32
     {
         DMA1->LIFCR = (complete_flag | half_flag) << shifts[axis];
     }
-    auto StepHardware::stopAxis(std::size_t axis) noexcept -> detail::StepSample
+    auto StepHardware::stopAxis(std::size_t axis) noexcept -> util::StepSample
     {
         // Keep the pad connected while disabling requests and settling
         // DMA. The remaining compare can occur once; sample its phase
@@ -276,7 +276,7 @@ namespace hal::stm32
         const auto before{ sample().channels[axis] };
         disable(axis);
         const auto last_compare{ compare(axis) };
-        compare(axis) = detail::step_park;
+        compare(axis) = util::step_park;
         __DSB();
         auto result{ sample() };
         auto& after{ result.channels[axis] };
@@ -290,7 +290,7 @@ namespace hal::stm32
         return result;
     }
     auto StepHardware::finishAxis(std::size_t axis) noexcept -> void { static_cast<void>(stopAxis(axis)); }
-    auto StepHardware::stop() noexcept -> detail::StepSample
+    auto StepHardware::stop() noexcept -> util::StepSample
     {
         completionWatch(false);
         CLEAR_BIT(TIM2->CR1, TIM_CR1_CEN);
@@ -317,7 +317,7 @@ namespace hal::stm32
         }
         return result;
     }
-    auto registerStepGenerator(detail::StepGenerator* value) noexcept -> void { generator = value; }
+    auto registerStepGenerator(util::StepGenerator* value) noexcept -> void { generator = value; }
     auto stepInterrupt() noexcept -> void
     {
         const InterruptGuard lock;

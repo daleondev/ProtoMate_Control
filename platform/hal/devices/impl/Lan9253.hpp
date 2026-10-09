@@ -26,9 +26,9 @@ namespace hal::device
         };
 
         Lan9253(ISpi& spi, IDigitalOutput& chip_select) noexcept;
-        [[nodiscard]] util::Result<std::uint32_t> readSystemRegister(
+        [[nodiscard]] hal::util::Result<std::uint32_t> readSystemRegister(
           std::uint16_t address, std::chrono::milliseconds timeout = std::chrono::milliseconds{ 100 });
-        [[nodiscard]] util::Result<> writeSystemRegister(
+        [[nodiscard]] hal::util::Result<> writeSystemRegister(
           std::uint16_t address, std::uint32_t value,
           std::chrono::milliseconds timeout = std::chrono::milliseconds{ 100 });
         // Indirect accesses use aligned sizes 1, 2 or 4, within 0x0000..0x2fff.
@@ -36,26 +36,26 @@ namespace hal::device
         // (DS00003421B 11.13.1); FIFO transfers are a future optimization.
         // Before READY, only use these for the EEPROM-emulation bootstrap
         // described by DS00003421B section 13.4, after BYTE_TEST succeeds.
-        [[nodiscard]] util::Result<std::uint32_t> readEscRegister(
+        [[nodiscard]] hal::util::Result<std::uint32_t> readEscRegister(
           std::uint16_t address, std::uint8_t size,
           std::chrono::milliseconds timeout = std::chrono::milliseconds{ 100 });
-        [[nodiscard]] util::Result<> writeEscRegister(
+        [[nodiscard]] hal::util::Result<> writeEscRegister(
           std::uint16_t address, std::uint8_t size, std::uint32_t value,
           std::chrono::milliseconds timeout = std::chrono::milliseconds{ 100 });
         // Serve only startup configuration requests (words 0 and 4). This is
         // volatile configuration, NOT EEPROM programming or a complete SII
         // emulator. Rejects non-emulation mode, writes and other addresses.
         // Requires PDI 0x80 and a valid CRC over the first 14 bytes.
-        [[nodiscard]] util::Result<Identity> initializeEmulatedBoot(
+        [[nodiscard]] hal::util::Result<Identity> initializeEmulatedBoot(
           std::span<const std::uint8_t, 16> configuration,
           std::chrono::milliseconds timeout = std::chrono::milliseconds{ 1000 });
         // Single attempt: BYTE_TEST, then READY, then ID. Never reads ID while
         // not ready. The caller may retry within its own startup deadline.
-        [[nodiscard]] util::Result<Identity> identify(
+        [[nodiscard]] hal::util::Result<Identity> identify(
           std::chrono::milliseconds timeout = std::chrono::milliseconds{ 100 });
 
       private:
-        [[nodiscard]] util::Result<> waitCsr(std::chrono::steady_clock::time_point deadline);
+        [[nodiscard]] hal::util::Result<> waitCsr(std::chrono::steady_clock::time_point deadline);
         ISpi& m_spi;
         IDigitalOutput& m_chipSelect;
     };

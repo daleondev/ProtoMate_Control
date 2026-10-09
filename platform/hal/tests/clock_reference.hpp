@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/drivers/detail/StepHardware.hpp"
+#include "hal/drivers/util/StepHardware.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -36,9 +36,9 @@ namespace clock_reference
       public:
         auto observe(Sample sample) noexcept -> Observation
         {
-            using hal::detail::stepDistance;
-            if (sample.second >= 60U || sample.before >= hal::detail::step_park ||
-                sample.after >= hal::detail::step_park ||
+            using hal::util::stepDistance;
+            if (sample.second >= 60U || sample.before >= hal::util::step_park ||
+                sample.after >= hal::util::step_park ||
                 stepDistance(sample.before, sample.after) > max_poll_ticks) {
                 return Observation::Invalid;
             }
@@ -83,7 +83,7 @@ namespace clock_reference
     // uses ARR+1 = 0xFFFFFFFF, not the usual uint32_t modulus of 0x100000000.
     inline auto measure(Boundary first, Boundary last) noexcept -> Measurement
     {
-        using hal::detail::stepDistance;
+        using hal::util::stepDistance;
         const double lower{ static_cast<double>(stepDistance(first.after, last.before)) -
                             2.0 * sync_margin_ticks };
         const double upper{ static_cast<double>(stepDistance(first.before, last.after)) +

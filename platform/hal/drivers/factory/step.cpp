@@ -1,6 +1,6 @@
 #include "hal/drivers/factory/step.hpp"
-#include "hal/drivers/impl/StepGenerator.hpp"
 #include "hal/drivers/factory/gpio.hpp"
+#include "hal/drivers/impl/StepGenerator.hpp"
 
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/drivers/impl/stm32/StepHardware.hpp"
@@ -23,14 +23,14 @@ namespace hal::step
             }
         }
 #if defined(HAL_PLATFORM_STM32)
-        auto generator{ std::make_shared<detail::StepGenerator>(stm32::makeStepHardware(),
-                                                                std::move(owners)) };
+        auto generator{ std::make_shared<util::StepGenerator>(std::make_unique<stm32::StepHardware>(),
+                                                              std::move(owners)) };
         const stm32::InterruptGuard lock;
         stm32::registerStepGenerator(generator.get());
 #else
-        auto hardware{ std::make_unique<detail::LinuxStepHardware>() };
+        auto hardware{ std::make_unique<util::LinuxStepHardware>() };
         auto* model{ hardware.get() };
-        auto generator{ std::make_shared<detail::StepGenerator>(std::move(hardware), std::move(owners)) };
+        auto generator{ std::make_shared<util::StepGenerator>(std::move(hardware), std::move(owners)) };
         model->interrupt = [instance = generator.get()] { instance->service(); };
         model->beginService(*generator);
 #endif

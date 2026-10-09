@@ -1,7 +1,7 @@
 #include "Ethernet.hpp"
 
 #include "ethernet_dma.h"
-#include "hal/drivers/common.hpp"
+#include "hal/stm32/HalResult.hpp"
 
 #include <algorithm>
 #include <array>

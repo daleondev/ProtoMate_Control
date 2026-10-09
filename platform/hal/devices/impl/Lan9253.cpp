@@ -51,7 +51,7 @@ namespace hal::device
         m_chipSelect.write(gpio::Level::High);
     }
 
-    util::Result<std::uint32_t> Lan9253::readSystemRegister(
+    hal::util::Result<std::uint32_t> Lan9253::readSystemRegister(
       std::uint16_t address, std::chrono::milliseconds timeout)
     {
         if ((address & 3U) != 0 || address < 0x40U || address > 0x3fcU ||
@@ -71,7 +71,7 @@ namespace hal::device
                (std::uint32_t{ rx[5] } << 16) | (std::uint32_t{ rx[6] } << 24);
     }
 
-    util::Result<> Lan9253::writeSystemRegister(
+    hal::util::Result<> Lan9253::writeSystemRegister(
       std::uint16_t address, std::uint32_t value, std::chrono::milliseconds timeout)
     {
         if ((address & 3U) != 0 || address < 0x40U || address > 0x3fcU || !validTimeout(timeout))
@@ -85,10 +85,12 @@ namespace hal::device
         return m_spi.exchange(tx, rx, timeout);
     }
 
-    util::Result<> Lan9253::waitCsr(Clock::time_point deadline)
+    hal::util::Result<> Lan9253::waitCsr(Clock::time_point deadline)
     {
         while (Clock::now() < deadline) {
-            const auto command = readSystemRegister(csrCommand, remaining(deadline));
+            const auto budget = remaining(deadline);
+            if (budget <= 0ms) break;
+            const auto command = readSystemRegister(csrCommand, budget);
             if (!command) return std::unexpected(command.error());
             if ((*command & csrBusy) == 0) return {};
             std::this_thread::yield();
@@ -96,57 +98,65 @@ namespace hal::device
         return std::unexpected(std::make_error_code(std::errc::timed_out));
     }
 
-    util::Result<std::uint32_t> Lan9253::readEscRegister(
+    hal::util::Result<std::uint32_t> Lan9253::readEscRegister(
       std::uint16_t address, std::uint8_t size, std::chrono::milliseconds timeout)
     {
         if (!validCsr(address, size) || !validTimeout(timeout))
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         const auto deadline = Clock::now() + timeout;
         if (auto idle = waitCsr(deadline); !idle) return std::unexpected(idle.error());
-        if (Clock::now() >= deadline) return std::unexpected(std::make_error_code(std::errc::timed_out));
+        timeout = remaining(deadline);
+        if (timeout <= 0ms) return std::unexpected(std::make_error_code(std::errc::timed_out));
         if (auto sent = writeSystemRegister(csrCommand, csrBusy | csrRead | (std::uint32_t{ size } << 16) | address,
-                                            remaining(deadline)); !sent)
+                                            timeout); !sent)
             return std::unexpected(sent.error());
         if (auto idle = waitCsr(deadline); !idle) return std::unexpected(idle.error());
-        if (Clock::now() >= deadline) return std::unexpected(std::make_error_code(std::errc::timed_out));
-        const auto value = readSystemRegister(csrData, remaining(deadline));
+        timeout = remaining(deadline);
+        if (timeout <= 0ms) return std::unexpected(std::make_error_code(std::errc::timed_out));
+        const auto value = readSystemRegister(csrData, timeout);
         if (!value) return std::unexpected(value.error());
         // The other bytes in CSR_DATA also update; only requested bytes count.
         return *value & (0xffffffffU >> ((4U - size) * 8U));
     }
 
-    util::Result<> Lan9253::writeEscRegister(
+    hal::util::Result<> Lan9253::writeEscRegister(
       std::uint16_t address, std::uint8_t size, std::uint32_t value, std::chrono::milliseconds timeout)
     {
         if (!validCsr(address, size) || !validTimeout(timeout))
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         const auto deadline = Clock::now() + timeout;
         if (auto idle = waitCsr(deadline); !idle) return idle;
-        if (Clock::now() >= deadline) return std::unexpected(std::make_error_code(std::errc::timed_out));
-        if (auto sent = writeSystemRegister(csrData, value, remaining(deadline)); !sent) return sent;
-        if (Clock::now() >= deadline) return std::unexpected(std::make_error_code(std::errc::timed_out));
+        timeout = remaining(deadline);
+        if (timeout <= 0ms) return std::unexpected(std::make_error_code(std::errc::timed_out));
+        if (auto sent = writeSystemRegister(csrData, value, timeout); !sent) return sent;
+        timeout = remaining(deadline);
+        if (timeout <= 0ms) return std::unexpected(std::make_error_code(std::errc::timed_out));
         if (auto sent = writeSystemRegister(csrCommand, csrBusy | (std::uint32_t{ size } << 16) | address,
-                                            remaining(deadline)); !sent) return sent;
+                                            timeout); !sent) return sent;
         return waitCsr(deadline);
     }
 
-    util::Result<Lan9253::Identity> Lan9253::initializeEmulatedBoot(
+    hal::util::Result<Lan9253::Identity> Lan9253::initializeEmulatedBoot(
       std::span<const std::uint8_t, 16> configuration, std::chrono::milliseconds timeout)
     {
         if (!validTimeout(timeout) || configuration[0] != 0x80 || configuration[15] != 0 ||
             configurationCrc(configuration.first<14>()) != configuration[14])
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         const auto deadline = Clock::now() + timeout;
-        auto read = [&](std::uint16_t address, std::uint8_t size) -> util::Result<std::uint32_t> {
-            if (Clock::now() >= deadline) return std::unexpected(std::make_error_code(std::errc::timed_out));
-            return readEscRegister(address, size, remaining(deadline));
+        auto read = [&](std::uint16_t address, std::uint8_t size) -> hal::util::Result<std::uint32_t> {
+            const auto budget = remaining(deadline);
+            if (budget <= 0ms) return std::unexpected(std::make_error_code(std::errc::timed_out));
+            return readEscRegister(address, size, budget);
         };
-        auto write = [&](std::uint16_t address, std::uint8_t size, std::uint32_t value) -> util::Result<> {
-            if (Clock::now() >= deadline) return std::unexpected(std::make_error_code(std::errc::timed_out));
-            return writeEscRegister(address, size, value, remaining(deadline));
+        auto write = [&](std::uint16_t address, std::uint8_t size, std::uint32_t value) -> hal::util::Result<> {
+            const auto budget = remaining(deadline);
+            if (budget <= 0ms) return std::unexpected(std::make_error_code(std::errc::timed_out));
+            return writeEscRegister(address, size, value, budget);
         };
         while (Clock::now() < deadline) {
-            const auto identity = identify(remaining(deadline));
+            const auto budget = remaining(deadline);
+            if (budget <= 0ms) break;
+            const auto identity = identify(budget);
             if (identity) return identity;
             if (identity.error() != std::errc::resource_unavailable_try_again)
                 return std::unexpected(identity.error());
@@ -184,7 +194,7 @@ namespace hal::device
         return std::unexpected(std::make_error_code(std::errc::timed_out));
     }
 
-    util::Result<Lan9253::Identity> Lan9253::identify(std::chrono::milliseconds timeout)
+    hal::util::Result<Lan9253::Identity> Lan9253::identify(std::chrono::milliseconds timeout)
     {
         if (timeout.count() <= 0 || timeout.count() > 1000)
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
@@ -192,7 +202,7 @@ namespace hal::device
         auto read = [&](std::uint16_t address) {
             const auto now = std::chrono::steady_clock::now();
             if (now >= deadline)
-                return util::Result<std::uint32_t>{ std::unexpected(std::make_error_code(std::errc::timed_out)) };
+                return hal::util::Result<std::uint32_t>{ std::unexpected(std::make_error_code(std::errc::timed_out)) };
             return readSystemRegister(address, std::chrono::ceil<std::chrono::milliseconds>(deadline - now));
         };
         const auto byte_test = read(byteTestAddress);

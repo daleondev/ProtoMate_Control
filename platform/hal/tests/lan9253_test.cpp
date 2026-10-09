@@ -214,6 +214,31 @@ TEST(Lan9253, SystemWriteAndIndirectCsrFramingAlignmentAndBusyHandshake)
     EXPECT_EQ(cs.read(), Level::High);
 }
 
+TEST(Lan9253, CsrDeadlineExpiryDoesNotStartAnotherTransfer)
+{
+    Select cs;
+    Spi bus{ cs };
+    Esc esc{ bus, cs };
+    bus.emulateCsr = true;
+    // Even a successful transport response can arrive after the shared budget.
+    bus.delay = 20ms;
+    const auto read = esc.readEscRegister(0x502, 2, 5ms);
+    ASSERT_FALSE(read);
+    EXPECT_EQ(read.error(), std::errc::timed_out);
+    ASSERT_EQ(bus.requests.size(), 1U);
+    EXPECT_GT(bus.timeouts.back(), 0ms);
+    EXPECT_EQ(cs.read(), Level::High);
+
+    bus.requests.clear();
+    const auto write = esc.writeEscRegister(0x508, 4, 0x12345678, 5ms);
+    ASSERT_FALSE(write);
+    EXPECT_EQ(write.error(), std::errc::timed_out);
+    ASSERT_EQ(bus.requests.size(), 1U);
+    EXPECT_GT(bus.timeouts.back(), 0ms);
+    EXPECT_TRUE(bus.csrWrites.empty());
+    EXPECT_EQ(cs.read(), Level::High);
+}
+
 namespace
 {
     constexpr std::array<std::uint8_t, 16> bootConfiguration{

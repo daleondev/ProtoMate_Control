@@ -1,4 +1,4 @@
-#include "hal/drivers/detail/SimulatedStepHardware.hpp"
+#include "hal/drivers/impl/linux/SimulatedStepHardware.hpp"
 #include "hal/drivers/impl/StepGenerator.hpp"
 
 #include <gtest/gtest.h>
@@ -18,9 +18,9 @@ namespace
       protected:
         void SetUp() override
         {
-            auto port{ std::make_unique<hal::detail::SimulatedStepHardware>() };
+            auto port{ std::make_unique<hal::util::SimulatedStepHardware>() };
             hardware = port.get();
-            generator = std::make_shared<hal::detail::StepGenerator>(std::move(port));
+            generator = std::make_shared<hal::util::StepGenerator>(std::move(port));
             hardware->interrupt = [this] { generator->service(); };
             for (unsigned i = 0; i < 3U; ++i) {
                 outputs[i] = generator->output(static_cast<Axis>(i));
@@ -47,8 +47,8 @@ namespace
             }
             return result;
         }
-        hal::detail::SimulatedStepHardware* hardware{};
-        std::shared_ptr<hal::detail::StepGenerator> generator;
+        hal::util::SimulatedStepHardware* hardware{};
+        std::shared_ptr<hal::util::StepGenerator> generator;
         std::array<std::shared_ptr<hal::IStepOutput>, 3> outputs;
     };
 }
@@ -58,7 +58,7 @@ TEST_F(StepTest, FiniteMovesFinishLowWithoutAnInterruptOrExtraWrapPulse)
     hardware->interrupts_enabled = false;
     ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 3));
     ASSERT_TRUE(startMoves(10us));
-    hardware->advance(hal::detail::step_park * 3ULL);
+    hardware->advance(hal::util::step_park * 3ULL);
     EXPECT_EQ(rises(0), (std::vector<std::uint64_t>{ 100, 1100, 2100 }));
     EXPECT_FALSE(hardware->high[0]);
     EXPECT_FALSE(hardware->registers.running);
@@ -150,7 +150,7 @@ TEST_F(StepTest, MissedRefillStopsHardwareBeforeReplayingAStaleBuffer)
     ASSERT_TRUE(outputs[1]->prepare({ 31us, 9us }));
     ASSERT_TRUE(startMoves(10us));
     hardware->interrupts_enabled = false;
-    hardware->advance(hal::detail::step_park * 2ULL);
+    hardware->advance(hal::util::step_park * 2ULL);
     EXPECT_FALSE(hardware->registers.running);
     EXPECT_EQ(rises(0).size(), 512U);
     const auto status{ generator->status() };
@@ -219,7 +219,7 @@ TEST_F(StepTest, TimebaseAndAxesHaveIndependentLifecycles)
 {
     EXPECT_FALSE(outputs[0]->start());
     ASSERT_TRUE(generator->start());
-    hardware->advance(hal::detail::step_park * 2ULL);
+    hardware->advance(hal::util::step_park * 2ULL);
     EXPECT_TRUE(hardware->registers.running);
     EXPECT_TRUE(hardware->edges.empty());
     EXPECT_EQ(generator->output(static_cast<Axis>(255)), nullptr);
@@ -326,7 +326,7 @@ TEST_F(StepTest, PendingTerminalDmaCannotLeaveAnOldCompareThatRepeatsAfterWrap)
 
 TEST_F(StepTest, AnExpiringGuardDuringRefillCannotBeUndoneByPublishingNewData)
 {
-    class SlowPublish final : public hal::detail::SimulatedStepHardware
+    class SlowPublish final : public hal::util::SimulatedStepHardware
     {
       public:
         bool delay{};
@@ -340,7 +340,7 @@ TEST_F(StepTest, AnExpiringGuardDuringRefillCannotBeUndoneByPublishingNewData)
     };
     auto port{ std::make_unique<SlowPublish>() };
     auto* slow{ port.get() };
-    auto engine{ std::make_shared<hal::detail::StepGenerator>(std::move(port)) };
+    auto engine{ std::make_shared<hal::util::StepGenerator>(std::move(port)) };
     auto axis{ engine->output(Axis::_1) };
     ASSERT_TRUE(axis->prepare({ 10us, 5us }));
     ASSERT_TRUE(engine->start());
@@ -452,14 +452,14 @@ TEST_F(StepTest, ContinuousTimingUpdateAndFailedUpdatesNeverResetPositionOrPhase
 TEST_F(StepTest, IndependentStartAcrossWrapAndShortCompletionDoNotStopTheClock)
 {
     ASSERT_TRUE(generator->start());
-    hardware->advance(hal::detail::step_park - 75U);
+    hardware->advance(hal::util::step_park - 75U);
     ASSERT_TRUE(outputs[0]->prepare({ 10us, 5us }, 1));
     ASSERT_TRUE(outputs[0]->start(10us));
     hardware->advance(500'000U);
-    EXPECT_EQ(rises(0), (std::vector<std::uint64_t>{ std::uint64_t{ hal::detail::step_park } + 25U }));
+    EXPECT_EQ(rises(0), (std::vector<std::uint64_t>{ std::uint64_t{ hal::util::step_park } + 25U }));
     EXPECT_EQ(outputs[0]->status().state, State::Completed);
     EXPECT_FALSE(hardware->completion_watch);
-    hardware->advance(hal::detail::step_park * 2ULL);
+    hardware->advance(hal::util::step_park * 2ULL);
     EXPECT_EQ(rises(0).size(), 1U);
     EXPECT_TRUE(hardware->registers.running);
 }
@@ -500,7 +500,7 @@ TEST_F(StepTest, FaultCannotBeSilentlyRestartedAndOnlyExplicitShutdownAcknowledg
 
 TEST(StepArming, MissedStartMarginRejectsOnlyTheNewAxisAndPreservesItsPreparedMove)
 {
-    class DelayedArm final : public hal::detail::SimulatedStepHardware
+    class DelayedArm final : public hal::util::SimulatedStepHardware
     {
       public:
         bool delay{};
@@ -513,7 +513,7 @@ TEST(StepArming, MissedStartMarginRejectsOnlyTheNewAxisAndPreservesItsPreparedMo
     };
     auto backend{ std::make_unique<DelayedArm>() };
     auto* hardware{ backend.get() };
-    auto engine{ std::make_shared<hal::detail::StepGenerator>(std::move(backend)) };
+    auto engine{ std::make_shared<hal::util::StepGenerator>(std::move(backend)) };
     hardware->interrupt = [&] { engine->service(); };
     const auto moving{ engine->output(Axis::_1) };
     const auto joining{ engine->output(Axis::_2) };
@@ -544,7 +544,7 @@ TEST(StepArming, MissedStartMarginRejectsOnlyTheNewAxisAndPreservesItsPreparedMo
 
 TEST(StepArming, PartialGroupArmFailureStopsSelectedAxesAndRetainsEmittedCounts)
 {
-    class DelayedSecondArm final : public hal::detail::SimulatedStepHardware
+    class DelayedSecondArm final : public hal::util::SimulatedStepHardware
     {
       public:
         auto arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept -> bool override
@@ -556,7 +556,7 @@ TEST(StepArming, PartialGroupArmFailureStopsSelectedAxesAndRetainsEmittedCounts)
     };
     auto backend{ std::make_unique<DelayedSecondArm>() };
     auto* hardware{ backend.get() };
-    auto engine{ std::make_shared<hal::detail::StepGenerator>(std::move(backend)) };
+    auto engine{ std::make_shared<hal::util::StepGenerator>(std::move(backend)) };
     ASSERT_TRUE(engine->start());
     for (const auto axis : { Axis::_1, Axis::_2, Axis::_3 })
         ASSERT_TRUE(engine->output(axis)->prepare({ 100us, 5us }, 10));
@@ -850,14 +850,14 @@ TEST_F(StepTest, InvalidAnalyticProviderStopsSafelyAndRetainsReconstructibleCoun
     EXPECT_FALSE(hardware->high[0]);
     EXPECT_FALSE(hardware->registers.running);
     const auto count{ rises(0).size() };
-    hardware->advance(hal::detail::step_park * 2ULL);
+    hardware->advance(hal::util::step_park * 2ULL);
     EXPECT_EQ(rises(0).size(), count);
 }
 
 TEST_F(StepTest, PreparedGroupUsesOneClockOriginAcrossRolloverAndLeavesOtherAxesAlone)
 {
     ASSERT_TRUE(generator->start());
-    hardware->advance(hal::detail::step_park - 2000ULL);
+    hardware->advance(hal::util::step_park - 2000ULL);
     const auto origin{hardware->elapsed};
     ASSERT_TRUE(outputs[0]->prepare({100us,5us},3));
     ASSERT_TRUE(outputs[1]->prepare({200us,5us},2));

@@ -1,4 +1,5 @@
 #include "hal/devices/factory/tmc2209.hpp"
+#include "hal/drivers/factory/uart.hpp"
 #include "hal/devices/impl/linux/Tmc2209Model.hpp"
 #include "hal/drivers/impl/linux/Uart.hpp"
 

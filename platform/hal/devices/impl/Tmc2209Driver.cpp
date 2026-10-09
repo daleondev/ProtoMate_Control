@@ -2,11 +2,11 @@
 #include <algorithm>
 #include <bit>
 #include <stdexcept>
-#include "hal/devices/detail/DriverMutex.hpp"
+#include "hal/devices/util/DriverMutex.hpp"
 
 namespace hal::device
 {
-    struct Tmc2209Driver::Lock { detail::DriverMutex mutex; };
+    struct Tmc2209Driver::Lock { util::DriverMutex mutex; };
     Tmc2209Driver::~Tmc2209Driver() = default;
     Tmc2209Driver::Tmc2209Driver(std::shared_ptr<Tmc2209Bus> bus, std::uint8_t address,
                                std::shared_ptr<IDigitalInput> diag, std::shared_ptr<IDigitalOutput> enable,
@@ -19,7 +19,7 @@ namespace hal::device
         if (!m_enable || !std::ranges::binary_search(m_bus->m_addresses, address) || !validate(config))
             throw std::invalid_argument("invalid TMC motor configuration or bus address");
     }
-    util::Result<> Tmc2209Driver::validate(const Configuration& config) const
+    hal::util::Result<> Tmc2209Driver::validate(const Configuration& config) const
     {
         const auto run{ Tmc2209::currentScale(config.run_milliamps) };
         const auto hold{ Tmc2209::currentScale(config.hold_milliamps) };
@@ -46,7 +46,7 @@ namespace hal::device
                  Tmc2209::currentMilliamps(*Tmc2209::currentScale(m_configuration.run_milliamps)),
                  Tmc2209::currentMilliamps(*Tmc2209::currentScale(m_configuration.hold_milliamps)) };
     }
-    util::Result<> Tmc2209Driver::configure(const Configuration& config)
+    hal::util::Result<> Tmc2209Driver::configure(const Configuration& config)
     {
         const std::scoped_lock lock{ m_lock->mutex };
         if (m_enable->read() != gpio::Level::High)
@@ -57,7 +57,7 @@ namespace hal::device
         m_fault.unready();
         return {};
     }
-    util::Result<> Tmc2209Driver::initialize()
+    hal::util::Result<> Tmc2209Driver::initialize()
     {
         const std::scoped_lock lock{ m_lock->mutex };
         if (m_enable->read() != gpio::Level::High)
@@ -107,7 +107,7 @@ namespace hal::device
         const Tmc2209Bus::Guard bus_lock{ *m_bus };
         inspectLocked();
     }
-    util::Result<> Tmc2209Driver::verify()
+    hal::util::Result<> Tmc2209Driver::verify()
     {
         service();
         const auto state{ status() };

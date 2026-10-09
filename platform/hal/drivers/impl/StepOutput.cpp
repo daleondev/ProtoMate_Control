@@ -2,7 +2,7 @@
 #include "hal/drivers/impl/StepGenerator.hpp"
 #include <utility>
 
-namespace hal::detail
+namespace hal::util
 {
     StepOutput::StepOutput(std::shared_ptr<StepGenerator> generator, std::size_t axis)
       : m_generator{ std::move(generator) }

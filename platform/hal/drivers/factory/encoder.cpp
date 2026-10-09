@@ -31,7 +31,7 @@ namespace hal::encoder
             configuration.b != gpio::Pin{ B, 5U }) {
             return {};
         }
-        detail::TimerLease lease{ configuration.timer };
+        util::TimerLease lease{ configuration.timer };
         if (!lease) {
             return {};
         }

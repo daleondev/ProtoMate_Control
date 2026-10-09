@@ -4,7 +4,7 @@
 
 #include <limits>
 
-namespace hal::detail
+namespace hal::util
 {
     // One hardware pulse may be in flight. The backend must not rearm until
     // finishPulse() allows it, so interrupt latency cannot create extra edges.

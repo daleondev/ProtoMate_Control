@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
 #include "pneumo/units.hpp"
 
 #include <chrono>
@@ -19,7 +19,7 @@ namespace hal::device
         };
         struct Sample
         {
-            util::Result<pnm::units::Angle> position;
+            hal::util::Result<pnm::units::Angle> position;
             pnm::units::AngularVelocity velocity{};
             std::chrono::nanoseconds timestamp{};
             // An independent shaft counter lost its coordinate. Coarse INDEX
@@ -36,12 +36,12 @@ namespace hal::device
         virtual pnm::units::Angle resolution() const noexcept = 0;
         // Start/stop observation, independently of STEP generation. Creation is
         // stopped. Stopping STEP must not stop an independent shaft encoder.
-        virtual util::Result<> start() noexcept = 0;
-        virtual util::Result<> stop() noexcept = 0;
+        virtual hal::util::Result<> start() noexcept = 0;
+        virtual hal::util::Result<> stop() noexcept = 0;
         // Rebase at a stopped motor's reference switch; retain hardware counts.
         // Success accepts the coordinate, but does not make an unobserved INDEX
         // valid. Quadrature observation remains running during rebasing.
-        virtual util::Result<> reference(pnm::units::Angle position) = 0;
+        virtual hal::util::Result<> reference(pnm::units::Angle position) = 0;
         // Command/driver phase was lost (disable, reset or uncertain STEP count).
         // Independent shaft measurement remains usable; INDEX loses its phase.
         virtual void invalidate() noexcept = 0;

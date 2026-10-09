@@ -31,7 +31,7 @@ namespace hal::pwm
                 configuration.pin != route.configuration.pin) {
                 continue;
             }
-            detail::TimerLease lease{ configuration.timer };
+            util::TimerLease lease{ configuration.timer };
             if (!lease) {
                 return {};
             }

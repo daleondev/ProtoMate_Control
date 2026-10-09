@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace hal::device::detail
+namespace hal::device::util
 {
     // Shared ALM/DIAG latching and callback lifetime handling. No UART here.
     class DriverFaultMonitor final
@@ -18,7 +18,7 @@ namespace hal::device::detail
         void checkInput() noexcept;
         void fail(IStepperDriver::Fault fault, std::error_code error) noexcept;
         void beginRecovery() noexcept;
-        util::Result<> completeRecovery() noexcept;
+        hal::util::Result<> completeRecovery() noexcept;
         void unready() noexcept;
       private:
         struct State;

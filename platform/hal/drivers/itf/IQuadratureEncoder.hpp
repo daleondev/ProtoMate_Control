@@ -1,6 +1,8 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
+#include "hal/drivers/itf/GpioTypes.hpp"
+#include "hal/drivers/itf/ITimer.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -48,5 +50,15 @@ namespace hal
 
       protected:
         IQuadratureEncoder() = default;
+    };
+}
+
+namespace hal::encoder
+{
+    struct Configuration
+    {
+        timer::Peripheral timer;
+        gpio::Pin a;
+        gpio::Pin b;
     };
 }

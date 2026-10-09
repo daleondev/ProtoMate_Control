@@ -34,7 +34,7 @@ namespace hal::device
         return crc;
     }
 
-    util::Result<std::uint32_t> Tmc2209::read(std::uint8_t reg)
+    hal::util::Result<std::uint32_t> Tmc2209::read(std::uint8_t reg)
     {
         std::array<std::uint8_t, 4> request{ 0x05, m_address, reg, 0 };
         request.back() = crc(std::span{ request }.first(3));
@@ -48,7 +48,7 @@ namespace hal::device
                (std::uint32_t{ reply[5] } << 8U) | reply[6];
     }
 
-    util::Result<> Tmc2209::write(std::uint8_t reg, std::uint32_t value)
+    hal::util::Result<> Tmc2209::write(std::uint8_t reg, std::uint32_t value)
     {
         const auto before = read(0x02); // IFCNT, not an acknowledgement of arbitrary readback.
         if (!before)
@@ -72,7 +72,7 @@ namespace hal::device
         return {};
     }
 
-    util::Result<std::uint8_t> Tmc2209::currentScale(std::uint16_t milliamps)
+    hal::util::Result<std::uint8_t> Tmc2209::currentScale(std::uint16_t milliamps)
     {
         // Never permit freewheel or exceed this board's range. Application
         // applies tighter per-motor limits. Quantization never rounds upward.
@@ -86,7 +86,7 @@ namespace hal::device
         return static_cast<std::uint16_t>((scale + 1U) * fullScale / 32.0);
     }
 
-    util::Result<> Tmc2209::initialize(const Configuration& config)
+    hal::util::Result<> Tmc2209::initialize(const Configuration& config)
     {
         m_initialized = false;
         const auto run = currentScale(config.run_milliamps), hold = currentScale(config.hold_milliamps);
@@ -152,7 +152,7 @@ namespace hal::device
         return {};
     }
 
-    util::Result<> Tmc2209::verify()
+    hal::util::Result<> Tmc2209::verify()
     {
         if (!m_initialized)
             return error(std::errc::operation_not_permitted);
@@ -167,7 +167,7 @@ namespace hal::device
         return {};
     }
 
-    util::Result<> Tmc2209::prepareBus(IUart& bus, std::span<const std::uint8_t> addresses)
+    hal::util::Result<> Tmc2209::prepareBus(IUart& bus, std::span<const std::uint8_t> addresses)
     {
         for (auto address : addresses) {
             if (address > 3)
@@ -180,7 +180,7 @@ namespace hal::device
         return {};
     }
 
-    util::Result<Tmc2209::Status> Tmc2209::status()
+    hal::util::Result<Tmc2209::Status> Tmc2209::status()
     {
         auto input = read(0x06);
         if (!input)

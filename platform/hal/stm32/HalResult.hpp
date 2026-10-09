@@ -1,7 +1,7 @@
 #pragma once
 
 #include "hal/hal.hpp"
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
 
 #include <cstdint>
 #include <system_error>

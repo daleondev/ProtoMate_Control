@@ -1,12 +1,12 @@
 #pragma once
 
-#include "hal/drivers/factory/timer.hpp"
+#include "hal/drivers/itf/ITimer.hpp"
 #include <array>
 #include <atomic>
 #include <cstdint>
 #include <utility>
 
-namespace hal::detail
+namespace hal::util
 {
     // One owner per timer: period/prescaler and internal compare channels are shared.
     // TIM2/TIM7 (step engine), TIM5 (runtime) and TIM6 (HAL tick) cannot be leased here.

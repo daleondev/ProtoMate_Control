@@ -8,7 +8,7 @@
 #include <atomic>
 #include <stdexcept>
 
-namespace hal::device::detail
+namespace hal::device::util
 {
     using Fault = IStepperDriver::Fault;
     struct DriverFaultMonitor::State
@@ -78,7 +78,7 @@ namespace hal::device::detail
         m_state->error.store({});
         m_state->fault.store(Fault::None);
     }
-    util::Result<> DriverFaultMonitor::completeRecovery() noexcept
+    hal::util::Result<> DriverFaultMonitor::completeRecovery() noexcept
     {
         checkInput();
         const State::Guard guard{ m_state->mutex };

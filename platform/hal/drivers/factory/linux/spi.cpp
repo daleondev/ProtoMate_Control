@@ -1,8 +1,6 @@
 #include "hal/drivers/factory/spi.hpp"
 #include "hal/drivers/impl/linux/Spi.hpp"
-#include "hal/linux/Mutex.hpp"
-#include <array>
-#include <mutex>
+#include "hal/drivers/util/ExclusiveInstances.hpp"
 #include <utility>
 
 namespace hal::spi
@@ -12,14 +10,7 @@ namespace hal::spi
         const auto index{ std::to_underlying(configuration.peripheral) };
         if (index >= 6U)
             return {};
-        static linux::Mutex mutex;
-        static std::array<std::weak_ptr<ISpi>, 6> owners;
-        const std::scoped_lock lock{ mutex };
-        auto& owner{ owners[index] };
-        if (!owner.expired())
-            return {};
-        auto bus{ std::make_shared<Spi>(937'500U) };
-        owner = bus;
-        return bus;
+        static util::ExclusiveInstances<6> instances;
+        return instances.create<Spi>(index, 937'500U);
     }
 }

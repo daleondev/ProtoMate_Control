@@ -11,7 +11,7 @@ namespace hal::device
     {
       public:
         Tmc2209Model();
-        util::Result<> exchange(std::span<const std::uint8_t> request,
+        hal::util::Result<> exchange(std::span<const std::uint8_t> request,
                                 std::span<std::uint8_t> reply,
                                 std::chrono::milliseconds timeout) override;
         void setRegister(unsigned address, unsigned reg, std::uint32_t value);

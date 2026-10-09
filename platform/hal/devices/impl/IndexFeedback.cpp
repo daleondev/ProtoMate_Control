@@ -57,7 +57,7 @@ namespace hal::device
             }
             if (fault || !observed) angular_velocity = 0_rpm;
             if (!callback) return;
-            util::Result<pnm::units::Angle> value{ position };
+            hal::util::Result<pnm::units::Angle> value{ position };
             if (fault)
                 value = std::unexpected(std::make_error_code(std::errc::state_not_recoverable));
             else if (!observed)
@@ -147,7 +147,7 @@ namespace hal::device
 
     pnm::units::Angle IndexFeedback::resolution() const noexcept { return m_state->cycle_angle; }
 
-    util::Result<> IndexFeedback::start() noexcept
+    hal::util::Result<> IndexFeedback::start() noexcept
     {
         const State::Guard guard{ m_state->mutex };
         m_state->started = true;
@@ -155,7 +155,7 @@ namespace hal::device
         return {};
     }
 
-    util::Result<> IndexFeedback::stop() noexcept
+    hal::util::Result<> IndexFeedback::stop() noexcept
     {
         const State::Guard guard{ m_state->mutex };
         auto& s{ *m_state };
@@ -222,7 +222,7 @@ namespace hal::device
         s.publish(s.now());
     }
 
-    util::Result<> IndexFeedback::reference(pnm::units::Angle position)
+    hal::util::Result<> IndexFeedback::reference(pnm::units::Angle position)
     {
         if (!position.isFinite())
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));

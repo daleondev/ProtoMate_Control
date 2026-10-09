@@ -8,14 +8,14 @@ namespace hal::device
     {
         if (!m_enable) throw std::invalid_argument("shared driver enable unavailable");
     }
-    util::Result<> Dm542tDriver::initialize()
+    hal::util::Result<> Dm542tDriver::initialize()
     {
         if (m_enable->read() != gpio::Level::High)
             return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
         m_fault.beginRecovery();
         return m_fault.completeRecovery();
     }
-    util::Result<> Dm542tDriver::verify()
+    hal::util::Result<> Dm542tDriver::verify()
     {
         service();
         const auto state{ status() };

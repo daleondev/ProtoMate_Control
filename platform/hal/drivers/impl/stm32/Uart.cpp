@@ -1,6 +1,6 @@
 #include "Uart.hpp"
-#include "hal/drivers/common.hpp"
-#include "hal/drivers/detail/UartTransfer.hpp"
+#include "hal/stm32/HalResult.hpp"
+#include "hal/drivers/util/UartTransfer.hpp"
 
 #include <algorithm>
 #include <array>
@@ -20,7 +20,7 @@ namespace hal
                         std::chrono::milliseconds timeout) -> util::Result<>
     {
         if (__get_IPSR() != 0 ||
-            !detail::validUartTransfer(m_configuration, request.size(), reply.size(), timeout))
+            !util::validUartTransfer(m_configuration, request.size(), reply.size(), timeout))
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         if (m_configuration.local_echo && m_handle.FifoMode != UART_FIFOMODE_ENABLE)
             return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
@@ -44,7 +44,7 @@ namespace hal
         if (result != HAL_OK)
             return make_result(result);
         if (m_configuration.local_echo) {
-            std::array<std::uint8_t, detail::uart_fifo_bytes> echo{};
+            std::array<std::uint8_t, util::uart_fifo_bytes> echo{};
             result = HAL_UART_Receive(
               &m_handle, echo.data(), static_cast<std::uint16_t>(request.size()), remaining());
             if (result != HAL_OK)

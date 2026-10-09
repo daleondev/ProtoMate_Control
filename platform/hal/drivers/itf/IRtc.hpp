@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
 
 #include <cstdint>
 

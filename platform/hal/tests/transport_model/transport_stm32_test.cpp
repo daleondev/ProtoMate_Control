@@ -1,12 +1,16 @@
-#include "hal/drivers/common.hpp"
+#include "hal/stm32/HalResult.hpp"
 #include "hal/drivers/factory/spi.hpp"
 #include "hal/drivers/factory/uart.hpp"
 #include "hal/drivers/impl/stm32/Spi.hpp"
 #include "hal/drivers/impl/stm32/Uart.hpp"
+#include "hal/drivers/util/ExclusiveInstances.hpp"
 #include "spi.h"
 #include "usart.h"
 #include <array>
+#include <atomic>
 #include <gtest/gtest.h>
+#include <stdexcept>
+#include <thread>
 
 namespace
 {
@@ -20,6 +24,45 @@ namespace
             usart2.ISR = 0;
         }
     };
+}
+
+TEST(ExclusiveInstances, ResourceStaysClaimedUntilDestructionCompletes)
+{
+    struct Gate { std::atomic_bool entered{}, release{}; } gate;
+    struct Driver
+    {
+        Gate* gate;
+        explicit Driver(Gate* gate) : gate{ gate } {}
+        ~Driver()
+        {
+            if (!gate) return;
+            gate->entered.store(true);
+            gate->entered.notify_one();
+            gate->release.wait(false);
+        }
+    };
+    hal::util::ExclusiveInstances<2> instances;
+    auto driver{ instances.create<Driver>(0, &gate) };
+    std::jthread destroy{ [driver = std::move(driver)]() mutable { driver.reset(); } };
+    gate.entered.wait(false);
+    EXPECT_FALSE(instances.create<Driver>(0, nullptr));
+    EXPECT_TRUE(instances.create<Driver>(1, nullptr));
+    gate.release.store(true);
+    gate.release.notify_one();
+    destroy.join();
+    EXPECT_TRUE(instances.create<Driver>(0, nullptr));
+}
+
+TEST(ExclusiveInstances, FailedConstructionReleasesTheClaim)
+{
+    struct Driver { Driver() { throw std::runtime_error("construction failed"); } };
+    hal::util::ExclusiveInstances<1> instances;
+    EXPECT_THROW(static_cast<void>(instances.create<Driver>(0)), std::runtime_error);
+    auto driver{ instances.create<int>(0, 42) };
+    ASSERT_TRUE(driver);
+    EXPECT_EQ(*driver, 42);
+    EXPECT_FALSE(instances.create<int>(0, 7));
+    EXPECT_FALSE(instances.create<int>(1, 7));
 }
 
 TEST_F(Transport, SpiFactoryOwnsConfiguredPeripheralAndReleasesIt)

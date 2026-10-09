@@ -18,7 +18,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/rtc.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/timer.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/spi.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/step.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/uart.cpp
     )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")

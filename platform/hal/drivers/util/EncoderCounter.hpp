@@ -6,7 +6,7 @@
 #include <limits>
 #include <system_error>
 
-namespace hal::detail
+namespace hal::util
 {
     // Extends a 16-bit hardware counter. Consecutive samples must be separated
     // by strictly less than 32768 net counts. STM32 uses internal compare/update

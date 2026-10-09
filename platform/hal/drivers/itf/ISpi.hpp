@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
 #include <chrono>
 #include <cstdint>
 #include <span>
@@ -19,5 +19,23 @@ namespace hal
                                         std::span<std::uint8_t> rx,
                                         std::chrono::milliseconds timeout) = 0;
         [[nodiscard]] virtual std::uint32_t clockFrequencyHz() const noexcept = 0;
+    };
+}
+
+namespace hal::spi
+{
+    enum class Peripheral : std::uint8_t
+    {
+        Spi1,
+        Spi2,
+        Spi3,
+        Spi4,
+        Spi5,
+        Spi6
+    };
+
+    struct Configuration
+    {
+        Peripheral peripheral;
     };
 }

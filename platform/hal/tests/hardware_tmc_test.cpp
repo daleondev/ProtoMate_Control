@@ -1,7 +1,7 @@
 #include "hal/board/board.hpp"
 #include "hal/devices/impl/Tmc2209.hpp"
 #include "hal/devices/itf/IMotorFeedback.hpp"
-#include "hal/drivers/common.hpp"
+#include "hal/stm32/HalResult.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 #include "runtime/synchronization/Notification.hpp"

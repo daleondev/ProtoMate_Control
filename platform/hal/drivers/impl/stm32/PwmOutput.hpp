@@ -1,9 +1,9 @@
 #pragma once
 
-#include "hal/drivers/detail/PulseTrain.hpp"
-#include "hal/drivers/detail/PwmTiming.hpp"
-#include "hal/drivers/detail/TimerLease.hpp"
-#include "hal/drivers/factory/pwm.hpp"
+#include "hal/drivers/util/PulseTrain.hpp"
+#include "hal/drivers/util/PwmTiming.hpp"
+#include "hal/drivers/util/TimerLease.hpp"
+#include "hal/drivers/itf/IPwmOutput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/hal.hpp"
 
@@ -17,7 +17,7 @@ namespace hal
       public:
         PwmOutput(pwm::Configuration configuration,
                   std::uint8_t alternate,
-                  detail::TimerLease lease,
+                  util::TimerLease lease,
                   std::shared_ptr<IDigitalOutput> pin);
         ~PwmOutput() override;
         [[nodiscard]] auto configure(Timing timing) noexcept -> util::Result<> override;
@@ -37,7 +37,7 @@ namespace hal
         [[nodiscard]] auto stopImpl(bool notify) noexcept -> util::Result<>;
         auto disableInterrupts() noexcept -> void;
         auto handleInterrupt() noexcept -> void;
-        detail::TimerLease m_lease;
+        util::TimerLease m_lease;
         std::shared_ptr<IDigitalOutput> m_pin;
         TIM_HandleTypeDef& m_handle;
         GPIO_TypeDef* m_port;
@@ -49,8 +49,8 @@ namespace hal
         IRQn_Type m_updateIrq;
         IRQn_Type m_compareIrq;
         std::uint32_t m_compareFlag;
-        detail::PwmTiming m_timing{};
-        detail::PulseTrain m_train;
+        util::PwmTiming m_timing{};
+        util::PulseTrain m_train;
         PulseCallback m_callback;
         bool m_counted{};
         bool m_running{};

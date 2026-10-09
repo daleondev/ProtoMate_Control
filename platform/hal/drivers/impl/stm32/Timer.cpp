@@ -1,6 +1,6 @@
 #include "Timer.hpp"
 
-#include "hal/drivers/common.hpp"
+#include "hal/stm32/HalResult.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 
 #include <algorithm>

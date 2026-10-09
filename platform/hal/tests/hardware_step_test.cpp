@@ -329,7 +329,7 @@ namespace
             if (!check(idle() && !m_button->isPressed(),
                        "clock test requires idle outputs and released B1") ||
                 !check(rtcReferenceReady(), "RTC must use ready, unadjusted LSE with 127/255 prescalers") ||
-                !check(TIM2->PSC == 23U && TIM2->ARR == hal::detail::step_arr && TIM2->SMCR == 0U &&
+                !check(TIM2->PSC == 23U && TIM2->ARR == hal::util::step_arr && TIM2->SMCR == 0U &&
                          (TIM2->CR1 & (TIM_CR1_DIR | TIM_CR1_CMS | TIM_CR1_OPM)) == 0U,
                        "TIM2 must be the configured 10 MHz up-counter")) {
                 return false;

@@ -52,6 +52,6 @@ namespace hal::device
         // Disabled only. Validate and stage settings, leaving the driver unready.
         // Explicit initialize() applies/verifies them. Microsteps must continue
         // matching the motor/feedback configuration; INDEX remains a phase marker.
-        virtual util::Result<> configure(const Configuration&) = 0;
+        virtual hal::util::Result<> configure(const Configuration&) = 0;
     };
 }

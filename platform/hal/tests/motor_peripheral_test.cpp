@@ -1,7 +1,7 @@
 #include "hal/board/board.hpp"
-#include "hal/drivers/detail/EncoderCounter.hpp"
-#include "hal/drivers/detail/EncoderSampler.hpp"
-#include "hal/drivers/detail/PwmTiming.hpp"
+#include "hal/drivers/util/EncoderCounter.hpp"
+#include "hal/drivers/util/EncoderSampler.hpp"
+#include "hal/drivers/util/PwmTiming.hpp"
 #include "hal/drivers/factory/encoder.hpp"
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/factory/pwm.hpp"
@@ -75,27 +75,27 @@ TEST(HalPwm, ValidatesTimingWithoutDestroyingPriorConfiguration)
 
 TEST(HalPwm, QuantizationCoversPrescalerBoundariesAndVerySlowPulses)
 {
-    const auto exact{ hal::detail::pwmTiming({ 100us, 3us }, 240'000'000U) };
+    const auto exact{ hal::util::pwmTiming({ 100us, 3us }, 240'000'000U) };
     ASSERT_TRUE(exact);
     EXPECT_EQ(exact->prescaler, 0U);
     EXPECT_EQ(exact->period_ticks, 24'000U);
     EXPECT_EQ(exact->high_ticks, 720U);
-    const auto prescaled{ hal::detail::pwmTiming({ 275us, 3us }, 240'000'000U) };
+    const auto prescaled{ hal::util::pwmTiming({ 275us, 3us }, 240'000'000U) };
     ASSERT_TRUE(prescaled);
     EXPECT_EQ(prescaled->prescaler, 1U);
     EXPECT_EQ(prescaled->period_ticks, 33'000U);
     EXPECT_EQ(prescaled->actual, (hal::IPwmOutput::Timing{ 275us, 3us }));
-    const auto rounded{ hal::detail::pwmTiming({ 101ns, 21ns }, 240'000'000U) };
+    const auto rounded{ hal::util::pwmTiming({ 101ns, 21ns }, 240'000'000U) };
     ASSERT_TRUE(rounded);
     EXPECT_EQ(rounded->actual.period, 105ns);
     EXPECT_EQ(rounded->actual.high_time, 25ns);
-    const auto slow{ hal::detail::pwmTiming({ 17s, 5ms }, 240'000'000U) };
+    const auto slow{ hal::util::pwmTiming({ 17s, 5ms }, 240'000'000U) };
     ASSERT_TRUE(slow);
     EXPECT_LE(slow->prescaler, 65535U);
     EXPECT_LE(slow->period_ticks, 65535U);
     EXPECT_GE(slow->actual.period, 17s);
-    EXPECT_FALSE(hal::detail::pwmTiming({ 18s, 5ms }, 240'000'000U));
-    EXPECT_FALSE(hal::detail::pwmTiming({ 1s, 1ms }, 0U));
+    EXPECT_FALSE(hal::util::pwmTiming({ 18s, 5ms }, 240'000'000U));
+    EXPECT_FALSE(hal::util::pwmTiming({ 1s, 1ms }, 0U));
 }
 
 TEST(HalPwm, ValidatesRoutesAndReleasesTimerAfterPinClaimFailure)
@@ -172,7 +172,7 @@ TEST(HalEncoder, ExtendsMovementAcrossManyWrapsAndPreservesStoppedPosition)
 
 TEST(HalEncoder, SampleCadenceCoalescesDelayedServiceAndCanBeUnsubscribed)
 {
-    hal::detail::EncoderSampler sampler;
+    hal::util::EncoderSampler sampler;
     std::vector<hal::IQuadratureEncoder::Sample> samples;
     sampler.setCallback([&](const auto& sample) noexcept { samples.push_back(sample); });
     sampler.publish({ 12, 100ms, true });
@@ -242,7 +242,7 @@ TEST(HalEncoder, RejectsUnsupportedRoutesAndRollsBackPartialPinClaims)
 
 TEST(HalEncoder, CountExtensionHandlesReversalsNearWrapWithoutDirectionGuessing)
 {
-    hal::detail::EncoderCounter counter;
+    hal::util::EncoderCounter counter;
     counter.sample(65535U);
     EXPECT_EQ(counter.position(), -1);
     counter.sample(0U);
@@ -270,7 +270,7 @@ TEST(HalEncoder, CountExtensionHandlesReversalsNearWrapWithoutDirectionGuessing)
 
 TEST(HalEncoder, ReportsAmbiguousSamplesAndSignedOverflowUntilExplicitReset)
 {
-    hal::detail::EncoderCounter counter;
+    hal::util::EncoderCounter counter;
     counter.sample(32768U);
     EXPECT_EQ(counter.position().error(), std::errc::result_out_of_range);
     counter.sample(32769U);

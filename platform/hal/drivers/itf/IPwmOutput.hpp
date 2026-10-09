@@ -1,6 +1,8 @@
 #pragma once
 
-#include "hal/utilities/Result.hpp"
+#include "hal/util/Result.hpp"
+#include "hal/drivers/itf/GpioTypes.hpp"
+#include "hal/drivers/itf/ITimer.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -60,5 +62,15 @@ namespace hal
 
       protected:
         IPwmOutput() = default;
+    };
+}
+
+namespace hal::pwm
+{
+    struct Configuration
+    {
+        timer::Peripheral timer;
+        timer::Channel channel;
+        gpio::Pin pin;
     };
 }

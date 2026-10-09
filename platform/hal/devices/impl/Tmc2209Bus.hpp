@@ -16,7 +16,7 @@ namespace hal::device
         ~Tmc2209Bus();
       private:
         friend class Tmc2209Driver;
-        util::Result<> prepareLocked();
+        hal::util::Result<> prepareLocked();
         std::shared_ptr<IUart> m_uart;
         std::vector<std::uint8_t> m_addresses;
         struct Lock;

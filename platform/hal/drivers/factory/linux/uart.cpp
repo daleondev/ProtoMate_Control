@@ -1,9 +1,7 @@
 #include "hal/drivers/factory/uart.hpp"
-#include "hal/drivers/detail/UartTransfer.hpp"
 #include "hal/drivers/impl/linux/Uart.hpp"
-#include "hal/linux/Mutex.hpp"
-#include <array>
-#include <mutex>
+#include "hal/drivers/util/ExclusiveInstances.hpp"
+#include "hal/drivers/util/UartTransfer.hpp"
 #include <utility>
 
 namespace hal::uart
@@ -12,16 +10,9 @@ namespace hal::uart
     {
         const auto index{ std::to_underlying(configuration.peripheral) };
         if (configuration.peripheral == Peripheral::Usart3 ||
-            !detail::validUartConfiguration(configuration.transport) || index >= 9U)
+            !util::validUartConfiguration(configuration.transport) || index >= 9U)
             return {};
-        static linux::Mutex mutex;
-        static std::array<std::weak_ptr<IUart>, 9> owners;
-        const std::scoped_lock lock{ mutex };
-        auto& owner{ owners[index] };
-        if (!owner.expired())
-            return {};
-        auto bus{ std::make_shared<Uart>(configuration.transport) };
-        owner = bus;
-        return bus;
+        static util::ExclusiveInstances<9> instances;
+        return instances.create<Uart>(index, configuration.transport);
     }
 }
