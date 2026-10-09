@@ -18,16 +18,16 @@ namespace hal::encoder
         linux::Mutex owner_mutex;
         std::weak_ptr<QuadratureEncoder> owner;
     }
-    auto simulatedEncoder(std::uint8_t timer) -> std::shared_ptr<QuadratureEncoder>
+    auto simulatedEncoder(timer::Peripheral peripheral) -> std::shared_ptr<QuadratureEncoder>
     {
         const std::scoped_lock lock{ owner_mutex };
-        return timer == 3U ? owner.lock() : nullptr;
+        return peripheral == timer::Peripheral::Tim3 ? owner.lock() : nullptr;
     }
 #endif
     auto create(Configuration configuration) -> std::shared_ptr<IQuadratureEncoder>
     {
         using enum gpio::Port;
-        if (configuration.timer != 3U || configuration.a != gpio::Pin{ B, 4U } ||
+        if (configuration.timer != timer::Peripheral::Tim3 || configuration.a != gpio::Pin{ B, 4U } ||
             configuration.b != gpio::Pin{ B, 5U }) {
             return {};
         }

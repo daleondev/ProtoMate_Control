@@ -24,8 +24,8 @@ namespace
 {
     using namespace std::chrono_literals;
     using enum hal::gpio::Port;
-    constexpr hal::pwm::Configuration m1{ 1U, 1U, { E, 9U } };
-    constexpr hal::encoder::Configuration encoder{ 3U, { B, 4U }, { B, 5U } };
+    constexpr hal::pwm::Configuration m1{ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 9U } };
+    constexpr hal::encoder::Configuration encoder{ hal::timer::Peripheral::Tim3, { B, 4U }, { B, 5U } };
 }
 
 TEST(HalPwm, StartsUnconfiguredAndRequiresStoppedConfiguration)
@@ -100,9 +100,9 @@ TEST(HalPwm, QuantizationCoversPrescalerBoundariesAndVerySlowPulses)
 
 TEST(HalPwm, ValidatesRoutesAndReleasesTimerAfterPinClaimFailure)
 {
-    EXPECT_EQ(hal::pwm::create({ 2U, 1U, { E, 9U } }), nullptr);
-    EXPECT_EQ(hal::pwm::create({ 1U, 2U, { E, 9U } }), nullptr);
-    EXPECT_EQ(hal::pwm::create({ 1U, 1U, { E, 8U } }), nullptr);
+    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim2, hal::timer::Channel::Channel1, { E, 9U } }), nullptr);
+    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel2, { E, 9U } }), nullptr);
+    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 8U } }), nullptr);
     auto blocker{ hal::gpio::createInput({ .pin = m1.pin }) };
     ASSERT_NE(blocker, nullptr);
     EXPECT_EQ(hal::pwm::create(m1), nullptr);
@@ -223,8 +223,8 @@ TEST(HalEncoder, SamplesAtRestWithoutReadsAndClearingDisconnectsCallbacks)
 
 TEST(HalEncoder, RejectsUnsupportedRoutesAndRollsBackPartialPinClaims)
 {
-    EXPECT_EQ(hal::encoder::create({ 2U, { B, 4U }, { B, 5U } }), nullptr);
-    EXPECT_EQ(hal::encoder::create({ 3U, { B, 5U }, { B, 4U } }), nullptr);
+    EXPECT_EQ(hal::encoder::create({ hal::timer::Peripheral::Tim2, { B, 4U }, { B, 5U } }), nullptr);
+    EXPECT_EQ(hal::encoder::create({ hal::timer::Peripheral::Tim3, { B, 5U }, { B, 4U } }), nullptr);
     auto blocker{ hal::gpio::createOutput({ .pin = encoder.b }) };
     ASSERT_NE(blocker, nullptr);
     EXPECT_EQ(hal::encoder::create(encoder), nullptr);
@@ -336,8 +336,8 @@ TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
     EXPECT_FALSE(second->prepare({ 200us, 5us }, 2));
     EXPECT_EQ(third->pulseCount(), 0U);
     static_cast<void>(generator->stop());
-    EXPECT_NE(hal::timer::create(5U), nullptr); // Runtime is independent of TIM2.
-    EXPECT_EQ(hal::timer::create(2U), nullptr);
+    EXPECT_NE(hal::timer::create({ .peripheral = hal::timer::Peripheral::Tim5 }), nullptr); // Runtime is independent of TIM2.
+    EXPECT_EQ(hal::timer::create({ .peripheral = hal::timer::Peripheral::Tim2 }), nullptr);
     EXPECT_EQ(hal::board::createEncoder(Motor2), nullptr);
     EXPECT_EQ(hal::board::createEncoderIndex(Motor3), nullptr);
     EXPECT_EQ(hal::board::createStepperStepOutput(generator, static_cast<hal::board::MotorId>(255)), nullptr);

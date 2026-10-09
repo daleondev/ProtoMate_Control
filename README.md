@@ -53,6 +53,15 @@ I/O uses the host filesystem; explicit FileX tests use simulated media images.
 The simulated LED state toggles inside the process; inspect it through the
 HAL or Linux debugger. Startup diagnostics and the boot message appear on the terminal.
 
+The STM32 SPI/UART polling drivers also have isolated host tests using a
+recording HAL and the system GoogleTest package:
+
+```sh
+cmake -S platform/hal/tests/transport_model -B build/hal-transport-tests -G Ninja
+cmake --build build/hal-transport-tests
+ctest --test-dir build/hal-transport-tests --output-on-failure
+```
+
 For the bare Nucleo + EVB-LAN9255 SPI feasibility test, build
 `ethercat-test-stm32`. The [SPI test instructions](docs/ethercat/spi-test.md)
 cover loopback, J17 straps, wiring, flashing, identification and repeated reads.
@@ -62,6 +71,47 @@ For a complete standalone SOES echo slave, build **`ethercat-slave-stm32`**.
 It exchanges one `UDINT` in each direction, without robot functions. See the
 [example instructions](docs/ethercat/slave-example.md) and install its
 [ESI file](examples/ethercat_slave/ProtoMateEcho.xml) in the EtherCAT master.
+
+## HAL factory selection
+
+Configurable factories take a typed `Configuration` describing hardware resources.
+GPIO selects pins; buses select a peripheral; PWM/encoder configurations select a
+peripheral and its pin/channel route. Device roles and wiring choices belong to
+`hal::board`, not to the transport drivers.
+
+```cpp
+auto spi = hal::spi::create({ .peripheral = hal::spi::Peripheral::Spi5 });
+auto uart = hal::uart::create({
+    .peripheral = hal::uart::Peripheral::Usart2,
+    .transport = { .local_echo = true, .settle_time = std::chrono::milliseconds{1} }
+});
+auto timer = hal::timer::create({ .peripheral = hal::timer::Peripheral::Tim5 });
+auto pwm = hal::pwm::create({
+    .timer = hal::timer::Peripheral::Tim1,
+    .channel = hal::timer::Channel::Channel1,
+    .pin = { hal::gpio::Port::E, 9 }
+});
+auto encoder = hal::encoder::create({
+    .timer = hal::timer::Peripheral::Tim3,
+    .a = { hal::gpio::Port::B, 4 }, .b = { hal::gpio::Port::B, 5 }
+});
+```
+
+SPI/UART ownership is independent for each selected peripheral. On STM32,
+bindings to handles, initialization and SPI recovery are generated from CubeMX's
+`spi.h` and `usart.h` declarations during CMake configuration. Enabling another
+peripheral in CubeMX and regenerating makes it selectable without editing the
+factory. Its pins, clocks, baud rate and SPI frame settings remain CubeMX-owned.
+The current hardware configuration enables **SPI5 and USART2**; unsupported,
+unconfigured or already-owned selections return null. **USART3 is reserved for
+the console.** Linux provides independent in-process bus models for the valid
+selectors, with USART3 likewise reserved; it does not access host SPI/UART devices.
+
+The generic timer factory exposes the shared TIM5 runtime timer. Other timers
+retain their existing ownership through the PWM, encoder and step factories.
+The single RNG, RTC and fixed step engine need no selector. Existing ownership
+rules remain: shared system services return their existing instance, while GPIO,
+SPI/UART, PWM, encoder and step resources require exclusive ownership.
 
 ## Planned migration to Arduino GIGA R1 WiFi
 
@@ -631,7 +681,7 @@ and perfboard nets are unchanged; use the revised J101 harness destinations.
 | TIM2_CH3 / DMA1 stream 1 | M2 edge timestamps |
 | TIM2_CH4 / DMA1 stream 2 | M3 edge timestamps |
 | TIM2_CH2 / DMA1 stream 3 | Internal deadline: DMA writes CR1=0 to stop the counter |
-| TIM5 | 32-bit runtime clock, moved from TIM2; `hal::timer::create(5)` |
+| TIM5 | 32-bit runtime clock, moved from TIM2; `hal::timer::create({ .peripheral = hal::timer::Peripheral::Tim5 })` |
 | TIM6 | HAL timebase |
 | TIM7 | Internal 1 ms finite-completion monitor; no output pin |
 | TIM3, PB4/PB5 | Existing M1 quadrature encoder |
@@ -1076,7 +1126,7 @@ while stopped or in uncounted PWM mode are ignored. Its
 `hal::QuadratureEncoder::advanceSimulatedCounts(delta)`
 injects signed x4 counts, using the same count-extension arithmetic as STM32;
 movement injected while stopped is ignored. A background service delivers the
-same timed sample callbacks. `hal::encoder::simulatedEncoder(3)` accesses the
+same timed sample callbacks. `hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3)` accesses the
 already owned encoder for motion injection in tests. A/B GPIO levels are not decoded
 by this simulation. Index edges can be injected through the existing Linux
 `GpioInput::setSimulatedLevel()` test interface. Simulation is not a measurement
@@ -1319,7 +1369,14 @@ and set its potentiometer current before running it.
 
 M2 and M3 share **USART2 at 115200 baud, 8N1**, separate from the USART3 CLI.
 All signals use **3.3 V logic**. The board factory creates one `IUart` transport;
-`MotionController` owns and serializes the two `hal::device::Tmc2209` devices.
+the two TMC2209 driver objects share a serialized `hal::device::Tmc2209Bus`.
+`hal::board::createStepperDriverBus()` selects `hal::uart::create({ .peripheral = hal::uart::Peripheral::Usart2, .transport = configuration })`
+with local echo enabled and a 1 ms settling interval. The concrete `hal::Uart`
+has its declaration in the platform's `Uart.hpp` and is constructed by the
+platform factory; USART2 initializes when the transport is created. The UART
+driver contains no motor register protocol. On Linux, the board attaches the
+device-layer `Tmc2209Uart` model to the generic UART transport; tests access that
+model through `hal::board::simulatedStepperBus()`.
 The normal application initializes both at boot, while the shared enable stays
 HIGH. Missing/unpowered drivers leave the CLI available but block motor, axis
 and robot enable/motion commands, including M1 because enable is shared.

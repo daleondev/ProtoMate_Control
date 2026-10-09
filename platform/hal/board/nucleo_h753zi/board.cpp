@@ -12,6 +12,12 @@
 
 #include "hal/devices/impl/Dm542tDriver.hpp"
 #include "hal/devices/impl/Tmc2209Driver.hpp"
+#if defined(HAL_PLATFORM_LINUX)
+#include "hal/board/nucleo_h753zi/simulation.hpp"
+#include "hal/drivers/impl/linux/Uart.hpp"
+#include "hal/linux/Mutex.hpp"
+#include <mutex>
+#endif
 #include <bit>
 #include <memory>
 #include <stdexcept>
@@ -22,6 +28,10 @@ namespace hal::board
     namespace
     {
         using enum gpio::Port;
+#if defined(HAL_PLATFORM_LINUX)
+        linux::Mutex model_mutex;
+        std::weak_ptr<device::Tmc2209Uart> stepper_uart_model;
+#endif
 
         [[nodiscard]] auto make_stepper_output(gpio::Pin pin, gpio::Level initial_level)
           -> std::shared_ptr<IDigitalOutput>
@@ -66,7 +76,10 @@ namespace hal::board
 
     auto createStepperGenerator() -> std::shared_ptr<IStepGenerator> { return step::create(); }
 
-    auto createEthercatSpi() -> std::shared_ptr<ISpi> { return spi::createEthercatBus(); }
+    auto createEthercatSpi() -> std::shared_ptr<ISpi>
+    {
+        return spi::create({ .peripheral = spi::Peripheral::Spi5 });
+    }
 
     auto createEthercatChipSelect() -> std::shared_ptr<IDigitalOutput>
     {
@@ -74,7 +87,37 @@ namespace hal::board
             .initial_level = gpio::Level::High, .pull = gpio::Pull::Up });
     }
 
-    auto createStepperDriverBus() -> std::shared_ptr<IUart> { return uart::createStepperBus(); }
+    auto createStepperDriverBus() -> std::shared_ptr<IUart>
+    {
+#if defined(HAL_PLATFORM_LINUX)
+        const std::scoped_lock lock{ model_mutex };
+        // A retained model is still owned by a simulation client.
+        if (!stepper_uart_model.expired()) return {};
+#endif
+        // PD5 TX is coupled to PD6 RX through a resistor. Allow late replies
+        // to finish before flushing the line and beginning another request.
+        auto bus{ uart::create({
+          .peripheral = uart::Peripheral::Usart2,
+          .transport = { .local_echo = true, .settle_time = std::chrono::milliseconds{ 1 } },
+        }) };
+#if defined(HAL_PLATFORM_LINUX)
+        if (bus) {
+            auto model{ std::make_shared<device::Tmc2209Uart>() };
+            std::static_pointer_cast<Uart>(bus)->setExchangeHandler(
+                [model](auto tx, auto rx, auto timeout) { return model->exchange(tx, rx, timeout); });
+            stepper_uart_model = model;
+        }
+#endif
+        return bus;
+    }
+
+#if defined(HAL_PLATFORM_LINUX)
+    auto simulatedStepperBus() -> std::shared_ptr<device::Tmc2209Uart>
+    {
+        const std::scoped_lock lock{ model_mutex };
+        return stepper_uart_model.lock();
+    }
+#endif
 
     auto createStepperDiagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>
     {
@@ -193,7 +236,7 @@ namespace hal::board
         if (id != MotorId::Motor1) {
             return {};
         }
-        return encoder::create({ .timer = 3U, .a = { gpio::Port::B, 4U }, .b = { gpio::Port::B, 5U } });
+        return encoder::create({ .timer = hal::timer::Peripheral::Tim3, .a = { gpio::Port::B, 4U }, .b = { gpio::Port::B, 5U } });
     }
 
     auto createEncoderIndex(MotorId id) -> std::shared_ptr<IDigitalInput>

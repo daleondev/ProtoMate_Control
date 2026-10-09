@@ -1,5 +1,5 @@
 #include "hal/drivers/factory/step.hpp"
-#include "hal/drivers/detail/StepGenerator.hpp"
+#include "hal/drivers/impl/StepGenerator.hpp"
 #include "hal/drivers/factory/gpio.hpp"
 
 #if defined(HAL_PLATFORM_STM32)

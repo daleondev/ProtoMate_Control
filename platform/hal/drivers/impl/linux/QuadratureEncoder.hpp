@@ -1,5 +1,7 @@
 #pragma once
 
+#include "hal/drivers/factory/timer.hpp"
+
 #if defined(HAL_STEP_THREADX)
 #include "hal/linux/ThreadMutex.hpp"
 #else
@@ -57,6 +59,6 @@ namespace hal
     {
         // Return the currently owned encoder for external motion injection.
         // This does not create or replace the exclusive board resource.
-        auto simulatedEncoder(std::uint8_t timer) -> std::shared_ptr<QuadratureEncoder>;
+        auto simulatedEncoder(timer::Peripheral peripheral) -> std::shared_ptr<QuadratureEncoder>;
     }
 }

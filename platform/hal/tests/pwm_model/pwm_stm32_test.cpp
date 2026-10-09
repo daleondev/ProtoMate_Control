@@ -33,11 +33,11 @@ namespace
             // EGR retains its self pointer; reset only through normal registers.
             timer->CR1 = timer->DIER = 0U;
             timer->SR = 0U;
-            const hal::pwm::Configuration route = id == 1U   ? hal::pwm::Configuration{ 1U, 1U, { E, 9U } }
-                                                  : id == 4U ? hal::pwm::Configuration{ 4U, 3U, { D, 14U } }
-                                                             : hal::pwm::Configuration{ 8U, 1U, { C, 6U } };
+            const hal::pwm::Configuration route = id == 1U   ? hal::pwm::Configuration{ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 9U } }
+                                                  : id == 4U ? hal::pwm::Configuration{ hal::timer::Peripheral::Tim4, hal::timer::Channel::Channel3, { D, 14U } }
+                                                             : hal::pwm::Configuration{ hal::timer::Peripheral::Tim8, hal::timer::Channel::Channel1, { C, 6U } };
             output = std::make_unique<hal::PwmOutput>(
-              route, 1U, hal::detail::TimerLease{ id }, std::make_shared<Pin>());
+              route, 1U, hal::detail::TimerLease{ static_cast<hal::timer::Peripheral>(id) }, std::make_shared<Pin>());
             ASSERT_TRUE(output->configure({ 100ns, 50ns })); // 24 ticks, 12 ticks high.
         }
         bool high() const { return port->mode == GPIO_MODE_AF_PP ? timer->high() : port->latch != 0U; }

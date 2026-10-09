@@ -3,7 +3,7 @@
 #include "hal/drivers/impl/linux/Gpio.hpp"
 #include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
 #include "hal/drivers/detail/SimulatedStepHardware.hpp"
-#include "hal/drivers/detail/StepGenerator.hpp"
+#include "hal/drivers/impl/StepGenerator.hpp"
 
 #include <gtest/gtest.h>
 
@@ -185,7 +185,7 @@ TEST_F(RobotState, FeedbackRemainsDistinctFromCommandedStateAndPropagatesFaults)
 {
     configure();
     const control::Robot robot{ controller, geometry };
-    auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     ASSERT_TRUE(encoder->advanceSimulatedCounts(400));
     ASSERT_TRUE(eventually([&] {
@@ -456,7 +456,7 @@ TEST_F(RobotState, EncoderFaultCancelsRobotMotionEvenBeforeItsFirstPulse)
     control::Robot robot{ controller, geometry };
     ASSERT_TRUE(home(robot));
     const auto move{ robot.moveJoints({ -100_deg, 170_deg, -5_mm }, { .speed = 0.1 }) };
-    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     ASSERT_TRUE(encoder->stop());
     ASSERT_TRUE(encoder->setPosition(std::numeric_limits<std::int64_t>::max()));
@@ -490,7 +490,7 @@ TEST_F(RobotState, HomingStopsIfAnAlreadyReferencedAxisLosesEncoderFeedback)
         input->setSimulatedLevel(hal::gpio::Level::Low);
     }
     ASSERT_TRUE(eventually([&] { return controller->status().axes[1].velocity > 0_rpm; }));
-    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder->stop());
     ASSERT_TRUE(encoder->setPosition(std::numeric_limits<std::int64_t>::max()));
     ASSERT_TRUE(encoder->start());

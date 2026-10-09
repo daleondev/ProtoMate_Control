@@ -11,3 +11,7 @@ target_sources(hal_drivers
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/IndexFeedback.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/QuadratureEncoderFeedback.cpp
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_sources(hal_drivers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/impl/linux/Tmc2209Uart.cpp)
+endif()

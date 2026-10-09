@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hal/drivers/factory/timer.hpp"
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -12,8 +13,9 @@ namespace hal::detail
     class TimerLease final
     {
       public:
-        explicit TimerLease(std::uint8_t timer) noexcept
+        explicit TimerLease(timer::Peripheral peripheral) noexcept
         {
+            const auto timer{ std::to_underlying(peripheral) };
             if (timer != 1U && timer != 3U && timer != 4U && timer != 8U) {
                 return;
             }

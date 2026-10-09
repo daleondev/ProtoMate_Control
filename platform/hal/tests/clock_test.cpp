@@ -111,8 +111,8 @@ TEST(HalClockDrivers, RtcProvidesRealtime)
 
 TEST(HalClockDrivers, TimerProvidesHighResolutionCounter)
 {
-    constexpr std::size_t high_resolution_timer_index{ 5U };
-    const auto timer{ hal::timer::create(high_resolution_timer_index) };
+    constexpr auto high_resolution_timer_peripheral{ hal::timer::Peripheral::Tim5 };
+    const auto timer{ hal::timer::create({ .peripheral = high_resolution_timer_peripheral }) };
     ASSERT_NE(timer, nullptr);
     ASSERT_GT(timer->getTickFrequencyHz(), 0U);
 
@@ -126,7 +126,7 @@ TEST(HalClockDrivers, TimerProvidesHighResolutionCounter)
 
 TEST(HalClockDrivers, TimerConversionsAndFactoryValidation)
 {
-    EXPECT_EQ(hal::timer::create(0U), nullptr);
+    EXPECT_EQ(hal::timer::create({ .peripheral = static_cast<hal::timer::Peripheral>(0) }), nullptr);
 
     hal::Timer invalid_timer{ hal::Timer::Configuration{
       .input_frequency_hz = 0U, .prescaler = 0U, .auto_reload = 1U } };
@@ -188,8 +188,8 @@ TEST(HalClockDrivers, TimerAcceptsTypeErasedPeriodElapsedCallback)
 
 TEST(HalClockDrivers, ChronoFallsBackAfterTimerStateChange)
 {
-    constexpr std::size_t high_resolution_timer_index{ 5U };
-    const auto timer{ hal::timer::create(high_resolution_timer_index) };
+    constexpr auto high_resolution_timer_peripheral{ hal::timer::Peripheral::Tim5 };
+    const auto timer{ hal::timer::create({ .peripheral = high_resolution_timer_peripheral }) };
     ASSERT_NE(timer, nullptr);
 
     const auto before{ std::chrono::system_clock::now() };

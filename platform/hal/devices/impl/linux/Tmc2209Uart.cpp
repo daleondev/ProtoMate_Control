@@ -1,19 +1,14 @@
-#include "TmcUart.hpp"
+#include "Tmc2209Uart.hpp"
 #include "hal/devices/impl/Tmc2209.hpp"
-#include "hal/drivers/factory/uart.hpp"
 
-namespace hal::uart
+namespace hal::device
 {
-    namespace
-    {
-        std::weak_ptr<TmcUart> owner;
-    }
-    TmcUart::TmcUart()
+    Tmc2209Uart::Tmc2209Uart()
     {
         reset(0);
         reset(1);
     }
-    void TmcUart::reset(unsigned address)
+    void Tmc2209Uart::reset(unsigned address)
     {
         for (auto& reg : m_registers.at(address))
             reg = 0;
@@ -24,18 +19,18 @@ namespace hal::uart
         m_registers[address][0x6F] = 0x80000000;
         m_registers[address][0x70] = 0xC10D0024;
     }
-    void TmcUart::setRegister(unsigned address, unsigned reg, std::uint32_t value)
+    void Tmc2209Uart::setRegister(unsigned address, unsigned reg, std::uint32_t value)
     {
         m_registers.at(address).at(reg) = value;
     }
-    std::uint32_t TmcUart::getRegister(unsigned address, unsigned reg) const
+    std::uint32_t Tmc2209Uart::getRegister(unsigned address, unsigned reg) const
     {
         return m_registers.at(address).at(reg);
     }
-    void TmcUart::setConnected(unsigned address, bool connected) { m_connected.at(address) = connected; }
-    util::Result<> TmcUart::exchange(std::span<const std::uint8_t> request,
-                                     std::span<std::uint8_t> reply,
-                                     std::chrono::milliseconds)
+    void Tmc2209Uart::setConnected(unsigned address, bool connected) { m_connected.at(address) = connected; }
+    util::Result<> Tmc2209Uart::exchange(std::span<const std::uint8_t> request,
+                                         std::span<std::uint8_t> reply,
+                                         std::chrono::milliseconds)
     {
         auto error = [](std::errc e) { return std::unexpected(std::make_error_code(e)); };
         if ((request.size() != 4 && request.size() != 8) || request[0] != 5 ||
@@ -70,13 +65,4 @@ namespace hal::uart
         reply[7] = device::Tmc2209::crc(reply.first(7));
         return {};
     }
-    std::shared_ptr<IUart> createStepperBus()
-    {
-        if (!owner.expired())
-            return {};
-        auto bus = std::make_shared<TmcUart>();
-        owner = bus;
-        return bus;
-    }
-    std::shared_ptr<TmcUart> simulatedStepperBus() { return owner.lock(); }
 }

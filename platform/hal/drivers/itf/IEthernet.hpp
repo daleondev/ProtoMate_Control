@@ -56,7 +56,7 @@ namespace hal
         struct Configuration
         {
             std::string_view interface_name{ "eth0" };
-            std::optional<EtherType> receive_ether_type{ EtherType::EtherCAT };
+            std::optional<EtherType> receive_ether_type{}; // No protocol filter unless requested.
             bool promiscuous{};
             std::uint8_t phy_address{};
         };

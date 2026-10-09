@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hal/drivers/factory/timer.hpp"
 #include "hal/drivers/itf/IGpio.hpp"
 #include "hal/drivers/itf/IPwmOutput.hpp"
 
@@ -10,8 +11,8 @@ namespace hal::pwm
 {
     struct Configuration
     {
-        std::uint8_t timer;
-        std::uint8_t channel; // 1-based channel number, not an STM32 HAL constant.
+        timer::Peripheral timer;
+        timer::Channel channel;
         gpio::Pin pin;
     };
 

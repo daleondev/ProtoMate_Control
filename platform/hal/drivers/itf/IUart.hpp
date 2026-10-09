@@ -12,9 +12,16 @@ namespace hal
     class IUart
     {
       public:
+        struct Configuration
+        {
+            bool local_echo{};
+            std::chrono::milliseconds settle_time{};
+        };
+
         virtual ~IUart() = default;
-        // TX is coupled to RX through a resistor. Consume/validate local echo,
-        // then receive exactly reply.size() bytes. Empty reply means write-only.
+        // Transmit the request, optionally consume/validate its local echo,
+        // then receive exactly reply.size() bytes. Empty reply is write-only.
+        // Discards stale input after settle_time; timeout covers the exchange.
         virtual util::Result<> exchange(std::span<const std::uint8_t> request,
                                         std::span<std::uint8_t> reply,
                                         std::chrono::milliseconds timeout) = 0;

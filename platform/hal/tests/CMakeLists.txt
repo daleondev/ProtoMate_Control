@@ -3,6 +3,7 @@ add_executable(hal_tests)
 target_sources(hal_tests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/clock_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/bus_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/clock_reference_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/console_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ethernet_test.cpp

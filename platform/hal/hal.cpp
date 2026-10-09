@@ -62,9 +62,8 @@ namespace hal
         unused_uart_pins.Mode = GPIO_MODE_ANALOG;
         unused_uart_pins.Pull = GPIO_NOPULL;
         HAL_GPIO_Init(GPIOD, &unused_uart_pins);
-#else
-        MX_USART2_UART_Init();
 #endif
+        // USART2 is initialized on demand by the UART factory.
 #endif
         MX_TIM3_Init();
 #endif

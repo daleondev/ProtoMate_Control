@@ -282,7 +282,7 @@ TEST(StepperMotor, EncoderTracksExternalShaftMotionWhileStepGeneratorIsStopped)
     const auto generator{ hal::board::createStepperGenerator() };
     const auto started_before{ std::chrono::steady_clock::now() };
     StepperMotor motor{ Motor1, 0_deg, 1.8_deg, 8U, generator, hal::test::signalOnlyDriver() };
-    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_NE(encoder, nullptr);
     ASSERT_TRUE(encoder->isRunning());
     ASSERT_TRUE(motor.actualPosition());
@@ -323,7 +323,7 @@ TEST(StepperMotor, InjectedFeedbackDeterminesMeasurementIndependentlyOfMotorId)
     const auto generator{ hal::board::createStepperGenerator() };
     auto feedback{ hal::board::createMotorFeedback(Motor1, { 1.8_deg, 16U }) };
     ASSERT_TRUE(feedback);
-    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     {
         StepperMotor motor{ Motor2, 42.1_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver(), feedback };
@@ -426,7 +426,7 @@ TEST(StepperMotor, EncoderWrapsAndFaultsAreNotPresentedAsValidMeasuredMotion)
 {
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor1, 0_deg, 1.8_deg, 8U, generator, hal::test::signalOnlyDriver() };
-    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_NE(encoder, nullptr);
     ASSERT_TRUE(encoder->advanceSimulatedCounts(-800'000));
     ASSERT_TRUE(eventually([&] { return measuredAt(motor, -180000_deg); }));
@@ -447,7 +447,7 @@ TEST(StepperMotor, DestructionDisconnectsEncoderCallbackAndStopsCounting)
     std::shared_ptr<hal::QuadratureEncoder> encoder;
     {
         StepperMotor motor{ Motor1, 0_deg, 1.8_deg, 8U, generator, hal::test::signalOnlyDriver() };
-        encoder = hal::encoder::simulatedEncoder(3U);
+        encoder = hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3);
         ASSERT_NE(encoder, nullptr);
         ASSERT_TRUE(encoder->advanceSimulatedCounts(160));
         ASSERT_TRUE(eventually([&] { return measuredAt(motor, 36_deg); }));
@@ -469,7 +469,7 @@ TEST(StepperMotor, ReferenceRebasesCommandedAndEncoderPositionsAndPreservesFutur
     // Not an integer encoder count: rebasing must use a coordinate offset.
     StepperMotor motor{ Motor1, 42.1_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
     const auto input{ releasedReference(Motor1) };
-    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder->advanceSimulatedCounts(800));
     ASSERT_TRUE(generator->start());
     auto referencing{ motor.reference(5_rpm, 0.5_rpm, 1_s) };

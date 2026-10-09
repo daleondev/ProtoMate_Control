@@ -50,15 +50,15 @@ namespace hal
                          std::shared_ptr<IDigitalOutput> pin)
       : m_lease{ std::move(lease) }
       , m_pin{ std::move(pin) }
-      , m_handle{ timer_handle(configuration.timer) }
-      , m_port{ configuration.timer == 1U   ? GPIOE
-                : configuration.timer == 4U ? GPIOD
+      , m_handle{ timer_handle(std::to_underlying(configuration.timer)) }
+      , m_port{ configuration.timer == timer::Peripheral::Tim1   ? GPIOE
+                : configuration.timer == timer::Peripheral::Tim4 ? GPIOD
                                             : GPIOC }
       , m_pinMask{ std::uint32_t{ 1U } << configuration.pin.number }
-      , m_channel{ configuration.channel == 1U ? TIM_CHANNEL_1 : TIM_CHANNEL_3 }
+      , m_channel{ configuration.channel == timer::Channel::Channel1 ? TIM_CHANNEL_1 : TIM_CHANNEL_3 }
       , m_alternate{ alternate }
-      , m_inputHz{ timer_input_hz(configuration.timer) }
-      , m_timer{ configuration.timer }
+      , m_inputHz{ timer_input_hz(std::to_underlying(configuration.timer)) }
+      , m_timer{ std::to_underlying(configuration.timer) }
       , m_updateIrq{ m_timer == 1U   ? TIM1_UP_IRQn
                      : m_timer == 4U ? TIM4_IRQn
                                      : TIM8_UP_TIM13_IRQn }

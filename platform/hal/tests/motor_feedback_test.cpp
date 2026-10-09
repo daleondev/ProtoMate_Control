@@ -146,7 +146,7 @@ TEST(MotorFeedbackBoard, FactorySelectsQuadratureAndReservesItsInputs)
     ASSERT_TRUE(feedback);
     EXPECT_EQ(feedback->source(), Feedback::Source::ShaftEncoder);
     EXPECT_EQ(feedback->resolution(), 0.225_deg);
-    auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     EXPECT_FALSE(encoder->isRunning());
     EXPECT_FALSE(hal::board::createEncoderIndex(Motor1));

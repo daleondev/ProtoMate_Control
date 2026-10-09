@@ -1,5 +1,5 @@
 #include "hal/devices/impl/Tmc2209.hpp"
-#include "hal/drivers/impl/linux/TmcUart.hpp"
+#include "hal/devices/impl/linux/Tmc2209Uart.hpp"
 #include <gtest/gtest.h>
 
 namespace
@@ -8,7 +8,7 @@ namespace
     class FaultyBus : public hal::IUart
     {
       public:
-        hal::uart::TmcUart model;
+        hal::device::Tmc2209Uart model;
         bool corrupt{}, wrong_register{}, drop_write{};
         hal::util::Result<> exchange(std::span<const std::uint8_t> tx,
                                      std::span<std::uint8_t> rx,

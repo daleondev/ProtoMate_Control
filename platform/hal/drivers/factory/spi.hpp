@@ -1,11 +1,27 @@
 #pragma once
 #include "hal/drivers/itf/ISpi.hpp"
+#include <cstdint>
 #include <memory>
 
 namespace hal::spi
 {
-    // SPI5: PF7 SCK, PF8 MISO, PF9 MOSI; mode 0, 8 bits, MSB first,
-    // APB2 / 128 (937.5 kHz). No automatic chip-select or startup transfers.
-    // One owner; the Linux factory reports unavailable (protocol tests inject a fake).
-    [[nodiscard]] std::shared_ptr<ISpi> createEthercatBus();
+    enum class Peripheral : std::uint8_t
+    {
+        Spi1,
+        Spi2,
+        Spi3,
+        Spi4,
+        Spi5,
+        Spi6
+    };
+
+    struct Configuration
+    {
+        Peripheral peripheral;
+    };
+
+    // Exclusive ownership per peripheral. STM32 uses the selected CubeMX pin,
+    // clock and frame configuration. Unconfigured/owned peripherals return null.
+    // Chip select belongs to the caller; creation sends no data.
+    [[nodiscard]] auto create(Configuration configuration) -> std::shared_ptr<ISpi>;
 }

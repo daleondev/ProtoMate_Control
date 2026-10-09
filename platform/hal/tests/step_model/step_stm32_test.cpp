@@ -1,4 +1,4 @@
-#include "hal/drivers/detail/StepGenerator.hpp"
+#include "hal/drivers/impl/StepGenerator.hpp"
 #include "hal/drivers/impl/stm32/StepHardware.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/FaultShutdown.hpp"

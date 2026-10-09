@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hal/drivers/factory/timer.hpp"
 #include "hal/drivers/itf/IGpio.hpp"
 #include "hal/drivers/itf/IQuadratureEncoder.hpp"
 
@@ -10,7 +11,7 @@ namespace hal::encoder
 {
     struct Configuration
     {
-        std::uint8_t timer;
+        timer::Peripheral timer;
         gpio::Pin a;
         gpio::Pin b;
     };

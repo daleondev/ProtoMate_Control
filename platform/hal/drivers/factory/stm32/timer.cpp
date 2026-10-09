@@ -12,7 +12,6 @@ namespace hal::timer
 {
     namespace
     {
-        constexpr std::size_t TIMER_5_INDEX{ 5U };
 
         [[nodiscard]] auto timer5_input_frequency_hz() noexcept -> std::uint32_t
         {
@@ -39,9 +38,9 @@ namespace hal::timer
         }
     }
 
-    auto create(std::size_t index) -> std::shared_ptr<ITimer>
+    auto create(Configuration configuration) -> std::shared_ptr<ITimer>
     {
-        if (index != TIMER_5_INDEX) {
+        if (configuration.peripheral != Peripheral::Tim5) {
             return {};
         }
 

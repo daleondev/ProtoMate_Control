@@ -10,15 +10,14 @@ namespace hal::timer
 {
     namespace
     {
-        constexpr std::size_t TIMER_5_INDEX{ 5U };
         constexpr std::uint32_t TIMER_5_INPUT_FREQUENCY_HZ{ 240'000'000U };
         constexpr ITimer::Tick TIMER_5_PRESCALER{ 239U };
         constexpr ITimer::Tick TIMER_5_AUTO_RELOAD{ std::numeric_limits<ITimer::Tick>::max() };
     }
 
-    auto create(std::size_t index) -> std::shared_ptr<ITimer>
+    auto create(Configuration configuration) -> std::shared_ptr<ITimer>
     {
-        if (index != TIMER_5_INDEX) {
+        if (configuration.peripheral != Peripheral::Tim5) {
             return {};
         }
 

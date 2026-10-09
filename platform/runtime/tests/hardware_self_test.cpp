@@ -729,10 +729,10 @@ namespace
             !hardware_driver_checks::ethernet_loopback()) {
             return false;
         }
-        constexpr std::size_t TIMER_INDEX{ 5U };
+        constexpr auto TIMER_PERIPHERAL{ hal::timer::Peripheral::Tim5 };
         constexpr std::uint32_t TEST_TICK_FREQUENCY_HZ{ 10'000U };
 
-        const auto timer{ hal::timer::create(TIMER_INDEX) };
+        const auto timer{ hal::timer::create({ .peripheral = TIMER_PERIPHERAL }) };
         if (timer == nullptr || timer->getInputFrequencyHz() < TEST_TICK_FREQUENCY_HZ) {
             return false;
         }

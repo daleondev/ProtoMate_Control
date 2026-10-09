@@ -1,4 +1,5 @@
-#include "hal/drivers/detail/StepGenerator.hpp"
+#include "hal/drivers/impl/StepGenerator.hpp"
+#include "hal/drivers/impl/StepOutput.hpp"
 
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/stm32/InterruptGuard.hpp"
@@ -17,79 +18,6 @@ namespace hal::detail
     namespace
     {
         auto fail(std::errc error) { return std::unexpected(std::make_error_code(error)); }
-        class StepOutput final : public IStepOutput
-        {
-          public:
-            StepOutput(std::shared_ptr<StepGenerator> generator, std::size_t axis)
-              : m_generator{ std::move(generator) }
-              , m_axis{ axis }
-            {
-            }
-            ~StepOutput() override
-            {
-                static_cast<void>(m_generator->setAxisProgressCallback(m_axis, this, {}));
-                static_cast<void>(m_generator->setCompletionCallback(m_axis, this, {}));
-            }
-            auto setProgressCallback(ProgressCallback callback) -> util::Result<> override
-            {
-                return m_generator->setAxisProgressCallback(m_axis, this, std::move(callback));
-            }
-            auto setCompletionCallback(CompletionCallback callback) -> util::Result<> override
-            {
-                return m_generator->setCompletionCallback(m_axis, this, std::move(callback));
-            }
-            auto prepare(step::Timing timing, std::optional<step::PulseCount> count)
-              -> util::Result<> override
-            {
-                return m_generator->prepare(m_axis, std::span{ &timing, 1U }, count);
-            }
-            auto prepareSequence(std::span<const step::Timing> sequence) -> util::Result<> override
-            {
-                return m_generator->prepare(m_axis, sequence, sequence.size());
-            }
-            auto prepareSequence(std::shared_ptr<const step::Sequence> sequence) -> util::Result<> override
-            {
-                return m_generator->prepareSequence(m_axis, std::move(sequence));
-            }
-            auto scheduleCursor() noexcept -> util::Result<step::ScheduleCursor> override
-            {
-                return m_generator->scheduleCursor(m_axis);
-            }
-            auto replaceSequence(step::ScheduleCursor cursor, std::shared_ptr<const step::Sequence> sequence)
-              -> util::Result<> override
-            {
-                return m_generator->replaceSequence(m_axis, cursor, std::move(sequence));
-            }
-            auto start(std::chrono::nanoseconds delay) noexcept -> util::Result<> override
-            {
-                return m_generator->startAxis(m_axis, delay);
-            }
-            auto stop() noexcept -> step::AxisStatus override { return m_generator->stopAxis(m_axis); }
-            auto status() noexcept -> step::AxisStatus override
-            {
-                const auto group{ m_generator->status() };
-                return {
-                    group.axes[m_axis], group.pulses[m_axis], group.counts_exact, group.periods[m_axis]
-                };
-            }
-            auto updateTiming(step::Timing timing) noexcept -> util::Result<step::PulseCount> override
-            {
-                return m_generator->updateTiming(m_axis, timing);
-            }
-            auto clear() noexcept -> util::Result<> override { return m_generator->clear(m_axis); }
-            auto pulseCount() noexcept -> util::Result<step::PulseCount> override
-            {
-                const auto value{ m_generator->status() };
-                if (!value.counts_exact) {
-                    return fail(std::errc::io_error);
-                }
-                return value.pulses[m_axis];
-            }
-
-          private:
-            std::shared_ptr<StepGenerator> m_generator;
-            std::size_t m_axis;
-        };
     }
 
     StepGenerator::StepGenerator(std::unique_ptr<StepHardware> hardware,

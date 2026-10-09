@@ -21,9 +21,9 @@ namespace hal::pwm
         };
         using enum gpio::Port;
         constexpr std::array routes{
-            Route{ { 1U, 1U, { E, 9U } }, 1U },
-            Route{ { 4U, 3U, { D, 14U } }, 2U },
-            Route{ { 8U, 1U, { C, 6U } }, 3U },
+            Route{ { hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 9U } }, 1U },
+            Route{ { hal::timer::Peripheral::Tim4, hal::timer::Channel::Channel3, { D, 14U } }, 2U },
+            Route{ { hal::timer::Peripheral::Tim8, hal::timer::Channel::Channel1, { C, 6U } }, 3U },
         };
         for (const auto& route : routes) {
             if (configuration.timer != route.configuration.timer ||

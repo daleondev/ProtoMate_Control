@@ -1,7 +1,7 @@
 #include "hal/board/board.hpp"
 #include "hal/devices/impl/Tmc2209Driver.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
-#include "hal/drivers/impl/linux/TmcUart.hpp"
+#include "hal/board/nucleo_h753zi/simulation.hpp"
 
 #include <gtest/gtest.h>
 #include <atomic>
@@ -18,7 +18,7 @@ namespace
       protected:
         std::shared_ptr<hal::IDigitalOutput> enable{ hal::board::createSteppersEnableOutput() };
         std::array<std::shared_ptr<Driver>, 3> drivers{ hal::board::createStepperDrivers({ 16, 16, 16 }, enable) };
-        std::shared_ptr<hal::uart::TmcUart> uart{ hal::uart::simulatedStepperBus() };
+        std::shared_ptr<hal::device::Tmc2209Uart> uart{ hal::board::simulatedStepperBus() };
         std::array<std::shared_ptr<hal::GpioInput>, 3> inputs{
             hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 }),
             hal::gpio::simulatedInput({ hal::gpio::Port::D, 4 }),
@@ -197,7 +197,7 @@ TEST(StepperDriverBus, PreparesAllNodesSerializesDriverOperationsAndRetainsAnIni
     class Bus final : public hal::IUart
     {
       public:
-        hal::uart::TmcUart model;
+        hal::device::Tmc2209Uart model;
         std::atomic_bool entered{}, overlap{};
         std::atomic_uint prepared{};
         std::function<void()> on_read;

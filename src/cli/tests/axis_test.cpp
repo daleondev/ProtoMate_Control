@@ -267,7 +267,7 @@ TEST_F(CliAxis, BufferedMovesLiveSpeedAndIndependentStopUseTheSameMotor)
 TEST_F(CliAxis, EncoderFeedbackUsesSignedAxisConversionAndPreservesErrors)
 {
     configure();
-    const auto encoder{ hal::encoder::simulatedEncoder(3U) };
+    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     ASSERT_TRUE(encoder->advanceSimulatedCounts(400)); // 90 motor degrees.
     ASSERT_TRUE(eventually([&] {

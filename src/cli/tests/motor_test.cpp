@@ -2,7 +2,7 @@
 #include "cli/motor.hpp"
 #include "control/MotionController.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
-#include "hal/drivers/impl/linux/TmcUart.hpp"
+#include "hal/board/nucleo_h753zi/simulation.hpp"
 
 #include <gtest/gtest.h>
 
@@ -278,7 +278,7 @@ TEST_F(CliMotion, DriverCommandsInitializeConfigureAndEnforceMotorLimits)
 
 TEST_F(CliMotion, DriverResetOrLostCommunicationLatchesFaultUntilExplicitRecovery)
 {
-    auto bus = hal::uart::simulatedStepperBus(); ASSERT_TRUE(bus);
+    auto bus = hal::board::simulatedStepperBus(); ASSERT_TRUE(bus);
     ASSERT_TRUE(run("motor enable"));
     ASSERT_TRUE(run("motor move m2 -360 --speed 1"));
     bus->reset(0);
@@ -342,7 +342,7 @@ TEST_F(CliMotion, Dm542AlarmStopsAllAxesAndRequiresExplicitRecoveryAfterTheSigna
 
 TEST_F(CliMotion, Dm542AlarmIsLatchedEvenWhenAUartDriverIsUnavailable)
 {
-    auto bus = hal::uart::simulatedStepperBus();
+    auto bus = hal::board::simulatedStepperBus();
     bus->setConnected(1, false);
     EXPECT_FALSE(run("motor driver init"));
     auto alarm = hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 });

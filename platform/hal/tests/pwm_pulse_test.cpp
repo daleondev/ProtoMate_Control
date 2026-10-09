@@ -25,9 +25,9 @@ namespace
     {
       protected:
         std::shared_ptr<Pin> pin{ std::make_shared<Pin>() };
-        hal::PwmOutput output{ { 1U, 1U, { hal::gpio::Port::E, 9U } },
+        hal::PwmOutput output{ { hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { hal::gpio::Port::E, 9U } },
                                1U,
-                               hal::detail::TimerLease{ 1U },
+                               hal::detail::TimerLease{ hal::timer::Peripheral::Tim1 },
                                pin };
 
         void SetUp() override { ASSERT_TRUE(output.configure({ 100us, 5us })); }
@@ -182,9 +182,9 @@ TEST(PulseTrain, RejectsUnconfiguredStartsAndDestructionDoesNotNotify)
 {
     std::uint64_t callbacks{};
     {
-        hal::PwmOutput output{ { 4U, 3U, { hal::gpio::Port::D, 14U } },
+        hal::PwmOutput output{ { hal::timer::Peripheral::Tim4, hal::timer::Channel::Channel3, { hal::gpio::Port::D, 14U } },
                                2U,
-                               hal::detail::TimerLease{ 4U },
+                               hal::detail::TimerLease{ hal::timer::Peripheral::Tim4 },
                                std::make_shared<Pin>() };
         EXPECT_EQ(output.startPulses(1U).error(), std::errc::operation_not_permitted);
         ASSERT_TRUE(output.configure({ 100us, 5us }));
@@ -193,5 +193,5 @@ TEST(PulseTrain, RejectsUnconfiguredStartsAndDestructionDoesNotNotify)
         output.advanceSimulatedPulses(1U);
     }
     EXPECT_EQ(callbacks, 1U);
-    EXPECT_TRUE(hal::detail::TimerLease{ 4U });
+    EXPECT_TRUE(hal::detail::TimerLease{ hal::timer::Peripheral::Tim4 });
 }
