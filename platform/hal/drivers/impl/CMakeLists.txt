@@ -42,7 +42,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_include_directories(hal_linux_services PRIVATE ${PROJECT_SOURCE_DIR}/platform)
     target_link_libraries(hal_linux_services PRIVATE runtime::cxx_abi project_compiler_settings)
     target_compile_definitions(hal_linux_services PRIVATE HAL_PLATFORM_LINUX HAL_STEP_THREADX)
-    target_sources(hal_drivers PRIVATE $<TARGET_OBJECTS:hal_linux_services>)
+    target_sources(hal_drivers_impl INTERFACE $<TARGET_OBJECTS:hal_linux_services>)
 
     target_sources(hal_drivers_impl
         INTERFACE
