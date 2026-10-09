@@ -1,3 +1,6 @@
+add_subdirectory(factory)
+add_subdirectory(impl)
+
 add_library(hal_drivers STATIC)
 add_library(hal::drivers ALIAS hal_drivers)
 
@@ -11,6 +14,9 @@ target_link_libraries(hal_drivers
         platform
         project_compiler_settings
         pneumo::units
+    PRIVATE
+        hal::drivers::factory
+        hal::drivers::impl
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
@@ -23,5 +29,3 @@ else()
     message(FATAL_ERROR "Unsupported HAL driver platform: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-add_subdirectory(impl)
-add_subdirectory(factory)
