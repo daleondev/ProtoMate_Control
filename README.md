@@ -89,31 +89,49 @@ These are explicit analysis targets; normal builds still use GCC without linting
 
 The runner requires Docker, Python 3 and the host ncurses development headers. It
 uses a pinned Pneumo devcontainer image with matching Clang/P2996, clang-tidy and
-libc++. If it is not already installed, pull it once:
+reflection headers, plus the image's installed libstdc++. If it is not already
+installed, pull it once:
 
 ```sh
 docker pull ghcr.io/daleondev/pneumo-devcontainer@sha256:1c10d580f47f4fa402da038896027629ded2d94de4ddd0f382f8a63830fae3e7
 ```
 
 The container runs without network access, with project sources mounted read-only.
-An analysis copy of the compilation database selects Clang/libc++ and reflection
-flags. Real ncurses headers are copied into the report directory. Firmware flags,
+An analysis copy of the compilation database selects Clang/libstdc++ and reflection
+flags. This supplies the real `std::move_only_function`, including move ownership
+and `noexcept` constraints, and retains the real HAL and runtime interfaces.
+Real ncurses headers are copied into the report directory. Firmware flags,
 dependency declarations and application sources are not rewritten for analysis.
-This host/libc++ analysis does not validate STM32-specific behavior or ABI.
+This host analysis does not validate STM32-specific behavior or ABI.
+
+The runner generates `reflection-include/` from the pinned Clang `<meta>` and
+consteval-type-trait headers. Only their library includes, namespace wrappers and
+library-specific declaration macros are adapted for libstdc++; the reflection
+implementations and compiler intrinsics are preserved. No HAL, ThreadX or callback
+stubs are used. Pneumo selects its existing Clang reflection workaround by the
+reflection header instead of the surrounding standard library. Updating the image
+requires revalidating this adaptation; missing expected header markers fail setup.
 
 **Partial coverage is accepted by default.** Every configured application source
-is attempted on every run. Files that encounter compiler errors are listed as
-blocked; their recovered diagnostics are saved separately because an incomplete
-syntax tree can give misleading results. Missing `std::move_only_function` in
-the pinned libc++, reflection API differences and transitive ThreadX includes
-currently prevent full coverage. Blocking compiler errors cannot be disabled
+first gets a syntax-only check using the same compiler flags and working directory,
+stopping at the first compiler error. Blocked files skip clang-tidy entirely;
+only files that pass this precheck receive the full lint checks. Console output
+shows `checking`, then `linting` or `blocked`, with elapsed times. Successfully
+parsed files pay for an extra parse, but blocked files avoid the expensive lint
+passes over incomplete syntax trees. Reflection API differences, including
+`current_namespace` and `annotations_of_with_type`, currently prevent full coverage
+of the CLI and application composition. These APIs are not replaced with dummy
+implementations. Blocking compiler errors cannot be disabled
 with clang-tidy check filters. See the [clang-tidy documentation](https://clang.llvm.org/extra/clang-tidy/).
 
 Reports are written to `<build-directory>/clang-tidy/`:
 
 - `findings.txt`: deduplicated `src/` diagnostics from fully parsed files.
-- `partial-findings.txt`: additional diagnostics from blocked files, for review.
+- `partial-findings.txt`: review-only diagnostics if clang-tidy itself fails to
+  parse a file despite a successful precheck; normally empty.
 - `summary.txt` and `report.json`: coverage, blocked files and their errors.
+- Per-source `.preflight.log` files: compiler precheck diagnostics. The JSON
+  report records the final stage and separate precheck/lint durations.
 - Per-source `.log` and `.yaml` files: full diagnostics and suggested replacements.
   Replacements are **never applied automatically**.
 

@@ -2,6 +2,7 @@
 """Run src/ clang-tidy checks with Pneumo's reflection compiler in Docker.
 
 The default is a partial lint run: compiler-blocked files are reported separately.
+Each file first gets a syntax-only check that stops at the first compiler error.
 Lint findings in parsed files fail the run. --strict also fails on blocked files.
 No fixes are applied. Neither the GCC database nor application sources are edited.
 """
@@ -15,16 +16,56 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 
 
 ROOT = Path(__file__).resolve().parents[1]
-# Keep the compiler, clang-tidy and libc++ from the same verified toolchain.
+# Keep the compiler, clang-tidy and reflection headers from the same toolchain.
+# Use its installed libstdc++ for the remaining standard library facilities.
 IMAGE = ("ghcr.io/daleondev/pneumo-devcontainer@"
          "sha256:1c10d580f47f4fa402da038896027629ded2d94de4ddd0f382f8a63830fae3e7")
 COMPILER = "/opt/clang-p2996/bin/clang++"
 TIDY = "/opt/clang-p2996/bin/clang-tidy"
+REFLECTION_HEADERS = Path("/opt/clang-p2996/include/c++/v1")
 DIAGNOSTIC = re.compile(
     r"^(.+?):(\d+):(\d+): (?:warning|error|fatal error): (.*?) \[([^\]]+)\]$", re.MULTILINE)
+COMPILER_ERROR = re.compile(r"^.+?:\d+:\d+: (?:fatal )?error: .+$", re.MULTILINE)
+
+
+def adapt_reflection_header(source, replacements):
+    """Adjust library plumbing only; retain the compiler's real reflection code."""
+    for original, replacement in replacements.items():
+        if original not in source:
+            raise ValueError(f"Reflection header changed; missing {original!r}. Revalidate the adapter.")
+        source = source.replace(original, replacement)
+    return "// Generated for linting from the pinned compiler's headers.\n" + source
+
+
+def prepare_reflection_headers(output, library=REFLECTION_HEADERS):
+    # GCC's <meta> uses different compiler intrinsics. Clang's implementation
+    # works with libstdc++ when its includes and namespace wrappers are adapted.
+    # Do not replace reflection functions, standard types or application code.
+    namespace = {"_LIBCPP_BEGIN_NAMESPACE_STD": "namespace std {",
+                 "_LIBCPP_END_NAMESPACE_STD": "}"}
+    meta = adapt_reflection_header((library / "meta").read_text(), {
+        "#include <__config>": '#include <climits>\n#include <concepts>\n#include <ranges>\n'
+                                '#include "clang_consteval_traits.hpp"',
+        "#include <__ranges/access.h>": "",
+        "#include <__ranges/concepts.h>": "",
+        "#include <__ranges/size.h>": "",
+        "_LIBCPP_BEGIN_NAMESPACE_REFLECTION_V2": "namespace std { namespace meta { inline namespace reflection_v2 {",
+        "_LIBCPP_END_NAMESPACE_REFLECTION_V2": "} } }",
+        **namespace})
+    trait = adapt_reflection_header((library / "__type_traits/is_consteval_only.h").read_text(), {
+        "#include <__config>": "",
+        "#include <__type_traits/integral_constant.h>": "#include <type_traits>",
+        "#if _LIBCPP_STD_VER >= 26": "#if __cplusplus > 202302L",
+        "_LIBCPP_NO_SPECIALIZATIONS": "",
+        **namespace})
+    includes = output / "reflection-include"
+    includes.mkdir(exist_ok=True)
+    (includes / "meta").write_text(meta)
+    (includes / "clang_consteval_traits.hpp").write_text(trait)
 
 
 def source_file(entry):
@@ -43,7 +84,8 @@ def prepare_database(build, output):
                for argument in arguments):
             raise ValueError("Use a Linux compilation database; this Clang image targets the host")
         selected.append({"directory": entry["directory"], "file": str(source), "arguments": [
-            COMPILER, "-stdlib=libc++", "-fexpansion-statements", "-fannotation-attributes",
+            COMPILER, "-stdlib=libstdc++", "-fexpansion-statements", "-fannotation-attributes",
+            "-isystem", str(output / "reflection-include"),
             "-Wno-c23-extensions", "-isystem", str(output / "system-include"), *arguments[1:]]})
     if not selected:
         raise ValueError("No src/ sources found; configure the debug-linux preset first")
@@ -77,6 +119,50 @@ def classify(code, log):
     return "parsed"
 
 
+def preflight_command(entry):
+    """Preserve parsing flags, but never emit object/dependency files."""
+    arguments = iter(entry["arguments"][1:])
+    command = [entry["arguments"][0]]
+    output_options = ("-o", "-MF", "-MT", "-MQ", "-MJ", "--output")
+    for argument in arguments:
+        if argument in output_options:
+            if next(arguments, None) is None:
+                raise ValueError(f"Missing value after {argument} in compilation database")
+        elif argument in ("-c", "--compile", "-S", "-E", "-MD", "-MMD", "-MP", "-MG", "-M", "-MM"):
+            continue
+        elif argument.startswith((*output_options[:-1], "--output=")):
+            continue
+        else:
+            command.append(argument)
+    command.extend(["-fsyntax-only", "-ferror-limit=1", "-Wfatal-errors", "-fno-color-diagnostics"])
+    return command
+
+
+def classify_preflight(code, log):
+    if code == 0:
+        return "parsed"
+    # A source diagnostic is a compatibility/parse blocker. Crashes, timeouts,
+    # missing executables and malformed driver options must still fail the run.
+    if code == 1 and COMPILER_ERROR.search(log):
+        return "blocked"
+    return "tool-failure"
+
+
+def run_command(command, directory, timeout):
+    started = time.monotonic()
+    try:
+        process = subprocess.run(command, cwd=directory, capture_output=True, text=True, timeout=timeout)
+        code, log = process.returncode, process.stdout + process.stderr
+    except subprocess.TimeoutExpired as error:
+        def decoded(value):
+            return value.decode(errors="replace") if isinstance(value, bytes) else (value or "")
+        code = 124
+        log = decoded(error.stdout) + decoded(error.stderr) + "\nANALYSIS TIMED OUT\n"
+    except OSError as error:
+        code, log = 127, f"Could not run analysis tool: {error}\n"
+    return code, log, time.monotonic() - started
+
+
 def exit_status(reports, findings, strict):
     if any(report["status"] == "tool-failure" for report in reports):
         return 2
@@ -93,25 +179,40 @@ def check(entry, args):
     output = args.output / filename.replace("/", "__")
     fixes = output.with_suffix(output.suffix + ".yaml")
     fixes.unlink(missing_ok=True)
-    command = [TIDY, "-p", str(args.output), "--config-file=" + str(ROOT / ".clang-tidy"),
-               "--header-filter=^" + re.escape(str(ROOT / "src")) + "/",
-               "--export-fixes=" + str(fixes), str(source)]
+    print(f"checking     {filename}", flush=True)
     try:
-        process = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
-        code, log = process.returncode, process.stdout + process.stderr
-    except subprocess.TimeoutExpired as error:
-        code = 124
-        log = (error.stdout or b"").decode(errors="replace")
-        log += (error.stderr or b"").decode(errors="replace") + "\nANALYSIS TIMED OUT\n"
+        command = preflight_command(entry)
+    except ValueError as error:
+        code, log, preflight_seconds = 127, str(error), 0.0
+    else:
+        code, log, preflight_seconds = run_command(command, entry["directory"], args.timeout)
+    output.with_suffix(output.suffix + ".preflight.log").write_text(log)
+    status = classify_preflight(code, log)
+    stage, tidy_seconds = "preflight", 0.0
+    blockers = COMPILER_ERROR.findall(log) if status == "blocked" else []
+    diagnostics = []
+    if status == "parsed":
+        print(f"linting      {filename} (precheck {preflight_seconds:.2f}s)", flush=True)
+        command = [TIDY, "-p", str(args.output), "--config-file=" + str(ROOT / ".clang-tidy"),
+                   "--header-filter=^" + re.escape(str(ROOT / "src")) + "/",
+                   "--export-fixes=" + str(fixes), str(source)]
+        code, log, tidy_seconds = run_command(command, entry["directory"], args.timeout)
+        stage, status = "clang-tidy", classify(code, log)
+        blockers = sorted({line.strip() for line in log.splitlines() if "[clang-diagnostic-error]" in line})
+        diagnostics = collect_diagnostics(log)
     output.with_suffix(output.suffix + ".log").write_text(log)
-    status = classify(code, log)
-    print(f"{status:12} {filename}", flush=True)
-    blockers = sorted({line.strip() for line in log.splitlines() if "[clang-diagnostic-error]" in line})
+    print(f"{status:12} {filename} ({preflight_seconds + tidy_seconds:.2f}s)", flush=True)
     return {"file": filename, "status": status, "exit_code": code,
-            "blockers": blockers, "diagnostics": collect_diagnostics(log)}
+            "stage": stage, "preflight_seconds": preflight_seconds, "tidy_seconds": tidy_seconds,
+            "blockers": blockers, "diagnostics": diagnostics}
 
 
 def run_inside(args):
+    try:
+        prepare_reflection_headers(args.output)
+    except (OSError, ValueError) as error:
+        print(f"Clang-tidy reflection setup failed: {error}", file=sys.stderr)
+        return 2
     version = subprocess.check_output([TIDY, "--version"], text=True).strip()
     verification = subprocess.run([TIDY, "--verify-config", f"--config-file={ROOT / '.clang-tidy'}"],
                                   capture_output=True, text=True)
@@ -154,6 +255,7 @@ def run_inside(args):
                              for report in blocked)
     (args.output / "summary.txt").write_text(summary + "\nBlocked files:\n" + blocked_text + "\n")
     (args.output / "report.json").write_text(json.dumps({"image": IMAGE, "compiler": version,
+        "standard_library": "libstdc++", "reflection_headers": "Clang/P2996; adapted includes and namespaces",
         "coverage": "partial" if blocked or failures else "complete",
         "findings": findings, "partial_findings": list(partial.values()), "files": reports}, indent=2) + "\n")
     print(summary, end="")
