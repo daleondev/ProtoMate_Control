@@ -213,6 +213,12 @@ namespace cli::utilities
             constexpr std::string_view USAGE_HEADER{ "Usage [%]"sv };
             constexpr std::string_view BAR_HEADER{ "Stack-Usage Bar"sv };
 
+            constexpr std::size_t PRIO_WIDTH{ PRIO_HEADER.size() };
+            constexpr std::size_t AVAIL_WIDTH{ AVAIL_HEADER.size() };
+            constexpr std::size_t CURR_WIDTH{ CURR_HEADER.size() };
+            constexpr std::size_t PEAK_WIDTH{ PEAK_HEADER.size() };
+            constexpr std::size_t USAGE_WIDTH{ USAGE_HEADER.size() };
+
             constexpr std::size_t HEAP_METRIC_WIDTH{ 18U };
             constexpr std::size_t HEAP_BAR_WIDTH{ 14U };
             constexpr std::size_t HEAP_METRIC_ROW_COUNT{ 10U };
@@ -262,23 +268,24 @@ namespace cli::utilities
                           const auto& usage,
                           std::string_view bar) -> void
             {
-                std::format_to(std::ostreambuf_iterator<char>{ output },
-                               "\u2502 {:>{}} \u2502 {:<{}} \u2502 {:>{}} \u2502 {:>{}} "
-                               "\u2502 {:>{}} \u2502 {:>{}} \u2502 {:<{}} \u2502",
-                               priority,
-                               PRIO_HEADER.size(),
-                               name,
-                               name_width,
-                               available,
-                               AVAIL_HEADER.size(),
-                               current,
-                               CURR_HEADER.size(),
-                               peak,
-                               PEAK_HEADER.size(),
-                               usage,
-                               USAGE_HEADER.size(),
-                               bar,
-                               BAR_WIDTH);
+                // Runtime format parsing avoids Clang/libstdc++'s dynamic-width consteval issue.
+                std::vformat_to(std::ostreambuf_iterator<char>{ output },
+                                "\u2502 {:>{}} \u2502 {:<{}} \u2502 {:>{}} \u2502 {:>{}} "
+                                "\u2502 {:>{}} \u2502 {:>{}} \u2502 {:<{}} \u2502",
+                                std::make_format_args(priority,
+                                                      PRIO_WIDTH,
+                                                      name,
+                                                      name_width,
+                                                      available,
+                                                      AVAIL_WIDTH,
+                                                      current,
+                                                      CURR_WIDTH,
+                                                      peak,
+                                                      PEAK_WIDTH,
+                                                      usage,
+                                                      USAGE_WIDTH,
+                                                      bar,
+                                                      BAR_WIDTH));
             }
 
             auto writeThreadRow(std::ostream& output, const ThreadInfo& thread, std::size_t name_width)
@@ -287,21 +294,21 @@ namespace cli::utilities
                 const std::size_t usage_percent{ (thread.peak_stack_usage * 100U) / thread.stack_size };
                 const std::size_t bar_length{ std::min((usage_percent * BAR_WIDTH) / 100U, BAR_WIDTH) };
 
-                std::format_to(std::ostreambuf_iterator<char>{ output },
-                               "\u2502 {:>{}} \u2502 {:<{}} \u2502 {:>{}} \u2502 {:>{}} "
-                               "\u2502 {:>{}} \u2502 {:>{}} \u2502 ",
-                               thread.prio,
-                               PRIO_HEADER.size(),
-                               thread.name,
-                               name_width,
-                               thread.stack_size,
-                               AVAIL_HEADER.size(),
-                               thread.current_stack_usage,
-                               CURR_HEADER.size(),
-                               thread.peak_stack_usage,
-                               PEAK_HEADER.size(),
-                               usage_percent,
-                               USAGE_HEADER.size());
+                std::vformat_to(std::ostreambuf_iterator<char>{ output },
+                                "\u2502 {:>{}} \u2502 {:<{}} \u2502 {:>{}} \u2502 {:>{}} "
+                                "\u2502 {:>{}} \u2502 {:>{}} \u2502 ",
+                                std::make_format_args(thread.prio,
+                                                      PRIO_WIDTH,
+                                                      thread.name,
+                                                      name_width,
+                                                      thread.stack_size,
+                                                      AVAIL_WIDTH,
+                                                      thread.current_stack_usage,
+                                                      CURR_WIDTH,
+                                                      thread.peak_stack_usage,
+                                                      PEAK_WIDTH,
+                                                      usage_percent,
+                                                      USAGE_WIDTH));
                 writeRepeated(output, BAR_USED, bar_length);
                 writeRepeated(output, BAR_FREE, BAR_WIDTH - bar_length);
                 output << " \u2502";
@@ -319,14 +326,14 @@ namespace cli::utilities
 
             auto writeHeapHeader(std::ostream& output, std::size_t value_width) -> void
             {
-                std::format_to(std::ostreambuf_iterator<char>{ output },
-                               "\u2502 {:<{}} \u2502 {:>{}} \u2502 {:<{}} \u2502",
-                               HEAP_METRIC_HEADER,
-                               HEAP_METRIC_WIDTH,
-                               HEAP_VALUE_HEADER,
-                               value_width,
-                               HEAP_BAR,
-                               HEAP_BAR_WIDTH);
+                std::vformat_to(std::ostreambuf_iterator<char>{ output },
+                                "\u2502 {:<{}} \u2502 {:>{}} \u2502 {:<{}} \u2502",
+                                std::make_format_args(HEAP_METRIC_HEADER,
+                                                      HEAP_METRIC_WIDTH,
+                                                      HEAP_VALUE_HEADER,
+                                                      value_width,
+                                                      HEAP_BAR,
+                                                      HEAP_BAR_WIDTH));
                 output.put('\n');
             }
 
@@ -364,12 +371,9 @@ namespace cli::utilities
                               std::size_t usage_percent,
                               std::size_t row) -> void
             {
-                std::format_to(std::ostreambuf_iterator<char>{ output },
-                               "\u2502 {:<{}} \u2502 {:>{}} \u2502",
-                               metric,
-                               HEAP_METRIC_WIDTH,
-                               value,
-                               value_width);
+                std::vformat_to(std::ostreambuf_iterator<char>{ output },
+                                "\u2502 {:<{}} \u2502 {:>{}} \u2502",
+                                std::make_format_args(metric, HEAP_METRIC_WIDTH, value, value_width));
                 writeHeapBarCell(output, usage_percent, row);
             }
         }
@@ -557,9 +561,9 @@ namespace cli::utilities
               threads_info, NAME_HEADER.size(), [](std::size_t maximum, const ThreadInfo& thread) {
                 return std::max(maximum, thread.name.size());
             }) };
-            const std::array stack_widths{ PRIO_HEADER.size(), max_name_len,       AVAIL_HEADER.size(),
-                                           CURR_HEADER.size(), PEAK_HEADER.size(), USAGE_HEADER.size(),
-                                           BAR_WIDTH };
+            const std::array stack_widths{
+                PRIO_WIDTH, max_name_len, AVAIL_WIDTH, CURR_WIDTH, PEAK_WIDTH, USAGE_WIDTH, BAR_WIDTH
+            };
 
             writeBorder(io.output, TOP_LEFT, TOP_JUNCTION, TOP_RIGHT, stack_widths);
             writeRow(io.output,

@@ -120,10 +120,11 @@ shows `checking`, then `linting` or `blocked`, with elapsed times. Successfully
 parsed files pay for an extra parse, but blocked files avoid the expensive lint
 passes over incomplete syntax trees. CLI registration uses explicit command
 namespace reflections, and thread annotations are filtered using reflection
-operations supported by both compilers. The remaining compiler blocker is
-Clang/libstdc++ compile-time checking of dynamic format widths in `cli/utilities.cpp`;
-format checking remains enabled. Blocking compiler errors cannot be disabled
-with clang-tidy check filters. See the [clang-tidy documentation](https://clang.llvm.org/extra/clang-tidy/).
+operations supported by both compilers. Stack and heap tables in `cli/utilities.cpp`
+use `std::vformat_to` to avoid Clang/libstdc++'s compile-time dynamic-width checking
+incompatibility. These table formats are checked at runtime; other format strings
+retain compile-time checking. Blocking compiler errors cannot be disabled with
+clang-tidy check filters. See the [clang-tidy documentation](https://clang.llvm.org/extra/clang-tidy/).
 
 Reports are written to `<build-directory>/clang-tidy/`:
 
