@@ -10,7 +10,7 @@ namespace cli::motor
 {
     namespace
     {
-        using Controller = control::MotionController;
+        using Controller = control::ControllerClient;
         using MotorId = Controller::MotorId;
         using namespace pnm::units;
         using namespace control_detail;
@@ -111,7 +111,7 @@ namespace cli::motor
                                    axis.reference_switch_active ? "active/open" : "released",
                                    axis.outstanding,
                                    stateName(status.generator.axes[i]));
-                const auto source{ axis.feedback_source == StepperMotor::FeedbackSource::DriverIndex
+                const auto source{ axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex
                                      ? "driver INDEX (pseudo)" : "encoder" };
                 if (axis.actual_position && axis.actual_velocity)
                     out << std::format("    {}: position={:.4f} deg  velocity={:.3f} rpm\n", source,
@@ -127,7 +127,7 @@ namespace cli::motor
                                                   : axis.actual_velocity.error())
                              .message()
                         << ")\n";
-                if (axis.feedback_source == StepperMotor::FeedbackSource::DriverIndex)
+                if (axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex)
                     out << std::format("    resolution={:.4f} deg; electrical phase, not shaft sensing\n",
                                        axis.feedback_resolution.get<AngleUnits::deg>());
             }
@@ -413,7 +413,7 @@ namespace cli::motor
         }
     }
 
-    void setup(Parser& parser, std::shared_ptr<control::MotionController> controller)
+    void setup(Parser& parser, std::shared_ptr<control::ControllerClient> controller)
     {
         if (!controller)
             throw std::invalid_argument("motor commands require a controller");

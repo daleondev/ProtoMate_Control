@@ -17,7 +17,7 @@ namespace control
         for (std::size_t i{}; i < result.size(); ++i) {
             auto& driver{ m_motors[i]->driver() };
             auto* control{ driver.configuration() };
-            result[i] = { static_cast<MotorId>(i), driver.name(), driver.status(),
+            result[i] = { static_cast<MotorId>(i), std::string(driver.name()), driver.status(),
                           control ? std::optional{ control->snapshot() } : std::nullopt };
         }
         return result;
@@ -40,6 +40,7 @@ namespace control
     void MotionController::initializeDrivers()
     {
         std::scoped_lock lock{ m_mutex };
+        ++m_configurationRevision;
         initializeDriversLocked();
     }
 
@@ -52,6 +53,7 @@ namespace control
             throw std::runtime_error("disable drivers before changing driver settings");
         if (auto result{ capability->configure(configuration) }; !result)
             throw std::invalid_argument("driver configuration rejected: " + result.error().message());
+        ++m_configurationRevision;
         initializeDriversLocked();
     }
 
@@ -73,7 +75,7 @@ namespace control
             if (!(newly_handled & (1U << i))) continue;
             auto& driver{ m_motors[i]->driver() };
             pnm::log::error("M{} {} fault: {}. All motions stopped; references invalidated.",
-                            i + 1, driver.name(), driver.status().error.message());
+                            i + 1, std::string(driver.name()), driver.status().error.message());
         }
     }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MotionController.hpp"
+#include "ControllerClient.hpp"
 #include "ScaraKinematics.hpp"
 
 namespace control
@@ -19,12 +19,12 @@ namespace control
         };
         struct FeedbackError
         {
-            MotionController::MotorId motor;
+            ControllerClient::MotorId motor;
             std::error_code reason;
         };
         struct Status
         {
-            MotionController::Status motors;
+            ControllerClient::Status motors;
             State commanded;
             // All three axes must have valid position AND velocity feedback.
             // Never substitute pulse counts for an absent or faulted encoder.
@@ -32,8 +32,8 @@ namespace control
             bool referenced;
         };
 
-        Robot(std::shared_ptr<MotionController> controller, ScaraKinematics::Config geometry);
-        Robot(std::shared_ptr<MotionController> controller,
+        Robot(std::shared_ptr<ControllerClient> controller, ScaraKinematics::Config geometry);
+        Robot(std::shared_ptr<ControllerClient> controller,
               ScaraKinematics::Config geometry,
               ScaraKinematics::JointVelocity maximum_velocity);
 
@@ -43,7 +43,7 @@ namespace control
             pnm::units::Time timeout{ 0_s };
             std::optional<ScaraKinematics::ElbowBranch> branch{};
         };
-        using Motion = MotionController::GroupMotion;
+        using Motion = ControllerClient::GroupMotion;
         // Rest-to-rest, synchronized linear interpolation in JOINT coordinates.
         // Cartesian targets use IK first; their tool path can curve. Every move
         // requires all axes referenced and idle. No implicit abort or buffering.
@@ -66,11 +66,10 @@ namespace control
         Status status() const;
 
       private:
-        MotionController::CoordinatedPlan plan(const MotionController::Status& origin,
-                                               const std::array<StepperMotor::MotionDefaults, 3>& defaults,
-                                               ScaraKinematics::JointPosition target,
-                                               double speed) const;
-        const std::shared_ptr<MotionController> m_controller;
+        ControllerClient::Trajectory plan(const ControllerClient::PlanningSnapshot& snapshot,
+                                          ScaraKinematics::JointPosition target,
+                                          double speed) const;
+        const std::shared_ptr<ControllerClient> m_controller;
         const ScaraKinematics m_kinematics;
         const ScaraKinematics::JointVelocity m_maximumVelocity;
     };

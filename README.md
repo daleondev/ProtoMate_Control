@@ -220,6 +220,118 @@ The native transport, PWM and step tests also exercise STM32 implementations
 against recording register/HAL models. Structural checks and host models verify
 software boundaries and behavior; electrical timing remains a hardware test.
 
+## Serialized control boundary
+
+The current single-core application already separates UI clients from IO execution:
+
+```mermaid
+flowchart LR
+    R[Robot / CLI] <--> C[ControllerClient]
+    C <--> U[UI bus and context]
+    U <--> UB[p2p Bridge]
+    UB <-- serialized frames --> T[InProcessTransport pair]
+    T <--> IB[p2p Bridge]
+    IB <--> I[IO bus and context]
+    I <--> S[ControllerServer]
+    S <--> W[IO command worker]
+    W <--> M[MotionController / motors]
+```
+
+`main.cpp` owns both buses, contexts, transports and bridges. Each context has
+one runner. The IO command worker performs blocking driver calls and joins;
+motion workers notify it after cleanup through `Completion`. No waiting thread
+is created per action. Interrupts continue to notify local hardware workers.
+Synchronous `ControllerClient` methods run on the CLI/planning thread, never on
+its context runner. `requestAsync()` and the coroutine bus endpoints are
+available to asynchronous consumers.
+
+| CMake target | Responsibility and dependencies |
+| --- | --- |
+| `application::p2p` | Portable framing, explicitly directed routes, sessions, correlation, cancellation and backpressure; pneumo plus the selected C++ threading ABI, without motion or HAL implementations |
+| `application::control_common` | Value contracts, explicit codecs, units, conversions, kinematics and profile representation; HAL interface types only |
+| `application::control_client` | `ControllerClient`, application-owned job registry and `Robot`; no IO implementation |
+| `application::control_io` | `ControllerServer`, `MotionController`, motors and hardware-owning code |
+| `application::cli` | Annotation-based commands using the client and Robot |
+| `application::control` | Aggregate client/IO target for the present single-core application |
+
+`src/p2p` is a project library, not a Git submodule. Both future core applications
+compile these portable sources with private instances. `ITransport` transfers
+bounded frames and reports send capacity, connectivity and wakeups. Its normal
+and urgent lanes have independent capacity; urgent frames may overtake normal
+frames. Adapters must deliver complete frames reliably in order within each
+lane until disconnection. Receive and capacity notifications may coalesce.
+Hardware adapters and their HAL dependencies belong outside the portable target.
+
+The wire format has a 40-byte, versioned header, fixed-width little-endian
+integers, IEEE binary64 values, source/destination sessions and correlation IDs.
+Payloads are limited to 2048 bytes. Compound payloads require an explicit
+`p2p::Codec<T>`; native object layouts, pointers, futures and coroutine handles
+never cross the transport. Motion scalars use SI units. A future hardware
+backend must supply a boot-unique session ID and preserve transport ordering.
+
+Register routes before starting a `Bridge`. `protocol::routes()` defines:
+
+| Endpoint | Direction | Contract |
+| --- | --- | --- |
+| `motion.request` | UI → IO service | Snapshots, configuration, diagnostics, enable and recovery |
+| `motion.stop` | UI → IO urgent service | Stop/disable, acknowledged after cleanup |
+| `motion.execute` | UI → IO action | Independent moves, homing and value-only coordinated trajectories |
+| `motion.state` | IO → UI topic | Authoritative snapshot, published at 50 Hz |
+| `motion.fault` | IO → UI topic | Latched driver faults and communication inhibition |
+
+Topic forwarding coalesces to the latest value. Native and coroutine subscribers
+can select `SubscriptionOptions::latestOnly()` or a bounded capacity with
+`DropOldest`/`DropNewest`; `statistics()` reports queued/dropped messages.
+Unspecified options retain pneumo's unbounded default. Native deferred bridge
+providers use public RAII `pnm::msg::watch()` registrations; callbacks schedule
+context work and never poll in a waiting loop.
+
+Default limits are eight outstanding operations per route, 32 routes, eight
+normal frames and sixteen urgent frames per direction (2112/512 bytes per frame).
+IO has eight queued requests per lane and eight active action records. A full
+operation table returns `Busy`. The UI retains up to 32 individual-axis jobs
+and 32 robot jobs, retaining their native action handles until terminal results;
+CLI return does not cancel motion. IDs are unique across these UI jobs.
+Remote acceptance precedes UI acceptance. Cancellation is a request; only an
+IO terminal response confirms cleanup. Results are retained until acknowledged
+or their session ends. A transport failure is reported as a fault with
+`terminal_confirmed == false`, not as proof that the hardware stopped.
+
+Robot first requests an authoritative planning snapshot, then submits at most
+13 constant-jerk phases, explicit endpoint values, per-axis pulse counts and
+directions, and configuration/commanded-state revisions. IO checks revisions,
+origins, profile continuity, dynamics and participating axes under its submission
+lock before preparing hardware. Stale plans cause no movement. Independent-axis
+profile generation and blending remain local to IO. Streamed trajectories and
+moving all planning to M7 remain future work.
+
+Heartbeats run every 100 ms; a 500 ms deadline, disconnect, restart or protocol
+failure triggers a local IO stop, invalidates queued work and retains holding
+torque where possible. The client cannot infer stop completion from transport
+failure. Reconnection never replays motion. Recover explicitly with disable,
+reset and enable, then reference again before absolute motion. The present
+link-loss stop inhibits pulses immediately; a controlled braking policy for
+future streamed motion remains separate work.
+
+For teardown, stop submissions, close bridges to cancel their pending work,
+keep contexts running until `Closed`, destroy `ControllerServer` (which joins
+cleanup outside the contexts), then stop/join context runners and destroy buses.
+Readiness callbacks must not throw or dispatch inline. State-change handlers
+must be thread-safe: an executor allocation failure can report failure from the
+notifying thread. Registration destruction prevents later notifications but
+cannot retract a callback already in flight; bridge hooks use weak ownership.
+
+Build the normal Debug/Release images as usual. Nucleo Debug uses `-Og` for
+communication/composition and `-Os` for protocol template instantiation to fit
+flash; motor execution retains its normal Debug settings. Linux CTest targets
+`application.p2p`, `application.control` and `application.cli` exercise the
+serialized boundary and simulated hardware. The `step-test-stm32` image also provides command `l`: one second of
+100/50/25 kHz STEP output while two contexts exchange serialized echo services
+and coalesced topic traffic. It requires at least 100 correct round trips during
+the burst and exact 100000/50000/25000 pulse counts; shared driver enable stays
+disabled. Capture D0/PA0, D1/PB10 and D2/PB11 at 24 MHz to check periods and
+5 µs pulse widths independently of software accounting.
+
 ## Planned migration to STM32H747XIH6 (Arduino GIGA R1 WiFi)
 
 **Status: future design; not implemented.** The current target remains the
@@ -265,10 +377,10 @@ Separate three stages:
 3. **M4 pulse generation:** timers and DMA generate the STEP edges. Segment
    reception and GUI scheduling do not determine individual edge timing.
 
-The preferred transport payload is a buffered trajectory segment describing
-the motion of selected joints over a defined interval. Its exact numerical
-representation, duration and queue capacity require implementation and timing
-validation. The M4 evaluator must preserve step-count accuracy and synchronization
+The current transport carries complete bounded profiles for coordinated moves.
+The next planning step is a stream of buffered trajectory segments describing
+selected joints over defined intervals. Segment duration, queue capacity and
+refill/braking reserves require implementation and timing validation. The M4 evaluator must preserve step-count accuracy and synchronization
 while meeting the DMA refill deadlines. Expensive planning and blocking work
 must stay outside interrupt handlers.
 
@@ -312,13 +424,12 @@ maximum planned velocity for each axis and coordinated group.
 
 ### Shared-memory command interface
 
-Introduce an execution interface between `Robot`/the M7 planner and
-`MotionController`. A proposed `ControllerClient` on M7 implements the remote
-side; `ControllerServer` on M4 admits requests into motion execution. These are
-planned interfaces, not existing classes. First exercise the interface using a
-local implementation on the single-core Nucleo, then introduce the shared-memory
-transport during migration. Keep message definitions independent of the transport
-so a future UART or CAN connection can preserve the same responsibilities.
+`ControllerClient`, `ControllerServer` and the serialized `p2p` bridge already
+implement this boundary on the Nucleo, as described above. During H747 migration,
+replace `InProcessTransport` with shared-SRAM rings and HSEM notifications;
+reserve memory in both linker scripts, establish cache attributes and memory
+ordering, and verify reset/session coordination on both physical cores.
+Shared SRAM, HSEM and a second firmware image are not implemented yet.
 
 Use two bounded, single-producer/single-consumer queues in shared RAM:
 
@@ -766,7 +877,7 @@ auto joint_velocity = kinematics.inverseVelocity(current, {10_mm_s, 0_mm_s, 0_mm
   Omitted limits mean unrestricted joint coordinates, not verified mechanical travel.
 
 [`control::Robot`](src/control/Robot.hpp) connects this geometry to the existing
-`MotionController`. `main.cpp` constructs it with the same shared controller
+`ControllerClient`. `main.cpp` constructs it with the same client
 used by the motor and axis CLI modules. `Robot::status()` converts a fresh
 controller snapshot into joint coordinates, tool pose and tool velocity. It
 has no duplicate peripherals, worker or cached position. Conversions and motor
@@ -806,9 +917,10 @@ stops the entire robot operation; a reference-switch activation while moving
 towards it also stops the group. `Robot::reference()` homes Z, shoulder and elbow
 in that order, using the existing seek/backoff/slow-latch sequence at 5/0.5 motor
 RPM and a default 90 s overall timeout. Disabling drivers invalidates references.
-Operations return an ID and a shared completion future; the controller keeps
+Operations return an ID and a shared completion future; the UI client keeps
 the most recent 32 robot results separately from individual-axis commands.
-Execution waits for progress/switch notifications and completion futures.
+IO completion callbacks run after required motion cleanup and wake its worker;
+terminal results then cross the bridge.
 
 The [robot CLI](src/cli/README.md#robot-control) exposes these operations,
 live state and read-only calculations:
@@ -857,7 +969,8 @@ which owns the shared generator, driver enable and three `StepperMotor` objects.
 The motors claim their STEP/DIR, reference-switch and encoder resources; M1
 starts encoder monitoring during construction. The controller starts the shared
 timebase once, with drivers disabled and no motion or homing at startup.
-It is injected into both motor and joint-axis CLI modules before application
+A `ControllerServer` owns its execution boundary; the UI-side `ControllerClient`
+is injected into both motor and joint-axis CLI modules before application
 threads start. Use `motor` or `axis` for command overviews, or `help axis move`
 for joint-unit motion options; see the
 [motor CLI and ownership documentation](src/cli/README.md#motor-control).

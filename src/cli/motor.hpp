@@ -4,7 +4,7 @@
 
 namespace control
 {
-    class MotionController;
+    class ControllerClient;
 }
 namespace cli
 {
@@ -15,5 +15,5 @@ namespace cli::motor
 {
     // Register before starting the CLI. Callbacks retain the application-owned
     // controller; no hardware is constructed here.
-    void setup(Parser& parser, std::shared_ptr<control::MotionController> controller);
+    void setup(Parser& parser, std::shared_ptr<control::ControllerClient> controller);
 }

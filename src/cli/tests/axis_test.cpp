@@ -1,3 +1,4 @@
+#include "control/tests/Connection.hpp"
 #include "cli/Parser.hpp"
 #include "cli/axis.hpp"
 #include "cli/motor.hpp"
@@ -24,6 +25,7 @@ namespace
     {
       protected:
         std::shared_ptr<Controller> controller;
+        std::unique_ptr<control::test::Connection> connection;
         cli::Parser parser;
         std::ostringstream output;
         std::array<std::shared_ptr<hal::GpioInput>, 3> switches;
@@ -45,8 +47,9 @@ namespace
                 ASSERT_TRUE(switches[i]);
                 switches[i]->setSimulatedLevel(Low);
             }
-            cli::motor::setup(parser, controller);
-            cli::axis::setup(parser, controller);
+            connection=std::make_unique<control::test::Connection>(controller);
+            cli::motor::setup(parser, connection->client);
+            cli::axis::setup(parser, connection->client);
         }
 
         cli::ExecutionResult run(std::string_view command)

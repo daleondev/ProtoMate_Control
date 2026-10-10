@@ -1,53 +1,32 @@
-add_library(application_control STATIC)
+add_library(application_control_common STATIC AxisConversion.cpp ScaraKinematics.cpp MotionProfile.cpp Protocol.cpp)
+add_library(application::control_common ALIAS application_control_common)
+target_include_directories(application_control_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/.. ${PROJECT_SOURCE_DIR}/platform)
+target_link_libraries(application_control_common PUBLIC project_compiler_settings pneumo::pneumo application::p2p runtime::cxx_abi)
+
+add_library(application_control_client STATIC ControllerClient.cpp Robot.cpp)
+add_library(application::control_client ALIAS application_control_client)
+target_link_libraries(application_control_client PUBLIC application::control_common)
+
+add_library(application_control_io STATIC MotionController.cpp DriverControl.cpp StepperMotor.cpp MotionSequence.cpp SynchronizedSequence.cpp ControllerServer.cpp)
+add_library(application::control_io ALIAS application_control_io)
+target_link_libraries(application_control_io PUBLIC application::control_common runtime::runtime platform::hal)
+
+# Compatibility aggregate for the present single-core executable and IO tests.
+add_library(application_control INTERFACE)
 add_library(application::control ALIAS application_control)
-
-target_sources(application_control
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/thread.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/MotionController.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/MotionController.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/DriverControl.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Robot.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Robot.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/StepperMotor.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/MotionProfile.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/MotionProfile.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/MotionSequence.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/MotionSequence.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/SynchronizedSequence.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/SynchronizedSequence.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/AxisConversion.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ScaraKinematics.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ScaraKinematics.cpp
-)
-
-target_include_directories(application_control
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/..
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(application_control
-    PUBLIC
-        project_compiler_settings
-        pneumo::pneumo
-        runtime::runtime
-        platform::hal
-)
-
-target_compile_options(application_control
-    PRIVATE
-        $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall;-Wextra;-Wpedantic>
-)
-
-if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")
-    add_subdirectory(tests)
-endif()
-
-# Curve inversion runs in the DMA refill interrupt; speed matters more than
-# code size here. Keep normal debug stepping and retain IEEE floating-point rules.
+target_link_libraries(application_control INTERFACE application::control_client application::control_io)
+foreach(target application_control_common application_control_client application_control_io)
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+endforeach()
 set_source_files_properties(MotionProfile.cpp MotionSequence.cpp SynchronizedSequence.cpp PROPERTIES
     COMPILE_OPTIONS "$<$<CONFIG:Release>:-O3>")
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    # These translation units instantiate the messaging/codec templates. Motion
+    # execution keeps its normal Debug settings; -Og preserves useful stepping.
+    set_source_files_properties(ControllerClient.cpp ControllerServer.cpp PROPERTIES
+        COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Og>")
+    set_source_files_properties(Protocol.cpp PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Os>")
+endif()

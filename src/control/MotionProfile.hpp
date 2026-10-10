@@ -20,6 +20,19 @@ namespace motion
         {
             double velocity{}, acceleration{}, deceleration{}, jerk{};
         };
+        struct PhaseDescription
+        {
+            double duration{}, jerk{}, position{}, velocity{}, acceleration{};
+        };
+        struct Description
+        {
+            std::array<PhaseDescription, 13> phases{};
+            unsigned size{};
+            double distance{}, end_velocity{};
+        };
+        Description description() const noexcept;
+        static std::optional<Profile> fromDescription(const Description&) noexcept;
+
         static std::optional<Profile> create(double distance,
                                              Limits limits,
                                              double start_velocity = 0.0,

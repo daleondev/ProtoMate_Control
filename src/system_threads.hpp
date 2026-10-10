@@ -25,7 +25,8 @@ namespace system_threads
     // Thread definitions
     // ----------------------
 
-    [[ = PRIO._3, = 16_KB ]] auto control() -> void;
+    [[ = PRIO._3, = CLI_STACK_SIZE ]] auto control() -> void;
+    [[ = PRIO._4, = CLI_STACK_SIZE ]] auto messages() -> void;
 
     [[ = PRIO._5, = CLI_STACK_SIZE ]] auto cli() -> void;
 

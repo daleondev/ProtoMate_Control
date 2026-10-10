@@ -1,0 +1,6 @@
+add_executable(application_p2p_tests bridge_test.cpp)
+target_link_libraries(application_p2p_tests PRIVATE application::p2p GTest::gtest_main)
+add_test(NAME application.p2p COMMAND application_p2p_tests)
+set_tests_properties(application.p2p PROPERTIES TIMEOUT 30)
+target_compile_definitions(application_p2p_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(application_p2p_tests)

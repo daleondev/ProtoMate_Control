@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AxisConversion.hpp"
+#include "ControllerTypes.hpp"
 #include "StepperMotor.hpp"
 #include "hal/devices/itf/IConfigurableStepperDriver.hpp"
 
@@ -15,87 +15,9 @@ namespace control
     // Application-owned hardware and command boundary shared by the CLI and a
     // Robot. Neither client creates peripherals or starts the timebase.
     // Methods are thread-safe, thread-context only; callbacks never enter here.
-    class MotionController final
+    class MotionController final : public ControllerTypes
     {
       public:
-        using MotorId = hal::board::MotorId;
-        using MotionId = std::uint64_t;
-        struct AxisConfig
-        {
-            pnm::units::Angle reference_position;
-            pnm::units::Angle full_step_angle;
-            std::size_t microsteps;
-        };
-        template<typename Position, typename Speed, typename Acceleration, typename Jerk>
-        struct MoveRequest
-        {
-            Position position;
-            Speed velocity;
-            Acceleration acceleration{};
-            Acceleration deceleration{};
-            Jerk jerk{};
-            StepperMotor::BufferMode buffer{ StepperMotor::BufferMode::Aborting };
-            pnm::units::Time timeout{ 0_s };
-            bool absolute{};
-        };
-        using Move = MoveRequest<pnm::units::Angle,
-                                 pnm::units::AngularVelocity,
-                                 pnm::units::AngularAcceleration,
-                                 pnm::units::AngularJerk>;
-        using LinearMove =
-          MoveRequest<pnm::units::Distance, pnm::units::Velocity, pnm::units::Acceleration, pnm::units::Jerk>;
-        using Conversion = std::variant<RotaryAxisConversion, LinearAxisConversion>;
-        using AxisMove = std::variant<Move, LinearMove>;
-        using AxisSpeed = std::variant<pnm::units::AngularVelocity, pnm::units::Velocity>;
-        struct LinearDefaults
-        {
-            pnm::units::Acceleration acceleration;
-            pnm::units::Acceleration deceleration;
-            pnm::units::Jerk jerk;
-        };
-        using AxisDefaults = std::variant<StepperMotor::MotionDefaults, LinearDefaults>;
-        struct Motion
-        {
-            MotionId id;
-            MotorId motor;
-            // Empty means outstanding (planning, executing, or queued).
-            std::optional<StepperMotor::Result> result;
-            // Retained by the submitter even after the bounded results expire.
-            // A Robot can await completion without polling this controller.
-            std::shared_future<StepperMotor::Result> completion;
-        };
-        struct AxisStatus
-        {
-            MotorId motor;
-            pnm::units::Angle position;
-            pnm::units::AngularVelocity velocity;
-            pnm::Result<pnm::units::Angle> actual_position;
-            pnm::Result<pnm::units::AngularVelocity> actual_velocity;
-            bool referenced;
-            bool reference_switch_active;
-            std::size_t outstanding;
-            // Configuration and motor state from the same locked snapshot.
-            // Empty until the application's mechanics have been supplied.
-            std::optional<Conversion> conversion;
-            StepperMotor::FeedbackSource feedback_source;
-            pnm::units::Angle feedback_resolution;
-        };
-        struct Status
-        {
-            bool enabled;
-            hal::step::Status generator;
-            std::array<AxisStatus, 3> axes;
-            bool coordinated{};
-        };
-
-        using DriverConfiguration = hal::device::IConfigurableStepperDriver::Configuration;
-        struct DriverStatus
-        {
-            MotorId motor;
-            std::string_view name;
-            hal::device::IStepperDriver::Status status;
-            std::optional<hal::device::IConfigurableStepperDriver::Snapshot> configuration;
-        };
         std::array<DriverStatus, 3> driverStatus() const;
         // Explicit recovery, disabled only. Never automatically resumes motion.
         void initializeDrivers();
@@ -109,24 +31,18 @@ namespace control
             std::array<bool, 3> forward{};
             pnm::units::Time duration{};
         };
-        enum class Operation
-        {
-            Move,
-            Reference
-        };
-        struct GroupMotion
-        {
-            MotionId id;
-            Operation operation;
-            pnm::units::Time duration;
-            std::optional<StepperMotor::Result> result;
-            std::shared_future<StepperMotor::Result> completion;
-        };
-        using Planner =
-          std::function<CoordinatedPlan(const Status&, const std::array<StepperMotor::MotionDefaults, 3>&)>;
+        using Planner = std::function<CoordinatedPlan(const Status&, const std::array<MotionDefaults, 3>&)>;
+        PlanningSnapshot planningSnapshot();
+        GroupMotion coordinate(const Trajectory&, pnm::units::Time timeout = 0_s);
+        // Nonblocking hardware inhibition, followed by stop() on the IO worker.
+        void inhibitRemoteMotion() noexcept;
+        void requestStop(std::optional<MotorId> motor = std::nullopt) noexcept;
+        void cancelMotion(MotionId id, bool group);
+        void recoverRemoteMotion();
 
         using DriverFactory = std::function<std::array<std::shared_ptr<hal::device::IStepperDriver>, 3>(
-          const std::array<std::size_t, 3>&, const std::shared_ptr<hal::IDigitalOutput>&)>;
+          const std::array<std::size_t, 3>&,
+          const std::shared_ptr<hal::IDigitalOutput>&)>;
         // Empty factory selects the board's drivers. Alternate compositions can
         // supply the same interfaces without exposing transports to this class.
         explicit MotionController(const std::array<AxisConfig, 3>& configuration,
@@ -204,10 +120,12 @@ namespace control
         void runGroup(Operation operation,
                       CoordinatedPlan plan,
                       pnm::units::Time timeout,
-                      std::shared_ptr<std::promise<StepperMotor::Result>> completion,
+                      Completion<MotorResult> completion,
                       std::stop_token stop) noexcept;
 
         mutable std::mutex m_mutex;
+        std::atomic_bool m_remoteInhibited{};
+        std::uint64_t m_configurationRevision{ 1 }, m_commandRevision{ 1 };
         const std::array<AxisConfig, 3> m_configuration;
         std::array<std::optional<Conversion>, 3> m_conversions;
         runtime::Notification m_groupNotification;

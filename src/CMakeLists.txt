@@ -1,3 +1,4 @@
+add_subdirectory(p2p)
 add_subdirectory(control)
 add_subdirectory(cli)
 
@@ -19,3 +20,8 @@ target_link_libraries(${PROJECT_NAME}
         application::control
         application::cli
 )
+
+# Keep portable bridge/coroutine composition small enough for H753 flash in Debug.
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/main.cpp TARGET_DIRECTORY ${PROJECT_NAME} PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Og>")
+endif()

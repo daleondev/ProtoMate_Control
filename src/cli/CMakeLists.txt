@@ -33,7 +33,7 @@ target_link_libraries(application_cli
         pneumo::meta
     PRIVATE
         runtime::runtime
-        application::control
+        application::control_client
 )
 
 target_compile_options(application_cli

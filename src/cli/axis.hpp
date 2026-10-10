@@ -4,7 +4,7 @@
 
 namespace control
 {
-    class MotionController;
+    class ControllerClient;
 }
 namespace cli
 {
@@ -14,5 +14,5 @@ namespace cli
 namespace cli::axis
 {
     // Joint-coordinate view of the same controller used by cli::motor.
-    void setup(Parser& parser, std::shared_ptr<control::MotionController> controller);
+    void setup(Parser& parser, std::shared_ptr<control::ControllerClient> controller);
 }

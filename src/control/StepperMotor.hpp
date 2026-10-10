@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Completion.hpp"
+#include "MotorTypes.hpp"
 #include "pneumo/units.hpp"
 #include "runtime/synchronization/Notification.hpp"
 
@@ -15,7 +17,10 @@
 
 using namespace pnm::units::literals;
 
-namespace control { class MotionController; }
+namespace control
+{
+    class MotionController;
+}
 
 class StepperMotor final
 {
@@ -26,32 +31,9 @@ class StepperMotor final
         Backward
     };
 
-    enum class Result
-    {
-        Completed,
-        Stopped,
-        TimedOut,
-        Rejected,
-        Faulted
-    };
-
-    enum class BufferMode
-    {
-        Aborting,
-        Buffered,
-        BlendingLow,
-        BlendingPrevious,
-        BlendingNext,
-        BlendingHigh
-    };
-
-    struct MotionDefaults
-    {
-        pnm::units::AngularAcceleration acceleration{ 3600_deg_s2 };
-        pnm::units::AngularAcceleration deceleration{ 3600_deg_s2 };
-        // A configured zero disables the jerk limit (trapezoidal profile).
-        pnm::units::AngularJerk jerk{ 36000_deg_s3 };
-    };
+    using Result = control::MotorResult;
+    using BufferMode = control::BufferMode;
+    using MotionDefaults = control::MotionDefaults;
 
     // Driver is required, initialized by the shared controller while disabled.
     // An omitted feedback provider is selected through the board factory.
@@ -110,6 +92,7 @@ class StepperMotor final
     void invalidateReference() noexcept;
 
     // Immediate abort (no deceleration ramp), also cancels queued commands.
+    void requestStop() noexcept;
     void stop() noexcept;
     void stopAndWait() noexcept;
 
@@ -121,22 +104,17 @@ class StepperMotor final
     pnm::Result<pnm::units::Angle> actualPosition() const noexcept;
     pnm::Result<pnm::units::AngularVelocity> actualVelocity() const noexcept;
     using FeedbackSource = hal::device::IMotorFeedback::Source;
-    FeedbackSource feedbackSource() const noexcept
-    {
-        return m_feedback->source();
-    }
-    pnm::units::Angle feedbackResolution() const noexcept
-    {
-        return m_feedback->resolution();
-    }
+    FeedbackSource feedbackSource() const noexcept { return m_feedback->source(); }
+    pnm::units::Angle feedbackResolution() const noexcept { return m_feedback->resolution(); }
 
   private:
     friend class control::MotionController;
+    control::Completion<Result> m_lastCompletion;
     // Used only while the controller owns all axes; independent workers are
     // joined before preparing. Accounting still uses the normal callbacks.
     bool prepareCoordinated(bool forward, std::shared_ptr<const hal::step::Sequence> sequence);
     bool coordinatedBlocked() const noexcept;
-    std::future<Result> startMotion(std::packaged_task<Result(std::stop_token)> task);
+    std::future<Result> startMotion(std::function<Result(std::stop_token)> task);
 
     struct Command
     {
@@ -146,7 +124,8 @@ class StepperMotor final
         BufferMode mode;
         pnm::units::Time timeout;
         bool relative;
-        std::promise<Result> completion;
+        control::Completion<Result> completion;
+        std::uint32_t epoch{};
     };
     struct VelocityRequest
     {
@@ -160,6 +139,12 @@ class StepperMotor final
                                    pnm::units::Time timeout,
                                    bool relative);
     void runCommands(std::shared_ptr<Command> command, std::stop_token stop) noexcept;
+    std::atomic_uint32_t m_abortEpoch{};
+    std::uint32_t m_runEpoch{};
+    bool interrupted(std::stop_token stop) const noexcept
+    {
+        return stop.stop_requested() || m_abortEpoch.load() != m_runEpoch;
+    }
     void finishQueue(Result result) noexcept;
 
     Result performMotion(Direction direction,

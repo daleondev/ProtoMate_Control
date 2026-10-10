@@ -6,8 +6,10 @@
 #include "cli/axis.hpp"
 #include "cli/motor.hpp"
 #include "cli/robot.hpp"
+#include "control/ControllerServer.hpp"
 #include "control/MotionController.hpp"
 #include "control/Robot.hpp"
+#include "p2p/InProcessTransport.hpp"
 #include "pneumo/pneumo.hpp"
 #include "system_threads.hpp"
 
@@ -23,7 +25,11 @@
 namespace
 {
     using namespace pnm::units::literals;
+    std::unique_ptr<pnm::coro::Context> ioContext, uiContext;
 }
+
+auto system_threads::control() -> void { ioContext->run(); }
+auto system_threads::messages() -> void { uiContext->run(); }
 
 auto system_threads::led() -> void
 {
@@ -75,8 +81,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     cli::terminal::configureLogging();
 #endif
 
-    // Compose hardware once, then inject the same controller into each client.
-    // Robot receives this controller too; it does not recreate axes.
+    // Compose hardware once on the IO side. Robot and CLI share the UI client;
+    // every control request crosses the serialized execution boundary.
     const auto motion{ std::make_shared<control::MotionController>(
       std::array<control::MotionController::AxisConfig, 3>{ {
         { 135_deg, 1.8_deg, 16U },
@@ -109,15 +115,26 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
                             .motor_reference = motion->motorConfiguration(Motor3).reference_position,
                             .axis_reference = 0_mm,
                           } });
+    ioContext = std::make_unique<pnm::coro::Context>();
+    uiContext = std::make_unique<pnm::coro::Context>();
+    pnm::msg::Bus ioBus, uiBus;
+    auto transport = p2p::InProcessTransport::pair();
+    control::ControllerServer server(motion, ioBus, *ioContext);
+    p2p::Bridge ioBridge(ioBus, *ioContext, transport[0]), uiBridge(uiBus, *uiContext, transport[1]);
+    control::protocol::routes(ioBridge, true);
+    control::protocol::routes(uiBridge, false);
+    ioBridge.onStateChanged([&server](auto state) { server.linkChanged(state); });
+    auto client = std::make_shared<control::ControllerClient>(uiBus, *uiContext);
+    ioBridge.start();
+    uiBridge.start();
     // Nominal CAD parameter lengths. Base/tool calibration and travel limits
     // remain placeholders, like the mechanics above; this enables calculations.
     const auto robot{ std::make_shared<control::Robot>(
-      motion,
-      ScaraKinematics::Config{ .first_arm_length = 205_mm,
-                               .second_arm_length = 223.4_mm,
-                               .tool_offset = { 135_mm, 0_mm, 0_mm } }) };
-    cli::motor::setup(cli::registry(), motion);
-    cli::axis::setup(cli::registry(), motion);
+      client,
+      ScaraKinematics::Config{
+        .first_arm_length = 205_mm, .second_arm_length = 223.4_mm, .tool_offset = { 135_mm, 0_mm, 0_mm } }) };
+    cli::motor::setup(cli::registry(), client);
+    cli::axis::setup(cli::registry(), client);
     cli::robot::setup(cli::registry(), robot);
     system_threads::start();
 

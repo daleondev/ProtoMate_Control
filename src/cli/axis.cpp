@@ -9,7 +9,7 @@ namespace cli::axis
 {
     namespace
     {
-        using Controller = control::MotionController;
+        using Controller = control::ControllerClient;
         using MotorId = Controller::MotorId;
         using namespace pnm::units;
         using namespace control_detail;
@@ -148,7 +148,7 @@ namespace cli::axis
                                        linear ? "mm" : "deg",
                                        conversion.toAxisVelocity(axis.velocity) / speed_unit,
                                        linear ? "mm/s" : "deg/s");
-                    const auto source{ axis.feedback_source == StepperMotor::FeedbackSource::DriverIndex
+                    const auto source{ axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex
                                          ? "driver INDEX (pseudo)" : "encoder" };
                     if (axis.actual_position && axis.actual_velocity)
                         out << std::format("    {}: position={:.4f} {}  velocity={:.3f} {}\n", source,
@@ -401,7 +401,7 @@ namespace cli::axis
         }
     }
 
-    void setup(Parser& parser, std::shared_ptr<control::MotionController> controller)
+    void setup(Parser& parser, std::shared_ptr<control::ControllerClient> controller)
     {
         if (!controller)
             throw std::invalid_argument("axis commands require a controller");

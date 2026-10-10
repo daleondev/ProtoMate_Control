@@ -1,5 +1,5 @@
 #include "Robot.hpp"
-#include "SynchronizedSequence.hpp"
+#include "MotionProfile.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -12,7 +12,7 @@ namespace control
     namespace
     {
         template<typename Converter>
-        const Converter& conversion(const MotionController::AxisStatus& axis)
+        const Converter& conversion(const ControllerClient::AxisStatus& axis)
         {
             if (!axis.conversion)
                 throw std::runtime_error("robot requires configured shoulder, elbow and Z mechanics");
@@ -22,7 +22,7 @@ namespace control
             return *value;
         }
 
-        ScaraKinematics::JointPosition joints(const MotionController::Status& status)
+        ScaraKinematics::JointPosition joints(const ControllerClient::Status& status)
         {
             return {
                 conversion<RotaryAxisConversion>(status.axes[0]).toAxisPosition(status.axes[0].position),
@@ -60,12 +60,12 @@ namespace control
         }
     }
 
-    Robot::Robot(std::shared_ptr<MotionController> controller, ScaraKinematics::Config geometry)
+    Robot::Robot(std::shared_ptr<ControllerClient> controller, ScaraKinematics::Config geometry)
       : Robot{ std::move(controller), geometry, { 60_deg / 1_s, 60_deg / 1_s, 20_mm / 1_s } }
     {
     }
 
-    Robot::Robot(std::shared_ptr<MotionController> controller,
+    Robot::Robot(std::shared_ptr<ControllerClient> controller,
                  ScaraKinematics::Config geometry,
                  ScaraKinematics::JointVelocity maximum_velocity)
       : m_controller{ std::move(controller) }
@@ -83,26 +83,26 @@ namespace control
     Robot::Motion Robot::moveAbs(ScaraKinematics::CartesianPosition target, MoveOptions options)
     {
         validate(options);
-        return m_controller->coordinate([&](const auto& state, const auto& defaults) {
-            return plan(state,
-                        defaults,
-                        checked(m_kinematics.inverse(target, joints(state), options.branch)),
-                        options.speed);
-        }, options.timeout);
+        const auto snapshot = m_controller->planningSnapshot();
+        return m_controller->coordinate(
+          plan(snapshot,
+               checked(m_kinematics.inverse(target, joints(snapshot.status), options.branch)),
+               options.speed),
+          options.timeout);
     }
 
     Robot::Motion Robot::moveRel(ScaraKinematics::CartesianPosition distance, MoveOptions options)
     {
         validate(options);
-        return m_controller->coordinate([&](const auto& state, const auto& defaults) {
-            const auto start{ joints(state) };
-            auto target{ checked(m_kinematics.forward(start)).position };
-            target.x += distance.x;
-            target.y += distance.y;
-            target.z += distance.z;
-            return plan(
-              state, defaults, checked(m_kinematics.inverse(target, start, options.branch)), options.speed);
-        }, options.timeout);
+        const auto snapshot = m_controller->planningSnapshot();
+        const auto start{ joints(snapshot.status) };
+        auto target{ checked(m_kinematics.forward(start)).position };
+        target.x += distance.x;
+        target.y += distance.y;
+        target.z += distance.z;
+        return m_controller->coordinate(
+          plan(snapshot, checked(m_kinematics.inverse(target, start, options.branch)), options.speed),
+          options.timeout);
     }
 
     Robot::Motion Robot::moveJoints(ScaraKinematics::JointPosition target, MoveOptions options)
@@ -110,9 +110,8 @@ namespace control
         validate(options);
         if (options.branch)
             throw std::invalid_argument("joint moves specify the elbow directly; no branch option applies");
-        return m_controller->coordinate([&](const auto& state, const auto& defaults) {
-            return plan(state, defaults, target, options.speed);
-        }, options.timeout);
+        const auto snapshot = m_controller->planningSnapshot();
+        return m_controller->coordinate(plan(snapshot, target, options.speed), options.timeout);
     }
 
     Robot::Motion Robot::reference(pnm::units::Time timeout) { return m_controller->referenceAll(timeout); }
@@ -122,11 +121,12 @@ namespace control
     void Robot::reset() { m_controller->reset(); }
     std::vector<Robot::Motion> Robot::motions() { return m_controller->groupMotions(); }
 
-    MotionController::CoordinatedPlan Robot::plan(const MotionController::Status& origin,
-                                                  const std::array<StepperMotor::MotionDefaults, 3>& defaults,
-                                                  ScaraKinematics::JointPosition target,
-                                                  double speed) const
+    ControllerClient::Trajectory Robot::plan(const ControllerClient::PlanningSnapshot& snapshot,
+                                             ScaraKinematics::JointPosition target,
+                                             double speed) const
     {
+        const auto& origin = snapshot.status;
+        const auto& defaults = snapshot.defaults;
         // Rectangular joint limits hold along the whole joint-linear segment
         // when both endpoints fit. This is not collision or tool-path planning.
         const auto checkLimits = [&](auto position) { checked(m_kinematics.checkJointLimits(position)); };
@@ -142,12 +142,16 @@ namespace control
                                     elbow.toMotorSpeed(m_maximumVelocity.elbow),
                                     z.toMotorSpeed(m_maximumVelocity.z) };
         std::array<hal::step::PulseCount, 3> counts{};
-        MotionController::CoordinatedPlan result{};
+        ControllerClient::Trajectory result{};
+        result.configuration_revision = origin.configuration_revision;
+        result.command_revision = origin.command_revision;
+        for (unsigned i = 0; i < 3; ++i)
+            result.origin[i] = origin.axes[i].position;
         const auto infinity{ std::numeric_limits<double>::infinity() };
         motion::Profile::Limits limits{ infinity, infinity, infinity, infinity };
         bool moving{};
         for (std::size_t i{}; i < counts.size(); ++i) {
-            const auto config{ m_controller->motorConfiguration(static_cast<MotionController::MotorId>(i)) };
+            const auto config{ snapshot.configuration[i] };
             const auto step{ config.full_step_angle / static_cast<double>(config.microsteps) };
             const auto delta{ motor_target[i] - origin.axes[i].position };
             const auto pulses{ std::round(std::abs(delta / step)) };
@@ -180,13 +184,8 @@ namespace control
         if (!profile)
             throw std::invalid_argument("robot motion profile cannot be generated");
         result.duration = pnm::units::Time::create(profile->duration()) + 0.010005_s;
-        for (std::size_t i{}; i < counts.size(); ++i) {
-            if (!counts[i])
-                continue;
-            auto sequence{ std::make_shared<motion::SynchronizedSequence>(*profile, counts[i]) };
-            result.delays[i] = sequence->firstDelay() + std::chrono::milliseconds{ 10 };
-            result.sequences[i] = std::move(sequence);
-        }
+        result.profile = profile->description();
+        result.pulses = counts;
         return result;
     }
 

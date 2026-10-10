@@ -248,3 +248,51 @@ namespace motion
         return result;
     }
 }
+
+motion::Profile::Description motion::Profile::description() const noexcept
+{
+    Description result;
+    result.size = m_size;
+    result.distance = m_distance;
+    result.end_velocity = m_endVelocity;
+    for (unsigned i = 0; i < m_size; ++i) {
+        const auto& p = m_phases[i];
+        result.phases[i] = { p.duration, p.jerk, p.state.position, p.state.velocity, p.state.acceleration };
+    }
+    return result;
+}
+std::optional<motion::Profile> motion::Profile::fromDescription(const Description& value) noexcept
+{
+    if (value.size > 13)
+        return {};
+    Profile result;
+    const auto near = [](double a, double b) {
+        return std::abs(a - b) <= 1e-9 * std::max({ 1.0, std::abs(a), std::abs(b) });
+    };
+    for (unsigned i = 0; i < value.size; ++i) {
+        const auto& p = value.phases[i];
+        if (!std::isfinite(p.duration) || !std::isfinite(p.jerk) || !std::isfinite(p.position) ||
+            !std::isfinite(p.velocity) || !std::isfinite(p.acceleration) || p.duration <= 0 ||
+            !near(p.position, result.m_state.position) || !near(p.velocity, result.m_state.velocity))
+            return {};
+        // Acceleration may jump for a trapezoidal (unlimited jerk) profile.
+        auto velocity = [&](double t) { return p.velocity + p.acceleration * t + 0.5 * p.jerk * t * t; };
+        if (velocity(0) < -1e-9 || velocity(p.duration) < -1e-9)
+            return {};
+        if (p.jerk != 0) {
+            auto t = -p.acceleration / p.jerk;
+            if (t > 0 && t < p.duration && velocity(t) < -1e-9)
+                return {};
+        }
+        result.append(p.duration, p.jerk, p.acceleration);
+        if (!std::isfinite(result.m_state.position) || !std::isfinite(result.m_duration))
+            return {};
+    }
+    if (!std::isfinite(value.distance) || !std::isfinite(value.end_velocity) || value.distance < 0 ||
+        value.end_velocity < 0 || !near(value.distance, result.m_state.position) ||
+        !near(value.end_velocity, result.m_state.velocity))
+        return {};
+    result.m_distance = value.distance;
+    result.m_endVelocity = value.end_velocity;
+    return result;
+}

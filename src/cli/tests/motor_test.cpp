@@ -1,3 +1,4 @@
+#include "control/tests/Connection.hpp"
 #include "cli/Parser.hpp"
 #include "cli/motor.hpp"
 #include "control/MotionController.hpp"
@@ -21,6 +22,7 @@ namespace
       protected:
         std::shared_ptr<hal::device::Tmc2209Model> driverBus{ std::make_shared<hal::device::Tmc2209Model>() };
         std::shared_ptr<Controller> controller;
+        std::unique_ptr<control::test::Connection> connection;
         cli::Parser parser;
         std::ostringstream output;
         std::array<std::shared_ptr<hal::GpioInput>, 3> switches;
@@ -47,7 +49,8 @@ namespace
                 ASSERT_TRUE(switches[i]);
                 switches[i]->setSimulatedLevel(Low);
             }
-            cli::motor::setup(parser, controller);
+            connection=std::make_unique<control::test::Connection>(controller);
+            cli::motor::setup(parser, connection->client);
         }
 
         cli::ExecutionResult run(std::string_view command)
@@ -162,7 +165,7 @@ TEST_F(CliMotion, NegativeMoveCompletesAndReportsItsResultWithoutBlockingTheProm
 TEST_F(CliMotion, SharedClientsControlTheSameAxesAndStoppingOneLeavesTheOtherRunning)
 {
     cli::Parser second_client;
-    cli::motor::setup(second_client, controller);
+    cli::motor::setup(second_client, connection->client);
     ASSERT_TRUE(run("motor enable"));
     ASSERT_TRUE(run("motor move m1 -720 --speed 10"));
     ASSERT_TRUE(run("motor move m2 -720 --speed 10"));
@@ -235,7 +238,7 @@ TEST_F(CliMotion, HomingPermitsAbsoluteMovesAndDisablingInvalidatesTheDatum)
 TEST_F(CliMotion, ResultsStayBoundedAndAllBufferModesAreAccepted)
 {
     ASSERT_TRUE(run("motor enable"));
-    const auto retained{ controller->move(Controller::MotorId::Motor3,
+    const auto retained{ connection->client->move(Controller::MotorId::Motor3,
                                           { .position = 0_deg, .velocity = 10_rpm }) };
     ASSERT_TRUE(retained.completion.valid());
     ASSERT_EQ(retained.completion.wait_for(1s), std::future_status::ready);

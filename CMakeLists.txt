@@ -149,6 +149,8 @@ elseif(HAL_HARDWARE_TMC_TEST)
     target_sources(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_tmc_test.cpp)
 elseif(HAL_HARDWARE_STEP_TEST)
+    add_subdirectory(src/p2p)
+    target_link_libraries(${PROJECT_NAME} PRIVATE application::p2p)
     target_sources(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_step_test.cpp

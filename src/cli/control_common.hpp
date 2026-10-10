@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Parser.hpp"
-#include "control/MotionController.hpp"
+#include "control/ControllerClient.hpp"
 
 namespace cli::control_detail
 {
@@ -9,14 +9,14 @@ namespace cli::control_detail
     double magnitude(double value, std::string_view name, bool zero = true);
     std::optional<std::string_view> option(const Arguments& args, std::string_view name);
     double numericOption(const Arguments& args, std::string_view name, double fallback, bool zero = true);
-    StepperMotor::BufferMode bufferMode(const Arguments& args, std::string_view family = "motor");
-    std::string_view axisName(control::MotionController::MotorId motor);
+    control::BufferMode bufferMode(const Arguments& args, std::string_view family = "motor");
+    std::string_view axisName(control::ControllerClient::MotorId motor);
     std::string_view stateName(hal::step::State state);
-    int submitted(const control::MotionController::Motion& value,
+    int submitted(const control::ControllerClient::Motion& value,
                   std::ostream& out,
                   std::string_view family = "motor");
     CallbackResult jobs(const Arguments& args,
                         std::ostream& out,
-                        control::MotionController& controller,
+                        control::ControllerClient& controller,
                         std::string_view family);
 }

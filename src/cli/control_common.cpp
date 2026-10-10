@@ -8,7 +8,7 @@
 
 namespace cli::control_detail
 {
-    using Controller = control::MotionController;
+    using Controller = control::ControllerClient;
     using MotorId = Controller::MotorId;
 
     double number(std::string_view text, std::string_view name)
@@ -44,9 +44,9 @@ namespace cli::control_detail
         return value ? magnitude(number(*value, name), name, zero) : fallback;
     }
 
-    StepperMotor::BufferMode bufferMode(const Arguments& args, std::string_view family)
+    control::BufferMode bufferMode(const Arguments& args, std::string_view family)
     {
-        using enum StepperMotor::BufferMode;
+        using enum control::BufferMode;
         const auto value{ option(args, "buffer").value_or("aborting") };
         if (value == "aborting")
             return Aborting;
@@ -63,11 +63,11 @@ namespace cli::control_detail
         throw std::invalid_argument("unknown buffer mode; see 'help " + std::string(family) + " move'");
     }
 
-    std::string_view resultName(std::optional<StepperMotor::Result> result)
+    std::string_view resultName(std::optional<control::MotorResult> result)
     {
         if (!result)
             return "outstanding";
-        using enum StepperMotor::Result;
+        using enum control::MotorResult;
         switch (*result) {
             case Completed:
                 return "completed";
@@ -123,6 +123,7 @@ namespace cli::control_detail
         const auto label{ family == "axis" ? std::string(axisName(value.motor))
                                            : std::format("m{}", static_cast<unsigned>(value.motor) + 1U) };
         out << std::format("#{} {} {}\n", value.id, label, resultName(value.result));
+        if(value.result && !value.terminal_confirmed)out << "IO connection lost; hardware stop is not confirmed.\n";
     }
 
     int submitted(const Controller::Motion& value, std::ostream& out, std::string_view family)
@@ -130,7 +131,7 @@ namespace cli::control_detail
         printMotion(value, out, family);
         if (!value.result)
             out << std::format("Check completion with: {} jobs {}\n", family, value.id);
-        else if (*value.result != StepperMotor::Result::Completed)
+        else if (*value.result != control::MotorResult::Completed)
             return 1;
         return 0;
     }
@@ -154,7 +155,7 @@ namespace cli::control_detail
                 continue;
             found = true;
             printMotion(motion, out, family);
-            if (selected && motion.result && *motion.result != StepperMotor::Result::Completed)
+            if (selected && motion.result && *motion.result != control::MotorResult::Completed)
                 return 1;
         }
         if (!found && selected)

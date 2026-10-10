@@ -1,9 +1,10 @@
 #include "control/Robot.hpp"
 #include "control/SynchronizedSequence.hpp"
+#include "control/tests/Connection.hpp"
+#include "hal/drivers/impl/StepGenerator.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 #include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
 #include "hal/drivers/impl/linux/SimulatedStepHardware.hpp"
-#include "hal/drivers/impl/StepGenerator.hpp"
 
 #include <gtest/gtest.h>
 
@@ -25,6 +26,7 @@ namespace
     {
       protected:
         std::shared_ptr<Controller> controller;
+        std::unique_ptr<control::test::Connection> connection;
 
         void SetUp() override
         {
@@ -43,6 +45,7 @@ namespace
                 ASSERT_TRUE(input);
                 input->setSimulatedLevel(hal::gpio::Level::Low);
             }
+            connection = std::make_unique<control::test::Connection>(controller);
         }
 
         void configure()
@@ -118,7 +121,7 @@ TEST(Robot, RejectsMissingController)
 
 TEST_F(RobotState, RequiresMechanicsForLiveStateButNotForGeometryCalculations)
 {
-    const control::Robot robot{ controller, geometry };
+    const control::Robot robot{ connection->client, geometry };
     EXPECT_THROW(robot.status(), std::runtime_error);
     ASSERT_TRUE(robot.kinematics().forward({ 0_deg, 90_deg, 10_mm }));
     configure();
@@ -128,7 +131,7 @@ TEST_F(RobotState, RequiresMechanicsForLiveStateButNotForGeometryCalculations)
 TEST_F(RobotState, ConvertsOffsetsReductionsAndDirectionsBeforeComputingToolState)
 {
     configure();
-    const control::Robot robot{ controller, geometry };
+    const control::Robot robot{ connection->client, geometry };
     const auto status{ robot.status() };
     EXPECT_FALSE(status.motors.enabled);
     EXPECT_FALSE(status.referenced);
@@ -156,7 +159,7 @@ TEST_F(RobotState, ConvertsOffsetsReductionsAndDirectionsBeforeComputingToolStat
 TEST_F(RobotState, LiveVelocityAndPositionTrackSharedMotorMotionAndStop)
 {
     configure();
-    const control::Robot robot{ controller, geometry };
+    const control::Robot robot{ connection->client, geometry };
     controller->enable();
     auto move{ controller->move(Motor3, { .position = -360_deg, .velocity = 30_rpm }) };
     ASSERT_TRUE(eventually([&] { return robot.status().commanded.joint_velocity.z > 0_mm_s; }));
@@ -184,7 +187,7 @@ TEST_F(RobotState, LiveVelocityAndPositionTrackSharedMotorMotionAndStop)
 TEST_F(RobotState, FeedbackRemainsDistinctFromCommandedStateAndPropagatesFaults)
 {
     configure();
-    const control::Robot robot{ controller, geometry };
+    const control::Robot robot{ connection->client, geometry };
     auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     ASSERT_TRUE(encoder->advanceSimulatedCounts(400));
@@ -213,7 +216,7 @@ TEST_F(RobotState, FeedbackRemainsDistinctFromCommandedStateAndPropagatesFaults)
 TEST_F(RobotState, ReconfigurationIsVisibleWithoutRecreatingRobot)
 {
     configure();
-    const control::Robot robot{ controller, geometry };
+    const control::Robot robot{ connection->client, geometry };
     const auto before{ robot.status() };
     controller->configureAxis(Motor3,
                               LinearAxisConversion{ {
@@ -309,7 +312,7 @@ TEST(SynchronizedSequence, SharedProfileProducesExactEdgesThroughDmaRefillsAndRo
 TEST_F(RobotState, CoordinatedMovesRequireEnabledReferencedIdleAxes)
 {
     configure();
-    control::Robot robot{ controller, geometry };
+    control::Robot robot{ connection->client, geometry };
     EXPECT_THROW(robot.moveJoints({ 0_deg, 90_deg, 10_mm }), std::runtime_error);
     robot.enable();
     EXPECT_THROW(robot.moveJoints({ 0_deg, 90_deg, 10_mm }), std::runtime_error);
@@ -325,7 +328,7 @@ TEST_F(RobotState, CoordinatedMovesRequireEnabledReferencedIdleAxes)
 TEST_F(RobotState, ReferencesInOrderThenExecutesExactSynchronizedJointAndCartesianTargets)
 {
     configure();
-    control::Robot robot{ controller, geometry };
+    control::Robot robot{ connection->client, geometry };
     ASSERT_TRUE(home(robot));
     ASSERT_TRUE(robot.status().referenced);
     const Kinematics::JointPosition target{ -72_deg, 141_deg, 0.5_mm }; // +9,+18,+36 motor degrees
@@ -357,7 +360,7 @@ TEST_F(RobotState, ReferencesInOrderThenExecutesExactSynchronizedJointAndCartesi
 TEST_F(RobotState, GroupOwnershipRejectsConflictsAndStoppingOneAxisCancelsAll)
 {
     configure();
-    control::Robot robot{ controller, geometry };
+    control::Robot robot{ connection->client, geometry };
     ASSERT_TRUE(home(robot));
     const auto move{ robot.moveJoints({ -100_deg, 170_deg, -10_mm }, { .speed = 0.1 }) };
     ASSERT_TRUE(eventually([&] { return robot.status().motors.coordinated; }));
@@ -381,7 +384,7 @@ TEST_F(RobotState, GroupOwnershipRejectsConflictsAndStoppingOneAxisCancelsAll)
 TEST_F(RobotState, SwitchActivationStopsTheGroupAndAnActiveSwitchAllowsRetreat)
 {
     configure();
-    control::Robot robot{ controller, geometry };
+    control::Robot robot{ connection->client, geometry };
     ASSERT_TRUE(home(robot));
     const auto input{ hal::gpio::simulatedInput({ hal::gpio::Port::E, 7U }) };
     input->setSimulatedLevel(hal::gpio::Level::High);
@@ -402,7 +405,7 @@ TEST_F(RobotState, SwitchActivationStopsTheGroupAndAnActiveSwitchAllowsRetreat)
 TEST_F(RobotState, TimeoutNoOpUnreachableTargetAndDisableRetainCorrectState)
 {
     configure();
-    control::Robot robot{ controller, geometry };
+    control::Robot robot{ connection->client, geometry };
     ASSERT_TRUE(home(robot));
     const auto before{ robot.status() };
     EXPECT_THROW(robot.moveAbs({ 10000_mm, 0_mm, 0_mm }), std::invalid_argument);
@@ -422,7 +425,7 @@ TEST_F(RobotState, TimeoutNoOpUnreachableTargetAndDisableRetainCorrectState)
 TEST_F(RobotState, HomingTimeoutAndCancellationReleaseGroupOwnership)
 {
     configure();
-    control::Robot robot{ controller, geometry };
+    control::Robot robot{ connection->client, geometry };
     robot.enable();
     auto home{ robot.reference(0.05_s) };
     ASSERT_EQ(home.completion.wait_for(2s), std::future_status::ready);
@@ -438,9 +441,8 @@ TEST_F(RobotState, QuantizedEndpointMustStillFitJointLimits)
 {
     configure();
     auto limited{ geometry };
-    limited.limits = Kinematics::JointLimits{ { -80_deg, 130_deg, 0_mm },
-                                             { -60_deg, 140.06_deg, 4_mm } };
-    control::Robot robot{ controller, limited };
+    limited.limits = Kinematics::JointLimits{ { -80_deg, 130_deg, 0_mm }, { -60_deg, 140.06_deg, 4_mm } };
+    control::Robot robot{ connection->client, limited };
     ASSERT_TRUE(home(robot));
     const auto before{ robot.status() };
     // Elbow resolution is 0.0375 deg. The requested 140.055 is within the
@@ -453,7 +455,7 @@ TEST_F(RobotState, QuantizedEndpointMustStillFitJointLimits)
 TEST_F(RobotState, EncoderFaultCancelsRobotMotionEvenBeforeItsFirstPulse)
 {
     configure();
-    control::Robot robot{ controller, geometry };
+    control::Robot robot{ connection->client, geometry };
     ASSERT_TRUE(home(robot));
     const auto move{ robot.moveJoints({ -100_deg, 170_deg, -5_mm }, { .speed = 0.1 }) };
     const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
@@ -472,7 +474,7 @@ TEST_F(RobotState, EncoderFaultCancelsRobotMotionEvenBeforeItsFirstPulse)
 TEST_F(RobotState, HomingStopsIfAnAlreadyReferencedAxisLosesEncoderFeedback)
 {
     configure();
-    control::Robot robot{ controller, geometry };
+    control::Robot robot{ connection->client, geometry };
     robot.enable();
     const auto operation{ robot.reference(5_s) };
     // Complete Z and shoulder, then inject a shoulder encoder fault while
@@ -500,4 +502,98 @@ TEST_F(RobotState, HomingStopsIfAnAlreadyReferencedAxisLosesEncoderFeedback)
     EXPECT_FALSE(robot.status().motors.coordinated);
     for (auto axis : robot.status().motors.generator.axes)
         EXPECT_NE(axis, hal::step::State::Running);
+}
+
+TEST_F(RobotState, StaleSerializedPlansNeverPrepareHardware)
+{
+    configure();
+    control::Robot robot{ connection->client, geometry };
+    ASSERT_TRUE(home(robot));
+    const auto snapshot = connection->client->planningSnapshot();
+    Controller::Trajectory plan{};
+    plan.configuration_revision = snapshot.status.configuration_revision;
+    plan.command_revision = snapshot.status.command_revision;
+    for (unsigned i = 0; i < 3; ++i)
+        plan.origin[i] = snapshot.status.axes[i].position;
+    const auto pulses = controller->status().generator.pulses;
+    connection->client->setDefaults(Motor1, { 720_deg_s2, 720_deg_s2, 0_deg_s3 });
+    try {
+        connection->client->coordinate(plan);
+        FAIL() << "stale configuration was admitted";
+    } catch (const std::runtime_error& e) {
+        EXPECT_NE(std::string(e.what()).find("stale"), std::string::npos);
+    }
+    plan.configuration_revision = connection->client->planningSnapshot().status.configuration_revision;
+    connection->client->stop();
+    try {
+        connection->client->coordinate(plan);
+        FAIL() << "stale commanded state was admitted";
+    } catch (const std::runtime_error& e) {
+        EXPECT_NE(std::string(e.what()).find("stale"), std::string::npos);
+    }
+    EXPECT_EQ(controller->status().generator.pulses, pulses);
+    EXPECT_FALSE(controller->status().coordinated);
+}
+
+TEST_F(RobotState, LinkLossStopsLocallyAndRequiresExplicitRecovery)
+{
+    auto client = connection->client;
+    client->enable();
+    auto move = client->move(Motor1, { .position = -720_deg, .velocity = 10_rpm });
+    ASSERT_TRUE(eventually([&] { return controller->status().axes[0].velocity < 0_rpm; }));
+    connection->transport[0]->setConnected(false);
+    ASSERT_TRUE(eventually([&] { return controller->status().axes[0].velocity == 0_rpm; }));
+    ASSERT_EQ(move.completion.wait_for(1s), std::future_status::ready);
+    EXPECT_EQ(move.completion.get(),
+              control::MotorResult::Faulted); // Transport loss is not a stop acknowledgement.
+    const auto frozen = controller->status().generator.pulses;
+    std::this_thread::sleep_for(30ms);
+    EXPECT_EQ(controller->status().generator.pulses, frozen);
+    EXPECT_TRUE(controller->status().enabled); // Retain holding torque.
+    connection->transport[0]->setConnected(true);
+    ASSERT_TRUE(eventually([&] {
+        return connection->uiBridge.state() == p2p::LinkState::Connected &&
+               connection->ioBridge.state() == p2p::LinkState::Connected;
+    }));
+    EXPECT_THROW(client->move(Motor1, { .position = -1_deg, .velocity = 10_rpm }), std::runtime_error);
+    client->disable();
+    client->reset();
+    client->enable();
+    const auto next = client->move(Motor1, { .position = -1_deg, .velocity = 10_rpm });
+    ASSERT_EQ(next.completion.wait_for(2s), std::future_status::ready);
+    EXPECT_EQ(next.completion.get(), control::MotorResult::Completed);
+}
+
+TEST_F(RobotState, CancellingBufferedJobPreservesIndependentActiveMotion)
+{
+    auto client = connection->client;
+    client->enable();
+    const auto active = client->move(Motor1, { .position = -720_deg, .velocity = 10_rpm });
+    ASSERT_TRUE(eventually([&] { return controller->status().axes[0].velocity < 0_rpm; }));
+    const auto queued = client->move(
+      Motor1, { .position = -90_deg, .velocity = 10_rpm, .buffer = control::BufferMode::Buffered });
+    client->cancel(queued.id);
+    ASSERT_EQ(queued.completion.wait_for(1s), std::future_status::ready);
+    EXPECT_EQ(queued.completion.get(), control::MotorResult::Stopped);
+    EXPECT_EQ(active.completion.wait_for(0ms), std::future_status::timeout);
+    EXPECT_LT(controller->status().axes[0].velocity, 0_rpm);
+    client->stop();
+    ASSERT_EQ(active.completion.wait_for(1s), std::future_status::ready);
+}
+
+TEST(MotionProfileTransport, RoundTripPreservesNormalizedEndpointAndTiming)
+{
+    for (double speed : { 0.1, 1.0, 12.0 }) {
+        const auto profile = motion::Profile::create(1, { speed, 7.3, 4.2, 19.0 });
+        ASSERT_TRUE(profile);
+        auto description = profile->description();
+        const auto rebuilt = motion::Profile::fromDescription(description);
+        ASSERT_TRUE(rebuilt);
+        EXPECT_EQ(rebuilt->distance(), 1.0);
+        EXPECT_EQ(rebuilt->endVelocity(), 0.0);
+        for (unsigned i = 0; i <= 100; ++i)
+            EXPECT_NEAR(profile->timeAt(i / 100.0), rebuilt->timeAt(i / 100.0), 1e-12);
+        description.phases[0].velocity = 1.0;
+        EXPECT_FALSE(motion::Profile::fromDescription(description));
+    }
 }

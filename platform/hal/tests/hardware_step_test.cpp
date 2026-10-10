@@ -1,5 +1,6 @@
 #include "hal/tests/support/SignalOnlyDriver.hpp"
 #include "clock_reference.hpp"
+#include "p2p/tests/CommunicationLoad.hpp"
 #include "control/StepperMotor.hpp"
 #include "hal/board/board.hpp"
 #include "hal/hal.hpp"
@@ -231,6 +232,17 @@ namespace
                 case 19:
                     passed = plannedMotors(test);
                     break;
+                case 20: {
+                    auto load=std::make_unique<p2p::test::CommunicationLoad>();
+                    std::this_thread::sleep_for(100ms);
+                    const auto before=load->completed.load();
+                    passed=constant({10us,20us,40us},Counts{100000U,50000U,25000U}) &&
+                           startAndWait(2s) && final(State::Completed,Counts{100000U,50000U,25000U});
+                    const auto exchanges=load->completed.load()-before;
+                    log("P2P: %lu verified service round trips during pulse burst; %lu errors",static_cast<unsigned long>(exchanges),static_cast<unsigned long>(load->failures.load()));
+                    passed=check(exchanges>=100 && load->failures.load()==0,"communication load remained active and correct") && passed;
+                    break;
+                }
                 default:
                     break;
             }
@@ -878,6 +890,7 @@ namespace
         log("p=three ramps  b=Low/High/Buffered  v=live ramp update  a=100kHz profile stress x3");
         log("c=TIM2 clock versus RTC crystal (~31 s, no STEP pulses)");
         log("s=staggered 100kHz profiles with a live slowdown");
+        log("l=100/50/25 kHz under serialized p2p service/topic load (1 second)");
         log("EN_N remains HIGH. DIR stays LOW in the bench cases. Verify waveforms separately.");
     }
 }
@@ -937,6 +950,9 @@ int main()
             }
             else if (line[0] == 's') {
                 static_cast<void>(bench.run(19U));
+            }
+            else if (line[0] == 'l') {
+                static_cast<void>(bench.run(20U));
             }
             else if (line[0] == '9') {
                 bool passed{ true };

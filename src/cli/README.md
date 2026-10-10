@@ -420,36 +420,29 @@ and frames before relying on physical tool coordinates.
 
 ### Ownership
 
-`main()` is the composition point. It creates one
-`control::MotionController` with the three axis configurations, then passes
-its shared pointer to `cli::motor::setup(parser, controller)`,
-`cli::axis::setup(parser, controller)` and `control::Robot`. It registers
-`cli::robot::setup(parser, robot)` before starting application threads.
-The controller owns the generator, shared enable, axis conversions and
-three motors; it starts the timebase once, serializes client operations and
-tracks command results. CLI callbacks retain that controller and never create
-peripherals. Other application code can submit and inspect the same motions
-through this API without depending on the CLI.
-Submission returns a handle containing a `shared_future` as well as the ID,
-so another client can await completion without polling `motions()`. A retained
-handle remains valid after its entry expires from the 32-command result list.
+`main()` creates one IO-side `MotionController` and `ControllerServer`, and a
+UI-side `ControllerClient`. Each side has its own pneumo bus and coroutine
+context, connected through serialized `p2p::Bridge` routes and a paired
+`InProcessTransport`. Motor/axis commands and `Robot` share the client. CLI
+syntax and annotation registration remain unchanged; commands create no
+peripherals and do not hold the IO controller directly.
 
-Axis moves, home speeds, live speed updates and profile defaults are converted
-inside the controller under its submission lock. A calibration update cannot
-interleave between conversion and submission. Status includes the conversions
-from the same locked snapshot as the motor readings. The strong `AxisMove`,
-`AxisSpeed` and `AxisDefaults` variants reject rotary/linear unit mismatches.
+Services carry snapshots, diagnostics and configuration. Moves/homing use
+retained action handles in the client's bounded job registry (32 individual-axis
+and 32 robot records). A CLI command returns after remote admission; its return
+does not cancel motion. Completion follows IO cleanup. Transport errors explicitly
+leave hardware stop unconfirmed. Stop/disable have an independent urgent lane.
+Blocking calls run on the CLI/planning thread, not the communication contexts.
 
-`Robot` owns the configured `ScaraKinematics` instance and retains the same
-controller. It computes state on demand without a second set of motors or a
-global singleton. The geometry class stays independent of HAL and motion
-execution. Robot planning runs under the controller's submission lock, so axis
-conversions and starting coordinates cannot change before preparation. The
-controller owns the robot worker, reserves all three axes until completion, and
-waits on callback notifications or homing futures. Prepared pulse sequences are
-armed against a common timer origin; changing an individual axis cannot distort
-an active robot trajectory. The CLI uses the same annotation/reflection
-registration as the motor, axis and filesystem modules.
+Axis conversion and admission occur under the IO submission lock. Robot plans
+against an authoritative snapshot and submits value-only profiles with its
+configuration and commanded-state revisions. IO rejects stale plans before
+hardware preparation. Coordinated trajectories reserve their participating
+execution resources and retain their common timer origin. Independent-axis
+buffering and blending remain IO responsibilities.
+
+See the root [architecture documentation](../../README.md#serialized-control-boundary)
+for framing, capacity, connection recovery and lifecycle rules.
 
 ## Linux terminal frontend
 

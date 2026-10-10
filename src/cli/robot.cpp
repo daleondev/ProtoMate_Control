@@ -99,11 +99,11 @@ namespace cli::robot
             return 0;
         }
 
-        std::string_view resultName(std::optional<StepperMotor::Result> result)
+        std::string_view resultName(std::optional<control::MotorResult> result)
         {
             if (!result)
                 return "outstanding";
-            using enum StepperMotor::Result;
+            using enum control::MotorResult;
             switch (*result) {
                 case Completed:
                     return "completed";
@@ -171,7 +171,7 @@ namespace cli::robot
                 const auto& error{ status.actual.error() };
                 out << "Feedback tool state unavailable: " << axisName(error.motor) << ' '
                     << (status.motors.axes[static_cast<std::size_t>(error.motor)].feedback_source ==
-                          StepperMotor::FeedbackSource::DriverIndex ? "driver INDEX " : "encoder ");
+                          hal::device::IMotorFeedback::Source::DriverIndex ? "driver INDEX " : "encoder ");
                 if (error.reason == std::errc::no_such_device)
                     out << "not fitted";
                 else if (error.reason == std::errc::no_message_available)
@@ -390,9 +390,9 @@ namespace cli::robot
             = Arg{ .name = "id"_fs, .description = "Optional robot operation ID"_fs, .optional = true }
         ]] static auto jobs(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
         {
-            std::optional<control::MotionController::MotionId> selected;
+            std::optional<control::ControllerClient::MotionId> selected;
             if (const auto text{ args.get("id") }) {
-                control::MotionController::MotionId id{};
+                control::ControllerClient::MotionId id{};
                 const auto parsed{ std::from_chars(text->data(), text->data() + text->size(), id) };
                 if (parsed.ec != std::errc{} || parsed.ptr != text->data() + text->size() || id == 0)
                     return callback_failure("id must be a positive integer");
@@ -405,10 +405,11 @@ namespace cli::robot
                 found = true;
                 out << std::format("Robot #{} {} {}\n",
                                    job.id,
-                                   job.operation == control::MotionController::Operation::Reference ? "home"
+                                   job.operation == control::ControllerClient::Operation::Reference ? "home"
                                                                                                     : "move",
                                    resultName(job.result));
-                if (selected && job.result && *job.result != StepperMotor::Result::Completed)
+                if(job.result && !job.terminal_confirmed)out << "IO connection lost; hardware stop is not confirmed.\n";
+                if (selected && job.result && *job.result != control::MotorResult::Completed)
                     return 1;
             }
             if (!found && selected)

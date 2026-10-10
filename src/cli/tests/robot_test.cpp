@@ -1,3 +1,4 @@
+#include "control/tests/Connection.hpp"
 #include "cli/axis.hpp"
 #include "cli/motor.hpp"
 #include "cli/robot.hpp"
@@ -19,6 +20,7 @@ namespace
     {
       protected:
         std::shared_ptr<Controller> controller;
+        std::unique_ptr<control::test::Connection> connection;
         std::shared_ptr<control::Robot> robot;
         cli::Parser parser;
         std::ostringstream output;
@@ -52,10 +54,11 @@ namespace
                                         .motor_reference = 135_deg,
                                         .axis_reference = 25_mm,
                                       } });
+            connection=std::make_unique<control::test::Connection>(controller);
             robot = std::make_shared<control::Robot>(
-              controller, Kinematics::Config{ .first_arm_length = 200_mm, .second_arm_length = 100_mm });
-            cli::motor::setup(parser, controller);
-            cli::axis::setup(parser, controller);
+              connection->client, Kinematics::Config{ .first_arm_length = 200_mm, .second_arm_length = 100_mm });
+            cli::motor::setup(parser, connection->client);
+            cli::axis::setup(parser, connection->client);
             cli::robot::setup(parser, robot);
         }
 
@@ -152,7 +155,7 @@ TEST_F(CliRobot, InverseHonorsConfiguredJointLimits)
 {
     cli::Parser limited_parser;
     auto limited_robot{ std::make_shared<control::Robot>(
-      controller,
+      connection->client,
       Kinematics::Config{
         .first_arm_length = 200_mm,
         .second_arm_length = 100_mm,
