@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 #include "pneumo/meta.hpp"
 
@@ -60,7 +61,7 @@ namespace cli
 
         std::span<const ArgumentSpec> m_specifications;
         std::span<const std::string> m_values;
-        std::span<const FlagSpec> m_flag_specifications;
+        std::span<const FlagSpec> m_flagSpecifications;
         std::span<const ParsedFlag> m_flags;
     };
 
@@ -74,8 +75,11 @@ namespace cli
 
     struct CommandIO
     {
+        // Non-owning command view: both streams must exist for the entire invocation.
+        // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::istream& input;
         std::ostream& output;
+        // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
     };
 
     /**
@@ -150,7 +154,7 @@ namespace cli
         Callback callback;
     };
 
-    enum class ExecutionError
+    enum class ExecutionError : std::uint8_t
     {
         None,
         EmptyInput,
@@ -185,6 +189,7 @@ namespace cli
           -> std::string;
 
       private:
+        struct Executor;
         [[nodiscard]] auto find(std::string_view name) const noexcept -> const Command*;
 
         std::vector<Command> m_commands;
@@ -227,49 +232,49 @@ namespace cli
     namespace detail
     {
         template<typename T>
-        struct is_name : std::false_type
+        struct IsNameTrait : std::false_type
         {
         };
 
         template<size_t N>
-        struct is_name<Name<N>> : std::true_type
+        struct IsNameTrait<Name<N>> : std::true_type
         {
         };
 
         template<typename T>
-        concept IsName = is_name<std::remove_cvref_t<T>>::value;
+        concept IsName = IsNameTrait<std::remove_cvref_t<T>>::value;
 
         template<typename T>
-        struct is_arg : std::false_type
-        {
-        };
-
-        template<size_t... Ns>
-        struct is_arg<Arg<Ns...>> : std::true_type
-        {
-        };
-
-        template<typename T>
-        inline constexpr bool is_arg_v = is_arg<std::remove_cvref_t<T>>::value;
-
-        template<typename T>
-        concept IsArg = is_arg_v<T>;
-
-        template<typename T>
-        struct is_flag : std::false_type
+        struct IsArgTrait : std::false_type
         {
         };
 
         template<size_t... Ns>
-        struct is_flag<Flag<Ns...>> : std::true_type
+        struct IsArgTrait<Arg<Ns...>> : std::true_type
         {
         };
 
         template<typename T>
-        inline constexpr bool is_flag_v = is_flag<std::remove_cvref_t<T>>::value;
+        inline constexpr bool IS_ARG_V = IsArgTrait<std::remove_cvref_t<T>>::value;
 
         template<typename T>
-        concept IsFlag = is_flag_v<T>;
+        concept IsArg = IS_ARG_V<T>;
+
+        template<typename T>
+        struct IsFlagTrait : std::false_type
+        {
+        };
+
+        template<size_t... Ns>
+        struct IsFlagTrait<Flag<Ns...>> : std::true_type
+        {
+        };
+
+        template<typename T>
+        inline constexpr bool IS_FLAG_V = IsFlagTrait<std::remove_cvref_t<T>>::value;
+
+        template<typename T>
+        concept IsFlag = IS_FLAG_V<T>;
     }
 
     namespace detail
@@ -277,29 +282,32 @@ namespace cli
         // Keep each command's temporaries in a separate frame. Expanding every
         // command into register_commands accumulated their stack storage at -O0
         // and overflowed the embedded application thread during startup.
-        template<std::meta::info command_function, typename Bind>
+        template<std::meta::info CommandFunction, typename Bind>
         [[gnu::noinline]] constexpr auto register_command(Parser& parser, Bind& bind) -> void
         {
             constexpr auto annotations{ std::define_static_array(
-              std::meta::annotations_of(command_function)) };
+              std::meta::annotations_of(CommandFunction)) };
             static_assert(!annotations.empty(), "Command function must have at least one annotation.");
 
             using DescriptionType = std::remove_cvref_t<typename[:std::meta::type_of(annotations[0]):]>;
             static_assert(pnm::meta::string::FixedStringLike<DescriptionType>,
                           "The first annotation must be a fixed string describing the command!");
 
-            constexpr auto name{ std::meta::identifier_of(command_function) };
+            constexpr auto name{ std::meta::identifier_of(CommandFunction) };
             constexpr auto description{ std::meta::extract<DescriptionType>(annotations[0]) };
 
             Command cmd{ .name = std::string(name),
                          .description = std::string(description),
                          .arguments = {},
                          .flags = {},
-                         .callback = bind([:command_function:]) };
+                         .callback = bind([:CommandFunction:]) };
 
+            // Clang synthesizes reserved __N/__range identifiers for expansion statements.
+            // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
             template for (constexpr auto annotation :
                           std::span(annotations.data() + 1, annotations.size() - 1))
             {
+                // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
                 using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
                 static_assert(detail::IsName<Type> || detail::IsArg<Type> || detail::IsFlag<Type>,
                               "Invalid type for secondary annotation!");
@@ -341,8 +349,7 @@ namespace cli
         static_assert(std::meta::is_namespace(Commands), "Expected a namespace containing command handlers.");
         static constexpr auto command_functions{ [] {
             std::vector<std::meta::info> functions;
-            for (auto func :
-                 std::meta::members_of(Commands, std::meta::access_context::current())) {
+            for (auto func : std::meta::members_of(Commands, std::meta::access_context::current())) {
                 if (std::meta::is_function(func)) {
                     functions.push_back(func);
                 }
@@ -350,8 +357,11 @@ namespace cli
             return std::define_static_array(functions);
         }() };
 
+        // Clang synthesizes reserved __N/__range identifiers for expansion statements.
+        // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
         template for (constexpr auto command_function : command_functions)
         {
+            // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
             detail::register_command<command_function>(parser, bind);
         }
     }

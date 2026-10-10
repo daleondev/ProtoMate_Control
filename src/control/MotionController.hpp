@@ -21,7 +21,7 @@ namespace control
         std::array<DriverStatus, 3> driverStatus() const;
         // Explicit recovery, disabled only. Never automatically resumes motion.
         void initializeDrivers();
-        void configureDriver(MotorId motor, DriverConfiguration configuration);
+        void configureDriver(MotorId id, DriverConfiguration configuration);
 
         struct CoordinatedPlan
         {
@@ -29,11 +29,11 @@ namespace control
             std::array<std::shared_ptr<const hal::step::Sequence>, 3> sequences;
             std::array<std::optional<std::chrono::nanoseconds>, 3> delays;
             std::array<bool, 3> forward{};
-            pnm::units::Time duration{};
+            pnm::units::Time duration;
         };
         using Planner = std::function<CoordinatedPlan(const Status&, const std::array<MotionDefaults, 3>&)>;
         PlanningSnapshot planningSnapshot();
-        GroupMotion coordinate(const Trajectory&, pnm::units::Time timeout = 0_s);
+        GroupMotion coordinate(const Trajectory& /*trajectory*/, pnm::units::Time timeout = 0_s);
         // Nonblocking hardware inhibition, followed by stop() on the IO worker.
         void inhibitRemoteMotion() noexcept;
         void requestStop(std::optional<MotorId> motor = std::nullopt) noexcept;
@@ -46,10 +46,12 @@ namespace control
         // Empty factory selects the board's drivers. Alternate compositions can
         // supply the same interfaces without exposing transports to this class.
         explicit MotionController(const std::array<AxisConfig, 3>& configuration,
-                                  DriverFactory driver_factory = {});
+                                  const DriverFactory& driver_factory = {});
         ~MotionController();
         MotionController(const MotionController&) = delete;
         MotionController& operator=(const MotionController&) = delete;
+        MotionController(MotionController&&) = delete;
+        MotionController& operator=(MotionController&&) = delete;
 
         // Enable includes the DM542T's 200 ms settling interval. Disabling
         // aborts all commands and invalidates references (holding torque lost).
@@ -61,9 +63,9 @@ namespace control
 
         Motion move(MotorId motor, const Move& request);
         Motion reference(MotorId motor,
-                         pnm::units::AngularVelocity seek = 5_rpm,
-                         pnm::units::AngularVelocity latch = 0.5_rpm,
-                         pnm::units::Time timeout = 30_s);
+                         pnm::units::AngularVelocity seek = control::DEFAULT_REFERENCE_SEEK,
+                         pnm::units::AngularVelocity latch = control::DEFAULT_REFERENCE_LATCH,
+                         pnm::units::Time timeout = control::DEFAULT_REFERENCE_TIMEOUT);
         hal::step::PulseCount setVelocity(MotorId motor, pnm::units::AngularVelocity velocity);
         StepperMotor::MotionDefaults defaults(MotorId motor) const;
         void setDefaults(MotorId motor, StepperMotor::MotionDefaults defaults);
@@ -76,7 +78,7 @@ namespace control
         // cannot go stale before the hardware is prepared. It must not call back
         // into this controller. A zero-pulse plan completes without arming.
         GroupMotion coordinate(const Planner& planner, pnm::units::Time timeout = 0_s);
-        GroupMotion referenceAll(pnm::units::Time timeout = 90_s);
+        GroupMotion referenceAll(pnm::units::Time timeout = control::DEFAULT_GROUP_REFERENCE_TIMEOUT);
         std::vector<GroupMotion> groupMotions();
 
         AxisConfig motorConfiguration(MotorId motor) const;
@@ -90,16 +92,33 @@ namespace control
         Motion referenceAxis(MotorId motor,
                              std::optional<AxisSpeed> seek = {},
                              std::optional<AxisSpeed> latch = {},
-                             pnm::units::Time timeout = 30_s);
+                             pnm::units::Time timeout = control::DEFAULT_REFERENCE_TIMEOUT);
         hal::step::PulseCount setAxisVelocity(MotorId motor, const AxisSpeed& velocity);
         AxisDefaults axisDefaults(MotorId motor) const;
         void setAxisDefaults(MotorId motor, const AxisDefaults& defaults);
 
       private:
+        CoordinatedPlan planTrajectory(const Trajectory& trajectory,
+                                       const Status& state,
+                                       const std::array<MotionDefaults, 3>& defaults);
+        MotorResult referenceGroup(std::chrono::steady_clock::time_point deadline,
+                                   const std::stop_token& stop);
+        MotorResult waitForReference(std::size_t index,
+                                     std::future<MotorResult>& homing,
+                                     const std::array<bool, 3>& referenced,
+                                     std::chrono::steady_clock::time_point deadline,
+                                     const std::stop_token& stop);
+        MotorResult moveGroup(const CoordinatedPlan& plan,
+                              std::chrono::steady_clock::time_point deadline,
+                              const std::stop_token& stop);
+        MotorResult waitForGroup(const CoordinatedPlan& plan,
+                                 std::chrono::steady_clock::time_point deadline,
+                                 const std::stop_token& stop);
+
         StepperMotor& axis(MotorId motor) const;
         void requireEnabled() const;
         void initializeDriversLocked();
-        void monitorDrivers(std::stop_token stop);
+        void monitorDrivers(const std::stop_token& stop);
         bool driversReady() const noexcept;
         void handleDriverFaultsLocked();
         void stopLocked(std::optional<MotorId> motor);
@@ -118,19 +137,19 @@ namespace control
         void requireIdleGroup();
         GroupMotion launchGroup(Operation operation, CoordinatedPlan plan, pnm::units::Time timeout);
         void runGroup(Operation operation,
-                      CoordinatedPlan plan,
+                      const CoordinatedPlan& plan,
                       pnm::units::Time timeout,
                       Completion<MotorResult> completion,
-                      std::stop_token stop) noexcept;
+                      const std::stop_token& stop) noexcept;
 
         mutable std::mutex m_mutex;
-        std::atomic_bool m_remoteInhibited{};
+        std::atomic_bool m_remoteInhibited;
         std::uint64_t m_configurationRevision{ 1 }, m_commandRevision{ 1 };
-        const std::array<AxisConfig, 3> m_configuration;
+        std::array<AxisConfig, 3> m_configuration;
         std::array<std::optional<Conversion>, 3> m_conversions;
         runtime::Notification m_groupNotification;
         std::mutex m_groupActionMutex;
-        std::atomic_bool m_groupActive{};
+        std::atomic_bool m_groupActive;
         std::shared_ptr<hal::IDigitalOutput> m_enable;
         std::shared_ptr<hal::IStepGenerator> m_generator;
         std::array<std::unique_ptr<StepperMotor>, 3> m_motors;
@@ -140,7 +159,7 @@ namespace control
         MotionId m_nextGroupId{ 1 };
         std::jthread m_groupWorker;
         // Aggregate shutdown events only; each motor's driver owns its state.
-        std::atomic_uint m_driverFaults{};
+        std::atomic_uint m_driverFaults;
         unsigned m_handledDriverFaults{};
         runtime::Notification m_driverNotification;
         std::jthread m_driverWorker;

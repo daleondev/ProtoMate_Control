@@ -7,11 +7,15 @@ namespace control
     class ControllerServer final
     {
       public:
-        ControllerServer(std::shared_ptr<MotionController>, pnm::msg::Bus&, pnm::coro::Context&);
+        ControllerServer(std::shared_ptr<MotionController> controller,
+                         pnm::msg::Bus& bus,
+                         pnm::coro::Context& context);
         ~ControllerServer();
         ControllerServer(const ControllerServer&) = delete;
         ControllerServer& operator=(const ControllerServer&) = delete;
-        void linkChanged(p2p::LinkState);
+        ControllerServer(ControllerServer&&) = delete;
+        ControllerServer& operator=(ControllerServer&&) = delete;
+        void linkChanged(p2p::LinkState state);
 
       private:
         struct State;

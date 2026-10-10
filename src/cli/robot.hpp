@@ -5,5 +5,5 @@
 
 namespace cli::robot
 {
-    void setup(Parser& parser, std::shared_ptr<control::Robot> robot);
+    void setup(Parser& parser, const std::shared_ptr<control::Robot>& robot);
 }

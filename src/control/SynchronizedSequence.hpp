@@ -23,6 +23,6 @@ namespace motion
         std::int64_t tickAt(hal::step::PulseCount pulse) const noexcept;
         Profile m_profile;
         hal::step::PulseCount m_count;
-        std::chrono::nanoseconds m_maximum;
+        std::chrono::nanoseconds m_maximum{};
     };
 }

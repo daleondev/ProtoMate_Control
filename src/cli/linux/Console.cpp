@@ -28,10 +28,20 @@
 #include <system_error>
 #include <thread>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 namespace
 {
+    constexpr int ESCAPE_DELAY_MILLISECONDS{ 25 };
+    constexpr std::size_t INPUT_BUFFER_SIZE{ 64U };
+    constexpr std::size_t ESCAPE_SEQUENCE_LIMIT{ 16U };
+    constexpr unsigned char CSI_FINAL_FIRST{ 0x40U }, CSI_FINAL_LAST{ 0x7EU }, NON_ASCII_START{ 0x80U };
+    constexpr std::size_t DRAIN_BATCH_LIMIT{ 8U };
+    constexpr wchar_t CTRL_E{ 5 }, CTRL_K{ 11 }, CTRL_L{ 12 }, CTRL_U{ 21 }, BACKSPACE{ 8 }, DELETE{ 127 };
+    constexpr int MINIMUM_COLUMNS{ 8 };
+    constexpr std::size_t ENCODING_ERROR{ static_cast<std::size_t>(-1) };
+    constexpr std::size_t ENCODING_INCOMPLETE{ static_cast<std::size_t>(-2) };
     constexpr int INPUT_REFRESH_MILLISECONDS{ 50 };
     constexpr std::size_t MAX_LOG_LINES{ 2'000U };
     constexpr std::size_t DRAIN_BATCH_SIZE{ 64U };
@@ -47,6 +57,8 @@ namespace
 
         auto write(std::span<const std::byte> data) -> pnm::Result<std::size_t> override
         {
+            // Character views may alias an existing byte buffer without copying.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             const auto* const characters{ reinterpret_cast<const char*>(data.data()) };
             linux_console::publish(linux_console::Channel::log, { characters, data.size() });
             return data.size();
@@ -93,7 +105,7 @@ namespace
             }
 
             static_cast<void>(curs_set(1));
-            static_cast<void>(set_escdelay(25));
+            static_cast<void>(set_escdelay(ESCAPE_DELAY_MILLISECONDS));
             if (has_colors() && start_color() != ERR) {
                 const short background{ static_cast<short>(use_default_colors() == ERR ? COLOR_BLACK : -1) };
                 m_hasColors = init_pair(1, COLOR_CYAN, background) != ERR &&
@@ -122,6 +134,8 @@ namespace
 
         TerminalSession(const TerminalSession&) = delete;
         auto operator=(const TerminalSession&) -> TerminalSession& = delete;
+        TerminalSession(TerminalSession&&) = delete;
+        auto operator=(TerminalSession&&) -> TerminalSession& = delete;
 
         [[nodiscard]] auto active() const noexcept -> bool { return m_active; }
         [[nodiscard]] auto hasColors() const noexcept -> bool { return m_hasColors; }
@@ -141,7 +155,7 @@ namespace
         while (!input.empty()) {
             wchar_t character{};
             const std::size_t consumed{ std::mbrtowc(&character, input.data(), input.size(), &state) };
-            if (consumed == static_cast<std::size_t>(-1) || consumed == static_cast<std::size_t>(-2)) {
+            if (consumed == ENCODING_ERROR || consumed == ENCODING_INCOMPLETE) {
                 output.push_back(L'\uFFFD');
                 input.remove_prefix(1U);
                 state = {};
@@ -177,7 +191,7 @@ namespace
 
         for (const wchar_t character : input) {
             const std::size_t written{ std::wcrtomb(buffer.data(), character, &state) };
-            if (written == static_cast<std::size_t>(-1)) {
+            if (written == ENCODING_ERROR) {
                 output.push_back('?');
                 state = {};
                 continue;
@@ -236,18 +250,18 @@ namespace
     {
         enum class Type : std::uint8_t
         {
-            character,
-            key,
+            Character,
+            Key,
         };
 
-        Type type{ Type::character };
+        Type type{ Type::Character };
         wchar_t character{};
         int key{};
     };
 
     struct InputBatch
     {
-        std::array<InputEvent, 64U> events{};
+        std::array<InputEvent, INPUT_BUFFER_SIZE> events{};
         std::size_t size{};
         bool closed{};
     };
@@ -268,7 +282,7 @@ namespace
             // simulated current thread suspended indefinitely. Probe without
             // blocking; the caller yields through the ThreadX-aware C++ sleep.
             int poll_result{};
-            for (std::size_t attempts{}; attempts < 16U; ++attempts) {
+            for (std::size_t attempts{}; attempts < ESCAPE_SEQUENCE_LIMIT; ++attempts) {
                 poll_result = ::poll(&descriptor, 1U, 0);
                 if (poll_result >= 0 || errno != EINTR) {
                     break;
@@ -288,11 +302,13 @@ namespace
                 return result;
             }
 
-            std::array<unsigned char, 64U> input{};
+            std::array<unsigned char, INPUT_BUFFER_SIZE> input{};
             ssize_t received{};
-            do {
+            for (;;) {
                 received = ::read(STDIN_FILENO, input.data(), static_cast<unsigned long>(input.size()));
-            } while (received < 0 && errno == EINTR);
+                if (received >= 0 || errno != EINTR)
+                    break;
+            }
             if (received == 0) {
                 result.closed = true;
                 return result;
@@ -313,7 +329,7 @@ namespace
         {
             if (output.size < output.events.size()) {
                 output.events[output.size++] = {
-                    .type = InputEvent::Type::character,
+                    .type = InputEvent::Type::Character,
                     .character = character,
                 };
             }
@@ -323,7 +339,7 @@ namespace
         {
             if (output.size < output.events.size()) {
                 output.events[output.size++] = {
-                    .type = InputEvent::Type::key,
+                    .type = InputEvent::Type::Key,
                     .key = key,
                 };
             }
@@ -337,10 +353,10 @@ namespace
                 if (m_escape.size() == 2U && (byte == '[' || byte == 'O')) {
                     return;
                 }
-                if (byte >= 0x40U && byte <= 0x7EU) {
+                if (byte >= CSI_FINAL_FIRST && byte <= CSI_FINAL_LAST) {
                     emitEscape(output);
                 }
-                else if (m_escape.size() == 16U) {
+                else if (m_escape.size() == ESCAPE_SEQUENCE_LIMIT) {
                     m_escape.clear();
                 }
                 return;
@@ -350,7 +366,7 @@ namespace
                 m_escape.push_back(static_cast<char>(byte));
                 return;
             }
-            if (m_multibyte.empty() && byte < 0x80U) {
+            if (m_multibyte.empty() && byte < NON_ASCII_START) {
                 emitCharacter(output, static_cast<wchar_t>(byte));
                 return;
             }
@@ -360,10 +376,10 @@ namespace
             std::mbstate_t state{};
             const std::size_t converted{ std::mbrtowc(
               &character, m_multibyte.data(), m_multibyte.size(), &state) };
-            if (converted == static_cast<std::size_t>(-2)) {
+            if (converted == ENCODING_INCOMPLETE) {
                 return;
             }
-            if (converted == static_cast<std::size_t>(-1)) {
+            if (converted == ENCODING_ERROR) {
                 emitCharacter(output, L'\uFFFD');
             }
             else {
@@ -413,7 +429,7 @@ namespace
     {
       public:
         InteractiveCli(cli::Parser& parser, bool has_colors)
-          : m_parser{ parser }
+          : m_parser{ &parser }
           , m_hasColors{ has_colors }
         {
         }
@@ -440,7 +456,7 @@ namespace
                     continue;
                 }
                 for (const auto& event : std::span{ batch.events }.first(batch.size)) {
-                    if (event.type == InputEvent::Type::key) {
+                    if (event.type == InputEvent::Type::Key) {
                         dirty = handleKey(event.key) || dirty;
                     }
                     else {
@@ -458,6 +474,8 @@ namespace
         [[nodiscard]] static auto resizeIfNeeded() -> bool
         {
             winsize terminal_size{};
+            // POSIX exposes the terminal-size query only through this variadic C API.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
             if (::ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal_size) != 0 || terminal_size.ws_row == 0U ||
                 terminal_size.ws_col == 0U) {
                 return false;
@@ -466,7 +484,7 @@ namespace
             int rows{};
             int columns{};
             getmaxyx(stdscr, rows, columns);
-            if (rows == terminal_size.ws_row && columns == terminal_size.ws_col) {
+            if (std::cmp_equal(rows, terminal_size.ws_row) && std::cmp_equal(columns, terminal_size.ws_col)) {
                 return false;
             }
             return resizeterm(terminal_size.ws_row, terminal_size.ws_col) != ERR;
@@ -476,7 +494,7 @@ namespace
         {
             bool changed{};
             std::array<linux_console::Message, DRAIN_BATCH_SIZE> messages{};
-            for (std::size_t batch{}; batch < 8U; ++batch) {
+            for (std::size_t batch{}; batch < DRAIN_BATCH_LIMIT; ++batch) {
                 const std::size_t received{ linux_console::drain(messages) };
                 for (const auto& message : std::span{ messages }.first(received)) {
                     changed = append(message) || changed;
@@ -546,7 +564,7 @@ namespace
             m_cursor = 0U;
 
             std::ostringstream output;
-            const cli::ExecutionResult execution{ m_parser.execute(line, output) };
+            const cli::ExecutionResult execution{ m_parser->execute(line, output) };
             const std::string command_output{ std::move(output).str() };
             if (!command_output.empty()) {
                 linux_console::publish(linux_console::Channel::command, command_output);
@@ -576,23 +594,23 @@ namespace
                         leaveHistory();
                     }
                     return true;
-                case 5: // Ctrl-E
+                case CTRL_E: // Ctrl-E
                     m_cursor = m_input.size();
                     return true;
-                case 11: // Ctrl-K
+                case CTRL_K: // Ctrl-K
                     m_input.erase(m_cursor);
                     leaveHistory();
                     return true;
-                case 12: // Ctrl-L
+                case CTRL_L: // Ctrl-L
                     clearok(stdscr, true);
                     return true;
-                case 21: // Ctrl-U
+                case CTRL_U: // Ctrl-U
                     m_input.erase(0U, m_cursor);
                     m_cursor = 0U;
                     leaveHistory();
                     return true;
-                case 8:
-                case 127:
+                case BACKSPACE:
+                case DELETE:
                     backspace();
                     return true;
                 default:
@@ -696,7 +714,7 @@ namespace
             m_historyDraft.clear();
         }
 
-        [[nodiscard]] auto pageSize() const noexcept -> std::size_t
+        [[nodiscard]] static auto pageSize() noexcept -> std::size_t
         {
             int rows{};
             int columns{};
@@ -741,7 +759,7 @@ namespace
             getmaxyx(stdscr, rows, columns);
             static_cast<void>(erase());
 
-            if (rows < 3 || columns < 8) {
+            if (rows < 3 || columns < MINIMUM_COLUMNS) {
                 constexpr std::string_view message{ "terminal too small" };
                 static_cast<void>(mvaddnstr(0, 0, message.data(), std::min<int>(columns, message.size())));
                 static_cast<void>(refresh());
@@ -814,7 +832,7 @@ namespace
             static_cast<void>(move(row, std::min(columns - 1, cursor_column)));
         }
 
-        cli::Parser& m_parser;
+        cli::Parser* m_parser;
         bool m_hasColors;
         std::deque<LogLine> m_lines;
         std::array<std::string, 4U> m_pending;
@@ -835,7 +853,7 @@ extern "C" void runtime_application_prepare()
 
 namespace cli::terminal
 {
-    auto configureLogging() -> void
+    auto configure_logging() -> void
     {
         auto sink{ std::make_shared<ConsoleSink>() };
         if (!pnm::log::set_default_sink(pnm::log::Level::Trace, pnm::log::Level::Critical, std::move(sink))) {

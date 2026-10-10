@@ -2,6 +2,13 @@
 #include "runtime/thread.hpp"
 #include <deque>
 
+namespace
+{
+    constexpr std::size_t REQUEST_CAPACITY{ 8U };
+    constexpr int IO_WORKER_PRIORITY{ 6 };
+    constexpr std::size_t IO_WORKER_STACK_SIZE{ 65536U };
+}
+
 namespace control
 {
     using namespace std::chrono_literals;
@@ -28,7 +35,7 @@ namespace control
             ControllerTypes::MotorId motor{};
             ControllerTypes::MotionId id{};
             Completion<MotorResult> completion;
-            std::atomic_bool ready{};
+            std::atomic_bool ready;
             pnm::msg::ReadinessRegistration watch;
         };
         std::shared_ptr<MotionController> controller;
@@ -44,31 +51,42 @@ namespace control
         std::vector<std::shared_ptr<Job>> jobs;
         runtime::Notification notification;
         std::jthread worker;
-        std::atomic_bool closing{}, scheduled{}, connected{}, inhibited{}, lossPending{}, groupActive{};
+        std::atomic_bool closing, scheduled, connected, inhibited, loss_pending, group_active;
         State(std::shared_ptr<MotionController> c, pnm::msg::Bus& b, pnm::coro::Context& x)
           : controller(std::move(c))
           , bus(b)
           , context(x)
         {
         }
+        // Clang diagnoses the compiler's implicit static promise-hook calls.
+        // NOLINTBEGIN(readability-static-accessed-through-instance)
+        static pnm::coro::Task<void> pollOnContext(std::shared_ptr<State> self)
+        {
+            self->scheduled.store(false);
+            if (!self->closing.load()) {
+                try {
+                    if (!self->stops || !self->requests || !self->actions)
+                        throw std::logic_error("controller endpoints are not registered");
+                    auto& stops = *self->stops;
+                    auto& requests = *self->requests;
+                    auto& actions = *self->actions;
+                    stops.poll();
+                    requests.poll();
+                    actions.poll();
+                } catch (...) {
+                    self->link(p2p::LinkState::ProtocolError);
+                }
+            }
+            co_return;
+        }
+        // NOLINTEND(readability-static-accessed-through-instance)
         void dispatch() noexcept
         {
             if (closing.load() || scheduled.exchange(true))
                 return;
             try {
-                pnm::coro::co_spawn(
-                  context, [self = shared_from_this()](pnm::coro::Context&) -> pnm::coro::Task<void> {
-                    self->scheduled.store(false);
-                    if (!self->closing.load()) {
-                        try {
-                            self->stops->poll();
-                            self->requests->poll();
-                            self->actions->poll();
-                        } catch (...) {
-                            self->link(p2p::LinkState::ProtocolError);
-                        }
-                    }
-                    co_return;
+                pnm::coro::co_spawn(context, [self = shared_from_this()](pnm::coro::Context& /*context*/) {
+                    return pollOnContext(self);
                 });
             } catch (...) {
                 scheduled.store(false);
@@ -92,13 +110,14 @@ namespace control
                 for (auto& e : epoch)
                     ++e;
             }
-            lossPending.store(true);
+            loss_pending.store(true);
             notification.signal();
         }
         void enqueue(Work work, bool priority)
         {
             if (priority && work.request.operation != Op::Stop && work.request.operation != Op::Disable) {
-                work.reply->fail(pnm::msg::ServiceError::HandlerFailed);
+                if (work.reply)
+                    work.reply->fail(pnm::msg::ServiceError::HandlerFailed);
                 return;
             }
             if (closing.load() || !connected.load()) {
@@ -111,7 +130,7 @@ namespace control
             {
                 std::scoped_lock lock(mutex);
                 auto& destination = priority ? urgent : queue;
-                if (destination.size() >= 8) {
+                if (destination.size() >= REQUEST_CAPACITY) {
                     if (work.reply)
                         work.reply->fail(pnm::msg::ServiceError::Busy);
                     if (work.execution)
@@ -120,7 +139,7 @@ namespace control
                 }
                 if (priority) {
                     auto motor = selection(work.request.motor);
-                    if (work.request.operation == Op::Disable || groupActive.load())
+                    if (work.request.operation == Op::Disable || group_active.load())
                         motor.reset();
                     if (motor)
                         ++epoch[static_cast<unsigned>(*motor)];
@@ -136,7 +155,7 @@ namespace control
         }
         static std::optional<ControllerTypes::MotorId> selection(std::uint8_t id)
         {
-            if (id == 255)
+            if (id == protocol::ALL_MOTORS)
                 return {};
             if (id > 2)
                 throw std::invalid_argument("invalid motor");
@@ -162,6 +181,8 @@ namespace control
         }
         void service(Work& work)
         {
+            if (!work.reply)
+                throw std::logic_error("service work has no reply");
             auto& reply = *work.reply;
             if (!reply.pending())
                 return;
@@ -209,7 +230,7 @@ namespace control
                         controller->initializeDrivers();
                         break;
                     case Op::ConfigureDriver: {
-                        auto c = protocol::driverConfiguration(r);
+                        auto c = protocol::driver_configuration(r);
                         r.finish();
                         controller->configureDriver(motor(q.motor), c);
                         break;
@@ -217,7 +238,7 @@ namespace control
                     case Op::ConfigureAxis: {
                         auto c = protocol::conversion(r);
                         r.finish();
-                        controller->configureAxis(motor(q.motor), std::move(c));
+                        controller->configureAxis(motor(q.motor), c);
                         break;
                     }
                     case Op::Defaults:
@@ -235,7 +256,7 @@ namespace control
                         protocol::write(out, controller->axisDefaults(motor(q.motor)));
                         break;
                     case Op::SetAxisDefaults: {
-                        auto d = protocol::axisDefaults(r);
+                        auto d = protocol::axis_defaults(r);
                         r.finish();
                         controller->setAxisDefaults(motor(q.motor), d);
                         break;
@@ -262,117 +283,130 @@ namespace control
                         controller->stop(selection(q.motor));
                     throw std::runtime_error("command interrupted by stop/link loss");
                 }
-                reply.respond({ true, {}, std::move(out.bytes) });
+                reply.respond({ .success = true, .error = {}, .data = std::move(out.bytes) });
             } catch (const std::exception& e) {
-                reply.respond({ false, std::string(e.what()).substr(0, 255), {} });
+                reply.respond({ .success = false,
+                                .error = std::string(e.what()).substr(0, protocol::MAX_ERROR_TEXT),
+                                .data = {} });
             } catch (...) {
                 reply.fail(pnm::msg::ServiceError::HandlerFailed);
             }
         }
+        void submitAction(const protocol::Request& request, const std::shared_ptr<Job>& job)
+        {
+            const auto& q = request;
+            p2p::Reader r(q.data);
+            ControllerTypes::Motion single{};
+            ControllerTypes::GroupMotion group{};
+            job->group = q.operation == Op::ReferenceAll || q.operation == Op::Trajectory;
+            if (!job->group)
+                job->motor = motor(q.motor);
+            switch (q.operation) {
+                case Op::Move: {
+                    auto m = protocol::move(r);
+                    r.finish();
+                    single = controller->move(job->motor, m);
+                    break;
+                }
+                case Op::MoveAxis: {
+                    auto m = protocol::axis_move(r);
+                    r.finish();
+                    single = controller->moveAxis(job->motor, m);
+                    break;
+                }
+                case Op::Reference: {
+                    auto seek = pnm::units::AngularVelocity::create(r.real());
+                    auto latch = pnm::units::AngularVelocity::create(r.real());
+                    auto timeout = pnm::units::Time::create(r.real());
+                    r.finish();
+                    single = controller->reference(job->motor, seek, latch, timeout);
+                    break;
+                }
+                case Op::ReferenceAxis: {
+                    std::optional<ControllerTypes::AxisSpeed> seek;
+                    std::optional<ControllerTypes::AxisSpeed> latch;
+                    if (r.boolean())
+                        seek = protocol::speed(r);
+                    if (r.boolean())
+                        latch = protocol::speed(r);
+                    auto timeout = pnm::units::Time::create(r.real());
+                    r.finish();
+                    single = controller->referenceAxis(job->motor, seek, latch, timeout);
+                    break;
+                }
+                case Op::ReferenceAll: {
+                    auto timeout = pnm::units::Time::create(r.real());
+                    r.finish();
+                    group = controller->referenceAll(timeout);
+                    break;
+                }
+                case Op::Trajectory: {
+                    auto t = protocol::trajectory(r);
+                    auto timeout = pnm::units::Time::create(r.real());
+                    r.finish();
+                    group = controller->coordinate(t, timeout);
+                    break;
+                }
+                default:
+                    throw std::invalid_argument("operation is not a motion action");
+            }
+            job->completion = job->group ? group.observed : single.observed;
+            job->id = job->group ? group.id : single.id;
+        }
         void action(Work& work)
         {
+            if (!work.execution)
+                throw std::logic_error("action work has no execution");
             auto execution = std::move(*work.execution);
             if (!execution.pending())
                 return;
             if (execution.cancelRequested()) {
-                execution.cancelled({ MotorResult::Stopped, {} });
+                execution.cancelled({ .result = MotorResult::Stopped, .error = {} });
                 return;
             }
             if (!fresh(work) || inhibited.load() || !connected.load()) {
                 execution.reject();
                 return;
             }
-            if (jobs.size() >= 8) {
+            if (jobs.size() >= REQUEST_CAPACITY) {
                 execution.fail(pnm::msg::ActionError::Busy);
                 return;
             }
             auto job = std::make_shared<Job>(std::move(execution));
             try {
-                const auto& q = work.request;
-                p2p::Reader r(q.data);
-                ControllerTypes::Motion single{};
-                ControllerTypes::GroupMotion group{};
-                job->group = q.operation == Op::ReferenceAll || q.operation == Op::Trajectory;
-                if (!job->group)
-                    job->motor = motor(q.motor);
-                switch (q.operation) {
-                    case Op::Move: {
-                        auto m = protocol::move(r);
-                        r.finish();
-                        single = controller->move(job->motor, m);
-                        break;
-                    }
-                    case Op::MoveAxis: {
-                        auto m = protocol::axisMove(r);
-                        r.finish();
-                        single = controller->moveAxis(job->motor, m);
-                        break;
-                    }
-                    case Op::Reference: {
-                        auto seek = pnm::units::AngularVelocity::create(r.real());
-                        auto latch = pnm::units::AngularVelocity::create(r.real());
-                        auto timeout = pnm::units::Time::create(r.real());
-                        r.finish();
-                        single = controller->reference(job->motor, seek, latch, timeout);
-                        break;
-                    }
-                    case Op::ReferenceAxis: {
-                        std::optional<ControllerTypes::AxisSpeed> seek, latch;
-                        if (r.boolean())
-                            seek = protocol::speed(r);
-                        if (r.boolean())
-                            latch = protocol::speed(r);
-                        auto timeout = pnm::units::Time::create(r.real());
-                        r.finish();
-                        single = controller->referenceAxis(job->motor, seek, latch, timeout);
-                        break;
-                    }
-                    case Op::ReferenceAll: {
-                        auto timeout = pnm::units::Time::create(r.real());
-                        r.finish();
-                        group = controller->referenceAll(timeout);
-                        break;
-                    }
-                    case Op::Trajectory: {
-                        auto t = protocol::trajectory(r);
-                        auto timeout = pnm::units::Time::create(r.real());
-                        r.finish();
-                        group = controller->coordinate(t, timeout);
-                        break;
-                    }
-                    default:
-                        throw std::invalid_argument("operation is not a motion action");
-                }
-                job->completion = job->group ? group.observed : single.observed;
-                job->id = job->group ? group.id : single.id;
+                submitAction(work.request, job);
                 if (job->completion.result() == MotorResult::Rejected) {
-                    job->execution.reject({ MotorResult::Rejected, "motion rejected by axis admission" });
+                    job->execution.reject(
+                      { .result = MotorResult::Rejected, .error = "motion rejected by axis admission" });
                     return;
                 }
                 if (!fresh(work) || !job->execution.accept()) {
                     controller->stop(job->group ? std::nullopt : std::optional(job->motor));
-                    job->execution.cancelled({ MotorResult::Stopped, {} });
+                    job->execution.cancelled({ .result = MotorResult::Stopped, .error = {} });
                     return;
                 }
                 auto weak = weak_from_this();
-                auto weakJob = std::weak_ptr<Job>(job);
+                auto weak_job = std::weak_ptr<Job>(job);
                 job->watch = pnm::msg::watch(job->execution, [weak]() noexcept {
                     if (auto s = weak.lock())
                         s->notification.signal();
                 });
-                job->completion.then([weak, weakJob]() noexcept {
-                    if (auto j = weakJob.lock())
+                job->completion.then([weak, weak_job]() noexcept {
+                    if (auto j = weak_job.lock())
                         j->ready.store(true);
                     if (auto s = weak.lock())
                         s->notification.signal();
                 });
                 jobs.push_back(job);
                 if (job->group)
-                    groupActive.store(true);
+                    group_active.store(true);
             } catch (const std::invalid_argument& e) {
-                job->execution.reject({ MotorResult::Rejected, std::string(e.what()).substr(0, 255), true });
+                job->execution.reject({ .result = MotorResult::Rejected,
+                                        .error = std::string(e.what()).substr(0, protocol::MAX_ERROR_TEXT),
+                                        .invalid_argument = true });
             } catch (const std::exception& e) {
-                job->execution.reject({ MotorResult::Rejected, std::string(e.what()).substr(0, 255) });
+                job->execution.reject({ .result = MotorResult::Rejected,
+                                        .error = std::string(e.what()).substr(0, protocol::MAX_ERROR_TEXT) });
             } catch (...) {
                 job->execution.fail(pnm::msg::ActionError::HandlerFailed);
             }
@@ -392,8 +426,8 @@ namespace control
                         continue;
                     }
                     if (job.group)
-                        groupActive.store(false);
-                    protocol::Outcome outcome{ *result, {} };
+                        group_active.store(false);
+                    protocol::Outcome outcome{ .result = *result, .error = {} };
                     if (*result == MotorResult::Completed)
                         job.execution.succeed(outcome);
                     else if (*result == MotorResult::Stopped)
@@ -412,23 +446,25 @@ namespace control
             for (const auto& j : jobs) {
                 const auto i = static_cast<unsigned>(j->motor);
                 const auto& a = snapshot.status.axes[i];
-                j->execution.feedback(
-                  { j->id, snapshot.status.generator.pulses[i], a.position.get(), a.referenced });
+                j->execution.feedback({ .execution_id = j->id,
+                                        .pulses = snapshot.status.generator.pulses[i],
+                                        .position = a.position.get(),
+                                        .referenced = a.referenced });
             }
-            bus.topic<protocol::State>(protocol::StateName).publish({ std::move(snapshot) });
+            bus.topic<protocol::State>(protocol::STATE_NAME).publish({ snapshot });
             protocol::FaultState faults{};
             auto drivers = controller->driverStatus();
             for (unsigned i = 0; i < 3; ++i)
                 faults.drivers[i] = drivers[i].status;
             faults.link_inhibited = inhibited.load();
-            bus.topic<protocol::FaultState>(protocol::FaultName).publish(faults);
+            bus.topic<protocol::FaultState>(protocol::FAULT_NAME).publish(faults);
         }
-        void run(std::stop_token stop) noexcept
+        void run(const std::stop_token& stop) noexcept
         {
             auto next = std::chrono::steady_clock::now();
             while (!stop.stop_requested()) {
                 try {
-                    if (lossPending.exchange(false))
+                    if (loss_pending.exchange(false))
                         controller->stop();
                     completions();
                     if (std::chrono::steady_clock::now() >= next) {
@@ -461,7 +497,7 @@ namespace control
             }
             controller->stop();
             for (auto& job : jobs)
-                job->execution.cancelled({ MotorResult::Stopped, {} });
+                job->execution.cancelled({ .result = MotorResult::Stopped, .error = {} });
             jobs.clear();
             {
                 std::scoped_lock lock(mutex);
@@ -472,22 +508,22 @@ namespace control
         void start()
         {
             auto weak = weak_from_this();
-            requests.emplace(bus.service<protocol::Request, protocol::Response>(protocol::RequestName)
+            requests.emplace(bus.service<protocol::Request, protocol::Response>(protocol::REQUEST_NAME)
                                .serveDeferred([weak](const auto& q, Reply reply) {
                 if (auto s = weak.lock())
                     s->enqueue({ q, std::move(reply), {}, {} }, false);
-            }, { 8 }));
-            stops.emplace(bus.service<protocol::Request, protocol::Response>(protocol::StopName)
+            }, { REQUEST_CAPACITY }));
+            stops.emplace(bus.service<protocol::Request, protocol::Response>(protocol::STOP_NAME)
                             .serveDeferred([weak](const auto& q, Reply reply) {
                 if (auto s = weak.lock())
                     s->enqueue({ q, std::move(reply), {}, {} }, true);
-            }, { 8 }));
+            }, { REQUEST_CAPACITY }));
             actions.emplace(
-              bus.action<protocol::Request, protocol::Progress, protocol::Outcome>(protocol::ExecuteName)
+              bus.action<protocol::Request, protocol::Progress, protocol::Outcome>(protocol::EXECUTE_NAME)
                 .serveDeferred([weak](const auto& q, Execution execution) {
                 if (auto s = weak.lock())
                     s->enqueue({ q, {}, std::move(execution), {} }, false);
-            }, { 8 }));
+            }, { REQUEST_CAPACITY }));
             auto wake = [weak]() noexcept {
                 if (auto s = weak.lock())
                     s->dispatch();
@@ -496,20 +532,24 @@ namespace control
             registrations[1] = pnm::msg::watch(*stops, wake);
             registrations[2] = pnm::msg::watch(*actions, wake);
             worker = runtime::thread::create_jthread(
-              { .name = "IO commands", .priority = 6, .stack_size = 65536U },
-              [self = shared_from_this()](std::stop_token stop) { self->run(stop); });
+              { .name = "IO commands", .priority = IO_WORKER_PRIORITY, .stack_size = IO_WORKER_STACK_SIZE },
+              [self = shared_from_this()](const std::stop_token& stop) { self->run(stop); });
         }
         void close()
         {
             closing.store(true);
-            actions->requestStop();
+            if (actions)
+                actions->requestStop();
             worker.request_stop();
             notification.signal();
             if (worker.joinable())
                 worker.join();
-            requests->close();
-            stops->close();
-            actions->close();
+            if (requests)
+                requests->close();
+            if (stops)
+                stops->close();
+            if (actions)
+                actions->close();
             for (auto& r : registrations)
                 r.reset();
         }

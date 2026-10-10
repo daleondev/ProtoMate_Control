@@ -11,6 +11,8 @@ namespace cli::control_detail
     using Controller = control::ControllerClient;
     using MotorId = Controller::MotorId;
 
+    // The second string is the diagnostic label for the first; call sites use label literals.
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     double number(std::string_view text, std::string_view name)
     {
         double value{};
@@ -38,13 +40,13 @@ namespace cli::control_detail
         return args.flagValue(name);
     }
 
-    double numericOption(const Arguments& args, std::string_view name, double fallback, bool zero)
+    double numeric_option(const Arguments& args, std::string_view name, double fallback, bool zero)
     {
         const auto value{ option(args, name) };
         return value ? magnitude(number(*value, name), name, zero) : fallback;
     }
 
-    control::BufferMode bufferMode(const Arguments& args, std::string_view family)
+    control::BufferMode buffer_mode(const Arguments& args, std::string_view family)
     {
         using enum control::BufferMode;
         const auto value{ option(args, "buffer").value_or("aborting") };
@@ -63,7 +65,7 @@ namespace cli::control_detail
         throw std::invalid_argument("unknown buffer mode; see 'help " + std::string(family) + " move'");
     }
 
-    std::string_view resultName(std::optional<control::MotorResult> result)
+    std::string_view result_name(std::optional<control::MotorResult> result)
     {
         if (!result)
             return "outstanding";
@@ -83,7 +85,7 @@ namespace cli::control_detail
         return "unknown";
     }
 
-    std::string_view stateName(hal::step::State state)
+    std::string_view state_name(hal::step::State state)
     {
         using enum hal::step::State;
         switch (state) {
@@ -105,7 +107,7 @@ namespace cli::control_detail
         return "unknown";
     }
 
-    std::string_view axisName(MotorId motor)
+    std::string_view axis_name(MotorId motor)
     {
         switch (motor) {
             case MotorId::Motor1:
@@ -118,17 +120,18 @@ namespace cli::control_detail
         throw std::invalid_argument("invalid motor/axis");
     }
 
-    void printMotion(const Controller::Motion& value, std::ostream& out, std::string_view family)
+    void print_motion(const Controller::Motion& value, std::ostream& out, std::string_view family)
     {
-        const auto label{ family == "axis" ? std::string(axisName(value.motor))
+        const auto label{ family == "axis" ? std::string(axis_name(value.motor))
                                            : std::format("m{}", static_cast<unsigned>(value.motor) + 1U) };
-        out << std::format("#{} {} {}\n", value.id, label, resultName(value.result));
-        if(value.result && !value.terminal_confirmed)out << "IO connection lost; hardware stop is not confirmed.\n";
+        out << std::format("#{} {} {}\n", value.id, label, result_name(value.result));
+        if (value.result && !value.terminal_confirmed)
+            out << "IO connection lost; hardware stop is not confirmed.\n";
     }
 
     int submitted(const Controller::Motion& value, std::ostream& out, std::string_view family)
     {
-        printMotion(value, out, family);
+        print_motion(value, out, family);
         if (!value.result)
             out << std::format("Check completion with: {} jobs {}\n", family, value.id);
         else if (*value.result != control::MotorResult::Completed)
@@ -154,7 +157,7 @@ namespace cli::control_detail
             if (selected && *selected != motion.id)
                 continue;
             found = true;
-            printMotion(motion, out, family);
+            print_motion(motion, out, family);
             if (selected && motion.result && *motion.result != control::MotorResult::Completed)
                 return 1;
         }

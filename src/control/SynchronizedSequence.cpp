@@ -1,4 +1,5 @@
 #include "SynchronizedSequence.hpp"
+#include "MotionLimits.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -9,15 +10,15 @@ namespace motion
     namespace
     {
         using namespace std::chrono_literals;
-        constexpr std::int64_t tick_ns{ 100 };
-        constexpr auto maximum_period{ 53'687'091'100ns };
+        constexpr auto TICK_NS{ limits::TIMER_TICK.count() };
+        constexpr auto MAXIMUM_PERIOD{ limits::MAX_PERIOD };
 
         hal::util::Result<hal::step::Timing> interval(std::int64_t ticks) noexcept
         {
-            const auto period{ std::chrono::nanoseconds{ ticks * tick_ns } };
-            if (period < 10us || period > maximum_period)
+            const auto period{ std::chrono::nanoseconds{ ticks * TICK_NS } };
+            if (period < limits::MIN_PERIOD || period > MAXIMUM_PERIOD)
                 return std::unexpected(std::make_error_code(std::errc::result_out_of_range));
-            return hal::step::Timing{ period, 5us };
+            return hal::step::Timing{ .period = period, .high_time = limits::HIGH_TIME };
         }
     }
 
@@ -25,28 +26,35 @@ namespace motion
       : m_profile{ profile }
       , m_count{ count }
     {
-        if (count == 0U || count >= static_cast<hal::step::PulseCount>(0x1p52) || profile.distance() != 1.0 ||
-            !std::isfinite(profile.duration()) || profile.duration() <= 0.0 || profile.duration() > 1e8)
+        if (count == 0U ||
+            count >= static_cast<hal::step::PulseCount>(static_cast<double>(motion::limits::MAX_PULSES)) ||
+            profile.distance() != 1.0 || !std::isfinite(profile.duration()) || profile.duration() <= 0.0 ||
+            profile.duration() > limits::MAX_PROFILE_SECONDS)
             throw std::invalid_argument("invalid synchronized profile");
         const auto bound{ profile.maximumStepInterval(1.0 / static_cast<double>(count)) };
-        if (!std::isfinite(bound) || bound > 53.68)
+        if (!std::isfinite(bound) || bound > limits::SYNCHRONIZED_HORIZON_SECONDS)
             throw std::invalid_argument("synchronized move exceeds the timer's slow-motion horizon");
         m_maximum = std::chrono::nanoseconds{ std::max<std::int64_t>(
-          10000, static_cast<std::int64_t>(std::ceil(bound * 1e7 + 2.0)) * tick_ns) };
+          limits::MIN_PERIOD.count(),
+          static_cast<std::int64_t>(
+            std::ceil((bound * limits::TICKS_PER_SECOND) +
+                      static_cast<double>(limits::BOUND_ROUNDING_MARGIN / limits::TIMER_TICK))) *
+            TICK_NS) };
     }
 
     std::int64_t SynchronizedSequence::tickAt(hal::step::PulseCount pulse) const noexcept
     {
         // Use the same inversion path for random access and every buffer size;
         // a caller-dependent hint can round a near-boundary result differently.
-        const auto time{ pulse == m_count ? m_profile.duration()
-                          : m_profile.timeAt(static_cast<double>(pulse) / static_cast<double>(m_count)) };
-        return static_cast<std::int64_t>(std::ceil(time * 1e7));
+        const auto time{ pulse == m_count
+                           ? m_profile.duration()
+                           : m_profile.timeAt(static_cast<double>(pulse) / static_cast<double>(m_count)) };
+        return static_cast<std::int64_t>(std::ceil(time * limits::TICKS_PER_SECOND));
     }
 
     std::chrono::nanoseconds SynchronizedSequence::firstDelay() const noexcept
     {
-        return std::chrono::nanoseconds{ tickAt(1U) * tick_ns };
+        return std::chrono::nanoseconds{ tickAt(1U) * TICK_NS };
     }
 
     hal::util::Result<hal::step::Timing> SynchronizedSequence::timing(

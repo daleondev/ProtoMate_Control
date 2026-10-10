@@ -6,6 +6,7 @@
 #include "hal/board/board.hpp"
 #include "hal/devices/itf/IConfigurableStepperDriver.hpp"
 #include <array>
+#include <cstdint>
 #include <string>
 #include <variant>
 #include <vector>
@@ -20,7 +21,7 @@ namespace control
         {
             pnm::units::Angle reference_position;
             pnm::units::Angle full_step_angle;
-            std::size_t microsteps;
+            std::size_t microsteps{};
         };
         template<typename Position, typename Speed, typename Acceleration, typename Jerk>
         struct MoveRequest
@@ -82,7 +83,7 @@ namespace control
         };
         struct Status
         {
-            bool enabled;
+            bool enabled{};
             hal::step::Status generator;
             std::array<AxisStatus, 3> axes;
             bool coordinated{};
@@ -97,7 +98,7 @@ namespace control
             hal::device::IStepperDriver::Status status;
             std::optional<hal::device::IConfigurableStepperDriver::Snapshot> configuration;
         };
-        enum class Operation
+        enum class Operation : std::uint8_t
         {
             Move,
             Reference
@@ -127,7 +128,7 @@ namespace control
             motion::Profile::Description profile;
             std::array<std::uint64_t, 3> pulses{};
             std::array<bool, 3> forward{};
-            pnm::units::Time duration{};
+            pnm::units::Time duration;
         };
     };
 }

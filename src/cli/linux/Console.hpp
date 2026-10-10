@@ -9,7 +9,7 @@ namespace cli
         /**
          * Route Pneumo's default Linux sinks through the console broker.
          */
-        auto configureLogging() -> void;
+        auto configure_logging() -> void;
 
         /**
          * Run the ncurses frontend on a terminal, or the stream frontend when

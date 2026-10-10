@@ -1,4 +1,5 @@
 #include "StepperMotor.hpp"
+#include "MotionLimits.hpp"
 #include "MotionSequence.hpp"
 
 #include "pneumo/logging.hpp"
@@ -6,9 +7,21 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <limits>
 #include <stdexcept>
 #include <utility>
+
+namespace
+{
+    constexpr std::size_t MOTION_WORKER_STACK_SIZE{ 16384U };
+    // Cleanup must finish even after a driver failure, including during stack unwinding.
+    void report_cleanup_failure(const hal::util::Result<>& result, const char* message) noexcept
+    {
+        if (!result)
+            std::fputs(message, stderr);
+    }
+}
 
 StepperMotor::StepperMotor(hal::board::MotorId id,
                            pnm::units::Angle reference_switch_position,
@@ -26,10 +39,15 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
   , m_dirOutput{ hal::board::createStepperDirectionOutput(id) }
   , m_referenceSwitchInput{ hal::board::createReferenceLimitSwitch(id) }
   , m_feedback{ feedback ? std::move(feedback)
-                         : hal::board::createMotorFeedback(id, { full_step_angle, microsteps }) }
+                         : hal::board::createMotorFeedback(
+                             id,
+                             { .full_step_angle = full_step_angle, .microsteps = microsteps }) }
   , m_driver{ std::move(driver) }
 {
+    // Pneumo assertions implement failure reporting through a C macro.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
     PNM_ASSERT(m_referenceSwitchInput, "Motor %d has no reference switch", static_cast<int>(id) + 1);
+    // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
 
     if (!reference_switch_position.isFinite() || !full_step_angle.isFinite() || full_step_angle <= 0_deg ||
         microsteps == 0U) {
@@ -47,7 +65,7 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
             if (shutdown)
                 shutdown(); // Central shared-enable shutdown, ISR-safe.
             m_events->notification.signal();
-            if (auto* notification{ m_events->groupNotification.load() })
+            if (auto* notification{ m_events->group_notification.load() })
                 notification->signal();
         });
         m_feedback->setCallback(
@@ -64,14 +82,14 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
         static_assert(std::atomic_uint32_t::is_always_lock_free);
         m_referenceSwitchInput->setEdgeCallback([events = m_events](hal::gpio::Level level) noexcept {
             if (level == hal::gpio::Level::High) {
-                events->referenceActivated.store(true);
+                events->reference_activated.store(true);
             }
             else {
-                events->referenceReleased.store(true);
+                events->reference_released.store(true);
             }
-            events->referenceChanges.fetch_add(1U);
+            events->reference_changes.fetch_add(1U);
             events->notification.signal();
-            if (auto* notification{ events->groupNotification.load() })
+            if (auto* notification{ events->group_notification.load() })
                 notification->signal();
         });
 
@@ -80,9 +98,10 @@ StepperMotor::StepperMotor(hal::board::MotorId id,
     } catch (...) {
         m_driver->clearFaultCallback();
         m_feedback->clearCallback();
-        static_cast<void>(m_feedback->stop());
+        report_cleanup_failure(m_feedback->stop(), "Motor feedback stop failed during cleanup\n");
         m_referenceSwitchInput->clearEdgeCallback();
-        static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
+        report_cleanup_failure(m_stepOutput->setProgressCallback(nullptr),
+                               "Motor STEP callback cleanup failed\n");
         throw;
     }
 }
@@ -91,10 +110,11 @@ StepperMotor::~StepperMotor()
 {
     stopAndWait();
     m_driver->clearFaultCallback();
-    static_cast<void>(m_feedback->stop());
+    report_cleanup_failure(m_feedback->stop(), "Motor feedback stop failed during cleanup\n");
     m_feedback->clearCallback();
     m_referenceSwitchInput->clearEdgeCallback();
-    static_cast<void>(m_stepOutput->setProgressCallback(nullptr));
+    report_cleanup_failure(m_stepOutput->setProgressCallback(nullptr),
+                           "Motor STEP callback cleanup failed\n");
 }
 
 std::future<StepperMotor::Result> StepperMotor::moveRel(pnm::units::Angle distance,
@@ -163,8 +183,8 @@ std::future<StepperMotor::Result> StepperMotor::submitMove(pnm::units::Angle pos
     const auto rejected = [this] {
         control::Completion<Result> promise;
         m_lastCompletion = promise;
-        promise.set_value(Result::Rejected);
-        return promise.get_future();
+        promise.setValue(Result::Rejected);
+        return promise.getFuture();
     };
     const auto now{ std::chrono::steady_clock::now() };
     if (!m_driver->status().ready || !position.isFinite() || !timingFor(velocity) || !timeout.isFinite() ||
@@ -184,15 +204,21 @@ std::future<StepperMotor::Result> StepperMotor::submitMove(pnm::units::Angle pos
         if (dynamics.jerk == 0_rad_s3)
             dynamics.jerk = m_motionDefaults.jerk;
     }
-    auto command{ std::make_shared<Command>(
-      Command{ position, velocity, dynamics, mode, timeout, relative, {}, epoch }) };
+    auto command{ std::make_shared<Command>(Command{ .position = position,
+                                                     .velocity = velocity,
+                                                     .dynamics = dynamics,
+                                                     .mode = mode,
+                                                     .timeout = timeout,
+                                                     .relative = relative,
+                                                     .completion = {},
+                                                     .epoch = epoch }) };
     m_lastCompletion = command->completion;
-    auto future{ command->completion.get_future() };
+    auto future{ command->completion.getFuture() };
     if (mode != BufferMode::Aborting) {
         std::scoped_lock lock{ m_queueMutex };
         if (m_busy) {
             if (m_homing || m_pending) {
-                command->completion.set_value(Result::Rejected);
+                command->completion.setValue(Result::Rejected);
                 return future;
             }
             m_pending = command;
@@ -201,7 +227,7 @@ std::future<StepperMotor::Result> StepperMotor::submitMove(pnm::units::Angle pos
         }
     }
     if (m_worker.joinable()) {
-        m_worker.request_stop();
+        static_cast<void>(m_worker.request_stop());
         m_worker.join();
     }
     {
@@ -211,336 +237,408 @@ std::future<StepperMotor::Result> StepperMotor::submitMove(pnm::units::Angle pos
     }
     try {
         m_worker = runtime::thread::create_jthread(
-          { .name = "motion", .stack_size = 16384U },
-          [this, command](std::stop_token stop) { runCommands(command, stop); });
+          { .name = "motion", .stack_size = MOTION_WORKER_STACK_SIZE },
+          [this, command](const std::stop_token& stop) { runCommands(command, stop); });
     } catch (...) {
-        command->completion.set_exception(std::current_exception());
+        command->completion.setException(std::current_exception());
         finishQueue(Result::Faulted);
     }
     return future;
 }
 
-void StepperMotor::runCommands(std::shared_ptr<Command> command, std::stop_token stop) noexcept
+class StepperMotor::CommandRunner
 {
-    m_runEpoch = command->epoch;
     using Count = hal::step::PulseCount;
     using Clock = std::chrono::steady_clock;
-    using enum hal::step::State;
-    const auto step{ m_stepAngle.get() };
-    bool resolved{};
-    std::shared_ptr<VelocityRequest> velocity_request;
-    const auto complete = [&](Result result) {
-        if (!resolved) {
-            command->completion.set_value(result);
-            resolved = true;
+
+  public:
+    CommandRunner(StepperMotor& motor, std::shared_ptr<Command> request, std::stop_token stop_token)
+      : m_motor{ &motor }
+      , m_command{ std::move(request) }
+      , m_stop{ std::move(stop_token) }
+      , m_step{ motor.m_stepAngle.get() }
+    {
+    }
+    void run() noexcept
+    {
+        m_motor->m_runEpoch = m_command->epoch;
+        const std::stop_callback cancellation{ m_stop, [this] { m_motor->m_events->notification.signal(); } };
+        try {
+            while (m_command && runCommand()) {
+            }
+        } catch (...) {
+            if (m_update)
+                m_update->completion.set_value(
+                  std::unexpected(std::make_error_code(std::errc::not_enough_memory)));
+            static_cast<void>(m_motor->m_stepOutput->stop());
+            complete(Result::Faulted);
         }
-    };
-    const auto quantize = [&](pnm::units::Angle distance) -> std::optional<Count> {
-        const auto pulses{ std::round(std::abs(distance.get() / step)) };
+        static_cast<void>(m_motor->m_stepOutput->stop());
+        m_motor->finishQueue(Result::Stopped);
+    }
+
+  private:
+    void complete(Result result)
+    {
+        if (!m_resolved) {
+            m_command->completion.setValue(result);
+            m_resolved = true;
+        }
+    }
+    std::optional<Count> quantize(pnm::units::Angle distance) const
+    {
+        const auto pulses{ std::round(std::abs(distance.get() / m_step)) };
         // Retain exact integer representation while planning in double precision.
-        if (!distance.isFinite() || !std::isfinite(pulses) || pulses >= 0x1p52)
+        if (!distance.isFinite() || !std::isfinite(pulses) ||
+            pulses >= static_cast<double>(motion::limits::MAX_PULSES))
             return {};
         return static_cast<Count>(pulses);
-    };
-    const auto limits = [](const Command& request) {
-        return motion::Profile::Limits{ request.velocity.get(),
-                                        request.dynamics.acceleration.get(),
-                                        request.dynamics.deceleration.get(),
-                                        request.dynamics.jerk.get() };
-    };
-    const auto deadlineFor = [](const Command& request) {
+    }
+    static motion::Profile::Limits limits(const Command& request)
+    {
+        return motion::Profile::Limits{ .velocity = request.velocity.get(),
+                                        .acceleration = request.dynamics.acceleration.get(),
+                                        .deceleration = request.dynamics.deceleration.get(),
+                                        .jerk = request.dynamics.jerk.get() };
+    }
+    static Clock::time_point deadlineFor(const Command& request)
+    {
         return request.timeout == 0_s ? Clock::time_point::max()
                                       : Clock::now() + request.timeout.toChrono<Clock::duration>();
-    };
-    const auto takeNext = [&] {
-        std::scoped_lock lock{ m_queueMutex };
-        if (m_velocityRequest) {
-            m_velocityRequest->completion.set_value(
-              std::unexpected(std::make_error_code(std::errc::operation_canceled)));
-            m_velocityRequest.reset();
-        }
-        auto next{ std::exchange(m_pending, {}) };
-        if (!next)
-            m_busy = false;
-        return next;
-    };
-    const std::stop_callback cancellation{ stop, [this] { m_events->notification.signal(); } };
-    try {
-        while (command) {
-            resolved = false;
-            m_wakeAtPulse.store(std::numeric_limits<Count>::max());
-            if (!m_driver->status().ready) {
-                complete(Result::Faulted);
-                break;
-            }
-            if (interrupted(stop)) {
-                complete(Result::Stopped);
-                break;
-            }
-            if (!command->relative && !isReferenced()) {
-                complete(Result::Rejected);
-                break;
-            }
-            const auto origin{ position() };
-            const auto distance{ command->relative ? command->position : command->position - origin };
-            const auto count{ quantize(distance) };
-            if (!count) {
-                complete(Result::Rejected);
-                break;
-            }
-            if (*count == 0U) {
-                complete(Result::Completed);
-                command = takeNext();
-                continue;
-            }
-            const auto sign{ distance.get() >= 0.0 ? 1.0 : -1.0 };
-            Count active_end{ *count };
-            auto active_target{ origin + m_stepAngle * (sign * static_cast<double>(*count)) };
-            auto initial{ motion::Profile::create(static_cast<double>(*count) * step, limits(*command)) };
-            if (!initial) {
-                complete(Result::Rejected);
-                break;
-            }
-            auto sequence{ std::make_shared<motion::Sequence>(
-              step, motion::Sequence::Part{ *initial, 0U, *count }) };
-            std::shared_ptr<Command> following;
-            auto deadline{ deadlineFor(*command) };
-
-            const auto blend = [&](Count begin,
-                                   motion::Profile::State state,
-                                   std::optional<hal::step::ScheduleCursor> cursor) {
-                std::shared_ptr<Command> next;
-                {
-                    std::scoped_lock lock{ m_queueMutex };
-                    next = m_pending;
-                }
-                if (following || !next || next->mode == BufferMode::Buffered || begin >= active_end ||
-                    (!next->relative && !isReferenced()))
-                    return false;
-                const auto delta{ next->relative ? next->position : next->position - active_target };
-                const auto next_count{ quantize(delta) };
-                if (!next_count || *next_count == 0U || delta.get() * sign <= 0.0 ||
-                    active_end > static_cast<Count>(0x1p52) - *next_count)
-                    return false;
-                double junction{};
-                switch (next->mode) {
-                    case BufferMode::BlendingLow:
-                        junction = std::min(command->velocity.get(), next->velocity.get());
-                        break;
-                    case BufferMode::BlendingPrevious:
-                        junction = command->velocity.get();
-                        break;
-                    case BufferMode::BlendingNext:
-                        junction = next->velocity.get();
-                        break;
-                    case BufferMode::BlendingHigh:
-                        junction = std::max(command->velocity.get(), next->velocity.get());
-                        break;
-                    default:
-                        return false;
-                }
-                const auto make = [&](double speed) -> std::shared_ptr<motion::Sequence> {
-                    auto constraints{ limits(*command) };
-                    constraints.velocity = std::max(constraints.velocity, speed);
-                    const auto first{ motion::Profile::create(static_cast<double>(active_end - begin) * step,
-                                                              constraints,
-                                                              state.velocity,
-                                                              state.acceleration,
-                                                              speed) };
-                    const auto second{ motion::Profile::create(
-                      static_cast<double>(*next_count) * step, limits(*next), speed) };
-                    if (!first || !second)
-                        return {};
-                    return std::make_shared<motion::Sequence>(
-                      step,
-                      motion::Sequence::Part{ *first, begin, active_end },
-                      motion::Sequence::Part{ *second, active_end, active_end + *next_count });
-                };
-                auto replacement{ make(junction) };
-                // Short or late commands may not reach the requested junction.
-                // Find a feasible lower speed, then refine its upper boundary.
-                if (!replacement) {
-                    double upper{ junction };
-                    for (unsigned i = 1U; i <= 32U; ++i) {
-                        const auto lower{ junction * (1.0 - static_cast<double>(i) / 32.0) };
-                        replacement = make(lower);
-                        if (replacement) {
-                            auto low{ lower }, high{ upper };
-                            for (unsigned j = 0U; j < 24U; ++j) {
-                                const auto middle{ (low + high) * 0.5 };
-                                if (auto candidate{ make(middle) }) {
-                                    low = middle;
-                                    replacement = std::move(candidate);
-                                }
-                                else
-                                    high = middle;
-                            }
-                            break;
-                        }
-                        upper = lower;
-                    }
-                }
-                if (!replacement)
-                    return false;
-                if (cursor && !m_stepOutput->replaceSequence(*cursor, replacement))
-                    return false;
-                sequence = std::move(replacement);
-                following = std::move(next);
-                m_wakeAtPulse.store(active_end);
-                return true;
-            };
-
-            // Back-to-back submissions can blend before the first DMA buffer is
-            // armed, including short moves that fit completely in those buffers.
-            static_cast<void>(blend(0U, {}, std::nullopt));
-            m_events->notification.clear();
-            m_events->referenceActivated.store(false);
-            m_events->referenceReleased.store(false);
-            if (!m_stepOutput->prepareSequence(sequence)) {
-                complete(Result::Rejected);
-                break;
-            }
-            {
-                std::scoped_lock lock{ m_mutex };
-                if (!m_driver->status().ready) {
-                    complete(Result::Faulted);
-                    break;
-                }
-                if (interrupted(stop)) {
-                    complete(Result::Stopped);
-                    break;
-                }
-                if (sign > 0.0 && (m_events->referenceActivated.load() ||
-                                   m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
-                    complete(Result::Rejected);
-                    break;
-                }
-                m_dirOutput->write(sign > 0.0 ? hal::gpio::Level::High : hal::gpio::Level::Low);
-                m_motionSign = sign;
-                m_profileActive.store(true);
-                const auto delay{ std::chrono::nanoseconds{
-                  static_cast<std::int64_t>(std::ceil((sequence->timeAtPulse(1U) + 0.01) * 1e9)) } };
-                if (!m_stepOutput->start(delay)) {
-                    complete(Result::Rejected);
-                    break;
-                }
-            }
-
-            auto result{ Result::Stopped };
-            while (true) {
-                const auto status{ m_stepOutput->status() };
-                if (!m_driver->status().ready || !status.counts_exact || status.state == Underrun ||
-                    status.state == DmaError) {
-                    result = Result::Faulted;
-                    break;
-                }
-                if (following && status.pulses >= active_end) {
-                    m_wakeAtPulse.store(std::numeric_limits<Count>::max());
-                    const auto previous{ command };
-                    const auto old_end{ active_end };
-                    active_end = sequence->count();
-                    active_target += m_stepAngle * (sign * static_cast<double>(active_end - old_end));
-                    {
-                        std::scoped_lock lock{ m_queueMutex };
-                        m_pending.reset();
-                    }
-                    command = std::move(following);
-                    resolved = false;
-                    deadline = deadlineFor(*command);
-                    previous->completion.set_value(Result::Completed);
-                }
-                if (status.state == Completed) {
-                    result = Result::Completed;
-                    break;
-                }
-                if (interrupted(stop) || status.state == Stopped ||
-                    (sign > 0.0 && m_events->referenceActivated.load()))
-                    break;
-                if (status.state != Running || (!command->relative && !isReferenced())) {
-                    result = Result::Faulted;
-                    break;
-                }
-                if (Clock::now() >= deadline) {
-                    result = Result::TimedOut;
-                    break;
-                }
-
-                {
-                    std::scoped_lock lock{ m_queueMutex };
-                    velocity_request = std::exchange(m_velocityRequest, {});
-                }
-                if (velocity_request) {
-                    auto update_result{ pnm::Result<Count>{
-                      std::unexpected(std::make_error_code(std::errc::operation_not_permitted)) } };
-                    const auto old_velocity{ command->velocity };
-                    for (unsigned attempt = 0; attempt < 3U; ++attempt) {
-                        const auto cursor{ m_stepOutput->scheduleCursor() };
-                        if (!cursor || cursor->terminal || cursor->first_uncommitted + 1U >= active_end)
-                            break;
-                        const auto begin{ cursor->first_uncommitted + 1U };
-                        const auto state{ sequence->atPulse(begin) };
-                        command->velocity = velocity_request->velocity;
-                        const auto end_speed{ following ? sequence->first().profile.endVelocity() : 0.0 };
-                        const auto profile{ motion::Profile::create(static_cast<double>(active_end - begin) *
-                                                                      step,
-                                                                    limits(*command),
-                                                                    state.velocity,
-                                                                    state.acceleration,
-                                                                    end_speed) };
-                        if (!profile)
-                            break;
-                        auto replacement{ std::make_shared<motion::Sequence>(
-                          step,
-                          motion::Sequence::Part{ *profile, begin, active_end },
-                          following ? sequence->second() : std::nullopt) };
-                        const auto applied{ m_stepOutput->replaceSequence(*cursor, replacement) };
-                        if (applied) {
-                            sequence = std::move(replacement);
-                            update_result = begin; // 1-based first pulse with a changed following interval.
-                            break;
-                        }
-                        update_result = std::unexpected(applied.error());
-                        if (applied.error() != std::errc::resource_unavailable_try_again)
-                            break;
-                    }
-                    if (!update_result)
-                        command->velocity = old_velocity;
-                    velocity_request->completion.set_value(update_result);
-                    velocity_request.reset();
-                }
-                if (!following) {
-                    for (unsigned attempt = 0U; attempt < 3U && !following; ++attempt) {
-                        const auto cursor{ m_stepOutput->scheduleCursor() };
-                        if (!cursor || cursor->terminal || cursor->first_uncommitted + 1U >= active_end)
-                            break;
-                        const auto begin{ cursor->first_uncommitted + 1U };
-                        if (blend(begin, sequence->atPulse(begin), *cursor))
-                            break;
-                        const auto after{ m_stepOutput->scheduleCursor() };
-                        if (!after || after->first_uncommitted == cursor->first_uncommitted)
-                            break;
-                    }
-                }
-                static_cast<void>(m_events->notification.waitUntil(deadline));
-            }
-            const auto final{ m_stepOutput->stop() };
-            m_profileActive.store(false);
-            if (!final.counts_exact || final.state == Underrun || final.state == DmaError)
-                result = Result::Faulted;
-            complete(result);
-            if (result != Result::Completed || interrupted(stop))
-                break;
-            command = takeNext();
-        }
-    } catch (...) {
-        if (velocity_request)
-            velocity_request->completion.set_value(
-              std::unexpected(std::make_error_code(std::errc::not_enough_memory)));
-        static_cast<void>(m_stepOutput->stop());
-        complete(Result::Faulted);
     }
-    static_cast<void>(m_stepOutput->stop());
-    finishQueue(Result::Stopped);
+    std::shared_ptr<Command> takeNext()
+    {
+        std::scoped_lock lock{ m_motor->m_queueMutex };
+        if (m_motor->m_velocityRequest) {
+            m_motor->m_velocityRequest->completion.set_value(
+              std::unexpected(std::make_error_code(std::errc::operation_canceled)));
+            m_motor->m_velocityRequest.reset();
+        }
+        auto next{ std::exchange(m_motor->m_pending, {}) };
+        if (!next)
+            m_motor->m_busy = false;
+        return next;
+    }
+    double junctionSpeed(const Command& next) const
+    {
+        switch (next.mode) {
+            case BufferMode::BlendingLow:
+                return std::min(m_command->velocity.get(), next.velocity.get());
+            case BufferMode::BlendingPrevious:
+                return m_command->velocity.get();
+            case BufferMode::BlendingNext:
+                return next.velocity.get();
+            case BufferMode::BlendingHigh:
+                return std::max(m_command->velocity.get(), next.velocity.get());
+            default:
+                return 0.0;
+        }
+    }
+    std::shared_ptr<motion::Sequence> makeBlend(const Command& next,
+                                                Count next_count,
+                                                Count begin,
+                                                motion::Profile::State state,
+                                                double speed) const
+    {
+        auto constraints{ limits(*m_command) };
+        constraints.velocity = std::max(constraints.velocity, speed);
+        const auto first{ motion::Profile::create(static_cast<double>(m_activeEnd - begin) * m_step,
+                                                  constraints,
+                                                  state.velocity,
+                                                  state.acceleration,
+                                                  speed) };
+        const auto second{ motion::Profile::create(
+          static_cast<double>(next_count) * m_step, limits(next), speed) };
+        if (!first || !second)
+            return {};
+        return std::make_shared<motion::Sequence>(
+          m_step,
+          motion::Sequence::Part{ .profile = *first, .begin = begin, .end = m_activeEnd },
+          motion::Sequence::Part{
+            .profile = *second, .begin = m_activeEnd, .end = m_activeEnd + next_count });
+    }
+    template<class Factory>
+    static std::shared_ptr<motion::Sequence> feasibleBlend(double junction, const Factory& make)
+    {
+        auto replacement{ make(junction) };
+        // Short or late commands may not reach the requested junction.
+        // Find a feasible lower speed, then refine its upper boundary.
+        if (!replacement) {
+            double upper{ junction };
+            for (unsigned i = 1U; i <= motion::limits::BLEND_SEARCH_STEPS; ++i) {
+                const auto lower{ junction *
+                                  (1.0 - static_cast<double>(i) /
+                                           static_cast<double>(motion::limits::BLEND_SEARCH_STEPS)) };
+                replacement = make(lower);
+                if (replacement) {
+                    auto low{ lower };
+                    auto high{ upper };
+                    for (unsigned j = 0U; j < motion::limits::BLEND_REFINE_STEPS; ++j) {
+                        const auto middle{ (low + high) * 0.5 };
+                        if (auto candidate{ make(middle) }) {
+                            low = middle;
+                            replacement = std::move(candidate);
+                        }
+                        else
+                            high = middle;
+                    }
+                    break;
+                }
+                upper = lower;
+            }
+        }
+        return replacement;
+    }
+    bool blend(Count begin, motion::Profile::State state, std::optional<hal::step::ScheduleCursor> cursor)
+    {
+        std::shared_ptr<Command> next;
+        {
+            std::scoped_lock lock{ m_motor->m_queueMutex };
+            next = m_motor->m_pending;
+        }
+        if (m_following || !next ||
+            (next->mode == BufferMode::Buffered || next->mode == BufferMode::Aborting) ||
+            begin >= m_activeEnd || (!next->relative && !m_motor->isReferenced()))
+            return false;
+        const auto delta{ next->relative ? next->position : next->position - m_activeTarget };
+        const auto next_count{ quantize(delta) };
+        if (!next_count || *next_count == 0U || delta.get() * m_sign <= 0.0 ||
+            m_activeEnd > static_cast<Count>(static_cast<double>(motion::limits::MAX_PULSES)) - *next_count)
+            return false;
+        const auto junction{ junctionSpeed(*next) };
+        const auto make = [&](double speed) { return makeBlend(*next, *next_count, begin, state, speed); };
+        auto replacement{ feasibleBlend(junction, make) };
+        if (!replacement)
+            return false;
+        if (cursor && !m_motor->m_stepOutput->replaceSequence(*cursor, replacement))
+            return false;
+        m_sequence = std::move(replacement);
+        m_following = std::move(next);
+        m_motor->m_wakeAtPulse.store(m_activeEnd);
+        return true;
+    }
+    std::optional<Result> arm()
+    { // Back-to-back submissions can blend before the first DMA buffer is
+        // armed, including short moves that fit completely in those buffers.
+        static_cast<void>(blend(0U, {}, std::nullopt));
+        m_motor->m_events->notification.clear();
+        m_motor->m_events->reference_activated.store(false);
+        m_motor->m_events->reference_released.store(false);
+        if (!m_motor->m_stepOutput->prepareSequence(m_sequence)) {
+            return Result::Rejected;
+        }
+        {
+            std::scoped_lock lock{ m_motor->m_mutex };
+            if (!m_motor->m_driver->status().ready) {
+                return Result::Faulted;
+            }
+            if (m_motor->interrupted(m_stop)) {
+                return Result::Stopped;
+            }
+            if (m_sign > 0.0 && (m_motor->m_events->reference_activated.load() ||
+                                 m_motor->m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
+                return Result::Rejected;
+            }
+            m_motor->m_dirOutput->write(m_sign > 0.0 ? hal::gpio::Level::High : hal::gpio::Level::Low);
+            m_motor->m_motionSign = m_sign;
+            m_motor->m_profileActive.store(true);
+            const auto delay{ std::chrono::nanoseconds{
+              static_cast<std::int64_t>(std::ceil((m_sequence->timeAtPulse(1U) + 0.01) * 1e9)) } };
+            if (!m_motor->m_stepOutput->start(delay)) {
+                return Result::Rejected;
+            }
+        }
+
+        return std::nullopt;
+    }
+    void advance(Count pulses)
+    {
+        if (m_following && pulses >= m_activeEnd) {
+            m_motor->m_wakeAtPulse.store(std::numeric_limits<Count>::max());
+            const auto previous{ m_command };
+            const auto old_end{ m_activeEnd };
+            m_activeEnd = m_sequence->count();
+            m_activeTarget += m_motor->m_stepAngle * (m_sign * static_cast<double>(m_activeEnd - old_end));
+            {
+                std::scoped_lock lock{ m_motor->m_queueMutex };
+                m_motor->m_pending.reset();
+            }
+            m_command = std::move(m_following);
+            m_resolved = false;
+            m_deadline = deadlineFor(*m_command);
+            previous->completion.setValue(Result::Completed);
+        }
+    }
+    void updateVelocity()
+    {
+        {
+            std::scoped_lock lock{ m_motor->m_queueMutex };
+            m_update = std::exchange(m_motor->m_velocityRequest, {});
+        }
+        if (m_update) {
+            auto update_result{ pnm::Result<Count>{
+              std::unexpected(std::make_error_code(std::errc::operation_not_permitted)) } };
+            const auto old_velocity{ m_command->velocity };
+            for (unsigned attempt = 0; attempt < 3U; ++attempt) {
+                const auto cursor{ m_motor->m_stepOutput->scheduleCursor() };
+                if (!cursor || cursor->terminal || cursor->first_uncommitted + 1U >= m_activeEnd)
+                    break;
+                const auto begin{ cursor->first_uncommitted + 1U };
+                const auto state{ m_sequence->atPulse(begin) };
+                m_command->velocity = m_update->velocity;
+                const auto end_speed{ m_following ? m_sequence->first().profile.endVelocity() : 0.0 };
+                const auto profile{ motion::Profile::create(static_cast<double>(m_activeEnd - begin) * m_step,
+                                                            limits(*m_command),
+                                                            state.velocity,
+                                                            state.acceleration,
+                                                            end_speed) };
+                if (!profile)
+                    break;
+                auto replacement{ std::make_shared<motion::Sequence>(
+                  m_step,
+                  motion::Sequence::Part{ .profile = *profile, .begin = begin, .end = m_activeEnd },
+                  m_following ? m_sequence->second() : std::nullopt) };
+                const auto applied{ m_motor->m_stepOutput->replaceSequence(*cursor, replacement) };
+                if (applied) {
+                    m_sequence = std::move(replacement);
+                    update_result = begin; // 1-based first pulse with a changed following interval.
+                    break;
+                }
+                update_result = std::unexpected(applied.error());
+                if (applied.error() != std::errc::resource_unavailable_try_again)
+                    break;
+            }
+            if (!update_result)
+                m_command->velocity = old_velocity;
+            m_update->completion.set_value(update_result);
+            m_update.reset();
+        }
+    }
+    void blendPending()
+    {
+        if (!m_following) {
+            for (unsigned attempt = 0U; attempt < 3U && !m_following; ++attempt) {
+                const auto cursor{ m_motor->m_stepOutput->scheduleCursor() };
+                if (!cursor || cursor->terminal || cursor->first_uncommitted + 1U >= m_activeEnd)
+                    break;
+                const auto begin{ cursor->first_uncommitted + 1U };
+                if (blend(begin, m_sequence->atPulse(begin), *cursor))
+                    break;
+                const auto after{ m_motor->m_stepOutput->scheduleCursor() };
+                if (!after || after->first_uncommitted == cursor->first_uncommitted)
+                    break;
+            }
+        }
+    }
+    Result wait()
+    {
+        using enum hal::step::State;
+        auto result{ Result::Stopped };
+        while (true) {
+            const auto status{ m_motor->m_stepOutput->status() };
+            if (!m_motor->m_driver->status().ready || !status.counts_exact || status.state == Underrun ||
+                status.state == DmaError) {
+                result = Result::Faulted;
+                break;
+            }
+            advance(status.pulses);
+            if (status.state == Completed) {
+                result = Result::Completed;
+                break;
+            }
+            if (m_motor->interrupted(m_stop) || status.state == Stopped ||
+                (m_sign > 0.0 && m_motor->m_events->reference_activated.load()))
+                break;
+            if (status.state != Running || (!m_command->relative && !m_motor->isReferenced())) {
+                result = Result::Faulted;
+                break;
+            }
+            if (Clock::now() >= m_deadline) {
+                result = Result::TimedOut;
+                break;
+            }
+
+            updateVelocity();
+            blendPending();
+            static_cast<void>(m_motor->m_events->notification.waitUntil(m_deadline));
+        }
+        return result;
+    }
+    bool runCommand()
+    {
+        m_resolved = false;
+        m_motor->m_wakeAtPulse.store(std::numeric_limits<Count>::max());
+        if (!m_motor->m_driver->status().ready) {
+            complete(Result::Faulted);
+            return false;
+        }
+        if (m_motor->interrupted(m_stop)) {
+            complete(Result::Stopped);
+            return false;
+        }
+        if (!m_command->relative && !m_motor->isReferenced()) {
+            complete(Result::Rejected);
+            return false;
+        }
+        const auto origin{ m_motor->position() };
+        const auto distance{ m_command->relative ? m_command->position : m_command->position - origin };
+        const auto count{ quantize(distance) };
+        if (!count) {
+            complete(Result::Rejected);
+            return false;
+        }
+        if (*count == 0U) {
+            complete(Result::Completed);
+            m_command = takeNext();
+            return true;
+        }
+        m_sign = distance.get() >= 0.0 ? 1.0 : -1.0;
+        m_activeEnd = *count;
+        m_activeTarget = origin + m_motor->m_stepAngle * (m_sign * static_cast<double>(*count));
+        auto initial{ motion::Profile::create(static_cast<double>(*count) * m_step, limits(*m_command)) };
+        if (!initial) {
+            complete(Result::Rejected);
+            return false;
+        }
+        m_sequence = std::make_shared<motion::Sequence>(
+          m_step, motion::Sequence::Part{ .profile = *initial, .begin = 0U, .end = *count });
+        m_following.reset();
+        m_deadline = deadlineFor(*m_command);
+
+        if (const auto terminal{ arm() }) {
+            complete(*terminal);
+            return false;
+        }
+        auto result{ wait() };
+        const auto final{ m_motor->m_stepOutput->stop() };
+        m_motor->m_profileActive.store(false);
+        if (!final.counts_exact || final.state == hal::step::State::Underrun ||
+            final.state == hal::step::State::DmaError)
+            result = Result::Faulted;
+        complete(result);
+        if (result != Result::Completed || m_motor->interrupted(m_stop))
+            return false;
+        m_command = takeNext();
+
+        return true;
+    }
+    StepperMotor* m_motor;
+    std::shared_ptr<Command> m_command;
+    std::stop_token m_stop;
+    double m_step;
+    bool m_resolved{};
+    std::shared_ptr<VelocityRequest> m_update;
+    double m_sign{};
+    Count m_activeEnd{};
+    pnm::units::Angle m_activeTarget;
+    std::shared_ptr<motion::Sequence> m_sequence;
+    std::shared_ptr<Command> m_following;
+    Clock::time_point m_deadline;
+};
+
+void StepperMotor::runCommands(std::shared_ptr<Command> command, const std::stop_token& stop) noexcept
+{
+    CommandRunner{ *this, std::move(command), stop }.run();
 }
 
 std::future<StepperMotor::Result> StepperMotor::reference(pnm::units::AngularVelocity seek_velocity,
@@ -555,7 +653,7 @@ std::future<StepperMotor::Result> StepperMotor::reference(pnm::units::AngularVel
       timeout.get<pnm::units::TimeUnits::s>(),
       m_referenceSwitchPosition.get<pnm::units::AngleUnits::deg>());
 
-    return startMotion([this, seek_velocity, latch_velocity, timeout](std::stop_token stop) {
+    return startMotion([this, seek_velocity, latch_velocity, timeout](const std::stop_token& stop) {
         const auto result{ performReference(seek_velocity, latch_velocity, timeout, stop) };
         pnm::log::debug("Motor {} reference ended: {}, referenced={}, position={} deg",
                         static_cast<unsigned>(m_id) + 1U,
@@ -621,7 +719,7 @@ void StepperMotor::accountFeedback(const hal::device::IMotorFeedback::Sample& sa
     m_feedbackReferenceLost.store(sample.reference_lost);
     if (sample.reference_lost) {
         m_referenced.store(false);
-        if (auto* notification{ m_events->groupNotification.load() })
+        if (auto* notification{ m_events->group_notification.load() })
             notification->signal();
         m_events->notification.signal();
     }
@@ -667,7 +765,7 @@ void StepperMotor::accountProgress(const hal::step::AxisStatus& status) noexcept
     if (status.state != hal::step::State::Running || reached) {
         m_events->notification.signal();
     }
-    if (auto* notification{ m_events->groupNotification.load() })
+    if (auto* notification{ m_events->group_notification.load() })
         notification->signal();
 }
 
@@ -675,8 +773,8 @@ bool StepperMotor::prepareCoordinated(bool forward, std::shared_ptr<const hal::s
 {
     stopAndWait();
     std::scoped_lock lock{ m_mutex };
-    m_events->referenceActivated.store(false);
-    m_events->referenceReleased.store(false);
+    m_events->reference_activated.store(false);
+    m_events->reference_released.store(false);
     if (!m_driver->status().ready || !isReferenced() || (forward && referenceSwitchActive()) ||
         !m_stepOutput->prepareSequence(std::move(sequence)))
         return false;
@@ -687,7 +785,7 @@ bool StepperMotor::prepareCoordinated(bool forward, std::shared_ptr<const hal::s
 
 bool StepperMotor::coordinatedBlocked() const noexcept
 {
-    return m_motionSign > 0.0 && (m_events->referenceActivated.load() || referenceSwitchActive());
+    return m_motionSign > 0.0 && (m_events->reference_activated.load() || referenceSwitchActive());
 }
 
 void StepperMotor::requestStop() noexcept
@@ -701,7 +799,7 @@ void StepperMotor::stop() noexcept
 {
     requestStop();
     std::scoped_lock worker_lock{ m_workerMutex };
-    m_worker.request_stop();
+    static_cast<void>(m_worker.request_stop());
 
     std::scoped_lock state_lock{ m_mutex };
     static_cast<void>(m_stepOutput->stop());
@@ -711,7 +809,7 @@ void StepperMotor::stopAndWait() noexcept
 {
     requestStop();
     std::scoped_lock worker_lock{ m_workerMutex };
-    m_worker.request_stop();
+    static_cast<void>(m_worker.request_stop());
 
     {
         std::scoped_lock state_lock{ m_mutex };
@@ -730,13 +828,15 @@ std::optional<hal::step::Timing> StepperMotor::timingFor(pnm::units::AngularVelo
     }
 
     auto time{ m_stepAngle / velocity };
-    if (!time.isFinite() || time < 0.000010_s || time > 53.6870911s) {
+    if (!time.isFinite() || time < pnm::units::Time{ motion::limits::MIN_PERIOD } ||
+        time > motion::limits::MAX_PERIOD) {
         return std::nullopt;
     }
 
     const double seconds{ time.get<pnm::units::TimeUnits::s>() };
     return hal::step::Timing{
-        .period = std::chrono::nanoseconds{ static_cast<std::int64_t>(std::ceil(seconds * 1e9)) },
+        .period = std::chrono::nanoseconds{ static_cast<std::int64_t>(
+          std::ceil(seconds * motion::limits::NANOSECONDS_PER_SECOND)) },
         .high_time = 5us,
     };
 }
@@ -766,7 +866,7 @@ void StepperMotor::finishQueue(Result result) noexcept
     m_wakeAtPulse.store(std::numeric_limits<hal::step::PulseCount>::max());
     std::scoped_lock lock{ m_queueMutex };
     if (m_pending) {
-        m_pending->completion.set_value(result);
+        m_pending->completion.setValue(result);
         m_pending.reset();
     }
     if (m_velocityRequest) {
@@ -782,12 +882,12 @@ std::future<StepperMotor::Result> StepperMotor::startMotion(std::function<Result
     const auto epoch = m_abortEpoch.load();
     std::scoped_lock lock{ m_workerMutex };
     if (m_worker.joinable()) {
-        m_worker.request_stop();
+        static_cast<void>(m_worker.request_stop());
         m_worker.join();
     }
     control::Completion<Result> completion;
     m_lastCompletion = completion;
-    auto future{ completion.get_future() };
+    auto future{ completion.getFuture() };
     {
         std::scoped_lock queue_lock{ m_queueMutex };
         m_busy = m_homing = true;
@@ -797,19 +897,20 @@ std::future<StepperMotor::Result> StepperMotor::startMotion(std::function<Result
         // formatted debug logging. The default 4 KiB stack is too small on ARM
         // and corrupts the thread's TLS/control block before cancellation ends.
         m_worker = runtime::thread::create_jthread(
-          { .name = "homing", .stack_size = 16384U },
-          [this, task = std::move(task), completion, epoch](std::stop_token stop) mutable {
+          { .name = "homing", .stack_size = MOTION_WORKER_STACK_SIZE },
+          [this, task = std::move(task), completion, epoch](const std::stop_token& stop) mutable {
             m_runEpoch = epoch;
             Result result{ Result::Faulted };
             try {
                 result = task(stop);
             } catch (...) {
+                result = Result::Faulted;
             }
             finishQueue(Result::Stopped);
-            completion.set_value(result);
+            completion.setValue(result);
             // Publish completion before waking the coordinator, including when
             // homing ended without another STEP or GPIO callback.
-            if (auto* notification{ m_events->groupNotification.load() })
+            if (auto* notification{ m_events->group_notification.load() })
                 notification->signal();
         });
     } catch (...) {
@@ -822,7 +923,7 @@ std::future<StepperMotor::Result> StepperMotor::startMotion(std::function<Result
 StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity seek_velocity,
                                                     pnm::units::AngularVelocity latch_velocity,
                                                     pnm::units::Time timeout,
-                                                    std::stop_token stop)
+                                                    const std::stop_token& stop)
 {
     const auto motor_id{ static_cast<unsigned>(m_id) + 1U };
     const auto now{ std::chrono::steady_clock::now() };
@@ -839,6 +940,14 @@ StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity 
     struct FinishReferencing
     {
         std::atomic_bool& flag;
+        explicit FinishReferencing(std::atomic_bool& value)
+          : flag(value)
+        {
+        }
+        FinishReferencing(const FinishReferencing&) = delete;
+        FinishReferencing& operator=(const FinishReferencing&) = delete;
+        FinishReferencing(FinishReferencing&&) = delete;
+        FinishReferencing& operator=(FinishReferencing&&) = delete;
         ~FinishReferencing() { flag.store(false); }
     } finish{ m_referencing };
 
@@ -911,11 +1020,11 @@ StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity 
 
 StepperMotor::Result StepperMotor::waitReferenceLevel(hal::gpio::Level level,
                                                       std::chrono::steady_clock::time_point deadline,
-                                                      std::stop_token stop)
+                                                      const std::stop_token& stop)
 {
     constexpr auto settle_time{ 10ms };
     std::optional<std::chrono::steady_clock::time_point> stable_since;
-    auto changes{ m_events->referenceChanges.load() };
+    auto changes{ m_events->reference_changes.load() };
     while (true) {
         if (!m_driver->status().ready)
             return Result::Faulted;
@@ -928,7 +1037,7 @@ StepperMotor::Result StepperMotor::waitReferenceLevel(hal::gpio::Level level,
             return Result::TimedOut;
         }
 
-        const auto current_changes{ m_events->referenceChanges.load() };
+        const auto current_changes{ m_events->reference_changes.load() };
         const auto current_level{ m_referenceSwitchInput->read() };
         if (current_changes != changes || current_level != level) {
             stable_since.reset();
@@ -940,7 +1049,7 @@ StepperMotor::Result StepperMotor::waitReferenceLevel(hal::gpio::Level level,
 
         changes = current_changes;
         if (stable_since && now >= *stable_since + settle_time &&
-            m_events->referenceChanges.load() == current_changes) {
+            m_events->reference_changes.load() == current_changes) {
             return Result::Completed;
         }
 
@@ -949,7 +1058,7 @@ StepperMotor::Result StepperMotor::waitReferenceLevel(hal::gpio::Level level,
     }
 }
 
-StepperMotor::Result StepperMotor::applyReferencePosition(std::stop_token stop)
+StepperMotor::Result StepperMotor::applyReferencePosition(const std::stop_token& stop)
 {
     std::scoped_lock lock{ m_mutex };
     if (interrupted(stop)) {
@@ -983,7 +1092,7 @@ StepperMotor::Result StepperMotor::applyReferencePosition(std::stop_token stop)
 StepperMotor::Result StepperMotor::performMotion(Direction direction,
                                                  pnm::units::AngularVelocity velocity,
                                                  pnm::units::Time timeout,
-                                                 std::stop_token stop,
+                                                 const std::stop_token& stop,
                                                  std::optional<hal::step::PulseCount> count,
                                                  std::optional<hal::gpio::Level> switch_target)
 {
@@ -1015,15 +1124,9 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         return Result::Completed;
     }
 
-    m_events->referenceActivated.store(false);
-    m_events->referenceReleased.store(false);
+    m_events->reference_activated.store(false);
+    m_events->reference_released.store(false);
     const bool toward_reference{ direction == Direction::Forward };
-    const auto target_reached = [&] {
-        return switch_target &&
-               (m_referenceSwitchInput->read() == *switch_target ||
-                (*switch_target == hal::gpio::Level::High ? m_events->referenceActivated.load()
-                                                          : m_events->referenceReleased.load()));
-    };
 
     if (!m_stepOutput->prepare(*timing, count)) {
         pnm::log::warn("Motor move rejected: invalid timing");
@@ -1039,12 +1142,12 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
         if (!m_driver->status().ready)
             return Result::Faulted;
 
-        if (switch_target && target_reached()) {
+        if (switch_target && referenceTargetReached(switch_target)) {
             return Result::Completed;
         }
 
         if (!switch_target && toward_reference &&
-            (m_events->referenceActivated.load() ||
+            (m_events->reference_activated.load() ||
              m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
             pnm::log::warn("Motor move rejected: reference limit switch active");
             return Result::Rejected;
@@ -1060,42 +1163,7 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
 
     auto result{ Result::Stopped };
     try {
-        while (true) {
-            if (!switch_target && toward_reference && m_events->referenceActivated.load()) {
-                break;
-            }
-            const auto status{ m_stepOutput->status() };
-
-            if (!m_driver->status().ready || status.state == hal::step::State::Underrun ||
-                status.state == hal::step::State::DmaError || !status.counts_exact) {
-                pnm::log::warn("Motor move faulted: {}", status.state);
-                result = Result::Faulted;
-                break;
-            }
-            if (status.state == hal::step::State::Completed) {
-                result = Result::Completed;
-                break;
-            }
-            if (interrupted(stop) || status.state == hal::step::State::Stopped) {
-                break;
-            }
-            if (status.state != hal::step::State::Running) {
-                pnm::log::warn("Motor move faulted: {}", status.state);
-                result = Result::Faulted;
-                break;
-            }
-            if (std::chrono::steady_clock::now() >= deadline) {
-                pnm::log::warn("Motor move timed out");
-                result = Result::TimedOut;
-                break;
-            }
-            if (target_reached()) {
-                result = Result::Completed;
-                break;
-            }
-
-            static_cast<void>(m_events->notification.waitUntil(deadline));
-        }
+        result = waitForMotion(toward_reference, switch_target, deadline, stop);
     } catch (...) {
         static_cast<void>(m_stepOutput->stop());
         throw;
@@ -1110,5 +1178,57 @@ StepperMotor::Result StepperMotor::performMotion(Direction direction,
 
     pnm::log::debug(
       "Motor motion ended: {}, position={} deg", result, position().get<pnm::units::AngleUnits::deg>());
+    return result;
+}
+
+bool StepperMotor::referenceTargetReached(std::optional<hal::gpio::Level> switch_target) const
+{
+    return switch_target &&
+           (m_referenceSwitchInput->read() == *switch_target ||
+            (*switch_target == hal::gpio::Level::High ? m_events->reference_activated.load()
+                                                      : m_events->reference_released.load()));
+}
+StepperMotor::Result StepperMotor::waitForMotion(bool toward_reference,
+                                                 std::optional<hal::gpio::Level> switch_target,
+                                                 std::chrono::steady_clock::time_point deadline,
+                                                 const std::stop_token& stop)
+{
+    auto result{ Result::Stopped };
+    while (true) {
+        if (!switch_target && toward_reference && m_events->reference_activated.load()) {
+            break;
+        }
+        const auto status{ m_stepOutput->status() };
+
+        if (!m_driver->status().ready || status.state == hal::step::State::Underrun ||
+            status.state == hal::step::State::DmaError || !status.counts_exact) {
+            pnm::log::warn("Motor move faulted: {}", status.state);
+            result = Result::Faulted;
+            break;
+        }
+        if (status.state == hal::step::State::Completed) {
+            result = Result::Completed;
+            break;
+        }
+        if (interrupted(stop) || status.state == hal::step::State::Stopped) {
+            break;
+        }
+        if (status.state != hal::step::State::Running) {
+            pnm::log::warn("Motor move faulted: {}", status.state);
+            result = Result::Faulted;
+            break;
+        }
+        if (std::chrono::steady_clock::now() >= deadline) {
+            pnm::log::warn("Motor move timed out");
+            result = Result::TimedOut;
+            break;
+        }
+        if (referenceTargetReached(switch_target)) {
+            result = Result::Completed;
+            break;
+        }
+
+        static_cast<void>(m_events->notification.waitUntil(deadline));
+    }
     return result;
 }

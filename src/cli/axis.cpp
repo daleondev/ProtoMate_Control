@@ -14,8 +14,8 @@ namespace cli::axis
         using namespace pnm::units;
         using namespace control_detail;
 
-        constexpr auto degrees_per_second{ 1_deg / 1_s };
-        constexpr std::string_view guide{
+        constexpr auto DEGREES_PER_SECOND{ 1_deg / 1_s };
+        constexpr std::string_view GUIDE{
             "Joint-axis control: shoulder / elbow / z (also a1 / a2 / a3 or 1 / 2 / 3).\n"
             "Shoulder/elbow: degrees, deg/s, deg/s^2, deg/s^3. Z: mm, mm/s, mm/s^2, mm/s^3.\n"
             "  axis status [axis|all]                Joint positions, feedback and reference state\n"
@@ -32,7 +32,7 @@ namespace cli::axis
             "Joint mechanics come from the application configuration.\n"
         };
 
-        MotorId axisId(std::string_view value)
+        MotorId axis_id(std::string_view value)
         {
             if (value == "shoulder" || value == "a1" || value == "1")
                 return MotorId::Motor1;
@@ -46,18 +46,18 @@ namespace cli::axis
         std::optional<MotorId> selection(const Arguments& args)
         {
             const auto value{ args.get("axis") };
-            return !value || *value == "all" ? std::nullopt : std::optional{ axisId(*value) };
+            return !value || *value == "all" ? std::nullopt : std::optional{ axis_id(*value) };
         }
 
-        Controller::AxisSpeed axisSpeed(MotorId id, double value)
+        Controller::AxisSpeed axis_speed(MotorId id, double value)
         {
             if (id == MotorId::Motor3)
                 return value * 1_mm_s;
-            return value * degrees_per_second;
+            return value * DEGREES_PER_SECOND;
         }
 
         template<bool Linear>
-        Controller::AxisMove moveRequest(const Arguments& args, bool absolute)
+        Controller::AxisMove move_request(const Arguments& args, bool absolute)
         {
             using Request = std::conditional_t<Linear, Controller::LinearMove, Controller::Move>;
             constexpr auto position_unit{ [] {
@@ -75,20 +75,20 @@ namespace cli::axis
             return Request{
                 .position = number(args.require("value"), "position/displacement") * position_unit,
                 .velocity = magnitude(number(*requested_speed, "speed"), "speed", false) * speed_unit,
-                .acceleration = numericOption(args, "accel", 0) * acceleration_unit,
-                .deceleration = numericOption(args, "decel", 0) * acceleration_unit,
-                .jerk = numericOption(args, "jerk", 0) * jerk_unit,
-                .buffer = bufferMode(args, "axis"),
-                .timeout = numericOption(args, "timeout", 0) * 1_s,
+                .acceleration = numeric_option(args, "accel", 0) * acceleration_unit,
+                .deceleration = numeric_option(args, "decel", 0) * acceleration_unit,
+                .jerk = numeric_option(args, "jerk", 0) * jerk_unit,
+                .buffer = buffer_mode(args, "axis"),
+                .timeout = numeric_option(args, "timeout", 0) * 1_s,
                 .absolute = absolute,
             };
         }
-        auto performMove(Controller& controller, const Arguments& args, std::ostream& out, bool absolute)
+        auto perform_move(Controller& controller, const Arguments& args, std::ostream& out, bool absolute)
           -> CallbackResult
         {
-            const auto id{ axisId(args.require("axis")) };
-            const auto request{ id == MotorId::Motor3 ? moveRequest<true>(args, absolute)
-                                                      : moveRequest<false>(args, absolute) };
+            const auto id{ axis_id(args.require("axis")) };
+            const auto request{ id == MotorId::Motor3 ? move_request<true>(args, absolute)
+                                                      : move_request<false>(args, absolute) };
             return submitted(controller.moveAxis(id, request), out, "axis");
         }
     }
@@ -98,11 +98,51 @@ namespace cli::axis
         using namespace pnm::meta::string::literals;
 
         [[ = "Joint-axis commands in degrees/deg/s or mm/mm/s"_fs,
-           = Name{ "axis"_fs } ]] static auto overview(Controller&, const Arguments&, std::ostream& out)
-          -> CallbackResult
+           = Name{ "axis"_fs } ]] static auto overview(Controller& /*unused*/,
+                                                       const Arguments& /*unused*/,
+                                                       std::ostream& out) -> CallbackResult
         {
-            out << guide;
+            out << GUIDE;
             return 0;
+        }
+
+        template<typename Converter>
+        void print_axis_coordinates(const Controller::AxisStatus& axis,
+                                    const Converter& conversion,
+                                    std::ostream& out)
+        {
+            constexpr bool linear{ std::is_same_v<Converter, LinearAxisConversion> };
+            constexpr auto position_unit{ [] {
+                if constexpr (linear)
+                    return 1_mm;
+                else
+                    return 1_deg;
+            }() };
+            constexpr auto speed_unit{ position_unit / 1_s };
+            out << std::format("    position={:.4f} {}  velocity={:.3f} {}\n",
+                               conversion.toAxisPosition(axis.position) / position_unit,
+                               linear ? "mm" : "deg",
+                               conversion.toAxisVelocity(axis.velocity) / speed_unit,
+                               linear ? "mm/s" : "deg/s");
+            const auto* const source{ axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex
+                                        ? "driver INDEX (pseudo)"
+                                        : "encoder" };
+            if (axis.actual_position && axis.actual_velocity)
+                out << std::format("    {}: position={:.4f} {}  velocity={:.3f} {}\n",
+                                   source,
+                                   conversion.toAxisPosition(*axis.actual_position) / position_unit,
+                                   linear ? "mm" : "deg",
+                                   conversion.toAxisVelocity(*axis.actual_velocity) / speed_unit,
+                                   linear ? "mm/s" : "deg/s");
+            else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_such_device)
+                out << "    " << source << ": not fitted\n";
+            else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_message_available)
+                out << "    " << source << ": waiting for INDEX\n";
+            else
+                out << "    " << source << ": unavailable ("
+                    << (!axis.actual_position ? axis.actual_position.error() : axis.actual_velocity.error())
+                         .message()
+                    << ")\n";
         }
 
         [[
@@ -118,56 +158,24 @@ namespace cli::axis
             const auto status{ controller.status() };
             out << std::format("Drivers: {} | timebase: {} | pulse counts: {}\n",
                                status.enabled ? "enabled" : "disabled",
-                               stateName(status.generator.state),
+                               state_name(status.generator.state),
                                status.generator.counts_exact ? "exact" : "uncertain");
             for (const auto& axis : status.axes) {
                 if (selected && axis.motor != *selected)
                     continue;
                 const auto index{ static_cast<std::size_t>(axis.motor) };
                 out << std::format("{}: referenced={}  switch={}  outstanding={}  step={}\n",
-                                   axisName(axis.motor),
+                                   axis_name(axis.motor),
                                    axis.referenced ? "yes" : "no",
                                    axis.reference_switch_active ? "active/open" : "released",
                                    axis.outstanding,
-                                   stateName(status.generator.axes[index]));
+                                   state_name(status.generator.axes[index]));
                 if (!axis.conversion) {
                     out << "    mechanics not configured\n";
                     continue;
                 }
-                std::visit([&]<typename Converter>(const Converter& conversion) {
-                    constexpr bool linear{ std::is_same_v<Converter, LinearAxisConversion> };
-                    constexpr auto position_unit{ [] {
-                        if constexpr (linear)
-                            return 1_mm;
-                        else
-                            return 1_deg;
-                    }() };
-                    constexpr auto speed_unit{ position_unit / 1_s };
-                    out << std::format("    position={:.4f} {}  velocity={:.3f} {}\n",
-                                       conversion.toAxisPosition(axis.position) / position_unit,
-                                       linear ? "mm" : "deg",
-                                       conversion.toAxisVelocity(axis.velocity) / speed_unit,
-                                       linear ? "mm/s" : "deg/s");
-                    const auto source{ axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex
-                                         ? "driver INDEX (pseudo)" : "encoder" };
-                    if (axis.actual_position && axis.actual_velocity)
-                        out << std::format("    {}: position={:.4f} {}  velocity={:.3f} {}\n", source,
-                                           conversion.toAxisPosition(*axis.actual_position) / position_unit,
-                                           linear ? "mm" : "deg",
-                                           conversion.toAxisVelocity(*axis.actual_velocity) / speed_unit,
-                                           linear ? "mm/s" : "deg/s");
-                    else if (!axis.actual_position &&
-                             axis.actual_position.error() == std::errc::no_such_device)
-                        out << "    " << source << ": not fitted\n";
-                    else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_message_available)
-                        out << "    " << source << ": waiting for INDEX\n";
-                    else
-                        out << "    " << source << ": unavailable ("
-                            << (!axis.actual_position ? axis.actual_position.error()
-                                                      : axis.actual_velocity.error())
-                                 .message()
-                            << ")\n";
-                }, *axis.conversion);
+                std::visit([&](const auto& conversion) { print_axis_coordinates(axis, conversion, out); },
+                           *axis.conversion);
             }
             return 0;
         }
@@ -201,7 +209,7 @@ namespace cli::axis
         ]] static auto move(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            return performMove(controller, args, out, false);
+            return perform_move(controller, args, out, false);
         }
 
         [[
@@ -233,7 +241,7 @@ namespace cli::axis
         ]] static auto moveto(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            return performMove(controller, args, out, true);
+            return perform_move(controller, args, out, true);
         }
 
         [[
@@ -252,14 +260,15 @@ namespace cli::axis
         ]] static auto home(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const auto id{ axisId(args.require("axis")) };
+            const auto id{ axis_id(args.require("axis")) };
             const auto optional_speed = [&](std::string_view name) -> std::optional<Controller::AxisSpeed> {
                 if (const auto value{ option(args, name) })
-                    return axisSpeed(id, magnitude(number(*value, name), name, false));
+                    return axis_speed(id, magnitude(number(*value, name), name, false));
                 return {};
             };
-            const auto seek{ optional_speed("seek") }, latch{ optional_speed("latch") };
-            const auto timeout{ numericOption(args, "timeout", 30, false) * 1_s };
+            const auto seek{ optional_speed("seek") };
+            const auto latch{ optional_speed("latch") };
+            const auto timeout{ numeric_option(args, "timeout", 30, false) * 1_s };
             return submitted(controller.referenceAxis(id, seek, latch, timeout), out, "axis");
         }
 
@@ -271,10 +280,10 @@ namespace cli::axis
         ]] static auto speed(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const auto id{ axisId(args.require("axis")) };
+            const auto id{ axis_id(args.require("axis")) };
             const auto value{ magnitude(number(args.require("value"), "speed"), "speed", false) };
             out << std::format("Speed update scheduled from pulse {} (1-based).\n",
-                               controller.setAxisVelocity(id, axisSpeed(id, value)));
+                               controller.setAxisVelocity(id, axis_speed(id, value)));
             return 0;
         }
 
@@ -294,7 +303,7 @@ namespace cli::axis
         ]] static auto defaults(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const auto id{ axisId(args.require("axis")) };
+            const auto id{ axis_id(args.require("axis")) };
             auto defaults{ controller.axisDefaults(id) };
             std::visit([&]<typename Defaults>(Defaults& value) {
                 constexpr bool linear{ std::is_same_v<Defaults, Controller::LinearDefaults> };
@@ -311,12 +320,12 @@ namespace cli::axis
                         return 1_deg_s3;
                 }() };
                 value.acceleration =
-                  numericOption(args, "accel", value.acceleration / acceleration_unit, false) *
+                  numeric_option(args, "accel", value.acceleration / acceleration_unit, false) *
                   acceleration_unit;
                 value.deceleration =
-                  numericOption(args, "decel", value.deceleration / acceleration_unit, false) *
+                  numeric_option(args, "decel", value.deceleration / acceleration_unit, false) *
                   acceleration_unit;
-                value.jerk = numericOption(args, "jerk", value.jerk / jerk_unit) * jerk_unit;
+                value.jerk = numeric_option(args, "jerk", value.jerk / jerk_unit) * jerk_unit;
             }, defaults);
             if (args.hasFlag("accel") || args.hasFlag("decel") || args.hasFlag("jerk"))
                 controller.setAxisDefaults(id, defaults);
@@ -335,7 +344,7 @@ namespace cli::axis
                         return 1_deg_s3;
                 }() };
                 out << std::format("{}: accel={:.6g} {}  decel={:.6g} {}  jerk={:.6g} {}\n",
-                                   axisName(id),
+                                   axis_name(id),
                                    value.acceleration / acceleration_unit,
                                    linear ? "mm/s^2" : "deg/s^2",
                                    value.deceleration / acceleration_unit,
@@ -348,7 +357,7 @@ namespace cli::axis
 
         [[ = "Enable ALL drivers and wait 200 ms"_fs,
            = Name{ "axis enable"_fs } ]] static auto enable(Controller& controller,
-                                                            const Arguments&,
+                                                            const Arguments& /*unused*/,
                                                             std::ostream& out) -> CallbackResult
         {
             controller.enable();
@@ -359,7 +368,8 @@ namespace cli::axis
         [[
             = "Stop ALL motors, disable holding torque and invalidate references"_fs,
             = Name{ "axis disable"_fs }
-        ]] static auto disable(Controller& controller, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto disable(Controller& controller, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             controller.disable();
             out << "All drivers disabled; references invalidated.\n";
@@ -382,7 +392,7 @@ namespace cli::axis
 
         [[ = "Restart shared timebase while drivers are disabled"_fs,
            = Name{ "axis reset"_fs } ]] static auto reset(Controller& controller,
-                                                          const Arguments&,
+                                                          const Arguments& /*unused*/,
                                                           std::ostream& out) -> CallbackResult
         {
             controller.reset();
@@ -401,7 +411,7 @@ namespace cli::axis
         }
     }
 
-    void setup(Parser& parser, std::shared_ptr<control::ControllerClient> controller)
+    void setup(Parser& parser, const std::shared_ptr<control::ControllerClient>& controller)
     {
         if (!controller)
             throw std::invalid_argument("axis commands require a controller");

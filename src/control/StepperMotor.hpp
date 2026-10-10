@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 #include "Completion.hpp"
 #include "MotorTypes.hpp"
@@ -25,7 +26,7 @@ namespace control
 class StepperMotor final
 {
   public:
-    enum class Direction
+    enum class Direction : std::uint8_t
     {
         Forward,
         Backward
@@ -80,9 +81,10 @@ class StepperMotor final
     pnm::Result<> setMotionDefaults(MotionDefaults defaults);
     MotionDefaults motionDefaults() const;
 
-    std::future<Result> reference(pnm::units::AngularVelocity seek_velocity = 5_rpm,
-                                  pnm::units::AngularVelocity latch_velocity = 0.5_rpm,
-                                  pnm::units::Time timeout = 30_s);
+    std::future<Result> reference(
+      pnm::units::AngularVelocity seek_velocity = control::DEFAULT_REFERENCE_SEEK,
+      pnm::units::AngularVelocity latch_velocity = control::DEFAULT_REFERENCE_LATCH,
+      pnm::units::Time timeout = control::DEFAULT_REFERENCE_TIMEOUT);
     bool isReferenced() const noexcept;
     bool referenceSwitchActive() const noexcept
     {
@@ -108,6 +110,12 @@ class StepperMotor final
     pnm::units::Angle feedbackResolution() const noexcept { return m_feedback->resolution(); }
 
   private:
+    class CommandRunner;
+    bool referenceTargetReached(std::optional<hal::gpio::Level> switch_target) const;
+    Result waitForMotion(bool toward_reference,
+                         std::optional<hal::gpio::Level> switch_target,
+                         std::chrono::steady_clock::time_point deadline,
+                         const std::stop_token& stop);
     friend class control::MotionController;
     control::Completion<Result> m_lastCompletion;
     // Used only while the controller owns all axes; independent workers are
@@ -121,9 +129,9 @@ class StepperMotor final
         pnm::units::Angle position;
         pnm::units::AngularVelocity velocity;
         MotionDefaults dynamics;
-        BufferMode mode;
+        BufferMode mode{ BufferMode::Aborting };
         pnm::units::Time timeout;
-        bool relative;
+        bool relative{};
         control::Completion<Result> completion;
         std::uint32_t epoch{};
     };
@@ -134,14 +142,14 @@ class StepperMotor final
     };
     std::future<Result> submitMove(pnm::units::Angle position,
                                    pnm::units::AngularVelocity velocity,
-                                   MotionDefaults overrides,
+                                   MotionDefaults dynamics,
                                    BufferMode mode,
                                    pnm::units::Time timeout,
                                    bool relative);
-    void runCommands(std::shared_ptr<Command> command, std::stop_token stop) noexcept;
-    std::atomic_uint32_t m_abortEpoch{};
+    void runCommands(std::shared_ptr<Command> command, const std::stop_token& stop) noexcept;
+    std::atomic_uint32_t m_abortEpoch;
     std::uint32_t m_runEpoch{};
-    bool interrupted(std::stop_token stop) const noexcept
+    bool interrupted(const std::stop_token& stop) const noexcept
     {
         return stop.stop_requested() || m_abortEpoch.load() != m_runEpoch;
     }
@@ -150,18 +158,18 @@ class StepperMotor final
     Result performMotion(Direction direction,
                          pnm::units::AngularVelocity velocity,
                          pnm::units::Time timeout,
-                         std::stop_token stop,
+                         const std::stop_token& stop,
                          std::optional<hal::step::PulseCount> count = std::nullopt,
                          std::optional<hal::gpio::Level> switch_target = std::nullopt);
 
     Result performReference(pnm::units::AngularVelocity seek_velocity,
                             pnm::units::AngularVelocity latch_velocity,
                             pnm::units::Time timeout,
-                            std::stop_token stop);
+                            const std::stop_token& stop);
     Result waitReferenceLevel(hal::gpio::Level level,
                               std::chrono::steady_clock::time_point deadline,
-                              std::stop_token stop);
-    Result applyReferencePosition(std::stop_token stop);
+                              const std::stop_token& stop);
+    Result applyReferencePosition(const std::stop_token& stop);
 
     std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
     void accountProgress(const hal::step::AxisStatus& status) noexcept;
@@ -176,11 +184,11 @@ class StepperMotor final
     struct MotionEvents
     {
         runtime::Notification notification;
-        std::atomic_bool referenceActivated{};
-        std::atomic_bool referenceReleased{};
-        std::atomic_uint32_t referenceChanges{};
+        std::atomic_bool reference_activated;
+        std::atomic_bool reference_released;
+        std::atomic_uint32_t reference_changes;
         // Installed once before the generator starts; owned by MotionController.
-        std::atomic<runtime::Notification*> groupNotification{};
+        std::atomic<runtime::Notification*> group_notification;
     };
     std::shared_ptr<MotionEvents> m_events{ std::make_shared<MotionEvents>() };
 
@@ -198,7 +206,7 @@ class StepperMotor final
     bool m_busy{}, m_homing{};
     std::shared_ptr<Command> m_pending;
     std::shared_ptr<VelocityRequest> m_velocityRequest;
-    std::atomic_bool m_profileActive{};
+    std::atomic_bool m_profileActive;
     std::atomic<hal::step::PulseCount> m_wakeAtPulse{ std::numeric_limits<hal::step::PulseCount>::max() };
 
     double m_motionSign{ 1.0 };

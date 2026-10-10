@@ -1,8 +1,8 @@
 #include "motor.hpp"
 #include "control_common.hpp"
 
-#include <format>
 #include <cmath>
+#include <format>
 #include <ostream>
 #include <stdexcept>
 
@@ -10,12 +10,13 @@ namespace cli::motor
 {
     namespace
     {
+        constexpr double MAX_DRIVER_CURRENT_MILLIAMPS{ 1800 };
         using Controller = control::ControllerClient;
         using MotorId = Controller::MotorId;
         using namespace pnm::units;
         using namespace control_detail;
 
-        constexpr std::string_view guide{
+        constexpr std::string_view GUIDE{
             "Motor control (motor-shaft degrees and rpm, including M3):\n"
             "  motor status [m1|m2|m3|all]          Positions, feedback and reference state\n"
             "  motor enable / motor disable        Shared driver enable\n"
@@ -35,7 +36,7 @@ namespace cli::motor
             "No axis is referenced automatically. Disabling invalidates all references.\n"
         };
 
-        MotorId motorId(std::string_view text)
+        MotorId motor_id(std::string_view text)
         {
             if (text == "m1" || text == "1")
                 return MotorId::Motor1;
@@ -49,24 +50,24 @@ namespace cli::motor
         std::optional<MotorId> selection(const Arguments& args)
         {
             const auto text{ args.get("motor") };
-            return !text || *text == "all" ? std::nullopt : std::optional{ motorId(*text) };
+            return !text || *text == "all" ? std::nullopt : std::optional{ motor_id(*text) };
         }
 
-        auto performMove(Controller& controller, const Arguments& args, std::ostream& out, bool absolute)
+        auto perform_move(Controller& controller, const Arguments& args, std::ostream& out, bool absolute)
           -> CallbackResult
         {
-            const auto id{ motorId(args.require("motor")) };
+            const auto id{ motor_id(args.require("motor")) };
             const auto speed{ option(args, "speed") };
             if (!speed)
                 return callback_failure("--speed <rpm> is required");
             const Controller::Move request{ .position = number(args.require("degrees"), "degrees") * 1_deg,
                                             .velocity =
                                               magnitude(number(*speed, "speed"), "speed", false) * 1_rpm,
-                                            .acceleration = numericOption(args, "accel", 0) * 1_deg_s2,
-                                            .deceleration = numericOption(args, "decel", 0) * 1_deg_s2,
-                                            .jerk = numericOption(args, "jerk", 0) * 1_deg_s3,
-                                            .buffer = bufferMode(args),
-                                            .timeout = numericOption(args, "timeout", 0) * 1_s,
+                                            .acceleration = numeric_option(args, "accel", 0) * 1_deg_s2,
+                                            .deceleration = numeric_option(args, "decel", 0) * 1_deg_s2,
+                                            .jerk = numeric_option(args, "jerk", 0) * 1_deg_s3,
+                                            .buffer = buffer_mode(args),
+                                            .timeout = numeric_option(args, "timeout", 0) * 1_s,
                                             .absolute = absolute };
             return submitted(controller.move(id, request), out);
         }
@@ -79,9 +80,10 @@ namespace cli::motor
         [[
             = "Motor commands and examples; help motor <command> for details"_fs,
             = Name{ "motor"_fs }
-        ]] static auto overview(Controller&, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto overview(Controller& /*unused*/, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
-            out << guide;
+            out << GUIDE;
             return 0;
         }
 
@@ -96,7 +98,7 @@ namespace cli::motor
             const auto status{ controller.status() };
             out << std::format("Drivers: {} | timebase: {} | pulse counts: {}\n",
                                status.enabled ? "enabled" : "disabled",
-                               stateName(status.generator.state),
+                               state_name(status.generator.state),
                                status.generator.counts_exact ? "exact" : "uncertain");
             for (const auto& axis : status.axes) {
                 if (selected && *selected != axis.motor)
@@ -110,16 +112,19 @@ namespace cli::motor
                                    axis.referenced ? "yes" : "no",
                                    axis.reference_switch_active ? "active/open" : "released",
                                    axis.outstanding,
-                                   stateName(status.generator.axes[i]));
+                                   state_name(status.generator.axes[i]));
                 const auto source{ axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex
-                                     ? "driver INDEX (pseudo)" : "encoder" };
+                                     ? "driver INDEX (pseudo)"
+                                     : "encoder" };
                 if (axis.actual_position && axis.actual_velocity)
-                    out << std::format("    {}: position={:.4f} deg  velocity={:.3f} rpm\n", source,
+                    out << std::format("    {}: position={:.4f} deg  velocity={:.3f} rpm\n",
+                                       source,
                                        axis.actual_position->get<AngleUnits::deg>(),
                                        axis.actual_velocity->get<AngularVelocityUnits::rpm>());
                 else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_such_device)
                     out << "    " << source << ": not fitted\n";
-                else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_message_available)
+                else if (!axis.actual_position &&
+                         axis.actual_position.error() == std::errc::no_message_available)
                     out << "    " << source << ": waiting for INDEX\n";
                 else
                     out << "    " << source << ": unavailable ("
@@ -134,20 +139,27 @@ namespace cli::motor
             return 0;
         }
 
-        [[ = "Read common driver status and available cached UART diagnostics"_fs,
-           = Name{ "motor driver status"_fs },
-           = Arg{ .name = "motor"_fs, .description = "m1, m2, m3 or all (default)"_fs, .optional = true } ]]
-        static auto driverStatus(Controller& controller, const Arguments& args, std::ostream& out) -> CallbackResult
+        [[
+            = "Read common driver status and available cached UART diagnostics"_fs,
+            = Name{ "motor driver status"_fs },
+            = Arg{ .name = "motor"_fs, .description = "m1, m2, m3 or all (default)"_fs, .optional = true }
+        ]] static auto driver_status(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
         {
             using Programmable = hal::device::IConfigurableStepperDriver;
             const auto selected{ selection(args) };
             bool extended{};
             for (const auto& d : controller.driverStatus()) {
-                if (selected && *selected != d.motor) continue;
+                if (selected && *selected != d.motor)
+                    continue;
                 out << std::format("m{}: {} ready={} fault-input={} fault-latched={}\n",
-                    static_cast<unsigned>(d.motor) + 1, d.name, d.status.ready,
-                    d.status.fault_active ? "active/open" : "clear", d.status.fault_latched);
-                if (d.status.error) out << "    error: " << d.status.error.message() << '\n';
+                                   static_cast<unsigned>(d.motor) + 1,
+                                   d.name,
+                                   d.status.ready,
+                                   d.status.fault_active ? "active/open" : "clear",
+                                   d.status.fault_latched);
+                if (d.status.error)
+                    out << "    error: " << d.status.error.message() << '\n';
                 if (!d.configuration) {
                     out << "    Configuration via hardware switches; no programmable diagnostics.\n";
                     continue;
@@ -155,62 +167,95 @@ namespace cli::motor
                 extended = true;
                 const auto& control{ *d.configuration };
                 const auto& config{ control.configuration };
-                out << std::format("    UART address={} mode={} microsteps={} interpolation={}\n"
-                                   "    run={} mA RMS (nominal quantized {}), hold={} mA RMS (nominal quantized {})\n",
-                    control.address, config.mode == Programmable::Mode::SpreadCycle ? "spreadcycle" : "stealthchop",
-                    config.microsteps, config.interpolate, config.run_milliamps, control.nominal_run_milliamps,
-                    config.hold_milliamps, control.nominal_hold_milliamps);
+                out << std::format(
+                  "    UART address={} mode={} microsteps={} interpolation={}\n"
+                  "    run={} mA RMS (nominal quantized {}), hold={} mA RMS (nominal quantized {})\n",
+                  control.address,
+                  config.mode == Programmable::Mode::SpreadCycle ? "spreadcycle" : "stealthchop",
+                  config.microsteps,
+                  config.interpolate,
+                  config.run_milliamps,
+                  control.nominal_run_milliamps,
+                  config.hold_milliamps,
+                  control.nominal_hold_milliamps);
                 if (control.diagnostics) {
                     const auto& state{ *control.diagnostics };
-                    out << std::format("    reset={} fault={} overtemperature-warning={} open-load={} standstill={}\n"
-                                       "    GSTAT=0x{:08x} DRV_STATUS=0x{:08x} IOIN=0x{:08x} SG_RESULT={}\n",
-                        state.reset(), state.fault(), state.warning(), state.openLoad(), state.standstill(),
-                        state.global, state.driver, state.input, state.load);
+                    out << std::format(
+                      "    reset={} fault={} overtemperature-warning={} open-load={} standstill={}\n"
+                      "    GSTAT=0x{:08x} DRV_STATUS=0x{:08x} IOIN=0x{:08x} SG_RESULT={}\n",
+                      state.reset(),
+                      state.fault(),
+                      state.warning(),
+                      state.openLoad(),
+                      state.standstill(),
+                      state.global,
+                      state.driver,
+                      state.input,
+                      state.load);
                 }
             }
             if (extended)
-                out << "Temperature flags are thresholds, not measured degrees. Open-load can be false at standstill.\n"
+                out << "Temperature flags are thresholds, not measured degrees. Open-load can be false at "
+                       "standstill.\n"
                        "SG_RESULT needs StealthChop at suitable speed; it is not encoder feedback.\n";
             return 0;
         }
 
-        [[ = "Check M1 ALM and initialize both UART drivers; disabled only, invalidates references"_fs,
-           = Name{ "motor driver init"_fs } ]]
-        static auto driverInit(Controller& controller, const Arguments&, std::ostream& out) -> CallbackResult
+        [[
+            = "Check M1 ALM and initialize both UART drivers; disabled only, invalidates references"_fs,
+            = Name{ "motor driver init"_fs }
+        ]] static auto driver_init(Controller& controller, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             controller.initializeDrivers();
             out << "All drivers initialized and verified; drivers remain disabled.\n";
             return 0;
         }
 
-        [[ = "Configure M2/M3 in RAM while disabled; microsteps follow axis configuration"_fs,
-           = Name{ "motor driver configure"_fs },
-           = Arg{ .name = "motor"_fs, .description = "m2 or m3"_fs },
-           = Flag{ .name = "run"_fs, .description = "RMS current: M2 100..700, M3 100..590; rounded down"_fs, .value_name = "mA"_fs },
-           = Flag{ .name = "hold"_fs, .description = "RMS holding current <= run; Z must equal run"_fs, .value_name = "mA"_fs },
-           = Flag{ .name = "mode"_fs, .description = "spreadcycle or stealthchop (>=512 mA)"_fs, .value_name = "mode"_fs },
-           = Flag{ .name = "interpolate"_fs, .description = "Internal 256-microstep interpolation: on or off"_fs, .value_name = "state"_fs } ]]
-        static auto driverConfigure(Controller& controller, const Arguments& args, std::ostream& out) -> CallbackResult
+        [[
+            = "Configure M2/M3 in RAM while disabled; microsteps follow axis configuration"_fs,
+            = Name{ "motor driver configure"_fs },
+            = Arg{ .name = "motor"_fs, .description = "m2 or m3"_fs },
+            = Flag{ .name = "run"_fs,
+                    .description = "RMS current: M2 100..700, M3 100..590; rounded down"_fs,
+                    .value_name = "mA"_fs },
+            = Flag{ .name = "hold"_fs,
+                    .description = "RMS holding current <= run; Z must equal run"_fs,
+                    .value_name = "mA"_fs },
+            = Flag{ .name = "mode"_fs,
+                    .description = "spreadcycle or stealthchop (>=512 mA)"_fs,
+                    .value_name = "mode"_fs },
+            = Flag{ .name = "interpolate"_fs,
+                    .description = "Internal 256-microstep interpolation: on or off"_fs,
+                    .value_name = "state"_fs }
+        ]] static auto driver_configure(Controller& controller, const Arguments& args, std::ostream& out)
+          -> CallbackResult
         {
-            const auto id = motorId(args.require("motor"));
+            const auto id = motor_id(args.require("motor"));
             const auto capability{ controller.driverStatus()[static_cast<unsigned>(id)].configuration };
-            if (!capability) return callback_failure("driver uses hardware switches; no programmable configuration");
+            if (!capability)
+                return callback_failure("driver uses hardware switches; no programmable configuration");
             auto config{ capability->configuration };
             auto current = [&](std::string_view name, std::uint16_t fallback) {
-                const auto value = numericOption(args, name, fallback, false);
-                if (value > 1800 || std::floor(value) != value)
+                const auto value = numeric_option(args, name, fallback, false);
+                if (value > MAX_DRIVER_CURRENT_MILLIAMPS || std::floor(value) != value)
                     throw std::invalid_argument("current must be an integer in mA RMS");
                 return static_cast<std::uint16_t>(value);
             };
             config.run_milliamps = current("run", config.run_milliamps);
-            config.hold_milliamps = current("hold", capability->limits.hold_equals_run ? config.run_milliamps : config.hold_milliamps);
+            config.hold_milliamps = current(
+              "hold", capability->limits.hold_equals_run ? config.run_milliamps : config.hold_milliamps);
             if (auto mode = option(args, "mode")) {
-                if (*mode == "spreadcycle") config.mode = hal::device::IConfigurableStepperDriver::Mode::SpreadCycle;
-                else if (*mode == "stealthchop") config.mode = hal::device::IConfigurableStepperDriver::Mode::StealthChop;
-                else return callback_failure("mode must be spreadcycle or stealthchop");
+                if (*mode == "spreadcycle")
+                    config.mode = hal::device::IConfigurableStepperDriver::Mode::SpreadCycle;
+                else if (*mode == "stealthchop")
+                    config.mode = hal::device::IConfigurableStepperDriver::Mode::StealthChop;
+                else
+                    return callback_failure("mode must be spreadcycle or stealthchop");
             }
             if (auto interpolate = option(args, "interpolate")) {
-                if (*interpolate != "on" && *interpolate != "off") return callback_failure("interpolate must be on or off");
+                if (*interpolate != "on" && *interpolate != "off")
+                    return callback_failure("interpolate must be on or off");
                 config.interpolate = *interpolate == "on";
             }
             controller.configureDriver(id, config);
@@ -218,10 +263,11 @@ namespace cli::motor
             return 0;
         }
 
-        [[ = "Verify UART drivers, enable all drivers and wait 200 ms for settling"_fs,
-           = Name{ "motor enable"_fs } ]] static auto enable(Controller& controller,
-                                                             const Arguments&,
-                                                             std::ostream& out) -> CallbackResult
+        [[
+            = "Verify UART drivers, enable all drivers and wait 200 ms for settling"_fs,
+            = Name{ "motor enable"_fs }
+        ]] static auto enable(Controller& controller, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             controller.enable();
             out << "All drivers enabled and settled.\n";
@@ -231,7 +277,8 @@ namespace cli::motor
         [[
             = "Abort all motions, disable holding torque and invalidate references"_fs,
             = Name{ "motor disable"_fs }
-        ]] static auto disable(Controller& controller, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto disable(Controller& controller, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             controller.disable();
             out << "All drivers disabled; references invalidated.\n";
@@ -253,7 +300,8 @@ namespace cli::motor
         [[
             = "Recover a stopped/faulted timebase; drivers must be disabled"_fs,
             = Name{ "motor reset"_fs }
-        ]] static auto reset(Controller& controller, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto reset(Controller& controller, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             controller.reset();
             out << "Timebase restarted; drivers remain disabled.\n";
@@ -289,7 +337,7 @@ namespace cli::motor
         ]] static auto move(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            return performMove(controller, args, out, false);
+            return perform_move(controller, args, out, false);
         }
 
         [[
@@ -321,7 +369,7 @@ namespace cli::motor
         ]] static auto moveto(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            return performMove(controller, args, out, true);
+            return perform_move(controller, args, out, true);
         }
 
         [[
@@ -340,10 +388,10 @@ namespace cli::motor
         ]] static auto home(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const auto id{ motorId(args.require("motor")) };
-            const auto seek{ numericOption(args, "seek", 5, false) };
-            const auto latch{ numericOption(args, "latch", 0.5, false) };
-            const auto timeout{ numericOption(args, "timeout", 30, false) };
+            const auto id{ motor_id(args.require("motor")) };
+            const auto seek{ numeric_option(args, "seek", 5, false) };
+            const auto latch{ numeric_option(args, "latch", 0.5, false) };
+            const auto timeout{ numeric_option(args, "timeout", 30, false) };
             if (latch >= seek)
                 return callback_failure("latch speed must be slower than seek speed");
             return submitted(controller.reference(id, seek * 1_rpm, latch * 1_rpm, timeout * 1_s), out);
@@ -357,7 +405,7 @@ namespace cli::motor
         ]] static auto speed(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const auto id{ motorId(args.require("motor")) };
+            const auto id{ motor_id(args.require("motor")) };
             const auto speed{ magnitude(number(args.require("rpm"), "speed"), "speed", false) };
             const auto pulse{ controller.setVelocity(id, speed * 1_rpm) };
             out << std::format("Speed update scheduled from pulse {} (1-based).\n", pulse);
@@ -380,18 +428,18 @@ namespace cli::motor
         ]] static auto defaults(Controller& controller, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const auto id{ motorId(args.require("motor")) };
+            const auto id{ motor_id(args.require("motor")) };
             auto defaults{ controller.defaults(id) };
             defaults.acceleration =
-              numericOption(
+              numeric_option(
                 args, "accel", defaults.acceleration.get<AngularAccelerationUnits::deg_s2>(), false) *
               1_deg_s2;
             defaults.deceleration =
-              numericOption(
+              numeric_option(
                 args, "decel", defaults.deceleration.get<AngularAccelerationUnits::deg_s2>(), false) *
               1_deg_s2;
             defaults.jerk =
-              numericOption(args, "jerk", defaults.jerk.get<AngularJerkUnits::deg_s3>()) * 1_deg_s3;
+              numeric_option(args, "jerk", defaults.jerk.get<AngularJerkUnits::deg_s3>()) * 1_deg_s3;
             if (args.hasFlag("accel") || args.hasFlag("decel") || args.hasFlag("jerk"))
                 controller.setDefaults(id, defaults);
             out << std::format("m{}: accel={:.6g} deg/s^2  decel={:.6g} deg/s^2  jerk={:.6g} deg/s^3\n",
@@ -413,7 +461,7 @@ namespace cli::motor
         }
     }
 
-    void setup(Parser& parser, std::shared_ptr<control::ControllerClient> controller)
+    void setup(Parser& parser, const std::shared_ptr<control::ControllerClient>& controller)
     {
         if (!controller)
             throw std::invalid_argument("motor commands require a controller");

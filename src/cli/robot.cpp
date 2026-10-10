@@ -9,12 +9,13 @@ namespace cli::robot
 {
     namespace
     {
+        constexpr double FULL_SPEED_PERCENT{ 100 };
         using Kinematics = ScaraKinematics;
         using namespace pnm::units;
         using namespace control_detail;
-        constexpr auto degrees_per_second{ 1_deg / 1_s };
+        constexpr auto DEGREES_PER_SECOND{ 1_deg / 1_s };
 
-        std::string_view errorName(Kinematics::Error error)
+        std::string_view error_name(Kinematics::Error error)
         {
             using enum Kinematics::Error;
             switch (error) {
@@ -32,7 +33,7 @@ namespace cli::robot
             std::unreachable();
         }
 
-        void printPose(std::ostream& out, const Kinematics::ToolPose& pose)
+        void print_pose(std::ostream& out, const Kinematics::ToolPose& pose)
         {
             out << std::format("Tool: x={:.4f} mm  y={:.4f} mm  z={:.4f} mm  yaw={:.4f} deg\n",
                                pose.position.x / 1_mm,
@@ -41,7 +42,7 @@ namespace cli::robot
                                pose.yaw / 1_deg);
         }
 
-        void printJoints(std::ostream& out, Kinematics::JointPosition joints)
+        void print_joints(std::ostream& out, Kinematics::JointPosition joints)
         {
             out << std::format("Joints: shoulder={:.4f} deg  elbow={:.4f} deg  z={:.4f} mm\n",
                                joints.shoulder / 1_deg,
@@ -49,13 +50,13 @@ namespace cli::robot
                                joints.z / 1_mm);
         }
 
-        void printState(std::ostream& out, const control::Robot::State& state)
+        void print_state(std::ostream& out, const control::Robot::State& state)
         {
-            printJoints(out, state.joints);
+            print_joints(out, state.joints);
             if (state.pose)
-                printPose(out, *state.pose);
+                print_pose(out, *state.pose);
             else
-                out << "Tool: unavailable (" << errorName(state.pose.error()) << ")\n";
+                out << "Tool: unavailable (" << error_name(state.pose.error()) << ")\n";
             if (state.velocity) {
                 const auto& speed{ *state.velocity };
                 out << std::format("Tool velocity: x={:.3f} mm/s  y={:.3f} mm/s  z={:.3f} mm/s  "
@@ -63,10 +64,10 @@ namespace cli::robot
                                    speed.linear.x / 1_mm_s,
                                    speed.linear.y / 1_mm_s,
                                    speed.linear.z / 1_mm_s,
-                                   speed.yaw / degrees_per_second);
+                                   speed.yaw / DEGREES_PER_SECOND);
             }
             else
-                out << "Tool velocity: unavailable (" << errorName(state.velocity.error()) << ")\n";
+                out << "Tool velocity: unavailable (" << error_name(state.velocity.error()) << ")\n";
         }
 
         std::optional<Kinematics::ElbowBranch> branch(const Arguments& args)
@@ -82,12 +83,12 @@ namespace cli::robot
         }
         control::Robot::MoveOptions options(const Arguments& args, bool cartesian)
         {
-            const auto speed{ numericOption(args, "speed", 20, false) };
-            if (speed > 100)
+            const auto speed{ numeric_option(args, "speed", 20, false) };
+            if (speed > FULL_SPEED_PERCENT)
                 throw std::invalid_argument("--speed must be greater than 0 and at most 100 percent");
-            return { speed / 100,
-                     numericOption(args, "timeout", 0) * 1_s,
-                     cartesian ? branch(args) : std::nullopt };
+            return { .speed = speed / FULL_SPEED_PERCENT,
+                     .timeout = numeric_option(args, "timeout", 0) * 1_s,
+                     .branch = cartesian ? branch(args) : std::nullopt };
         }
 
         int submitted(const control::Robot::Motion& motion, std::ostream& out)
@@ -99,7 +100,7 @@ namespace cli::robot
             return 0;
         }
 
-        std::string_view resultName(std::optional<control::MotorResult> result)
+        std::string_view result_name(std::optional<control::MotorResult> result)
         {
             if (!result)
                 return "outstanding";
@@ -125,8 +126,9 @@ namespace cli::robot
         using namespace pnm::meta::string::literals;
 
         [[ = "SCARA motion, homing, state and kinematics calculations"_fs,
-           = Name{ "robot"_fs } ]] static auto overview(control::Robot&, const Arguments&, std::ostream& out)
-          -> CallbackResult
+           = Name{ "robot"_fs } ]] static auto overview(control::Robot& /*unused*/,
+                                                        const Arguments& /*unused*/,
+                                                        std::ostream& out) -> CallbackResult
         {
             out << "Robot control (distances in mm, joint angles in degrees):\n"
                    "  robot status                  Live commanded tool position and velocity\n"
@@ -150,28 +152,31 @@ namespace cli::robot
         [[
             = "Live tool pose/velocity from axis coordinates, with reference and feedback validity"_fs,
             = Name{ "robot status"_fs }
-        ]] static auto status(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto status(control::Robot& robot, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             const auto status{ robot.status() };
             out << std::format("Drivers: {} | timebase: {} | pulse counts: {} | referenced={}\n",
                                status.motors.enabled ? "enabled" : "disabled",
-                               stateName(status.motors.generator.state),
+                               state_name(status.motors.generator.state),
                                status.motors.generator.counts_exact ? "exact" : "uncertain",
                                status.referenced ? "yes" : "no");
             out << "Robot operation: " << (status.motors.coordinated ? "active" : "idle") << '\n';
             if (!status.referenced)
                 out << "Unreferenced coordinates have no established physical datum.\n";
             out << "Commanded state (from emitted steps):\n";
-            printState(out, status.commanded);
+            print_state(out, status.commanded);
             if (status.actual) {
                 out << "Feedback state (M1 shaft encoder; M2/M3 coarse driver INDEX estimates):\n";
-                printState(out, *status.actual);
+                print_state(out, *status.actual);
             }
             else {
                 const auto& error{ status.actual.error() };
-                out << "Feedback tool state unavailable: " << axisName(error.motor) << ' '
+                out << "Feedback tool state unavailable: " << axis_name(error.motor) << ' '
                     << (status.motors.axes[static_cast<std::size_t>(error.motor)].feedback_source ==
-                          hal::device::IMotorFeedback::Source::DriverIndex ? "driver INDEX " : "encoder ");
+                            hal::device::IMotorFeedback::Source::DriverIndex
+                          ? "driver INDEX "
+                          : "encoder ");
                 if (error.reason == std::errc::no_such_device)
                     out << "not fitted";
                 else if (error.reason == std::errc::no_message_available)
@@ -186,7 +191,8 @@ namespace cli::robot
         [[
             = "Show configured arm lengths, base/tool frames and joint limits"_fs,
             = Name{ "robot geometry"_fs }
-        ]] static auto geometry(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto geometry(control::Robot& robot, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             const auto& config{ robot.kinematics().configuration() };
             out << std::format("Arms: first={:.4f} mm  second={:.4f} mm\n",
@@ -204,9 +210,9 @@ namespace cli::robot
                                config.tool_yaw / 1_deg);
             if (config.limits) {
                 out << "Minimum ";
-                printJoints(out, config.limits->minimum);
+                print_joints(out, config.limits->minimum);
                 out << "Maximum ";
-                printJoints(out, config.limits->maximum);
+                print_joints(out, config.limits->maximum);
             }
             else
                 out << "Joint limits: not configured\n";
@@ -214,8 +220,8 @@ namespace cli::robot
             const auto limits{ robot.maximumVelocity() };
             out << std::format(
               "Joint speed limits: shoulder={:.3f} deg/s  elbow={:.3f} deg/s  z={:.3f} mm/s\n",
-              limits.shoulder / degrees_per_second,
-              limits.elbow / degrees_per_second,
+              limits.shoulder / DEGREES_PER_SECOND,
+              limits.elbow / DEGREES_PER_SECOND,
               limits.z / 1_mm_s);
             return 0;
         }
@@ -229,12 +235,12 @@ namespace cli::robot
         ]] static auto fk(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
         {
             const auto pose{ robot.kinematics().forward(
-              { number(args.require("shoulder"), "shoulder") * 1_deg,
-                number(args.require("elbow"), "elbow") * 1_deg,
-                number(args.require("z"), "z") * 1_mm }) };
+              { .shoulder = number(args.require("shoulder"), "shoulder") * 1_deg,
+                .elbow = number(args.require("elbow"), "elbow") * 1_deg,
+                .z = number(args.require("z"), "z") * 1_mm }) };
             if (!pose)
-                return callback_failure(std::string(errorName(pose.error())));
-            printPose(out, *pose);
+                return callback_failure(std::string(error_name(pose.error())));
+            print_pose(out, *pose);
             return 0;
         }
 
@@ -249,15 +255,15 @@ namespace cli::robot
                     .value_name = "name"_fs }
         ]] static auto ik(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
         {
-            const Kinematics::CartesianPosition target{ number(args.require("x"), "x") * 1_mm,
-                                                        number(args.require("y"), "y") * 1_mm,
-                                                        number(args.require("z"), "z") * 1_mm };
+            const Kinematics::CartesianPosition target{ .x = number(args.require("x"), "x") * 1_mm,
+                                                        .y = number(args.require("y"), "y") * 1_mm,
+                                                        .z = number(args.require("z"), "z") * 1_mm };
             const auto selected_branch{ branch(args) };
             const auto status{ robot.status() };
             const auto result{ robot.kinematics().inverse(target, status.commanded.joints, selected_branch) };
             if (!result)
-                return callback_failure(std::string(errorName(result.error())));
-            printJoints(out, *result);
+                return callback_failure(std::string(error_name(result.error())));
+            print_joints(out, *result);
             out << "Endpoint calculation only; no motion started or path validated.\n";
             if (!status.referenced)
                 out << "Seed is unreferenced; joint coordinates have no established physical datum.\n";
@@ -265,7 +271,7 @@ namespace cli::robot
         }
         [[ = "Enable all drivers and wait for settling"_fs,
            = Name{ "robot enable"_fs } ]] static auto enable(control::Robot& robot,
-                                                             const Arguments&,
+                                                             const Arguments& /*unused*/,
                                                              std::ostream& out) -> CallbackResult
         {
             robot.enable();
@@ -276,7 +282,8 @@ namespace cli::robot
         [[
             = "Abort robot/motor motions, disable drivers and invalidate references"_fs,
             = Name{ "robot disable"_fs }
-        ]] static auto disable(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto disable(control::Robot& robot, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             robot.disable();
             out << "All drivers disabled; references invalidated.\n";
@@ -286,7 +293,8 @@ namespace cli::robot
         [[
             = "Abort the whole robot operation immediately; keep holding torque"_fs,
             = Name{ "robot stop"_fs }
-        ]] static auto stop(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto stop(control::Robot& robot, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             robot.stop();
             out << "Robot motion stopped; driver enable unchanged.\n";
@@ -296,7 +304,8 @@ namespace cli::robot
         [[
             = "Recover shared timebase while drivers are disabled"_fs,
             = Name{ "robot reset"_fs }
-        ]] static auto reset(control::Robot& robot, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto reset(control::Robot& robot, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             robot.reset();
             out << "Timebase restarted; drivers remain disabled.\n";
@@ -311,7 +320,10 @@ namespace cli::robot
                     .value_name = "seconds"_fs }
         ]] static auto home(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
         {
-            return submitted(robot.reference(numericOption(args, "timeout", 90, false) * 1_s), out);
+            return submitted(
+              robot.reference(
+                numeric_option(args, "timeout", control::DEFAULT_GROUP_REFERENCE_TIMEOUT / 1_s, false) * 1_s),
+              out);
         }
 
         [[
@@ -333,9 +345,9 @@ namespace cli::robot
         ]] static auto moveto(control::Robot& robot, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const Kinematics::CartesianPosition target{ number(args.require("x"), "x") * 1_mm,
-                                                        number(args.require("y"), "y") * 1_mm,
-                                                        number(args.require("z"), "z") * 1_mm };
+            const Kinematics::CartesianPosition target{ .x = number(args.require("x"), "x") * 1_mm,
+                                                        .y = number(args.require("y"), "y") * 1_mm,
+                                                        .z = number(args.require("z"), "z") * 1_mm };
             return submitted(robot.moveAbs(target, options(args, true)), out);
         }
 
@@ -357,9 +369,9 @@ namespace cli::robot
                     .value_name = "name"_fs }
         ]] static auto move(control::Robot& robot, const Arguments& args, std::ostream& out) -> CallbackResult
         {
-            const Kinematics::CartesianPosition target{ number(args.require("dx"), "dx") * 1_mm,
-                                                        number(args.require("dy"), "dy") * 1_mm,
-                                                        number(args.require("dz"), "dz") * 1_mm };
+            const Kinematics::CartesianPosition target{ .x = number(args.require("dx"), "dx") * 1_mm,
+                                                        .y = number(args.require("dy"), "dy") * 1_mm,
+                                                        .z = number(args.require("dz"), "dz") * 1_mm };
             return submitted(robot.moveRel(target, options(args, true)), out);
         }
 
@@ -378,9 +390,10 @@ namespace cli::robot
         ]] static auto joints(control::Robot& robot, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const Kinematics::JointPosition target{ number(args.require("shoulder"), "shoulder") * 1_deg,
-                                                    number(args.require("elbow"), "elbow") * 1_deg,
-                                                    number(args.require("z"), "z") * 1_mm };
+            const Kinematics::JointPosition target{ .shoulder =
+                                                      number(args.require("shoulder"), "shoulder") * 1_deg,
+                                                    .elbow = number(args.require("elbow"), "elbow") * 1_deg,
+                                                    .z = number(args.require("z"), "z") * 1_mm };
             return submitted(robot.moveJoints(target, options(args, false)), out);
         }
 
@@ -407,8 +420,9 @@ namespace cli::robot
                                    job.id,
                                    job.operation == control::ControllerClient::Operation::Reference ? "home"
                                                                                                     : "move",
-                                   resultName(job.result));
-                if(job.result && !job.terminal_confirmed)out << "IO connection lost; hardware stop is not confirmed.\n";
+                                   result_name(job.result));
+                if (job.result && !job.terminal_confirmed)
+                    out << "IO connection lost; hardware stop is not confirmed.\n";
                 if (selected && job.result && *job.result != control::MotorResult::Completed)
                     return 1;
             }
@@ -421,7 +435,7 @@ namespace cli::robot
 
     }
 
-    void setup(Parser& parser, std::shared_ptr<control::Robot> robot)
+    void setup(Parser& parser, const std::shared_ptr<control::Robot>& robot)
     {
         if (!robot)
             throw std::invalid_argument("robot commands require a robot");

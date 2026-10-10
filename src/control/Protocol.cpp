@@ -21,31 +21,31 @@ namespace control::protocol
             return static_cast<E>(n);
         }
         // Stable semantic codes; Linux and newlib use different errno values.
-        constexpr std::array wireErrors{ std::errc::io_error,
-                                         std::errc::no_such_device,
-                                         std::errc::operation_not_supported,
-                                         std::errc::invalid_argument,
-                                         std::errc::result_out_of_range,
-                                         std::errc::state_not_recoverable,
-                                         std::errc::timed_out,
-                                         std::errc::operation_canceled,
-                                         std::errc::resource_unavailable_try_again,
-                                         std::errc::no_message_available,
-                                         std::errc::device_or_resource_busy,
-                                         std::errc::message_size,
-                                         std::errc::no_buffer_space,
-                                         std::errc::not_connected,
-                                         std::errc::not_supported,
-                                         std::errc::operation_not_permitted,
-                                         std::errc::permission_denied,
-                                         std::errc::protocol_error,
-                                         std::errc::value_too_large,
-                                         std::errc::no_such_process };
+        constexpr std::array WIRE_ERRORS{ std::errc::io_error,
+                                          std::errc::no_such_device,
+                                          std::errc::operation_not_supported,
+                                          std::errc::invalid_argument,
+                                          std::errc::result_out_of_range,
+                                          std::errc::state_not_recoverable,
+                                          std::errc::timed_out,
+                                          std::errc::operation_canceled,
+                                          std::errc::resource_unavailable_try_again,
+                                          std::errc::no_message_available,
+                                          std::errc::device_or_resource_busy,
+                                          std::errc::message_size,
+                                          std::errc::no_buffer_space,
+                                          std::errc::not_connected,
+                                          std::errc::not_supported,
+                                          std::errc::operation_not_permitted,
+                                          std::errc::permission_denied,
+                                          std::errc::protocol_error,
+                                          std::errc::value_too_large,
+                                          std::errc::no_such_process };
         void error(W& w, std::error_code value)
         {
             unsigned code = value ? 1 : 0;
-            for (unsigned i = 0; i < wireErrors.size(); ++i)
-                if (value == std::make_error_code(wireErrors[i])) {
+            for (unsigned i = 0; i < WIRE_ERRORS.size(); ++i)
+                if (value == std::make_error_code(WIRE_ERRORS[i])) {
                     code = i + 1;
                     break;
                 }
@@ -56,11 +56,11 @@ namespace control::protocol
             const auto code = r.integer<std::uint8_t>();
             if (!code)
                 return {};
-            if (code > wireErrors.size())
+            if (code > WIRE_ERRORS.size())
                 throw std::invalid_argument("invalid control error");
-            return std::make_error_code(wireErrors[code - 1]);
+            return std::make_error_code(WIRE_ERRORS[code - 1]);
         }
-        void driverStatus(W& w, const hal::device::IStepperDriver::Status& s)
+        void driver_status(W& w, const hal::device::IStepperDriver::Status& s)
         {
             w.boolean(s.ready);
             w.boolean(s.fault_active);
@@ -69,14 +69,15 @@ namespace control::protocol
             en(w, s.fault);
             error(w, s.error);
         }
-        hal::device::IStepperDriver::Status driverStatus(R& r)
+        hal::device::IStepperDriver::Status driver_status(R& r)
         {
             hal::device::IStepperDriver::Status s;
             s.ready = r.boolean();
             s.fault_active = r.boolean();
             s.fault_latched = r.boolean();
             s.warning = r.boolean();
-            s.fault = en<hal::device::IStepperDriver::Fault>(r, 5);
+            s.fault = en<hal::device::IStepperDriver::Fault>(
+              r, static_cast<unsigned>(hal::device::IStepperDriver::Fault::Reset));
             s.error = error(r);
             return s;
         }
@@ -115,14 +116,15 @@ namespace control::protocol
         {
             T::Status s{};
             s.enabled = r.boolean();
-            s.generator.state = en<hal::step::State>(r, 6);
+            s.generator.state = en<hal::step::State>(r, static_cast<unsigned>(hal::step::State::DmaError));
             s.generator.counts_exact = r.boolean();
             s.coordinated = r.boolean();
             s.configuration_revision = r.integer<std::uint64_t>();
             s.command_revision = r.integer<std::uint64_t>();
             for (unsigned i = 0; i < 3; ++i) {
                 s.generator.pulses[i] = r.integer<std::uint64_t>();
-                s.generator.axes[i] = en<hal::step::State>(r, 6);
+                s.generator.axes[i] =
+                  en<hal::step::State>(r, static_cast<unsigned>(hal::step::State::DmaError));
                 s.generator.periods[i] = std::chrono::nanoseconds(r.integer<std::uint64_t>());
             }
             for (auto& a : s.axes) {
@@ -151,18 +153,18 @@ namespace control::protocol
     void routes(p2p::Bridge& b, bool io)
     {
         if (io) {
-            b.exportService<Request, Response>(RequestEndpoint, RequestName);
-            b.exportService<Request, Response>(StopEndpoint, StopName, p2p::Lane::Urgent);
-            b.exportAction<Request, Progress, Outcome>(ExecuteEndpoint, ExecuteName);
-            b.publishTopic<State>(StateEndpoint, StateName);
-            b.publishTopic<FaultState>(FaultEndpoint, FaultName);
+            b.exportService<Request, Response>(REQUEST_ENDPOINT, REQUEST_NAME);
+            b.exportService<Request, Response>(STOP_ENDPOINT, STOP_NAME, p2p::Lane::Urgent);
+            b.exportAction<Request, Progress, Outcome>(EXECUTE_ENDPOINT, EXECUTE_NAME);
+            b.publishTopic<State>(STATE_ENDPOINT, STATE_NAME);
+            b.publishTopic<FaultState>(FAULT_ENDPOINT, FAULT_NAME);
         }
         else {
-            b.importService<Request, Response>(RequestEndpoint, RequestName);
-            b.importService<Request, Response>(StopEndpoint, StopName, p2p::Lane::Urgent);
-            b.importAction<Request, Progress, Outcome>(ExecuteEndpoint, ExecuteName);
-            b.receiveTopic<State>(StateEndpoint, StateName);
-            b.receiveTopic<FaultState>(FaultEndpoint, FaultName);
+            b.importService<Request, Response>(REQUEST_ENDPOINT, REQUEST_NAME);
+            b.importService<Request, Response>(STOP_ENDPOINT, STOP_NAME, p2p::Lane::Urgent);
+            b.importAction<Request, Progress, Outcome>(EXECUTE_ENDPOINT, EXECUTE_NAME);
+            b.receiveTopic<State>(STATE_ENDPOINT, STATE_NAME);
+            b.receiveTopic<FaultState>(FAULT_ENDPOINT, FAULT_NAME);
         }
     }
     void write(W& w, const T::Conversion& c)
@@ -222,7 +224,7 @@ namespace control::protocol
             w.real(v.jerk.get());
         }, d);
     }
-    T::AxisDefaults axisDefaults(R& r)
+    T::AxisDefaults axis_defaults(R& r)
     {
         if (!r.boolean())
             return defaults(r);
@@ -265,7 +267,7 @@ namespace control::protocol
         w.boolean(c.interpolate);
         w.boolean(c.index_step);
     }
-    T::DriverConfiguration driverConfiguration(R& r)
+    T::DriverConfiguration driver_configuration(R& r)
     {
         T::DriverConfiguration c;
         c.run_milliamps = r.integer<std::uint16_t>();
@@ -281,7 +283,7 @@ namespace control::protocol
         for (const auto& v : values) {
             en(w, v.motor);
             w.text(v.name);
-            driverStatus(w, v.status);
+            driver_status(w, v.status);
             w.boolean(v.configuration.has_value());
             if (!v.configuration)
                 continue;
@@ -308,12 +310,12 @@ namespace control::protocol
         for (auto& v : values) {
             v.motor = en<T::MotorId>(r, 2);
             v.name = r.text();
-            v.status = driverStatus(r);
+            v.status = driver_status(r);
             if (!r.boolean())
                 continue;
             v.configuration.emplace();
             auto& s = *v.configuration;
-            s.configuration = driverConfiguration(r);
+            s.configuration = driver_configuration(r);
             if (r.boolean()) {
                 s.diagnostics.emplace();
                 auto& d = *s.diagnostics;
@@ -349,7 +351,7 @@ namespace control::protocol
         m.acceleration = pnm::units::AngularAcceleration::create(r.real());
         m.deceleration = pnm::units::AngularAcceleration::create(r.real());
         m.jerk = pnm::units::AngularJerk::create(r.real());
-        m.buffer = en<BufferMode>(r, 5);
+        m.buffer = en<BufferMode>(r, static_cast<unsigned>(BufferMode::BlendingHigh));
         m.timeout = pnm::units::Time::create(r.real());
         m.absolute = r.boolean();
         return m;
@@ -369,7 +371,7 @@ namespace control::protocol
             write(w, x);
         }, m);
     }
-    T::AxisMove axisMove(R& r)
+    T::AxisMove axis_move(R& r)
     {
         auto linear = r.boolean();
         auto m = move(r);
@@ -403,7 +405,7 @@ namespace control::protocol
         w.integer(t.command_revision);
         for (auto v : t.origin)
             w.real(v.get());
-        if (t.profile.size > 13)
+        if (t.profile.size > motion::Profile::MAX_PHASES)
             throw std::invalid_argument("too many trajectory phases");
         w.integer<std::uint8_t>(static_cast<std::uint8_t>(t.profile.size));
         for (unsigned i = 0; i < t.profile.size; ++i) {
@@ -430,7 +432,7 @@ namespace control::protocol
         for (auto& v : t.origin)
             v = pnm::units::Angle::create(r.real());
         t.profile.size = r.integer<std::uint8_t>();
-        if (t.profile.size > 13)
+        if (t.profile.size > motion::Profile::MAX_PHASES)
             throw std::invalid_argument("too many trajectory phases");
         for (unsigned i = 0; i < t.profile.size; ++i) {
             auto& p = t.profile.phases[i];
@@ -470,7 +472,7 @@ namespace p2p
             throw std::invalid_argument("invalid control operation");
         v.operation = static_cast<Operation>(op);
         v.motor = r.integer<std::uint8_t>();
-        if (v.motor > 2 && v.motor != 255)
+        if (v.motor > 2 && v.motor != control::protocol::ALL_MOTORS)
             throw std::invalid_argument("invalid motor ID");
         v.data.assign(r.remaining().begin(), r.remaining().end());
         return v;
@@ -550,7 +552,7 @@ namespace p2p
     {
         Writer w;
         for (const auto& s : v.drivers)
-            control::protocol::driverStatus(w, s);
+            control::protocol::driver_status(w, s);
         w.boolean(v.link_inhibited);
         return std::move(w.bytes);
     }
@@ -559,7 +561,7 @@ namespace p2p
         Reader r(b);
         FaultState v;
         for (auto& s : v.drivers)
-            s = control::protocol::driverStatus(r);
+            s = control::protocol::driver_status(r);
         v.link_inhibited = r.boolean();
         r.finish();
         return v;

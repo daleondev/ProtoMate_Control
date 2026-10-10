@@ -34,6 +34,6 @@ namespace motion
         double m_step;
         Part m_first;
         std::optional<Part> m_second;
-        std::chrono::nanoseconds m_maximum;
+        std::chrono::nanoseconds m_maximum{};
     };
 }

@@ -14,5 +14,5 @@ namespace cli
 namespace cli::axis
 {
     // Joint-coordinate view of the same controller used by cli::motor.
-    void setup(Parser& parser, std::shared_ptr<control::ControllerClient> controller);
+    void setup(Parser& parser, const std::shared_ptr<control::ControllerClient>& controller);
 }

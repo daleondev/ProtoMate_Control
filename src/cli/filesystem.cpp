@@ -25,10 +25,11 @@ namespace cli::filesystem
     {
         namespace
         {
+            constexpr std::size_t PATH_BUFFER_CAPACITY{ 256U };
             using namespace pnm::meta::string::literals;
             namespace fs = std::filesystem;
 
-            constexpr std::size_t maximum_wildcard_matches{ 256U };
+            constexpr std::size_t MAXIMUM_WILDCARD_MATCHES{ 256U };
 
             using PathResult = std::expected<fs::path, CallbackError>;
 
@@ -54,6 +55,8 @@ namespace cli::filesystem
                 return text.empty() ? std::string{ "." } : text;
             }
 
+            // The second string is the diagnostic label for the first; call sites use label literals.
+            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
             [[nodiscard]] auto resolve_path(std::string_view value, std::string_view argument_name)
               -> PathResult
             {
@@ -111,7 +114,8 @@ namespace cli::filesystem
 
             [[nodiscard]] auto wildcard_failure(std::string_view action,
                                                 const fs::path& path,
-                                                const std::error_code& error) -> WildcardResult
+                                                const std::error_code& error)
+              -> std::unexpected<CallbackError>
             {
                 std::string message{ action };
                 message += " '";
@@ -127,6 +131,110 @@ namespace cli::filesystem
                 });
             }
 
+            auto split_pattern(std::string_view pattern, std::span<const std::uint8_t> wildcard_mask)
+              -> std::vector<PatternComponent>
+            {
+                std::vector<PatternComponent> components;
+                for (std::size_t begin{}; begin < pattern.size();) {
+                    while (begin < pattern.size() && pattern[begin] == '/') {
+                        ++begin;
+                    }
+                    if (begin == pattern.size()) {
+                        break;
+                    }
+
+                    const std::size_t end{ pattern.find('/', begin) };
+                    const std::size_t component_end{ end == std::string_view::npos ? pattern.size() : end };
+                    components.push_back({
+                      .text = std::string{ pattern.substr(begin, component_end - begin) },
+                      .wildcard_mask =
+                        std::vector<std::uint8_t>{ wildcard_mask.begin() + static_cast<std::ptrdiff_t>(begin),
+                                                   wildcard_mask.begin() +
+                                                     static_cast<std::ptrdiff_t>(component_end) },
+                    });
+                    begin = component_end;
+                }
+
+                return components;
+            }
+            auto match_component(const std::vector<fs::path>& candidates,
+                                 const PatternComponent& component,
+                                 std::string_view pattern)
+              -> std::expected<std::vector<fs::path>, CallbackError>
+            {
+                std::vector<fs::path> matches;
+                for (const auto& candidate : candidates) {
+                    std::error_code error;
+                    fs::directory_iterator iterator{ candidate, error };
+                    if (error == std::errc::no_such_file_or_directory ||
+                        error == std::errc::not_a_directory) {
+                        continue;
+                    }
+                    if (error) {
+                        return wildcard_failure("cannot expand wildcard in", candidate, error);
+                    }
+
+                    const fs::directory_iterator end;
+                    while (iterator != end) {
+                        const std::string name{ iterator->path().filename().generic_string() };
+                        const bool hidden_without_explicit_dot{ name.starts_with('.') &&
+                                                                (component.text.empty() ||
+                                                                 !component.text.starts_with('.')) };
+                        if (!hidden_without_explicit_dot && wildcard_match(name, component)) {
+                            if (matches.size() == MAXIMUM_WILDCARD_MATCHES) {
+                                return std::unexpected(CallbackError{
+                                  .message = "pattern '" + std::string{ pattern } + "' matched more than " +
+                                             std::to_string(MAXIMUM_WILDCARD_MATCHES) + " paths",
+                                  .exit_code = 2,
+                                });
+                            }
+                            matches.push_back(iterator->path());
+                        }
+                        iterator.increment(error);
+                        if (error) {
+                            return wildcard_failure(
+                              "cannot continue wildcard expansion in", candidate, error);
+                        }
+                    }
+                }
+                return matches;
+            }
+            auto display_matches(std::vector<fs::path>& candidates,
+                                 std::string_view pattern,
+                                 bool absolute,
+                                 bool require_directory) -> WildcardResult
+            {
+                std::vector<std::string> result;
+                for (auto& candidate : candidates) {
+                    candidate = candidate.lexically_normal();
+                    std::error_code error;
+                    const fs::file_status status{ fs::status(candidate, error) };
+                    if (error == std::errc::no_such_file_or_directory ||
+                        error == std::errc::not_a_directory) {
+                        continue;
+                    }
+                    if (error) {
+                        return wildcard_failure("cannot inspect wildcard match", candidate, error);
+                    }
+                    if (!fs::exists(status) || (require_directory && !fs::is_directory(status))) {
+                        continue;
+                    }
+
+                    fs::path displayed{ candidate };
+                    if (!absolute) {
+                        displayed = candidate.lexically_relative(current_dir());
+                    }
+                    result.push_back(displayed.generic_string());
+                }
+
+                std::ranges::sort(result);
+                const auto duplicates{ std::ranges::unique(result) };
+                result.erase(duplicates.begin(), duplicates.end());
+                if (result.empty()) {
+                    result.emplace_back(pattern);
+                }
+                return result;
+            }
             [[nodiscard]] auto expand_wildcards(std::string_view pattern,
                                                 std::span<const std::uint8_t> wildcard_mask) -> WildcardResult
             {
@@ -153,27 +261,7 @@ namespace cli::filesystem
 
                 const bool absolute{ pattern.starts_with('/') };
                 const bool require_directory{ pattern.size() > 1U && pattern.ends_with('/') };
-                std::vector<PatternComponent> components;
-                for (std::size_t begin{}; begin < pattern.size();) {
-                    while (begin < pattern.size() && pattern[begin] == '/') {
-                        ++begin;
-                    }
-                    if (begin == pattern.size()) {
-                        break;
-                    }
-
-                    const std::size_t end{ pattern.find('/', begin) };
-                    const std::size_t component_end{ end == std::string_view::npos ? pattern.size() : end };
-                    components.push_back({
-                      .text = std::string{ pattern.substr(begin, component_end - begin) },
-                      .wildcard_mask =
-                        std::vector<std::uint8_t>{ wildcard_mask.begin() + static_cast<std::ptrdiff_t>(begin),
-                                                   wildcard_mask.begin() +
-                                                     static_cast<std::ptrdiff_t>(component_end) },
-                    });
-                    begin = component_end;
-                }
-
+                const auto components{ split_pattern(pattern, wildcard_mask) };
                 std::vector<fs::path> candidates{ absolute ? fs::path{ "/" } : current_dir() };
                 for (const auto& component : components) {
                     const bool component_has_wildcard{ std::ranges::any_of(
@@ -185,77 +273,16 @@ namespace cli::filesystem
                         continue;
                     }
 
-                    std::vector<fs::path> matches;
-                    for (const auto& candidate : candidates) {
-                        std::error_code error;
-                        fs::directory_iterator iterator{ candidate, error };
-                        if (error == std::errc::no_such_file_or_directory ||
-                            error == std::errc::not_a_directory) {
-                            continue;
-                        }
-                        if (error) {
-                            return wildcard_failure("cannot expand wildcard in", candidate, error);
-                        }
-
-                        const fs::directory_iterator end;
-                        while (iterator != end) {
-                            const std::string name{ iterator->path().filename().generic_string() };
-                            const bool hidden_without_explicit_dot{ name.starts_with('.') &&
-                                                                    (component.text.empty() ||
-                                                                     !component.text.starts_with('.')) };
-                            if (!hidden_without_explicit_dot && wildcard_match(name, component)) {
-                                if (matches.size() == maximum_wildcard_matches) {
-                                    return std::unexpected(CallbackError{
-                                      .message = "pattern '" + std::string{ pattern } +
-                                                 "' matched more than " +
-                                                 std::to_string(maximum_wildcard_matches) + " paths",
-                                      .exit_code = 2,
-                                    });
-                                }
-                                matches.push_back(iterator->path());
-                            }
-                            iterator.increment(error);
-                            if (error) {
-                                return wildcard_failure(
-                                  "cannot continue wildcard expansion in", candidate, error);
-                            }
-                        }
-                    }
-                    candidates = std::move(matches);
+                    auto matches{ match_component(candidates, component, pattern) };
+                    if (!matches)
+                        return std::unexpected(matches.error());
+                    candidates = std::move(*matches);
                     if (candidates.empty()) {
                         break;
                     }
                 }
 
-                std::vector<std::string> result;
-                for (auto& candidate : candidates) {
-                    candidate = candidate.lexically_normal();
-                    std::error_code error;
-                    const fs::file_status status{ fs::status(candidate, error) };
-                    if (error == std::errc::no_such_file_or_directory ||
-                        error == std::errc::not_a_directory) {
-                        continue;
-                    }
-                    if (error) {
-                        return wildcard_failure("cannot inspect wildcard match", candidate, error);
-                    }
-                    if (!fs::exists(status) || (require_directory && !fs::is_directory(status))) {
-                        continue;
-                    }
-
-                    fs::path displayed{ candidate };
-                    if (!absolute) {
-                        displayed = candidate.lexically_relative(current_dir());
-                    }
-                    result.push_back(displayed.generic_string());
-                }
-
-                std::ranges::sort(result);
-                result.erase(std::unique(result.begin(), result.end()), result.end());
-                if (result.empty()) {
-                    result.push_back(std::string{ pattern });
-                }
-                return result;
+                return display_matches(candidates, pattern, absolute, require_directory);
             }
 
             [[nodiscard]] auto filesystem_failure(std::string_view action,
@@ -551,7 +578,7 @@ namespace cli::filesystem
                       "cannot open", path, { errno == 0 ? EIO : errno, std::generic_category() });
                 }
 
-                std::array<char, 256U> buffer{};
+                std::array<char, PATH_BUFFER_CAPACITY> buffer{};
                 while (file.read(buffer.data(), static_cast<std::streamsize>(buffer.size())) ||
                        file.gcount() > 0) {
                     output.write(buffer.data(), file.gcount());
@@ -593,7 +620,7 @@ namespace cli::filesystem
         [[
             = "Change the current working directory."_fs,
             = Arg{ .name = "directory"_fs, .description = "the new working directory"_fs }
-        ]] static auto cd(const Arguments& args, std::ostream&) -> CallbackResult
+        ]] static auto cd(const Arguments& args, std::ostream& /*unused*/) -> CallbackResult
         {
             auto path{ resolve_path(args.require("directory"), "directory") };
             if (!path) {
@@ -651,7 +678,7 @@ namespace cli::filesystem
             = Flag{ .name = "no-create"_fs,
                     .short_name = 'c',
                     .description = "do not create a missing file"_fs }
-        ]] static auto touch(const Arguments& args, std::ostream&) -> CallbackResult
+        ]] static auto touch(const Arguments& args, std::ostream& /*unused*/) -> CallbackResult
         {
             for (std::size_t index{}; index < args.size(); ++index) {
                 auto path{ resolve_path(args.at(index), "file") };
@@ -672,7 +699,7 @@ namespace cli::filesystem
             = Flag{ .name = "parents"_fs,
                     .short_name = 'p',
                     .description = "create missing parent directories"_fs }
-        ]] static auto mkdir(const Arguments& args, std::ostream&) -> CallbackResult
+        ]] static auto mkdir(const Arguments& args, std::ostream& /*unused*/) -> CallbackResult
         {
             for (std::size_t index{}; index < args.size(); ++index) {
                 auto path{ resolve_path(args.at(index), "directory") };
@@ -690,7 +717,7 @@ namespace cli::filesystem
         [[
             = "Remove an empty directory."_fs,
             = Arg{ .name = "directory"_fs, .description = "empty directories to remove"_fs, .variadic = true }
-        ]] static auto rmdir(const Arguments& args, std::ostream&) -> CallbackResult
+        ]] static auto rmdir(const Arguments& args, std::ostream& /*unused*/) -> CallbackResult
         {
             for (std::size_t index{}; index < args.size(); ++index) {
                 auto path{ resolve_path(args.at(index), "directory") };
@@ -712,7 +739,7 @@ namespace cli::filesystem
                     .short_name = 'r',
                     .description = "remove directories recursively"_fs },
             = Flag{ .name = "force"_fs, .short_name = 'f', .description = "ignore a missing path"_fs }
-        ]] static auto rm(const Arguments& args, std::ostream&) -> CallbackResult
+        ]] static auto rm(const Arguments& args, std::ostream& /*unused*/) -> CallbackResult
         {
             for (std::size_t index{}; index < args.size(); ++index) {
                 auto path{ resolve_path(args.at(index), "path") };
@@ -727,37 +754,13 @@ namespace cli::filesystem
             return 0;
         }
 
-        [[
-            = "Copy a file or directory."_fs,
-            = Arg{ .name = "source"_fs, .description = "source paths"_fs, .variadic = true },
-            = Arg{ .name = "destination"_fs, .description = "the destination path"_fs },
-            = Flag{ .name = "recursive"_fs,
-                    .short_name = 'r',
-                    .description = "copy directories recursively"_fs },
-            = Flag{ .name = "force"_fs, .short_name = 'f', .description = "overwrite existing files"_fs }
-        ]] static auto cp(const Arguments& args, std::ostream&) -> CallbackResult
+        namespace
         {
-            auto destination_root{ resolve_path(args.require("destination"), "destination") };
-            if (!destination_root) {
-                return std::unexpected(destination_root.error());
-            }
-
-            const std::size_t source_count{ args.size() - 1U };
-            if (source_count > 1U) {
-                std::error_code error;
-                const fs::file_status destination_status{ fs::status(*destination_root, error) };
-                if (error) {
-                    return filesystem_failure(
-                      "cannot access multi-source destination", *destination_root, error);
-                }
-                if (!fs::is_directory(destination_status)) {
-                    return callback_failure("multi-source destination '" + path_text(*destination_root) +
-                                            "' is not a directory");
-                }
-            }
-
-            for (std::size_t index{}; index < source_count; ++index) {
-                auto source{ resolve_path(args.at(index), "source") };
+            auto copy_source(std::string_view source_text,
+                             const fs::path& destination_root,
+                             const Arguments& args) -> CallbackResult
+            {
+                auto source{ resolve_path(source_text, "source") };
                 if (!source) {
                     return std::unexpected(source.error());
                 }
@@ -771,7 +774,7 @@ namespace cli::filesystem
                     return callback_failure("source '" + path_text(*source) + "' does not exist");
                 }
 
-                fs::path destination{ *destination_root };
+                fs::path destination{ destination_root };
                 if (fs::is_directory(destination, error)) {
                     destination /= source->filename();
                 }
@@ -798,18 +801,19 @@ namespace cli::filesystem
                 if (!result) {
                     return result;
                 }
+                return 0;
             }
-            return 0;
         }
 
         [[
-            = "Move or rename a file or directory."_fs,
+            = "Copy a file or directory."_fs,
             = Arg{ .name = "source"_fs, .description = "source paths"_fs, .variadic = true },
             = Arg{ .name = "destination"_fs, .description = "the destination path"_fs },
-            = Flag{ .name = "force"_fs,
-                    .short_name = 'f',
-                    .description = "replace an existing destination"_fs }
-        ]] static auto mv(const Arguments& args, std::ostream&) -> CallbackResult
+            = Flag{ .name = "recursive"_fs,
+                    .short_name = 'r',
+                    .description = "copy directories recursively"_fs },
+            = Flag{ .name = "force"_fs, .short_name = 'f', .description = "overwrite existing files"_fs }
+        ]] static auto cp(const Arguments& args, std::ostream& /*unused*/) -> CallbackResult
         {
             auto destination_root{ resolve_path(args.require("destination"), "destination") };
             if (!destination_root) {
@@ -831,7 +835,20 @@ namespace cli::filesystem
             }
 
             for (std::size_t index{}; index < source_count; ++index) {
-                auto source{ resolve_path(args.at(index), "source") };
+                auto result{ copy_source(args.at(index), *destination_root, args) };
+                if (!result)
+                    return result;
+            }
+            return 0;
+        }
+
+        namespace
+        {
+            auto move_source(std::string_view source_text,
+                             const fs::path& destination_root,
+                             const Arguments& args) -> CallbackResult
+            {
+                auto source{ resolve_path(source_text, "source") };
                 if (!source) {
                     return std::unexpected(source.error());
                 }
@@ -842,7 +859,7 @@ namespace cli::filesystem
                     return filesystem_failure("cannot access", *source, error);
                 }
 
-                fs::path destination{ *destination_root };
+                fs::path destination{ destination_root };
                 if (fs::is_directory(destination, error)) {
                     destination /= source->filename();
                 }
@@ -853,7 +870,7 @@ namespace cli::filesystem
 
                 if (fs::exists(destination, error)) {
                     if (fs::equivalent(*source, destination, error) && !error) {
-                        continue;
+                        return 0;
                     }
                     if (!args.hasFlag("force")) {
                         return callback_failure("destination '" + path_text(destination) +
@@ -866,7 +883,7 @@ namespace cli::filesystem
 
                 fs::rename(*source, destination, error);
                 if (!error) {
-                    continue;
+                    return 0;
                 }
                 if (error != std::errc::cross_device_link) {
                     return filesystem_failure("cannot move to", destination, error);
@@ -886,6 +903,42 @@ namespace cli::filesystem
                 if (error) {
                     return filesystem_failure("copied but cannot remove source", *source, error);
                 }
+                return 0;
+            }
+        }
+
+        [[
+            = "Move or rename a file or directory."_fs,
+            = Arg{ .name = "source"_fs, .description = "source paths"_fs, .variadic = true },
+            = Arg{ .name = "destination"_fs, .description = "the destination path"_fs },
+            = Flag{ .name = "force"_fs,
+                    .short_name = 'f',
+                    .description = "replace an existing destination"_fs }
+        ]] static auto mv(const Arguments& args, std::ostream& /*unused*/) -> CallbackResult
+        {
+            auto destination_root{ resolve_path(args.require("destination"), "destination") };
+            if (!destination_root) {
+                return std::unexpected(destination_root.error());
+            }
+
+            const std::size_t source_count{ args.size() - 1U };
+            if (source_count > 1U) {
+                std::error_code error;
+                const fs::file_status destination_status{ fs::status(*destination_root, error) };
+                if (error) {
+                    return filesystem_failure(
+                      "cannot access multi-source destination", *destination_root, error);
+                }
+                if (!fs::is_directory(destination_status)) {
+                    return callback_failure("multi-source destination '" + path_text(*destination_root) +
+                                            "' is not a directory");
+                }
+            }
+
+            for (std::size_t index{}; index < source_count; ++index) {
+                auto result{ move_source(args.at(index), *destination_root, args) };
+                if (!result)
+                    return result;
             }
             return 0;
         }
@@ -909,12 +962,12 @@ namespace cli::filesystem
         }
     }
 
-    auto resolvePath(std::string_view value, std::string_view argument_name) -> PathResult
+    auto resolve_path(std::string_view value, std::string_view argument_name) -> PathResult
     {
         return commands::resolve_path(value, argument_name);
     }
 
-    auto expandWildcards(std::string_view pattern, std::span<const std::uint8_t> wildcard_mask)
+    auto expand_wildcards(std::string_view pattern, std::span<const std::uint8_t> wildcard_mask)
       -> WildcardResult
     {
         return commands::expand_wildcards(pattern, wildcard_mask);

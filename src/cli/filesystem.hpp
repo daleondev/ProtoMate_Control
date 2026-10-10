@@ -19,15 +19,14 @@ namespace cli::filesystem
      * Resolve a path against the CLI-local working directory without changing
      * the process working directory.
      */
-    [[nodiscard]] auto resolvePath(std::string_view value,
-                                   std::string_view argument_name = "path") -> PathResult;
+    [[nodiscard]] auto resolve_path(std::string_view value, std::string_view argument_name = "path")
+      -> PathResult;
 
     /**
      * Expand active '*' characters against the CLI-local working directory.
      * Mask entries are nonzero only for unquoted and unescaped wildcards.
      */
-    [[nodiscard]] auto expandWildcards(std::string_view pattern,
-                                       std::span<const std::uint8_t> wildcard_mask)
+    [[nodiscard]] auto expand_wildcards(std::string_view pattern, std::span<const std::uint8_t> wildcard_mask)
       -> WildcardResult;
 
     auto setup() -> void;

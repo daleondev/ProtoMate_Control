@@ -1,4 +1,5 @@
 #include "Robot.hpp"
+#include "MotionLimits.hpp"
 #include "MotionProfile.hpp"
 
 #include <algorithm>
@@ -11,6 +12,9 @@ namespace control
 {
     namespace
     {
+        constexpr ScaraKinematics::JointVelocity DEFAULT_JOINT_VELOCITY{ .shoulder = 60_deg / 1_s,
+                                                                         .elbow = 60_deg / 1_s,
+                                                                         .z = 20_mm / 1_s };
         template<typename Converter>
         const Converter& conversion(const ControllerClient::AxisStatus& axis)
         {
@@ -25,9 +29,11 @@ namespace control
         ScaraKinematics::JointPosition joints(const ControllerClient::Status& status)
         {
             return {
-                conversion<RotaryAxisConversion>(status.axes[0]).toAxisPosition(status.axes[0].position),
-                conversion<RotaryAxisConversion>(status.axes[1]).toAxisPosition(status.axes[1].position),
-                conversion<LinearAxisConversion>(status.axes[2]).toAxisPosition(status.axes[2].position)
+                .shoulder =
+                  conversion<RotaryAxisConversion>(status.axes[0]).toAxisPosition(status.axes[0].position),
+                .elbow =
+                  conversion<RotaryAxisConversion>(status.axes[1]).toAxisPosition(status.axes[1].position),
+                .z = conversion<LinearAxisConversion>(status.axes[2]).toAxisPosition(status.axes[2].position)
             };
         }
 
@@ -61,7 +67,7 @@ namespace control
     }
 
     Robot::Robot(std::shared_ptr<ControllerClient> controller, ScaraKinematics::Config geometry)
-      : Robot{ std::move(controller), geometry, { 60_deg / 1_s, 60_deg / 1_s, 20_mm / 1_s } }
+      : Robot{ std::move(controller), geometry, DEFAULT_JOINT_VELOCITY }
     {
     }
 
@@ -118,7 +124,7 @@ namespace control
     void Robot::enable() { m_controller->enable(); }
     void Robot::disable() { m_controller->disable(); }
     void Robot::stop() { m_controller->stop(); }
-    void Robot::reset() { m_controller->reset(); }
+    void Robot::reset() { (*m_controller).reset(); }
     std::vector<Robot::Motion> Robot::motions() { return m_controller->groupMotions(); }
 
     ControllerClient::Trajectory Robot::plan(const ControllerClient::PlanningSnapshot& snapshot,
@@ -129,9 +135,9 @@ namespace control
         const auto& defaults = snapshot.defaults;
         // Rectangular joint limits hold along the whole joint-linear segment
         // when both endpoints fit. This is not collision or tool-path planning.
-        const auto checkLimits = [&](auto position) { checked(m_kinematics.checkJointLimits(position)); };
-        checkLimits(joints(origin));
-        checkLimits(target);
+        const auto check_limits = [&](auto position) { checked(m_kinematics.checkJointLimits(position)); };
+        check_limits(joints(origin));
+        check_limits(target);
         const auto& shoulder{ conversion<RotaryAxisConversion>(origin.axes[0]) };
         const auto& elbow{ conversion<RotaryAxisConversion>(origin.axes[1]) };
         const auto& z{ conversion<LinearAxisConversion>(origin.axes[2]) };
@@ -148,14 +154,16 @@ namespace control
         for (unsigned i = 0; i < 3; ++i)
             result.origin[i] = origin.axes[i].position;
         const auto infinity{ std::numeric_limits<double>::infinity() };
-        motion::Profile::Limits limits{ infinity, infinity, infinity, infinity };
+        motion::Profile::Limits limits{
+            .velocity = infinity, .acceleration = infinity, .deceleration = infinity, .jerk = infinity
+        };
         bool moving{};
         for (std::size_t i{}; i < counts.size(); ++i) {
             const auto config{ snapshot.configuration[i] };
             const auto step{ config.full_step_angle / static_cast<double>(config.microsteps) };
             const auto delta{ motor_target[i] - origin.axes[i].position };
             const auto pulses{ std::round(std::abs(delta / step)) };
-            if (!std::isfinite(pulses) || pulses >= 0x1p52)
+            if (!std::isfinite(pulses) || pulses >= static_cast<double>(motion::limits::MAX_PULSES))
                 throw std::invalid_argument("robot displacement is too large");
             counts[i] = static_cast<hal::step::PulseCount>(pulses);
             result.forward[i] = delta.get() >= 0.0;
@@ -166,16 +174,17 @@ namespace control
                 continue;
             moving = true;
             // Leave rounding margin below the hardware's 100 kstep/s ceiling.
-            limits.velocity =
-              std::min({ limits.velocity, max_speed[i].get() * speed / distance, 99999.0 / pulses });
+            limits.velocity = std::min({ limits.velocity,
+                                         max_speed[i].get() * speed / distance,
+                                         motion::limits::MAX_PLANNED_RATE / pulses });
             limits.acceleration = std::min(limits.acceleration, defaults[i].acceleration.get() / distance);
             limits.deceleration = std::min(limits.deceleration, defaults[i].deceleration.get() / distance);
             if (defaults[i].jerk.get() > 0.0)
                 limits.jerk = std::min(limits.jerk, defaults[i].jerk.get() / distance);
         }
-        checkLimits(ScaraKinematics::JointPosition{ shoulder.toAxisPosition(motor_target[0]),
-                                                    elbow.toAxisPosition(motor_target[1]),
-                                                    z.toAxisPosition(motor_target[2]) });
+        check_limits(ScaraKinematics::JointPosition{ .shoulder = shoulder.toAxisPosition(motor_target[0]),
+                                                     .elbow = elbow.toAxisPosition(motor_target[1]),
+                                                     .z = z.toAxisPosition(motor_target[2]) });
         if (!moving)
             return result;
         if (!std::isfinite(limits.jerk))
@@ -183,7 +192,8 @@ namespace control
         const auto profile{ motion::Profile::create(1.0, limits) };
         if (!profile)
             throw std::invalid_argument("robot motion profile cannot be generated");
-        result.duration = pnm::units::Time::create(profile->duration()) + 0.010005_s;
+        result.duration = pnm::units::Time::create(profile->duration()) +
+                          pnm::units::Time{ motion::limits::COORDINATED_DURATION_MARGIN };
         result.profile = profile->description();
         result.pulses = counts;
         return result;
@@ -204,28 +214,31 @@ namespace control
                 const auto& axis{ motors.axes[index] };
                 return actual ? *axis.actual_velocity : axis.velocity;
             };
-            const ScaraKinematics::JointPosition joints{ shoulder.toAxisPosition(position(0)),
-                                                         elbow.toAxisPosition(position(1)),
-                                                         z.toAxisPosition(position(2)) };
-            const ScaraKinematics::JointVelocity speeds{ shoulder.toAxisVelocity(velocity(0)),
-                                                         elbow.toAxisVelocity(velocity(1)),
-                                                         z.toAxisVelocity(velocity(2)) };
-            return State{
-                joints, speeds, m_kinematics.forward(joints), m_kinematics.forwardVelocity(joints, speeds)
-            };
+            const ScaraKinematics::JointPosition joints{ .shoulder = shoulder.toAxisPosition(position(0)),
+                                                         .elbow = elbow.toAxisPosition(position(1)),
+                                                         .z = z.toAxisPosition(position(2)) };
+            const ScaraKinematics::JointVelocity speeds{ .shoulder = shoulder.toAxisVelocity(velocity(0)),
+                                                         .elbow = elbow.toAxisVelocity(velocity(1)),
+                                                         .z = z.toAxisVelocity(velocity(2)) };
+            return State{ .joints = joints,
+                          .joint_velocity = speeds,
+                          .pose = m_kinematics.forward(joints),
+                          .velocity = m_kinematics.forwardVelocity(joints, speeds) };
         };
         auto commanded{ state(false) };
         auto actual = [&]() -> std::expected<State, FeedbackError> {
             for (const auto& axis : motors.axes) {
                 if (!axis.actual_position)
-                    return std::unexpected(FeedbackError{ axis.motor, axis.actual_position.error() });
+                    return std::unexpected(
+                      FeedbackError{ .motor = axis.motor, .reason = axis.actual_position.error() });
                 if (!axis.actual_velocity)
-                    return std::unexpected(FeedbackError{ axis.motor, axis.actual_velocity.error() });
+                    return std::unexpected(
+                      FeedbackError{ .motor = axis.motor, .reason = axis.actual_velocity.error() });
             }
             return state(true);
         }();
         const bool referenced{ std::ranges::all_of(motors.axes,
                                                    [](const auto& axis) { return axis.referenced; }) };
-        return { std::move(motors), std::move(commanded), std::move(actual), referenced };
+        return { .motors = motors, .commanded = commanded, .actual = actual, .referenced = referenced };
     }
 }

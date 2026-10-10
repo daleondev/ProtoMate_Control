@@ -1,9 +1,11 @@
+// Numeric values describe explicit test inputs, timing bounds and expected results.
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 #include "../AxisConversion.hpp"
 #include "../StepperMotor.hpp"
-#include "hal/tests/support/SignalOnlyDriver.hpp"
 #include "hal/devices/impl/Dm542tDriver.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 #include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
+#include "hal/tests/support/SignalOnlyDriver.hpp"
 
 #include <gtest/gtest.h>
 
@@ -18,12 +20,12 @@ namespace
     using namespace std::chrono_literals;
     using namespace pnm::units::literals;
 
-    std::shared_ptr<hal::GpioInput> releasedReference(hal::board::MotorId id)
+    std::shared_ptr<hal::GpioInput> released_reference(hal::board::MotorId id)
     {
         // The motor owns the input; simulate the external NC contact by pin.
-        constexpr std::array pins{ hal::gpio::Pin{ hal::gpio::Port::E, 7U },
-                                   hal::gpio::Pin{ hal::gpio::Port::E, 8U },
-                                   hal::gpio::Pin{ hal::gpio::Port::E, 10U } };
+        constexpr std::array pins{ hal::gpio::Pin{ .port = hal::gpio::Port::E, .number = 7U },
+                                   hal::gpio::Pin{ .port = hal::gpio::Port::E, .number = 8U },
+                                   hal::gpio::Pin{ .port = hal::gpio::Port::E, .number = 10U } };
         auto input{ hal::gpio::simulatedInput(pins.at(static_cast<std::size_t>(id))) };
         if (!input)
             throw std::runtime_error("test reference input unavailable");
@@ -47,7 +49,7 @@ namespace
         return motion.get();
     }
 
-    bool measuredAt(const StepperMotor& motor, pnm::units::Angle target)
+    bool measured_at(const StepperMotor& motor, pnm::units::Angle target)
     {
         const auto measured{ motor.actualPosition() };
         return measured && std::abs((*measured - target).get<pnm::units::AngleUnits::deg>()) < 1e-8;
@@ -57,15 +59,17 @@ namespace
     bool eventually(Predicate predicate)
     {
         const auto deadline{ std::chrono::steady_clock::now() + 500ms };
-        do {
+        for (;;) {
             if (predicate())
                 return true;
             std::this_thread::sleep_for(1ms);
-        } while (std::chrono::steady_clock::now() < deadline);
+            if (!(std::chrono::steady_clock::now() < deadline))
+                break;
+        }
         return false;
     }
 
-    StepperMotor::Result referenceMotor(StepperMotor& motor, const std::shared_ptr<hal::GpioInput>& input)
+    StepperMotor::Result reference_motor(StepperMotor& motor, const std::shared_ptr<hal::GpioInput>& input)
     {
         using enum hal::gpio::Level;
         auto referencing{ motor.reference(5_rpm, 0.5_rpm, 1_s) };
@@ -100,69 +104,69 @@ namespace
             Output(std::shared_ptr<hal::IStepOutput> axis,
                    std::function<void()> prepare_hook,
                    std::function<void()> start_hook)
-              : axis{ std::move(axis) }
-              , prepare_hook{ std::move(prepare_hook) }
-              , start_hook{ std::move(start_hook) }
+              : m_axis{ std::move(axis) }
+              , m_prepareHook{ std::move(prepare_hook) }
+              , m_startHook{ std::move(start_hook) }
             {
             }
             auto setCompletionCallback(CompletionCallback cb) -> hal::util::Result<> override
             {
-                return axis->setCompletionCallback(std::move(cb));
+                return m_axis->setCompletionCallback(std::move(cb));
             }
             auto setProgressCallback(ProgressCallback cb) -> hal::util::Result<> override
             {
-                return axis->setProgressCallback(std::move(cb));
+                return m_axis->setProgressCallback(std::move(cb));
             }
             auto prepare(hal::step::Timing timing, std::optional<hal::step::PulseCount> count)
               -> hal::util::Result<> override
             {
-                if (prepare_hook)
-                    prepare_hook();
-                return axis->prepare(timing, count);
+                if (m_prepareHook)
+                    m_prepareHook();
+                return m_axis->prepare(timing, count);
             }
             auto prepareSequence(std::span<const hal::step::Timing> timings) -> hal::util::Result<> override
             {
-                return axis->prepareSequence(timings);
+                return m_axis->prepareSequence(timings);
             }
             auto prepareSequence(std::shared_ptr<const hal::step::Sequence> sequence)
               -> hal::util::Result<> override
             {
-                if (prepare_hook)
-                    prepare_hook();
-                return axis->prepareSequence(std::move(sequence));
+                if (m_prepareHook)
+                    m_prepareHook();
+                return m_axis->prepareSequence(std::move(sequence));
             }
             auto scheduleCursor() noexcept -> hal::util::Result<hal::step::ScheduleCursor> override
             {
-                return axis->scheduleCursor();
+                return m_axis->scheduleCursor();
             }
             auto replaceSequence(hal::step::ScheduleCursor cursor,
                                  std::shared_ptr<const hal::step::Sequence> sequence)
               -> hal::util::Result<> override
             {
-                return axis->replaceSequence(cursor, std::move(sequence));
+                return m_axis->replaceSequence(cursor, std::move(sequence));
             }
             auto start(std::chrono::nanoseconds delay) noexcept -> hal::util::Result<> override
             {
-                if (start_hook)
-                    start_hook();
-                return axis->start(delay);
+                if (m_startHook)
+                    m_startHook();
+                return m_axis->start(delay);
             }
-            auto stop() noexcept -> hal::step::AxisStatus override { return axis->stop(); }
-            auto status() noexcept -> hal::step::AxisStatus override { return axis->status(); }
+            auto stop() noexcept -> hal::step::AxisStatus override { return m_axis->stop(); }
+            auto status() noexcept -> hal::step::AxisStatus override { return m_axis->status(); }
             auto updateTiming(hal::step::Timing timing) noexcept
               -> hal::util::Result<hal::step::PulseCount> override
             {
-                return axis->updateTiming(timing);
+                return m_axis->updateTiming(timing);
             }
-            auto clear() noexcept -> hal::util::Result<> override { return axis->clear(); }
+            auto clear() noexcept -> hal::util::Result<> override { return m_axis->clear(); }
             auto pulseCount() noexcept -> hal::util::Result<hal::step::PulseCount> override
             {
-                return axis->pulseCount();
+                return m_axis->pulseCount();
             }
 
           private:
-            std::shared_ptr<hal::IStepOutput> axis;
-            std::function<void()> prepare_hook, start_hook;
+            std::shared_ptr<hal::IStepOutput> m_axis;
+            std::function<void()> m_prepareHook, m_startHook;
         };
 
       public:
@@ -187,7 +191,7 @@ TEST(StepperMotor, RequiresExternalGeneratorStartAndReferenceBeforeAbsolutePosit
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor2) };
+    const auto input{ released_reference(Motor2) };
     const auto axis{ generator->output(hal::step::Axis::_2) };
     auto rejected{ motor.moveRel(90_deg, 300_rpm) };
     EXPECT_EQ(result(rejected), Rejected);
@@ -204,7 +208,7 @@ TEST(StepperMotor, RequiresExternalGeneratorStartAndReferenceBeforeAbsolutePosit
     EXPECT_EQ(result(absolute), Rejected);
     EXPECT_EQ(*axis->pulseCount(), 400U);
     EXPECT_FALSE(motor.isReferenced());
-    EXPECT_EQ(referenceMotor(motor, input), Completed);
+    EXPECT_EQ(reference_motor(motor, input), Completed);
     EXPECT_TRUE(motor.isReferenced());
     auto homed_absolute{ motor.moveAbs(-45_deg, 300_rpm) };
     EXPECT_EQ(result(homed_absolute), Completed);
@@ -223,12 +227,13 @@ TEST(StepperMotor, AxisConversionPreservesReferencingAndMovesAwayWithReversedJoi
                                        .motor_reference = 135_deg,
                                        .axis_reference = 10_deg } };
     const auto generator{ hal::board::createStepperGenerator() };
-    StepperMotor motor{ Motor2, axis.configuration().motor_reference, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor2) };
+    StepperMotor motor{ Motor2,    axis.configuration().motor_reference, 1.8_deg, 16U,
+                        generator, hal::test::signalOnlyDriver() };
+    const auto input{ released_reference(Motor2) };
     ASSERT_TRUE(generator->start());
     auto unreferenced{ motor.moveAbs(axis.toMotorPosition(28_deg), axis.toMotorSpeed(60_rpm)) };
     EXPECT_EQ(result(unreferenced), Rejected);
-    ASSERT_EQ(referenceMotor(motor, input), Completed);
+    ASSERT_EQ(reference_motor(motor, input), Completed);
     EXPECT_NEAR(axis.toAxisPosition(motor.position()).get<pnm::units::AngleUnits::deg>(), 10.0, 1e-9);
 
     // Positive joint displacement is a backward motor move, away from the
@@ -246,9 +251,9 @@ TEST(StepperMotor, IndependentStopRestartVelocityAndTimeoutLeaveOtherMotorRunnin
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
     StepperMotor first{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     StepperMotor second{ Motor3, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor3);
+    released_reference(Motor3);
     const auto axis{ generator->output(hal::step::Axis::_2) };
     const auto other{ generator->output(hal::step::Axis::_3) };
     ASSERT_TRUE(generator->start());
@@ -293,7 +298,7 @@ TEST(StepperMotor, EncoderTracksExternalShaftMotionWhileStepGeneratorIsStopped)
     ASSERT_TRUE(encoder->advanceSimulatedCounts(1600));
     auto measured_velocity{ 0_rpm };
     ASSERT_TRUE(eventually([&] {
-        if (!measuredAt(motor, 360_deg))
+        if (!measured_at(motor, 360_deg))
             return false;
         measured_velocity = motor.actualVelocity().value_or(0_rpm);
         return measured_velocity > 0_rpm;
@@ -309,39 +314,42 @@ TEST(StepperMotor, EncoderTracksExternalShaftMotionWhileStepGeneratorIsStopped)
     EXPECT_EQ(motor.position(), 0_deg); // No commanded pulses were generated.
 
     ASSERT_TRUE(encoder->advanceSimulatedCounts(-2000));
-    ASSERT_TRUE(eventually([&] { return measuredAt(motor, -90_deg); }));
+    ASSERT_TRUE(eventually([&] { return measured_at(motor, -90_deg); }));
     EXPECT_LT(*motor.actualVelocity(), 0_rpm);
     ASSERT_TRUE(eventually([&] { return motor.actualVelocity() == 0_rpm; }));
     motor.stopAndWait();
     EXPECT_TRUE(encoder->isRunning()); // Stopping STEP must not stop measurement.
     ASSERT_TRUE(encoder->advanceSimulatedCounts(1));
-    ASSERT_TRUE(eventually([&] { return measuredAt(motor, -89.775_deg); }));
+    ASSERT_TRUE(eventually([&] { return measured_at(motor, -89.775_deg); }));
 }
 
 TEST(StepperMotor, InjectedFeedbackDeterminesMeasurementIndependentlyOfMotorId)
 {
     const auto generator{ hal::board::createStepperGenerator() };
-    auto feedback{ hal::board::createMotorFeedback(Motor1, { 1.8_deg, 16U }) };
+    auto feedback{ hal::board::createMotorFeedback(Motor1,
+                                                   { .full_step_angle = 1.8_deg, .microsteps = 16U }) };
     ASSERT_TRUE(feedback);
     const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     {
-        StepperMotor motor{ Motor2, 42.1_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver(), feedback };
-        const auto input{ releasedReference(Motor2) };
+        StepperMotor motor{
+            Motor2, 42.1_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver(), feedback
+        };
+        const auto input{ released_reference(Motor2) };
         EXPECT_EQ(motor.feedbackSource(), StepperMotor::FeedbackSource::ShaftEncoder);
         EXPECT_EQ(motor.feedbackResolution(), 0.225_deg);
         EXPECT_TRUE(hal::board::createStepperIndex(Motor2)); // Not implicitly claimed by the motor.
         ASSERT_TRUE(encoder->advanceSimulatedCounts(800));
-        ASSERT_TRUE(eventually([&] { return measuredAt(motor, 180_deg); }));
+        ASSERT_TRUE(eventually([&] { return measured_at(motor, 180_deg); }));
         EXPECT_EQ(motor.position(), 0_deg);
         ASSERT_TRUE(generator->start());
-        ASSERT_EQ(referenceMotor(motor, input), Completed);
-        EXPECT_TRUE(measuredAt(motor, 42.1_deg));
+        ASSERT_EQ(reference_motor(motor, input), Completed);
+        EXPECT_TRUE(measured_at(motor, 42.1_deg));
         EXPECT_EQ(encoder->position(), 800);
         motor.stopAndWait();
         motor.invalidateReference();
         ASSERT_TRUE(encoder->advanceSimulatedCounts(40));
-        ASSERT_TRUE(eventually([&] { return measuredAt(motor, 51.1_deg); }));
+        ASSERT_TRUE(eventually([&] { return measured_at(motor, 51.1_deg); }));
     }
     EXPECT_FALSE(encoder->isRunning());
     // Even an externally retained provider must no longer call the destroyed motor.
@@ -355,7 +363,7 @@ TEST(StepperMotor, MeasuredPositionDoesNotPretendCommandedMotionOccurred)
 {
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor1, 0_deg, 1.8_deg, 8U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor1);
+    released_reference(Motor1);
     ASSERT_TRUE(generator->start());
     auto motion{ motor.moveRel(90_deg, 300_rpm) };
     EXPECT_EQ(result(motion), Completed);
@@ -379,8 +387,8 @@ TEST(StepperMotor, IndexCallbacksUpdateActualValuesAndHomingRebasesFeedback)
     using enum hal::gpio::Level;
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 23.5_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    auto reference{ releasedReference(Motor2) };
-    auto index{ hal::gpio::simulatedInput({ hal::gpio::Port::D, 0 }) };
+    auto reference{ released_reference(Motor2) };
+    auto index{ hal::gpio::simulatedInput({ .port = hal::gpio::Port::D, .number = 0 }) };
     ASSERT_TRUE(index);
     EXPECT_EQ(motor.feedbackSource(), StepperMotor::FeedbackSource::DriverIndex);
     EXPECT_EQ(motor.feedbackResolution(), 7.2_deg);
@@ -388,17 +396,17 @@ TEST(StepperMotor, IndexCallbacksUpdateActualValuesAndHomingRebasesFeedback)
     auto motion{ motor.moveRel(10_rev, 5_rpm) };
     ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
     index->setSimulatedLevel(High); // First marker establishes the coarse origin.
-    EXPECT_TRUE(measuredAt(motor, 0_deg));
+    EXPECT_TRUE(measured_at(motor, 0_deg));
     index->setSimulatedLevel(Low);
     std::this_thread::sleep_for(15ms);
     index->setSimulatedLevel(High);
-    EXPECT_TRUE(measuredAt(motor, 7.2_deg));
+    EXPECT_TRUE(measured_at(motor, 7.2_deg));
     ASSERT_TRUE(motor.actualVelocity());
     EXPECT_GT(*motor.actualVelocity(), 0_rpm);
     motor.stopAndWait();
     EXPECT_EQ(result(motion), Stopped);
     EXPECT_EQ(motor.actualVelocity(), 0_rpm);
-    EXPECT_EQ(referenceMotor(motor, reference), Completed);
+    EXPECT_EQ(reference_motor(motor, reference), Completed);
     EXPECT_EQ(motor.actualPosition(), 23.5_deg);
     EXPECT_EQ(motor.actualVelocity(), 0_rpm);
     EXPECT_EQ(motor.position(), 23.5_deg);
@@ -413,7 +421,7 @@ TEST(StepperMotor, IndexResourcesAndCallbacksAreReleasedAfterDestruction)
     std::shared_ptr<hal::GpioInput> input;
     {
         StepperMotor motor{ Motor3, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-        input = hal::gpio::simulatedInput({ hal::gpio::Port::D, 1 });
+        input = hal::gpio::simulatedInput({ .port = hal::gpio::Port::D, .number = 1 });
         ASSERT_TRUE(input);
     }
     input->setSimulatedLevel(hal::gpio::Level::High);
@@ -429,9 +437,9 @@ TEST(StepperMotor, EncoderWrapsAndFaultsAreNotPresentedAsValidMeasuredMotion)
     const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_NE(encoder, nullptr);
     ASSERT_TRUE(encoder->advanceSimulatedCounts(-800'000));
-    ASSERT_TRUE(eventually([&] { return measuredAt(motor, -180000_deg); }));
+    ASSERT_TRUE(eventually([&] { return measured_at(motor, -180000_deg); }));
     ASSERT_TRUE(encoder->advanceSimulatedCounts(1'600'000));
-    ASSERT_TRUE(eventually([&] { return measuredAt(motor, 180000_deg); }));
+    ASSERT_TRUE(eventually([&] { return measured_at(motor, 180000_deg); }));
     ASSERT_TRUE(encoder->stop());
     ASSERT_TRUE(encoder->setPosition(std::numeric_limits<hal::IQuadratureEncoder::Count>::max()));
     ASSERT_TRUE(encoder->start());
@@ -450,14 +458,14 @@ TEST(StepperMotor, DestructionDisconnectsEncoderCallbackAndStopsCounting)
         encoder = hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3);
         ASSERT_NE(encoder, nullptr);
         ASSERT_TRUE(encoder->advanceSimulatedCounts(160));
-        ASSERT_TRUE(eventually([&] { return measuredAt(motor, 36_deg); }));
+        ASSERT_TRUE(eventually([&] { return measured_at(motor, 36_deg); }));
     }
     EXPECT_FALSE(encoder->isRunning());
     ASSERT_TRUE(encoder->start());
     ASSERT_TRUE(encoder->advanceSimulatedCounts(160));
     std::this_thread::sleep_for(30ms); // No callback into the destroyed motor.
     EXPECT_EQ(encoder->position(), 320);
-    encoder.reset();
+    encoder = nullptr;
     StepperMotor replacement{ Motor1, 0_deg, 1.8_deg, 8U, generator, hal::test::signalOnlyDriver() };
     EXPECT_EQ(replacement.actualPosition(), 0_deg);
 }
@@ -468,7 +476,7 @@ TEST(StepperMotor, ReferenceRebasesCommandedAndEncoderPositionsAndPreservesFutur
     const auto generator{ hal::board::createStepperGenerator() };
     // Not an integer encoder count: rebasing must use a coordinate offset.
     StepperMotor motor{ Motor1, 42.1_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor1) };
+    const auto input{ released_reference(Motor1) };
     const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder->advanceSimulatedCounts(800));
     ASSERT_TRUE(generator->start());
@@ -491,16 +499,16 @@ TEST(StepperMotor, ReferenceRebasesCommandedAndEncoderPositionsAndPreservesFutur
     EXPECT_EQ(result(referencing), Completed);
     ASSERT_TRUE(motor.isReferenced());
     EXPECT_NEAR(motor.position().get<pnm::units::AngleUnits::deg>(), 42.1, 1e-8);
-    EXPECT_TRUE(measuredAt(motor, 42.1_deg));
+    EXPECT_TRUE(measured_at(motor, 42.1_deg));
     EXPECT_TRUE(encoder->isRunning());
     EXPECT_EQ(encoder->position(), 792); // Count was not stopped/reset.
     EXPECT_EQ(motor.velocity(), 0_rpm);
     std::this_thread::sleep_for(30ms);
-    EXPECT_TRUE(measuredAt(motor, 42.1_deg)); // Periodic callback keeps the new origin.
+    EXPECT_TRUE(measured_at(motor, 42.1_deg)); // Periodic callback keeps the new origin.
     EXPECT_EQ(motor.actualVelocity(), 0_rpm);
 
     ASSERT_TRUE(encoder->advanceSimulatedCounts(-40));
-    ASSERT_TRUE(eventually([&] { return measuredAt(motor, 33.1_deg); }));
+    ASSERT_TRUE(eventually([&] { return measured_at(motor, 33.1_deg); }));
     auto away{ motor.moveAbs(30.85_deg, 300_rpm) };
     EXPECT_EQ(result(away), Completed);
     EXPECT_NEAR(motor.position().get<pnm::units::AngleUnits::deg>(), 30.85, 1e-8);
@@ -519,10 +527,10 @@ TEST(StepperMotor, ReferenceStartingOnSwitchBacksAwayBeforeApproaching)
 {
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, -12_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ hal::gpio::simulatedInput({ hal::gpio::Port::E, 8U }) };
+    const auto input{ hal::gpio::simulatedInput({ .port = hal::gpio::Port::E, .number = 8U }) };
     ASSERT_EQ(input->read(), hal::gpio::Level::High);
     ASSERT_TRUE(generator->start());
-    EXPECT_EQ(referenceMotor(motor, input), Completed);
+    EXPECT_EQ(reference_motor(motor, input), Completed);
     EXPECT_TRUE(motor.isReferenced());
     EXPECT_EQ(motor.position(), -12_deg);
     EXPECT_EQ(motor.actualPosition().error(), std::errc::no_message_available);
@@ -534,7 +542,7 @@ TEST(StepperMotor, ReferenceMissingOrStuckSwitchTimesOutWithoutHoming)
 {
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 90_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor2) };
+    const auto input{ released_reference(Motor2) };
     ASSERT_TRUE(generator->start());
     for (const auto level : { hal::gpio::Level::Low, hal::gpio::Level::High }) {
         input->setSimulatedLevel(level);
@@ -551,7 +559,7 @@ TEST(StepperMotor, ReferenceCancelledInEveryPhaseLeavesAxisUnreferenced)
     using enum hal::gpio::Level;
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 90_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor2) };
+    const auto input{ released_reference(Motor2) };
     ASSERT_TRUE(generator->start());
     for (int phase = 0; phase < 3; ++phase) {
         input->setSimulatedLevel(Low);
@@ -577,7 +585,7 @@ TEST(StepperMotor, ReferenceRequiresStableSecondContactAndOneOverallTimeout)
     using enum hal::gpio::Level;
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 90_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor2) };
+    const auto input{ released_reference(Motor2) };
     ASSERT_TRUE(generator->start());
     const auto began{ std::chrono::steady_clock::now() };
     auto homing{ motor.reference(5_rpm, 0.5_rpm, 0.2_s) };
@@ -600,12 +608,12 @@ TEST(StepperMotor, ReplacingReferenceInvalidatesOldHomeAndLeavesOtherAxisRunning
     using enum hal::gpio::Level;
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor2) };
+    const auto input{ released_reference(Motor2) };
     StepperMotor other{ Motor3, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor3);
+    released_reference(Motor3);
     ASSERT_TRUE(generator->start());
     auto independent{ other.moveRel(-100_rev, 5_rpm) };
-    EXPECT_EQ(referenceMotor(motor, input), Completed);
+    EXPECT_EQ(reference_motor(motor, input), Completed);
     EXPECT_TRUE(motor.isReferenced());
     auto homing{ motor.reference() }; // Starts pressed, then moves backward.
     ASSERT_TRUE(eventually([&] { return motor.velocity() < 0_rpm; }));
@@ -622,12 +630,15 @@ TEST(StepperMotor, ReplacingReferenceInvalidatesOldHomeAndLeavesOtherAxisRunning
 TEST(StepperMotor, ReferenceValidatesSpeedsTimeoutAndGeneratorState)
 {
     const auto generator{ hal::board::createStepperGenerator() };
-    EXPECT_THROW(
-      (StepperMotor{ Motor2, 1_deg * std::numeric_limits<double>::quiet_NaN(), 1.8_deg, 16U, generator,
-                     hal::test::signalOnlyDriver() }),
-      std::invalid_argument);
+    EXPECT_THROW((StepperMotor{ Motor2,
+                                1_deg * std::numeric_limits<double>::quiet_NaN(),
+                                1.8_deg,
+                                16U,
+                                generator,
+                                hal::test::signalOnlyDriver() }),
+                 std::invalid_argument);
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     auto not_started{ motor.reference() };
     EXPECT_EQ(result(not_started), Rejected);
     ASSERT_TRUE(generator->start());
@@ -648,7 +659,7 @@ TEST(StepperMotor, ReplacingMoveJoinsAndAccountsPreviousMotionBeforeRelativeTarg
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
     StepperMotor motor{ Motor3, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor3);
+    released_reference(Motor3);
     ASSERT_TRUE(generator->start());
     const auto axis{ generator->output(hal::step::Axis::_3) };
     auto old{ motor.moveRel(100_rev, 300_rpm) };
@@ -665,9 +676,10 @@ TEST(StepperMotor, InvalidRequestsAndDestructionDoNotStopOtherAxis)
 {
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
-    EXPECT_THROW((StepperMotor{ Motor3, 0_deg, 1.8_deg, 0U, generator, hal::test::signalOnlyDriver() }), std::invalid_argument);
+    EXPECT_THROW((StepperMotor{ Motor3, 0_deg, 1.8_deg, 0U, generator, hal::test::signalOnlyDriver() }),
+                 std::invalid_argument);
     StepperMotor first{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     ASSERT_TRUE(generator->start());
     const auto axis{ generator->output(hal::step::Axis::_2) };
     auto continuous{ first.moveRel(100_rev, 300_rpm) };
@@ -675,7 +687,7 @@ TEST(StepperMotor, InvalidRequestsAndDestructionDoNotStopOtherAxis)
     std::future<StepperMotor::Result> destroyed;
     {
         StepperMotor second{ Motor3, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-        releasedReference(Motor3);
+        released_reference(Motor3);
         auto bad{ second.moveRel(90_deg, 0_rpm) };
         EXPECT_EQ(result(bad), Rejected);
         auto negative{ second.moveRel(90_deg, -1_rpm) };
@@ -696,7 +708,7 @@ TEST(StepperMotor, CompletionAndCancellationWakeBlockedWorkersAcrossManyReplacem
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     ASSERT_TRUE(generator->start());
     for (unsigned i = 0; i < 30; ++i) {
         auto previous{ motor.moveRel(100_rev, 300_rpm) };
@@ -719,9 +731,9 @@ TEST(StepperMotor, GlobalStopWakesAllMotorsAndEachCanBeUsedAfterAnExplicitRestar
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
     StepperMotor first{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     StepperMotor second{ Motor3, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor3);
+    released_reference(Motor3);
     ASSERT_TRUE(generator->start());
     auto a{ first.moveRel(100_rev, 300_rpm) };
     auto b{ second.moveRel(100_rev, 300_rpm) };
@@ -740,7 +752,7 @@ TEST(StepperMotor, CurrentVelocityIsSignedAndChangesWhenQueuedTimingExecutes)
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     const auto axis{ generator->output(hal::step::Axis::_2) };
     ASSERT_TRUE(generator->start());
     EXPECT_EQ(motor.velocity(), 0_rpm);
@@ -803,9 +815,9 @@ TEST(StepperMotor, ActivationStopsOnlyApproachingAxisAndReleaseDoesNotStopRetrea
     const auto generator{ hal::board::createStepperGenerator() };
     ASSERT_NE(generator, nullptr);
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor2) };
+    const auto input{ released_reference(Motor2) };
     StepperMotor other{ Motor3, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor3);
+    released_reference(Motor3);
     const auto axis{ generator->output(hal::step::Axis::_2) };
     const auto other_axis{ generator->output(hal::step::Axis::_3) };
     ASSERT_TRUE(generator->start());
@@ -848,7 +860,7 @@ TEST(StepperMotor, BriefActivationDuringPrepareIsLatchedAndRejectsBeforeStart)
         input->setSimulatedLevel(hal::gpio::Level::Low);
     };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    input = releasedReference(Motor2);
+    input = released_reference(Motor2);
     ASSERT_TRUE(generator->start());
     auto motion{ motor.moveRel(100_rev, 300_rpm) };
     EXPECT_EQ(result(motion), Rejected);
@@ -865,7 +877,7 @@ TEST(StepperMotor, BriefActivationDuringArmingWakesWorkerAndCannotBeLostBeforeWa
         input->setSimulatedLevel(hal::gpio::Level::Low);
     };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    input = releasedReference(Motor2);
+    input = released_reference(Motor2);
     ASSERT_TRUE(generator->start());
     auto motion{ motor.moveRel(100_rev, 300_rpm) };
     EXPECT_EQ(result(motion), Stopped);
@@ -881,7 +893,7 @@ TEST(StepperMotor, DestructionUnsubscribesReferenceInputWhileStoppingWorker)
     std::future<StepperMotor::Result> motion;
     {
         StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-        input = releasedReference(Motor2);
+        input = released_reference(Motor2);
         motion = motor.moveRel(100_rev, 300_rpm);
         ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
     }
@@ -895,7 +907,7 @@ TEST(StepperMotor, DynamicsDefaultsValidationAndInvalidCommandPreserveActiveMoti
 {
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     EXPECT_FALSE(motor.setMotionDefaults({ 0_rad_s2, 1_rad_s2, 1_rad_s3 }));
     EXPECT_FALSE(motor.setMotionDefaults({ 1_rad_s2, 1_rad_s2, -1_rad_s3 }));
     ASSERT_TRUE(motor.setMotionDefaults({ 720_deg_s2, 360_deg_s2, 0_rad_s3 }));
@@ -918,7 +930,7 @@ TEST(StepperMotor, BufferedRelativeMovesUsePreviousEndpointAndRejectQueueOverflo
     using enum StepperMotor::BufferMode;
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     ASSERT_TRUE(generator->start());
     auto first{ motor.moveRel(-45_deg, 100_rpm) };
     ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
@@ -939,7 +951,7 @@ TEST(StepperMotor, AllBlendModesPassThroughAtTheirSelectedJunctionSpeed)
             SCOPED_TRACE(static_cast<int>(mode));
             const auto generator{ hal::board::createStepperGenerator() };
             StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-            releasedReference(Motor2);
+            released_reference(Motor2);
             ASSERT_TRUE(motor.setMotionDefaults({ 100000_deg_s2, 100000_deg_s2, 10000000_deg_s3 }));
             ASSERT_TRUE(generator->start());
             const auto axis{ generator->output(hal::step::Axis::_2) };
@@ -971,7 +983,7 @@ TEST(StepperMotor, LateBlendAndDirectionReversalCompleteAtRestWithoutOvershoot)
     for (bool reverse : { false, true }) {
         const auto generator{ hal::board::createStepperGenerator() };
         StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-        releasedReference(Motor2);
+        released_reference(Motor2);
         ASSERT_TRUE(generator->start());
         const auto axis{ generator->output(hal::step::Axis::_2) };
         auto first{ motor.moveRel(reverse ? -180_deg : -11.25_deg, 100_rpm) };
@@ -991,7 +1003,7 @@ TEST(StepperMotor, AbortStopTimeoutAndSwitchCancelBufferedCommands)
     for (unsigned scenario = 0; scenario < 4; ++scenario) {
         const auto generator{ hal::board::createStepperGenerator() };
         StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-        const auto input{ releasedReference(Motor2) };
+        const auto input{ released_reference(Motor2) };
         ASSERT_TRUE(generator->start());
         auto active{ motor.moveRel(100_rev, 100_rpm, scenario == 2 ? 0.1_s : 0_s) };
         ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
@@ -1015,9 +1027,9 @@ TEST(StepperMotor, BufferedTimeoutStartsOnActivationAndAbsoluteTargetsStayAbsolu
     using enum StepperMotor::BufferMode;
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    const auto input{ releasedReference(Motor2) };
+    const auto input{ released_reference(Motor2) };
     ASSERT_TRUE(generator->start());
-    ASSERT_EQ(referenceMotor(motor, input), Completed);
+    ASSERT_EQ(reference_motor(motor, input), Completed);
     auto first{ motor.moveAbs(-180_deg, 100_rpm) };
     ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
     auto second{ motor.moveAbs(-181.125_deg, 100_rpm, 0_rad_s2, 0_rad_s2, 0_rad_s3, Buffered, 0.2_s) };
@@ -1030,7 +1042,7 @@ TEST(StepperMotor, CommittedMoveRejectsVelocityChangeWithoutChangingItsEndpoint)
 {
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     ASSERT_TRUE(generator->start());
     auto active{ motor.moveRel(-11.25_deg, 60_rpm) };
     ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
@@ -1043,7 +1055,7 @@ TEST(StepperMotor, StoppingAcceptedBlendResolvesBothFuturesAndDoesNotRunSuccesso
 {
     const auto generator{ hal::board::createStepperGenerator() };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, hal::test::signalOnlyDriver() };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     ASSERT_TRUE(generator->start());
     auto first{ motor.moveRel(-10_rev, 60_rpm) };
     ASSERT_TRUE(running(generator->output(hal::step::Axis::_2)));
@@ -1063,11 +1075,11 @@ TEST(StepperMotor, InjectedDriverBlocksUnreadyMotionAndFaultCallbackStopsAnActiv
 {
     const auto generator{ hal::board::createStepperGenerator() };
     const auto enable{ hal::board::createSteppersEnableOutput() };
-    auto driver{ std::make_shared<hal::device::Dm542tDriver>(
-        hal::board::createStepperDiagnostic(Motor1), enable) };
-    auto alarm{ hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 }) };
+    auto driver{ std::make_shared<hal::device::Dm542tDriver>(hal::board::createStepperDiagnostic(Motor1),
+                                                             enable) };
+    auto alarm{ hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 }) };
     StepperMotor motor{ Motor2, 0_deg, 1.8_deg, 16U, generator, driver };
-    releasedReference(Motor2);
+    released_reference(Motor2);
     ASSERT_TRUE(generator->start());
     auto unready{ motor.moveRel(-1_deg, 30_rpm) };
     EXPECT_EQ(result(unready), Rejected);
@@ -1087,3 +1099,5 @@ TEST(StepperMotor, InjectedDriverBlocksUnreadyMotionAndFaultCallbackStopsAnActiv
     auto recovered{ motor.moveRel(-0.9_deg, 30_rpm) };
     EXPECT_EQ(result(recovered), Completed);
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)

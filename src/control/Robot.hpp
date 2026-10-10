@@ -5,6 +5,8 @@
 
 namespace control
 {
+    inline constexpr double DEFAULT_ROBOT_SPEED{ 0.2 };
+
     // Combines the application's existing axes with its SCARA geometry. Owns
     // no additional peripherals, worker or cached position. Thread-context only.
     class Robot final
@@ -39,18 +41,23 @@ namespace control
 
         struct MoveOptions
         {
-            double speed{ 0.2 }; // Fraction of configured joint speed limits: (0, 1].
+            double speed{ DEFAULT_ROBOT_SPEED }; // Fraction of configured joint speed limits: (0, 1].
             pnm::units::Time timeout{ 0_s };
-            std::optional<ScaraKinematics::ElbowBranch> branch{};
+            std::optional<ScaraKinematics::ElbowBranch> branch;
         };
         using Motion = ControllerClient::GroupMotion;
         // Rest-to-rest, synchronized linear interpolation in JOINT coordinates.
         // Cartesian targets use IK first; their tool path can curve. Every move
         // requires all axes referenced and idle. No implicit abort or buffering.
-        Motion moveAbs(ScaraKinematics::CartesianPosition target, MoveOptions options = { 0.2, 0_s, {} });
-        Motion moveRel(ScaraKinematics::CartesianPosition distance, MoveOptions options = { 0.2, 0_s, {} });
-        Motion moveJoints(ScaraKinematics::JointPosition target, MoveOptions options = { 0.2, 0_s, {} });
-        Motion reference(pnm::units::Time timeout = 90_s);
+        Motion moveAbs(ScaraKinematics::CartesianPosition target,
+                       MoveOptions options = { .speed = DEFAULT_ROBOT_SPEED, .timeout = 0_s, .branch = {} });
+        Motion moveRel(ScaraKinematics::CartesianPosition distance,
+                       MoveOptions options = { .speed = DEFAULT_ROBOT_SPEED, .timeout = 0_s, .branch = {} });
+        Motion moveJoints(ScaraKinematics::JointPosition target,
+                          MoveOptions options = { .speed = DEFAULT_ROBOT_SPEED,
+                                                  .timeout = 0_s,
+                                                  .branch = {} });
+        Motion reference(pnm::units::Time timeout = control::DEFAULT_GROUP_REFERENCE_TIMEOUT);
         void enable();
         void disable();
         void stop(); // Immediate group abort; holding torque remains enabled.
@@ -69,8 +76,8 @@ namespace control
         ControllerClient::Trajectory plan(const ControllerClient::PlanningSnapshot& snapshot,
                                           ScaraKinematics::JointPosition target,
                                           double speed) const;
-        const std::shared_ptr<ControllerClient> m_controller;
-        const ScaraKinematics m_kinematics;
-        const ScaraKinematics::JointVelocity m_maximumVelocity;
+        std::shared_ptr<ControllerClient> m_controller;
+        ScaraKinematics m_kinematics;
+        ScaraKinematics::JointVelocity m_maximumVelocity;
     };
 }

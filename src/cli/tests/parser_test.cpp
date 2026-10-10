@@ -1,3 +1,5 @@
+// Numeric values describe explicit test inputs, timing bounds and expected results.
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 #include "cli/Parser.hpp"
 
 #include <gtest/gtest.h>
@@ -11,35 +13,32 @@
 #include <string_view>
 #include <unistd.h>
 
-namespace annotated_cli_fixture
+namespace annotated_cli_fixture::commands
 {
-    namespace commands
+    using namespace pnm::meta::string::literals;
+
+    [[
+        = "Echo annotated arguments."_fs,
+        = cli::Arg{ .name = "text"_fs, .description = "Text to echo"_fs },
+        = cli::Arg{ .name = "suffix"_fs, .description = "Optional suffix"_fs, .optional = true },
+        = cli::Flag{ .name = "upper"_fs, .short_name = 'u', .description = "Mark as upper"_fs },
+        = cli::Flag{ .name = "prefix"_fs,
+                     .short_name = 'p',
+                     .description = "Text prefix"_fs,
+                     .value_name = "text"_fs }
+    ]] static auto echo(const cli::Arguments& args, std::ostream& out) -> cli::CallbackResult
     {
-        using namespace pnm::meta::string::literals;
+        out << args.flagValue("prefix").value_or("") << args.require("text")
+            << args.get("suffix").value_or("") << (args.hasFlag("upper") ? "!" : "");
+        return 0;
+    }
 
-        [[
-            = "Echo annotated arguments."_fs,
-            = cli::Arg{ .name = "text"_fs, .description = "Text to echo"_fs },
-            = cli::Arg{ .name = "suffix"_fs, .description = "Optional suffix"_fs, .optional = true },
-            = cli::Flag{ .name = "upper"_fs, .short_name = 'u', .description = "Mark as upper"_fs },
-            = cli::Flag{ .name = "prefix"_fs,
-                         .short_name = 'p',
-                         .description = "Text prefix"_fs,
-                         .value_name = "text"_fs }
-        ]] static auto echo(const cli::Arguments& args, std::ostream& out) -> cli::CallbackResult
-        {
-            out << args.flagValue("prefix").value_or("") << args.require("text")
-                << args.get("suffix").value_or("") << (args.hasFlag("upper") ? "!" : "");
-            return 0;
-        }
-
-        [[ = "Forward pipeline input."_fs,
-           = cli::Name{ "meta stream"_fs } ]] static auto stream(const cli::Arguments&, cli::CommandIO& io)
-          -> cli::CallbackResult
-        {
-            io.output << io.input.rdbuf();
-            return 0;
-        }
+    [[ = "Forward pipeline input."_fs,
+       = cli::Name{ "meta stream"_fs } ]] static auto stream(const cli::Arguments& /*unused*/,
+                                                             cli::CommandIO& io) -> cli::CallbackResult
+    {
+        io.output << io.input.rdbuf();
+        return 0;
     }
 }
 
@@ -56,7 +55,7 @@ namespace bound_cli_fixture
 
         [[ = "Count calls on the injected context."_fs,
            = cli::Name{ "meta count"_fs } ]] static auto count(Context& context,
-                                                               const cli::Arguments&,
+                                                               const cli::Arguments& /*unused*/,
                                                                cli::CommandIO& io) -> cli::CallbackResult
         {
             io.output << ++context.calls;
@@ -64,7 +63,7 @@ namespace bound_cli_fixture
         }
     }
 
-    void setup(cli::Parser& parser, std::shared_ptr<Context> context)
+    void setup(cli::Parser& parser, const std::shared_ptr<Context>& context)
     {
         cli::register_commands<^^commands>(parser, [context](auto command) {
             return [context, command](const cli::Arguments& args, cli::CommandIO& io) {
@@ -104,7 +103,8 @@ TEST(CliParser, AnnotationBindingsRetainContextAndKeepParsersIndependent)
     auto second{ std::make_shared<bound_cli_fixture::Context>() };
     std::weak_ptr<bound_cli_fixture::Context> lifetime{ first };
     {
-        cli::Parser first_parser, second_parser;
+        cli::Parser first_parser;
+        cli::Parser second_parser;
         bound_cli_fixture::setup(first_parser, first);
         bound_cli_fixture::setup(second_parser, second);
         first.reset();
@@ -492,7 +492,7 @@ TEST(CliParser, RejectsMalformedPipelinesAndBoundsIntermediateOutput)
       .flags = {},
       .callback =
         [](const cli::Arguments&, std::ostream& output) {
-        output << std::string(40U * 1024U, 'x');
+        output << std::string(40UZ * 1024UZ, 'x');
         return 0;
     },
     }));
@@ -811,7 +811,7 @@ TEST(CliParser, NegativeNumbersRemainArgumentsUnlessTheNumericShortFlagIsRegiste
         out << args.hasFlag("one");
         return 0;
     } }));
-    for (const auto number : { "-90", "-.5", "-1e-3" }) {
+    for (const auto* const number : { "-90", "-.5", "-1e-3" }) {
         std::ostringstream output;
         ASSERT_TRUE(parser.execute(std::string("number ") + number, output));
         EXPECT_EQ(output.str(), number);
@@ -825,7 +825,9 @@ TEST(CliParser, NegativeNumbersRemainArgumentsUnlessTheNumericShortFlagIsRegiste
 TEST(CliParser, RejectsMalformedCommandPathsAndReservedHelpPaths)
 {
     cli::Parser parser;
-    for (const auto name : { " motor", "motor ", "motor  move", "motor\tmove", "help motor" })
+    for (const auto* const name : { " motor", "motor ", "motor  move", "motor\tmove", "help motor" })
         EXPECT_FALSE(parser.registerCommand(
           { name, {}, {}, {}, [](const cli::Arguments&, std::ostream&) { return 0; } }));
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)

@@ -1,4 +1,5 @@
 #include "MotionSequence.hpp"
+#include "MotionLimits.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -14,7 +15,10 @@ namespace motion
         if (m_second)
             bound = std::max(bound, m_second->profile.maximumStepInterval(step));
         m_maximum = std::chrono::nanoseconds{ static_cast<std::int64_t>(
-          std::ceil(std::clamp(bound * 1e9 + 200.0, 10000.0, 1e15))) };
+          std::ceil(std::clamp((bound * limits::NANOSECONDS_PER_SECOND) +
+                                 static_cast<double>(limits::BOUND_ROUNDING_MARGIN.count()),
+                               static_cast<double>(limits::MIN_PERIOD.count()),
+                               static_cast<double>(limits::MAX_BOUND.count())))) };
     }
 
     Profile::State Sequence::atPulse(hal::step::PulseCount pulse) const noexcept
@@ -64,10 +68,15 @@ namespace motion
 
     hal::util::Result<hal::step::Timing> Sequence::makeTiming(double seconds) noexcept
     {
-        if (!std::isfinite(seconds) || seconds <= 0.0 || seconds > 53.6870911)
+        if (!std::isfinite(seconds) || seconds <= 0.0 ||
+            seconds > std::chrono::duration<double>{ limits::MAX_PERIOD }.count())
             return std::unexpected(std::make_error_code(std::errc::result_out_of_range));
-        return hal::step::Timing{ std::chrono::nanoseconds{ std::max<std::int64_t>(
-                                    10000, static_cast<std::int64_t>(std::ceil(seconds * 1e9 - 0.001))) },
-                                  std::chrono::microseconds{ 5 } };
+        return hal::step::Timing{
+            .period = std::chrono::nanoseconds{ std::max<std::int64_t>(
+              limits::MIN_PERIOD.count(),
+              static_cast<std::int64_t>(std::ceil((seconds * limits::NANOSECONDS_PER_SECOND) -
+                                                  limits::NANOSECOND_ROUNDING_TOLERANCE))) },
+            .high_time = limits::HIGH_TIME
+        };
     }
 }

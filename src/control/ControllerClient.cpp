@@ -11,9 +11,9 @@ namespace control
                                   std::optional<ControllerTypes::MotorId> motor = {},
                                   p2p::Bytes data = {})
         {
-            return { operation,
-                     motor ? static_cast<std::uint8_t>(*motor) : std::uint8_t(255),
-                     std::move(data) };
+            return { .operation = operation,
+                     .motor = motor ? static_cast<std::uint8_t>(*motor) : std::uint8_t(protocol::ALL_MOTORS),
+                     .data = std::move(data) };
         }
         void checked(const protocol::Response& response)
         {
@@ -25,12 +25,12 @@ namespace control
     {
         pnm::msg::Bus& bus;
         pnm::coro::Context& context;
-        pnm::coro::Bus coroutineBus;
+        pnm::coro::Bus coroutine_bus;
         struct Job : std::enable_shared_from_this<Job>
         {
             explicit Job(pnm::coro::Context& c)
               : context(c)
-              , future(completion.get_future().share())
+              , future(completion.getFuture().share())
             {
             }
             pnm::coro::Context& context;
@@ -38,52 +38,58 @@ namespace control
             MotorId motor{};
             bool group{};
             Operation operation{};
-            pnm::units::Time duration{};
+            pnm::units::Time duration;
             Completion<MotorResult> completion;
             std::shared_future<MotorResult> future;
             std::promise<void> admission;
-            bool admissionResolved{}, finished{};
-            std::atomic_bool terminalConfirmed{};
-            std::atomic_bool scheduled{};
+            bool admission_resolved{}, finished{};
+            std::atomic_bool terminal_confirmed;
+            std::atomic_bool scheduled;
             std::optional<pnm::msg::PendingGoal<protocol::Progress, protocol::Outcome>> goal;
             pnm::msg::ReadinessRegistration watch;
+            // Clang diagnoses the compiler's implicit static promise-hook calls.
+            // NOLINTBEGIN(readability-static-accessed-through-instance)
+            static pnm::coro::Task<void> pollOnContext(std::shared_ptr<Job> self)
+            {
+                self->scheduled.store(false);
+                try {
+                    if (self->goal)
+                        self->goal->poll();
+                } catch (...) {
+                    self->finish(MotorResult::Faulted, "motion response dispatch failed", false, false);
+                }
+                co_return;
+            }
+            // NOLINTEND(readability-static-accessed-through-instance)
             void signal() noexcept
             {
                 if (scheduled.exchange(true))
                     return;
                 try {
-                    pnm::coro::co_spawn(
-                      context, [self = shared_from_this()](pnm::coro::Context&) -> pnm::coro::Task<void> {
-                        self->scheduled.store(false);
-                        try {
-                            if (self->goal)
-                                self->goal->poll();
-                        } catch (...) {
-                            self->finish(
-                              MotorResult::Faulted, "motion response dispatch failed", false, false);
-                        }
-                        co_return;
+                    pnm::coro::co_spawn(context,
+                                        [self = shared_from_this()](pnm::coro::Context& /*context*/) {
+                        return pollOnContext(self);
                     });
                 } catch (...) {
                     scheduled.store(false);
                 }
             }
             void finish(MotorResult result,
-                        std::string error = {},
+                        const std::string& error = {},
                         bool invalid = false,
                         bool confirmed = true)
             {
                 if (finished)
                     return;
                 finished = true;
-                terminalConfirmed.store(confirmed);
-                if (!admissionResolved) {
-                    admissionResolved = true;
+                terminal_confirmed.store(confirmed);
+                if (!admission_resolved) {
+                    admission_resolved = true;
                     const auto reason = error.empty() ? "motion rejected before admission" : error;
                     admission.set_exception(invalid ? std::make_exception_ptr(std::invalid_argument(reason))
                                                     : std::make_exception_ptr(std::runtime_error(reason)));
                 }
-                completion.set_value(result);
+                completion.setValue(result);
             }
         };
         std::mutex mutex;
@@ -92,7 +98,7 @@ namespace control
         State(pnm::msg::Bus& b, pnm::coro::Context& c)
           : bus(b)
           , context(c)
-          , coroutineBus(c, b)
+          , coroutine_bus(c, b)
         {
         }
     };
@@ -107,10 +113,10 @@ namespace control
             if (job->goal)
                 job->goal->requestCancel();
     }
-    protocol::Response ControllerClient::request(protocol::Request q) const
+    protocol::Response ControllerClient::request(const protocol::Request& q) const
     {
-        const auto name = (q.operation == Op::Stop || q.operation == Op::Disable) ? protocol::StopName
-                                                                                  : protocol::RequestName;
+        const auto name = (q.operation == Op::Stop || q.operation == Op::Disable) ? protocol::STOP_NAME
+                                                                                  : protocol::REQUEST_NAME;
         auto response = m_state->bus.service<protocol::Request, protocol::Response>(name).call(q, 5s);
         if (!response)
             throw std::runtime_error("IO request failed (unavailable, busy, timeout or disconnected); "
@@ -118,19 +124,22 @@ namespace control
         checked(*response);
         return std::move(*response);
     }
+    // Coroutine promise hooks are implicitly invoked through their instance.
+    // NOLINTBEGIN(readability-static-accessed-through-instance)
     pnm::coro::Task<protocol::Response> ControllerClient::requestAsync(protocol::Request q)
     {
         auto state = m_state;
-        auto response = co_await state->coroutineBus
+        auto response = co_await state->coroutine_bus
                           .service<protocol::Request, protocol::Response>(
-                            (q.operation == Op::Stop || q.operation == Op::Disable) ? protocol::StopName
-                                                                                    : protocol::RequestName)
+                            (q.operation == Op::Stop || q.operation == Op::Disable) ? protocol::STOP_NAME
+                                                                                    : protocol::REQUEST_NAME)
                           .request(std::move(q), 5s);
         if (!response)
             throw std::runtime_error("IO request failed");
         checked(*response);
         co_return std::move(*response);
     }
+    // NOLINTEND(readability-static-accessed-through-instance)
     void ControllerClient::enable() { request(message(Op::Enable)); }
     void ControllerClient::disable() { request(message(Op::Disable)); }
     void ControllerClient::stop(std::optional<MotorId> motor) { request(message(Op::Stop, motor)); }
@@ -190,7 +199,7 @@ namespace control
     {
         auto response = request(message(Op::AxisDefaults, id));
         p2p::Reader r(response.data);
-        auto d = protocol::axisDefaults(r);
+        auto d = protocol::axis_defaults(r);
         r.finish();
         return d;
     }
@@ -220,20 +229,22 @@ namespace control
         r.finish();
         return n;
     }
-    ControllerClient::Motion ControllerClient::submit(protocol::Request q,
+    ControllerClient::Motion ControllerClient::submit(const protocol::Request& q,
                                                       bool group,
                                                       pnm::units::Time duration)
     {
         auto state = m_state;
         auto job = std::make_shared<State::Job>(state->context);
         auto accepted = job->admission.get_future();
-        job->motor = q.motor == 255 ? MotorId::Motor1 : static_cast<MotorId>(q.motor);
+        job->motor = q.motor == protocol::ALL_MOTORS ? MotorId::Motor1 : static_cast<MotorId>(q.motor);
         job->group = group;
         job->duration = duration;
         job->operation = q.operation == Op::ReferenceAll ? Operation::Reference : Operation::Move;
         {
             std::scoped_lock lock(state->mutex);
-            if (std::ranges::count_if(state->jobs, [&](const auto& j) { return j->group == group; }) == 32) {
+            if (std::cmp_equal(
+                  std::ranges::count_if(state->jobs, [&](const auto& j) { return j->group == group; }),
+                  MOTION_HISTORY_CAPACITY)) {
                 auto old = std::ranges::find_if(state->jobs, [&](const auto& j) {
                     return j->group == group && j->completion.result().has_value();
                 });
@@ -247,11 +258,11 @@ namespace control
         try {
             job->goal.emplace(
               state->bus
-                .action<protocol::Request, protocol::Progress, protocol::Outcome>(protocol::ExecuteName)
+                .action<protocol::Request, protocol::Progress, protocol::Outcome>(protocol::EXECUTE_NAME)
                 .sendGoal(q, { 2s }, { .on_accepted = [weak] {
                 if (auto j = weak.lock()) {
-                    if (!j->admissionResolved) {
-                        j->admissionResolved = true;
+                    if (!j->admission_resolved) {
+                        j->admission_resolved = true;
                         j->admission.set_value();
                     }
                 }
@@ -288,8 +299,12 @@ namespace control
             }
             throw;
         }
-        return { job->id,     job->motor,      job->completion.result(),
-                 job->future, job->completion, job->terminalConfirmed.load() };
+        return { .id = job->id,
+                 .motor = job->motor,
+                 .result = job->completion.result(),
+                 .completion = job->future,
+                 .observed = job->completion,
+                 .terminal_confirmed = job->terminal_confirmed.load() };
     }
     ControllerClient::Motion ControllerClient::move(MotorId id, const Move& m)
     {
@@ -334,7 +349,13 @@ namespace control
         p2p::Writer w;
         w.real(timeout.get());
         auto m = submit(message(Op::ReferenceAll, {}, std::move(w.bytes)), true);
-        return { m.id, Operation::Reference, {}, m.result, m.completion, m.observed, m.terminal_confirmed };
+        return { .id = m.id,
+                 .operation = Operation::Reference,
+                 .duration = {},
+                 .result = m.result,
+                 .completion = m.completion,
+                 .observed = m.observed,
+                 .terminal_confirmed = m.terminal_confirmed };
     }
     ControllerClient::GroupMotion ControllerClient::coordinate(const Trajectory& t, pnm::units::Time timeout)
     {
@@ -342,9 +363,13 @@ namespace control
         protocol::write(w, t);
         w.real(timeout.get());
         auto m = submit(message(Op::Trajectory, {}, std::move(w.bytes)), true, t.duration);
-        return {
-            m.id, Operation::Move, t.duration, m.result, m.completion, m.observed, m.terminal_confirmed
-        };
+        return { .id = m.id,
+                 .operation = Operation::Move,
+                 .duration = t.duration,
+                 .result = m.result,
+                 .completion = m.completion,
+                 .observed = m.observed,
+                 .terminal_confirmed = m.terminal_confirmed };
     }
     std::vector<ControllerClient::Motion> ControllerClient::motions()
     {
@@ -357,7 +382,7 @@ namespace control
                                    j->completion.result(),
                                    j->future,
                                    j->completion,
-                                   j->terminalConfirmed.load() });
+                                   j->terminal_confirmed.load() });
         return result;
     }
     std::vector<ControllerClient::GroupMotion> ControllerClient::groupMotions()
@@ -372,7 +397,7 @@ namespace control
                                    j->completion.result(),
                                    j->future,
                                    j->completion,
-                                   j->terminalConfirmed.load() });
+                                   j->terminal_confirmed.load() });
         return result;
     }
     void ControllerClient::cancel(MotionId id)

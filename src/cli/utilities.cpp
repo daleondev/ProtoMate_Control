@@ -48,6 +48,7 @@ namespace cli::utilities
     {
         namespace
         {
+            constexpr std::size_t DECIMAL_BASE{ 10U };
             using namespace pnm::meta::string::literals;
             namespace fs = std::filesystem;
 
@@ -100,7 +101,7 @@ namespace cli::utilities
                 std::size_t mapped_bytes;
             };
 
-            auto refreshThreadStackInfo([[maybe_unused]] TX_THREAD* thread) -> void
+            auto refresh_thread_stack_info([[maybe_unused]] TX_THREAD* thread) -> void
             {
 #if defined(TX_ENABLE_STACK_CHECKING) && !defined(PNM_PLATFORM_LINUX)
                 if (thread != TX_NULL && thread != _tx_thread_current_ptr &&
@@ -113,14 +114,20 @@ namespace cli::utilities
 #endif
             }
 
-            auto getThreadInformation(TX_THREAD* thread) -> ThreadInfo
+            auto get_thread_information(TX_THREAD* thread) -> ThreadInfo
             {
-                refreshThreadStackInfo(thread);
+                refresh_thread_stack_info(thread);
 
+                // ThreadX exposes stack addresses as void pointers; compare their numeric addresses.
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 const auto stack_end = reinterpret_cast<uintptr_t>(thread->tx_thread_stack_end);
                 const auto current_stack_ptr = reinterpret_cast<uintptr_t>(thread->tx_thread_stack_ptr);
                 const auto peak_stack_ptr = reinterpret_cast<uintptr_t>(thread->tx_thread_stack_highest_ptr);
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+                // Pneumo assertions implement failure reporting through a C macro.
+                // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
                 PNM_ASSERT(current_stack_ptr <= stack_end && peak_stack_ptr <= stack_end, "Invalid stack");
+                // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
 
                 return { .prio = thread->tx_thread_priority,
                          .name =
@@ -130,7 +137,7 @@ namespace cli::utilities
                          .peak_stack_usage = static_cast<std::size_t>(stack_end - peak_stack_ptr) };
             }
 
-            auto getAllThreadsInformation() -> std::vector<ThreadInfo>
+            auto get_all_threads_information() -> std::vector<ThreadInfo>
             {
                 auto* first_thread{ _tx_thread_created_ptr };
                 if (first_thread == TX_NULL || _tx_thread_created_count == 0U) {
@@ -141,15 +148,17 @@ namespace cli::utilities
                 threads_info.reserve(_tx_thread_created_count);
 
                 auto* current_thread{ first_thread };
-                do {
-                    threads_info.push_back(getThreadInformation(current_thread));
+                for (;;) {
+                    threads_info.push_back(get_thread_information(current_thread));
                     current_thread = current_thread->tx_thread_created_next;
-                } while (current_thread != first_thread);
+                    if (!(current_thread != first_thread))
+                        break;
+                }
 
                 return threads_info;
             }
 
-            [[nodiscard]] auto getHeapInformation() -> HeapInfo
+            [[nodiscard]] auto get_heap_information() -> HeapInfo
             {
 #if defined(PNM_PLATFORM_LINUX)
                 const struct mallinfo2 allocator_info{ ::mallinfo2() };
@@ -166,9 +175,15 @@ namespace cli::utilities
                 };
 #else
                 const struct mallinfo allocator_info{ ::mallinfo() };
+                // Linker symbols delimit raw addresses, not a C++ array object.
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 const auto heap_base{ reinterpret_cast<std::uintptr_t>(&__HeapBase) };
                 const auto heap_limit{ reinterpret_cast<std::uintptr_t>(&__HeapLimit) };
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+                // Pneumo assertions implement failure reporting through a C macro.
+                // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
                 PNM_ASSERT(heap_base <= heap_limit, "Invalid heap bounds");
+                // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
 
                 const std::size_t capacity{ heap_limit - heap_base };
                 const std::size_t reserved{ allocator_info.arena };
@@ -201,7 +216,6 @@ namespace cli::utilities
             constexpr std::string_view BOTTOM_LEFT{ "\u2514"sv };
             constexpr std::string_view BOTTOM_JUNCTION{ "\u2534"sv };
             constexpr std::string_view BOTTOM_RIGHT{ "\u2518"sv };
-            constexpr std::string_view VERTICAL{ "\u2502"sv };
             constexpr std::string_view BAR_USED{ "\u2588"sv };
             constexpr std::string_view BAR_FREE{ "\u2591"sv };
 
@@ -237,36 +251,39 @@ namespace cli::utilities
             constexpr std::string_view HEAP_USAGE{ "Usage [%]"sv };
             constexpr std::string_view HEAP_BAR{ "Heap-Usage Bar"sv };
 
-            auto writeRepeated(std::ostream& output, std::string_view value, std::size_t count) -> void
+            auto write_repeated(std::ostream& output, std::string_view value, std::size_t count) -> void
             {
                 for (std::size_t index{}; index < count; ++index) {
                     output << value;
                 }
             }
 
-            auto writeBorder(std::ostream& output,
-                             std::string_view left,
-                             std::string_view junction,
-                             std::string_view right,
-                             std::span<const std::size_t> widths) -> void
+            // Border glyphs are deliberately ordered left, junction and right.
+            // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+            auto write_border(std::ostream& output,
+                              std::string_view left,
+                              std::string_view junction,
+                              std::string_view right,
+                              std::span<const std::size_t> widths) -> void
             {
+                // NOLINTEND(bugprone-easily-swappable-parameters)
                 output << left;
                 for (std::size_t index{}; index < widths.size(); ++index) {
-                    writeRepeated(output, HORIZONTAL, widths[index] + 2U);
+                    write_repeated(output, HORIZONTAL, widths[index] + 2U);
                     output << (index + 1U == widths.size() ? right : junction);
                 }
                 output.put('\n');
             }
 
-            auto writeRow(std::ostream& output,
-                          const auto& priority,
-                          std::string_view name,
-                          std::size_t name_width,
-                          const auto& available,
-                          const auto& current,
-                          const auto& peak,
-                          const auto& usage,
-                          std::string_view bar) -> void
+            auto write_row(std::ostream& output,
+                           const auto& priority,
+                           std::string_view name,
+                           std::size_t name_width,
+                           const auto& available,
+                           const auto& current,
+                           const auto& peak,
+                           const auto& usage,
+                           std::string_view bar) -> void
             {
                 // Runtime format parsing avoids Clang/libstdc++'s dynamic-width consteval issue.
                 std::vformat_to(std::ostreambuf_iterator<char>{ output },
@@ -288,7 +305,7 @@ namespace cli::utilities
                                                       BAR_WIDTH));
             }
 
-            auto writeThreadRow(std::ostream& output, const ThreadInfo& thread, std::size_t name_width)
+            auto write_thread_row(std::ostream& output, const ThreadInfo& thread, std::size_t name_width)
               -> void
             {
                 const std::size_t usage_percent{ (thread.peak_stack_usage * 100U) / thread.stack_size };
@@ -309,22 +326,22 @@ namespace cli::utilities
                                                       PEAK_WIDTH,
                                                       usage_percent,
                                                       USAGE_WIDTH));
-                writeRepeated(output, BAR_USED, bar_length);
-                writeRepeated(output, BAR_FREE, BAR_WIDTH - bar_length);
+                write_repeated(output, BAR_USED, bar_length);
+                write_repeated(output, BAR_FREE, BAR_WIDTH - bar_length);
                 output << " \u2502";
             }
 
-            [[nodiscard]] auto decimalWidth(std::size_t value) -> std::size_t
+            [[nodiscard]] auto decimal_width(std::size_t value) -> std::size_t
             {
                 std::size_t width{ 1U };
-                while (value >= 10U) {
-                    value /= 10U;
+                while (value >= DECIMAL_BASE) {
+                    value /= DECIMAL_BASE;
                     ++width;
                 }
                 return width;
             }
 
-            auto writeHeapHeader(std::ostream& output, std::size_t value_width) -> void
+            auto write_heap_header(std::ostream& output, std::size_t value_width) -> void
             {
                 std::vformat_to(std::ostreambuf_iterator<char>{ output },
                                 "\u2502 {:<{}} \u2502 {:>{}} \u2502 {:<{}} \u2502",
@@ -337,45 +354,101 @@ namespace cli::utilities
                 output.put('\n');
             }
 
-            [[nodiscard]] auto heapBarUsed(std::size_t usage_percent, std::size_t row) -> bool
+            // These formatting helpers take the table dimensions and row in documented order.
+            // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+            [[nodiscard]] auto heap_bar_used(std::size_t usage_percent, std::size_t row) -> bool
             {
+                // NOLINTEND(bugprone-easily-swappable-parameters)
                 const std::size_t clamped_usage{ std::min(usage_percent, std::size_t{ 100U }) };
                 const std::size_t used_rows{ (clamped_usage * HEAP_BAR_HEIGHT + 50U) / 100U };
                 return row >= HEAP_BAR_HEIGHT - used_rows;
             }
 
-            auto writeHeapBarCell(std::ostream& output, std::size_t usage_percent, std::size_t row) -> void
+            auto write_heap_bar_cell(std::ostream& output, std::size_t usage_percent, std::size_t row) -> void
             {
                 output.put(' ');
-                writeRepeated(output, heapBarUsed(usage_percent, row) ? BAR_USED : BAR_FREE, HEAP_BAR_WIDTH);
+                write_repeated(
+                  output, heap_bar_used(usage_percent, row) ? BAR_USED : BAR_FREE, HEAP_BAR_WIDTH);
                 output << " \u2502\n";
             }
 
-            auto writeHeapRowSeparator(std::ostream& output,
-                                       std::size_t value_width,
-                                       std::size_t usage_percent,
-                                       std::size_t row) -> void
+            // These formatting helpers take the table dimensions and row in documented order.
+            // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+            auto write_heap_row_separator(std::ostream& output,
+                                          std::size_t value_width,
+                                          std::size_t usage_percent,
+                                          std::size_t row) -> void
             {
+                // NOLINTEND(bugprone-easily-swappable-parameters)
                 output << MID_LEFT;
-                writeRepeated(output, HORIZONTAL, HEAP_METRIC_WIDTH + 2U);
+                write_repeated(output, HORIZONTAL, HEAP_METRIC_WIDTH + 2U);
                 output << MID_JUNCTION;
-                writeRepeated(output, HORIZONTAL, value_width + 2U);
+                write_repeated(output, HORIZONTAL, value_width + 2U);
                 output << MID_RIGHT;
-                writeHeapBarCell(output, usage_percent, row);
+                write_heap_bar_cell(output, usage_percent, row);
             }
 
-            auto writeHeapRow(std::ostream& output,
-                              std::string_view metric,
-                              const auto& value,
-                              std::size_t value_width,
-                              std::size_t usage_percent,
-                              std::size_t row) -> void
+            // These formatting helpers take the table dimensions and row in documented order.
+            // NOLINTBEGIN(bugprone-easily-swappable-parameters)
+            auto write_heap_row(std::ostream& output,
+                                std::string_view metric,
+                                const auto& value,
+                                std::size_t value_width,
+                                std::size_t usage_percent,
+                                std::size_t row) -> void
             {
+                // NOLINTEND(bugprone-easily-swappable-parameters)
                 std::vformat_to(std::ostreambuf_iterator<char>{ output },
                                 "\u2502 {:<{}} \u2502 {:>{}} \u2502",
                                 std::make_format_args(metric, HEAP_METRIC_WIDTH, value, value_width));
-                writeHeapBarCell(output, usage_percent, row);
+                write_heap_bar_cell(output, usage_percent, row);
             }
+            struct SearchOptions
+            {
+                std::string_view pattern;
+                bool ignore_case{}, invert{}, line_numbers{};
+            };
+            auto search_stream(std::istream& input,
+                               std::optional<std::string_view> label,
+                               const fs::path& path,
+                               std::ostream& output,
+                               const SearchOptions& options) -> CallbackResult
+            {
+                bool selected_any{};
+                std::size_t line_number{};
+                std::string line;
+
+                errno = 0;
+                while (std::getline(input, line)) {
+                    ++line_number;
+                    const bool selected{ contains(line, options.pattern, options.ignore_case) !=
+                                         options.invert };
+                    if (!selected) {
+                        continue;
+                    }
+
+                    selected_any = true;
+                    if (label) {
+                        output << *label << ':';
+                    }
+                    if (options.line_numbers) {
+                        output << line_number << ':';
+                    }
+                    output << line << '\n';
+                    if (!output) {
+                        return callback_failure("cannot write command output");
+                    }
+                }
+
+                if (input.bad()) {
+                    if (!path.empty()) {
+                        return stream_error("cannot read", path);
+                    }
+                    return callback_failure("cannot read standard input");
+                }
+                return selected_any ? 0 : 1;
+            }
+
         }
 
         [[
@@ -423,51 +496,22 @@ namespace cli::utilities
             const bool ignore_case{ args.hasFlag("ignore-case") };
             const bool invert{ args.hasFlag("invert-match") };
             const bool line_numbers{ args.hasFlag("line-number") };
-            const auto search = [&](std::istream& input,
-                                    std::optional<std::string_view> label,
-                                    const fs::path& path) -> CallbackResult {
-                bool selected_any{};
-                std::size_t line_number{};
-                std::string line;
-
-                errno = 0;
-                while (std::getline(input, line)) {
-                    ++line_number;
-                    const bool selected{ contains(line, pattern, ignore_case) != invert };
-                    if (!selected) {
-                        continue;
-                    }
-
-                    selected_any = true;
-                    if (label) {
-                        io.output << *label << ':';
-                    }
-                    if (line_numbers) {
-                        io.output << line_number << ':';
-                    }
-                    io.output << line << '\n';
-                    if (!io.output) {
-                        return callback_failure("cannot write command output");
-                    }
-                }
-
-                if (input.bad()) {
-                    if (!path.empty()) {
-                        return stream_error("cannot read", path);
-                    }
-                    return callback_failure("cannot read standard input");
-                }
-                return selected_any ? 0 : 1;
-            };
 
             if (args.size() == 1U) {
-                return search(io.input, std::nullopt, {});
+                return search_stream(io.input,
+                                     std::nullopt,
+                                     {},
+                                     io.output,
+                                     { .pattern = pattern,
+                                       .ignore_case = ignore_case,
+                                       .invert = invert,
+                                       .line_numbers = line_numbers });
             }
 
             const bool print_filename{ args.size() > 2U };
             bool selected_any{};
             for (std::size_t index{ 1U }; index < args.size(); ++index) {
-                auto resolved{ filesystem::resolvePath(args.at(index), "file") };
+                auto resolved{ filesystem::resolve_path(args.at(index), "file") };
                 if (!resolved) {
                     return std::unexpected(resolved.error());
                 }
@@ -487,10 +531,15 @@ namespace cli::utilities
                 if (!file.is_open()) {
                     return stream_error("cannot open", path);
                 }
-                const auto result{ search(file,
-                                          print_filename ? std::optional<std::string_view>{ args.at(index) }
-                                                         : std::nullopt,
-                                          path) };
+                const auto result{ search_stream(
+                  file,
+                  print_filename ? std::optional<std::string_view>{ args.at(index) } : std::nullopt,
+                  path,
+                  io.output,
+                  { .pattern = pattern,
+                    .ignore_case = ignore_case,
+                    .invert = invert,
+                    .line_numbers = line_numbers }) };
                 if (!result) {
                     return result;
                 }
@@ -542,14 +591,14 @@ namespace cli::utilities
             return result.exit_code;
         }
 
-        [[= "Print thread stack information."_fs]] static auto stack(const Arguments&, CommandIO& io)
-          -> CallbackResult
+        [[= "Print thread stack information."_fs]] static auto stack(const Arguments& /*unused*/,
+                                                                     CommandIO& io) -> CallbackResult
         {
 #if defined(PNM_PLATFORM_LINUX)
             tx::linux::refresh_all_threads_stack_info();
 #endif
 
-            auto threads_info{ getAllThreadsInformation() };
+            auto threads_info{ get_all_threads_information() };
             if (threads_info.empty()) {
                 io.output << "No threads running...\n";
                 return io.output ? CallbackResult{ 0 } : callback_failure("cannot write command output");
@@ -561,37 +610,36 @@ namespace cli::utilities
               threads_info, NAME_HEADER.size(), [](std::size_t maximum, const ThreadInfo& thread) {
                 return std::max(maximum, thread.name.size());
             }) };
-            const std::array stack_widths{
-                PRIO_WIDTH, max_name_len, AVAIL_WIDTH, CURR_WIDTH, PEAK_WIDTH, USAGE_WIDTH, BAR_WIDTH
-            };
+            const std::array stack_widths{ PRIO_WIDTH, max_name_len, AVAIL_WIDTH, CURR_WIDTH,
+                                           PEAK_WIDTH, USAGE_WIDTH,  BAR_WIDTH };
 
-            writeBorder(io.output, TOP_LEFT, TOP_JUNCTION, TOP_RIGHT, stack_widths);
-            writeRow(io.output,
-                     PRIO_HEADER,
-                     NAME_HEADER,
-                     max_name_len,
-                     AVAIL_HEADER,
-                     CURR_HEADER,
-                     PEAK_HEADER,
-                     USAGE_HEADER,
-                     BAR_HEADER);
+            write_border(io.output, TOP_LEFT, TOP_JUNCTION, TOP_RIGHT, stack_widths);
+            write_row(io.output,
+                      PRIO_HEADER,
+                      NAME_HEADER,
+                      max_name_len,
+                      AVAIL_HEADER,
+                      CURR_HEADER,
+                      PEAK_HEADER,
+                      USAGE_HEADER,
+                      BAR_HEADER);
             io.output.put('\n');
 
             for (const auto& thread : threads_info) {
-                writeBorder(io.output, MID_LEFT, MID_JUNCTION, MID_RIGHT, stack_widths);
-                writeThreadRow(io.output, thread, max_name_len);
+                write_border(io.output, MID_LEFT, MID_JUNCTION, MID_RIGHT, stack_widths);
+                write_thread_row(io.output, thread, max_name_len);
                 io.output.put('\n');
             }
 
-            writeBorder(io.output, BOTTOM_LEFT, BOTTOM_JUNCTION, BOTTOM_RIGHT, stack_widths);
+            write_border(io.output, BOTTOM_LEFT, BOTTOM_JUNCTION, BOTTOM_RIGHT, stack_widths);
 
             return io.output ? CallbackResult{ 0 } : callback_failure("cannot write command output");
         }
 
-        [[= "Print heap allocator information."_fs]] static auto heap(const Arguments&, CommandIO& io)
-          -> CallbackResult
+        [[= "Print heap allocator information."_fs]] static auto heap(const Arguments& /*unused*/,
+                                                                      CommandIO& io) -> CallbackResult
         {
-            const HeapInfo heap_info{ getHeapInformation() };
+            const HeapInfo heap_info{ get_heap_information() };
             const std::size_t usage_capacity{ heap_info.capacity.value_or(heap_info.reserved) };
             const std::size_t usage_percent{ usage_capacity == 0U
                                                ? 0U
@@ -599,29 +647,29 @@ namespace cli::utilities
             const std::size_t value_width{ std::max(
               { HEAP_VALUE_HEADER.size(),
                 heap_info.allocator.size(),
-                heap_info.capacity ? decimalWidth(*heap_info.capacity) : "dynamic"sv.size(),
-                decimalWidth(heap_info.reserved),
-                decimalWidth(heap_info.used),
-                decimalWidth(heap_info.available),
-                decimalWidth(heap_info.releasable),
-                decimalWidth(heap_info.free_blocks),
-                decimalWidth(heap_info.mapped_regions),
-                decimalWidth(heap_info.mapped_bytes),
-                decimalWidth(usage_percent) }) };
+                heap_info.capacity ? decimal_width(*heap_info.capacity) : "dynamic"sv.size(),
+                decimal_width(heap_info.reserved),
+                decimal_width(heap_info.used),
+                decimal_width(heap_info.available),
+                decimal_width(heap_info.releasable),
+                decimal_width(heap_info.free_blocks),
+                decimal_width(heap_info.mapped_regions),
+                decimal_width(heap_info.mapped_bytes),
+                decimal_width(usage_percent) }) };
             const std::array heap_widths{ HEAP_METRIC_WIDTH, value_width, HEAP_BAR_WIDTH };
 
-            writeBorder(io.output, TOP_LEFT, TOP_JUNCTION, TOP_RIGHT, heap_widths);
-            writeHeapHeader(io.output, value_width);
-            writeBorder(io.output, MID_LEFT, MID_JUNCTION, MID_RIGHT, heap_widths);
+            write_border(io.output, TOP_LEFT, TOP_JUNCTION, TOP_RIGHT, heap_widths);
+            write_heap_header(io.output, value_width);
+            write_border(io.output, MID_LEFT, MID_JUNCTION, MID_RIGHT, heap_widths);
 
             std::size_t metric_row{};
             std::size_t bar_row{};
             const auto write_value = [&](std::string_view metric, const auto& value) {
                 if (metric_row != 0U) {
-                    writeHeapRowSeparator(io.output, value_width, usage_percent, bar_row);
+                    write_heap_row_separator(io.output, value_width, usage_percent, bar_row);
                     ++bar_row;
                 }
-                writeHeapRow(io.output, metric, value, value_width, usage_percent, bar_row);
+                write_heap_row(io.output, metric, value, value_width, usage_percent, bar_row);
                 ++metric_row;
                 ++bar_row;
             };
@@ -642,9 +690,12 @@ namespace cli::utilities
             write_value(HEAP_MAPPED_BYTES, heap_info.mapped_bytes);
             write_value(HEAP_USAGE, usage_percent);
 
+            // Pneumo assertions implement failure reporting through a C macro.
+            // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
             PNM_ASSERT(metric_row == HEAP_METRIC_ROW_COUNT && bar_row == HEAP_BAR_HEIGHT,
                        "Invalid heap table row count");
-            writeBorder(io.output, BOTTOM_LEFT, BOTTOM_JUNCTION, BOTTOM_RIGHT, heap_widths);
+            // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
+            write_border(io.output, BOTTOM_LEFT, BOTTOM_JUNCTION, BOTTOM_RIGHT, heap_widths);
 
             return io.output ? CallbackResult{ 0 } : callback_failure("cannot write command output");
         }

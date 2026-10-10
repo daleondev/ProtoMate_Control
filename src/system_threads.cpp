@@ -2,6 +2,7 @@
 
 #include "runtime/thread.hpp"
 
+#include <algorithm>
 #include <meta>
 #include <mutex>
 #include <string_view>
@@ -12,12 +13,14 @@ namespace system_threads
     {
         using Prio = decltype(PRIO._0);
 
+        // Reflection represents both entities and types as info; their roles are explicit at call sites.
+        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
         consteval auto annotations_of_type(std::meta::info entity, std::meta::info type)
         {
             std::vector<std::meta::info> matches;
             for (const auto annotation : std::meta::annotations_of(entity)) {
                 if (std::meta::is_same_type(std::meta::remove_const(std::meta::type_of(annotation)),
-                                           std::meta::remove_const(type))) {
+                                            std::meta::remove_const(type))) {
                     matches.push_back(annotation);
                 }
             }
@@ -44,15 +47,10 @@ namespace system_threads
         {
             constexpr auto thread_functions{ get_thread_functions() };
 
-            for (auto func : thread_functions) {
-                if (annotations_of_type(func, ^^Prio).size() != 1) {
-                    return false;
-                }
-                if (annotations_of_type(func, ^^pnm::units::ByteSize).size() != 1) {
-                    return false;
-                }
-            }
-            return true;
+            return std::ranges::all_of(thread_functions, [](auto func) {
+                return annotations_of_type(func, ^^Prio).size() == 1 &&
+                       annotations_of_type(func, ^^pnm::units::ByteSize).size() == 1;
+            });
         }
 
         static_assert(validate_thread_functions());
@@ -65,8 +63,11 @@ namespace system_threads
             static std::vector<std::thread> threads;
             threads.reserve(thread_count);
 
+            // Clang synthesizes reserved __N/__range identifiers for expansion statements.
+            // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
             template for (constexpr auto thread_function : thread_functions)
             {
+                // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
                 static_assert(std::meta::identifier_of(thread_function) != "start_all");
 
                 constexpr auto priority{ [] -> int32_t {

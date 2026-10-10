@@ -24,8 +24,8 @@ namespace control
 
       public:
         bool operator==(const Completion& other) const noexcept { return m_state == other.m_state; }
-        std::future<T> get_future() { return m_state->promise.get_future(); }
-        void set_value(T value)
+        std::future<T> getFuture() { return m_state->promise.get_future(); }
+        void setValue(T value)
         {
             std::function<void()> callback;
             {
@@ -37,7 +37,7 @@ namespace control
             if (callback)
                 callback();
         }
-        void set_exception(std::exception_ptr error)
+        void setException(const std::exception_ptr& error)
         {
             std::function<void()> callback;
             {
@@ -49,9 +49,9 @@ namespace control
             if (callback)
                 callback();
         }
-        void then(std::function<void()> callback) const
+        void then(const std::function<void()>& callback) const
         {
-            bool ready;
+            bool ready{};
             {
                 std::scoped_lock lock(m_state->mutex);
                 ready = m_state->value.has_value() || bool(m_state->error);

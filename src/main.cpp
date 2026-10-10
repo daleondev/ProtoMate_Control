@@ -18,6 +18,8 @@
 #endif
 
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <print>
 #include <thread>
 #include <utility>
@@ -25,11 +27,23 @@
 namespace
 {
     using namespace pnm::units::literals;
-    std::unique_ptr<pnm::coro::Context> ioContext, uiContext;
+    constexpr std::size_t LOG_STACK_SIZE{ 8192U };
+    constexpr auto DUMMY_Z_TRAVEL{ 40_mm };
+    struct Contexts
+    {
+        pnm::coro::Context io;
+        pnm::coro::Context ui;
+    };
+    Contexts& contexts()
+    {
+        // Construct after the C++ runtime starts; lifetime covers all system threads.
+        static Contexts value;
+        return value;
+    }
 }
 
-auto system_threads::control() -> void { ioContext->run(); }
-auto system_threads::messages() -> void { uiContext->run(); }
+auto system_threads::control() -> void { contexts().io.run(); }
+auto system_threads::messages() -> void { contexts().ui.run(); }
 
 auto system_threads::led() -> void
 {
@@ -73,21 +87,21 @@ auto system_threads::button() -> void
 }
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
-{
+try {
     runtime::thread::publish_attributes(
-      { .name = "Logging", .priority = system_threads::PRIO._20, .stack_size = 8192UZ });
+      { .name = "Logging", .priority = system_threads::PRIO._20, .stack_size = LOG_STACK_SIZE });
     pnm::log::initialize();
 #if defined(HAL_PLATFORM_LINUX)
-    cli::terminal::configureLogging();
+    cli::terminal::configure_logging();
 #endif
 
     // Compose hardware once on the IO side. Robot and CLI share the UI client;
     // every control request crosses the serialized execution boundary.
     const auto motion{ std::make_shared<control::MotionController>(
       std::array<control::MotionController::AxisConfig, 3>{ {
-        { 135_deg, 1.8_deg, 16U },
-        { 135_deg, 1.8_deg, 16U },
-        { 135_deg, 1.8_deg, 16U },
+        { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
+        { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
+        { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
       } }) };
 
     // DUMMY MECHANICS: replace these values with the robot's actual reductions,
@@ -109,30 +123,33 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
                           } });
     motion->configureAxis(Motor3,
                           LinearAxisConversion{ {
-                            .travel_per_output_revolution = 40_mm,
+                            .travel_per_output_revolution = DUMMY_Z_TRAVEL,
                             .motor_revolutions_per_output_revolution = 1.0,
                             .direction = AxisDirection::SameAsMotor,
                             .motor_reference = motion->motorConfiguration(Motor3).reference_position,
                             .axis_reference = 0_mm,
                           } });
-    ioContext = std::make_unique<pnm::coro::Context>();
-    uiContext = std::make_unique<pnm::coro::Context>();
-    pnm::msg::Bus ioBus, uiBus;
+    auto& context{ contexts() };
+    pnm::msg::Bus io_bus;
+    pnm::msg::Bus ui_bus;
     auto transport = p2p::InProcessTransport::pair();
-    control::ControllerServer server(motion, ioBus, *ioContext);
-    p2p::Bridge ioBridge(ioBus, *ioContext, transport[0]), uiBridge(uiBus, *uiContext, transport[1]);
-    control::protocol::routes(ioBridge, true);
-    control::protocol::routes(uiBridge, false);
-    ioBridge.onStateChanged([&server](auto state) { server.linkChanged(state); });
-    auto client = std::make_shared<control::ControllerClient>(uiBus, *uiContext);
-    ioBridge.start();
-    uiBridge.start();
+    control::ControllerServer server(motion, io_bus, context.io);
+    p2p::Bridge io_bridge(io_bus, context.io, transport[0]);
+    p2p::Bridge ui_bridge(ui_bus, context.ui, transport[1]);
+    control::protocol::routes(io_bridge, true);
+    control::protocol::routes(ui_bridge, false);
+    io_bridge.onStateChanged([&server](auto state) { server.linkChanged(state); });
+    auto client = std::make_shared<control::ControllerClient>(ui_bus, context.ui);
+    io_bridge.start();
+    ui_bridge.start();
     // Nominal CAD parameter lengths. Base/tool calibration and travel limits
     // remain placeholders, like the mechanics above; this enables calculations.
     const auto robot{ std::make_shared<control::Robot>(
       client,
-      ScaraKinematics::Config{
-        .first_arm_length = 205_mm, .second_arm_length = 223.4_mm, .tool_offset = { 135_mm, 0_mm, 0_mm } }) };
+      ScaraKinematics::Config{ .first_arm_length = 205_mm,
+                               .second_arm_length = 223.4_mm,
+                               .tool_offset = { .x = 135_mm, .y = 0_mm, .z = 0_mm },
+                               .limits = {} }) };
     cli::motor::setup(cli::registry(), client);
     cli::axis::setup(cli::registry(), client);
     cli::robot::setup(cli::registry(), robot);
@@ -143,4 +160,12 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     }
 
     std::unreachable();
+} catch (const std::exception& error) {
+    std::fputs("Application startup failed: ", stderr);
+    std::fputs(error.what(), stderr);
+    std::fputc('\n', stderr);
+    return EXIT_FAILURE;
+} catch (...) {
+    std::fputs("Application startup failed with an unknown exception\n", stderr);
+    return EXIT_FAILURE;
 }
