@@ -112,34 +112,34 @@ stubs are used. Pneumo selects its existing Clang reflection workaround by the
 reflection header instead of the surrounding standard library. Updating the image
 requires revalidating this adaptation; missing expected header markers fail setup.
 
-**Partial coverage is accepted by default.** Every configured application source
-first gets a syntax-only check using the same compiler flags and working directory,
-stopping at the first compiler error. Blocked files skip clang-tidy entirely;
-only files that pass this precheck receive the full lint checks. Console output
-shows `checking`, then `linting` or `blocked`, with elapsed times. Successfully
-parsed files pay for an extra parse, but blocked files avoid the expensive lint
-passes over incomplete syntax trees. CLI registration uses explicit command
-namespace reflections, and thread annotations are filtered using reflection
-operations supported by both compilers. Stack and heap tables in `cli/utilities.cpp`
+The runner invokes clang-tidy directly for each source, without a separate syntax
+precheck. Each invocation's raw output is printed as it finishes, keeping the
+diagnostics together during parallel runs. The console includes clang-tidy's
+source excerpts, notes and check names; custom progress lines, summaries and
+deduplicated findings are omitted.
+
+CLI registration uses explicit command namespace reflections, and thread
+annotations use reflection operations supported by both compilers. Stack and heap
+tables in `cli/utilities.cpp`
 use `std::vformat_to` to avoid Clang/libstdc++'s compile-time dynamic-width checking
 incompatibility. These table formats are checked at runtime; other format strings
 retain compile-time checking. Blocking compiler errors cannot be disabled with
 clang-tidy check filters. See the [clang-tidy documentation](https://clang.llvm.org/extra/clang-tidy/).
 
-Reports are written to `<build-directory>/clang-tidy/`:
+Reports are saved separately in `<build-directory>/clang-tidy/`:
 
 - `findings.txt`: deduplicated `src/` diagnostics from fully parsed files.
-- `partial-findings.txt`: review-only diagnostics if clang-tidy itself fails to
-  parse a file despite a successful precheck; normally empty.
+- `partial-findings.txt`: review-only diagnostics if clang-tidy fails to parse
+  a file; normally empty.
 - `summary.txt` and `report.json`: coverage, blocked files and their errors.
-- Per-source `.preflight.log` files: compiler precheck diagnostics. The JSON
-  report records the final stage and separate precheck/lint durations.
 - Per-source `.log` and `.yaml` files: full diagnostics and suggested replacements.
+  The JSON report records each invocation's duration.
   Replacements are **never applied automatically**.
 
 Exit status is `1` for findings in fully parsed files, and `2` for tool failures or
-when no file can be fully checked. Skipped files remain visible in the coverage
-report even when the command succeeds. To require complete coverage:
+when no file can be fully checked. Partial coverage is accepted by default;
+compiler errors remain visible in the raw output and saved coverage report.
+To require complete coverage:
 
 ```sh
 python3 scripts/clang_tidy.py --build-dir build/debug-linux --strict

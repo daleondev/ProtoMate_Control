@@ -1,10 +1,11 @@
-"""Check that partial lint never disguises tool failures or gates on broken ASTs."""
+"""Check raw lint output, saved reports and analysis failure handling."""
 import importlib.util
 import contextlib
 import io
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -108,67 +109,85 @@ class PartialLintTests(unittest.TestCase):
         self.assertEqual(tidy.exit_status([{"status": "blocked"}], [], False), 2)
         self.assertEqual(tidy.exit_status([{"status": "parsed"}, {"status": "tool-failure"}], [], False), 2)
 
-    def test_preflight_preserves_parsing_flags_without_build_outputs(self):
-        parsing = ["-Ipath with spaces", "-DVALUE=7", "-freflection", "-std=c++26", "src/main.cpp"]
-        command = tidy.preflight_command({"arguments": [tidy.COMPILER, *parsing,
-            "-c", "-o", "object.o", "-MMD", "-MP", "-MF", "deps.d", "-MT", "target",
-            "-MQquoted", "-MJcommands.json", "-oother.o", "--output=another.o"]})
-        self.assertEqual(command, [tidy.COMPILER, *parsing,
-            "-fsyntax-only", "-ferror-limit=1", "-Wfatal-errors", "-fno-color-diagnostics"])
-        with self.assertRaises(ValueError):
-            tidy.preflight_command({"arguments": [tidy.COMPILER, "-o"]})
-
-    def test_preflight_only_source_errors_are_blockers(self):
-        error = "/project/motor.hpp:16:43: fatal error: no template named 'move_only_function'\n"
-        self.assertEqual(tidy.classify_preflight(1, error), "blocked")
-        self.assertEqual(tidy.classify_preflight(0, "warning: test\n"), "parsed")
-        self.assertEqual(tidy.classify_preflight(1, "clang++: error: unknown argument '-invalid'"), "tool-failure")
-        for code in (-11, 124, 127):
-            self.assertEqual(tidy.classify_preflight(code, error), "tool-failure")
-
-    def test_blocked_preflight_skips_tidy_and_removes_stale_fixes(self):
+    def test_compile_error_is_printed_without_prechecking_or_skipping(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
             fixes = output / "src__main.cpp.yaml"
             fixes.write_text("stale replacements")
             entry = {"file": str(tidy.ROOT / "src/main.cpp"), "directory": temporary,
                      "arguments": [tidy.COMPILER, "-c", "relative.cpp", "-o", "object.o"]}
-            error = "relative.cpp:1:1: fatal error: unsupported reflection API\n"
+            error = (f"{entry['file']}:1:1: error: unsupported reflection API [clang-diagnostic-error]\n"
+                     "    1 | reflection();\n      | ^\nFound compiler error(s).\n")
             console = io.StringIO()
-            def failed(*args, **kwargs):
-                self.assertIn("checking", console.getvalue())
-                return subprocess.CompletedProcess(args[0], 1, "", error)
-            with contextlib.redirect_stdout(console), patch.object(tidy.subprocess, "run", side_effect=failed) as run:
+            result = subprocess.CompletedProcess([], 1, error)
+            with contextlib.redirect_stdout(console), patch.object(tidy.subprocess, "run", return_value=result) as run:
                 report = tidy.check(entry, SimpleNamespace(output=output, timeout=5))
             self.assertEqual(run.call_count, 1)
+            self.assertEqual(run.call_args.args[0][0], tidy.TIDY)
             self.assertEqual(run.call_args.kwargs["cwd"], temporary)
             self.assertEqual(report["status"], "blocked")
-            self.assertEqual(report["stage"], "preflight")
             self.assertEqual(report["diagnostics"], [])
-            self.assertEqual(report["tidy_seconds"], 0)
-            self.assertEqual(report["blockers"], [error.strip()])
+            self.assertEqual(report["blockers"], [error.splitlines()[0]])
             self.assertFalse(fixes.exists())
-            self.assertEqual((output / "src__main.cpp.preflight.log").read_text(), error)
+            self.assertFalse((output / "src__main.cpp.preflight.log").exists())
             self.assertEqual((output / "src__main.cpp.log").read_text(), error)
-            self.assertNotIn("linting", console.getvalue())
+            self.assertEqual(console.getvalue(), error)
 
-    def test_successful_preflight_runs_tidy_and_retains_findings(self):
+    def test_tidy_runs_once_and_preserves_raw_output(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
             entry = {"file": str(tidy.ROOT / "src/main.cpp"), "directory": temporary,
                      "arguments": [tidy.COMPILER, "-c", "relative.cpp"]}
-            finding = f"{entry['file']}:2:1: error: bad name [readability-identifier-naming,-warnings-as-errors]\n"
-            results = [subprocess.CompletedProcess([], 0, "", "precheck warning\n"),
-                       subprocess.CompletedProcess([], 1, "", finding)]
-            with contextlib.redirect_stdout(io.StringIO()), patch.object(tidy.subprocess, "run", side_effect=results) as run:
+            finding = (f"{entry['file']}:2:1: error: bad name [readability-identifier-naming,-warnings-as-errors]\n"
+                       "    2 | int BadName; // μ\n      |     ^~~~~~~\n"
+                       f"{entry['file']}:3:1: note: declared here\n1 warning treated as error\n")
+            console = io.StringIO()
+            result = subprocess.CompletedProcess([], 1, finding)
+            with contextlib.redirect_stdout(console), patch.object(tidy.subprocess, "run", return_value=result) as run:
                 report = tidy.check(entry, SimpleNamespace(output=output, timeout=5))
-            self.assertEqual(run.call_count, 2)
-            self.assertEqual(run.call_args_list[1].args[0][0], tidy.TIDY)
-            self.assertEqual(report["stage"], "clang-tidy")
+            self.assertEqual(run.call_count, 1)
+            self.assertEqual(run.call_args.args[0][0], tidy.TIDY)
+            self.assertEqual(run.call_args.kwargs["stderr"], subprocess.STDOUT)
             self.assertEqual(report["status"], "parsed")
             self.assertEqual(len(report["diagnostics"]), 1)
             self.assertEqual((output / "src__main.cpp.log").read_text(), finding)
-            self.assertEqual((output / "src__main.cpp.preflight.log").read_text(), "precheck warning\n")
+            self.assertFalse((output / "src__main.cpp.preflight.log").exists())
+            self.assertEqual(console.getvalue(), finding)
+
+    def test_reports_are_saved_without_adding_console_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            entries = [{"file": str(tidy.ROOT / filename), "directory": temporary}
+                       for filename in ("src/main.cpp", "src/system_threads.cpp")]
+            (output / "compile_commands.json").write_text(json.dumps(entries))
+            finding = (f"{tidy.ROOT}/src/example.hpp:2:1: error: bad name "
+                       "[readability-identifier-naming,-warnings-as-errors]\n")
+            results = [subprocess.CompletedProcess([], 0, "configuration valid", ""),
+                       subprocess.CompletedProcess([], 1, finding),
+                       subprocess.CompletedProcess([], 1, finding)]
+            console = io.StringIO()
+            with contextlib.redirect_stdout(console), \
+                 patch.object(tidy, "prepare_reflection_headers"), \
+                 patch.object(tidy.subprocess, "check_output", return_value="test clang-tidy"), \
+                 patch.object(tidy.subprocess, "run", side_effect=results) as run:
+                status = tidy.run_inside(SimpleNamespace(output=output, timeout=5, jobs=1, strict=False))
+            self.assertEqual(status, 1)
+            self.assertEqual(run.call_count, 3)
+            self.assertEqual(console.getvalue(), finding * 2)
+            report = json.loads((output / "report.json").read_text())
+            self.assertEqual(report["coverage"], "complete")
+            self.assertEqual(len(report["files"]), 2)
+            self.assertEqual(len(report["findings"]), 1)
+            self.assertIn("1 unique src/ findings", (output / "summary.txt").read_text())
+            self.assertEqual(len((output / "findings.txt").read_text().splitlines()), 1)
+
+    def test_raw_output_preserves_stdout_stderr_order(self):
+        code, log, _ = tidy.run_command(
+            [sys.executable, "-c", "import sys; print('first', flush=True); "
+             "print('second', file=sys.stderr, flush=True); print('third', flush=True)"],
+            str(tidy.ROOT), 5)
+        self.assertEqual(code, 0)
+        self.assertEqual(log, "first\nsecond\nthird\n")
 
     def test_timeout_and_missing_tool_are_not_treated_as_blocked(self):
         for error, expected in [(subprocess.TimeoutExpired("clang", 1, output=b"partial output"), 124),
@@ -176,7 +195,7 @@ class PartialLintTests(unittest.TestCase):
             with self.subTest(error=error), patch.object(tidy.subprocess, "run", side_effect=error):
                 code, log, elapsed = tidy.run_command(["clang"], str(tidy.ROOT), 1)
                 self.assertEqual(code, expected)
-                self.assertEqual(tidy.classify_preflight(code, log), "tool-failure")
+                self.assertEqual(tidy.classify(code, log), "tool-failure")
                 self.assertGreaterEqual(elapsed, 0)
 
 

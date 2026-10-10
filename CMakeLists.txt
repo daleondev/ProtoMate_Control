@@ -194,7 +194,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             USES_TERMINAL
             VERBATIM
-            COMMENT "Checking src/ with the reflection-capable Clang toolchain")
+            COMMENT "clang-tidy")
         if(BUILD_TESTING)
             add_test(NAME tooling.clang_tidy
                 COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/tests/test_clang_tidy.py)

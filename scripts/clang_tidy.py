@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run src/ clang-tidy checks with Pneumo's reflection compiler in Docker.
 
-The default is a partial lint run: compiler-blocked files are reported separately.
-Each file first gets a syntax-only check that stops at the first compiler error.
+Each source runs directly through clang-tidy; its raw output goes to the console.
+Parallel runs keep each file's output together. Reports are saved separately.
 Lint findings in parsed files fail the run. --strict also fails on blocked files.
 No fixes are applied. Neither the GCC database nor application sources are edited.
 """
@@ -16,6 +16,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+from threading import Lock
 import time
 
 
@@ -29,7 +30,7 @@ TIDY = "/opt/clang-p2996/bin/clang-tidy"
 REFLECTION_HEADERS = Path("/opt/clang-p2996/include/c++/v1")
 DIAGNOSTIC = re.compile(
     r"^(.+?):(\d+):(\d+): (?:warning|error|fatal error): (.*?) \[([^\]]+)\]$", re.MULTILINE)
-COMPILER_ERROR = re.compile(r"^.+?:\d+:\d+: (?:fatal )?error: .+$", re.MULTILINE)
+OUTPUT_LOCK = Lock()
 
 
 def adapt_reflection_header(source, replacements):
@@ -119,40 +120,12 @@ def classify(code, log):
     return "parsed"
 
 
-def preflight_command(entry):
-    """Preserve parsing flags, but never emit object/dependency files."""
-    arguments = iter(entry["arguments"][1:])
-    command = [entry["arguments"][0]]
-    output_options = ("-o", "-MF", "-MT", "-MQ", "-MJ", "--output")
-    for argument in arguments:
-        if argument in output_options:
-            if next(arguments, None) is None:
-                raise ValueError(f"Missing value after {argument} in compilation database")
-        elif argument in ("-c", "--compile", "-S", "-E", "-MD", "-MMD", "-MP", "-MG", "-M", "-MM"):
-            continue
-        elif argument.startswith((*output_options[:-1], "--output=")):
-            continue
-        else:
-            command.append(argument)
-    command.extend(["-fsyntax-only", "-ferror-limit=1", "-Wfatal-errors", "-fno-color-diagnostics"])
-    return command
-
-
-def classify_preflight(code, log):
-    if code == 0:
-        return "parsed"
-    # A source diagnostic is a compatibility/parse blocker. Crashes, timeouts,
-    # missing executables and malformed driver options must still fail the run.
-    if code == 1 and COMPILER_ERROR.search(log):
-        return "blocked"
-    return "tool-failure"
-
-
 def run_command(command, directory, timeout):
     started = time.monotonic()
     try:
-        process = subprocess.run(command, cwd=directory, capture_output=True, text=True, timeout=timeout)
-        code, log = process.returncode, process.stdout + process.stderr
+        process = subprocess.run(command, cwd=directory, stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, text=True, timeout=timeout)
+        code, log = process.returncode, process.stdout
     except subprocess.TimeoutExpired as error:
         def decoded(value):
             return value.decode(errors="replace") if isinstance(value, bytes) else (value or "")
@@ -179,32 +152,16 @@ def check(entry, args):
     output = args.output / filename.replace("/", "__")
     fixes = output.with_suffix(output.suffix + ".yaml")
     fixes.unlink(missing_ok=True)
-    print(f"checking     {filename}", flush=True)
-    try:
-        command = preflight_command(entry)
-    except ValueError as error:
-        code, log, preflight_seconds = 127, str(error), 0.0
-    else:
-        code, log, preflight_seconds = run_command(command, entry["directory"], args.timeout)
-    output.with_suffix(output.suffix + ".preflight.log").write_text(log)
-    status = classify_preflight(code, log)
-    stage, tidy_seconds = "preflight", 0.0
-    blockers = COMPILER_ERROR.findall(log) if status == "blocked" else []
-    diagnostics = []
-    if status == "parsed":
-        print(f"linting      {filename} (precheck {preflight_seconds:.2f}s)", flush=True)
-        command = [TIDY, "-p", str(args.output), "--config-file=" + str(ROOT / ".clang-tidy"),
-                   "--header-filter=^" + re.escape(str(ROOT / "src")) + "/",
-                   "--export-fixes=" + str(fixes), str(source)]
-        code, log, tidy_seconds = run_command(command, entry["directory"], args.timeout)
-        stage, status = "clang-tidy", classify(code, log)
-        blockers = sorted({line.strip() for line in log.splitlines() if "[clang-diagnostic-error]" in line})
-        diagnostics = collect_diagnostics(log)
+    command = [TIDY, "-p", str(args.output), "--config-file=" + str(ROOT / ".clang-tidy"),
+               "--header-filter=^" + re.escape(str(ROOT / "src")) + "/",
+               "--export-fixes=" + str(fixes), str(source)]
+    code, log, tidy_seconds = run_command(command, entry["directory"], args.timeout)
+    with OUTPUT_LOCK:
+        print(log, end="", flush=True)
     output.with_suffix(output.suffix + ".log").write_text(log)
-    print(f"{status:12} {filename} ({preflight_seconds + tidy_seconds:.2f}s)", flush=True)
-    return {"file": filename, "status": status, "exit_code": code,
-            "stage": stage, "preflight_seconds": preflight_seconds, "tidy_seconds": tidy_seconds,
-            "blockers": blockers, "diagnostics": diagnostics}
+    blockers = sorted({line.strip() for line in log.splitlines() if "[clang-diagnostic-error]" in line})
+    return {"file": filename, "status": classify(code, log), "exit_code": code,
+            "tidy_seconds": tidy_seconds, "blockers": blockers, "diagnostics": collect_diagnostics(log)}
 
 
 def run_inside(args):
@@ -239,7 +196,8 @@ def run_inside(args):
     def formatted(items):
         return "\n".join(f"{item['file']}:{item['line']}:{item['column']}: "
                          f"{item['message']} [{item['checks']}]" for item in items) + "\n"
-    (args.output / "findings.txt").write_text(formatted(findings))
+    findings_text = formatted(findings)
+    (args.output / "findings.txt").write_text(findings_text)
     (args.output / "partial-findings.txt").write_text(
         "REVIEW ONLY: these files did not parse successfully; diagnostics can be misleading.\n"
         + formatted(partial.values()))
@@ -258,8 +216,6 @@ def run_inside(args):
         "standard_library": "libstdc++", "reflection_headers": "Clang/P2996; adapted includes and namespaces",
         "coverage": "partial" if blocked or failures else "complete",
         "findings": findings, "partial_findings": list(partial.values()), "files": reports}, indent=2) + "\n")
-    print(summary, end="")
-    print(f"Reports: {args.output}/{{findings.txt,partial-findings.txt,summary.txt,report.json}}")
     return exit_status(reports, findings, args.strict)
 
 
@@ -285,6 +241,8 @@ def main():
         args.output.mkdir(parents=True, exist_ok=True)
         for name in ("findings.txt", "partial-findings.txt", "summary.txt", "report.json"):
             (args.output / name).unlink(missing_ok=True)
+        for stale in args.output.glob("*.preflight.log"):
+            stale.unlink()
         includes = args.output / "system-include"
         includes.mkdir(exist_ok=True)
         # The Pneumo image has no ncurses development headers. Use the genuine
