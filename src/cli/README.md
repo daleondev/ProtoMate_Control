@@ -47,7 +47,7 @@ pipeline command. Intermediate pipeline output is bounded to 32 KiB so a
 command cannot exhaust STM32 memory.
 
 Commands are annotated functions in their module's `commands` namespace,
-registered through `register_commands()` before `system_threads::start()`
+registered through `register_commands<^^commands>()` before `system_threads::start()`
 launches the CLI thread. The first annotation is the description; `Arg` and
 `Flag` annotations supply parser validation and help text. The function name
 is used by default. An optional `Name` annotation supplies a multiword command
@@ -82,16 +82,21 @@ namespace cli::example
         }
     }
 
-    void setup() { register_commands(); }
+    void setup() { register_commands<^^commands>(); }
 }
 ```
 
-`register_commands(parser, bind)` registers into a specific parser and applies
+`register_commands<^^commands>(parser, bind)` registers into a specific parser and applies
 `bind` to each reflected function to obtain its callback. Motor, axis and robot
 modules use this to capture their application-owned controller/robot, then pass
 it by reference to the annotated handler. Each parser retains its own bindings;
 there is no global controller. The stateless filesystem and utility modules
 use the default identity binding and application registry.
+
+The template argument reflects the command namespace itself, for example
+`^^cli::motor::commands`. Registration still discovers handlers and their
+annotations automatically; the explicit namespace avoids reliance on reflection
+of the caller's namespace.
 
 The command modules are `motor.cpp`, `axis.cpp` and `robot.cpp`. Shared parsing
 and result formatting live in `control_common.cpp`; command descriptions,

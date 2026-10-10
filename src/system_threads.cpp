@@ -12,12 +12,27 @@ namespace system_threads
     {
         using Prio = decltype(PRIO._0);
 
+        consteval auto annotations_of_type(std::meta::info entity, std::meta::info type)
+        {
+            std::vector<std::meta::info> matches;
+            for (const auto annotation : std::meta::annotations_of(entity)) {
+                if (std::meta::is_same_type(std::meta::remove_const(std::meta::type_of(annotation)),
+                                           std::meta::remove_const(type))) {
+                    matches.push_back(annotation);
+                }
+            }
+            return matches;
+        }
+
         consteval auto get_thread_functions()
         {
             std::vector<std::meta::info> functions;
+            constexpr auto entry_name{ std::meta::identifier_of(^^start) };
 
             for (auto func : std::meta::members_of(^^system_threads, std::meta::access_context::current())) {
-                if (std::meta::is_function(func) && func != ^^start) {
+                // A prototype compiler can give declarations and definitions
+                // distinct reflection handles. Exclude the named entry point.
+                if (std::meta::is_function(func) && std::meta::identifier_of(func) != entry_name) {
                     functions.push_back(func);
                 }
             }
@@ -30,10 +45,10 @@ namespace system_threads
             constexpr auto thread_functions{ get_thread_functions() };
 
             for (auto func : thread_functions) {
-                if (std::meta::annotations_of_with_type(func, ^^Prio).size() != 1) {
+                if (annotations_of_type(func, ^^Prio).size() != 1) {
                     return false;
                 }
-                if (std::meta::annotations_of_with_type(func, ^^pnm::units::ByteSize).size() != 1) {
+                if (annotations_of_type(func, ^^pnm::units::ByteSize).size() != 1) {
                     return false;
                 }
             }
@@ -45,25 +60,26 @@ namespace system_threads
         auto start_all() -> void
         {
             static constexpr auto thread_functions{ get_thread_functions() };
+            constexpr auto thread_count{ thread_functions.size() };
 
             static std::vector<std::thread> threads;
-            threads.reserve(thread_functions.size());
+            threads.reserve(thread_count);
 
             template for (constexpr auto thread_function : thread_functions)
             {
-                static_assert(thread_function != std::meta::current_function());
+                static_assert(std::meta::identifier_of(thread_function) != "start_all");
 
                 constexpr auto priority{ [] -> int32_t {
                     constexpr auto annotations{ std::define_static_array(
-                      std::meta::annotations_of_with_type(thread_function, ^^Prio)) };
+                      annotations_of_type(thread_function, ^^Prio)) };
                     return std::meta::extract<Prio>(annotations[0]);
                 }() };
 
                 constexpr auto stack_size{ [] -> size_t {
                     constexpr auto annotations{ std::define_static_array(
-                      std::meta::annotations_of_with_type(thread_function, ^^pnm::units::ByteSize)) };
+                      annotations_of_type(thread_function, ^^pnm::units::ByteSize)) };
                     return std::meta::extract<pnm::units::ByteSize>(annotations[0])
-                      .get<pnm::units::ByteSizeUnits::bytes>();
+                      .template get<pnm::units::ByteSizeUnits::bytes>();
                 }() };
 
                 runtime::thread::Attributes attr{ .name = std::meta::identifier_of(thread_function),

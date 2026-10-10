@@ -425,7 +425,7 @@ namespace cli::robot
     {
         if (!robot)
             throw std::invalid_argument("robot commands require a robot");
-        register_commands(parser, [robot](auto command) {
+        register_commands<^^commands>(parser, [robot](auto command) {
             return [robot, command](const Arguments& args, std::ostream& out) {
                 return command(*robot, args, out);
             };

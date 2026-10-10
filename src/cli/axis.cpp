@@ -405,7 +405,7 @@ namespace cli::axis
     {
         if (!controller)
             throw std::invalid_argument("axis commands require a controller");
-        register_commands(parser, [controller](auto command) {
+        register_commands<^^commands>(parser, [controller](auto command) {
             return [controller, command](const Arguments& args, std::ostream& out) {
                 return command(*controller, args, out);
             };

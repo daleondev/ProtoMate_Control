@@ -66,7 +66,7 @@ namespace bound_cli_fixture
 
     void setup(cli::Parser& parser, std::shared_ptr<Context> context)
     {
-        cli::register_commands(parser, [context](auto command) {
+        cli::register_commands<^^commands>(parser, [context](auto command) {
             return [context, command](const cli::Arguments& args, cli::CommandIO& io) {
                 return command(*context, args, io);
             };
@@ -77,7 +77,7 @@ namespace bound_cli_fixture
 TEST(CliParser, RegistersAnnotationsWithInferredAndMultiwordNames)
 {
     cli::Parser parser;
-    cli::register_commands<^^annotated_cli_fixture>(parser);
+    cli::register_commands<^^annotated_cli_fixture::commands>(parser);
     EXPECT_TRUE(parser.contains("echo"));
     EXPECT_TRUE(parser.contains("meta stream"));
     EXPECT_FALSE(parser.contains("stream"));
@@ -95,7 +95,7 @@ TEST(CliParser, RegistersAnnotationsWithInferredAndMultiwordNames)
     EXPECT_NE(help.find("Echo annotated arguments."), std::string::npos);
     EXPECT_NE(help.find("Optional suffix"), std::string::npos);
     EXPECT_NE(help.find("--prefix"), std::string::npos);
-    EXPECT_THROW(cli::register_commands<^^annotated_cli_fixture>(parser), std::runtime_error);
+    EXPECT_THROW(cli::register_commands<^^annotated_cli_fixture::commands>(parser), std::runtime_error);
 }
 
 TEST(CliParser, AnnotationBindingsRetainContextAndKeepParsersIndependent)

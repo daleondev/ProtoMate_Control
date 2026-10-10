@@ -923,6 +923,6 @@ namespace cli::filesystem
     auto setup() -> void
     {
         static std::once_flag registration;
-        std::call_once(registration, [] { register_commands(); });
+        std::call_once(registration, [] { register_commands<^^commands>(); });
     }
 }

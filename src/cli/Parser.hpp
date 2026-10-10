@@ -333,14 +333,16 @@ namespace cli
 
     // Bind adapts a reflected function to Callback (for example by capturing
     // an application-owned controller). Stateless modules use the identity
-    // binding and the application registry, as before.
-    template<std::meta::info ns = std::meta::current_namespace(), typename Bind = std::identity>
+    // binding and the application registry. Pass the command namespace explicitly
+    // so registration does not depend on support for call-site namespace reflection.
+    template<std::meta::info Commands, typename Bind = std::identity>
     constexpr auto register_commands(Parser& parser = registry(), Bind bind = {}) -> void
     {
+        static_assert(std::meta::is_namespace(Commands), "Expected a namespace containing command handlers.");
         static constexpr auto command_functions{ [] {
             std::vector<std::meta::info> functions;
             for (auto func :
-                 std::meta::members_of(^^[:ns:] ::commands, std::meta::access_context::current())) {
+                 std::meta::members_of(Commands, std::meta::access_context::current())) {
                 if (std::meta::is_function(func)) {
                     functions.push_back(func);
                 }

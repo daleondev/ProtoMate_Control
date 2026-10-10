@@ -118,10 +118,11 @@ stopping at the first compiler error. Blocked files skip clang-tidy entirely;
 only files that pass this precheck receive the full lint checks. Console output
 shows `checking`, then `linting` or `blocked`, with elapsed times. Successfully
 parsed files pay for an extra parse, but blocked files avoid the expensive lint
-passes over incomplete syntax trees. Reflection API differences, including
-`current_namespace` and `annotations_of_with_type`, currently prevent full coverage
-of the CLI and application composition. These APIs are not replaced with dummy
-implementations. Blocking compiler errors cannot be disabled
+passes over incomplete syntax trees. CLI registration uses explicit command
+namespace reflections, and thread annotations are filtered using reflection
+operations supported by both compilers. The remaining compiler blocker is
+Clang/libstdc++ compile-time checking of dynamic format widths in `cli/utilities.cpp`;
+format checking remains enabled. Blocking compiler errors cannot be disabled
 with clang-tidy check filters. See the [clang-tidy documentation](https://clang.llvm.org/extra/clang-tidy/).
 
 Reports are written to `<build-directory>/clang-tidy/`:
