@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <optional>
 
 namespace motion
@@ -12,6 +13,7 @@ namespace motion
     class Profile final
     {
       public:
+        static constexpr unsigned MAX_PHASES = 13;
         struct State
         {
             double position{}, velocity{}, acceleration{};
@@ -26,12 +28,12 @@ namespace motion
         };
         struct Description
         {
-            std::array<PhaseDescription, 13> phases{};
+            std::array<PhaseDescription, MAX_PHASES> phases{};
             unsigned size{};
             double distance{}, end_velocity{};
         };
         Description description() const noexcept;
-        static std::optional<Profile> fromDescription(const Description&) noexcept;
+        static std::optional<Profile> fromDescription(const Description& value) noexcept;
 
         static std::optional<Profile> create(double distance,
                                              Limits limits,
@@ -39,7 +41,11 @@ namespace motion
                                              double start_acceleration = 0.0,
                                              double end_velocity = 0.0) noexcept;
         State at(double time) const noexcept;
-        double timeAt(double position, double hint = 0.0) const noexcept;
+        struct TimeHint
+        {
+            double seconds;
+        };
+        double timeAt(double position, TimeHint hint = { .seconds = 0.0 }) const noexcept;
         double maximumStepInterval(double step) const noexcept;
         double duration() const noexcept { return m_duration; }
         double distance() const noexcept { return m_distance; }
@@ -51,9 +57,28 @@ namespace motion
             double start{}, duration{}, jerk{}, end_position{};
             State state;
         };
-        void append(double duration, double jerk, double acceleration) noexcept;
-        void changeVelocity(double target, double acceleration, double jerk) noexcept;
-        std::array<Phase, 13> m_phases{};
+        struct PhaseChange
+        {
+            double duration, jerk, acceleration;
+        };
+        struct VelocityChange
+        {
+            double target, acceleration, jerk;
+        };
+        enum class Preparation : std::uint8_t
+        {
+            Invalid,
+            Complete,
+            Continue
+        };
+        void append(PhaseChange change) noexcept;
+        void changeVelocity(VelocityChange change) noexcept;
+        bool normalizeAcceleration(Limits limits) noexcept;
+        Preparation normalizeVelocity(Limits limits) noexcept;
+        bool appendCruise(Limits limits) noexcept;
+        bool validEndpoint() const noexcept;
+        static double phaseTimeAt(const Phase& p, double position, TimeHint hint) noexcept;
+        std::array<Phase, MAX_PHASES> m_phases{};
         unsigned m_size{};
         State m_state;
         double m_duration{}, m_distance{}, m_endVelocity{};

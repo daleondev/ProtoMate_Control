@@ -1,3 +1,5 @@
+// Numeric literals are test inputs and independently specified expected results.
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 #include "../AxisConversion.hpp"
 #include "../ScaraKinematics.hpp"
 
@@ -17,73 +19,73 @@ namespace
     const Kinematics::Config BASIC{ .first_arm_length = 200_mm, .second_arm_length = 100_mm };
 
     template<IsQuantity Quantity>
-    void expectNear(Quantity actual, Quantity expected, double tolerance = 1e-10)
+    void expect_near(Quantity actual, Quantity expected, double tolerance = 1e-10)
     {
         EXPECT_NEAR(actual.get(), expected.get(), tolerance);
     }
 
-    void expectPoint(Kinematics::CartesianPosition actual, Kinematics::CartesianPosition expected)
+    void expect_point(Kinematics::CartesianPosition actual, Kinematics::CartesianPosition expected)
     {
-        expectNear(actual.x, expected.x);
-        expectNear(actual.y, expected.y);
-        expectNear(actual.z, expected.z);
+        expect_near(actual.x, expected.x);
+        expect_near(actual.y, expected.y);
+        expect_near(actual.z, expected.z);
     }
 
-    void expectJoints(Kinematics::JointPosition actual, Kinematics::JointPosition expected)
+    void expect_joints(Kinematics::JointPosition actual, Kinematics::JointPosition expected)
     {
-        expectNear(actual.shoulder, expected.shoulder);
-        expectNear(actual.elbow, expected.elbow);
-        expectNear(actual.z, expected.z);
+        expect_near(actual.shoulder, expected.shoulder);
+        expect_near(actual.elbow, expected.elbow);
+        expect_near(actual.z, expected.z);
     }
 }
 
 TEST(ScaraKinematics, ForwardUsesRelativeElbowAngleAndUpwardZ)
 {
     const Kinematics kinematics{ BASIC };
-    const auto straight{ kinematics.forward({ 0_deg, 0_deg, 10_mm }) };
+    const auto straight{ kinematics.forward({ .shoulder = 0_deg, .elbow = 0_deg, .z = 10_mm }) };
     ASSERT_TRUE(straight);
-    expectPoint(straight->position, { 300_mm, 0_mm, 10_mm });
-    expectNear(straight->yaw, 0_deg);
-    const auto right_angle{ kinematics.forward({ 0_deg, 90_deg, -10_mm }) };
+    expect_point(straight->position, { .x = 300_mm, .y = 0_mm, .z = 10_mm });
+    expect_near(straight->yaw, 0_deg);
+    const auto right_angle{ kinematics.forward({ .shoulder = 0_deg, .elbow = 90_deg, .z = -10_mm }) };
     ASSERT_TRUE(right_angle);
-    expectPoint(right_angle->position, { 200_mm, 100_mm, -10_mm });
-    const auto folded{ kinematics.forward({ 90_deg, -90_deg, 0_mm }) };
+    expect_point(right_angle->position, { .x = 200_mm, .y = 100_mm, .z = -10_mm });
+    const auto folded{ kinematics.forward({ .shoulder = 90_deg, .elbow = -90_deg, .z = 0_mm }) };
     ASSERT_TRUE(folded);
-    expectPoint(folded->position, { 100_mm, 200_mm, 0_mm });
-    expectNear(folded->yaw, 0_deg);
+    expect_point(folded->position, { .x = 100_mm, .y = 200_mm, .z = 0_mm });
+    expect_near(folded->yaw, 0_deg);
 }
 
 TEST(ScaraKinematics, BaseAndToolFramesIncludeLateralOffsetWithoutRotatingItByToolYaw)
 {
     auto config{ BASIC };
-    config.base_origin = { 10_mm, 20_mm, 30_mm };
+    config.base_origin = { .x = 10_mm, .y = 20_mm, .z = 30_mm };
     config.base_yaw = 90_deg;
-    config.tool_offset = { 30_mm, 20_mm, -10_mm };
+    config.tool_offset = { .x = 30_mm, .y = 20_mm, .z = -10_mm };
     config.tool_yaw = 45_deg;
     const Kinematics kinematics{ config };
-    const Kinematics::JointPosition joints{ 90_deg, -90_deg, 7_mm };
+    const Kinematics::JointPosition joints{ .shoulder = 90_deg, .elbow = -90_deg, .z = 7_mm };
     const auto pose{ kinematics.forward(joints) };
     ASSERT_TRUE(pose);
-    expectPoint(pose->position, { -210_mm, 150_mm, 27_mm });
-    expectNear(pose->yaw, 135_deg);
+    expect_point(pose->position, { .x = -210_mm, .y = 150_mm, .z = 27_mm });
+    expect_near(pose->yaw, 135_deg);
     const auto inverse{ kinematics.inverse(pose->position, joints) };
     ASSERT_TRUE(inverse);
-    expectJoints(*inverse, joints);
+    expect_joints(*inverse, joints);
 }
 
 TEST(ScaraKinematics, InverseSolvesBothBranchesAndPreservesTheReferenceBranch)
 {
     const Kinematics kinematics{ BASIC };
-    const Kinematics::CartesianPosition target{ 200_mm, 100_mm, 20_mm };
-    const auto positive{ kinematics.inverse(target, { 0_deg, 30_deg, 0_mm }) };
+    const Kinematics::CartesianPosition target{ .x = 200_mm, .y = 100_mm, .z = 20_mm };
+    const auto positive{ kinematics.inverse(target, { .shoulder = 0_deg, .elbow = 30_deg, .z = 0_mm }) };
     ASSERT_TRUE(positive);
-    expectJoints(*positive, { 0_deg, 90_deg, 20_mm });
-    const auto negative{ kinematics.inverse(target, { 0_deg, -30_deg, 0_mm }) };
+    expect_joints(*positive, { .shoulder = 0_deg, .elbow = 90_deg, .z = 20_mm });
+    const auto negative{ kinematics.inverse(target, { .shoulder = 0_deg, .elbow = -30_deg, .z = 0_mm }) };
     ASSERT_TRUE(negative);
-    expectJoints(*negative, { 53.13010235415598_deg, -90_deg, 20_mm });
+    expect_joints(*negative, { .shoulder = 53.13010235415598_deg, .elbow = -90_deg, .z = 20_mm });
     const auto explicit_branch{ kinematics.inverse(target, *positive, Negative) };
     ASSERT_TRUE(explicit_branch);
-    expectJoints(*explicit_branch, *negative);
+    expect_joints(*explicit_branch, *negative);
     EXPECT_EQ(kinematics.elbowBranch(*positive), Positive);
     EXPECT_EQ(kinematics.elbowBranch(*negative), Negative);
 }
@@ -91,36 +93,42 @@ TEST(ScaraKinematics, InverseSolvesBothBranchesAndPreservesTheReferenceBranch)
 TEST(ScaraKinematics, InverseKeepsUnwrappedTurnsAcrossTheMinusPiPiBoundary)
 {
     const Kinematics kinematics{ BASIC };
-    const Kinematics::JointPosition expected{ 901_deg, 420_deg, 4_mm };
+    const Kinematics::JointPosition expected{ .shoulder = 901_deg, .elbow = 420_deg, .z = 4_mm };
     const auto target{ kinematics.forward(expected) };
     ASSERT_TRUE(target);
-    const auto result{ kinematics.inverse(target->position, { 899_deg, 419_deg, 4_mm }) };
+    const auto result{ kinematics.inverse(target->position,
+                                          { .shoulder = 899_deg, .elbow = 419_deg, .z = 4_mm }) };
     ASSERT_TRUE(result);
-    expectJoints(*result, expected);
+    expect_joints(*result, expected);
 }
 
 TEST(ScaraKinematics, InverseSelectsEquivalentTurnsInsideJointLimits)
 {
     auto config{ BASIC };
-    config.limits = Kinematics::JointLimits{ { 700_deg, 700_deg, 0_mm }, { 760_deg, 800_deg, 100_mm } };
+    config.limits =
+      Kinematics::JointLimits{ .minimum = { .shoulder = 700_deg, .elbow = 700_deg, .z = 0_mm },
+                               .maximum = { .shoulder = 760_deg, .elbow = 800_deg, .z = 100_mm } };
     const Kinematics kinematics{ config };
-    const Kinematics::JointPosition expected{ 740_deg, 780_deg, 30_mm };
+    const Kinematics::JointPosition expected{ .shoulder = 740_deg, .elbow = 780_deg, .z = 30_mm };
     const auto target{ kinematics.forward(expected) };
     ASSERT_TRUE(target);
     // A reference outside limits is allowed; only the resulting target must fit.
-    const auto result{ kinematics.inverse(target->position, { 20_deg, 60_deg, 0_mm }) };
+    const auto result{ kinematics.inverse(target->position,
+                                          { .shoulder = 20_deg, .elbow = 60_deg, .z = 0_mm }) };
     ASSERT_TRUE(result);
-    expectJoints(*result, expected);
+    expect_joints(*result, expected);
     EXPECT_TRUE(kinematics.checkJointLimits(*result));
 }
 
 TEST(ScaraKinematics, JointLimitsNeverCauseAnImplicitElbowBranchChange)
 {
     auto config{ BASIC };
-    config.limits = Kinematics::JointLimits{ { -180_deg, -170_deg, 0_mm }, { 180_deg, -10_deg, 100_mm } };
+    config.limits =
+      Kinematics::JointLimits{ .minimum = { .shoulder = -180_deg, .elbow = -170_deg, .z = 0_mm },
+                               .maximum = { .shoulder = 180_deg, .elbow = -10_deg, .z = 100_mm } };
     const Kinematics kinematics{ config };
-    const Kinematics::CartesianPosition target{ 200_mm, 100_mm, 20_mm };
-    const Kinematics::JointPosition reference{ 0_deg, 30_deg, 0_mm };
+    const Kinematics::CartesianPosition target{ .x = 200_mm, .y = 100_mm, .z = 20_mm };
+    const Kinematics::JointPosition reference{ .shoulder = 0_deg, .elbow = 30_deg, .z = 0_mm };
     EXPECT_EQ(kinematics.inverse(target, reference).error(), JointLimitExceeded);
     EXPECT_TRUE(kinematics.inverse(target, reference, Negative));
     // Forward feedback is still available outside configured limits.
@@ -133,21 +141,25 @@ TEST(ScaraKinematics, LimitEndpointsAreInclusiveAndOutOfRangeTargetsAreRejected)
     auto config{ BASIC };
     config.base_origin.z = 123.4_mm;
     config.tool_offset.z = -15.6_mm;
-    config.limits = Kinematics::JointLimits{ { 0_deg, 30_deg, 0_mm }, { 90_deg, 90_deg, 100_mm } };
+    config.limits =
+      Kinematics::JointLimits{ .minimum = { .shoulder = 0_deg, .elbow = 30_deg, .z = 0_mm },
+                               .maximum = { .shoulder = 90_deg, .elbow = 90_deg, .z = 100_mm } };
     const Kinematics kinematics{ config };
-    for (const auto joints : { config.limits->minimum,
-                               config.limits->maximum,
-                               Kinematics::JointPosition{ 0_deg, 90_deg, 100_mm } }) {
+    for (const auto joints :
+         { config.limits->minimum,
+           config.limits->maximum,
+           Kinematics::JointPosition{ .shoulder = 0_deg, .elbow = 90_deg, .z = 100_mm } }) {
         const auto pose{ kinematics.forward(joints) };
         ASSERT_TRUE(pose);
         const auto result{ kinematics.inverse(pose->position, joints) };
         ASSERT_TRUE(result);
-        expectJoints(*result, joints);
+        expect_joints(*result, joints);
     }
-    for (const auto joints : { Kinematics::JointPosition{ -1_deg, 60_deg, 50_mm },
-                               Kinematics::JointPosition{ 45_deg, 100_deg, 50_mm },
-                               Kinematics::JointPosition{ 45_deg, 60_deg, -0.1_mm },
-                               Kinematics::JointPosition{ 45_deg, 60_deg, 100.1_mm } }) {
+    for (const auto joints :
+         { Kinematics::JointPosition{ .shoulder = -1_deg, .elbow = 60_deg, .z = 50_mm },
+           Kinematics::JointPosition{ .shoulder = 45_deg, .elbow = 100_deg, .z = 50_mm },
+           Kinematics::JointPosition{ .shoulder = 45_deg, .elbow = 60_deg, .z = -0.1_mm },
+           Kinematics::JointPosition{ .shoulder = 45_deg, .elbow = 60_deg, .z = 100.1_mm } }) {
         const auto pose{ kinematics.forward(joints) };
         ASSERT_TRUE(pose);
         EXPECT_EQ(kinematics.inverse(pose->position, joints).error(), JointLimitExceeded);
@@ -157,25 +169,25 @@ TEST(ScaraKinematics, LimitEndpointsAreInclusiveAndOutOfRangeTargetsAreRejected)
 TEST(ScaraKinematics, WorkspaceIncludesToolReachAndRejectsOuterAndInnerUnreachablePoints)
 {
     const Kinematics basic{ BASIC };
-    const Kinematics::JointPosition seed{ 0_deg, 60_deg, 0_mm };
+    const Kinematics::JointPosition seed{ .shoulder = 0_deg, .elbow = 60_deg, .z = 0_mm };
     EXPECT_EQ(basic.inverse({ 300.01_mm, 0_mm, 0_mm }, seed).error(), Unreachable);
     EXPECT_EQ(basic.inverse({ 99.99_mm, 0_mm, 0_mm }, seed).error(), Unreachable);
     EXPECT_EQ(basic.inverse({ -400_mm, -400_mm, 0_mm }, seed).error(), Unreachable);
     auto config{ BASIC };
     config.tool_offset.x = 100_mm;
     const Kinematics longer{ config };
-    const Kinematics::CartesianPosition target{ 350_mm, 0_mm, 0_mm };
+    const Kinematics::CartesianPosition target{ .x = 350_mm, .y = 0_mm, .z = 0_mm };
     const auto result{ longer.inverse(target, seed) };
     ASSERT_TRUE(result);
     const auto pose{ longer.forward(*result) };
     ASSERT_TRUE(pose);
-    expectPoint(pose->position, target);
+    expect_point(pose->position, target);
 }
 
 TEST(ScaraKinematics, SingularEndpointsAreRejectedButForwardStateRemainsAvailable)
 {
     const Kinematics kinematics{ BASIC };
-    const Kinematics::JointPosition seed{ 0_deg, 60_deg, 0_mm };
+    const Kinematics::JointPosition seed{ .shoulder = 0_deg, .elbow = 60_deg, .z = 0_mm };
     EXPECT_EQ(kinematics.inverse({ 300_mm, 0_mm, 0_mm }, seed).error(), Singularity);
     EXPECT_EQ(kinematics.inverse({ 100_mm, 0_mm, 0_mm }, seed).error(), Singularity);
     EXPECT_TRUE(kinematics.forward({ 0_deg, 0_deg, 0_mm }));
@@ -197,7 +209,7 @@ TEST(ScaraKinematics, SingularityThresholdUsesEffectiveBendIncludingLateralToolO
     config.tool_offset.y = 100_mm; // Effective distal vector has a 45 degree phase.
     config.minimum_bend_sine = 0.01;
     const Kinematics kinematics{ config };
-    const Kinematics::JointPosition singular{ 30_deg, -45_deg, 0_mm };
+    const Kinematics::JointPosition singular{ .shoulder = 30_deg, .elbow = -45_deg, .z = 0_mm };
     EXPECT_EQ(kinematics.elbowBranch(singular).error(), Singularity);
     const auto pose{ kinematics.forward(singular) };
     ASSERT_TRUE(pose);
@@ -209,19 +221,20 @@ TEST(ScaraKinematics, SingularityThresholdUsesEffectiveBendIncludingLateralToolO
 TEST(ScaraKinematics, ForwardAndInverseRoundTripAcrossBothBranchesFramesAndMultipleTurns)
 {
     auto config{ BASIC };
-    config.base_origin = { -50_mm, 40_mm, 100_mm };
+    config.base_origin = { .x = -50_mm, .y = 40_mm, .z = 100_mm };
     config.base_yaw = 23_deg;
-    config.tool_offset = { 35_mm, 20_mm, -10_mm };
+    config.tool_offset = { .x = 35_mm, .y = 20_mm, .z = -10_mm };
     config.tool_yaw = 17_deg;
     const Kinematics kinematics{ config };
     for (const auto shoulder : { -720_deg, -179_deg, -90_deg, 0_deg, 90_deg, 179_deg, 720_deg }) {
         for (const auto elbow : { -135_deg, -70_deg, -20_deg, 20_deg, 70_deg, 135_deg }) {
-            const Kinematics::JointPosition joints{ shoulder, elbow, 45_mm };
+            const Kinematics::JointPosition joints{ .shoulder = shoulder, .elbow = elbow, .z = 45_mm };
             const auto pose{ kinematics.forward(joints) };
             ASSERT_TRUE(pose);
-            const auto result{ kinematics.inverse(pose->position, { shoulder + 2_deg, elbow, 40_mm }) };
+            const auto result{ kinematics.inverse(
+              pose->position, { .shoulder = shoulder + 2_deg, .elbow = elbow, .z = 40_mm }) };
             ASSERT_TRUE(result);
-            expectJoints(*result, joints);
+            expect_joints(*result, joints);
         }
     }
 }
@@ -229,51 +242,51 @@ TEST(ScaraKinematics, ForwardAndInverseRoundTripAcrossBothBranchesFramesAndMulti
 TEST(ScaraKinematics, VelocityJacobianMatchesAnalyticExampleAndItsInverse)
 {
     const Kinematics kinematics{ BASIC };
-    const Kinematics::JointPosition joints{ 0_deg, 90_deg, 10_mm };
-    const Kinematics::JointVelocity rates{ 1_rad_s, 2_rad_s, -5_mm_s };
+    const Kinematics::JointPosition joints{ .shoulder = 0_deg, .elbow = 90_deg, .z = 10_mm };
+    const Kinematics::JointVelocity rates{ .shoulder = 1_rad_s, .elbow = 2_rad_s, .z = -5_mm_s };
     const auto velocity{ kinematics.forwardVelocity(joints, rates) };
     ASSERT_TRUE(velocity);
-    expectNear(velocity->linear.x, -300_mm_s);
-    expectNear(velocity->linear.y, 200_mm_s);
-    expectNear(velocity->linear.z, -5_mm_s);
-    expectNear(velocity->yaw, 3_rad_s);
+    expect_near(velocity->linear.x, -300_mm_s);
+    expect_near(velocity->linear.y, 200_mm_s);
+    expect_near(velocity->linear.z, -5_mm_s);
+    expect_near(velocity->yaw, 3_rad_s);
     const auto inverse{ kinematics.inverseVelocity(joints, velocity->linear) };
     ASSERT_TRUE(inverse);
-    expectNear(inverse->shoulder, rates.shoulder);
-    expectNear(inverse->elbow, rates.elbow);
-    expectNear(inverse->z, rates.z);
+    expect_near(inverse->shoulder, rates.shoulder);
+    expect_near(inverse->elbow, rates.elbow);
+    expect_near(inverse->z, rates.z);
 }
 
 TEST(ScaraKinematics, VelocityMatchesFiniteDifferenceOfForwardPositionWithToolAndBaseOffsets)
 {
     auto config{ BASIC };
-    config.base_origin = { 20_mm, 30_mm, 40_mm };
+    config.base_origin = { .x = 20_mm, .y = 30_mm, .z = 40_mm };
     config.base_yaw = -47_deg;
-    config.tool_offset = { 45_mm, -30_mm, -20_mm };
+    config.tool_offset = { .x = 45_mm, .y = -30_mm, .z = -20_mm };
     const Kinematics kinematics{ config };
-    const Kinematics::JointVelocity velocity{ 12_rpm, -8_rpm, 7_mm_s };
+    const Kinematics::JointVelocity velocity{ .shoulder = 12_rpm, .elbow = -8_rpm, .z = 7_mm_s };
     const auto dt{ Time::create(1e-5) };
     for (const auto elbow : { -130_deg, -40_deg, 30_deg, 120_deg }) {
-        const Kinematics::JointPosition joints{ 400_deg, elbow, 10_mm };
-        const auto before{ kinematics.forward({ joints.shoulder - velocity.shoulder * dt,
-                                                joints.elbow - velocity.elbow * dt,
-                                                joints.z - velocity.z * dt }) };
-        const auto after{ kinematics.forward({ joints.shoulder + velocity.shoulder * dt,
-                                               joints.elbow + velocity.elbow * dt,
-                                               joints.z + velocity.z * dt }) };
+        const Kinematics::JointPosition joints{ .shoulder = 400_deg, .elbow = elbow, .z = 10_mm };
+        const auto before{ kinematics.forward({ .shoulder = joints.shoulder - velocity.shoulder * dt,
+                                                .elbow = joints.elbow - velocity.elbow * dt,
+                                                .z = joints.z - velocity.z * dt }) };
+        const auto after{ kinematics.forward({ .shoulder = joints.shoulder + velocity.shoulder * dt,
+                                               .elbow = joints.elbow + velocity.elbow * dt,
+                                               .z = joints.z + velocity.z * dt }) };
         const auto derivative{ kinematics.forwardVelocity(joints, velocity) };
         ASSERT_TRUE(before);
         ASSERT_TRUE(after);
         ASSERT_TRUE(derivative);
-        expectNear(derivative->linear.x, (after->position.x - before->position.x) / (2.0 * dt), 1e-8);
-        expectNear(derivative->linear.y, (after->position.y - before->position.y) / (2.0 * dt), 1e-8);
-        expectNear(derivative->linear.z, (after->position.z - before->position.z) / (2.0 * dt), 1e-8);
-        expectNear(derivative->yaw, (after->yaw - before->yaw) / (2.0 * dt), 1e-8);
+        expect_near(derivative->linear.x, (after->position.x - before->position.x) / (2.0 * dt), 1e-8);
+        expect_near(derivative->linear.y, (after->position.y - before->position.y) / (2.0 * dt), 1e-8);
+        expect_near(derivative->linear.z, (after->position.z - before->position.z) / (2.0 * dt), 1e-8);
+        expect_near(derivative->yaw, (after->yaw - before->yaw) / (2.0 * dt), 1e-8);
         const auto inverse{ kinematics.inverseVelocity(joints, derivative->linear) };
         ASSERT_TRUE(inverse);
-        expectNear(inverse->shoulder, velocity.shoulder);
-        expectNear(inverse->elbow, velocity.elbow);
-        expectNear(inverse->z, velocity.z);
+        expect_near(inverse->shoulder, velocity.shoulder);
+        expect_near(inverse->elbow, velocity.elbow);
+        expect_near(inverse->z, velocity.z);
     }
 }
 
@@ -287,18 +300,18 @@ TEST(ScaraKinematics, AxisConversionsComposeWithKinematicsInMotorAndJointUnits)
     const LinearAxisConversion vertical{ { .travel_per_output_revolution = 40_mm,
                                            .motor_revolutions_per_output_revolution = 2.0,
                                            .motor_reference = 135_deg } };
-    const Kinematics::JointPosition joints{ shoulder.toAxisPosition(-15_deg),
-                                            elbow.toAxisPosition(315_deg),
-                                            vertical.toAxisPosition(315_deg) };
+    const Kinematics::JointPosition joints{ .shoulder = shoulder.toAxisPosition(-15_deg),
+                                            .elbow = elbow.toAxisPosition(315_deg),
+                                            .z = vertical.toAxisPosition(315_deg) };
     const Kinematics kinematics{ BASIC };
     const auto pose{ kinematics.forward(joints) };
     ASSERT_TRUE(pose);
-    expectPoint(pose->position, { 173.20508075688772_mm, 200_mm, 10_mm });
+    expect_point(pose->position, { .x = 173.20508075688772_mm, .y = 200_mm, .z = 10_mm });
     const auto inverse{ kinematics.inverse(pose->position, joints) };
     ASSERT_TRUE(inverse);
-    expectNear(shoulder.toMotorPosition(inverse->shoulder), -15_deg);
-    expectNear(elbow.toMotorPosition(inverse->elbow), 315_deg);
-    expectNear(vertical.toMotorPosition(inverse->z), 315_deg);
+    expect_near(shoulder.toMotorPosition(inverse->shoulder), -15_deg);
+    expect_near(elbow.toMotorPosition(inverse->elbow), 315_deg);
+    expect_near(vertical.toMotorPosition(inverse->z), 315_deg);
 }
 
 TEST(ScaraKinematics, InvalidConfigurationIsRejected)
@@ -328,18 +341,19 @@ TEST(ScaraKinematics, InvalidConfigurationIsRejected)
     config.tool_offset.z = Distance::create(std::numeric_limits<double>::infinity());
     EXPECT_THROW(Kinematics{ config }, std::invalid_argument);
     config = BASIC;
-    config.limits = Kinematics::JointLimits{ { 90_deg, 0_deg, 0_mm }, { 0_deg, 90_deg, 10_mm } };
+    config.limits = Kinematics::JointLimits{ .minimum = { .shoulder = 90_deg, .elbow = 0_deg, .z = 0_mm },
+                                             .maximum = { .shoulder = 0_deg, .elbow = 90_deg, .z = 10_mm } };
     EXPECT_THROW(Kinematics{ config }, std::invalid_argument);
 }
 
 TEST(ScaraKinematics, NonfiniteInputsInvalidBranchesAndOverflowAreReported)
 {
     const Kinematics kinematics{ BASIC };
-    const Kinematics::JointPosition seed{ 0_deg, 90_deg, 0_mm };
-    const Kinematics::CartesianPosition target{ 200_mm, 100_mm, 0_mm };
+    const Kinematics::JointPosition seed{ .shoulder = 0_deg, .elbow = 90_deg, .z = 0_mm };
+    const Kinematics::CartesianPosition target{ .x = 200_mm, .y = 100_mm, .z = 0_mm };
     for (const auto value :
          { std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN() }) {
-        const Kinematics::JointPosition bad{ Angle::create(value), 90_deg, 0_mm };
+        const Kinematics::JointPosition bad{ .shoulder = Angle::create(value), .elbow = 90_deg, .z = 0_mm };
         EXPECT_EQ(kinematics.forward(bad).error(), InvalidInput);
         EXPECT_EQ(kinematics.elbowBranch(bad).error(), InvalidInput);
         EXPECT_EQ(kinematics.checkJointLimits(bad).error(), InvalidInput);
@@ -350,6 +364,8 @@ TEST(ScaraKinematics, NonfiniteInputsInvalidBranchesAndOverflowAreReported)
         EXPECT_EQ(kinematics.inverseVelocity(seed, { Velocity::create(value), 0_mm_s, 0_mm_s }).error(),
                   InvalidInput);
     }
+    // Deliberately exercise rejection of a non-enumerator value.
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     EXPECT_EQ(kinematics.inverse(target, seed, static_cast<Kinematics::ElbowBranch>(99)).error(),
               InvalidInput);
     const auto maximum{ std::numeric_limits<double>::max() };
@@ -365,3 +381,5 @@ TEST(ScaraKinematics, NonfiniteInputsInvalidBranchesAndOverflowAreReported)
     EXPECT_EQ(large_origin.inverse({ 200_mm, 100_mm, Distance::create(-maximum) }, seed).error(),
               NumericOverflow);
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)

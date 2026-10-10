@@ -9,7 +9,10 @@
 
 namespace p2p
 {
-    inline constexpr std::size_t MaxPayload = 2048;
+    inline constexpr std::size_t MAX_PAYLOAD = 2048;
+    inline constexpr auto BITS_PER_BYTE = std::numeric_limits<std::uint8_t>::digits;
+    inline constexpr auto MAX_BYTE_VALUE = std::numeric_limits<std::uint8_t>::max();
+    inline constexpr auto MAX_TEXT_LENGTH = MAX_BYTE_VALUE;
     // Explicit little-endian primitives; no ABI-dependent object copies.
     class Writer
     {
@@ -19,19 +22,20 @@ namespace p2p
         void integer(T value)
         {
             for (std::size_t i = 0; i < sizeof(T); ++i) {
-                bytes.push_back(std::byte(value & 0xffU));
-                value >>= 8U;
+                bytes.push_back(std::byte(value & MAX_BYTE_VALUE));
+                if constexpr (sizeof(T) > 1)
+                    value = static_cast<T>(value >> BITS_PER_BYTE);
             }
         }
         void boolean(bool value) { integer<std::uint8_t>(value ? 1 : 0); }
         void real(double value)
         {
-            static_assert(sizeof(double) == 8 && std::numeric_limits<double>::is_iec559);
+            static_assert(sizeof(double) == sizeof(std::uint64_t) && std::numeric_limits<double>::is_iec559);
             integer(std::bit_cast<std::uint64_t>(value));
         }
         void text(std::string_view value)
         {
-            if (value.size() > 255)
+            if (value.size() > MAX_TEXT_LENGTH)
                 throw std::length_error("p2p text exceeds 255 bytes");
             integer<std::uint8_t>(static_cast<std::uint8_t>(value.size()));
             for (auto c : value)
@@ -52,7 +56,7 @@ namespace p2p
                 throw std::invalid_argument("truncated p2p value");
             T result{};
             for (std::size_t i = 0; i < sizeof(T); ++i)
-                result |= T(std::to_integer<T>(m_bytes[i]) << (8U * i));
+                result |= T(std::to_integer<T>(m_bytes[i]) << (BITS_PER_BYTE * i));
             m_bytes = m_bytes.subspan(sizeof(T));
             return result;
         }
@@ -134,14 +138,14 @@ namespace p2p
     Bytes encode(const T& value)
     {
         auto b = Codec<T>::encode(value);
-        if (b.size() > MaxPayload)
+        if (b.size() > MAX_PAYLOAD)
             throw std::length_error("p2p payload too large");
         return b;
     }
     template<typename T>
     T decode(std::span<const std::byte> bytes)
     {
-        if (bytes.size() > MaxPayload)
+        if (bytes.size() > MAX_PAYLOAD)
             throw std::length_error("p2p payload too large");
         return Codec<T>::decode(bytes);
     }

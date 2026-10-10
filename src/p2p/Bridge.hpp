@@ -18,6 +18,8 @@ namespace p2p
         ~Bridge() { m_core->close(); }
         Bridge(const Bridge&) = delete;
         Bridge& operator=(const Bridge&) = delete;
+        Bridge(Bridge&&) = delete;
+        Bridge& operator=(Bridge&&) = delete;
         void start() { m_core->start(); }
         void close() { m_core->close(); }
         LinkState state() const { return m_core->state.load(); }

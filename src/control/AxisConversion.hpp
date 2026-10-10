@@ -1,9 +1,10 @@
 #pragma once
 
 #include "pneumo/units.hpp"
+#include <cstdint>
 
 // Direction of the joint coordinate when the motor's shaft angle increases.
-enum class AxisDirection
+enum class AxisDirection : std::uint8_t
 {
     SameAsMotor,
     OppositeToMotor
@@ -52,8 +53,8 @@ class RotaryAxisConversion final
 
   private:
     Config m_config;
-    double m_axisPerMotor{};
     double m_motorPerAxis{};
+    double m_axisPerMotor{};
 };
 
 class LinearAxisConversion final

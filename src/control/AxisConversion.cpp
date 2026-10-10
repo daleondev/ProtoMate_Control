@@ -9,7 +9,7 @@ namespace
     using namespace pnm::units::literals;
 
     template<IsQuantity Quantity>
-    Quantity finiteInput(Quantity value)
+    Quantity finite_input(Quantity value)
     {
         if (!value.isFinite()) {
             throw std::invalid_argument("axis conversion requires finite coordinates and rates");
@@ -18,7 +18,7 @@ namespace
     }
 
     template<IsQuantity Quantity>
-    Quantity finiteResult(Quantity value)
+    Quantity finite_result(Quantity value)
     {
         if (!value.isFinite()) {
             throw std::overflow_error("axis conversion overflow");
@@ -27,22 +27,22 @@ namespace
     }
 
     template<IsQuantity Quantity>
-    Quantity speedInput(Quantity value)
+    Quantity speed_input(Quantity value)
     {
-        if (finiteInput(value).get() < 0.0) {
+        if (finite_input(value).get() < 0.0) {
             throw std::invalid_argument("axis speed/profile limit must be a nonnegative magnitude");
         }
         return value;
     }
 
-    void positiveRatio(double value)
+    void positive_ratio(double value)
     {
         if (!std::isfinite(value) || value <= 0.0) {
             throw std::invalid_argument("axis transmission ratio must be positive and finite");
         }
     }
 
-    double directionSign(AxisDirection direction)
+    double direction_sign(AxisDirection direction)
     {
         switch (direction) {
             case AxisDirection::SameAsMotor:
@@ -53,35 +53,52 @@ namespace
         throw std::invalid_argument("invalid axis direction");
     }
 
+    double rotary_motor_per_axis(const RotaryAxisConversion::Config& config)
+    {
+        positive_ratio(config.motor_revolutions_per_axis_revolution);
+        finite_input(config.motor_reference);
+        finite_input(config.axis_reference);
+        return direction_sign(config.direction) * config.motor_revolutions_per_axis_revolution;
+    }
+
+    double linear_axis_per_motor(const LinearAxisConversion::Config& config)
+    {
+        positive_ratio(config.motor_revolutions_per_output_revolution);
+        positive_ratio(config.travel_per_output_revolution.get());
+        finite_input(config.motor_reference);
+        finite_input(config.axis_reference);
+        const auto factor = direction_sign(config.direction) * config.travel_per_output_revolution.get() /
+                            config.motor_revolutions_per_output_revolution / (1_rev).get();
+        positive_ratio(std::abs(factor));
+        return factor;
+    }
+
     // Conversion factors use quantity base units (rad, m, rad/s and m/s).
     template<IsQuantity Result, IsQuantity Input>
     Result convert(Input value, double factor)
     {
-        return finiteResult(Result::create(finiteInput(value).get() * factor));
+        return finite_result(Result::create(finite_input(value).get() * factor));
     }
 }
 
 RotaryAxisConversion::RotaryAxisConversion(Config config)
   : m_config{ config }
+  , m_motorPerAxis{ rotary_motor_per_axis(config) }
+  , m_axisPerMotor{ 1.0 / m_motorPerAxis }
 {
-    positiveRatio(config.motor_revolutions_per_axis_revolution);
-    finiteInput(config.motor_reference);
-    finiteInput(config.axis_reference);
-    m_motorPerAxis = directionSign(config.direction) * config.motor_revolutions_per_axis_revolution;
-    m_axisPerMotor = 1.0 / m_motorPerAxis;
-    positiveRatio(std::abs(m_axisPerMotor));
+    positive_ratio(std::abs(m_axisPerMotor));
 }
 
 pnm::units::Angle RotaryAxisConversion::toAxisPosition(pnm::units::Angle motor_position) const
 {
-    const auto displacement{ finiteResult(finiteInput(motor_position) - m_config.motor_reference) };
-    return finiteResult(m_config.axis_reference + toAxisDisplacement(displacement));
+    const auto displacement{ finite_result(finite_input(motor_position) - m_config.motor_reference) };
+    return finite_result(m_config.axis_reference + toAxisDisplacement(displacement));
 }
 
 pnm::units::Angle RotaryAxisConversion::toMotorPosition(pnm::units::Angle axis_position) const
 {
-    const auto displacement{ finiteResult(finiteInput(axis_position) - m_config.axis_reference) };
-    return finiteResult(m_config.motor_reference + toMotorDisplacement(displacement));
+    const auto displacement{ finite_result(finite_input(axis_position) - m_config.axis_reference) };
+    return finite_result(m_config.motor_reference + toMotorDisplacement(displacement));
 }
 
 pnm::units::Angle RotaryAxisConversion::toAxisDisplacement(pnm::units::Angle motor_displacement) const
@@ -108,60 +125,54 @@ pnm::units::AngularVelocity RotaryAxisConversion::toMotorVelocity(
 
 pnm::units::AngularVelocity RotaryAxisConversion::toAxisSpeed(pnm::units::AngularVelocity motor_speed) const
 {
-    return convert<pnm::units::AngularVelocity>(speedInput(motor_speed), std::abs(m_axisPerMotor));
+    return convert<pnm::units::AngularVelocity>(speed_input(motor_speed), std::abs(m_axisPerMotor));
 }
 
 pnm::units::AngularVelocity RotaryAxisConversion::toMotorSpeed(pnm::units::AngularVelocity axis_speed) const
 {
-    return convert<pnm::units::AngularVelocity>(speedInput(axis_speed), std::abs(m_motorPerAxis));
+    return convert<pnm::units::AngularVelocity>(speed_input(axis_speed), std::abs(m_motorPerAxis));
 }
 
 pnm::units::AngularAcceleration RotaryAxisConversion::toAxisAcceleration(
   pnm::units::AngularAcceleration motor) const
 {
-    return convert<pnm::units::AngularAcceleration>(speedInput(motor), std::abs(m_axisPerMotor));
+    return convert<pnm::units::AngularAcceleration>(speed_input(motor), std::abs(m_axisPerMotor));
 }
 
 pnm::units::AngularAcceleration RotaryAxisConversion::toMotorAcceleration(
   pnm::units::AngularAcceleration axis) const
 {
-    return convert<pnm::units::AngularAcceleration>(speedInput(axis), std::abs(m_motorPerAxis));
+    return convert<pnm::units::AngularAcceleration>(speed_input(axis), std::abs(m_motorPerAxis));
 }
 
 pnm::units::AngularJerk RotaryAxisConversion::toAxisJerk(pnm::units::AngularJerk motor) const
 {
-    return convert<pnm::units::AngularJerk>(speedInput(motor), std::abs(m_axisPerMotor));
+    return convert<pnm::units::AngularJerk>(speed_input(motor), std::abs(m_axisPerMotor));
 }
 
 pnm::units::AngularJerk RotaryAxisConversion::toMotorJerk(pnm::units::AngularJerk axis) const
 {
-    return convert<pnm::units::AngularJerk>(speedInput(axis), std::abs(m_motorPerAxis));
+    return convert<pnm::units::AngularJerk>(speed_input(axis), std::abs(m_motorPerAxis));
 }
 
 LinearAxisConversion::LinearAxisConversion(Config config)
   : m_config{ config }
+  , m_axisPerMotor{ linear_axis_per_motor(config) }
+  , m_motorPerAxis{ 1.0 / m_axisPerMotor }
 {
-    positiveRatio(config.motor_revolutions_per_output_revolution);
-    positiveRatio(config.travel_per_output_revolution.get());
-    finiteInput(config.motor_reference);
-    finiteInput(config.axis_reference);
-    m_axisPerMotor = directionSign(config.direction) * config.travel_per_output_revolution.get() /
-                     config.motor_revolutions_per_output_revolution / (1_rev).get();
-    positiveRatio(std::abs(m_axisPerMotor));
-    m_motorPerAxis = 1.0 / m_axisPerMotor;
-    positiveRatio(std::abs(m_motorPerAxis));
+    positive_ratio(std::abs(m_motorPerAxis));
 }
 
 pnm::units::Distance LinearAxisConversion::toAxisPosition(pnm::units::Angle motor_position) const
 {
-    const auto displacement{ finiteResult(finiteInput(motor_position) - m_config.motor_reference) };
-    return finiteResult(m_config.axis_reference + toAxisDisplacement(displacement));
+    const auto displacement{ finite_result(finite_input(motor_position) - m_config.motor_reference) };
+    return finite_result(m_config.axis_reference + toAxisDisplacement(displacement));
 }
 
 pnm::units::Angle LinearAxisConversion::toMotorPosition(pnm::units::Distance axis_position) const
 {
-    const auto displacement{ finiteResult(finiteInput(axis_position) - m_config.axis_reference) };
-    return finiteResult(m_config.motor_reference + toMotorDisplacement(displacement));
+    const auto displacement{ finite_result(finite_input(axis_position) - m_config.axis_reference) };
+    return finite_result(m_config.motor_reference + toMotorDisplacement(displacement));
 }
 
 pnm::units::Distance LinearAxisConversion::toAxisDisplacement(pnm::units::Angle motor_displacement) const
@@ -186,30 +197,30 @@ pnm::units::AngularVelocity LinearAxisConversion::toMotorVelocity(pnm::units::Ve
 
 pnm::units::Velocity LinearAxisConversion::toAxisSpeed(pnm::units::AngularVelocity motor_speed) const
 {
-    return convert<pnm::units::Velocity>(speedInput(motor_speed), std::abs(m_axisPerMotor));
+    return convert<pnm::units::Velocity>(speed_input(motor_speed), std::abs(m_axisPerMotor));
 }
 
 pnm::units::AngularVelocity LinearAxisConversion::toMotorSpeed(pnm::units::Velocity axis_speed) const
 {
-    return convert<pnm::units::AngularVelocity>(speedInput(axis_speed), std::abs(m_motorPerAxis));
+    return convert<pnm::units::AngularVelocity>(speed_input(axis_speed), std::abs(m_motorPerAxis));
 }
 
 pnm::units::Acceleration LinearAxisConversion::toAxisAcceleration(pnm::units::AngularAcceleration motor) const
 {
-    return convert<pnm::units::Acceleration>(speedInput(motor), std::abs(m_axisPerMotor));
+    return convert<pnm::units::Acceleration>(speed_input(motor), std::abs(m_axisPerMotor));
 }
 
 pnm::units::AngularAcceleration LinearAxisConversion::toMotorAcceleration(pnm::units::Acceleration axis) const
 {
-    return convert<pnm::units::AngularAcceleration>(speedInput(axis), std::abs(m_motorPerAxis));
+    return convert<pnm::units::AngularAcceleration>(speed_input(axis), std::abs(m_motorPerAxis));
 }
 
 pnm::units::Jerk LinearAxisConversion::toAxisJerk(pnm::units::AngularJerk motor) const
 {
-    return convert<pnm::units::Jerk>(speedInput(motor), std::abs(m_axisPerMotor));
+    return convert<pnm::units::Jerk>(speed_input(motor), std::abs(m_axisPerMotor));
 }
 
 pnm::units::AngularJerk LinearAxisConversion::toMotorJerk(pnm::units::Jerk axis) const
 {
-    return convert<pnm::units::AngularJerk>(speedInput(axis), std::abs(m_motorPerAxis));
+    return convert<pnm::units::AngularJerk>(speed_input(axis), std::abs(m_motorPerAxis));
 }

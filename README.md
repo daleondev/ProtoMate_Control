@@ -72,6 +72,70 @@ It exchanges one `UDINT` in each direction, without robot functions. See the
 [example instructions](docs/ethercat/slave-example.md) and install its
 [ESI file](examples/ethercat_slave/ProtoMateEcho.xml) in the EtherCAT master.
 
+## Application linting
+
+Run the configured readability, naming, bug-prone, modernization, performance,
+static-analyzer and Core Guidelines checks on **`src/` only**, including the Linux
+test sources, with:
+
+```sh
+cmake --preset debug-linux
+cmake --build --preset debug-linux --target clang-tidy
+```
+
+Alternatively, `cmake --preset clang-tidy-linux` followed by
+`cmake --build --preset clang-tidy-linux` prepares a separate analysis directory.
+These are explicit analysis targets; normal builds still use GCC without linting.
+
+The runner requires Docker, Python 3 and the host ncurses development headers. It
+uses a pinned Pneumo devcontainer image with matching Clang/P2996, clang-tidy and
+libc++. If it is not already installed, pull it once:
+
+```sh
+docker pull ghcr.io/daleondev/pneumo-devcontainer@sha256:1c10d580f47f4fa402da038896027629ded2d94de4ddd0f382f8a63830fae3e7
+```
+
+The container runs without network access, with project sources mounted read-only.
+An analysis copy of the compilation database selects Clang/libc++ and reflection
+flags. Real ncurses headers are copied into the report directory. Firmware flags,
+dependency declarations and application sources are not rewritten for analysis.
+This host/libc++ analysis does not validate STM32-specific behavior or ABI.
+
+**Partial coverage is accepted by default.** Every configured application source
+is attempted on every run. Files that encounter compiler errors are listed as
+blocked; their recovered diagnostics are saved separately because an incomplete
+syntax tree can give misleading results. Missing `std::move_only_function` in
+the pinned libc++, reflection API differences and transitive ThreadX includes
+currently prevent full coverage. Blocking compiler errors cannot be disabled
+with clang-tidy check filters. See the [clang-tidy documentation](https://clang.llvm.org/extra/clang-tidy/).
+
+Reports are written to `<build-directory>/clang-tidy/`:
+
+- `findings.txt`: deduplicated `src/` diagnostics from fully parsed files.
+- `partial-findings.txt`: additional diagnostics from blocked files, for review.
+- `summary.txt` and `report.json`: coverage, blocked files and their errors.
+- Per-source `.log` and `.yaml` files: full diagnostics and suggested replacements.
+  Replacements are **never applied automatically**.
+
+Exit status is `1` for findings in fully parsed files, and `2` for tool failures or
+when no file can be fully checked. Skipped files remain visible in the coverage
+report even when the command succeeds. To require complete coverage:
+
+```sh
+python3 scripts/clang_tidy.py --build-dir build/debug-linux --strict
+```
+
+The naming rules live in `.clang-tidy`. Clang 21 uses `GlobalConstant` for global
+constants including constexpr, and `PublicMember` for public fields including
+ordinary struct fields. `tooling.clang_tidy` tests diagnostic classification,
+source filtering and failure handling without Docker.
+
+Cognitive-complexity checks count application control flow, excluding macro
+expansions such as GoogleTest assertions. Tests may locally exempt numerical
+fixtures from magic-number checks. Compiler-generated coroutine diagnostics and
+deliberate invalid-enum tests have narrowly named, commented `NOLINT` markers;
+the remaining check families stay enabled.
+
 ## HAL architecture
 
 The HAL provides peripheral access and device behavior. Robot motion planning,

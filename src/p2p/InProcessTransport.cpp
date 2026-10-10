@@ -22,15 +22,21 @@ namespace p2p
       , m_side(side)
     {
     }
-    InProcessTransport::~InProcessTransport() { setWakeup({}); }
+    InProcessTransport::~InProcessTransport()
+    {
+        // Detach directly: destruction must never invoke a notification callback.
+        std::scoped_lock lock(m_shared->mutex);
+        m_shared->wake[m_side] = nullptr;
+    }
     auto InProcessTransport::pair() -> std::array<std::shared_ptr<InProcessTransport>, 2>
     {
         return pair(Limits{});
     }
     auto InProcessTransport::pair(Limits limits) -> std::array<std::shared_ptr<InProcessTransport>, 2>
     {
-        if (!limits.normal_frames || !limits.urgent_frames || limits.frame_bytes < 64 ||
-            limits.urgent_bytes < 64)
+        constexpr std::size_t minimum_frame_capacity = 64;
+        if (!limits.normal_frames || !limits.urgent_frames || limits.frame_bytes < minimum_frame_capacity ||
+            limits.urgent_bytes < minimum_frame_capacity)
             throw std::invalid_argument("invalid p2p transport limits");
         auto shared = std::make_shared<Shared>(limits);
         return { std::shared_ptr<InProcessTransport>(new InProcessTransport(shared, 0)),
@@ -86,8 +92,9 @@ namespace p2p
         const bool urgent = lane == Lane::Urgent;
         const auto count = urgent ? m_shared->limits.urgent_frames : m_shared->limits.normal_frames;
         const auto queued = m_shared->inbox[1U - m_side][urgent ? 1 : 0].size();
-        return { m_shared->connected ? count - queued : 0,
-                 urgent ? m_shared->limits.urgent_bytes : m_shared->limits.frame_bytes };
+        return { .available_frames = m_shared->connected ? count - queued : 0,
+                 .maximum_frame_bytes =
+                   urgent ? m_shared->limits.urgent_bytes : m_shared->limits.frame_bytes };
     }
     void InProcessTransport::setWakeup(std::function<void()> callback)
     {

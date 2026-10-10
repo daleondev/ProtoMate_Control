@@ -13,7 +13,6 @@ target_compile_options(project_compiler_settings
         $<$<COMPILE_LANGUAGE:CXX>:-std=c++26>
 )
 
-option(ENABLE_CLANG_TIDY "Run clang-tidy while compiling project-owned C++ targets" OFF)
 option(RUNTIME_HARDWARE_SELF_TEST "Build the board-resident runtime conformance image" OFF)
 option(RUNTIME_HARDWARE_ETHERNET_TEST "Build the Ethernet cable test image" OFF)
 option(RUNTIME_HARDWARE_IO_TEST "Build the serial and reset-persistence test image" OFF)
@@ -186,11 +185,19 @@ else()
     add_subdirectory(src)
 endif()
 
-if(ENABLE_CLANG_TIDY)
-    # Older LLVM releases cannot parse the supported GCC 16 C++26 headers.
-    find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy REQUIRED)
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        CXX_CLANG_TIDY
-            "${CLANG_TIDY_EXECUTABLE};--line-filter=[{\"name\":\".*/src/.*\"}]"
-    )
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Python3 QUIET COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+        add_custom_target(clang-tidy
+            COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/clang_tidy.py
+                --build-dir ${PROJECT_BINARY_DIR}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            USES_TERMINAL
+            VERBATIM
+            COMMENT "Checking src/ with the reflection-capable Clang toolchain")
+        if(BUILD_TESTING)
+            add_test(NAME tooling.clang_tidy
+                COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/tests/test_clang_tidy.py)
+        endif()
+    endif()
 endif()

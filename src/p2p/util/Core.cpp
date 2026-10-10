@@ -4,9 +4,13 @@ namespace p2p::util
 {
     namespace
     {
-        std::atomic<std::uint64_t> ids{ 1 };
-        std::uint64_t newSession()
+        constexpr std::uint32_t FRAME_MAGIC = 0x50325031;
+        constexpr std::uint16_t PROTOCOL_VERSION = 1;
+        constexpr std::uint64_t SESSION_STRIDE = 0x100000001ULL;
+        constexpr unsigned MAX_DISPATCH_FRAMES = 64;
+        std::uint64_t new_session()
         {
+            static std::atomic<std::uint64_t> ids{ 1 };
             auto v = ids.fetch_add(1);
             if (!v)
                 throw std::overflow_error("p2p session IDs exhausted");
@@ -15,11 +19,11 @@ namespace p2p::util
     }
     Bytes pack(const Frame& f)
     {
-        if (f.payload.size() > MaxPayload)
+        if (f.payload.size() > MAX_PAYLOAD)
             throw std::length_error("p2p payload exceeds limit");
         Writer w;
-        w.integer<std::uint32_t>(0x50325031);
-        w.integer<std::uint16_t>(1);
+        w.integer(FRAME_MAGIC);
+        w.integer(PROTOCOL_VERSION);
         w.integer<std::uint8_t>(static_cast<std::uint8_t>(f.kind));
         w.integer(f.code);
         w.integer(f.endpoint);
@@ -34,7 +38,7 @@ namespace p2p::util
     Frame unpack(std::span<const std::byte> bytes)
     {
         Reader r(bytes);
-        if (r.integer<std::uint32_t>() != 0x50325031 || r.integer<std::uint16_t>() != 1)
+        if (r.integer<std::uint32_t>() != FRAME_MAGIC || r.integer<std::uint16_t>() != PROTOCOL_VERSION)
             throw std::invalid_argument("p2p protocol mismatch");
         Frame f;
         auto kind = r.integer<std::uint8_t>();
@@ -48,7 +52,7 @@ namespace p2p::util
         f.destination = r.integer<std::uint64_t>();
         f.budget_ms = r.integer<std::uint32_t>();
         auto size = r.integer<std::uint16_t>();
-        if (size > MaxPayload || r.remaining().size() != size || !f.source)
+        if (size > MAX_PAYLOAD || r.remaining().size() != size || !f.source)
             throw std::invalid_argument("invalid p2p frame length/session");
         f.payload.assign(r.remaining().begin(), r.remaining().end());
         return f;
@@ -58,7 +62,7 @@ namespace p2p::util
       , context(c)
       , transport(std::move(t))
       , options(o)
-      , session(o.session ? o.session : newSession())
+      , session(o.session ? o.session : new_session())
     {
         if (!transport || !o.max_pending || !o.max_routes || o.heartbeat.count() <= 0 ||
             o.link_timeout <= o.heartbeat)
@@ -89,15 +93,20 @@ namespace p2p::util
             try {
                 transition(LinkState::ProtocolError);
             } catch (...) {
+                // A failing observer must not hide the locally latched fault.
+                state.store(LinkState::ProtocolError);
             }
         }
     }
-    pnm::coro::Task<void> Core::dispatch(std::shared_ptr<Core> self)
+    // The Clang fork diagnoses compiler-generated coroutine awaiter calls here.
+    // NOLINTBEGIN(readability-static-accessed-through-instance)
+    pnm::coro::Task<void> Core::dispatch(std::shared_ptr<Core> core)
     {
-        self->queued.store(false);
-        self->drain();
+        core->queued.store(false);
+        core->drain();
         co_return;
     }
+    // NOLINTEND(readability-static-accessed-through-instance)
     void Core::start()
     {
         if (started.exchange(true))
@@ -144,7 +153,7 @@ namespace p2p::util
         hello_pending = true;
         acknowledgement_pending = false;
         // Change the destination token too: delayed old requests cannot enter a new session.
-        session += 0x100000001ULL;
+        session += SESSION_STRIDE;
         if (!session)
             ++session;
         transition(reason);
@@ -196,6 +205,58 @@ namespace p2p::util
             throw std::invalid_argument("unregistered p2p endpoint");
         it->second->receive(frame);
     }
+    void Core::receiveFrames()
+    {
+        Bytes bytes;
+        // Bound one dispatch so peer traffic cannot monopolize the executor.
+        unsigned received{};
+        for (; received < MAX_DISPATCH_FRAMES && transport->tryReceive(bytes); ++received)
+            receive(unpack(bytes));
+        if (received == MAX_DISPATCH_FRAMES)
+            wake();
+    }
+    void Core::updateLink()
+    {
+        const auto now = Clock::now();
+        if (peer && now - last_received >= options.link_timeout)
+            fail(LinkState::TimedOut);
+        if (now >= next_heartbeat) {
+            if (!peer || state.load() != LinkState::Connected)
+                hello_pending = true;
+            else
+                send(Frame{ .kind = Kind::Heartbeat, .payload = {} }, Lane::Urgent);
+            next_heartbeat = now + options.heartbeat;
+        }
+        if (hello_pending && send(Frame{ .kind = Kind::Hello, .payload = {} }, Lane::Urgent))
+            hello_pending = false;
+        if (acknowledgement_pending && !hello_pending &&
+            send(Frame{ .kind = Kind::HelloAck, .payload = {} }, Lane::Urgent))
+            acknowledgement_pending = false;
+    }
+    void Core::pumpRoutes()
+    {
+        // Rotate the first route: sustained RPC traffic must not starve
+        // terminal action results or latest state on another normal route.
+        if (!routes.empty()) {
+            auto entry = routes.begin();
+            std::advance(entry, route_cursor % routes.size());
+            for (std::size_t i = 0; i < routes.size(); ++i) {
+                entry->second->pump();
+                if (++entry == routes.end())
+                    entry = routes.begin();
+            }
+            route_cursor = (route_cursor + 1) % routes.size();
+        }
+    }
+    void Core::scheduleNext()
+    {
+        auto deadline = next_heartbeat;
+        for (auto& [id, route] : routes)
+            deadline = std::min(deadline, route->deadline());
+        // Expired jobs are retired by pump(); never spin on an expired deadline.
+        deadline = std::max(deadline, Clock::now() + std::chrono::milliseconds(1));
+        timer = context.scheduleAt(deadline, wakeup());
+    }
     void Core::drain() noexcept
     {
         try {
@@ -213,46 +274,10 @@ namespace p2p::util
                     fail(LinkState::Disconnected);
                 return;
             }
-            Bytes bytes;
-            // Bound one dispatch so peer traffic cannot monopolize the executor.
-            unsigned received{};
-            for (; received < 64 && transport->tryReceive(bytes); ++received)
-                receive(unpack(bytes));
-            if (received == 64)
-                wake();
-            const auto now = Clock::now();
-            if (peer && now - last_received >= options.link_timeout)
-                fail(LinkState::TimedOut);
-            if (now >= next_heartbeat) {
-                if (!peer || state.load() != LinkState::Connected)
-                    hello_pending = true;
-                else
-                    send(Frame{ .kind = Kind::Heartbeat }, Lane::Urgent);
-                next_heartbeat = now + options.heartbeat;
-            }
-            if (hello_pending && send(Frame{ .kind = Kind::Hello }, Lane::Urgent))
-                hello_pending = false;
-            if (acknowledgement_pending && !hello_pending &&
-                send(Frame{ .kind = Kind::HelloAck }, Lane::Urgent))
-                acknowledgement_pending = false;
-            // Rotate the first route: sustained RPC traffic must not starve
-            // terminal action results or latest state on another normal route.
-            if (!routes.empty()) {
-                auto entry = routes.begin();
-                std::advance(entry, route_cursor % routes.size());
-                for (std::size_t i = 0; i < routes.size(); ++i) {
-                    entry->second->pump();
-                    if (++entry == routes.end())
-                        entry = routes.begin();
-                }
-                route_cursor = (route_cursor + 1) % routes.size();
-            }
-            auto deadline = next_heartbeat;
-            for (auto& [id, route] : routes)
-                deadline = std::min(deadline, route->deadline());
-            // Expired jobs are retired by pump(); never spin on an expired deadline.
-            deadline = std::max(deadline, Clock::now() + std::chrono::milliseconds(1));
-            timer = context.scheduleAt(deadline, wakeup());
+            receiveFrames();
+            updateLink();
+            pumpRoutes();
+            scheduleNext();
         } catch (...) {
             try {
                 fail(LinkState::ProtocolError);
@@ -263,6 +288,7 @@ namespace p2p::util
                 try {
                     transition(LinkState::ProtocolError);
                 } catch (...) {
+                    state.store(LinkState::ProtocolError);
                 }
             }
         }

@@ -1,3 +1,5 @@
+// Numeric literals are test inputs and independently specified expected results.
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 #include "../AxisConversion.hpp"
 
 #include <gtest/gtest.h>
@@ -12,7 +14,7 @@ namespace
     using namespace pnm::units::literals;
 
     template<IsQuantity Quantity>
-    void expectNear(Quantity actual, Quantity expected)
+    void expect_near(Quantity actual, Quantity expected)
     {
         EXPECT_NEAR(actual.get(), expected.get(), 1e-10);
     }
@@ -33,14 +35,14 @@ TEST(AxisConversion, RotaryReductionMapsReferencePositionsWithoutWrapping)
                                        .motor_reference = 135_deg,
                                        .axis_reference = -30_deg } };
 
-    expectNear(axis.toAxisPosition(135_deg), -30_deg);
-    expectNear(axis.toMotorPosition(-30_deg), 135_deg);
-    expectNear(axis.toAxisPosition(585_deg), 60_deg);
-    expectNear(axis.toMotorPosition(60_deg), 585_deg);
-    expectNear(axis.toAxisDisplacement(5_rev), 1_rev);
-    expectNear(axis.toMotorDisplacement(-90_deg), -450_deg);
-    expectNear(axis.toAxisPosition(135_deg + 20_rev), -30_deg + 4_rev);
-    expectNear(axis.toMotorPosition(-30_deg - 4_rev), 135_deg - 20_rev);
+    expect_near(axis.toAxisPosition(135_deg), -30_deg);
+    expect_near(axis.toMotorPosition(-30_deg), 135_deg);
+    expect_near(axis.toAxisPosition(585_deg), 60_deg);
+    expect_near(axis.toMotorPosition(60_deg), 585_deg);
+    expect_near(axis.toAxisDisplacement(5_rev), 1_rev);
+    expect_near(axis.toMotorDisplacement(-90_deg), -450_deg);
+    expect_near(axis.toAxisPosition(135_deg + 20_rev), -30_deg + 4_rev);
+    expect_near(axis.toMotorPosition(-30_deg - 4_rev), 135_deg - 20_rev);
 }
 
 TEST(AxisConversion, ReversedRotaryFeedbackHasSignButCommandSpeedRemainsPositive)
@@ -50,18 +52,18 @@ TEST(AxisConversion, ReversedRotaryFeedbackHasSignButCommandSpeedRemainsPositive
                                        .motor_reference = 135_deg,
                                        .axis_reference = 90_deg } };
 
-    expectNear(axis.toAxisPosition(585_deg), 0_deg);
-    expectNear(axis.toMotorPosition(0_deg), 585_deg);
-    expectNear(axis.toAxisDisplacement(-450_deg), 90_deg);
-    expectNear(axis.toMotorDisplacement(90_deg), -450_deg);
-    expectNear(axis.toAxisVelocity(300_rpm), -60_rpm);
-    expectNear(axis.toMotorVelocity(-60_rpm), 300_rpm);
-    expectNear(axis.toAxisVelocity(-300_rpm), 60_rpm);
-    expectNear(axis.toMotorVelocity(60_rpm), -300_rpm);
-    expectNear(axis.toAxisSpeed(300_rpm), 60_rpm);
-    expectNear(axis.toMotorSpeed(60_rpm), 300_rpm);
-    expectNear(axis.toAxisVelocity(0_rpm), 0_rpm);
-    expectNear(axis.toMotorSpeed(0_rpm), 0_rpm);
+    expect_near(axis.toAxisPosition(585_deg), 0_deg);
+    expect_near(axis.toMotorPosition(0_deg), 585_deg);
+    expect_near(axis.toAxisDisplacement(-450_deg), 90_deg);
+    expect_near(axis.toMotorDisplacement(90_deg), -450_deg);
+    expect_near(axis.toAxisVelocity(300_rpm), -60_rpm);
+    expect_near(axis.toMotorVelocity(-60_rpm), 300_rpm);
+    expect_near(axis.toAxisVelocity(-300_rpm), 60_rpm);
+    expect_near(axis.toMotorVelocity(60_rpm), -300_rpm);
+    expect_near(axis.toAxisSpeed(300_rpm), 60_rpm);
+    expect_near(axis.toMotorSpeed(60_rpm), 300_rpm);
+    expect_near(axis.toAxisVelocity(0_rpm), 0_rpm);
+    expect_near(axis.toMotorSpeed(0_rpm), 0_rpm);
 }
 
 TEST(AxisConversion, DirectBeltDriveConvertsMillimetresAndRevolutions)
@@ -71,16 +73,16 @@ TEST(AxisConversion, DirectBeltDriveConvertsMillimetresAndRevolutions)
         { .travel_per_output_revolution = 40_mm, .motor_reference = 135_deg, .axis_reference = 200_mm }
     };
 
-    expectNear(axis.toAxisPosition(135_deg), 200_mm);
-    expectNear(axis.toMotorPosition(200_mm), 135_deg);
-    expectNear(axis.toAxisPosition(495_deg), 240_mm);
-    expectNear(axis.toMotorPosition(240_mm), 495_deg);
-    expectNear(axis.toAxisDisplacement(-90_deg), -10_mm);
-    expectNear(axis.toMotorDisplacement(-10_mm), -90_deg);
-    expectNear(axis.toAxisVelocity(60_rpm), 40_mm_s);
-    expectNear(axis.toMotorVelocity(40_mm_s), 60_rpm);
-    expectNear(axis.toAxisSpeed(60_rpm), 40_mm_s);
-    expectNear(axis.toMotorSpeed(40_mm_s), 60_rpm);
+    expect_near(axis.toAxisPosition(135_deg), 200_mm);
+    expect_near(axis.toMotorPosition(200_mm), 135_deg);
+    expect_near(axis.toAxisPosition(495_deg), 240_mm);
+    expect_near(axis.toMotorPosition(240_mm), 495_deg);
+    expect_near(axis.toAxisDisplacement(-90_deg), -10_mm);
+    expect_near(axis.toMotorDisplacement(-10_mm), -90_deg);
+    expect_near(axis.toAxisVelocity(60_rpm), 40_mm_s);
+    expect_near(axis.toMotorVelocity(40_mm_s), 60_rpm);
+    expect_near(axis.toAxisSpeed(60_rpm), 40_mm_s);
+    expect_near(axis.toMotorSpeed(40_mm_s), 60_rpm);
 }
 
 TEST(AxisConversion, ReversedLinearDriveIncludesReductionAndReferenceHeight)
@@ -91,18 +93,18 @@ TEST(AxisConversion, ReversedLinearDriveIncludesReductionAndReferenceHeight)
                                        .motor_reference = -180_deg,
                                        .axis_reference = 150_mm } };
 
-    expectNear(axis.toAxisPosition(0_deg), 148_mm);
-    expectNear(axis.toMotorPosition(148_mm), 0_deg);
-    expectNear(axis.toAxisDisplacement(720_deg), -8_mm);
-    expectNear(axis.toMotorDisplacement(-8_mm), 720_deg);
-    expectNear(axis.toAxisVelocity(120_rpm), -8_mm_s);
-    expectNear(axis.toMotorVelocity(-8_mm_s), 120_rpm);
-    expectNear(axis.toAxisVelocity(-120_rpm), 8_mm_s);
-    expectNear(axis.toMotorVelocity(8_mm_s), -120_rpm);
-    expectNear(axis.toAxisSpeed(120_rpm), 8_mm_s);
-    expectNear(axis.toMotorSpeed(8_mm_s), 120_rpm);
-    expectNear(axis.toAxisVelocity(0_rpm), 0_mm_s);
-    expectNear(axis.toMotorSpeed(0_mm_s), 0_rpm);
+    expect_near(axis.toAxisPosition(0_deg), 148_mm);
+    expect_near(axis.toMotorPosition(148_mm), 0_deg);
+    expect_near(axis.toAxisDisplacement(720_deg), -8_mm);
+    expect_near(axis.toMotorDisplacement(-8_mm), 720_deg);
+    expect_near(axis.toAxisVelocity(120_rpm), -8_mm_s);
+    expect_near(axis.toMotorVelocity(-8_mm_s), 120_rpm);
+    expect_near(axis.toAxisVelocity(-120_rpm), 8_mm_s);
+    expect_near(axis.toMotorVelocity(8_mm_s), -120_rpm);
+    expect_near(axis.toAxisSpeed(120_rpm), 8_mm_s);
+    expect_near(axis.toMotorSpeed(8_mm_s), 120_rpm);
+    expect_near(axis.toAxisVelocity(0_rpm), 0_mm_s);
+    expect_near(axis.toMotorSpeed(0_mm_s), 0_rpm);
 }
 
 TEST(AxisConversion, FractionalRatiosAndMixedUnitsRoundTrip)
@@ -118,10 +120,10 @@ TEST(AxisConversion, FractionalRatiosAndMixedUnitsRoundTrip)
                                              .motor_reference = 0.25_rev,
                                              .axis_reference = -10_mm } };
         for (const auto position : { -10_rev, -0.125_rad, 0_rad, 270_deg, 10_rev }) {
-            expectNear(rotary.toMotorPosition(rotary.toAxisPosition(position)), position);
-            expectNear(rotary.toMotorDisplacement(rotary.toAxisDisplacement(position)), position);
-            expectNear(linear.toMotorPosition(linear.toAxisPosition(position)), position);
-            expectNear(linear.toMotorDisplacement(linear.toAxisDisplacement(position)), position);
+            expect_near(rotary.toMotorPosition(rotary.toAxisPosition(position)), position);
+            expect_near(rotary.toMotorDisplacement(rotary.toAxisDisplacement(position)), position);
+            expect_near(linear.toMotorPosition(linear.toAxisPosition(position)), position);
+            expect_near(linear.toMotorDisplacement(linear.toAxisDisplacement(position)), position);
         }
     }
 }
@@ -138,18 +140,18 @@ TEST(AxisConversion, ProfileLimitsScaleWithoutDirectionOrReferenceOffsets)
                                              .direction = direction,
                                              .motor_reference = 135_deg,
                                              .axis_reference = 200_mm } };
-        expectNear(rotary.toMotorAcceleration(100_deg_s2), 500_deg_s2);
-        expectNear(rotary.toAxisAcceleration(500_deg_s2), 100_deg_s2);
-        expectNear(rotary.toMotorJerk(1000_deg_s3), 5000_deg_s3);
-        expectNear(rotary.toAxisJerk(5000_deg_s3), 1000_deg_s3);
-        expectNear(linear.toMotorAcceleration(10_mm_s2), 180_deg_s2);
-        expectNear(linear.toAxisAcceleration(180_deg_s2), 10_mm_s2);
-        expectNear(linear.toMotorJerk(100_mm_s3), 1800_deg_s3);
-        expectNear(linear.toAxisJerk(1800_deg_s3), 100_mm_s3);
-        expectNear(rotary.toMotorAcceleration(0_deg_s2), 0_deg_s2);
-        expectNear(rotary.toMotorJerk(0_deg_s3), 0_deg_s3);
-        expectNear(linear.toMotorAcceleration(0_mm_s2), 0_deg_s2);
-        expectNear(linear.toMotorJerk(0_mm_s3), 0_deg_s3);
+        expect_near(rotary.toMotorAcceleration(100_deg_s2), 500_deg_s2);
+        expect_near(rotary.toAxisAcceleration(500_deg_s2), 100_deg_s2);
+        expect_near(rotary.toMotorJerk(1000_deg_s3), 5000_deg_s3);
+        expect_near(rotary.toAxisJerk(5000_deg_s3), 1000_deg_s3);
+        expect_near(linear.toMotorAcceleration(10_mm_s2), 180_deg_s2);
+        expect_near(linear.toAxisAcceleration(180_deg_s2), 10_mm_s2);
+        expect_near(linear.toMotorJerk(100_mm_s3), 1800_deg_s3);
+        expect_near(linear.toAxisJerk(1800_deg_s3), 100_mm_s3);
+        expect_near(rotary.toMotorAcceleration(0_deg_s2), 0_deg_s2);
+        expect_near(rotary.toMotorJerk(0_deg_s3), 0_deg_s3);
+        expect_near(linear.toMotorAcceleration(0_mm_s2), 0_deg_s2);
+        expect_near(linear.toMotorJerk(0_mm_s3), 0_deg_s3);
     }
 }
 
@@ -188,9 +190,13 @@ TEST(AxisConversion, InvalidTransmissionConfigurationIsRejected)
                      std::invalid_argument);
     }
     EXPECT_THROW((RotaryAxisConversion{ { .motor_revolutions_per_axis_revolution = 1.0,
+                                          // Deliberately exercise rejection of a non-enumerator value.
+                                          // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
                                           .direction = static_cast<AxisDirection>(99) } }),
                  std::invalid_argument);
     EXPECT_THROW((LinearAxisConversion{
+                   // Deliberately exercise rejection of a non-enumerator value.
+                   // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
                    { .travel_per_output_revolution = 40_mm, .direction = static_cast<AxisDirection>(99) } }),
                  std::invalid_argument);
 
@@ -249,3 +255,5 @@ TEST(AxisConversion, InvalidInputsAndUnrepresentableResultsAreRejected)
     EXPECT_THROW(offset.toAxisPosition(1_rad), std::overflow_error);
     EXPECT_THROW(offset.toMotorPosition(-1_rad), std::overflow_error);
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)

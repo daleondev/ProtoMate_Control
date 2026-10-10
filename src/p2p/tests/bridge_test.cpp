@@ -1,3 +1,5 @@
+// Numeric literals are test inputs and independently specified expected results.
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 #include "p2p/Bridge.hpp"
 #include "p2p/InProcessTransport.hpp"
 #include <gtest/gtest.h>
@@ -5,8 +7,20 @@
 using namespace std::chrono_literals;
 namespace
 {
+    template<typename T>
+    T& require_value(std::optional<T>& value)
+    {
+        if (!value)
+            throw std::logic_error("expected deferred operation to be present");
+        return *value;
+    }
     struct Pair
     {
+        Pair() = default;
+        Pair(const Pair&) = delete;
+        Pair& operator=(const Pair&) = delete;
+        Pair(Pair&&) = delete;
+        Pair& operator=(Pair&&) = delete;
         pnm::msg::Bus ui, io;
         pnm::coro::Context uic, ioc;
         std::array<std::shared_ptr<p2p::InProcessTransport>, 2> transport = p2p::InProcessTransport::pair();
@@ -28,9 +42,13 @@ namespace
         }
         ~Pair()
         {
-            a.close();
-            b.close();
-            pump();
+            try {
+                a.close();
+                b.close();
+                pump();
+            } catch (const std::exception& error) {
+                ADD_FAILURE() << "bridge cleanup failed: " << error.what();
+            }
         }
     };
     TEST(P2p, PortableIntegersAndMalformedFrames)
@@ -44,9 +62,35 @@ namespace
         EXPECT_THROW(p2p::decode<std::uint32_t>(bytes), std::invalid_argument);
         EXPECT_THROW(p2p::util::unpack(bytes), std::invalid_argument);
     }
+    TEST(P2p, IntegerWidthsAndBooleanValidation)
+    {
+        EXPECT_EQ(p2p::encode<std::uint8_t>(0xff), (p2p::Bytes{ std::byte{ 0xff } }));
+        EXPECT_EQ(p2p::decode<std::int8_t>(p2p::encode<std::int8_t>(-1)), -1);
+        EXPECT_EQ(p2p::encode<std::uint16_t>(0x1234), (p2p::Bytes{ std::byte{ 0x34 }, std::byte{ 0x12 } }));
+        const auto largest = std::numeric_limits<std::uint64_t>::max();
+        EXPECT_EQ(p2p::decode<std::uint64_t>(p2p::encode(largest)), largest);
+        const auto smallest = std::numeric_limits<std::int64_t>::min();
+        EXPECT_EQ(p2p::decode<std::int64_t>(p2p::encode(smallest)), smallest);
+        EXPECT_TRUE(p2p::decode<bool>(p2p::encode(true)));
+        EXPECT_FALSE(p2p::decode<bool>(p2p::encode(false)));
+        EXPECT_THROW(p2p::decode<bool>(p2p::Bytes{ std::byte{ 2 } }), std::invalid_argument);
+        EXPECT_THROW(p2p::decode<std::uint16_t>(p2p::Bytes{ std::byte{ 1 } }), std::invalid_argument);
+    }
+    TEST(P2p, TransportDestructionDetachesWakeup)
+    {
+        auto pair = p2p::InProcessTransport::pair();
+        unsigned wakes{};
+        pair[0]->setWakeup([&] { ++wakes; });
+        const auto before = wakes;
+        pair[0].reset();
+        EXPECT_EQ(wakes, before);
+        EXPECT_EQ(pair[1]->trySend(p2p::Bytes{ std::byte{ 1 } }, p2p::Lane::Normal), p2p::SendResult::Sent);
+        EXPECT_EQ(wakes, before);
+    }
     TEST(P2p, IndependentUrgentCapacityAndCapacityWakeup)
     {
-        auto pair = p2p::InProcessTransport::pair({ 1, 1, 128, 128 });
+        auto pair = p2p::InProcessTransport::pair(
+          { .normal_frames = 1, .urgent_frames = 1, .frame_bytes = 128, .urgent_bytes = 128 });
         p2p::Bytes v(4);
         int wakes{};
         pair[0]->setWakeup([&] { ++wakes; });
@@ -91,7 +135,8 @@ namespace
         std::optional<pnm::msg::ActionExecution<int, int>> execution;
         auto provider = p.io.action<int, int, int>("move").serveDeferred(
           [&](int, pnm::msg::ActionExecution<int, int> e) { execution.emplace(std::move(e)); });
-        bool accepted{}, done{};
+        bool accepted{};
+        bool done{};
         int feedback{};
         p.start();
         auto goal = p.ui.action<int, int, int>("move").sendGoal(5, { 1s }, { .on_accepted = [&] {
@@ -108,17 +153,17 @@ namespace
         goal.poll();
         EXPECT_FALSE(accepted);
         ASSERT_TRUE(execution);
-        execution->accept();
-        execution->feedback(7);
+        require_value(execution).accept();
+        require_value(execution).feedback(7);
         p.pump();
         goal.poll();
         EXPECT_TRUE(accepted);
         EXPECT_EQ(feedback, 7);
         goal.requestCancel();
         p.pump();
-        EXPECT_TRUE(execution->cancelRequested());
+        EXPECT_TRUE(require_value(execution).cancelRequested());
         EXPECT_FALSE(done);
-        execution->cancelled(17);
+        require_value(execution).cancelled(17);
         p.pump();
         goal.poll();
         EXPECT_TRUE(done);
@@ -174,7 +219,8 @@ namespace
         p.b.exportAction<int, int, int>(1, "move");
         auto provider = p.io.action<int, int, int>("move").serveDeferred(
           [](int, auto execution) { EXPECT_TRUE(execution.reject(42)); });
-        bool accepted{}, done{};
+        bool accepted{};
+        bool done{};
         p.start();
         auto goal = p.ui.action<int, int, int>("move").sendGoal(
           1, { 1s }, { .on_accepted = [&] { accepted = true; }, .on_result = [&](auto result) {
@@ -244,12 +290,12 @@ namespace
             ASSERT_TRUE(call.ready());
             EXPECT_FALSE(call.get());
             ASSERT_TRUE(reply);
-            EXPECT_FALSE(reply->pending());
+            EXPECT_FALSE(require_value(reply).pending());
         }
         auto call = p.ui.service<int, int>("defer").request(1, 1s);
         p.pump();
         provider.poll();
-        reply->respond(9);
+        require_value(reply).respond(9);
         p.pump();
         ASSERT_TRUE(call.ready());
         EXPECT_EQ(call.get().value(), 9);
@@ -310,7 +356,7 @@ namespace
         p.ioc.poll();
         EXPECT_EQ(p.b.state(), p2p::LinkState::TimedOut);
         ASSERT_TRUE(execution);
-        EXPECT_TRUE(execution->cancelRequested());
+        EXPECT_TRUE(require_value(execution).cancelRequested());
     }
 
     class AckGate final : public p2p::ITransport
@@ -346,11 +392,14 @@ namespace
     };
     TEST(P2p, TerminalResultOccupiesCapacityUntilAcknowledgement)
     {
-        pnm::msg::Bus ui, io;
-        pnm::coro::Context uc, ic;
+        pnm::msg::Bus ui;
+        pnm::msg::Bus io;
+        pnm::coro::Context uc;
+        pnm::coro::Context ic;
         auto transport = p2p::InProcessTransport::pair();
         auto gate = std::make_shared<AckGate>(transport[0]);
-        p2p::Bridge a(ui, uc, gate), b(io, ic, transport[1], { .max_pending = 1 });
+        p2p::Bridge a(ui, uc, gate);
+        p2p::Bridge b(io, ic, transport[1], { .max_pending = 1 });
         a.importAction<int, int, int>(1, "move");
         b.exportAction<int, int, int>(1, "move");
         int executed{};
@@ -368,7 +417,8 @@ namespace
         b.start();
         pump();
         gate->block = true;
-        bool done{}, busy{};
+        bool done{};
+        bool busy{};
         auto first = ui.action<int, int, int>("move").sendGoal(1, { 1s }, { .on_result = [&](auto r) {
             ASSERT_TRUE(r);
             EXPECT_EQ(r->value, 9);
@@ -404,10 +454,13 @@ namespace
     }
     TEST(P2p, ObsoleteFramesAndMalformedVersionsCannotReachSubscribers)
     {
-        pnm::msg::Bus ui, io;
-        pnm::coro::Context uc, ic;
+        pnm::msg::Bus ui;
+        pnm::msg::Bus io;
+        pnm::coro::Context uc;
+        pnm::coro::Context ic;
         auto transport = p2p::InProcessTransport::pair();
-        p2p::Bridge a(ui, uc, transport[0], { .session = 101 }), b(io, ic, transport[1], { .session = 202 });
+        p2p::Bridge a(ui, uc, transport[0], { .session = 101 });
+        p2p::Bridge b(io, ic, transport[1], { .session = 202 });
         a.receiveTopic<int>(1, "state");
         b.publishTopic<int>(1, "state");
         int seen{};
@@ -451,3 +504,5 @@ namespace
     }
 
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)

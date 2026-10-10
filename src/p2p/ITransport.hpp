@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <span>
 #include <vector>
@@ -8,12 +9,12 @@
 namespace p2p
 {
     using Bytes = std::vector<std::byte>;
-    enum class Lane
+    enum class Lane : std::uint8_t
     {
         Normal,
         Urgent
     };
-    enum class SendResult
+    enum class SendResult : std::uint8_t
     {
         Sent,
         Full,
@@ -31,6 +32,11 @@ namespace p2p
     class ITransport
     {
       public:
+        ITransport() = default;
+        ITransport(const ITransport&) = delete;
+        ITransport& operator=(const ITransport&) = delete;
+        ITransport(ITransport&&) = delete;
+        ITransport& operator=(ITransport&&) = delete;
         virtual ~ITransport() = default;
         virtual SendResult trySend(std::span<const std::byte> frame, Lane lane) = 0;
         virtual bool tryReceive(Bytes& frame) = 0;

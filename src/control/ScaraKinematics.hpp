@@ -2,6 +2,7 @@
 
 #include "pneumo/units.hpp"
 
+#include <cstdint>
 #include <expected>
 #include <optional>
 
@@ -59,6 +60,8 @@ class ScaraKinematics final
         JointPosition maximum{};
     };
 
+    static constexpr double DEFAULT_MINIMUM_BEND_SINE = 1e-6;
+
     struct Config
     {
         pnm::units::Distance first_arm_length{};  // Shoulder axis to elbow axis.
@@ -71,13 +74,13 @@ class ScaraKinematics final
         // second arm's frame: +X forward, +Y left, +Z up. Independent of tool_yaw.
         CartesianPosition tool_offset{};
         pnm::units::Angle tool_yaw{};
-        std::optional<JointLimits> limits{};
+        std::optional<JointLimits> limits;
         // Reject inverse solutions with |sin(effective elbow bend)| <= this.
         // This is a dimensionless singularity threshold, not a velocity limit.
-        double minimum_bend_sine{ 1e-6 };
+        double minimum_bend_sine{ DEFAULT_MINIMUM_BEND_SINE };
     };
 
-    enum class ElbowBranch
+    enum class ElbowBranch : std::uint8_t
     {
         // Sign of sin(elbow + atan2(tool_offset.y, second_arm_length + tool_offset.x)).
         // For a tool on the second arm's centreline these are the usual two bends.
@@ -85,7 +88,7 @@ class ScaraKinematics final
         Negative
     };
 
-    enum class Error
+    enum class Error : std::uint8_t
     {
         InvalidInput,
         Unreachable,

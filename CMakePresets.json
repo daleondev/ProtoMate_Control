@@ -155,11 +155,8 @@
         },
         {
             "name": "clang-tidy-linux",
-            "displayName": "Clang-Tidy Linux",
-            "inherits": "debug-linux",
-            "cacheVariables": {
-                "ENABLE_CLANG_TIDY": true
-            }
+            "displayName": "Clang-Tidy Linux (partial coverage)",
+            "inherits": "debug-linux"
         },
         {
             "name": "release-linux",
@@ -212,7 +209,7 @@
         {
             "name": "clang-tidy-linux",
             "configurePreset": "clang-tidy-linux",
-            "cleanFirst": true
+            "targets": ["clang-tidy"]
         },
         {
             "name": "release-linux",

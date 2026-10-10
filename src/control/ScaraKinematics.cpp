@@ -31,17 +31,17 @@ namespace
 
     double radians(Angle angle) noexcept { return std::remainder(angle.get(), TURN); }
 
-    Kinematics::Result<Angle> nearestEquivalent(Angle angle,
-                                                Angle reference,
-                                                std::optional<std::pair<Angle, Angle>> limits) noexcept
+    Kinematics::Result<Angle> nearest_equivalent(Angle angle,
+                                                 Angle reference,
+                                                 std::optional<std::pair<Angle, Angle>> limits) noexcept
     {
         // Divide first to avoid overflow when finite reference and angle have
         // opposite signs. Do not wrap the final answer back into +/- pi.
-        auto turns{ std::round(reference.get() / TURN - angle.get() / TURN) };
+        auto turns{ std::round((reference.get() / TURN) - (angle.get() / TURN)) };
         if (limits) {
             const auto [minimum, maximum]{ *limits };
-            const auto lower{ minimum.get() / TURN - angle.get() / TURN };
-            const auto upper{ maximum.get() / TURN - angle.get() / TURN };
+            const auto lower{ (minimum.get() / TURN) - (angle.get() / TURN) };
+            const auto upper{ (maximum.get() / TURN) - (angle.get() / TURN) };
             const auto tolerance{ ROUNDING_TOLERANCE * std::max({ 1.0, std::abs(lower), std::abs(upper) }) };
             const auto first{ std::ceil(lower - tolerance) };
             const auto last{ std::floor(upper + tolerance) };
@@ -72,23 +72,24 @@ namespace
         double first_x, first_y, second_x, second_y;
     };
 
-    ArmVectors vectors(Kinematics::JointPosition joints,
-                       Angle base_yaw,
-                       double first_length,
-                       double second_length,
-                       double tool_phase) noexcept
+    struct ArmGeometry
+    {
+        double first_length, second_length, tool_phase;
+    };
+
+    ArmVectors vectors(Kinematics::JointPosition joints, Angle base_yaw, ArmGeometry geometry) noexcept
     {
         const auto shoulder{ radians(base_yaw) + radians(joints.shoulder) };
-        const auto distal{ shoulder + radians(joints.elbow) + tool_phase };
-        return { first_length * std::cos(shoulder),
-                 first_length * std::sin(shoulder),
-                 second_length * std::cos(distal),
-                 second_length * std::sin(distal) };
+        const auto distal{ shoulder + radians(joints.elbow) + geometry.tool_phase };
+        return { .first_x = geometry.first_length * std::cos(shoulder),
+                 .first_y = geometry.first_length * std::sin(shoulder),
+                 .second_x = geometry.second_length * std::cos(distal),
+                 .second_y = geometry.second_length * std::sin(distal) };
     }
 }
 
 ScaraKinematics::ScaraKinematics(Config config)
-  : m_config{ std::move(config) }
+  : m_config{ config }
 {
     if (!finite(
           m_config.first_arm_length, m_config.second_arm_length, m_config.base_yaw, m_config.tool_yaw) ||
@@ -124,11 +125,15 @@ ScaraKinematics::Result<ScaraKinematics::ToolPose> ScaraKinematics::forward(
     if (!finite(joints)) {
         return std::unexpected(Error::InvalidInput);
     }
-    const auto arm{ vectors(joints, m_config.base_yaw, m_firstLength, m_effectiveSecondLength, m_toolPhase) };
-    ToolPose pose{ { m_config.base_origin.x + Distance::create(arm.first_x + arm.second_x),
-                     m_config.base_origin.y + Distance::create(arm.first_y + arm.second_y),
-                     m_config.base_origin.z + joints.z + m_config.tool_offset.z },
-                   m_config.base_yaw + joints.shoulder + joints.elbow + m_config.tool_yaw };
+    const auto arm{ vectors(joints,
+                            m_config.base_yaw,
+                            { .first_length = m_firstLength,
+                              .second_length = m_effectiveSecondLength,
+                              .tool_phase = m_toolPhase }) };
+    ToolPose pose{ .position = { .x = m_config.base_origin.x + Distance::create(arm.first_x + arm.second_x),
+                                 .y = m_config.base_origin.y + Distance::create(arm.first_y + arm.second_y),
+                                 .z = m_config.base_origin.z + joints.z + m_config.tool_offset.z },
+                   .yaw = m_config.base_yaw + joints.shoulder + joints.elbow + m_config.tool_yaw };
     if (!finite(pose.position) || !pose.yaw.isFinite()) {
         return std::unexpected(Error::NumericOverflow);
     }
@@ -208,7 +213,7 @@ ScaraKinematics::Result<ScaraKinematics::JointPosition> ScaraKinematics::inverse
     const auto bend{ (*branch == ElbowBranch::Positive ? 1.0 : -1.0) * std::atan2(sine, cosine) };
     const auto shoulder{ Angle::create(
       std::atan2(dy, dx) - radians(m_config.base_yaw) -
-      std::atan2(second * std::sin(bend), first + second * std::cos(bend))) };
+      std::atan2(second * std::sin(bend), first + (second * std::cos(bend)))) };
     const auto elbow{ Angle::create(bend - m_toolPhase) };
     const auto shoulder_limits{ m_config.limits
                                   ? std::optional{ std::pair{ m_config.limits->minimum.shoulder,
@@ -217,8 +222,8 @@ ScaraKinematics::Result<ScaraKinematics::JointPosition> ScaraKinematics::inverse
     const auto elbow_limits{ m_config.limits ? std::optional{ std::pair{ m_config.limits->minimum.elbow,
                                                                          m_config.limits->maximum.elbow } }
                                              : std::nullopt };
-    const auto fitted_shoulder{ nearestEquivalent(shoulder, reference.shoulder, shoulder_limits) };
-    const auto fitted_elbow{ nearestEquivalent(elbow, reference.elbow, elbow_limits) };
+    const auto fitted_shoulder{ nearest_equivalent(shoulder, reference.shoulder, shoulder_limits) };
+    const auto fitted_elbow{ nearest_equivalent(elbow, reference.elbow, elbow_limits) };
     if (!fitted_shoulder) {
         return std::unexpected(fitted_shoulder.error());
     }
@@ -240,7 +245,7 @@ ScaraKinematics::Result<ScaraKinematics::JointPosition> ScaraKinematics::inverse
         }
         fitted_z = Distance::create(std::clamp(z.get(), minimum, maximum));
     }
-    const JointPosition result{ *fitted_shoulder, *fitted_elbow, fitted_z };
+    const JointPosition result{ .shoulder = *fitted_shoulder, .elbow = *fitted_elbow, .z = fitted_z };
     if (const auto check{ checkJointLimits(result) }; !check) {
         return std::unexpected(check.error());
     }
@@ -254,13 +259,19 @@ ScaraKinematics::Result<ScaraKinematics::ToolVelocity> ScaraKinematics::forwardV
     if (!finite(joints) || !finite(velocity.shoulder, velocity.elbow, velocity.z)) {
         return std::unexpected(Error::InvalidInput);
     }
-    const auto arm{ vectors(joints, m_config.base_yaw, m_firstLength, m_effectiveSecondLength, m_toolPhase) };
+    const auto arm{ vectors(joints,
+                            m_config.base_yaw,
+                            { .first_length = m_firstLength,
+                              .second_length = m_effectiveSecondLength,
+                              .tool_phase = m_toolPhase }) };
     const auto shoulder_rate{ velocity.shoulder.get() };
     const auto distal_rate{ (velocity.shoulder + velocity.elbow).get() };
-    ToolVelocity result{ { Velocity::create(-arm.first_y * shoulder_rate - arm.second_y * distal_rate),
-                           Velocity::create(arm.first_x * shoulder_rate + arm.second_x * distal_rate),
-                           velocity.z },
-                         AngularVelocity::create(distal_rate) };
+    ToolVelocity result{
+        .linear = { .x = Velocity::create((-arm.first_y * shoulder_rate) - (arm.second_y * distal_rate)),
+                    .y = Velocity::create((arm.first_x * shoulder_rate) + (arm.second_x * distal_rate)),
+                    .z = velocity.z },
+        .yaw = AngularVelocity::create(distal_rate)
+    };
     if (!finite(result.linear.x, result.linear.y, result.linear.z, result.yaw)) {
         return std::unexpected(Error::NumericOverflow);
     }
@@ -284,14 +295,14 @@ ScaraKinematics::Result<ScaraKinematics::JointVelocity> ScaraKinematics::inverse
     // Jacobian. Tool yaw follows the two joint rates; it is not a fourth input.
     const auto shoulder{ radians(m_config.base_yaw) + radians(joints.shoulder) };
     const auto bend{ radians(joints.elbow) + m_toolPhase };
-    const auto vx{ std::cos(shoulder) * velocity.x.get() + std::sin(shoulder) * velocity.y.get() };
-    const auto vy{ -std::sin(shoulder) * velocity.x.get() + std::cos(shoulder) * velocity.y.get() };
+    const auto vx{ (std::cos(shoulder) * velocity.x.get()) + (std::sin(shoulder) * velocity.y.get()) };
+    const auto vy{ (-std::sin(shoulder) * velocity.x.get()) + (std::cos(shoulder) * velocity.y.get()) };
     const auto sine{ std::sin(bend) };
     const auto shoulder_rate{ (vy + std::cos(bend) / sine * vx) / m_firstLength };
     const auto distal_rate{ -vx / m_effectiveSecondLength / sine };
-    JointVelocity result{ AngularVelocity::create(shoulder_rate),
-                          AngularVelocity::create(distal_rate - shoulder_rate),
-                          velocity.z };
+    JointVelocity result{ .shoulder = AngularVelocity::create(shoulder_rate),
+                          .elbow = AngularVelocity::create(distal_rate - shoulder_rate),
+                          .z = velocity.z };
     if (!finite(result.shoulder, result.elbow, result.z)) {
         return std::unexpected(Error::NumericOverflow);
     }

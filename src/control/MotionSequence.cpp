@@ -28,8 +28,9 @@ namespace motion
         if (m_second && pulse > m_first.end)
             return m_first.profile.duration() +
                    m_second->profile.timeAt(static_cast<double>(pulse - m_second->begin) * m_step,
-                                            hint - m_first.profile.duration());
-        return m_first.profile.timeAt(static_cast<double>(pulse - m_first.begin) * m_step, hint);
+                                            { .seconds = hint - m_first.profile.duration() });
+        return m_first.profile.timeAt(static_cast<double>(pulse - m_first.begin) * m_step,
+                                      { .seconds = hint });
     }
 
     hal::util::Result<hal::step::Timing> Sequence::timing(hal::step::PulseCount pulse) const noexcept
