@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run src/ clang-tidy checks with Pneumo's reflection compiler in Docker.
+"""Lint production src/ and platform/hal/ code with Pneumo's reflection compiler.
 
 Each source runs directly through clang-tidy; its raw output goes to the console.
 Parallel runs keep each file's output together. Reports are saved separately.
@@ -31,6 +31,53 @@ REFLECTION_HEADERS = Path("/opt/clang-p2996/include/c++/v1")
 DIAGNOSTIC = re.compile(
     r"^(.+?):(\d+):(\d+): (?:warning|error|fatal error): (.*?) \[([^\]]+)\]$", re.MULTILINE)
 OUTPUT_LOCK = Lock()
+SOURCE_ROOTS = (ROOT / "src", ROOT / "platform/hal")
+EXCLUDED_HEADERS = r"(^|/)(test|tests)/"
+
+
+def in_scope(source):
+    return any(source.is_relative_to(directory) and
+               not {"test", "tests"}.intersection(source.relative_to(directory).parts[:-1])
+               for directory in SOURCE_ROOTS)
+
+
+def header_filter():
+    return "^(" + "|".join(re.escape(str(directory)) for directory in SOURCE_ROOTS) + ")/"
+
+
+def configure_database(output, name, arguments):
+    """Obtain real CMake commands without building or changing firmware presets."""
+    build = output / "configurations" / name
+    result = subprocess.run(["cmake", *arguments, "-B", str(build),
+                             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"], cwd=ROOT,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    (output / f"configure-{name}.log").write_text(result.stdout)
+    if result.returncode:
+        raise ValueError(f"CMake configuration {name} failed:\n{result.stdout}")
+    return name, build
+
+
+def arm_include_directories(build):
+    """Ask the real cross-compiler for its C++ multilib and newlib headers."""
+    entry = next(entry for entry in json.loads((build / "compile_commands.json").read_text())
+                 if source_file(entry).is_relative_to(ROOT / "platform/hal"))
+    arguments = entry.get("arguments") or shlex.split(entry["command"])
+    architecture = [arg for arg in arguments if arg.startswith(("-mcpu=", "-mfpu=", "-mfloat-abi=", "-mthumb"))]
+    result = subprocess.run([arguments[0], *architecture, "-E", "-x", "c++", "-v", "/dev/null"],
+                            capture_output=True, text=True, check=True, env={**os.environ, "LC_ALL": "C"})
+    marker = "#include <...> search starts here:\n"
+    if marker not in result.stderr or "End of search list." not in result.stderr:
+        raise ValueError("The Arm compiler did not report its header search paths")
+    search = result.stderr.split(marker, 1)[1].split("End of search list.", 1)[0]
+    # Clang provides its own builtin headers. GCC's arm intrinsics must not
+    # replace those; retain the target's actual standard library and C headers.
+    builtins = {Path(subprocess.check_output([arguments[0], f"-print-file-name={name}"], text=True).strip()).resolve()
+                for name in ("include", "include-fixed")}
+    includes = [Path(line.strip()).resolve() for line in search.splitlines() if line.strip()]
+    includes = [directory for directory in includes if directory not in builtins]
+    if not includes or any(not directory.is_dir() for directory in includes):
+        raise ValueError("Cannot locate the Arm compiler's standard library headers")
+    return includes
 
 
 def adapt_reflection_header(source, replacements):
@@ -73,26 +120,50 @@ def source_file(entry):
     return (Path(entry["directory"]) / entry["file"]).resolve()
 
 
-def prepare_database(build, output):
-    entries = json.loads((build / "compile_commands.json").read_text())
+def prepare_database(build, output, extra_databases=(), arm_includes=()):
     selected = []
-    for entry in entries:
-        source = source_file(entry)
-        if not source.is_relative_to(ROOT / "src"):
-            continue
-        arguments = entry.get("arguments") or shlex.split(entry["command"])
-        if any(argument.startswith(("-mcpu=", "-mthumb", "-mfpu=", "--sysroot="))
-               for argument in arguments):
-            raise ValueError("Use a Linux compilation database; this Clang image targets the host")
-        selected.append({"directory": entry["directory"], "file": str(source), "arguments": [
-            COMPILER, "-stdlib=libstdc++", "-fexpansion-statements", "-fannotation-attributes",
-            "-isystem", str(output / "reflection-include"),
-            "-Wno-c23-extensions", "-isystem", str(output / "system-include"), *arguments[1:]]})
+    for context, directory in [("linux", build), *extra_databases]:
+        entries = json.loads((directory / "compile_commands.json").read_text())
+        commands = []
+        for entry in entries:
+            source = source_file(entry)
+            if not in_scope(source):
+                continue
+            if context != "linux" and not source.is_relative_to(ROOT / "platform/hal"):
+                continue
+            arguments = entry.get("arguments") or shlex.split(entry["command"])
+            arm = any(arg.startswith("-mcpu=") for arg in arguments)
+            if arm and not arm_includes:
+                raise ValueError("Arm compilation commands require the cross-compiler's headers")
+            target = (["--target=arm-none-eabi", "-nostdinc++"] if arm else ["-stdlib=libstdc++"])
+            includes = arm_includes if arm else [output / "system-include"]
+            for include in includes:
+                target.extend(["-isystem", str(include)])
+            commands.append({"directory": entry["directory"], "file": str(source), "arguments": [
+                COMPILER, "-fexpansion-statements", "-fannotation-attributes",
+                "-isystem", str(output / "reflection-include"), "-Wno-c23-extensions",
+                *target, *arguments[1:]]})
+        if len({item["file"] for item in commands}) != len(commands):
+            raise ValueError(f"Multiple commands for one source in {context}")
+        database = output / "databases" / context
+        database.mkdir(parents=True, exist_ok=True)
+        (database / "compile_commands.json").write_text(json.dumps(commands, indent=2) + "\n")
+        selected.extend({**command, "context": context, "database": str(database)} for command in commands)
     if not selected:
-        raise ValueError("No src/ sources found; configure the debug-linux preset first")
-    if len({item["file"] for item in selected}) != len(selected):
-        raise ValueError("Multiple commands for one source; use a single Linux build configuration")
-    (output / "compile_commands.json").write_text(json.dumps(selected, indent=2) + "\n")
+        raise ValueError("No src/ or platform/hal/ sources found; configure the debug-linux preset first")
+    # An explicit inventory prevents new platform-only files from silently
+    # falling outside the selected build configurations.
+    if extra_databases:
+        expected = {source.resolve() for source in (ROOT / "platform/hal").rglob("*")
+                    if source.suffix in (".cpp", ".cc", ".c", ".cxx") and in_scope(source.resolve())}
+        missing = expected - {Path(item["file"]) for item in selected}
+        if missing:
+            raise ValueError("HAL sources missing compilation commands: " + ", ".join(
+                str(source.relative_to(ROOT)) for source in sorted(missing)))
+    (output / "analysis.json").write_text(json.dumps(selected, indent=2) + "\n")
+    # Older versions wrote one host-only database here. Keep editors and manual
+    # invocations from accidentally selecting that obsolete analysis context.
+    (output / "compile_commands.json").unlink(missing_ok=True)
 
 
 def collect_diagnostics(log):
@@ -100,7 +171,7 @@ def collect_diagnostics(log):
     for match in DIAGNOSTIC.finditer(log):
         filename, line, column, message, checks = match.groups()
         filename = Path(filename).resolve()
-        if not filename.is_relative_to(ROOT / "src") or "clang-diagnostic-error" in checks:
+        if not in_scope(filename) or "clang-diagnostic-error" in checks:
             continue
         diagnostics.append({"file": str(filename.relative_to(ROOT)), "line": int(line),
                             "column": int(column), "message": message,
@@ -149,18 +220,21 @@ def exit_status(reports, findings, strict):
 def check(entry, args):
     source = Path(entry["file"])
     filename = str(source.relative_to(ROOT))
-    output = args.output / filename.replace("/", "__")
+    context = entry.get("context", "linux")
+    output = args.output / context / filename.replace("/", "__")
+    output.parent.mkdir(parents=True, exist_ok=True)
     fixes = output.with_suffix(output.suffix + ".yaml")
     fixes.unlink(missing_ok=True)
-    command = [TIDY, "-p", str(args.output), "--config-file=" + str(ROOT / ".clang-tidy"),
-               "--header-filter=^" + re.escape(str(ROOT / "src")) + "/",
+    command = [TIDY, "-p", entry.get("database", str(args.output)), "--config-file=" + str(ROOT / ".clang-tidy"),
+               "--header-filter=" + header_filter(),
+               "--exclude-header-filter=" + EXCLUDED_HEADERS,
                "--export-fixes=" + str(fixes), str(source)]
     code, log, tidy_seconds = run_command(command, entry["directory"], args.timeout)
     with OUTPUT_LOCK:
         print(log, end="", flush=True)
     output.with_suffix(output.suffix + ".log").write_text(log)
     blockers = sorted({line.strip() for line in log.splitlines() if "[clang-diagnostic-error]" in line})
-    return {"file": filename, "status": classify(code, log), "exit_code": code,
+    return {"file": filename, "context": context, "status": classify(code, log), "exit_code": code,
             "tidy_seconds": tidy_seconds, "blockers": blockers, "diagnostics": collect_diagnostics(log)}
 
 
@@ -176,7 +250,7 @@ def run_inside(args):
     if verification.returncode:
         print(verification.stdout + verification.stderr, file=sys.stderr)
         return 2
-    entries = json.loads((args.output / "compile_commands.json").read_text())
+    entries = json.loads((args.output / "analysis.json").read_text())
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         reports = list(pool.map(lambda entry: check(entry, args), entries))
     parsed = [report for report in reports if report["status"] == "parsed"]
@@ -205,15 +279,17 @@ def run_inside(args):
     failures = [report for report in reports if report["status"] == "tool-failure"]
     summary = (f"Clang-tidy: {len(parsed)}/{len(reports)} translation units fully parsed; "
                f"{len(blocked)} blocked; {len(failures)} tool failures.\n"
-               f"{len(findings)} unique src/ findings in fully parsed units.\n"
+               f"{len(findings)} unique src/ and platform/hal/ findings in fully parsed units.\n"
                f"{len(partial)} additional diagnostics from blocked units (review only).\n"
                f"Coverage: {'PARTIAL' if blocked or failures else 'COMPLETE'}. "
                f"Mode: {'strict' if args.strict else 'partial coverage accepted'}.\n")
-    blocked_text = "\n".join(report["file"] + "\n  " + "\n  ".join(report["blockers"])
+    blocked_text = "\n".join(report["context"] + ": " + report["file"] + "\n  " + "\n  ".join(report["blockers"])
                              for report in blocked)
     (args.output / "summary.txt").write_text(summary + "\nBlocked files:\n" + blocked_text + "\n")
     (args.output / "report.json").write_text(json.dumps({"image": IMAGE, "compiler": version,
         "standard_library": "libstdc++", "reflection_headers": "Clang/P2996; adapted includes and namespaces",
+        "scope": [str(directory.relative_to(ROOT)) for directory in SOURCE_ROOTS],
+        "excluded_directories": ["test", "tests"],
         "coverage": "partial" if blocked or failures else "complete",
         "findings": findings, "partial_findings": list(partial.values()), "files": reports}, indent=2) + "\n")
     return exit_status(reports, findings, args.strict)
@@ -249,12 +325,20 @@ def main():
         # headers of the host Linux build, without importing host C++ headers.
         for name in ("curses.h", "ncurses_dll.h", "unctrl.h"):
             shutil.copyfile(Path("/usr/include") / name, includes / name)
-        prepare_database(args.build_dir, args.output)
+        databases = [configure_database(args.output, "stm32", ["--preset", "debug-stm32"])]
+        arm_includes = arm_include_directories(databases[0][1])
+        prepare_database(args.build_dir, args.output, databases, arm_includes)
+        # Mount only header trees, never the host /usr over the image toolchain.
+        mounts = [directory for directory in arm_includes if not any(
+            directory != parent and directory.is_relative_to(parent) for parent in arm_includes)]
+        header_mounts = [argument for directory in mounts for argument in
+                         ("--mount", f"type=bind,src={directory},dst={directory},readonly")]
         command = ["docker", "run", "--rm", "--pull=never", "--network=none", "--read-only",
                    "--cap-drop=ALL", "--security-opt=no-new-privileges", "--tmpfs", "/tmp",
                    "--user", f"{os.getuid()}:{os.getgid()}",
                    "--mount", f"type=bind,src={ROOT},dst={ROOT},readonly",
                    "--mount", f"type=bind,src={args.output},dst={args.output}",
+                   *header_mounts,
                    "--workdir", str(ROOT), IMAGE,
                    "python3", str(Path(__file__).resolve()), "--inside-container",
                    "--build-dir", str(args.build_dir), "--jobs", str(args.jobs),
@@ -262,7 +346,7 @@ def main():
         if args.strict:
             command.append("--strict")
         return subprocess.run(command, check=False).returncode
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f"Clang-tidy setup failed: {error}", file=sys.stderr)
         return 2
 

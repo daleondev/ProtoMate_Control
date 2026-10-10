@@ -72,11 +72,11 @@ It exchanges one `UDINT` in each direction, without robot functions. See the
 [example instructions](docs/ethercat/slave-example.md) and install its
 [ESI file](examples/ethercat_slave/ProtoMateEcho.xml) in the EtherCAT master.
 
-## Application linting
+## Application and HAL linting
 
 Run the configured readability, naming, bug-prone, modernization, performance,
-static-analyzer and Core Guidelines checks on **`src/` only**, including the Linux
-test sources, with:
+static-analyzer and Core Guidelines checks on production code in **`src/` and
+`platform/hal/`**, including both Linux and STM32 implementations, with:
 
 ```sh
 cmake --preset debug-linux
@@ -87,9 +87,10 @@ Alternatively, `cmake --preset clang-tidy-linux` followed by
 `cmake --build --preset clang-tidy-linux` prepares a separate analysis directory.
 These are explicit analysis targets; normal builds still use GCC without linting.
 
-The runner requires Docker, Python 3 and the host ncurses development headers. It
-uses a pinned Pneumo devcontainer image with matching Clang/P2996, clang-tidy and
-reflection headers, plus the image's installed libstdc++. If it is not already
+The runner requires Docker, Python 3, CMake/Ninja, the project's GCC 16 Arm
+toolchain (including newlib/libstdc++ headers), and host ncurses development
+headers. It uses a pinned Pneumo devcontainer image with matching
+Clang/P2996, clang-tidy and reflection headers. If the image is not already
 installed, pull it once:
 
 ```sh
@@ -97,18 +98,34 @@ docker pull ghcr.io/daleondev/pneumo-devcontainer@sha256:1c10d580f47f4fa402da038
 ```
 
 The container runs without network access, with project sources mounted read-only.
-An analysis copy of the compilation database selects Clang/libstdc++ and reflection
-flags. This supplies the real `std::move_only_function`, including move ownership
-and `noexcept` constraints, and retains the real HAL and runtime interfaces.
-Real ncurses headers are copied into the report directory. Firmware flags,
-dependency declarations and application sources are not rewritten for analysis.
-This host analysis does not validate STM32-specific behavior or ABI.
+Analysis copies of the compilation databases select Clang and reflection flags.
+Linux analysis uses the image's libstdc++. STM32 analysis uses
+`--target=arm-none-eabi`, the original Cortex-M7/FPU settings and the real Arm
+toolchain's libstdc++/newlib headers, mounted read-only. Real host ncurses headers
+are copied into the report directory. Firmware build flags,
+dependency declarations and application sources are not rewritten.
+
+The runner configures a private STM32 CMake directory under
+`<build-directory>/clang-tidy/configurations/stm32/` to obtain the HAL's actual
+includes and definitions without building or flashing anything. Separate analysis
+databases preserve Linux and STM32 contexts for shared sources. Every production
+HAL C/C++ source must have a compilation command; setup fails if a newly added
+file is missing from these configurations.
+
+All `test/` and `tests/` directories, including unit tests, test helpers, model
+tests and hardware bench programs, are excluded from source selection, header
+diagnostics and reports. No test configurations are prepared for linting.
+`platform/runtime/` and external dependencies are also excluded. Their real
+headers are still parsed when required by a production source. Static analysis
+does not replace GCC builds or hardware tests.
 
 The runner generates `reflection-include/` from the pinned Clang `<meta>` and
 consteval-type-trait headers. Only their library includes, namespace wrappers and
 library-specific declaration macros are adapted for libstdc++; the reflection
-implementations and compiler intrinsics are preserved. No HAL, ThreadX or callback
-stubs are used. Pneumo selects its existing Clang reflection workaround by the
+implementations and compiler intrinsics are preserved. No lint-specific HAL,
+ThreadX or callback stubs are used. STM32 sources are checked against the real
+hardware headers in their ARM context.
+Pneumo selects its existing Clang reflection workaround by the
 reflection header instead of the surrounding standard library. Updating the image
 requires revalidating this adaptation; missing expected header markers fail setup.
 
@@ -128,12 +145,15 @@ clang-tidy check filters. See the [clang-tidy documentation](https://clang.llvm.
 
 Reports are saved separately in `<build-directory>/clang-tidy/`:
 
-- `findings.txt`: deduplicated `src/` diagnostics from fully parsed files.
+- `findings.txt`: deduplicated `src/` and `platform/hal/` diagnostics from fully
+  parsed files.
 - `partial-findings.txt`: review-only diagnostics if clang-tidy fails to parse
   a file; normally empty.
 - `summary.txt` and `report.json`: coverage, blocked files and their errors.
-- Per-source `.log` and `.yaml` files: full diagnostics and suggested replacements.
-  The JSON report records each invocation's duration.
+- Per-context directories containing per-source `.log` and `.yaml` files: full
+  diagnostics and suggested replacements. `analysis.json` lists the selected
+  commands and their databases; the JSON report records each invocation's context
+  and duration.
   Replacements are **never applied automatically**.
 
 Exit status is `1` for findings in fully parsed files, and `2` for tool failures or
@@ -148,13 +168,12 @@ python3 scripts/clang_tidy.py --build-dir build/debug-linux --strict
 The naming rules live in `.clang-tidy`. Clang 21 uses `GlobalConstant` for global
 constants including constexpr, and `PublicMember` for public fields including
 ordinary struct fields. `tooling.clang_tidy` tests diagnostic classification,
-source filtering and failure handling without Docker.
+source and test filtering, HAL inventory, target contexts and failure handling
+without Docker.
 
 Cognitive-complexity checks count application control flow, excluding macro
-expansions such as GoogleTest assertions. Tests may locally exempt numerical
-fixtures from magic-number checks. Compiler-generated coroutine diagnostics and
-deliberate invalid-enum tests have narrowly named, commented `NOLINT` markers;
-the remaining check families stay enabled.
+expansions. Compiler-generated coroutine diagnostics have narrowly named,
+commented `NOLINT` markers; the remaining check families stay enabled.
 
 ## HAL architecture
 

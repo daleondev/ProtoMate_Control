@@ -27,18 +27,107 @@ class PartialLintTests(unittest.TestCase):
             app = {"directory": str(tidy.ROOT), "file": "src/main.cpp",
                    "arguments": ["g++", "-Ipath with spaces", "-DFLAG=7", "-freflection",
                                  "-std=c++26", "-c", "src/main.cpp"]}
-            dependency = {**app, "file": "external/dependency.cpp"}
-            original = json.dumps([app, dependency])
+            hal = {**app, "file": "platform/hal/hal.cpp"}
+            excluded = [{**app, "file": filename} for filename in (
+                "external/dependency.cpp", "platform/runtime/Runtime.cpp",
+                "platform/hal_extra/example.cpp", "src_other/example.cpp",
+                "src/control/tests/stepper_motor_test.cpp", "src/p2p/tests/bridge_test.cpp",
+                "src/cli/test/test_parser.cpp", "platform/hal/tests/gpio_test.cpp",
+                "platform/hal/tests/step_model/step_stm32_test.cpp")]
+            original = json.dumps([app, hal, *excluded])
             database = build / "compile_commands.json"
             database.write_text(original)
             tidy.prepare_database(build, output)
-            prepared = json.loads((output / "compile_commands.json").read_text())
-            self.assertEqual(len(prepared), 1)
+            prepared = json.loads((output / "analysis.json").read_text())
+            self.assertEqual(len(prepared), 2)
+            self.assertEqual([entry["file"] for entry in prepared],
+                             [str(tidy.ROOT / entry["file"]) for entry in (app, hal)])
             self.assertEqual(prepared[0]["arguments"][0], tidy.COMPILER)
             self.assertIn("-stdlib=libstdc++", prepared[0]["arguments"])
             self.assertIn(str(output / "reflection-include"), prepared[0]["arguments"])
             self.assertEqual(prepared[0]["arguments"][-6:], app["arguments"][-6:])
             self.assertEqual(database.read_text(), original)
+
+    def test_header_filter_covers_hal_and_src_but_not_runtime_or_dependencies(self):
+        pattern = tidy.re.compile(tidy.header_filter())
+        for filename in ("src/main.hpp", "platform/hal/drivers/impl/stm32/Spi.hpp"):
+            self.assertIsNotNone(pattern.match(str(tidy.ROOT / filename)))
+        for filename in ("platform/runtime/Runtime.hpp", "external/pneumo/include/meta.hpp",
+                         "platform/hal_other/other.hpp", "src_other/other.hpp"):
+            self.assertIsNone(pattern.match(str(tidy.ROOT / filename)))
+        excluded = tidy.re.compile(tidy.EXCLUDED_HEADERS)
+        for filename in ("src/control/tests/Connection.hpp", "src/p2p/tests/CommunicationLoad.hpp",
+                         "platform/hal/tests/transport_model/fakes/hal/hal.hpp", "src/test/helper.hpp"):
+            source = tidy.ROOT / filename
+            self.assertIsNotNone(excluded.search(str(source)))
+            self.assertFalse(tidy.in_scope(source))
+        for filename in ("src/control/StepperMotor.hpp", "platform/hal/drivers/impl/stm32/Spi.hpp",
+                         "src/test_helpers/Test.hpp"):
+            self.assertIsNone(excluded.search(str(tidy.ROOT / filename)))
+
+    def test_arm_and_host_commands_keep_separate_databases_and_target_settings(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "platform/hal/hal.cpp"
+            source.parent.mkdir(parents=True)
+            source.touch()
+            tests = root / "platform/hal/tests"
+            tests.mkdir()
+            (tests / "unlisted_test.cpp").touch()
+            host, arm, output = (root / name for name in ("host", "arm", "lint"))
+            for directory in (host, arm, output):
+                directory.mkdir()
+            native = {"directory": str(root), "file": str(source),
+                      "arguments": ["g++", "-DHAL_PLATFORM_LINUX", "-c", str(source)]}
+            target = {**native, "arguments": ["arm-none-eabi-g++", "-mcpu=cortex-m7",
+                      "-mfpu=fpv5-d16", "-mfloat-abi=hard", "-DHAL_PLATFORM_STM32", "-c", str(source)]}
+            (host / "compile_commands.json").write_text(json.dumps([native]))
+            (arm / "compile_commands.json").write_text(json.dumps([target]))
+            with patch.object(tidy, "ROOT", root), patch.object(tidy, "SOURCE_ROOTS", (root / "platform/hal",)):
+                tidy.prepare_database(host, output, [("stm32", arm)], [root / "arm-headers"])
+            entries = json.loads((output / "analysis.json").read_text())
+            self.assertEqual([entry["context"] for entry in entries], ["linux", "stm32"])
+            self.assertNotEqual(entries[0]["database"], entries[1]["database"])
+            self.assertNotIn("--target=arm-none-eabi", entries[0]["arguments"])
+            self.assertIn("--target=arm-none-eabi", entries[1]["arguments"])
+            self.assertIn("-nostdinc++", entries[1]["arguments"])
+            self.assertEqual(entries[1]["arguments"][-6:], target["arguments"][-6:])
+            for entry in entries:
+                commands = json.loads((Path(entry["database"]) / "compile_commands.json").read_text())
+                self.assertEqual(len(commands), 1)
+                self.assertEqual(commands[0]["arguments"], entry["arguments"])
+
+    def test_missing_hal_source_is_not_silently_omitted(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "platform/hal/new_driver.cpp"
+            source.parent.mkdir(parents=True)
+            source.touch()
+            (root / "compile_commands.json").write_text(json.dumps([
+                {"directory": str(root), "file": "src/main.cpp", "arguments": ["g++", "-c", "src/main.cpp"]}]))
+            with patch.object(tidy, "ROOT", root), patch.object(tidy, "SOURCE_ROOTS", (root / "src", root / "platform/hal")):
+                with self.assertRaisesRegex(ValueError, "HAL sources missing compilation commands.*new_driver.cpp"):
+                    tidy.prepare_database(root, root, [("stm32", root)])
+
+    def test_cross_compiler_headers_exclude_gcc_builtins(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            includes = [root / name for name in ("cxx", "multilib", "gcc/include", "gcc/include-fixed", "newlib")]
+            for directory in includes:
+                directory.mkdir(parents=True)
+            entry = {"directory": str(tidy.ROOT), "file": "platform/hal/hal.cpp",
+                     "arguments": ["arm-none-eabi-g++", "-mcpu=cortex-m7", "-mfpu=fpv5-d16",
+                                   "-mfloat-abi=hard", "-DOTHER=1"]}
+            (root / "compile_commands.json").write_text(json.dumps([entry]))
+            stderr = "#include <...> search starts here:\n" + "\n".join(f" {path}" for path in includes)
+            stderr += "\nEnd of search list.\n"
+            with patch.object(tidy.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "", stderr)) as run, \
+                 patch.object(tidy.subprocess, "check_output", side_effect=[str(path) for path in includes[2:4]]):
+                result = tidy.arm_include_directories(root)
+            self.assertEqual(result, [*includes[:2], includes[4]])
+            self.assertIn("-mcpu=cortex-m7", run.call_args.args[0])
+            self.assertIn("-mfloat-abi=hard", run.call_args.args[0])
+            self.assertNotIn("-DOTHER=1", run.call_args.args[0])
 
     def test_reflection_adaptation_preserves_code_and_original_headers(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -89,14 +178,20 @@ class PartialLintTests(unittest.TestCase):
         self.assertEqual(tidy.classify(124, "ANALYSIS TIMED OUT"), "tool-failure")
         self.assertEqual(tidy.classify(-11, ""), "tool-failure")
 
-    def test_only_application_diagnostics_are_collected(self):
+    def test_application_and_hal_diagnostics_are_collected_without_runtime(self):
         root = tidy.ROOT
         log = (f"{root}/src/cli/../main.cpp:12:3: error: bad name "
                "[readability-identifier-naming,-warnings-as-errors]\n"
                f"{root}/external/example.hpp:1:1: warning: name [readability-identifier-naming]\n"
+               f"{root}/platform/runtime/Runtime.hpp:1:1: warning: name [readability-identifier-naming]\n"
+               f"{root}/src/control/tests/Connection.hpp:1:1: warning: name [readability-identifier-naming]\n"
+               f"{root}/platform/hal/tests/gpio_test.cpp:1:1: warning: name [readability-identifier-naming]\n"
+               f"{root}/platform/hal/Gpio.hpp:3:4: warning: name [readability-identifier-naming]\n"
                f"{root}/src/main.cpp:2:1: error: missing type [clang-diagnostic-error]\n")
         self.assertEqual(tidy.collect_diagnostics(log), [{"file": "src/main.cpp", "line": 12,
-            "column": 3, "message": "bad name", "checks": "readability-identifier-naming"}])
+            "column": 3, "message": "bad name", "checks": "readability-identifier-naming"},
+            {"file": "platform/hal/Gpio.hpp", "line": 3, "column": 4,
+             "message": "name", "checks": "readability-identifier-naming"}])
 
     def test_partial_mode_and_strict_mode(self):
         reports = [{"status": "parsed"}, {"status": "blocked"}]
@@ -112,7 +207,8 @@ class PartialLintTests(unittest.TestCase):
     def test_compile_error_is_printed_without_prechecking_or_skipping(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
-            fixes = output / "src__main.cpp.yaml"
+            fixes = output / "linux/src__main.cpp.yaml"
+            fixes.parent.mkdir()
             fixes.write_text("stale replacements")
             entry = {"file": str(tidy.ROOT / "src/main.cpp"), "directory": temporary,
                      "arguments": [tidy.COMPILER, "-c", "relative.cpp", "-o", "object.o"]}
@@ -124,13 +220,14 @@ class PartialLintTests(unittest.TestCase):
                 report = tidy.check(entry, SimpleNamespace(output=output, timeout=5))
             self.assertEqual(run.call_count, 1)
             self.assertEqual(run.call_args.args[0][0], tidy.TIDY)
+            self.assertIn("--exclude-header-filter=" + tidy.EXCLUDED_HEADERS, run.call_args.args[0])
             self.assertEqual(run.call_args.kwargs["cwd"], temporary)
             self.assertEqual(report["status"], "blocked")
             self.assertEqual(report["diagnostics"], [])
             self.assertEqual(report["blockers"], [error.splitlines()[0]])
             self.assertFalse(fixes.exists())
-            self.assertFalse((output / "src__main.cpp.preflight.log").exists())
-            self.assertEqual((output / "src__main.cpp.log").read_text(), error)
+            self.assertFalse((output / "linux/src__main.cpp.preflight.log").exists())
+            self.assertEqual((output / "linux/src__main.cpp.log").read_text(), error)
             self.assertEqual(console.getvalue(), error)
 
     def test_tidy_runs_once_and_preserves_raw_output(self):
@@ -150,8 +247,8 @@ class PartialLintTests(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs["stderr"], subprocess.STDOUT)
             self.assertEqual(report["status"], "parsed")
             self.assertEqual(len(report["diagnostics"]), 1)
-            self.assertEqual((output / "src__main.cpp.log").read_text(), finding)
-            self.assertFalse((output / "src__main.cpp.preflight.log").exists())
+            self.assertEqual((output / "linux/src__main.cpp.log").read_text(), finding)
+            self.assertFalse((output / "linux/src__main.cpp.preflight.log").exists())
             self.assertEqual(console.getvalue(), finding)
 
     def test_reports_are_saved_without_adding_console_output(self):
@@ -159,7 +256,7 @@ class PartialLintTests(unittest.TestCase):
             output = Path(temporary)
             entries = [{"file": str(tidy.ROOT / filename), "directory": temporary}
                        for filename in ("src/main.cpp", "src/system_threads.cpp")]
-            (output / "compile_commands.json").write_text(json.dumps(entries))
+            (output / "analysis.json").write_text(json.dumps(entries))
             finding = (f"{tidy.ROOT}/src/example.hpp:2:1: error: bad name "
                        "[readability-identifier-naming,-warnings-as-errors]\n")
             results = [subprocess.CompletedProcess([], 0, "configuration valid", ""),
@@ -178,7 +275,7 @@ class PartialLintTests(unittest.TestCase):
             self.assertEqual(report["coverage"], "complete")
             self.assertEqual(len(report["files"]), 2)
             self.assertEqual(len(report["findings"]), 1)
-            self.assertIn("1 unique src/ findings", (output / "summary.txt").read_text())
+            self.assertIn("1 unique src/ and platform/hal/ findings", (output / "summary.txt").read_text())
             self.assertEqual(len((output / "findings.txt").read_text().splitlines()), 1)
 
     def test_raw_output_preserves_stdout_stderr_order(self):
