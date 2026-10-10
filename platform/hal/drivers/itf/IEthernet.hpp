@@ -22,7 +22,7 @@ namespace hal
             ARP = 0x0806U,
             VLAN = 0x8100U,
             EtherCAT = 0x88A4U,
-            SERVICE_VLAN = 0x88A8U,
+            ServiceVlan = 0x88A8U,
             IPv6 = 0x86DDU
         };
 
@@ -56,13 +56,12 @@ namespace hal
         struct Configuration
         {
             std::string_view interface_name{ "eth0" };
-            std::optional<EtherType> receive_ether_type{}; // No protocol filter unless requested.
+            std::optional<EtherType> receive_ether_type; // No protocol filter unless requested.
             bool promiscuous{};
             std::uint8_t phy_address{};
         };
 
         virtual ~IEthernet() = default;
-
         IEthernet(const IEthernet&) = delete;
         IEthernet& operator=(const IEthernet&) = delete;
         IEthernet(IEthernet&&) = delete;
@@ -100,7 +99,7 @@ namespace hal
             };
 
             std::size_t offset{ ETHER_TYPE_OFFSET };
-            while (*type == EtherType::VLAN || *type == EtherType::SERVICE_VLAN) {
+            while (*type == EtherType::VLAN || *type == EtherType::ServiceVlan) {
                 offset += VLAN_TAG_SIZE;
                 if (frame.size() < offset + sizeof(EtherType)) {
                     return std::nullopt;

@@ -17,13 +17,13 @@ namespace
     {
       protected:
         std::shared_ptr<hal::device::Tmc2209Model> uart{ std::make_shared<hal::device::Tmc2209Model>() };
-        std::shared_ptr<hal::IDigitalOutput> enable{ hal::board::createSteppersEnableOutput() };
+        std::shared_ptr<hal::IDigitalOutput> enable{ hal::board::create_steppers_enable_output() };
         std::array<std::shared_ptr<Driver>, 3> drivers{
-          hal::board::createStepperDrivers({ 16, 16, 16 }, enable, uart) };
+          hal::board::create_stepper_drivers({ 16, 16, 16 }, enable, uart) };
         std::array<std::shared_ptr<hal::GpioInput>, 3> inputs{
-            hal::gpio::simulatedInput({ hal::gpio::Port::F, 2 }),
-            hal::gpio::simulatedInput({ hal::gpio::Port::D, 4 }),
-            hal::gpio::simulatedInput({ hal::gpio::Port::D, 3 }) };
+            hal::gpio::simulated_input({ hal::gpio::Port::F, 2 }),
+            hal::gpio::simulated_input({ hal::gpio::Port::D, 4 }),
+            hal::gpio::simulated_input({ hal::gpio::Port::D, 3 }) };
         void SetUp() override
         {
             ASSERT_TRUE(enable);
@@ -219,10 +219,10 @@ TEST(StepperDriverBus, PreparesAllNodesSerializesDriverOperationsAndRetainsAnIni
     };
     auto transport{ std::make_shared<Bus>() };
     auto bus{ std::make_shared<hal::device::Tmc2209Bus>(transport, std::vector<std::uint8_t>{0, 1}) };
-    auto enable{ hal::board::createSteppersEnableOutput() };
-    auto diag2{ hal::board::createStepperDiagnostic(hal::board::MotorId::Motor2) };
-    auto diag3{ hal::board::createStepperDiagnostic(hal::board::MotorId::Motor3) };
-    auto input{ hal::gpio::simulatedInput({ hal::gpio::Port::D, 4 }) };
+    auto enable{ hal::board::create_steppers_enable_output() };
+    auto diag2{ hal::board::create_stepper_diagnostic(hal::board::MotorId::Motor2) };
+    auto diag3{ hal::board::create_stepper_diagnostic(hal::board::MotorId::Motor3) };
+    auto input{ hal::gpio::simulated_input({ hal::gpio::Port::D, 4 }) };
     hal::device::Tmc2209Driver m2{ bus, 0, diag2, enable, {}, {700, false} };
     hal::device::Tmc2209Driver m3{ bus, 1, diag3, enable,
         { .run_milliamps=550, .hold_milliamps=550 }, {590, true} };

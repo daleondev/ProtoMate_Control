@@ -6,6 +6,11 @@
 #include <optional>
 #include <utility>
 
+namespace
+{
+    inline constexpr auto SPI_POOL_SIZE{ 6 };
+}
+
 namespace hal::spi
 {
     namespace
@@ -39,7 +44,7 @@ namespace hal::spi
         const auto selected{ hardware(configuration.peripheral) };
         if (!selected)
             return {};
-        static util::ExclusiveInstances<6> instances;
+        static util::ExclusiveInstances<SPI_POOL_SIZE> instances;
         return instances.create<Spi>(std::to_underlying(configuration.peripheral), *selected);
     }
 }

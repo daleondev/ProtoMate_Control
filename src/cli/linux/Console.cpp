@@ -60,7 +60,7 @@ namespace
             // Character views may alias an existing byte buffer without copying.
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             const auto* const characters{ reinterpret_cast<const char*>(data.data()) };
-            linux_console::publish(linux_console::Channel::log, { characters, data.size() });
+            linux_console::publish(linux_console::Channel::Log, { characters, data.size() });
             return data.size();
         }
 
@@ -552,7 +552,7 @@ namespace
         {
             const std::string line{ narrow(m_input) };
             if (!line.empty()) {
-                linux_console::publish(linux_console::Channel::command, std::string{ "> " } + line + '\n');
+                linux_console::publish(linux_console::Channel::Command, std::string{ "> " } + line + '\n');
                 if (m_history.empty() || m_history.back() != m_input) {
                     m_history.push_back(m_input);
                 }
@@ -567,11 +567,11 @@ namespace
             const cli::ExecutionResult execution{ m_parser->execute(line, output) };
             const std::string command_output{ std::move(output).str() };
             if (!command_output.empty()) {
-                linux_console::publish(linux_console::Channel::command, command_output);
+                linux_console::publish(linux_console::Channel::Command, command_output);
             }
             if (execution.error != cli::ExecutionError::None &&
                 execution.error != cli::ExecutionError::EmptyInput) {
-                linux_console::publish(linux_console::Channel::command, "error: " + execution.message + '\n');
+                linux_console::publish(linux_console::Channel::Command, "error: " + execution.message + '\n');
             }
             m_scrollOffset = 0U;
         }
@@ -740,13 +740,13 @@ namespace
                 return 0;
             }
             switch (channel) {
-                case linux_console::Channel::hal:
+                case linux_console::Channel::Hal:
                     return 1;
-                case linux_console::Channel::log:
+                case linux_console::Channel::Log:
                     return 2;
-                case linux_console::Channel::command:
+                case linux_console::Channel::Command:
                     return 3;
-                case linux_console::Channel::system:
+                case linux_console::Channel::System:
                     return 4;
             }
             return 0;

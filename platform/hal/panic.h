@@ -12,7 +12,7 @@ extern "C" {
 #define HAL_PANIC_NORETURN __attribute__((noreturn))
 #endif
 
-typedef struct
+typedef struct // NOLINT(modernize-use-using) -- This header is also compiled as C.
 {
     const char* message;
     const char* detail;

@@ -1,3 +1,5 @@
+// CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
+// The line-specific exceptions below preserve the vendor register interface.
 #include "hal/drivers/factory/timer.hpp"
 
 #include "hal/drivers/impl/stm32/Timer.hpp"
@@ -20,7 +22,9 @@ namespace hal::timer
             HAL_RCC_GetClockConfig(&clock_configuration, &flash_latency);
 
             std::uint64_t frequency{ HAL_RCC_GetPCLK1Freq() };
-            if ((RCC->CFGR & RCC_CFGR_TIMPRE) != 0U) {
+            if (
+              (RCC->CFGR & RCC_CFGR_TIMPRE) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+              0U) { // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 if (clock_configuration.APB1CLKDivider == RCC_HCLK_DIV1 ||
                     clock_configuration.APB1CLKDivider == RCC_HCLK_DIV2 ||
                     clock_configuration.APB1CLKDivider == RCC_HCLK_DIV4) {

@@ -9,24 +9,30 @@
 namespace hal::util
 {
     // Extends a 16-bit hardware counter. Consecutive samples must be separated
-    // by strictly less than 32768 net counts. STM32 uses internal compare/update
+    // by strictly less than ENCODER_HALF_RANGE net counts. STM32 uses internal compare/update
     // interrupts to service this even if application code never reads position.
     class EncoderCounter final
     {
       public:
+        struct Origin
+        {
+            std::int64_t count;
+            std::uint16_t raw;
+        };
+
         auto sample(std::uint16_t raw) noexcept -> void
         {
             std::int32_t delta{ static_cast<std::int32_t>(raw) - m_previous };
             m_previous = raw;
-            if (delta == 32768 || delta == -32768) {
+            if (delta == ENCODER_HALF_RANGE || delta == -ENCODER_HALF_RANGE) {
                 m_error = std::errc::result_out_of_range;
                 return;
             }
-            if (delta > 32768) {
-                delta -= 65536;
+            if (delta > ENCODER_HALF_RANGE) {
+                delta -= ENCODER_COUNTER_MODULUS;
             }
-            if (delta < -32768) {
-                delta += 65536;
+            if (delta < -ENCODER_HALF_RANGE) {
+                delta += ENCODER_COUNTER_MODULUS;
             }
             if (m_error != std::errc{}) {
                 return;
@@ -38,10 +44,10 @@ namespace hal::util
             }
             m_count += delta;
         }
-        auto reset(std::int64_t count, std::uint16_t raw) noexcept -> void
+        auto reset(Origin origin) noexcept -> void
         {
-            m_count = count;
-            m_previous = raw;
+            m_count = origin.count;
+            m_previous = origin.raw;
             m_error = {};
         }
         [[nodiscard]] auto position() const noexcept -> util::Result<std::int64_t>
@@ -53,6 +59,9 @@ namespace hal::util
         }
 
       private:
+        static constexpr auto ENCODER_HALF_RANGE{ 32768 };
+        static constexpr auto ENCODER_COUNTER_MODULUS{ 65536 };
+
         std::int64_t m_count{};
         std::uint16_t m_previous{};
         std::errc m_error{};

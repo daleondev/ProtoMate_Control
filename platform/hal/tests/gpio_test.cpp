@@ -17,7 +17,7 @@ namespace
 TEST(HalGpioDrivers, OutputSupportsAtomicStateOperationsAndExclusiveOwnership)
 {
     constexpr hal::gpio::Pin pin{ .port = A, .number = 0U };
-    auto output{ hal::gpio::createOutput(hal::gpio::OutputConfiguration{
+    auto output{ hal::gpio::create_output(hal::gpio::OutputConfiguration{
       .pin = pin, .initial_level = hal::gpio::Level::High }) };
     ASSERT_NE(output, nullptr);
     EXPECT_EQ(output->read(), hal::gpio::Level::High);
@@ -27,15 +27,15 @@ TEST(HalGpioDrivers, OutputSupportsAtomicStateOperationsAndExclusiveOwnership)
     output->toggle();
     EXPECT_EQ(output->read(), hal::gpio::Level::High);
 
-    EXPECT_EQ(hal::gpio::createInput({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::create_input({ .pin = pin }), nullptr);
     output.reset();
-    EXPECT_NE(hal::gpio::createInput({ .pin = pin }), nullptr);
+    EXPECT_NE(hal::gpio::create_input({ .pin = pin }), nullptr);
 
     const auto invalid_port{ static_cast<hal::gpio::Port>(UINT8_MAX) };
     const auto invalid_port_output{
-        hal::gpio::createOutput({ .pin = { .port = invalid_port, .number = 0U } })
+        hal::gpio::create_output({ .pin = { .port = invalid_port, .number = 0U } })
     };
-    const auto invalid_pin_output{ hal::gpio::createOutput({ .pin = { .port = A, .number = 16U } }) };
+    const auto invalid_pin_output{ hal::gpio::create_output({ .pin = { .port = A, .number = 16U } }) };
     EXPECT_EQ(invalid_port_output, nullptr);
     EXPECT_EQ(invalid_pin_output, nullptr);
 }
@@ -43,41 +43,41 @@ TEST(HalGpioDrivers, OutputSupportsAtomicStateOperationsAndExclusiveOwnership)
 TEST(HalGpioDrivers, PeripheralInputRetainsExclusivePinOwnership)
 {
     constexpr hal::gpio::Pin pin{ .port = B, .number = 4U };
-    EXPECT_EQ(hal::gpio::createInput({ .pin = pin, .alternate_function = 16U }), nullptr);
+    EXPECT_EQ(hal::gpio::create_input({ .pin = pin, .alternate_function = 16U }), nullptr);
     EXPECT_EQ(
-      hal::gpio::createInput({ .pin = pin, .edge = hal::gpio::Edge::Rising, .alternate_function = 2U }),
+      hal::gpio::create_input({ .pin = pin, .edge = hal::gpio::Edge::Rising, .alternate_function = 2U }),
       nullptr);
 
-    auto input{ hal::gpio::createInput({ .pin = pin, .alternate_function = 2U }) };
+    auto input{ hal::gpio::create_input({ .pin = pin, .alternate_function = 2U }) };
     ASSERT_NE(input, nullptr);
-    EXPECT_EQ(hal::gpio::createOutput({ .pin = pin }), nullptr);
-    EXPECT_EQ(hal::gpio::createInput({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::create_output({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::create_input({ .pin = pin }), nullptr);
 
     input.reset();
-    EXPECT_NE(hal::gpio::createOutput({ .pin = pin }), nullptr);
+    EXPECT_NE(hal::gpio::create_output({ .pin = pin }), nullptr);
 }
 
 TEST(HalGpioDrivers, SimulationAccessDrivesExistingInputWithoutClaimingAnotherPin)
 {
     constexpr hal::gpio::Pin pin{ .port = A, .number = 3U };
-    EXPECT_EQ(hal::gpio::simulatedInput(pin), nullptr);
-    EXPECT_EQ(hal::gpio::simulatedInput({ .port = A, .number = 16U }), nullptr);
-    EXPECT_EQ(hal::gpio::simulatedInput({ .port = static_cast<hal::gpio::Port>(UINT8_MAX), .number = 0U }),
+    EXPECT_EQ(hal::gpio::simulated_input(pin), nullptr);
+    EXPECT_EQ(hal::gpio::simulated_input({ .port = A, .number = 16U }), nullptr);
+    EXPECT_EQ(hal::gpio::simulated_input({ .port = static_cast<hal::gpio::Port>(UINT8_MAX), .number = 0U }),
               nullptr);
 
-    auto input{ hal::gpio::createInput({ .pin = pin, .pull = hal::gpio::Pull::Up,
+    auto input{ hal::gpio::create_input({ .pin = pin, .pull = hal::gpio::Pull::Up,
                                        .edge = hal::gpio::Edge::Both }) };
     ASSERT_NE(input, nullptr);
-    auto simulated{ hal::gpio::simulatedInput(pin) };
+    auto simulated{ hal::gpio::simulated_input(pin) };
     ASSERT_EQ(simulated, input);
-    EXPECT_EQ(hal::gpio::createInput({ .pin = pin }), nullptr);
-    EXPECT_EQ(hal::gpio::createOutput({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::create_input({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::create_output({ .pin = pin }), nullptr);
 
     unsigned callbacks{};
     input->setEdgeCallback([&](hal::gpio::Level level) noexcept {
         ++callbacks;
         // Callbacks run outside the registry lock and see the updated level.
-        const auto observed{ hal::gpio::simulatedInput(pin) };
+        const auto observed{ hal::gpio::simulated_input(pin) };
         ASSERT_EQ(observed, input);
         EXPECT_EQ(observed->read(), level);
     });
@@ -90,30 +90,30 @@ TEST(HalGpioDrivers, SimulationAccessDrivesExistingInputWithoutClaimingAnotherPi
 
     input.reset();
     simulated.reset();
-    EXPECT_EQ(hal::gpio::simulatedInput(pin), nullptr);
-    auto output{ hal::gpio::createOutput({ .pin = pin }) };
+    EXPECT_EQ(hal::gpio::simulated_input(pin), nullptr);
+    auto output{ hal::gpio::create_output({ .pin = pin }) };
     ASSERT_NE(output, nullptr);
-    EXPECT_EQ(hal::gpio::simulatedInput(pin), nullptr);
+    EXPECT_EQ(hal::gpio::simulated_input(pin), nullptr);
 }
 
 TEST(HalGpioDrivers, PeripheralOutputRetainsExclusivePinOwnership)
 {
     constexpr hal::gpio::Pin pin{ .port = C, .number = 6U };
-    EXPECT_EQ(hal::gpio::createOutput({ .pin = pin, .alternate_function = 16U }), nullptr);
+    EXPECT_EQ(hal::gpio::create_output({ .pin = pin, .alternate_function = 16U }), nullptr);
 
-    auto output{ hal::gpio::createOutput({ .pin = pin, .alternate_function = 3U }) };
+    auto output{ hal::gpio::create_output({ .pin = pin, .alternate_function = 3U }) };
     ASSERT_NE(output, nullptr);
     EXPECT_EQ(output->read(), hal::gpio::Level::Low);
-    EXPECT_EQ(hal::gpio::createInput({ .pin = pin }), nullptr);
-    EXPECT_EQ(hal::gpio::createOutput({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::create_input({ .pin = pin }), nullptr);
+    EXPECT_EQ(hal::gpio::create_output({ .pin = pin }), nullptr);
 
     output.reset();
-    EXPECT_NE(hal::gpio::createInput({ .pin = pin }), nullptr);
+    EXPECT_NE(hal::gpio::create_input({ .pin = pin }), nullptr);
 }
 
 TEST(HalGpioDevices, LedAppliesActivePolarity)
 {
-    auto active_low_output{ hal::gpio::createOutput(hal::gpio::OutputConfiguration{
+    auto active_low_output{ hal::gpio::create_output(hal::gpio::OutputConfiguration{
       .pin = { .port = A, .number = 1U }, .initial_level = hal::gpio::Level::High }) };
     ASSERT_NE(active_low_output, nullptr);
 
@@ -156,20 +156,20 @@ TEST(HalGpioDevices, ButtonTranslatesBothEdgesUsingActivePolarity)
 
 TEST(HalBoardDevices, NucleoFactoriesAreStableAndInitiallyInactive)
 {
-    const auto green{ hal::board::createLed(hal::board::LedId::Green) };
-    const auto green_again{ hal::board::createLed(hal::board::LedId::Green) };
+    const auto green{ hal::board::create_led(hal::board::LedId::Green) };
+    const auto green_again{ hal::board::create_led(hal::board::LedId::Green) };
     ASSERT_NE(green, nullptr);
     EXPECT_EQ(green, green_again);
     EXPECT_FALSE(green->isOn());
 
-    const auto yellow{ hal::board::createLed(hal::board::LedId::Yellow) };
-    const auto yellow_again{ hal::board::createLed(hal::board::LedId::Yellow) };
+    const auto yellow{ hal::board::create_led(hal::board::LedId::Yellow) };
+    const auto yellow_again{ hal::board::create_led(hal::board::LedId::Yellow) };
     ASSERT_NE(yellow, nullptr);
     EXPECT_EQ(yellow, yellow_again);
     EXPECT_FALSE(yellow->isOn());
 
-    const auto button{ hal::board::createButton(hal::board::ButtonId::User) };
-    const auto button_again{ hal::board::createButton(hal::board::ButtonId::User) };
+    const auto button{ hal::board::create_button(hal::board::ButtonId::User) };
+    const auto button_again{ hal::board::create_button(hal::board::ButtonId::User) };
     ASSERT_NE(button, nullptr);
     EXPECT_EQ(button, button_again);
     EXPECT_FALSE(button->isPressed());

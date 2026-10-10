@@ -3,6 +3,7 @@
 #include "hal/stm32/HalResult.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 
+#include <chrono>
 #include <cstdint>
 
 namespace hal
@@ -10,51 +11,25 @@ namespace hal
     namespace
     {
         constexpr std::int32_t RTC_EPOCH_YEAR{ 2000 };
-        constexpr std::int64_t DAYS_PER_ERA{ 146'097 };
-        constexpr std::int64_t DAYS_FROM_CIVIL_EPOCH_OFFSET{ 719'468 };
         constexpr std::int64_t SECONDS_PER_DAY{ 86'400 };
         constexpr std::int64_t SECONDS_PER_HOUR{ 3'600 };
         constexpr std::int64_t SECONDS_PER_MINUTE{ 60 };
+        constexpr std::int64_t MINUTES_PER_HOUR{ 60 };
+        constexpr std::int64_t HOURS_PER_DAY{ 24 };
 
-        [[nodiscard]] constexpr auto is_leap_year(std::int32_t year) noexcept -> bool
+        [[nodiscard]] constexpr auto days_from_civil(std::chrono::year_month_day date) noexcept
+          -> std::int64_t
         {
-            return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+            return std::chrono::sys_days{ date }.time_since_epoch().count();
         }
 
-        [[nodiscard]] constexpr auto days_in_month(std::int32_t year, std::uint32_t month) noexcept
-          -> std::uint32_t
-        {
-            switch (month) {
-                case 2U:
-                    return is_leap_year(year) ? 29U : 28U;
-                case 4U:
-                case 6U:
-                case 9U:
-                case 11U:
-                    return 30U;
-                default:
-                    return 31U;
-            }
-        }
+        // Golden calendar fixtures verify the RTC epoch and leap-day conversion.
+        // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+        static_assert(days_from_civil(std::chrono::year{ 1970 } / 1 / 1) == 0);
+        static_assert(days_from_civil(std::chrono::year{ 2000 } / 1 / 1) == 10'957);
+        static_assert(days_from_civil(std::chrono::year{ 2000 } / 2 / 29) == 11'016);
+        // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 
-        // Gregorian civil date to days since 1970-01-01.
-        [[nodiscard]] constexpr auto days_from_civil(std::int32_t year,
-                                                     std::uint32_t month,
-                                                     std::uint32_t day) noexcept -> std::int64_t
-        {
-            year -= month <= 2U ? 1 : 0;
-            const std::int32_t era{ (year >= 0 ? year : year - 399) / 400 };
-            const auto year_of_era{ static_cast<std::uint32_t>(year - era * 400) };
-            const auto adjusted_month{ static_cast<std::int32_t>(month) + (month > 2U ? -3 : 9) };
-            const auto day_of_year{ static_cast<std::uint32_t>((153 * adjusted_month + 2) / 5) + day - 1U };
-            const std::uint32_t day_of_era{ year_of_era * 365U + year_of_era / 4U - year_of_era / 100U +
-                                            day_of_year };
-            return static_cast<std::int64_t>(era) * DAYS_PER_ERA + day_of_era - DAYS_FROM_CIVIL_EPOCH_OFFSET;
-        }
-
-        static_assert(days_from_civil(1970, 1U, 1U) == 0);
-        static_assert(days_from_civil(2000, 1U, 1U) == 10'957);
-        static_assert(days_from_civil(2000, 2U, 29U) == 11'016);
     }
 
     Rtc::Rtc(Configuration configuration) noexcept
@@ -84,16 +59,18 @@ namespace hal
         }
 
         const std::int32_t year{ RTC_EPOCH_YEAR + static_cast<std::int32_t>(date.Year) };
-        if (date.Month < 1U || date.Month > 12U || date.Date < 1U ||
-            date.Date > days_in_month(year, date.Month) || time.Hours >= 24U || time.Minutes >= 60U ||
-            time.Seconds >= 60U || time.SubSeconds > time.SecondFraction) {
+        const std::chrono::year_month_day calendar{ std::chrono::year{ year },
+                                                    std::chrono::month{ date.Month },
+                                                    std::chrono::day{ date.Date } };
+        if (!calendar.ok() || time.Hours >= HOURS_PER_DAY || time.Minutes >= MINUTES_PER_HOUR ||
+            time.Seconds >= SECONDS_PER_MINUTE || time.SubSeconds > time.SecondFraction) {
             return make_error_result<Timestamp>(HalError::Error);
         }
 
         const std::int64_t seconds_since_epoch{
-            days_from_civil(year, date.Month, date.Date) * SECONDS_PER_DAY +
-            static_cast<std::int64_t>(time.Hours) * SECONDS_PER_HOUR +
-            static_cast<std::int64_t>(time.Minutes) * SECONDS_PER_MINUTE + time.Seconds
+            (days_from_civil(calendar) * SECONDS_PER_DAY) +
+            (static_cast<std::int64_t>(time.Hours) * SECONDS_PER_HOUR) +
+            (static_cast<std::int64_t>(time.Minutes) * SECONDS_PER_MINUTE) + time.Seconds
         };
 
         const std::uint64_t subsecond_ticks{ time.SecondFraction - time.SubSeconds };

@@ -68,7 +68,7 @@ namespace
                         csrWrites.emplace_back(target, values[0x300]);
                         if (bootRequests && target == 0x502) {
                             EXPECT_TRUE(values[0x300] == 0x100 || values[0x300] == 0x400);
-                            if (++bootAcknowledgements == 2) values[0x74] |= Esc::readyMask;
+                            if (++bootAcknowledgements == 2) values[0x74] |= Esc::READY_MASK;
                             else { csrValues[0x504] = 4; csrValues[0x502] = 0x9460; }
                         }
                     }
@@ -277,7 +277,7 @@ TEST(Lan9253, BootRejectsWrongCrcModeAndUnsupportedRequestsWithoutAcknowledgingT
     bus.values[0x64] = 0xffffffff;
     EXPECT_EQ(esc.initializeEmulatedBoot(bootConfiguration).error(), std::errc::protocol_error);
     ASSERT_EQ(bus.requests.size(), 1U); // No CSR writes if the SPI byte test fails.
-    bus.values[0x64] = Esc::byteTestValue;
+    bus.values[0x64] = Esc::BYTE_TEST_VALUE;
     bus.emulateCsr = true;
     bus.values[0x74] = 0x1b;
     bus.csrValues[0x502] = 0x9440; // Physical EEPROM, not emulation.

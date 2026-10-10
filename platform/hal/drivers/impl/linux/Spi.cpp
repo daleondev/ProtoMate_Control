@@ -13,8 +13,8 @@ namespace hal
                        std::span<std::uint8_t> rx,
                        std::chrono::milliseconds timeout) -> util::Result<>
     {
-        if (tx.empty() || tx.size() != rx.size() || !util::validTransferSize(tx.size()) ||
-            !util::validTransferTimeout(timeout))
+        if (tx.empty() || tx.size() != rx.size() || !util::valid_transfer_size(tx.size()) ||
+            !util::valid_transfer_timeout(timeout))
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         if (!m_handler)
             return std::unexpected(std::make_error_code(std::errc::not_connected));

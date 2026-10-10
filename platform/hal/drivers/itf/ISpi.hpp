@@ -12,6 +12,12 @@ namespace hal
     class ISpi
     {
       public:
+        ISpi() = default;
+        ISpi(const ISpi&) = default;
+        auto operator=(const ISpi&) -> ISpi& = default;
+        ISpi(ISpi&&) = default;
+        auto operator=(ISpi&&) -> ISpi& = default;
+
         virtual ~ISpi() = default;
         // Equal, nonempty buffers; one received byte per transmitted byte.
         // No DMA: ordinary stack buffers are valid, including with D-cache on.

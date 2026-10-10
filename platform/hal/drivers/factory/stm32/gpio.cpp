@@ -10,6 +10,11 @@
 #include <memory>
 #include <type_traits>
 
+namespace
+{
+    inline constexpr auto MAX_ALTERNATE_FUNCTION{ 15U };
+}
+
 namespace hal::gpio
 {
     namespace
@@ -23,15 +28,22 @@ namespace hal::gpio
             bool claimed{};
         };
 
-        std::array<PinOwner, PIN_COUNT> owners;
+        auto owners() -> std::array<PinOwner, PIN_COUNT>&
+        {
+            static std::array<PinOwner, PIN_COUNT> value;
+            return value;
+        }
 
         class FactoryMutex
         {
           public:
+            FactoryMutex(FactoryMutex&&) = delete;
+            auto operator=(FactoryMutex&&) -> FactoryMutex& = delete;
+
             FactoryMutex()
             {
-                static CHAR name[]{ "GPIO factory" };
-                if (tx_mutex_create(&m_mutex, name, TX_INHERIT) != TX_SUCCESS) {
+                static auto name{ std::to_array("GPIO factory") };
+                if (tx_mutex_create(&m_mutex, name.data(), TX_INHERIT) != TX_SUCCESS) {
                     std::terminate();
                 }
             }
@@ -73,6 +85,9 @@ namespace hal::gpio
         class FactoryLock
         {
           public:
+            FactoryLock(FactoryLock&&) = delete;
+            auto operator=(FactoryLock&&) -> FactoryLock& = delete;
+
             explicit FactoryLock(FactoryMutex& mutex) noexcept
               : m_mutex{ mutex }
             {
@@ -90,7 +105,7 @@ namespace hal::gpio
 
         [[nodiscard]] auto pin_index(Pin pin) noexcept -> std::size_t
         {
-            return static_cast<std::size_t>(pin.port) * PINS_PER_PORT + pin.number;
+            return (static_cast<std::size_t>(pin.port) * PINS_PER_PORT) + pin.number;
         }
 
         [[nodiscard]] auto valid(Pin pin) noexcept -> bool
@@ -107,7 +122,7 @@ namespace hal::gpio
 
             const FactoryLock lock{ owners_mutex() };
             const std::size_t index{ pin_index(configuration.pin) };
-            auto& owner{ owners[index] };
+            auto& owner{ owners()[index] };
             if (owner.claimed) {
                 return {};
             }
@@ -117,30 +132,32 @@ namespace hal::gpio
                     return {};
                 }
             }
-            auto instance{ std::shared_ptr<Implementation>{
-              new Implementation{ configuration },
-              [index](Implementation* implementation) noexcept {
-                  const FactoryLock lock{ owners_mutex() };
-                  delete implementation;
-                  owners[index].claimed = false;
-              } } };
+            auto instance{ std::shared_ptr<Implementation>{ new Implementation{ configuration },
+                                                            [index](Implementation* implementation) noexcept {
+                const FactoryLock lock{ owners_mutex() };
+                // Destroy under the factory lock before releasing the pin claim.
+                {
+                    const std::unique_ptr<Implementation> released{ implementation };
+                }
+                owners()[index].claimed = false;
+            } } };
             owner.claimed = true;
             return instance;
         }
     }
 
-    auto createInput(InputConfiguration configuration) -> std::shared_ptr<IDigitalInput>
+    auto create_input(InputConfiguration configuration) -> std::shared_ptr<IDigitalInput>
     {
-        if (configuration.alternate_function &&
-            (*configuration.alternate_function > 15U || configuration.edge != Edge::None)) {
+        if (configuration.alternate_function && (*configuration.alternate_function > MAX_ALTERNATE_FUNCTION ||
+                                                 configuration.edge != Edge::None)) {
             return {};
         }
         return create_pin<IDigitalInput, GpioInput>(configuration);
     }
 
-    auto createOutput(OutputConfiguration configuration) -> std::shared_ptr<IDigitalOutput>
+    auto create_output(OutputConfiguration configuration) -> std::shared_ptr<IDigitalOutput>
     {
-        if (configuration.alternate_function && *configuration.alternate_function > 15U) {
+        if (configuration.alternate_function && *configuration.alternate_function > MAX_ALTERNATE_FUNCTION) {
             return {};
         }
         return create_pin<IDigitalOutput, GpioOutput>(configuration);

@@ -16,7 +16,8 @@ namespace hal::util
         explicit TimerLease(timer::Peripheral peripheral) noexcept
         {
             const auto timer{ std::to_underlying(peripheral) };
-            if (timer != 1U && timer != 3U && timer != 4U && timer != 8U) {
+            if (peripheral != timer::Peripheral::Tim1 && peripheral != timer::Peripheral::Tim3 &&
+                peripheral != timer::Peripheral::Tim4 && peripheral != timer::Peripheral::Tim8) {
                 return;
             }
             bool expected{ false };
@@ -40,7 +41,9 @@ namespace hal::util
         explicit operator bool() const noexcept { return m_timer != 0U; }
 
       private:
+        static constexpr auto TIMER_LEASE_SLOTS{ 9U };
+
         std::uint8_t m_timer{};
-        inline static std::array<std::atomic_bool, 9U> s_claimed{};
+        inline static std::array<std::atomic_bool, TIMER_LEASE_SLOTS> s_claimed{};
     };
 }

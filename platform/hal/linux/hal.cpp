@@ -1,10 +1,12 @@
 #include "hal/hal.hpp"
 #include "hal/linux/console.hpp"
 
+#include <array>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <unistd.h>
@@ -16,7 +18,7 @@ namespace
         std::string line{ "[sim][hal] " };
         line.append(message);
         line.push_back('\n');
-        linux_console::publish(linux_console::Channel::hal, line);
+        linux_console::publish(linux_console::Channel::Hal, line);
     }
 
     auto panic_write(const char* text) noexcept -> void
@@ -47,15 +49,18 @@ namespace
 
     auto panic_write_line(std::uint32_t line) noexcept -> void
     {
-        char digits[10]{};
+        constexpr auto decimal_base{ 10U };
+        std::array<char, std::numeric_limits<std::uint32_t>::digits10 + 1U> digits{};
         std::size_t count{};
-        do {
-            digits[count++] = static_cast<char>('0' + line % 10U);
-            line /= 10U;
-        } while (line != 0U);
+        while (true) {
+            digits[count++] = static_cast<char>('0' + (line % decimal_base));
+            line /= decimal_base;
+            if (line == 0U)
+                break;
+        }
         while (count != 0U) {
-            const char character[2]{ digits[--count], '\0' };
-            panic_write(character);
+            const std::array character{ digits[--count], '\0' };
+            panic_write(character.data());
         }
     }
 }
@@ -99,11 +104,9 @@ int32_t BSP_COM_Init(COM_TypeDef com, COM_InitTypeDef* com_init)
                   ", baud=" + std::to_string(baud_rate) + ')');
     return BSP_ERROR_NONE;
 }
-
 }
 
-extern "C" [[gnu::weak, gnu::noinline, noreturn]] void hal_panic_handler(
-  const HalPanicInfo* info) noexcept
+extern "C" [[gnu::weak, gnu::noinline, noreturn]] void hal_panic_handler(const HalPanicInfo* info) noexcept
 {
     panic_write("[hal][panic] ");
     panic_write(info != nullptr && info->message != nullptr ? info->message : "fatal error");

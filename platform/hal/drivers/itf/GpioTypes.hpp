@@ -65,26 +65,26 @@ namespace hal::gpio
 
     struct InputConfiguration
     {
-        Pin pin;
+        Pin pin{};
         Pull pull{ Pull::None };
         Edge edge{ Edge::None };
         // STM32 peripheral input AF0..AF15; must not be combined with EXTI edges.
         // Linux reserves the pin but does not emulate the connected peripheral.
-        std::optional<std::uint8_t> alternate_function{};
+        std::optional<std::uint8_t> alternate_function;
 
         constexpr bool operator==(const InputConfiguration&) const = default;
     };
 
     struct OutputConfiguration
     {
-        Pin pin;
+        Pin pin{};
         Level initial_level{ Level::Low };
         OutputType type{ OutputType::PushPull };
         Pull pull{ Pull::None };
         Speed speed{ Speed::Low };
         // STM32 peripheral output AF0..AF15. The peripheral drives the pin;
         // write()/toggle() only change the GPIO latch while an AF is selected.
-        std::optional<std::uint8_t> alternate_function{};
+        std::optional<std::uint8_t> alternate_function;
 
         constexpr bool operator==(const OutputConfiguration&) const = default;
     };

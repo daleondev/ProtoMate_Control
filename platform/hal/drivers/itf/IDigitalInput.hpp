@@ -12,7 +12,6 @@ namespace hal
         using EdgeCallback = std::move_only_function<void(gpio::Level) noexcept>;
 
         virtual ~IDigitalInput() = default;
-
         IDigitalInput(const IDigitalInput&) = delete;
         IDigitalInput& operator=(const IDigitalInput&) = delete;
         IDigitalInput(IDigitalInput&&) = delete;

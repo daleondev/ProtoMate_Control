@@ -128,38 +128,27 @@ namespace hal
         [[nodiscard]] auto attach_ether_type_filter(FilterConfiguration configuration) noexcept
           -> util::Result<>
         {
-            std::array<sock_filter, 12U> instructions{{
-                BPF_STMT(BPF_LD | BPF_H | BPF_ABS, 12U),
-                BPF_JUMP(
-                  BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(configuration.ether_type), 8U, 0U),
-                BPF_JUMP(
-                  BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(IEthernet::EtherType::VLAN), 1U, 0U),
-                BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K,
-                         ether_type_value(IEthernet::EtherType::SERVICE_VLAN),
-                         0U,
-                         7U),
-                BPF_STMT(BPF_LD | BPF_H | BPF_ABS, 16U),
-                BPF_JUMP(
-                  BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(configuration.ether_type), 4U, 0U),
-                BPF_JUMP(
-                  BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(IEthernet::EtherType::VLAN), 1U, 0U),
-                BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K,
-                         ether_type_value(IEthernet::EtherType::SERVICE_VLAN),
-                         0U,
-                         3U),
-                BPF_STMT(BPF_LD | BPF_H | BPF_ABS, 20U),
-                BPF_JUMP(
-                  BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(configuration.ether_type), 0U, 1U),
-                BPF_STMT(BPF_RET | BPF_K, 0xFFFFU),
-                BPF_STMT(BPF_RET | BPF_K, 0U),
-            }};
+            std::array<sock_filter, 12U> instructions{ {
+              BPF_STMT(BPF_LD | BPF_H | BPF_ABS, 12U),
+              BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(configuration.ether_type), 8U, 0U),
+              BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(IEthernet::EtherType::VLAN), 1U, 0U),
+              BPF_JUMP(
+                BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(IEthernet::EtherType::ServiceVlan), 0U, 7U),
+              BPF_STMT(BPF_LD | BPF_H | BPF_ABS, 16U),
+              BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(configuration.ether_type), 4U, 0U),
+              BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(IEthernet::EtherType::VLAN), 1U, 0U),
+              BPF_JUMP(
+                BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(IEthernet::EtherType::ServiceVlan), 0U, 3U),
+              BPF_STMT(BPF_LD | BPF_H | BPF_ABS, 20U),
+              BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, ether_type_value(configuration.ether_type), 0U, 1U),
+              BPF_STMT(BPF_RET | BPF_K, 0xFFFFU),
+              BPF_STMT(BPF_RET | BPF_K, 0U),
+            } };
             sock_fprog program{ .len = static_cast<unsigned short>(instructions.size()),
                                 .filter = instructions.data() };
-            if (setsockopt(configuration.socket_handle,
-                           SOL_SOCKET,
-                           SO_ATTACH_FILTER,
-                           &program,
-                           sizeof(program)) != 0) {
+            if (setsockopt(
+                  configuration.socket_handle, SOL_SOCKET, SO_ATTACH_FILTER, &program, sizeof(program)) !=
+                0) {
                 return errno_result();
             }
             return {};
@@ -249,8 +238,7 @@ namespace hal
 
         if (m_receiveEtherType) {
             const auto filter_result{ attach_ether_type_filter(
-              FilterConfiguration{ .socket_handle = socket_handle,
-                                   .ether_type = *m_receiveEtherType }) };
+              FilterConfiguration{ .socket_handle = socket_handle, .ether_type = *m_receiveEtherType }) };
             if (!filter_result) {
                 static_cast<void>(::close(socket_handle));
                 return filter_result;

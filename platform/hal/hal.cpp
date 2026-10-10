@@ -1,11 +1,13 @@
+// CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
+// The line-specific exceptions below preserve the vendor register interface.
 #include "hal.hpp"
 
 #include <cstdint>
 #include <initializer_list>
 
 #if defined(HAL_PLATFORM_STM32)
-#include "hal/stm32/FaultShutdown.hpp"
 #include "hal/drivers/impl/stm32/QuadratureEncoder.hpp"
+#include "hal/stm32/FaultShutdown.hpp"
 // ThreadX waits for work inside the lowest-priority PendSV handler. Its idle
 // loop can only be interrupted by a strictly higher-priority HAL timebase.
 static_assert(TICK_INT_PRIORITY < (1UL << __NVIC_PRIO_BITS) - 1UL,
@@ -17,7 +19,7 @@ namespace
     [[noreturn]] auto dispatch_panic(const HalPanicInfo* info) noexcept -> void
     {
 #if defined(HAL_PLATFORM_STM32)
-        hal::stm32::shutdownMotionOnFault();
+        hal::stm32::shutdown_motion_on_fault();
 #endif
         hal_panic_handler(info);
     }
@@ -30,7 +32,10 @@ namespace hal
         constexpr std::uint32_t com_baud_rate{ 115200U };
 
         MPU_Config_User();
+        // CMSIS deliberately accesses the fixed-address system control registers.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
         SCB_EnableICache();
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
         SCB_EnableDCache();
 
         if (HAL_Init() != HAL_OK) {
@@ -43,8 +48,8 @@ namespace hal
 #if defined(HAL_HARDWARE_SPI_TEST)
         // Bare Nucleo + ESC bench: no motor timers/UART, Ethernet or storage.
         // Keep the generated EN_N high. Unconnected motor inputs must not IRQ.
-        for (const auto irq : { EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn,
-                                EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn })
+        for (const auto irq :
+             { EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn, EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn })
             HAL_NVIC_DisableIRQ(irq);
         MX_RTC_Init();
 #else
@@ -139,9 +144,9 @@ extern "C" void Error_Handler() { hal_error_handler(); }
 #if defined(HAL_PLATFORM_STM32)
 // CubeMX's generated definition is renamed at build time. Preserve its HAL
 // tick and use the same IRQ to schedule encoder feedback; no extra timer.
-extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* timer)
+extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
-    if (timer->Instance == TIM6) {
+    if (htim->Instance == TIM6) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         HAL_IncTick();
         hal::QuadratureEncoder::dispatchTimebase();
     }

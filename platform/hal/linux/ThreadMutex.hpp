@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <exception>
 #include <tx_api.h>
 
@@ -9,9 +10,13 @@ namespace hal::linux
     class ThreadMutex final
     {
       public:
+        ThreadMutex(ThreadMutex&&) = delete;
+        auto operator=(ThreadMutex&&) -> ThreadMutex& = delete;
+
         ThreadMutex()
         {
-            if (tx_mutex_create(&m_mutex, const_cast<char*>("step generator"), TX_INHERIT) != TX_SUCCESS)
+            static auto name{ std::to_array("step generator") };
+            if (tx_mutex_create(&m_mutex, name.data(), TX_INHERIT) != TX_SUCCESS)
                 std::terminate();
         }
         ~ThreadMutex()

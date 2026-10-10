@@ -36,12 +36,12 @@ namespace
               { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
               { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
             } });
-            auto alarm = hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 });
+            auto alarm = hal::gpio::simulated_input({ .port = hal::gpio::Port::F, .number = 2 });
             ASSERT_TRUE(alarm);
             alarm->setSimulatedLevel(hal::gpio::Level::Low); // Healthy, powered DM542T.
             m_controller->initializeDrivers();
             for (const auto pin : { 7U, 8U, 10U }) {
-                auto input{ hal::gpio::simulatedInput(
+                auto input{ hal::gpio::simulated_input(
                   { .port = hal::gpio::Port::E, .number = static_cast<std::uint8_t>(pin) }) };
                 ASSERT_TRUE(input);
                 input->setSimulatedLevel(hal::gpio::Level::Low);
@@ -82,7 +82,7 @@ namespace
             auto operation{ robot.reference(5_s) };
             constexpr std::array pins{ 7U, 8U, 10U };
             for (const auto index : { 2U, 0U, 1U }) {
-                const auto input{ hal::gpio::simulatedInput(
+                const auto input{ hal::gpio::simulated_input(
                   { .port = hal::gpio::Port::E, .number = static_cast<std::uint8_t>(pins[index]) }) };
                 if (!eventually([&] { return m_controller->status().axes[index].velocity > 0_rpm; }))
                     return false;
@@ -191,7 +191,7 @@ TEST_F(RobotState, FeedbackRemainsDistinctFromCommandedStateAndPropagatesFaults)
 {
     configure();
     const control::Robot robot{ m_connection->client, GEOMETRY };
-    auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
+    auto encoder{ hal::encoder::simulated_encoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     ASSERT_TRUE(encoder->advanceSimulatedCounts(400));
     ASSERT_TRUE(eventually([&] {
@@ -281,7 +281,7 @@ TEST(SynchronizedSequence, SharedProfileProducesExactEdgesThroughDmaRefillsAndRo
     std::array<std::shared_ptr<motion::SynchronizedSequence>, 3> sequences;
     std::array<std::optional<std::chrono::nanoseconds>, 3> delays;
     ASSERT_TRUE(generator->start());
-    hardware->advance(hal::util::step_park - 1000U);
+    hardware->advance(hal::util::STEP_PARK - 1000U);
     const auto origin{ hardware->elapsed };
     for (unsigned i{}; i < 3U; ++i) {
         sequences[i] = std::make_shared<motion::SynchronizedSequence>(*profile, counts[i]);
@@ -402,7 +402,7 @@ TEST_F(RobotState, SwitchActivationStopsTheGroupAndAnActiveSwitchAllowsRetreat)
     configure();
     control::Robot robot{ m_connection->client, GEOMETRY };
     ASSERT_TRUE(home(robot));
-    const auto input{ hal::gpio::simulatedInput({ .port = hal::gpio::Port::E, .number = 7U }) };
+    const auto input{ hal::gpio::simulated_input({ .port = hal::gpio::Port::E, .number = 7U }) };
     input->setSimulatedLevel(hal::gpio::Level::High);
     EXPECT_THROW(robot.moveJoints({ -80_deg, 145_deg, 0_mm }), std::runtime_error);
     auto move{ robot.moveJoints({ .shoulder = -60_deg, .elbow = 130_deg, .z = 3_mm },
@@ -479,7 +479,7 @@ TEST_F(RobotState, EncoderFaultCancelsRobotMotionEvenBeforeItsFirstPulse)
     ASSERT_TRUE(home(robot));
     const auto move{ robot.moveJoints({ .shoulder = -100_deg, .elbow = 170_deg, .z = -5_mm },
                                       { .speed = 0.1 }) };
-    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
+    const auto encoder{ hal::encoder::simulated_encoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     ASSERT_TRUE(encoder->stop());
     ASSERT_TRUE(encoder->setPosition(std::numeric_limits<std::int64_t>::max()));
@@ -501,7 +501,7 @@ TEST_F(RobotState, HomingStopsIfAnAlreadyReferencedAxisLosesEncoderFeedback)
     // Complete Z and shoulder, then inject a shoulder encoder fault while
     // the coordinator is waiting for the elbow's first switch contact.
     for (const auto index : { 2U, 0U }) {
-        const auto input{ hal::gpio::simulatedInput(
+        const auto input{ hal::gpio::simulated_input(
           { .port = hal::gpio::Port::E, .number = static_cast<std::uint8_t>(index == 2U ? 10U : 7U) }) };
         ASSERT_TRUE(eventually([&] { return m_controller->status().axes[index].velocity > 0_rpm; }));
         input->setSimulatedLevel(hal::gpio::Level::High);
@@ -513,7 +513,7 @@ TEST_F(RobotState, HomingStopsIfAnAlreadyReferencedAxisLosesEncoderFeedback)
         input->setSimulatedLevel(hal::gpio::Level::Low);
     }
     ASSERT_TRUE(eventually([&] { return m_controller->status().axes[1].velocity > 0_rpm; }));
-    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
+    const auto encoder{ hal::encoder::simulated_encoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder->stop());
     ASSERT_TRUE(encoder->setPosition(std::numeric_limits<std::int64_t>::max()));
     ASSERT_TRUE(encoder->start());

@@ -23,12 +23,12 @@ TEST(HalSpi, FactoryAndBoardShareExclusivePeripheralOwnership)
     auto bus{ hal::spi::create({ .peripheral = hal::spi::Peripheral::Spi5 }) };
     ASSERT_TRUE(std::dynamic_pointer_cast<hal::Spi>(bus));
     EXPECT_EQ(bus->clockFrequencyHz(), 937'500U);
-    EXPECT_FALSE(hal::board::createEthercatSpi());
+    EXPECT_FALSE(hal::board::create_ethercat_spi());
     auto alias{ bus };
     bus.reset();
     EXPECT_FALSE(hal::spi::create({ .peripheral = hal::spi::Peripheral::Spi5 }));
     alias.reset();
-    EXPECT_TRUE(hal::board::createEthercatSpi());
+    EXPECT_TRUE(hal::board::create_ethercat_spi());
 }
 
 TEST(HalSpi, ModelRequiresAnAttachedPeerAndHasNoDeviceProtocol)
@@ -67,20 +67,20 @@ TEST(HalUart, GenericFactoryIsIndependentOfAttachedStepperDevices)
       { .peripheral = hal::uart::Peripheral::Usart2, .transport = { .settle_time = -1ms } }));
     auto bus{ hal::uart::create({ .peripheral = hal::uart::Peripheral::Usart2 }) };
     ASSERT_TRUE(std::dynamic_pointer_cast<hal::Uart>(bus));
-    EXPECT_FALSE(hal::board::createStepperDriverBus());
+    EXPECT_FALSE(hal::board::create_stepper_driver_bus());
     std::array<std::uint8_t, 4> request{ 5, 0, 0, 0x48 };
     std::array<std::uint8_t, 8> reply{};
     EXPECT_EQ(bus->exchange(request, reply, 20ms).error(), std::errc::not_connected);
     bus.reset();
-    EXPECT_TRUE(hal::board::createStepperDriverBus());
+    EXPECT_TRUE(hal::board::create_stepper_driver_bus());
 }
 
 TEST(HalUart, LinuxBoardOwnsFreshDeviceModelsForEachBusLifetime)
 {
     for (unsigned lifetime{}; lifetime < 2; ++lifetime) {
-        auto bus{ hal::board::createStepperDriverBus() };
+        auto bus{ hal::board::create_stepper_driver_bus() };
         ASSERT_TRUE(bus);
-        EXPECT_FALSE(hal::board::createStepperDriverBus());
+        EXPECT_FALSE(hal::board::create_stepper_driver_bus());
         for (std::uint8_t address{}; address < 2; ++address) {
             hal::device::Tmc2209 driver{ bus, address };
             auto status{ driver.status() };
@@ -98,8 +98,8 @@ TEST(HalUart, TmcTransportFactoryUsesTheRequestedPeripheral)
 {
     auto occupied{ hal::uart::create({ .peripheral = hal::uart::Peripheral::Usart2 }) };
     ASSERT_TRUE(occupied);
-    EXPECT_FALSE(hal::device::tmc2209::createTransport({ .peripheral = hal::uart::Peripheral::Usart2 }));
-    auto transport{ hal::device::tmc2209::createTransport({ .peripheral = hal::uart::Peripheral::Usart1 }) };
+    EXPECT_FALSE(hal::device::tmc2209::create_transport({ .peripheral = hal::uart::Peripheral::Usart2 }));
+    auto transport{ hal::device::tmc2209::create_transport({ .peripheral = hal::uart::Peripheral::Usart1 }) };
     ASSERT_TRUE(std::dynamic_pointer_cast<hal::Uart>(transport));
     EXPECT_FALSE(hal::uart::create({ .peripheral = hal::uart::Peripheral::Usart1 }));
     hal::device::Tmc2209 driver{ transport, 0 };

@@ -4,15 +4,23 @@
 
 namespace hal
 {
-    PwmOutput::PwmOutput(pwm::Configuration,
-                         std::uint8_t,
+    namespace
+    {
+        constexpr auto TIMER_INPUT_HZ{ 240'000'000U };
+    }
+    PwmOutput::PwmOutput(pwm::Configuration /*unused*/,
+                         std::uint8_t /*unused*/,
                          util::TimerLease lease,
                          std::shared_ptr<IDigitalOutput> pin)
       : m_lease{ std::move(lease) }
       , m_pin{ std::move(pin) }
     {
     }
-    PwmOutput::~PwmOutput() { static_cast<void>(stop()); }
+    PwmOutput::~PwmOutput()
+    {
+        static_cast<void>(
+          stop()); // NOLINT(bugprone-unused-return-value) -- Destructor cannot report the stop result.
+    }
 
     auto PwmOutput::configure(Timing requested) noexcept -> util::Result<>
     {
@@ -20,7 +28,7 @@ namespace hal
         if (m_running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
-        const auto result{ util::pwmTiming(requested, 240'000'000U) };
+        const auto result{ util::pwm_timing(requested, TIMER_INPUT_HZ) };
         if (!result) {
             return std::unexpected(result.error());
         }

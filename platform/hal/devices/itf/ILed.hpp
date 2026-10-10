@@ -6,7 +6,6 @@ namespace hal::device
     {
       public:
         virtual ~ILed() = default;
-
         ILed(const ILed&) = delete;
         ILed& operator=(const ILed&) = delete;
         ILed(ILed&&) = delete;

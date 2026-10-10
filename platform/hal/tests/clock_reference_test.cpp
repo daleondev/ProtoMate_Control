@@ -5,7 +5,7 @@
 namespace
 {
     using namespace clock_reference;
-    using hal::util::stepAdd;
+    using hal::util::step_add;
 
     TEST(ClockReference, DetectsFastAndSlowClocksFromIndependentTenSecondWindows)
     {
@@ -26,8 +26,8 @@ namespace
 
     TEST(ClockReference, MeasurementHandlesActualTimerModulus)
     {
-        const Boundary first{ hal::util::step_arr - 1000U, 500U };
-        const Boundary last{ stepAdd(first.before, 100'000'000U), stepAdd(first.after, 100'000'000U) };
+        const Boundary first{ hal::util::STEP_ARR - 1000U, 500U };
+        const Boundary last{ step_add(first.before, 100'000'000U), step_add(first.after, 100'000'000U) };
         const auto result{ measure(first, last) };
         EXPECT_DOUBLE_EQ(result.ticks, 100'000'000.0);
         EXPECT_DOUBLE_EQ(result.error_ppm, 0.0);
@@ -54,10 +54,10 @@ namespace
     TEST(ClockReference, TracksMinuteRolloverAndTimerRollover)
     {
         Tracker tracker;
-        EXPECT_EQ(tracker.observe({ 59U, hal::util::step_arr - 400U, hal::util::step_arr - 300U }),
+        EXPECT_EQ(tracker.observe({ 59U, hal::util::STEP_ARR - 400U, hal::util::STEP_ARR - 300U }),
                   Observation::Waiting);
         EXPECT_EQ(tracker.observe({ 0U, 500U, 600U }), Observation::Boundary);
-        EXPECT_EQ(tracker.boundary().before, hal::util::step_arr - 400U);
+        EXPECT_EQ(tracker.boundary().before, hal::util::STEP_ARR - 400U);
         EXPECT_EQ(tracker.boundary().after, 600U);
         EXPECT_EQ(tracker.observe({ 0U, 1500U, 1600U }), Observation::Waiting);
     }
@@ -73,6 +73,6 @@ namespace
         Tracker invalid;
         EXPECT_EQ(invalid.observe({ 60U, 0U, 100U }), Observation::Invalid);
         EXPECT_EQ(invalid.observe({ 0U, 0U, 60'000U }), Observation::Invalid);
-        EXPECT_EQ(invalid.observe({ 0U, hal::util::step_park, 10U }), Observation::Invalid);
+        EXPECT_EQ(invalid.observe({ 0U, hal::util::STEP_PARK, 10U }), Observation::Invalid);
     }
 }

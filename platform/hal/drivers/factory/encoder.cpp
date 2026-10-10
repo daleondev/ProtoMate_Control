@@ -10,43 +10,57 @@
 
 #include <utility>
 
+namespace
+{
+    inline constexpr auto ENCODER_B_PIN_NUMBER{ 5U };
+}
+
 namespace hal::encoder
 {
 #if defined(HAL_PLATFORM_LINUX)
     namespace
     {
-        linux::Mutex owner_mutex;
-        std::weak_ptr<QuadratureEncoder> owner;
+        auto owner_mutex() -> linux::Mutex&
+        {
+            static linux::Mutex value;
+            return value;
+        }
+        auto owner() -> std::weak_ptr<QuadratureEncoder>&
+        {
+            static std::weak_ptr<QuadratureEncoder> value;
+            return value;
+        }
     }
-    auto simulatedEncoder(timer::Peripheral peripheral) -> std::shared_ptr<QuadratureEncoder>
+    auto simulated_encoder(timer::Peripheral peripheral) -> std::shared_ptr<QuadratureEncoder>
     {
-        const std::scoped_lock lock{ owner_mutex };
-        return peripheral == timer::Peripheral::Tim3 ? owner.lock() : nullptr;
+        const std::scoped_lock lock{ owner_mutex() };
+        return peripheral == timer::Peripheral::Tim3 ? owner().lock() : nullptr;
     }
 #endif
     auto create(Configuration configuration) -> std::shared_ptr<IQuadratureEncoder>
     {
         using enum gpio::Port;
-        if (configuration.timer != timer::Peripheral::Tim3 || configuration.a != gpio::Pin{ B, 4U } ||
-            configuration.b != gpio::Pin{ B, 5U }) {
+        if (configuration.timer != timer::Peripheral::Tim3 ||
+            configuration.a != gpio::Pin{ .port = B, .number = 4U } ||
+            configuration.b != gpio::Pin{ .port = B, .number = ENCODER_B_PIN_NUMBER }) {
             return {};
         }
         util::TimerLease lease{ configuration.timer };
         if (!lease) {
             return {};
         }
-        auto a{ gpio::createInput({ .pin = configuration.a, .alternate_function = 2U }) };
+        auto a{ gpio::create_input({ .pin = configuration.a, .alternate_function = 2U }) };
         if (!a) {
             return {};
         }
-        auto b{ gpio::createInput({ .pin = configuration.b, .alternate_function = 2U }) };
+        auto b{ gpio::create_input({ .pin = configuration.b, .alternate_function = 2U }) };
         if (!b) {
             return {};
         }
         auto instance{ std::make_shared<QuadratureEncoder>(std::move(lease), std::move(a), std::move(b)) };
 #if defined(HAL_PLATFORM_LINUX)
-        const std::scoped_lock lock{ owner_mutex };
-        owner = instance;
+        const std::scoped_lock lock{ owner_mutex() };
+        owner() = instance;
 #endif
         return instance;
     }

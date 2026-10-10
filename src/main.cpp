@@ -47,7 +47,7 @@ auto system_threads::messages() -> void { contexts().ui.run(); }
 
 auto system_threads::led() -> void
 {
-    const auto green_led{ hal::board::createLed(hal::board::LedId::Green) };
+    const auto green_led{ hal::board::create_led(hal::board::LedId::Green) };
     if (!green_led) {
         throw(std::runtime_error("green LED creation failed"));
     }
@@ -65,7 +65,7 @@ auto system_threads::button() -> void
     static_assert(std::atomic_bool::is_always_lock_free);
     std::atomic_bool user_button_press_pending{};
 
-    const auto user_button{ hal::board::createButton(hal::board::ButtonId::User) };
+    const auto user_button{ hal::board::create_button(hal::board::ButtonId::User) };
     if (!user_button) {
         throw(std::runtime_error("user button creation failed"));
     }

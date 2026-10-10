@@ -10,17 +10,17 @@ namespace linux_console
 {
     enum class Channel : std::uint8_t
     {
-        hal,
-        log,
-        command,
-        system,
+        Hal,
+        Log,
+        Command,
+        System,
     };
 
     inline constexpr std::size_t MESSAGE_PAYLOAD_SIZE{ 1024U };
 
     struct Message
     {
-        Channel channel{ Channel::system };
+        Channel channel{ Channel::System };
         std::array<char, MESSAGE_PAYLOAD_SIZE> text{};
         std::size_t size{};
         bool end_of_record{};

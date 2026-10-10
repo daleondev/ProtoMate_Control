@@ -1,10 +1,10 @@
 #pragma once
 
+#include "hal/drivers/itf/IDigitalOutput.hpp"
+#include "hal/drivers/itf/IPwmOutput.hpp"
 #include "hal/drivers/util/PulseTrain.hpp"
 #include "hal/drivers/util/PwmTiming.hpp"
 #include "hal/drivers/util/TimerLease.hpp"
-#include "hal/drivers/itf/IPwmOutput.hpp"
-#include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/hal.hpp"
 
 #include <array>
@@ -15,12 +15,17 @@ namespace hal
     class PwmOutput final : public IPwmOutput
     {
       public:
+        PwmOutput(const PwmOutput&) = delete;
+        auto operator=(const PwmOutput&) -> PwmOutput& = delete;
+        PwmOutput(PwmOutput&&) = delete;
+        auto operator=(PwmOutput&&) -> PwmOutput& = delete;
+
         PwmOutput(pwm::Configuration configuration,
                   std::uint8_t alternate,
                   util::TimerLease lease,
                   std::shared_ptr<IDigitalOutput> pin);
         ~PwmOutput() override;
-        [[nodiscard]] auto configure(Timing timing) noexcept -> util::Result<> override;
+        [[nodiscard]] auto configure(Timing requested) noexcept -> util::Result<> override;
         [[nodiscard]] auto timing() const noexcept -> Timing override;
         [[nodiscard]] auto start() noexcept -> util::Result<> override;
         [[nodiscard]] auto startPulses(std::optional<PulseCount> count = std::nullopt) noexcept
@@ -32,6 +37,8 @@ namespace hal
         static auto dispatchInterrupt(std::uint8_t timer) noexcept -> void;
 
       private:
+        static constexpr auto PWM_TIMER_SLOTS{ 9U };
+
         auto selectPinMode(bool alternate) noexcept -> void;
         [[nodiscard]] auto prepare(bool counted) noexcept -> util::Result<>;
         [[nodiscard]] auto stopImpl(bool notify) noexcept -> util::Result<>;
@@ -54,6 +61,6 @@ namespace hal
         PulseCallback m_callback;
         bool m_counted{};
         bool m_running{};
-        inline static std::array<PwmOutput*, 9U> s_instances{};
+        inline static std::array<PwmOutput*, PWM_TIMER_SLOTS> s_instances{};
     };
 }

@@ -5,11 +5,16 @@
 
 #include <memory>
 
+namespace
+{
+    inline constexpr auto MAX_PHY_ADDRESS{ 31U };
+}
+
 namespace hal::ethernet
 {
     auto create(IEthernet::Configuration configuration) -> std::shared_ptr<IEthernet>
     {
-        if (configuration.phy_address > 31U) {
+        if (configuration.phy_address > MAX_PHY_ADDRESS) {
             return {};
         }
         static auto driver{ std::make_shared<Ethernet>(

@@ -142,20 +142,20 @@ TEST(QuadratureFeedback, DestructionDisconnectsAndStopsTheUnderlyingCounter)
 TEST(MotorFeedbackBoard, FactorySelectsQuadratureAndReservesItsInputs)
 {
     using enum hal::board::MotorId;
-    auto feedback{ hal::board::createMotorFeedback(Motor1, { 1.8_deg, 8U }) };
+    auto feedback{ hal::board::create_motor_feedback(Motor1, { 1.8_deg, 8U }) };
     ASSERT_TRUE(feedback);
     EXPECT_EQ(feedback->source(), Feedback::Source::ShaftEncoder);
     EXPECT_EQ(feedback->resolution(), 0.225_deg);
-    auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
+    auto encoder{ hal::encoder::simulated_encoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     EXPECT_FALSE(encoder->isRunning());
-    EXPECT_FALSE(hal::board::createEncoderIndex(Motor1));
-    EXPECT_FALSE(hal::board::createMotorFeedback(Motor1, { 1.8_deg, 16U }));
+    EXPECT_FALSE(hal::board::create_encoder_index(Motor1));
+    EXPECT_FALSE(hal::board::create_motor_feedback(Motor1, { 1.8_deg, 16U }));
     ASSERT_TRUE(feedback->start());
     EXPECT_TRUE(encoder->isRunning());
     feedback.reset();
     EXPECT_FALSE(encoder->isRunning());
-    EXPECT_TRUE(hal::board::createEncoderIndex(Motor1));
+    EXPECT_TRUE(hal::board::create_encoder_index(Motor1));
 }
 
 TEST(MotorFeedbackBoard, IndexUsesSuppliedMotorAngleAndKeepsUnknownFeedbackInvalid)
@@ -163,7 +163,7 @@ TEST(MotorFeedbackBoard, IndexUsesSuppliedMotorAngleAndKeepsUnknownFeedbackInval
     using enum hal::board::MotorId;
     using enum hal::gpio::Level;
     for (auto id : { Motor2, Motor3 }) {
-        auto feedback{ hal::board::createMotorFeedback(id, { 0.9_deg, 32U }) };
+        auto feedback{ hal::board::create_motor_feedback(id, { 0.9_deg, 32U }) };
         ASSERT_TRUE(feedback);
         EXPECT_EQ(feedback->source(), Feedback::Source::DriverIndex);
         EXPECT_EQ(feedback->resolution(), 3.6_deg);
@@ -172,7 +172,7 @@ TEST(MotorFeedbackBoard, IndexUsesSuppliedMotorAngleAndKeepsUnknownFeedbackInval
         ASSERT_TRUE(feedback->reference(42_deg));
         EXPECT_FALSE(sample.position);
         ASSERT_TRUE(feedback->start());
-        auto input{ hal::gpio::simulatedInput({ hal::gpio::Port::D, std::uint8_t(id == Motor2 ? 0 : 1) }) };
+        auto input{ hal::gpio::simulated_input({ hal::gpio::Port::D, std::uint8_t(id == Motor2 ? 0 : 1) }) };
         ASSERT_TRUE(input);
         feedback->motion(true, true, 1ms);
         input->setSimulatedLevel(High);
@@ -191,8 +191,8 @@ TEST(MotorFeedbackBoard, IndexUsesSuppliedMotorAngleAndKeepsUnknownFeedbackInval
 TEST(MotorFeedbackBoard, RejectsInvalidMotorScalingBeforeClaimingHardware)
 {
     using enum hal::board::MotorId;
-    EXPECT_THROW(static_cast<void>(hal::board::createMotorFeedback(Motor1, { 0_deg, 16U })), std::invalid_argument);
-    EXPECT_THROW(static_cast<void>(hal::board::createMotorFeedback(Motor2, { 1.8_deg, 0U })), std::invalid_argument);
-    EXPECT_FALSE(hal::board::createMotorFeedback(static_cast<hal::board::MotorId>(99), { 1.8_deg, 16U }));
-    EXPECT_TRUE(hal::board::createMotorFeedback(Motor1, { 1.8_deg, 16U }));
+    EXPECT_THROW(static_cast<void>(hal::board::create_motor_feedback(Motor1, { 0_deg, 16U })), std::invalid_argument);
+    EXPECT_THROW(static_cast<void>(hal::board::create_motor_feedback(Motor2, { 1.8_deg, 0U })), std::invalid_argument);
+    EXPECT_FALSE(hal::board::create_motor_feedback(static_cast<hal::board::MotorId>(99), { 1.8_deg, 16U }));
+    EXPECT_TRUE(hal::board::create_motor_feedback(Motor1, { 1.8_deg, 16U }));
 }

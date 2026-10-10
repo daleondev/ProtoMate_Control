@@ -13,7 +13,7 @@ namespace hal
                         std::span<std::uint8_t> reply,
                         std::chrono::milliseconds timeout) -> util::Result<>
     {
-        if (!util::validUartTransfer(m_configuration, request.size(), reply.size(), timeout))
+        if (!util::valid_uart_transfer(m_configuration, request.size(), reply.size(), timeout))
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         if (!m_handler)
             return std::unexpected(std::make_error_code(std::errc::not_connected));

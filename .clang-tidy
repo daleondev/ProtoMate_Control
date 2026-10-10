@@ -34,8 +34,9 @@ CheckOptions:
 
   - key: readability-identifier-naming.FunctionCase
     value: lower_case
+  # Hardware ISR symbols must match the CMSIS vector table.
   - key: readability-identifier-naming.FunctionIgnoredRegexp
-    value: '^(BSP_.*|Error_Handler|HAL_.*|MPU_Config_User|MX_.*|SCB_.*|SystemClock_Config|__.*)$'
+    value: '^(BSP_.*|Error_Handler|HAL_.*|MPU_Config_User|MX_.*|SCB_.*|SystemClock_Config|.*_IRQHandler|__.*)$'
   - key: readability-identifier-naming.VariableCase
     value: lower_case
   - key: readability-identifier-naming.VariableIgnoredRegexp

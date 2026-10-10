@@ -16,9 +16,9 @@ namespace hal
     {
         enum class Axis : std::uint8_t
         {
-            _1,
-            _2,
-            _3
+            M1,
+            M2,
+            M3
         };
         using PulseCount = std::uint64_t;
         struct Timing
@@ -64,6 +64,12 @@ namespace hal
         class Sequence
         {
           public:
+            Sequence() = default;
+            Sequence(const Sequence&) = default;
+            auto operator=(const Sequence&) -> Sequence& = default;
+            Sequence(Sequence&&) = default;
+            auto operator=(Sequence&&) -> Sequence& = default;
+
             virtual ~Sequence() = default;
             virtual PulseCount count() const noexcept = 0;
             virtual std::chrono::nanoseconds maximumPeriod() const noexcept = 0;
@@ -95,6 +101,12 @@ namespace hal
     class IStepOutput
     {
       public:
+        IStepOutput() = default;
+        IStepOutput(const IStepOutput&) = default;
+        auto operator=(const IStepOutput&) -> IStepOutput& = default;
+        IStepOutput(IStepOutput&&) = default;
+        auto operator=(IStepOutput&&) -> IStepOutput& = default;
+
         using CompletionCallback = std::move_only_function<void(const step::AxisStatus&) noexcept>;
         using ProgressCallback = std::move_only_function<void(const step::AxisStatus&) noexcept>;
         virtual ~IStepOutput() = default;
@@ -118,10 +130,14 @@ namespace hal
         // that pulse's rising edge. The sequence is copied before returning.
         [[nodiscard]] virtual auto prepareSequence(std::span<const step::Timing> sequence)
           -> util::Result<> = 0;
-        [[nodiscard]] virtual auto prepareSequence(std::shared_ptr<const step::Sequence>) -> util::Result<>
+        // By-value ownership is consumed by overrides; the default rejects it.
+        // NOLINTBEGIN(performance-unnecessary-value-param)
+        [[nodiscard]] virtual auto prepareSequence(std::shared_ptr<const step::Sequence> /*unused*/)
+          -> util::Result<>
         {
             return std::unexpected(std::make_error_code(std::errc::not_supported));
         }
+        // NOLINTEND(performance-unnecessary-value-param)
         [[nodiscard]] virtual auto scheduleCursor() noexcept -> util::Result<step::ScheduleCursor>
         {
             return std::unexpected(std::make_error_code(std::errc::not_supported));
@@ -129,11 +145,15 @@ namespace hal
         // The cursor must still match. Replacements cannot change committed
         // periods or the first uncommitted rising edge. Retired schedules are
         // released in the calling thread after unlocking, never by an IRQ.
-        [[nodiscard]] virtual auto replaceSequence(step::ScheduleCursor,
-                                                   std::shared_ptr<const step::Sequence>) -> util::Result<>
+        // By-value ownership is consumed by overrides; the default rejects it.
+        // NOLINTBEGIN(performance-unnecessary-value-param)
+        [[nodiscard]] virtual auto replaceSequence(step::ScheduleCursor /*unused*/,
+                                                   std::shared_ptr<const step::Sequence> /*unused*/)
+          -> util::Result<>
         {
             return std::unexpected(std::make_error_code(std::errc::not_supported));
         }
+        // NOLINTEND(performance-unnecessary-value-param)
         // Start this prepared axis on the running timebase; never resets CNT
         // or another axis. Delay >= 5 us, default 1 ms. Very short delays may
         // be rejected with timed_out if setup consumes the scheduling margin.
@@ -161,6 +181,12 @@ namespace hal
     class IStepGenerator
     {
       public:
+        IStepGenerator() = default;
+        IStepGenerator(const IStepGenerator&) = default;
+        auto operator=(const IStepGenerator&) -> IStepGenerator& = default;
+        IStepGenerator(IStepGenerator&&) = default;
+        auto operator=(IStepGenerator&&) -> IStepGenerator& = default;
+
         using ProgressCallback = std::move_only_function<void(const step::Status&) noexcept>;
         virtual ~IStepGenerator() = default;
         // Views retain the generator; repeated requests return equivalent views.
@@ -176,7 +202,7 @@ namespace hal
         // Invalid/unprepared selections emit nothing. An arming failure stops
         // every selected axis and retains any counts already emitted.
         [[nodiscard]] virtual auto startPrepared(
-          const std::array<std::optional<std::chrono::nanoseconds>, 3>&) noexcept -> util::Result<>
+          const std::array<std::optional<std::chrono::nanoseconds>, 3>& /*unused*/) noexcept -> util::Result<>
         {
             return std::unexpected(std::make_error_code(std::errc::not_supported));
         }

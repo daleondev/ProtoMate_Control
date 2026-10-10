@@ -106,15 +106,15 @@ extern "C" void ESC_init(const esc_cfg_t*)
 {
     if (!device) throw std::runtime_error("ESC transport missing");
     const auto deadline = Clock::now() + 2s;
-    while (require(device->readSystemRegister(hal::device::Lan9253::byteTestAddress)) !=
-           hal::device::Lan9253::byteTestValue) {
+    while (require(device->readSystemRegister(hal::device::Lan9253::BYTE_TEST_ADDRESS)) !=
+           hal::device::Lan9253::BYTE_TEST_VALUE) {
         if (Clock::now() >= deadline) throw std::runtime_error("ESC SPI startup timeout");
         std::this_thread::sleep_for(1ms);
     }
     // An independently powered ESC may retain the previous program's setup.
     // Reset only the EtherCAT core, and reload this image's boot configuration.
-    if (require(device->readSystemRegister(hal::device::Lan9253::hardwareConfigAddress)) &
-        hal::device::Lan9253::readyMask) {
+    if (require(device->readSystemRegister(hal::device::Lan9253::HARDWARE_CONFIG_ADDRESS)) &
+        hal::device::Lan9253::READY_MASK) {
         require(device->writeSystemRegister(0x1f8, 0x40));
         std::this_thread::sleep_for(2ms);
     }

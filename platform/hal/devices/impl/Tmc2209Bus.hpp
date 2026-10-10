@@ -12,8 +12,14 @@ namespace hal::device
     class Tmc2209Bus final
     {
       public:
+        Tmc2209Bus(const Tmc2209Bus&) = delete;
+        auto operator=(const Tmc2209Bus&) -> Tmc2209Bus& = delete;
+        Tmc2209Bus(Tmc2209Bus&&) = delete;
+        auto operator=(Tmc2209Bus&&) -> Tmc2209Bus& = delete;
+
         Tmc2209Bus(std::shared_ptr<IUart> uart, std::vector<std::uint8_t> addresses);
         ~Tmc2209Bus();
+
       private:
         friend class Tmc2209Driver;
         hal::util::Result<> prepareLocked();
@@ -24,10 +30,14 @@ namespace hal::device
         class Guard
         {
           public:
+            Guard(Guard&&) = delete;
+            auto operator=(Guard&&) -> Guard& = delete;
+
             explicit Guard(Tmc2209Bus& bus);
             ~Guard();
             Guard(const Guard&) = delete;
             Guard& operator=(const Guard&) = delete;
+
           private:
             Tmc2209Bus& m_bus;
         };

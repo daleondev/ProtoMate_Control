@@ -68,16 +68,16 @@ namespace
       public:
         Bench()
         {
-            m_enable = hal::board::createSteppersEnableOutput();
+            m_enable = hal::board::create_steppers_enable_output();
             require(bool(m_enable), "enable output unavailable");
             m_enable->write(Level::High);
-            m_generator = hal::board::createStepperGenerator();
+            m_generator = hal::board::create_stepper_generator();
             require(bool(m_generator), "step generator unavailable");
-            m_step = hal::board::createStepperStepOutput(m_generator, motor);
-            m_dir = hal::board::createStepperDirectionOutput(motor);
-            m_diag = hal::board::createStepperDiagnostic(motor);
-            m_button = hal::board::createButton(hal::board::ButtonId::User);
-            m_bus = hal::board::createStepperDriverBus();
+            m_step = hal::board::create_stepper_step_output(m_generator, motor);
+            m_dir = hal::board::create_stepper_direction_output(motor);
+            m_diag = hal::board::create_stepper_diagnostic(motor);
+            m_button = hal::board::create_button(hal::board::ButtonId::User);
+            m_bus = hal::board::create_stepper_driver_bus();
             require(m_step && m_dir && m_diag && m_button && m_bus, "bench resources unavailable");
             m_driver = std::make_unique<Driver>(m_bus, m_address);
             require(m_step->setCompletionCallback(
@@ -457,7 +457,7 @@ namespace
 
         void feedbackTest()
         {
-            auto provider{ hal::board::createMotorFeedback(motor, { 1.8_deg, m_configuration.microsteps }) };
+            auto provider{ hal::board::create_motor_feedback(motor, { 1.8_deg, m_configuration.microsteps }) };
             require(bool(provider), "INDEX feedback unavailable");
             auto& feedback{ *provider };
             std::atomic<std::int64_t> cycles{};

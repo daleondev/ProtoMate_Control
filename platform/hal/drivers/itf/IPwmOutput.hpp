@@ -1,8 +1,8 @@
 #pragma once
 
-#include "hal/util/Result.hpp"
 #include "hal/drivers/itf/GpioTypes.hpp"
 #include "hal/drivers/itf/ITimer.hpp"
+#include "hal/util/Result.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -14,6 +14,9 @@ namespace hal
     class IPwmOutput
     {
       public:
+        IPwmOutput(IPwmOutput&&) = default;
+        auto operator=(IPwmOutput&&) -> IPwmOutput& = default;
+
         using PulseCount = std::uint64_t;
         using PulseCallback = std::move_only_function<void(PulseCount) noexcept>;
 

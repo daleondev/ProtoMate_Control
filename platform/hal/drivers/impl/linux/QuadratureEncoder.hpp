@@ -8,10 +8,10 @@
 #include "hal/linux/Mutex.hpp"
 #endif
 
+#include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/util/EncoderCounter.hpp"
 #include "hal/drivers/util/EncoderSampler.hpp"
 #include "hal/drivers/util/TimerLease.hpp"
-#include "hal/drivers/itf/IDigitalInput.hpp"
 
 #include <memory>
 #include <mutex>
@@ -21,6 +21,11 @@ namespace hal
     class QuadratureEncoder final : public IQuadratureEncoder
     {
       public:
+        QuadratureEncoder(const QuadratureEncoder&) = delete;
+        auto operator=(const QuadratureEncoder&) -> QuadratureEncoder& = delete;
+        QuadratureEncoder(QuadratureEncoder&&) = delete;
+        auto operator=(QuadratureEncoder&&) -> QuadratureEncoder& = delete;
+
         QuadratureEncoder(util::TimerLease lease,
                           std::shared_ptr<IDigitalInput> a,
                           std::shared_ptr<IDigitalInput> b);
@@ -59,6 +64,6 @@ namespace hal
     {
         // Return the currently owned encoder for external motion injection.
         // This does not create or replace the exclusive board resource.
-        auto simulatedEncoder(timer::Peripheral peripheral) -> std::shared_ptr<QuadratureEncoder>;
+        auto simulated_encoder(timer::Peripheral peripheral) -> std::shared_ptr<QuadratureEncoder>;
     }
 }

@@ -9,7 +9,6 @@ namespace hal
       public:
         Rtc() = default;
         ~Rtc() override = default;
-
         Rtc(const Rtc&) = delete;
         Rtc& operator=(const Rtc&) = delete;
         Rtc(Rtc&&) = delete;

@@ -44,5 +44,11 @@ namespace hal::util
         auto publish() noexcept -> void override;
         auto transfer(std::size_t axis) noexcept -> bool;
         auto advance(std::uint64_t ticks) noexcept -> void;
+
+      private:
+        auto compareEvent(std::size_t axis) noexcept -> bool;
+        auto dispatchEvents(const std::array<std::uint64_t, 3>& matches,
+                            std::uint64_t next,
+                            bool guard_match) noexcept -> void;
     };
 }

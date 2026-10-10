@@ -6,7 +6,7 @@ namespace hal::util
     struct LinuxStepHardware::Service
     {
         explicit Service(StepGenerator& generator)
-          : worker{ [&generator](std::stop_token stop) {
+          : worker{ [&generator](const std::stop_token& stop) {
               while (!stop.stop_requested()) {
                   generator.service();
                   std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
@@ -50,9 +50,9 @@ namespace hal::util
         m_advancing = true;
         const auto now{ std::chrono::steady_clock::now() };
         const auto ticks{ std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_last).count() /
-                          step_tick_ns };
+                          STEP_TICK_NS };
         if (ticks > 0) {
-            m_last += std::chrono::nanoseconds{ ticks * step_tick_ns };
+            m_last += std::chrono::nanoseconds{ ticks * STEP_TICK_NS };
             advance(static_cast<std::uint64_t>(ticks));
         }
         m_advancing = false;

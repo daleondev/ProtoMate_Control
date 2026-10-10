@@ -1,3 +1,5 @@
+// CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
+// The line-specific exceptions below preserve the vendor register interface.
 #include "Gpio.hpp"
 
 #include "hal/stm32/InterruptGuard.hpp"
@@ -19,27 +21,27 @@ namespace hal
             switch (port) {
                 using enum gpio::Port;
                 case A:
-                    return GPIOA;
+                    return GPIOA; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case B:
-                    return GPIOB;
+                    return GPIOB; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case C:
-                    return GPIOC;
+                    return GPIOC; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case D:
-                    return GPIOD;
+                    return GPIOD; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case E:
-                    return GPIOE;
+                    return GPIOE; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case F:
-                    return GPIOF;
+                    return GPIOF; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case G:
-                    return GPIOG;
+                    return GPIOG; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case H:
-                    return GPIOH;
+                    return GPIOH; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case I:
-                    return GPIOI;
+                    return GPIOI; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case J:
-                    return GPIOJ;
+                    return GPIOJ; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 case K:
-                    return GPIOK;
+                    return GPIOK; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             }
             return nullptr;
         }
@@ -49,37 +51,37 @@ namespace hal
             switch (port) {
                 using enum gpio::Port;
                 case A:
-                    __HAL_RCC_GPIOA_CLK_ENABLE();
+                    __HAL_RCC_GPIOA_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case B:
-                    __HAL_RCC_GPIOB_CLK_ENABLE();
+                    __HAL_RCC_GPIOB_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case C:
-                    __HAL_RCC_GPIOC_CLK_ENABLE();
+                    __HAL_RCC_GPIOC_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case D:
-                    __HAL_RCC_GPIOD_CLK_ENABLE();
+                    __HAL_RCC_GPIOD_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case E:
-                    __HAL_RCC_GPIOE_CLK_ENABLE();
+                    __HAL_RCC_GPIOE_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case F:
-                    __HAL_RCC_GPIOF_CLK_ENABLE();
+                    __HAL_RCC_GPIOF_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case G:
-                    __HAL_RCC_GPIOG_CLK_ENABLE();
+                    __HAL_RCC_GPIOG_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case H:
-                    __HAL_RCC_GPIOH_CLK_ENABLE();
+                    __HAL_RCC_GPIOH_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case I:
-                    __HAL_RCC_GPIOI_CLK_ENABLE();
+                    __HAL_RCC_GPIOI_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case J:
-                    __HAL_RCC_GPIOJ_CLK_ENABLE();
+                    __HAL_RCC_GPIOJ_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 case K:
-                    __HAL_RCC_GPIOK_CLK_ENABLE();
+                    __HAL_RCC_GPIOK_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
             }
         }
@@ -102,13 +104,10 @@ namespace hal
                     return EXTI3_IRQn;
                 case 4U:
                     return EXTI4_IRQn;
-                case 5U:
-                case 6U:
-                case 7U:
-                case 8U:
-                case 9U:
-                    return EXTI9_5_IRQn;
                 default:
+                    constexpr auto last_grouped_line{ 9U };
+                    if (number <= last_grouped_line)
+                        return EXTI9_5_IRQn;
                     return EXTI15_10_IRQn;
             }
         }
@@ -207,7 +206,8 @@ namespace hal
             // NVIC pending state is shared by grouped EXTI lines. Clear only
             // this pin's peripheral flag so a previous owner cannot trigger
             // the new callback, while preserving other pins' pending edges.
-            __HAL_GPIO_EXTI_CLEAR_IT(m_pinMask);
+            __HAL_GPIO_EXTI_CLEAR_IT( // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+              m_pinMask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             HAL_NVIC_SetPriority(m_interrupt, GPIO_INTERRUPT_PRIORITY, 0U);
             HAL_NVIC_EnableIRQ(m_interrupt);
         }
@@ -218,7 +218,8 @@ namespace hal
         if (m_configuration.edge != gpio::Edge::None) {
             HAL_NVIC_DisableIRQ(m_interrupt);
             HAL_GPIO_DeInit(m_port, m_pinMask);
-            __HAL_GPIO_EXTI_CLEAR_IT(m_pinMask);
+            __HAL_GPIO_EXTI_CLEAR_IT( // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+              m_pinMask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             s_interruptRegistry[m_configuration.pin.number] = nullptr;
 
             const bool group_still_used{ std::ranges::any_of(s_interruptRegistry, [&](const auto* input) {
@@ -305,7 +306,9 @@ namespace hal
     }
 }
 
-extern "C" void HAL_GPIO_EXTI_Callback(std::uint16_t pin_mask) { hal::GpioInput::dispatchEdge(pin_mask); }
+// Match the vendor callback declaration, including its parameter spelling.
+// NOLINTNEXTLINE(readability-identifier-naming)
+extern "C" void HAL_GPIO_EXTI_Callback(std::uint16_t GPIO_Pin) { hal::GpioInput::dispatchEdge(GPIO_Pin); }
 
 extern "C" void EXTI0_IRQHandler() { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0); }
 extern "C" void EXTI1_IRQHandler() { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1); }

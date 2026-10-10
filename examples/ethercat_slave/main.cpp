@@ -14,8 +14,8 @@ int main()
 {
     using namespace std::chrono_literals;
     try {
-        auto select = hal::board::createEthercatChipSelect();
-        auto spi = hal::board::createEthercatSpi();
+        auto select = hal::board::create_ethercat_chip_select();
+        auto spi = hal::board::create_ethercat_spi();
         if (!select || !spi) throw std::runtime_error("SPI5/CS unavailable");
         hal::device::Lan9253 esc{*spi, *select};
         ethercat_echo::attach(esc);

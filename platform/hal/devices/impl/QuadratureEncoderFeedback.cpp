@@ -13,61 +13,78 @@
 namespace hal::device
 {
     using namespace pnm::units::literals;
+    constexpr auto FULL_TURN{ 360_deg };
 
     struct QuadratureEncoderFeedback::State
     {
 #ifdef HAL_PLATFORM_STM32
-        struct Mutex {};
+        struct Mutex
+        {
+        };
         struct Guard
         {
-            explicit Guard(Mutex&) noexcept {}
+            explicit Guard(Mutex& /*unused*/) noexcept {}
             stm32::InterruptGuard interrupt_guard;
         };
 #else
         using Mutex = std::mutex;
-        using Guard = std::lock_guard<Mutex>;
+        using Guard = std::scoped_lock<Mutex>;
 #endif
         Mutex mutex;
-        const pnm::units::Angle count_angle;
+        const pnm::units::Angle count_angle; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members) --
+                                             // Immutable calibration/limits for this device lifetime.
         pnm::units::Angle offset{};
         std::optional<IQuadratureEncoder::Sample> previous;
-        Sample latest{ std::unexpected(std::make_error_code(std::errc::no_message_available)) };
+        Sample latest{ .position = std::unexpected(std::make_error_code(std::errc::no_message_available)) };
         Callback callback;
 
-        explicit State(std::uint32_t counts) : count_angle{ 360_deg / static_cast<double>(counts) } {}
+        explicit State(std::uint32_t counts)
+          : count_angle{ FULL_TURN / static_cast<double>(counts) }
+        {
+        }
 
         void sample(const IQuadratureEncoder::Sample& value) noexcept
         {
             const Guard guard{ mutex };
-            latest = { std::unexpected(std::make_error_code(std::errc::state_not_recoverable)),
-                       0_rpm, value.timestamp, true };
+            latest = { .position = std::unexpected(std::make_error_code(std::errc::state_not_recoverable)),
+                       .velocity = 0_rpm,
+                       .timestamp = value.timestamp,
+                       .reference_lost = true };
             if (value.position) {
                 auto velocity{ 0_rpm };
                 if (value.running && previous && previous->running && value.timestamp > previous->timestamp) {
-                    const auto current{ *value.position }, prior{ *previous->position };
+                    const auto current{ *value.position };
+                    const auto prior{ *previous->position };
                     // Unsigned subtraction avoids signed overflow across zero.
-                    const auto magnitude{ current >= prior
-                        ? static_cast<std::uint64_t>(current) - static_cast<std::uint64_t>(prior)
-                        : static_cast<std::uint64_t>(prior) - static_cast<std::uint64_t>(current) };
+                    const auto magnitude{ current >= prior ? static_cast<std::uint64_t>(current) -
+                                                               static_cast<std::uint64_t>(prior)
+                                                           : static_cast<std::uint64_t>(prior) -
+                                                               static_cast<std::uint64_t>(current) };
                     const auto delta{ (current >= prior ? 1.0 : -1.0) * static_cast<double>(magnitude) };
-                    velocity = count_angle * delta / pnm::units::Time{ value.timestamp - previous->timestamp };
+                    velocity =
+                      count_angle * delta / pnm::units::Time{ value.timestamp - previous->timestamp };
                 }
                 const auto position{ offset + count_angle * static_cast<double>(*value.position) };
                 if (position.isFinite() && velocity.isFinite())
-                    latest = { position, velocity, value.timestamp, false };
+                    latest = { .position = position,
+                               .velocity = velocity,
+                               .timestamp = value.timestamp,
+                               .reference_lost = false };
                 previous = value;
             }
             else {
                 previous.reset();
             }
-            if (callback) callback(latest);
+            if (callback)
+                callback(latest);
         }
     };
 
     QuadratureEncoderFeedback::QuadratureEncoderFeedback(std::shared_ptr<IQuadratureEncoder> encoder,
                                                          std::uint32_t counts,
                                                          std::shared_ptr<IDigitalInput> index)
-      : m_encoder{ std::move(encoder) }, m_index{ std::move(index) }
+      : m_encoder{ std::move(encoder) }
+      , m_index{ std::move(index) }
     {
         if (!m_encoder || counts == 0U)
             throw std::invalid_argument("quadrature feedback needs an encoder and nonzero resolution");
@@ -77,15 +94,15 @@ namespace hal::device
 
     void QuadratureEncoderFeedback::subscribe()
     {
-        m_encoder->setSampleCallback([state = m_state](const IQuadratureEncoder::Sample& sample) noexcept {
-            state->sample(sample);
-        });
+        m_encoder->setSampleCallback(
+          [state = m_state](const IQuadratureEncoder::Sample& sample) noexcept { state->sample(sample); });
     }
 
     QuadratureEncoderFeedback::~QuadratureEncoderFeedback()
     {
         m_encoder->clearSampleCallback();
-        static_cast<void>(m_encoder->stop());
+        static_cast<void>(m_encoder->stop()); // NOLINT(bugprone-unused-return-value) -- Cleanup enforces
+                                              // stop; its final status is not consumed here.
         clearCallback();
     }
 
@@ -97,7 +114,8 @@ namespace hal::device
     {
         const State::Guard guard{ m_state->mutex };
         m_state->callback = std::move(callback);
-        if (m_state->callback) m_state->callback(m_state->latest);
+        if (m_state->callback)
+            m_state->callback(m_state->latest);
     }
 
     hal::util::Result<> QuadratureEncoderFeedback::reference(pnm::units::Angle position)
@@ -119,7 +137,8 @@ namespace hal::device
                 m_state->previous.reset();
             }
         }
-        else result = std::unexpected(count.error());
+        else
+            result = std::unexpected(count.error());
         subscribe(); // Publishes with the new coordinate before returning.
         return result;
     }

@@ -36,10 +36,10 @@ namespace clock_reference
       public:
         auto observe(Sample sample) noexcept -> Observation
         {
-            using hal::util::stepDistance;
-            if (sample.second >= 60U || sample.before >= hal::util::step_park ||
-                sample.after >= hal::util::step_park ||
-                stepDistance(sample.before, sample.after) > max_poll_ticks) {
+            using hal::util::step_distance;
+            if (sample.second >= 60U || sample.before >= hal::util::STEP_PARK ||
+                sample.after >= hal::util::STEP_PARK ||
+                step_distance(sample.before, sample.after) > max_poll_ticks) {
                 return Observation::Invalid;
             }
             if (!m_previous) {
@@ -48,7 +48,7 @@ namespace clock_reference
             }
             const auto previous{ *m_previous };
             m_previous = sample;
-            if (stepDistance(previous.before, sample.after) > max_poll_ticks) {
+            if (step_distance(previous.before, sample.after) > max_poll_ticks) {
                 return Observation::Invalid;
             }
             if (sample.second == previous.second) {
@@ -83,10 +83,10 @@ namespace clock_reference
     // uses ARR+1 = 0xFFFFFFFF, not the usual uint32_t modulus of 0x100000000.
     inline auto measure(Boundary first, Boundary last) noexcept -> Measurement
     {
-        using hal::util::stepDistance;
-        const double lower{ static_cast<double>(stepDistance(first.after, last.before)) -
+        using hal::util::step_distance;
+        const double lower{ static_cast<double>(step_distance(first.after, last.before)) -
                             2.0 * sync_margin_ticks };
-        const double upper{ static_cast<double>(stepDistance(first.before, last.after)) +
+        const double upper{ static_cast<double>(step_distance(first.before, last.after)) +
                             2.0 * sync_margin_ticks };
         const double ticks{ (lower + upper) / 2.0 };
         const double expected{ static_cast<double>(nominal_hz) * window_seconds };

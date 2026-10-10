@@ -38,13 +38,13 @@ namespace
               { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
               { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
             } });
-            auto alarm = hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 });
+            auto alarm = hal::gpio::simulated_input({ .port = hal::gpio::Port::F, .number = 2 });
             ASSERT_TRUE(alarm);
             alarm->setSimulatedLevel(hal::gpio::Level::Low); // Healthy, powered DM542T.
             m_controller->initializeDrivers();
             constexpr std::array<std::uint8_t, 3> pins{ 7, 8, 10 };
             for (std::size_t i{}; i < pins.size(); ++i) {
-                m_switches[i] = hal::gpio::simulatedInput({ .port = hal::gpio::Port::E, .number = pins[i] });
+                m_switches[i] = hal::gpio::simulated_input({ .port = hal::gpio::Port::E, .number = pins[i] });
                 ASSERT_TRUE(m_switches[i]);
                 m_switches[i]->setSimulatedLevel(Low);
             }
@@ -278,7 +278,7 @@ TEST_F(CliAxis, BufferedMovesLiveSpeedAndIndependentStopUseTheSameMotor)
 TEST_F(CliAxis, EncoderFeedbackUsesSignedAxisConversionAndPreservesErrors)
 {
     configure();
-    const auto encoder{ hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3) };
+    const auto encoder{ hal::encoder::simulated_encoder(hal::timer::Peripheral::Tim3) };
     ASSERT_TRUE(encoder);
     ASSERT_TRUE(encoder->advanceSimulatedCounts(400)); // 90 motor degrees.
     ASSERT_TRUE(eventually([&] {

@@ -12,6 +12,11 @@ namespace hal::util
     class LinuxStepHardware final : public SimulatedStepHardware
     {
       public:
+        LinuxStepHardware(const LinuxStepHardware&) = delete;
+        auto operator=(const LinuxStepHardware&) -> LinuxStepHardware& = delete;
+        LinuxStepHardware(LinuxStepHardware&&) = delete;
+        auto operator=(LinuxStepHardware&&) -> LinuxStepHardware& = delete;
+
         LinuxStepHardware();
         ~LinuxStepHardware() override;
         void beginService(StepGenerator& generator);
@@ -24,7 +29,7 @@ namespace hal::util
         struct Service;
         std::unique_ptr<Service> m_service;
         auto update() noexcept -> void;
-        std::chrono::steady_clock::time_point m_last{};
+        std::chrono::steady_clock::time_point m_last;
         bool m_advancing{};
     };
 }

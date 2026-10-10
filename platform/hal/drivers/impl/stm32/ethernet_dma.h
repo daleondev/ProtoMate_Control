@@ -10,11 +10,19 @@
  * ETH_BUFFER_RAM is non-cacheable, shareable D2 SRAM. The alignment still
  * isolates each buffer on Cortex-M7 cache-line boundaries and keeps the
  * contract safe if cache policy changes later. */
-#define ETH_DMA_BUFFER_ALIGNMENT 32U
-#define ETH_DMA_FRAME_BUFFER_SIZE 1536U
+#ifdef __cplusplus
+inline constexpr uint32_t ETH_DMA_BUFFER_ALIGNMENT{ 32U };
+inline constexpr uint32_t ETH_DMA_FRAME_BUFFER_SIZE{ 1536U };
+#else
+enum
+{
+    ETH_DMA_BUFFER_ALIGNMENT = 32U,
+    ETH_DMA_FRAME_BUFFER_SIZE = 1536U
+};
+#endif
 
 #if defined(__GNUC__)
-#define ETH_DMA_BUFFER_ATTRIBUTE \
+#define ETH_DMA_BUFFER_ATTRIBUTE                                                                             \
     __attribute__((section(".EthBufferSection"), aligned(ETH_DMA_BUFFER_ALIGNMENT)))
 #else
 #error "Define ETH_DMA_BUFFER_ATTRIBUTE for this toolchain"
@@ -24,8 +32,10 @@
 extern "C" {
 #endif
 
-extern uint8_t __eth_buffer_start__[];
-extern uint8_t __eth_buffer_end__[];
+extern uint8_t
+  __eth_buffer_start__[]; // NOLINT(bugprone-reserved-identifier) -- Symbols provided by the linker script.
+extern uint8_t
+  __eth_buffer_end__[]; // NOLINT(bugprone-reserved-identifier) -- Symbols provided by the linker script.
 
 #ifdef __cplusplus
 }

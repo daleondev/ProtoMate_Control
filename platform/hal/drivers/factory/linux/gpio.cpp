@@ -9,6 +9,11 @@
 #include <mutex>
 #include <type_traits>
 
+namespace
+{
+    inline constexpr auto MAX_ALTERNATE_FUNCTION{ 15U };
+}
+
 namespace hal::gpio
 {
     namespace
@@ -23,12 +28,20 @@ namespace hal::gpio
             std::weak_ptr<GpioInput> input;
         };
 
-        std::array<PinOwner, PIN_COUNT> owners;
-        linux::Mutex owners_mutex;
+        auto owners() -> std::array<PinOwner, PIN_COUNT>&
+        {
+            static std::array<PinOwner, PIN_COUNT> value;
+            return value;
+        }
+        auto owners_mutex() -> linux::Mutex&
+        {
+            static linux::Mutex value;
+            return value;
+        }
 
         [[nodiscard]] auto pin_index(Pin pin) noexcept -> std::size_t
         {
-            return static_cast<std::size_t>(pin.port) * PINS_PER_PORT + pin.number;
+            return (static_cast<std::size_t>(pin.port) * PINS_PER_PORT) + pin.number;
         }
 
         [[nodiscard]] auto valid(Pin pin) noexcept -> bool
@@ -43,8 +56,8 @@ namespace hal::gpio
                 return {};
             }
 
-            const std::scoped_lock lock{ owners_mutex };
-            auto& owner{ owners[pin_index(configuration.pin)] };
+            const std::scoped_lock lock{ owners_mutex() };
+            auto& owner{ owners()[pin_index(configuration.pin)] };
             if (!owner.instance.expired()) {
                 return {};
             }
@@ -52,34 +65,35 @@ namespace hal::gpio
             owner.instance = instance;
             if constexpr (std::is_same_v<Implementation, GpioInput>) {
                 owner.input = instance;
-            } else {
+            }
+            else {
                 owner.input.reset();
             }
             return instance;
         }
     }
 
-    auto simulatedInput(Pin pin) -> std::shared_ptr<GpioInput>
+    auto simulated_input(Pin pin) -> std::shared_ptr<GpioInput>
     {
         if (!valid(pin)) {
             return {};
         }
-        const std::scoped_lock lock{ owners_mutex };
-        return owners[pin_index(pin)].input.lock();
+        const std::scoped_lock lock{ owners_mutex() };
+        return owners()[pin_index(pin)].input.lock();
     }
 
-    auto createInput(InputConfiguration configuration) -> std::shared_ptr<IDigitalInput>
+    auto create_input(InputConfiguration configuration) -> std::shared_ptr<IDigitalInput>
     {
-        if (configuration.alternate_function &&
-            (*configuration.alternate_function > 15U || configuration.edge != Edge::None)) {
+        if (configuration.alternate_function && (*configuration.alternate_function > MAX_ALTERNATE_FUNCTION ||
+                                                 configuration.edge != Edge::None)) {
             return {};
         }
         return create_pin<IDigitalInput, GpioInput>(configuration);
     }
 
-    auto createOutput(OutputConfiguration configuration) -> std::shared_ptr<IDigitalOutput>
+    auto create_output(OutputConfiguration configuration) -> std::shared_ptr<IDigitalOutput>
     {
-        if (configuration.alternate_function && *configuration.alternate_function > 15U) {
+        if (configuration.alternate_function && *configuration.alternate_function > MAX_ALTERNATE_FUNCTION) {
             return {};
         }
         return create_pin<IDigitalOutput, GpioOutput>(configuration);

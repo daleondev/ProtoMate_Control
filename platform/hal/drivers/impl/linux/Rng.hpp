@@ -9,7 +9,6 @@ namespace hal
       public:
         Rng() = default;
         ~Rng() override = default;
-
         Rng(const Rng&) = delete;
         Rng& operator=(const Rng&) = delete;
         Rng(Rng&&) = delete;

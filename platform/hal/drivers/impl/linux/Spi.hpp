@@ -9,6 +9,8 @@ namespace hal
     class Spi final : public ISpi
     {
       public:
+        ~Spi() override = default;
+
         using ExchangeHandler = std::function<
           util::Result<>(std::span<const std::uint8_t>, std::span<std::uint8_t>, std::chrono::milliseconds)>;
         explicit Spi(std::uint32_t clock_frequency_hz);

@@ -123,19 +123,19 @@ namespace
         }
         auto initialize() -> bool
         {
-            m_enable = hal::board::createSteppersEnableOutput();
-            m_generator = hal::board::createStepperGenerator();
-            m_button = hal::board::createButton(hal::board::ButtonId::User);
-            m_green = hal::board::createLed(hal::board::LedId::Green);
-            m_red = hal::board::createLed(hal::board::LedId::Red);
-            m_yellow = hal::board::createLed(hal::board::LedId::Yellow);
+            m_enable = hal::board::create_steppers_enable_output();
+            m_generator = hal::board::create_stepper_generator();
+            m_button = hal::board::create_button(hal::board::ButtonId::User);
+            m_green = hal::board::create_led(hal::board::LedId::Green);
+            m_red = hal::board::create_led(hal::board::LedId::Red);
+            m_yellow = hal::board::create_led(hal::board::LedId::Yellow);
             if (!m_enable || !m_generator || !m_button || !m_green || !m_red || !m_yellow) {
                 return false;
             }
             for (std::size_t i = 0; i < 3U; ++i) {
                 const auto motor{ static_cast<hal::board::MotorId>(i) };
-                m_axes[i] = hal::board::createStepperStepOutput(m_generator, motor);
-                m_directions[i] = hal::board::createStepperDirectionOutput(motor);
+                m_axes[i] = hal::board::create_stepper_step_output(m_generator, motor);
+                m_directions[i] = hal::board::create_stepper_direction_output(motor);
                 if (!m_axes[i] || !m_directions[i]) {
                     return false;
                 }
@@ -341,7 +341,7 @@ namespace
             if (!check(idle() && !m_button->isPressed(),
                        "clock test requires idle outputs and released B1") ||
                 !check(rtcReferenceReady(), "RTC must use ready, unadjusted LSE with 127/255 prescalers") ||
-                !check(TIM2->PSC == 23U && TIM2->ARR == hal::util::step_arr && TIM2->SMCR == 0U &&
+                !check(TIM2->PSC == 23U && TIM2->ARR == hal::util::STEP_ARR && TIM2->SMCR == 0U &&
                          (TIM2->CR1 & (TIM_CR1_DIR | TIM_CR1_CMS | TIM_CR1_OPM)) == 0U,
                        "TIM2 must be the configured 10 MHz up-counter")) {
                 return false;
@@ -514,7 +514,7 @@ namespace
                 {
                     for (unsigned i = 0; i < directions.size(); ++i)
                         directions[i] =
-                          hal::board::createStepperDirectionOutput(static_cast<hal::board::MotorId>(i));
+                          hal::board::create_stepper_direction_output(static_cast<hal::board::MotorId>(i));
                 }
             } restore{ m_directions };
             using enum StepperMotor::Result;
@@ -616,7 +616,7 @@ namespace
                 {
                     for (unsigned i = 0; i < directions.size(); ++i)
                         directions[i] =
-                          hal::board::createStepperDirectionOutput(static_cast<hal::board::MotorId>(i));
+                          hal::board::create_stepper_direction_output(static_cast<hal::board::MotorId>(i));
                 }
             } restore{ m_directions };
             using namespace pnm::units::literals;

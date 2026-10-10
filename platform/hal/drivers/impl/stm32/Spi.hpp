@@ -10,7 +10,8 @@ namespace hal
       public:
         struct Configuration
         {
-            SPI_HandleTypeDef& handle;
+            SPI_HandleTypeDef& handle; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members) --
+                                       // Required, non-owning dependency; its owner outlives this object.
             std::uint32_t (*kernel_clock_hz)();
             void (*initialize)();
             void (*recover)();

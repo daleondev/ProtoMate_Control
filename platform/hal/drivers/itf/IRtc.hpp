@@ -21,7 +21,6 @@ namespace hal
         };
 
         virtual ~IRtc() = default;
-
         IRtc(const IRtc&) = delete;
         IRtc& operator=(const IRtc&) = delete;
         IRtc(IRtc&&) = delete;

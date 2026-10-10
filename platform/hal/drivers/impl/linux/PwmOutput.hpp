@@ -2,11 +2,11 @@
 
 #include "hal/linux/Mutex.hpp"
 
+#include "hal/drivers/itf/IDigitalOutput.hpp"
+#include "hal/drivers/itf/IPwmOutput.hpp"
 #include "hal/drivers/util/PulseTrain.hpp"
 #include "hal/drivers/util/PwmTiming.hpp"
 #include "hal/drivers/util/TimerLease.hpp"
-#include "hal/drivers/itf/IPwmOutput.hpp"
-#include "hal/drivers/itf/IDigitalOutput.hpp"
 
 #include <memory>
 #include <mutex>
@@ -18,12 +18,17 @@ namespace hal
     class PwmOutput final : public IPwmOutput
     {
       public:
+        PwmOutput(const PwmOutput&) = delete;
+        auto operator=(const PwmOutput&) -> PwmOutput& = delete;
+        PwmOutput(PwmOutput&&) = delete;
+        auto operator=(PwmOutput&&) -> PwmOutput& = delete;
+
         PwmOutput(pwm::Configuration configuration,
                   std::uint8_t alternate,
                   util::TimerLease lease,
                   std::shared_ptr<IDigitalOutput> pin);
         ~PwmOutput() override;
-        [[nodiscard]] auto configure(Timing timing) noexcept -> util::Result<> override;
+        [[nodiscard]] auto configure(Timing requested) noexcept -> util::Result<> override;
         [[nodiscard]] auto timing() const noexcept -> Timing override;
         [[nodiscard]] auto start() noexcept -> util::Result<> override;
         [[nodiscard]] auto startPulses(std::optional<PulseCount> count = std::nullopt) noexcept

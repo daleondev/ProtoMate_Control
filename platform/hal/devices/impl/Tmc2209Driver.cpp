@@ -1,20 +1,36 @@
 #include "Tmc2209Driver.hpp"
+#include "hal/devices/util/DriverMutex.hpp"
 #include <algorithm>
 #include <bit>
 #include <stdexcept>
-#include "hal/devices/util/DriverMutex.hpp"
+
+namespace
+{
+    inline constexpr auto MAX_MICROSTEPS{ 256 };
+    inline constexpr auto STEALTH_MIN_CURRENT_SCALE{ 8 };
+}
 
 namespace hal::device
 {
-    struct Tmc2209Driver::Lock { util::DriverMutex mutex; };
+    struct Tmc2209Driver::Lock
+    {
+        util::DriverMutex mutex;
+    };
     Tmc2209Driver::~Tmc2209Driver() = default;
-    Tmc2209Driver::Tmc2209Driver(std::shared_ptr<Tmc2209Bus> bus, std::uint8_t address,
-                               std::shared_ptr<IDigitalInput> diag, std::shared_ptr<IDigitalOutput> enable,
-                               Configuration config, Limits limits)
-      : m_bus{ std::move(bus) }, m_enable{ std::move(enable) }, m_fault{ std::move(diag) },
-        m_lock{ std::make_unique<Lock>() },
-        m_device{ m_bus ? m_bus->m_uart : nullptr, address }, m_configuration{ config },
-        m_limits{ limits }, m_microsteps{ config.microsteps }
+    Tmc2209Driver::Tmc2209Driver(std::shared_ptr<Tmc2209Bus> bus,
+                                 std::uint8_t address,
+                                 std::shared_ptr<IDigitalInput> diag,
+                                 std::shared_ptr<IDigitalOutput> enable,
+                                 Configuration config,
+                                 Limits limits)
+      : m_bus{ std::move(bus) }
+      , m_enable{ std::move(enable) }
+      , m_fault{ std::move(diag) }
+      , m_lock{ std::make_unique<Lock>() }
+      , m_device{ m_bus ? m_bus->m_uart : nullptr, address }
+      , m_configuration{ config }
+      , m_limits{ limits }
+      , m_microsteps{ config.microsteps }
     {
         if (!m_enable || !std::ranges::binary_search(m_bus->m_addresses, address) || !validate(config))
             throw std::invalid_argument("invalid TMC motor configuration or bus address");
@@ -26,10 +42,10 @@ namespace hal::device
         if (!run || !hold || config.run_milliamps > m_limits.maximum_run_milliamps ||
             config.hold_milliamps > config.run_milliamps ||
             (m_limits.hold_equals_run && config.hold_milliamps != config.run_milliamps) ||
-            !std::has_single_bit(config.microsteps) || config.microsteps > 256 ||
+            !std::has_single_bit(config.microsteps) || config.microsteps > MAX_MICROSTEPS ||
             config.microsteps != m_microsteps || config.index_step ||
             (config.mode != Mode::SpreadCycle && config.mode != Mode::StealthChop) ||
-            (config.mode == Mode::StealthChop && *run < 8))
+            (config.mode == Mode::StealthChop && *run < STEALTH_MIN_CURRENT_SCALE))
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         return {};
     }
@@ -42,16 +58,22 @@ namespace hal::device
     IConfigurableStepperDriver::Snapshot Tmc2209Driver::snapshot() const
     {
         const std::scoped_lock lock{ m_lock->mutex };
-        return { m_configuration, m_diagnostics, m_limits, m_device.address(),
-                 Tmc2209::currentMilliamps(*Tmc2209::currentScale(m_configuration.run_milliamps)),
-                 Tmc2209::currentMilliamps(*Tmc2209::currentScale(m_configuration.hold_milliamps)) };
+        return { .configuration = m_configuration,
+                 .diagnostics = m_diagnostics,
+                 .limits = m_limits,
+                 .address = m_device.address(),
+                 .nominal_run_milliamps =
+                   Tmc2209::currentMilliamps(*Tmc2209::currentScale(m_configuration.run_milliamps)),
+                 .nominal_hold_milliamps =
+                   Tmc2209::currentMilliamps(*Tmc2209::currentScale(m_configuration.hold_milliamps)) };
     }
     hal::util::Result<> Tmc2209Driver::configure(const Configuration& config)
     {
         const std::scoped_lock lock{ m_lock->mutex };
         if (m_enable->read() != gpio::Level::High)
             return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
-        if (auto result{ validate(config) }; !result) return result;
+        if (auto result{ validate(config) }; !result)
+            return result;
         m_configuration = config;
         m_initialized = false;
         m_fault.unready();
@@ -69,7 +91,8 @@ namespace hal::device
         m_fault.checkInput();
         const Tmc2209Bus::Guard bus_lock{ *m_bus };
         auto result{ m_bus->prepareLocked() };
-        if (result) result = m_device.initialize(m_configuration);
+        if (result)
+            result = m_device.initialize(m_configuration);
         if (!result) {
             m_fault.fail(result.error() == std::errc::io_error ? Fault::Electrical : Fault::Communication,
                          result.error());
@@ -96,14 +119,16 @@ namespace hal::device
             return;
         }
         if (auto result{ m_device.verify() }; !result)
-            m_fault.fail(result.error() == std::errc::state_not_recoverable
-                           ? Fault::Configuration : Fault::Communication, result.error());
+            m_fault.fail(result.error() == std::errc::state_not_recoverable ? Fault::Configuration
+                                                                            : Fault::Communication,
+                         result.error());
     }
     void Tmc2209Driver::service()
     {
         m_fault.checkInput();
         const std::scoped_lock lock{ m_lock->mutex };
-        if (!m_initialized) return;
+        if (!m_initialized)
+            return;
         const Tmc2209Bus::Guard bus_lock{ *m_bus };
         inspectLocked();
     }
@@ -112,7 +137,8 @@ namespace hal::device
         service();
         const auto state{ status() };
         if (!state.ready)
-            return std::unexpected(state.error ? state.error : std::make_error_code(std::errc::operation_not_permitted));
+            return std::unexpected(state.error ? state.error
+                                               : std::make_error_code(std::errc::operation_not_permitted));
         return {};
     }
 }

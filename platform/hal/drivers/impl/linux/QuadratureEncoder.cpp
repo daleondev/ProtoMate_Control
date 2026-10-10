@@ -17,10 +17,10 @@ namespace hal
     struct QuadratureEncoder::Service
     {
         explicit Service(QuadratureEncoder& encoder)
-          : worker{ [&encoder](std::stop_token stop) {
+          : worker{ [&encoder](const std::stop_token& stop) {
               while (!stop.stop_requested()) {
                   encoder.service();
-                  std::this_thread::sleep_for(IQuadratureEncoder::sample_period);
+                  std::this_thread::sleep_for(IQuadratureEncoder::SAMPLE_PERIOD);
               }
           } }
         {
@@ -52,7 +52,7 @@ namespace hal
         }
         if (!m_running) {
             m_running = true;
-            m_sampler.publish({ value, now(), true });
+            m_sampler.publish({ .position = value, .timestamp = now(), .running = true });
         }
         return {};
     }
@@ -60,7 +60,7 @@ namespace hal
     {
         const std::scoped_lock lock{ m_mutex };
         m_running = false;
-        m_sampler.publish({ m_counter.position(), now(), false });
+        m_sampler.publish({ .position = m_counter.position(), .timestamp = now(), .running = false });
         return {};
     }
     auto QuadratureEncoder::isRunning() const noexcept -> bool
@@ -79,21 +79,21 @@ namespace hal
         if (m_running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
-        m_counter.reset(count, m_raw);
+        m_counter.reset({ .count = count, .raw = m_raw });
         return {};
     }
     auto QuadratureEncoder::setSampleCallback(SampleCallback callback) -> void
     {
         const std::scoped_lock lock{ m_mutex };
         m_sampler.setCallback(std::move(callback));
-        m_sampler.publish({ m_counter.position(), now(), m_running });
+        m_sampler.publish({ .position = m_counter.position(), .timestamp = now(), .running = m_running });
     }
     auto QuadratureEncoder::service() noexcept -> void
     {
         const std::scoped_lock lock{ m_mutex };
         const auto timestamp{ now() };
         if (m_running && m_sampler.due(timestamp))
-            m_sampler.publish({ m_counter.position(), timestamp, true });
+            m_sampler.publish({ .position = m_counter.position(), .timestamp = timestamp, .running = true });
     }
     auto QuadratureEncoder::advanceSimulatedCounts(std::int32_t delta) noexcept -> util::Result<>
     {

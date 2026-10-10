@@ -16,7 +16,7 @@ namespace hal::util
     };
 
     // Shared by STM32 and Linux so rounding and rejected configurations agree.
-    [[nodiscard]] inline auto pwmTiming(IPwmOutput::Timing requested, std::uint32_t input_hz) noexcept
+    [[nodiscard]] inline auto pwm_timing(IPwmOutput::Timing requested, std::uint32_t input_hz) noexcept
       -> util::Result<PwmTiming>
     {
         constexpr std::uint64_t ns_per_second{ 1'000'000'000ULL };

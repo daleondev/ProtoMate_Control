@@ -14,7 +14,8 @@ namespace hal
       public:
         struct Configuration
         {
-            TIM_HandleTypeDef& handle;
+            TIM_HandleTypeDef& handle; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members) --
+                                       // Required, non-owning dependency; its owner outlives this object.
             std::uint32_t input_frequency_hz;
             IRQn_Type interrupt;
         };
@@ -68,7 +69,7 @@ namespace hal
         std::uint32_t m_timerInputHz;
         IRQn_Type m_interrupt;
         PeriodElapsedCallback m_periodElapsedCallback;
-        std::atomic<std::uint32_t> m_stateVersion{};
+        std::atomic<std::uint32_t> m_stateVersion;
 
         static constexpr std::size_t MAX_TIMER_INSTANCES{ 4U };
         inline static std::array<Timer*, MAX_TIMER_INSTANCES> s_registry{};

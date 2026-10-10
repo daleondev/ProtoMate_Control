@@ -26,8 +26,8 @@ namespace control
     MotionController::MotionController(const std::array<AxisConfig, 3>& configuration,
                                        const DriverFactory& driver_factory)
       : m_configuration{ configuration }
-      , m_enable{ hal::board::createSteppersEnableOutput() }
-      , m_generator{ hal::board::createStepperGenerator() }
+      , m_enable{ hal::board::create_steppers_enable_output() }
+      , m_generator{ hal::board::create_stepper_generator() }
     {
         if (!m_enable || !m_generator)
             throw std::runtime_error("step generator/enable creation failed");
@@ -37,7 +37,7 @@ namespace control
                                          configuration[1].microsteps,
                                          configuration[2].microsteps };
             auto drivers{ driver_factory ? driver_factory(microsteps, m_enable)
-                                         : hal::board::createStepperDrivers(microsteps, m_enable) };
+                                         : hal::board::create_stepper_drivers(microsteps, m_enable) };
             for (std::size_t i{}; i < m_motors.size(); ++i) {
                 const auto& config{ configuration[i] };
                 m_motors[i] = std::make_unique<StepperMotor>(
@@ -47,7 +47,7 @@ namespace control
                   config.microsteps,
                   m_generator,
                   std::move(drivers[i]),
-                  hal::board::createMotorFeedback(
+                  hal::board::create_motor_feedback(
                     static_cast<MotorId>(i),
                     { .full_step_angle = config.full_step_angle, .microsteps = config.microsteps }),
                   [this, i]() noexcept {

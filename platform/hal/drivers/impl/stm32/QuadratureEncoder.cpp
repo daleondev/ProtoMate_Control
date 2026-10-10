@@ -5,12 +5,19 @@
 
 #include <utility>
 
+namespace
+{
+    inline constexpr auto FIRST_SERVICE_COMPARE{ 0x5555U };
+    inline constexpr auto SECOND_SERVICE_COMPARE{ 0xAAAAU };
+    inline constexpr auto ENCODER_IRQ_PRIORITY{ 5U };
+}
+
 namespace hal
 {
     namespace
     {
-        constexpr std::uint32_t service_flags{ TIM_FLAG_UPDATE | TIM_FLAG_CC3 | TIM_FLAG_CC4 };
-        constexpr std::uint32_t service_interrupts{ TIM_IT_UPDATE | TIM_IT_CC3 | TIM_IT_CC4 };
+        constexpr std::uint32_t SERVICE_FLAGS{ TIM_FLAG_UPDATE | TIM_FLAG_CC3 | TIM_FLAG_CC4 };
+        constexpr std::uint32_t SERVICE_INTERRUPTS{ TIM_IT_UPDATE | TIM_IT_CC3 | TIM_IT_CC4 };
         auto now() noexcept -> std::chrono::nanoseconds
         {
             return std::chrono::steady_clock::now().time_since_epoch();
@@ -34,9 +41,9 @@ namespace hal
         // Service latency must be <10922 counts, so signed deltas stay <32768.
         htim3.Instance->CCMR2 = 0U;
         CLEAR_BIT(htim3.Instance->CCER, TIM_CCER_CC3E | TIM_CCER_CC4E);
-        htim3.Instance->CCR3 = 0x5555U;
-        htim3.Instance->CCR4 = 0xAAAAU;
-        __HAL_TIM_CLEAR_FLAG(&htim3, service_flags);
+        htim3.Instance->CCR3 = FIRST_SERVICE_COMPARE;
+        htim3.Instance->CCR4 = SECOND_SERVICE_COMPARE;
+        __HAL_TIM_CLEAR_FLAG(&htim3, SERVICE_FLAGS);
         HAL_NVIC_ClearPendingIRQ(TIM3_IRQn);
         s_instance = this;
     }
@@ -44,7 +51,8 @@ namespace hal
     {
         const stm32::InterruptGuard guard;
         m_sampler.setCallback({});
-        static_cast<void>(stop());
+        static_cast<void>(stop()); // NOLINT(bugprone-unused-return-value) -- Cleanup enforces stop; its final
+                                   // status is not consumed here.
         s_instance = nullptr;
     }
     auto QuadratureEncoder::sample() const noexcept -> void
@@ -61,7 +69,7 @@ namespace hal
         if (m_running) {
             return {};
         }
-        __HAL_TIM_CLEAR_FLAG(&htim3, service_flags);
+        __HAL_TIM_CLEAR_FLAG(&htim3, SERVICE_FLAGS);
         HAL_NVIC_ClearPendingIRQ(TIM3_IRQn);
         const auto result{ make_result(HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL)) };
         if (!result) {
@@ -69,24 +77,24 @@ namespace hal
         }
         m_running = true;
         sample();
-        m_sampler.publish({ m_counter.position(), now(), true });
+        m_sampler.publish({ .position = m_counter.position(), .timestamp = now(), .running = true });
         // No CC1/CC2 interrupts: quadrature edges are counted by hardware.
-        __HAL_TIM_ENABLE_IT(&htim3, service_interrupts);
-        HAL_NVIC_SetPriority(TIM3_IRQn, 5U, 0U);
+        __HAL_TIM_ENABLE_IT(&htim3, SERVICE_INTERRUPTS);
+        HAL_NVIC_SetPriority(TIM3_IRQn, ENCODER_IRQ_PRIORITY, 0U);
         HAL_NVIC_EnableIRQ(TIM3_IRQn);
         return {};
     }
     auto QuadratureEncoder::stop() noexcept -> util::Result<>
     {
         const stm32::InterruptGuard guard;
-        __HAL_TIM_DISABLE_IT(&htim3, service_interrupts);
+        __HAL_TIM_DISABLE_IT(&htim3, SERVICE_INTERRUPTS);
         HAL_NVIC_DisableIRQ(TIM3_IRQn);
         const auto result{ make_result(HAL_TIM_Encoder_Stop(&htim3, TIM_CHANNEL_ALL)) };
         sample();
         HAL_NVIC_ClearPendingIRQ(TIM3_IRQn);
         if (result) {
             m_running = false;
-            m_sampler.publish({ m_counter.position(), now(), false });
+            m_sampler.publish({ .position = m_counter.position(), .timestamp = now(), .running = false });
         }
         return result;
     }
@@ -107,7 +115,7 @@ namespace hal
         if (m_running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
-        m_counter.reset(count, static_cast<std::uint16_t>(__HAL_TIM_GET_COUNTER(&htim3)));
+        m_counter.reset({ .count = count, .raw = static_cast<std::uint16_t>(__HAL_TIM_GET_COUNTER(&htim3)) });
         return {};
     }
     auto QuadratureEncoder::setSampleCallback(SampleCallback callback) -> void
@@ -115,7 +123,7 @@ namespace hal
         const stm32::InterruptGuard guard;
         m_sampler.setCallback(std::move(callback));
         sample();
-        m_sampler.publish({ m_counter.position(), now(), m_running });
+        m_sampler.publish({ .position = m_counter.position(), .timestamp = now(), .running = m_running });
     }
     auto QuadratureEncoder::dispatchTimebase() noexcept -> void
     {
@@ -125,13 +133,14 @@ namespace hal
         const auto timestamp{ now() };
         if (s_instance->m_sampler.due(timestamp)) {
             s_instance->sample();
-            s_instance->m_sampler.publish({ s_instance->m_counter.position(), timestamp, true });
+            s_instance->m_sampler.publish(
+              { .position = s_instance->m_counter.position(), .timestamp = timestamp, .running = true });
         }
     }
     auto QuadratureEncoder::dispatchInterrupt() noexcept -> void
     {
         const stm32::InterruptGuard guard;
-        const std::uint32_t pending{ htim3.Instance->SR & htim3.Instance->DIER & service_flags };
+        const std::uint32_t pending{ htim3.Instance->SR & htim3.Instance->DIER & SERVICE_FLAGS };
         if (pending == 0U) {
             return;
         }

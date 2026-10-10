@@ -1,3 +1,5 @@
+// CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
+// The line-specific exceptions below preserve the vendor register interface.
 #include "Timer.hpp"
 
 #include "hal/stm32/HalResult.hpp"
@@ -42,7 +44,7 @@ namespace hal
         HAL_NVIC_DisableIRQ(m_interrupt);
         HAL_NVIC_ClearPendingIRQ(m_interrupt);
 
-        const auto slot{ std::ranges::find(s_registry, this) };
+        auto* const slot{ std::ranges::find(s_registry, this) };
         if (slot != s_registry.end()) {
             *slot = nullptr;
         }
@@ -67,6 +69,8 @@ namespace hal
     auto Timer::stop() noexcept -> util::Result<>
     {
         const bool restore_update_interrupt{ __HAL_TIM_GET_IT_SOURCE(&m_handle, TIM_IT_UPDATE) != RESET };
+        // CMSIS reads the memory-mapped NVIC enable register.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
         const bool restore_nvic_interrupt{ NVIC_GetEnableIRQ(m_interrupt) != 0U };
 
         __HAL_TIM_DISABLE_IT(&m_handle, TIM_IT_UPDATE);
@@ -105,6 +109,8 @@ namespace hal
             return {};
         }
 
+        // CMSIS reads the memory-mapped NVIC enable register.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
         const bool restore_nvic_interrupt{ NVIC_GetEnableIRQ(m_interrupt) != 0U };
         HAL_NVIC_DisableIRQ(m_interrupt);
         __HAL_TIM_CLEAR_FLAG(&m_handle, TIM_FLAG_UPDATE);
@@ -148,17 +154,22 @@ namespace hal
     auto Timer::setAutoReload(Tick value) noexcept -> void
     {
         markStateChange();
-        __HAL_TIM_SET_AUTORELOAD(&m_handle, value);
+        __HAL_TIM_SET_AUTORELOAD(&m_handle, value); // NOLINT(cppcoreguidelines-avoid-do-while)
     }
 
     auto Timer::getPrescaler() const noexcept -> Tick { return static_cast<Tick>(m_handle.Instance->PSC); }
 
+    // This operation preserves NVIC state around a hardware prescaler update.
+    // CMSIS accesses fixed addresses; suppress that checker on this MMIO path.
+    // NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference)
     auto Timer::setPrescaler(Tick value) noexcept -> void
     {
         // PSC is 16-bit even on TIM5's 32-bit counter. Saturate instead of
         // allowing the peripheral to silently wrap an out-of-range request.
         value = std::min(value, MAXIMUM_PRESCALER);
         const bool restore_update_interrupt{ __HAL_TIM_GET_IT_SOURCE(&m_handle, TIM_IT_UPDATE) != RESET };
+        // CMSIS reads the memory-mapped NVIC enable register.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
         const bool restore_nvic_interrupt{ NVIC_GetEnableIRQ(m_interrupt) != 0U };
 
         HAL_NVIC_DisableIRQ(m_interrupt);
@@ -187,6 +198,7 @@ namespace hal
             HAL_NVIC_EnableIRQ(m_interrupt);
         }
     }
+    // NOLINTEND(clang-analyzer-core.FixedAddressDereference)
 
     auto Timer::forceUpdateEvent() noexcept -> void
     {
@@ -276,7 +288,7 @@ namespace hal
 
     auto Timer::dispatchPeriodElapsed(TIM_HandleTypeDef* handle) noexcept -> void
     {
-        const auto timer{ std::ranges::find_if(s_registry, [&](const Timer* candidate) {
+        auto* const timer{ std::ranges::find_if(s_registry, [&](const Timer* candidate) {
             return candidate != nullptr && &candidate->m_handle == handle;
         }) };
         if (timer != s_registry.end() && (*timer)->m_periodElapsedCallback) {

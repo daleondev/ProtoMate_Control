@@ -57,9 +57,9 @@ namespace
       public:
         Bench()
         {
-            m_select = hal::board::createEthercatChipSelect();
+            m_select = hal::board::create_ethercat_chip_select();
             if (!m_select) throw std::runtime_error("PF6 chip select unavailable");
-            m_bus = hal::board::createEthercatSpi();
+            m_bus = hal::board::create_ethercat_spi();
             if (!m_bus) throw std::runtime_error("SPI5 unavailable");
             m_esc = std::make_unique<Esc>(*m_bus, *m_select);
             if (m_bus->clockFrequencyHz() != 937500U)
@@ -167,13 +167,13 @@ namespace
                 std::this_thread::sleep_for(1ms);
             } while (Clock::now() < deadline);
             // These two registers are safe to read even before READY.
-            const auto byte = m_esc->readSystemRegister(Esc::byteTestAddress);
-            const auto config = m_esc->readSystemRegister(Esc::hardwareConfigAddress);
+            const auto byte = m_esc->readSystemRegister(Esc::BYTE_TEST_ADDRESS);
+            const auto config = m_esc->readSystemRegister(Esc::HARDWARE_CONFIG_ADDRESS);
             if (byte) m_byteTest.store(*byte);
             if (config) m_config.store(*config);
             log("Probe: BYTE_TEST=%08lx HW_CFG=%08lx",
                 static_cast<unsigned long>(m_byteTest.load()), static_cast<unsigned long>(m_config.load()));
-            if (byte && *byte == Esc::byteTestValue && config && (*config & Esc::readyMask) == 0) {
+            if (byte && *byte == Esc::BYTE_TEST_VALUE && config && (*config & Esc::READY_MASK) == 0) {
                 log("SPI responds correctly; ESC READY=0. J17=000 requires emulated EEPROM boot data.");
                 log("Run boot, then probe/stress. A blank SAM supplies no boot data by itself.");
                 throw std::runtime_error("ESC configuration is not loaded; SPI byte test passed");

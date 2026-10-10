@@ -12,7 +12,8 @@ namespace hal
       public:
         struct HardwareConfiguration
         {
-            ETH_HandleTypeDef& handle;
+            ETH_HandleTypeDef& handle; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members) --
+                                       // Required, non-owning dependency; its owner outlives this object.
             Configuration configuration;
         };
 
@@ -39,6 +40,9 @@ namespace hal
           -> util::Result<std::size_t> override;
 
       private:
+        [[nodiscard]] static auto copyReceivedFrame(ETH_BufferTypeDef* packet,
+                                                    std::span<std::byte> frame) noexcept
+          -> util::Result<std::size_t>;
         [[nodiscard]] auto waitForTransmit(std::uint32_t started_at, std::uint32_t timeout) noexcept
           -> util::Result<>;
 

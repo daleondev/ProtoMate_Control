@@ -9,6 +9,8 @@ namespace hal
     class Uart final : public IUart
     {
       public:
+        ~Uart() override = default;
+
         using ExchangeHandler = std::function<
           util::Result<>(std::span<const std::uint8_t>, std::span<std::uint8_t>, std::chrono::milliseconds)>;
         explicit Uart(Configuration configuration);

@@ -55,7 +55,7 @@ struct StatusRegister
 };
 struct TIM_TypeDef
 {
-    uint32_t CR1{}, SMCR{}, DIER{}, RCR{}, CNT{}, PSC{}, ARR{}, CCR{}, active_compare{};
+    uint32_t CR1{}, SMCR{}, DIER{}, RCR{}, CNT{}, PSC{}, ARR{}, CCR1{}, CCR3{}, active_compare{};
     uint32_t mode{}, channel{}, af{}, pin{};
     bool enabled{};
     StatusRegister SR;
@@ -68,7 +68,7 @@ struct TIM_TypeDef
     void update()
     {
         CNT = 0U;
-        active_compare = CCR;
+        active_compare = channel == TIM_CHANNEL_1 ? CCR1 : CCR3;
         SR.raise(TIM_FLAG_UPDATE);
         if ((CR1 & TIM_CR1_OPM) != 0U) {
             CR1 &= ~TIM_CR1_CEN;
@@ -119,7 +119,8 @@ namespace hal
 }
 #define __HAL_TIM_SET_PRESCALER(h, value) ((h)->Instance->PSC = (value))
 #define __HAL_TIM_SET_AUTORELOAD(h, value) ((h)->Instance->ARR = (value))
-#define __HAL_TIM_SET_COMPARE(h, ch, value) ((h)->Instance->CCR = (value))
+#define __HAL_TIM_SET_COMPARE(h, ch, value) \
+    (((ch) == TIM_CHANNEL_1 ? (h)->Instance->CCR1 : (h)->Instance->CCR3) = (value))
 #define __HAL_TIM_ENABLE_OCxPRELOAD(h, ch) ((void)0)
 #define __HAL_TIM_CLEAR_FLAG(h, flag) ((h)->Instance->SR = ~(flag))
 #define __HAL_TIM_MOE_ENABLE(h) ((void)0)
@@ -139,7 +140,7 @@ inline HAL_StatusTypeDef HAL_TIM_PWM_ConfigChannel(TIM_HandleTypeDef* handle,
                                                    uint32_t channel)
 {
     handle->Instance->mode = config->OCMode;
-    handle->Instance->CCR = config->Pulse;
+    __HAL_TIM_SET_COMPARE(handle, channel, config->Pulse);
     handle->Instance->channel = channel;
     return HAL_OK;
 }

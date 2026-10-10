@@ -33,5 +33,5 @@ namespace hal::stm32
     };
 
     // Registration is protected by PRIMASK, before interrupts are armed.
-    auto registerStepGenerator(util::StepGenerator* generator) noexcept -> void;
+    auto register_step_generator(util::StepGenerator* value) noexcept -> void;
 }

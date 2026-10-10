@@ -8,7 +8,6 @@ namespace hal
     {
       public:
         virtual ~IDigitalOutput() = default;
-
         IDigitalOutput(const IDigitalOutput&) = delete;
         IDigitalOutput& operator=(const IDigitalOutput&) = delete;
         IDigitalOutput(IDigitalOutput&&) = delete;

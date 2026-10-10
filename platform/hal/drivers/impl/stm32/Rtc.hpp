@@ -10,12 +10,12 @@ namespace hal
       public:
         struct Configuration
         {
-            RTC_HandleTypeDef& handle;
+            RTC_HandleTypeDef& handle; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members) --
+                                       // Required, non-owning dependency; its owner outlives this object.
         };
 
         explicit Rtc(Configuration configuration) noexcept;
         ~Rtc() override = default;
-
         Rtc(const Rtc&) = delete;
         Rtc& operator=(const Rtc&) = delete;
         Rtc(Rtc&&) = delete;

@@ -16,6 +16,9 @@
 
 namespace
 {
+    constexpr std::uint32_t PHY_MAX_ADDRESS{ 31U };
+    constexpr std::uint32_t SPEED_10_MBPS{ 10U };
+    constexpr std::uint32_t SPEED_100_MBPS{ 100U };
     constexpr std::size_t RX_SLOT_COUNT{ ETH_RX_DESC_CNT * 2U };
     constexpr std::uint32_t PHY_BASIC_STATUS_REGISTER{ 1U };
     constexpr std::uint32_t PHY_LINK_STATUS{ 1U << 2U };
@@ -28,18 +31,17 @@ namespace
 
     struct RxSlot
     {
+        alignas(ETH_DMA_BUFFER_ALIGNMENT) std::array<std::uint8_t, ETH_DMA_FRAME_BUFFER_SIZE> data{};
         ETH_BufferTypeDef link{};
-        alignas(ETH_DMA_BUFFER_ALIGNMENT) std::array<std::byte, ETH_DMA_FRAME_BUFFER_SIZE> data{};
         bool allocated{};
     };
 
-    std::array<RxSlot, RX_SLOT_COUNT> rx_slots ETH_DMA_BUFFER_ATTRIBUTE;
-    std::array<std::byte, ETH_DMA_FRAME_BUFFER_SIZE> tx_frame ETH_DMA_BUFFER_ATTRIBUTE;
-
-    CHAR state_mutex_name[] = "Ethernet state";
-    CHAR phy_mutex_name[] = "Ethernet PHY";
-    CHAR receive_mutex_name[] = "Ethernet receive";
-    CHAR transmit_mutex_name[] = "Ethernet transmit";
+    std::array<RxSlot, RX_SLOT_COUNT> rx_slots // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+      ETH_DMA_BUFFER_ATTRIBUTE; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables) -- DMA buffers
+                                // have fixed linker placement; exclusive Ethernet owner serializes access.
+    std::array<std::uint8_t, ETH_DMA_FRAME_BUFFER_SIZE> tx_frame // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+      ETH_DMA_BUFFER_ATTRIBUTE; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables) -- DMA buffers
+                                // have fixed linker placement; exclusive Ethernet owner serializes access.
 
     class ThreadXLock
     {
@@ -85,9 +87,8 @@ namespace
 
     [[nodiscard]] auto find_slot(const std::uint8_t* buffer) noexcept -> RxSlot*
     {
-        const auto slot{ std::ranges::find_if(rx_slots, [&](const RxSlot& candidate) {
-            return candidate.data.data() == reinterpret_cast<const std::byte*>(buffer);
-        }) };
+        auto* const slot{ std::ranges::find_if(
+          rx_slots, [&](const RxSlot& candidate) { return candidate.data.data() == buffer; }) };
         return slot == rx_slots.end() ? nullptr : &*slot;
     }
 
@@ -95,7 +96,7 @@ namespace
     {
         while (first != nullptr) {
             ETH_BufferTypeDef* const next{ first->next };
-            const auto slot{ std::ranges::find_if(
+            auto* const slot{ std::ranges::find_if(
               rx_slots, [&](const RxSlot& candidate) { return &candidate.link == first; }) };
             if (slot != rx_slots.end()) {
                 slot->link = {};
@@ -112,12 +113,12 @@ extern "C" void HAL_ETH_RxAllocateCallback(std::uint8_t** buffer)
         return;
     }
     *buffer = nullptr;
-    const auto slot{ std::ranges::find_if(rx_slots,
-                                          [](const RxSlot& candidate) { return !candidate.allocated; }) };
+    auto* const slot{ std::ranges::find_if(rx_slots,
+                                           [](const RxSlot& candidate) { return !candidate.allocated; }) };
     if (slot != rx_slots.end()) {
         slot->allocated = true;
         slot->link = {};
-        *buffer = reinterpret_cast<std::uint8_t*>(slot->data.data());
+        *buffer = slot->data.data();
     }
 }
 
@@ -151,21 +152,27 @@ namespace hal
       , m_phyAddress{ configuration.configuration.phy_address }
       , m_promiscuous{ configuration.configuration.promiscuous }
     {
+        static auto state_mutex_name{ std::to_array("Ethernet state") };
+        static auto phy_mutex_name{ std::to_array("Ethernet PHY") };
+        static auto receive_mutex_name{ std::to_array("Ethernet receive") };
+        static auto transmit_mutex_name{ std::to_array("Ethernet transmit") };
+
         for (auto& slot : rx_slots) {
             slot.link = {};
             slot.allocated = false;
         }
-        if (tx_mutex_create(&m_stateMutex, state_mutex_name, TX_INHERIT) != TX_SUCCESS ||
-            tx_mutex_create(&m_phyMutex, phy_mutex_name, TX_INHERIT) != TX_SUCCESS ||
-            tx_mutex_create(&m_receiveMutex, receive_mutex_name, TX_INHERIT) != TX_SUCCESS ||
-            tx_mutex_create(&m_transmitMutex, transmit_mutex_name, TX_INHERIT) != TX_SUCCESS) {
+        if (tx_mutex_create(&m_stateMutex, state_mutex_name.data(), TX_INHERIT) != TX_SUCCESS ||
+            tx_mutex_create(&m_phyMutex, phy_mutex_name.data(), TX_INHERIT) != TX_SUCCESS ||
+            tx_mutex_create(&m_receiveMutex, receive_mutex_name.data(), TX_INHERIT) != TX_SUCCESS ||
+            tx_mutex_create(&m_transmitMutex, transmit_mutex_name.data(), TX_INHERIT) != TX_SUCCESS) {
             std::terminate();
         }
     }
 
     Ethernet::~Ethernet()
     {
-        static_cast<void>(stop());
+        static_cast<void>(stop()); // NOLINT(bugprone-unused-return-value) -- Cleanup enforces stop; its final
+                                   // status is not consumed here.
         if (tx_mutex_delete(&m_transmitMutex) != TX_SUCCESS ||
             tx_mutex_delete(&m_receiveMutex) != TX_SUCCESS || tx_mutex_delete(&m_phyMutex) != TX_SUCCESS ||
             tx_mutex_delete(&m_stateMutex) != TX_SUCCESS) {
@@ -191,7 +198,7 @@ namespace hal
         if (HAL_ETH_GetMACConfig(&m_handle, &mac_configuration) != HAL_OK) {
             return error_result(std::errc::io_error);
         }
-        mac_configuration.Speed = link->speed_mbps == 10U ? ETH_SPEED_10M : ETH_SPEED_100M;
+        mac_configuration.Speed = link->speed_mbps == SPEED_10_MBPS ? ETH_SPEED_10M : ETH_SPEED_100M;
         mac_configuration.DuplexMode =
           link->duplex == Duplex::Half ? ETH_HALFDUPLEX_MODE : ETH_FULLDUPLEX_MODE;
         mac_configuration.DropTCPIPChecksumErrorPacket = DISABLE;
@@ -280,7 +287,7 @@ namespace hal
 
     auto Ethernet::getLinkInfo() const noexcept -> util::Result<LinkInfo>
     {
-        if (m_phyAddress > 31U) {
+        if (m_phyAddress > PHY_MAX_ADDRESS) {
             return error_result<LinkInfo>(std::errc::invalid_argument);
         }
         // The MDIO address/data registers form one transaction shared by all
@@ -306,19 +313,19 @@ namespace hal
         }
         switch (special_status & PHY_SPEED_DUPLEX_MASK) {
             case PHY_10_HALF_DUPLEX:
-                info.speed_mbps = 10U;
+                info.speed_mbps = SPEED_10_MBPS;
                 info.duplex = Duplex::Half;
                 break;
             case PHY_100_HALF_DUPLEX:
-                info.speed_mbps = 100U;
+                info.speed_mbps = SPEED_100_MBPS;
                 info.duplex = Duplex::Half;
                 break;
             case PHY_10_FULL_DUPLEX:
-                info.speed_mbps = 10U;
+                info.speed_mbps = SPEED_10_MBPS;
                 info.duplex = Duplex::Full;
                 break;
             case PHY_100_FULL_DUPLEX:
-                info.speed_mbps = 100U;
+                info.speed_mbps = SPEED_100_MBPS;
                 info.duplex = Duplex::Full;
                 break;
             default:
@@ -376,13 +383,13 @@ namespace hal
             return previous_transmission;
         }
 
-        std::ranges::copy(frame, tx_frame.begin());
+        std::memcpy(tx_frame.data(), frame.data(), frame.size());
         const MacAddress source{ getMacAddress() };
         for (std::size_t index{}; index < source.size(); ++index) {
-            tx_frame[MAC_ADDRESS_SIZE + index] = static_cast<std::byte>(source[index]);
+            tx_frame[MAC_ADDRESS_SIZE + index] = source[index];
         }
 
-        ETH_BufferTypeDef buffer{ .buffer = reinterpret_cast<std::uint8_t*>(tx_frame.data()),
+        ETH_BufferTypeDef buffer{ .buffer = tx_frame.data(),
                                   .len = static_cast<std::uint32_t>(frame.size()),
                                   .next = nullptr };
         ETH_TxPacketConfigTypeDef packet{};
@@ -403,6 +410,29 @@ namespace hal
         // Frames fit one buffer and these attributes need no context descriptor.
         m_pendingTransmitDescriptor = &m_handle.Init.TxDesc[descriptor_index];
         return waitForTransmit(started_at, timeout_ticks);
+    }
+
+    auto Ethernet::copyReceivedFrame(ETH_BufferTypeDef* packet, std::span<std::byte> frame) noexcept
+      -> util::Result<std::size_t>
+    {
+        std::size_t packet_size{};
+        for (auto* current{ packet }; current != nullptr; current = current->next) {
+            packet_size += current->len;
+        }
+
+        if (packet_size > MAX_FRAME_SIZE || frame.size() < packet_size) {
+            release_frame(packet);
+            return error_result<std::size_t>(std::errc::no_buffer_space);
+        }
+
+        auto output{ frame.begin() };
+        for (auto* current{ packet }; current != nullptr; current = current->next) {
+            output = std::copy_n(
+              std::as_bytes(std::span{ current->buffer, current->len }).data(), current->len, output);
+        }
+        release_frame(packet);
+
+        return packet_size;
     }
 
     auto Ethernet::receive(std::span<std::byte> frame, std::chrono::milliseconds timeout) noexcept
@@ -429,9 +459,7 @@ namespace hal
                 // the caller's capacity: unrelated traffic must not produce
                 // no_buffer_space when the caller expects smaller frames.
                 static_assert(MAX_FRAME_SIZE <= ETH_DMA_FRAME_BUFFER_SIZE);
-                const std::span<const std::byte> first_buffer{
-                    reinterpret_cast<const std::byte*>(packet->buffer), packet->len
-                };
+                const auto first_buffer{ std::as_bytes(std::span{ packet->buffer, packet->len }) };
                 if (receive_errors != 0U ||
                     (m_receiveEtherType && frameEtherType(first_buffer) != m_receiveEtherType)) {
                     release_frame(packet);
@@ -441,24 +469,7 @@ namespace hal
                     }
                     continue;
                 }
-                std::size_t packet_size{};
-                for (auto* current{ packet }; current != nullptr; current = current->next) {
-                    packet_size += current->len;
-                }
-
-                if (packet_size > MAX_FRAME_SIZE || frame.size() < packet_size) {
-                    release_frame(packet);
-                    return error_result<std::size_t>(std::errc::no_buffer_space);
-                }
-
-                auto output{ frame.begin() };
-                for (auto* current{ packet }; current != nullptr; current = current->next) {
-                    output =
-                      std::copy_n(reinterpret_cast<const std::byte*>(current->buffer), current->len, output);
-                }
-                release_frame(packet);
-
-                return packet_size;
+                return copyReceivedFrame(packet, frame);
             }
 
             if (timeout_ticks == 0U || HAL_GetTick() - started_at >= timeout_ticks) {

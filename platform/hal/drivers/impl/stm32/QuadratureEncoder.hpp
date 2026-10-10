@@ -1,9 +1,9 @@
 #pragma once
 
+#include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/util/EncoderCounter.hpp"
 #include "hal/drivers/util/EncoderSampler.hpp"
 #include "hal/drivers/util/TimerLease.hpp"
-#include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/hal.hpp"
 
 #include <memory>
@@ -13,6 +13,11 @@ namespace hal
     class QuadratureEncoder final : public IQuadratureEncoder
     {
       public:
+        QuadratureEncoder(const QuadratureEncoder&) = delete;
+        auto operator=(const QuadratureEncoder&) -> QuadratureEncoder& = delete;
+        QuadratureEncoder(QuadratureEncoder&&) = delete;
+        auto operator=(QuadratureEncoder&&) -> QuadratureEncoder& = delete;
+
         QuadratureEncoder(util::TimerLease lease,
                           std::shared_ptr<IDigitalInput> a,
                           std::shared_ptr<IDigitalInput> b);

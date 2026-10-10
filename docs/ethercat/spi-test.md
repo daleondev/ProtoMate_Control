@@ -140,7 +140,7 @@ command/data registers to service pending emulated configuration requests.
 ## Implementation and checks
 
 The board creates an exclusive `ISpi` transport and a separate GPIO chip
-select. `hal::board::createEthercatSpi()` selects `hal::spi::create({ .peripheral = hal::spi::Peripheral::Spi5 })`;
+select. `hal::board::create_ethercat_spi()` selects `hal::spi::create({ .peripheral = hal::spi::Peripheral::Spi5 })`;
 the concrete `hal::Spi` declaration lives in each platform's `Spi.hpp`,
 with construction and peripheral selection in the driver factory.
 The SPI driver has no EtherCAT protocol or device configuration.

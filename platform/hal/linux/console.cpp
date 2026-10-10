@@ -13,33 +13,43 @@ namespace
 
     enum class Mode : std::uint8_t
     {
-        pass_through,
-        buffering,
-        interactive,
-        plain,
+        PassThrough,
+        Buffering,
+        Interactive,
+        Plain,
     };
 
     // This state is constant-initialized so HAL diagnostics can use it before
     // ThreadX initializes the project's std::mutex implementation.
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-    std::array<linux_console::Message, QUEUE_CAPACITY> queue{};
-    std::size_t head{};
-    std::size_t count{};
-    std::size_t dropped{};
-    Mode mode{ Mode::pass_through };
+    struct ConsoleState
+    {
+        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+        std::array<linux_console::Message, QUEUE_CAPACITY> queue{};
+        std::size_t head{}, count{}, dropped{};
+        Mode mode{ Mode::PassThrough };
+    };
+
+    auto console_state() noexcept -> ConsoleState&
+    {
+        static constinit ConsoleState state;
+        return state;
+    }
 
     class Lock
     {
       public:
+        Lock(Lock&&) = delete;
+        auto operator=(Lock&&) -> Lock& = delete;
+
         Lock() noexcept
-          : m_locked{ pthread_mutex_lock(&mutex) == 0 }
+          : m_locked{ pthread_mutex_lock(&console_state().mutex) == 0 }
         {
         }
 
         ~Lock()
         {
             if (m_locked) {
-                static_cast<void>(pthread_mutex_unlock(&mutex));
+                static_cast<void>(pthread_mutex_unlock(&console_state().mutex));
             }
         }
 
@@ -59,42 +69,41 @@ namespace
         }
     }
 
-    auto enqueue(linux_console::Channel channel,
-                 std::string_view text,
-                 bool end_of_record) noexcept -> void
+    auto enqueue(linux_console::Channel channel, std::string_view text, bool end_of_record) noexcept -> void
     {
-        if (count == queue.size()) {
-            head = (head + 1U) % queue.size();
-            --count;
-            ++dropped;
+        if (console_state().count == console_state().queue.size()) {
+            console_state().head = (console_state().head + 1U) % console_state().queue.size();
+            --console_state().count;
+            ++console_state().dropped;
         }
 
-        auto& message{ queue[(head + count) % queue.size()] };
+        auto& message{ console_state().queue[(console_state().head + console_state().count) %
+                                             console_state().queue.size()] };
         message.channel = channel;
         message.size = text.size();
         message.end_of_record = end_of_record;
         if (!text.empty()) {
             std::memcpy(message.text.data(), text.data(), text.size());
         }
-        ++count;
+        ++console_state().count;
     }
 
     auto make_drop_message(std::size_t amount) noexcept -> linux_console::Message
     {
         linux_console::Message message{
-            .channel = linux_console::Channel::system,
+            .channel = linux_console::Channel::System,
             .end_of_record = true,
         };
-        constexpr std::string_view prefix{ "[console] dropped " };
+        constexpr std::string_view prefix{ "[console] console_state().dropped " };
         constexpr std::string_view suffix{ " queued output chunks\n" };
 
         std::memcpy(message.text.data(), prefix.data(), prefix.size());
         char* const number_begin{ message.text.data() + prefix.size() };
         char* const number_end{ message.text.data() + message.text.size() - suffix.size() };
         const auto result{ std::to_chars(number_begin, number_end, amount) };
-        const std::size_t number_size{
-            result.ec == std::errc{} ? static_cast<std::size_t>(result.ptr - number_begin) : 0U
-        };
+        const std::size_t number_size{ result.ec == std::errc{}
+                                         ? static_cast<std::size_t>(result.ptr - number_begin)
+                                         : 0U };
         std::memcpy(number_begin + number_size, suffix.data(), suffix.size());
         message.size = prefix.size() + number_size + suffix.size();
         return message;
@@ -102,17 +111,17 @@ namespace
 
     auto flush_queue(FILE* stream) noexcept -> void
     {
-        if (dropped != 0U) {
-            const auto message{ make_drop_message(dropped) };
+        if (console_state().dropped != 0U) {
+            const auto message{ make_drop_message(console_state().dropped) };
             write(stream, { message.text.data(), message.size });
-            dropped = 0U;
+            console_state().dropped = 0U;
         }
 
-        while (count != 0U) {
-            const auto& message{ queue[head] };
+        while (console_state().count != 0U) {
+            const auto& message{ console_state().queue[console_state().head] };
             write(stream, { message.text.data(), message.size });
-            head = (head + 1U) % queue.size();
-            --count;
+            console_state().head = (console_state().head + 1U) % console_state().queue.size();
+            --console_state().count;
         }
         static_cast<void>(std::fflush(stream));
     }
@@ -123,16 +132,16 @@ namespace linux_console
     auto begin_buffering() noexcept -> void
     {
         Lock lock;
-        if (lock && mode == Mode::pass_through) {
-            mode = Mode::buffering;
+        if (lock && console_state().mode == Mode::PassThrough) {
+            console_state().mode = Mode::Buffering;
         }
     }
 
     auto activate_interactive() noexcept -> void
     {
         Lock lock;
-        if (lock && mode != Mode::plain) {
-            mode = Mode::interactive;
+        if (lock && console_state().mode != Mode::Plain) {
+            console_state().mode = Mode::Interactive;
         }
     }
 
@@ -142,7 +151,7 @@ namespace linux_console
         if (!lock) {
             return;
         }
-        mode = Mode::plain;
+        console_state().mode = Mode::Plain;
         flush_queue(stderr);
     }
 
@@ -153,12 +162,12 @@ namespace linux_console
             return;
         }
 
-        if (mode == Mode::pass_through) {
+        if (console_state().mode == Mode::PassThrough) {
             write(stdout, text);
             static_cast<void>(std::fflush(stdout));
             return;
         }
-        if (mode == Mode::plain) {
+        if (console_state().mode == Mode::Plain) {
             write(stderr, text);
             static_cast<void>(std::fflush(stderr));
             return;
@@ -180,20 +189,20 @@ namespace linux_console
     auto drain(std::span<Message> output) noexcept -> std::size_t
     {
         Lock lock;
-        if (!lock || output.empty() || mode != Mode::interactive) {
+        if (!lock || output.empty() || console_state().mode != Mode::Interactive) {
             return 0U;
         }
 
         std::size_t written{};
-        if (dropped != 0U) {
-            output[written++] = make_drop_message(dropped);
-            dropped = 0U;
+        if (console_state().dropped != 0U) {
+            output[written++] = make_drop_message(console_state().dropped);
+            console_state().dropped = 0U;
         }
 
-        while (written < output.size() && count != 0U) {
-            output[written++] = queue[head];
-            head = (head + 1U) % queue.size();
-            --count;
+        while (written < output.size() && console_state().count != 0U) {
+            output[written++] = console_state().queue[console_state().head];
+            console_state().head = (console_state().head + 1U) % console_state().queue.size();
+            --console_state().count;
         }
         return written;
     }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "hal/util/Result.hpp"
 #include "pneumo/units.hpp"
 
@@ -12,7 +14,10 @@ namespace hal::device
     class IMotorFeedback
     {
       public:
-        enum class Source
+        IMotorFeedback(IMotorFeedback&&) = default;
+        auto operator=(IMotorFeedback&&) -> IMotorFeedback& = default;
+
+        enum class Source : std::uint8_t
         {
             ShaftEncoder,
             DriverIndex

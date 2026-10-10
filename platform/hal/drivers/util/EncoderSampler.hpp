@@ -15,7 +15,7 @@ namespace hal::util
 
         bool due(std::chrono::nanoseconds now) const noexcept
         {
-            return m_callback && now - m_previous >= IQuadratureEncoder::sample_period;
+            return m_callback && now - m_previous >= IQuadratureEncoder::SAMPLE_PERIOD;
         }
 
         void publish(const IQuadratureEncoder::Sample& sample) noexcept

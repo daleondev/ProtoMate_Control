@@ -12,12 +12,24 @@ namespace hal::device
     class IConfigurableStepperDriver : public IStepperDriver
     {
       public:
-        enum class Mode { SpreadCycle, StealthChop };
+        IConfigurableStepperDriver() = default;
+        IConfigurableStepperDriver(const IConfigurableStepperDriver&) = default;
+        auto operator=(const IConfigurableStepperDriver&) -> IConfigurableStepperDriver& = default;
+        IConfigurableStepperDriver(IConfigurableStepperDriver&&) = default;
+        auto operator=(IConfigurableStepperDriver&&) -> IConfigurableStepperDriver& = default;
+
+        enum class Mode : std::uint8_t
+        {
+            SpreadCycle,
+            StealthChop
+        };
+        static constexpr std::uint16_t DEFAULT_CURRENT_MA{ 650 };
+        static constexpr std::uint16_t DEFAULT_MICROSTEPS{ 16 };
         struct Configuration
         {
-            std::uint16_t run_milliamps{ 650 }; // RMS; rounded down by the driver
-            std::uint16_t hold_milliamps{ 650 };
-            std::uint16_t microsteps{ 16 };
+            std::uint16_t run_milliamps{ DEFAULT_CURRENT_MA }; // RMS; rounded down by the driver
+            std::uint16_t hold_milliamps{ DEFAULT_CURRENT_MA };
+            std::uint16_t microsteps{ DEFAULT_MICROSTEPS };
             Mode mode{ Mode::SpreadCycle };
             bool interpolate{ true };
             bool index_step{ false };
@@ -25,13 +37,17 @@ namespace hal::device
         };
         struct Diagnostics
         {
+            static constexpr std::uint32_t GLOBAL_FAULT_MASK{ 6U };
+            static constexpr std::uint32_t DRIVER_FAULT_MASK{ 0x3EU };
+            static constexpr std::uint32_t OPEN_LOAD_MASK{ 0xC0U };
+            static constexpr std::uint32_t STANDSTILL_MASK{ 1U << 31U };
             std::uint32_t global{}, driver{}, input{};
             std::uint16_t load{};
             bool reset() const { return global & 1U; }
             bool warning() const { return driver & 1U; }
-            bool fault() const { return (global & 6U) || (driver & 0x3EU); }
-            bool openLoad() const { return driver & 0xC0U; }
-            bool standstill() const { return driver & (1U << 31U); }
+            bool fault() const { return (global & GLOBAL_FAULT_MASK) || (driver & DRIVER_FAULT_MASK); }
+            bool openLoad() const { return driver & OPEN_LOAD_MASK; }
+            bool standstill() const { return driver & STANDSTILL_MASK; }
         };
         struct Limits
         {
@@ -42,8 +58,8 @@ namespace hal::device
         {
             Configuration configuration;
             std::optional<Diagnostics> diagnostics;
-            Limits limits;
-            std::uint8_t address;
+            Limits limits{};
+            std::uint8_t address{};
             std::uint16_t nominal_run_milliamps{}, nominal_hold_milliamps{};
         };
         ~IConfigurableStepperDriver() override = default;

@@ -12,6 +12,12 @@ namespace hal
     class IUart
     {
       public:
+        IUart() = default;
+        IUart(const IUart&) = default;
+        auto operator=(const IUart&) -> IUart& = default;
+        IUart(IUart&&) = default;
+        auto operator=(IUart&&) -> IUart& = default;
+
         struct Configuration
         {
             bool local_echo{};
@@ -45,7 +51,7 @@ namespace hal::uart
 
     struct Configuration
     {
-        Peripheral peripheral;
+        Peripheral peripheral{};
         IUart::Configuration transport{};
     };
 }

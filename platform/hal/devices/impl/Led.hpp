@@ -10,9 +10,14 @@ namespace hal::device
     class Led final : public ILed
     {
       public:
+        Led(const Led&) = delete;
+        auto operator=(const Led&) -> Led& = delete;
+        Led(Led&&) = delete;
+        auto operator=(Led&&) -> Led& = delete;
+
         Led(std::shared_ptr<IDigitalOutput> output, gpio::Level active_level);
 
-        virtual ~Led() = default;
+        ~Led() override = default;
 
         auto turnOn() noexcept -> void override;
         auto turnOff() noexcept -> void override;

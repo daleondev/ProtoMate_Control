@@ -1,5 +1,6 @@
 #include "Rng.hpp"
 
+#include <span>
 #include <system_error>
 
 #include <cerrno>
@@ -12,11 +13,11 @@ namespace hal
     auto Rng::generate() noexcept -> util::Result<Value>
     {
         Value value{};
-        auto* output{ reinterpret_cast<std::byte*>(&value) };
+        const auto output{ std::as_writable_bytes(std::span{ &value, 1U }) };
         std::size_t generated{};
 
         while (generated < sizeof(value)) {
-            const ssize_t result{ getrandom(output + generated, sizeof(value) - generated, 0) };
+            const ssize_t result{ getrandom(output.data() + generated, sizeof(value) - generated, 0) };
             if (result < 0) {
                 if (errno == EINTR) {
                     continue;

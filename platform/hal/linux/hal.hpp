@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-typedef enum
+typedef enum // NOLINT(cppcoreguidelines-use-enum-class) -- Match the vendor C ABI.
 {
     HAL_OK = 0x00U,
     HAL_ERROR = 0x01U,
@@ -17,13 +17,13 @@ typedef enum
     HAL_TIMEOUT = 0x03U,
 } HAL_StatusTypeDef;
 
-typedef enum
+typedef enum // NOLINT(cppcoreguidelines-use-enum-class) -- Match the vendor C ABI.
 {
     COM1 = 0,
     COMn,
 } COM_TypeDef;
 
-enum
+enum // NOLINT(cppcoreguidelines-use-enum-class) -- Match the vendor C ABI constants.
 {
     COM_WORDLENGTH_8B = 8U,
     COM_STOPBITS_1 = 1U,

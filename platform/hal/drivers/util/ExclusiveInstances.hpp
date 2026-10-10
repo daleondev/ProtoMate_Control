@@ -17,6 +17,8 @@ namespace hal::util
         class Lease
         {
           public:
+            auto operator=(Lease&&) -> Lease& = delete;
+
             explicit Lease(std::atomic_bool& claimed)
               : m_claimed{ &claimed }
             {

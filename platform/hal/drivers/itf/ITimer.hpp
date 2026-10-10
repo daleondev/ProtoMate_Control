@@ -18,7 +18,6 @@ namespace hal
         using PeriodElapsedCallback = std::move_only_function<void() noexcept>;
 
         virtual ~ITimer() = default;
-
         ITimer(const ITimer&) = delete;
         ITimer& operator=(const ITimer&) = delete;
         ITimer(ITimer&&) = delete;
@@ -79,19 +78,19 @@ namespace hal::timer
     enum class Peripheral : std::uint8_t
     {
         Tim1 = 1,
-        Tim2,
-        Tim3,
-        Tim4,
-        Tim5,
-        Tim6,
-        Tim7,
-        Tim8,
+        Tim2 = 2,
+        Tim3 = 3,
+        Tim4 = 4,
+        Tim5 = 5,
+        Tim6 = 6,
+        Tim7 = 7,
+        Tim8 = 8,
         Tim12 = 12,
-        Tim13,
-        Tim14,
-        Tim15,
-        Tim16,
-        Tim17
+        Tim13 = 13,
+        Tim14 = 14,
+        Tim15 = 15,
+        Tim16 = 16,
+        Tim17 = 17
     };
     enum class Channel : std::uint8_t
     {

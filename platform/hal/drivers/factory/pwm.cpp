@@ -21,9 +21,18 @@ namespace hal::pwm
         };
         using enum gpio::Port;
         constexpr std::array routes{
-            Route{ { hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 9U } }, 1U },
-            Route{ { hal::timer::Peripheral::Tim4, hal::timer::Channel::Channel3, { D, 14U } }, 2U },
-            Route{ { hal::timer::Peripheral::Tim8, hal::timer::Channel::Channel1, { C, 6U } }, 3U },
+            Route{ .configuration = { .timer = hal::timer::Peripheral::Tim1,
+                                      .channel = hal::timer::Channel::Channel1,
+                                      .pin = { .port = E, .number = 9U } },
+                   .alternate = 1U },
+            Route{ .configuration = { .timer = hal::timer::Peripheral::Tim4,
+                                      .channel = hal::timer::Channel::Channel3,
+                                      .pin = { .port = D, .number = 14U } },
+                   .alternate = 2U },
+            Route{ .configuration = { .timer = hal::timer::Peripheral::Tim8,
+                                      .channel = hal::timer::Channel::Channel1,
+                                      .pin = { .port = C, .number = 6U } },
+                   .alternate = 3U },
         };
         for (const auto& route : routes) {
             if (configuration.timer != route.configuration.timer ||
@@ -37,7 +46,7 @@ namespace hal::pwm
             }
             // Own a real low output while stopped. The STM32 driver selects AF
             // with an inactive timer output before the first pulse.
-            auto pin{ gpio::createOutput({ .pin = configuration.pin }) };
+            auto pin{ gpio::create_output({ .pin = configuration.pin }) };
             if (!pin) {
                 return {};
             }

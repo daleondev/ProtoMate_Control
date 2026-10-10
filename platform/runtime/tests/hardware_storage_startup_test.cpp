@@ -102,7 +102,7 @@ int main()
     static_cast<void>(std::fflush(stdout));
     const unsigned mask{ hardware_storage_startup_test_expected_mask };
     const bool flash{ (mask & 1U) != 0U }, sd{ (mask & 2U) != 0U };
-    const auto led{ hal::board::createLed(hal::board::LedId::Green) };
+    const auto led{ hal::board::create_led(hal::board::LedId::Green) };
     int failure{ led ? 0 : __LINE__ };
     std::atomic_uint heartbeat{};
     {

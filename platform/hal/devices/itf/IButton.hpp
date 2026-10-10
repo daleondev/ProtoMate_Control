@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <functional>
 
 namespace hal::device
@@ -7,7 +9,7 @@ namespace hal::device
     class IButton
     {
       public:
-        enum class State
+        enum class State : std::uint8_t
         {
             Released,
             Pressed
@@ -16,7 +18,6 @@ namespace hal::device
         using StateChangedCallback = std::move_only_function<void(State) noexcept>;
 
         virtual ~IButton() = default;
-
         IButton(const IButton&) = delete;
         IButton& operator=(const IButton&) = delete;
         IButton(IButton&&) = delete;

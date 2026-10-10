@@ -7,30 +7,30 @@
 
 namespace hal::util
 {
-    inline constexpr std::uint32_t step_tick_ns{ 100U };
-    inline constexpr std::uint32_t step_min_phase{ 50U };
+    inline constexpr std::uint32_t STEP_TICK_NS{ 100U };
+    inline constexpr std::uint32_t STEP_MIN_PHASE{ 50U };
     // CCR=park is outside CNT's range. RM0433: overflow can set CCIF here,
     // but does not toggle OCREF. Thus even an unserviced final edge stays low.
-    inline constexpr std::uint32_t step_park{ 0xFFFFFFFFU };
-    inline constexpr std::uint32_t step_arr{ step_park - 1U };
-    inline constexpr std::uint32_t step_horizon{ 0x3FFFFFFFU };
-    inline constexpr std::size_t step_buffer_edges{ 512U };
-    using StepBuffer = std::array<std::uint32_t, step_buffer_edges>;
+    inline constexpr std::uint32_t STEP_PARK{ 0xFFFFFFFFU };
+    inline constexpr std::uint32_t STEP_ARR{ STEP_PARK - 1U };
+    inline constexpr std::uint32_t STEP_HORIZON{ 0x3FFFFFFFU };
+    inline constexpr std::size_t STEP_BUFFER_EDGES{ 512U };
+    using StepBuffer = std::array<std::uint32_t, STEP_BUFFER_EDGES>;
     using StepBuffers = std::array<std::array<StepBuffer, 2>, 3>;
 
-    [[nodiscard]] constexpr auto stepAdd(std::uint32_t tick, std::uint32_t delta) noexcept -> std::uint32_t
+    [[nodiscard]] constexpr auto step_add(std::uint32_t tick, std::uint32_t delta) noexcept -> std::uint32_t
     {
-        return static_cast<std::uint32_t>((std::uint64_t{ tick } + delta) % step_park);
+        return static_cast<std::uint32_t>((std::uint64_t{ tick } + delta) % STEP_PARK);
     }
-    [[nodiscard]] constexpr auto stepDistance(std::uint32_t from, std::uint32_t to) noexcept -> std::uint32_t
+    [[nodiscard]] constexpr auto step_distance(std::uint32_t from, std::uint32_t to) noexcept -> std::uint32_t
     {
-        return to >= from ? to - from : step_park - from + to;
+        return to >= from ? to - from : STEP_PARK - from + to;
     }
 
     struct StepChannelSample
     {
         std::uint32_t tick{};
-        std::uint32_t compare{ step_park };
+        std::uint32_t compare{ STEP_PARK };
         std::uint32_t remaining{};
         std::uint8_t target{};
         bool transfer_complete{};
@@ -50,6 +50,12 @@ namespace hal::util
     class StepHardware
     {
       public:
+        StepHardware() = default;
+        StepHardware(const StepHardware&) = default;
+        auto operator=(const StepHardware&) -> StepHardware& = default;
+        StepHardware(StepHardware&&) = default;
+        auto operator=(StepHardware&&) -> StepHardware& = default;
+
         virtual ~StepHardware() = default;
         virtual auto buffers() noexcept -> StepBuffers& = 0;
         virtual auto reset() noexcept -> bool = 0;

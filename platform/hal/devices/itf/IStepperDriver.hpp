@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "hal/util/Result.hpp"
 
 #include <functional>
@@ -12,7 +14,21 @@ namespace hal::device
     class IStepperDriver
     {
       public:
-        enum class Fault { None, Input, Communication, Configuration, Electrical, Reset };
+        IStepperDriver() = default;
+        IStepperDriver(const IStepperDriver&) = default;
+        auto operator=(const IStepperDriver&) -> IStepperDriver& = default;
+        IStepperDriver(IStepperDriver&&) = default;
+        auto operator=(IStepperDriver&&) -> IStepperDriver& = default;
+
+        enum class Fault : std::uint8_t
+        {
+            None,
+            Input,
+            Communication,
+            Configuration,
+            Electrical,
+            Reset
+        };
         struct Status
         {
             bool ready{}, fault_active{}, fault_latched{}, warning{};

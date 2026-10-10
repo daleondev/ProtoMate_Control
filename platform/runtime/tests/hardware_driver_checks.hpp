@@ -21,7 +21,7 @@ namespace hardware_driver_checks
     {
         // PB0 is the onboard green LED. Its output latch must toggle even
         // when the released open-drain pin reads low through the pull-down.
-        const auto output{ hal::gpio::createOutput({
+        const auto output{ hal::gpio::create_output({
           .pin = { .port = hal::gpio::Port::B, .number = 0U },
           .initial_level = hal::gpio::Level::High,
           .type = hal::gpio::OutputType::OpenDrain,
@@ -45,7 +45,7 @@ namespace hardware_driver_checks
             .pull = hal::gpio::Pull::Down,
             .edge = hal::gpio::Edge::Rising,
         };
-        auto input{ hal::gpio::createInput(configuration) };
+        auto input{ hal::gpio::create_input(configuration) };
         if (input == nullptr) {
             return false;
         }
@@ -55,7 +55,7 @@ namespace hardware_driver_checks
         input.reset();
         const bool cleared{ __HAL_GPIO_EXTI_GET_IT(GPIO_PIN_13) == 0U };
 
-        input = hal::gpio::createInput(configuration);
+        input = hal::gpio::create_input(configuration);
         if (input == nullptr) {
             return false;
         }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/devices/itf/IMotorFeedback.hpp"
+#include "hal/drivers/itf/IDigitalInput.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -15,12 +15,17 @@ namespace hal::device
     class IndexFeedback final : public IMotorFeedback
     {
       public:
+        IndexFeedback(IndexFeedback&&) = delete;
+        auto operator=(IndexFeedback&&) -> IndexFeedback& = delete;
+
         using Clock = std::chrono::steady_clock;
         using Now = Clock::time_point (*)() noexcept;
 
         // Input must use both-edge EXTI. The clock parameter permits deterministic tests.
-        IndexFeedback(std::shared_ptr<IDigitalInput> input, pnm::units::Angle full_step_angle,
-                      std::size_t microsteps, Now now = &Clock::now);
+        IndexFeedback(std::shared_ptr<IDigitalInput> input,
+                      pnm::units::Angle full_step_angle,
+                      std::size_t microsteps,
+                      Now now = &Clock::now);
         ~IndexFeedback() override;
         IndexFeedback(const IndexFeedback&) = delete;
         IndexFeedback& operator=(const IndexFeedback&) = delete;

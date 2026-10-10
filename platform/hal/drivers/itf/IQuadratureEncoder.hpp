@@ -1,8 +1,8 @@
 #pragma once
 
-#include "hal/util/Result.hpp"
 #include "hal/drivers/itf/GpioTypes.hpp"
 #include "hal/drivers/itf/ITimer.hpp"
+#include "hal/util/Result.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -13,6 +13,9 @@ namespace hal
     class IQuadratureEncoder
     {
       public:
+        IQuadratureEncoder(IQuadratureEncoder&&) = default;
+        auto operator=(IQuadratureEncoder&&) -> IQuadratureEncoder& = default;
+
         using Count = std::int64_t;
         struct Sample
         {
@@ -21,7 +24,7 @@ namespace hal
             bool running;
         };
         using SampleCallback = std::move_only_function<void(const Sample&) noexcept>;
-        static constexpr auto sample_period{ std::chrono::milliseconds{ 10 } };
+        static constexpr auto SAMPLE_PERIOD{ std::chrono::milliseconds{ 10 } };
 
         virtual ~IQuadratureEncoder() = default;
         IQuadratureEncoder(const IQuadratureEncoder&) = delete;

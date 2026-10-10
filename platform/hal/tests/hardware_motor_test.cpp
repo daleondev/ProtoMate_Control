@@ -77,24 +77,24 @@ namespace
         Bench()
         {
             try {
-                m_enable = hal::board::createSteppersEnableOutput();
+                m_enable = hal::board::create_steppers_enable_output();
                 require(bool(m_enable), "shared enable unavailable");
                 m_enable->write(Level::High);
-                m_generator = hal::board::createStepperGenerator();
+                m_generator = hal::board::create_stepper_generator();
                 require(bool(m_generator), "STEP generator unavailable");
                 for (unsigned i{}; i < motors.size(); ++i) {
-                    m_steps[i] = hal::board::createStepperStepOutput(m_generator, motors[i]);
-                    m_dirs[i] = hal::board::createStepperDirectionOutput(motors[i]);
-                    m_faultInputs[i] = hal::board::createStepperDiagnostic(motors[i]);
+                    m_steps[i] = hal::board::create_stepper_step_output(m_generator, motors[i]);
+                    m_dirs[i] = hal::board::create_stepper_direction_output(motors[i]);
+                    m_faultInputs[i] = hal::board::create_stepper_diagnostic(motors[i]);
                     require(m_steps[i] && m_dirs[i] && m_faultInputs[i], "motor resources unavailable");
                 }
-                m_button = hal::board::createButton(hal::board::ButtonId::User);
-                m_bus = hal::board::createStepperDriverBus();
-                m_encoder = hal::board::createEncoder(Motor::Motor1);
-                m_z = hal::board::createEncoderIndex(Motor::Motor1);
+                m_button = hal::board::create_button(hal::board::ButtonId::User);
+                m_bus = hal::board::create_stepper_driver_bus();
+                m_encoder = hal::board::create_encoder(Motor::Motor1);
+                m_z = hal::board::create_encoder_index(Motor::Motor1);
                 require(m_button && m_bus && m_encoder && m_z, "bench resources unavailable");
                 m_driver = std::make_unique<Driver>(m_bus, 0);
-                m_index = hal::board::createMotorFeedback(Motor::Motor2, { 1.8_deg, configuration.microsteps });
+                m_index = hal::board::create_motor_feedback(Motor::Motor2, { 1.8_deg, configuration.microsteps });
                 require(bool(m_index), "INDEX feedback unavailable");
                 for (unsigned i{}; i < motors.size(); ++i) {
                     require(m_steps[i]->setCompletionCallback([this](const auto&) noexcept {

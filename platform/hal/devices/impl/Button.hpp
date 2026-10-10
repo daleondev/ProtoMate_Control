@@ -10,6 +10,11 @@ namespace hal::device
     class Button final : public IButton
     {
       public:
+        Button(const Button&) = delete;
+        auto operator=(const Button&) -> Button& = delete;
+        Button(Button&&) = delete;
+        auto operator=(Button&&) -> Button& = delete;
+
         Button(std::shared_ptr<IDigitalInput> input, gpio::Level active_level);
         ~Button() override;
 

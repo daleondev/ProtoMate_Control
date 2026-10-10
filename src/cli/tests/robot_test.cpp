@@ -33,7 +33,7 @@ namespace
               { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
               { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
             } });
-            auto alarm = hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 });
+            auto alarm = hal::gpio::simulated_input({ .port = hal::gpio::Port::F, .number = 2 });
             ASSERT_TRUE(alarm);
             alarm->setSimulatedLevel(hal::gpio::Level::Low); // Healthy, powered DM542T.
             m_controller->initializeDrivers();
@@ -214,7 +214,7 @@ TEST_F(CliRobot, AxisAndRobotHomingCanBeStoppedAndRestartedRepeatedly)
     using namespace std::chrono_literals;
     constexpr std::array<std::uint8_t, 3> pins{ 7, 8, 10 };
     for (const auto pin : pins) {
-        const auto input{ hal::gpio::simulatedInput({ .port = hal::gpio::Port::E, .number = pin }) };
+        const auto input{ hal::gpio::simulated_input({ .port = hal::gpio::Port::E, .number = pin }) };
         ASSERT_TRUE(input);
         input->setSimulatedLevel(hal::gpio::Level::Low);
     }
@@ -280,7 +280,7 @@ TEST_F(CliRobot, HomesAndMovesThroughAnnotatedCommandsUsingTheSameAxes)
     std::array<std::shared_ptr<hal::GpioInput>, 3> switches;
     constexpr std::array pins{ 7U, 8U, 10U };
     for (std::size_t i{}; i < pins.size(); ++i) {
-        switches[i] = hal::gpio::simulatedInput(
+        switches[i] = hal::gpio::simulated_input(
           { .port = hal::gpio::Port::E, .number = static_cast<std::uint8_t>(pins[i]) });
         ASSERT_TRUE(switches[i]);
         switches[i]->setSimulatedLevel(hal::gpio::Level::Low);

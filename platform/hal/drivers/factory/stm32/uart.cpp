@@ -7,6 +7,11 @@
 #include <optional>
 #include <utility>
 
+namespace
+{
+    inline constexpr auto UART_POOL_SIZE{ 9 };
+}
+
 namespace hal::uart
 {
     namespace
@@ -14,6 +19,8 @@ namespace hal::uart
         auto hardware(Configuration configuration) -> std::optional<Uart::HardwareConfiguration>
         {
             switch (configuration.peripheral) {
+// Generated X-macro entries supply declaration identifiers, not expressions.
+// NOLINTBEGIN(cppcoreguidelines-macro-usage,bugprone-macro-parentheses)
 #define HAL_UART_INSTANCE(id, handle_name, initialize_function)                                              \
     case Peripheral::id:                                                                                     \
         return Uart::HardwareConfiguration{                                                                  \
@@ -23,6 +30,7 @@ namespace hal::uart
         };
 #include "uart_instances.inc"
 #undef HAL_UART_INSTANCE
+                    // NOLINTEND(cppcoreguidelines-macro-usage,bugprone-macro-parentheses)
                 default:
                     return {};
             }
@@ -33,12 +41,12 @@ namespace hal::uart
     {
         // The BSP owns USART3 independently of CubeMX's UART declarations.
         if (configuration.peripheral == Peripheral::Usart3 ||
-            !util::validUartConfiguration(configuration.transport))
+            !util::valid_uart_configuration(configuration.transport))
             return {};
         const auto selected{ hardware(configuration) };
         if (!selected)
             return {};
-        static util::ExclusiveInstances<9> instances;
+        static util::ExclusiveInstances<UART_POOL_SIZE> instances;
         return instances.create<Uart>(std::to_underlying(configuration.peripheral), *selected);
     }
 }

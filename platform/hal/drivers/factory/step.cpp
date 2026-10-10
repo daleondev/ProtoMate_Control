@@ -14,10 +14,12 @@ namespace hal::step
     auto create() -> std::shared_ptr<IStepGenerator>
     {
         using enum gpio::Port;
-        constexpr std::array pins{ gpio::Pin{ A, 0U }, gpio::Pin{ B, 10U }, gpio::Pin{ B, 11U } };
+        constexpr std::array pins{ gpio::Pin{ .port = A, .number = 0U },
+                                   gpio::Pin{ .port = B, .number = 10U },
+                                   gpio::Pin{ .port = B, .number = 11U } };
         std::array<std::shared_ptr<IDigitalOutput>, 3> owners;
         for (std::size_t i = 0; i < pins.size(); ++i) {
-            owners[i] = gpio::createOutput({ .pin = pins[i], .pull = gpio::Pull::Down });
+            owners[i] = gpio::create_output({ .pin = pins[i], .pull = gpio::Pull::Down });
             if (!owners[i]) {
                 return {};
             }
@@ -26,7 +28,7 @@ namespace hal::step
         auto generator{ std::make_shared<util::StepGenerator>(std::make_unique<stm32::StepHardware>(),
                                                               std::move(owners)) };
         const stm32::InterruptGuard lock;
-        stm32::registerStepGenerator(generator.get());
+        stm32::register_step_generator(generator.get());
 #else
         auto hardware{ std::make_unique<util::LinuxStepHardware>() };
         auto* model{ hardware.get() };

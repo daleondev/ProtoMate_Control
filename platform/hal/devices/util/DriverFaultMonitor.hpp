@@ -11,6 +11,11 @@ namespace hal::device::util
     class DriverFaultMonitor final
     {
       public:
+        DriverFaultMonitor(const DriverFaultMonitor&) = delete;
+        auto operator=(const DriverFaultMonitor&) -> DriverFaultMonitor& = delete;
+        DriverFaultMonitor(DriverFaultMonitor&&) = delete;
+        auto operator=(DriverFaultMonitor&&) -> DriverFaultMonitor& = delete;
+
         explicit DriverFaultMonitor(std::shared_ptr<IDigitalInput> input);
         ~DriverFaultMonitor();
         IStepperDriver::Status status() const noexcept;
@@ -20,6 +25,7 @@ namespace hal::device::util
         void beginRecovery() noexcept;
         hal::util::Result<> completeRecovery() noexcept;
         void unready() noexcept;
+
       private:
         struct State;
         std::shared_ptr<IDigitalInput> m_input;

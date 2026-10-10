@@ -12,7 +12,6 @@ namespace hal
         using Value = std::uint32_t;
 
         virtual ~IRng() = default;
-
         IRng(const IRng&) = delete;
         IRng& operator=(const IRng&) = delete;
         IRng(IRng&&) = delete;

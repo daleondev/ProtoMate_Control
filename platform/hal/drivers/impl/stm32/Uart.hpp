@@ -10,9 +10,10 @@ namespace hal
       public:
         struct HardwareConfiguration
         {
-            UART_HandleTypeDef& handle;
+            UART_HandleTypeDef& handle; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members) --
+                                        // Required, non-owning dependency; its owner outlives this object.
             Configuration configuration;
-            void (*initialize)();
+            void (*initialize)(){};
         };
 
         explicit Uart(HardwareConfiguration configuration);

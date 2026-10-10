@@ -39,9 +39,9 @@ namespace
                 { .reference_position = 135_deg, .full_step_angle = 1.8_deg, .microsteps = 16U },
               } },
               [bus = driver_bus](const auto& microsteps, const auto& enable) {
-                return hal::board::createStepperDrivers(microsteps, enable, bus);
+                return hal::board::create_stepper_drivers(microsteps, enable, bus);
             });
-            auto alarm = hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 });
+            auto alarm = hal::gpio::simulated_input({ .port = hal::gpio::Port::F, .number = 2 });
             ASSERT_TRUE(alarm);
             EXPECT_TRUE(m_controller->driverStatus()[0].status.fault_active);
             EXPECT_TRUE(m_controller->driverStatus()[0].status.fault_latched);
@@ -50,7 +50,7 @@ namespace
             m_controller->initializeDrivers();
             constexpr std::array<std::uint8_t, 3> pins{ 7, 8, 10 };
             for (std::size_t i{}; i < pins.size(); ++i) {
-                m_switches[i] = hal::gpio::simulatedInput({ .port = hal::gpio::Port::E, .number = pins[i] });
+                m_switches[i] = hal::gpio::simulated_input({ .port = hal::gpio::Port::E, .number = pins[i] });
                 ASSERT_TRUE(m_switches[i]);
                 m_switches[i]->setSimulatedLevel(Low);
             }
@@ -322,7 +322,7 @@ TEST_F(CliMotion, DriverResetOrLostCommunicationLatchesFaultUntilExplicitRecover
 
 TEST_F(CliMotion, DiagnosticEdgeDisablesAllDriversAndStopsMotion)
 {
-    auto diag = hal::gpio::simulatedInput({ .port = hal::gpio::Port::D, .number = 3 });
+    auto diag = hal::gpio::simulated_input({ .port = hal::gpio::Port::D, .number = 3 });
     ASSERT_TRUE(diag);
     ASSERT_TRUE(run("motor enable"));
     ASSERT_TRUE(run("motor move m1 -360 --speed 1"));
@@ -338,7 +338,7 @@ TEST_F(CliMotion, DiagnosticEdgeDisablesAllDriversAndStopsMotion)
 
 TEST_F(CliMotion, Dm542AlarmStopsAllAxesAndRequiresExplicitRecoveryAfterTheSignalClears)
 {
-    auto alarm = hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 });
+    auto alarm = hal::gpio::simulated_input({ .port = hal::gpio::Port::F, .number = 2 });
     ASSERT_TRUE(run("motor driver status m1"));
     EXPECT_NE(m_output.str().find("fault-input=clear fault-latched=false"), std::string::npos);
     ASSERT_TRUE(run("motor enable"));
@@ -369,7 +369,7 @@ TEST_F(CliMotion, Dm542AlarmIsLatchedEvenWhenAUartDriverIsUnavailable)
     const auto& bus = driver_bus;
     bus->setConnected(1, false);
     EXPECT_FALSE(run("motor driver init"));
-    auto alarm = hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 });
+    auto alarm = hal::gpio::simulated_input({ .port = hal::gpio::Port::F, .number = 2 });
     alarm->setSimulatedLevel(High);
     alarm->setSimulatedLevel(Low); // A short alarm must not be lost between polls.
     EXPECT_TRUE(m_controller->driverStatus()[0].status.fault_latched);
@@ -381,7 +381,7 @@ TEST_F(CliMotion, Dm542AlarmIsLatchedEvenWhenAUartDriverIsUnavailable)
 
 TEST_F(CliMotion, Dm542AlarmDuringEnableSettlingCannotLeaveDriversEnabled)
 {
-    auto alarm = hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 });
+    auto alarm = hal::gpio::simulated_input({ .port = hal::gpio::Port::F, .number = 2 });
     std::jthread fault([alarm] {
         std::this_thread::sleep_for(50ms);
         alarm->setSimulatedLevel(High);
@@ -403,7 +403,7 @@ TEST_F(CliMotion, Dm542AlarmInvalidatesAReferencedAxis)
     m_switches[1]->setSimulatedLevel(High);
     ASSERT_TRUE(finished(1));
     ASSERT_TRUE(m_controller->status().axes[1].referenced);
-    auto alarm = hal::gpio::simulatedInput({ .port = hal::gpio::Port::F, .number = 2 });
+    auto alarm = hal::gpio::simulated_input({ .port = hal::gpio::Port::F, .number = 2 });
     alarm->setSimulatedLevel(High);
     ASSERT_TRUE(eventually([&] { return !m_controller->status().axes[1].referenced; }));
     EXPECT_FALSE(m_controller->status().enabled);

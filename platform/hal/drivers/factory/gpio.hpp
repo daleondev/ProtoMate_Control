@@ -7,6 +7,6 @@
 
 namespace hal::gpio
 {
-    [[nodiscard]] auto createInput(InputConfiguration configuration) -> std::shared_ptr<IDigitalInput>;
-    [[nodiscard]] auto createOutput(OutputConfiguration configuration) -> std::shared_ptr<IDigitalOutput>;
+    [[nodiscard]] auto create_input(InputConfiguration configuration) -> std::shared_ptr<IDigitalInput>;
+    [[nodiscard]] auto create_output(OutputConfiguration configuration) -> std::shared_ptr<IDigitalOutput>;
 }

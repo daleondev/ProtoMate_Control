@@ -3,7 +3,7 @@
 
 namespace hal::device::tmc2209
 {
-    auto createTransport(uart::Configuration configuration) -> std::shared_ptr<IUart>
+    auto create_transport(uart::Configuration configuration) -> std::shared_ptr<IUart>
     {
         return uart::create(configuration);
     }

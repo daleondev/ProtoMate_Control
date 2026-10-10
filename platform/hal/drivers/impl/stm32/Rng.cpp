@@ -2,11 +2,11 @@
 
 #include "hal/stm32/HalResult.hpp"
 
+#include <array>
 #include <exception>
 
 namespace
 {
-    CHAR rng_mutex_name[]{ "Hardware RNG" };
 
     class ThreadXLock final
     {
@@ -41,7 +41,9 @@ namespace hal
     Rng::Rng(RNG_HandleTypeDef& handle)
       : m_handle{ handle }
     {
-        if (tx_mutex_create(&m_mutex, rng_mutex_name, TX_INHERIT) != TX_SUCCESS) {
+        static auto rng_mutex_name{ std::to_array("Hardware RNG") };
+
+        if (tx_mutex_create(&m_mutex, rng_mutex_name.data(), TX_INHERIT) != TX_SUCCESS) {
             std::terminate();
         }
     }

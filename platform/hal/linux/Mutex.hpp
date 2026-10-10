@@ -12,6 +12,9 @@ namespace hal::linux
     class Mutex final
     {
       public:
+        Mutex(Mutex&&) = delete;
+        auto operator=(Mutex&&) -> Mutex& = delete;
+
         explicit Mutex(bool recursive = false) noexcept
         {
             pthread_mutexattr_t attributes;

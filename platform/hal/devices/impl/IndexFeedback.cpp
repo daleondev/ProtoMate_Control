@@ -12,6 +12,13 @@
 #include <stdexcept>
 #include <utility>
 
+namespace
+{
+    inline constexpr auto FULL_STEPS_PER_INDEX_CYCLE{ 4.0 };
+    inline constexpr auto VELOCITY_SAMPLE_MS{ 10 };
+    inline constexpr auto MIN_STALL_TIMEOUT_NS{ 20'000'000 };
+}
+
 namespace hal::device
 {
     using namespace pnm::units::literals;
@@ -19,21 +26,25 @@ namespace hal::device
     struct IndexFeedback::State
     {
 #ifdef HAL_PLATFORM_STM32
-        struct Mutex {};
+        struct Mutex
+        {
+        };
         struct Guard
         {
-            explicit Guard(Mutex&) noexcept {}
+            explicit Guard(Mutex& /*unused*/) noexcept {}
             stm32::InterruptGuard interrupt_guard;
         };
 #else
         using Mutex = std::mutex;
-        using Guard = std::lock_guard<Mutex>;
+        using Guard = std::scoped_lock<Mutex>;
 #endif
         Mutex mutex;
         Now now;
         Callback callback;
-        const pnm::units::Angle cycle_angle;
-        const std::size_t microsteps;
+        const pnm::units::Angle cycle_angle; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members) --
+                                             // Immutable calibration/limits for this device lifetime.
+        const std::size_t microsteps;        // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members) --
+                                             // Immutable calibration/limits for this device lifetime.
         pnm::units::Angle offset{};
         std::int64_t cycles{};
         bool alive{ true }, started{}, armed{}, running{}, forward{}, observed{}, fault{};
@@ -45,7 +56,12 @@ namespace hal::device
         std::uint64_t interval_cycles{};
 
         State(Now clock, gpio::Level initial, pnm::units::Angle angle, std::size_t steps)
-          : now{ clock }, cycle_angle{ angle * 4.0 }, microsteps{ steps }, level{ initial } {}
+          : now{ clock }
+          , cycle_angle{ angle * FULL_STEPS_PER_INDEX_CYCLE }
+          , microsteps{ steps }
+          , level{ initial }
+        {
+        }
 
         void publish(Clock::time_point time) noexcept
         {
@@ -55,27 +71,34 @@ namespace hal::device
                 fault = true;
                 velocity = 0;
             }
-            if (fault || !observed) angular_velocity = 0_rpm;
-            if (!callback) return;
+            if (fault || !observed)
+                angular_velocity = 0_rpm;
+            if (!callback)
+                return;
             hal::util::Result<pnm::units::Angle> value{ position };
             if (fault)
                 value = std::unexpected(std::make_error_code(std::errc::state_not_recoverable));
             else if (!observed)
                 value = std::unexpected(std::make_error_code(std::errc::no_message_available));
-            callback({ value, angular_velocity,
-                       std::chrono::duration_cast<std::chrono::nanoseconds>(time.time_since_epoch()) });
+            callback(
+              { .position = value,
+                .velocity = angular_velocity,
+                .timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(time.time_since_epoch()) });
         }
 
         void edge(gpio::Level current) noexcept
         {
             const Guard guard{ mutex };
-            if (!alive || current == level) return;
+            if (!alive || current == level)
+                return;
             level = current;
-            if (!started || !armed || fault) return;
+            if (!started || !armed || fault)
+                return;
             // Use the SAME boundary of the INDEX window in both directions.
             // A forward rising crossing is undone by a reverse falling crossing;
             // counting rising edges in both directions would drift on reversals.
-            if ((current == gpio::Level::High) != forward) return;
+            if ((current == gpio::Level::High) != forward)
+                return;
             const auto time{ now() };
             if (observed) {
                 if ((forward && cycles == std::numeric_limits<std::int64_t>::max()) ||
@@ -91,7 +114,7 @@ namespace hal::device
             // revolution of motion from an unknown initial phase.
             observed = true;
             // The embedded steady clock has 1 ms resolution. Accumulate all
-            // crossings in at least 10 ms instead of losing cycles when two
+            // crossings in at least VELOCITY_SAMPLE_MS ms instead of losing cycles when two
             // interrupts receive the same timestamp at high STEP rates.
             if (running) {
                 if (!previous) {
@@ -100,7 +123,7 @@ namespace hal::device
                 }
                 else {
                     ++interval_cycles;
-                    if (time - *previous >= std::chrono::milliseconds{ 10 }) {
+                    if (time - *previous >= std::chrono::milliseconds{ VELOCITY_SAMPLE_MS }) {
                         velocity = (forward ? 1.0 : -1.0) * static_cast<double>(interval_cycles) /
                                    std::chrono::duration<double>(time - *previous).count();
                         previous = time;
@@ -118,11 +141,14 @@ namespace hal::device
         }
     };
 
-    IndexFeedback::IndexFeedback(std::shared_ptr<IDigitalInput> input, pnm::units::Angle angle,
-                                 std::size_t microsteps, Now now)
+    IndexFeedback::IndexFeedback(std::shared_ptr<IDigitalInput> input,
+                                 pnm::units::Angle angle,
+                                 std::size_t microsteps,
+                                 Now now)
       : m_input{ std::move(input) }
     {
-        if (!m_input || !now || !angle.isFinite() || angle <= 0_deg || !(angle * 4.0).isFinite() || !microsteps)
+        if (!m_input || !now || !angle.isFinite() || angle <= 0_deg ||
+            !(angle * FULL_STEPS_PER_INDEX_CYCLE).isFinite() || !microsteps)
             throw std::invalid_argument("invalid INDEX input, clock or motor configuration");
         m_state = std::make_shared<State>(now, m_input->read(), angle, microsteps);
         // Shared state survives a host GPIO callback already in flight during
@@ -170,10 +196,11 @@ namespace hal::device
     {
         const State::Guard guard{ m_state->mutex };
         auto& s{ *m_state };
-        if (!s.started) return;
+        if (!s.started)
+            return;
         auto cycle_period{ std::chrono::nanoseconds::max() };
         const auto maximum{ cycle_period.count() };
-        if (step_period.count() >= 0 && s.microsteps <= static_cast<std::uint64_t>(maximum / 4)) {
+        if (step_period.count() >= 0 && std::cmp_less_equal(s.microsteps, maximum / 4)) {
             const auto multiplier{ static_cast<std::int64_t>(s.microsteps) * 4 };
             if (step_period.count() <= maximum / multiplier)
                 cycle_period = step_period * multiplier;
@@ -203,7 +230,8 @@ namespace hal::device
         // make an earlier, legitimately slow interval look like lost feedback.
         if (running && s.observed && s.last_edge && s.watch_period.count() > 0 &&
             s.watch_period < std::chrono::nanoseconds::max() / 4 &&
-            time - *s.last_edge > std::max(s.watch_period * 3, std::chrono::nanoseconds{ 20'000'000 })) {
+            time - *s.last_edge >
+              std::max(s.watch_period * 3, std::chrono::nanoseconds{ MIN_STALL_TIMEOUT_NS })) {
             s.fault = true; // Lost cycles cannot be reconstructed from INDEX.
             s.velocity = 0;
         }

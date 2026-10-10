@@ -280,7 +280,7 @@ SPI/UART, PWM, encoder and step resources require exclusive ownership.
 
 | Factory | Selection and lifetime |
 | --- | --- |
-| `gpio::createInput/createOutput` | Pin and electrical configuration; exclusive pin ownership |
+| `gpio::create_input/create_output` | Pin and electrical configuration; exclusive pin ownership |
 | `spi::create`, `uart::create` | Typed peripheral selector; exclusive instance per bus, retained through complete driver destruction |
 | `timer::create` | Typed selector; currently the shared TIM5 runtime timer |
 | `pwm::create` | Timer/channel/pin route; exclusive timer and pin |
@@ -1120,8 +1120,8 @@ individual pulses; it fills the inactive DMA buffer while the other runs.
 See the local [RM0433](docs/board/rm0433-stm32h742-stm32h743753-and-stm32h750-value-line-advanced-armbased-32bit-mcus-stmicroelectronics.pdf),
 §39.3.8 (output compare), §39.4 (timer registers), and its DMA/DMAMUX chapters.
 
-Create one generator with `hal::board::createStepperGenerator()`, then obtain
-axes with `hal::board::createStepperStepOutput(generator, MotorId::Motor1/Motor2/Motor3)`.
+Create one generator with `hal::board::create_stepper_generator()`, then obtain
+axes with `hal::board::create_stepper_step_output(generator, MotorId::Motor1/Motor2/Motor3)`.
 Views retain the shared generator. A second generator cannot claim its pins
 until the first generator and all its views are released.
 
@@ -1163,10 +1163,10 @@ the shared shutdown callbacks and manages enable):
 ```cpp
 using namespace pnm::units::literals;
 using enum hal::board::MotorId;
-auto generator = hal::board::createStepperGenerator();
+auto generator = hal::board::create_stepper_generator();
 if (!generator) throw std::runtime_error("step generator unavailable");
-auto enable = hal::board::createSteppersEnableOutput();
-auto drivers = hal::board::createStepperDrivers({16U, 16U, 16U}, enable);
+auto enable = hal::board::create_steppers_enable_output();
+auto drivers = hal::board::create_stepper_drivers({16U, 16U, 16U}, enable);
 StepperMotor m1{Motor1, 135_deg, 1.8_deg, 16U, generator, drivers[0]};
 StepperMotor m2{Motor2, 135_deg, 1.8_deg, 16U, generator, drivers[1]};
 StepperMotor m3{Motor3, 135_deg, 1.8_deg, 16U, generator, drivers[2]};
@@ -1318,7 +1318,7 @@ uncertain, position retains its last exact value and the reference is invalidate
 
 `StepperMotor` receives one
 [`hal::device::IMotorFeedback`](platform/hal/devices/itf/IMotorFeedback.hpp).
-The board factory `hal::board::createMotorFeedback(id, {full_step_angle, microsteps})`
+The board factory `hal::board::create_motor_feedback(id, {full_step_angle, microsteps})`
 selects `QuadratureEncoderFeedback` for M1 and `IndexFeedback` for M2/M3.
 Both implementations live in `hal/devices/impl`; the raw timer-backed
 `IQuadratureEncoder` remains in `hal/drivers`. Providers convert their inputs
@@ -1522,10 +1522,10 @@ A compile-time assertion and regeneration guards protect this setting;
 using disposable copies. The correction was established by Debug and Release
 bare-board hardware tests in the NUCLEO-H753ZI template with the same runtime.
 
-Use `hal::board::createStepperStepOutput(generator, MotorId::Motor1/Motor2/Motor3)`,
-`hal::board::createStepperDirectionOutput(MotorId::Motor1/Motor2/Motor3)` and
-`hal::board::createSteppersEnableOutput()` for the assigned motor outputs;
-`hal::board::createEncoder(MotorId::Motor1)` creates the encoder. DIR and ENABLE
+Use `hal::board::create_stepper_step_output(generator, MotorId::Motor1/Motor2/Motor3)`,
+`hal::board::create_stepper_direction_output(MotorId::Motor1/Motor2/Motor3)` and
+`hal::board::create_steppers_enable_output()` for the assigned motor outputs;
+`hal::board::create_encoder(MotorId::Motor1)` creates the encoder. DIR and ENABLE
 return `IDigitalOutput`: directions start low, and the single shared active-low
 enable starts high (disabled). Writing enable low enables all three drivers;
 writing it high disables them. The GPIO and encoder factories return exclusive, uncached
@@ -1546,7 +1546,7 @@ while stopped or in uncounted PWM mode are ignored. Its
 `hal::QuadratureEncoder::advanceSimulatedCounts(delta)`
 injects signed x4 counts, using the same count-extension arithmetic as STM32;
 movement injected while stopped is ignored. A background service delivers the
-same timed sample callbacks. `hal::encoder::simulatedEncoder(hal::timer::Peripheral::Tim3)` accesses the
+same timed sample callbacks. `hal::encoder::simulated_encoder(hal::timer::Peripheral::Tim3)` accesses the
 already owned encoder for motion injection in tests. A/B GPIO levels are not decoded
 by this simulation. Index edges can be injected through the existing Linux
 `GpioInput::setSimulatedLevel()` test interface. Simulation is not a measurement
@@ -1592,7 +1592,7 @@ identify the pair that is closed when released and opens when pressed; the
 photo alone does not establish the connector contact mapping. No 5 V supply,
 transistor or optocoupler is needed for this dry-contact connection.
 
-`hal::board::createReferenceLimitSwitch(MotorId)` returns an exclusive
+`hal::board::create_reference_limit_switch(MotorId)` returns an exclusive
 `IDigitalInput` for each motor. `StepperMotor` claims it during construction. Its direction
 convention is **Forward toward the reference switch; Backward away**. A HIGH
 input rejects toward moves with `Rejected`; away moves remain allowed. A zero
@@ -1618,7 +1618,7 @@ and input filtering as needed.
 
 ### Callback-based driver INDEX feedback
 
-The board's `createMotorFeedback()` wraps the M2/M3 INDEX GPIOs in
+The board's `create_motor_feedback()` wraps the M2/M3 INDEX GPIOs in
 `hal::device::IndexFeedback`. Each motor receives its provider through
 `IMotorFeedback`; callbacks update `m_actualPosition` and `m_actualVelocity`.
 M1 receives `QuadratureEncoderFeedback` over its TIM3 shaft encoder.
@@ -1714,7 +1714,7 @@ pull-up also makes a disconnected Nucleo harness read high. **Low = healthy;
 high = fault or open cable.** A signal short to ground is not detectable by
 this interface. Use the default normally conducting alarm polarity.
 
-`hal::board::createStepperDiagnostic(MotorId::Motor1)` creates the exclusive
+`hal::board::create_stepper_diagnostic(MotorId::Motor1)` creates the exclusive
 input, owned by `MotionController`. Its interrupt callback latches the fault,
 raises shared enable to disable all three drivers, and notifies the driver
 monitor without UART, logging or thread locks. The monitor stops every motion
@@ -1737,7 +1737,7 @@ H18 (+3.3 V) / H14 (ALM). The ALM return shares the motion harness ground; see [
 
 Each `StepperMotor` owns an injected
 [`IStepperDriver`](platform/hal/devices/itf/IStepperDriver.hpp), alongside its
-`IMotorFeedback`. `hal::board::createStepperDrivers()` creates M1's
+`IMotorFeedback`. `hal::board::create_stepper_drivers()` creates M1's
 `Dm542tDriver` and M2/M3's `Tmc2209Driver`, sharing one serialized `Tmc2209Bus`.
 The bus prepares both UART addresses before initialization reads. Factory creation
 does not initialize or enable the drivers. Initialization and recovery are
@@ -1790,15 +1790,15 @@ and set its potentiometer current before running it.
 M2 and M3 share **USART2 at 115200 baud, 8N1**, separate from the USART3 CLI.
 All signals use **3.3 V logic**. The board factory creates one `IUart` transport;
 the two TMC2209 driver objects share a serialized `hal::device::Tmc2209Bus`.
-`hal::board::createStepperDriverBus()` selects USART2 with local echo enabled
+`hal::board::create_stepper_driver_bus()` selects USART2 with local echo enabled
 and a 1 ms settling interval. The concrete `hal::Uart`
 has its declaration in the platform's `Uart.hpp` and is constructed by the
 platform factory; USART2 initializes when the transport is created. The UART
 driver contains no motor register protocol. `board.cpp` assigns USART2 and passes
-its configuration to `hal::device::tmc2209::createTransport()`. This device factory
+its configuration to `hal::device::tmc2209::create_transport()`. This device factory
 uses the real UART on STM32 and attaches a `Tmc2209Model` on Linux; CMake selects
 the implementation. The transport owns that model for its lifetime. Fault-injection
-tests own their models and pass them to `createStepperDrivers()` explicitly;
+tests own their models and pass them to `create_stepper_drivers()` explicitly;
 controller tests supply a `MotionController::DriverFactory`. Shared board code
 has no simulation registry or simulation-access API.
 The normal application initializes both at boot, while the shared enable stays

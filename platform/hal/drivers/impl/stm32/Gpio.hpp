@@ -28,13 +28,15 @@ namespace hal
         static auto dispatchEdge(std::uint16_t pin_mask) noexcept -> void;
 
       private:
+        static constexpr auto GPIO_LINES_PER_PORT{ 16U };
+
         gpio::InputConfiguration m_configuration;
         GPIO_TypeDef* m_port;
         std::uint16_t m_pinMask;
         IRQn_Type m_interrupt;
         EdgeCallback m_edgeCallback;
 
-        inline static std::array<GpioInput*, 16U> s_interruptRegistry{};
+        inline static std::array<GpioInput*, GPIO_LINES_PER_PORT> s_interruptRegistry{};
     };
 
     class GpioOutput final : public IDigitalOutput

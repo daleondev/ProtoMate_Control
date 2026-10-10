@@ -18,7 +18,7 @@ namespace
     class IndexFeedbackTest : public testing::Test
     {
       protected:
-        std::shared_ptr<hal::IDigitalInput> pin{ hal::board::createStepperIndex(hal::board::MotorId::Motor2) };
+        std::shared_ptr<hal::IDigitalInput> pin{ hal::board::create_stepper_index(hal::board::MotorId::Motor2) };
         std::shared_ptr<hal::GpioInput> input{ std::dynamic_pointer_cast<hal::GpioInput>(pin) };
         IndexFeedback feedback{ pin, 1.8_deg, 16U, &now };
         IndexFeedback::Sample sample{};
@@ -167,7 +167,7 @@ TEST_F(IndexFeedbackTest, SameTimestampCrossingsAreAccumulatedForVelocity)
 TEST(IndexFeedback, ConfiguredMicrostepsConvertStepPeriodIntoTheFreshnessDeadline)
 {
     current_time = {};
-    auto pin{ hal::board::createStepperIndex(hal::board::MotorId::Motor3) };
+    auto pin{ hal::board::create_stepper_index(hal::board::MotorId::Motor3) };
     auto input{ std::dynamic_pointer_cast<hal::GpioInput>(pin) };
     IndexFeedback::Sample sample;
     IndexFeedback feedback{ pin, 0.9_deg, 32U, &now };
@@ -193,7 +193,7 @@ TEST(IndexFeedback, ConfiguredMicrostepsConvertStepPeriodIntoTheFreshnessDeadlin
 
 TEST(IndexFeedback, DestructionDisconnectsAndWaitsForConcurrentCallbacks)
 {
-    auto pin{ hal::board::createStepperIndex(hal::board::MotorId::Motor3) };
+    auto pin{ hal::board::create_stepper_index(hal::board::MotorId::Motor3) };
     auto input{ std::dynamic_pointer_cast<hal::GpioInput>(pin) };
     auto feedback{ std::make_unique<IndexFeedback>(pin, 1.8_deg, 16U) };
     std::atomic<unsigned> callbacks{};

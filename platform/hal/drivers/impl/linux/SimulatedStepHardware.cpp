@@ -2,6 +2,11 @@
 
 #include <algorithm>
 
+namespace
+{
+    inline constexpr auto COMPLETION_POLL_TICKS{ 10'000U };
+}
+
 namespace hal::util
 {
     auto SimulatedStepHardware::buffers() noexcept -> StepBuffers& { return memory; }
@@ -20,8 +25,8 @@ namespace hal::util
     auto SimulatedStepHardware::arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept
       -> bool
     {
-        const auto lead{ stepDistance(registers.tick, first) };
-        if (!registers.running || lead < step_min_phase || lead > step_horizon) {
+        const auto lead{ step_distance(registers.tick, first) };
+        if (!registers.running || lead < STEP_MIN_PHASE || lead > STEP_HORIZON) {
             return false;
         }
         high[axis] = pending_dma[axis] = false;
@@ -42,7 +47,7 @@ namespace hal::util
     auto SimulatedStepHardware::completionWatch(bool enabled) noexcept -> void
     {
         if (enabled && !completion_watch)
-            next_poll = elapsed + 10'000U;
+            next_poll = elapsed + COMPLETION_POLL_TICKS;
         completion_watch = enabled;
     }
 
@@ -64,7 +69,7 @@ namespace hal::util
     {
         active[axis] = false;
         pending_dma[axis] = false;
-        registers.channels[axis].compare = step_park;
+        registers.channels[axis].compare = STEP_PARK;
         acknowledge(axis);
     }
 
@@ -114,19 +119,57 @@ namespace hal::util
         return channel.remaining == entries[axis] / 2U;
     }
 
+    auto SimulatedStepHardware::compareEvent(std::size_t axis) noexcept -> bool
+    {
+        auto& channel{ registers.channels[axis] };
+        if (active[axis] && channel.compare != STEP_PARK) {
+            high[axis] = !high[axis];
+            if (trace_edges) {
+                edges.push_back({ elapsed, axis, high[axis] });
+            }
+        }
+        channel.compare_pending = true;
+        pending_dma[axis] = active[axis];
+        return transfer(axis);
+    }
+
+    auto SimulatedStepHardware::dispatchEvents(const std::array<std::uint64_t, 3>& matches,
+                                               std::uint64_t next,
+                                               bool guard_match) noexcept -> void
+    {
+        bool irq{};
+        if (completion_watch && elapsed == next_poll) {
+            next_poll += COMPLETION_POLL_TICKS;
+            irq = true;
+        }
+        for (std::size_t i = 0; i < 3U; ++i) {
+            if (matches[i] != next) {
+                continue;
+            }
+            irq |= compareEvent(i);
+        }
+        if (guard_match) {
+            registers.running = false;
+            irq = true;
+        }
+        if (irq && interrupts_enabled && interrupt) {
+            interrupt();
+        }
+    }
+
     auto SimulatedStepHardware::advance(std::uint64_t ticks) noexcept -> void
     {
         while (ticks != 0U && registers.running) {
             auto distance = [this](std::uint32_t target) -> std::uint64_t {
-                const auto value{ stepDistance(registers.tick, target) };
-                return value == 0U ? step_park : value;
+                const auto value{ step_distance(registers.tick, target) };
+                return value == 0U ? STEP_PARK : value;
             };
-            auto next{ deadline == step_park ? std::uint64_t{ step_park } - registers.tick
+            auto next{ deadline == STEP_PARK ? std::uint64_t{ STEP_PARK } - registers.tick
                                              : distance(deadline) };
-            std::array<std::uint64_t, 3> matches;
+            std::array<std::uint64_t, 3> matches{};
             for (std::size_t i = 0; i < 3U; ++i) {
-                matches[i] = registers.channels[i].compare == step_park
-                               ? std::uint64_t{ step_park } - registers.tick
+                matches[i] = registers.channels[i].compare == STEP_PARK
+                               ? std::uint64_t{ STEP_PARK } - registers.tick
                                : distance(registers.channels[i].compare);
                 next = std::min(next, matches[i]);
             }
@@ -134,40 +177,14 @@ namespace hal::util
                 next = std::min(next, next_poll - elapsed);
             if (next > ticks) {
                 elapsed += ticks;
-                registers.tick = stepAdd(registers.tick, static_cast<std::uint32_t>(ticks));
+                registers.tick = step_add(registers.tick, static_cast<std::uint32_t>(ticks));
                 return;
             }
-            const bool guard_match{ deadline != step_park && next == distance(deadline) };
+            const bool guard_match{ deadline != STEP_PARK && next == distance(deadline) };
             ticks -= next;
             elapsed += next;
-            registers.tick = stepAdd(registers.tick, static_cast<std::uint32_t>(next));
-            bool irq{};
-            if (completion_watch && elapsed == next_poll) {
-                next_poll += 10'000U;
-                irq = true;
-            }
-            for (std::size_t i = 0; i < 3U; ++i) {
-                if (matches[i] != next) {
-                    continue;
-                }
-                auto& channel{ registers.channels[i] };
-                if (active[i] && channel.compare != step_park) {
-                    high[i] = !high[i];
-                    if (trace_edges) {
-                        edges.push_back({ elapsed, i, high[i] });
-                    }
-                }
-                channel.compare_pending = true;
-                pending_dma[i] = active[i];
-                irq |= transfer(i);
-            }
-            if (guard_match) {
-                registers.running = false;
-                irq = true;
-            }
-            if (irq && interrupts_enabled && interrupt) {
-                interrupt();
-            }
+            registers.tick = step_add(registers.tick, static_cast<std::uint32_t>(next));
+            dispatchEvents(matches, next, guard_match);
         }
     }
 }

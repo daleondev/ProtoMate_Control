@@ -11,8 +11,11 @@ namespace hal::util
     }
     StepOutput::~StepOutput()
     {
+        // A different view may own the callbacks; cleanup releases only this owner.
+        // NOLINTBEGIN(bugprone-unused-return-value)
         static_cast<void>(m_generator->setAxisProgressCallback(m_axis, this, {}));
         static_cast<void>(m_generator->setCompletionCallback(m_axis, this, {}));
+        // NOLINTEND(bugprone-unused-return-value)
     }
     auto StepOutput::setProgressCallback(ProgressCallback callback) -> util::Result<>
     {
@@ -51,7 +54,10 @@ namespace hal::util
     auto StepOutput::status() noexcept -> step::AxisStatus
     {
         const auto group{ m_generator->status() };
-        return { group.axes[m_axis], group.pulses[m_axis], group.counts_exact, group.periods[m_axis] };
+        return { .state = group.axes[m_axis],
+                 .pulses = group.pulses[m_axis],
+                 .counts_exact = group.counts_exact,
+                 .period = group.periods[m_axis] };
     }
     auto StepOutput::updateTiming(step::Timing timing) noexcept -> util::Result<step::PulseCount>
     {
