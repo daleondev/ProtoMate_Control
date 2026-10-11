@@ -1,11 +1,14 @@
 #pragma once
 
 #include <pneumo/messaging.hpp>
+#include <pneumo/meta.hpp>
 
 #include <string>
 
 namespace example
 {
+    using namespace pnm::meta::string::literals;
+
     enum class TopicPublisher
     {
         IO,
@@ -15,11 +18,7 @@ namespace example
     // Both applications share this catalog; each has its own bus and bridge.
     struct Topics
     {
-        [[= TopicPublisher::IO]] static constexpr pnm::msg::TopicDefinition<std::string> state{
-            "demo/io/state"
-        };
-        [[= TopicPublisher::UI]] static constexpr pnm::msg::TopicDefinition<std::string> status{
-            "demo/ui/status"
-        };
+        [[ = TopicPublisher::IO, = "demo/io/state"_fs ]] std::string state;
+        [[ = TopicPublisher::UI, = "demo/ui/status"_fs ]] std::string status;
     };
 }
