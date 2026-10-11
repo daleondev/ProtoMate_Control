@@ -5,6 +5,8 @@ target_sources(application_p2p_bridge
     INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/Bridge.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Bridge.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ConnectionHealth.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ConnectionHealth.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/TopicBridge.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/TopicBridge.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ServiceBridge.hpp

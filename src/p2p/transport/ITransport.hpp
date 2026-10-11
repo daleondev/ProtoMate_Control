@@ -9,7 +9,11 @@
 
 namespace p2p
 {
-    enum class Lane { Normal, Urgent };
+    enum class Lane
+    {
+        Normal,
+        Urgent
+    };
 
     // One endpoint of a connection between two bridges. Transfers complete,
     // ordered byte frames within each lane. Message types belong to the bridge.
@@ -35,7 +39,8 @@ namespace p2p
         // Success means queued, not processed by the peer. An error means the
         // frame was not queued; cancellation cannot recall an accepted frame.
         virtual pnm::coro::Task<pnm::EmptyResult<Error>> send(std::span<const std::byte> frame,
-                                                              Lane lane = Lane::Normal, std::stop_token stop = {}) = 0;
+                                                              Lane lane = Lane::Normal,
+                                                              std::stop_token stop = {}) = 0;
 
         // Waits asynchronously for the next complete frame, writes it into buffer
         // and returns its byte count. Keep the buffer alive and exclusively
@@ -43,7 +48,8 @@ namespace p2p
         // BufferTooSmall leaves the frame queued for a retry with a larger buffer.
         // Errors leave the buffer unchanged and do not consume a frame.
         virtual pnm::coro::Task<pnm::Result<std::size_t, Error>> receive(std::span<std::byte> buffer,
-                                                                         Lane lane = Lane::Normal, std::stop_token stop = {}) = 0;
+                                                                         Lane lane = Lane::Normal,
+                                                                         std::stop_token stop = {}) = 0;
 
         // Both operations must wake when cancellation is requested, even when
         // the peer is idle. Completion, including cancellation, guarantees no

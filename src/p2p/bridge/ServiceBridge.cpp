@@ -11,12 +11,18 @@ namespace p2p
         {
             using enum pnm::msg::ServiceError;
             switch (error) {
-            case Unavailable: return std::byte{1};
-            case Busy: return std::byte{2};
-            case Timeout: return std::byte{3};
-            case Cancelled: return std::byte{4};
-            case HandlerFailed: return std::byte{5};
-            case TransportError: return std::byte{6};
+                case Unavailable:
+                    return std::byte{ 1 };
+                case Busy:
+                    return std::byte{ 2 };
+                case Timeout:
+                    return std::byte{ 3 };
+                case Cancelled:
+                    return std::byte{ 4 };
+                case HandlerFailed:
+                    return std::byte{ 5 };
+                case TransportError:
+                    return std::byte{ 6 };
             }
             throw std::invalid_argument("Unknown service error");
         }
@@ -25,19 +31,28 @@ namespace p2p
         {
             using enum pnm::msg::ServiceError;
             switch (std::to_integer<unsigned>(error)) {
-            case 1: return Unavailable;
-            case 2: return Busy;
-            case 3: return Timeout;
-            case 4: return Cancelled;
-            case 5: return HandlerFailed;
-            case 6: return TransportError;
-            default: throw std::invalid_argument("Unknown wire service error");
+                case 1:
+                    return Unavailable;
+                case 2:
+                    return Busy;
+                case 3:
+                    return Timeout;
+                case 4:
+                    return Cancelled;
+                case 5:
+                    return HandlerFailed;
+                case 6:
+                    return TransportError;
+                default:
+                    throw std::invalid_argument("Unknown wire service error");
             }
         }
     }
 
-    ServiceBridge::ServiceBridge(pnm::msg::Bus& bus, pnm::coro::Context& context,
-                                 std::shared_ptr<util::OutgoingWakeup> wakeup, std::stop_token stop)
+    ServiceBridge::ServiceBridge(pnm::msg::Bus& bus,
+                                 pnm::coro::Context& context,
+                                 std::shared_ptr<util::OutgoingWakeup> wakeup,
+                                 std::stop_token stop)
       : m_bus(bus)
       , m_context(context)
       , m_outgoingWakeup(std::move(wakeup))
@@ -75,8 +90,8 @@ namespace p2p
     pnm::coro::Context::Timer ServiceBridge::wakeAfter(Clock::duration delay)
     {
         const auto now = Clock::now();
-        const auto deadline = delay >= Clock::time_point::max() - now
-                                ? Clock::time_point::max() : now + delay;
+        const auto deadline =
+          delay >= Clock::time_point::max() - now ? Clock::time_point::max() : now + delay;
         return m_context.scheduleAt(deadline, [signal = m_outgoingWakeup] { signal->notify(); });
     }
 
@@ -84,7 +99,8 @@ namespace p2p
     {
         // A conforming peer has at most MAX_CALLS outstanding. Excess rejection
         // traffic fails the connection instead of allocating an unbounded queue.
-        if (std::ranges::count(m_serviceReplies, lane, &std::pair<Lane, OutgoingFrame>::first) >= static_cast<std::ptrdiff_t>(MAX_CALLS))
+        if (std::ranges::count(m_serviceReplies, lane, &std::pair<Lane, OutgoingFrame>::first) >=
+            static_cast<std::ptrdiff_t>(MAX_CALLS))
             throw std::runtime_error("Peer exceeded service reply capacity");
         m_serviceReplies.emplace_back(lane, makeServiceError(id, error));
         m_outgoingWakeup->notify();
@@ -108,7 +124,7 @@ namespace p2p
             if (lane == Lane::Urgent && !it->cancelSent) {
                 it->cancelSent = true;
                 auto frame = util::makeFrame(FrameKind::Cancel, {}, it->id, 1);
-                frame.bytes[util::HEADER_BYTES] = it->lane == Lane::Urgent ? std::byte{1} : std::byte{0};
+                frame.bytes[util::HEADER_BYTES] = it->lane == Lane::Urgent ? std::byte{ 1 } : std::byte{ 0 };
                 return frame;
             }
             ++it;
@@ -135,7 +151,8 @@ namespace p2p
                     continue;
                 }
                 auto frame = std::exchange(call.request, std::nullopt);
-                const auto budget = std::min<std::uint64_t>(remaining, std::numeric_limits<std::uint32_t>::max());
+                const auto budget =
+                  std::min<std::uint64_t>(remaining, std::numeric_limits<std::uint32_t>::max());
                 util::setRequestBudget(*frame, static_cast<std::uint32_t>(budget));
                 return frame;
             }
@@ -172,7 +189,8 @@ namespace p2p
             if (name.empty() || budget == 0 || id <= lastIncoming)
                 throw std::invalid_argument("Invalid or repeated service request");
             lastIncoming = id;
-            const auto early = std::ranges::find(m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first);
+            const auto early =
+              std::ranges::find(m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first);
             if (early != m_earlyCancellations.end()) {
                 if (early->second != lane)
                     throw std::invalid_argument("Service cancellation lane mismatch");
@@ -187,7 +205,8 @@ namespace p2p
             }
             if (service->lane != lane)
                 throw std::invalid_argument("Service request on the wrong transport lane");
-            if (std::ranges::count(m_incomingCalls, lane, &IncomingCall::lane) >= static_cast<std::ptrdiff_t>(MAX_CALLS)) {
+            if (std::ranges::count(m_incomingCalls, lane, &IncomingCall::lane) >=
+                static_cast<std::ptrdiff_t>(MAX_CALLS)) {
                 queueServiceError(id, ServiceError::Busy, lane);
                 return;
             }
@@ -203,7 +222,7 @@ namespace p2p
         if (kind == FrameKind::Cancel) {
             if (lane != Lane::Urgent || payload.size() != 1 || std::to_integer<unsigned>(payload[0]) > 1)
                 throw std::invalid_argument("Invalid service cancellation");
-            const auto targetLane = payload[0] == std::byte{1} ? Lane::Urgent : Lane::Normal;
+            const auto targetLane = payload[0] == std::byte{ 1 } ? Lane::Urgent : Lane::Normal;
             const auto call = std::ranges::find(m_incomingCalls, id, &IncomingCall::id);
             if (call != m_incomingCalls.end()) {
                 if (call->lane != targetLane)
@@ -211,14 +230,18 @@ namespace p2p
                 call->cancel();
                 m_incomingCalls.erase(call);
                 queueServiceError(id, ServiceError::Cancelled, targetLane);
-            } else if (id > m_lastIncomingCallId[static_cast<std::size_t>(targetLane)]) {
-                const auto early = std::ranges::find(m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first);
+            }
+            else if (id > m_lastIncomingCallId[static_cast<std::size_t>(targetLane)]) {
+                const auto early =
+                  std::ranges::find(m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first);
                 if (early != m_earlyCancellations.end()) {
                     if (early->second != targetLane)
                         throw std::invalid_argument("Conflicting service cancellation lanes");
-                } else {
-                    if (std::ranges::count(m_earlyCancellations, targetLane,
-                          &std::pair<std::uint64_t, Lane>::second) >= static_cast<std::ptrdiff_t>(MAX_CALLS))
+                }
+                else {
+                    if (std::ranges::count(
+                          m_earlyCancellations, targetLane, &std::pair<std::uint64_t, Lane>::second) >=
+                        static_cast<std::ptrdiff_t>(MAX_CALLS))
                         throw std::runtime_error("Peer exceeded early service cancellation capacity");
                     m_earlyCancellations.emplace_back(id, targetLane);
                 }

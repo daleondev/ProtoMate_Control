@@ -11,10 +11,12 @@
 
 namespace p2p::util
 {
-    // v5: version u8, kind u8, name length u16, call ID u64, timeout ms u32,
+    // v6: version u8, kind u8, name length u16, call ID u64, timeout ms u32,
     // name bytes, payload. All integer fields are little endian.
     // Service Cancel uses the urgent lane with a one-byte target lane (0/1).
     // ActionCancel/ActionAck use urgent; other action frames and topics use normal.
+    // Hello/Ready/Goodbye are empty urgent frames with ID zero. Heartbeat/ACK
+    // are empty urgent frames with their nonzero challenge ID.
     enum class FrameKind : std::uint8_t
     {
         Topic = 1,
@@ -28,9 +30,14 @@ namespace p2p::util
         ActionResult,
         ActionError,
         ActionCancel,
-        ActionAck
+        ActionAck,
+        Hello,
+        Ready,
+        Heartbeat,
+        HeartbeatAck,
+        Goodbye
     };
-    inline constexpr std::uint8_t FRAME_VERSION{ 5 };
+    inline constexpr std::uint8_t FRAME_VERSION{ 6 };
     inline constexpr std::size_t HEADER_BYTES{ 16 };
     inline constexpr std::size_t MAX_FRAME_BYTES{ 2048 };
 
@@ -52,14 +59,15 @@ namespace p2p::util
         std::span<const std::byte> payload;
     };
 
-    OutgoingFrame makeFrame(FrameKind kind, const std::string& name,
-                            std::uint64_t id, std::size_t payloadSize);
+    OutgoingFrame makeFrame(FrameKind kind,
+                            const std::string& name,
+                            std::uint64_t id,
+                            std::size_t payloadSize);
     IncomingFrame decodeFrame(std::span<const std::byte> bytes);
     void setRequestBudget(OutgoingFrame& frame, std::uint32_t milliseconds);
 
     template<pnm::utils::memory::Serializable T>
-    OutgoingFrame encodeFrame(FrameKind kind, const std::string& name,
-                              std::uint64_t id, const T& value)
+    OutgoingFrame encodeFrame(FrameKind kind, const std::string& name, std::uint64_t id, const T& value)
     {
         std::size_t size{ sizeof(T) };
         if constexpr (pnm::utils::memory::HasSerializationAdapter<T>)

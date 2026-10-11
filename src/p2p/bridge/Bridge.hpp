@@ -1,14 +1,15 @@
 #pragma once
 
 #include "../transport/ITransport.hpp"
-#include "ServiceBridge.hpp"
 #include "ActionBridge.hpp"
+#include "ConnectionHealth.hpp"
+#include "ServiceBridge.hpp"
 #include "TopicBridge.hpp"
 
 #include <array>
-#include <condition_variable>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <exception>
 #include <memory>
 #include <mutex>
@@ -29,7 +30,10 @@ namespace p2p
 
         // The application owns these dependencies and keeps them alive until
         // the bridge has stopped and been destroyed.
-        Bridge(pnm::msg::Bus& bus, pnm::coro::Context& context, ITransport& transport);
+        Bridge(pnm::msg::Bus& bus,
+               pnm::coro::Context& context,
+               ITransport& transport,
+               ConnectionOptions connection = {});
         ~Bridge();
 
         Bridge(const Bridge&) = delete;
@@ -106,17 +110,24 @@ namespace p2p
             requires std::is_enum_v<Provider>
         void registerActions(Provider localProvider);
 
+        // Register before start(). The callback runs on the p2p context, outside
+        // internal locks, and must only notify workers: never block or call stop()
+        // here. Captured objects must outlive the bridge. Throwing fails the link.
+        // The first notification is Connecting; no callback is sent on registration.
+        void setConnectionCallback(ConnectionCallback callback);
+        [[nodiscard]] ConnectionStatus connectionStatus() const;
+
         // Schedule a sender and receiver for each lane independently. May be called only once, including
         // after failure. The context must keep running until stop() completes.
         void start();
 
         // Stop action admission and request cancellation while communication runs.
         // Wait up to grace for action completion/delivery, then force closure and
-        // record a failure if cleanup could not be confirmed. Finally join all four loops.
+        // record a failure if cleanup could not be confirmed. Finally join the transport and health loops.
         // Repeated calls are harmless; before start(), this is a no-op.
         // Call stop() and the destructor outside the context runner so the loops
         // can finish. Do not stop the context first.
-        void stop(std::chrono::milliseconds grace = std::chrono::milliseconds{500});
+        void stop(std::chrono::milliseconds grace = std::chrono::milliseconds{ 500 });
 
         // The first recorded failure, if any. Cancellation requested by stop()
         // is normal shutdown; an expired action drain deadline is a failure.
@@ -127,6 +138,10 @@ namespace p2p
 
         // Registration and start() are serialized by m_mutex.
         void checkRegistration() const;
+        void beginShutdown();
+        void recordFailure(Failure failure, ConnectionReason reason);
+        void finishConnection();
+        pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> healthLoop(std::stop_token stop);
         // Cancel the other loops on exit and report completion only after releasing
         // the loop's coroutine frame and its borrowed transport buffers.
         pnm::coro::Task<void> runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop,
@@ -146,6 +161,8 @@ namespace p2p
         TopicBridge m_topics;
         ServiceBridge m_services;
         ActionBridge m_actions;
+        ConnectionHealth m_connection;
+        std::shared_ptr<util::OutgoingSignal> m_healthWakeup{ std::make_shared<util::OutgoingSignal>() };
         std::array<std::size_t, 2> m_nextHelper{};
         // Keep the last action ACK alive while the other sender checks shutdown.
         std::array<bool, 2> m_actionSending{};
@@ -159,8 +176,12 @@ namespace p2p
         bool m_receiveRunning{};
         bool m_urgentSendRunning{};
         bool m_urgentReceiveRunning{};
+        bool m_healthRunning{};
+        bool m_cleanupRunning{};
+        bool m_peerStopped{};
         [[nodiscard]] bool loopsStopped() const;
         std::optional<Failure> m_failure;
+        ConnectionReason m_failureReason{ ConnectionReason::None };
     };
 
     template<typename Catalog, typename Publisher>

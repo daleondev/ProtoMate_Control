@@ -325,8 +325,9 @@ software boundaries and behavior; electrical timing remains a hardware test.
 
 ## Serialized control boundary
 
-`application::p2p` supports serialized topics, services and actions. Sessions,
-link health and the Robot/Controller integration remain pending; the normal
+`application::p2p` supports serialized topics, services and actions, with peer
+readiness, connection health and state-change callbacks. Session identities and
+the Robot/Controller integration remain pending; the normal
 application's control wiring still depends on the previous integration APIs.
 Build the isolated [two-bus examples](src/p2p/examples/README.md), including the
 [action example](src/p2p/examples/actions.cpp), to run the current bridge.
@@ -339,13 +340,14 @@ The implementation separates message routing from byte transport:
 | [bridge/TopicBridge](src/p2p/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
 | [bridge/ServiceBridge](src/p2p/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
 | [bridge/ActionBridge](src/p2p/bridge/ActionBridge.hpp) | Reflected action registration, deferred admission, feedback, cancellation, acknowledged terminal results and cleanup |
+| [bridge/ConnectionHealth](src/p2p/bridge/ConnectionHealth.hpp) | Handshake, acknowledged heartbeats, deadlines and connection state notifications |
 | [bridge/Frame](src/p2p/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/p2p/bridge/OutgoingWakeup.hpp) | Shared wire encoding and coalesced readiness signals per lane |
 | [transport/](src/p2p/transport/ITransport.hpp) | Transport interface and paired in-process transport; transfers bytes without interpreting messages |
 
-`Bridge` owns all three helpers by value and serializes registration against startup.
+`Bridge` owns its routing and connection helpers by value and serializes registration against startup.
 The helpers run on its coroutine context and cannot call back into `Bridge` or
 access the transport. Shutdown first drains actions while communication continues,
-then closes services and disconnects topic subscriptions after all four loops finish. `thread.hpp`/`thread.cpp` remain the
+then closes services and disconnects topic subscriptions after its four transport loops and health timer loop finish. `thread.hpp`/`thread.cpp` remain the
 application-owned context and thread entry, outside the portable library.
 
 ```mermaid
@@ -410,7 +412,7 @@ ordering between lanes. Urgent traffic remains bounded and can itself back up.
 It does not preempt a running handler or rescue a stalled context. Cancellation and `close()` wake waiting operations; closing either
 endpoint disconnects the pair. Reconnection requires a new pair.
 
-The frame has a 16-byte header: version (currently 5), frame kind, 16-bit name
+The frame has a 16-byte header: version (currently 6), frame kind, 16-bit name
 length, 64-bit call ID and 32-bit remaining timeout in milliseconds. Integers are
 little endian. Name bytes and serialized payload follow, with a 2048-byte total
 limit. Topics, service requests and action goals identify their destination by
@@ -443,8 +445,9 @@ bounding cancellations that overtake requests. Call IDs are never reused within 
 Transport failure completes pending service calls with `TransportError`; explicit
 local service shutdown uses `Cancelled`. Neither result proves that remote hardware stopped.
 Stop both bridges while the context still runs, then stop and join its runner.
-New connections require fresh bridge/transport instances; peer restart sessions
-and automatic link-health detection remain future work.
+New connections require fresh bridge/transport instances. No command is replayed
+or resumed automatically. Full session identities and stale-frame protection
+across independently restarted cores remain future work.
 
 Actions use `registerActions<Actions>(ActionProvider::IO)` and reflected
 `bus.action<^^Actions::member>()` handles on both native and coroutine buses.
@@ -494,9 +497,69 @@ The annotation applies to requests and replies, and both peers must agree. Other
 services default to normal; topics, goals, action acceptance/feedback/results use
 normal. Keep urgent service handlers short or defer work to an IO worker. This
 prepares stop routing; the application still needs to migrate its control catalog.
-Future link-management messages can use the urgent transport lane as well.
+Connection management uses that same urgent lane ahead of application traffic.
 
-The next steps are sessions/link health and integration of control messages.
+A bridge starts in `Stopped`, then reports `Connecting` and exchanges Hello/Ready
+frames before forwarding application data. Calls queued during this handshake
+remain local and retain their native timeout. `Connected` means both peers have
+completed the version-compatible handshake; it does not validate application
+catalogs, motor configuration or physical hardware readiness.
+
+Connection monitoring defaults to a 100 ms heartbeat and a 500 ms deadline;
+pass `ConnectionOptions{.heartbeat = 100ms, .timeout = 500ms}` as the fourth
+constructor argument to configure them. Only a fresh acknowledgement of the
+outstanding heartbeat refreshes the deadline. Incoming publications, peer
+heartbeats and repeated old acknowledgements cannot conceal a broken outgoing
+path. One outstanding challenge and one coalesced reply bound control storage.
+Management kinds are Hello (13), Ready (14), Heartbeat (15), HeartbeatAck (16)
+and Goodbye (17). Their name, timeout and payload are empty; only the heartbeat
+frames carry a nonzero challenge ID.
+The health coroutine has its own timer and wakeup, so its deadline still expires
+when either transport sender is blocked. Deadlines are checked before dispatch,
+including after a stalled context resumes.
+
+Register a connection callback before `start()` and read the current snapshot
+with `connectionStatus()`. For example, publish the notification to a **local**
+application topic that an IO worker consumes:
+
+```cpp
+auto connectionEvents = io_bus.topic<p2p::ConnectionStatus>("local/p2p/connection");
+io_bridge.setConnectionCallback([connectionEvents](p2p::ConnectionStatus status) {
+    connectionEvents.publish(status);
+});
+```
+
+The callback runs on the p2p context outside internal locks. Keep it short: notify
+or enqueue work; do not block, join workers, call `stop()`, or destroy the bridge
+inside it. Captures must outlive the bridge. No notification is emitted at
+registration; `Connecting` is the first event. State changes are emitted once,
+not on every heartbeat. Callback exceptions fail the connection while preserving
+teardown. The callback and all pending transport operations finish before
+`stop()` returns.
+
+`Failed` is latched, with an explicit reason such as `HandshakeTimeout`,
+`HeartbeatTimeout`, `PeerRestarted`, `TransportError`, `ProtocolError`, or
+`ShutdownTimeout`. Outstanding service/action handles receive `TransportError`,
+local provider cancellations are requested, and bridge-owned queued work is
+invalidated. An accepted action still needs application cleanup: link failure
+never confirms a physical stop. A fresh Hello on an established link requires
+explicit recovery; this detects an announced restart, not every possible stale
+frame from an earlier boot.
+
+An orderly local shutdown reports `Stopping` then `Stopped`, after action draining
+and an urgent Goodbye. A peer Goodbye with no outstanding actions also reports
+`Stopped`, with reason `PeerStopped`; if actions are still outstanding it fails
+with that reason. Treat every departure from `Connected` as unavailable for new
+control commands. Every failure requires deliberate reconstruction/recovery;
+there is no automatic reconnection or motion replay.
+
+All monitoring runs on the p2p context. If that entire context or processor
+freezes, its local timer cannot run: an independent IO/hardware watchdog is still
+needed when integrating motion control. Callback consumers own the local stop,
+holding-torque policy, latched robot fault and explicit recovery. Those robot
+policies are not implemented inside the portable bridge.
+
+The next steps are session identities and integration of control messages.
 The intended control boundary uses services for configuration, diagnostics and
 snapshots, actions for moves/homing, and topics for state. Robot and CLI use
 `ControllerClient`; `ControllerServer` and `MotionController` own IO execution.
@@ -507,7 +570,7 @@ records the required ownership and recovery behavior.
 Build and test this step independently:
 
 ```sh
-cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_action_example application_p2p_transport_tests application_p2p_service_tests application_p2p_action_tests
+cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_action_example application_p2p_transport_tests application_p2p_service_tests application_p2p_action_tests application_p2p_urgent_tests application_p2p_connection_tests
 ./build/debug-linux/src/p2p/examples/application_p2p_example
 ./build/debug-linux/src/p2p/examples/application_p2p_service_example
 ./build/debug-linux/src/p2p/examples/application_p2p_action_example

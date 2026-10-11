@@ -28,9 +28,11 @@ namespace p2p
 
         // As with ITransport, allow one send and one receive per lane at a time.
         pnm::coro::Task<pnm::EmptyResult<Error>> send(std::span<const std::byte> frame,
-                                                      Lane lane = Lane::Normal, std::stop_token stop = {}) override;
+                                                      Lane lane = Lane::Normal,
+                                                      std::stop_token stop = {}) override;
         pnm::coro::Task<pnm::Result<std::size_t, Error>> receive(std::span<std::byte> buffer,
-                                                                 Lane lane = Lane::Normal, std::stop_token stop = {}) override;
+                                                                 Lane lane = Lane::Normal,
+                                                                 std::stop_token stop = {}) override;
 
         // Permanently disconnect both endpoints, discard queued frames and wake
         // waiters. Thread-safe and idempotent; destruction also closes the pair.

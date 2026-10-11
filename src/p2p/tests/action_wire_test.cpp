@@ -23,7 +23,7 @@ namespace
                                   std::vector<std::byte> payload = {}, unsigned budget = 0)
     {
         std::vector<std::byte> result(16 + name.size() + payload.size());
-        result[0] = std::byte{5}; result[1] = static_cast<std::byte>(kind);
+        result[0] = std::byte{6}; result[1] = static_cast<std::byte>(kind);
         result[2] = static_cast<std::byte>(name.size()); result[3] = static_cast<std::byte>(name.size() >> 8);
         for (unsigned i=0;i<8;++i) result[4+i] = static_cast<std::byte>(id >> (8*i));
         for (unsigned i=0;i<4;++i) result[12+i] = static_cast<std::byte>(budget >> (8*i));
@@ -55,7 +55,14 @@ namespace
         std::optional<pnm::msg::ActionResult<std::uint32_t>> result;
         std::vector<char> events;
         std::vector<std::uint32_t> feedback;
-        void SetUp() override { bridge.registerActions<Actions>(Provider::Local); bridge.start(); drain(); }
+        void SetUp() override
+        {
+            bridge.registerActions<Actions>(Provider::Local); bridge.start(); drain();
+            EXPECT_EQ(receive(p2p::Lane::Urgent), frame(13, 0));
+            send(frame(13, 0));
+            EXPECT_EQ(receive(p2p::Lane::Urgent), frame(14, 0));
+            send(frame(14, 0));
+        }
         void drain() { while(context.poll()) {} }
         template<typename T> T run(pnm::coro::Task<T> operation)
         {
@@ -67,7 +74,7 @@ namespace
         void send(const std::vector<std::byte>& bytes)
         {
             const auto kind = std::to_integer<unsigned>(bytes[1]);
-            const auto lane = kind == 11 || kind == 12 ? p2p::Lane::Urgent : p2p::Lane::Normal;
+            const auto lane = kind >= 11 ? p2p::Lane::Urgent : p2p::Lane::Normal;
             ASSERT_TRUE(run(endpoints[1]->send(bytes, lane)));
         }
         std::vector<std::byte> receive(p2p::Lane lane = p2p::Lane::Normal)

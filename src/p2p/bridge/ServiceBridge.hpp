@@ -9,8 +9,8 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <cstddef>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <functional>
@@ -42,8 +42,10 @@ namespace p2p
         static constexpr std::size_t MAX_SERVICES{ 16 };
         static constexpr std::size_t MAX_CALLS{ 8 };
 
-        ServiceBridge(pnm::msg::Bus& bus, pnm::coro::Context& context,
-                      std::shared_ptr<util::OutgoingWakeup> wakeup, std::stop_token stop);
+        ServiceBridge(pnm::msg::Bus& bus,
+                      pnm::coro::Context& context,
+                      std::shared_ptr<util::OutgoingWakeup> wakeup,
+                      std::stop_token stop);
         ServiceBridge(const ServiceBridge&) = delete;
         ServiceBridge& operator=(const ServiceBridge&) = delete;
         ServiceBridge(ServiceBridge&&) = delete;
@@ -82,7 +84,7 @@ namespace p2p
         struct OutgoingCall
         {
             std::uint64_t id{};
-            Lane lane{Lane::Normal};
+            Lane lane{ Lane::Normal };
             bool cancelSent{};
             std::optional<OutgoingFrame> request;
             std::function<bool()> pending;
@@ -95,7 +97,7 @@ namespace p2p
         struct IncomingCall
         {
             std::uint64_t id{};
-            Lane lane{Lane::Normal};
+            Lane lane{ Lane::Normal };
             std::move_only_function<std::optional<OutgoingFrame>()> take;
             std::move_only_function<void()> cancel;
             pnm::msg::ReadinessRegistration readiness;
@@ -155,11 +157,14 @@ namespace p2p
                     using Metadata = pnm::msg::ServiceMetadata<member>;
                     using Request = typename Metadata::Request;
                     using Response = typename Metadata::Response;
-                    static constexpr auto lanes = std::define_static_array(std::meta::annotations_of_with_type(member, ^^Lane));
+                    static constexpr auto lanes =
+                      std::define_static_array(std::meta::annotations_of_with_type(member, ^^Lane));
                     static_assert(lanes.size() <= 1, "A service may select only one transport lane");
                     constexpr auto lane = [] {
-                        if constexpr (lanes.empty()) return Lane::Normal;
-                        else return std::meta::extract<Lane>(lanes[0]);
+                        if constexpr (lanes.empty())
+                            return Lane::Normal;
+                        else
+                            return std::meta::extract<Lane>(lanes[0]);
                     }();
                     static_assert(lane == Lane::Normal || lane == Lane::Urgent, "Unknown service lane");
                     if (provider == localProvider)
@@ -183,7 +188,8 @@ namespace p2p
                 reply.fail(m_serviceShutdownError);
                 return;
             }
-            if (std::ranges::count(m_outgoingCalls, lane, &OutgoingCall::lane) >= static_cast<std::ptrdiff_t>(MAX_CALLS)) {
+            if (std::ranges::count(m_outgoingCalls, lane, &OutgoingCall::lane) >=
+                static_cast<std::ptrdiff_t>(MAX_CALLS)) {
                 reply.fail(ServiceError::Busy);
                 return;
             }
@@ -199,7 +205,8 @@ namespace p2p
                 auto timer = wakeAfter(owned->remainingTime());
                 auto readiness = pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notify(); });
                 m_outgoingCalls.push_back({
-                  .id = id, .lane = lane,
+                  .id = id,
+                  .lane = lane,
                   .request = std::move(frame),
                   .pending = [owned] { return owned->pending(); },
                   .remaining = [owned] { return owned->remainingTime(); },
@@ -252,7 +259,8 @@ namespace p2p
             auto readiness = pnm::msg::watch(*call, [signal = m_outgoingWakeup] { signal->notify(); });
             auto timer = wakeAfter(timeout);
             return IncomingCall{
-                .id = id, .lane = lane,
+                .id = id,
+                .lane = lane,
                 .take = [call, id]() -> std::optional<OutgoingFrame> {
                 if (!call->ready())
                     return std::nullopt;
@@ -270,6 +278,7 @@ namespace p2p
                 .timer = std::move(timer),
             };
         };
-        m_incomingServices.push_back({ .name = std::string(service), .lane = lane, .request = std::move(request) });
+        m_incomingServices.push_back(
+          { .name = std::string(service), .lane = lane, .request = std::move(request) });
     }
 }

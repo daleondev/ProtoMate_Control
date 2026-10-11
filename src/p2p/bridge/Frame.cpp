@@ -23,8 +23,10 @@ namespace p2p::util
         }
     }
 
-    OutgoingFrame makeFrame(FrameKind kind, const std::string& name,
-                            std::uint64_t id, std::size_t payloadSize)
+    OutgoingFrame makeFrame(FrameKind kind,
+                            const std::string& name,
+                            std::uint64_t id,
+                            std::size_t payloadSize)
     {
         const auto nameSize = pnm::utils::memory::SerializationAdapter<std::string>::bufferSize(name);
         if (nameSize > MAX_FRAME_BYTES - HEADER_BYTES ||

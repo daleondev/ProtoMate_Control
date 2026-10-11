@@ -30,7 +30,7 @@ namespace
                                  std::string_view payload = {}, unsigned timeout = 0)
     {
         std::vector<std::byte> bytes(16 + name.size() + payload.size());
-        bytes[0] = std::byte{5};
+        bytes[0] = std::byte{6};
         bytes[1] = static_cast<std::byte>(kind);
         bytes[2] = static_cast<std::byte>(name.size() & 255);
         bytes[3] = static_cast<std::byte>(name.size() >> 8);
@@ -55,6 +55,10 @@ namespace
             bridge.registerServices<Services>(Provider::Local);
             bridge.start();
             drain();
+            EXPECT_EQ(receive(p2p::Lane::Urgent), frame(13, 0, {}));
+            send(frame(13, 0, {}), p2p::Lane::Urgent);
+            EXPECT_EQ(receive(p2p::Lane::Urgent), frame(14, 0, {}));
+            send(frame(14, 0, {}), p2p::Lane::Urgent);
         }
         void drain() { while (context.poll() != 0) {} }
         template<typename T>
@@ -68,10 +72,10 @@ namespace
         }
         void send(const std::vector<std::byte>& bytes, p2p::Lane lane = p2p::Lane::Normal)
         { ASSERT_TRUE(run(endpoints[1]->send(bytes, lane))); }
-        std::vector<std::byte> receive()
+        std::vector<std::byte> receive(p2p::Lane lane = p2p::Lane::Normal)
         {
             std::vector<std::byte> bytes(2048);
-            auto size = run(endpoints[1]->receive(bytes));
+            auto size = run(endpoints[1]->receive(bytes, lane));
             if (!size) throw std::runtime_error("Peer receive failed");
             bytes.resize(*size);
             return bytes;

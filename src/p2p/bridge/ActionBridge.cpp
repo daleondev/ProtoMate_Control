@@ -4,9 +4,14 @@
 
 namespace p2p
 {
-    ActionBridge::ActionBridge(pnm::msg::Bus& bus, pnm::coro::Context& context,
-                               std::shared_ptr<util::OutgoingWakeup> wakeup, std::stop_token stop)
-      : m_bus(bus), m_context(context), m_wakeup(std::move(wakeup)), m_stop(stop)
+    ActionBridge::ActionBridge(pnm::msg::Bus& bus,
+                               pnm::coro::Context& context,
+                               std::shared_ptr<util::OutgoingWakeup> wakeup,
+                               std::stop_token stop)
+      : m_bus(bus)
+      , m_context(context)
+      , m_wakeup(std::move(wakeup))
+      , m_stop(stop)
     {
     }
 
@@ -16,13 +21,26 @@ namespace p2p
     {
         auto frame = util::makeFrame(Kind::ActionError, {}, id, 1);
         switch (error) {
-        case Error::Unavailable: frame.bytes[util::HEADER_BYTES] = std::byte{1}; break;
-        case Error::Busy: frame.bytes[util::HEADER_BYTES] = std::byte{2}; break;
-        case Error::Rejected: frame.bytes[util::HEADER_BYTES] = std::byte{3}; break;
-        case Error::Timeout: frame.bytes[util::HEADER_BYTES] = std::byte{4}; break;
-        case Error::HandlerFailed: frame.bytes[util::HEADER_BYTES] = std::byte{5}; break;
-        case Error::TransportError: frame.bytes[util::HEADER_BYTES] = std::byte{6}; break;
-        default: throw std::invalid_argument("Unknown native action error");
+            case Error::Unavailable:
+                frame.bytes[util::HEADER_BYTES] = std::byte{ 1 };
+                break;
+            case Error::Busy:
+                frame.bytes[util::HEADER_BYTES] = std::byte{ 2 };
+                break;
+            case Error::Rejected:
+                frame.bytes[util::HEADER_BYTES] = std::byte{ 3 };
+                break;
+            case Error::Timeout:
+                frame.bytes[util::HEADER_BYTES] = std::byte{ 4 };
+                break;
+            case Error::HandlerFailed:
+                frame.bytes[util::HEADER_BYTES] = std::byte{ 5 };
+                break;
+            case Error::TransportError:
+                frame.bytes[util::HEADER_BYTES] = std::byte{ 6 };
+                break;
+            default:
+                throw std::invalid_argument("Unknown native action error");
         }
         return frame;
     }
@@ -32,23 +50,34 @@ namespace p2p
         if (payload.size() != 1)
             throw std::invalid_argument("Invalid action error length");
         switch (std::to_integer<unsigned>(payload[0])) {
-        case 1: return Error::Unavailable;
-        case 2: return Error::Busy;
-        case 3: return Error::Rejected;
-        case 4: return Error::Timeout;
-        case 5: return Error::HandlerFailed;
-        case 6: return Error::TransportError;
-        default: throw std::invalid_argument("Unknown action error");
+            case 1:
+                return Error::Unavailable;
+            case 2:
+                return Error::Busy;
+            case 3:
+                return Error::Rejected;
+            case 4:
+                return Error::Timeout;
+            case 5:
+                return Error::HandlerFailed;
+            case 6:
+                return Error::TransportError;
+            default:
+                throw std::invalid_argument("Unknown action error");
         }
     }
 
     std::byte ActionBridge::encodeStatus(Status status)
     {
         switch (status) {
-        case Status::Succeeded: return std::byte{1};
-        case Status::Aborted: return std::byte{2};
-        case Status::Cancelled: return std::byte{3};
-        case Status::Rejected: return std::byte{4};
+            case Status::Succeeded:
+                return std::byte{ 1 };
+            case Status::Aborted:
+                return std::byte{ 2 };
+            case Status::Cancelled:
+                return std::byte{ 3 };
+            case Status::Rejected:
+                return std::byte{ 4 };
         }
         throw std::invalid_argument("Unknown action status");
     }
@@ -56,11 +85,16 @@ namespace p2p
     ActionBridge::Status ActionBridge::decodeStatus(std::byte status)
     {
         switch (std::to_integer<unsigned>(status)) {
-        case 1: return Status::Succeeded;
-        case 2: return Status::Aborted;
-        case 3: return Status::Cancelled;
-        case 4: return Status::Rejected;
-        default: throw std::invalid_argument("Unknown action terminal status");
+            case 1:
+                return Status::Succeeded;
+            case 2:
+                return Status::Aborted;
+            case 3:
+                return Status::Cancelled;
+            case 4:
+                return Status::Rejected;
+            default:
+                throw std::invalid_argument("Unknown action terminal status");
         }
     }
 
@@ -71,7 +105,8 @@ namespace p2p
         if (name.size() > util::MAX_FRAME_BYTES - util::HEADER_BYTES)
             throw std::length_error("Action name exceeds frame capacity");
         const auto duplicate = [name](const auto& route) { return route.name == name; };
-        if (std::ranges::any_of(m_outgoingRoutes, duplicate) || std::ranges::any_of(m_incomingRoutes, duplicate))
+        if (std::ranges::any_of(m_outgoingRoutes, duplicate) ||
+            std::ranges::any_of(m_incomingRoutes, duplicate))
             throw std::invalid_argument("Bridge action must be registered only once");
         if (m_outgoingRoutes.size() + m_incomingRoutes.size() >= MAX_ACTIONS)
             throw std::length_error("Bridge action capacity reached");
@@ -80,7 +115,8 @@ namespace p2p
     pnm::coro::Context::Timer ActionBridge::wakeAfter(Clock::duration delay)
     {
         const auto now = Clock::now();
-        const auto deadline = delay >= Clock::time_point::max() - now ? Clock::time_point::max() : now + delay;
+        const auto deadline =
+          delay >= Clock::time_point::max() - now ? Clock::time_point::max() : now + delay;
         return m_context.scheduleAt(deadline, [signal = m_wakeup] { signal->notify(); });
     }
 
@@ -100,7 +136,7 @@ namespace p2p
         // Separate bounded space lets a full goal table still reject submissions.
         if (m_rejections.size() >= MAX_GOALS)
             throw std::runtime_error("Peer exceeded action rejection capacity");
-        m_rejections.push_back({id, makeError(id, error)});
+        m_rejections.push_back({ id, makeError(id, error) });
         m_wakeup->notify();
     }
 
@@ -159,8 +195,9 @@ namespace p2p
                     continue;
                 }
                 auto frame = std::exchange(goal.request, std::nullopt);
-                util::setRequestBudget(*frame, static_cast<std::uint32_t>(
-                  std::min<std::uint64_t>(remaining, std::numeric_limits<std::uint32_t>::max())));
+                util::setRequestBudget(*frame,
+                                       static_cast<std::uint32_t>(std::min<std::uint64_t>(
+                                         remaining, std::numeric_limits<std::uint32_t>::max())));
                 return frame;
             }
         }
@@ -210,7 +247,8 @@ namespace p2p
     void ActionBridge::dispatch(const util::IncomingFrame& frame, Lane lane)
     {
         const auto& [kind, name, id, budget, payload] = frame;
-        const auto requiredLane = kind == Kind::ActionCancel || kind == Kind::ActionAck ? Lane::Urgent : Lane::Normal;
+        const auto requiredLane =
+          kind == Kind::ActionCancel || kind == Kind::ActionAck ? Lane::Urgent : Lane::Normal;
         if (lane != requiredLane)
             throw std::invalid_argument("Action frame on the wrong transport lane");
         if (id == 0)
@@ -235,7 +273,7 @@ namespace p2p
                 if (m_rejections.size() >= MAX_GOALS)
                     throw std::runtime_error("Peer exceeded action rejection capacity");
                 try {
-                    m_rejections.push_back({id, route->cancelled(id)});
+                    m_rejections.push_back({ id, route->cancelled(id) });
                     m_wakeup->notify();
                 } catch (...) {
                     reject(id, Error::TransportError);
@@ -262,12 +300,14 @@ namespace p2p
             if (kind == Kind::ActionCancel) {
                 if (goal != m_incomingGoals.end())
                     goal->cancel();
-                else if (id > m_lastIncoming && std::ranges::find(m_earlyCancellations, id) == m_earlyCancellations.end()) {
+                else if (id > m_lastIncoming &&
+                         std::ranges::find(m_earlyCancellations, id) == m_earlyCancellations.end()) {
                     if (m_earlyCancellations.size() >= MAX_GOALS)
                         throw std::runtime_error("Peer exceeded early action cancellation capacity");
                     m_earlyCancellations.push_back(id);
                 }
-            } else {
+            }
+            else {
                 if (goal != m_incomingGoals.end()) {
                     if (!goal->events->terminalSent)
                         throw std::invalid_argument("Premature action acknowledgement");
@@ -288,28 +328,38 @@ namespace p2p
         std::optional<Status> status;
         std::optional<Error> error;
         switch (kind) {
-        case Kind::ActionAccepted:
-            if (!payload.empty()) throw std::invalid_argument("Invalid action acceptance");
-            break;
-        case Kind::ActionFeedback: break;
-        case Kind::ActionResult:
-            if (payload.empty()) throw std::invalid_argument("Missing action terminal status");
-            status = decodeStatus(payload[0]);
-            break;
-        case Kind::ActionError: error = decodeError(payload); break;
-        default: throw std::invalid_argument("Unknown action frame kind");
+            case Kind::ActionAccepted:
+                if (!payload.empty())
+                    throw std::invalid_argument("Invalid action acceptance");
+                break;
+            case Kind::ActionFeedback:
+                break;
+            case Kind::ActionResult:
+                if (payload.empty())
+                    throw std::invalid_argument("Missing action terminal status");
+                status = decodeStatus(payload[0]);
+                break;
+            case Kind::ActionError:
+                error = decodeError(payload);
+                break;
+            default:
+                throw std::invalid_argument("Unknown action frame kind");
         }
         const auto goal = std::ranges::find(m_outgoingGoals, id, &OutgoingGoal::id);
         if (goal != m_outgoingGoals.end()) {
             if (goal->request)
                 throw std::invalid_argument("Action event before submission");
             if (kind == Kind::ActionAccepted) {
-                if (goal->accepted) throw std::invalid_argument("Repeated action acceptance");
+                if (goal->accepted)
+                    throw std::invalid_argument("Repeated action acceptance");
                 goal->accepted = true;
                 goal->timer = {};
-                if (!goal->accept()) goal->cancel(); // Caller may already have timed out.
-            } else {
-                if ((kind == Kind::ActionFeedback || status == Status::Succeeded || status == Status::Aborted) &&
+                if (!goal->accept())
+                    goal->cancel(); // Caller may already have timed out.
+            }
+            else {
+                if ((kind == Kind::ActionFeedback || status == Status::Succeeded ||
+                     status == Status::Aborted) &&
                     !goal->accepted)
                     throw std::invalid_argument("Action progress before acceptance");
                 if (goal->accepted && (status == Status::Rejected || error == Error::Rejected))

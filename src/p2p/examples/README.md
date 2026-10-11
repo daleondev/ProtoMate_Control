@@ -162,3 +162,12 @@ capacity. Both peers must use the same catalog. Cancellation and action result
 acknowledgements always travel urgently, independently of a blocked normal sender.
 The bridge remembers cancellations that overtake a request so it cannot execute
 later. The service examples above use the default normal lane.
+
+Connection health is enabled by default: Hello/Ready gates forwarding, then
+acknowledged heartbeats run every 100 ms with a 500 ms deadline. Register
+`setConnectionCallback(...)` before `start()` to notify an application worker of
+`Connecting`, `Connected`, `Stopping`, `Stopped` or `Failed`; inspect
+`connectionStatus().reason` for the cause. Callbacks run on the p2p context and
+must not block or call `stop()`. An orderly peer stop has reason `PeerStopped`;
+timeouts and transport errors remain latched until explicit reconstruction.
+The wire version is 6. The full connection contract is in the project's README.

@@ -33,7 +33,15 @@ namespace p2p::util
     {
         OutgoingSignal normal, urgent;
         OutgoingSignal& signal(Lane lane) { return lane == Lane::Urgent ? urgent : normal; }
-        void notify() noexcept { urgent.notify(); normal.notify(); }
-        void close() { urgent.ready.close(); normal.ready.close(); }
+        void notify() noexcept
+        {
+            urgent.notify();
+            normal.notify();
+        }
+        void close()
+        {
+            urgent.ready.close();
+            normal.ready.close();
+        }
     };
 }
