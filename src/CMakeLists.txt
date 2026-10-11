@@ -7,6 +7,8 @@ target_sources(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/system_threads.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/system_threads.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/p2p/thread.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/p2p/thread.cpp
 )
 
 target_include_directories(${PROJECT_NAME} 

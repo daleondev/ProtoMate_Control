@@ -10,6 +10,7 @@
 #include "control/MotionController.hpp"
 #include "control/Robot.hpp"
 #include "p2p/InProcessTransport.hpp"
+#include "p2p/thread.hpp"
 #include "pneumo/pneumo.hpp"
 #include "system_threads.hpp"
 
@@ -134,8 +135,10 @@ try {
     pnm::msg::Bus ui_bus;
     auto transport = p2p::InProcessTransport::pair();
     control::ControllerServer server(motion, io_bus, context.io);
-    p2p::Bridge io_bridge(io_bus, context.io, transport[0]);
-    p2p::Bridge ui_bridge(ui_bus, context.ui, transport[1]);
+    // Both bridge endpoints use the dedicated p2p runner in this single-core
+    // application. Controller and UI work retain their own contexts.
+    p2p::Bridge io_bridge(io_bus, p2p::context(), *transport[0]);
+    p2p::Bridge ui_bridge(ui_bus, p2p::context(), *transport[1]);
     control::protocol::routes(io_bridge, true);
     control::protocol::routes(ui_bridge, false);
     io_bridge.onStateChanged([&server](auto state) { server.linkChanged(state); });

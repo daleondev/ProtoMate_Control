@@ -25,6 +25,8 @@ namespace system_threads
     // Thread definitions
     // ----------------------
 
+    [[ = PRIO._2, = 8_KB ]] auto p2p() -> void;
+
     [[ = PRIO._3, = CLI_STACK_SIZE ]] auto control() -> void;
     [[ = PRIO._4, = CLI_STACK_SIZE ]] auto messages() -> void;
 
