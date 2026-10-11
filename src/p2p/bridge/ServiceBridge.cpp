@@ -80,17 +80,17 @@ namespace p2p
         return m_context.scheduleAt(deadline, [signal = m_outgoingWakeup] { signal->notify(); });
     }
 
-    void ServiceBridge::queueServiceError(std::uint64_t id, ServiceError error)
+    void ServiceBridge::queueServiceError(std::uint64_t id, ServiceError error, Lane lane)
     {
         // A conforming peer has at most MAX_CALLS outstanding. Excess rejection
         // traffic fails the connection instead of allocating an unbounded queue.
-        if (m_serviceReplies.size() >= MAX_CALLS)
+        if (std::ranges::count(m_serviceReplies, lane, &std::pair<Lane, OutgoingFrame>::first) >= static_cast<std::ptrdiff_t>(MAX_CALLS))
             throw std::runtime_error("Peer exceeded service reply capacity");
-        m_serviceReplies.push_back(makeServiceError(id, error));
+        m_serviceReplies.emplace_back(lane, makeServiceError(id, error));
         m_outgoingWakeup->notify();
     }
 
-    std::optional<ServiceBridge::OutgoingFrame> ServiceBridge::takeFrame()
+    std::optional<ServiceBridge::OutgoingFrame> ServiceBridge::takeFrame(Lane lane)
     {
         // Cancel expired/abandoned calls first. A request already queued in the
         // transport cannot be recalled; cancellation is best effort at the peer.
@@ -99,25 +99,36 @@ namespace p2p
                 ++it;
                 continue;
             }
-            const auto id = it->id;
-            const auto wasSent = !it->request;
-            it = m_outgoingCalls.erase(it);
-            if (wasSent)
-                return util::makeFrame(FrameKind::Cancel, {}, id, 0);
+            if (it->request) {
+                it = m_outgoingCalls.erase(it); // Never submitted to transport.
+                continue;
+            }
+            // Keep its reserved slot until the peer responds, even after the
+            // caller stops waiting. This also bounds overtaking cancellations.
+            if (lane == Lane::Urgent && !it->cancelSent) {
+                it->cancelSent = true;
+                auto frame = util::makeFrame(FrameKind::Cancel, {}, it->id, 1);
+                frame.bytes[util::HEADER_BYTES] = it->lane == Lane::Urgent ? std::byte{1} : std::byte{0};
+                return frame;
+            }
+            ++it;
         }
-        if (!m_serviceReplies.empty()) {
-            auto frame = std::move(m_serviceReplies.front());
-            m_serviceReplies.pop_front();
+        const auto reply = std::ranges::find(m_serviceReplies, lane, &std::pair<Lane, OutgoingFrame>::first);
+        if (reply != m_serviceReplies.end()) {
+            auto frame = std::move(reply->second);
+            m_serviceReplies.erase(reply);
             return frame;
         }
         for (auto it = m_incomingCalls.begin(); it != m_incomingCalls.end(); ++it) {
+            if (it->lane != lane)
+                continue;
             if (auto frame = it->take()) {
                 m_incomingCalls.erase(it);
                 return frame; // sendLoop owns the result until transport accepts it.
             }
         }
         for (auto& call : m_outgoingCalls) {
-            if (call.request) {
+            if (call.lane == lane && call.request) {
                 const auto remaining = std::chrono::ceil<std::chrono::milliseconds>(call.remaining()).count();
                 if (remaining <= 0) {
                     m_outgoingWakeup->notify();
@@ -148,42 +159,69 @@ namespace p2p
         m_outgoingServices.clear();
         m_incomingServices.clear();
         m_serviceReplies.clear();
+        m_earlyCancellations.clear();
     }
 
-    void ServiceBridge::dispatch(const util::IncomingFrame& frame)
+    void ServiceBridge::dispatch(const util::IncomingFrame& frame, Lane lane)
     {
         const auto& [kind, name, id, budget, payload] = frame;
         if (id == 0)
             throw std::invalid_argument("Service call ID must be nonzero");
         if (kind == FrameKind::Request) {
-            if (name.empty() || budget == 0 || id <= m_lastIncomingCallId)
+            auto& lastIncoming = m_lastIncomingCallId[static_cast<std::size_t>(lane)];
+            if (name.empty() || budget == 0 || id <= lastIncoming)
                 throw std::invalid_argument("Invalid or repeated service request");
-            m_lastIncomingCallId = id;
-            const auto service = std::ranges::find(m_incomingServices, name, &IncomingService::name);
-            if (service == m_incomingServices.end()) {
-                queueServiceError(id, ServiceError::Unavailable);
+            lastIncoming = id;
+            const auto early = std::ranges::find(m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first);
+            if (early != m_earlyCancellations.end()) {
+                if (early->second != lane)
+                    throw std::invalid_argument("Service cancellation lane mismatch");
+                m_earlyCancellations.erase(early);
+                queueServiceError(id, ServiceError::Cancelled, lane);
                 return;
             }
-            if (m_incomingCalls.size() >= MAX_CALLS) {
-                queueServiceError(id, ServiceError::Busy);
+            const auto service = std::ranges::find(m_incomingServices, name, &IncomingService::name);
+            if (service == m_incomingServices.end()) {
+                queueServiceError(id, ServiceError::Unavailable, lane);
+                return;
+            }
+            if (service->lane != lane)
+                throw std::invalid_argument("Service request on the wrong transport lane");
+            if (std::ranges::count(m_incomingCalls, lane, &IncomingCall::lane) >= static_cast<std::ptrdiff_t>(MAX_CALLS)) {
+                queueServiceError(id, ServiceError::Busy, lane);
                 return;
             }
             try {
                 m_incomingCalls.push_back(service->request(id, payload, std::chrono::milliseconds(budget)));
             } catch (...) {
-                queueServiceError(id, ServiceError::HandlerFailed);
+                queueServiceError(id, ServiceError::HandlerFailed, lane);
             }
             return;
         }
         if (!name.empty() || budget != 0)
             throw std::invalid_argument("Unexpected service reply/cancel header fields");
         if (kind == FrameKind::Cancel) {
-            if (!payload.empty() || id > m_lastIncomingCallId)
+            if (lane != Lane::Urgent || payload.size() != 1 || std::to_integer<unsigned>(payload[0]) > 1)
                 throw std::invalid_argument("Invalid service cancellation");
+            const auto targetLane = payload[0] == std::byte{1} ? Lane::Urgent : Lane::Normal;
             const auto call = std::ranges::find(m_incomingCalls, id, &IncomingCall::id);
             if (call != m_incomingCalls.end()) {
+                if (call->lane != targetLane)
+                    throw std::invalid_argument("Service cancellation lane mismatch");
                 call->cancel();
                 m_incomingCalls.erase(call);
+                queueServiceError(id, ServiceError::Cancelled, targetLane);
+            } else if (id > m_lastIncomingCallId[static_cast<std::size_t>(targetLane)]) {
+                const auto early = std::ranges::find(m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first);
+                if (early != m_earlyCancellations.end()) {
+                    if (early->second != targetLane)
+                        throw std::invalid_argument("Conflicting service cancellation lanes");
+                } else {
+                    if (std::ranges::count(m_earlyCancellations, targetLane,
+                          &std::pair<std::uint64_t, Lane>::second) >= static_cast<std::ptrdiff_t>(MAX_CALLS))
+                        throw std::runtime_error("Peer exceeded early service cancellation capacity");
+                    m_earlyCancellations.emplace_back(id, targetLane);
+                }
             }
             return;
         }
@@ -199,6 +237,8 @@ namespace p2p
             throw std::invalid_argument("Reply for an unknown call ID");
         const auto call = std::ranges::find(m_outgoingCalls, id, &OutgoingCall::id);
         if (call != m_outgoingCalls.end()) {
+            if (call->lane != lane)
+                throw std::invalid_argument("Service reply on the wrong transport lane");
             call->finish(payload, error);
             m_outgoingCalls.erase(call);
         }

@@ -54,8 +54,8 @@ namespace p2p
         void registerIncoming(std::string_view name);
 
         void poll();
-        std::optional<Frame> takeFrame();
-        void dispatch(const util::IncomingFrame& frame);
+        std::optional<Frame> takeFrame(Lane lane);
+        void dispatch(const util::IncomingFrame& frame, Lane lane);
         void requestStop();
         [[nodiscard]] bool drained() const;
         // Failure requests local cleanup but cannot confirm a physical stop.
@@ -67,6 +67,8 @@ namespace p2p
         static Error decodeError(std::span<const std::byte> payload);
         static std::byte encodeStatus(Status status);
         static Status decodeStatus(std::byte status);
+        template<pnm::utils::memory::Serializable R>
+        static Frame makeResult(std::uint64_t id, Status status, const R& value);
 
         struct OutgoingRoute
         {
@@ -106,6 +108,7 @@ namespace p2p
         {
             std::string name;
             std::function<IncomingGoal(std::uint64_t, std::span<const std::byte>, std::chrono::milliseconds)> submit;
+            std::function<Frame(std::uint64_t)> cancelled;
         };
         struct Rejection
         {
@@ -124,6 +127,8 @@ namespace p2p
         std::vector<IncomingGoal> m_incomingGoals;
         std::deque<Rejection> m_rejections;
         std::deque<std::uint64_t> m_acknowledgements;
+        // Urgent cancellation can overtake a goal in the normal lane.
+        std::vector<std::uint64_t> m_earlyCancellations;
         std::uint64_t m_lastOutgoing{}, m_lastIncoming{};
         std::size_t m_nextIncoming{};
         bool m_stopping{}, m_closed{};
@@ -259,17 +264,7 @@ namespace p2p
                         } else if (!result) {
                             events->terminal = makeError(id, result.error());
                         } else {
-                            std::size_t size{sizeof(R)};
-                            if constexpr (pnm::utils::memory::HasSerializationAdapter<R>)
-                                size = pnm::utils::memory::SerializationAdapter<R>::bufferSize(result->value);
-                            if (size > util::MAX_FRAME_BYTES - util::HEADER_BYTES - 1)
-                                throw std::length_error("Action result exceeds frame capacity");
-                            auto frame = util::makeFrame(Kind::ActionResult, {}, id, size + 1);
-                            frame.bytes[util::HEADER_BYTES] = encodeStatus(result->status);
-                            if (!pnm::utils::memory::serialize(result->value,
-                                  std::span(frame.bytes).subspan(util::HEADER_BYTES + 1, size)))
-                                throw std::invalid_argument("Cannot serialize action result");
-                            events->terminal = std::move(frame);
+                            events->terminal = makeResult(id, result->status, result->value);
                         }
                     } catch (...) {
                         events->terminal = makeError(id, Error::TransportError);
@@ -289,6 +284,24 @@ namespace p2p
                 .readiness = std::move(readiness), .timer = std::move(timer),
             };
         };
-        m_incomingRoutes.push_back({std::string(name), std::move(submit)});
+        m_incomingRoutes.push_back({std::string(name), std::move(submit),
+          [](std::uint64_t id) { return makeResult(id, Status::Cancelled, R{}); }});
     }
+
+    template<pnm::utils::memory::Serializable R>
+    ActionBridge::Frame ActionBridge::makeResult(std::uint64_t id, Status status, const R& value)
+    {
+        std::size_t size{sizeof(R)};
+        if constexpr (pnm::utils::memory::HasSerializationAdapter<R>)
+            size = pnm::utils::memory::SerializationAdapter<R>::bufferSize(value);
+        if (size > util::MAX_FRAME_BYTES - util::HEADER_BYTES - 1)
+            throw std::length_error("Action result exceeds frame capacity");
+        auto frame = util::makeFrame(Kind::ActionResult, {}, id, size + 1);
+        frame.bytes[util::HEADER_BYTES] = encodeStatus(status);
+        if (!pnm::utils::memory::serialize(value,
+              std::span(frame.bytes).subspan(util::HEADER_BYTES + 1, size)))
+            throw std::invalid_argument("Cannot serialize action result");
+        return frame;
+    }
+
 }

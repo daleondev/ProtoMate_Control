@@ -29,7 +29,7 @@ namespace p2p
         };
 
         std::mutex mutex;
-        std::array<Queue, 2> inbox;
+        std::array<std::array<Queue, 2>, 2> inbox;
         bool closed{};
     };
 
@@ -50,10 +50,11 @@ namespace p2p
 
     pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> InProcessTransport::send(
       std::span<const std::byte> frame,
+      Lane lane,
       std::stop_token stop)
     {
         auto shared = m_shared;
-        auto& queue = shared->inbox[1 - m_side];
+        auto& queue = shared->inbox[1 - m_side].at(static_cast<std::size_t>(lane));
         std::unique_lock lock(shared->mutex);
         for (;;) {
             if (stop.stop_requested())
@@ -88,10 +89,11 @@ namespace p2p
 
     pnm::coro::Task<pnm::Result<std::size_t, ITransport::Error>> InProcessTransport::receive(
       std::span<std::byte> buffer,
+      Lane lane,
       std::stop_token stop)
     {
         auto shared = m_shared;
-        auto& queue = shared->inbox[m_side];
+        auto& queue = shared->inbox[m_side].at(static_cast<std::size_t>(lane));
         std::unique_lock lock(shared->mutex);
         for (;;) {
             if (stop.stop_requested())
@@ -126,17 +128,20 @@ namespace p2p
 
     void InProcessTransport::close() noexcept
     {
-        std::array<std::optional<pnm::coro::Channel<bool>>, 4> wake;
+        std::array<std::optional<pnm::coro::Channel<bool>>, 8> wake;
         {
             std::scoped_lock lock(m_shared->mutex);
             if (m_shared->closed)
                 return;
             m_shared->closed = true;
             for (std::size_t side = 0; side < m_shared->inbox.size(); ++side) {
-                auto& queue = m_shared->inbox[side];
-                queue.count = 0;
-                wake[2 * side] = std::exchange(queue.dataReady, std::nullopt);
-                wake[2 * side + 1] = std::exchange(queue.spaceReady, std::nullopt);
+                for (std::size_t lane = 0; lane < 2; ++lane) {
+                    auto& queue = m_shared->inbox[side][lane];
+                    queue.count = 0;
+                    const auto index = 4 * side + 2 * lane;
+                    wake[index] = std::exchange(queue.dataReady, std::nullopt);
+                    wake[index + 1] = std::exchange(queue.spaceReady, std::nullopt);
+                }
             }
         }
         for (auto& signal : wake)

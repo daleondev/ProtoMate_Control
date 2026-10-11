@@ -5,6 +5,7 @@
 #include "ActionBridge.hpp"
 #include "TopicBridge.hpp"
 
+#include <array>
 #include <condition_variable>
 #include <atomic>
 #include <chrono>
@@ -61,7 +62,7 @@ namespace p2p
         // on both peers. Applications use bus.service<^^Services::member>()
         // to request/serve; registration neither calls a service nor waits for it.
         // The bridge owns its routes and deferred proxies until stop().
-        // At most eight forwarded calls per direction and eight queued/pending
+        // At most eight forwarded calls per lane and direction and eight queued/pending
         // calls per local proxy. Excess calls fail with ServiceError::Busy.
         // Requests are never coalesced. Correlation IDs are internal to the bridge.
         // Caller timeouts/cancellation use pneumo's existing request API; they
@@ -78,7 +79,10 @@ namespace p2p
         // UI bridge. [[= ServiceProvider::IO]] marks a service provided by IO.
         // The application owns and dispatches local providers. For peer-provided
         // services, the bridge installs deferred proxies: do not also serve those
-        // names locally. Deferred replies and ServiceError results return to callers.
+        // names locally. An optional [[= Lane::Urgent]] annotation selects reserved
+        // service capacity and urgent request/reply traffic (for example Stop).
+        // Both peers must use the same annotation; the default is Lane::Normal.
+        // Deferred replies and ServiceError results return to callers.
         template<typename Catalog, typename Provider>
             requires std::is_enum_v<Provider>
         void registerServices(Provider localProvider);
@@ -102,13 +106,13 @@ namespace p2p
             requires std::is_enum_v<Provider>
         void registerActions(Provider localProvider);
 
-        // Schedule both loops independently. May be called only once, including
+        // Schedule a sender and receiver for each lane independently. May be called only once, including
         // after failure. The context must keep running until stop() completes.
         void start();
 
         // Stop action admission and request cancellation while communication runs.
         // Wait up to grace for action completion/delivery, then force closure and
-        // record a failure if cleanup could not be confirmed. Finally join both loops.
+        // record a failure if cleanup could not be confirmed. Finally join all four loops.
         // Repeated calls are harmless; before start(), this is a no-op.
         // Call stop() and the destructor outside the context runner so the loops
         // can finish. Do not stop the context first.
@@ -123,16 +127,16 @@ namespace p2p
 
         // Registration and start() are serialized by m_mutex.
         void checkRegistration() const;
-        // Cancel the sibling on exit and report completion only after releasing
+        // Cancel the other loops on exit and report completion only after releasing
         // the loop's coroutine frame and its borrowed transport buffers.
         pnm::coro::Task<void> runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop,
                                       bool& running);
-        pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> sendLoop(std::stop_token stop);
-        pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> receiveLoop(std::stop_token stop);
-        // Rotate ready action/service/topic frames, suspending when all are idle.
-        pnm::coro::Task<std::optional<OutgoingFrame>> nextOutgoingFrame(std::stop_token stop);
-        std::optional<OutgoingFrame> takeFrame(std::size_t helper);
-        void dispatchIncomingFrame(std::span<const std::byte> frame);
+        pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> sendLoop(Lane lane, std::stop_token stop);
+        pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> receiveLoop(Lane lane, std::stop_token stop);
+        // Rotate this lane's ready frames, suspending when all are idle.
+        pnm::coro::Task<std::optional<OutgoingFrame>> nextOutgoingFrame(Lane lane, std::stop_token stop);
+        std::optional<OutgoingFrame> takeFrame(Lane lane, std::size_t helper);
+        void dispatchIncomingFrame(std::span<const std::byte> frame, Lane lane);
 
         pnm::coro::Context& m_context;
         ITransport& m_transport;
@@ -142,7 +146,9 @@ namespace p2p
         TopicBridge m_topics;
         ServiceBridge m_services;
         ActionBridge m_actions;
-        std::size_t m_nextHelper{};
+        std::array<std::size_t, 2> m_nextHelper{};
+        // Keep the last action ACK alive while the other sender checks shutdown.
+        std::array<bool, 2> m_actionSending{};
         std::atomic_bool m_shutdownRequested{};
 
         // Never request cancellation under this lock: stop callbacks can run inline.
@@ -151,6 +157,9 @@ namespace p2p
         bool m_started{};
         bool m_sendRunning{};
         bool m_receiveRunning{};
+        bool m_urgentSendRunning{};
+        bool m_urgentReceiveRunning{};
+        [[nodiscard]] bool loopsStopped() const;
         std::optional<Failure> m_failure;
     };
 

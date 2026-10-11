@@ -6,7 +6,10 @@
 #include <pneumo/coroutines.hpp>
 #include <pneumo/meta.hpp>
 
+#include <algorithm>
+#include <array>
 #include <chrono>
+#include <cstddef>
 #include <concepts>
 #include <cstdint>
 #include <deque>
@@ -52,18 +55,18 @@ namespace p2p
         template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
             requires std::default_initializable<Request> && std::default_initializable<Response> &&
                      std::move_constructible<Response>
-        void registerOutgoing(std::string_view service);
+        void registerOutgoing(std::string_view service, Lane lane);
         template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
             requires std::default_initializable<Request> && std::default_initializable<Response> &&
                      std::move_constructible<Response>
-        void registerIncoming(std::string_view service);
+        void registerIncoming(std::string_view service, Lane lane);
 
         void poll();
-        std::optional<OutgoingFrame> takeFrame();
-        void dispatch(const util::IncomingFrame& frame);
+        std::optional<OutgoingFrame> takeFrame(Lane lane);
+        void dispatch(const util::IncomingFrame& frame, Lane lane);
         void close(ServiceError error);
         void checkRegistration(std::string_view name) const;
-        void queueServiceError(std::uint64_t id, ServiceError error);
+        void queueServiceError(std::uint64_t id, ServiceError error, Lane lane);
         pnm::coro::Context::Timer wakeAfter(Clock::duration delay);
         static OutgoingFrame makeServiceError(std::uint64_t id, ServiceError error);
 
@@ -79,6 +82,8 @@ namespace p2p
         struct OutgoingCall
         {
             std::uint64_t id{};
+            Lane lane{Lane::Normal};
+            bool cancelSent{};
             std::optional<OutgoingFrame> request;
             std::function<bool()> pending;
             std::function<Clock::duration()> remaining;
@@ -90,6 +95,7 @@ namespace p2p
         struct IncomingCall
         {
             std::uint64_t id{};
+            Lane lane{Lane::Normal};
             std::move_only_function<std::optional<OutgoingFrame>()> take;
             std::move_only_function<void()> cancel;
             pnm::msg::ReadinessRegistration readiness;
@@ -99,6 +105,7 @@ namespace p2p
         struct IncomingService
         {
             std::string name;
+            Lane lane;
             std::function<IncomingCall(std::uint64_t, std::span<const std::byte>, std::chrono::milliseconds)>
               request;
         };
@@ -111,9 +118,10 @@ namespace p2p
         std::vector<IncomingService> m_incomingServices;
         std::vector<OutgoingCall> m_outgoingCalls;
         std::vector<IncomingCall> m_incomingCalls;
-        std::deque<OutgoingFrame> m_serviceReplies;
+        std::deque<std::pair<Lane, OutgoingFrame>> m_serviceReplies;
+        std::vector<std::pair<std::uint64_t, Lane>> m_earlyCancellations;
         std::uint64_t m_lastCallId{};
-        std::uint64_t m_lastIncomingCallId{};
+        std::array<std::uint64_t, 2> m_lastIncomingCallId{};
         ServiceError m_serviceShutdownError{ ServiceError::Cancelled };
     };
 
@@ -147,10 +155,17 @@ namespace p2p
                     using Metadata = pnm::msg::ServiceMetadata<member>;
                     using Request = typename Metadata::Request;
                     using Response = typename Metadata::Response;
+                    static constexpr auto lanes = std::define_static_array(std::meta::annotations_of_with_type(member, ^^Lane));
+                    static_assert(lanes.size() <= 1, "A service may select only one transport lane");
+                    constexpr auto lane = [] {
+                        if constexpr (lanes.empty()) return Lane::Normal;
+                        else return std::meta::extract<Lane>(lanes[0]);
+                    }();
+                    static_assert(lane == Lane::Normal || lane == Lane::Urgent, "Unknown service lane");
                     if (provider == localProvider)
-                        registerIncoming<Request, Response>(Metadata::name);
+                        registerIncoming<Request, Response>(Metadata::name, lane);
                     else
-                        registerOutgoing<Request, Response>(Metadata::name);
+                        registerOutgoing<Request, Response>(Metadata::name, lane);
                 }
             }
         }
@@ -159,16 +174,16 @@ namespace p2p
     template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
         requires std::default_initializable<Request> && std::default_initializable<Response> &&
                  std::move_constructible<Response>
-    void ServiceBridge::registerOutgoing(std::string_view service)
+    void ServiceBridge::registerOutgoing(std::string_view service, Lane lane)
     {
         checkRegistration(service);
         auto proxy = m_bus.service<Request, Response>(service).serveDeferred(
-          [this, name = std::string(service)](const Request& value, pnm::msg::Reply<Response> reply) {
+          [this, name = std::string(service), lane](const Request& value, pnm::msg::Reply<Response> reply) {
             if (m_stop.stop_requested()) {
                 reply.fail(m_serviceShutdownError);
                 return;
             }
-            if (m_outgoingCalls.size() >= MAX_CALLS) {
+            if (std::ranges::count(m_outgoingCalls, lane, &OutgoingCall::lane) >= static_cast<std::ptrdiff_t>(MAX_CALLS)) {
                 reply.fail(ServiceError::Busy);
                 return;
             }
@@ -184,7 +199,7 @@ namespace p2p
                 auto timer = wakeAfter(owned->remainingTime());
                 auto readiness = pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notify(); });
                 m_outgoingCalls.push_back({
-                  .id = id,
+                  .id = id, .lane = lane,
                   .request = std::move(frame),
                   .pending = [owned] { return owned->pending(); },
                   .remaining = [owned] { return owned->remainingTime(); },
@@ -222,11 +237,11 @@ namespace p2p
     template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
         requires std::default_initializable<Request> && std::default_initializable<Response> &&
                  std::move_constructible<Response>
-    void ServiceBridge::registerIncoming(std::string_view service)
+    void ServiceBridge::registerIncoming(std::string_view service, Lane lane)
     {
         checkRegistration(service);
         auto request =
-          [this, local = m_bus.service<Request, Response>(service)](
+          [this, local = m_bus.service<Request, Response>(service), lane](
             std::uint64_t id, std::span<const std::byte> bytes, std::chrono::milliseconds timeout) {
             Request value{};
             if (!pnm::utils::memory::deserialize(bytes, value))
@@ -237,7 +252,7 @@ namespace p2p
             auto readiness = pnm::msg::watch(*call, [signal = m_outgoingWakeup] { signal->notify(); });
             auto timer = wakeAfter(timeout);
             return IncomingCall{
-                .id = id,
+                .id = id, .lane = lane,
                 .take = [call, id]() -> std::optional<OutgoingFrame> {
                 if (!call->ready())
                     return std::nullopt;
@@ -255,6 +270,6 @@ namespace p2p
                 .timer = std::move(timer),
             };
         };
-        m_incomingServices.push_back({ .name = std::string(service), .request = std::move(request) });
+        m_incomingServices.push_back({ .name = std::string(service), .lane = lane, .request = std::move(request) });
     }
 }

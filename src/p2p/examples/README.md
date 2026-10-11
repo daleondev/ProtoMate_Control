@@ -124,7 +124,7 @@ call handle alive until completion; destroying it cancels the local call.
 
 Both bridges use one context on a dedicated p2p thread, following the application's
 `context.run()` thread-entry pattern. Each bridge has separate send and receive
-coroutines. Waiting for incoming bytes does not prevent outgoing work. After the
+coroutines for each of its normal and urgent lanes. Waiting for incoming bytes does not prevent outgoing work. After the
 dual-core migration, each core will have its own context and thread.
 
 Main publishes `idle` and `ready`, then waits up to two seconds per local
@@ -143,7 +143,7 @@ disconnect is needed for normal shutdown.
 
 Outgoing topics retain the latest pending value; services retain separate calls
 with correlation IDs and bounded capacity. Up to eight calls are forwarded per
-direction; additional calls report `Busy`. Errors and cancellation propagate,
+lane and direction; additional calls report `Busy`. Errors and cancellation propagate,
 and deadline timers wake idle bridges. Cancellation is best effort: it ends the
 local wait and invalidates the remote reply when received, but cannot undo work
 the handler has already done. Peer-restart sessions remain a later step.
@@ -155,3 +155,10 @@ owns forwarding records and retains terminal results until peer acknowledgement.
 The application owns native goal handles and execution tokens. Runtime-backed
 examples explicitly give their p2p runner a 32 KiB stack using
 [ContextThread.hpp](ContextThread.hpp); standalone host builds use standard threads.
+
+Services default to the normal lane. Add `[[= p2p::Lane::Urgent]]` alongside the
+provider annotation for a control service that needs reserved request/reply
+capacity. Both peers must use the same catalog. Cancellation and action result
+acknowledgements always travel urgently, independently of a blocked normal sender.
+The bridge remembers cancellations that overtake a request so it cannot execute
+later. The service examples above use the default normal lane.

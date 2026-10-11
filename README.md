@@ -339,13 +339,13 @@ The implementation separates message routing from byte transport:
 | [bridge/TopicBridge](src/p2p/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
 | [bridge/ServiceBridge](src/p2p/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
 | [bridge/ActionBridge](src/p2p/bridge/ActionBridge.hpp) | Reflected action registration, deferred admission, feedback, cancellation, acknowledged terminal results and cleanup |
-| [bridge/Frame](src/p2p/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/p2p/bridge/OutgoingWakeup.hpp) | Shared wire encoding and a coalesced readiness signal |
+| [bridge/Frame](src/p2p/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/p2p/bridge/OutgoingWakeup.hpp) | Shared wire encoding and coalesced readiness signals per lane |
 | [transport/](src/p2p/transport/ITransport.hpp) | Transport interface and paired in-process transport; transfers bytes without interpreting messages |
 
 `Bridge` owns all three helpers by value and serializes registration against startup.
 The helpers run on its coroutine context and cannot call back into `Bridge` or
 access the transport. Shutdown first drains actions while communication continues,
-then closes services and disconnects topic subscriptions after both loops finish. `thread.hpp`/`thread.cpp` remain the
+then closes services and disconnects topic subscriptions after all four loops finish. `thread.hpp`/`thread.cpp` remain the
 application-owned context and thread entry, outside the portable library.
 
 ```mermaid
@@ -357,8 +357,9 @@ flowchart LR
 ```
 
 The example owns two independent buses and two bridges. Both bridges run on one
-coroutine context on a dedicated p2p thread. Each has separate send and receive
-coroutines that suspend while waiting. Application subscriptions dispatch on
+coroutine context on a dedicated p2p thread. Each has a send and receive coroutine per lane, all on the same context.
+They suspend while waiting and yield after each frame so normal traffic cannot
+monopolize the context. Application subscriptions dispatch on
 their caller's thread. Each future core will own its own context and runner.
 
 [Topics.hpp](src/p2p/examples/Topics.hpp) specifies the forwarded topics using
@@ -401,12 +402,15 @@ waiting for a result on the p2p context. Native readiness notifications and
 deadline timers wake the bridge. No waiting thread is created per call.
 
 `ITransport` asynchronously sends and receives complete frames using borrowed
-spans. `InProcessTransport::pair()` creates two endpoints with eight owned frame
-slots per direction. A full queue suspends the sender without blocking the
-context. Cancellation and `close()` wake waiting operations; closing either
+spans. Its `Lane::Normal` and `Lane::Urgent` queues have independent capacity,
+waiters and sender/receiver coroutines. `InProcessTransport::pair()` reserves eight
+2048-byte frame slots per lane and direction (four queues). A full normal queue
+cannot block urgent send or receive. Each lane preserves FIFO order; there is no
+ordering between lanes. Urgent traffic remains bounded and can itself back up.
+It does not preempt a running handler or rescue a stalled context. Cancellation and `close()` wake waiting operations; closing either
 endpoint disconnects the pair. Reconnection requires a new pair.
 
-The frame has a 16-byte header: version (currently 4), frame kind, 16-bit name
+The frame has a 16-byte header: version (currently 5), frame kind, 16-bit name
 length, 64-bit call ID and 32-bit remaining timeout in milliseconds. Integers are
 little endian. Name bytes and serialized payload follow, with a 2048-byte total
 limit. Topics, service requests and action goals identify their destination by
@@ -421,18 +425,21 @@ portable field widths and byte order before use between different targets.
 Each bridge accepts up to 16 topics, 16 services and 16 actions. Outgoing subscriptions retain only the
 latest pending value per topic, and readiness notifications wake the sender.
 Service requests are never coalesced. There are eight forwarded calls per
-direction, eight queued/pending requests per local proxy, and eight queued
-rejection replies. Excess calls report `Busy`; a peer overrunning the rejection
+lane and direction, eight queued/pending requests per local proxy, and eight queued
+rejection replies per lane. Normal traffic cannot consume urgent service slots. Excess calls report `Busy`; a peer overrunning the rejection
 queue fails the connection rather than growing memory without bounds.
 Completed replies are retained until queued into the transport or shutdown.
-The sender rotates between ready action, service and topic traffic.
+The normal sender rotates between ready action, service and topic traffic; the
+urgent sender rotates between action cancellation/ACKs and service traffic.
 
 Service caller timeouts and cancellation terminate the local wait and forward a
 best-effort cancellation to the peer. Remaining timeout budgets are rounded up
 to milliseconds and capped at `UINT32_MAX` milliseconds. They are not synchronized
 cross-core deadlines and do not subtract time spent inside the transport.
 Cancellation/timeout does not prove that a handler's side effects stopped.
-Late replies are ignored, and call IDs are never reused within a bridge.
+Late replies are ignored by the caller, but release the reserved bridge slot.
+Cancelled calls retain that slot until the peer responds or the connection closes,
+bounding cancellations that overtake requests. Call IDs are never reused within a bridge.
 Transport failure completes pending service calls with `TransportError`; explicit
 local service shutdown uses `Cancelled`. Neither result proves that remote hardware stopped.
 Stop both bridges while the context still runs, then stop and join its runner.
@@ -465,9 +472,31 @@ run when the application polls its handle, never on the bridge's context thread.
 The p2p application thread and runtime-backed example runners use a 32 KiB stack
 for nested Debug serialization; the portable bridge does not configure threads.
 
+Cancellation and action terminal acknowledgements always use the urgent lane.
+A cancellation may arrive before its normal request/goal; bounded records ensure
+the later command never reaches an application provider. Action results and
+feedback retain their normal-lane ordering. A cancellation request still does not
+confirm that already-running work has stopped; its terminal response may wait for
+normal capacity. Service cancellation carries one byte identifying the original
+request lane (0=normal, 1=urgent).
+
+Services may explicitly reserve the urgent lane in their shared catalog:
+
+```cpp
+struct Services
+{
+    [[= ServiceProvider::IO, = p2p::Lane::Urgent]]
+    pnm::msg::Service<StopRequest, StopResponse> stop;
+};
+```
+
+The annotation applies to requests and replies, and both peers must agree. Other
+services default to normal; topics, goals, action acceptance/feedback/results use
+normal. Keep urgent service handlers short or defer work to an IO worker. This
+prepares stop routing; the application still needs to migrate its control catalog.
+Future link-management messages can use the urgent transport lane as well.
+
 The next steps are sessions/link health and integration of control messages.
-Cancellation currently shares the ordered transport with ordinary traffic; an
-independent urgent transport path remains required before robot integration.
 The intended control boundary uses services for configuration, diagnostics and
 snapshots, actions for moves/homing, and topics for state. Robot and CLI use
 `ControllerClient`; `ControllerServer` and `MotionController` own IO execution.

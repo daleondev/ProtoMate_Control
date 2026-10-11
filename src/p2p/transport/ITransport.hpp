@@ -9,10 +9,14 @@
 
 namespace p2p
 {
+    enum class Lane { Normal, Urgent };
+
     // One endpoint of a connection between two bridges. Transfers complete,
-    // ordered byte frames; message types and topic names belong to the bridge.
-    // One send and one receive may be pending concurrently. Waiting suspends
-    // the calling coroutine, leaving the context free to run other work.
+    // ordered byte frames within each lane. Message types belong to the bridge.
+    // Normal and urgent lanes have independent capacity and waiters. There is
+    // no ordering between lanes. One send and one receive PER LANE may be pending
+    // concurrently. A full normal lane must never block urgent operations. Waiting
+    // suspends the calling coroutine, leaving the context free to run other work.
     class ITransport
     {
       public:
@@ -31,7 +35,7 @@ namespace p2p
         // Success means queued, not processed by the peer. An error means the
         // frame was not queued; cancellation cannot recall an accepted frame.
         virtual pnm::coro::Task<pnm::EmptyResult<Error>> send(std::span<const std::byte> frame,
-                                                              std::stop_token stop = {}) = 0;
+                                                              Lane lane = Lane::Normal, std::stop_token stop = {}) = 0;
 
         // Waits asynchronously for the next complete frame, writes it into buffer
         // and returns its byte count. Keep the buffer alive and exclusively
@@ -39,7 +43,7 @@ namespace p2p
         // BufferTooSmall leaves the frame queued for a retry with a larger buffer.
         // Errors leave the buffer unchanged and do not consume a frame.
         virtual pnm::coro::Task<pnm::Result<std::size_t, Error>> receive(std::span<std::byte> buffer,
-                                                                         std::stop_token stop = {}) = 0;
+                                                                         Lane lane = Lane::Normal, std::stop_token stop = {}) = 0;
 
         // Both operations must wake when cancellation is requested, even when
         // the peer is idle. Completion, including cancellation, guarantees no

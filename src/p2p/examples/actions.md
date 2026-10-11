@@ -139,7 +139,7 @@ to readiness, so there is no busy loop or additional waiting thread per action.
 ## Helper lifecycle
 
 `ActionBridge` follows the other helpers: register routes, `poll()` ready native
-handles, `takeFrame()` outgoing work, and `dispatch()` incoming lifecycle frames.
+handles, `takeFrame(lane)` outgoing work, and `dispatch()` incoming lifecycle frames.
 Each direction retains at most eight forwarded goals; excess submissions return
 `Busy`. Only feedback may coalesce. Accepted jobs reserve space for their terminal result, which remains
 retained until the peer acknowledges it or the connection ends. Enqueuing a frame
@@ -155,7 +155,7 @@ records that cleanup could not be confirmed. Keep the context and application
 workers running until `stop()` returns; native UI callbacks still require their
 owner to poll. Queued goals refused during shutdown receive `Unavailable`.
 
-Frames use version 4. Action kinds are goal (6), acceptance (7), feedback (8),
+Frames use version 5. Action kinds are goal (6), acceptance (7), feedback (8),
 result (9), error (10), cancellation (11) and terminal acknowledgement (12).
 Only goal frames carry a name and remaining admission budget. Result payloads
 start with status 1=succeeded, 2=aborted, 3=cancelled or 4=rejected. Error codes
@@ -164,6 +164,9 @@ error. Correlation IDs are nonzero little-endian uint64 values independent of
 pneumo's native goal IDs. Old protocol versions and malformed lifecycle order
 fail the connection.
 
-Cancellation currently shares the bounded FIFO with other traffic. Session
-handling, link-health detection and an independent urgent path remain work for
-robot integration. A transport failure never proves the hardware has stopped.
+Cancellation and terminal acknowledgements use the independent urgent lane.
+Goals, acceptance, feedback and terminal results keep their ordering on the normal
+lane. A bounded early-cancellation record prevents execution when cancellation
+overtakes a goal. Results still require normal-lane progress before completion can
+be confirmed. Session handling and link-health detection remain work for robot
+integration. A transport failure never proves the hardware has stopped.

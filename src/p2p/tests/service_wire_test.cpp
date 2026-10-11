@@ -30,7 +30,7 @@ namespace
                                  std::string_view payload = {}, unsigned timeout = 0)
     {
         std::vector<std::byte> bytes(16 + name.size() + payload.size());
-        bytes[0] = std::byte{4};
+        bytes[0] = std::byte{5};
         bytes[1] = static_cast<std::byte>(kind);
         bytes[2] = static_cast<std::byte>(name.size() & 255);
         bytes[3] = static_cast<std::byte>(name.size() >> 8);
@@ -66,7 +66,8 @@ namespace
             if (!result->has_value()) throw std::runtime_error("Expected transport operation to complete");
             return std::move(**result);
         }
-        void send(const std::vector<std::byte>& bytes) { ASSERT_TRUE(run(endpoints[1]->send(bytes))); }
+        void send(const std::vector<std::byte>& bytes, p2p::Lane lane = p2p::Lane::Normal)
+        { ASSERT_TRUE(run(endpoints[1]->send(bytes, lane))); }
         std::vector<std::byte> receive()
         {
             std::vector<std::byte> bytes(2048);
@@ -154,6 +155,43 @@ namespace
         ASSERT_TRUE(call.ready());
         EXPECT_EQ(call.get(), std::unexpected(Error::TransportError));
         EXPECT_FALSE(bridge.failure());
+    }
+
+    TEST_F(ServiceWireTest, EarlyUrgentCancellationSuppressesTheLaterRequest)
+    {
+        auto provider = bus.service<^^Services::local>().serve([](const auto& value) { return value; });
+        send(frame(5, 42, {}, std::string(1, '\0')), p2p::Lane::Urgent);
+        send(frame(5, 42, {}, std::string(1, '\0')), p2p::Lane::Urgent); // Idempotent.
+        EXPECT_FALSE(bridge.failure());
+        send(frame(2, 42, "local", "must not run", 1000));
+        EXPECT_EQ(provider.poll(), 0U);
+        EXPECT_EQ(receive(), frame(4, 42, {}, std::string(1, '\4')));
+        send(frame(2, 43, "local", "next", 1000));
+        EXPECT_EQ(provider.poll(), 1U); drain();
+        EXPECT_EQ(receive(), frame(3, 43, {}, "next"));
+        EXPECT_FALSE(bridge.failure());
+    }
+
+    TEST_F(ServiceWireTest, BoundsCancellationsThatOvertakeRequests)
+    {
+        for (unsigned id = 1; id <= 8; ++id)
+            send(frame(5, id, {}, std::string(1, '\0')), p2p::Lane::Urgent);
+        EXPECT_FALSE(bridge.failure());
+        send(frame(5, 9, {}, std::string(1, '\0')), p2p::Lane::Urgent);
+        EXPECT_TRUE(bridge.failure());
+    }
+
+    TEST_F(ServiceWireTest, RejectsNormalServiceRequestsOnUrgentLane)
+    {
+        auto provider = bus.service<^^Services::local>().serve([](const auto& value) { return value; });
+        send(frame(2, 1, "local", "wrong lane", 1000), p2p::Lane::Urgent);
+        EXPECT_TRUE(bridge.failure()); EXPECT_EQ(provider.poll(), 0U);
+    }
+
+    TEST_F(ServiceWireTest, RejectsCancellationOnNormalLane)
+    {
+        send(frame(5, 1, {}, std::string(1, '\0')));
+        EXPECT_TRUE(bridge.failure());
     }
 
     TEST_F(ServiceWireTest, InvalidEnvelopeFailsConnectionAndOutstandingCalls)

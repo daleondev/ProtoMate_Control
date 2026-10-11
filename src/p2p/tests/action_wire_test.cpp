@@ -23,7 +23,7 @@ namespace
                                   std::vector<std::byte> payload = {}, unsigned budget = 0)
     {
         std::vector<std::byte> result(16 + name.size() + payload.size());
-        result[0] = std::byte{4}; result[1] = static_cast<std::byte>(kind);
+        result[0] = std::byte{5}; result[1] = static_cast<std::byte>(kind);
         result[2] = static_cast<std::byte>(name.size()); result[3] = static_cast<std::byte>(name.size() >> 8);
         for (unsigned i=0;i<8;++i) result[4+i] = static_cast<std::byte>(id >> (8*i));
         for (unsigned i=0;i<4;++i) result[12+i] = static_cast<std::byte>(budget >> (8*i));
@@ -64,10 +64,15 @@ namespace
             if (!*result) throw std::runtime_error("Expected completed transport operation");
             return std::move(**result);
         }
-        void send(const std::vector<std::byte>& bytes) { ASSERT_TRUE(run(endpoints[1]->send(bytes))); }
-        std::vector<std::byte> receive()
+        void send(const std::vector<std::byte>& bytes)
         {
-            std::vector<std::byte> bytes(2048); auto count=run(endpoints[1]->receive(bytes));
+            const auto kind = std::to_integer<unsigned>(bytes[1]);
+            const auto lane = kind == 11 || kind == 12 ? p2p::Lane::Urgent : p2p::Lane::Normal;
+            ASSERT_TRUE(run(endpoints[1]->send(bytes, lane)));
+        }
+        std::vector<std::byte> receive(p2p::Lane lane = p2p::Lane::Normal)
+        {
+            std::vector<std::byte> bytes(2048); auto count=run(endpoints[1]->receive(bytes, lane));
             if (!count) throw std::runtime_error("Receive failed"); bytes.resize(*count); return bytes;
         }
         auto submit()
@@ -90,8 +95,8 @@ namespace
         send(frame(7,1)); send(frame(8,1,{},value(12))); send(frame(9,1,{},terminal(1,42)));
         ASSERT_TRUE(goal.poll()); ASSERT_TRUE(result && *result);
         EXPECT_EQ((**result).status,Status::Succeeded); EXPECT_EQ((**result).value,42U);
-        EXPECT_EQ(events,(std::vector<char>{'a','f','r'})); EXPECT_EQ(receive(),frame(12,1));
-        send(frame(9,1,{},terminal(1,42))); EXPECT_EQ(receive(),frame(12,1));
+        EXPECT_EQ(events,(std::vector<char>{'a','f','r'})); EXPECT_EQ(receive(p2p::Lane::Urgent),frame(12,1));
+        send(frame(9,1,{},terminal(1,42))); EXPECT_EQ(receive(p2p::Lane::Urgent),frame(12,1));
         EXPECT_TRUE(goal.poll()); EXPECT_EQ(events.size(),3U); EXPECT_FALSE(bridge.failure());
     }
 
@@ -122,8 +127,8 @@ namespace
     TEST_F(ActionWireTest, SendsCancelButKeepsGoalPendingUntilRemoteCleanup)
     {
         auto goal=submit(); drain(); receive(); send(frame(7,1)); goal.poll(); goal.requestCancel(); drain();
-        EXPECT_EQ(receive(),frame(11,1)); EXPECT_FALSE(goal.ready());
-        send(frame(9,1,{},terminal(3,7))); EXPECT_EQ(receive(),frame(12,1));
+        EXPECT_EQ(receive(p2p::Lane::Urgent),frame(11,1)); EXPECT_FALSE(goal.ready());
+        send(frame(9,1,{},terminal(3,7))); EXPECT_EQ(receive(p2p::Lane::Urgent),frame(12,1));
         ASSERT_TRUE(goal.poll()); EXPECT_EQ((**result).status,Status::Cancelled);
     }
 
@@ -131,8 +136,8 @@ namespace
     {
         auto goal=submit(); drain(); receive(); send(frame(7,1));
         send(frame(8,1,{}, {std::byte{1}})); ASSERT_TRUE(goal.poll()); EXPECT_EQ(result->error(),Error::TransportError);
-        EXPECT_EQ(receive(),frame(11,1)); send(frame(9,1,{},terminal(3,0)));
-        EXPECT_EQ(receive(),frame(12,1)); EXPECT_FALSE(bridge.failure());
+        EXPECT_EQ(receive(p2p::Lane::Urgent),frame(11,1)); send(frame(9,1,{},terminal(3,0)));
+        EXPECT_EQ(receive(p2p::Lane::Urgent),frame(12,1)); EXPECT_FALSE(bridge.failure());
     }
 
     TEST_F(ActionWireTest, MalformedGoalFailsOnlyItsSubmission)
@@ -140,6 +145,31 @@ namespace
         auto provider=bus.action<^^Actions::local>().serveDeferred([](auto,Execution) {FAIL()<<"Invalid goal dispatched";});
         send(frame(6,1,"local",{std::byte{1}},1000)); EXPECT_EQ(provider.poll(),0U);
         EXPECT_EQ(receive(),frame(10,1,{}, {std::byte{5}})); send(frame(12,1)); EXPECT_FALSE(bridge.failure());
+    }
+
+    TEST_F(ActionWireTest, EarlyCancellationSuppressesGoalAndRetainsTerminalUntilAcknowledged)
+    {
+        auto provider = bus.action<^^Actions::local>().serveDeferred([](auto, Execution) { FAIL() << "Cancelled goal ran"; });
+        send(frame(11, 42)); send(frame(11, 42));
+        EXPECT_FALSE(bridge.failure());
+        send(frame(6, 42, "local", value(42), 1000));
+        EXPECT_EQ(provider.poll(), 0U);
+        EXPECT_EQ(receive(), frame(9, 42, {}, terminal(3, 0)));
+        send(frame(12, 42)); EXPECT_FALSE(bridge.failure());
+    }
+
+    TEST_F(ActionWireTest, BoundsEarlyCancellations)
+    {
+        for (unsigned id = 1; id <= 8; ++id) send(frame(11, id));
+        EXPECT_FALSE(bridge.failure());
+        send(frame(11, 9)); EXPECT_TRUE(bridge.failure());
+    }
+
+    TEST_F(ActionWireTest, RejectsCancellationOnNormalLane)
+    {
+        const auto bytes = frame(11, 1);
+        ASSERT_TRUE(run(endpoints[1]->send(bytes)));
+        EXPECT_TRUE(bridge.failure());
     }
 
     TEST_F(ActionWireTest, RejectsResultBeforeAcceptance)

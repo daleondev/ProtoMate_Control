@@ -11,8 +11,10 @@
 
 namespace p2p::util
 {
-    // v4: version u8, kind u8, name length u16, call ID u64, timeout ms u32,
+    // v5: version u8, kind u8, name length u16, call ID u64, timeout ms u32,
     // name bytes, payload. All integer fields are little endian.
+    // Service Cancel uses the urgent lane with a one-byte target lane (0/1).
+    // ActionCancel/ActionAck use urgent; other action frames and topics use normal.
     enum class FrameKind : std::uint8_t
     {
         Topic = 1,
@@ -28,7 +30,7 @@ namespace p2p::util
         ActionCancel,
         ActionAck
     };
-    inline constexpr std::uint8_t FRAME_VERSION{ 4 };
+    inline constexpr std::uint8_t FRAME_VERSION{ 5 };
     inline constexpr std::size_t HEADER_BYTES{ 16 };
     inline constexpr std::size_t MAX_FRAME_BYTES{ 2048 };
 
