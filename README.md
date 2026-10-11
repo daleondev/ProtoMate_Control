@@ -326,11 +326,11 @@ software boundaries and behavior; electrical timing remains a hardware test.
 ## Serialized control boundary
 
 `application::p2p` supports serialized topics, services and actions, with peer
-readiness, connection health and state-change callbacks. Session identities and
-the Robot/Controller integration remain pending; the normal
-application's control wiring still depends on the previous integration APIs.
-Build the isolated [two-bus examples](src/p2p/examples/README.md), including the
-[action example](src/p2p/examples/actions.cpp), to run the current bridge.
+readiness, connection health and state-change callbacks. Robot and CLI use
+`ControllerClient` on the UI bus; `ControllerServer` dispatches requests to the
+IO-owned `MotionController`. Both buses communicate through the current bridge.
+The [two-bus examples](src/p2p/examples/README.md), including the
+[action example](src/p2p/examples/actions.cpp), also run independently.
 
 The implementation separates message routing from byte transport:
 
@@ -495,8 +495,8 @@ struct Services
 
 The annotation applies to requests and replies, and both peers must agree. Other
 services default to normal; topics, goals, action acceptance/feedback/results use
-normal. Keep urgent service handlers short or defer work to an IO worker. This
-prepares stop routing; the application still needs to migrate its control catalog.
+normal. Keep urgent service handlers short or defer work to an IO worker. The
+control catalog uses this lane for Stop and Disable.
 Connection management uses that same urgent lane ahead of application traffic.
 
 A bridge starts in `Stopped`, then reports `Connecting` and exchanges Hello/Ready
@@ -559,15 +559,39 @@ needed when integrating motion control. Callback consumers own the local stop,
 holding-torque policy, latched robot fault and explicit recovery. Those robot
 policies are not implemented inside the portable bridge.
 
-The next steps are session identities and integration of control messages.
-The intended control boundary uses services for configuration, diagnostics and
-snapshots, actions for moves/homing, and topics for state. Robot and CLI use
-`ControllerClient`; `ControllerServer` and `MotionController` own IO execution.
-Motion admission, cancellation, recovery and bounded command delivery must be
-restored before this bridge carries motion commands. The H747 design below
-records the required ownership and recovery behavior.
+[control/Messages.hpp](src/control/Messages.hpp) defines the shared `Services`,
+`Actions` and `Topics` catalogs. Main registers each catalog on both bridges with
+its local publisher/provider. Client and server obtain the same endpoints through
+reflected bus access. Configuration, diagnostics and snapshots use services;
+moves and homing use actions; state and latched faults are published at 50 Hz.
+Pneumo automatically serializes the typed message structs; there are no
+control-specific serialization adapters or manual byte encoders. Feedback errors
+use value-only error conditions instead of process-local `std::error_code`
+category pointers. Both peers must share the same message definitions and ABI;
+this native format is not a portable or independently versioned wire protocol.
 
-Build and test this step independently:
+The IO command worker handles blocking driver operations and joins. The client
+retains action handles until completion, and remote acceptance precedes its
+return to CLI/Robot. Link failure inhibits local motion, requests cleanup and
+preserves holding torque. The UI reports an unconfirmed stop until an execution
+result actually arrives. Recovery requires fresh bridge/transport instances and
+an explicit controller disable/reset; no motion is replayed. Coordinated plans
+carry configuration and command revisions and stale plans are rejected before
+hardware preparation. Full session identities remain future work for the H747
+transport; the design below records that migration's ownership and recovery rules.
+
+STM32 Debug compiles the p2p library and control endpoints with `-Og`, and the
+catalog composition in `main.cpp` with `-Os`, to fit internal flash while retaining
+debug information. Motion execution keeps its existing Debug settings.
+
+Build and test the integrated control and CLI:
+
+```sh
+cmake --build --preset debug-linux --target Application application_control_tests application_cli_tests
+ctest --test-dir build/debug-linux -R '^application\.(control|cli)$' --output-on-failure
+```
+
+Build and test the bridge independently:
 
 ```sh
 cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_action_example application_p2p_transport_tests application_p2p_service_tests application_p2p_action_tests application_p2p_urgent_tests application_p2p_connection_tests

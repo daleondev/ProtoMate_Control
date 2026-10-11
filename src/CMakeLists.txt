@@ -25,5 +25,7 @@ target_link_libraries(${PROJECT_NAME}
 
 # Keep portable bridge/coroutine composition small enough for H753 flash in Debug.
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/main.cpp TARGET_DIRECTORY ${PROJECT_NAME} PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Og>")
+    # Catalog registration instantiates the typed routes here. Optimize this
+    # composition unit for size while retaining -g and the motion code's settings.
+    set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/main.cpp TARGET_DIRECTORY ${PROJECT_NAME} PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Os>")
 endif()

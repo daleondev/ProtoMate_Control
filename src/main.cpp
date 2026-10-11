@@ -9,6 +9,7 @@
 #include "control/ControllerServer.hpp"
 #include "control/MotionController.hpp"
 #include "control/Robot.hpp"
+#include "p2p/bridge/Bridge.hpp"
 #include "p2p/transport/InProcessTransport.hpp"
 #include "p2p/thread.hpp"
 #include "pneumo/pneumo.hpp"
@@ -139,9 +140,14 @@ try {
     // application. Controller and UI work retain their own contexts.
     p2p::Bridge io_bridge(io_bus, p2p::context(), *transport[0]);
     p2p::Bridge ui_bridge(ui_bus, p2p::context(), *transport[1]);
-    control::protocol::routes(io_bridge, true);
-    control::protocol::routes(ui_bridge, false);
-    io_bridge.onStateChanged([&server](auto state) { server.linkChanged(state); });
+    using namespace control::messages;
+    io_bridge.registerTopics<Topics>(TopicPublisher::IO);
+    io_bridge.registerServices<Services>(ServiceProvider::IO);
+    io_bridge.registerActions<Actions>(ActionProvider::IO);
+    ui_bridge.registerTopics<Topics>(TopicPublisher::UI);
+    ui_bridge.registerServices<Services>(ServiceProvider::UI);
+    ui_bridge.registerActions<Actions>(ActionProvider::UI);
+    io_bridge.setConnectionCallback([&server](auto status) { server.linkChanged(status); });
     auto client = std::make_shared<control::ControllerClient>(ui_bus, context.ui);
     io_bridge.start();
     ui_bridge.start();

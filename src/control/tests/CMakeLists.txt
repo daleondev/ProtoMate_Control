@@ -4,6 +4,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         axis_conversion_test.cpp
         scara_kinematics_test.cpp
         robot_test.cpp
+        messages_test.cpp
         motion_units_test.cpp
         motion_profile_test.cpp)
     target_link_libraries(application_control_tests PRIVATE

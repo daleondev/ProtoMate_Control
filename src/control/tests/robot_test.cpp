@@ -563,7 +563,7 @@ TEST_F(RobotState, LinkLossStopsLocallyAndRequiresExplicitRecovery)
     client->enable();
     auto move = client->move(Motor1, { .position = -720_deg, .velocity = 10_rpm });
     ASSERT_TRUE(eventually([&] { return m_controller->status().axes[0].velocity < 0_rpm; }));
-    m_connection->transport[0]->setConnected(false);
+    m_connection->transport[0]->close();
     ASSERT_TRUE(eventually([&] { return m_controller->status().axes[0].velocity == 0_rpm; }));
     ASSERT_EQ(move.completion.wait_for(1s), std::future_status::ready);
     EXPECT_EQ(move.completion.get(),
@@ -572,11 +572,11 @@ TEST_F(RobotState, LinkLossStopsLocallyAndRequiresExplicitRecovery)
     std::this_thread::sleep_for(30ms);
     EXPECT_EQ(m_controller->status().generator.pulses, frozen);
     EXPECT_TRUE(m_controller->status().enabled); // Retain holding torque.
-    m_connection->transport[0]->setConnected(true);
-    ASSERT_TRUE(eventually([&] {
-        return m_connection->ui_bridge.state() == p2p::LinkState::Connected &&
-               m_connection->io_bridge.state() == p2p::LinkState::Connected;
-    }));
+    // Failed bridges never reconnect or replay commands. Rebuild the connection
+    // explicitly, retaining the controller's latched motion inhibit.
+    m_connection.reset();
+    m_connection = std::make_unique<control::test::Connection>(m_controller);
+    client = m_connection->client;
     EXPECT_THROW(client->move(Motor1, { .position = -1_deg, .velocity = 10_rpm }), std::runtime_error);
     client->disable();
     (*client).reset();
@@ -584,6 +584,23 @@ TEST_F(RobotState, LinkLossStopsLocallyAndRequiresExplicitRecovery)
     const auto next = client->move(Motor1, { .position = -1_deg, .velocity = 10_rpm });
     ASSERT_EQ(next.completion.wait_for(2s), std::future_status::ready);
     EXPECT_EQ(next.completion.get(), control::MotorResult::Completed);
+}
+
+TEST_F(RobotState, CatalogTelemetryCrossesTheBridge)
+{
+    std::optional<control::messages::State> latest_state;
+    std::optional<control::messages::FaultState> latest_faults;
+    auto state = m_connection->ui_bus.topic<^^control::messages::Topics::state>().subscribe(
+      [&](const auto& value) { latest_state = value; }, pnm::msg::SubscriptionOptions::latestOnly());
+    auto faults = m_connection->ui_bus.topic<^^control::messages::Topics::fault>().subscribe(
+      [&](const auto& value) { latest_faults = value; }, pnm::msg::SubscriptionOptions::latestOnly());
+    m_connection->client->enable();
+    ASSERT_TRUE(eventually([&] {
+        state.poll();
+        faults.poll();
+        return latest_state && latest_state->enabled && latest_faults;
+    }));
+    EXPECT_FALSE(latest_faults->link_inhibited);
 }
 
 TEST_F(RobotState, CancellingBufferedJobPreservesIndependentActiveMotion)

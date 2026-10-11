@@ -1,6 +1,7 @@
 #pragma once
 #include "MotionController.hpp"
-#include "Protocol.hpp"
+#include "Messages.hpp"
+#include "p2p/bridge/ConnectionHealth.hpp"
 
 namespace control
 {
@@ -15,7 +16,8 @@ namespace control
         ControllerServer& operator=(const ControllerServer&) = delete;
         ControllerServer(ControllerServer&&) = delete;
         ControllerServer& operator=(ControllerServer&&) = delete;
-        void linkChanged(p2p::LinkState state);
+        // Safe to call from the bridge's context; joins run on the IO worker.
+        void linkChanged(p2p::ConnectionStatus status);
 
       private:
         struct State;

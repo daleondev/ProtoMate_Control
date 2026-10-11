@@ -4,18 +4,15 @@
 namespace control
 {
     using namespace std::chrono_literals;
-    using Op = protocol::Operation;
+    using Op = messages::Operation;
     namespace
     {
-        protocol::Request message(Op operation,
-                                  std::optional<ControllerTypes::MotorId> motor = {},
-                                  p2p::Bytes data = {})
+        messages::Request message(Op operation, std::optional<ControllerTypes::MotorId> motor = {})
         {
             return { .operation = operation,
-                     .motor = motor ? static_cast<std::uint8_t>(*motor) : std::uint8_t(protocol::ALL_MOTORS),
-                     .data = std::move(data) };
+                     .motor = motor ? static_cast<std::uint8_t>(*motor) : messages::ALL_MOTORS };
         }
-        void checked(const protocol::Response& response)
+        void checked(const messages::Response& response)
         {
             if (!response.success)
                 throw std::runtime_error(response.error);
@@ -45,7 +42,7 @@ namespace control
             bool admission_resolved{}, finished{};
             std::atomic_bool terminal_confirmed;
             std::atomic_bool scheduled;
-            std::optional<pnm::msg::PendingGoal<protocol::Progress, protocol::Outcome>> goal;
+            std::optional<pnm::msg::PendingGoal<messages::Progress, messages::Outcome>> goal;
             pnm::msg::ReadinessRegistration watch;
             // Clang diagnoses the compiler's implicit static promise-hook calls.
             // NOLINTBEGIN(readability-static-accessed-through-instance)
@@ -113,11 +110,12 @@ namespace control
             if (job->goal)
                 job->goal->requestCancel();
     }
-    protocol::Response ControllerClient::request(const protocol::Request& q) const
+    messages::Response ControllerClient::request(const messages::Request& q) const
     {
-        const auto name = (q.operation == Op::Stop || q.operation == Op::Disable) ? protocol::STOP_NAME
-                                                                                  : protocol::REQUEST_NAME;
-        auto response = m_state->bus.service<protocol::Request, protocol::Response>(name).call(q, 5s);
+        auto service = (q.operation == Op::Stop || q.operation == Op::Disable)
+                         ? m_state->bus.service<^^messages::Services::stop>()
+                         : m_state->bus.service<^^messages::Services::request>();
+        auto response = service.call(q, 5s);
         if (!response)
             throw std::runtime_error("IO request failed (unavailable, busy, timeout or disconnected); "
                                      "physical state may be unknown");
@@ -126,14 +124,13 @@ namespace control
     }
     // Coroutine promise hooks are implicitly invoked through their instance.
     // NOLINTBEGIN(readability-static-accessed-through-instance)
-    pnm::coro::Task<protocol::Response> ControllerClient::requestAsync(protocol::Request q)
+    pnm::coro::Task<messages::Response> ControllerClient::requestAsync(messages::Request q)
     {
         auto state = m_state;
-        auto response = co_await state->coroutine_bus
-                          .service<protocol::Request, protocol::Response>(
-                            (q.operation == Op::Stop || q.operation == Op::Disable) ? protocol::STOP_NAME
-                                                                                    : protocol::REQUEST_NAME)
-                          .request(std::move(q), 5s);
+        auto service = (q.operation == Op::Stop || q.operation == Op::Disable)
+                         ? state->coroutine_bus.service<^^messages::Services::stop>()
+                         : state->coroutine_bus.service<^^messages::Services::request>();
+        auto response = co_await service.request(std::move(q), 5s);
         if (!response)
             throw std::runtime_error("IO request failed");
         checked(*response);
@@ -147,32 +144,28 @@ namespace control
     void ControllerClient::initializeDrivers() { request(message(Op::InitializeDrivers)); }
     void ControllerClient::configureDriver(MotorId id, DriverConfiguration c)
     {
-        p2p::Writer w;
-        protocol::write(w, c);
-        request(message(Op::ConfigureDriver, id, std::move(w.bytes)));
+        auto q = message(Op::ConfigureDriver, id);
+        q.driver = c;
+        request(q);
     }
     void ControllerClient::configureAxis(MotorId id, Conversion c)
     {
-        p2p::Writer w;
-        protocol::write(w, c);
-        request(message(Op::ConfigureAxis, id, std::move(w.bytes)));
+        auto q = message(Op::ConfigureAxis, id);
+        q.conversion = c;
+        request(q);
     }
     ControllerClient::PlanningSnapshot ControllerClient::planningSnapshot() const
     {
-        auto response = request(message(Op::Snapshot));
-        p2p::Reader r(response.data);
-        auto s = protocol::snapshot(r);
-        r.finish();
-        return s;
+        return request(message(Op::Snapshot)).state.snapshot();
     }
     ControllerClient::Status ControllerClient::status() const { return planningSnapshot().status; }
     std::array<ControllerClient::DriverStatus, 3> ControllerClient::driverStatus() const
     {
-        auto response = request(message(Op::Drivers));
-        p2p::Reader r(response.data);
-        auto s = protocol::drivers(r);
-        r.finish();
-        return s;
+        const auto response = request(message(Op::Drivers));
+        std::array<DriverStatus, 3> result;
+        for (std::size_t i = 0; i < result.size(); ++i)
+            result[i] = response.drivers[i].status();
+        return result;
     }
     ControllerClient::AxisConfig ControllerClient::motorConfiguration(MotorId id) const
     {
@@ -191,52 +184,40 @@ namespace control
     }
     void ControllerClient::setDefaults(MotorId id, MotionDefaults d)
     {
-        p2p::Writer w;
-        protocol::write(w, d);
-        request(message(Op::SetDefaults, id, std::move(w.bytes)));
+        auto q = message(Op::SetDefaults, id);
+        q.defaults = d;
+        request(q);
     }
     ControllerClient::AxisDefaults ControllerClient::axisDefaults(MotorId id) const
     {
-        auto response = request(message(Op::AxisDefaults, id));
-        p2p::Reader r(response.data);
-        auto d = protocol::axis_defaults(r);
-        r.finish();
-        return d;
+        return request(message(Op::AxisDefaults, id)).axis_defaults;
     }
     void ControllerClient::setAxisDefaults(MotorId id, const AxisDefaults& d)
     {
-        p2p::Writer w;
-        protocol::write(w, d);
-        request(message(Op::SetAxisDefaults, id, std::move(w.bytes)));
+        auto q = message(Op::SetAxisDefaults, id);
+        q.axis_defaults = d;
+        request(q);
     }
     hal::step::PulseCount ControllerClient::setVelocity(MotorId id, pnm::units::AngularVelocity speed)
     {
-        p2p::Writer w;
-        w.real(speed.get());
-        auto response = request(message(Op::Velocity, id, std::move(w.bytes)));
-        p2p::Reader r(response.data);
-        auto n = r.integer<std::uint64_t>();
-        r.finish();
-        return n;
+        auto q = message(Op::Velocity, id);
+        q.velocity = speed;
+        return request(q).pulses;
     }
     hal::step::PulseCount ControllerClient::setAxisVelocity(MotorId id, const AxisSpeed& speed)
     {
-        p2p::Writer w;
-        protocol::write(w, speed);
-        auto response = request(message(Op::AxisVelocity, id, std::move(w.bytes)));
-        p2p::Reader r(response.data);
-        auto n = r.integer<std::uint64_t>();
-        r.finish();
-        return n;
+        auto q = message(Op::AxisVelocity, id);
+        q.axis_velocity = speed;
+        return request(q).pulses;
     }
-    ControllerClient::Motion ControllerClient::submit(const protocol::Request& q,
+    ControllerClient::Motion ControllerClient::submit(const messages::Goal& q,
                                                       bool group,
                                                       pnm::units::Time duration)
     {
         auto state = m_state;
         auto job = std::make_shared<State::Job>(state->context);
         auto accepted = job->admission.get_future();
-        job->motor = q.motor == protocol::ALL_MOTORS ? MotorId::Motor1 : static_cast<MotorId>(q.motor);
+        job->motor = q.motor == messages::ALL_MOTORS ? MotorId::Motor1 : static_cast<MotorId>(q.motor);
         job->group = group;
         job->duration = duration;
         job->operation = q.operation == Op::ReferenceAll ? Operation::Reference : Operation::Move;
@@ -258,7 +239,7 @@ namespace control
         try {
             job->goal.emplace(
               state->bus
-                .action<protocol::Request, protocol::Progress, protocol::Outcome>(protocol::EXECUTE_NAME)
+                .action<^^messages::Actions::execute>()
                 .sendGoal(q, { 2s }, { .on_accepted = [weak] {
                 if (auto j = weak.lock()) {
                     if (!j->admission_resolved) {
@@ -308,47 +289,40 @@ namespace control
     }
     ControllerClient::Motion ControllerClient::move(MotorId id, const Move& m)
     {
-        p2p::Writer w;
-        protocol::write(w, m);
-        return submit(message(Op::Move, id, std::move(w.bytes)), false);
+        return submit({ .operation = Op::Move, .motor = static_cast<std::uint8_t>(id), .move = m }, false);
     }
     ControllerClient::Motion ControllerClient::moveAxis(MotorId id, const AxisMove& m)
     {
-        p2p::Writer w;
-        protocol::write(w, m);
-        return submit(message(Op::MoveAxis, id, std::move(w.bytes)), false);
+        return submit({ .operation = Op::MoveAxis, .motor = static_cast<std::uint8_t>(id), .axis_move = m },
+                      false);
     }
     ControllerClient::Motion ControllerClient::reference(MotorId id,
                                                          pnm::units::AngularVelocity seek,
                                                          pnm::units::AngularVelocity latch,
                                                          pnm::units::Time timeout)
     {
-        p2p::Writer w;
-        w.real(seek.get());
-        w.real(latch.get());
-        w.real(timeout.get());
-        return submit(message(Op::Reference, id, std::move(w.bytes)), false);
+        return submit({ .operation = Op::Reference,
+                        .motor = static_cast<std::uint8_t>(id),
+                        .seek = seek,
+                        .latch = latch,
+                        .timeout = timeout },
+                      false);
     }
     ControllerClient::Motion ControllerClient::referenceAxis(MotorId id,
                                                              std::optional<AxisSpeed> seek,
                                                              std::optional<AxisSpeed> latch,
                                                              pnm::units::Time timeout)
     {
-        p2p::Writer w;
-        w.boolean(seek.has_value());
-        if (seek)
-            protocol::write(w, *seek);
-        w.boolean(latch.has_value());
-        if (latch)
-            protocol::write(w, *latch);
-        w.real(timeout.get());
-        return submit(message(Op::ReferenceAxis, id, std::move(w.bytes)), false);
+        return submit({ .operation = Op::ReferenceAxis,
+                        .motor = static_cast<std::uint8_t>(id),
+                        .axis_seek = seek,
+                        .axis_latch = latch,
+                        .timeout = timeout },
+                      false);
     }
     ControllerClient::GroupMotion ControllerClient::referenceAll(pnm::units::Time timeout)
     {
-        p2p::Writer w;
-        w.real(timeout.get());
-        auto m = submit(message(Op::ReferenceAll, {}, std::move(w.bytes)), true);
+        auto m = submit({ .operation = Op::ReferenceAll, .timeout = timeout }, true);
         return { .id = m.id,
                  .operation = Operation::Reference,
                  .duration = {},
@@ -359,10 +333,8 @@ namespace control
     }
     ControllerClient::GroupMotion ControllerClient::coordinate(const Trajectory& t, pnm::units::Time timeout)
     {
-        p2p::Writer w;
-        protocol::write(w, t);
-        w.real(timeout.get());
-        auto m = submit(message(Op::Trajectory, {}, std::move(w.bytes)), true, t.duration);
+        auto m =
+          submit({ .operation = Op::Trajectory, .trajectory = t, .timeout = timeout }, true, t.duration);
         return { .id = m.id,
                  .operation = Operation::Move,
                  .duration = t.duration,

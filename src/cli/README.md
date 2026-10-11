@@ -427,8 +427,9 @@ and frames before relying on physical tool coordinates.
 
 `main()` creates one IO-side `MotionController` and `ControllerServer`, and a
 UI-side `ControllerClient`. Each side has its own pneumo bus and coroutine
-context, connected through serialized `p2p::Bridge` routes and a paired
-`InProcessTransport`. Motor/axis commands and `Robot` share the client. CLI
+context. Both `p2p::Bridge` instances run on the dedicated p2p context and connect
+those buses through a paired `InProcessTransport`. The shared catalogs in
+`control/Messages.hpp` declare the routes and supply reflected bus access. Motor/axis commands and `Robot` share the client. CLI
 syntax and annotation registration remain unchanged; commands create no
 peripherals and do not hold the IO controller directly.
 

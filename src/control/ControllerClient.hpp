@@ -1,5 +1,5 @@
 #pragma once
-#include "Protocol.hpp"
+#include "Messages.hpp"
 
 namespace control
 {
@@ -47,12 +47,12 @@ namespace control
         std::vector<Motion> motions();
         std::vector<GroupMotion> groupMotions();
         void cancel(MotionId id);
-        pnm::coro::Task<protocol::Response> requestAsync(protocol::Request q);
+        pnm::coro::Task<messages::Response> requestAsync(messages::Request q);
 
       private:
         struct State;
         std::shared_ptr<State> m_state;
-        protocol::Response request(const protocol::Request& q) const;
-        Motion submit(const protocol::Request& q, bool group, pnm::units::Time duration = {});
+        messages::Response request(const messages::Request& q) const;
+        Motion submit(const messages::Goal& q, bool group, pnm::units::Time duration = {});
     };
 }

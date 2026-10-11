@@ -1,4 +1,4 @@
-add_library(application_control_common STATIC AxisConversion.cpp ScaraKinematics.cpp MotionProfile.cpp Protocol.cpp)
+add_library(application_control_common STATIC AxisConversion.cpp ScaraKinematics.cpp MotionProfile.cpp Messages.hpp)
 add_library(application::control_common ALIAS application_control_common)
 target_include_directories(application_control_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/.. ${PROJECT_SOURCE_DIR}/platform)
 target_link_libraries(application_control_common PUBLIC project_compiler_settings pneumo::pneumo application::p2p runtime::cxx_abi)
@@ -24,9 +24,8 @@ if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    # These translation units instantiate the messaging/codec templates. Motion
+    # These translation units instantiate the messaging templates. Motion
     # execution keeps its normal Debug settings; -Og preserves useful stepping.
     set_source_files_properties(ControllerClient.cpp ControllerServer.cpp PROPERTIES
         COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Og>")
-    set_source_files_properties(Protocol.cpp PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Os>")
 endif()
