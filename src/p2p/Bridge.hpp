@@ -1,49 +1,63 @@
 #pragma once
-#include "util/Core.hpp"
+
+#include <pneumo/coroutines.hpp>
+
+#include <cstdint>
+#include <stop_token>
+#include <string_view>
+
+namespace pnm::msg
+{
+    class Bus;
+}
 
 namespace p2p
 {
-    // Register routes before start(). Context has exactly one application-owned
-    // runner. close() schedules teardown; keep the bus/context alive until Closed.
+    class ITransport;
+
+    // First design step: forwarding topics between two independent local buses.
+    // Declarations only. Transport, serialization and route storage follow later.
     class Bridge final
     {
       public:
-        Bridge(pnm::msg::Bus& bus,
-               pnm::coro::Context& context,
-               std::shared_ptr<ITransport> transport,
-               Options options = {})
-          : m_core(std::make_shared<util::Core>(bus, context, std::move(transport), options))
-        {
-        }
-        ~Bridge() { m_core->close(); }
+        // The application owns these dependencies and keeps them alive until
+        // the bridge has stopped and been destroyed.
+        Bridge(pnm::msg::Bus& bus, pnm::coro::Context& context, ITransport& transport);
+        ~Bridge();
+
         Bridge(const Bridge&) = delete;
         Bridge& operator=(const Bridge&) = delete;
         Bridge(Bridge&&) = delete;
         Bridge& operator=(Bridge&&) = delete;
-        void start() { m_core->start(); }
-        void close() { m_core->close(); }
-        LinkState state() const { return m_core->state.load(); }
-        void onStateChanged(std::function<void(LinkState)> callback)
-        {
-            if (m_core->started.load())
-                throw std::logic_error("register p2p state handler before start");
-            m_core->changed = std::move(callback);
-        }
-        template<typename T>
-        void publishTopic(EndpointId id, std::string_view name);
-        template<typename T>
-        void receiveTopic(EndpointId id, std::string_view name);
-        template<typename Q, typename R>
-        void importService(EndpointId id, std::string_view name, Lane lane = Lane::Normal);
-        template<typename Q, typename R>
-        void exportService(EndpointId id, std::string_view name, Lane lane = Lane::Normal);
-        template<typename G, typename F, typename R>
-        void importAction(EndpointId id, std::string_view name);
-        template<typename G, typename F, typename R>
-        void exportAction(EndpointId id, std::string_view name);
+
+        // Local topic -> encode -> transport -> peer.
+        // Register before start(). The peer must call registerIncomingTopic<T>()
+        // with the same endpoint ID and compatible serialization for T.
+        template<pnm::utils::memory::Serializable T>
+        void registerOutgoingTopic(std::uint16_t endpoint, std::string_view localTopic);
+
+        // Peer -> transport -> decode -> publish on the local topic.
+        // The endpoint identifies the route across the connection; localTopic
+        // identifies it on this bus. The two sides may use different local names.
+        template<pnm::utils::memory::Serializable T>
+        void registerIncomingTopic(std::uint16_t endpoint, std::string_view localTopic);
+
+        // Start sendLoop() and receiveLoop() on the application-run context.
+        void start();
+
+        // Request cancellation and wait for both loops to finish their cleanup.
+        // Call from outside the context runner so the loops can finish.
+        void stop();
 
       private:
-        std::shared_ptr<util::Core> m_core;
+        // Await a local outgoing frame, keeping its storage until send() completes.
+        pnm::coro::Task<void> sendLoop(std::stop_token stop);
+
+        // Receive into a local buffer, then dispatch the returned bytes to the bus.
+        pnm::coro::Task<void> receiveLoop(std::stop_token stop);
+
+        pnm::msg::Bus& m_bus;
+        pnm::coro::Context& m_context;
+        ITransport& m_transport;
     };
 }
-#include "util/Routes.hpp"

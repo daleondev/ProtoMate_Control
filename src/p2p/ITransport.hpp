@@ -1,48 +1,49 @@
 #pragma once
 
+#include <pneumo/coroutines.hpp>
+
 #include <cstddef>
-#include <cstdint>
-#include <functional>
+#include <expected>
 #include <span>
-#include <vector>
+#include <stop_token>
 
 namespace p2p
 {
-    using Bytes = std::vector<std::byte>;
-    enum class Lane : std::uint8_t
-    {
-        Normal,
-        Urgent
-    };
-    enum class SendResult : std::uint8_t
-    {
-        Sent,
-        Full,
-        Disconnected
-    };
-    struct Capacity
-    {
-        std::size_t available_frames{}, maximum_frame_bytes{};
-    };
-
-    // Reliable, ordered complete frames within each lane, until disconnection.
-    // Urgent frames may overtake normal frames. Each endpoint has one IO owner.
-    // Notifications may coalesce; receive() is the source of truth. Callbacks only
-    // schedule work, never dispatch inline, and must not throw. No ISR calls here.
+    // One endpoint of a connection between two bridges. Transfers complete,
+    // ordered byte frames; message types and endpoint IDs belong to the bridge.
+    // One send and one receive may be pending concurrently. Waiting suspends
+    // the calling coroutine, leaving the context free to run other work.
     class ITransport
     {
       public:
-        ITransport() = default;
-        ITransport(const ITransport&) = delete;
-        ITransport& operator=(const ITransport&) = delete;
-        ITransport(ITransport&&) = delete;
-        ITransport& operator=(ITransport&&) = delete;
+        enum class Error
+        {
+            Cancelled,
+            Disconnected,
+            TooLarge,
+            BufferTooSmall
+        };
+
         virtual ~ITransport() = default;
-        virtual SendResult trySend(std::span<const std::byte> frame, Lane lane) = 0;
-        virtual bool tryReceive(Bytes& frame) = 0;
-        virtual bool connected() const = 0;
-        virtual Capacity capacity(Lane lane) const = 0;
-        // Empty callback disconnects notifications; an in-flight invocation may finish.
-        virtual void setWakeup(std::function<void()> callback) = 0;
+
+        // Borrows the frame and waits asynchronously for send space. Keep its
+        // memory alive and unchanged until the returned task completes.
+        // Success means queued, not processed by the peer. An error means the
+        // frame was not queued; cancellation cannot recall an accepted frame.
+        virtual pnm::coro::Task<pnm::EmptyResult<Error>> send(std::span<const std::byte> frame,
+                                                              std::stop_token stop = {}) = 0;
+
+        // Waits asynchronously for the next complete frame, writes it into buffer
+        // and returns its byte count. Keep the buffer alive and exclusively
+        // available to this operation until the returned task completes.
+        // BufferTooSmall leaves the frame queued for a retry with a larger buffer.
+        // Errors leave the buffer unchanged and do not consume a frame.
+        virtual pnm::coro::Task<pnm::Result<std::size_t, Error>> receive(std::span<std::byte> buffer,
+                                                                         std::stop_token stop = {}) = 0;
+
+        // Both operations must wake when cancellation is requested, even when
+        // the peer is idle. Completion, including cancellation, guarantees no
+        // further access to the borrowed memory. The transport must outlive all
+        // its pending operations.
     };
 }
