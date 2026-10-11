@@ -124,28 +124,24 @@ namespace
         }
     }
 
+    // STM32 register macros intentionally access peripherals at fixed addresses.
+    // NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     auto panic_uart_write_character(char character) noexcept -> void
     {
         constexpr std::uint32_t enabled_mask{ USART_CR1_UE | USART_CR1_TE };
-        if (
-          (COM1_UART->CR1 &
-           enabled_mask) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          enabled_mask) { // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        if ((COM1_UART->CR1 & enabled_mask) != enabled_mask) {
             return;
         }
 
         std::uint32_t remaining{ UART_SPIN_LIMIT };
-        while ((COM1_UART->ISR & USART_ISR_TXE_TXFNF) ==
-                 0U &&            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-               remaining != 0U) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        while ((COM1_UART->ISR & USART_ISR_TXE_TXFNF) == 0U && remaining != 0U) {
             --remaining;
         }
         if (remaining != 0U) {
-            COM1_UART->TDR = static_cast<
-              std::uint8_t>( // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              character);    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            COM1_UART->TDR = static_cast<std::uint8_t>(character);
         }
     }
+    // NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 
     auto panic_write(const char* text) noexcept -> void
     {
@@ -174,37 +170,28 @@ namespace
         }
     }
 
+    // STM32 register macros intentionally access peripherals at fixed addresses.
+    // NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     auto configure_red_led() noexcept -> void
     {
-        LED3_GPIO_CLK_ENABLE(); // NOLINT(cppcoreguidelines-avoid-do-while,clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while) -- Vendor macro.
+        LED3_GPIO_CLK_ENABLE();
         __DSB();
 
         constexpr std::uint32_t mode_shift{ RED_LED_PIN_NUMBER * GPIO_MODE_BITS };
         constexpr std::uint32_t mode_mask{ 0x3U << mode_shift };
-        LED3_GPIO_PORT->MODER = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          (LED3_GPIO_PORT->MODER &
-           ~mode_mask) |           // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          (0x1U << mode_shift);    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        LED3_GPIO_PORT->OTYPER &=  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          ~LED3_PIN;               // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        LED3_GPIO_PORT->OSPEEDR &= // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          ~mode_mask;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        LED3_GPIO_PORT->PUPDR &=   // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          ~mode_mask;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        LED3_GPIO_PORT->BSRR =     // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          static_cast<std::uint32_t>(LED3_PIN)
-          << GPIO_RESET_SHIFT; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        LED3_GPIO_PORT->MODER = (LED3_GPIO_PORT->MODER & ~mode_mask) | (0x1U << mode_shift);
+        LED3_GPIO_PORT->OTYPER &= ~LED3_PIN;
+        LED3_GPIO_PORT->OSPEEDR &= ~mode_mask;
+        LED3_GPIO_PORT->PUPDR &= ~mode_mask;
+        LED3_GPIO_PORT->BSRR = static_cast<std::uint32_t>(LED3_PIN) << GPIO_RESET_SHIFT;
     }
 
     auto set_red_led(bool on) noexcept -> void
     {
-        LED3_GPIO_PORT
-          ->BSRR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          on
-            ? LED3_PIN
-            : static_cast<std::uint32_t>(LED3_PIN)
-                << GPIO_RESET_SHIFT; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        LED3_GPIO_PORT->BSRR = on ? LED3_PIN : static_cast<std::uint32_t>(LED3_PIN) << GPIO_RESET_SHIFT;
     }
+    // NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 
     auto panic_delay() noexcept -> void
     {
@@ -276,15 +263,13 @@ extern "C" int __io_putchar( // NOLINT(bugprone-reserved-identifier)
     return status == HAL_OK ? static_cast<int>(byte) : -1;
 }
 
+// STM32 register macros intentionally access peripherals at fixed addresses.
+// NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 extern "C" void USART3_IRQHandler() noexcept
 {
     bool notify_reader{};
-    while (
-      (COM1_UART->ISR &
-       USART_ISR_RXNE_RXFNE) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-      0U) { // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        const std::uint8_t character{ static_cast<std::uint8_t>(
-          COM1_UART->RDR) }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+    while ((COM1_UART->ISR & USART_ISR_RXNE_RXFNE) != 0U) {
+        const std::uint8_t character{ static_cast<std::uint8_t>(COM1_UART->RDR) };
         const std::size_t write{ console_input_write.load(std::memory_order_relaxed) };
         const std::size_t next{ (write + 1U) & (CONSOLE_INPUT_BUFFER_SIZE - 1U) };
         if (next != console_input_read.load(std::memory_order_acquire)) {
@@ -297,21 +282,17 @@ extern "C" void USART3_IRQHandler() noexcept
         notify_reader = true;
     }
 
-    if ((COM1_UART->ISR &
-         USART_ISR_IDLE) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        0U) {               // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        COM1_UART->ICR =    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          USART_ICR_IDLECF; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+    if ((COM1_UART->ISR & USART_ISR_IDLE) != 0U) {
+        COM1_UART->ICR = USART_ICR_IDLECF;
         notify_reader = true;
     }
 
-    COM1_UART->ICR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-      USART_ICR_PECF | USART_ICR_FECF | USART_ICR_NECF |
-      USART_ICR_ORECF; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+    COM1_UART->ICR = USART_ICR_PECF | USART_ICR_FECF | USART_ICR_NECF | USART_ICR_ORECF;
     if (notify_reader) {
         static_cast<void>(tx_semaphore_ceiling_put(&console_input_available, 1U));
     }
 }
+// NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 
 extern "C" [[gnu::weak, gnu::noinline, noreturn]] void hal_panic_handler(const HalPanicInfo* info) noexcept
 {
