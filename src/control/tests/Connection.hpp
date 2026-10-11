@@ -3,7 +3,7 @@
 #pragma once
 #include "control/ControllerClient.hpp"
 #include "control/ControllerServer.hpp"
-#include "p2p/InProcessTransport.hpp"
+#include "p2p/transport/InProcessTransport.hpp"
 #include "runtime/thread.hpp"
 
 namespace control::test

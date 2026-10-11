@@ -330,6 +330,22 @@ Actions, sessions, link health and the Robot/Controller integration are pending;
 the normal application's control wiring still depends on those APIs. Build the
 isolated [two-bus examples](src/p2p/examples/README.md) to run the current bridge.
 
+The implementation separates message routing from byte transport:
+
+| Location | Responsibility |
+| --- | --- |
+| [bridge/Bridge](src/p2p/bridge/Bridge.hpp) | Public registration API, lifecycle, send/receive loops, fair scheduling and failure handling |
+| [bridge/TopicBridge](src/p2p/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
+| [bridge/ServiceBridge](src/p2p/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
+| [bridge/Frame](src/p2p/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/p2p/bridge/OutgoingWakeup.hpp) | Shared wire encoding and a coalesced readiness signal |
+| [transport/](src/p2p/transport/ITransport.hpp) | Transport interface and paired in-process transport; transfers bytes without interpreting messages |
+
+`Bridge` owns both helpers by value and serializes registration against startup.
+The helpers run on its coroutine context and cannot call back into `Bridge` or
+access the transport. Shutdown drains service calls after both loops finish,
+then disconnects topic subscriptions. `thread.hpp`/`thread.cpp` remain the
+application-owned context and thread entry, outside the portable library.
+
 ```mermaid
 flowchart LR
     IO[IO bus] <--> IB[IO bridge]

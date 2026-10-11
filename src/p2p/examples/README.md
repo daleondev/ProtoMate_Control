@@ -13,6 +13,15 @@ ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 The examples build independently of the unfinished Robot/Controller integration
 and require no hardware. The repository build uses its Linux/ThreadX runtime.
 
+The application includes `p2p/bridge/Bridge.hpp` and
+`p2p/transport/InProcessTransport.hpp`. Registration still goes through `Bridge`.
+For implementation details, read [Bridge.cpp](../bridge/Bridge.cpp) for the
+send/receive loops and lifecycle, [TopicBridge.hpp](../bridge/TopicBridge.hpp)
+for topic routing, and [ServiceBridge.hpp](../bridge/ServiceBridge.hpp) for
+service routing. Their non-template logic lives in the matching `.cpp` files;
+the helpers share frame encoding and readiness utilities in `bridge/`.
+The byte transport is isolated in [transport/](../transport/ITransport.hpp).
+
 Start with [Topics.hpp](Topics.hpp), then read [topics.cpp](topics.cpp).
 The catalog is where we specify **what crosses the bridge and who publishes it**:
 

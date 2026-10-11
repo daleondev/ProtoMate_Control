@@ -1,7 +1,7 @@
 #include "Services.hpp"
 
-#include "p2p/Bridge.hpp"
-#include "p2p/InProcessTransport.hpp"
+#include "p2p/bridge/Bridge.hpp"
+#include "p2p/transport/InProcessTransport.hpp"
 
 #include <chrono>
 #include <iostream>

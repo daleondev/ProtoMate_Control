@@ -9,7 +9,7 @@
 #include "control/ControllerServer.hpp"
 #include "control/MotionController.hpp"
 #include "control/Robot.hpp"
-#include "p2p/InProcessTransport.hpp"
+#include "p2p/transport/InProcessTransport.hpp"
 #include "p2p/thread.hpp"
 #include "pneumo/pneumo.hpp"
 #include "system_threads.hpp"

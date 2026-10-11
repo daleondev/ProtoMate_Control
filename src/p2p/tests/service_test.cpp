@@ -1,5 +1,5 @@
-#include "p2p/Bridge.hpp"
-#include "p2p/InProcessTransport.hpp"
+#include "p2p/bridge/Bridge.hpp"
+#include "p2p/transport/InProcessTransport.hpp"
 
 #include <gtest/gtest.h>
 
@@ -379,6 +379,62 @@ namespace
         ui.stop();
         EXPECT_FALSE(io.failure());
         EXPECT_FALSE(ui.failure());
+    }
+
+    TEST(ServiceLifecycle, DestructionBeforeStartReleasesProxiesAndQueuedCalls)
+    {
+        pnm::coro::Context context;
+        pnm::msg::Bus bus;
+        auto endpoints = p2p::InProcessTransport::pair();
+        std::optional<Call> queued;
+        {
+            p2p::Bridge bridge(bus, context, *endpoints[0]);
+            bridge.registerOutgoingService<std::string, std::string>("remote");
+            bridge.registerOutgoingTopic<std::string>("state");
+            queued.emplace(bus.service<std::string, std::string>("remote").request("queued", 1s));
+            bus.topic<std::string>("state").publish("idle");
+            EXPECT_FALSE(queued->ready());
+        }
+        ASSERT_TRUE(queued->ready());
+        EXPECT_EQ(queued->get(), std::unexpected(Error::Unavailable));
+        auto replacement = bus.service<std::string, std::string>("remote").serve(
+          [](const auto& value) { return value; });
+        auto call = bus.service<std::string, std::string>("remote").request("new provider", 1s);
+        EXPECT_EQ(replacement.poll(), 1U);
+        EXPECT_EQ(call.get(), "new provider");
+    }
+
+    TEST(ServiceLifecycle, RegistrationRemainsClosedAfterStartAndStop)
+    {
+        enum class Publisher { IO, UI };
+        struct Topics
+        {
+            [[= Publisher::IO]] pnm::msg::Topic<std::string> state;
+        };
+        pnm::coro::Context context;
+        pnm::msg::Bus bus;
+        auto endpoints = p2p::InProcessTransport::pair();
+        std::jthread runner([&](std::stop_token stop) {
+            std::stop_callback cancellation{stop, [&] { context.stop(); }};
+            context.run();
+        });
+        p2p::Bridge bridge(bus, context, *endpoints[0]);
+        bridge.registerTopics<Topics>(Publisher::IO);
+        bridge.registerServices<Services>(Provider::UI);
+        bridge.start();
+        for (unsigned attempt = 0; attempt < 2; ++attempt) {
+            EXPECT_THROW(bridge.registerTopics<Topics>(Publisher::IO), std::logic_error);
+            EXPECT_THROW(bridge.registerServices<Services>(Provider::UI), std::logic_error);
+            EXPECT_THROW(bridge.registerOutgoingTopic<int>("extra/topic/out"), std::logic_error);
+            EXPECT_THROW(bridge.registerIncomingTopic<int>("extra/topic/in"), std::logic_error);
+            EXPECT_THROW((bridge.registerOutgoingService<int, int>("extra/service/out")), std::logic_error);
+            EXPECT_THROW((bridge.registerIncomingService<int, int>("extra/service/in")), std::logic_error);
+            EXPECT_THROW(bridge.start(), std::logic_error);
+            bridge.stop(); // Also verifies repeated stop after helper cleanup.
+        }
+        EXPECT_FALSE(bridge.failure());
+        auto unavailable = bus.service<^^Services::io_echo>().request("after stop", 1s);
+        EXPECT_EQ(unavailable.get(), std::unexpected(Error::Unavailable));
     }
 
     TEST(ServiceRegistration, ValidatesOwnershipAndDuplicateNamesBeforeStarting)

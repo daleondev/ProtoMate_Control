@@ -1,6 +1,6 @@
 #pragma once
 #include "ControllerTypes.hpp"
-#include "p2p/Bridge.hpp"
+#include "p2p/bridge/Bridge.hpp"
 
 namespace control::protocol
 {
