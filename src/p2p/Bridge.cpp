@@ -1,5 +1,6 @@
 #include "Bridge.hpp"
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -12,10 +13,7 @@ namespace p2p
     {
     }
 
-    Bridge::~Bridge()
-    {
-        stop();
-    }
+    Bridge::~Bridge() { stop(); }
 
     void Bridge::start()
     {
@@ -60,6 +58,9 @@ namespace p2p
 
         std::unique_lock lock(m_mutex);
         m_finished.wait(lock, [this] { return !m_sendRunning && !m_receiveRunning; });
+        m_outgoingTopics.clear();
+        m_incomingTopics.clear();
+        m_outgoingWakeup->ready.close();
     }
 
     std::optional<Bridge::Failure> Bridge::failure() const
@@ -68,8 +69,101 @@ namespace p2p
         return m_failure;
     }
 
+    void Bridge::OutgoingWakeup::notify() noexcept
+    {
+        if (pending.test_and_set())
+            return;
+        try {
+            ready.push(true);
+        } catch (...) {
+            // Readiness callbacks cannot throw. Closing wakes the sender so it
+            // can report a notification failure instead of silently waiting forever.
+            ready.close();
+        }
+    }
+
+    void Bridge::checkTopicRegistration(std::string_view topic) const
+    {
+        if (m_started)
+            throw std::logic_error("Register bridge topics before start");
+        if (topic.empty())
+            throw std::invalid_argument("Bridge topics require a name");
+        if (topic.size() > MAX_FRAME_BYTES - HEADER_BYTES)
+            throw std::length_error("Topic name exceeds the bridge frame capacity");
+        const auto duplicate = [topic](const auto& registered) { return registered.name == topic; };
+        if (std::ranges::any_of(m_outgoingTopics, duplicate) ||
+            std::ranges::any_of(m_incomingTopics, duplicate))
+            throw std::invalid_argument("Bridge topic must be registered only once");
+        if (m_outgoingTopics.size() + m_incomingTopics.size() >= MAX_TOPICS)
+            throw std::length_error("Bridge topic capacity reached");
+    }
+
+    Bridge::OutgoingFrame Bridge::makeOutgoingFrame(const std::string& topic, std::size_t payloadSize)
+    {
+        const auto topicSize = pnm::utils::memory::SerializationAdapter<std::string>::bufferSize(topic);
+        if (topicSize > MAX_FRAME_BYTES - HEADER_BYTES ||
+            payloadSize > MAX_FRAME_BYTES - HEADER_BYTES - topicSize)
+            throw std::length_error("Serialized topic exceeds the bridge frame capacity");
+
+        OutgoingFrame frame;
+        frame.size = HEADER_BYTES + topicSize + payloadSize;
+        frame.bytes[0] = static_cast<std::byte>(FRAME_VERSION);
+        frame.bytes[1] = static_cast<std::byte>(topicSize & 0xFFU);
+        frame.bytes[2] = static_cast<std::byte>(topicSize >> 8U);
+        if (!pnm::utils::memory::serialize(topic, std::span(frame.bytes).subspan(HEADER_BYTES, topicSize)))
+            throw std::length_error("Cannot serialize topic name into its frame");
+        return frame;
+    }
+
+    pnm::coro::Task<std::optional<Bridge::OutgoingFrame>> Bridge::nextOutgoingFrame(std::stop_token stop)
+    {
+        while (!stop.stop_requested()) {
+            // Scan each bounded subscription once. Rotating the starting point
+            // prevents one frequently published topic from starving the others.
+            for (std::size_t offset = 0; offset < m_outgoingTopics.size(); ++offset) {
+                const auto index = (m_nextOutgoingTopic + offset) % m_outgoingTopics.size();
+                if (auto frame = m_outgoingTopics[index].take()) {
+                    m_nextOutgoingTopic = (index + 1) % m_outgoingTopics.size();
+                    co_return frame;
+                }
+            }
+
+            if (!(co_await m_outgoingWakeup->ready.next(stop))) {
+                if (stop.stop_requested())
+                    co_return std::nullopt;
+                throw std::runtime_error("Bridge outgoing notification failed");
+            }
+            // Rescan after clearing the signal. A publication racing this clear
+            // either remains in its subscription or supplies the next wakeup.
+            m_outgoingWakeup->pending.clear();
+        }
+        co_return std::nullopt;
+    }
+
+    void Bridge::dispatchIncomingFrame(std::span<const std::byte> frame)
+    {
+        if (frame.size() < HEADER_BYTES || frame.size() > MAX_FRAME_BYTES)
+            throw std::invalid_argument("Invalid bridge frame size");
+        if (std::to_integer<std::uint8_t>(frame[0]) != FRAME_VERSION)
+            throw std::invalid_argument("Unsupported bridge frame version");
+
+        const auto topicSize =
+          std::to_integer<std::size_t>(frame[1]) | (std::to_integer<std::size_t>(frame[2]) << 8U);
+        if (topicSize == 0 || topicSize > frame.size() - HEADER_BYTES)
+            throw std::invalid_argument("Invalid bridge topic length");
+
+        std::string name;
+        if (!pnm::utils::memory::deserialize(frame.subspan(HEADER_BYTES, topicSize), name))
+            throw std::invalid_argument("Invalid bridge topic name");
+        const auto topic = std::ranges::find(m_incomingTopics, name, &IncomingTopic::name);
+        if (topic == m_incomingTopics.end())
+            throw std::invalid_argument("Unknown incoming bridge topic");
+
+        topic->publish(frame.subspan(HEADER_BYTES + topicSize));
+    }
+
     pnm::coro::Task<void> Bridge::runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop,
-                                       bool& running)
+                                          bool& running)
     {
         std::optional<Failure> failure;
         try {

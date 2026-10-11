@@ -10,7 +10,7 @@
 namespace p2p
 {
     // One endpoint of a connection between two bridges. Transfers complete,
-    // ordered byte frames; message types and endpoint IDs belong to the bridge.
+    // ordered byte frames; message types and topic names belong to the bridge.
     // One send and one receive may be pending concurrently. Waiting suspends
     // the calling coroutine, leaving the context free to run other work.
     class ITransport
