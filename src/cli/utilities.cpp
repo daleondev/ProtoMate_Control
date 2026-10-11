@@ -151,8 +151,9 @@ namespace cli::utilities
                 for (;;) {
                     threads_info.push_back(get_thread_information(current_thread));
                     current_thread = current_thread->tx_thread_created_next;
-                    if (!(current_thread != first_thread))
+                    if (!(current_thread != first_thread)) {
                         break;
+                    }
                 }
 
                 return threads_info;

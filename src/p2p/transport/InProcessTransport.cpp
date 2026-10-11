@@ -59,14 +59,18 @@ namespace p2p
         auto& queue = shared->inbox[1 - m_side].at(static_cast<std::size_t>(lane));
         std::unique_lock lock(shared->mutex);
         for (;;) {
-            if (stop.stop_requested())
+            if (stop.stop_requested()) {
                 co_return std::unexpected(Error::Cancelled);
-            if (shared->closed)
+            }
+            if (shared->closed) {
                 co_return std::unexpected(Error::Disconnected);
-            if (frame.size() > MAX_FRAME_BYTES)
+            }
+            if (frame.size() > MAX_FRAME_BYTES) {
                 co_return std::unexpected(Error::TooLarge);
-            if (queue.count < FRAME_CAPACITY)
+            }
+            if (queue.count < FRAME_CAPACITY) {
                 break;
+            }
 
             pnm::coro::Channel<bool> ready;
             queue.space_ready = ready;
@@ -84,8 +88,9 @@ namespace p2p
         auto wake = std::exchange(queue.data_ready, std::nullopt);
         lock.unlock();
         // A wakeup may resume a coroutine inline. Never notify under the queue lock.
-        if (wake)
+        if (wake) {
             wake->close();
+        }
         co_return pnm::EmptyResult<Error>{};
     }
 
@@ -98,12 +103,15 @@ namespace p2p
         auto& queue = shared->inbox[m_side].at(static_cast<std::size_t>(lane));
         std::unique_lock lock(shared->mutex);
         for (;;) {
-            if (stop.stop_requested())
+            if (stop.stop_requested()) {
                 co_return std::unexpected(Error::Cancelled);
-            if (shared->closed)
+            }
+            if (shared->closed) {
                 co_return std::unexpected(Error::Disconnected);
-            if (queue.count != 0)
+            }
+            if (queue.count != 0) {
                 break;
+            }
 
             pnm::coro::Channel<bool> ready;
             queue.data_ready = ready;
@@ -114,8 +122,9 @@ namespace p2p
         }
 
         const auto& slot = queue.frames[queue.head];
-        if (slot.size > buffer.size())
+        if (slot.size > buffer.size()) {
             co_return std::unexpected(Error::BufferTooSmall);
+        }
 
         const auto size = slot.size;
         std::ranges::copy(std::span(slot.bytes).first(size), buffer.begin());
@@ -123,8 +132,9 @@ namespace p2p
         --queue.count;
         auto wake = std::exchange(queue.space_ready, std::nullopt);
         lock.unlock();
-        if (wake)
+        if (wake) {
             wake->close();
+        }
         co_return size;
     }
 
@@ -134,8 +144,9 @@ namespace p2p
         std::array<std::optional<pnm::coro::Channel<bool>>, signal_count> wake;
         {
             std::scoped_lock lock(m_shared->mutex);
-            if (m_shared->closed)
+            if (m_shared->closed) {
                 return;
+            }
             m_shared->closed = true;
             for (std::size_t side = 0; side < m_shared->inbox.size(); ++side) {
                 for (std::size_t lane = 0; lane < 2; ++lane) {
@@ -147,9 +158,11 @@ namespace p2p
                 }
             }
         }
-        for (auto& signal : wake)
-            if (signal)
+        for (auto& signal : wake) {
+            if (signal) {
                 signal->close();
+            }
+        }
     }
 }
 

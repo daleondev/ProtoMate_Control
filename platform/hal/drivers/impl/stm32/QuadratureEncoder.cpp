@@ -128,8 +128,9 @@ namespace hal
     auto QuadratureEncoder::dispatchTimebase() noexcept -> void
     {
         const stm32::InterruptGuard guard;
-        if (s_instance == nullptr || !s_instance->m_running)
+        if (s_instance == nullptr || !s_instance->m_running) {
             return;
+        }
         const auto timestamp{ now() };
         if (s_instance->m_sampler.due(timestamp)) {
             s_instance->sample();

@@ -16,8 +16,9 @@ namespace control
         }
         void checked(const messages::Response& response)
         {
-            if (!response.success)
+            if (!response.success) {
                 throw std::runtime_error(response.error);
+            }
         }
     }
     struct ControllerClient::State
@@ -52,8 +53,9 @@ namespace control
             {
                 self->scheduled.store(false);
                 try {
-                    if (self->goal)
+                    if (self->goal) {
                         self->goal->poll();
+                    }
                 } catch (...) {
                     self->finish(MotorResult::Faulted, "motion response dispatch failed", false, false);
                 }
@@ -62,8 +64,9 @@ namespace control
             // NOLINTEND(readability-static-accessed-through-instance)
             void signal() noexcept
             {
-                if (scheduled.exchange(true))
+                if (scheduled.exchange(true)) {
                     return;
+                }
                 try {
                     pnm::coro::co_spawn(context,
                                         [self = shared_from_this()](pnm::coro::Context& /*context*/) {
@@ -78,8 +81,9 @@ namespace control
                         bool invalid = false,
                         bool confirmed = true)
             {
-                if (finished)
+                if (finished) {
                     return;
+                }
                 finished = true;
                 terminal_confirmed.store(confirmed);
                 if (!admission_resolved) {
@@ -108,9 +112,11 @@ namespace control
     ControllerClient::~ControllerClient()
     {
         std::scoped_lock lock(m_state->mutex);
-        for (auto& job : m_state->jobs)
-            if (job->goal)
+        for (auto& job : m_state->jobs) {
+            if (job->goal) {
                 job->goal->requestCancel();
+            }
+        }
     }
     messages::Response ControllerClient::request(const messages::Request& q) const
     {
@@ -118,9 +124,10 @@ namespace control
                          ? m_state->bus.service<^^messages::Services::stop>()
                          : m_state->bus.service<^^messages::Services::request>();
         auto response = service.call(q, 5s);
-        if (!response)
+        if (!response) {
             throw std::runtime_error("IO request failed (unavailable, busy, timeout or disconnected); "
                                      "physical state may be unknown");
+        }
         checked(*response);
         return std::move(*response);
     }
@@ -133,8 +140,9 @@ namespace control
                          ? state->coroutine_bus.service<^^messages::Services::stop>()
                          : state->coroutine_bus.service<^^messages::Services::request>();
         auto response = co_await service.request(q, 5s);
-        if (!response)
+        if (!response) {
             throw std::runtime_error("IO request failed");
+        }
         checked(*response);
         co_return std::move(*response);
     }
@@ -165,8 +173,9 @@ namespace control
     {
         const auto response = request(message(Op::Drivers));
         std::array<DriverStatus, 3> result;
-        for (std::size_t i = 0; i < result.size(); ++i)
+        for (std::size_t i = 0; i < result.size(); ++i) {
             result[i] = response.drivers[i].status();
+        }
         return result;
     }
     ControllerClient::AxisConfig ControllerClient::motorConfiguration(MotorId id) const
@@ -176,8 +185,9 @@ namespace control
     ControllerClient::Conversion ControllerClient::axisConversion(MotorId id) const
     {
         auto c = planningSnapshot().status.axes.at(static_cast<unsigned>(id)).conversion;
-        if (!c)
+        if (!c) {
             throw std::runtime_error("axis mechanics not configured");
+        }
         return *c;
     }
     MotionDefaults ControllerClient::defaults(MotorId id) const
@@ -231,8 +241,9 @@ namespace control
                 auto old = std::ranges::find_if(state->jobs, [&](const auto& j) {
                     return j->group == group && j->completion.result().has_value();
                 });
-                if (old == state->jobs.end())
+                if (old == state->jobs.end()) {
                     throw std::runtime_error("motion job registry full");
+                }
                 state->jobs.erase(old);
             }
             state->jobs.push_back(job);
@@ -240,9 +251,7 @@ namespace control
         auto weak = std::weak_ptr<State::Job>(job);
         try {
             job->goal.emplace(
-              state->bus
-                .action<^^messages::Actions::execute>()
-                .sendGoal(q, { 2s }, { .on_accepted = [weak] {
+              state->bus.action<^^messages::Actions::execute>().sendGoal(q, { 2s }, { .on_accepted = [weak] {
                 if (auto j = weak.lock()) {
                     if (!j->admission_resolved) {
                         j->admission_resolved = true;
@@ -251,18 +260,21 @@ namespace control
                 }
             }, .on_feedback = {}, .on_result = [weak](auto result) {
                 if (auto j = weak.lock()) {
-                    if (result)
+                    if (result) {
                         j->finish(result->value.result, result->value.error, result->value.invalid_argument);
-                    else
+                    }
+                    else {
                         j->finish(MotorResult::Faulted,
                                   "IO motion failed or link lost; stopped state is not confirmed",
                                   false,
                                   false);
+                    }
                 }
             } }));
             job->watch = pnm::msg::watch(*job->goal, [weak]() noexcept {
-                if (auto j = weak.lock())
+                if (auto j = weak.lock()) {
                     j->signal();
+                }
             });
             if (accepted.wait_for(3s) != std::future_status::ready) {
                 job->goal->requestCancel();
@@ -274,8 +286,9 @@ namespace control
                 job->id = state->next++;
             }
         } catch (...) {
-            if (job->goal)
+            if (job->goal) {
                 job->goal->requestCancel();
+            }
             {
                 std::scoped_lock lock(state->mutex);
                 std::erase(state->jobs, job);
@@ -364,22 +377,24 @@ namespace control
     {
         std::scoped_lock lock(m_state->mutex);
         std::vector<Motion> result;
-        for (auto& j : m_state->jobs)
-            if (j->id && !j->group)
+        for (auto& j : m_state->jobs) {
+            if (j->id && !j->group) {
                 result.push_back({ j->id,
                                    j->motor,
                                    j->completion.result(),
                                    j->future,
                                    j->completion,
                                    j->terminal_confirmed.load() });
+            }
+        }
         return result;
     }
     std::vector<ControllerClient::GroupMotion> ControllerClient::groupMotions()
     {
         std::scoped_lock lock(m_state->mutex);
         std::vector<GroupMotion> result;
-        for (auto& j : m_state->jobs)
-            if (j->id && j->group)
+        for (auto& j : m_state->jobs) {
+            if (j->id && j->group) {
                 result.push_back({ j->id,
                                    j->operation,
                                    j->duration,
@@ -387,17 +402,21 @@ namespace control
                                    j->future,
                                    j->completion,
                                    j->terminal_confirmed.load() });
+            }
+        }
         return result;
     }
     void ControllerClient::cancel(MotionId id)
     {
         std::scoped_lock lock(m_state->mutex);
-        for (auto& j : m_state->jobs)
+        for (auto& j : m_state->jobs) {
             if (j->id == id) {
-                if (j->goal)
+                if (j->goal) {
                     j->goal->requestCancel();
+                }
                 return;
             }
+        }
         throw std::invalid_argument("unknown motion ID");
     }
 }

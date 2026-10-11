@@ -56,7 +56,6 @@ namespace p2p
         ServiceBridge& operator=(ServiceBridge&&) = delete;
 
       private:
-
         template<typename Catalog, typename Provider>
             requires std::is_enum_v<Provider>
         void registerCatalog(Provider local_provider);
@@ -145,8 +144,9 @@ namespace p2p
         constexpr auto first{ enumerators[0] };
         constexpr auto second{ enumerators[1] };
         static_assert(first != second, "Service providers must have distinct values");
-        if (local_provider != first && local_provider != second)
+        if (local_provider != first && local_provider != second) {
             throw std::invalid_argument("Unknown local service provider");
+        }
 
         static constexpr auto members{ std::define_static_array(
           std::meta::members_of(^^Catalog, std::meta::access_context::current())) };
@@ -156,8 +156,7 @@ namespace p2p
         template for (constexpr auto member : members)
         {
             // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
-            constexpr auto providers{ std::define_static_array(
-              util::annotations_of_type<Provider>(member)) };
+            constexpr auto providers{ std::define_static_array(util::annotations_of_type<Provider>(member)) };
             if constexpr (!providers.empty()) {
                 static_assert(providers.size() == 1, "A service must have exactly one provider");
                 static_assert(std::meta::is_nonstatic_data_member(member),
@@ -173,16 +172,20 @@ namespace p2p
                       std::define_static_array(util::annotations_of_type<Lane>(member));
                     static_assert(lanes.size() <= 1, "A service may select only one transport lane");
                     constexpr auto lane = [] {
-                        if constexpr (lanes.empty())
+                        if constexpr (lanes.empty()) {
                             return Lane::Normal;
-                        else
+                        }
+                        else {
                             return std::meta::extract<Lane>(lanes[0]);
+                        }
                     }();
                     static_assert(lane == Lane::Normal || lane == Lane::Urgent, "Unknown service lane");
-                    if (provider == local_provider)
+                    if (provider == local_provider) {
                         registerIncoming<Request, Response>(Metadata::name, lane);
-                    else
+                    }
+                    else {
                         registerOutgoing<Request, Response>(Metadata::name, lane);
+                    }
                 }
             }
         }
@@ -230,8 +233,9 @@ namespace p2p
                     }
                     try {
                         Response response{};
-                        if (!pnm::utils::memory::deserialize(bytes, response))
+                        if (!pnm::utils::memory::deserialize(bytes, response)) {
                             throw std::invalid_argument("Invalid service response");
+                        }
                         owned->respond(response);
                     } catch (...) {
                         owned->fail(ServiceError::TransportError);
@@ -263,8 +267,9 @@ namespace p2p
           [this, local = m_bus.service<Request, Response>(service), lane](
             std::uint64_t id, std::span<const std::byte> bytes, std::chrono::milliseconds timeout) {
             Request value{};
-            if (!pnm::utils::memory::deserialize(bytes, value))
+            if (!pnm::utils::memory::deserialize(bytes, value)) {
                 throw std::invalid_argument("Invalid service request");
+            }
             // request() enqueues for the application's provider; it never executes
             // its handler here. Only inspect get() after ready() confirms completion.
             auto call = std::make_shared<pnm::msg::PendingCall<Response>>(local.request(value, timeout));
@@ -274,11 +279,13 @@ namespace p2p
                 .id = id,
                 .lane = lane,
                 .take = [call, id]() -> std::optional<OutgoingFrame> {
-                if (!call->ready())
+                if (!call->ready()) {
                     return std::nullopt;
+                }
                 auto result = call->get();
-                if (!result)
+                if (!result) {
                     return makeServiceError(id, result.error());
+                }
                 try {
                     return util::encode_frame(FrameKind::Response, {}, id, *result);
                 } catch (...) {

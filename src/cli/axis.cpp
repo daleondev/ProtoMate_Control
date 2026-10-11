@@ -34,12 +34,15 @@ namespace cli::axis
 
         MotorId axis_id(std::string_view value)
         {
-            if (value == "shoulder" || value == "a1" || value == "1")
+            if (value == "shoulder" || value == "a1" || value == "1") {
                 return MotorId::Motor1;
-            if (value == "elbow" || value == "a2" || value == "2")
+            }
+            if (value == "elbow" || value == "a2" || value == "2") {
                 return MotorId::Motor2;
-            if (value == "z" || value == "a3" || value == "3")
+            }
+            if (value == "z" || value == "a3" || value == "3") {
                 return MotorId::Motor3;
+            }
             throw std::invalid_argument("axis must be shoulder, elbow or z (also a1/a2/a3 or 1/2/3)");
         }
 
@@ -51,8 +54,9 @@ namespace cli::axis
 
         Controller::AxisSpeed axis_speed(MotorId id, double value)
         {
-            if (id == MotorId::Motor3)
+            if (id == MotorId::Motor3) {
                 return value * 1_mm_s;
+            }
             return value * DEGREES_PER_SECOND;
         }
 
@@ -61,17 +65,20 @@ namespace cli::axis
         {
             using Request = std::conditional_t<Linear, Controller::LinearMove, Controller::Move>;
             constexpr auto position_unit{ [] {
-                if constexpr (Linear)
+                if constexpr (Linear) {
                     return 1_mm;
-                else
+                }
+                else {
                     return 1_deg;
+                }
             }() };
             constexpr auto speed_unit{ position_unit / 1_s };
             constexpr auto acceleration_unit{ speed_unit / 1_s };
             constexpr auto jerk_unit{ acceleration_unit / 1_s };
             const auto requested_speed{ option(args, "speed") };
-            if (!requested_speed)
+            if (!requested_speed) {
                 throw std::invalid_argument("--speed is required (deg/s for rotary axes; mm/s for Z)");
+            }
             return Request{
                 .position = number(args.require("value"), "position/displacement") * position_unit,
                 .velocity = magnitude(number(*requested_speed, "speed"), "speed", false) * speed_unit,
@@ -113,10 +120,12 @@ namespace cli::axis
         {
             constexpr bool linear{ std::is_same_v<Converter, LinearAxisConversion> };
             constexpr auto position_unit{ [] {
-                if constexpr (linear)
+                if constexpr (linear) {
                     return 1_mm;
-                else
+                }
+                else {
                     return 1_deg;
+                }
             }() };
             constexpr auto speed_unit{ position_unit / 1_s };
             out << std::format("    position={:.4f} {}  velocity={:.3f} {}\n",
@@ -127,22 +136,27 @@ namespace cli::axis
             const auto* const source{ axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex
                                         ? "driver INDEX (pseudo)"
                                         : "encoder" };
-            if (axis.actual_position && axis.actual_velocity)
+            if (axis.actual_position && axis.actual_velocity) {
                 out << std::format("    {}: position={:.4f} {}  velocity={:.3f} {}\n",
                                    source,
                                    conversion.toAxisPosition(*axis.actual_position) / position_unit,
                                    linear ? "mm" : "deg",
                                    conversion.toAxisVelocity(*axis.actual_velocity) / speed_unit,
                                    linear ? "mm/s" : "deg/s");
-            else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_such_device)
+            }
+            else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_such_device) {
                 out << "    " << source << ": not fitted\n";
-            else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_message_available)
+            }
+            else if (!axis.actual_position &&
+                     axis.actual_position.error() == std::errc::no_message_available) {
                 out << "    " << source << ": waiting for INDEX\n";
-            else
+            }
+            else {
                 out << "    " << source << ": unavailable ("
                     << (!axis.actual_position ? axis.actual_position.error() : axis.actual_velocity.error())
                          .message()
                     << ")\n";
+            }
         }
 
         [[
@@ -161,8 +175,9 @@ namespace cli::axis
                                state_name(status.generator.state),
                                status.generator.counts_exact ? "exact" : "uncertain");
             for (const auto& axis : status.axes) {
-                if (selected && axis.motor != *selected)
+                if (selected && axis.motor != *selected) {
                     continue;
+                }
                 const auto index{ static_cast<std::size_t>(axis.motor) };
                 out << std::format("{}: referenced={}  switch={}  outstanding={}  step={}\n",
                                    axis_name(axis.motor),
@@ -262,8 +277,9 @@ namespace cli::axis
         {
             const auto id{ axis_id(args.require("axis")) };
             const auto optional_speed = [&](std::string_view name) -> std::optional<Controller::AxisSpeed> {
-                if (const auto value{ option(args, name) })
+                if (const auto value{ option(args, name) }) {
                     return axis_speed(id, magnitude(number(*value, name), name, false));
+                }
                 return {};
             };
             const auto seek{ optional_speed("seek") };
@@ -308,16 +324,20 @@ namespace cli::axis
             std::visit([&]<typename Defaults>(Defaults& value) {
                 constexpr bool linear{ std::is_same_v<Defaults, Controller::LinearDefaults> };
                 constexpr auto acceleration_unit{ [] {
-                    if constexpr (linear)
+                    if constexpr (linear) {
                         return 1_mm_s2;
-                    else
+                    }
+                    else {
                         return 1_deg_s2;
+                    }
                 }() };
                 constexpr auto jerk_unit{ [] {
-                    if constexpr (linear)
+                    if constexpr (linear) {
                         return 1_mm_s3;
-                    else
+                    }
+                    else {
                         return 1_deg_s3;
+                    }
                 }() };
                 value.acceleration =
                   numeric_option(args, "accel", value.acceleration / acceleration_unit, false) *
@@ -327,21 +347,26 @@ namespace cli::axis
                   acceleration_unit;
                 value.jerk = numeric_option(args, "jerk", value.jerk / jerk_unit) * jerk_unit;
             }, defaults);
-            if (args.hasFlag("accel") || args.hasFlag("decel") || args.hasFlag("jerk"))
+            if (args.hasFlag("accel") || args.hasFlag("decel") || args.hasFlag("jerk")) {
                 controller.setAxisDefaults(id, defaults);
+            }
             std::visit([&]<typename Defaults>(const Defaults& value) {
                 constexpr bool linear{ std::is_same_v<Defaults, Controller::LinearDefaults> };
                 constexpr auto acceleration_unit{ [] {
-                    if constexpr (linear)
+                    if constexpr (linear) {
                         return 1_mm_s2;
-                    else
+                    }
+                    else {
                         return 1_deg_s2;
+                    }
                 }() };
                 constexpr auto jerk_unit{ [] {
-                    if constexpr (linear)
+                    if constexpr (linear) {
                         return 1_mm_s3;
-                    else
+                    }
+                    else {
                         return 1_deg_s3;
+                    }
                 }() };
                 out << std::format("{}: accel={:.6g} {}  decel={:.6g} {}  jerk={:.6g} {}\n",
                                    axis_name(id),
@@ -413,8 +438,9 @@ namespace cli::axis
 
     void setup(Parser& parser, const std::shared_ptr<control::ControllerClient>& controller)
     {
-        if (!controller)
+        if (!controller) {
             throw std::invalid_argument("axis commands require a controller");
+        }
         register_commands<^^commands>(parser, [controller](auto command) {
             return [controller, command](const Arguments& args, std::ostream& out) {
                 return command(*controller, args, out);

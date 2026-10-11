@@ -16,8 +16,9 @@ namespace motion
         hal::util::Result<hal::step::Timing> interval(std::int64_t ticks) noexcept
         {
             const auto period{ std::chrono::nanoseconds{ ticks * TICK_NS } };
-            if (period < limits::MIN_PERIOD || period > MAXIMUM_PERIOD)
+            if (period < limits::MIN_PERIOD || period > MAXIMUM_PERIOD) {
                 return std::unexpected(std::make_error_code(std::errc::result_out_of_range));
+            }
             return hal::step::Timing{ .period = period, .high_time = limits::HIGH_TIME };
         }
     }
@@ -29,11 +30,13 @@ namespace motion
         if (count == 0U ||
             count >= static_cast<hal::step::PulseCount>(static_cast<double>(motion::limits::MAX_PULSES)) ||
             profile.distance() != 1.0 || !std::isfinite(profile.duration()) || profile.duration() <= 0.0 ||
-            profile.duration() > limits::MAX_PROFILE_SECONDS)
+            profile.duration() > limits::MAX_PROFILE_SECONDS) {
             throw std::invalid_argument("invalid synchronized profile");
+        }
         const auto bound{ profile.maximumStepInterval(1.0 / static_cast<double>(count)) };
-        if (!std::isfinite(bound) || bound > limits::SYNCHRONIZED_HORIZON_SECONDS)
+        if (!std::isfinite(bound) || bound > limits::SYNCHRONIZED_HORIZON_SECONDS) {
             throw std::invalid_argument("synchronized move exceeds the timer's slow-motion horizon");
+        }
         m_maximum = std::chrono::nanoseconds{ std::max<std::int64_t>(
           limits::MIN_PERIOD.count(),
           static_cast<std::int64_t>(
@@ -61,16 +64,18 @@ namespace motion
       hal::step::PulseCount pulse) const noexcept
     {
         hal::step::Timing value;
-        if (auto result{ generate(pulse, std::span{ &value, 1U }) }; !result)
+        if (auto result{ generate(pulse, std::span{ &value, 1U }) }; !result) {
             return std::unexpected(result.error());
+        }
         return value;
     }
 
     hal::util::Result<> SynchronizedSequence::generate(hal::step::PulseCount first,
                                                        std::span<hal::step::Timing> target) const noexcept
     {
-        if (first >= m_count || target.size() > m_count - first)
+        if (first >= m_count || target.size() > m_count - first) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         auto previous{ tickAt(first + 1U) };
         for (auto& entry : target) {
             const auto pulse{ ++first };
@@ -86,8 +91,9 @@ namespace motion
                 ticks = previous - tickAt(pulse - 1U);
             }
             const auto value{ interval(ticks) };
-            if (!value)
+            if (!value) {
                 return std::unexpected(value.error());
+            }
             entry = *value;
             previous = next;
         }

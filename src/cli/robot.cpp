@@ -53,10 +53,12 @@ namespace cli::robot
         void print_state(std::ostream& out, const control::Robot::State& state)
         {
             print_joints(out, state.joints);
-            if (state.pose)
+            if (state.pose) {
                 print_pose(out, *state.pose);
-            else
+            }
+            else {
                 out << "Tool: unavailable (" << error_name(state.pose.error()) << ")\n";
+            }
             if (state.velocity) {
                 const auto& speed{ *state.velocity };
                 out << std::format("Tool velocity: x={:.3f} mm/s  y={:.3f} mm/s  z={:.3f} mm/s  "
@@ -66,26 +68,31 @@ namespace cli::robot
                                    speed.linear.z / 1_mm_s,
                                    speed.yaw / DEGREES_PER_SECOND);
             }
-            else
+            else {
                 out << "Tool velocity: unavailable (" << error_name(state.velocity.error()) << ")\n";
+            }
         }
 
         std::optional<Kinematics::ElbowBranch> branch(const Arguments& args)
         {
             const auto value{ option(args, "branch").value_or("current") };
-            if (value == "current")
+            if (value == "current") {
                 return {};
-            if (value == "positive")
+            }
+            if (value == "positive") {
                 return Kinematics::ElbowBranch::Positive;
-            if (value == "negative")
+            }
+            if (value == "negative") {
                 return Kinematics::ElbowBranch::Negative;
+            }
             throw std::invalid_argument("--branch must be current, positive or negative");
         }
         control::Robot::MoveOptions options(const Arguments& args, bool cartesian)
         {
             const auto speed{ numeric_option(args, "speed", 20, false) };
-            if (speed > FULL_SPEED_PERCENT)
+            if (speed > FULL_SPEED_PERCENT) {
                 throw std::invalid_argument("--speed must be greater than 0 and at most 100 percent");
+            }
             return { .speed = speed / FULL_SPEED_PERCENT,
                      .timeout = numeric_option(args, "timeout", 0) * 1_s,
                      .branch = cartesian ? branch(args) : std::nullopt };
@@ -94,16 +101,18 @@ namespace cli::robot
         int submitted(const control::Robot::Motion& motion, std::ostream& out)
         {
             out << std::format("Robot #{} submitted", motion.id);
-            if (motion.duration > 0_s)
+            if (motion.duration > 0_s) {
                 out << std::format(" (planned duration {:.3f} s)", motion.duration / 1_s);
+            }
             out << std::format(". Check completion with: robot jobs {}\n", motion.id);
             return 0;
         }
 
         std::string_view result_name(std::optional<control::MotorResult> result)
         {
-            if (!result)
+            if (!result) {
                 return "outstanding";
+            }
             using enum control::MotorResult;
             switch (*result) {
                 case Completed:
@@ -162,8 +171,9 @@ namespace cli::robot
                                status.motors.generator.counts_exact ? "exact" : "uncertain",
                                status.referenced ? "yes" : "no");
             out << "Robot operation: " << (status.motors.coordinated ? "active" : "idle") << '\n';
-            if (!status.referenced)
+            if (!status.referenced) {
                 out << "Unreferenced coordinates have no established physical datum.\n";
+            }
             out << "Commanded state (from emitted steps):\n";
             print_state(out, status.commanded);
             if (status.actual) {
@@ -177,12 +187,15 @@ namespace cli::robot
                             hal::device::IMotorFeedback::Source::DriverIndex
                           ? "driver INDEX "
                           : "encoder ");
-                if (error.reason == std::errc::no_such_device)
+                if (error.reason == std::errc::no_such_device) {
                     out << "not fitted";
-                else if (error.reason == std::errc::no_message_available)
+                }
+                else if (error.reason == std::errc::no_message_available) {
                     out << "waiting for INDEX";
-                else
+                }
+                else {
                     out << "unavailable (" << error.reason.message() << ')';
+                }
                 out << ". See 'axis status' for individual feedback.\n";
             }
             return 0;
@@ -214,8 +227,9 @@ namespace cli::robot
                 out << "Maximum ";
                 print_joints(out, config.limits->maximum);
             }
-            else
+            else {
                 out << "Joint limits: not configured\n";
+            }
             out << std::format("Minimum bend sine: {:g}\n", config.minimum_bend_sine);
             const auto limits{ robot.maximumVelocity() };
             out << std::format(
@@ -238,8 +252,9 @@ namespace cli::robot
               { .shoulder = number(args.require("shoulder"), "shoulder") * 1_deg,
                 .elbow = number(args.require("elbow"), "elbow") * 1_deg,
                 .z = number(args.require("z"), "z") * 1_mm }) };
-            if (!pose)
+            if (!pose) {
                 return callback_failure(std::string(error_name(pose.error())));
+            }
             print_pose(out, *pose);
             return 0;
         }
@@ -261,12 +276,14 @@ namespace cli::robot
             const auto selected_branch{ branch(args) };
             const auto status{ robot.status() };
             const auto result{ robot.kinematics().inverse(target, status.commanded.joints, selected_branch) };
-            if (!result)
+            if (!result) {
                 return callback_failure(std::string(error_name(result.error())));
+            }
             print_joints(out, *result);
             out << "Endpoint calculation only; no motion started or path validated.\n";
-            if (!status.referenced)
+            if (!status.referenced) {
                 out << "Seed is unreferenced; joint coordinates have no established physical datum.\n";
+            }
             return 0;
         }
         [[ = "Enable all drivers and wait for settling"_fs,
@@ -407,29 +424,35 @@ namespace cli::robot
             if (const auto text{ args.get("id") }) {
                 control::ControllerClient::MotionId id{};
                 const auto parsed{ std::from_chars(text->data(), text->data() + text->size(), id) };
-                if (parsed.ec != std::errc{} || parsed.ptr != text->data() + text->size() || id == 0)
+                if (parsed.ec != std::errc{} || parsed.ptr != text->data() + text->size() || id == 0) {
                     return callback_failure("id must be a positive integer");
+                }
                 selected = id;
             }
             bool found{};
             for (const auto& job : robot.motions()) {
-                if (selected && *selected != job.id)
+                if (selected && *selected != job.id) {
                     continue;
+                }
                 found = true;
                 out << std::format("Robot #{} {} {}\n",
                                    job.id,
                                    job.operation == control::ControllerClient::Operation::Reference ? "home"
                                                                                                     : "move",
                                    result_name(job.result));
-                if (job.result && !job.terminal_confirmed)
+                if (job.result && !job.terminal_confirmed) {
                     out << "IO connection lost; hardware stop is not confirmed.\n";
-                if (selected && job.result && *job.result != control::MotorResult::Completed)
+                }
+                if (selected && job.result && *job.result != control::MotorResult::Completed) {
                     return 1;
+                }
             }
-            if (!found && selected)
+            if (!found && selected) {
                 return callback_failure("unknown or expired robot operation ID");
-            if (!found)
+            }
+            if (!found) {
                 out << "No robot operations submitted.\n";
+            }
             return 0;
         }
 
@@ -437,8 +460,9 @@ namespace cli::robot
 
     void setup(Parser& parser, const std::shared_ptr<control::Robot>& robot)
     {
-        if (!robot)
+        if (!robot) {
             throw std::invalid_argument("robot commands require a robot");
+        }
         register_commands<^^commands>(parser, [robot](auto command) {
             return [robot, command](const Arguments& args, std::ostream& out) {
                 return command(*robot, args, out);

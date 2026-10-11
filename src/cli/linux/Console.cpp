@@ -306,8 +306,9 @@ namespace
             ssize_t received{};
             for (;;) {
                 received = ::read(STDIN_FILENO, input.data(), static_cast<unsigned long>(input.size()));
-                if (received >= 0 || errno != EINTR)
+                if (received >= 0 || errno != EINTR) {
                     break;
+                }
             }
             if (received == 0) {
                 result.closed = true;

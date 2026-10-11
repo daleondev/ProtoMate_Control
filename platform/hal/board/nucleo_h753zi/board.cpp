@@ -106,11 +106,13 @@ namespace hal::board
 
     auto create_stepper_diagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>
     {
-        if (id == MotorId::Motor1)
+        if (id == MotorId::Motor1) {
             return gpio::create_input(
               { .pin = { .port = F, .number = 2 }, .pull = gpio::Pull::Up, .edge = gpio::Edge::Rising });
-        if (id != MotorId::Motor2 && id != MotorId::Motor3)
+        }
+        if (id != MotorId::Motor2 && id != MotorId::Motor3) {
             return {};
+        }
         return gpio::create_input(
           { .pin = { .port = D, .number = static_cast<std::uint8_t>(id == MotorId::Motor2 ? 4 : 3) },
             .pull = gpio::Pull::Down,
@@ -119,8 +121,9 @@ namespace hal::board
 
     auto create_stepper_index(MotorId id) -> std::shared_ptr<IDigitalInput>
     {
-        if (id != MotorId::Motor2 && id != MotorId::Motor3)
+        if (id != MotorId::Motor2 && id != MotorId::Motor3) {
             return {};
+        }
         return gpio::create_input(
           { .pin = { .port = D, .number = static_cast<std::uint8_t>(id == MotorId::Motor2 ? 0 : 1) },
             .pull = gpio::Pull::Down,
@@ -130,20 +133,23 @@ namespace hal::board
     auto create_motor_feedback(MotorId id, const MotorFeedbackConfig& config)
       -> std::shared_ptr<device::IMotorFeedback>
     {
-        if (!config.full_step_angle.isFinite() || config.full_step_angle.get() <= 0.0 || !config.microsteps)
+        if (!config.full_step_angle.isFinite() || config.full_step_angle.get() <= 0.0 || !config.microsteps) {
             throw std::invalid_argument("invalid motor feedback configuration");
+        }
         if (id == MotorId::Motor1) {
             auto encoder{ create_encoder(id) };
             auto index{ create_encoder_index(id) };
-            if (!encoder || !index)
+            if (!encoder || !index) {
                 return {};
+            }
             return std::make_shared<device::QuadratureEncoderFeedback>(
               std::move(encoder), encoder_counts_per_revolution(id), std::move(index));
         }
         if (id == MotorId::Motor2 || id == MotorId::Motor3) {
             auto index{ create_stepper_index(id) };
-            if (!index)
+            if (!index) {
                 return {};
+            }
             return std::make_shared<device::IndexFeedback>(
               std::move(index), config.full_step_angle, config.microsteps);
         }
@@ -156,24 +162,30 @@ namespace hal::board
       -> std::array<std::shared_ptr<device::IStepperDriver>, 3>
     {
         if (!microsteps[0] || !std::has_single_bit(microsteps[1]) || microsteps[1] > MAX_MICROSTEPS ||
-            !std::has_single_bit(microsteps[2]) || microsteps[2] > MAX_MICROSTEPS)
+            !std::has_single_bit(microsteps[2]) || microsteps[2] > MAX_MICROSTEPS) {
             throw std::invalid_argument("invalid driver microsteps");
-        if (!enable)
+        }
+        if (!enable) {
             return {};
-        if (!uart)
+        }
+        if (!uart) {
             uart = create_stepper_driver_bus();
-        if (!uart)
+        }
+        if (!uart) {
             return {};
+        }
         auto bus{ std::make_shared<device::Tmc2209Bus>(std::move(uart), std::vector<std::uint8_t>{ 0, 1 }) };
         std::array<std::shared_ptr<device::IStepperDriver>, 3> drivers;
         auto alarm{ create_stepper_diagnostic(MotorId::Motor1) };
-        if (!alarm)
+        if (!alarm) {
             return {};
+        }
         drivers[0] = std::make_shared<device::Dm542tDriver>(std::move(alarm), enable);
         for (std::size_t i{ 1 }; i < drivers.size(); ++i) {
             auto diag{ create_stepper_diagnostic(static_cast<MotorId>(i)) };
-            if (!diag)
+            if (!diag) {
                 return {};
+            }
             device::IConfigurableStepperDriver::Configuration config{
                 .run_milliamps = NOMINAL_CURRENT_MA[i - 1],
                 .hold_milliamps = NOMINAL_CURRENT_MA[i - 1],

@@ -23,14 +23,16 @@ namespace hal
                        std::chrono::milliseconds timeout) -> util::Result<>
     {
         if (__get_IPSR() != 0 || tx.empty() || tx.size() != rx.size() ||
-            !util::valid_transfer_size(tx.size()) || !util::valid_transfer_timeout(timeout))
+            !util::valid_transfer_size(tx.size()) || !util::valid_transfer_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
 
         // This interface transfers bytes in full duplex. A wider CubeMX frame
         // would make the HAL read/write beyond the supplied byte buffers.
         const auto& settings{ m_configuration.handle.Init };
-        if (settings.DataSize != SPI_DATASIZE_8BIT || settings.Direction != SPI_DIRECTION_2LINES)
+        if (settings.DataSize != SPI_DATASIZE_8BIT || settings.Direction != SPI_DIRECTION_2LINES) {
             return std::unexpected(std::make_error_code(std::errc::operation_not_supported));
+        }
 
         const auto status{ HAL_SPI_TransmitReceive(&m_configuration.handle,
                                                    tx.data(),

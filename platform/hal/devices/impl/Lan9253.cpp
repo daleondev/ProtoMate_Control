@@ -83,8 +83,9 @@ namespace
         std::uint8_t crc = CRC_INITIAL;
         for (const auto byte : bytes) {
             crc ^= byte;
-            for (unsigned bit = 0; bit < BYTE_BITS; ++bit)
+            for (unsigned bit = 0; bit < BYTE_BITS; ++bit) {
                 crc = static_cast<std::uint8_t>((crc << 1) ^ ((crc & CRC_HIGH_BIT) ? CRC_POLYNOMIAL : 0));
+            }
         }
         return crc;
     }
@@ -103,8 +104,9 @@ namespace hal::device
                                                                  std::chrono::milliseconds timeout)
     {
         if ((address & 3U) != 0 || address < SYSTEM_REGISTER_FIRST || address > SYSTEM_REGISTER_LAST ||
-            !valid_timeout(timeout))
+            !valid_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
 
         // DS00003421B section 9.2.5.1: address MSB first, data LSB first;
         // zero MOSI for every data byte except the last (FF terminates prefetch).
@@ -118,8 +120,9 @@ namespace hal::device
                                                                        PREFETCH_END };
         std::array<std::uint8_t, HEADER_BYTES + DWORD_BYTES> rx{};
         Select selected{ m_chipSelect };
-        if (auto result = m_spi.exchange(tx, rx, timeout); !result)
+        if (auto result = m_spi.exchange(tx, rx, timeout); !result) {
             return std::unexpected(result.error());
+        }
         return read_dword(std::span{ rx }.subspan(HEADER_BYTES));
     }
 
@@ -130,8 +133,9 @@ namespace hal::device
                                                      std::chrono::milliseconds timeout)
     {
         if ((address & 3U) != 0 || address < SYSTEM_REGISTER_FIRST || address > SYSTEM_REGISTER_LAST ||
-            !valid_timeout(timeout))
+            !valid_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         std::array<std::uint8_t, HEADER_BYTES + DWORD_BYTES> tx{
             SPI_WRITE, static_cast<std::uint8_t>(address >> BYTE_BITS), static_cast<std::uint8_t>(address)
         };
@@ -148,13 +152,16 @@ namespace hal::device
     {
         while (Clock::now() < deadline) {
             const auto budget = remaining(deadline);
-            if (budget <= 0ms)
+            if (budget <= 0ms) {
                 break;
+            }
             const auto command = readSystemRegister(CSR_COMMAND, budget);
-            if (!command)
+            if (!command) {
                 return std::unexpected(command.error());
-            if ((*command & CSR_BUSY) == 0)
+            }
+            if ((*command & CSR_BUSY) == 0) {
                 return {};
+            }
             std::this_thread::yield();
         }
         return std::unexpected(std::make_error_code(std::errc::timed_out));
@@ -164,26 +171,33 @@ namespace hal::device
                                                               std::uint8_t size,
                                                               std::chrono::milliseconds timeout)
     {
-        if (!valid_csr(address, size) || !valid_timeout(timeout))
+        if (!valid_csr(address, size) || !valid_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         const auto deadline = Clock::now() + timeout;
-        if (auto idle = waitCsr(deadline); !idle)
+        if (auto idle = waitCsr(deadline); !idle) {
             return std::unexpected(idle.error());
+        }
         timeout = remaining(deadline);
-        if (timeout <= 0ms)
+        if (timeout <= 0ms) {
             return std::unexpected(std::make_error_code(std::errc::timed_out));
+        }
         if (auto sent = writeSystemRegister(
               CSR_COMMAND, CSR_BUSY | CSR_READ | (std::uint32_t{ size } << SIZE_SHIFT) | address, timeout);
-            !sent)
+            !sent) {
             return std::unexpected(sent.error());
-        if (auto idle = waitCsr(deadline); !idle)
+        }
+        if (auto idle = waitCsr(deadline); !idle) {
             return std::unexpected(idle.error());
+        }
         timeout = remaining(deadline);
-        if (timeout <= 0ms)
+        if (timeout <= 0ms) {
             return std::unexpected(std::make_error_code(std::errc::timed_out));
+        }
         const auto value = readSystemRegister(CSR_DATA, timeout);
-        if (!value)
+        if (!value) {
             return std::unexpected(value.error());
+        }
         // The other bytes in CSR_DATA also update; only requested bytes count.
         return *value & (std::numeric_limits<std::uint32_t>::max() >> ((DWORD_BYTES - size) * BYTE_BITS));
     }
@@ -195,23 +209,29 @@ namespace hal::device
                                                   std::uint32_t value,
                                                   std::chrono::milliseconds timeout)
     {
-        if (!valid_csr(address, size) || !valid_timeout(timeout))
+        if (!valid_csr(address, size) || !valid_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         const auto deadline = Clock::now() + timeout;
-        if (auto idle = waitCsr(deadline); !idle)
+        if (auto idle = waitCsr(deadline); !idle) {
             return idle;
+        }
         timeout = remaining(deadline);
-        if (timeout <= 0ms)
+        if (timeout <= 0ms) {
             return std::unexpected(std::make_error_code(std::errc::timed_out));
-        if (auto sent = writeSystemRegister(CSR_DATA, value, timeout); !sent)
+        }
+        if (auto sent = writeSystemRegister(CSR_DATA, value, timeout); !sent) {
             return sent;
+        }
         timeout = remaining(deadline);
-        if (timeout <= 0ms)
+        if (timeout <= 0ms) {
             return std::unexpected(std::make_error_code(std::errc::timed_out));
+        }
         if (auto sent = writeSystemRegister(
               CSR_COMMAND, CSR_BUSY | (std::uint32_t{ size } << SIZE_SHIFT) | address, timeout);
-            !sent)
+            !sent) {
             return sent;
+        }
         return waitCsr(deadline);
     }
     // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -222,21 +242,26 @@ namespace hal::device
     {
         if (!valid_timeout(timeout) || configuration[0] != PDI_SPI || configuration.back() != 0 ||
             configuration_crc(configuration.first<CONFIGURATION_CRC_INDEX>()) !=
-              configuration[CONFIGURATION_CRC_INDEX])
+              configuration[CONFIGURATION_CRC_INDEX]) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         const auto deadline = Clock::now() + timeout;
         while (Clock::now() < deadline) {
             const auto budget = remaining(deadline);
-            if (budget <= 0ms)
+            if (budget <= 0ms) {
                 break;
+            }
             const auto identity = identify(budget);
-            if (identity)
+            if (identity) {
                 return identity;
-            if (identity.error() != std::errc::resource_unavailable_try_again)
+            }
+            if (identity.error() != std::errc::resource_unavailable_try_again) {
                 return std::unexpected(identity.error());
+            }
 
-            if (auto serviced = serviceEmulatedRequest(configuration, deadline); !serviced)
+            if (auto serviced = serviceEmulatedRequest(configuration, deadline); !serviced) {
                 return std::unexpected(serviced.error());
+            }
         }
         return std::unexpected(std::make_error_code(std::errc::timed_out));
     }
@@ -247,16 +272,18 @@ namespace hal::device
     {
         auto read = [&](std::uint16_t address, std::uint8_t size) -> hal::util::Result<std::uint32_t> {
             const auto budget = remaining(deadline);
-            if (budget <= 0ms)
+            if (budget <= 0ms) {
                 return std::unexpected(std::make_error_code(std::errc::timed_out));
+            }
             return readEscRegister(address, size, budget);
         };
         auto write = [&](std::uint16_t address, std::uint8_t size, std::uint32_t value)
           -> hal::util::Result<> { // NOLINT(bugprone-easily-swappable-parameters) -- Register API order is
                                    // address, width (if present), then value.
             const auto budget = remaining(deadline);
-            if (budget <= 0ms)
+            if (budget <= 0ms) {
                 return std::unexpected(std::make_error_code(std::errc::timed_out));
+            }
             return writeEscRegister(address, size, value, budget);
         };
         // EEPROM emulation specifically enables the PDI before configuration
@@ -264,63 +291,78 @@ namespace hal::device
         // waiting for READY deadlocks. Normal, non-emulated startup still
         // follows the strict READY ordering in identify().
         const auto status = read(EEPROM_STATUS, WORD_BYTES);
-        if (!status)
+        if (!status) {
             return std::unexpected(status.error());
-        if ((*status & EEPROM_EMULATED) == 0)
+        }
+        if ((*status & EEPROM_EMULATED) == 0) {
             return std::unexpected(std::make_error_code(std::errc::operation_not_supported));
+        }
         if ((*status & EEPROM_BUSY) == 0) {
             std::this_thread::sleep_for(1ms);
             return {};
         }
         const auto command = *status & EEPROM_COMMAND_MASK;
-        if (command != EEPROM_READ && command != EEPROM_RELOAD)
+        if (command != EEPROM_READ && command != EEPROM_RELOAD) {
             return std::unexpected(std::make_error_code(std::errc::operation_not_supported));
+        }
         const auto address = read(EEPROM_ADDRESS, DWORD_BYTES);
-        if (!address)
+        if (!address) {
             return std::unexpected(address.error());
-        if (*address != 0 && *address != EEPROM_REQUEST_BYTES / WORD_BYTES)
+        }
+        if (*address != 0 && *address != EEPROM_REQUEST_BYTES / WORD_BYTES) {
             return std::unexpected(std::make_error_code(std::errc::result_out_of_range));
+        }
         // The address counts WORDs. Each request consumes 8 bytes.
         for (unsigned offset = 0; offset < EEPROM_REQUEST_BYTES; offset += DWORD_BYTES) {
             const auto data = configuration.subspan((*address * WORD_BYTES) + offset, DWORD_BYTES);
             const auto value = read_dword(data);
-            if (auto sent = write(EEPROM_DATA + offset, DWORD_BYTES, value); !sent)
+            if (auto sent = write(EEPROM_DATA + offset, DWORD_BYTES, value); !sent) {
                 return std::unexpected(sent.error());
+            }
         }
         // Acknowledge just the executed command; never copy status/error
         // bits back, and never issue an EEPROM WRITE or trigger a reload.
-        if (auto sent = write(EEPROM_STATUS, WORD_BYTES, command); !sent)
+        if (auto sent = write(EEPROM_STATUS, WORD_BYTES, command); !sent) {
             return std::unexpected(sent.error());
+        }
         return {};
     }
 
     hal::util::Result<Lan9253::Identity> Lan9253::identify(std::chrono::milliseconds timeout)
     {
-        if (!valid_timeout(timeout))
+        if (!valid_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         const auto deadline = std::chrono::steady_clock::now() + timeout;
         auto read = [&](std::uint16_t address) {
             const auto now = std::chrono::steady_clock::now();
-            if (now >= deadline)
+            if (now >= deadline) {
                 return hal::util::Result<std::uint32_t>{ std::unexpected(
                   std::make_error_code(std::errc::timed_out)) };
+            }
             return readSystemRegister(address, std::chrono::ceil<std::chrono::milliseconds>(deadline - now));
         };
         const auto byte_test = read(BYTE_TEST_ADDRESS);
-        if (!byte_test)
+        if (!byte_test) {
             return std::unexpected(byte_test.error());
-        if (*byte_test != BYTE_TEST_VALUE)
+        }
+        if (*byte_test != BYTE_TEST_VALUE) {
             return std::unexpected(std::make_error_code(std::errc::protocol_error));
+        }
         const auto config = read(HARDWARE_CONFIG_ADDRESS);
-        if (!config)
+        if (!config) {
             return std::unexpected(config.error());
-        if ((*config & READY_MASK) == 0)
+        }
+        if ((*config & READY_MASK) == 0) {
             return std::unexpected(std::make_error_code(std::errc::resource_unavailable_try_again));
+        }
         const auto id = read(ID_REVISION_ADDRESS);
-        if (!id)
+        if (!id) {
             return std::unexpected(id.error());
-        if ((*id >> CHIP_ID_SHIFT) != CHIP_ID)
+        }
+        if ((*id >> CHIP_ID_SHIFT) != CHIP_ID) {
             return std::unexpected(std::make_error_code(std::errc::no_such_device));
+        }
         return Identity{ .byte_test = *byte_test, .hardware_config = *config, .id_revision = *id };
     }
 }

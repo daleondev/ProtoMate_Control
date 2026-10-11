@@ -166,8 +166,9 @@ namespace p2p
         constexpr auto first = owners[0];
         constexpr auto second = owners[1];
         static_assert(first != second, "Action providers must have distinct values");
-        if (local_provider != first && local_provider != second)
+        if (local_provider != first && local_provider != second) {
             throw std::invalid_argument("Unknown local action provider");
+        }
         // Clang synthesizes reserved identifiers for expansion statements.
         // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
         template for (constexpr auto member : std::define_static_array(
@@ -184,14 +185,16 @@ namespace p2p
                 static_assert(provider == first || provider == second, "Unknown annotated action provider");
                 if constexpr (std::meta::is_nonstatic_data_member(member)) {
                     using Metadata = pnm::msg::ActionMetadata<member>;
-                    if (provider == local_provider)
+                    if (provider == local_provider) {
                         registerIncoming<typename Metadata::Goal,
                                          typename Metadata::Feedback,
                                          typename Metadata::Result>(Metadata::name);
-                    else
+                    }
+                    else {
                         registerOutgoing<typename Metadata::Goal,
                                          typename Metadata::Feedback,
                                          typename Metadata::Result>(Metadata::name);
+                    }
                 }
             }
         }
@@ -260,15 +263,17 @@ namespace p2p
             }
             else if (incoming.kind == Kind::ActionFeedback) {
                 F feedback{};
-                if (!pnm::utils::memory::deserialize(incoming.payload, feedback))
+                if (!pnm::utils::memory::deserialize(incoming.payload, feedback)) {
                     throw std::invalid_argument("Invalid action feedback");
+                }
                 execution.feedback(feedback);
             }
             else {
                 const auto status = decodeStatus(incoming.payload.front());
                 R result{};
-                if (!pnm::utils::memory::deserialize(incoming.payload.subspan(1), result))
+                if (!pnm::utils::memory::deserialize(incoming.payload.subspan(1), result)) {
                     throw std::invalid_argument("Invalid action result");
+                }
                 switch (status) {
                     case Status::Succeeded:
                         execution.succeed(result);
@@ -299,8 +304,9 @@ namespace p2p
                                                                    std::span<const std::byte> bytes,
                                                                    std::chrono::milliseconds timeout) {
             G value{};
-            if (!pnm::utils::memory::deserialize(bytes, value))
+            if (!pnm::utils::memory::deserialize(bytes, value)) {
                 throw std::invalid_argument("Invalid action goal");
+            }
             auto events = std::make_shared<Events>();
             auto handle = std::make_shared<pnm::msg::PendingGoal<F, R>>(
               action.sendGoal(value, { .accept_timeout = timeout }, { .on_accepted = [events] {
@@ -336,8 +342,9 @@ namespace p2p
                 .poll =
                   [handle, events] {
                 handle->poll();
-                if (events->encoding_failed && !events->terminal)
+                if (events->encoding_failed && !events->terminal) {
                     handle->requestCancel();
+                }
             },
                 .cancel = [handle] { handle->requestCancel(); },
                 .readiness = std::move(readiness),
@@ -353,15 +360,18 @@ namespace p2p
     ActionBridge::Frame ActionBridge::makeResult(std::uint64_t id, Status status, const R& value)
     {
         std::size_t size{ sizeof(R) };
-        if constexpr (pnm::utils::memory::HasSerializationAdapter<R>)
+        if constexpr (pnm::utils::memory::HasSerializationAdapter<R>) {
             size = pnm::utils::memory::SerializationAdapter<R>::bufferSize(value);
-        if (size > util::MAX_FRAME_BYTES - util::HEADER_BYTES - 1)
+        }
+        if (size > util::MAX_FRAME_BYTES - util::HEADER_BYTES - 1) {
             throw std::length_error("Action result exceeds frame capacity");
+        }
         auto frame = util::make_frame(Kind::ActionResult, {}, id, size + 1);
         frame.bytes[util::HEADER_BYTES] = encodeStatus(status);
         if (!pnm::utils::memory::serialize(value,
-                                           std::span(frame.bytes).subspan(util::HEADER_BYTES + 1, size)))
+                                           std::span(frame.bytes).subspan(util::HEADER_BYTES + 1, size))) {
             throw std::invalid_argument("Cannot serialize action result");
+        }
         return frame;
     }
 

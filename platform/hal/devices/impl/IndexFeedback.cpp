@@ -71,15 +71,19 @@ namespace hal::device
                 fault = true;
                 velocity = 0;
             }
-            if (fault || !observed)
+            if (fault || !observed) {
                 angular_velocity = 0_rpm;
-            if (!callback)
+            }
+            if (!callback) {
                 return;
+            }
             hal::util::Result<pnm::units::Angle> value{ position };
-            if (fault)
+            if (fault) {
                 value = std::unexpected(std::make_error_code(std::errc::state_not_recoverable));
-            else if (!observed)
+            }
+            else if (!observed) {
                 value = std::unexpected(std::make_error_code(std::errc::no_message_available));
+            }
             callback(
               { .position = value,
                 .velocity = angular_velocity,
@@ -89,16 +93,19 @@ namespace hal::device
         void edge(gpio::Level current) noexcept
         {
             const Guard guard{ mutex };
-            if (!alive || current == level)
+            if (!alive || current == level) {
                 return;
+            }
             level = current;
-            if (!started || !armed || fault)
+            if (!started || !armed || fault) {
                 return;
+            }
             // Use the SAME boundary of the INDEX window in both directions.
             // A forward rising crossing is undone by a reverse falling crossing;
             // counting rising edges in both directions would drift on reversals.
-            if ((current == gpio::Level::High) != forward)
+            if ((current == gpio::Level::High) != forward) {
                 return;
+            }
             const auto time{ now() };
             if (observed) {
                 if ((forward && cycles == std::numeric_limits<std::int64_t>::max()) ||
@@ -148,8 +155,9 @@ namespace hal::device
       : m_input{ std::move(input) }
     {
         if (!m_input || !now || !angle.isFinite() || angle <= 0_deg ||
-            !(angle * FULL_STEPS_PER_INDEX_CYCLE).isFinite() || !microsteps)
+            !(angle * FULL_STEPS_PER_INDEX_CYCLE).isFinite() || !microsteps) {
             throw std::invalid_argument("invalid INDEX input, clock or motor configuration");
+        }
         m_state = std::make_shared<State>(now, m_input->read(), angle, microsteps);
         // Shared state survives a host GPIO callback already in flight during
         // destruction. It never captures the provider or its owner by raw pointer.
@@ -196,14 +204,16 @@ namespace hal::device
     {
         const State::Guard guard{ m_state->mutex };
         auto& s{ *m_state };
-        if (!s.started)
+        if (!s.started) {
             return;
+        }
         auto cycle_period{ std::chrono::nanoseconds::max() };
         const auto maximum{ cycle_period.count() };
         if (step_period.count() >= 0 && std::cmp_less_equal(s.microsteps, maximum / 4)) {
             const auto multiplier{ static_cast<std::int64_t>(s.microsteps) * 4 };
-            if (step_period.count() <= maximum / multiplier)
+            if (step_period.count() <= maximum / multiplier) {
                 cycle_period = step_period * multiplier;
+            }
         }
         const auto time{ s.now() };
         if (running && (!s.running || forward != s.forward)) {
@@ -252,12 +262,14 @@ namespace hal::device
 
     hal::util::Result<> IndexFeedback::reference(pnm::units::Angle position)
     {
-        if (!position.isFinite())
+        if (!position.isFinite()) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         const State::Guard guard{ m_state->mutex };
         auto& s{ *m_state };
-        if (s.running)
+        if (s.running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
+        }
         s.offset = position;
         s.cycles = 0;
         s.velocity = 0;

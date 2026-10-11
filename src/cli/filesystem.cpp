@@ -274,8 +274,9 @@ namespace cli::filesystem
                     }
 
                     auto matches{ match_component(candidates, component, pattern) };
-                    if (!matches)
+                    if (!matches) {
                         return std::unexpected(matches.error());
+                    }
                     candidates = std::move(*matches);
                     if (candidates.empty()) {
                         break;
@@ -836,8 +837,9 @@ namespace cli::filesystem
 
             for (std::size_t index{}; index < source_count; ++index) {
                 auto result{ copy_source(args.at(index), *destination_root, args) };
-                if (!result)
+                if (!result) {
                     return result;
+                }
             }
             return 0;
         }
@@ -937,8 +939,9 @@ namespace cli::filesystem
 
             for (std::size_t index{}; index < source_count; ++index) {
                 auto result{ move_source(args.at(index), *destination_root, args) };
-                if (!result)
+                if (!result) {
                     return result;
+                }
             }
             return 0;
         }

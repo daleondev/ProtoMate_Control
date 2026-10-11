@@ -15,8 +15,9 @@ namespace hal::spi
     auto create(Configuration configuration) -> std::shared_ptr<ISpi>
     {
         const auto index{ std::to_underlying(configuration.peripheral) };
-        if (index >= SPI_INSTANCE_COUNT)
+        if (index >= SPI_INSTANCE_COUNT) {
             return {};
+        }
         static util::ExclusiveInstances<SPI_POOL_SIZE> instances;
         return instances.create<Spi>(index, SIMULATED_SPI_CLOCK_HZ);
     }

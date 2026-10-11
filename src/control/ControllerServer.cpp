@@ -24,6 +24,16 @@ namespace control
             std::optional<Execution> execution;
             std::array<std::uint64_t, 3> epoch{};
             std::optional<messages::Goal> goal;
+
+            void fail(pnm::msg::ServiceError service_error, pnm::msg::ActionError action_error)
+            {
+                if (reply) {
+                    reply->fail(service_error);
+                }
+                if (execution) {
+                    execution->fail(action_error);
+                }
+            }
         };
         struct Job
         {
@@ -43,8 +53,7 @@ namespace control
         pnm::msg::Bus& bus;
         pnm::coro::Context& context;
         std::optional<pnm::msg::ServiceServer<messages::Request, messages::Response>> requests, stops;
-        std::optional<pnm::msg::ActionServer<messages::Goal, messages::Progress, messages::Outcome>>
-          actions;
+        std::optional<pnm::msg::ActionServer<messages::Goal, messages::Progress, messages::Outcome>> actions;
         std::array<pnm::msg::ReadinessRegistration, 3> registrations;
         std::mutex mutex;
         std::deque<Work> queue, urgent;
@@ -66,8 +75,9 @@ namespace control
             self->scheduled.store(false);
             if (!self->closing.load()) {
                 try {
-                    if (!self->stops || !self->requests || !self->actions)
+                    if (!self->stops || !self->requests || !self->actions) {
                         throw std::logic_error("controller endpoints are not registered");
+                    }
                     auto& stops = *self->stops;
                     auto& requests = *self->requests;
                     auto& actions = *self->actions;
@@ -75,7 +85,8 @@ namespace control
                     requests.poll();
                     actions.poll();
                 } catch (...) {
-                    self->link({ .state = p2p::ConnectionState::Failed, .reason = p2p::ConnectionReason::InternalError });
+                    self->link({ .state = p2p::ConnectionState::Failed,
+                                 .reason = p2p::ConnectionReason::InternalError });
                 }
             }
             co_return;
@@ -83,15 +94,17 @@ namespace control
         // NOLINTEND(readability-static-accessed-through-instance)
         void dispatch() noexcept
         {
-            if (closing.load() || scheduled.exchange(true))
+            if (closing.load() || scheduled.exchange(true)) {
                 return;
+            }
             try {
                 pnm::coro::co_spawn(context, [self = shared_from_this()](pnm::coro::Context& /*context*/) {
                     return pollOnContext(self);
                 });
             } catch (...) {
                 scheduled.store(false);
-                link({ .state = p2p::ConnectionState::Failed, .reason = p2p::ConnectionReason::InternalError });
+                link(
+                  { .state = p2p::ConnectionState::Failed, .reason = p2p::ConnectionReason::InternalError });
             }
         }
         void link(p2p::ConnectionStatus value) noexcept
@@ -101,15 +114,17 @@ namespace control
                 notification.signal();
                 return;
             }
-            if (value.state == p2p::ConnectionState::Connecting)
+            if (value.state == p2p::ConnectionState::Connecting) {
                 return;
+            }
             connected.store(false);
             inhibited.store(true);
             controller->inhibitRemoteMotion();
             {
                 std::scoped_lock lock(mutex);
-                for (auto& e : epoch)
+                for (auto& e : epoch) {
                     ++e;
+                }
             }
             loss_pending.store(true);
             notification.signal();
@@ -117,36 +132,35 @@ namespace control
         void enqueue(Work work, bool priority)
         {
             if (priority && work.request.operation != Op::Stop && work.request.operation != Op::Disable) {
-                if (work.reply)
+                if (work.reply) {
                     work.reply->fail(pnm::msg::ServiceError::HandlerFailed);
+                }
                 return;
             }
             if (closing.load() || !connected.load()) {
-                if (work.reply)
-                    work.reply->fail(pnm::msg::ServiceError::Unavailable);
-                if (work.execution)
-                    work.execution->fail(pnm::msg::ActionError::Unavailable);
+                work.fail(pnm::msg::ServiceError::Unavailable, pnm::msg::ActionError::Unavailable);
                 return;
             }
             {
                 std::scoped_lock lock(mutex);
                 auto& destination = priority ? urgent : queue;
                 if (destination.size() >= REQUEST_CAPACITY) {
-                    if (work.reply)
-                        work.reply->fail(pnm::msg::ServiceError::Busy);
-                    if (work.execution)
-                        work.execution->fail(pnm::msg::ActionError::Busy);
+                    work.fail(pnm::msg::ServiceError::Busy, pnm::msg::ActionError::Busy);
                     return;
                 }
                 if (priority) {
                     auto motor = selection(work.request.motor);
-                    if (work.request.operation == Op::Disable || group_active.load())
+                    if (work.request.operation == Op::Disable || group_active.load()) {
                         motor.reset();
-                    if (motor)
+                    }
+                    if (motor) {
                         ++epoch[static_cast<unsigned>(*motor)];
-                    else
-                        for (auto& e : epoch)
+                    }
+                    else {
+                        for (auto& e : epoch) {
                             ++e;
+                        }
+                    }
                     controller->requestStop(motor);
                 }
                 work.epoch = epoch;
@@ -156,24 +170,28 @@ namespace control
         }
         static std::optional<ControllerTypes::MotorId> selection(std::uint8_t id)
         {
-            if (id == messages::ALL_MOTORS)
+            if (id == messages::ALL_MOTORS) {
                 return {};
-            if (id > 2)
+            }
+            if (id > 2) {
                 throw std::invalid_argument("invalid motor");
+            }
             return static_cast<ControllerTypes::MotorId>(id);
         }
         static ControllerTypes::MotorId motor(std::uint8_t id)
         {
             const auto selected = selection(id);
-            if (!selected)
+            if (!selected) {
                 throw std::invalid_argument("a motor is required");
+            }
             return *selected;
         }
         bool fresh(const Work& w)
         {
             std::scoped_lock lock(mutex);
-            if (w.request.motor < 3)
+            if (w.request.motor < 3) {
                 return w.epoch[w.request.motor] == epoch[w.request.motor];
+            }
             return w.epoch == epoch;
         }
         static bool readOnly(Op op)
@@ -182,28 +200,33 @@ namespace control
         }
         void service(Work& work)
         {
-            if (!work.reply)
+            if (!work.reply) {
                 throw std::logic_error("service work has no reply");
+            }
             auto& reply = *work.reply;
-            if (!reply.pending())
+            if (!reply.pending()) {
                 return;
+            }
             try {
                 const auto& q = work.request;
                 messages::Response response{};
                 if (!readOnly(q.operation) && q.operation != Op::Stop && q.operation != Op::Disable &&
-                    !fresh(work))
+                    !fresh(work)) {
                     throw std::runtime_error("command invalidated by stop");
+                }
                 if (inhibited.load() && !readOnly(q.operation) && q.operation != Op::Stop &&
-                    q.operation != Op::Disable && q.operation != Op::Reset)
+                    q.operation != Op::Disable && q.operation != Op::Reset) {
                     throw std::runtime_error("communication lost; disable and reset before further control");
+                }
                 switch (q.operation) {
                     case Op::Snapshot:
                         response.state = messages::State(controller->planningSnapshot());
                         break;
                     case Op::Drivers: {
                         const auto drivers = controller->driverStatus();
-                        for (std::size_t i = 0; i < drivers.size(); ++i)
+                        for (std::size_t i = 0; i < drivers.size(); ++i) {
                             response.drivers[i] = messages::DriverStatus(drivers[i]);
+                        }
                         break;
                     }
                     case Op::Enable:
@@ -217,10 +240,12 @@ namespace control
                         break;
                     case Op::Reset:
                         controller->recoverRemoteMotion();
-                        if (fresh(work) && connected.load())
+                        if (fresh(work) && connected.load()) {
                             inhibited.store(false);
-                        else
+                        }
+                        else {
                             controller->inhibitRemoteMotion();
+                        }
                         break;
                     case Op::InitializeDrivers:
                         controller->initializeDrivers();
@@ -229,8 +254,9 @@ namespace control
                         controller->configureDriver(motor(q.motor), q.driver);
                         break;
                     case Op::ConfigureAxis:
-                        if (!q.conversion)
+                        if (!q.conversion) {
                             throw std::invalid_argument("axis conversion is required");
+                        }
                         controller->configureAxis(motor(q.motor), *q.conversion);
                         break;
                     case Op::Defaults:
@@ -256,10 +282,12 @@ namespace control
                         throw std::invalid_argument("operation requires a motion action");
                 }
                 if (!readOnly(q.operation) && !fresh(work)) {
-                    if (inhibited.load())
+                    if (inhibited.load()) {
                         controller->inhibitRemoteMotion();
-                    else
+                    }
+                    else {
                         controller->stop(selection(q.motor));
+                    }
                     throw std::runtime_error("command interrupted by stop/link loss");
                 }
                 reply.respond(response);
@@ -278,8 +306,9 @@ namespace control
             ControllerTypes::Motion single{};
             ControllerTypes::GroupMotion group{};
             job->group = q.operation == Op::ReferenceAll || q.operation == Op::Trajectory;
-            if (!job->group)
+            if (!job->group) {
                 job->motor = motor(q.motor);
+            }
             switch (q.operation) {
                 case Op::Move:
                     single = controller->move(job->motor, q.move);
@@ -307,11 +336,13 @@ namespace control
         }
         void action(Work& work)
         {
-            if (!work.execution || !work.goal)
+            if (!work.execution || !work.goal) {
                 throw std::logic_error("action work has no execution or goal");
+            }
             auto execution = std::move(*work.execution);
-            if (!execution.pending())
+            if (!execution.pending()) {
                 return;
+            }
             if (execution.cancelRequested()) {
                 execution.cancelled({ .result = MotorResult::Stopped, .error = {} });
                 return;
@@ -340,18 +371,22 @@ namespace control
                 auto weak = weak_from_this();
                 auto weak_job = std::weak_ptr<Job>(job);
                 job->watch = pnm::msg::watch(job->execution, [weak]() noexcept {
-                    if (auto s = weak.lock())
+                    if (auto s = weak.lock()) {
                         s->notification.signal();
+                    }
                 });
                 job->completion.then([weak, weak_job]() noexcept {
-                    if (auto j = weak_job.lock())
+                    if (auto j = weak_job.lock()) {
                         j->ready.store(true);
-                    if (auto s = weak.lock())
+                    }
+                    if (auto s = weak.lock()) {
                         s->notification.signal();
+                    }
                 });
                 jobs.push_back(job);
-                if (job->group)
+                if (job->group) {
                     group_active.store(true);
+                }
             } catch (const std::invalid_argument& e) {
                 job->execution.reject({ .result = MotorResult::Rejected,
                                         .error = std::string(e.what()).substr(0, messages::MAX_ERROR_TEXT),
@@ -377,19 +412,24 @@ namespace control
                         ++it;
                         continue;
                     }
-                    if (job.group)
+                    if (job.group) {
                         group_active.store(false);
+                    }
                     messages::Outcome outcome{ .result = *result, .error = {} };
-                    if (*result == MotorResult::Completed)
+                    if (*result == MotorResult::Completed) {
                         job.execution.succeed(outcome);
-                    else if (*result == MotorResult::Stopped)
+                    }
+                    else if (*result == MotorResult::Stopped) {
                         job.execution.cancelled(outcome);
-                    else
+                    }
+                    else {
                         job.execution.abort(outcome);
+                    }
                     it = jobs.erase(it);
                 }
-                else
+                else {
                     ++it;
+                }
             }
         }
         void telemetry()
@@ -406,8 +446,9 @@ namespace control
             bus.topic<^^messages::Topics::state>().publish(messages::State(snapshot));
             messages::FaultState faults{};
             auto drivers = controller->driverStatus();
-            for (unsigned i = 0; i < 3; ++i)
+            for (unsigned i = 0; i < 3; ++i) {
                 faults.drivers[i] = messages::DriverState(drivers[i].status);
+            }
             faults.link_inhibited = inhibited.load();
             bus.topic<^^messages::Topics::fault>().publish(faults);
         }
@@ -416,8 +457,9 @@ namespace control
             auto next = std::chrono::steady_clock::now();
             while (!stop.stop_requested()) {
                 try {
-                    if (loss_pending.exchange(false))
+                    if (loss_pending.exchange(false)) {
                         controller->stop();
+                    }
                     completions();
                     if (std::chrono::steady_clock::now() >= next) {
                         telemetry();
@@ -433,10 +475,12 @@ namespace control
                         }
                     }
                     if (work) {
-                        if (work->reply)
+                        if (work->reply) {
                             service(*work);
-                        else
+                        }
+                        else {
                             action(*work);
+                        }
                         continue;
                     }
                     notification.waitUntil(next);
@@ -448,8 +492,9 @@ namespace control
                 }
             }
             controller->stop();
-            for (auto& job : jobs)
+            for (auto& job : jobs) {
                 job->execution.cancelled({ .result = MotorResult::Stopped, .error = {} });
+            }
             jobs.clear();
             {
                 std::scoped_lock lock(mutex);
@@ -460,19 +505,20 @@ namespace control
         void start()
         {
             auto weak = weak_from_this();
-            requests.emplace(bus.service<^^messages::Services::request>()
-                               .serveDeferred([weak](const auto& q, Reply reply) {
-                if (auto s = weak.lock())
+            requests.emplace(
+              bus.service<^^messages::Services::request>().serveDeferred([weak](const auto& q, Reply reply) {
+                if (auto s = weak.lock()) {
                     s->enqueue({ q, std::move(reply), {}, {}, {} }, false);
+                }
             }, { REQUEST_CAPACITY }));
-            stops.emplace(bus.service<^^messages::Services::stop>()
-                            .serveDeferred([weak](const auto& q, Reply reply) {
-                if (auto s = weak.lock())
+            stops.emplace(
+              bus.service<^^messages::Services::stop>().serveDeferred([weak](const auto& q, Reply reply) {
+                if (auto s = weak.lock()) {
                     s->enqueue({ q, std::move(reply), {}, {}, {} }, true);
+                }
             }, { REQUEST_CAPACITY }));
-            actions.emplace(
-              bus.action<^^messages::Actions::execute>()
-                .serveDeferred([weak](const auto& q, Execution execution) {
+            actions.emplace(bus.action<^^messages::Actions::execute>().serveDeferred(
+              [weak](const auto& q, Execution execution) {
                 if (auto s = weak.lock()) {
                     messages::Request request{};
                     request.operation = q.operation;
@@ -481,8 +527,9 @@ namespace control
                 }
             }, { REQUEST_CAPACITY }));
             auto wake = [weak]() noexcept {
-                if (auto s = weak.lock())
+                if (auto s = weak.lock()) {
                     s->dispatch();
+                }
             };
             registrations[0] = pnm::msg::watch(*requests, wake);
             registrations[1] = pnm::msg::watch(*stops, wake);
@@ -494,20 +541,26 @@ namespace control
         void close()
         {
             closing.store(true);
-            if (actions)
+            if (actions) {
                 actions->requestStop();
+            }
             worker.request_stop();
             notification.signal();
-            if (worker.joinable())
+            if (worker.joinable()) {
                 worker.join();
-            if (requests)
+            }
+            if (requests) {
                 requests->close();
-            if (stops)
+            }
+            if (stops) {
                 stops->close();
-            if (actions)
+            }
+            if (actions) {
                 actions->close();
-            for (auto& r : registrations)
+            }
+            for (auto& r : registrations) {
                 r.reset();
+            }
         }
     };
     ControllerServer::ControllerServer(std::shared_ptr<MotionController> controller,

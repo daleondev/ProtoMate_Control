@@ -35,23 +35,27 @@ namespace hal::device::util
         {
             const Guard guard{ mutex };
             ready.store(false);
-            if (fault.load() != Fault::None)
+            if (fault.load() != Fault::None) {
                 return;
+            }
             error.store(static_cast<std::errc>(code.value()));
             fault.store(cause);
-            if (callback)
+            if (callback) {
                 callback();
+            }
         }
     };
     DriverFaultMonitor::DriverFaultMonitor(std::shared_ptr<IDigitalInput> input)
       : m_input{ std::move(input) }
       , m_state{ std::make_shared<State>() }
     {
-        if (!m_input)
+        if (!m_input) {
             throw std::invalid_argument("driver fault input unavailable");
+        }
         m_input->setEdgeCallback([state = m_state](gpio::Level level) noexcept {
-            if (level == gpio::Level::High)
+            if (level == gpio::Level::High) {
                 state->fail(Fault::Input, std::make_error_code(std::errc::io_error));
+            }
         });
         checkInput();
     }
@@ -75,13 +79,15 @@ namespace hal::device::util
     {
         const State::Guard guard{ m_state->mutex };
         m_state->callback = std::move(callback);
-        if (m_state->callback && m_state->fault.load() != Fault::None)
+        if (m_state->callback && m_state->fault.load() != Fault::None) {
             m_state->callback();
+        }
     }
     void DriverFaultMonitor::checkInput() noexcept
     {
-        if (m_input->read() == gpio::Level::High)
+        if (m_input->read() == gpio::Level::High) {
             fail(Fault::Input, std::make_error_code(std::errc::io_error));
+        }
     }
     void DriverFaultMonitor::fail(Fault fault, std::error_code error) noexcept
     {
@@ -99,8 +105,9 @@ namespace hal::device::util
     {
         checkInput();
         const State::Guard guard{ m_state->mutex };
-        if (m_state->fault.load() != Fault::None)
+        if (m_state->fault.load() != Fault::None) {
             return std::unexpected(std::make_error_code(m_state->error.load()));
+        }
         m_state->ready.store(true);
         return {};
     }

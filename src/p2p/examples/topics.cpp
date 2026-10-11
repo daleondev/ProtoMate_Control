@@ -1,5 +1,5 @@
-#include "ContextThread.hpp"
 #include "Topics.hpp"
+#include "ContextThread.hpp"
 
 #include "p2p/bridge/Bridge.hpp"
 #include "p2p/transport/InProcessTransport.hpp"
@@ -37,7 +37,8 @@ int main()
         // These are ordinary local subscriptions. The bridges handle transport.
         std::string received_state;
         std::string received_status;
-        auto ui_subscription = ui_bus.topic<^^Topics::demo_io_state>().subscribe([&](const std::string& value) {
+        auto ui_subscription =
+          ui_bus.topic<^^Topics::demo_io_state>().subscribe([&](const std::string& value) {
             received_state = value;
             std::cout << "UI received demo/io/state: " << value << '\n';
         });
@@ -53,15 +54,18 @@ int main()
 
         // Only the example's main thread waits here; both bridge directions
         // continue concurrently on the p2p thread. poll(timeout) sleeps, not spins.
-        if (ui_subscription.poll(2s) != 1 || io_subscription.poll(2s) != 1)
+        if (ui_subscription.poll(2s) != 1 || io_subscription.poll(2s) != 1) {
             throw std::runtime_error("Timed out waiting for a forwarded topic");
-        if (received_state != "idle" || received_status != "ready")
+        }
+        if (received_state != "idle" || received_status != "ready") {
             throw std::runtime_error("Forwarded topic value did not match");
+        }
 
         io_bridge.stop();
         ui_bridge.stop();
-        if (io_bridge.failure() || ui_bridge.failure())
+        if (io_bridge.failure() || ui_bridge.failure()) {
             throw std::runtime_error("Bridge reported a failure");
+        }
         std::cout << "Both directions verified; bridges stopped cleanly.\n";
         return 0;
     } catch (const std::exception& error) {

@@ -21,8 +21,9 @@ namespace hal::util
         void publish(const IQuadratureEncoder::Sample& sample) noexcept
         {
             m_previous = sample.timestamp;
-            if (m_callback)
+            if (m_callback) {
                 m_callback(sample);
+            }
         }
 
       private:

@@ -41,11 +41,13 @@ namespace hal::uart
     {
         // The BSP owns USART3 independently of CubeMX's UART declarations.
         if (configuration.peripheral == Peripheral::Usart3 ||
-            !util::valid_uart_configuration(configuration.transport))
+            !util::valid_uart_configuration(configuration.transport)) {
             return {};
+        }
         const auto selected{ hardware(configuration) };
-        if (!selected)
+        if (!selected) {
             return {};
+        }
         static util::ExclusiveInstances<UART_POOL_SIZE> instances;
         return instances.create<Uart>(std::to_underlying(configuration.peripheral), *selected);
     }

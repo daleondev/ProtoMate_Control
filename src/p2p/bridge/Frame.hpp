@@ -60,9 +60,9 @@ namespace p2p::util
     };
 
     OutgoingFrame make_frame(FrameKind kind,
-                            const std::string& name,
-                            std::uint64_t id,
-                            std::size_t payload_size);
+                             const std::string& name,
+                             std::uint64_t id,
+                             std::size_t payload_size);
     IncomingFrame decode_frame(std::span<const std::byte> frame);
     void set_request_budget(OutgoingFrame& frame, std::uint32_t milliseconds);
 
@@ -70,11 +70,13 @@ namespace p2p::util
     OutgoingFrame encode_frame(FrameKind kind, const std::string& name, std::uint64_t id, const T& value)
     {
         std::size_t size{ sizeof(T) };
-        if constexpr (pnm::utils::memory::HasSerializationAdapter<T>)
+        if constexpr (pnm::utils::memory::HasSerializationAdapter<T>) {
             size = pnm::utils::memory::SerializationAdapter<T>::bufferSize(value);
+        }
         auto frame = make_frame(kind, name, id, size);
-        if (!pnm::utils::memory::serialize(value, std::span(frame.bytes).subspan(frame.size - size, size)))
+        if (!pnm::utils::memory::serialize(value, std::span(frame.bytes).subspan(frame.size - size, size))) {
             throw std::length_error("Cannot serialize bridge payload");
+        }
         return frame;
     }
 }

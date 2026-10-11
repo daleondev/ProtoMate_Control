@@ -16,8 +16,9 @@ namespace p2p::util
 
         void notify() noexcept
         {
-            if (pending.test_and_set())
+            if (pending.test_and_set()) {
                 return;
+            }
             try {
                 ready.push(true);
             } catch (...) {

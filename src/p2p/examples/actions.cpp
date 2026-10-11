@@ -30,10 +30,12 @@ namespace
         void wait()
         {
             std::unique_lock lock(m_mutex);
-            if (!m_changed.wait_for(lock, 2s, [this] { return m_pending; }))
+            if (!m_changed.wait_for(lock, 2s, [this] { return m_pending; })) {
                 throw std::runtime_error("Timed out waiting for action readiness");
+            }
             m_pending = false;
         }
+
       private:
         std::mutex m_mutex;
         std::condition_variable m_changed;
@@ -52,47 +54,67 @@ namespace
         bool accepted{};
         std::uint32_t current{};
         std::optional<pnm::msg::ActionResult<std::uint32_t>> result;
-        auto goal = ui_bus.action<^^Actions::demo_io_count>().sendGoal(TARGET, {.accept_timeout = 2s}, {
-            .on_accepted = [&] { accepted = true; std::cout << "UI: IO accepted\n"; },
-            .on_feedback = [&](const std::uint32_t& count) { current = count; std::cout << "UI: count " << count << '\n'; },
-            .on_result = [&](auto value) { result.emplace(std::move(value)); }
-        });
+        auto goal = ui_bus.action<^^Actions::demo_io_count>().sendGoal(
+          TARGET, { .accept_timeout = 2s }, { .on_accepted = [&] {
+            accepted = true;
+            std::cout << "UI: IO accepted\n";
+        }, .on_feedback = [&](const std::uint32_t& count) {
+            current = count;
+            std::cout << "UI: count " << count << '\n';
+        }, .on_result = [&](auto value) { result.emplace(std::move(value)); } });
         auto goal_readiness = pnm::msg::watch(goal, [ui_ready] { ui_ready->notify(); });
         while (!execution) {
             provider.poll();
-            if (!execution) io_ready->wait();
+            if (!execution) {
+                io_ready->wait();
+            }
         }
         while (!accepted) {
-            if (goal.poll() && !accepted) throw std::runtime_error("Goal was not accepted");
-            if (!accepted) ui_ready->wait();
+            if (goal.poll() && !accepted) {
+                throw std::runtime_error("Goal was not accepted");
+            }
+            if (!accepted) {
+                ui_ready->wait();
+            }
         }
         execution->feedback(PROGRESS);
         while (current != PROGRESS) {
-            if (goal.poll()) throw std::runtime_error("Goal ended before feedback");
-            if (current != PROGRESS) ui_ready->wait();
+            if (goal.poll()) {
+                throw std::runtime_error("Goal ended before feedback");
+            }
+            if (current != PROGRESS) {
+                ui_ready->wait();
+            }
         }
         if (cancel) {
             auto cancellation_readiness = pnm::msg::watch(*execution, [io_ready] { io_ready->notify(); });
             goal.requestCancel();
-            while (!execution->cancelRequested()) io_ready->wait();
+            while (!execution->cancelRequested()) {
+                io_ready->wait();
+            }
             std::cout << "IO: cleanup finished\n";
             execution->cancelled(current);
-        } else {
+        }
+        else {
             execution->succeed(target);
         }
         execution.reset();
-        while (!goal.poll()) ui_ready->wait();
+        while (!goal.poll()) {
+            ui_ready->wait();
+        }
         const auto expected = cancel ? pnm::msg::ActionStatus::Cancelled : pnm::msg::ActionStatus::Succeeded;
-        if (!result || !*result || (**result).status != expected || (**result).value != (cancel ? PROGRESS : TARGET))
+        if (!result || !*result || (**result).status != expected ||
+            (**result).value != (cancel ? PROGRESS : TARGET)) {
             throw std::runtime_error("Unexpected terminal action result");
+        }
         std::cout << "UI: " << (cancel ? "cancelled" : "succeeded") << ", count " << (**result).value << '\n';
     }
 }
 
 int main()
 {
-    using example::Actions;
     using example::ActionProvider;
+    using example::Actions;
     try {
         pnm::msg::Bus io_bus;
         pnm::msg::Bus ui_bus;
@@ -109,23 +131,39 @@ int main()
         std::uint32_t target{};
         auto provider = io_bus.action<^^Actions::demo_io_count>().serveDeferred(
           [&](std::uint32_t requested, Execution next) {
-              if (execution) { next.fail(pnm::msg::ActionError::Busy); return; }
-              if (requested == 0) { next.reject(); return; }
-              if (next.cancelRequested()) { next.cancelled(0); return; }
-              if (!next.accept()) return;
-              target = requested;
-              execution.emplace(std::move(next));
-          });
+            if (execution) {
+                next.fail(pnm::msg::ActionError::Busy);
+                return;
+            }
+            if (requested == 0) {
+                next.reject();
+                return;
+            }
+            if (next.cancelRequested()) {
+                next.cancelled(0);
+                return;
+            }
+            if (!next.accept()) {
+                return;
+            }
+            target = requested;
+            execution.emplace(std::move(next));
+        });
         auto provider_readiness = pnm::msg::watch(provider, [io_ready] { io_ready->notify(); });
-        io_bridge.start(); ui_bridge.start();
+        io_bridge.start();
+        ui_bridge.start();
 
         // Main represents application workers in this demonstration. It dispatches
         // IO admission and UI callbacks; the dedicated p2p thread only forwards.
-        for (bool cancel : {false, true})
+        for (bool cancel : { false, true }) {
             run_action(ui_bus, provider, execution, target, io_ready, cancel);
+        }
 
-        io_bridge.stop(); ui_bridge.stop();
-        if (io_bridge.failure() || ui_bridge.failure()) throw std::runtime_error("Bridge failed");
+        io_bridge.stop();
+        ui_bridge.stop();
+        if (io_bridge.failure() || ui_bridge.failure()) {
+            throw std::runtime_error("Bridge failed");
+        }
         std::cout << "Action completion and cancellation verified.\n";
         return 0;
     } catch (const std::exception& error) {

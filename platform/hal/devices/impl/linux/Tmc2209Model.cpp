@@ -12,8 +12,9 @@ namespace hal::device
     }
     void Tmc2209Model::reset(unsigned address)
     {
-        for (auto& reg : m_registers.at(address))
+        for (auto& reg : m_registers.at(address)) {
             reg = 0;
+        }
         m_registers[address][0x00] = GCONF_RESET;
         m_registers[address][0x01] = 1;
         m_registers[address][IOIN] = IOIN_RESET | (address << 2U);
@@ -36,28 +37,34 @@ namespace hal::device
     {
         auto error = [](std::errc e) { return std::unexpected(std::make_error_code(e)); };
         if ((request.size() != READ_REQUEST_BYTES && request.size() != FRAME_BYTES) || request[0] != SYNC ||
-            device::Tmc2209::crc(request.first(request.size() - 1)) != request.back())
+            device::Tmc2209::crc(request.first(request.size() - 1)) != request.back()) {
             return error(std::errc::protocol_error);
+        }
         const auto address = request[1];
         const auto reg = static_cast<std::uint8_t>(request[2] & REGISTER_MASK);
         if (address >= 2 || !m_connected[address]) {
-            if (reply.empty() && request.size() == FRAME_BYTES)
+            if (reply.empty() && request.size() == FRAME_BYTES) {
                 return {};
+            }
             return error(std::errc::timed_out);
         }
         if (request[2] & WRITE_FLAG) {
-            if (request.size() != FRAME_BYTES || !reply.empty())
+            if (request.size() != FRAME_BYTES || !reply.empty()) {
                 return error(std::errc::protocol_error);
+            }
             auto value = read_word(request.subspan<DATA_OFFSET, REGISTER_BYTES>());
-            if (reg == 1)
+            if (reg == 1) {
                 m_registers[address][reg].fetch_and(~value);
-            else
+            }
+            else {
                 m_registers[address][reg] = value;
+            }
             m_registers[address][2] = (m_registers[address][2] + 1U) & MASTER_ADDRESS;
             return {};
         }
-        if (request.size() != READ_REQUEST_BYTES || reply.size() != FRAME_BYTES)
+        if (request.size() != READ_REQUEST_BYTES || reply.size() != FRAME_BYTES) {
             return error(std::errc::protocol_error);
+        }
         auto value = m_registers[address][reg].load();
         reply[0] = SYNC;
         reply[1] = MASTER_ADDRESS;

@@ -46,8 +46,9 @@ namespace hal::util
 
     auto SimulatedStepHardware::completionWatch(bool enabled) noexcept -> void
     {
-        if (enabled && !completion_watch)
+        if (enabled && !completion_watch) {
             next_poll = elapsed + COMPLETION_POLL_TICKS;
+        }
         completion_watch = enabled;
     }
 
@@ -173,8 +174,9 @@ namespace hal::util
                                : distance(registers.channels[i].compare);
                 next = std::min(next, matches[i]);
             }
-            if (completion_watch)
+            if (completion_watch) {
                 next = std::min(next, next_poll - elapsed);
+            }
             if (next > ticks) {
                 elapsed += ticks;
                 registers.tick = step_add(registers.tick, static_cast<std::uint32_t>(ticks));

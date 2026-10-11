@@ -14,10 +14,12 @@ namespace hal
                        std::chrono::milliseconds timeout) -> util::Result<>
     {
         if (tx.empty() || tx.size() != rx.size() || !util::valid_transfer_size(tx.size()) ||
-            !util::valid_transfer_timeout(timeout))
+            !util::valid_transfer_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
-        if (!m_handler)
+        }
+        if (!m_handler) {
             return std::unexpected(std::make_error_code(std::errc::not_connected));
+        }
         return m_handler(tx, rx, timeout);
     }
 

@@ -40,7 +40,6 @@ namespace p2p
         TopicBridge& operator=(TopicBridge&&) = delete;
 
       private:
-
         template<typename Catalog, typename Publisher>
             requires std::is_enum_v<Publisher>
         void registerCatalog(Publisher local_publisher);
@@ -111,10 +110,12 @@ namespace p2p
                 if constexpr (std::meta::is_nonstatic_data_member(member)) {
                     using Metadata = pnm::msg::TopicMetadata<member>;
                     using Message = typename Metadata::Message;
-                    if (publisher == local_publisher)
+                    if (publisher == local_publisher) {
                         registerOutgoing<Message>(Metadata::name);
-                    else
+                    }
+                    else {
                         registerIncoming<Message>(Metadata::name);
+                    }
                 }
             }
         }
@@ -154,8 +155,9 @@ namespace p2p
 
         auto publish = [local_topic = m_bus.topic<T>(topic)](std::span<const std::byte> payload) {
             T value{};
-            if (!pnm::utils::memory::deserialize(payload, value))
+            if (!pnm::utils::memory::deserialize(payload, value)) {
                 throw std::invalid_argument("Invalid incoming topic payload");
+            }
             local_topic.publish(value);
         };
         m_incomingTopics.push_back({

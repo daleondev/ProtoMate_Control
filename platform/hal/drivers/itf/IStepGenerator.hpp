@@ -80,8 +80,9 @@ namespace hal
             {
                 for (auto& entry : target) {
                     const auto value{ timing(first++) };
-                    if (!value)
+                    if (!value) {
                         return std::unexpected(value.error());
+                    }
                     entry = *value;
                 }
                 return {};

@@ -42,8 +42,9 @@ namespace hal::spi
     auto create(Configuration configuration) -> std::shared_ptr<ISpi>
     {
         const auto selected{ hardware(configuration.peripheral) };
-        if (!selected)
+        if (!selected) {
             return {};
+        }
         static util::ExclusiveInstances<SPI_POOL_SIZE> instances;
         return instances.create<Spi>(std::to_underlying(configuration.peripheral), *selected);
     }

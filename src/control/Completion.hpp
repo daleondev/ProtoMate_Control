@@ -34,8 +34,9 @@ namespace control
                 m_state->value = value;
                 callback = std::move(m_state->callback);
             }
-            if (callback)
+            if (callback) {
                 callback();
+            }
         }
         void setException(const std::exception_ptr& error)
         {
@@ -46,8 +47,9 @@ namespace control
                 m_state->error = error;
                 callback = std::move(m_state->callback);
             }
-            if (callback)
+            if (callback) {
                 callback();
+            }
         }
         void then(const std::function<void()>& callback) const
         {
@@ -55,17 +57,20 @@ namespace control
             {
                 std::scoped_lock lock(m_state->mutex);
                 ready = m_state->value.has_value() || bool(m_state->error);
-                if (!ready)
+                if (!ready) {
                     m_state->callback = callback;
+                }
             }
-            if (ready && callback)
+            if (ready && callback) {
                 callback();
+            }
         }
         std::optional<T> result() const
         {
             std::scoped_lock lock(m_state->mutex);
-            if (m_state->error)
+            if (m_state->error) {
                 std::rethrow_exception(m_state->error);
+            }
             return m_state->value;
         }
     };

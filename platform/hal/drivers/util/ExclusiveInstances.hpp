@@ -29,8 +29,9 @@ namespace hal::util
             }
             ~Lease()
             {
-                if (m_claimed)
+                if (m_claimed) {
                     m_claimed->store(false, std::memory_order_release);
+                }
             }
             Lease(const Lease&) = delete;
             Lease& operator=(const Lease&) = delete;
@@ -56,11 +57,13 @@ namespace hal::util
         template<class Driver, class... Args>
         [[nodiscard]] auto create(std::size_t index, Args&&... args) -> std::shared_ptr<Driver>
         {
-            if (index >= Count)
+            if (index >= Count) {
                 return {};
+            }
             bool expected{};
-            if (!m_claimed[index].compare_exchange_strong(expected, true, std::memory_order_acq_rel))
+            if (!m_claimed[index].compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
                 return {};
+            }
             Lease lease{ m_claimed[index] };
             auto instance{ std::make_shared<Instance<Driver>>(std::move(lease),
                                                               std::forward<Args>(args)...) };

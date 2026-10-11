@@ -128,19 +128,22 @@ namespace
     {
         constexpr std::uint32_t enabled_mask{ USART_CR1_UE | USART_CR1_TE };
         if (
-          (COM1_UART->CR1 & enabled_mask) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          (COM1_UART->CR1 &
+           enabled_mask) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           enabled_mask) { // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             return;
         }
 
         std::uint32_t remaining{ UART_SPIN_LIMIT };
-        while ((COM1_UART->ISR & USART_ISR_TXE_TXFNF) == 0U && // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        while ((COM1_UART->ISR & USART_ISR_TXE_TXFNF) ==
+                 0U &&            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                remaining != 0U) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             --remaining;
         }
         if (remaining != 0U) {
-            COM1_UART->TDR = static_cast<std::uint8_t>( // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              character); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            COM1_UART->TDR = static_cast<
+              std::uint8_t>( // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+              character);    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
     }
 
@@ -162,8 +165,9 @@ namespace
         while (true) {
             digits[count++] = static_cast<char>('0' + (line % decimal_base));
             line /= decimal_base;
-            if (line == 0U)
+            if (line == 0U) {
                 break;
+            }
         }
         while (count != 0U) {
             panic_uart_write_character(digits[--count]);
@@ -178,22 +182,24 @@ namespace
         constexpr std::uint32_t mode_shift{ RED_LED_PIN_NUMBER * GPIO_MODE_BITS };
         constexpr std::uint32_t mode_mask{ 0x3U << mode_shift };
         LED3_GPIO_PORT->MODER = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          (LED3_GPIO_PORT->MODER & ~mode_mask) | // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          (0x1U << mode_shift); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        LED3_GPIO_PORT->OTYPER &= // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          ~LED3_PIN; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          (LED3_GPIO_PORT->MODER &
+           ~mode_mask) |           // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          (0x1U << mode_shift);    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        LED3_GPIO_PORT->OTYPER &=  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          ~LED3_PIN;               // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         LED3_GPIO_PORT->OSPEEDR &= // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          ~mode_mask; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        LED3_GPIO_PORT->PUPDR &= // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          ~mode_mask; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        LED3_GPIO_PORT->BSRR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          ~mode_mask;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        LED3_GPIO_PORT->PUPDR &=   // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          ~mode_mask;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        LED3_GPIO_PORT->BSRR =     // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           static_cast<std::uint32_t>(LED3_PIN)
           << GPIO_RESET_SHIFT; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     }
 
     auto set_red_led(bool on) noexcept -> void
     {
-        LED3_GPIO_PORT->BSRR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        LED3_GPIO_PORT
+          ->BSRR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           on
             ? LED3_PIN
             : static_cast<std::uint32_t>(LED3_PIN)
@@ -250,7 +256,7 @@ extern "C" int __io_getchar() noexcept // NOLINT(bugprone-reserved-identifier) -
 }
 
 extern "C" int __io_putchar( // NOLINT(bugprone-reserved-identifier)
-  int character) noexcept // NOLINT(bugprone-reserved-identifier) -- BSP/newlib retargeting ABI.
+  int character) noexcept    // NOLINT(bugprone-reserved-identifier) -- BSP/newlib retargeting ABI.
 {
     if (__get_IPSR() != 0U || hcom_uart[COM1].Instance == nullptr) {
         return -1;
@@ -274,7 +280,8 @@ extern "C" void USART3_IRQHandler() noexcept
 {
     bool notify_reader{};
     while (
-      (COM1_UART->ISR & USART_ISR_RXNE_RXFNE) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+      (COM1_UART->ISR &
+       USART_ISR_RXNE_RXFNE) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
       0U) { // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         const std::uint8_t character{ static_cast<std::uint8_t>(
           COM1_UART->RDR) }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -290,9 +297,10 @@ extern "C" void USART3_IRQHandler() noexcept
         notify_reader = true;
     }
 
-    if ((COM1_UART->ISR & USART_ISR_IDLE) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        0U) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        COM1_UART->ICR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+    if ((COM1_UART->ISR &
+         USART_ISR_IDLE) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        0U) {               // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        COM1_UART->ICR =    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           USART_ICR_IDLECF; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         notify_reader = true;
     }

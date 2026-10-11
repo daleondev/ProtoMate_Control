@@ -41,8 +41,9 @@ namespace p2p
     void Bridge::start()
     {
         std::unique_lock lock(m_mutex);
-        if (m_started)
+        if (m_started) {
             throw std::logic_error("Bridge can only be started once");
+        }
         m_started = true;
 
         try {
@@ -86,8 +87,9 @@ namespace p2p
     {
         {
             std::scoped_lock lock(m_mutex);
-            if (!m_started)
+            if (!m_started) {
                 return;
+            }
         }
 
         m_shutdownRequested.store(true);
@@ -155,15 +157,18 @@ namespace p2p
         m_connection.begin();
         m_outgoingWakeup->notify();
         while (!stop.stop_requested()) {
-            if (m_shutdownRequested.load())
+            if (m_shutdownRequested.load()) {
                 beginShutdown();
-            if (m_connection.tick())
+            }
+            if (m_connection.tick()) {
                 m_outgoingWakeup->notify();
+            }
             auto timer =
               m_context.scheduleAt(m_connection.nextWake(), [signal = m_healthWakeup] { signal->notify(); });
             if (!(co_await m_healthWakeup->ready.next(stop))) {
-                if (stop.stop_requested())
+                if (stop.stop_requested()) {
                     break;
+                }
                 throw std::runtime_error("Connection health notification failed");
             }
             m_healthWakeup->pending.clear();
@@ -173,16 +178,18 @@ namespace p2p
 
     void Bridge::checkRegistration() const
     {
-        if (m_started)
+        if (m_started) {
             throw std::logic_error("Register bridge routes before start");
+        }
     }
 
     pnm::coro::Task<std::optional<Bridge::OutgoingFrame>> Bridge::nextOutgoingFrame(Lane lane,
                                                                                     std::stop_token stop)
     {
         while (!stop.stop_requested()) {
-            if (m_shutdownRequested.load())
+            if (m_shutdownRequested.load()) {
                 beginShutdown();
+            }
             m_connection.checkDeadline();
             if (m_connection.ready()) {
                 m_services.poll();
@@ -197,12 +204,14 @@ namespace p2p
                 m_connection.requestGoodbye();
                 m_outgoingWakeup->signal(Lane::Urgent).notify();
             }
-            if (auto frame = takeReadyFrame(lane))
+            if (auto frame = takeReadyFrame(lane)) {
                 co_return frame;
+            }
 
             if (!(co_await m_outgoingWakeup->signal(lane).ready.next(stop))) {
-                if (stop.stop_requested())
+                if (stop.stop_requested()) {
                     co_return std::nullopt;
+                }
                 throw std::runtime_error("Bridge outgoing notification failed");
             }
             // Rescan after clearing the signal. A publication racing this clear
@@ -255,9 +264,10 @@ namespace p2p
         if (frame.kind >= util::FrameKind::Hello) {
             if (m_connection.dispatch(frame, lane)) {
                 m_peerStopped = true;
-                if (!m_actions.drained())
+                if (!m_actions.drained()) {
                     throw util::ConnectionFailure(ConnectionReason::PeerStopped,
                                                   "Peer stopped with outstanding actions");
+                }
                 m_connection.transition({ .state = ConnectionState::Stopping, .reason = ConnectionReason::PeerStopped });
                 m_stopSource.request_stop();
             }
@@ -265,17 +275,21 @@ namespace p2p
             m_outgoingWakeup->notify();
             return;
         }
-        if (!m_connection.ready())
+        if (!m_connection.ready()) {
             throw std::invalid_argument("Application frame before handshake completion");
+        }
         if (frame.kind == util::FrameKind::Topic) {
-            if (lane != Lane::Normal)
+            if (lane != Lane::Normal) {
                 throw std::invalid_argument("Topics cannot use the urgent lane");
+            }
             m_topics.dispatch(frame);
         }
-        else if (frame.kind >= util::FrameKind::ActionGoal && frame.kind <= util::FrameKind::ActionAck)
+        else if (frame.kind >= util::FrameKind::ActionGoal && frame.kind <= util::FrameKind::ActionAck) {
             m_actions.dispatch(frame, lane);
-        else
+        }
+        else {
             m_services.dispatch(frame, lane);
+        }
     }
 
     pnm::coro::Task<void> Bridge::runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop,
@@ -283,8 +297,9 @@ namespace p2p
     {
         try {
             auto result = co_await loop;
-            if (!result)
+            if (!result) {
                 recordFailure(result.error(), ConnectionReason::TransportError);
+            }
         } catch (const util::ConnectionFailure& error) {
             recordFailure(std::current_exception(), error.reason);
         } catch (const std::invalid_argument&) {
@@ -300,10 +315,12 @@ namespace p2p
             std::scoped_lock lock(m_mutex);
             *running = false;
             last = loopsStopped();
-            if (last)
+            if (last) {
                 m_cleanupRunning = true;
-            else
+            }
+            else {
                 m_finished.notify_all();
+            }
         }
         if (last) {
             // Application notifications must never run under the lifecycle lock.
@@ -354,25 +371,29 @@ namespace p2p
         while (!stop.stop_requested()) {
             // Suspends until a message, lifecycle event or deadline provides work.
             auto frame = co_await nextOutgoingFrame(lane, stop);
-            if (!frame || stop.stop_requested())
+            if (!frame || stop.stop_requested()) {
                 break;
+            }
 
-            if (frame->size > frame->bytes.size())
+            if (frame->size > frame->bytes.size()) {
                 throw std::length_error("Outgoing bridge frame exceeds its buffer");
+            }
 
             // frame owns the storage throughout the await. A full transport
             // suspends this loop while the receive loop can continue running.
             const auto bytes = std::span<const std::byte>(frame->bytes).first(frame->size);
             auto result = co_await m_transport.send(bytes, lane, stop);
             if (!result) {
-                if (result.error() == ITransport::Error::Cancelled && stop.stop_requested())
+                if (result.error() == ITransport::Error::Cancelled && stop.stop_requested()) {
                     break;
+                }
                 co_return std::unexpected(result.error());
             }
             m_connection.sent(static_cast<util::FrameKind>(frame->bytes[1]));
             m_actionSending[static_cast<std::size_t>(lane)] = false;
-            if (m_shutdownRequested.load())
+            if (m_shutdownRequested.load()) {
                 m_outgoingWakeup->notify();
+            }
             co_await YieldToContext{ .context = &m_context };
         }
         co_return pnm::EmptyResult<ITransport::Error>{};
@@ -383,22 +404,26 @@ namespace p2p
         // This buffer lives in the coroutine frame across suspension and is
         // reused only after the previous frame has been dispatched.
         std::array<std::byte, util::MAX_FRAME_BYTES> buffer{};
-        if (lane == Lane::Normal && !(co_await m_connection.waitReady(stop)))
+        if (lane == Lane::Normal && !(co_await m_connection.waitReady(stop))) {
             co_return pnm::EmptyResult<ITransport::Error>{};
+        }
         while (!stop.stop_requested()) {
             auto result = co_await m_transport.receive(buffer, lane, stop);
             if (!result) {
-                if (result.error() == ITransport::Error::Cancelled && stop.stop_requested())
+                if (result.error() == ITransport::Error::Cancelled && stop.stop_requested()) {
                     break;
+                }
                 // Includes BufferTooSmall: return the failure instead of
                 // repeatedly retrying the same frame with the same buffer.
                 co_return std::unexpected(result.error());
             }
-            if (stop.stop_requested())
+            if (stop.stop_requested()) {
                 break;
+            }
 
-            if (*result > buffer.size())
+            if (*result > buffer.size()) {
                 throw std::length_error("Transport returned a frame larger than the receive buffer");
+            }
 
             dispatchIncomingFrame(std::span<const std::byte>(buffer).first(*result), lane);
             co_await YieldToContext{ .context = &m_context };

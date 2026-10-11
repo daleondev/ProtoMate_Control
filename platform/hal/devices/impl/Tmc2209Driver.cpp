@@ -32,8 +32,9 @@ namespace hal::device
       , m_limits{ limits }
       , m_microsteps{ config.microsteps }
     {
-        if (!m_enable || !std::ranges::binary_search(m_bus->m_addresses, address) || !validate(config))
+        if (!m_enable || !std::ranges::binary_search(m_bus->m_addresses, address) || !validate(config)) {
             throw std::invalid_argument("invalid TMC motor configuration or bus address");
+        }
     }
     hal::util::Result<> Tmc2209Driver::validate(const Configuration& config) const
     {
@@ -45,8 +46,9 @@ namespace hal::device
             !std::has_single_bit(config.microsteps) || config.microsteps > MAX_MICROSTEPS ||
             config.microsteps != m_microsteps || config.index_step ||
             (config.mode != Mode::SpreadCycle && config.mode != Mode::StealthChop) ||
-            (config.mode == Mode::StealthChop && *run < STEALTH_MIN_CURRENT_SCALE))
+            (config.mode == Mode::StealthChop && *run < STEALTH_MIN_CURRENT_SCALE)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         return {};
     }
     IStepperDriver::Status Tmc2209Driver::status() const noexcept
@@ -70,10 +72,12 @@ namespace hal::device
     hal::util::Result<> Tmc2209Driver::configure(const Configuration& config)
     {
         const std::scoped_lock lock{ m_lock->mutex };
-        if (m_enable->read() != gpio::Level::High)
+        if (m_enable->read() != gpio::Level::High) {
             return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
-        if (auto result{ validate(config) }; !result)
+        }
+        if (auto result{ validate(config) }; !result) {
             return result;
+        }
         m_configuration = config;
         m_initialized = false;
         m_fault.unready();
@@ -82,8 +86,9 @@ namespace hal::device
     hal::util::Result<> Tmc2209Driver::initialize()
     {
         const std::scoped_lock lock{ m_lock->mutex };
-        if (m_enable->read() != gpio::Level::High)
+        if (m_enable->read() != gpio::Level::High) {
             return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+        }
         m_initialized = false;
         m_diagnostics.reset();
         m_warning.store(false);
@@ -91,8 +96,9 @@ namespace hal::device
         m_fault.checkInput();
         const Tmc2209Bus::Guard bus_lock{ *m_bus };
         auto result{ m_bus->prepareLocked() };
-        if (result)
+        if (result) {
             result = m_device.initialize(m_configuration);
+        }
         if (!result) {
             m_fault.fail(result.error() == std::errc::io_error ? Fault::Electrical : Fault::Communication,
                          result.error());
@@ -118,17 +124,19 @@ namespace hal::device
                          std::make_error_code(std::errc::state_not_recoverable));
             return;
         }
-        if (auto result{ m_device.verify() }; !result)
+        if (auto result{ m_device.verify() }; !result) {
             m_fault.fail(result.error() == std::errc::state_not_recoverable ? Fault::Configuration
                                                                             : Fault::Communication,
                          result.error());
+        }
     }
     void Tmc2209Driver::service()
     {
         m_fault.checkInput();
         const std::scoped_lock lock{ m_lock->mutex };
-        if (!m_initialized)
+        if (!m_initialized) {
             return;
+        }
         const Tmc2209Bus::Guard bus_lock{ *m_bus };
         inspectLocked();
     }
@@ -136,9 +144,10 @@ namespace hal::device
     {
         service();
         const auto state{ status() };
-        if (!state.ready)
+        if (!state.ready) {
             return std::unexpected(state.error ? state.error
                                                : std::make_error_code(std::errc::operation_not_permitted));
+        }
         return {};
     }
 }

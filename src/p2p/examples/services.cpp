@@ -1,5 +1,5 @@
-#include "ContextThread.hpp"
 #include "Services.hpp"
+#include "ContextThread.hpp"
 
 #include "p2p/bridge/Bridge.hpp"
 #include "p2p/transport/InProcessTransport.hpp"
@@ -39,17 +39,20 @@ int main()
         auto call = ui_bus.service<^^Services::demo_io_echo>().request("hello", 2s);
         // In a real application its IO worker dispatches this provider. Here main
         // runs the handler while the dedicated p2p thread forwards both directions.
-        if (provider.poll(2s) != 1)
+        if (provider.poll(2s) != 1) {
             throw std::runtime_error("No service request received");
+        }
         auto response = call.get(); // Wait on main, never on the p2p context thread.
-        if (!response || *response != "IO says: hello")
+        if (!response || *response != "IO says: hello") {
             throw std::runtime_error("Unexpected service result");
+        }
         std::cout << "UI received response: " << *response << '\n';
 
         io_bridge.stop();
         ui_bridge.stop();
-        if (io_bridge.failure() || ui_bridge.failure())
+        if (io_bridge.failure() || ui_bridge.failure()) {
             throw std::runtime_error("Bridge reported a failure");
+        }
         std::cout << "Service round trip verified; bridges stopped cleanly.\n";
         return 0;
     } catch (const std::exception& error) {

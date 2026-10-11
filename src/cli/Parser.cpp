@@ -117,10 +117,12 @@ namespace
         // valid_name. This permits independent motor/robot command modules.
         while (true) {
             const auto end{ name.find(' ') };
-            if (!valid_name(name.substr(0, end)))
+            if (!valid_name(name.substr(0, end))) {
                 return false;
-            if (end == std::string_view::npos)
+            }
+            if (end == std::string_view::npos) {
                 return true;
+            }
             name.remove_prefix(end + 1U);
         }
     }
@@ -137,12 +139,15 @@ namespace
       public:
         auto scan(std::string_view line) -> std::expected<std::vector<Token>, std::string>
         {
-            for (std::size_t index{}; index < line.size(); ++index)
+            for (std::size_t index{}; index < line.size(); ++index) {
                 consume(line, index);
-            if (m_escaped)
+            }
+            if (m_escaped) {
                 return std::unexpected("trailing escape character");
-            if (m_quote != Quote::None)
+            }
+            if (m_quote != Quote::None) {
                 return std::unexpected("unterminated quoted string");
+            }
             finishWord();
             return std::move(m_tokens);
         }
@@ -150,8 +155,9 @@ namespace
       private:
         void finishWord()
         {
-            if (!m_started)
+            if (!m_started) {
                 return;
+            }
             m_tokens.push_back({ .type = TokenType::Word,
                                  .text = std::move(m_word),
                                  .wildcard_mask = std::move(m_wildcards) });
@@ -169,8 +175,9 @@ namespace
         {
             finishWord();
             auto type{ TokenType::Redirect };
-            if (line[index] == '|')
+            if (line[index] == '|') {
                 type = TokenType::Pipe;
+            }
             else if (index + 1U < line.size() && line[index + 1U] == '>') {
                 type = TokenType::Append;
                 ++index;
@@ -221,20 +228,24 @@ namespace
       -> std::expected<void, std::string>
     {
         const auto& token{ tokens[index] };
-        if (result.stages.back().empty())
+        if (result.stages.back().empty()) {
             return std::unexpected("output redirection requires a command");
-        if (result.redirection)
+        }
+        if (result.redirection) {
             return std::unexpected("multiple output redirections are not supported");
-        if (index + 1U >= tokens.size() || tokens[index + 1U].type != TokenType::Word)
+        }
+        if (index + 1U >= tokens.size() || tokens[index + 1U].type != TokenType::Word) {
             return std::unexpected(token.type == TokenType::Append ? "missing file after '>>'"
                                                                    : "missing file after '>'");
+        }
         ++index;
         result.redirection = Redirection{
             .target = { .text = tokens[index].text, .wildcard_mask = tokens[index].wildcard_mask },
             .append = token.type == TokenType::Append,
         };
-        if (index + 1U != tokens.size())
+        if (index + 1U != tokens.size()) {
             return std::unexpected("output redirection must be at the end of the command line");
+        }
         return {};
     }
 
@@ -265,8 +276,9 @@ namespace
                 continue;
             }
 
-            if (const auto result_status{ parse_redirection(result, tokens, index) }; !result_status)
+            if (const auto result_status{ parse_redirection(result, tokens, index) }; !result_status) {
                 return std::unexpected(result_status.error());
+            }
         }
 
         if (!tokens.empty() && result.stages.back().empty()) {
@@ -438,10 +450,12 @@ namespace cli
             return std::unexpected("command callback is missing: " + command.name);
         }
 
-        if (auto result{ validate_arguments(command.arguments) }; !result)
+        if (auto result{ validate_arguments(command.arguments) }; !result) {
             return result;
-        if (auto result{ validate_flags(command.flags) }; !result)
+        }
+        if (auto result{ validate_flags(command.flags) }; !result) {
             return result;
+        }
 
         m_commands.push_back(std::move(command));
         return {};
@@ -592,20 +606,25 @@ namespace cli
             const auto name{ option.substr(
               2U, separator == std::string_view::npos ? std::string_view::npos : separator - 2U) };
             const auto specification{ std::ranges::find(flags, name, &FlagSpec::name) };
-            if (specification == flags.end())
+            if (specification == flags.end()) {
                 return std::unexpected("unknown flag '--" + std::string{ name } + "'");
+            }
             std::optional<std::string> value;
             if (specification->value_name) {
-                if (separator != std::string_view::npos)
+                if (separator != std::string_view::npos) {
                     value = option.substr(separator + 1U);
-                else if (++index < tokens.size())
+                }
+                else if (++index < tokens.size()) {
                     value = tokens[index];
-                else
+                }
+                else {
                     return std::unexpected("flag '--" + specification->name + "' requires <" +
                                            *specification->value_name + ">");
+                }
             }
-            else if (separator != std::string_view::npos)
+            else if (separator != std::string_view::npos) {
                 return std::unexpected("flag '--" + specification->name + "' does not accept a value");
+            }
             result.flags.push_back({ .specification = static_cast<std::size_t>(specification - flags.begin()),
                                      .value = std::move(value) });
             return {};
@@ -619,23 +638,28 @@ namespace cli
             for (std::size_t offset{ 1U }; offset < token.size(); ++offset) {
                 const char name{ token[offset] };
                 const auto specification{ shortFlag(flags, name) };
-                if (specification == flags.end())
+                if (specification == flags.end()) {
                     return std::unexpected("unknown flag '-" + std::string{ name } + "'");
+                }
                 std::optional<std::string> value;
                 if (specification->value_name) {
-                    if (offset + 1U < token.size())
+                    if (offset + 1U < token.size()) {
                         value = token.substr(offset + 1U);
-                    else if (++index < tokens.size())
+                    }
+                    else if (++index < tokens.size()) {
                         value = tokens[index];
-                    else
+                    }
+                    else {
                         return std::unexpected("flag '-" + std::string{ name } + "' requires <" +
                                                *specification->value_name + ">");
+                    }
                 }
                 result.flags.push_back(
                   { .specification = static_cast<std::size_t>(specification - flags.begin()),
                     .value = std::move(value) });
-                if (specification->value_name)
+                if (specification->value_name) {
                     break;
+                }
             }
             return {};
         }
@@ -651,15 +675,17 @@ namespace cli
                     continue;
                 }
                 if (parse_flags && token.starts_with("--") && token.size() > 2U) {
-                    if (auto parsed{ parseLongFlag(command.flags, tokens, index, result) }; !parsed)
+                    if (auto parsed{ parseLongFlag(command.flags, tokens, index, result) }; !parsed) {
                         return std::unexpected(parsed.error());
+                    }
                     continue;
                 }
                 if (parse_flags && token.starts_with('-') && token.size() > 1U &&
                     (shortFlag(command.flags, token[1]) != std::span{ command.flags }.end() ||
                      !negative_number(token))) {
-                    if (auto parsed{ parseShortFlags(command.flags, tokens, index, result) }; !parsed)
+                    if (auto parsed{ parseShortFlags(command.flags, tokens, index, result) }; !parsed) {
                         return std::unexpected(parsed.error());
+                    }
                     continue;
                 }
                 result.values.push_back(token);
@@ -671,16 +697,18 @@ namespace cli
         {
             std::string path;
             for (const auto& word : stage.subspan(1U)) {
-                if (!path.empty())
+                if (!path.empty()) {
                     path += ' ';
+                }
                 path += word;
             }
             const std::optional<std::string_view> requested{ path.empty()
                                                                ? std::nullopt
                                                                : std::optional<std::string_view>{ path } };
-            if (requested && *requested != "help" && parser.find(*requested) == nullptr)
+            if (requested && *requested != "help" && parser.find(*requested) == nullptr) {
                 return { .error = ExecutionError::UnknownCommand,
                          .message = "unknown command '" + std::string{ *requested } + "'" };
+            }
             io.output << parser.help(requested);
             return {};
         }
@@ -760,24 +788,28 @@ namespace cli
                 stage.insert(stage.end(), expanded->begin(), expanded->end());
             }
 
-            if (stage.front() == "help")
+            if (stage.front() == "help") {
                 return executeHelp(parser, stage, io);
+            }
             const auto match{ resolveCommand(parser, stage) };
             const auto* command{ match.command };
-            if (command == nullptr)
+            if (command == nullptr) {
                 return { .error = ExecutionError::UnknownCommand,
                          .message = "unknown command '" + match.name + "'" };
+            }
             const auto parsed{ parseArguments(*command, std::span{ stage }.subspan(match.argument_begin)) };
-            if (!parsed)
+            if (!parsed) {
                 return { .error = ExecutionError::InvalidArguments,
                          .message = parsed.error() + "; usage: " + parser.usage(command->name) };
+            }
             const auto required{ static_cast<std::size_t>(
               std::ranges::count(command->arguments, false, &ArgumentSpec::optional)) };
             const bool variadic{ std::ranges::any_of(command->arguments, &ArgumentSpec::variadic) };
             if (parsed->values.size() < required ||
-                (!variadic && parsed->values.size() > command->arguments.size()))
+                (!variadic && parsed->values.size() > command->arguments.size())) {
                 return { .error = ExecutionError::InvalidArguments,
                          .message = "usage: " + parser.usage(command->name) };
+            }
             const Arguments arguments{ command->arguments, parsed->values, command->flags, parsed->flags };
             return invokeCommand(*command, arguments, io);
         }

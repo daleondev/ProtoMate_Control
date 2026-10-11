@@ -106,8 +106,9 @@ namespace hal
                     return EXTI4_IRQn;
                 default:
                     constexpr auto last_grouped_line{ 9U };
-                    if (number <= last_grouped_line)
+                    if (number <= last_grouped_line) {
                         return EXTI9_5_IRQn;
+                    }
                     return EXTI15_10_IRQn;
             }
         }

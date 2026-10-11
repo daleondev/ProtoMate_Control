@@ -55,8 +55,9 @@ namespace
         while (true) {
             digits[count++] = static_cast<char>('0' + (line % decimal_base));
             line /= decimal_base;
-            if (line == 0U)
+            if (line == 0U) {
                 break;
+            }
         }
         while (count != 0U) {
             const std::array character{ digits[--count], '\0' };

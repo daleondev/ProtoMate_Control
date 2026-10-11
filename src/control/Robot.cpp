@@ -18,11 +18,13 @@ namespace control
         template<typename Converter>
         const Converter& conversion(const ControllerClient::AxisStatus& axis)
         {
-            if (!axis.conversion)
+            if (!axis.conversion) {
                 throw std::runtime_error("robot requires configured shoulder, elbow and Z mechanics");
+            }
             const auto* value{ std::get_if<Converter>(&*axis.conversion) };
-            if (!value)
+            if (!value) {
                 throw std::logic_error("robot requires rotary shoulder/elbow and linear Z axes");
+            }
             return *value;
         }
 
@@ -40,8 +42,9 @@ namespace control
         template<typename T>
         T checked(ScaraKinematics::Result<T> result)
         {
-            if (result)
+            if (result) {
                 return *result;
+            }
             using enum ScaraKinematics::Error;
             switch (result.error()) {
                 case InvalidInput:
@@ -61,8 +64,9 @@ namespace control
 
         void validate(const Robot::MoveOptions& options)
         {
-            if (!std::isfinite(options.speed) || options.speed <= 0.0 || options.speed > 1.0)
+            if (!std::isfinite(options.speed) || options.speed <= 0.0 || options.speed > 1.0) {
                 throw std::invalid_argument("robot speed must be greater than 0 and at most 100 percent");
+            }
         }
     }
 
@@ -78,12 +82,14 @@ namespace control
       , m_kinematics{ geometry }
       , m_maximumVelocity{ maximum_velocity }
     {
-        if (!m_controller)
+        if (!m_controller) {
             throw std::invalid_argument("robot requires a motion controller");
+        }
         if (!maximum_velocity.shoulder.isFinite() || !maximum_velocity.elbow.isFinite() ||
             !maximum_velocity.z.isFinite() || maximum_velocity.shoulder <= 0_rpm ||
-            maximum_velocity.elbow <= 0_rpm || maximum_velocity.z <= 0_mm / 1_s)
+            maximum_velocity.elbow <= 0_rpm || maximum_velocity.z <= 0_mm / 1_s) {
             throw std::invalid_argument("robot joint speed limits must be finite and positive");
+        }
     }
 
     Robot::Motion Robot::moveAbs(ScaraKinematics::CartesianPosition target, MoveOptions options)
@@ -114,8 +120,9 @@ namespace control
     Robot::Motion Robot::moveJoints(ScaraKinematics::JointPosition target, MoveOptions options)
     {
         validate(options);
-        if (options.branch)
+        if (options.branch) {
             throw std::invalid_argument("joint moves specify the elbow directly; no branch option applies");
+        }
         const auto snapshot = m_controller->planningSnapshot();
         return m_controller->coordinate(plan(snapshot, target, options.speed), options.timeout);
     }
@@ -151,8 +158,9 @@ namespace control
         ControllerClient::Trajectory result{};
         result.configuration_revision = origin.configuration_revision;
         result.command_revision = origin.command_revision;
-        for (unsigned i = 0; i < 3; ++i)
+        for (unsigned i = 0; i < 3; ++i) {
             result.origin[i] = origin.axes[i].position;
+        }
         const auto infinity{ std::numeric_limits<double>::infinity() };
         motion::Profile::Limits limits{
             .velocity = infinity, .acceleration = infinity, .deceleration = infinity, .jerk = infinity
@@ -163,15 +171,17 @@ namespace control
             const auto step{ config.full_step_angle / static_cast<double>(config.microsteps) };
             const auto delta{ motor_target[i] - origin.axes[i].position };
             const auto pulses{ std::round(std::abs(delta / step)) };
-            if (!std::isfinite(pulses) || pulses >= static_cast<double>(motion::limits::MAX_PULSES))
+            if (!std::isfinite(pulses) || pulses >= static_cast<double>(motion::limits::MAX_PULSES)) {
                 throw std::invalid_argument("robot displacement is too large");
+            }
             counts[i] = static_cast<hal::step::PulseCount>(pulses);
             result.forward[i] = delta.get() >= 0.0;
             const auto distance{ step.get() * pulses };
             motor_target[i] =
               origin.axes[i].position + pnm::units::Angle::create(result.forward[i] ? distance : -distance);
-            if (!counts[i])
+            if (!counts[i]) {
                 continue;
+            }
             moving = true;
             // Leave rounding margin below the hardware's 100 kstep/s ceiling.
             limits.velocity = std::min({ limits.velocity,
@@ -179,19 +189,23 @@ namespace control
                                          motion::limits::MAX_PLANNED_RATE / pulses });
             limits.acceleration = std::min(limits.acceleration, defaults[i].acceleration.get() / distance);
             limits.deceleration = std::min(limits.deceleration, defaults[i].deceleration.get() / distance);
-            if (defaults[i].jerk.get() > 0.0)
+            if (defaults[i].jerk.get() > 0.0) {
                 limits.jerk = std::min(limits.jerk, defaults[i].jerk.get() / distance);
+            }
         }
         check_limits(ScaraKinematics::JointPosition{ .shoulder = shoulder.toAxisPosition(motor_target[0]),
                                                      .elbow = elbow.toAxisPosition(motor_target[1]),
                                                      .z = z.toAxisPosition(motor_target[2]) });
-        if (!moving)
+        if (!moving) {
             return result;
-        if (!std::isfinite(limits.jerk))
+        }
+        if (!std::isfinite(limits.jerk)) {
             limits.jerk = 0.0;
+        }
         const auto profile{ motion::Profile::create(1.0, limits) };
-        if (!profile)
+        if (!profile) {
             throw std::invalid_argument("robot motion profile cannot be generated");
+        }
         result.duration = pnm::units::Time::create(profile->duration()) +
                           pnm::units::Time{ motion::limits::COORDINATED_DURATION_MARGIN };
         result.profile = profile->description();
@@ -228,12 +242,14 @@ namespace control
         auto commanded{ state(false) };
         auto actual = [&]() -> std::expected<State, FeedbackError> {
             for (const auto& axis : motors.axes) {
-                if (!axis.actual_position)
+                if (!axis.actual_position) {
                     return std::unexpected(
                       FeedbackError{ .motor = axis.motor, .reason = axis.actual_position.error() });
-                if (!axis.actual_velocity)
+                }
+                if (!axis.actual_velocity) {
                     return std::unexpected(
                       FeedbackError{ .motor = axis.motor, .reason = axis.actual_velocity.error() });
+                }
             }
             return state(true);
         }();

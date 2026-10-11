@@ -51,8 +51,9 @@ namespace control::messages
         }
         pnm::Result<T> result() const
         {
-            if (error != std::errc{})
+            if (error != std::errc{}) {
                 return std::unexpected(std::make_error_code(error));
+            }
             return value;
         }
     };
@@ -73,8 +74,12 @@ namespace control::messages
         }
         hal::device::IStepperDriver::Status status() const
         {
-            return { .ready = ready, .fault_active = fault_active, .fault_latched = fault_latched,
-                     .warning = warning, .fault = fault, .error = std::make_error_code(error) };
+            return { .ready = ready,
+                     .fault_active = fault_active,
+                     .fault_latched = fault_latched,
+                     .warning = warning,
+                     .fault = fault,
+                     .error = std::make_error_code(error) };
         }
     };
     struct AxisState
@@ -138,16 +143,18 @@ namespace control::messages
           , defaults(s.defaults)
           , configuration(s.configuration)
         {
-            for (std::size_t i = 0; i < axes.size(); ++i)
+            for (std::size_t i = 0; i < axes.size(); ++i) {
                 axes[i] = AxisState(s.status.axes[i]);
+            }
         }
         ControllerTypes::PlanningSnapshot snapshot() const
         {
             ControllerTypes::PlanningSnapshot result{};
             result.status.enabled = enabled;
             result.status.generator = generator;
-            for (std::size_t i = 0; i < axes.size(); ++i)
+            for (std::size_t i = 0; i < axes.size(); ++i) {
                 result.status.axes[i] = axes[i].status();
+            }
             result.status.coordinated = coordinated;
             result.status.configuration_revision = configuration_revision;
             result.status.command_revision = command_revision;

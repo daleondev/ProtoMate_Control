@@ -17,26 +17,30 @@ namespace cli::control_detail
     {
         double value{};
         // from_chars deliberately ignores no whitespace and no trailing junk.
-        if (text.starts_with('+'))
+        if (text.starts_with('+')) {
             text.remove_prefix(1);
+        }
         const auto result{ std::from_chars(text.data(), text.data() + text.size(), value) };
         if (text.empty() || result.ec != std::errc{} || result.ptr != text.data() + text.size() ||
-            !std::isfinite(value))
+            !std::isfinite(value)) {
             throw std::invalid_argument(std::string(name) + " must be a finite number");
+        }
         return value;
     }
 
     double magnitude(double value, std::string_view name, bool zero)
     {
-        if (value < 0.0 || (!zero && value == 0.0))
+        if (value < 0.0 || (!zero && value == 0.0)) {
             throw std::invalid_argument(std::string(name) + (zero ? " must be >= 0" : " must be > 0"));
+        }
         return value;
     }
 
     std::optional<std::string_view> option(const Arguments& args, std::string_view name)
     {
-        if (args.flagCount(name) > 1U)
+        if (args.flagCount(name) > 1U) {
             throw std::invalid_argument("duplicate flag --" + std::string(name));
+        }
         return args.flagValue(name);
     }
 
@@ -50,25 +54,32 @@ namespace cli::control_detail
     {
         using enum control::BufferMode;
         const auto value{ option(args, "buffer").value_or("aborting") };
-        if (value == "aborting")
+        if (value == "aborting") {
             return Aborting;
-        if (value == "buffered")
+        }
+        if (value == "buffered") {
             return Buffered;
-        if (value == "blending-low")
+        }
+        if (value == "blending-low") {
             return BlendingLow;
-        if (value == "blending-previous")
+        }
+        if (value == "blending-previous") {
             return BlendingPrevious;
-        if (value == "blending-next")
+        }
+        if (value == "blending-next") {
             return BlendingNext;
-        if (value == "blending-high")
+        }
+        if (value == "blending-high") {
             return BlendingHigh;
+        }
         throw std::invalid_argument("unknown buffer mode; see 'help " + std::string(family) + " move'");
     }
 
     std::string_view result_name(std::optional<control::MotorResult> result)
     {
-        if (!result)
+        if (!result) {
             return "outstanding";
+        }
         using enum control::MotorResult;
         switch (*result) {
             case Completed:
@@ -125,17 +136,20 @@ namespace cli::control_detail
         const auto label{ family == "axis" ? std::string(axis_name(value.motor))
                                            : std::format("m{}", static_cast<unsigned>(value.motor) + 1U) };
         out << std::format("#{} {} {}\n", value.id, label, result_name(value.result));
-        if (value.result && !value.terminal_confirmed)
+        if (value.result && !value.terminal_confirmed) {
             out << "IO connection lost; hardware stop is not confirmed.\n";
+        }
     }
 
     int submitted(const Controller::Motion& value, std::ostream& out, std::string_view family)
     {
         print_motion(value, out, family);
-        if (!value.result)
+        if (!value.result) {
             out << std::format("Check completion with: {} jobs {}\n", family, value.id);
-        else if (*value.result != control::MotorResult::Completed)
+        }
+        else if (*value.result != control::MotorResult::Completed) {
             return 1;
+        }
         return 0;
     }
 
@@ -148,23 +162,28 @@ namespace cli::control_detail
         if (const auto text{ args.get("id") }) {
             Controller::MotionId id{};
             const auto result{ std::from_chars(text->data(), text->data() + text->size(), id) };
-            if (result.ec != std::errc{} || result.ptr != text->data() + text->size() || id == 0)
+            if (result.ec != std::errc{} || result.ptr != text->data() + text->size() || id == 0) {
                 return callback_failure("id must be a positive integer");
+            }
             selected = id;
         }
         bool found{};
         for (const auto& motion : controller.motions()) {
-            if (selected && *selected != motion.id)
+            if (selected && *selected != motion.id) {
                 continue;
+            }
             found = true;
             print_motion(motion, out, family);
-            if (selected && motion.result && *motion.result != control::MotorResult::Completed)
+            if (selected && motion.result && *motion.result != control::MotorResult::Completed) {
                 return 1;
+            }
         }
-        if (!found && selected)
+        if (!found && selected) {
             return callback_failure("unknown or expired motion ID");
-        if (!found)
+        }
+        if (!found) {
             out << "No motions submitted.\n";
+        }
         return 0;
     }
 

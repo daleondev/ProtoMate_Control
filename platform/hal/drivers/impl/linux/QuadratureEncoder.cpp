@@ -92,8 +92,9 @@ namespace hal
     {
         const std::scoped_lock lock{ m_mutex };
         const auto timestamp{ now() };
-        if (m_running && m_sampler.due(timestamp))
+        if (m_running && m_sampler.due(timestamp)) {
             m_sampler.publish({ .position = m_counter.position(), .timestamp = timestamp, .running = true });
+        }
     }
     auto QuadratureEncoder::advanceSimulatedCounts(std::int32_t delta) noexcept -> util::Result<>
     {

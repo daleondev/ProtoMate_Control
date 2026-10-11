@@ -38,12 +38,15 @@ namespace cli::motor
 
         MotorId motor_id(std::string_view text)
         {
-            if (text == "m1" || text == "1")
+            if (text == "m1" || text == "1") {
                 return MotorId::Motor1;
-            if (text == "m2" || text == "2")
+            }
+            if (text == "m2" || text == "2") {
                 return MotorId::Motor2;
-            if (text == "m3" || text == "3")
+            }
+            if (text == "m3" || text == "3") {
                 return MotorId::Motor3;
+            }
             throw std::invalid_argument("motor must be m1, m2 or m3 (also 1, 2, 3)");
         }
 
@@ -58,8 +61,9 @@ namespace cli::motor
         {
             const auto id{ motor_id(args.require("motor")) };
             const auto speed{ option(args, "speed") };
-            if (!speed)
+            if (!speed) {
                 return callback_failure("--speed <rpm> is required");
+            }
             const Controller::Move request{ .position = number(args.require("degrees"), "degrees") * 1_deg,
                                             .velocity =
                                               magnitude(number(*speed, "speed"), "speed", false) * 1_rpm,
@@ -101,8 +105,9 @@ namespace cli::motor
                                state_name(status.generator.state),
                                status.generator.counts_exact ? "exact" : "uncertain");
             for (const auto& axis : status.axes) {
-                if (selected && *selected != axis.motor)
+                if (selected && *selected != axis.motor) {
                     continue;
+                }
                 const auto i{ static_cast<std::size_t>(axis.motor) };
                 out << std::format("m{}: position={:.4f} deg  velocity={:.3f} rpm  referenced={}  switch={}  "
                                    "outstanding={}  step={}\n",
@@ -116,25 +121,30 @@ namespace cli::motor
                 const auto source{ axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex
                                      ? "driver INDEX (pseudo)"
                                      : "encoder" };
-                if (axis.actual_position && axis.actual_velocity)
+                if (axis.actual_position && axis.actual_velocity) {
                     out << std::format("    {}: position={:.4f} deg  velocity={:.3f} rpm\n",
                                        source,
                                        axis.actual_position->get<AngleUnits::deg>(),
                                        axis.actual_velocity->get<AngularVelocityUnits::rpm>());
-                else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_such_device)
+                }
+                else if (!axis.actual_position && axis.actual_position.error() == std::errc::no_such_device) {
                     out << "    " << source << ": not fitted\n";
+                }
                 else if (!axis.actual_position &&
-                         axis.actual_position.error() == std::errc::no_message_available)
+                         axis.actual_position.error() == std::errc::no_message_available) {
                     out << "    " << source << ": waiting for INDEX\n";
-                else
+                }
+                else {
                     out << "    " << source << ": unavailable ("
                         << (!axis.actual_position ? axis.actual_position.error()
                                                   : axis.actual_velocity.error())
                              .message()
                         << ")\n";
-                if (axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex)
+                }
+                if (axis.feedback_source == hal::device::IMotorFeedback::Source::DriverIndex) {
                     out << std::format("    resolution={:.4f} deg; electrical phase, not shaft sensing\n",
                                        axis.feedback_resolution.get<AngleUnits::deg>());
+                }
             }
             return 0;
         }
@@ -150,16 +160,18 @@ namespace cli::motor
             const auto selected{ selection(args) };
             bool extended{};
             for (const auto& d : controller.driverStatus()) {
-                if (selected && *selected != d.motor)
+                if (selected && *selected != d.motor) {
                     continue;
+                }
                 out << std::format("m{}: {} ready={} fault-input={} fault-latched={}\n",
                                    static_cast<unsigned>(d.motor) + 1,
                                    d.name,
                                    d.status.ready,
                                    d.status.fault_active ? "active/open" : "clear",
                                    d.status.fault_latched);
-                if (d.status.error)
+                if (d.status.error) {
                     out << "    error: " << d.status.error.message() << '\n';
+                }
                 if (!d.configuration) {
                     out << "    Configuration via hardware switches; no programmable diagnostics.\n";
                     continue;
@@ -194,10 +206,11 @@ namespace cli::motor
                       state.load);
                 }
             }
-            if (extended)
+            if (extended) {
                 out << "Temperature flags are thresholds, not measured degrees. Open-load can be false at "
                        "standstill.\n"
                        "SG_RESULT needs StealthChop at suitable speed; it is not encoder feedback.\n";
+            }
             return 0;
         }
 
@@ -233,29 +246,35 @@ namespace cli::motor
         {
             const auto id = motor_id(args.require("motor"));
             const auto capability{ controller.driverStatus()[static_cast<unsigned>(id)].configuration };
-            if (!capability)
+            if (!capability) {
                 return callback_failure("driver uses hardware switches; no programmable configuration");
+            }
             auto config{ capability->configuration };
             auto current = [&](std::string_view name, std::uint16_t fallback) {
                 const auto value = numeric_option(args, name, fallback, false);
-                if (value > MAX_DRIVER_CURRENT_MILLIAMPS || std::floor(value) != value)
+                if (value > MAX_DRIVER_CURRENT_MILLIAMPS || std::floor(value) != value) {
                     throw std::invalid_argument("current must be an integer in mA RMS");
+                }
                 return static_cast<std::uint16_t>(value);
             };
             config.run_milliamps = current("run", config.run_milliamps);
             config.hold_milliamps = current(
               "hold", capability->limits.hold_equals_run ? config.run_milliamps : config.hold_milliamps);
             if (auto mode = option(args, "mode")) {
-                if (*mode == "spreadcycle")
+                if (*mode == "spreadcycle") {
                     config.mode = hal::device::IConfigurableStepperDriver::Mode::SpreadCycle;
-                else if (*mode == "stealthchop")
+                }
+                else if (*mode == "stealthchop") {
                     config.mode = hal::device::IConfigurableStepperDriver::Mode::StealthChop;
-                else
+                }
+                else {
                     return callback_failure("mode must be spreadcycle or stealthchop");
+                }
             }
             if (auto interpolate = option(args, "interpolate")) {
-                if (*interpolate != "on" && *interpolate != "off")
+                if (*interpolate != "on" && *interpolate != "off") {
                     return callback_failure("interpolate must be on or off");
+                }
                 config.interpolate = *interpolate == "on";
             }
             controller.configureDriver(id, config);
@@ -392,8 +411,9 @@ namespace cli::motor
             const auto seek{ numeric_option(args, "seek", 5, false) };
             const auto latch{ numeric_option(args, "latch", 0.5, false) };
             const auto timeout{ numeric_option(args, "timeout", 30, false) };
-            if (latch >= seek)
+            if (latch >= seek) {
                 return callback_failure("latch speed must be slower than seek speed");
+            }
             return submitted(controller.reference(id, seek * 1_rpm, latch * 1_rpm, timeout * 1_s), out);
         }
 
@@ -440,8 +460,9 @@ namespace cli::motor
               1_deg_s2;
             defaults.jerk =
               numeric_option(args, "jerk", defaults.jerk.get<AngularJerkUnits::deg_s3>()) * 1_deg_s3;
-            if (args.hasFlag("accel") || args.hasFlag("decel") || args.hasFlag("jerk"))
+            if (args.hasFlag("accel") || args.hasFlag("decel") || args.hasFlag("jerk")) {
                 controller.setDefaults(id, defaults);
+            }
             out << std::format("m{}: accel={:.6g} deg/s^2  decel={:.6g} deg/s^2  jerk={:.6g} deg/s^3\n",
                                static_cast<unsigned>(id) + 1U,
                                defaults.acceleration.get<AngularAccelerationUnits::deg_s2>(),
@@ -463,8 +484,9 @@ namespace cli::motor
 
     void setup(Parser& parser, const std::shared_ptr<control::ControllerClient>& controller)
     {
-        if (!controller)
+        if (!controller) {
             throw std::invalid_argument("motor commands require a controller");
+        }
         register_commands<^^commands>(parser, [controller](auto command) {
             return [controller, command](const Arguments& args, std::ostream& out) {
                 return command(*controller, args, out);

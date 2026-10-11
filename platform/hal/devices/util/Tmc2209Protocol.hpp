@@ -45,15 +45,17 @@ namespace hal::device::util::tmc2209
       -> std::uint32_t
     {
         std::uint32_t value{};
-        for (const auto byte : bytes)
+        for (const auto byte : bytes) {
             value = (value << BYTE_BITS) | byte;
+        }
         return value;
     }
 
     constexpr auto write_word(std::span<std::uint8_t, REGISTER_BYTES> bytes, std::uint32_t value) noexcept
       -> void
     {
-        for (std::size_t index{}; index < bytes.size(); ++index)
+        for (std::size_t index{}; index < bytes.size(); ++index) {
             bytes[index] = static_cast<std::uint8_t>(value >> ((REGISTER_BYTES - 1U - index) * BYTE_BITS));
+        }
     }
 }

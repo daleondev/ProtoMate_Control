@@ -16,25 +16,29 @@ namespace hal::linux
         ThreadMutex()
         {
             static auto name{ std::to_array("step generator") };
-            if (tx_mutex_create(&m_mutex, name.data(), TX_INHERIT) != TX_SUCCESS)
+            if (tx_mutex_create(&m_mutex, name.data(), TX_INHERIT) != TX_SUCCESS) {
                 std::terminate();
+            }
         }
         ~ThreadMutex()
         {
-            if (tx_mutex_delete(&m_mutex) != TX_SUCCESS)
+            if (tx_mutex_delete(&m_mutex) != TX_SUCCESS) {
                 std::terminate();
+            }
         }
         ThreadMutex(const ThreadMutex&) = delete;
         ThreadMutex& operator=(const ThreadMutex&) = delete;
         void lock()
         {
-            if (tx_mutex_get(&m_mutex, TX_WAIT_FOREVER) != TX_SUCCESS)
+            if (tx_mutex_get(&m_mutex, TX_WAIT_FOREVER) != TX_SUCCESS) {
                 std::terminate();
+            }
         }
         void unlock()
         {
-            if (tx_mutex_put(&m_mutex) != TX_SUCCESS)
+            if (tx_mutex_put(&m_mutex) != TX_SUCCESS) {
                 std::terminate();
+            }
         }
 
       private:

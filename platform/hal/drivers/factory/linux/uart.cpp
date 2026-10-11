@@ -16,8 +16,9 @@ namespace hal::uart
     {
         const auto index{ std::to_underlying(configuration.peripheral) };
         if (configuration.peripheral == Peripheral::Usart3 ||
-            !util::valid_uart_configuration(configuration.transport) || index >= UART_INSTANCE_COUNT)
+            !util::valid_uart_configuration(configuration.transport) || index >= UART_INSTANCE_COUNT) {
             return {};
+        }
         static util::ExclusiveInstances<UART_POOL_SIZE> instances;
         return instances.create<Uart>(index, configuration.transport);
     }

@@ -12,16 +12,20 @@ namespace p2p
 
     void TopicBridge::checkRegistration(std::string_view topic) const
     {
-        if (topic.empty())
+        if (topic.empty()) {
             throw std::invalid_argument("Bridge topics require a name");
-        if (topic.size() > util::MAX_FRAME_BYTES - util::HEADER_BYTES)
+        }
+        if (topic.size() > util::MAX_FRAME_BYTES - util::HEADER_BYTES) {
             throw std::length_error("Topic name exceeds the bridge frame capacity");
+        }
         const auto duplicate = [topic](const auto& registered) { return registered.name == topic; };
         if (std::ranges::any_of(m_outgoingTopics, duplicate) ||
-            std::ranges::any_of(m_incomingTopics, duplicate))
+            std::ranges::any_of(m_incomingTopics, duplicate)) {
             throw std::invalid_argument("Bridge topic must be registered only once");
-        if (m_outgoingTopics.size() + m_incomingTopics.size() >= MAX_TOPICS)
+        }
+        if (m_outgoingTopics.size() + m_incomingTopics.size() >= MAX_TOPICS) {
             throw std::length_error("Bridge topic capacity reached");
+        }
     }
 
     std::optional<util::OutgoingFrame> TopicBridge::takeFrame()
@@ -40,11 +44,13 @@ namespace p2p
 
     void TopicBridge::dispatch(const util::IncomingFrame& frame)
     {
-        if (frame.name.empty() || frame.id != 0 || frame.budget != 0)
+        if (frame.name.empty() || frame.id != 0 || frame.budget != 0) {
             throw std::invalid_argument("Invalid topic header");
+        }
         const auto topic = std::ranges::find(m_incomingTopics, frame.name, &IncomingTopic::name);
-        if (topic == m_incomingTopics.end())
+        if (topic == m_incomingTopics.end()) {
             throw std::invalid_argument("Unknown incoming bridge topic");
+        }
         topic->publish(frame.payload);
     }
 

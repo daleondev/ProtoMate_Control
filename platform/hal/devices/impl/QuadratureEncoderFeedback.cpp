@@ -65,18 +65,20 @@ namespace hal::device
                       count_angle * delta / pnm::units::Time{ value.timestamp - previous->timestamp };
                 }
                 const auto position{ offset + count_angle * static_cast<double>(*value.position) };
-                if (position.isFinite() && velocity.isFinite())
+                if (position.isFinite() && velocity.isFinite()) {
                     latest = { .position = position,
                                .velocity = velocity,
                                .timestamp = value.timestamp,
                                .reference_lost = false };
+                }
                 previous = value;
             }
             else {
                 previous.reset();
             }
-            if (callback)
+            if (callback) {
                 callback(latest);
+            }
         }
     };
 
@@ -86,8 +88,9 @@ namespace hal::device
       : m_encoder{ std::move(encoder) }
       , m_index{ std::move(index) }
     {
-        if (!m_encoder || counts == 0U)
+        if (!m_encoder || counts == 0U) {
             throw std::invalid_argument("quadrature feedback needs an encoder and nonzero resolution");
+        }
         m_state = std::make_shared<State>(counts);
         subscribe();
     }
@@ -114,14 +117,16 @@ namespace hal::device
     {
         const State::Guard guard{ m_state->mutex };
         m_state->callback = std::move(callback);
-        if (m_state->callback)
+        if (m_state->callback) {
             m_state->callback(m_state->latest);
+        }
     }
 
     hal::util::Result<> QuadratureEncoderFeedback::reference(pnm::units::Angle position)
     {
-        if (!position.isFinite())
+        if (!position.isFinite()) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        }
         // Never call the encoder with the state lock held: its callback acquires
         // that lock. Temporarily detach callbacks while the counter keeps running.
         m_encoder->clearSampleCallback();
@@ -129,16 +134,18 @@ namespace hal::device
         hal::util::Result<> result;
         if (count) {
             const auto offset{ position - m_state->count_angle * static_cast<double>(*count) };
-            if (!offset.isFinite())
+            if (!offset.isFinite()) {
                 result = std::unexpected(std::make_error_code(std::errc::result_out_of_range));
+            }
             else {
                 const State::Guard guard{ m_state->mutex };
                 m_state->offset = offset;
                 m_state->previous.reset();
             }
         }
-        else
+        else {
             result = std::unexpected(count.error());
+        }
         subscribe(); // Publishes with the new coordinate before returning.
         return result;
     }
