@@ -13,6 +13,7 @@
 #include <exception>
 #include <functional>
 #include <memory>
+#include <meta>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -20,6 +21,7 @@
 #include <stop_token>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -65,6 +67,17 @@ namespace p2p
         template<pnm::utils::memory::Serializable T>
             requires std::default_initializable<T>
         void registerIncomingTopic(std::string_view topic);
+
+        // Two-peer catalog: annotate public static constexpr TopicDefinition<T>
+        // members with their direction, using an application-owned enum.
+        // Matching outgoingDirection means outgoing; the reverse means incoming.
+        // For Direction { IOToUI, UIToIO }, pass IOToUI on the IO bridge and
+        // UIToIO on the UI bridge. Each call registers both directions.
+        // Unannotated members and annotations of other types are ignored.
+        // Call before start(), just like the explicit registration functions.
+        template<typename Catalog, typename Direction>
+            requires std::is_enum_v<Direction>
+        void registerTopics(Direction outgoingDirection);
 
         // Schedule both loops independently. May be called only once, including
         // after failure. The context must keep running until stop() completes.
@@ -166,6 +179,36 @@ namespace p2p
         bool m_receiveRunning{};
         std::optional<Failure> m_failure;
     };
+
+    template<typename Catalog, typename Direction>
+        requires std::is_enum_v<Direction>
+    void Bridge::registerTopics(Direction outgoingDirection)
+    {
+        static constexpr auto members{ std::define_static_array(
+          std::meta::members_of(^^Catalog, std::meta::access_context::current())) };
+
+        template for (constexpr auto member : members)
+        {
+            constexpr auto directions{ std::define_static_array(
+              std::meta::annotations_of_with_type(member, ^^Direction)) };
+            if constexpr (!directions.empty()) {
+                static_assert(directions.size() == 1, "A topic must have exactly one direction");
+                static_assert(std::meta::is_variable(member) && std::meta::is_static_member(member),
+                              "Annotate static constexpr topic definitions");
+
+                constexpr auto topic{[:member:] };
+                using Definition = std::remove_cvref_t<decltype(topic)>;
+                using Message = typename Definition::Message;
+                static_assert(std::same_as<Definition, pnm::msg::TopicDefinition<Message>>,
+                              "Annotated members must be TopicDefinition<T> declarations");
+
+                if (std::meta::extract<Direction>(directions[0]) == outgoingDirection)
+                    registerOutgoingTopic<Message>(topic.name);
+                else
+                    registerIncomingTopic<Message>(topic.name);
+            }
+        }
+    }
 
     template<pnm::utils::memory::Serializable T>
         requires std::default_initializable<T>
