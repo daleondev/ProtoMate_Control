@@ -13,7 +13,7 @@ The example builds independently of the unfinished Robot/Controller integration
 and requires no hardware. The repository build uses its Linux/ThreadX runtime.
 
 Start with [Topics.hpp](Topics.hpp), then read [topics.cpp](topics.cpp).
-The catalog is where we specify **what crosses the bridge and in which direction**:
+The catalog is where we specify **what crosses the bridge and who publishes it**:
 
 | Topic | Publisher's bus | Subscriber's bus |
 | --- | --- | --- |
@@ -28,10 +28,30 @@ flowchart LR
     UB <--> UI[UI bus]
 ```
 
-Each bridge registers the same catalog once, passing its **outgoing direction**.
-The opposite direction becomes incoming automatically. The direction enum must
+Each bridge registers the same catalog once, identifying its **local publisher**:
+
+```cpp
+io_bridge.registerTopics<Topics>(TopicPublisher::IO);
+ui_bridge.registerTopics<Topics>(TopicPublisher::UI);
+```
+
+Topics annotated with the local publisher are forwarded to the peer; those
+annotated with the peer's identity are received locally. The publisher enum must
 declare exactly two distinct values; annotations must use those values.
-Unannotated topics stay local.
+Unannotated topics stay local. The enum belongs to the application, not p2p.
+
+[Services.hpp](Services.hpp) outlines the corresponding service catalog for API
+discussion. Its annotations identify the **provider**, not the request direction:
+
+```cpp
+io_bridge.registerServices<Services>(ServiceProvider::IO);
+ui_bridge.registerServices<Services>(ServiceProvider::UI);
+```
+
+For a service annotated `ServiceProvider::IO`, the IO bridge accepts incoming
+requests for its local handler; the UI bridge forwards local requests to IO.
+Replies return automatically. Service registration remains declarations only;
+these calls are not part of the runnable topic example yet.
 
 Both bridges use one context on a dedicated p2p thread, following the application's
 `context.run()` thread-entry pattern. Each bridge has separate send and receive

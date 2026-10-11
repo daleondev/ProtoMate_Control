@@ -14,7 +14,7 @@
 int main()
 {
     using namespace std::chrono_literals;
-    using example::Direction;
+    using example::TopicPublisher;
     using example::Topics;
 
     try {
@@ -32,8 +32,8 @@ int main()
 
         p2p::Bridge io_bridge(io_bus, context, *endpoints[0]);
         p2p::Bridge ui_bridge(ui_bus, context, *endpoints[1]);
-        io_bridge.registerTopics<Topics>(Direction::IOToUI);
-        ui_bridge.registerTopics<Topics>(Direction::UIToIO);
+        io_bridge.registerTopics<Topics>(TopicPublisher::IO);
+        ui_bridge.registerTopics<Topics>(TopicPublisher::UI);
 
         // These are ordinary local subscriptions. The bridges handle transport.
         std::string received_state, received_status;

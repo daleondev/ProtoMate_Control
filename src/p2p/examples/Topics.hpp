@@ -6,19 +6,19 @@
 
 namespace example
 {
-    enum class Direction
+    enum class TopicPublisher
     {
-        IOToUI,
-        UIToIO
+        IO,
+        UI
     };
 
     // Both applications share this catalog; each has its own bus and bridge.
     struct Topics
     {
-        [[= Direction::IOToUI]] static constexpr pnm::msg::TopicDefinition<std::string> state{
+        [[= TopicPublisher::IO]] static constexpr pnm::msg::TopicDefinition<std::string> state{
             "demo/io/state"
         };
-        [[= Direction::UIToIO]] static constexpr pnm::msg::TopicDefinition<std::string> status{
+        [[= TopicPublisher::UI]] static constexpr pnm::msg::TopicDefinition<std::string> status{
             "demo/ui/status"
         };
     };

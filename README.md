@@ -344,19 +344,26 @@ coroutines that suspend while waiting. Application subscriptions dispatch on
 their caller's thread. Each future core will own its own context and runner.
 
 [Topics.hpp](src/p2p/examples/Topics.hpp) specifies the forwarded topics using
-`pnm::msg::TopicDefinition<T>` and direction annotations. Register the shared
-catalog once per bridge:
+`pnm::msg::TopicDefinition<T>` and publisher annotations. Register the shared
+catalog once per bridge, identifying the local publisher:
 
 ```cpp
-io_bridge.registerTopics<Topics>(Direction::IOToUI);
-ui_bridge.registerTopics<Topics>(Direction::UIToIO);
+io_bridge.registerTopics<Topics>(TopicPublisher::IO);
+ui_bridge.registerTopics<Topics>(TopicPublisher::UI);
 ```
 
-The argument selects the bridge's outgoing direction; the other becomes
-incoming. The enum must declare exactly two distinct values. Unannotated topics
-stay local. Explicit `registerOutgoingTopic<T>()` and
+Matching publisher annotations become outgoing topics; the peer's publications
+become incoming. The application-defined enum must declare exactly two distinct
+values. Unannotated topics stay local. Explicit `registerOutgoingTopic<T>()` and
 `registerIncomingTopic<T>()` registration is also available. Register before
 `start()`; names must be unique across both directions on each bridge.
+
+The service API uses a separate application-defined `ServiceProvider { IO, UI }`
+enum: `registerServices<Services>(ServiceProvider::IO)` identifies the IO side.
+Matching provider annotations accept incoming requests for local handlers; the
+peer's services forward outgoing requests. Replies return automatically.
+[Services.hpp](src/p2p/examples/Services.hpp) illustrates the catalog; service
+registration is declared only and has no implementation yet.
 
 `ITransport` asynchronously sends and receives complete frames using borrowed
 spans. `InProcessTransport::pair()` creates two endpoints with eight owned frame

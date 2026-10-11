@@ -69,17 +69,58 @@ namespace p2p
         void registerIncomingTopic(std::string_view topic);
 
         // Two-peer catalog: annotate public static constexpr TopicDefinition<T>
-        // members with their direction, using an application-owned enum.
-        // Matching outgoingDirection means outgoing; the reverse means incoming.
-        // For Direction { IOToUI, UIToIO }, pass IOToUI on the IO bridge and
-        // UIToIO on the UI bridge. Each call registers both directions.
+        // members with their publisher, using an application-owned enum.
+        // localPublisher identifies this side: matching topics are outgoing;
+        // topics published by the peer are incoming.
+        // For TopicPublisher { IO, UI }, pass IO on the IO bridge and UI on the
+        // UI bridge. Each call registers both local and remote publications.
         // The enum must declare exactly two distinct values. An invalid cast
-        // passed as outgoingDirection is rejected before registering anything.
+        // passed as localPublisher is rejected before registering anything.
         // Unannotated members and annotations of other types are ignored.
         // Call before start(), just like the explicit registration functions.
-        template<typename Catalog, typename Direction>
-            requires std::is_enum_v<Direction>
-        void registerTopics(Direction outgoingDirection);
+        template<typename Catalog, typename Publisher>
+            requires std::is_enum_v<Publisher>
+        void registerTopics(Publisher localPublisher);
+
+        // Proposed service API — declarations only for now.
+        // Explicit incoming/outgoing methods describe the REQUEST direction;
+        // catalog annotations identify the PROVIDER. Replies return automatically.
+        // Register before start(), with matching names and Request/Response types
+        // on both peers. Applications still use bus.service<Request, Response>()
+        // to request/serve; registration neither calls a service nor waits for it.
+        // The bridge owns its routes and deferred proxies until stop().
+        // Pending calls are bounded; excess calls fail with ServiceError::Busy.
+        // Requests are never coalesced. Correlation IDs are internal to the bridge.
+        // Caller timeouts/cancellation use pneumo's existing request API; they
+        // end the caller's wait, not necessarily the remote handler's execution.
+
+        // Local request -> peer's provider -> response to the local caller.
+        // Installs a deferred proxy on this bus: do not also serve this name
+        // locally. The peer registers the corresponding incoming service.
+        template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
+            requires std::default_initializable<Request> && std::default_initializable<Response> &&
+                     std::move_constructible<Response>
+        void registerOutgoingService(std::string_view service);
+
+        // Peer request -> local provider -> response to the peer.
+        // The application owns and dispatches the provider on this bus; the bridge
+        // submits requests and observes completion without blocking its context.
+        // Deferred replies and ServiceError results travel back to the caller.
+        template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
+            requires std::default_initializable<Request> && std::default_initializable<Response> &&
+                     std::move_constructible<Response>
+        void registerIncomingService(std::string_view service);
+
+        // Like registerTopics(), for a separate catalog of static constexpr
+        // pnm::msg::ServiceDefinition<Request, Response> members. Annotate each
+        // with its provider, using an application-owned enum with two distinct
+        // values. localProvider identifies this side: matching services accept
+        // incoming requests; services provided by the peer forward outgoing ones.
+        // For ServiceProvider { IO, UI }, pass IO on the IO bridge and UI on the
+        // UI bridge. [[= ServiceProvider::IO]] marks a service provided by IO.
+        template<typename Catalog, typename Provider>
+            requires std::is_enum_v<Provider>
+        void registerServices(Provider localProvider);
 
         // Schedule both loops independently. May be called only once, including
         // after failure. The context must keep running until stop() completes.
@@ -182,27 +223,27 @@ namespace p2p
         std::optional<Failure> m_failure;
     };
 
-    template<typename Catalog, typename Direction>
-        requires std::is_enum_v<Direction>
-    void Bridge::registerTopics(Direction outgoingDirection)
+    template<typename Catalog, typename Publisher>
+        requires std::is_enum_v<Publisher>
+    void Bridge::registerTopics(Publisher localPublisher)
     {
-        static constexpr auto enumerators{ std::define_static_array(std::meta::enumerators_of(^^Direction)) };
-        static_assert(enumerators.size() == 2, "A bridge direction enum must declare exactly two values");
-        constexpr auto first{ std::meta::extract<Direction>(enumerators[0]) };
-        constexpr auto second{ std::meta::extract<Direction>(enumerators[1]) };
-        static_assert(first != second, "Bridge directions must have distinct values");
-        if (outgoingDirection != first && outgoingDirection != second)
-            throw std::invalid_argument("Unknown outgoing bridge direction");
+        static constexpr auto enumerators{ std::define_static_array(std::meta::enumerators_of(^^Publisher)) };
+        static_assert(enumerators.size() == 2, "A topic publisher enum must declare exactly two values");
+        constexpr auto first{ std::meta::extract<Publisher>(enumerators[0]) };
+        constexpr auto second{ std::meta::extract<Publisher>(enumerators[1]) };
+        static_assert(first != second, "Topic publishers must have distinct values");
+        if (localPublisher != first && localPublisher != second)
+            throw std::invalid_argument("Unknown local topic publisher");
 
         static constexpr auto members{ std::define_static_array(
           std::meta::members_of(^^Catalog, std::meta::access_context::current())) };
 
         template for (constexpr auto member : members)
         {
-            constexpr auto directions{ std::define_static_array(
-              std::meta::annotations_of_with_type(member, ^^Direction)) };
-            if constexpr (!directions.empty()) {
-                static_assert(directions.size() == 1, "A topic must have exactly one direction");
+            constexpr auto publishers{ std::define_static_array(
+              std::meta::annotations_of_with_type(member, ^^Publisher)) };
+            if constexpr (!publishers.empty()) {
+                static_assert(publishers.size() == 1, "A topic must have exactly one publisher");
                 static_assert(std::meta::is_variable(member) && std::meta::is_static_member(member),
                               "Annotate static constexpr topic definitions");
 
@@ -212,9 +253,9 @@ namespace p2p
                 static_assert(std::same_as<Definition, pnm::msg::TopicDefinition<Message>>,
                               "Annotated members must be TopicDefinition<T> declarations");
 
-                constexpr auto direction{ std::meta::extract<Direction>(directions[0]) };
-                static_assert(direction == first || direction == second, "Unknown annotated topic direction");
-                if (direction == outgoingDirection)
+                constexpr auto publisher{ std::meta::extract<Publisher>(publishers[0]) };
+                static_assert(publisher == first || publisher == second, "Unknown annotated topic publisher");
+                if (publisher == localPublisher)
                     registerOutgoingTopic<Message>(topic.name);
                 else
                     registerIncomingTopic<Message>(topic.name);
