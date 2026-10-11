@@ -28,20 +28,16 @@ namespace p2p
             // Construct both coroutine chains before scheduling either one.
             // Moving these ready-made tasks into co_spawn also avoids allocating
             // a new loop task inside its detached entry callback.
-            auto sender = runLoop(sendLoop(m_stopSource.get_token()));
-            auto receiver = runLoop(receiveLoop(m_stopSource.get_token()));
+            auto sender = runLoop(sendLoop(m_stopSource.get_token()), m_sendRunning);
+            auto receiver = runLoop(receiveLoop(m_stopSource.get_token()), m_receiveRunning);
 
-            pnm::coro::co_spawn(m_context, [task = std::move(sender)](pnm::coro::Context&) mutable {
-                return std::move(task);
-            });
-            ++m_activeLoops;
+            pnm::coro::co_spawn(m_context, std::move(sender));
+            m_sendRunning = true;
 
-            pnm::coro::co_spawn(m_context, [task = std::move(receiver)](pnm::coro::Context&) mutable {
-                return std::move(task);
-            });
-            ++m_activeLoops;
+            pnm::coro::co_spawn(m_context, std::move(receiver));
+            m_receiveRunning = true;
             // Holding the mutex prevents an immediately completing handler from
-            // decrementing the count before its scheduling has been recorded.
+            // clearing its flag before its scheduling has been recorded.
         } catch (...) {
             m_failure = std::current_exception();
             lock.unlock();
@@ -63,7 +59,7 @@ namespace p2p
         m_stopSource.request_stop();
 
         std::unique_lock lock(m_mutex);
-        m_finished.wait(lock, [this] { return m_activeLoops == 0; });
+        m_finished.wait(lock, [this] { return !m_sendRunning && !m_receiveRunning; });
     }
 
     std::optional<Bridge::Failure> Bridge::failure() const
@@ -72,7 +68,8 @@ namespace p2p
         return m_failure;
     }
 
-    pnm::coro::Task<void> Bridge::runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop)
+    pnm::coro::Task<void> Bridge::runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop,
+                                       bool& running)
     {
         std::optional<Failure> failure;
         try {
@@ -97,7 +94,7 @@ namespace p2p
         // This is our last access to the bridge. Notify while holding the lock
         // so a waking destructor cannot destroy the condition variable early.
         std::scoped_lock lock(m_mutex);
-        --m_activeLoops;
+        running = false;
         m_finished.notify_all();
     }
 

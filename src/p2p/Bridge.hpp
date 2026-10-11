@@ -81,7 +81,8 @@ namespace p2p
 
         // Observe one loop, cancel its sibling on exit and signal completion
         // only after releasing the loop's coroutine frame and borrowed buffers.
-        pnm::coro::Task<void> runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop);
+        // running refers to one of this bridge's flags, protected by m_mutex.
+        pnm::coro::Task<void> runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop, bool& running);
 
         // Await a local outgoing frame, keeping its storage until send() completes.
         // Cancellation requested through stop is normal shutdown; other transport
@@ -110,7 +111,8 @@ namespace p2p
         mutable std::mutex m_mutex;
         std::condition_variable m_finished;
         bool m_started{};
-        std::size_t m_activeLoops{};
+        bool m_sendRunning{};
+        bool m_receiveRunning{};
         std::optional<Failure> m_failure;
     };
 }
