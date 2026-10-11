@@ -96,13 +96,13 @@ namespace
         response.error.assign(msg::MAX_ERROR_TEXT, 'x');
         for (auto& driver : response.drivers)
             driver.name = "TMC2209";
-        const auto reply = p2p::util::encodeFrame(p2p::util::FrameKind::Response, {}, 1, response);
+        const auto reply = p2p::util::encode_frame(p2p::util::FrameKind::Response, {}, 1, response);
         EXPECT_LE(reply.size, p2p::util::MAX_FRAME_BYTES);
         const auto goal =
-          p2p::util::encodeFrame(p2p::util::FrameKind::ActionGoal, "motion.execute", 1, msg::Goal{});
+          p2p::util::encode_frame(p2p::util::FrameKind::ActionGoal, "motion.execute", 1, msg::Goal{});
         EXPECT_LE(goal.size, p2p::util::MAX_FRAME_BYTES);
         const auto state =
-          p2p::util::encodeFrame(p2p::util::FrameKind::Topic, "motion.state", 0, msg::State{});
+          p2p::util::encode_frame(p2p::util::FrameKind::Topic, "motion.state", 0, msg::State{});
         EXPECT_LE(state.size, p2p::util::MAX_FRAME_BYTES);
     }
 }

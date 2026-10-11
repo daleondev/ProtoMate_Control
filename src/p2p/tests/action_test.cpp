@@ -362,7 +362,7 @@ namespace
         pnm::msg::Bus ioBus, uiBus;
         pnm::coro::Context ioContext, uiContext;
         std::array<std::shared_ptr<p2p::InProcessTransport>,2> endpoints{p2p::InProcessTransport::pair()};
-        std::jthread ioRunner{example::runContext(ioContext)}, uiRunner{example::runContext(uiContext)};
+        std::jthread ioRunner{example::run_context(ioContext)}, uiRunner{example::run_context(uiContext)};
         p2p::Bridge io{ioBus,ioContext,*endpoints[0]}, ui{uiBus,uiContext,*endpoints[1]};
         void SetUp() override
         {

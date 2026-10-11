@@ -73,7 +73,8 @@ namespace control::messages
         }
         hal::device::IStepperDriver::Status status() const
         {
-            return { ready, fault_active, fault_latched, warning, fault, std::make_error_code(error) };
+            return { .ready = ready, .fault_active = fault_active, .fault_latched = fault_latched,
+                     .warning = warning, .fault = fault, .error = std::make_error_code(error) };
         }
     };
     struct AxisState
@@ -81,11 +82,11 @@ namespace control::messages
         ControllerTypes::MotorId motor{};
         pnm::units::Angle position{};
         pnm::units::AngularVelocity velocity{};
-        Measurement<pnm::units::Angle> actual_position{};
-        Measurement<pnm::units::AngularVelocity> actual_velocity{};
+        Measurement<pnm::units::Angle> actual_position;
+        Measurement<pnm::units::AngularVelocity> actual_velocity;
         bool referenced{}, reference_switch_active{};
         std::size_t outstanding{};
-        std::optional<ControllerTypes::Conversion> conversion{};
+        std::optional<ControllerTypes::Conversion> conversion;
         hal::device::IMotorFeedback::Source feedback_source{};
         pnm::units::Angle feedback_resolution{};
         AxisState() = default;
@@ -105,17 +106,17 @@ namespace control::messages
         }
         ControllerTypes::AxisStatus status() const
         {
-            return { motor,
-                     position,
-                     velocity,
-                     actual_position.result(),
-                     actual_velocity.result(),
-                     referenced,
-                     reference_switch_active,
-                     outstanding,
-                     conversion,
-                     feedback_source,
-                     feedback_resolution };
+            return { .motor = motor,
+                     .position = position,
+                     .velocity = velocity,
+                     .actual_position = actual_position.result(),
+                     .actual_velocity = actual_velocity.result(),
+                     .referenced = referenced,
+                     .reference_switch_active = reference_switch_active,
+                     .outstanding = outstanding,
+                     .conversion = conversion,
+                     .feedback_source = feedback_source,
+                     .feedback_resolution = feedback_resolution };
         }
     };
     struct State
@@ -158,9 +159,9 @@ namespace control::messages
     struct DriverStatus
     {
         ControllerTypes::MotorId motor{};
-        std::string name{};
-        DriverState state{};
-        std::optional<hal::device::IConfigurableStepperDriver::Snapshot> configuration{};
+        std::string name;
+        DriverState state;
+        std::optional<hal::device::IConfigurableStepperDriver::Snapshot> configuration;
         DriverStatus() = default;
         explicit DriverStatus(const ControllerTypes::DriverStatus& s)
           : motor(s.motor)
@@ -171,7 +172,7 @@ namespace control::messages
         }
         ControllerTypes::DriverStatus status() const
         {
-            return { motor, name, state.status(), configuration };
+            return { .motor = motor, .name = name, .status = state.status(), .configuration = configuration };
         }
     };
 
@@ -182,19 +183,19 @@ namespace control::messages
         Operation operation{};
         std::uint8_t motor{ ALL_MOTORS };
         ControllerTypes::DriverConfiguration driver{};
-        std::optional<ControllerTypes::Conversion> conversion{};
+        std::optional<ControllerTypes::Conversion> conversion;
         MotionDefaults defaults{};
-        ControllerTypes::AxisDefaults axis_defaults{};
+        ControllerTypes::AxisDefaults axis_defaults;
         pnm::units::AngularVelocity velocity{};
-        ControllerTypes::AxisSpeed axis_velocity{};
+        ControllerTypes::AxisSpeed axis_velocity;
     };
     struct Response
     {
         bool success{ true };
         std::string error;
-        State state{};
+        State state;
         std::array<DriverStatus, 3> drivers{};
-        ControllerTypes::AxisDefaults axis_defaults{};
+        ControllerTypes::AxisDefaults axis_defaults;
         std::uint64_t pulses{};
     };
     // Motion is a separate action contract; no byte buffers or worker handles.
@@ -203,9 +204,9 @@ namespace control::messages
         Operation operation{ Operation::Move };
         std::uint8_t motor{ ALL_MOTORS };
         ControllerTypes::Move move{};
-        ControllerTypes::AxisMove axis_move{};
+        ControllerTypes::AxisMove axis_move;
         pnm::units::AngularVelocity seek{ DEFAULT_REFERENCE_SEEK }, latch{ DEFAULT_REFERENCE_LATCH };
-        std::optional<ControllerTypes::AxisSpeed> axis_seek{}, axis_latch{};
+        std::optional<ControllerTypes::AxisSpeed> axis_seek, axis_latch;
         ControllerTypes::Trajectory trajectory{};
         pnm::units::Time timeout{ DEFAULT_REFERENCE_TIMEOUT };
     };
@@ -227,7 +228,7 @@ namespace control::messages
         bool link_inhibited{};
     };
 
-    enum class Controller
+    enum class Controller : std::uint8_t
     {
         IO,
         UI

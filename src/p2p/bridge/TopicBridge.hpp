@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Catalog.hpp"
 #include "Frame.hpp"
 #include "OutgoingWakeup.hpp"
 
@@ -30,14 +31,19 @@ namespace p2p
         static constexpr std::size_t MAX_TOPICS{ 16 };
 
         TopicBridge(pnm::msg::Bus& bus, std::shared_ptr<util::OutgoingWakeup> wakeup);
+        ~TopicBridge() = default;
+
+      public:
         TopicBridge(const TopicBridge&) = delete;
         TopicBridge& operator=(const TopicBridge&) = delete;
         TopicBridge(TopicBridge&&) = delete;
         TopicBridge& operator=(TopicBridge&&) = delete;
 
+      private:
+
         template<typename Catalog, typename Publisher>
             requires std::is_enum_v<Publisher>
-        void registerCatalog(Publisher localPublisher);
+        void registerCatalog(Publisher local_publisher);
         template<pnm::utils::memory::Serializable T>
             requires std::default_initializable<T>
         void registerOutgoing(std::string_view topic);
@@ -71,7 +77,7 @@ namespace p2p
 
     template<typename Catalog, typename Publisher>
         requires std::is_enum_v<Publisher>
-    void TopicBridge::registerCatalog(Publisher localPublisher)
+    void TopicBridge::registerCatalog(Publisher local_publisher)
     {
         static constexpr auto enumerators{ pnm::meta::enumeration::enumerators<Publisher>() };
         static_assert(enumerators.size() == 2, "A topic publisher enum must declare exactly two values");
@@ -81,17 +87,20 @@ namespace p2p
         static_assert(std::to_underlying(first) != std::to_underlying(second),
                       "Topic publishers must have distinct values");
 
-        if (localPublisher != first && localPublisher != second) {
+        if (local_publisher != first && local_publisher != second) {
             throw std::invalid_argument("Unknown local topic publisher");
         }
 
         static constexpr auto members{ std::define_static_array(
           std::meta::members_of(^^Catalog, std::meta::access_context::current())) };
 
+        // Clang synthesizes reserved identifiers for expansion statements.
+        // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
         template for (constexpr auto member : members)
         {
+            // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
             constexpr auto publishers{ std::define_static_array(
-              std::meta::annotations_of_with_type(member, ^^Publisher)) };
+              util::annotations_of_type<Publisher>(member)) };
             if constexpr (!publishers.empty()) {
                 static_assert(publishers.size() == 1, "A topic must have exactly one publisher");
                 static_assert(std::meta::is_nonstatic_data_member(member),
@@ -102,7 +111,7 @@ namespace p2p
                 if constexpr (std::meta::is_nonstatic_data_member(member)) {
                     using Metadata = pnm::msg::TopicMetadata<member>;
                     using Message = typename Metadata::Message;
-                    if (publisher == localPublisher)
+                    if (publisher == local_publisher)
                         registerOutgoing<Message>(Metadata::name);
                     else
                         registerIncoming<Message>(Metadata::name);
@@ -122,7 +131,7 @@ namespace p2p
         auto pending = std::make_shared<std::optional<OutgoingFrame>>();
         auto subscription =
           m_bus.topic<T>(topic).subscribe([pending, name = std::string(topic)](const T& value) {
-            *pending = util::encodeFrame(FrameKind::Topic, name, 0, value);
+            *pending = util::encode_frame(FrameKind::Topic, name, 0, value);
         }, pnm::msg::SubscriptionOptions::latestOnly());
 
         auto readiness = pnm::msg::watch(subscription, [signal = m_outgoingWakeup] { signal->notify(); });
@@ -143,11 +152,11 @@ namespace p2p
     {
         checkRegistration(topic);
 
-        auto publish = [localTopic = m_bus.topic<T>(topic)](std::span<const std::byte> payload) {
+        auto publish = [local_topic = m_bus.topic<T>(topic)](std::span<const std::byte> payload) {
             T value{};
             if (!pnm::utils::memory::deserialize(payload, value))
                 throw std::invalid_argument("Invalid incoming topic payload");
-            localTopic.publish(value);
+            local_topic.publish(value);
         };
         m_incomingTopics.push_back({
           .name = std::string(topic),

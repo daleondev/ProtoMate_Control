@@ -182,7 +182,7 @@ def collect_diagnostics(log):
 def classify(code, log):
     if code not in (0, 1):
         return "tool-failure"
-    if "[clang-diagnostic-error]" in log:
+    if "[clang-diagnostic-error]" in log or "Error while processing " in log:
         return "blocked"
     # A nonzero status is normal with WarningsAsErrors, but a command-line error,
     # invalid config, or missing compilation database must not pass unnoticed.
@@ -233,7 +233,8 @@ def check(entry, args):
     with OUTPUT_LOCK:
         print(log, end="", flush=True)
     output.with_suffix(output.suffix + ".log").write_text(log)
-    blockers = sorted({line.strip() for line in log.splitlines() if "[clang-diagnostic-error]" in line})
+    blockers = sorted({line.strip() for line in log.splitlines()
+                       if "[clang-diagnostic-error]" in line or ("error:" in line and "[clang-diagnostic-" in line)})
     return {"file": filename, "context": context, "status": classify(code, log), "exit_code": code,
             "tidy_seconds": tidy_seconds, "blockers": blockers, "diagnostics": collect_diagnostics(log)}
 

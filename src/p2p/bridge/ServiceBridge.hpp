@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Catalog.hpp"
 #include "Frame.hpp"
 #include "OutgoingWakeup.hpp"
 
@@ -46,14 +47,19 @@ namespace p2p
                       pnm::coro::Context& context,
                       std::shared_ptr<util::OutgoingWakeup> wakeup,
                       std::stop_token stop);
+        ~ServiceBridge() = default;
+
+      public:
         ServiceBridge(const ServiceBridge&) = delete;
         ServiceBridge& operator=(const ServiceBridge&) = delete;
         ServiceBridge(ServiceBridge&&) = delete;
         ServiceBridge& operator=(ServiceBridge&&) = delete;
 
+      private:
+
         template<typename Catalog, typename Provider>
             requires std::is_enum_v<Provider>
-        void registerCatalog(Provider localProvider);
+        void registerCatalog(Provider local_provider);
         template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
             requires std::default_initializable<Request> && std::default_initializable<Response> &&
                      std::move_constructible<Response>
@@ -66,6 +72,9 @@ namespace p2p
         void poll();
         std::optional<OutgoingFrame> takeFrame(Lane lane);
         void dispatch(const util::IncomingFrame& frame, Lane lane);
+        void dispatchRequest(const util::IncomingFrame& frame, Lane lane);
+        void dispatchCancellation(const util::IncomingFrame& frame, Lane lane);
+        void dispatchResponse(const util::IncomingFrame& frame, Lane lane);
         void close(ServiceError error);
         void checkRegistration(std::string_view name) const;
         void queueServiceError(std::uint64_t id, ServiceError error, Lane lane);
@@ -85,7 +94,7 @@ namespace p2p
         {
             std::uint64_t id{};
             Lane lane{ Lane::Normal };
-            bool cancelSent{};
+            bool cancel_sent{};
             std::optional<OutgoingFrame> request;
             std::function<bool()> pending;
             std::function<Clock::duration()> remaining;
@@ -129,23 +138,26 @@ namespace p2p
 
     template<typename Catalog, typename Provider>
         requires std::is_enum_v<Provider>
-    void ServiceBridge::registerCatalog(Provider localProvider)
+    void ServiceBridge::registerCatalog(Provider local_provider)
     {
         static constexpr auto enumerators{ pnm::meta::enumeration::enumerators<Provider>() };
         static_assert(enumerators.size() == 2, "A service provider enum must declare exactly two values");
         constexpr auto first{ enumerators[0] };
         constexpr auto second{ enumerators[1] };
         static_assert(first != second, "Service providers must have distinct values");
-        if (localProvider != first && localProvider != second)
+        if (local_provider != first && local_provider != second)
             throw std::invalid_argument("Unknown local service provider");
 
         static constexpr auto members{ std::define_static_array(
           std::meta::members_of(^^Catalog, std::meta::access_context::current())) };
 
+        // Clang synthesizes reserved identifiers for expansion statements.
+        // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
         template for (constexpr auto member : members)
         {
+            // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
             constexpr auto providers{ std::define_static_array(
-              std::meta::annotations_of_with_type(member, ^^Provider)) };
+              util::annotations_of_type<Provider>(member)) };
             if constexpr (!providers.empty()) {
                 static_assert(providers.size() == 1, "A service must have exactly one provider");
                 static_assert(std::meta::is_nonstatic_data_member(member),
@@ -158,7 +170,7 @@ namespace p2p
                     using Request = typename Metadata::Request;
                     using Response = typename Metadata::Response;
                     static constexpr auto lanes =
-                      std::define_static_array(std::meta::annotations_of_with_type(member, ^^Lane));
+                      std::define_static_array(util::annotations_of_type<Lane>(member));
                     static_assert(lanes.size() <= 1, "A service may select only one transport lane");
                     constexpr auto lane = [] {
                         if constexpr (lanes.empty())
@@ -167,7 +179,7 @@ namespace p2p
                             return std::meta::extract<Lane>(lanes[0]);
                     }();
                     static_assert(lane == Lane::Normal || lane == Lane::Urgent, "Unknown service lane");
-                    if (provider == localProvider)
+                    if (provider == local_provider)
                         registerIncoming<Request, Response>(Metadata::name, lane);
                     else
                         registerOutgoing<Request, Response>(Metadata::name, lane);
@@ -201,7 +213,7 @@ namespace p2p
             auto owned = std::make_shared<pnm::msg::Reply<Response>>(std::move(reply));
             try {
                 const auto id = ++m_lastCallId;
-                auto frame = util::encodeFrame(FrameKind::Request, name, id, value);
+                auto frame = util::encode_frame(FrameKind::Request, name, id, value);
                 auto timer = wakeAfter(owned->remainingTime());
                 auto readiness = pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notify(); });
                 m_outgoingCalls.push_back({
@@ -268,7 +280,7 @@ namespace p2p
                 if (!result)
                     return makeServiceError(id, result.error());
                 try {
-                    return util::encodeFrame(FrameKind::Response, {}, id, *result);
+                    return util::encode_frame(FrameKind::Response, {}, id, *result);
                 } catch (...) {
                     return makeServiceError(id, ServiceError::TransportError);
                 }

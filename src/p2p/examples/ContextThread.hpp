@@ -12,14 +12,16 @@ namespace example
 {
     // Example/test composition, not part of the portable bridge. The runtime's
     // default 4 KiB standard-thread stack is too small for Debug serialization.
-    inline std::jthread runContext(pnm::coro::Context& context)
+    inline constexpr std::size_t CONTEXT_STACK_BYTES{ 32768 };
+
+    inline std::jthread run_context(pnm::coro::Context& context)
     {
-        auto run = [&context](std::stop_token stop) {
+        auto run = [&context](const std::stop_token& stop) {
             std::stop_callback cancellation{stop, [&context] { context.stop(); }};
             context.run();
         };
 #if defined(HAL_PLATFORM_LINUX) || defined(HAL_PLATFORM_STM32)
-        return runtime::thread::create_jthread({.name = "p2p", .stack_size = 32768}, run);
+        return runtime::thread::create_jthread({.name = "p2p", .stack_size = CONTEXT_STACK_BYTES}, run);
 #else
         return std::jthread(run);
 #endif

@@ -9,8 +9,10 @@ namespace control
     {
         messages::Request message(Op operation, std::optional<ControllerTypes::MotorId> motor = {})
         {
-            return { .operation = operation,
-                     .motor = motor ? static_cast<std::uint8_t>(*motor) : messages::ALL_MOTORS };
+            messages::Request request{};
+            request.operation = operation;
+            request.motor = motor ? static_cast<std::uint8_t>(*motor) : messages::ALL_MOTORS;
+            return request;
         }
         void checked(const messages::Response& response)
         {
@@ -130,7 +132,7 @@ namespace control
         auto service = (q.operation == Op::Stop || q.operation == Op::Disable)
                          ? state->coroutine_bus.service<^^messages::Services::stop>()
                          : state->coroutine_bus.service<^^messages::Services::request>();
-        auto response = co_await service.request(std::move(q), 5s);
+        auto response = co_await service.request(q, 5s);
         if (!response)
             throw std::runtime_error("IO request failed");
         checked(*response);
@@ -289,40 +291,52 @@ namespace control
     }
     ControllerClient::Motion ControllerClient::move(MotorId id, const Move& m)
     {
-        return submit({ .operation = Op::Move, .motor = static_cast<std::uint8_t>(id), .move = m }, false);
+        messages::Goal goal{};
+        goal.operation = Op::Move;
+        goal.motor = static_cast<std::uint8_t>(id);
+        goal.move = m;
+        return submit(goal, false);
     }
     ControllerClient::Motion ControllerClient::moveAxis(MotorId id, const AxisMove& m)
     {
-        return submit({ .operation = Op::MoveAxis, .motor = static_cast<std::uint8_t>(id), .axis_move = m },
-                      false);
+        messages::Goal goal{};
+        goal.operation = Op::MoveAxis;
+        goal.motor = static_cast<std::uint8_t>(id);
+        goal.axis_move = m;
+        return submit(goal, false);
     }
     ControllerClient::Motion ControllerClient::reference(MotorId id,
                                                          pnm::units::AngularVelocity seek,
                                                          pnm::units::AngularVelocity latch,
                                                          pnm::units::Time timeout)
     {
-        return submit({ .operation = Op::Reference,
-                        .motor = static_cast<std::uint8_t>(id),
-                        .seek = seek,
-                        .latch = latch,
-                        .timeout = timeout },
-                      false);
+        messages::Goal goal{};
+        goal.operation = Op::Reference;
+        goal.motor = static_cast<std::uint8_t>(id);
+        goal.seek = seek;
+        goal.latch = latch;
+        goal.timeout = timeout;
+        return submit(goal, false);
     }
     ControllerClient::Motion ControllerClient::referenceAxis(MotorId id,
                                                              std::optional<AxisSpeed> seek,
                                                              std::optional<AxisSpeed> latch,
                                                              pnm::units::Time timeout)
     {
-        return submit({ .operation = Op::ReferenceAxis,
-                        .motor = static_cast<std::uint8_t>(id),
-                        .axis_seek = seek,
-                        .axis_latch = latch,
-                        .timeout = timeout },
-                      false);
+        messages::Goal goal{};
+        goal.operation = Op::ReferenceAxis;
+        goal.motor = static_cast<std::uint8_t>(id);
+        goal.axis_seek = seek;
+        goal.axis_latch = latch;
+        goal.timeout = timeout;
+        return submit(goal, false);
     }
     ControllerClient::GroupMotion ControllerClient::referenceAll(pnm::units::Time timeout)
     {
-        auto m = submit({ .operation = Op::ReferenceAll, .timeout = timeout }, true);
+        messages::Goal goal{};
+        goal.operation = Op::ReferenceAll;
+        goal.timeout = timeout;
+        auto m = submit(goal, true);
         return { .id = m.id,
                  .operation = Operation::Reference,
                  .duration = {},
@@ -333,8 +347,11 @@ namespace control
     }
     ControllerClient::GroupMotion ControllerClient::coordinate(const Trajectory& t, pnm::units::Time timeout)
     {
-        auto m =
-          submit({ .operation = Op::Trajectory, .trajectory = t, .timeout = timeout }, true, t.duration);
+        messages::Goal goal{};
+        goal.operation = Op::Trajectory;
+        goal.trajectory = t;
+        goal.timeout = timeout;
+        auto m = submit(goal, true, t.duration);
         return { .id = m.id,
                  .operation = Operation::Move,
                  .duration = t.duration,

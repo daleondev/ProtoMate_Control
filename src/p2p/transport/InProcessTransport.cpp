@@ -5,6 +5,8 @@
 #include <optional>
 #include <utility>
 
+// Coroutine lowering accesses static promise hooks through the promise object.
+// NOLINTBEGIN(readability-static-accessed-through-instance)
 namespace p2p
 {
     struct InProcessTransport::Shared
@@ -24,8 +26,8 @@ namespace p2p
             // Each blocked operation installs a fresh signal while holding mutex.
             // Closing that signal wakes it even if it has not started awaiting yet.
             // No notification tokens accumulate while neither operation is waiting.
-            std::optional<pnm::coro::Channel<bool>> dataReady;
-            std::optional<pnm::coro::Channel<bool>> spaceReady;
+            std::optional<pnm::coro::Channel<bool>> data_ready;
+            std::optional<pnm::coro::Channel<bool>> space_ready;
         };
 
         std::mutex mutex;
@@ -67,11 +69,11 @@ namespace p2p
                 break;
 
             pnm::coro::Channel<bool> ready;
-            queue.spaceReady = ready;
+            queue.space_ready = ready;
             lock.unlock();
             co_await ready.next(stop);
             lock.lock();
-            queue.spaceReady.reset();
+            queue.space_ready.reset();
             // Notifications and cancellation both recheck the protected state.
         }
 
@@ -79,7 +81,7 @@ namespace p2p
         std::ranges::copy(frame, slot.bytes.begin());
         slot.size = frame.size();
         ++queue.count;
-        auto wake = std::exchange(queue.dataReady, std::nullopt);
+        auto wake = std::exchange(queue.data_ready, std::nullopt);
         lock.unlock();
         // A wakeup may resume a coroutine inline. Never notify under the queue lock.
         if (wake)
@@ -104,11 +106,11 @@ namespace p2p
                 break;
 
             pnm::coro::Channel<bool> ready;
-            queue.dataReady = ready;
+            queue.data_ready = ready;
             lock.unlock();
             co_await ready.next(stop);
             lock.lock();
-            queue.dataReady.reset();
+            queue.data_ready.reset();
         }
 
         const auto& slot = queue.frames[queue.head];
@@ -119,7 +121,7 @@ namespace p2p
         std::ranges::copy(std::span(slot.bytes).first(size), buffer.begin());
         queue.head = (queue.head + 1) % FRAME_CAPACITY;
         --queue.count;
-        auto wake = std::exchange(queue.spaceReady, std::nullopt);
+        auto wake = std::exchange(queue.space_ready, std::nullopt);
         lock.unlock();
         if (wake)
             wake->close();
@@ -128,7 +130,8 @@ namespace p2p
 
     void InProcessTransport::close() noexcept
     {
-        std::array<std::optional<pnm::coro::Channel<bool>>, 8> wake;
+        constexpr std::size_t signal_count{ 8 };
+        std::array<std::optional<pnm::coro::Channel<bool>>, signal_count> wake;
         {
             std::scoped_lock lock(m_shared->mutex);
             if (m_shared->closed)
@@ -138,9 +141,9 @@ namespace p2p
                 for (std::size_t lane = 0; lane < 2; ++lane) {
                     auto& queue = m_shared->inbox[side][lane];
                     queue.count = 0;
-                    const auto index = 4 * side + 2 * lane;
-                    wake[index] = std::exchange(queue.dataReady, std::nullopt);
-                    wake[index + 1] = std::exchange(queue.spaceReady, std::nullopt);
+                    const auto index = (4 * side) + (2 * lane);
+                    wake[index] = std::exchange(queue.data_ready, std::nullopt);
+                    wake[index + 1] = std::exchange(queue.space_ready, std::nullopt);
                 }
             }
         }
@@ -149,3 +152,5 @@ namespace p2p
                 signal->close();
     }
 }
+
+// NOLINTEND(readability-static-accessed-through-instance)

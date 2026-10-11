@@ -75,7 +75,7 @@ namespace control
                     requests.poll();
                     actions.poll();
                 } catch (...) {
-                    self->link({ p2p::ConnectionState::Failed, p2p::ConnectionReason::InternalError });
+                    self->link({ .state = p2p::ConnectionState::Failed, .reason = p2p::ConnectionReason::InternalError });
                 }
             }
             co_return;
@@ -91,7 +91,7 @@ namespace control
                 });
             } catch (...) {
                 scheduled.store(false);
-                link({ p2p::ConnectionState::Failed, p2p::ConnectionReason::InternalError });
+                link({ .state = p2p::ConnectionState::Failed, .reason = p2p::ConnectionReason::InternalError });
             }
         }
         void link(p2p::ConnectionStatus value) noexcept
@@ -262,12 +262,12 @@ namespace control
                         controller->stop(selection(q.motor));
                     throw std::runtime_error("command interrupted by stop/link loss");
                 }
-                reply.respond(std::move(response));
+                reply.respond(response);
             } catch (const std::exception& e) {
                 messages::Response response{};
                 response.success = false;
                 response.error = std::string(e.what()).substr(0, messages::MAX_ERROR_TEXT);
-                reply.respond(std::move(response));
+                reply.respond(response);
             } catch (...) {
                 reply.fail(pnm::msg::ServiceError::HandlerFailed);
             }
@@ -473,8 +473,12 @@ namespace control
             actions.emplace(
               bus.action<^^messages::Actions::execute>()
                 .serveDeferred([weak](const auto& q, Execution execution) {
-                if (auto s = weak.lock())
-                    s->enqueue({ { .operation = q.operation, .motor = q.motor }, {}, std::move(execution), {}, q }, false);
+                if (auto s = weak.lock()) {
+                    messages::Request request{};
+                    request.operation = q.operation;
+                    request.motor = q.motor;
+                    s->enqueue({ request, {}, std::move(execution), {}, q }, false);
+                }
             }, { REQUEST_CAPACITY }));
             auto wake = [weak]() noexcept {
                 if (auto s = weak.lock())

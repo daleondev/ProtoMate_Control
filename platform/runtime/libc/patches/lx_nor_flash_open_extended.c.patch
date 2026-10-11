@@ -1,0 +1,11 @@
+--- lx_nor_flash_open_extended.c
++++ lx_nor_flash_open_extended.c
+@@ -182,7 +182,7 @@
+     /* Build the free bit map mask, for the portion of the bit map that is less than 32 bits.  */
+     if ((sectors_per_block % 32) != 0)
+     {
+-        bit_map_mask =  (ULONG)(1 << (sectors_per_block % 32));
++        bit_map_mask =  (ULONG)(1U << (sectors_per_block % 32));
+         bit_map_mask =  bit_map_mask - 1;
+     }
+     else

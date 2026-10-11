@@ -175,6 +175,16 @@
                 "RUNTIME_STORAGE_REQUIRED": false,
                 "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
             }
+        },
+        {
+            "name": "sanitize-linux",
+            "displayName": "Linux Address/Undefined Behavior Sanitizers",
+            "inherits": "debug-linux",
+            "cacheVariables": {
+                "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+                "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+            }
         }
     ],
     "buildPresets": [
@@ -209,7 +219,9 @@
         {
             "name": "clang-tidy-linux",
             "configurePreset": "clang-tidy-linux",
-            "targets": ["clang-tidy"]
+            "targets": [
+                "clang-tidy"
+            ]
         },
         {
             "name": "release-linux",
@@ -238,6 +250,23 @@
         {
             "name": "ethercat-slave-stm32",
             "configurePreset": "ethercat-slave-stm32"
+        },
+        {
+            "name": "sanitize-linux",
+            "configurePreset": "sanitize-linux"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "sanitize-linux",
+            "configurePreset": "sanitize-linux",
+            "environment": {
+                "ASAN_OPTIONS": "use_sigaltstack=0",
+                "UBSAN_OPTIONS": "print_stacktrace=1"
+            },
+            "output": {
+                "outputOnFailure": true
+            }
         }
     ]
 }

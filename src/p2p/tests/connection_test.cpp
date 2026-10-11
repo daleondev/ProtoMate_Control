@@ -283,7 +283,7 @@ namespace
         pnm::msg::Bus leftBus, rightBus;
         pnm::coro::Context context;
         auto endpoints = p2p::InProcessTransport::pair();
-        auto runner = example::runContext(context);
+        auto runner = example::run_context(context);
         const auto caller = std::this_thread::get_id();
         std::mutex mutex;
         std::condition_variable changed;

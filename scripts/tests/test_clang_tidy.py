@@ -166,6 +166,11 @@ class PartialLintTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Revalidate the adapter"):
             tidy.adapt_reflection_header("different header", {"expected wrapper": "replacement"})
 
+    def test_named_compiler_error_is_blocked(self):
+        log = ("Error while processing x.cpp.\n"
+               "x.hpp:1:1: error: cannot be narrowed [clang-diagnostic-c++11-narrowing]\n")
+        self.assertEqual(tidy.classify(1, log), "blocked")
+
     def test_parse_error_is_blocked_even_with_lint_findings(self):
         self.assertEqual(tidy.classify(1, "x.cpp:1:1: error: unsupported [clang-diagnostic-error]"), "blocked")
 

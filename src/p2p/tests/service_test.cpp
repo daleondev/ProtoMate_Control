@@ -320,7 +320,7 @@ namespace
         pnm::msg::Bus ioBus, uiBus;
         pnm::coro::Context context;
         auto endpoints = p2p::InProcessTransport::pair();
-        auto runner = example::runContext(context);
+        auto runner = example::run_context(context);
         p2p::Bridge io(ioBus, context, *endpoints[0]), ui(uiBus, context, *endpoints[1]);
         io.registerServices<Services>(Provider::IO);
         ui.registerServices<Services>(Provider::UI);
@@ -352,8 +352,8 @@ namespace
         pnm::msg::Bus ioBus, uiBus;
         pnm::coro::Context ioContext, uiContext;
         auto endpoints = p2p::InProcessTransport::pair();
-        auto ioRunner = example::runContext(ioContext);
-        auto uiRunner = example::runContext(uiContext);
+        auto ioRunner = example::run_context(ioContext);
+        auto uiRunner = example::run_context(uiContext);
         p2p::Bridge io(ioBus, ioContext, *endpoints[0]), ui(uiBus, uiContext, *endpoints[1]);
         io.registerServices<Services>(Provider::IO);
         ui.registerServices<Services>(Provider::UI);
@@ -411,7 +411,7 @@ namespace
         pnm::coro::Context context;
         pnm::msg::Bus bus;
         auto endpoints = p2p::InProcessTransport::pair();
-        auto runner = example::runContext(context);
+        auto runner = example::run_context(context);
         p2p::Bridge bridge(bus, context, *endpoints[0]);
         bridge.registerTopics<Topics>(Publisher::IO);
         bridge.registerServices<Services>(Provider::UI);

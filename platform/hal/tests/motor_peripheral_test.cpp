@@ -103,14 +103,14 @@ TEST(HalPwm, ValidatesRoutesAndReleasesTimerAfterPinClaimFailure)
     EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim2, hal::timer::Channel::Channel1, { E, 9U } }), nullptr);
     EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel2, { E, 9U } }), nullptr);
     EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 8U } }), nullptr);
-    auto blocker{ hal::gpio::create_input({ .pin = m1.pin }) };
+    auto blocker{ hal::gpio::create_input({ .pin = m1.pin, .alternate_function = std::nullopt }) };
     ASSERT_NE(blocker, nullptr);
     EXPECT_EQ(hal::pwm::create(m1), nullptr);
     blocker.reset();
     auto output{ hal::pwm::create(m1) };
     ASSERT_NE(output, nullptr);
     EXPECT_EQ(hal::pwm::create(m1), nullptr);
-    EXPECT_EQ(hal::gpio::create_output({ .pin = m1.pin }), nullptr);
+    EXPECT_EQ(hal::gpio::create_output({ .pin = m1.pin, .alternate_function = std::nullopt }), nullptr);
     ASSERT_TRUE(output->configure({ 1ms, 5us }));
     ASSERT_TRUE(output->start());
     output.reset(); // Destruction must release a running peripheral as well.
@@ -225,16 +225,16 @@ TEST(HalEncoder, RejectsUnsupportedRoutesAndRollsBackPartialPinClaims)
 {
     EXPECT_EQ(hal::encoder::create({ hal::timer::Peripheral::Tim2, { B, 4U }, { B, 5U } }), nullptr);
     EXPECT_EQ(hal::encoder::create({ hal::timer::Peripheral::Tim3, { B, 5U }, { B, 4U } }), nullptr);
-    auto blocker{ hal::gpio::create_output({ .pin = encoder.b }) };
+    auto blocker{ hal::gpio::create_output({ .pin = encoder.b, .alternate_function = std::nullopt }) };
     ASSERT_NE(blocker, nullptr);
     EXPECT_EQ(hal::encoder::create(encoder), nullptr);
-    EXPECT_NE(hal::gpio::create_input({ .pin = encoder.a }), nullptr);
+    EXPECT_NE(hal::gpio::create_input({ .pin = encoder.a, .alternate_function = std::nullopt }), nullptr);
     blocker.reset();
     auto input{ hal::encoder::create(encoder) };
     ASSERT_NE(input, nullptr);
     EXPECT_EQ(hal::encoder::create(encoder), nullptr);
-    EXPECT_EQ(hal::gpio::create_input({ .pin = encoder.a }), nullptr);
-    EXPECT_EQ(hal::gpio::create_input({ .pin = encoder.b }), nullptr);
+    EXPECT_EQ(hal::gpio::create_input({ .pin = encoder.a, .alternate_function = std::nullopt }), nullptr);
+    EXPECT_EQ(hal::gpio::create_input({ .pin = encoder.b, .alternate_function = std::nullopt }), nullptr);
     ASSERT_TRUE(input->start());
     input.reset();
     EXPECT_NE(hal::encoder::create(encoder), nullptr);
@@ -359,10 +359,10 @@ TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
 
 TEST(HalMotorBoard, SharedStepEngineRetainsAllPinsUntilItsLastViewIsReleased)
 {
-    auto blocker{ hal::gpio::create_input({ .pin = { B, 10U } }) };
+    auto blocker{ hal::gpio::create_input({ .pin = { B, 10U }, .alternate_function = std::nullopt }) };
     ASSERT_NE(blocker, nullptr);
     EXPECT_EQ(hal::board::create_stepper_generator(), nullptr);
-    auto rolled_back{ hal::gpio::create_output({ .pin = { A, 0U } }) };
+    auto rolled_back{ hal::gpio::create_output({ .pin = { A, 0U }, .alternate_function = std::nullopt }) };
     ASSERT_NE(rolled_back, nullptr);
     rolled_back.reset();
     blocker.reset();
@@ -372,7 +372,7 @@ TEST(HalMotorBoard, SharedStepEngineRetainsAllPinsUntilItsLastViewIsReleased)
     ASSERT_NE(axis, nullptr);
     for (const auto pin :
          std::array{ hal::gpio::Pin{ A, 0U }, hal::gpio::Pin{ B, 10U }, hal::gpio::Pin{ B, 11U } }) {
-        EXPECT_EQ(hal::gpio::create_output({ .pin = pin }), nullptr);
+        EXPECT_EQ(hal::gpio::create_output({ .pin = pin, .alternate_function = std::nullopt }), nullptr);
     }
     generator.reset();
     EXPECT_EQ(hal::board::create_stepper_generator(), nullptr);

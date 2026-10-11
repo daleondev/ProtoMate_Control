@@ -4,13 +4,15 @@
 #include <limits>
 #include <utility>
 
+// Coroutine lowering accesses static promise hooks through the promise object.
+// NOLINTBEGIN(readability-static-accessed-through-instance)
 namespace p2p
 {
     ConnectionHealth::ConnectionHealth(ConnectionOptions options)
       : m_options(options)
     {
         if (options.heartbeat <= std::chrono::milliseconds::zero() || options.timeout <= options.heartbeat ||
-            options.timeout > std::chrono::hours{ 24 })
+            options.timeout > std::chrono::days{ 1 })
             throw std::invalid_argument("Connection requires 0 < heartbeat < timeout <= 24 hours");
     }
 
@@ -37,7 +39,7 @@ namespace p2p
     void ConnectionHealth::begin()
     {
         m_deadline = Clock::now() + m_options.timeout;
-        transition({ ConnectionState::Connecting });
+        transition({ .state = ConnectionState::Connecting });
     }
 
     void ConnectionHealth::checkDeadline() const
@@ -61,7 +63,9 @@ namespace p2p
     ConnectionHealth::Clock::time_point ConnectionHealth::nextWake() const
     {
         // begin() arms the deadline before the health loop schedules its timer.
-        const auto deadline = m_deadline.value();
+        if (!m_deadline)
+            throw std::logic_error("Connection timer has not started");
+        const auto deadline = *m_deadline;
         return std::min(deadline, m_nextHeartbeat.value_or(deadline));
     }
 
@@ -70,18 +74,18 @@ namespace p2p
         if (!m_deadline)
             return std::nullopt;
         if (!std::exchange(m_helloSent, true))
-            return util::makeFrame(Kind::Hello, {}, 0, 0);
+            return util::make_frame(Kind::Hello, {}, 0, 0);
         if (std::exchange(m_readyPending, false))
-            return util::makeFrame(Kind::Ready, {}, 0, 0);
+            return util::make_frame(Kind::Ready, {}, 0, 0);
         if (std::exchange(m_goodbyePending, false))
-            return util::makeFrame(Kind::Goodbye, {}, 0, 0);
+            return util::make_frame(Kind::Goodbye, {}, 0, 0);
         if (m_replyHeartbeat)
-            return util::makeFrame(Kind::HeartbeatAck, {}, std::exchange(m_replyHeartbeat, 0), 0);
+            return util::make_frame(Kind::HeartbeatAck, {}, std::exchange(m_replyHeartbeat, 0), 0);
         if (m_ready && !m_nextHeartbeat && !m_waitingAck) {
             if (m_lastHeartbeat == std::numeric_limits<std::uint64_t>::max())
                 throw std::overflow_error("Heartbeat sequence exhausted");
             m_waitingAck = true;
-            return util::makeFrame(Kind::Heartbeat, {}, ++m_lastHeartbeat, 0);
+            return util::make_frame(Kind::Heartbeat, {}, ++m_lastHeartbeat, 0);
         }
         return std::nullopt;
     }
@@ -110,7 +114,7 @@ namespace p2p
                 m_nextHeartbeat = now + m_options.heartbeat;
                 m_connected.close(); // Latch: wakes receivers without consuming a token.
                 if (status().state != ConnectionState::Stopping)
-                    transition({ ConnectionState::Connected });
+                    transition({ .state = ConnectionState::Connected });
                 break;
             case Kind::Heartbeat:
                 if (!m_ready || frame.id == 0 || frame.id <= m_lastPeerHeartbeat)
@@ -157,3 +161,5 @@ namespace p2p
         co_return m_ready && !stop.stop_requested();
     }
 }
+
+// NOLINTEND(readability-static-accessed-through-instance)

@@ -42,8 +42,10 @@ namespace p2p
     // Require 0 < heartbeat < timeout <= 24 hours. Defaults suit the control link.
     struct ConnectionOptions
     {
-        std::chrono::milliseconds heartbeat{ 100 };
-        std::chrono::milliseconds timeout{ 500 };
+        static constexpr std::chrono::milliseconds DEFAULT_HEARTBEAT{ 100 };
+        static constexpr std::chrono::milliseconds DEFAULT_TIMEOUT{ 500 };
+        std::chrono::milliseconds heartbeat{ DEFAULT_HEARTBEAT };
+        std::chrono::milliseconds timeout{ DEFAULT_TIMEOUT };
     };
     using ConnectionCallback = std::function<void(ConnectionStatus)>;
 
@@ -58,7 +60,7 @@ namespace p2p
               , reason(reason)
             {
             }
-            const ConnectionReason reason;
+            ConnectionReason reason;
         };
     }
 
@@ -73,7 +75,7 @@ namespace p2p
         explicit ConnectionHealth(ConnectionOptions options);
         ConnectionStatus status() const;
         void setCallback(ConnectionCallback callback);
-        void transition(ConnectionStatus status);
+        void transition(ConnectionStatus value);
         void begin();
         void checkDeadline() const;
         bool tick();
@@ -90,7 +92,7 @@ namespace p2p
         const ConnectionOptions m_options;
         // Publish state and reason together without a mutex, including on STM32.
         static_assert(std::atomic<ConnectionStatus>::is_always_lock_free);
-        std::atomic<ConnectionStatus> m_status{};
+        std::atomic<ConnectionStatus> m_status;
         ConnectionCallback m_callback;
         pnm::coro::Channel<bool> m_connected;
         std::optional<Clock::time_point> m_deadline;

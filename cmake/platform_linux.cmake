@@ -13,6 +13,8 @@ target_link_libraries(filex PRIVATE project_compiler_settings)
 
 set(LX_USER_FILE ${PROJECT_SOURCE_DIR}/platform/runtime/lx_user.h)
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/levelx)
+include(${PROJECT_SOURCE_DIR}/cmake/patch_levelx.cmake)
+runtime_patch_levelx()
 target_link_libraries(levelx PRIVATE project_compiler_settings)
 get_target_property(levelx_sources levelx SOURCES)
 list(FILTER levelx_sources EXCLUDE REGEX "/(fx_nand_|fx_nor_flash_simulator|lx_nand_|lx_nor_flash_simulator)")

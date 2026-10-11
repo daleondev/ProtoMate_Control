@@ -3,6 +3,7 @@ add_library(application::p2p::bridge ALIAS application_p2p_bridge)
 
 target_sources(application_p2p_bridge
     INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/Catalog.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Bridge.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Bridge.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ConnectionHealth.hpp

@@ -25,8 +25,10 @@ namespace system_threads
     // Thread definitions
     // ----------------------
 
+    static constexpr auto P2P_STACK_SIZE{ 32_KB };
+
     // Serialization and action callbacks nest bounded 2 KiB frame buffers.
-    [[ = PRIO._2, = 32_KB ]] auto p2p() -> void;
+    [[ = PRIO._2, = P2P_STACK_SIZE ]] auto p2p() -> void;
 
     [[ = PRIO._3, = CLI_STACK_SIZE ]] auto control() -> void;
     [[ = PRIO._4, = CLI_STACK_SIZE ]] auto messages() -> void;

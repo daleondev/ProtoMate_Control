@@ -1,0 +1,11 @@
+--- lx_nor_flash_logical_sector_find.c
++++ lx_nor_flash_logical_sector_find.c
+@@ -121,7 +121,7 @@
+     {
+ 
+         /* Determine if the logical sector is mapped.  */
+-        if ((nor_flash -> lx_nor_flash_extended_cache_mapping_bitmap[logical_sector >> 5] & (ULONG)(1 << (logical_sector & 31))) == 0)
++        if ((nor_flash -> lx_nor_flash_extended_cache_mapping_bitmap[logical_sector >> 5] & (ULONG)(1U << (logical_sector & 31))) == 0)
+         {
+ 
+             /* Not mapped, return not found.  */

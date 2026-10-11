@@ -4,6 +4,18 @@
 
 namespace p2p
 {
+    namespace
+    {
+        enum class WireError : std::uint8_t
+        {
+            Unavailable = 1,
+            Busy = 2,
+            Rejected = 3,
+            Timeout = 4,
+            HandlerFailed = 5,
+            TransportError = 6,
+        };
+    }
     ActionBridge::ActionBridge(pnm::msg::Bus& bus,
                                pnm::coro::Context& context,
                                std::shared_ptr<util::OutgoingWakeup> wakeup,
@@ -11,7 +23,7 @@ namespace p2p
       : m_bus(bus)
       , m_context(context)
       , m_wakeup(std::move(wakeup))
-      , m_stop(stop)
+      , m_stop(std::move(stop))
     {
     }
 
@@ -19,25 +31,25 @@ namespace p2p
 
     ActionBridge::Frame ActionBridge::makeError(std::uint64_t id, Error error)
     {
-        auto frame = util::makeFrame(Kind::ActionError, {}, id, 1);
+        auto frame = util::make_frame(Kind::ActionError, {}, id, 1);
         switch (error) {
             case Error::Unavailable:
-                frame.bytes[util::HEADER_BYTES] = std::byte{ 1 };
+                frame.bytes[util::HEADER_BYTES] = static_cast<std::byte>(WireError::Unavailable);
                 break;
             case Error::Busy:
-                frame.bytes[util::HEADER_BYTES] = std::byte{ 2 };
+                frame.bytes[util::HEADER_BYTES] = static_cast<std::byte>(WireError::Busy);
                 break;
             case Error::Rejected:
-                frame.bytes[util::HEADER_BYTES] = std::byte{ 3 };
+                frame.bytes[util::HEADER_BYTES] = static_cast<std::byte>(WireError::Rejected);
                 break;
             case Error::Timeout:
-                frame.bytes[util::HEADER_BYTES] = std::byte{ 4 };
+                frame.bytes[util::HEADER_BYTES] = static_cast<std::byte>(WireError::Timeout);
                 break;
             case Error::HandlerFailed:
-                frame.bytes[util::HEADER_BYTES] = std::byte{ 5 };
+                frame.bytes[util::HEADER_BYTES] = static_cast<std::byte>(WireError::HandlerFailed);
                 break;
             case Error::TransportError:
-                frame.bytes[util::HEADER_BYTES] = std::byte{ 6 };
+                frame.bytes[util::HEADER_BYTES] = static_cast<std::byte>(WireError::TransportError);
                 break;
             default:
                 throw std::invalid_argument("Unknown native action error");
@@ -49,18 +61,18 @@ namespace p2p
     {
         if (payload.size() != 1)
             throw std::invalid_argument("Invalid action error length");
-        switch (std::to_integer<unsigned>(payload[0])) {
-            case 1:
+        switch (static_cast<WireError>(payload[0])) {
+            case WireError::Unavailable:
                 return Error::Unavailable;
-            case 2:
+            case WireError::Busy:
                 return Error::Busy;
-            case 3:
+            case WireError::Rejected:
                 return Error::Rejected;
-            case 4:
+            case WireError::Timeout:
                 return Error::Timeout;
-            case 5:
+            case WireError::HandlerFailed:
                 return Error::HandlerFailed;
-            case 6:
+            case WireError::TransportError:
                 return Error::TransportError;
             default:
                 throw std::invalid_argument("Unknown action error");
@@ -136,7 +148,7 @@ namespace p2p
         // Separate bounded space lets a full goal table still reject submissions.
         if (m_rejections.size() >= MAX_GOALS)
             throw std::runtime_error("Peer exceeded action rejection capacity");
-        m_rejections.push_back({ id, makeError(id, error) });
+        m_rejections.push_back({ .id = id, .terminal = makeError(id, error) });
         m_wakeup->notify();
     }
 
@@ -149,23 +161,28 @@ namespace p2p
                 continue;
             }
             if (it->request && it->cancelled()) {
-                it->cancelBeforeSubmission();
+                it->cancel_before_submission();
                 it = m_outgoingGoals.erase(it);
                 continue;
             }
-            if (lane == Lane::Urgent && !it->request && !it->cancelSent && (!pending || it->cancelled())) {
-                it->cancelSent = true;
-                return util::makeFrame(Kind::ActionCancel, {}, it->id, 0);
+            if (lane == Lane::Urgent && !it->request && !it->cancel_sent && (!pending || it->cancelled())) {
+                it->cancel_sent = true;
+                return util::make_frame(Kind::ActionCancel, {}, it->id, 0);
             }
             ++it;
         }
         if (lane == Lane::Urgent && !m_acknowledgements.empty()) {
             const auto id = m_acknowledgements.front();
             m_acknowledgements.pop_front();
-            return util::makeFrame(Kind::ActionAck, {}, id, 0);
+            return util::make_frame(Kind::ActionAck, {}, id, 0);
         }
         if (lane == Lane::Urgent)
             return std::nullopt;
+        return takeNormalFrame();
+    }
+
+    std::optional<ActionBridge::Frame> ActionBridge::takeNormalFrame()
+    {
         for (auto& rejection : m_rejections) {
             if (!rejection.sent) {
                 rejection.sent = true;
@@ -178,12 +195,12 @@ namespace p2p
             m_nextIncoming %= m_incomingGoals.size();
             auto& goal = m_incomingGoals[m_nextIncoming++];
             auto& events = *goal.events;
-            if (std::exchange(events.acceptancePending, false))
-                return util::makeFrame(Kind::ActionAccepted, {}, goal.id, 0);
+            if (std::exchange(events.acceptance_pending, false))
+                return util::make_frame(Kind::ActionAccepted, {}, goal.id, 0);
             if (events.feedback)
                 return std::exchange(events.feedback, std::nullopt);
-            if (events.terminal && !events.terminalSent) {
-                events.terminalSent = true;
+            if (events.terminal && !events.terminal_sent) {
+                events.terminal_sent = true;
                 return events.terminal; // Retain a copy until peer acknowledgement.
             }
         }
@@ -194,8 +211,9 @@ namespace p2p
                     m_wakeup->notify();
                     continue;
                 }
-                auto frame = std::exchange(goal.request, std::nullopt);
-                util::setRequestBudget(*frame,
+                auto frame = *goal.request;
+                goal.request.reset();
+                util::set_request_budget(frame,
                                        static_cast<std::uint32_t>(std::min<std::uint64_t>(
                                          remaining, std::numeric_limits<std::uint32_t>::max())));
                 return frame;
@@ -246,85 +264,102 @@ namespace p2p
 
     void ActionBridge::dispatch(const util::IncomingFrame& frame, Lane lane)
     {
-        const auto& [kind, name, id, budget, payload] = frame;
-        const auto requiredLane =
+        const auto kind = frame.kind;
+        const auto required_lane =
           kind == Kind::ActionCancel || kind == Kind::ActionAck ? Lane::Urgent : Lane::Normal;
-        if (lane != requiredLane)
+        if (lane != required_lane)
             throw std::invalid_argument("Action frame on the wrong transport lane");
-        if (id == 0)
+        if (frame.id == 0)
             throw std::invalid_argument("Action goal ID must be nonzero");
         if (kind == Kind::ActionGoal) {
-            if (name.empty() || budget == 0 || id <= m_lastIncoming)
-                throw std::invalid_argument("Invalid or repeated action goal");
-            m_lastIncoming = id;
-            const bool cancelled = std::erase(m_earlyCancellations, id) != 0;
-            if (m_stopping) {
-                reject(id, Error::Unavailable);
-                return;
-            }
-            const auto route = std::ranges::find(m_incomingRoutes, name, &IncomingRoute::name);
-            if (route == m_incomingRoutes.end()) {
-                reject(id, Error::Unavailable);
-                return;
-            }
-            if (cancelled) {
-                // No provider has received this goal, so cancellation is confirmed.
-                // Retain the typed terminal until acknowledged like any rejection.
-                if (m_rejections.size() >= MAX_GOALS)
-                    throw std::runtime_error("Peer exceeded action rejection capacity");
-                try {
-                    m_rejections.push_back({ id, route->cancelled(id) });
-                    m_wakeup->notify();
-                } catch (...) {
-                    reject(id, Error::TransportError);
-                }
-                return;
-            }
-            if (m_incomingGoals.size() >= MAX_GOALS) {
-                reject(id, Error::Busy);
-                return;
-            }
-            try {
-                m_incomingGoals.push_back(route->submit(id, payload, std::chrono::milliseconds(budget)));
-            } catch (...) {
-                reject(id, Error::HandlerFailed);
-            }
+            dispatchGoal(frame);
             return;
         }
-        if (!name.empty() || budget != 0)
+        if (!frame.name.empty() || frame.budget != 0)
             throw std::invalid_argument("Unexpected action lifecycle header fields");
-        if (kind == Kind::ActionCancel || kind == Kind::ActionAck) {
-            if (!payload.empty() || (kind == Kind::ActionAck && id > m_lastIncoming))
-                throw std::invalid_argument("Invalid action cancellation/acknowledgement");
-            const auto goal = std::ranges::find(m_incomingGoals, id, &IncomingGoal::id);
-            if (kind == Kind::ActionCancel) {
-                if (goal != m_incomingGoals.end())
-                    goal->cancel();
-                else if (id > m_lastIncoming &&
-                         std::ranges::find(m_earlyCancellations, id) == m_earlyCancellations.end()) {
-                    if (m_earlyCancellations.size() >= MAX_GOALS)
-                        throw std::runtime_error("Peer exceeded early action cancellation capacity");
-                    m_earlyCancellations.push_back(id);
-                }
-            }
-            else {
-                if (goal != m_incomingGoals.end()) {
-                    if (!goal->events->terminalSent)
-                        throw std::invalid_argument("Premature action acknowledgement");
-                    m_incomingGoals.erase(goal);
-                }
-                const auto rejection = std::ranges::find(m_rejections, id, &Rejection::id);
-                if (rejection != m_rejections.end()) {
-                    if (!rejection->sent)
-                        throw std::invalid_argument("Premature action rejection acknowledgement");
-                    m_rejections.erase(rejection);
-                }
-            }
-            m_wakeup->notify();
+        if (kind == Kind::ActionCancel || kind == Kind::ActionAck)
+            dispatchControl(frame);
+        else
+            dispatchEvent(frame);
+    }
+
+    void ActionBridge::dispatchGoal(const util::IncomingFrame& frame)
+    {
+        const auto& [kind, name, id, budget, payload] = frame;
+        if (name.empty() || budget == 0 || id <= m_lastIncoming)
+            throw std::invalid_argument("Invalid or repeated action goal");
+        m_lastIncoming = id;
+        const bool cancelled = std::erase(m_earlyCancellations, id) != 0;
+        if (m_stopping) {
+            reject(id, Error::Unavailable);
             return;
         }
-        if (id > m_lastOutgoing)
-            throw std::invalid_argument("Action event for unknown goal");
+        const auto route = std::ranges::find(m_incomingRoutes, name, &IncomingRoute::name);
+        if (route == m_incomingRoutes.end()) {
+            reject(id, Error::Unavailable);
+            return;
+        }
+        if (cancelled) {
+            // No provider has received this goal, so cancellation is confirmed.
+            // Retain the typed terminal until acknowledged like any rejection.
+            if (m_rejections.size() >= MAX_GOALS)
+                throw std::runtime_error("Peer exceeded action rejection capacity");
+            try {
+                m_rejections.push_back({ .id = id, .terminal = route->cancelled(id) });
+                m_wakeup->notify();
+            } catch (...) {
+                reject(id, Error::TransportError);
+            }
+            return;
+        }
+        if (m_incomingGoals.size() >= MAX_GOALS) {
+            reject(id, Error::Busy);
+            return;
+        }
+        try {
+            m_incomingGoals.push_back(route->submit(id, payload, std::chrono::milliseconds(budget)));
+        } catch (...) {
+            reject(id, Error::HandlerFailed);
+        }
+    }
+
+    void ActionBridge::dispatchControl(const util::IncomingFrame& frame)
+    {
+        const auto& [kind, name, id, budget, payload] = frame;
+        if (!payload.empty() || (kind == Kind::ActionAck && id > m_lastIncoming))
+            throw std::invalid_argument("Invalid action cancellation/acknowledgement");
+        const auto goal = std::ranges::find(m_incomingGoals, id, &IncomingGoal::id);
+        if (kind == Kind::ActionCancel) {
+            if (goal != m_incomingGoals.end())
+                goal->cancel();
+            else if (id > m_lastIncoming &&
+                     std::ranges::find(m_earlyCancellations, id) == m_earlyCancellations.end()) {
+                if (m_earlyCancellations.size() >= MAX_GOALS)
+                    throw std::runtime_error("Peer exceeded early action cancellation capacity");
+                m_earlyCancellations.push_back(id);
+            }
+        }
+        else {
+            if (goal != m_incomingGoals.end()) {
+                if (!goal->events->terminal_sent)
+                    throw std::invalid_argument("Premature action acknowledgement");
+                m_incomingGoals.erase(goal);
+            }
+            const auto rejection = std::ranges::find(m_rejections, id, &Rejection::id);
+            if (rejection != m_rejections.end()) {
+                if (!rejection->sent)
+                    throw std::invalid_argument("Premature action rejection acknowledgement");
+                m_rejections.erase(rejection);
+            }
+        }
+        m_wakeup->notify();
+    }
+
+    std::pair<std::optional<ActionBridge::Status>, std::optional<ActionBridge::Error>>
+    ActionBridge::decodeEvent(const util::IncomingFrame& frame)
+    {
+        const auto kind = frame.kind;
+        const auto payload = frame.payload;
         std::optional<Status> status;
         std::optional<Error> error;
         switch (kind) {
@@ -345,30 +380,51 @@ namespace p2p
             default:
                 throw std::invalid_argument("Unknown action frame kind");
         }
+        return { status, error };
+    }
+
+    bool ActionBridge::deliverToGoal(OutgoingGoal& goal,
+                                     const util::IncomingFrame& frame,
+                                     std::optional<Status> status,
+                                     std::optional<Error> error)
+    {
+        const auto kind = frame.kind;
+        if (goal.request)
+            throw std::invalid_argument("Action event before submission");
+        if (kind == Kind::ActionAccepted) {
+            if (goal.accepted)
+                throw std::invalid_argument("Repeated action acceptance");
+            goal.accepted = true;
+            goal.timer = {};
+            if (!goal.accept())
+                goal.cancel(); // Caller may already have timed out.
+        }
+        else {
+            if ((kind == Kind::ActionFeedback || status == Status::Succeeded ||
+                 status == Status::Aborted) &&
+                !goal.accepted)
+                throw std::invalid_argument("Action progress before acceptance");
+            if (goal.accepted && (status == Status::Rejected || error == Error::Rejected))
+                throw std::invalid_argument("Accepted action cannot be rejected");
+            goal.deliver(frame);
+            if (kind != Kind::ActionFeedback)
+                return true;
+        }
+        return false;
+    }
+
+    void ActionBridge::dispatchEvent(const util::IncomingFrame& frame)
+    {
+        const auto& [kind, name, id, budget, payload] = frame;
+        if (id > m_lastOutgoing)
+            throw std::invalid_argument("Action event for unknown goal");
+        const auto [status, error] = decodeEvent(frame);
         const auto goal = std::ranges::find(m_outgoingGoals, id, &OutgoingGoal::id);
         if (goal != m_outgoingGoals.end()) {
-            if (goal->request)
-                throw std::invalid_argument("Action event before submission");
-            if (kind == Kind::ActionAccepted) {
-                if (goal->accepted)
-                    throw std::invalid_argument("Repeated action acceptance");
-                goal->accepted = true;
-                goal->timer = {};
-                if (!goal->accept())
-                    goal->cancel(); // Caller may already have timed out.
-            }
-            else {
-                if ((kind == Kind::ActionFeedback || status == Status::Succeeded ||
-                     status == Status::Aborted) &&
-                    !goal->accepted)
-                    throw std::invalid_argument("Action progress before acceptance");
-                if (goal->accepted && (status == Status::Rejected || error == Error::Rejected))
-                    throw std::invalid_argument("Accepted action cannot be rejected");
-                goal->deliver(frame);
-                if (kind != Kind::ActionFeedback)
-                    m_outgoingGoals.erase(goal);
-            }
+            if (deliverToGoal(*goal, frame, status, error))
+                m_outgoingGoals.erase(goal);
         }
+
         if (kind == Kind::ActionResult || kind == Kind::ActionError) {
             // A late result still needs acknowledging after the caller timed out
             // or abandoned its handle. No automatic goal replay occurs.

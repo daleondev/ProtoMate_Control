@@ -12,7 +12,7 @@ namespace p2p::util
     struct OutgoingSignal
     {
         pnm::coro::Channel<bool> ready;
-        std::atomic_flag pending{};
+        std::atomic_flag pending;
 
         void notify() noexcept
         {

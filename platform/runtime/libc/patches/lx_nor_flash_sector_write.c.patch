@@ -1,0 +1,11 @@
+--- lx_nor_flash_sector_write.c
++++ lx_nor_flash_sector_write.c
+@@ -269,7 +269,7 @@
+         {
+ 
+             /* Set the bit in the mapping bitmap.  */
+-            nor_flash -> lx_nor_flash_extended_cache_mapping_bitmap[logical_sector >> 5] |= (ULONG)(1 << (logical_sector & 31));
++            nor_flash -> lx_nor_flash_extended_cache_mapping_bitmap[logical_sector >> 5] |= (ULONG)(1U << (logical_sector & 31));
+         }
+ #endif
+ #endif

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <pneumo/messaging.hpp>
 
 #include <string>
@@ -8,7 +10,7 @@ namespace example
 {
     using namespace pnm::meta::string::literals;
 
-    enum class TopicPublisher
+    enum class TopicPublisher : std::uint8_t
     {
         IO,
         UI

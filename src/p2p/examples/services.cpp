@@ -16,10 +16,11 @@ int main()
     using example::Services;
 
     try {
-        pnm::msg::Bus io_bus, ui_bus;
+        pnm::msg::Bus io_bus;
+        pnm::msg::Bus ui_bus;
         auto endpoints = p2p::InProcessTransport::pair();
         pnm::coro::Context context;
-        auto p2p_thread = example::runContext(context);
+        auto p2p_thread = example::run_context(context);
 
         p2p::Bridge io_bridge(io_bus, context, *endpoints[0]);
         p2p::Bridge ui_bridge(ui_bus, context, *endpoints[1]);

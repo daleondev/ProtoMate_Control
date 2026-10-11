@@ -72,6 +72,25 @@ It exchanges one `UDINT` in each direction, without robot functions. See the
 [example instructions](docs/ethercat/slave-example.md) and install its
 [ESI file](examples/ethercat_slave/ProtoMateEcho.xml) in the EtherCAT master.
 
+## Linux sanitizer checks
+
+Build and run the complete Linux test suite with AddressSanitizer,
+UndefinedBehaviorSanitizer and leak detection:
+
+```sh
+cmake --preset sanitize-linux
+cmake --build --preset sanitize-linux
+ctest --preset sanitize-linux
+```
+
+The test preset sets `ASAN_OPTIONS=use_sigaltstack=0` because the ThreadX Linux
+port owns its threads' alternate signal stacks. Instrumented builds also reserve
+at least 1 MiB of native stack per simulated thread for sanitizer overhead;
+firmware stack sizes are unchanged. Memory and leak checking remain enabled.
+LeakSanitizer needs permission to inspect process threads; run these tests outside
+a ptrace-restricted sandbox. These checks exercise simulated
+hardware; STM32-specific register behavior still uses the isolated HAL tests.
+
 ## Application and HAL linting
 
 Run the configured readability, naming, bug-prone, modernization, performance,

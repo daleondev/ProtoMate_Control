@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Catalog.hpp"
 #include "Frame.hpp"
 #include "OutgoingWakeup.hpp"
 
@@ -40,14 +41,17 @@ namespace p2p
                      std::shared_ptr<util::OutgoingWakeup> wakeup,
                      std::stop_token stop);
         ~ActionBridge();
+      public:
         ActionBridge(const ActionBridge&) = delete;
         ActionBridge& operator=(const ActionBridge&) = delete;
         ActionBridge(ActionBridge&&) = delete;
         ActionBridge& operator=(ActionBridge&&) = delete;
 
+      private:
+
         template<typename Catalog, typename Provider>
             requires std::is_enum_v<Provider>
-        void registerCatalog(Provider localProvider);
+        void registerCatalog(Provider local_provider);
         template<pnm::utils::memory::Serializable G,
                  pnm::utils::memory::Serializable F,
                  pnm::utils::memory::Serializable R>
@@ -57,9 +61,18 @@ namespace p2p
                  pnm::utils::memory::Serializable R>
         void registerIncoming(std::string_view name);
 
+        template<typename F, typename R>
+        static void deliverEvent(pnm::msg::ActionExecution<F, R>& execution,
+                                 const util::IncomingFrame& incoming);
+
         void poll();
         std::optional<Frame> takeFrame(Lane lane);
         void dispatch(const util::IncomingFrame& frame, Lane lane);
+        void dispatchGoal(const util::IncomingFrame& frame);
+        void dispatchControl(const util::IncomingFrame& frame);
+        static std::pair<std::optional<Status>, std::optional<Error>> decodeEvent(const util::IncomingFrame& frame);
+        void dispatchEvent(const util::IncomingFrame& frame);
+        std::optional<Frame> takeNormalFrame();
         void requestStop();
         [[nodiscard]] bool drained() const;
         // Failure requests local cleanup but cannot confirm a physical stop.
@@ -85,19 +98,19 @@ namespace p2p
             std::uint64_t id{};
             std::optional<Frame> request;
             std::function<bool()> pending, cancelled;
-            std::function<void()> cancel, cancelBeforeSubmission;
+            std::function<void()> cancel, cancel_before_submission;
             std::function<Clock::duration()> remaining;
             std::function<bool()> accept;
             std::function<void(const util::IncomingFrame&)> deliver;
             std::function<void(Error)> fail;
             pnm::msg::ReadinessRegistration readiness;
             pnm::coro::Context::Timer timer;
-            bool accepted{}, cancelSent{};
+            bool accepted{}, cancel_sent{};
         };
         // Callbacks retain only their own event record, never vector references.
         struct Events
         {
-            bool accepted{}, acceptancePending{}, encodingFailed{}, terminalSent{};
+            bool accepted{}, acceptance_pending{}, encoding_failed{}, terminal_sent{};
             std::optional<Frame> feedback, terminal;
         };
         struct IncomingGoal
@@ -122,6 +135,10 @@ namespace p2p
             bool sent{};
         };
 
+        // Return true once the outgoing record can be released.
+        static bool deliverToGoal(OutgoingGoal& goal, const util::IncomingFrame& frame,
+                                  std::optional<Status> status, std::optional<Error> error);
+
         pnm::msg::Bus& m_bus;
         pnm::coro::Context& m_context;
         std::shared_ptr<util::OutgoingWakeup> m_wakeup;
@@ -142,19 +159,23 @@ namespace p2p
 
     template<typename Catalog, typename Provider>
         requires std::is_enum_v<Provider>
-    void ActionBridge::registerCatalog(Provider localProvider)
+    void ActionBridge::registerCatalog(Provider local_provider)
     {
         static constexpr auto owners = pnm::meta::enumeration::enumerators<Provider>();
         static_assert(owners.size() == 2, "An action provider enum must declare exactly two values");
-        constexpr auto first = owners[0], second = owners[1];
+        constexpr auto first = owners[0];
+        constexpr auto second = owners[1];
         static_assert(first != second, "Action providers must have distinct values");
-        if (localProvider != first && localProvider != second)
+        if (local_provider != first && local_provider != second)
             throw std::invalid_argument("Unknown local action provider");
+        // Clang synthesizes reserved identifiers for expansion statements.
+        // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
         template for (constexpr auto member : std::define_static_array(
                         std::meta::members_of(^^Catalog, std::meta::access_context::current())))
         {
+            // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
             constexpr auto providers =
-              std::define_static_array(std::meta::annotations_of_with_type(member, ^^Provider));
+              std::define_static_array(util::annotations_of_type<Provider>(member));
             if constexpr (!providers.empty()) {
                 static_assert(providers.size() == 1, "An action must have exactly one provider");
                 static_assert(std::meta::is_nonstatic_data_member(member),
@@ -163,7 +184,7 @@ namespace p2p
                 static_assert(provider == first || provider == second, "Unknown annotated action provider");
                 if constexpr (std::meta::is_nonstatic_data_member(member)) {
                     using Metadata = pnm::msg::ActionMetadata<member>;
-                    if (provider == localProvider)
+                    if (provider == local_provider)
                         registerIncoming<typename Metadata::Goal,
                                          typename Metadata::Feedback,
                                          typename Metadata::Result>(Metadata::name);
@@ -199,7 +220,7 @@ namespace p2p
             auto owned = std::make_shared<pnm::msg::ActionExecution<F, R>>(std::move(execution));
             try {
                 const auto id = ++m_lastOutgoing;
-                auto frame = util::encodeFrame(Kind::ActionGoal, name, id, value);
+                auto frame = util::encode_frame(Kind::ActionGoal, name, id, value);
                 auto readiness = pnm::msg::watch(*owned, [signal = m_wakeup] { signal->notify(); });
                 auto timer = wakeAfter(owned->remainingAcceptanceTime());
                 m_outgoingGoals.push_back({
@@ -208,44 +229,12 @@ namespace p2p
                   .pending = [owned] { return owned->pending(); },
                   .cancelled = [owned] { return owned->cancelRequested(); },
                   .cancel = [owned] { owned->requestCancel(); },
-                  .cancelBeforeSubmission = [owned] { owned->cancelled(R{}); },
+                  .cancel_before_submission = [owned] { owned->cancelled(R{}); },
                   .remaining = [owned] { return owned->remainingAcceptanceTime(); },
                   .accept = [owned] { return owned->accept(); },
                   .deliver =
                     [owned](const util::IncomingFrame& incoming) {
-                    try {
-                        if (incoming.kind == Kind::ActionError) {
-                            owned->fail(decodeError(incoming.payload));
-                        }
-                        else if (incoming.kind == Kind::ActionFeedback) {
-                            F feedback{};
-                            if (!pnm::utils::memory::deserialize(incoming.payload, feedback))
-                                throw std::invalid_argument("Invalid action feedback");
-                            owned->feedback(feedback);
-                        }
-                        else {
-                            const auto status = decodeStatus(incoming.payload.front());
-                            R result{};
-                            if (!pnm::utils::memory::deserialize(incoming.payload.subspan(1), result))
-                                throw std::invalid_argument("Invalid action result");
-                            switch (status) {
-                                case Status::Succeeded:
-                                    owned->succeed(result);
-                                    break;
-                                case Status::Aborted:
-                                    owned->abort(result);
-                                    break;
-                                case Status::Cancelled:
-                                    owned->cancelled(result);
-                                    break;
-                                case Status::Rejected:
-                                    owned->reject(result);
-                                    break;
-                            }
-                        }
-                    } catch (...) {
-                        owned->fail(Error::TransportError);
-                    }
+                    deliverEvent(*owned, incoming);
                 },
                   .fail = [owned](Error error) { owned->fail(error); },
                   .readiness = std::move(readiness),
@@ -256,9 +245,48 @@ namespace p2p
             }
         }, { .max_goals = MAX_GOALS });
         auto readiness = pnm::msg::watch(proxy, [signal = m_wakeup] { signal->notify(); });
-        m_outgoingRoutes.push_back({ std::string(name), [proxy = std::move(proxy)]() mutable {
+        m_outgoingRoutes.push_back({ .name = std::string(name), .poll = [proxy = std::move(proxy)]() mutable {
             proxy.poll();
-        }, std::move(readiness) });
+        }, .readiness = std::move(readiness) });
+    }
+
+    template<typename F, typename R>
+    void ActionBridge::deliverEvent(pnm::msg::ActionExecution<F, R>& execution,
+                                   const util::IncomingFrame& incoming)
+    {
+        try {
+            if (incoming.kind == Kind::ActionError) {
+                execution.fail(decodeError(incoming.payload));
+            }
+            else if (incoming.kind == Kind::ActionFeedback) {
+                F feedback{};
+                if (!pnm::utils::memory::deserialize(incoming.payload, feedback))
+                    throw std::invalid_argument("Invalid action feedback");
+                execution.feedback(feedback);
+            }
+            else {
+                const auto status = decodeStatus(incoming.payload.front());
+                R result{};
+                if (!pnm::utils::memory::deserialize(incoming.payload.subspan(1), result))
+                    throw std::invalid_argument("Invalid action result");
+                switch (status) {
+                    case Status::Succeeded:
+                        execution.succeed(result);
+                        break;
+                    case Status::Aborted:
+                        execution.abort(result);
+                        break;
+                    case Status::Cancelled:
+                        execution.cancelled(result);
+                        break;
+                    case Status::Rejected:
+                        execution.reject(result);
+                        break;
+                }
+            }
+        } catch (...) {
+            execution.fail(Error::TransportError);
+        }
     }
 
     template<pnm::utils::memory::Serializable G,
@@ -277,17 +305,17 @@ namespace p2p
             auto handle = std::make_shared<pnm::msg::PendingGoal<F, R>>(
               action.sendGoal(value, { .accept_timeout = timeout }, { .on_accepted = [events] {
                 events->accepted = true;
-                events->acceptancePending = true;
+                events->acceptance_pending = true;
             }, .on_feedback = [events, id](const F& feedback) {
                 try {
-                    events->feedback = util::encodeFrame(Kind::ActionFeedback, {}, id, feedback);
+                    events->feedback = util::encode_frame(Kind::ActionFeedback, {}, id, feedback);
                 } catch (...) {
-                    events->encodingFailed = true;
+                    events->encoding_failed = true;
                     events->feedback.reset();
                 }
             }, .on_result = [events, id](pnm::msg::ActionResult<R> result) {
                 try {
-                    if (events->encodingFailed) {
+                    if (events->encoding_failed) {
                         events->terminal = makeError(id, Error::TransportError);
                     }
                     else if (!result) {
@@ -308,7 +336,7 @@ namespace p2p
                 .poll =
                   [handle, events] {
                 handle->poll();
-                if (events->encodingFailed && !events->terminal)
+                if (events->encoding_failed && !events->terminal)
                     handle->requestCancel();
             },
                 .cancel = [handle] { handle->requestCancel(); },
@@ -329,7 +357,7 @@ namespace p2p
             size = pnm::utils::memory::SerializationAdapter<R>::bufferSize(value);
         if (size > util::MAX_FRAME_BYTES - util::HEADER_BYTES - 1)
             throw std::length_error("Action result exceeds frame capacity");
-        auto frame = util::makeFrame(Kind::ActionResult, {}, id, size + 1);
+        auto frame = util::make_frame(Kind::ActionResult, {}, id, size + 1);
         frame.bytes[util::HEADER_BYTES] = encodeStatus(status);
         if (!pnm::utils::memory::serialize(value,
                                            std::span(frame.bytes).subspan(util::HEADER_BYTES + 1, size)))

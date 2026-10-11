@@ -45,12 +45,12 @@ namespace p2p
         // with a publisher from an application-owned enum. An optional FixedString
         // overrides the name; otherwise underscores in the field name become '/'.
         // Annotation order is irrelevant. No catalog instance is needed.
-        // localPublisher identifies this side: matching topics are outgoing;
+        // local_publisher identifies this side: matching topics are outgoing;
         // topics published by the peer are incoming.
         // For TopicPublisher { IO, UI }, pass IO on the IO bridge and UI on the
         // UI bridge. Each call registers both local and remote publications.
         // The enum must declare exactly two distinct values. An invalid cast
-        // passed as localPublisher is rejected before registering anything.
+        // passed as local_publisher is rejected before registering anything.
         // Members without this publisher annotation stay local. Unrelated
         // annotations are ignored; annotated static declarations are rejected.
         // Register before start(), with matching names and payload types on both
@@ -59,7 +59,7 @@ namespace p2p
         // adapters with explicit field sizes and byte order.
         template<typename Catalog, typename Publisher>
             requires std::is_enum_v<Publisher>
-        void registerTopics(Publisher localPublisher);
+        void registerTopics(Publisher local_publisher);
 
         // Catalog annotations identify the PROVIDER. Replies return automatically.
         // Register before start(), with matching names and Request/Response types
@@ -77,7 +77,7 @@ namespace p2p
         // provider and optionally a FixedString name, using an application-owned enum
         // with two distinct values. Fields without that provider annotation stay
         // local; annotation order is irrelevant and unrelated annotations are ignored.
-        // localProvider identifies this side: matching services accept
+        // local_provider identifies this side: matching services accept
         // incoming requests; services provided by the peer forward outgoing ones.
         // For ServiceProvider { IO, UI }, pass IO on the IO bridge and UI on the
         // UI bridge. [[= ServiceProvider::IO]] marks a service provided by IO.
@@ -89,7 +89,7 @@ namespace p2p
         // Deferred replies and ServiceError results return to callers.
         template<typename Catalog, typename Provider>
             requires std::is_enum_v<Provider>
-        void registerServices(Provider localProvider);
+        void registerServices(Provider local_provider);
 
         // Acceptance, feedback and result return automatically. Register before
         // start(), with matching payload types on both peers.
@@ -98,7 +98,7 @@ namespace p2p
 
         // Like registerServices(), using pnm::msg::Action<Goal, Feedback, Result>
         // fields. The application-owned enum has exactly two distinct values.
-        // Matching localProvider -> incoming goals; peer provider -> outgoing.
+        // Matching local_provider -> incoming goals; peer provider -> outgoing.
         // Names use the same optional FixedString / underscore-to-slash rules.
         // Fields without the provider annotation stay local.
         // The application owns local providers and executes work on its workers.
@@ -108,7 +108,7 @@ namespace p2p
         // Feedback is latest-only; results are retained until peer acknowledgement.
         template<typename Catalog, typename Provider>
             requires std::is_enum_v<Provider>
-        void registerActions(Provider localProvider);
+        void registerActions(Provider local_provider);
 
         // Register before start(). The callback runs on the p2p context, outside
         // internal locks, and must only notify workers: never block or call stop()
@@ -127,7 +127,7 @@ namespace p2p
         // Repeated calls are harmless; before start(), this is a no-op.
         // Call stop() and the destructor outside the context runner so the loops
         // can finish. Do not stop the context first.
-        void stop(std::chrono::milliseconds grace = std::chrono::milliseconds{ 500 });
+        void stop(std::chrono::milliseconds grace = ConnectionOptions::DEFAULT_TIMEOUT);
 
         // The first recorded failure, if any. Cancellation requested by stop()
         // is normal shutdown; an expired action drain deadline is a failure.
@@ -145,13 +145,14 @@ namespace p2p
         // Cancel the other loops on exit and report completion only after releasing
         // the loop's coroutine frame and its borrowed transport buffers.
         pnm::coro::Task<void> runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop,
-                                      bool& running);
+                                      bool* running);
         pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> sendLoop(Lane lane, std::stop_token stop);
         pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> receiveLoop(Lane lane, std::stop_token stop);
         // Rotate this lane's ready frames, suspending when all are idle.
         pnm::coro::Task<std::optional<OutgoingFrame>> nextOutgoingFrame(Lane lane, std::stop_token stop);
+        std::optional<OutgoingFrame> takeReadyFrame(Lane lane);
         std::optional<OutgoingFrame> takeFrame(Lane lane, std::size_t helper);
-        void dispatchIncomingFrame(std::span<const std::byte> frame, Lane lane);
+        void dispatchIncomingFrame(std::span<const std::byte> bytes, Lane lane);
 
         pnm::coro::Context& m_context;
         ITransport& m_transport;
@@ -166,7 +167,7 @@ namespace p2p
         std::array<std::size_t, 2> m_nextHelper{};
         // Keep the last action ACK alive while the other sender checks shutdown.
         std::array<bool, 2> m_actionSending{};
-        std::atomic_bool m_shutdownRequested{};
+        std::atomic_bool m_shutdownRequested;
 
         // Never request cancellation under this lock: stop callbacks can run inline.
         mutable std::mutex m_mutex;
@@ -186,28 +187,28 @@ namespace p2p
 
     template<typename Catalog, typename Publisher>
         requires std::is_enum_v<Publisher>
-    void Bridge::registerTopics(Publisher localPublisher)
+    void Bridge::registerTopics(Publisher local_publisher)
     {
         std::scoped_lock lock(m_mutex);
         checkRegistration();
-        m_topics.registerCatalog<Catalog>(localPublisher);
+        m_topics.registerCatalog<Catalog>(local_publisher);
     }
 
     template<typename Catalog, typename Provider>
         requires std::is_enum_v<Provider>
-    void Bridge::registerServices(Provider localProvider)
+    void Bridge::registerServices(Provider local_provider)
     {
         std::scoped_lock lock(m_mutex);
         checkRegistration();
-        m_services.registerCatalog<Catalog>(localProvider);
+        m_services.registerCatalog<Catalog>(local_provider);
     }
 
     template<typename Catalog, typename Provider>
         requires std::is_enum_v<Provider>
-    void Bridge::registerActions(Provider localProvider)
+    void Bridge::registerActions(Provider local_provider)
     {
         std::scoped_lock lock(m_mutex);
         checkRegistration();
-        m_actions.registerCatalog<Catalog>(localProvider);
+        m_actions.registerCatalog<Catalog>(local_provider);
     }
 }

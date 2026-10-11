@@ -7,7 +7,6 @@ Checks: >
   clang-analyzer-*,
   cppcoreguidelines-*,
   -readability-identifier-length,
-  -readability-braces-around-statements,
   -readability-implicit-bool-conversion,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard,
@@ -15,8 +14,8 @@ Checks: >
   -cppcoreguidelines-pro-bounds-constant-array-index
 
 WarningsAsErrors: "*"
-HeaderFilterRegex: '.*/(src|platform/hal)/.*'
-ExcludeHeaderFilterRegex: '(^|/)(test|tests)/'
+HeaderFilterRegex: ".*/(src|platform/hal)/.*"
+ExcludeHeaderFilterRegex: "(^|/)(test|tests)/"
 CheckOptions:
   # Count application control flow, not GoogleTest/assertion macro internals.
   - key: readability-function-cognitive-complexity.IgnoreMacros
@@ -36,11 +35,11 @@ CheckOptions:
     value: lower_case
   # Hardware ISR symbols must match the CMSIS vector table.
   - key: readability-identifier-naming.FunctionIgnoredRegexp
-    value: '^(BSP_.*|Error_Handler|HAL_.*|MPU_Config_User|MX_.*|SCB_.*|SystemClock_Config|.*_IRQHandler|__.*)$'
+    value: "^(BSP_.*|Error_Handler|HAL_.*|MPU_Config_User|MX_.*|SCB_.*|SystemClock_Config|.*_IRQHandler|__.*)$"
   - key: readability-identifier-naming.VariableCase
     value: lower_case
   - key: readability-identifier-naming.VariableIgnoredRegexp
-    value: '^__.*$'
+    value: "^__.*$"
   - key: readability-identifier-naming.ParameterCase
     value: lower_case
   - key: readability-identifier-naming.MethodCase
@@ -70,17 +69,17 @@ CheckOptions:
   - key: readability-identifier-naming.StructCase
     value: CamelCase
   - key: readability-identifier-naming.StructIgnoredRegexp
-    value: '^__lock$'
+    value: "^__lock$"
   # Clang names fields by access level; struct fields are public by default.
   - key: readability-identifier-naming.PublicMemberCase
     value: lower_case
   - key: readability-identifier-naming.PublicMemberPrefix
     value: ""
   - key: readability-identifier-naming.PublicMemberIgnoredRegexp
-    value: '^(BaudRate|HwFlowCtl|Instance|Parity|StopBits|WordLength)$'
+    value: "^(BaudRate|HwFlowCtl|Instance|Parity|StopBits|WordLength)$"
 
   - key: readability-identifier-naming.EnumConstantIgnoredRegexp
-    value: '^(BSP_.*|BUTTON_.*|BUTTONn|COM1|COM_.*|COMn|HAL_.*|LED_.*|LEDn)$'
+    value: "^(BSP_.*|BUTTON_.*|BUTTONn|COM1|COM_.*|COMn|HAL_.*|LED_.*|LEDn)$"
 
   - key: readability-identifier-naming.TemplateParameterCase
     value: CamelCase

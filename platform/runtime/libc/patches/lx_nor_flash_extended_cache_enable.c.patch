@@ -1,0 +1,11 @@
+--- lx_nor_flash_extended_cache_enable.c
++++ lx_nor_flash_extended_cache_enable.c
+@@ -239,7 +239,7 @@
+                     {
+ 
+                         /* Set the bit in the mapping bitmap.  */
+-                        mapping_bitmap_ptr[mapping_bitmap_word] |=  (ULONG)(1 << (logical_sector & 31));
++                        mapping_bitmap_ptr[mapping_bitmap_word] |=  (ULONG)(1U << (logical_sector & 31));
+                     }
+ #endif
+ 

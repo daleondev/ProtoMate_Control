@@ -3,6 +3,7 @@
 #include "pthread.h"
 #include "tx_thread.h"
 
+#include <algorithm>
 #include <cassert>
 #include <csignal>
 #include <cstdint>
@@ -159,6 +160,11 @@ namespace tx::linux
             };
 
             auto minimum_host_size{ requested_size + PTHREAD_STACK_MIN + sizeof(ULONG) };
+#if defined(__SANITIZE_ADDRESS__)
+            // Instrumented frames and ASan's pthread teardown require substantially
+            // more native stack; the logical ThreadX stack remains unchanged.
+            minimum_host_size = std::max<size_t>(minimum_host_size, 1024U * 1024U);
+#endif
             auto host_stack_size{ stackRoundUp(minimum_host_size, page_size) };
 
             void* host_stack_base_ptr{ nullptr };

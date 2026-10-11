@@ -19,14 +19,15 @@ int main()
     using example::Topics;
 
     try {
-        pnm::msg::Bus io_bus, ui_bus;
+        pnm::msg::Bus io_bus;
+        pnm::msg::Bus ui_bus;
         auto endpoints = p2p::InProcessTransport::pair();
         pnm::coro::Context context;
 
         // One dedicated p2p thread runs both bridges, sleeping when idle.
         // Declare it before the bridges: their destructors drain their loops
         // before this thread requests context shutdown and joins, even on error.
-        auto p2p_thread = example::runContext(context);
+        auto p2p_thread = example::run_context(context);
 
         p2p::Bridge io_bridge(io_bus, context, *endpoints[0]);
         p2p::Bridge ui_bridge(ui_bus, context, *endpoints[1]);
@@ -34,7 +35,8 @@ int main()
         ui_bridge.registerTopics<Topics>(TopicPublisher::UI);
 
         // These are ordinary local subscriptions. The bridges handle transport.
-        std::string received_state, received_status;
+        std::string received_state;
+        std::string received_status;
         auto ui_subscription = ui_bus.topic<^^Topics::demo_io_state>().subscribe([&](const std::string& value) {
             received_state = value;
             std::cout << "UI received demo/io/state: " << value << '\n';

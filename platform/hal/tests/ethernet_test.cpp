@@ -43,7 +43,7 @@ TEST(HalEthernet, ParsesRawAndVlanEtherTypes)
 
 TEST(HalEthernet, LinuxBackendValidatesStateWithoutRawSocketPrivileges)
 {
-    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo" }) };
+    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
     ASSERT_NE(ethernet, nullptr);
     EXPECT_FALSE(ethernet->isRunning());
     EXPECT_TRUE(ethernet->stop().has_value());
@@ -71,7 +71,7 @@ TEST(HalEthernet, RejectsInvalidInterfaceNameBeforeOpeningRawSocket)
 {
     const std::string interface_name(128U, 'x');
     const auto ethernet{ hal::ethernet::create(
-      hal::IEthernet::Configuration{ .interface_name = interface_name }) };
+      hal::IEthernet::Configuration{ .interface_name = interface_name, .receive_ether_type = std::nullopt }) };
     ASSERT_NE(ethernet, nullptr);
 
     const auto result{ ethernet->start() };
@@ -81,7 +81,7 @@ TEST(HalEthernet, RejectsInvalidInterfaceNameBeforeOpeningRawSocket)
 
 TEST(HalEthernet, ValidatesFramesAndTimeoutsBeforeUsingSocket)
 {
-    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo" }) };
+    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
     ASSERT_NE(ethernet, nullptr);
 
     std::array<std::byte, hal::IEthernet::ETHERNET_HEADER_SIZE> frame{};
@@ -106,7 +106,7 @@ TEST(HalEthernet, ValidatesFramesAndTimeoutsBeforeUsingSocket)
 
 TEST(HalEthernet, OpensAndClosesLinuxPacketSocketWhenPermitted)
 {
-    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo" }) };
+    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
     ASSERT_NE(ethernet, nullptr);
 
     const auto started{ ethernet->start() };

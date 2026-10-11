@@ -3,19 +3,24 @@
 #include <stdexcept>
 #include <utility>
 
+// Coroutine lowering accesses static promise hooks through the promise object.
+// NOLINTBEGIN(readability-static-accessed-through-instance)
 namespace p2p
 {
     namespace
     {
         // Bound each dispatch turn even when the transport completes immediately.
         // The context has one runner; yielding lets the other lane run under load.
+        // Awaiter hook names are prescribed by the C++ coroutine protocol.
+        // NOLINTBEGIN(readability-identifier-naming)
         struct YieldToContext
         {
-            pnm::coro::Context& context;
-            bool await_ready() const noexcept { return false; }
-            void await_suspend(std::coroutine_handle<> handle) const { context.schedule(handle); }
-            void await_resume() const noexcept {}
+            pnm::coro::Context* context;
+            static bool await_ready() noexcept { return false; }
+            void await_suspend(std::coroutine_handle<> handle) const { context->schedule(handle); }
+            static void await_resume() noexcept {}
         };
+        // NOLINTEND(readability-identifier-naming)
     }
 
     Bridge::Bridge(pnm::msg::Bus& bus,
@@ -44,20 +49,20 @@ namespace p2p
             // Construct all coroutine chains before scheduling any of them.
             // Moving these ready-made tasks into co_spawn also avoids allocating
             // a new loop task inside its detached entry callback.
-            auto health = runLoop(healthLoop(m_stopSource.get_token()), m_healthRunning);
-            auto sender = runLoop(sendLoop(Lane::Normal, m_stopSource.get_token()), m_sendRunning);
-            auto receiver = runLoop(receiveLoop(Lane::Normal, m_stopSource.get_token()), m_receiveRunning);
+            auto health = runLoop(healthLoop(m_stopSource.get_token()), &m_healthRunning);
+            auto sender = runLoop(sendLoop(Lane::Normal, m_stopSource.get_token()), &m_sendRunning);
+            auto receiver = runLoop(receiveLoop(Lane::Normal, m_stopSource.get_token()), &m_receiveRunning);
 
-            auto urgentSender =
-              runLoop(sendLoop(Lane::Urgent, m_stopSource.get_token()), m_urgentSendRunning);
-            auto urgentReceiver =
-              runLoop(receiveLoop(Lane::Urgent, m_stopSource.get_token()), m_urgentReceiveRunning);
+            auto urgent_sender =
+              runLoop(sendLoop(Lane::Urgent, m_stopSource.get_token()), &m_urgentSendRunning);
+            auto urgent_receiver =
+              runLoop(receiveLoop(Lane::Urgent, m_stopSource.get_token()), &m_urgentReceiveRunning);
 
             pnm::coro::co_spawn(m_context, std::move(health));
             m_healthRunning = true;
-            pnm::coro::co_spawn(m_context, std::move(urgentSender));
+            pnm::coro::co_spawn(m_context, std::move(urgent_sender));
             m_urgentSendRunning = true;
-            pnm::coro::co_spawn(m_context, std::move(urgentReceiver));
+            pnm::coro::co_spawn(m_context, std::move(urgent_receiver));
             m_urgentReceiveRunning = true;
             pnm::coro::co_spawn(m_context, std::move(sender));
             m_sendRunning = true;
@@ -131,7 +136,7 @@ namespace p2p
 
     void Bridge::beginShutdown()
     {
-        m_connection.transition({ ConnectionState::Stopping,
+        m_connection.transition({ .state = ConnectionState::Stopping, .reason =
                                   m_peerStopped ? ConnectionReason::PeerStopped : ConnectionReason::None });
         m_actions.requestStop();
     }
@@ -192,22 +197,8 @@ namespace p2p
                 m_connection.requestGoodbye();
                 m_outgoingWakeup->signal(Lane::Urgent).notify();
             }
-            if (lane == Lane::Urgent) {
-                if (auto frame = m_connection.takeFrame()) {
-                    m_healthWakeup->notify();
-                    co_return frame;
-                }
-            }
-            if (m_connection.ready()) {
-                for (unsigned checked = 0; checked < 3; ++checked) {
-                    if (auto frame = takeFrame(lane, m_nextHelper[static_cast<std::size_t>(lane)]++ % 3)) {
-                        const auto kind = static_cast<util::FrameKind>(frame->bytes[1]);
-                        m_actionSending[static_cast<std::size_t>(lane)] =
-                          kind >= util::FrameKind::ActionGoal && kind <= util::FrameKind::ActionAck;
-                        co_return frame;
-                    }
-                }
-            }
+            if (auto frame = takeReadyFrame(lane))
+                co_return frame;
 
             if (!(co_await m_outgoingWakeup->signal(lane).ready.next(stop))) {
                 if (stop.stop_requested())
@@ -219,6 +210,28 @@ namespace p2p
             m_outgoingWakeup->signal(lane).pending.clear();
         }
         co_return std::nullopt;
+    }
+
+    std::optional<Bridge::OutgoingFrame> Bridge::takeReadyFrame(Lane lane)
+    {
+        if (lane == Lane::Urgent) {
+            if (auto frame = m_connection.takeFrame()) {
+                m_healthWakeup->notify();
+                return frame;
+            }
+        }
+        if (m_connection.ready()) {
+            for (unsigned checked = 0; checked < 3; ++checked) {
+                if (auto frame = takeFrame(lane, m_nextHelper[static_cast<std::size_t>(lane)]++ % 3)) {
+                    const auto kind = static_cast<util::FrameKind>(frame->bytes[1]);
+                    m_actionSending[static_cast<std::size_t>(lane)] =
+                      kind >= util::FrameKind::ActionGoal && kind <= util::FrameKind::ActionAck;
+                    return frame;
+                }
+            }
+        }
+
+        return std::nullopt;
     }
 
     std::optional<Bridge::OutgoingFrame> Bridge::takeFrame(Lane lane, std::size_t helper)
@@ -238,14 +251,14 @@ namespace p2p
     void Bridge::dispatchIncomingFrame(std::span<const std::byte> bytes, Lane lane)
     {
         m_connection.checkDeadline();
-        const auto frame = util::decodeFrame(bytes);
+        const auto frame = util::decode_frame(bytes);
         if (frame.kind >= util::FrameKind::Hello) {
             if (m_connection.dispatch(frame, lane)) {
                 m_peerStopped = true;
                 if (!m_actions.drained())
                     throw util::ConnectionFailure(ConnectionReason::PeerStopped,
                                                   "Peer stopped with outstanding actions");
-                m_connection.transition({ ConnectionState::Stopping, ConnectionReason::PeerStopped });
+                m_connection.transition({ .state = ConnectionState::Stopping, .reason = ConnectionReason::PeerStopped });
                 m_stopSource.request_stop();
             }
             m_healthWakeup->notify();
@@ -266,7 +279,7 @@ namespace p2p
     }
 
     pnm::coro::Task<void> Bridge::runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop,
-                                          bool& running)
+                                          bool* running)
     {
         try {
             auto result = co_await loop;
@@ -285,7 +298,7 @@ namespace p2p
         bool last{};
         {
             std::scoped_lock lock(m_mutex);
-            running = false;
+            *running = false;
             last = loopsStopped();
             if (last)
                 m_cleanupRunning = true;
@@ -314,23 +327,25 @@ namespace p2p
             ConnectionStatus status;
             {
                 std::scoped_lock lock(m_mutex);
-                status = m_failure ? ConnectionStatus{ ConnectionState::Failed, m_failureReason }
-                                   : ConnectionStatus{ ConnectionState::Stopped,
+                status = m_failure ? ConnectionStatus{ .state = ConnectionState::Failed, .reason = m_failureReason }
+                                   : ConnectionStatus{ .state = ConnectionState::Stopped, .reason =
                                                        m_peerStopped ? ConnectionReason::PeerStopped
                                                                      : ConnectionReason::None };
             }
             m_connection.transition(status);
         } catch (...) {
             recordFailure(std::current_exception(), ConnectionReason::InternalError);
-            ConnectionReason reason;
+            ConnectionReason reason{};
             {
                 std::scoped_lock lock(m_mutex);
                 reason = m_failureReason;
             }
             try {
-                m_connection.transition({ ConnectionState::Failed, reason });
+                m_connection.transition({ .state = ConnectionState::Failed, .reason = reason });
             } catch (...) {
-            } // A failing observer cannot interrupt final teardown.
+                // The failure is recorded; a failing observer cannot interrupt teardown.
+                return;
+            }
         }
     }
 
@@ -358,7 +373,7 @@ namespace p2p
             m_actionSending[static_cast<std::size_t>(lane)] = false;
             if (m_shutdownRequested.load())
                 m_outgoingWakeup->notify();
-            co_await YieldToContext{ m_context };
+            co_await YieldToContext{ .context = &m_context };
         }
         co_return pnm::EmptyResult<ITransport::Error>{};
     }
@@ -386,8 +401,10 @@ namespace p2p
                 throw std::length_error("Transport returned a frame larger than the receive buffer");
 
             dispatchIncomingFrame(std::span<const std::byte>(buffer).first(*result), lane);
-            co_await YieldToContext{ m_context };
+            co_await YieldToContext{ .context = &m_context };
         }
         co_return pnm::EmptyResult<ITransport::Error>{};
     }
 }
+
+// NOLINTEND(readability-static-accessed-through-instance)

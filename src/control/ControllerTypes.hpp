@@ -54,7 +54,7 @@ namespace control
         struct Motion
         {
             MotionId id;
-            MotorId motor;
+            MotorId motor{};
             // Empty means outstanding (planning, executing, or queued).
             std::optional<MotorResult> result;
             // Retained by the submitter even after the bounded results expire.
@@ -67,7 +67,7 @@ namespace control
         };
         struct AxisStatus
         {
-            MotorId motor;
+            MotorId motor{};
             pnm::units::Angle position;
             pnm::units::AngularVelocity velocity;
             pnm::Result<pnm::units::Angle> actual_position;
@@ -93,7 +93,7 @@ namespace control
         using DriverConfiguration = hal::device::IConfigurableStepperDriver::Configuration;
         struct DriverStatus
         {
-            MotorId motor;
+            MotorId motor{};
             std::string name;
             hal::device::IStepperDriver::Status status;
             std::optional<hal::device::IConfigurableStepperDriver::Snapshot> configuration;

@@ -3,13 +3,14 @@
 #include <pneumo/coroutines.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <span>
 #include <stop_token>
 
 namespace p2p
 {
-    enum class Lane
+    enum class Lane : std::uint8_t
     {
         Normal,
         Urgent
@@ -24,7 +25,7 @@ namespace p2p
     class ITransport
     {
       public:
-        enum class Error
+        enum class Error : std::uint8_t
         {
             Cancelled,
             Disconnected,
@@ -32,6 +33,11 @@ namespace p2p
             BufferTooSmall
         };
 
+        ITransport() = default;
+        ITransport(const ITransport&) = delete;
+        ITransport& operator=(const ITransport&) = delete;
+        ITransport(ITransport&&) = delete;
+        ITransport& operator=(ITransport&&) = delete;
         virtual ~ITransport() = default;
 
         // Borrows the frame and waits asynchronously for send space. Keep its
