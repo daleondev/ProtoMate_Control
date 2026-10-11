@@ -10,6 +10,7 @@ namespace p2p
       , m_transport(transport)
       , m_topics(bus, m_outgoingWakeup)
       , m_services(bus, context, m_outgoingWakeup, m_stopSource.get_token())
+      , m_actions(bus, context, m_outgoingWakeup, m_stopSource.get_token())
     {
     }
 
@@ -46,7 +47,7 @@ namespace p2p
         }
     }
 
-    void Bridge::stop()
+    void Bridge::stop(std::chrono::milliseconds grace)
     {
         {
             std::scoped_lock lock(m_mutex);
@@ -54,10 +55,18 @@ namespace p2p
                 return;
         }
 
-        m_stopSource.request_stop();
-
+        m_shutdownRequested.store(true);
+        m_outgoingWakeup->notify();
         std::unique_lock lock(m_mutex);
-        m_finished.wait(lock, [this] { return !m_sendRunning && !m_receiveRunning; });
+        const auto stopped = [this] { return !m_sendRunning && !m_receiveRunning; };
+        if (!m_finished.wait_for(lock, grace, stopped)) {
+            if (!m_failure)
+                m_failure = std::make_exception_ptr(std::runtime_error("Bridge shutdown timed out; action completion is unknown"));
+            lock.unlock();
+            m_stopSource.request_stop();
+            lock.lock();
+            m_finished.wait(lock, stopped);
+        }
         m_topics.close();
         m_outgoingWakeup->ready.close();
     }
@@ -77,22 +86,20 @@ namespace p2p
     pnm::coro::Task<std::optional<Bridge::OutgoingFrame>> Bridge::nextOutgoingFrame(std::stop_token stop)
     {
         while (!stop.stop_requested()) {
+            if (m_shutdownRequested.load())
+                m_actions.requestStop();
             m_services.poll();
-            if (m_preferService) {
-                if (auto frame = m_services.takeFrame()) {
-                    m_preferService = false;
-                    co_return frame;
-                }
+            m_actions.poll();
+            if (m_shutdownRequested.load() && m_actions.drained()) {
+                m_stopSource.request_stop();
+                co_return std::nullopt;
             }
-            if (auto frame = m_topics.takeFrame()) {
-                m_preferService = true;
-                co_return frame;
-            }
-
-            if (!m_preferService) {
-                if (auto frame = m_services.takeFrame())
+            for (unsigned checked = 0; checked < 3; ++checked) {
+                if (auto frame = takeFrame(m_nextHelper++ % 3))
                     co_return frame;
             }
+            if (m_shutdownRequested.load() && m_actions.drained())
+                continue;
 
             if (!(co_await m_outgoingWakeup->ready.next(stop))) {
                 if (stop.stop_requested())
@@ -106,11 +113,24 @@ namespace p2p
         co_return std::nullopt;
     }
 
+    std::optional<Bridge::OutgoingFrame> Bridge::takeFrame(std::size_t helper)
+    {
+        // Return directly so each 2 KiB frame is constructed in the caller's
+        // storage, avoiding one stack temporary per switch branch in the coroutine.
+        switch (helper) {
+        case 0: return m_actions.takeFrame();
+        case 1: return m_services.takeFrame();
+        default: return m_topics.takeFrame();
+        }
+    }
+
     void Bridge::dispatchIncomingFrame(std::span<const std::byte> bytes)
     {
         const auto frame = util::decodeFrame(bytes);
         if (frame.kind == util::FrameKind::Topic)
             m_topics.dispatch(frame);
+        else if (frame.kind >= util::FrameKind::ActionGoal && frame.kind <= util::FrameKind::ActionAck)
+            m_actions.dispatch(frame);
         else
             m_services.dispatch(frame);
     }
@@ -142,16 +162,19 @@ namespace p2p
         // so a waking destructor cannot destroy the condition variable early.
         std::scoped_lock lock(m_mutex);
         running = false;
-        if (!m_sendRunning && !m_receiveRunning)
+        if (!m_sendRunning && !m_receiveRunning) {
             m_services.close(m_failure ? pnm::msg::ServiceError::TransportError
                                        : pnm::msg::ServiceError::Cancelled);
+            m_actions.close(m_failure ? pnm::msg::ActionError::TransportError
+                                      : pnm::msg::ActionError::Unavailable);
+        }
         m_finished.notify_all();
     }
 
     pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> Bridge::sendLoop(std::stop_token stop)
     {
         while (!stop.stop_requested()) {
-            // Suspends until a topic, service event or deadline provides work.
+            // Suspends until a message, lifecycle event or deadline provides work.
             auto frame = co_await nextOutgoingFrame(stop);
             if (!frame || stop.stop_requested())
                 break;

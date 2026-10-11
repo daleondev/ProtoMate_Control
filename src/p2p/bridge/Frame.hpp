@@ -11,7 +11,7 @@
 
 namespace p2p::util
 {
-    // v3: version u8, kind u8, name length u16, call ID u64, timeout ms u32,
+    // v4: version u8, kind u8, name length u16, call ID u64, timeout ms u32,
     // name bytes, payload. All integer fields are little endian.
     enum class FrameKind : std::uint8_t
     {
@@ -19,9 +19,16 @@ namespace p2p::util
         Request,
         Response,
         Error,
-        Cancel
+        Cancel,
+        ActionGoal,
+        ActionAccepted,
+        ActionFeedback,
+        ActionResult,
+        ActionError,
+        ActionCancel,
+        ActionAck
     };
-    inline constexpr std::uint8_t FRAME_VERSION{ 3 };
+    inline constexpr std::uint8_t FRAME_VERSION{ 4 };
     inline constexpr std::size_t HEADER_BYTES{ 16 };
     inline constexpr std::size_t MAX_FRAME_BYTES{ 2048 };
 

@@ -2,6 +2,7 @@ add_library(application_p2p STATIC
     bridge/Bridge.cpp
     bridge/TopicBridge.cpp
     bridge/ServiceBridge.cpp
+    bridge/ActionBridge.cpp
     bridge/Frame.cpp
     transport/InProcessTransport.cpp
 )

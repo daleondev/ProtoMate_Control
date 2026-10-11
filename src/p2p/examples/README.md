@@ -1,12 +1,13 @@
-# Two-bus topic and service examples
+# Two-bus messaging examples
 
 Build and run from the repository root (GCC 16 with reflection):
 
 ```sh
 cmake --preset debug-linux
-cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_transport_tests application_p2p_service_tests
+cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_action_example application_p2p_transport_tests application_p2p_service_tests application_p2p_action_tests
 ./build/debug-linux/src/p2p/examples/application_p2p_example
 ./build/debug-linux/src/p2p/examples/application_p2p_service_example
+./build/debug-linux/src/p2p/examples/application_p2p_action_example
 ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ```
 
@@ -145,4 +146,12 @@ with correlation IDs and bounded capacity. Up to eight calls are forwarded per
 direction; additional calls report `Busy`. Errors and cancellation propagate,
 and deadline timers wake idle bridges. Cancellation is best effort: it ends the
 local wait and invalidates the remote reply when received, but cannot undo work
-the handler has already done. Actions and peer-restart sessions remain later steps.
+the handler has already done. Peer-restart sessions remain a later step.
+
+The [action catalog](Actions.hpp), [usage guide](actions.md) and
+[runnable action example](actions.cpp) show deferred acceptance, feedback,
+successful completion and cancellation after cleanup. [ActionBridge](../bridge/ActionBridge.hpp)
+owns forwarding records and retains terminal results until peer acknowledgement.
+The application owns native goal handles and execution tokens. Runtime-backed
+examples explicitly give their p2p runner a 32 KiB stack using
+[ContextThread.hpp](ContextThread.hpp); standalone host builds use standard threads.

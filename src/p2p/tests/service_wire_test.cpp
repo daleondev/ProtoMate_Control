@@ -11,6 +11,14 @@ namespace
     using namespace std::chrono_literals;
     using Error = pnm::msg::ServiceError;
 
+    enum class Provider { Local, Remote };
+    struct Services
+    {
+        [[= Provider::Local]] pnm::msg::Service<std::string, std::string> local;
+        [[= Provider::Remote]] pnm::msg::Service<std::string, std::string> remote;
+        [[= Provider::Remote]] pnm::msg::Service<std::uint32_t, std::uint32_t> number;
+    };
+
     template<typename T>
     pnm::coro::Task<void> capture(pnm::coro::Task<T> operation, std::shared_ptr<std::optional<T>> result)
     {
@@ -22,7 +30,7 @@ namespace
                                  std::string_view payload = {}, unsigned timeout = 0)
     {
         std::vector<std::byte> bytes(16 + name.size() + payload.size());
-        bytes[0] = std::byte{3};
+        bytes[0] = std::byte{4};
         bytes[1] = static_cast<std::byte>(kind);
         bytes[2] = static_cast<std::byte>(name.size() & 255);
         bytes[3] = static_cast<std::byte>(name.size() >> 8);
@@ -44,9 +52,7 @@ namespace
 
         void SetUp() override
         {
-            bridge.registerIncomingService<std::string, std::string>(SERVICE);
-            bridge.registerOutgoingService<std::string, std::string>("remote");
-            bridge.registerOutgoingService<std::uint32_t, std::uint32_t>("number");
+            bridge.registerServices<Services>(Provider::Local);
             bridge.start();
             drain();
         }

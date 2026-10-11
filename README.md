@@ -325,10 +325,11 @@ software boundaries and behavior; electrical timing remains a hardware test.
 
 ## Serialized control boundary
 
-`application::p2p` currently supports serialized topic and service forwarding.
-Actions, sessions, link health and the Robot/Controller integration are pending;
-the normal application's control wiring still depends on those APIs. Build the
-isolated [two-bus examples](src/p2p/examples/README.md) to run the current bridge.
+`application::p2p` supports serialized topics, services and actions. Sessions,
+link health and the Robot/Controller integration remain pending; the normal
+application's control wiring still depends on the previous integration APIs.
+Build the isolated [two-bus examples](src/p2p/examples/README.md), including the
+[action example](src/p2p/examples/actions.cpp), to run the current bridge.
 
 The implementation separates message routing from byte transport:
 
@@ -337,13 +338,14 @@ The implementation separates message routing from byte transport:
 | [bridge/Bridge](src/p2p/bridge/Bridge.hpp) | Public registration API, lifecycle, send/receive loops, fair scheduling and failure handling |
 | [bridge/TopicBridge](src/p2p/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
 | [bridge/ServiceBridge](src/p2p/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
+| [bridge/ActionBridge](src/p2p/bridge/ActionBridge.hpp) | Reflected action registration, deferred admission, feedback, cancellation, acknowledged terminal results and cleanup |
 | [bridge/Frame](src/p2p/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/p2p/bridge/OutgoingWakeup.hpp) | Shared wire encoding and a coalesced readiness signal |
 | [transport/](src/p2p/transport/ITransport.hpp) | Transport interface and paired in-process transport; transfers bytes without interpreting messages |
 
-`Bridge` owns both helpers by value and serializes registration against startup.
+`Bridge` owns all three helpers by value and serializes registration against startup.
 The helpers run on its coroutine context and cannot call back into `Bridge` or
-access the transport. Shutdown drains service calls after both loops finish,
-then disconnects topic subscriptions. `thread.hpp`/`thread.cpp` remain the
+access the transport. Shutdown first drains actions while communication continues,
+then closes services and disconnects topic subscriptions after both loops finish. `thread.hpp`/`thread.cpp` remain the
 application-owned context and thread entry, outside the portable library.
 
 ```mermaid
@@ -379,8 +381,7 @@ Fields without the publisher annotation stay local. Forwarded fields require one
 publisher. Names default to the field identifier with every `_` replaced by `/`:
 `demo_io_state` becomes `demo/io/state`. One optional nonempty narrow `FixedString`
 annotation overrides the name verbatim. Multiple name annotations and annotated
-static declarations are rejected. Explicit `registerOutgoingTopic<T>()` and
-`registerIncomingTopic<T>()` registration is also available. Register before
+static declarations are rejected. Registration uses catalogs only. Register before
 `start()`; names must be unique across both directions on each bridge.
 
 The service API uses a separate application-defined `ServiceProvider { IO, UI }`
@@ -405,38 +406,68 @@ slots per direction. A full queue suspends the sender without blocking the
 context. Cancellation and `close()` wake waiting operations; closing either
 endpoint disconnects the pair. Reconnection requires a new pair.
 
-The frame has a 16-byte header: version (currently 3), frame kind, 16-bit name
+The frame has a 16-byte header: version (currently 4), frame kind, 16-bit name
 length, 64-bit call ID and 32-bit remaining timeout in milliseconds. Integers are
 little endian. Name bytes and serialized payload follow, with a 2048-byte total
-limit. Topics and service requests identify their destination by name. Service
-responses, errors and cancellations use the call ID; there are no numeric
-endpoint IDs. Topics use zero call ID and timeout.
+limit. Topics, service requests and action goals identify their destination by
+name. Replies and action lifecycle frames use correlation IDs; services and
+actions have separate ID spaces. Topics use zero call ID and timeout. Action
+result payloads start with an explicit one-byte status; errors have explicit
+one-byte codes independent of native enum layouts.
 Payloads use pneumo serialization. `std::string` sends its characters, not its
 native object layout. Compound types need explicit serialization adapters with
 portable field widths and byte order before use between different targets.
 
-Each bridge accepts up to 16 topics and 16 services. Outgoing subscriptions retain only the
+Each bridge accepts up to 16 topics, 16 services and 16 actions. Outgoing subscriptions retain only the
 latest pending value per topic, and readiness notifications wake the sender.
 Service requests are never coalesced. There are eight forwarded calls per
 direction, eight queued/pending requests per local proxy, and eight queued
 rejection replies. Excess calls report `Busy`; a peer overrunning the rejection
 queue fails the connection rather than growing memory without bounds.
 Completed replies are retained until queued into the transport or shutdown.
-Topic traffic and service traffic alternate when both are ready.
+The sender rotates between ready action, service and topic traffic.
 
-Caller timeouts and cancellation terminate the local wait and forward a
+Service caller timeouts and cancellation terminate the local wait and forward a
 best-effort cancellation to the peer. Remaining timeout budgets are rounded up
 to milliseconds and capped at `UINT32_MAX` milliseconds. They are not synchronized
 cross-core deadlines and do not subtract time spent inside the transport.
 Cancellation/timeout does not prove that a handler's side effects stopped.
 Late replies are ignored, and call IDs are never reused within a bridge.
-Transport failure completes pending local calls with `TransportError`; explicit
-local shutdown uses `Cancelled`. Neither result proves that remote hardware stopped.
+Transport failure completes pending service calls with `TransportError`; explicit
+local service shutdown uses `Cancelled`. Neither result proves that remote hardware stopped.
 Stop both bridges while the context still runs, then stop and join its runner.
 New connections require fresh bridge/transport instances; peer restart sessions
 and automatic link-health detection remain future work.
 
-The next steps are actions and integration of control topics/services.
+Actions use `registerActions<Actions>(ActionProvider::IO)` and reflected
+`bus.action<^^Actions::member>()` handles on both native and coroutine buses.
+Their catalogs follow the same optional name and provider rules as services.
+[Action usage](src/p2p/examples/actions.md) explains the provider and caller roles.
+The bridge forwards acceptance only after the real provider accepts. Feedback is
+latest-only; terminal results are retained until acknowledged by the peer. Each
+direction admits eight forwarded goals; each proxy admits eight native goals.
+Eight rejection slots and sixteen acknowledgement slots have independent bounds.
+Excess work reports `Busy`; malformed framing or peer capacity abuse fails the link.
+
+Action cancellation requests cleanup and does not finish the goal. A goal
+cancelled before forwarding can complete locally because no remote work exists.
+Once forwarded, only a terminal response confirms the outcome. Admission timeouts
+apply until acceptance, not throughout execution. Timed-out/abandoned callers still
+retain bridge records until the remote terminal result or connection closure.
+No submitted goal is automatically replayed.
+
+`stop(grace)` stops action admission and requests cancellation, keeping workers
+and communication running until results are delivered. The default grace is
+500 ms. If it expires, `failure()` records the timeout and unfinished callers get
+`TransportError`, not a fabricated `Cancelled` outcome. Provider cleanup must
+continue independently after a communication failure. Native caller callbacks
+run when the application polls its handle, never on the bridge's context thread.
+The p2p application thread and runtime-backed example runners use a 32 KiB stack
+for nested Debug serialization; the portable bridge does not configure threads.
+
+The next steps are sessions/link health and integration of control messages.
+Cancellation currently shares the ordered transport with ordinary traffic; an
+independent urgent transport path remains required before robot integration.
 The intended control boundary uses services for configuration, diagnostics and
 snapshots, actions for moves/homing, and topics for state. Robot and CLI use
 `ControllerClient`; `ControllerServer` and `MotionController` own IO execution.
@@ -447,9 +478,10 @@ records the required ownership and recovery behavior.
 Build and test this step independently:
 
 ```sh
-cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_transport_tests application_p2p_service_tests
+cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_action_example application_p2p_transport_tests application_p2p_service_tests application_p2p_action_tests
 ./build/debug-linux/src/p2p/examples/application_p2p_example
 ./build/debug-linux/src/p2p/examples/application_p2p_service_example
+./build/debug-linux/src/p2p/examples/application_p2p_action_example
 ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ```
 

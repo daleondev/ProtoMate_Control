@@ -1,3 +1,4 @@
+#include "../examples/ContextThread.hpp"
 #include "p2p/bridge/Bridge.hpp"
 #include "p2p/transport/InProcessTransport.hpp"
 
@@ -27,6 +28,12 @@ namespace
         pnm::msg::Service<std::string, std::string> local;
         int unannotated;
         static constexpr int localConstant{ 1 };
+    };
+
+    enum class Publisher { IO, UI };
+    struct Topics
+    {
+        [[= Publisher::IO]] pnm::msg::Topic<std::string> state;
     };
 
     class ServiceTest : public ::testing::Test
@@ -313,10 +320,7 @@ namespace
         pnm::msg::Bus ioBus, uiBus;
         pnm::coro::Context context;
         auto endpoints = p2p::InProcessTransport::pair();
-        std::jthread runner([&](std::stop_token stop) {
-            std::stop_callback cancellation{stop, [&] { context.stop(); }};
-            context.run();
-        });
+        auto runner = example::runContext(context);
         p2p::Bridge io(ioBus, context, *endpoints[0]), ui(uiBus, context, *endpoints[1]);
         io.registerServices<Services>(Provider::IO);
         ui.registerServices<Services>(Provider::UI);
@@ -348,19 +352,13 @@ namespace
         pnm::msg::Bus ioBus, uiBus;
         pnm::coro::Context ioContext, uiContext;
         auto endpoints = p2p::InProcessTransport::pair();
-        std::jthread ioRunner([&](std::stop_token stop) {
-            std::stop_callback cancellation{stop, [&] { ioContext.stop(); }};
-            ioContext.run();
-        });
-        std::jthread uiRunner([&](std::stop_token stop) {
-            std::stop_callback cancellation{stop, [&] { uiContext.stop(); }};
-            uiContext.run();
-        });
+        auto ioRunner = example::runContext(ioContext);
+        auto uiRunner = example::runContext(uiContext);
         p2p::Bridge io(ioBus, ioContext, *endpoints[0]), ui(uiBus, uiContext, *endpoints[1]);
         io.registerServices<Services>(Provider::IO);
         ui.registerServices<Services>(Provider::UI);
-        io.registerOutgoingTopic<std::string>("state");
-        ui.registerIncomingTopic<std::string>("state");
+        io.registerTopics<Topics>(Publisher::IO);
+        ui.registerTopics<Topics>(Publisher::UI);
         std::string state;
         auto subscription = uiBus.topic<std::string>("state").subscribe([&](const auto& value) { state = value; });
         auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return value; });
@@ -383,14 +381,18 @@ namespace
 
     TEST(ServiceLifecycle, DestructionBeforeStartReleasesProxiesAndQueuedCalls)
     {
+        struct RemoteServices
+        {
+            [[= Provider::UI]] pnm::msg::Service<std::string, std::string> remote;
+        };
         pnm::coro::Context context;
         pnm::msg::Bus bus;
         auto endpoints = p2p::InProcessTransport::pair();
         std::optional<Call> queued;
         {
             p2p::Bridge bridge(bus, context, *endpoints[0]);
-            bridge.registerOutgoingService<std::string, std::string>("remote");
-            bridge.registerOutgoingTopic<std::string>("state");
+            bridge.registerServices<RemoteServices>(Provider::IO);
+            bridge.registerTopics<Topics>(Publisher::IO);
             queued.emplace(bus.service<std::string, std::string>("remote").request("queued", 1s));
             bus.topic<std::string>("state").publish("idle");
             EXPECT_FALSE(queued->ready());
@@ -406,18 +408,10 @@ namespace
 
     TEST(ServiceLifecycle, RegistrationRemainsClosedAfterStartAndStop)
     {
-        enum class Publisher { IO, UI };
-        struct Topics
-        {
-            [[= Publisher::IO]] pnm::msg::Topic<std::string> state;
-        };
         pnm::coro::Context context;
         pnm::msg::Bus bus;
         auto endpoints = p2p::InProcessTransport::pair();
-        std::jthread runner([&](std::stop_token stop) {
-            std::stop_callback cancellation{stop, [&] { context.stop(); }};
-            context.run();
-        });
+        auto runner = example::runContext(context);
         p2p::Bridge bridge(bus, context, *endpoints[0]);
         bridge.registerTopics<Topics>(Publisher::IO);
         bridge.registerServices<Services>(Provider::UI);
@@ -425,10 +419,8 @@ namespace
         for (unsigned attempt = 0; attempt < 2; ++attempt) {
             EXPECT_THROW(bridge.registerTopics<Topics>(Publisher::IO), std::logic_error);
             EXPECT_THROW(bridge.registerServices<Services>(Provider::UI), std::logic_error);
-            EXPECT_THROW(bridge.registerOutgoingTopic<int>("extra/topic/out"), std::logic_error);
-            EXPECT_THROW(bridge.registerIncomingTopic<int>("extra/topic/in"), std::logic_error);
-            EXPECT_THROW((bridge.registerOutgoingService<int, int>("extra/service/out")), std::logic_error);
-            EXPECT_THROW((bridge.registerIncomingService<int, int>("extra/service/in")), std::logic_error);
+            EXPECT_THROW(bridge.registerTopics<Topics>(Publisher::UI), std::logic_error);
+            EXPECT_THROW(bridge.registerServices<Services>(Provider::IO), std::logic_error);
             EXPECT_THROW(bridge.start(), std::logic_error);
             bridge.stop(); // Also verifies repeated stop after helper cleanup.
         }
@@ -445,8 +437,7 @@ namespace
         p2p::Bridge bridge(bus, context, *endpoints[0]);
         EXPECT_THROW(bridge.registerServices<Services>(static_cast<Provider>(99)), std::invalid_argument);
         EXPECT_NO_THROW(bridge.registerServices<Services>(Provider::IO));
-        EXPECT_THROW((bridge.registerIncomingService<std::string, std::string>("io/echo")), std::invalid_argument);
-        EXPECT_THROW((bridge.registerOutgoingService<std::string, std::string>("")), std::invalid_argument);
+        EXPECT_THROW(bridge.registerServices<Services>(Provider::IO), std::invalid_argument);
     }
 
     TEST(ServiceRegistration, RejectsExplicitNameCollidingWithGeneratedServiceName)

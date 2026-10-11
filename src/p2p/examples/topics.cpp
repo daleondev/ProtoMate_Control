@@ -1,3 +1,4 @@
+#include "ContextThread.hpp"
 #include "Topics.hpp"
 
 #include "p2p/bridge/Bridge.hpp"
@@ -25,10 +26,7 @@ int main()
         // One dedicated p2p thread runs both bridges, sleeping when idle.
         // Declare it before the bridges: their destructors drain their loops
         // before this thread requests context shutdown and joins, even on error.
-        std::jthread p2p_thread([&context](std::stop_token stop) {
-            std::stop_callback cancellation{ stop, [&context] { context.stop(); } };
-            context.run();
-        });
+        auto p2p_thread = example::runContext(context);
 
         p2p::Bridge io_bridge(io_bus, context, *endpoints[0]);
         p2p::Bridge ui_bridge(ui_bus, context, *endpoints[1]);

@@ -1,3 +1,4 @@
+#include "ContextThread.hpp"
 #include "Services.hpp"
 
 #include "p2p/bridge/Bridge.hpp"
@@ -18,10 +19,7 @@ int main()
         pnm::msg::Bus io_bus, ui_bus;
         auto endpoints = p2p::InProcessTransport::pair();
         pnm::coro::Context context;
-        std::jthread p2p_thread([&context](std::stop_token stop) {
-            std::stop_callback cancellation{ stop, [&context] { context.stop(); } };
-            context.run();
-        });
+        auto p2p_thread = example::runContext(context);
 
         p2p::Bridge io_bridge(io_bus, context, *endpoints[0]);
         p2p::Bridge ui_bridge(ui_bus, context, *endpoints[1]);
