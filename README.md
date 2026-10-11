@@ -325,10 +325,10 @@ software boundaries and behavior; electrical timing remains a hardware test.
 
 ## Serialized control boundary
 
-`application::p2p` currently supports serialized topic forwarding. Services,
-actions, sessions, link health and the Robot/Controller integration are pending;
+`application::p2p` currently supports serialized topic and service forwarding.
+Actions, sessions, link health and the Robot/Controller integration are pending;
 the normal application's control wiring still depends on those APIs. Build the
-isolated [two-bus example](src/p2p/examples/README.md) to run the current bridge.
+isolated [two-bus examples](src/p2p/examples/README.md) to run the current bridge.
 
 ```mermaid
 flowchart LR
@@ -362,8 +362,12 @@ The service API uses a separate application-defined `ServiceProvider { IO, UI }`
 enum: `registerServices<Services>(ServiceProvider::IO)` identifies the IO side.
 Matching provider annotations accept incoming requests for local handlers; the
 peer's services forward outgoing requests. Replies return automatically.
-[Services.hpp](src/p2p/examples/Services.hpp) illustrates the catalog; service
-registration is declared only and has no implementation yet.
+[Services.hpp](src/p2p/examples/Services.hpp) illustrates the catalog and
+[services.cpp](src/p2p/examples/services.cpp) runs an echo service. Applications
+own and dispatch their handlers using the native or coroutine pneumo API. Bridge
+proxies use deferred replies; they never execute application handlers or block
+waiting for a result on the p2p context. Native readiness notifications and
+deadline timers wake the bridge. No waiting thread is created per call.
 
 `ITransport` asynchronously sends and receives complete frames using borrowed
 spans. `InProcessTransport::pair()` creates two endpoints with eight owned frame
@@ -371,19 +375,38 @@ slots per direction. A full queue suspends the sender without blocking the
 context. Cancellation and `close()` wake waiting operations; closing either
 endpoint disconnects the pair. Reconnection requires a new pair.
 
-The frame contains a version byte (currently 2), a little-endian 16-bit topic-name
-length, the name's bytes and the serialized payload, with a 2048-byte total limit.
-The topic name identifies the destination; there are no numeric endpoint IDs.
+The frame has a 16-byte header: version (currently 3), frame kind, 16-bit name
+length, 64-bit call ID and 32-bit remaining timeout in milliseconds. Integers are
+little endian. Name bytes and serialized payload follow, with a 2048-byte total
+limit. Topics and service requests identify their destination by name. Service
+responses, errors and cancellations use the call ID; there are no numeric
+endpoint IDs. Topics use zero call ID and timeout.
 Payloads use pneumo serialization. `std::string` sends its characters, not its
 native object layout. Compound types need explicit serialization adapters with
 portable field widths and byte order before use between different targets.
 
-Each bridge accepts up to 16 topics. Outgoing subscriptions retain only the
+Each bridge accepts up to 16 topics and 16 services. Outgoing subscriptions retain only the
 latest pending value per topic, and readiness notifications wake the sender.
-This is suitable for state updates, not commands that must each execute.
-Stop both bridges while the context still runs, then stop and join its runner.
+Service requests are never coalesced. There are eight forwarded calls per
+direction, eight queued/pending requests per local proxy, and eight queued
+rejection replies. Excess calls report `Busy`; a peer overrunning the rejection
+queue fails the connection rather than growing memory without bounds.
+Completed replies are retained until queued into the transport or shutdown.
+Topic traffic and service traffic alternate when both are ready.
 
-The next integration steps are state/fault topics, then services and actions.
+Caller timeouts and cancellation terminate the local wait and forward a
+best-effort cancellation to the peer. Remaining timeout budgets are rounded up
+to milliseconds and capped at `UINT32_MAX` milliseconds. They are not synchronized
+cross-core deadlines and do not subtract time spent inside the transport.
+Cancellation/timeout does not prove that a handler's side effects stopped.
+Late replies are ignored, and call IDs are never reused within a bridge.
+Transport failure completes pending local calls with `TransportError`; explicit
+local shutdown uses `Cancelled`. Neither result proves that remote hardware stopped.
+Stop both bridges while the context still runs, then stop and join its runner.
+New connections require fresh bridge/transport instances; peer restart sessions
+and automatic link-health detection remain future work.
+
+The next steps are actions and integration of control topics/services.
 The intended control boundary uses services for configuration, diagnostics and
 snapshots, actions for moves/homing, and topics for state. Robot and CLI use
 `ControllerClient`; `ControllerServer` and `MotionController` own IO execution.
@@ -394,8 +417,9 @@ records the required ownership and recovery behavior.
 Build and test this step independently:
 
 ```sh
-cmake --build --preset debug-linux --target application_p2p_example application_p2p_transport_tests
+cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_transport_tests application_p2p_service_tests
 ./build/debug-linux/src/p2p/examples/application_p2p_example
+./build/debug-linux/src/p2p/examples/application_p2p_service_example
 ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ```
 
@@ -492,7 +516,7 @@ maximum planned velocity for each axis and coordinated group.
 ### Shared-memory command interface
 
 `ControllerClient` and `ControllerServer` are the intended execution boundary;
-their integration with the topic-only `p2p` bridge is pending, as described above.
+their integration with the `p2p` bridge is pending, as described above.
 During H747 migration, replace `InProcessTransport` with shared-SRAM rings and HSEM notifications;
 reserve memory in both linker scripts, establish cache attributes and memory
 ordering, and verify reset/session coordination on both physical cores.

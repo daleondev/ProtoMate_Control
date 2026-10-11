@@ -6,13 +6,16 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <concepts>
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <exception>
 #include <functional>
 #include <memory>
+#include <limits>
 #include <meta>
 #include <mutex>
 #include <optional>
@@ -33,7 +36,7 @@ namespace pnm::msg
 
 namespace p2p
 {
-    // Topic forwarding with bounded, latest-only outgoing subscriptions.
+    // Topic and service forwarding with bounded pending work.
     // Lifecycle, framing and dispatch live in Bridge.cpp; typed bus connections
     // are defined here so their serialization types remain visible to callers.
     class Bridge final
@@ -82,14 +85,14 @@ namespace p2p
             requires std::is_enum_v<Publisher>
         void registerTopics(Publisher localPublisher);
 
-        // Proposed service API — declarations only for now.
         // Explicit incoming/outgoing methods describe the REQUEST direction;
         // catalog annotations identify the PROVIDER. Replies return automatically.
         // Register before start(), with matching names and Request/Response types
         // on both peers. Applications still use bus.service<Request, Response>()
         // to request/serve; registration neither calls a service nor waits for it.
         // The bridge owns its routes and deferred proxies until stop().
-        // Pending calls are bounded; excess calls fail with ServiceError::Busy.
+        // At most eight forwarded calls per direction and eight queued/pending
+        // calls per local proxy. Excess calls fail with ServiceError::Busy.
         // Requests are never coalesced. Correlation IDs are internal to the bridge.
         // Caller timeouts/cancellation use pneumo's existing request API; they
         // end the caller's wait, not necessarily the remote handler's execution.
@@ -137,12 +140,17 @@ namespace p2p
         [[nodiscard]] std::optional<Failure> failure() const;
 
       private:
-        // Frame: version (u8), topic byte length (u16 little endian), serialized
-        // topic string, then payload. ITransport preserves the frame boundary.
-        static constexpr std::uint8_t FRAME_VERSION{ 2 };
-        static constexpr std::size_t HEADER_BYTES{ 3 };
+        // v3: version u8, kind u8, name length u16, call ID u64, timeout ms u32,
+        // name bytes, payload. All integer fields are little endian.
+        enum class FrameKind : std::uint8_t { Topic = 1, Request, Response, Error, Cancel };
+        using Clock = std::chrono::steady_clock;
+        using ServiceError = pnm::msg::ServiceError;
+        static constexpr std::uint8_t FRAME_VERSION{ 3 };
+        static constexpr std::size_t HEADER_BYTES{ 16 };
         static constexpr std::size_t MAX_FRAME_BYTES{ 2048 };
         static constexpr std::size_t MAX_TOPICS{ 16 };
+        static constexpr std::size_t MAX_SERVICES{ 16 };
+        static constexpr std::size_t MAX_CALLS{ 8 };
 
         // Queueing must retain the bytes until send() completes. A fixed-size
         // value keeps that ownership explicit without a vector allocation.
@@ -174,10 +182,56 @@ namespace p2p
             std::function<void(std::span<const std::byte>)> publish;
         };
 
+        // These records are accessed only on the context thread after start().
+        // Native readiness hooks and deadline timers only wake the sender.
+        struct OutgoingService
+        {
+            std::string name;
+            std::move_only_function<void()> poll;
+            pnm::msg::ReadinessRegistration readiness;
+        };
+
+        struct OutgoingCall
+        {
+            std::uint64_t id{};
+            std::optional<OutgoingFrame> request;
+            std::function<bool()> pending;
+            std::function<Clock::duration()> remaining;
+            std::function<void(std::span<const std::byte>, std::optional<ServiceError>)> finish;
+            pnm::msg::ReadinessRegistration readiness;
+            pnm::coro::Context::Timer timer;
+        };
+
+        struct IncomingCall
+        {
+            std::uint64_t id{};
+            std::move_only_function<std::optional<OutgoingFrame>()> take;
+            std::move_only_function<void()> cancel;
+            pnm::msg::ReadinessRegistration readiness;
+            pnm::coro::Context::Timer timer;
+        };
+
+        struct IncomingService
+        {
+            std::string name;
+            std::function<IncomingCall(std::uint64_t, std::span<const std::byte>, std::chrono::milliseconds)> request;
+        };
+
+        void checkServiceRegistration(std::string_view name) const;
+        std::optional<OutgoingFrame> takeServiceFrame();
+        void closeServices(ServiceError error);
+        void queueServiceError(std::uint64_t id, ServiceError error);
+        pnm::coro::Context::Timer wakeAfter(Clock::duration delay);
+        static OutgoingFrame makeFrame(FrameKind kind, const std::string& name, std::uint64_t id,
+                                       std::size_t payloadSize);
+        static OutgoingFrame makeServiceError(std::uint64_t id, ServiceError error);
+
+        template<pnm::utils::memory::Serializable T>
+        static OutgoingFrame encodeFrame(FrameKind kind, const std::string& name, std::uint64_t id, const T& value);
+
         // Called during registration with m_mutex held. Topic names must
         // be unique across both directions, preventing immediate topic echo loops.
         void checkTopicRegistration(std::string_view topic) const;
-        static OutgoingFrame makeOutgoingFrame(const std::string& topic, std::size_t payloadSize);
 
         // Observe one loop, cancel its sibling on exit and signal completion
         // only after releasing the loop's coroutine frame and borrowed buffers.
@@ -193,12 +247,12 @@ namespace p2p
         // Receive into a local buffer, then dispatch the returned bytes to the bus.
         pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> receiveLoop(std::stop_token stop);
 
-        // The latest-only subscriptions are the bounded outgoing queue. Visit
-        // them in turn, and suspend on readiness when none has a value to send.
+        // Visit ready service calls and latest-only topic subscriptions fairly;
+        // suspend on readiness when neither has a frame to send.
         // Cancellation returns nullopt; a value transfers its storage to sendLoop().
         pnm::coro::Task<std::optional<OutgoingFrame>> nextOutgoingFrame(std::stop_token stop);
 
-        // Validate the frame, decode its topic name and publish on the registered topic.
+        // Validate the frame and route its topic, request, reply or cancellation.
         // Must finish reading/copying the bytes before the receive buffer is reused.
         void dispatchIncomingFrame(std::span<const std::byte> frame);
 
@@ -210,6 +264,15 @@ namespace p2p
         std::vector<OutgoingTopic> m_outgoingTopics;
         std::vector<IncomingTopic> m_incomingTopics;
         std::size_t m_nextOutgoingTopic{};
+        std::vector<OutgoingService> m_outgoingServices;
+        std::vector<IncomingService> m_incomingServices;
+        std::vector<OutgoingCall> m_outgoingCalls;
+        std::vector<IncomingCall> m_incomingCalls;
+        std::deque<OutgoingFrame> m_serviceReplies;
+        std::uint64_t m_lastCallId{};
+        std::uint64_t m_lastIncomingCallId{};
+        bool m_preferService{ true };
+        ServiceError m_serviceShutdownError{ ServiceError::Cancelled };
 
         // Shared with the caller of start()/stop(); loop execution stays on the
         // context thread. Never request cancellation while holding this mutex:
@@ -263,6 +326,47 @@ namespace p2p
         }
     }
 
+    template<typename Catalog, typename Provider>
+        requires std::is_enum_v<Provider>
+    void Bridge::registerServices(Provider localProvider)
+    {
+        static constexpr auto enumerators{ std::define_static_array(std::meta::enumerators_of(^^Provider)) };
+        static_assert(enumerators.size() == 2, "A service provider enum must declare exactly two values");
+        constexpr auto first{ std::meta::extract<Provider>(enumerators[0]) };
+        constexpr auto second{ std::meta::extract<Provider>(enumerators[1]) };
+        static_assert(first != second, "Service providers must have distinct values");
+        if (localProvider != first && localProvider != second)
+            throw std::invalid_argument("Unknown local service provider");
+
+        static constexpr auto members{ std::define_static_array(
+          std::meta::members_of(^^Catalog, std::meta::access_context::current())) };
+
+        template for (constexpr auto member : members)
+        {
+            constexpr auto providers{ std::define_static_array(
+              std::meta::annotations_of_with_type(member, ^^Provider)) };
+            if constexpr (!providers.empty()) {
+                static_assert(providers.size() == 1, "A service must have exactly one provider");
+                static_assert(std::meta::is_variable(member) && std::meta::is_static_member(member),
+                              "Annotate static constexpr service definitions");
+
+                constexpr auto service{[:member:] };
+                using Definition = std::remove_cvref_t<decltype(service)>;
+                using Request = typename Definition::Request;
+                using Response = typename Definition::Response;
+                static_assert(std::same_as<Definition, pnm::msg::ServiceDefinition<Request, Response>>,
+                              "Annotated members must be ServiceDefinition<Request, Response> declarations");
+
+                constexpr auto provider{ std::meta::extract<Provider>(providers[0]) };
+                static_assert(provider == first || provider == second, "Unknown annotated service provider");
+                if (provider == localProvider)
+                    registerIncomingService<Request, Response>(service.name);
+                else
+                    registerOutgoingService<Request, Response>(service.name);
+            }
+        }
+    }
+
     template<pnm::utils::memory::Serializable T>
         requires std::default_initializable<T>
     void Bridge::registerOutgoingTopic(std::string_view topic)
@@ -275,15 +379,7 @@ namespace p2p
         auto pending = std::make_shared<std::optional<OutgoingFrame>>();
         auto subscription =
           m_bus.topic<T>(topic).subscribe([pending, name = std::string(topic)](const T& value) {
-            std::size_t size{ sizeof(T) };
-            if constexpr (pnm::utils::memory::HasSerializationAdapter<T>)
-                size = pnm::utils::memory::SerializationAdapter<T>::bufferSize(value);
-
-            auto frame = makeOutgoingFrame(name, size);
-            auto payload = std::span<std::byte>(frame.bytes).subspan(frame.size - size, size);
-            if (!pnm::utils::memory::serialize(value, payload))
-                throw std::length_error("Cannot serialize outgoing topic into its frame");
-            *pending = std::move(frame);
+            *pending = encodeFrame(FrameKind::Topic, name, 0, value);
         }, pnm::msg::SubscriptionOptions::latestOnly());
 
         auto readiness = pnm::msg::watch(subscription, [signal = m_outgoingWakeup] { signal->notify(); });
@@ -316,4 +412,119 @@ namespace p2p
           .publish = std::move(publish),
         });
     }
+    template<pnm::utils::memory::Serializable T>
+    Bridge::OutgoingFrame Bridge::encodeFrame(FrameKind kind, const std::string& name,
+                                               std::uint64_t id, const T& value)
+    {
+        std::size_t size{ sizeof(T) };
+        if constexpr (pnm::utils::memory::HasSerializationAdapter<T>)
+            size = pnm::utils::memory::SerializationAdapter<T>::bufferSize(value);
+        auto frame = makeFrame(kind, name, id, size);
+        if (!pnm::utils::memory::serialize(value, std::span(frame.bytes).subspan(frame.size - size, size)))
+            throw std::length_error("Cannot serialize bridge payload");
+        return frame;
+    }
+
+    template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
+        requires std::default_initializable<Request> && std::default_initializable<Response> &&
+                 std::move_constructible<Response>
+    void Bridge::registerOutgoingService(std::string_view service)
+    {
+        std::scoped_lock lock(m_mutex);
+        checkServiceRegistration(service);
+        auto proxy = m_bus.service<Request, Response>(service).serveDeferred(
+          [this, name = std::string(service)](const Request& value, pnm::msg::Reply<Response> reply) {
+              if (m_stopSource.stop_requested()) {
+                  reply.fail(m_serviceShutdownError);
+                  return;
+              }
+              if (m_outgoingCalls.size() >= MAX_CALLS) {
+                  reply.fail(ServiceError::Busy);
+                  return;
+              }
+              // Call IDs never wrap or get reused, including after cancellation.
+              if (m_lastCallId == std::numeric_limits<std::uint64_t>::max()) {
+                  reply.fail(ServiceError::TransportError);
+                  return;
+              }
+              auto owned = std::make_shared<pnm::msg::Reply<Response>>(std::move(reply));
+              try {
+                  const auto id = ++m_lastCallId;
+                  auto frame = encodeFrame(FrameKind::Request, name, id, value);
+                  auto timer = wakeAfter(owned->remainingTime());
+                  auto readiness = pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notify(); });
+                  m_outgoingCalls.push_back({
+                    .id = id,
+                    .request = std::move(frame),
+                    .pending = [owned] { return owned->pending(); },
+                    .remaining = [owned] { return owned->remainingTime(); },
+                    .finish = [owned](std::span<const std::byte> bytes, std::optional<ServiceError> error) {
+                        if (error) {
+                            owned->fail(*error);
+                            return;
+                        }
+                        try {
+                            Response response{};
+                            if (!pnm::utils::memory::deserialize(bytes, response))
+                                throw std::invalid_argument("Invalid service response");
+                            owned->respond(response);
+                        } catch (...) {
+                            owned->fail(ServiceError::TransportError);
+                        }
+                    },
+                    .readiness = std::move(readiness),
+                    .timer = std::move(timer),
+                  });
+              } catch (...) {
+                  // Oversized/unserializable requests never go to the peer.
+                  owned->fail(ServiceError::TransportError);
+              }
+          }, { .max_pending = MAX_CALLS });
+        auto readiness = pnm::msg::watch(proxy, [signal = m_outgoingWakeup] { signal->notify(); });
+        m_outgoingServices.push_back({
+          .name = std::string(service),
+          .poll = [proxy = std::move(proxy)]() mutable { proxy.poll(); },
+          .readiness = std::move(readiness),
+        });
+    }
+
+    template<pnm::utils::memory::Serializable Request, pnm::utils::memory::Serializable Response>
+        requires std::default_initializable<Request> && std::default_initializable<Response> &&
+                 std::move_constructible<Response>
+    void Bridge::registerIncomingService(std::string_view service)
+    {
+        std::scoped_lock lock(m_mutex);
+        checkServiceRegistration(service);
+        auto request = [this, local = m_bus.service<Request, Response>(service)](
+          std::uint64_t id, std::span<const std::byte> bytes, std::chrono::milliseconds timeout) {
+            Request value{};
+            if (!pnm::utils::memory::deserialize(bytes, value))
+                throw std::invalid_argument("Invalid service request");
+            // request() enqueues for the application's provider; it never executes
+            // its handler here. Only inspect get() after ready() confirms completion.
+            auto call = std::make_shared<pnm::msg::PendingCall<Response>>(local.request(value, timeout));
+            auto readiness = pnm::msg::watch(*call, [signal = m_outgoingWakeup] { signal->notify(); });
+            auto timer = wakeAfter(timeout);
+            return IncomingCall{
+              .id = id,
+              .take = [call, id]() -> std::optional<OutgoingFrame> {
+                  if (!call->ready())
+                      return std::nullopt;
+                  auto result = call->get();
+                  if (!result)
+                      return makeServiceError(id, result.error());
+                  try {
+                      return encodeFrame(FrameKind::Response, {}, id, *result);
+                  } catch (...) {
+                      return makeServiceError(id, ServiceError::TransportError);
+                  }
+              },
+              .cancel = [call] { call->cancel(); },
+              .readiness = std::move(readiness),
+              .timer = std::move(timer),
+            };
+        };
+        m_incomingServices.push_back({ .name = std::string(service), .request = std::move(request) });
+    }
+
 }
