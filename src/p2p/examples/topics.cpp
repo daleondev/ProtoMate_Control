@@ -37,31 +37,19 @@ int main()
 
         // These are ordinary local subscriptions. The bridges handle transport.
         std::string received_state, received_status;
-        auto ui_subscription =
-          ui_bus.topic<std::string>("demo/io/state").subscribe([&](const std::string& value) {
+        auto ui_subscription = ui_bus.topic<^^Topics::demo_io_state>().subscribe([&](const std::string& value) {
             received_state = value;
             std::cout << "UI received demo/io/state: " << value << '\n';
         });
-        auto io_subscription =
-          io_bus.topic<std::string>("demo/ui/status").subscribe([&](const std::string& value) {
+        auto io_subscription = io_bus.topic<^^Topics::status>().subscribe([&](const std::string& value) {
             received_status = value;
             std::cout << "IO received demo/ui/status: " << value << '\n';
         });
-        // auto ui_subscription = Topics::state.on(ui_bus).subscribe([&](const std::string& value) {
-        //     received_state = value;
-        //     std::cout << "UI received demo/io/state: " << value << '\n';
-        // });
-        // auto io_subscription = Topics::status.on(io_bus).subscribe([&](const std::string& value) {
-        //     received_status = value;
-        //     std::cout << "IO received demo/ui/status: " << value << '\n';
-        // });
 
         io_bridge.start();
         ui_bridge.start();
-        io_bus.topic<std::string>("demo/io/state").publish("idle");
-        ui_bus.topic<std::string>("demo/ui/status").publish("ready");
-        // Topics::state.on(io_bus).publish("idle");
-        // Topics::status.on(ui_bus).publish("ready");
+        io_bus.topic<^^Topics::demo_io_state>().publish("idle");
+        ui_bus.topic<^^Topics::status>().publish("ready");
 
         // Only the example's main thread waits here; both bridge directions
         // continue concurrently on the p2p thread. poll(timeout) sleeps, not spins.

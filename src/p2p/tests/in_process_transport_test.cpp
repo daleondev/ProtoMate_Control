@@ -396,13 +396,15 @@ namespace
         IO = 10,
         UI = 20
     };
+    using namespace pnm::meta::string::literals;
     struct Topics
     {
-        [[= TopicPublisher::IO]] static constexpr pnm::msg::TopicDefinition<std::string> state{
-            "motor/state"
-        };
-        [[= TopicPublisher::UI]] static constexpr pnm::msg::TopicDefinition<std::string> status{ "ui/status" };
-        static constexpr pnm::msg::TopicDefinition<std::string> local{ "local/status" };
+        [[= TopicPublisher::IO]] pnm::msg::Topic<std::string> motor_state;
+        // Order and unrelated annotations must not change routing.
+        [[= "ui/status"_fs, = 42, = TopicPublisher::UI]] pnm::msg::Topic<std::string> status;
+        pnm::msg::Topic<std::string> local_status;
+        int unannotated;
+        static constexpr int localConstant{ 1 };
     };
 
     TEST_F(TransportTest, RejectsUnknownPublisherBeforeRegisteringAnyTopics)
@@ -420,22 +422,34 @@ namespace
         io.registerTopics<Topics>(TopicPublisher::IO);
         ui.registerTopics<Topics>(TopicPublisher::UI);
         std::string state, status;
-        auto stateSubscription = Topics::state.on(uiBus).subscribe([&](const auto& value) { state = value; });
+        auto stateSubscription =
+          uiBus.topic<^^Topics::motor_state>().subscribe([&](const auto& value) { state = value; });
         auto statusSubscription =
-          Topics::status.on(ioBus).subscribe([&](const auto& value) { status = value; });
+          ioBus.topic<^^Topics::status>().subscribe([&](const auto& value) { status = value; });
+        std::string ioLocal, uiLocal;
+        auto ioLocalSubscription =
+          ioBus.topic<^^Topics::local_status>().subscribe([&](const auto& value) { ioLocal = value; });
+        auto uiLocalSubscription =
+          uiBus.topic<^^Topics::local_status>().subscribe([&](const auto& value) { uiLocal = value; });
         io.start();
         ui.start();
-        Topics::local.on(ioBus).publish("stays local");
-        Topics::local.on(uiBus).publish("also stays local");
-        Topics::state.on(ioBus).publish("starting");
-        Topics::state.on(ioBus).publish("initializing");
-        Topics::state.on(ioBus).publish("idle");
-        Topics::status.on(uiBus).publish("ready");
+        ioBus.topic<^^Topics::local_status>().publish("stays local");
+        uiBus.topic<^^Topics::local_status>().publish("also stays local");
+        ioBus.topic<^^Topics::motor_state>().publish("starting");
+        ioBus.topic<^^Topics::motor_state>().publish("initializing");
+        ioBus.topic<^^Topics::motor_state>().publish("idle");
+        uiBus.topic<^^Topics::status>().publish("ready");
         drain();
         EXPECT_EQ(stateSubscription.poll(), 1U);
         EXPECT_EQ(statusSubscription.poll(), 1U);
         EXPECT_EQ(state, "idle");
         EXPECT_EQ(status, "ready");
+        EXPECT_EQ(ioLocalSubscription.poll(), 1U);
+        EXPECT_EQ(uiLocalSubscription.poll(), 1U);
+        EXPECT_EQ(ioLocal, "stays local");
+        EXPECT_EQ(uiLocal, "also stays local");
+        EXPECT_FALSE(io.failure());
+        EXPECT_FALSE(ui.failure());
         endpoints[0]->close();
         drain();
         io.stop();
@@ -444,5 +458,17 @@ namespace
         ASSERT_TRUE(ui.failure());
         EXPECT_EQ(std::get<Error>(*io.failure()), Error::Disconnected);
         EXPECT_EQ(std::get<Error>(*ui.failure()), Error::Disconnected);
+    }
+
+    TEST_F(TransportTest, RejectsExplicitNameCollidingWithGeneratedTopicName)
+    {
+        struct DuplicateTopics
+        {
+            [[= TopicPublisher::IO]] pnm::msg::Topic<int> motor_state;
+            [[= TopicPublisher::UI, = "motor/state"_fs]] pnm::msg::Topic<int> duplicate;
+        };
+        pnm::msg::Bus bus;
+        p2p::Bridge bridge(bus, context, *endpoints[0]);
+        EXPECT_THROW(bridge.registerTopics<DuplicateTopics>(TopicPublisher::IO), std::invalid_argument);
     }
 }

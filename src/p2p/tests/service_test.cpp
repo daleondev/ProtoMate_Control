@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <cstdint>
 #include <string>
 #include <thread>
 #include <vector>
@@ -16,11 +17,16 @@ namespace
     using Call = pnm::msg::PendingCall<std::string>;
 
     enum class Provider { IO = 10, UI = 20 };
+    using namespace pnm::meta::string::literals;
     struct Services
     {
-        [[= Provider::IO]] static constexpr pnm::msg::ServiceDefinition<std::string, std::string> echo{"io/echo"};
-        [[= Provider::UI]] static constexpr pnm::msg::ServiceDefinition<std::string, std::string> status{"ui/status"};
-        static constexpr pnm::msg::ServiceDefinition<std::string, std::string> local{"local"};
+        [[= Provider::IO]] pnm::msg::Service<std::string, std::string> io_echo;
+        // Name and provider order is irrelevant; unrelated annotations are ignored.
+        [[= "ui/status"_fs, = 42, = Provider::UI]] pnm::msg::Service<std::string, std::string> status;
+        [[= Provider::IO, = "io/length"_fs]] pnm::msg::Service<std::string, std::uint32_t> length;
+        pnm::msg::Service<std::string, std::string> local;
+        int unannotated;
+        static constexpr int localConstant{ 1 };
     };
 
     class ServiceTest : public ::testing::Test
@@ -60,12 +66,12 @@ namespace
 
     TEST_F(ServiceTest, CatalogRoutesRequestsToBothOwnersAndKeepsUnannotatedServicesLocal)
     {
-        auto ioServer = Services::echo.on(ioBus).serve([](const auto& value) { return "io:" + value; });
-        auto uiServer = Services::status.on(uiBus).serve([](const auto& value) { return "ui:" + value; });
-        auto localServer = Services::local.on(ioBus).serve([](const auto& value) { return value; });
-        auto left = Services::echo.on(uiBus).request("one", 1s);
-        auto right = Services::status.on(ioBus).request("two", 1s);
-        auto local = Services::local.on(uiBus).request("local", 1s);
+        auto ioServer = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return "io:" + value; });
+        auto uiServer = uiBus.service<^^Services::status>().serve([](const auto& value) { return "ui:" + value; });
+        auto localServer = ioBus.service<^^Services::local>().serve([](const auto& value) { return value; });
+        auto left = uiBus.service<^^Services::io_echo>().request("one", 1s);
+        auto right = ioBus.service<^^Services::status>().request("two", 1s);
+        auto local = uiBus.service<^^Services::local>().request("local", 1s);
         EXPECT_EQ(local.get(), std::unexpected(Error::Unavailable));
         drain();
         EXPECT_FALSE(left.ready());
@@ -81,14 +87,29 @@ namespace
         EXPECT_FALSE(ui.failure());
     }
 
+    TEST_F(ServiceTest, ReflectedServicePreservesDifferentRequestAndResponseTypes)
+    {
+        auto server = ioBus.service<^^Services::length>().serve([](const std::string& value) {
+            return static_cast<std::uint32_t>(value.size());
+        });
+        auto call = uiBus.service<^^Services::length>().request("hello", 1s);
+        drain();
+        ASSERT_EQ(server.poll(), 1U);
+        drain();
+        ASSERT_TRUE(call.ready());
+        EXPECT_EQ(call.get(), 5U);
+        EXPECT_FALSE(io.failure());
+        EXPECT_FALSE(ui.failure());
+    }
+
     TEST_F(ServiceTest, DeferredRepliesAreCorrelatedWhenCompletedOutOfOrder)
     {
         std::vector<Reply> replies;
-        auto server = Services::echo.on(ioBus).serveDeferred([&](const auto&, Reply reply) {
+        auto server = ioBus.service<^^Services::io_echo>().serveDeferred([&](const auto&, Reply reply) {
             replies.push_back(std::move(reply));
         });
-        auto first = Services::echo.on(uiBus).request("one", 1s);
-        auto second = Services::echo.on(uiBus).request("two", 1s);
+        auto first = uiBus.service<^^Services::io_echo>().request("one", 1s);
+        auto second = uiBus.service<^^Services::io_echo>().request("two", 1s);
         drain();
         ASSERT_EQ(server.poll(), 2U);
         ASSERT_EQ(replies.size(), 2U);
@@ -105,9 +126,9 @@ namespace
 
     TEST_F(ServiceTest, PreservesEmptyEmbeddedNullAndMaximumPayloads)
     {
-        auto server = Services::echo.on(ioBus).serve([](const auto& value) { return value; });
+        auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return value; });
         for (const auto& value : {std::string{}, std::string{"a\0b", 3}, std::string(2048 - 16 - 7, 'x')}) {
-            auto call = Services::echo.on(uiBus).request(value, 1s);
+            auto call = uiBus.service<^^Services::io_echo>().request(value, 1s);
             drain();
             ASSERT_EQ(server.poll(), 1U);
             drain();
@@ -118,16 +139,16 @@ namespace
 
     TEST_F(ServiceTest, ReportsMissingProviderAndHandlerErrorsWithoutBreakingConnection)
     {
-        auto missing = Services::echo.on(uiBus).request("missing", 1s);
+        auto missing = uiBus.service<^^Services::io_echo>().request("missing", 1s);
         drain();
         ASSERT_TRUE(missing.ready());
         EXPECT_EQ(missing.get(), std::unexpected(Error::Unavailable));
-        auto server = Services::echo.on(ioBus).serveDeferred([](const std::string& value, Reply reply) {
+        auto server = ioBus.service<^^Services::io_echo>().serveDeferred([](const std::string& value, Reply reply) {
             if (value == "throw") throw std::runtime_error("handler failure");
             reply.fail(Error::Busy);
         });
         for (const auto& value : {std::string{"throw"}, std::string{"busy"}}) {
-            auto call = Services::echo.on(uiBus).request(value, 1s);
+            auto call = uiBus.service<^^Services::io_echo>().request(value, 1s);
             drain();
             EXPECT_EQ(server.poll(), 1U);
             drain();
@@ -140,15 +161,15 @@ namespace
 
     TEST_F(ServiceTest, RejectsOversizedRequestsAndResponsesWithoutFailingOtherCalls)
     {
-        auto server = Services::echo.on(ioBus).serve([](const auto& value) {
+        auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) {
             return value == "large" ? std::string(2049, 'x') : value;
         });
-        auto request = Services::echo.on(uiBus).request(std::string(2049, 'x'), 1s);
+        auto request = uiBus.service<^^Services::io_echo>().request(std::string(2049, 'x'), 1s);
         drain();
         ASSERT_TRUE(request.ready());
         EXPECT_EQ(request.get(), std::unexpected(Error::TransportError));
         EXPECT_EQ(server.poll(), 0U);
-        auto response = Services::echo.on(uiBus).request("large", 1s);
+        auto response = uiBus.service<^^Services::io_echo>().request("large", 1s);
         drain();
         ASSERT_EQ(server.poll(), 1U);
         drain();
@@ -160,11 +181,11 @@ namespace
 
     TEST_F(ServiceTest, BoundsPendingCallsAndReusesCapacityAfterCompletion)
     {
-        auto server = Services::echo.on(ioBus).serve([](const auto& value) { return value; });
+        auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return value; });
         std::vector<Call> calls;
         for (unsigned i = 0; i < 8; ++i)
-            calls.push_back(Services::echo.on(uiBus).request(std::to_string(i), 1s));
-        auto excess = Services::echo.on(uiBus).request("too many", 1s);
+            calls.push_back(uiBus.service<^^Services::io_echo>().request(std::to_string(i), 1s));
+        auto excess = uiBus.service<^^Services::io_echo>().request("too many", 1s);
         ASSERT_TRUE(excess.ready());
         EXPECT_EQ(excess.get(), std::unexpected(Error::Busy));
         drain();
@@ -174,7 +195,7 @@ namespace
             ASSERT_TRUE(calls[i].ready());
             EXPECT_EQ(calls[i].get(), std::to_string(i));
         }
-        auto next = Services::echo.on(uiBus).request("next", 1s);
+        auto next = uiBus.service<^^Services::io_echo>().request("next", 1s);
         drain();
         ASSERT_EQ(server.poll(), 1U);
         drain();
@@ -184,8 +205,8 @@ namespace
 
     TEST_F(ServiceTest, CancellationBeforeDispatchPreventsHandlerExecution)
     {
-        auto server = Services::echo.on(ioBus).serve([](const auto& value) { return value; });
-        auto call = Services::echo.on(uiBus).request("cancel", 1s);
+        auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return value; });
+        auto call = uiBus.service<^^Services::io_echo>().request("cancel", 1s);
         drain(); // Request is now queued on the IO bus, but handler has not run.
         EXPECT_TRUE(call.cancel());
         drain();
@@ -196,11 +217,11 @@ namespace
     TEST_F(ServiceTest, CancellingDeferredRequestInvalidatesRemoteReply)
     {
         std::optional<Reply> reply;
-        auto server = Services::echo.on(ioBus).serveDeferred([&](const auto&, Reply value) {
+        auto server = ioBus.service<^^Services::io_echo>().serveDeferred([&](const auto&, Reply value) {
             reply.emplace(std::move(value));
         });
         std::stop_source stop;
-        auto call = Services::echo.on(uiBus).request("cancel", 1s, stop.get_token());
+        auto call = uiBus.service<^^Services::io_echo>().request("cancel", 1s, stop.get_token());
         drain();
         ASSERT_EQ(server.poll(), 1U);
         stop.request_stop();
@@ -214,10 +235,10 @@ namespace
     TEST_F(ServiceTest, TimerExpiresDeferredCallWithoutApplicationPolling)
     {
         std::optional<Reply> reply;
-        auto server = Services::echo.on(ioBus).serveDeferred([&](const auto&, Reply value) {
+        auto server = ioBus.service<^^Services::io_echo>().serveDeferred([&](const auto&, Reply value) {
             reply.emplace(std::move(value));
         });
-        auto call = Services::echo.on(uiBus).request("timeout", 20ms);
+        auto call = uiBus.service<^^Services::io_echo>().request("timeout", 20ms);
         drain();
         ASSERT_EQ(server.poll(), 1U);
         std::this_thread::sleep_for(30ms);
@@ -230,8 +251,8 @@ namespace
 
     TEST_F(ServiceTest, TimeoutBeforeForwardingNeverInvokesProvider)
     {
-        auto server = Services::echo.on(ioBus).serve([](const auto& value) { return value; });
-        auto call = Services::echo.on(uiBus).request("expired", 1ms);
+        auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return value; });
+        auto call = uiBus.service<^^Services::io_echo>().request("expired", 1ms);
         std::this_thread::sleep_for(5ms);
         drain();
         EXPECT_EQ(server.poll(), 0U);
@@ -240,13 +261,13 @@ namespace
 
     TEST_F(ServiceTest, LateResponseAfterCancellationCannotCompleteAnotherCall)
     {
-        auto server = Services::echo.on(ioBus).serve([](const auto& value) { return value; });
-        auto old = Services::echo.on(uiBus).request("old", 1s);
+        auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return value; });
+        auto old = uiBus.service<^^Services::io_echo>().request("old", 1s);
         drain();
         ASSERT_EQ(server.poll(), 1U);
         ioContext.poll(); // Queue response without letting UI receive it yet.
         old.cancel();
-        auto next = Services::echo.on(uiBus).request("next", 1s);
+        auto next = uiBus.service<^^Services::io_echo>().request("next", 1s);
         drain();
         EXPECT_EQ(old.get(), std::unexpected(Error::Cancelled));
         EXPECT_FALSE(next.ready());
@@ -258,10 +279,10 @@ namespace
 
     TEST_F(ServiceTest, PeerDisconnectFailsActiveAndQueuedProxyCalls)
     {
-        auto server = Services::echo.on(ioBus).serve([](const auto& value) { return value; });
-        auto active = Services::echo.on(uiBus).request("active", 1s);
+        auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return value; });
+        auto active = uiBus.service<^^Services::io_echo>().request("active", 1s);
         drain();
-        auto queued = Services::echo.on(uiBus).request("queued", 1s);
+        auto queued = uiBus.service<^^Services::io_echo>().request("queued", 1s);
         endpoints[0]->close();
         drain();
         ASSERT_TRUE(active.ready());
@@ -275,7 +296,7 @@ namespace
     {
         std::vector<Call> calls;
         for (unsigned i = 0; i < 8; ++i)
-            calls.push_back(Services::echo.on(uiBus).request("queued", 1s));
+            calls.push_back(uiBus.service<^^Services::io_echo>().request("queued", 1s));
         uiContext.poll(); // Fill the transport with requests while IO is paused.
         for (auto& call : calls) call.cancel();
         uiContext.poll(); // Sender is now waiting for room to send cancellation.
@@ -300,15 +321,15 @@ namespace
         io.registerServices<Services>(Provider::IO);
         ui.registerServices<Services>(Provider::UI);
         std::optional<Reply> reply;
-        auto server = Services::echo.on(ioBus).serveDeferred([&](const auto&, Reply value) {
+        auto server = ioBus.service<^^Services::io_echo>().serveDeferred([&](const auto&, Reply value) {
             reply.emplace(std::move(value));
         });
-        auto peerServer = Services::status.on(uiBus).serve([](const auto& value) { return value; });
+        auto peerServer = uiBus.service<^^Services::status>().serve([](const auto& value) { return value; });
         io.start();
         ui.start();
-        auto incoming = Services::echo.on(uiBus).request("incoming", 1s);
+        auto incoming = uiBus.service<^^Services::io_echo>().request("incoming", 1s);
         ASSERT_EQ(server.poll(1s), 1U);
-        auto outgoing = Services::status.on(ioBus).request("outgoing", 1s);
+        auto outgoing = ioBus.service<^^Services::status>().request("outgoing", 1s);
         io.stop();
         EXPECT_FALSE(reply->pending());
         ASSERT_TRUE(outgoing.ready());
@@ -318,7 +339,7 @@ namespace
         EXPECT_FALSE(ui.failure());
         EXPECT_EQ(incoming.get(), std::unexpected(Error::Cancelled));
         EXPECT_EQ(peerServer.poll(), 0U);
-        auto afterStop = Services::status.on(ioBus).request("unavailable", 1s);
+        auto afterStop = ioBus.service<^^Services::status>().request("unavailable", 1s);
         EXPECT_EQ(afterStop.get(), std::unexpected(Error::Unavailable));
     }
 
@@ -342,13 +363,13 @@ namespace
         ui.registerIncomingTopic<std::string>("state");
         std::string state;
         auto subscription = uiBus.topic<std::string>("state").subscribe([&](const auto& value) { state = value; });
-        auto server = Services::echo.on(ioBus).serve([](const auto& value) { return value; });
+        auto server = ioBus.service<^^Services::io_echo>().serve([](const auto& value) { return value; });
         io.start();
         ui.start();
         for (unsigned i = 0; i < 100; ++i) {
             auto value = std::to_string(i);
             ioBus.topic<std::string>("state").publish(value);
-            auto call = Services::echo.on(uiBus).request(value, 1s);
+            auto call = uiBus.service<^^Services::io_echo>().request(value, 1s);
             ASSERT_EQ(server.poll(1s), 1U);
             EXPECT_EQ(call.get(), value);
             ASSERT_EQ(subscription.poll(1s), 1U);
@@ -370,5 +391,19 @@ namespace
         EXPECT_NO_THROW(bridge.registerServices<Services>(Provider::IO));
         EXPECT_THROW((bridge.registerIncomingService<std::string, std::string>("io/echo")), std::invalid_argument);
         EXPECT_THROW((bridge.registerOutgoingService<std::string, std::string>("")), std::invalid_argument);
+    }
+
+    TEST(ServiceRegistration, RejectsExplicitNameCollidingWithGeneratedServiceName)
+    {
+        struct DuplicateServices
+        {
+            [[= Provider::IO]] pnm::msg::Service<int, int> io_echo;
+            [[= Provider::UI, = "io/echo"_fs]] pnm::msg::Service<int, int> duplicate;
+        };
+        pnm::coro::Context context;
+        pnm::msg::Bus bus;
+        auto endpoints = p2p::InProcessTransport::pair();
+        p2p::Bridge bridge(bus, context, *endpoints[0]);
+        EXPECT_THROW(bridge.registerServices<DuplicateServices>(Provider::IO), std::invalid_argument);
     }
 }

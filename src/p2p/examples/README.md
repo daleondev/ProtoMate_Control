@@ -11,10 +11,33 @@ ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ```
 
 The examples build independently of the unfinished Robot/Controller integration
-and requires no hardware. The repository build uses its Linux/ThreadX runtime.
+and require no hardware. The repository build uses its Linux/ThreadX runtime.
 
 Start with [Topics.hpp](Topics.hpp), then read [topics.cpp](topics.cpp).
 The catalog is where we specify **what crosses the bridge and who publishes it**:
+
+```cpp
+using namespace pnm::meta::string::literals;
+struct Topics
+{
+    [[= TopicPublisher::IO]] pnm::msg::Topic<std::string> demo_io_state;
+    [[= TopicPublisher::UI, = "demo/ui/status"_fs]] pnm::msg::Topic<std::string> status;
+};
+```
+
+Each field declares the payload type; no `Topics` object is constructed. The bus
+accessor derives the type and name from that field, so callers need not repeat them:
+
+```cpp
+auto subscription = ui_bus.topic<^^Topics::demo_io_state>().subscribe(handleState);
+io_bus.topic<^^Topics::demo_io_state>().publish("idle");
+```
+
+The same accessor works on native and coroutine buses. It resolves an ordinary
+local topic; bridge registration determines whether that topic crosses the transport.
+The name defaults to the field identifier with every `_` replaced by `/`, so
+`demo_io_state` becomes `demo/io/state`. An explicit `FixedString` annotation
+overrides this name verbatim, as shown by `status`.
 
 | Topic | Publisher's bus | Subscriber's bus |
 | --- | --- | --- |
@@ -39,15 +62,33 @@ ui_bridge.registerTopics<Topics>(TopicPublisher::UI);
 Topics annotated with the local publisher are forwarded to the peer; those
 annotated with the peer's identity are received locally. The publisher enum must
 declare exactly two distinct values; annotations must use those values.
-Unannotated topics stay local. The enum belongs to the application, not p2p.
+Fields without the matching publisher annotation stay local and can use either
+generated or explicit names. Annotation order does not matter, and unrelated
+annotations are ignored. Forwarded fields must have exactly one publisher and
+at most one nonempty narrow `FixedString` name annotation. Invalid publisher
+values, ambiguous name annotations and annotated static declarations are
+compile-time errors. Duplicate resolved names are rejected during registration.
+The enum belongs to the application, not p2p.
 
 [Services.hpp](Services.hpp) defines the service catalog. Its annotations identify
 the **provider**, not the request direction:
 
 ```cpp
+struct Services
+{
+    [[= ServiceProvider::IO]] pnm::msg::Service<std::string, std::string> demo_io_echo;
+};
+
 io_bridge.registerServices<Services>(ServiceProvider::IO);
 ui_bridge.registerServices<Services>(ServiceProvider::UI);
 ```
+
+Like topic fields, these declarations are metadata; no `Services` object is
+constructed. The field type specifies request and response types. Each forwarded
+service needs one valid provider; the name follows the same optional override
+and underscore replacement rules as topics (`demo_io_echo` → `demo/io/echo`).
+Annotation order is irrelevant, unrelated annotations are ignored, and fields
+without the provider annotation stay local. Static declarations are rejected.
 
 For a service annotated `ServiceProvider::IO`, the IO bridge accepts incoming
 requests for its local handler; the UI bridge forwards local requests to IO.
@@ -56,10 +97,10 @@ request/response example: IO serves `demo/io/echo`, UI calls it with `hello`, an
 receives `IO says: hello`. Both use ordinary local bus handles:
 
 ```cpp
-auto provider = Services::echo.on(io_bus).serve([](const std::string& request) {
+auto provider = io_bus.service<^^Services::demo_io_echo>().serve([](const std::string& request) {
     return "IO says: " + request;
 });
-auto call = Services::echo.on(ui_bus).request("hello", 2s);
+auto call = ui_bus.service<^^Services::demo_io_echo>().request("hello", 2s);
 provider.poll(2s);     // Dispatch the real handler on its application worker.
 auto response = call.get(); // Wait on the caller's worker, never the p2p thread.
 ```

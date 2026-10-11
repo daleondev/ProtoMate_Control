@@ -344,22 +344,36 @@ coroutines that suspend while waiting. Application subscriptions dispatch on
 their caller's thread. Each future core will own its own context and runner.
 
 [Topics.hpp](src/p2p/examples/Topics.hpp) specifies the forwarded topics using
-`pnm::msg::TopicDefinition<T>` and publisher annotations. Register the shared
-catalog once per bridge, identifying the local publisher:
+`pnm::msg::Topic<T>` fields annotated with a publisher. No catalog
+instance is constructed. Register the shared catalog once per bridge, identifying
+the local publisher:
 
 ```cpp
 io_bridge.registerTopics<Topics>(TopicPublisher::IO);
 ui_bridge.registerTopics<Topics>(TopicPublisher::UI);
+
+// Infer the payload type and topic name from the annotated field.
+io_bus.topic<^^Topics::demo_io_state>().publish("idle");
 ```
 
 Matching publisher annotations become outgoing topics; the peer's publications
 become incoming. The application-defined enum must declare exactly two distinct
-values. Unannotated topics stay local. Explicit `registerOutgoingTopic<T>()` and
+values. Annotation order is irrelevant; unrelated annotations are ignored.
+Fields without the publisher annotation stay local. Forwarded fields require one
+publisher. Names default to the field identifier with every `_` replaced by `/`:
+`demo_io_state` becomes `demo/io/state`. One optional nonempty narrow `FixedString`
+annotation overrides the name verbatim. Multiple name annotations and annotated
+static declarations are rejected. Explicit `registerOutgoingTopic<T>()` and
 `registerIncomingTopic<T>()` registration is also available. Register before
 `start()`; names must be unique across both directions on each bridge.
 
 The service API uses a separate application-defined `ServiceProvider { IO, UI }`
-enum: `registerServices<Services>(ServiceProvider::IO)` identifies the IO side.
+enum and annotated nonstatic `pnm::msg::Service<Request, Response>` fields.
+`registerServices<Services>(ServiceProvider::IO)` identifies the IO side;
+`bus.service<^^Services::demo_io_echo>()` derives the name and both payload types from
+the field. No catalog object is constructed. Names and provider annotations
+follow the same validation and ordering rules as topic names and publishers;
+fields without the provider annotation stay local.
 Matching provider annotations accept incoming requests for local handlers; the
 peer's services forward outgoing requests. Replies return automatically.
 [Services.hpp](src/p2p/examples/Services.hpp) illustrates the catalog and

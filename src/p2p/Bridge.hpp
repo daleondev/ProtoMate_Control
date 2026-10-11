@@ -72,15 +72,18 @@ namespace p2p
             requires std::default_initializable<T>
         void registerIncomingTopic(std::string_view topic);
 
-        // Two-peer catalog: annotate public static constexpr TopicDefinition<T>
-        // members with their publisher, using an application-owned enum.
+        // Two-peer catalog: annotate public nonstatic pnm::msg::Topic<T> fields
+        // with a publisher from an application-owned enum. An optional FixedString
+        // overrides the name; otherwise underscores in the field name become '/'.
+        // Annotation order is irrelevant. No catalog instance is needed.
         // localPublisher identifies this side: matching topics are outgoing;
         // topics published by the peer are incoming.
         // For TopicPublisher { IO, UI }, pass IO on the IO bridge and UI on the
         // UI bridge. Each call registers both local and remote publications.
         // The enum must declare exactly two distinct values. An invalid cast
         // passed as localPublisher is rejected before registering anything.
-        // Unannotated members and annotations of other types are ignored.
+        // Members without this publisher annotation stay local. Unrelated
+        // annotations are ignored; annotated static declarations are rejected.
         // Call before start(), just like the explicit registration functions.
         template<typename Catalog, typename Publisher>
             requires std::is_enum_v<Publisher>
@@ -89,7 +92,7 @@ namespace p2p
         // Explicit incoming/outgoing methods describe the REQUEST direction;
         // catalog annotations identify the PROVIDER. Replies return automatically.
         // Register before start(), with matching names and Request/Response types
-        // on both peers. Applications still use bus.service<Request, Response>()
+        // on both peers. Applications use bus.service<^^Services::member>()
         // to request/serve; registration neither calls a service nor waits for it.
         // The bridge owns its routes and deferred proxies until stop().
         // At most eight forwarded calls per direction and eight queued/pending
@@ -115,10 +118,12 @@ namespace p2p
                      std::move_constructible<Response>
         void registerIncomingService(std::string_view service);
 
-        // Like registerTopics(), for a separate catalog of static constexpr
-        // pnm::msg::ServiceDefinition<Request, Response> members. Annotate each
-        // with its provider, using an application-owned enum with two distinct
-        // values. localProvider identifies this side: matching services accept
+        // Like registerTopics(), for a catalog of nonstatic
+        // pnm::msg::Service<Request, Response> fields. Annotate each with its
+        // provider and optionally a FixedString name, using an application-owned enum
+        // with two distinct values. Fields without that provider annotation stay
+        // local; annotation order is irrelevant and unrelated annotations are ignored.
+        // localProvider identifies this side: matching services accept
         // incoming requests; services provided by the peer forward outgoing ones.
         // For ServiceProvider { IO, UI }, pass IO on the IO bridge and UI on the
         // UI bridge. [[= ServiceProvider::IO]] marks a service provided by IO.
@@ -317,33 +322,28 @@ namespace p2p
         }
 
         static constexpr auto members{ std::define_static_array(
-          std::meta::nonstatic_data_members_of(^^Catalog, std::meta::access_context::current())) };
+          std::meta::members_of(^^Catalog, std::meta::access_context::current())) };
 
         template for (constexpr auto member : members)
         {
-            constexpr auto annotations{ std::define_static_array(std::meta::annotations_of(member)) };
-            static_assert(annotations.size() == 2, "Topics need exactly two annotations.");
+            constexpr auto publishers{ std::define_static_array(
+              std::meta::annotations_of_with_type(member, ^^Publisher)) };
+            if constexpr (!publishers.empty()) {
+                static_assert(publishers.size() == 1, "A topic must have exactly one publisher");
+                static_assert(std::meta::is_nonstatic_data_member(member),
+                              "Annotate nonstatic topic fields, not static declarations");
+                constexpr auto publisher{ std::meta::extract<Publisher>(publishers[0]) };
+                static_assert(publisher == first || publisher == second, "Unknown annotated topic publisher");
 
-            // static_assert(std::meta::is_variable(annotations[0]) &&
-            //                 std::meta::is_static_member(annotations[0]),
-            //               "Annotate static constexpr topic definitions");
-
-            using PublisherType = std::remove_cvref_t<typename[:std::meta::type_of(annotations[0]):]>;
-            static_assert(std::same_as<PublisherType, Publisher>,
-                          "The first annotation must be the publisher!");
-            constexpr auto publisher{ std::meta::extract<Publisher>(annotations[0]) };
-
-            using TopicType = std::remove_cvref_t<typename[:std::meta::type_of(annotations[1]):]>;
-            static_assert(pnm::meta::string::FixedStringLike<TopicType>,
-                          "The second annotation must be the topic!");
-            constexpr auto topic{ std::meta::extract<TopicType>(annotations[1]) };
-
-            using Message = std::remove_cvref_t<typename[:std::meta::type_of(member):]>;
-
-            if (publisher == localPublisher)
-                registerOutgoingTopic<Message>(topic);
-            else
-                registerIncomingTopic<Message>(topic);
+                if constexpr (std::meta::is_nonstatic_data_member(member)) {
+                    using Metadata = pnm::msg::TopicMetadata<member>;
+                    using Message = typename Metadata::Message;
+                    if (publisher == localPublisher)
+                        registerOutgoingTopic<Message>(Metadata::name);
+                    else
+                        registerIncomingTopic<Message>(Metadata::name);
+                }
+            }
         }
     }
 
@@ -351,10 +351,10 @@ namespace p2p
         requires std::is_enum_v<Provider>
     void Bridge::registerServices(Provider localProvider)
     {
-        static constexpr auto enumerators{ std::define_static_array(std::meta::enumerators_of(^^Provider)) };
+        static constexpr auto enumerators{ pnm::meta::enumeration::enumerators<Provider>() };
         static_assert(enumerators.size() == 2, "A service provider enum must declare exactly two values");
-        constexpr auto first{ std::meta::extract<Provider>(enumerators[0]) };
-        constexpr auto second{ std::meta::extract<Provider>(enumerators[1]) };
+        constexpr auto first{ enumerators[0] };
+        constexpr auto second{ enumerators[1] };
         static_assert(first != second, "Service providers must have distinct values");
         if (localProvider != first && localProvider != second)
             throw std::invalid_argument("Unknown local service provider");
@@ -368,22 +368,20 @@ namespace p2p
               std::meta::annotations_of_with_type(member, ^^Provider)) };
             if constexpr (!providers.empty()) {
                 static_assert(providers.size() == 1, "A service must have exactly one provider");
-                static_assert(std::meta::is_variable(member) && std::meta::is_static_member(member),
-                              "Annotate static constexpr service definitions");
-
-                constexpr auto service{[:member:] };
-                using Definition = std::remove_cvref_t<decltype(service)>;
-                using Request = typename Definition::Request;
-                using Response = typename Definition::Response;
-                static_assert(std::same_as<Definition, pnm::msg::ServiceDefinition<Request, Response>>,
-                              "Annotated members must be ServiceDefinition<Request, Response> declarations");
-
+                static_assert(std::meta::is_nonstatic_data_member(member),
+                              "Annotate nonstatic service fields, not static declarations");
                 constexpr auto provider{ std::meta::extract<Provider>(providers[0]) };
                 static_assert(provider == first || provider == second, "Unknown annotated service provider");
-                if (provider == localProvider)
-                    registerIncomingService<Request, Response>(service.name);
-                else
-                    registerOutgoingService<Request, Response>(service.name);
+
+                if constexpr (std::meta::is_nonstatic_data_member(member)) {
+                    using Metadata = pnm::msg::ServiceMetadata<member>;
+                    using Request = typename Metadata::Request;
+                    using Response = typename Metadata::Response;
+                    if (provider == localProvider)
+                        registerIncomingService<Request, Response>(Metadata::name);
+                    else
+                        registerOutgoingService<Request, Response>(Metadata::name);
+                }
             }
         }
     }

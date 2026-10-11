@@ -1,7 +1,6 @@
 #pragma once
 
 #include <pneumo/messaging.hpp>
-#include <pneumo/meta.hpp>
 
 #include <string>
 
@@ -15,10 +14,11 @@ namespace example
         UI
     };
 
+    // Fields declare the payload types; no Topics instance is constructed.
     // Both applications share this catalog; each has its own bus and bridge.
     struct Topics
     {
-        [[ = TopicPublisher::IO, = "demo/io/state"_fs ]] std::string state;
-        [[ = TopicPublisher::UI, = "demo/ui/status"_fs ]] std::string status;
+        [[= TopicPublisher::IO]] pnm::msg::Topic<std::string> demo_io_state;
+        [[= TopicPublisher::UI, = "demo/ui/status"_fs]] pnm::msg::Topic<std::string> status;
     };
 }

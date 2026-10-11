@@ -29,7 +29,7 @@ int main()
         ui_bridge.registerServices<Services>(ServiceProvider::UI);
 
         // The application owns its handler. The bridge never executes it inline.
-        auto provider = Services::echo.on(io_bus).serve([](const std::string& request) {
+        auto provider = io_bus.service<^^Services::demo_io_echo>().serve([](const std::string& request) {
             std::cout << "IO received request: " << request << '\n';
             return "IO says: " + request;
         });
@@ -37,7 +37,7 @@ int main()
         ui_bridge.start();
 
         // Keep the native call handle until completion; destroying it cancels.
-        auto call = Services::echo.on(ui_bus).request("hello", 2s);
+        auto call = ui_bus.service<^^Services::demo_io_echo>().request("hello", 2s);
         // In a real application its IO worker dispatches this provider. Here main
         // runs the handler while the dedicated p2p thread forwards both directions.
         if (provider.poll(2s) != 1)
