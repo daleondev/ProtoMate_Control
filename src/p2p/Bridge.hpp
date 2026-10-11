@@ -5,12 +5,16 @@
 #include <pneumo/coroutines.hpp>
 
 #include <array>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <stop_token>
 #include <string_view>
+#include <variant>
 
 namespace pnm::msg
 {
@@ -19,11 +23,14 @@ namespace pnm::msg
 
 namespace p2p
 {
-    // First implementation step: the two transport loops in Bridge.cpp.
-    // Lifecycle, queueing and topic registration remain declarations for now.
+    // Lifecycle and transport loops live in Bridge.cpp.
+    // Queueing and topic registration remain declarations for the next step.
     class Bridge final
     {
       public:
+        // Preserve either an ordinary transport failure or an unexpected exception.
+        using Failure = std::variant<ITransport::Error, std::exception_ptr>;
+
         // The application owns these dependencies and keeps them alive until
         // the bridge has stopped and been destroyed.
         Bridge(pnm::msg::Bus& bus, pnm::coro::Context& context, ITransport& transport);
@@ -46,13 +53,19 @@ namespace p2p
         template<pnm::utils::memory::Serializable T>
         void registerIncomingTopic(std::uint16_t endpoint, std::string_view localTopic);
 
-        // Next step: start both loops on the application-run context and track
-        // their completion. Lifecycle is not implemented yet.
+        // Schedule both loops independently. May be called only once, including
+        // after failure. The context must keep running until stop() completes.
         void start();
 
         // Request cancellation and wait for both loops to finish their cleanup.
-        // Call from outside the context runner so the loops can finish.
+        // Repeated calls are harmless; before start(), this is a no-op.
+        // Call stop() and the destructor outside the context runner so the loops
+        // can finish. Do not stop the context first.
         void stop();
+
+        // The first recorded failure, if any. Cancellation requested by stop()
+        // is normal shutdown and does not create a failure.
+        [[nodiscard]] std::optional<Failure> failure() const;
 
       private:
         // Initial full-frame capacity, including the future routing header.
@@ -66,9 +79,13 @@ namespace p2p
             std::size_t size{};
         };
 
+        // Observe one loop, cancel its sibling on exit and signal completion
+        // only after releasing the loop's coroutine frame and borrowed buffers.
+        pnm::coro::Task<void> runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop);
+
         // Await a local outgoing frame, keeping its storage until send() completes.
         // Cancellation requested through stop is normal shutdown; other transport
-        // failures are returned for the future lifecycle code to handle.
+        // failures are returned to runLoop().
         pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> sendLoop(std::stop_token stop);
 
         // Receive into a local buffer, then dispatch the returned bytes to the bus.
@@ -85,5 +102,15 @@ namespace p2p
         pnm::msg::Bus& m_bus;
         pnm::coro::Context& m_context;
         ITransport& m_transport;
+
+        // Shared with the caller of start()/stop(); loop execution stays on the
+        // context thread. Never request cancellation while holding this mutex:
+        // stop callbacks can run synchronously.
+        std::stop_source m_stopSource;
+        mutable std::mutex m_mutex;
+        std::condition_variable m_finished;
+        bool m_started{};
+        std::size_t m_activeLoops{};
+        std::optional<Failure> m_failure;
     };
 }

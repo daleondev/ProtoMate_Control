@@ -1,6 +1,7 @@
 #include "Bridge.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 namespace p2p
 {
@@ -9,6 +10,95 @@ namespace p2p
       , m_context(context)
       , m_transport(transport)
     {
+    }
+
+    Bridge::~Bridge()
+    {
+        stop();
+    }
+
+    void Bridge::start()
+    {
+        std::unique_lock lock(m_mutex);
+        if (m_started)
+            throw std::logic_error("Bridge can only be started once");
+        m_started = true;
+
+        try {
+            // Construct both coroutine chains before scheduling either one.
+            // Moving these ready-made tasks into co_spawn also avoids allocating
+            // a new loop task inside its detached entry callback.
+            auto sender = runLoop(sendLoop(m_stopSource.get_token()));
+            auto receiver = runLoop(receiveLoop(m_stopSource.get_token()));
+
+            pnm::coro::co_spawn(m_context, [task = std::move(sender)](pnm::coro::Context&) mutable {
+                return std::move(task);
+            });
+            ++m_activeLoops;
+
+            pnm::coro::co_spawn(m_context, [task = std::move(receiver)](pnm::coro::Context&) mutable {
+                return std::move(task);
+            });
+            ++m_activeLoops;
+            // Holding the mutex prevents an immediately completing handler from
+            // decrementing the count before its scheduling has been recorded.
+        } catch (...) {
+            m_failure = std::current_exception();
+            lock.unlock();
+            // If only the first handler was scheduled, it must still finish.
+            // Keep driving the context and call stop() before destruction.
+            m_stopSource.request_stop();
+            throw;
+        }
+    }
+
+    void Bridge::stop()
+    {
+        {
+            std::scoped_lock lock(m_mutex);
+            if (!m_started)
+                return;
+        }
+
+        m_stopSource.request_stop();
+
+        std::unique_lock lock(m_mutex);
+        m_finished.wait(lock, [this] { return m_activeLoops == 0; });
+    }
+
+    std::optional<Bridge::Failure> Bridge::failure() const
+    {
+        std::scoped_lock lock(m_mutex);
+        return m_failure;
+    }
+
+    pnm::coro::Task<void> Bridge::runLoop(pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> loop)
+    {
+        std::optional<Failure> failure;
+        try {
+            auto result = co_await loop;
+            if (!result)
+                failure = result.error();
+        } catch (...) {
+            failure = std::current_exception();
+        }
+
+        // Awaiting completion does not itself destroy the owned task. Release
+        // its frame before stop() is allowed to return or the bridge can die.
+        loop = {};
+
+        {
+            std::scoped_lock lock(m_mutex);
+            if (failure && !m_failure)
+                m_failure = std::move(failure);
+        }
+        m_stopSource.request_stop();
+
+        // This is our last access to the bridge. Notify while holding the lock
+        // so a waking destructor cannot destroy the condition variable early.
+        std::scoped_lock lock(m_mutex);
+        --m_activeLoops;
+        m_finished.notify_all();
     }
 
     pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> Bridge::sendLoop(std::stop_token stop)
