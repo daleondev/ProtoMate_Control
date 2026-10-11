@@ -393,8 +393,8 @@ namespace
 
     enum class Direction
     {
-        IOToUI,
-        UIToIO
+        IOToUI = 10,
+        UIToIO = 20
     };
     struct Topics
     {
@@ -402,7 +402,16 @@ namespace
             "motor/state"
         };
         [[= Direction::UIToIO]] static constexpr pnm::msg::TopicDefinition<std::string> status{ "ui/status" };
+        static constexpr pnm::msg::TopicDefinition<std::string> local{ "local/status" };
     };
+
+    TEST_F(TransportTest, RejectsUnknownDirectionBeforeRegisteringAnyTopics)
+    {
+        pnm::msg::Bus bus;
+        p2p::Bridge bridge(bus, context, *endpoints[0]);
+        EXPECT_THROW(bridge.registerTopics<Topics>(static_cast<Direction>(99)), std::invalid_argument);
+        EXPECT_NO_THROW(bridge.registerTopics<Topics>(Direction::IOToUI));
+    }
 
     TEST_F(TransportTest, ConnectsTwoBridgesWithAnnotatedTopics)
     {
@@ -416,6 +425,10 @@ namespace
           Topics::status.on(ioBus).subscribe([&](const auto& value) { status = value; });
         io.start();
         ui.start();
+        Topics::local.on(ioBus).publish("stays local");
+        Topics::local.on(uiBus).publish("also stays local");
+        Topics::state.on(ioBus).publish("starting");
+        Topics::state.on(ioBus).publish("initializing");
         Topics::state.on(ioBus).publish("idle");
         Topics::status.on(uiBus).publish("ready");
         drain();

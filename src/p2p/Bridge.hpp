@@ -73,6 +73,8 @@ namespace p2p
         // Matching outgoingDirection means outgoing; the reverse means incoming.
         // For Direction { IOToUI, UIToIO }, pass IOToUI on the IO bridge and
         // UIToIO on the UI bridge. Each call registers both directions.
+        // The enum must declare exactly two distinct values. An invalid cast
+        // passed as outgoingDirection is rejected before registering anything.
         // Unannotated members and annotations of other types are ignored.
         // Call before start(), just like the explicit registration functions.
         template<typename Catalog, typename Direction>
@@ -184,6 +186,14 @@ namespace p2p
         requires std::is_enum_v<Direction>
     void Bridge::registerTopics(Direction outgoingDirection)
     {
+        static constexpr auto enumerators{ std::define_static_array(std::meta::enumerators_of(^^Direction)) };
+        static_assert(enumerators.size() == 2, "A bridge direction enum must declare exactly two values");
+        constexpr auto first{ std::meta::extract<Direction>(enumerators[0]) };
+        constexpr auto second{ std::meta::extract<Direction>(enumerators[1]) };
+        static_assert(first != second, "Bridge directions must have distinct values");
+        if (outgoingDirection != first && outgoingDirection != second)
+            throw std::invalid_argument("Unknown outgoing bridge direction");
+
         static constexpr auto members{ std::define_static_array(
           std::meta::members_of(^^Catalog, std::meta::access_context::current())) };
 
@@ -202,7 +212,9 @@ namespace p2p
                 static_assert(std::same_as<Definition, pnm::msg::TopicDefinition<Message>>,
                               "Annotated members must be TopicDefinition<T> declarations");
 
-                if (std::meta::extract<Direction>(directions[0]) == outgoingDirection)
+                constexpr auto direction{ std::meta::extract<Direction>(directions[0]) };
+                static_assert(direction == first || direction == second, "Unknown annotated topic direction");
+                if (direction == outgoingDirection)
                     registerOutgoingTopic<Message>(topic.name);
                 else
                     registerIncomingTopic<Message>(topic.name);

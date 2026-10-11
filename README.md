@@ -325,115 +325,72 @@ software boundaries and behavior; electrical timing remains a hardware test.
 
 ## Serialized control boundary
 
-The current single-core application already separates UI clients from IO execution:
+`application::p2p` currently supports serialized topic forwarding. Services,
+actions, sessions, link health and the Robot/Controller integration are pending;
+the normal application's control wiring still depends on those APIs. Build the
+isolated [two-bus example](src/p2p/examples/README.md) to run the current bridge.
 
 ```mermaid
 flowchart LR
-    R[Robot / CLI] <--> C[ControllerClient]
-    C <--> U[UI bus and context]
-    U <--> UB[p2p Bridge]
-    UB <-- serialized frames --> T[InProcessTransport pair]
-    T <--> IB[p2p Bridge]
-    IB <--> I[IO bus and context]
-    I <--> S[ControllerServer]
-    S <--> W[IO command worker]
-    W <--> M[MotionController / motors]
+    IO[IO bus] <--> IB[IO bridge]
+    IB <-- serialized frames --> T[InProcessTransport pair]
+    T <-- serialized frames --> UB[UI bridge]
+    UB <--> UI[UI bus]
 ```
 
-`main.cpp` owns both buses, contexts, transports and bridges. Each context has
-one runner. The IO command worker performs blocking driver calls and joins;
-motion workers notify it after cleanup through `Completion`. No waiting thread
-is created per action. Interrupts continue to notify local hardware workers.
-Synchronous `ControllerClient` methods run on the CLI/planning thread, never on
-its context runner. `requestAsync()` and the coroutine bus endpoints are
-available to asynchronous consumers.
+The example owns two independent buses and two bridges. Both bridges run on one
+coroutine context on a dedicated p2p thread. Each has separate send and receive
+coroutines that suspend while waiting. Application subscriptions dispatch on
+their caller's thread. Each future core will own its own context and runner.
 
-| CMake target | Responsibility and dependencies |
-| --- | --- |
-| `application::p2p` | Portable framing, explicitly directed routes, sessions, correlation, cancellation and backpressure; pneumo plus the selected C++ threading ABI, without motion or HAL implementations |
-| `application::control_common` | Value contracts, explicit codecs, units, conversions, kinematics and profile representation; HAL interface types only |
-| `application::control_client` | `ControllerClient`, application-owned job registry and `Robot`; no IO implementation |
-| `application::control_io` | `ControllerServer`, `MotionController`, motors and hardware-owning code |
-| `application::cli` | Annotation-based commands using the client and Robot |
-| `application::control` | Aggregate client/IO target for the present single-core application |
+[Topics.hpp](src/p2p/examples/Topics.hpp) specifies the forwarded topics using
+`pnm::msg::TopicDefinition<T>` and direction annotations. Register the shared
+catalog once per bridge:
 
-`src/p2p` is a project library, not a Git submodule. Both future core applications
-compile these portable sources with private instances. `ITransport` transfers
-bounded frames and reports send capacity, connectivity and wakeups. Its normal
-and urgent lanes have independent capacity; urgent frames may overtake normal
-frames. Adapters must deliver complete frames reliably in order within each
-lane until disconnection. Receive and capacity notifications may coalesce.
-Hardware adapters and their HAL dependencies belong outside the portable target.
+```cpp
+io_bridge.registerTopics<Topics>(Direction::IOToUI);
+ui_bridge.registerTopics<Topics>(Direction::UIToIO);
+```
 
-The wire format has a 40-byte, versioned header, fixed-width little-endian
-integers, IEEE binary64 values, source/destination sessions and correlation IDs.
-Payloads are limited to 2048 bytes. Compound payloads require an explicit
-`p2p::Codec<T>`; native object layouts, pointers, futures and coroutine handles
-never cross the transport. Motion scalars use SI units. A future hardware
-backend must supply a boot-unique session ID and preserve transport ordering.
+The argument selects the bridge's outgoing direction; the other becomes
+incoming. The enum must declare exactly two distinct values. Unannotated topics
+stay local. Explicit `registerOutgoingTopic<T>()` and
+`registerIncomingTopic<T>()` registration is also available. Register before
+`start()`; names must be unique across both directions on each bridge.
 
-Register routes before starting a `Bridge`. `protocol::routes()` defines:
+`ITransport` asynchronously sends and receives complete frames using borrowed
+spans. `InProcessTransport::pair()` creates two endpoints with eight owned frame
+slots per direction. A full queue suspends the sender without blocking the
+context. Cancellation and `close()` wake waiting operations; closing either
+endpoint disconnects the pair. Reconnection requires a new pair.
 
-| Endpoint | Direction | Contract |
-| --- | --- | --- |
-| `motion.request` | UI → IO service | Snapshots, configuration, diagnostics, enable and recovery |
-| `motion.stop` | UI → IO urgent service | Stop/disable, acknowledged after cleanup |
-| `motion.execute` | UI → IO action | Independent moves, homing and value-only coordinated trajectories |
-| `motion.state` | IO → UI topic | Authoritative snapshot, published at 50 Hz |
-| `motion.fault` | IO → UI topic | Latched driver faults and communication inhibition |
+The frame contains a version byte (currently 2), a little-endian 16-bit topic-name
+length, the name's bytes and the serialized payload, with a 2048-byte total limit.
+The topic name identifies the destination; there are no numeric endpoint IDs.
+Payloads use pneumo serialization. `std::string` sends its characters, not its
+native object layout. Compound types need explicit serialization adapters with
+portable field widths and byte order before use between different targets.
 
-Topic forwarding coalesces to the latest value. Native and coroutine subscribers
-can select `SubscriptionOptions::latestOnly()` or a bounded capacity with
-`DropOldest`/`DropNewest`; `statistics()` reports queued/dropped messages.
-Unspecified options retain pneumo's unbounded default. Native deferred bridge
-providers use public RAII `pnm::msg::watch()` registrations; callbacks schedule
-context work and never poll in a waiting loop.
+Each bridge accepts up to 16 topics. Outgoing subscriptions retain only the
+latest pending value per topic, and readiness notifications wake the sender.
+This is suitable for state updates, not commands that must each execute.
+Stop both bridges while the context still runs, then stop and join its runner.
 
-Default limits are eight outstanding operations per route, 32 routes, eight
-normal frames and sixteen urgent frames per direction (2112/512 bytes per frame).
-IO has eight queued requests per lane and eight active action records. A full
-operation table returns `Busy`. The UI retains up to 32 individual-axis jobs
-and 32 robot jobs, retaining their native action handles until terminal results;
-CLI return does not cancel motion. IDs are unique across these UI jobs.
-Remote acceptance precedes UI acceptance. Cancellation is a request; only an
-IO terminal response confirms cleanup. Results are retained until acknowledged
-or their session ends. A transport failure is reported as a fault with
-`terminal_confirmed == false`, not as proof that the hardware stopped.
+The next integration steps are state/fault topics, then services and actions.
+The intended control boundary uses services for configuration, diagnostics and
+snapshots, actions for moves/homing, and topics for state. Robot and CLI use
+`ControllerClient`; `ControllerServer` and `MotionController` own IO execution.
+Motion admission, cancellation, recovery and bounded command delivery must be
+restored before this bridge carries motion commands. The H747 design below
+records the required ownership and recovery behavior.
 
-Robot first requests an authoritative planning snapshot, then submits at most
-13 constant-jerk phases, explicit endpoint values, per-axis pulse counts and
-directions, and configuration/commanded-state revisions. IO checks revisions,
-origins, profile continuity, dynamics and participating axes under its submission
-lock before preparing hardware. Stale plans cause no movement. Independent-axis
-profile generation and blending remain local to IO. Streamed trajectories and
-moving all planning to M7 remain future work.
+Build and test this step independently:
 
-Heartbeats run every 100 ms; a 500 ms deadline, disconnect, restart or protocol
-failure triggers a local IO stop, invalidates queued work and retains holding
-torque where possible. The client cannot infer stop completion from transport
-failure. Reconnection never replays motion. Recover explicitly with disable,
-reset and enable, then reference again before absolute motion. The present
-link-loss stop inhibits pulses immediately; a controlled braking policy for
-future streamed motion remains separate work.
-
-For teardown, stop submissions, close bridges to cancel their pending work,
-keep contexts running until `Closed`, destroy `ControllerServer` (which joins
-cleanup outside the contexts), then stop/join context runners and destroy buses.
-Readiness callbacks must not throw or dispatch inline. State-change handlers
-must be thread-safe: an executor allocation failure can report failure from the
-notifying thread. Registration destruction prevents later notifications but
-cannot retract a callback already in flight; bridge hooks use weak ownership.
-
-Build the normal Debug/Release images as usual. Nucleo Debug uses `-Og` for
-communication/composition and `-Os` for protocol template instantiation to fit
-flash; motor execution retains its normal Debug settings. Linux CTest targets
-`application.p2p`, `application.control` and `application.cli` exercise the
-serialized boundary and simulated hardware. The `step-test-stm32` image also provides command `l`: one second of
-100/50/25 kHz STEP output while two contexts exchange serialized echo services
-and coalesced topic traffic. It requires at least 100 correct round trips during
-the burst and exact 100000/50000/25000 pulse counts; shared driver enable stays
-disabled. Capture D0/PA0, D1/PB10 and D2/PB11 at 24 MHz to check periods and
-5 µs pulse widths independently of software accounting.
+```sh
+cmake --build --preset debug-linux --target application_p2p_example application_p2p_transport_tests
+./build/debug-linux/src/p2p/examples/application_p2p_example
+ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
+```
 
 ## Planned migration to STM32H747XIH6 (Arduino GIGA R1 WiFi)
 
@@ -480,8 +437,8 @@ Separate three stages:
 3. **M4 pulse generation:** timers and DMA generate the STEP edges. Segment
    reception and GUI scheduling do not determine individual edge timing.
 
-The current transport carries complete bounded profiles for coordinated moves.
-The next planning step is a stream of buffered trajectory segments describing
+The coordinated-motion contracts describe complete bounded profiles; bridging
+those contracts is pending. A later planning step is a stream of buffered trajectory segments describing
 selected joints over defined intervals. Segment duration, queue capacity and
 refill/braking reserves require implementation and timing validation. The M4 evaluator must preserve step-count accuracy and synchronization
 while meeting the DMA refill deadlines. Expensive planning and blocking work
@@ -527,9 +484,9 @@ maximum planned velocity for each axis and coordinated group.
 
 ### Shared-memory command interface
 
-`ControllerClient`, `ControllerServer` and the serialized `p2p` bridge already
-implement this boundary on the Nucleo, as described above. During H747 migration,
-replace `InProcessTransport` with shared-SRAM rings and HSEM notifications;
+`ControllerClient` and `ControllerServer` are the intended execution boundary;
+their integration with the topic-only `p2p` bridge is pending, as described above.
+During H747 migration, replace `InProcessTransport` with shared-SRAM rings and HSEM notifications;
 reserve memory in both linker scripts, establish cache attributes and memory
 ordering, and verify reset/session coordination on both physical cores.
 Shared SRAM, HSEM and a second firmware image are not implemented yet.
