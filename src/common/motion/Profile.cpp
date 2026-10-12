@@ -1,4 +1,4 @@
-#include "MotionProfile.hpp"
+#include "Profile.hpp"
 
 #include <algorithm>
 #include <cmath>

@@ -6,6 +6,10 @@ add_test(NAME application.lifecycle COMMAND proto_lifecycle_tests)
 set_tests_properties(application.lifecycle PROPERTIES TIMEOUT 30)
 
 add_executable(proto_intercore_tests intercore_test.cpp)
+# Exercise the hardware transport against ChannelModel on Linux without adding
+# it to the host application's common library.
+target_sources(proto_intercore_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/icc/transport/InterCoreTransport.cpp)
 target_link_libraries(proto_intercore_tests PRIVATE proto::common GTest::gtest_main)
 target_compile_definitions(proto_intercore_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
 runtime_attach(proto_intercore_tests)
