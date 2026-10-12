@@ -1,7 +1,7 @@
 #include "Application.hpp"
-#include "icc/catalog/actions.hpp"
-#include "icc/catalog/services.hpp"
-#include "icc/catalog/topics.hpp"
+#include "common/icc/catalog/actions.hpp"
+#include "common/icc/catalog/services.hpp"
+#include "common/icc/catalog/topics.hpp"
 
 #include <stdexcept>
 
@@ -10,9 +10,9 @@ namespace ui
     Application::Application(icc::ITransport& transport)
       : m_bridge(m_bus, m_iccContext, transport)
     {
-        m_bridge.registerTopics<application::Topics>(application::TopicPublisher::UI);
-        m_bridge.registerServices<application::Services>(application::ServiceProvider::UI);
-        m_bridge.registerActions<application::Actions>(application::ActionProvider::UI);
+        m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
+        m_bridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
+        m_bridge.registerActions<icc::Actions>(icc::ActionProvider::UI);
         m_bridge.setConnectionCallback([this](icc::ConnectionStatus status) {
             if (status.state == icc::ConnectionState::Failed ||
                 status.reason == icc::ConnectionReason::PeerStopped) {
@@ -57,4 +57,17 @@ namespace ui
     void Application::join() { m_threads.join(); }
 
     icc::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
+
+    void Application::iccThread() { m_iccContext.run(); }
+
+    void Application::applicationThread()
+    {
+        {
+            std::unique_lock lock(m_mutex);
+            m_stopRequested.wait(lock, [this] { return m_stopping; });
+        }
+        // Keep the context alive until bridge shutdown has drained its work.
+        m_bridge.stop();
+        m_iccContext.stop();
+    }
 }

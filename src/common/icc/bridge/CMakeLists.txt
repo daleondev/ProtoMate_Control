@@ -1,7 +1,7 @@
-add_library(application_icc_bridge INTERFACE)
-add_library(application::icc::bridge ALIAS application_icc_bridge)
+add_library(proto_common_icc_bridge INTERFACE)
+add_library(proto::common::icc::bridge ALIAS proto_common_icc_bridge)
 
-target_sources(application_icc_bridge
+target_sources(proto_common_icc_bridge
     INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/Catalog.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Bridge.hpp

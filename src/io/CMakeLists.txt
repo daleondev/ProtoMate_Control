@@ -1,4 +1,11 @@
-add_library(application_io STATIC Application.cpp Application.hpp system_threads.cpp)
-add_library(application::io ALIAS application_io)
-target_link_libraries(application_io PUBLIC
-    application::common application::icc runtime::threads)
+add_subdirectory(app)
+
+add_library(proto_io STATIC)
+add_library(proto::io ALIAS proto_io)
+
+target_link_libraries(proto_io 
+    PUBLIC
+        proto::common
+    PRIVATE
+        proto::io::app
+)

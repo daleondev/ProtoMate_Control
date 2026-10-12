@@ -1,9 +1,8 @@
 #pragma once
 
-#include "common/Application.hpp"
+#include "common/app/Application.hpp"
+#include "common/icc/bridge/Bridge.hpp"
 #include "runtime/ThreadGroup.hpp"
-
-#include "icc/bridge/Bridge.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -50,5 +49,5 @@ namespace ui
         runtime::ThreadGroup m_threads;
     };
 
-    static_assert(application::Application<Application>);
+    static_assert(app::Application<Application>);
 }

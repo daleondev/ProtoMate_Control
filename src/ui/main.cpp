@@ -1,6 +1,6 @@
-#include "Application.hpp"
+#include "app/Application.hpp"
+#include "common/icc/transport/InterCoreTransport.hpp"
 #include "hal/core/core.hpp"
-#include "icc/transport/InterCoreTransport.hpp"
 
 #include <memory>
 

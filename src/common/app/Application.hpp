@@ -2,7 +2,7 @@
 
 #include <concepts>
 
-namespace application
+namespace app
 {
     // A compile-time lifecycle contract; each application owns its behavior.
     template<typename T>

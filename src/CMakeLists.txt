@@ -1,15 +1,26 @@
 add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 
 add_subdirectory(common)
+
 if(DEFINED H755_CORE)
     if(H755_CORE STREQUAL "CM4")
         set(application_role io)
     else()
         set(application_role ui)
     endif()
+
     add_subdirectory(${application_role})
-    target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${application_role}/main.cpp)
-    target_link_libraries(${PROJECT_NAME} PRIVATE application::${application_role} application::icc::intercore)
+
+    target_sources(${PROJECT_NAME} 
+        PRIVATE 
+            ${CMAKE_CURRENT_SOURCE_DIR}/${application_role}/main.cpp
+    )
+
+    target_link_libraries(${PROJECT_NAME} 
+        PRIVATE 
+            proto::${application_role}
+    )
+
 else()
     add_subdirectory(io)
     add_subdirectory(ui)

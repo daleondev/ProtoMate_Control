@@ -1,11 +1,15 @@
 #pragma once
 
-#include <pneumo/messaging.hpp>
 #include <cstdint>
+#include <pneumo/messaging.hpp>
 
-namespace application
+namespace icc
 {
-    enum class ActionProvider : std::uint8_t { IO, UI };
+    enum class ActionProvider : std::uint8_t
+    {
+        IO,
+        UI
+    };
 
     // Shared application contracts. Both bridges register this catalog.
     struct Actions
