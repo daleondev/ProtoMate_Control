@@ -5,9 +5,9 @@ Build and run from the repository root (GCC 16 with reflection):
 ```sh
 cmake --preset debug-linux
 cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_action_example application_p2p_transport_tests application_p2p_service_tests application_p2p_action_tests
-./build/debug-linux/src/p2p/examples/application_p2p_example
-./build/debug-linux/src/p2p/examples/application_p2p_service_example
-./build/debug-linux/src/p2p/examples/application_p2p_action_example
+./build/debug-linux/src/common/p2p/examples/application_p2p_example
+./build/debug-linux/src/common/p2p/examples/application_p2p_service_example
+./build/debug-linux/src/common/p2p/examples/application_p2p_action_example
 ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ```
 

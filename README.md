@@ -2,6 +2,28 @@
 
 Control software running on the robot controller of the ProtoMate SCARA Robot.
 
+## Application layout
+
+The application is a scaffold for incremental reimplementation. `src/main.cpp`
+contains an empty `main()`; the existing platform startup still initializes the
+HAL and runtime. Application motion control, threads and CLI are not started.
+
+| Directory | Intended responsibility |
+| --- | --- |
+| `src/common/` | Shared contracts and portable libraries; currently `p2p/` |
+| `src/io/` | Hardware ownership, motion execution and sensor processing |
+| `src/ui/` | Robot planning, CLI and later GUI |
+
+Both applications will use `common`, with their own instances and private state.
+Keep `common` independent of IO/UI implementations. Each future core executable
+will own its composition and worker threads.
+
+The [application archive](backups/application/README.md) preserves the existing
+`main.cpp`, `system_threads.*`, control and CLI modules, and the p2p thread glue.
+The normal build uses the empty application and the maintained p2p library;
+control/CLI tests are archived. The STEP bench explicitly uses the archived motor
+and motion-profile sources so its existing tests remain available.
+
 ## Setup and compilers
 
 ```sh
@@ -54,8 +76,8 @@ control. Prefer its stable `/dev/serial/by-id/*STLINK*if02*` path.
 
 Linux simulates the HAL and uses the ThreadX Linux port. Standard Linux file
 I/O uses the host filesystem; explicit FileX tests use simulated media images.
-The simulated LED state toggles inside the process; inspect it through the
-HAL or Linux debugger. Startup diagnostics and the boot message appear on the terminal.
+Runtime and HAL startup diagnostics appear on the terminal; the empty application
+then returns.
 
 The STM32 SPI/UART polling drivers also have isolated host tests using a
 recording HAL and the system GoogleTest package:
@@ -213,8 +235,8 @@ commented `NOLINT` markers; the remaining check families stay enabled.
 ## HAL architecture
 
 The HAL provides peripheral access and device behavior. Robot motion planning,
-homing policy, gearing, kinematics and CLI commands belong to `src/control` and
-`src/cli`. Thread scheduling, the C++ runtime and filesystem integration belong
+homing policy, gearing, kinematics and CLI commands belong to the application
+modules being rebuilt in `src/io`, `src/ui` and `src/common`. Thread scheduling, the C++ runtime and filesystem integration belong
 to `platform/runtime`.
 
 ### Layers and responsibilities
@@ -358,32 +380,32 @@ The native transport, PWM and step tests also exercise STM32 implementations
 against recording register/HAL models. Structural checks and host models verify
 software boundaries and behavior; electrical timing remains a hardware test.
 
-## Serialized control boundary
+## Processor-to-processor messaging
 
 `application::p2p` supports serialized topics, services and actions, with peer
-readiness, connection health and state-change callbacks. Robot and CLI use
-`ControllerClient` on the UI bus; `ControllerServer` dispatches requests to the
-IO-owned `MotionController`. Both buses communicate through the current bridge.
-The [two-bus examples](src/p2p/examples/README.md), including the
-[action example](src/p2p/examples/actions.cpp), also run independently.
+readiness, connection health and state-change callbacks. It remains available as
+a portable library while application control and CLI are rebuilt.
+The [two-bus examples](src/common/p2p/examples/README.md), including the
+[action example](src/common/p2p/examples/actions.cpp), also run independently.
 
 The implementation separates message routing from byte transport:
 
 | Location | Responsibility |
 | --- | --- |
-| [bridge/Bridge](src/p2p/bridge/Bridge.hpp) | Public registration API, lifecycle, send/receive loops, fair scheduling and failure handling |
-| [bridge/TopicBridge](src/p2p/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
-| [bridge/ServiceBridge](src/p2p/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
-| [bridge/ActionBridge](src/p2p/bridge/ActionBridge.hpp) | Reflected action registration, deferred admission, feedback, cancellation, acknowledged terminal results and cleanup |
-| [bridge/ConnectionHealth](src/p2p/bridge/ConnectionHealth.hpp) | Handshake, acknowledged heartbeats, deadlines and connection state notifications |
-| [bridge/Frame](src/p2p/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/p2p/bridge/OutgoingWakeup.hpp) | Shared wire encoding and coalesced readiness signals per lane |
-| [transport/](src/p2p/transport/ITransport.hpp) | Transport interface and paired in-process transport; transfers bytes without interpreting messages |
+| [bridge/Bridge](src/common/p2p/bridge/Bridge.hpp) | Public registration API, lifecycle, send/receive loops, fair scheduling and failure handling |
+| [bridge/TopicBridge](src/common/p2p/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
+| [bridge/ServiceBridge](src/common/p2p/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
+| [bridge/ActionBridge](src/common/p2p/bridge/ActionBridge.hpp) | Reflected action registration, deferred admission, feedback, cancellation, acknowledged terminal results and cleanup |
+| [bridge/ConnectionHealth](src/common/p2p/bridge/ConnectionHealth.hpp) | Handshake, acknowledged heartbeats, deadlines and connection state notifications |
+| [bridge/Frame](src/common/p2p/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/common/p2p/bridge/OutgoingWakeup.hpp) | Shared wire encoding and coalesced readiness signals per lane |
+| [transport/](src/common/p2p/transport/ITransport.hpp) | Transport interface and paired in-process transport; transfers bytes without interpreting messages |
 
 `Bridge` owns its routing and connection helpers by value and serializes registration against startup.
 The helpers run on its coroutine context and cannot call back into `Bridge` or
 access the transport. Shutdown first drains actions while communication continues,
-then closes services and disconnects topic subscriptions after its four transport loops and health timer loop finish. `thread.hpp`/`thread.cpp` remain the
-application-owned context and thread entry, outside the portable library.
+then closes services and disconnects topic subscriptions after its four transport
+loops and health timer loop finish. The caller owns the context and runner thread;
+the previous application thread glue is archived with `system_threads`.
 
 ```mermaid
 flowchart LR
@@ -399,7 +421,7 @@ They suspend while waiting and yield after each frame so normal traffic cannot
 monopolize the context. Application subscriptions dispatch on
 their caller's thread. Each future core will own its own context and runner.
 
-[Topics.hpp](src/p2p/examples/Topics.hpp) specifies the forwarded topics using
+[Topics.hpp](src/common/p2p/examples/Topics.hpp) specifies the forwarded topics using
 `pnm::msg::Topic<T>` fields annotated with a publisher. No catalog
 instance is constructed. Register the shared catalog once per bridge, identifying
 the local publisher:
@@ -431,8 +453,8 @@ follow the same validation and ordering rules as topic names and publishers;
 fields without the provider annotation stay local.
 Matching provider annotations accept incoming requests for local handlers; the
 peer's services forward outgoing requests. Replies return automatically.
-[Services.hpp](src/p2p/examples/Services.hpp) illustrates the catalog and
-[services.cpp](src/p2p/examples/services.cpp) runs an echo service. Applications
+[Services.hpp](src/common/p2p/examples/Services.hpp) illustrates the catalog and
+[services.cpp](src/common/p2p/examples/services.cpp) runs an echo service. Applications
 own and dispatch their handlers using the native or coroutine pneumo API. Bridge
 proxies use deferred replies; they never execute application handlers or block
 waiting for a result on the p2p context. Native readiness notifications and
@@ -487,7 +509,7 @@ across independently restarted cores remain future work.
 Actions use `registerActions<Actions>(ActionProvider::IO)` and reflected
 `bus.action<^^Actions::member>()` handles on both native and coroutine buses.
 Their catalogs follow the same optional name and provider rules as services.
-[Action usage](src/p2p/examples/actions.md) explains the provider and caller roles.
+[Action usage](src/common/p2p/examples/actions.md) explains the provider and caller roles.
 The bridge forwards acceptance only after the real provider accepts. Feedback is
 latest-only; terminal results are retained until acknowledged by the peer. Each
 direction admits eight forwarded goals; each proxy admits eight native goals.
@@ -594,45 +616,20 @@ needed when integrating motion control. Callback consumers own the local stop,
 holding-torque policy, latched robot fault and explicit recovery. Those robot
 policies are not implemented inside the portable bridge.
 
-[control/Messages.hpp](src/control/Messages.hpp) defines the shared `Services`,
-`Actions` and `Topics` catalogs. Main registers each catalog on both bridges with
-its local publisher/provider. Client and server obtain the same endpoints through
-reflected bus access. Configuration, diagnostics and snapshots use services;
-moves and homing use actions; state and latched faults are published at 50 Hz.
-Pneumo automatically serializes the typed message structs; there are no
-control-specific serialization adapters or manual byte encoders. Feedback errors
-use value-only error conditions instead of process-local `std::error_code`
-category pointers. Both peers must share the same message definitions and ABI;
-this native format is not a portable or independently versioned wire protocol.
+The archived [control message catalogs](backups/application/control/Messages.hpp),
+[client](backups/application/control/ControllerClient.hpp) and
+[server](backups/application/control/ControllerServer.hpp) are reference material
+for rebuilding the execution boundary. They are not part of the current normal build.
 
-The IO command worker handles blocking driver operations and joins. The client
-retains action handles until completion, and remote acceptance precedes its
-return to CLI/Robot. Link failure inhibits local motion, requests cleanup and
-preserves holding torque. The UI reports an unconfirmed stop until an execution
-result actually arrives. Recovery requires fresh bridge/transport instances and
-an explicit controller disable/reset; no motion is replayed. Coordinated plans
-carry configuration and command revisions and stale plans are rejected before
-hardware preparation. Full session identities remain future work for the H747
-transport; the design below records that migration's ownership and recovery rules.
-
-STM32 Debug compiles the p2p library and control endpoints with `-Og`, and the
-catalog composition in `main.cpp` with `-Os`, to fit internal flash while retaining
-debug information. Motion execution keeps its existing Debug settings.
-
-Build and test the integrated control and CLI:
-
-```sh
-cmake --build --preset debug-linux --target Application application_control_tests application_cli_tests
-ctest --test-dir build/debug-linux -R '^application\.(control|cli)$' --output-on-failure
-```
+STM32 Debug compiles the portable p2p library with `-Og` while retaining debug information.
 
 Build and test the bridge independently:
 
 ```sh
 cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_action_example application_p2p_transport_tests application_p2p_service_tests application_p2p_action_tests application_p2p_urgent_tests application_p2p_connection_tests
-./build/debug-linux/src/p2p/examples/application_p2p_example
-./build/debug-linux/src/p2p/examples/application_p2p_service_example
-./build/debug-linux/src/p2p/examples/application_p2p_action_example
+./build/debug-linux/src/common/p2p/examples/application_p2p_example
+./build/debug-linux/src/common/p2p/examples/application_p2p_service_example
+./build/debug-linux/src/common/p2p/examples/application_p2p_action_example
 ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ```
 
@@ -688,7 +685,7 @@ refill/braking reserves require implementation and timing validation. The M4 eva
 while meeting the DMA refill deadlines. Expensive planning and blocking work
 must stay outside interrupt handlers.
 
-This requires refactoring the current implementation: `StepperMotor` creates
+In the archived implementation, `StepperMotor` creates
 profiles and blends commands, and `StepGenerator::fill()` invokes
 `Sequence::generate()` to evaluate profiles while preparing DMA data. Moving
 `Robot` and profile creation to M7 alone would leave profile evaluation on M4.
@@ -1014,9 +1011,12 @@ persistence matters. FAT timestamps use UTC and two-second precision.
 `RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT` is destructive recovery only; all shipped
 presets and the hardware runner set it to `OFF`.
 
-## Axis conversion
+## Axis conversion (archived implementation)
 
-[`src/control/AxisConversion.hpp`](src/control/AxisConversion.hpp) provides
+This section describes the reference code in `backups/application/control`.
+Its application wiring and CLI are archived; it is not configured by the empty main.
+
+[`backups/application/control/AxisConversion.hpp`](backups/application/control/AxisConversion.hpp) provides
 `RotaryAxisConversion` for the shoulder/elbow and `LinearAxisConversion` for Z.
 They translate motor shaft coordinates into joint coordinates using
 `pnm::units` angles, distances, velocities, acceleration and jerk. They contain
@@ -1024,7 +1024,7 @@ no hardware access or mutable motion state. `control::MotionController` owns
 the motors and optional axis converters; both CLI command groups use that
 same controller. `axis` operates in joint degrees/deg/s or Z mm/mm/s;
 `motor` operates in shaft degrees/rpm. See the
-[joint-axis CLI documentation](src/cli/README.md#joint-axis-control).
+[joint-axis CLI documentation](backups/application/cli/README.md#joint-axis-control).
 
 Configure a positive reduction (motor revolutions per output revolution), a
 direction, and a pair of reference coordinates describing the same physical
@@ -1092,17 +1092,14 @@ per output revolution. Replace these placeholders in code once actual mechanics
 are known. Motor-side reference coordinates come from the existing motor
 configuration. There is no interactive mechanics configuration command.
 
-The Linux `application.control` tests cover conversions and their integration
-with motor referencing, switch rejection and pulse accounting:
+The corresponding regression tests are preserved in `backups/application/control/tests`.
 
-```sh
-cmake --build --preset debug-linux --target application_control_tests
-ctest --test-dir build/debug-linux -R '^application.control$' --output-on-failure
-```
+## SCARA kinematics (archived implementation)
 
-## SCARA kinematics
+This section describes the reference code in `backups/application/control`.
+The current scaffold does not instantiate Robot, kinematics or CLI commands.
 
-[`src/control/ScaraKinematics.hpp`](src/control/ScaraKinematics.hpp) implements
+[`backups/application/control/ScaraKinematics.hpp`](backups/application/control/ScaraKinematics.hpp) implements
 the robot's two rotary joints and vertical Z axis. It uses configured instances
 with ordinary methods defined in the `.cpp`, just like the axis converters.
 All calculations are independent of the HAL and motor workers.
@@ -1186,7 +1183,7 @@ auto joint_velocity = kinematics.inverseVelocity(current, {10_mm_s, 0_mm_s, 0_mm
   resulting endpoint; inverse velocity checks its current joint position.
   Omitted limits mean unrestricted joint coordinates, not verified mechanical travel.
 
-[`control::Robot`](src/control/Robot.hpp) connects this geometry to the existing
+[`control::Robot`](backups/application/control/Robot.hpp) connects this geometry to the existing
 `ControllerClient`. `main.cpp` constructs it with the same client
 used by the motor and axis CLI modules. `Robot::status()` converts a fresh
 controller snapshot into joint coordinates, tool pose and tool velocity. It
@@ -1232,7 +1229,7 @@ the most recent 32 robot results separately from individual-axis commands.
 IO completion callbacks run after required motion cleanup and wake its worker;
 terminal results then cross the bridge.
 
-The [robot CLI](src/cli/README.md#robot-control) exposes these operations,
+The [robot CLI](backups/application/cli/README.md#robot-control) exposes these operations,
 live state and read-only calculations:
 
 ```text
@@ -1274,16 +1271,10 @@ CubeMX configures the STEP pins as **TIM2 output-compare outputs**, with
 three independent DMA streams. The counter runs at **10 MHz (100 ns/tick)**.
 The DIR pins and shared enable are ordinary push-pull GPIO outputs. All seven
 use low GPIO speed (output slew rate, not pulse frequency); STEP additionally
-uses internal pull-downs. `src/main.cpp` creates one `control::MotionController`,
-which owns the shared generator, driver enable and three `StepperMotor` objects.
-The motors claim their STEP/DIR, reference-switch and encoder resources; M1
-starts encoder monitoring during construction. The controller starts the shared
-timebase once, with drivers disabled and no motion or homing at startup.
-A `ControllerServer` owns its execution boundary; the UI-side `ControllerClient`
-is injected into both motor and joint-axis CLI modules before application
-threads start. Use `motor` or `axis` for command overviews, or `help axis move`
-for joint-unit motion options; see the
-[motor CLI and ownership documentation](src/cli/README.md#motor-control).
+uses internal pull-downs. The current application main is empty; the
+[archived composition](backups/application/main.cpp) provides the previous motor
+and controller setup as reference. Dedicated hardware test images retain their
+own setup and commands.
 
 | Signal | STM32 pin | Board connector | Driver connection | Function |
 | --- | --- | --- | --- | --- |
@@ -1317,6 +1308,10 @@ and perfboard nets are unchanged; use the revised J101 harness destinations.
 | TIM4 | Available |
 
 ### Hardware step generator and encoder HAL
+
+The HAL interfaces below remain active. `StepperMotor` examples refer to the
+[archived motor implementation](backups/application/control/StepperMotor.hpp),
+which the STEP bench still uses; they do not run in the empty application.
 
 [IStepGenerator / IStepOutput](platform/hal/drivers/itf/IStepGenerator.hpp)
 replace ordinary PWM for the robot's STEP signals. Output compare toggles a
@@ -1469,7 +1464,7 @@ nonblocking and bounded in ISR context. Invalid timing stops the generator;
 retired providers are released by the calling thread after the HAL unlocks.
 
 `StepperMotor` takes the reference-switch coordinate as its second constructor
-argument: `StepperMotor{Motor1, 135_deg, 1.8_deg, 16U, generator, driver}`. The current
+argument: `StepperMotor{Motor1, 135_deg, 1.8_deg, 16U, generator, driver}`. The archived
 `main.cpp` configures 135° for each motor. Calling `reference()` performs a
 switch reference sequence; it does not enable the drivers or start the shared
 generator. Defaults are 5 rpm for seeking/backing off, 0.5 rpm for the second
@@ -2008,7 +2003,7 @@ the implementation. The transport owns that model for its lifetime. Fault-inject
 tests own their models and pass them to `create_stepper_drivers()` explicitly;
 controller tests supply a `MotionController::DriverFactory`. Shared board code
 has no simulation registry or simulation-access API.
-The normal application initializes both at boot, while the shared enable stays
+The archived application initializes both at boot, while the shared enable stays
 HIGH. Missing/unpowered drivers leave the CLI available but block motor, axis
 and robot enable/motion commands, including M1 because enable is shared.
 

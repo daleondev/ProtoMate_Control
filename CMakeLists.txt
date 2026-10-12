@@ -153,18 +153,21 @@ elseif(HAL_HARDWARE_TMC_TEST)
     target_sources(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_tmc_test.cpp)
 elseif(HAL_HARDWARE_STEP_TEST)
-    add_subdirectory(src/p2p)
+    add_subdirectory(src/common/p2p)
     target_link_libraries(${PROJECT_NAME} PRIVATE application::p2p)
+    # Preserve the existing motor/profile bench while application control is
+    # rebuilt. The normal application never compiles the archived modules.
+    set(step_test_control ${CMAKE_CURRENT_SOURCE_DIR}/backups/application/control)
     target_sources(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_step_test.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/control/StepperMotor.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/control/MotionProfile.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/control/MotionSequence.cpp
+        ${step_test_control}/StepperMotor.cpp
+        ${step_test_control}/MotionProfile.cpp
+        ${step_test_control}/MotionSequence.cpp
     )
-    set_source_files_properties(src/control/MotionProfile.cpp src/control/MotionSequence.cpp PROPERTIES
+    set_source_files_properties(${step_test_control}/MotionProfile.cpp ${step_test_control}/MotionSequence.cpp PROPERTIES
         COMPILE_OPTIONS "$<$<CONFIG:Release>:-O3>")
-    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/backups/application)
     target_link_libraries(${PROJECT_NAME} PRIVATE pneumo::pneumo)
 elseif(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
     target_sources(${PROJECT_NAME}

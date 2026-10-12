@@ -4,7 +4,7 @@ Start with [Actions.hpp](Actions.hpp), then run [actions.cpp](actions.cpp):
 
 ```sh
 cmake --build --preset debug-linux --target application_p2p_action_example application_p2p_action_tests
-./build/debug-linux/src/p2p/examples/application_p2p_action_example
+./build/debug-linux/src/common/p2p/examples/application_p2p_action_example
 ctest --test-dir build/debug-linux -R 'application\.p2p\.(actions|action_example)$' --output-on-failure
 ```
 
