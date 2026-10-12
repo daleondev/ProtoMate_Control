@@ -2,8 +2,6 @@
 #include "io/Application.hpp"
 #include "ui/Application.hpp"
 #include "p2p/transport/InProcessTransport.hpp"
-#include "p2p/examples/ContextThread.hpp"
-#include "common/Topics.hpp"
 
 #include <gtest/gtest.h>
 
@@ -14,17 +12,6 @@
 namespace
 {
     using namespace std::chrono_literals;
-
-    class ObservedLed final : public hal::device::ILed
-    {
-      public:
-        void turnOn() noexcept override { on.store(true); ++updates; }
-        void turnOff() noexcept override { on.store(false); ++updates; }
-        void toggle() noexcept override { on.store(!on.load()); ++updates; }
-        bool isOn() const noexcept override { return on.load(); }
-        std::atomic_bool on{};
-        std::atomic_uint updates{};
-    };
 
     struct MissingJoin
     {
@@ -39,6 +26,8 @@ namespace
     };
     static_assert(!application::Application<MissingJoin>);
     static_assert(!application::Application<WrongReturnType>);
+    static_assert(!std::default_initializable<io::Application>);
+    static_assert(!std::default_initializable<ui::Application>);
 
     template<typename Predicate>
     bool wait_until(Predicate predicate)
@@ -71,44 +60,26 @@ namespace
         }
     };
 
-    TEST(ApplicationLifecycle, ApplicationsWithoutTransportStopAndJoin)
+    TEST(ApplicationLifecycle, StopDuringHandshakeDrainsWithoutPeer)
     {
-        io::Application io;
-        ui::Application ui;
-        io.start();
-        ui.start();
-        io.requestStop();
-        ui.requestStop();
-        io.join();
-        ui.join();
-        EXPECT_THROW(io.start(), std::logic_error);
-        EXPECT_THROW(ui.start(), std::logic_error);
+        Applications apps;
+        apps.io.start();
+        apps.io.requestStop();
+        apps.io.join();
+        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Stopped);
+        EXPECT_THROW(apps.io.start(), std::logic_error);
     }
 
-    TEST(ApplicationLifecycle, IoLedOnlyChangesOnReceivedTopicAndTurnsOffOnPeerLoss)
+    TEST(ApplicationLifecycle, EmptyCatalogsKeepConnectionHealthyWhileApplicationsAreIdle)
     {
-        auto transport = p2p::InProcessTransport::pair();
-        auto led = std::make_shared<ObservedLed>();
-        io::Application io(*transport[0], led);
-        pnm::msg::Bus bus;
-        pnm::coro::Context context;
-        auto runner = example::run_context(context);
-        p2p::Bridge ui(bus, context, *transport[1]);
-        ui.registerTopics<application::Topics>(application::TopicPublisher::UI);
-        io.start();
-        ui.start();
-        ASSERT_TRUE(wait_until([&] { return io.connectionStatus().state == p2p::ConnectionState::Connected; }));
-        std::this_thread::sleep_for(30ms);
-        EXPECT_EQ(led->updates.load(), 0U); // IO has no local blink generator.
-        bus.topic<^^application::Topics::io_led_state>().publish(application::LedState{1, true});
-        ASSERT_TRUE(wait_until([&] { return led->isOn(); }));
-        bus.topic<^^application::Topics::io_led_state>().publish(application::LedState{2, false});
-        ASSERT_TRUE(wait_until([&] { return !led->isOn(); }));
-        bus.topic<^^application::Topics::io_led_state>().publish(application::LedState{3, true});
-        ASSERT_TRUE(wait_until([&] { return led->isOn(); }));
-        ui.stop();
-        io.join();
-        EXPECT_FALSE(led->isOn());
+        Applications apps;
+        apps.start();
+        ASSERT_TRUE(apps.connected());
+        // Longer than the 500 ms link-loss deadline: heartbeat traffic must
+        // continue even with no application topics, services or actions.
+        std::this_thread::sleep_for(650ms);
+        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Connected);
+        EXPECT_EQ(apps.ui.connectionStatus().state, p2p::ConnectionState::Connected);
     }
 
     TEST(ApplicationLifecycle, ConstructionAndDestructionNeedNoRunningContexts)

@@ -15,14 +15,15 @@ Use `h755-debug` to build both applications, or `h755-io-debug` and
 are documented together. Both images must be flashed. The
 [CubeMX project](external/CubeMX/CubeMX.ioc) assigns peripherals to their cores.
 
-The UI worker publishes `io/led/state` every 500 ms. Its yellow LED shows that
-state; the IO worker receives the serialized topic and applies it to the green
-LED. **P2P runs over shared SRAM4 and HSEM notifications**, with private buses,
-contexts and transport workers on both cores. No external wiring is needed.
-Both runtimes include filesystem support (no mounted media yet), RTC and
-hardware randomness. M7 owns the ST-Link serial console and user button.
-Motion control, planning, CLI and GUI are subsequent application work. The
-bare-metal LED samples retain their separate `h755-led-*` presets.
+Both applications always own a private message bus, coroutine context and p2p
+bridge. **P2P runs over shared SRAM4 and HSEM notifications**, with transport
+workers on both cores. The bridges perform their handshake and exchange
+heartbeats; the application message catalogs are empty. Application workers
+sleep until shutdown while motion control, planning, CLI and GUI are developed.
+No external wiring is needed. Both runtimes include filesystem support (no
+mounted media yet), RTC and hardware randomness. M7 owns the ST-Link serial
+console and user button. The bare-metal LED samples retain their separate
+`h755-led-*` presets.
 
 ## Application layout
 
@@ -46,22 +47,34 @@ joins. Call start/join/destruction from the lifecycle owner, outside workers.
 `runtime::thread::Definition` annotations in each `Application.hpp` declare its
 threads; `system_threads.cpp` defines their entries.
 [ThreadGroup](platform/runtime/ThreadGroup.hpp) creates all workers before
-releasing them. UI uses a timed wait between publications; IO waits for topic readiness. Both
-can stop immediately and turn their LEDs off on exit. The shared catalog lives
-in [Topics.hpp](src/common/Topics.hpp).
+releasing them. The p2p worker runs the context; the application worker waits
+for a stop request, then drains the bridge before stopping its context. Peer
+shutdown or link failure wakes the application worker. Each application requires
+a transport; the bridge is a concrete member with no optional execution path.
+
+The shared message catalogs live directly in `src/common/p2p/`:
+
+- [topics.hpp](src/common/p2p/topics.hpp): `Topics`, with `TopicPublisher` annotations.
+- [services.hpp](src/common/p2p/services.hpp): `Services`, with `ServiceProvider` annotations.
+- [actions.hpp](src/common/p2p/actions.hpp): `Actions`, with `ActionProvider` annotations.
+
+Both applications register all three catalogs in their constructors using their
+own IO/UI role. Add message definitions to these catalogs as functionality is
+implemented; no application messages or LED demo are registered currently.
 
 | Thread in each H755 image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
 | ThreadX timer worker | 0 | Port default |
-| `io.p2pThread` / `ui.p2pThread` | 2 | 32 KiB |
+| `io.p2pThread` | 2 | 32 KiB |
 | `intercore.notify` | 3 | 8 KiB |
+| `ui.p2pThread` | 4 | 32 KiB |
 | `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
 | Runtime cleanup/reaper | 31 | 2 KiB |
 
 Priorities belong to separate schedulers; M7 priorities do not preempt M4 work.
-`APPLICATION_ENABLE_P2P` is enabled in both H755 application images. The portable
-bridge and the HAL/runtime transport adapter are separate targets. Reset both
+P2P is a required part of both applications. The portable bridge and the
+HAL/runtime transport adapter are separate targets. Reset both
 cores together; independent core reconnection remains future work.
 
 The [application archive](backups/application/README.md) preserves the earlier

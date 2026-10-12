@@ -49,27 +49,28 @@ The RTC calendar starts at 2000-01-01 if its backup marker is absent and is
 preserved across system resets. It is not a synchronized real-world date.
 `system_clock` uses it with runtime counter interpolation; `steady_clock`
 continues to use the 1 ms scheduler tick. Entropy failure is reported, never
-replaced with deterministic numbers. Each sample checks RNG access at startup.
+replaced with deterministic numbers.
 
-## Shared-memory transport and LED topic
+## Shared-memory transport
 
 ```mermaid
 flowchart LR
-  UI["M7 UI worker: LED state every 500 ms"] --> UB[UI bus]
-  UB --> UBridge[p2p Bridge]
-  UBridge --> UT[InterCoreTransport]
+  UI["M7 ui::Application"] <--> UB[UI bus]
+  UB <--> UBridge[p2p Bridge]
+  UBridge <--> UT[InterCoreTransport]
   UT <--> SRAM["SRAM4 byte queues + HSEM notifications"]
   SRAM <--> IT[InterCoreTransport]
-  IT --> IBridge[p2p Bridge]
-  IBridge --> IB[IO bus]
-  IB --> IO["M4 IO worker: apply state to green LED"]
+  IT <--> IBridge[p2p Bridge]
+  IBridge <--> IB[IO bus]
+  IB <--> IO["M4 io::Application"]
 ```
 
-The catalog is `src/common/Topics.hpp`. `Topics::io_led_state` is marked with
-`TopicPublisher::UI`; its inferred topic name is `io/led/state`. The payload is
-`LedState { uint32_t sequence; bool on; }`, serialized by pneumo. UI shows the
-same state on its yellow LED. IO subscribes with latest-only delivery and sleeps
-until readiness or shutdown is signalled. IO never generates a blink locally.
+Both applications require a transport and own a concrete bridge, bus and context.
+The bridges register the empty `Topics`, `Services` and `Actions` catalogs in
+`src/common/p2p/topics.hpp`, `services.hpp` and `actions.hpp`. These are the
+shared definitions to extend with application functionality. Handshake and
+heartbeat traffic runs even without application messages. The application
+workers sleep until shutdown; there is no LED topic or local blink task.
 
 `application::p2p` remains portable. The separately linked
 `application::p2p::intercore` adapter wraps `hal::IInterCoreChannel`.
@@ -97,9 +98,9 @@ RAM stays cached. This follows ST's [dual-core memory guidance](https://www.st.c
 HSEM interrupts only signal a local runtime notification. A worker wakes
 coroutines in thread context. Notifications can coalesce: queue counters are
 authoritative, and registration checks existing work. The bridge sends
-heartbeats every 100 ms and detects link loss after 500 ms. Link failure stops
-the application workers and turns their LEDs off. A halted core cannot turn off
-its own LED until it resumes.
+heartbeats every 100 ms and detects link loss after 500 ms. Link failure or peer
+shutdown wakes the application worker, which drains the bridge before stopping
+its coroutine context. The main thread then joins both workers.
 
 **Reset both cores together.** A closed channel cannot be reopened during that
 boot. Independent core restart/reconnection and cross-session stale-frame
@@ -117,7 +118,7 @@ cmake --build --preset h755-release
 ```
 
 Per-core presets remain `h755-io-debug`, `h755-ui-debug` and their Release
-variants. Hardware application presets enable P2P and the full runtime.
+variants. Both hardware applications always include P2P and the full runtime.
 The separate `h755-led-*` presets retain the bare-metal startup samples.
 Both firmware builds report private memory and the same shared reservation;
 the two SHARED figures describe one physical region, not two allocations.
@@ -139,25 +140,24 @@ openocd -f cmake/openocd/nucleo-h755ziq.cfg \
   -c "reset run; shutdown"
 ```
 
-Green follows yellow with a small transport delay: 500 ms on, 500 ms off. Reset or USB
-reconnection should restart the pair. No external wiring is needed. The M7
-console reports that storage is unavailable; that is expected without media.
+No external wiring is needed. The applications do not drive the LEDs. Reset or
+USB reconnection restarts both bridge endpoints. The M7 console reports that
+storage is unavailable; that is expected without media.
 
 Each image has six ThreadX threads: timer, main, reaper, p2p context, transport
 notification worker and application worker. `hal_last_panic`, CFSR and HFSR
-should stay clear. Both scheduler counters and all four shared queue counters
-should advance, with consumed queues draining. Use each core's own ELF in the
-debugger. Pausing a core for more than 500 ms deliberately fails the peer link;
-reset the board after such debugging.
+should stay clear. Both scheduler counters and the urgent shared queue counters
+should advance as heartbeats are exchanged; normal queues stay idle until
+application routes are added. Use each core's own ELF in the debugger. Pausing
+a core for more than 500 ms deliberately fails the peer link; reset the board
+after such debugging.
 
 Host tests cover serialized delivery, queue saturation, independent urgent
 capacity, counter rollover, cancellation, notification races and shutdown.
-The application test confirms IO stays idle without a received LED topic and
-turns the LED off on peer loss. Lint and sanitizers are not run automatically
-for these intermediate migration steps.
+Application tests cover handshake with empty catalogs, continued heartbeat
+traffic while idle, stop during handshake, peer loss and teardown. Lint and
+sanitizers are not run automatically for these intermediate migration steps.
 
-Debug and Release builds pass without compiler warnings. Both pairs passed
-flash verification, three resets, RTC/counter and RNG startup checks, LED topic
-delivery, and a deliberate M7 halt that caused IO to turn its LED off and close
-the link. Both Linux configurations pass all 34 CTest suites. The Debug pair is
-installed for development.
+Both cores' Debug and Release builds pass without compiler warnings. The Linux
+Debug build passes all 34 CTest suites. This application cleanup has not been
+flashed or verified on hardware.

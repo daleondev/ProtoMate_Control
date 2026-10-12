@@ -2,7 +2,6 @@
 #include "p2p/bridge/Bridge.hpp"
 #include "p2p/examples/ContextThread.hpp"
 #include "hal/util/InterCoreMemory.hpp"
-#include "common/Topics.hpp"
 
 #include <gtest/gtest.h>
 #include <future>
@@ -14,6 +13,12 @@ namespace
     using Channel = hal::IInterCoreChannel;
     using Queue = hal::util::InterCoreQueue;
     using Error = p2p::ITransport::Error;
+
+    enum class Publisher : std::uint8_t { Sender, Receiver };
+    struct TestTopics
+    {
+        [[= Publisher::Sender]] pnm::msg::Topic<std::uint32_t> test_value;
+    };
 
     // Model only the MMIO/interrupt boundary, using the production ring layout.
     class ChannelModel final : public Channel
@@ -179,23 +184,22 @@ namespace
         EXPECT_EQ(receiver.get().error(), Error::Disconnected);
     }
 
-    TEST(InterCoreTransport, CompleteBridgeHandshakeAndSerializedLedTopic)
+    TEST(InterCoreTransport, CompleteBridgeHandshakeAndSerializedTopic)
     {
         TransportPair pair;
         pnm::msg::Bus io, ui;
         p2p::Bridge io_bridge{io, pair.context, pair.a};
         p2p::Bridge ui_bridge{ui, pair.context, pair.b};
-        io_bridge.registerTopics<application::Topics>(application::TopicPublisher::IO);
-        ui_bridge.registerTopics<application::Topics>(application::TopicPublisher::UI);
-        application::LedState result;
-        auto subscription = io.topic<^^application::Topics::io_led_state>().subscribe(
-          [&](const application::LedState& state) { result = state; });
+        io_bridge.registerTopics<TestTopics>(Publisher::Receiver);
+        ui_bridge.registerTopics<TestTopics>(Publisher::Sender);
+        std::uint32_t result{};
+        auto subscription = io.topic<^^TestTopics::test_value>().subscribe(
+          [&](std::uint32_t value) { result = value; });
         io_bridge.start();
         ui_bridge.start();
-        ui.topic<^^application::Topics::io_led_state>().publish(application::LedState{42, true});
+        ui.topic<^^TestTopics::test_value>().publish(42U);
         ASSERT_EQ(subscription.poll(2s), 1U);
-        EXPECT_EQ(result.sequence, 42U);
-        EXPECT_TRUE(result.on);
+        EXPECT_EQ(result, 42U);
         ui_bridge.stop();
         io_bridge.stop();
     }

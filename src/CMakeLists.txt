@@ -1,7 +1,5 @@
 add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 
-option(APPLICATION_ENABLE_P2P "Enable application p2p workers" ON)
-
 add_subdirectory(common)
 if(DEFINED H755_CORE)
     if(H755_CORE STREQUAL "CM4")

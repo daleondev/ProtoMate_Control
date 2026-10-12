@@ -4,8 +4,4 @@ target_sources(application_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/Applicat
 target_include_directories(application_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(application_common INTERFACE project_compiler_settings)
 
-if(APPLICATION_ENABLE_P2P)
-    target_sources(application_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/Topics.hpp)
-    target_link_libraries(application_common INTERFACE pneumo::messaging)
-    add_subdirectory(p2p)
-endif()
+add_subdirectory(p2p)

@@ -1,32 +1,24 @@
 #include "Application.hpp"
-#if defined(APPLICATION_ENABLE_P2P)
-#include "common/Topics.hpp"
-#endif
+#include "p2p/topics.hpp"
+#include "p2p/services.hpp"
+#include "p2p/actions.hpp"
 
 #include <stdexcept>
-#include <utility>
 
 namespace io
 {
-    Application::Application(std::shared_ptr<hal::device::ILed> statusLed)
-      : m_statusLed(std::move(statusLed))
+    Application::Application(p2p::ITransport& transport)
+      : m_bridge(m_bus, m_p2pContext, transport)
     {
-    }
-
-#if defined(APPLICATION_ENABLE_P2P)
-    Application::Application(p2p::ITransport& transport, std::shared_ptr<hal::device::ILed> statusLed)
-      : m_bridge(std::in_place, m_bus, m_p2pContext, transport)
-      , m_statusLed(std::move(statusLed))
-    {
-        m_bridge->registerTopics<application::Topics>(application::TopicPublisher::IO);
-        m_bridge->setConnectionCallback([this](p2p::ConnectionStatus status) {
+        m_bridge.registerTopics<application::Topics>(application::TopicPublisher::IO);
+        m_bridge.registerServices<application::Services>(application::ServiceProvider::IO);
+        m_bridge.registerActions<application::Actions>(application::ActionProvider::IO);
+        m_bridge.setConnectionCallback([this](p2p::ConnectionStatus status) {
             if (status.state == p2p::ConnectionState::Failed || status.reason == p2p::ConnectionReason::PeerStopped) {
                 requestStop();
             }
         });
     }
-
-#endif
 
     Application::~Application()
     {
@@ -44,11 +36,7 @@ namespace io
         try {
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
             m_threads.start(*this, "io");
-#if defined(APPLICATION_ENABLE_P2P)
-            if (m_bridge) {
-                m_bridge->start();
-            }
-#endif
+            m_bridge.start();
         } catch (...) {
             lock.unlock();
             requestStop();
@@ -68,10 +56,8 @@ namespace io
 
     void Application::join() { m_threads.join(); }
 
-#if defined(APPLICATION_ENABLE_P2P)
     p2p::ConnectionStatus Application::connectionStatus() const
     {
-        return m_bridge ? m_bridge->connectionStatus() : p2p::ConnectionStatus{};
+        return m_bridge.connectionStatus();
     }
-#endif
 }

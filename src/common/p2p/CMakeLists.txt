@@ -4,7 +4,7 @@ add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 add_subdirectory(bridge)
 add_subdirectory(transport)
 
-add_library(application_p2p STATIC)
+add_library(application_p2p STATIC topics.hpp services.hpp actions.hpp)
 add_library(application::p2p ALIAS application_p2p)
 target_include_directories(application_p2p PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(application_p2p
