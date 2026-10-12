@@ -1,6 +1,15 @@
 add_library(hal_drivers_impl INTERFACE)
 add_library(hal::drivers::impl ALIAS hal_drivers_impl)
 
+if(HAL_BOARD STREQUAL "nucleo_h755ziq")
+    target_sources(hal_drivers_impl INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.cpp)
+    return()
+endif()
+
 target_sources(hal_drivers_impl
     INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/StepGenerator.hpp

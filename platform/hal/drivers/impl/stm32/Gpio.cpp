@@ -185,7 +185,11 @@ namespace hal
         // one line must not expose pending edges on other, unowned inputs.
         // CMSIS uses fixed MMIO addresses for the EXTI mask and pending registers.
         // NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+#if defined(CORE_CM4)
+        EXTI_D2->IMR1 = EXTI_D2->IMR1 & ~static_cast<std::uint32_t>(GPIO_PIN_All);
+#else
         EXTI_D1->IMR1 = EXTI_D1->IMR1 & ~static_cast<std::uint32_t>(GPIO_PIN_All);
+#endif
         __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_All);
         // NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         for (const auto irq :

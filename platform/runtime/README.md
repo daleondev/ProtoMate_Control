@@ -4,6 +4,13 @@ This directory contains project-owned system runtime integration. It lives
 under `platform/`, alongside the HAL, so application code in `src` does not
 share a source tree with hardware, toolchain, RTOS, or C library adaptation.
 
+On the H755, each core links its own kernel and runtime instance. The M4 uses
+the ThreadX Cortex-M4 port, and M7 uses the Cortex-M7 port. `stm32/` owns the
+runtime SysTick integration, per-image TLS/heap linker layout and bounded heap
+allocator. See the [H755 setup](../../docs/nucleo-h755ziq/README.md) for memory and
+peripheral ownership. `RUNTIME_FILESYSTEM=OFF` omits storage support for this
+initial application setup; the threading runtime remains active on both cores.
+
 ## Ownership
 
 - `startup.cpp`, `tx_user.h`, and `fx_user.h` own application-thread startup
@@ -57,7 +64,7 @@ overhead while a thread is scheduled is included; interrupts serviced entirely
 while idle are not charged to a thread. It is not a per-thread clock or a full
 interrupt-load monitor. Linux continues to use its native process CPU clock.
 
-The runtime samples the Cortex-M7 DWT cycle counter at context switches, reads,
+The runtime samples each Cortex core's DWT cycle counter at context switches, reads,
 and each SysTick. This preserves short execution intervals and extends the
 32-bit hardware counter across wraparound. It assumes the configured constant
 core frequency and interrupts enabled often enough to sample at least once per

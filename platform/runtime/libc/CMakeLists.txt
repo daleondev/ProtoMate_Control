@@ -4,16 +4,19 @@ add_library(runtime::libc ALIAS runtime_libc)
 target_sources(runtime_libc
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/libc.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/filesystem.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/storage_media.cpp
 )
+if(RUNTIME_FILESYSTEM)
+    target_sources(runtime_libc PRIVATE filesystem.cpp storage_media.cpp)
+    target_link_libraries(runtime_libc PUBLIC filex levelx)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    target_sources(runtime_libc PRIVATE unavailable.c)
+    target_link_options(runtime_libc INTERFACE LINKER:--undefined=_getentropy)
+endif()
 
 target_link_libraries(runtime_libc
     PRIVATE
         platform::hal
     PUBLIC
-        filex
-        levelx
         threadx
         project_compiler_settings
 )
@@ -51,6 +54,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_link_options(runtime_libc
         INTERFACE
             LINKER:--undefined=runtime_libc_initialize
-            LINKER:--undefined=runtime_filex_initialize
     )
+    if(RUNTIME_FILESYSTEM)
+        target_link_options(runtime_libc INTERFACE LINKER:--undefined=runtime_filex_initialize)
+    endif()
 endif()

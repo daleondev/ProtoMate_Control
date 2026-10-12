@@ -1,6 +1,7 @@
 #include "backend.hpp"
 #include "hal/drivers/factory/rtc.hpp"
 #include "hal/drivers/factory/timer.hpp"
+#include "hal/board/board.hpp"
 #include "hal/hal.hpp"
 
 #include <algorithm>
@@ -60,7 +61,6 @@ namespace runtime
             constexpr ULONG ROLLOVER_SAMPLE_TICKS{ 0x7FFFFFFFUL };
             constexpr ULONG MAX_FINITE_WAIT{ TX_WAIT_FOREVER - 1UL };
             constexpr std::uint64_t NANOSECONDS_PER_SECOND{ 1'000'000'000ULL };
-            constexpr auto HIGH_RESOLUTION_TIMER_PERIPHERAL{ hal::timer::Peripheral::Tim5 };
 
             struct HighResolutionCounter
             {
@@ -1522,8 +1522,7 @@ namespace runtime
               timestamp.nanoseconds;
         }
 
-        detail::high_resolution_timer =
-          hal::timer::create({ .peripheral = detail::HIGH_RESOLUTION_TIMER_PERIPHERAL });
+        detail::high_resolution_timer = hal::board::create_runtime_timer();
         detail::high_resolution_counter_available =
           detail::high_resolution_timer && detail::high_resolution_timer->start() &&
           detail::read_high_resolution_counter(detail::high_resolution_counter_epoch);

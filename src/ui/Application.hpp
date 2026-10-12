@@ -1,10 +1,16 @@
 #pragma once
 
 #include "common/Application.hpp"
-#include "p2p/bridge/Bridge.hpp"
+#include "hal/devices/itf/ILed.hpp"
 #include "runtime/ThreadGroup.hpp"
 
+#if defined(APPLICATION_ENABLE_P2P)
+#include "p2p/bridge/Bridge.hpp"
+#include <optional>
+#endif
+
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 
 namespace ui
@@ -12,8 +18,12 @@ namespace ui
     class Application final
     {
       public:
-        // The endpoint must outlive the application. Construction starts no threads.
+        // Construction starts no threads. A missing LED is useful for host tests.
+        explicit Application(std::shared_ptr<hal::device::ILed> statusLed = {});
+#if defined(APPLICATION_ENABLE_P2P)
+        // The endpoint must outlive the application.
         explicit Application(p2p::ITransport& transport);
+#endif
         ~Application();
         Application(const Application&) = delete;
         Application& operator=(const Application&) = delete;
@@ -27,20 +37,27 @@ namespace ui
         void requestStop();
         // Waits for shutdown; does not initiate it. Never call from our workers.
         void join();
+#if defined(APPLICATION_ENABLE_P2P)
         [[nodiscard]] p2p::ConnectionStatus connectionStatus() const;
+#endif
 
       private:
         friend class runtime::ThreadGroup;
-        // UI work stays below IO communication on the shared H753 scheduler.
+        // Priorities are local to this application's scheduler.
         static constexpr runtime::thread::Definition P2P_THREAD{ .priority = 4, .stack_size = 32UZ * 1024UZ };
         static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14, .stack_size = 16UZ * 1024UZ };
 
+#if defined(APPLICATION_ENABLE_P2P)
         [[= P2P_THREAD]] void p2pThread();
+#endif
         [[= APPLICATION_THREAD]] void applicationThread();
 
+#if defined(APPLICATION_ENABLE_P2P)
         pnm::msg::Bus m_bus;
         pnm::coro::Context m_p2pContext;
-        p2p::Bridge m_bridge;
+        std::optional<p2p::Bridge> m_bridge;
+#endif
+        std::shared_ptr<hal::device::ILed> m_statusLed;
         std::mutex m_mutex;
         std::condition_variable m_stopRequested;
         bool m_started{};

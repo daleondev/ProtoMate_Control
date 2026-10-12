@@ -1,6 +1,10 @@
 add_library(hal_devices_factory INTERFACE)
 add_library(hal::devices::factory ALIAS hal_devices_factory)
 
+if(HAL_BOARD STREQUAL "nucleo_h755ziq")
+    return()
+endif()
+
 target_sources(hal_devices_factory
     INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/tmc2209.hpp

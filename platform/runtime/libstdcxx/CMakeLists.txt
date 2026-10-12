@@ -24,7 +24,7 @@ target_sources(runtime_libstdcxx
         ${CMAKE_CURRENT_SOURCE_DIR}/tls.cpp
 )
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic" AND RUNTIME_FILESYSTEM)
     target_sources(runtime_libstdcxx
         PRIVATE
             ${RUNTIME_LIBSTDCXX_VENDOR_DIR}/c++17/fs_ops.cc

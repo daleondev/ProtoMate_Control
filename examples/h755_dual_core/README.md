@@ -20,14 +20,14 @@ there is no application data exchange. Both images must be present for startup.
 From the repository root, with CMake, Ninja and Arm GCC installed:
 
 ```sh
-cmake --preset h755-io-debug
-cmake --build --preset h755-io-debug
-cmake --preset h755-ui-debug
-cmake --build --preset h755-ui-debug
+cmake --preset h755-led-io-debug
+cmake --build --preset h755-led-io-debug
+cmake --preset h755-led-ui-debug
+cmake --build --preset h755-led-ui-debug
 ```
 
-The corresponding optimized presets are `h755-io-release` and
-`h755-ui-release`. Each build produces its own `.elf`, `.hex`, `.bin` and `.map`
+The corresponding optimized presets are `h755-led-io-release` and
+`h755-led-ui-release`. Each build produces its own `.elf`, `.hex`, `.bin` and `.map`
 in `build/<preset>/`. These presets bypass the H753 HAL/runtime integration.
 
 ## Flash and observe
@@ -41,10 +41,10 @@ programming and verification finish:
 ```sh
 openocd -f cmake/openocd/nucleo-h755ziq.cfg \
   -c "init; reset halt; targets stm32h7x.cpu0" \
-  -c "flash write_image erase build/h755-ui-debug/ui-controller.elf" \
-  -c "verify_image build/h755-ui-debug/ui-controller.elf" \
-  -c "flash write_image erase build/h755-io-debug/io-controller.elf" \
-  -c "verify_image build/h755-io-debug/io-controller.elf" \
+  -c "flash write_image erase build/h755-led-ui-debug/ui-controller.elf" \
+  -c "verify_image build/h755-led-ui-debug/ui-controller.elf" \
+  -c "flash write_image erase build/h755-led-io-debug/io-controller.elf" \
+  -c "verify_image build/h755-led-io-debug/io-controller.elf" \
   -c "reset run; shutdown"
 ```
 
@@ -73,16 +73,17 @@ presets use the generated startup/configuration/linker files and the repository'
 HAL/CMSIS submodules; they do not depend on CubeMX's generated absolute driver
 paths. Build through the root presets, not the generated standalone CMake files.
 
-The [H753 CubeMX backup](../../backups/CubeMX/) remains available. The existing
-`src/io` and `src/ui` application shells and production HAL/runtime have not yet
-been ported to the H755. Their integration is a subsequent step.
+The [H753 CubeMX backup](../../backups/CubeMX/) remains available. The runtime-based
+applications are described in [the board setup](../../docs/nucleo-h755ziq/README.md);
+they use the separate `h755-io-*` and `h755-ui-*` presets.
 
 Debug and Release builds of both images pass. Both Debug images have been flashed
 and verified by readback on the H755. Live ST-Link checks confirmed advancing
 millisecond ticks on both cores, 64 MHz clock configuration, green/yellow GPIO
 transitions consistent with the intended blink periods, and successful startup
 after three board resets. Both cores were in their delay loops with clear fault
-status registers and were left running. A USB power-cycle check remains manual.
+status registers. Visual LED behavior and USB power-cycle startup were also
+confirmed manually.
 No clang-tidy or sanitizer runs are part of this initial test.
 
 Board details: [UM2408, power supply and LEDs](../../docs/nucleo-h755ziq/um2408-stm32h7-nucleo144-boards-mb1363-stmicroelectronics.pdf).

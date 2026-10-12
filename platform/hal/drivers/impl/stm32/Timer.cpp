@@ -273,7 +273,7 @@ namespace hal
     auto Timer::setPeriodElapsedCallback(PeriodElapsedCallback callback) noexcept -> void
     {
         {
-            // Masking TIM5 alone still allows another task to preempt this
+            // Masking this timer alone still allows another task to preempt this
             // setter. Protect the swap against both tasks and callbacks, then
             // release the old callback with normal interrupt state restored.
             const stm32::InterruptGuard interrupt_guard;
@@ -297,6 +297,7 @@ namespace hal
     }
 }
 
+#if !defined(HAL_BOARD_NUCLEO_H755ZIQ) || defined(CORE_CM4)
 extern "C" void TIM5_IRQHandler()
 {
     if (__HAL_TIM_GET_FLAG(&htim5, TIM_FLAG_UPDATE) != RESET &&
@@ -305,3 +306,13 @@ extern "C" void TIM5_IRQHandler()
         hal::Timer::dispatchPeriodElapsed(&htim5);
     }
 }
+#else
+extern "C" void TIM8_BRK_TIM12_IRQHandler()
+{
+    if (__HAL_TIM_GET_FLAG(&htim12, TIM_FLAG_UPDATE) != RESET &&
+        __HAL_TIM_GET_IT_SOURCE(&htim12, TIM_IT_UPDATE) != RESET) {
+        __HAL_TIM_CLEAR_IT(&htim12, TIM_IT_UPDATE);
+        hal::Timer::dispatchPeriodElapsed(&htim12);
+    }
+}
+#endif

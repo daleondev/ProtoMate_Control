@@ -58,6 +58,20 @@ namespace
         }
     };
 
+    TEST(ApplicationLifecycle, ApplicationsWithoutTransportStopAndJoin)
+    {
+        io::Application io;
+        ui::Application ui;
+        io.start();
+        ui.start();
+        io.requestStop();
+        ui.requestStop();
+        io.join();
+        ui.join();
+        EXPECT_THROW(io.start(), std::logic_error);
+        EXPECT_THROW(ui.start(), std::logic_error);
+    }
+
     TEST(ApplicationLifecycle, ConstructionAndDestructionNeedNoRunningContexts)
     {
         Applications apps;

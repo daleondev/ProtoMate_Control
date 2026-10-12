@@ -9,6 +9,7 @@
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/factory/spi.hpp"
 #include "hal/drivers/factory/step.hpp"
+#include "hal/drivers/factory/timer.hpp"
 
 #include "hal/devices/impl/Dm542tDriver.hpp"
 #include "hal/devices/impl/Tmc2209Driver.hpp"
@@ -19,6 +20,10 @@
 
 namespace hal::board
 {
+    auto create_runtime_timer() -> std::shared_ptr<ITimer>
+    {
+        return timer::create({.peripheral = timer::Peripheral::Tim5});
+    }
     namespace
     {
         constexpr auto MAX_MICROSTEPS{ 256U };

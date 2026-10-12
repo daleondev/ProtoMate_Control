@@ -1,6 +1,15 @@
 add_library(hal_drivers_factory INTERFACE)
 add_library(hal::drivers::factory ALIAS hal_drivers_factory)
 
+if(HAL_BOARD STREQUAL "nucleo_h755ziq")
+    target_sources(hal_drivers_factory INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/gpio.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/timer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/rtc.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/rng.cpp)
+    return()
+endif()
+
 target_sources(hal_drivers_factory
     INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/ethernet.hpp

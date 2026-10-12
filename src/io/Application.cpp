@@ -1,18 +1,27 @@
 #include "Application.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 namespace io
 {
-    Application::Application(p2p::ITransport& transport)
-      : m_bridge(m_bus, m_p2pContext, transport)
+    Application::Application(std::shared_ptr<hal::device::ILed> statusLed)
+      : m_statusLed(std::move(statusLed))
     {
-        m_bridge.setConnectionCallback([this](p2p::ConnectionStatus status) {
+    }
+
+#if defined(APPLICATION_ENABLE_P2P)
+    Application::Application(p2p::ITransport& transport)
+      : m_bridge(std::in_place, m_bus, m_p2pContext, transport)
+    {
+        m_bridge->setConnectionCallback([this](p2p::ConnectionStatus status) {
             if (status.state == p2p::ConnectionState::Failed || status.reason == p2p::ConnectionReason::PeerStopped) {
                 requestStop();
             }
         });
     }
+
+#endif
 
     Application::~Application()
     {
@@ -30,7 +39,11 @@ namespace io
         try {
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
             m_threads.start(*this, "io");
-            m_bridge.start();
+#if defined(APPLICATION_ENABLE_P2P)
+            if (m_bridge) {
+                m_bridge->start();
+            }
+#endif
         } catch (...) {
             lock.unlock();
             requestStop();
@@ -50,5 +63,10 @@ namespace io
 
     void Application::join() { m_threads.join(); }
 
-    p2p::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
+#if defined(APPLICATION_ENABLE_P2P)
+    p2p::ConnectionStatus Application::connectionStatus() const
+    {
+        return m_bridge ? m_bridge->connectionStatus() : p2p::ConnectionStatus{};
+    }
+#endif
 }

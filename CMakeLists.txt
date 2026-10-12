@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.22)
 
-# Initial H755 board bring-up is intentionally independent of the H753 runtime,
-# robot application and p2p bridge. Each core gets its own configure/build tree.
+# Each H755 core gets its own configure/build tree and runtime instance.
 if(DEFINED H755_CORE)
-    project(H755Bringup LANGUAGES C CXX ASM)
-    add_subdirectory(examples/h755_dual_core)
+    project(Application LANGUAGES C CXX ASM)
+    option(H755_LED_SAMPLE "Build the initial bare-metal LED sample" OFF)
+    if(H755_LED_SAMPLE)
+        add_subdirectory(examples/h755_dual_core)
+    else()
+        include(cmake/application_h755.cmake)
+    endif()
     return()
 endif()
 

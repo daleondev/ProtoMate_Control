@@ -15,11 +15,15 @@ else()
     message(FATAL_ERROR "Unsupported HAL platform: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-target_sources(hal
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/hal.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/${HAL_PLATFORM_DIRECTORY}/hal.cpp
-)
+if(HAL_BOARD STREQUAL "nucleo_h755ziq")
+    target_sources(hal PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/stm32/h755/hal.cpp)
+else()
+    target_sources(hal
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/hal.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/${HAL_PLATFORM_DIRECTORY}/hal.cpp
+    )
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(hal
@@ -36,7 +40,9 @@ target_link_libraries(hal
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    target_sources(hal PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/stm32/FaultShutdown.cpp)
+    if(NOT HAL_BOARD STREQUAL "nucleo_h755ziq")
+        target_sources(hal PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/stm32/FaultShutdown.cpp)
+    endif()
     if(HAL_HARDWARE_TMC_STANDALONE_TEST)
         target_compile_definitions(hal PRIVATE HAL_HARDWARE_TMC_STANDALONE_TEST)
     endif()

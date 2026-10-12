@@ -4,76 +4,62 @@ Control software running on the robot controller of the ProtoMate SCARA Robot.
 
 ## Current hardware: NUCLEO-H755ZI-Q
 
-The current bring-up uses two minimal bare-metal LED applications: **M4/IO**
-blinks LD1 green at 2 Hz, and **M7/UI** blinks LD2 yellow at 1 Hz. The new
-[CubeMX project](external/CubeMX/CubeMX.ioc) generates startup and GPIO
-configuration for both cores. Use the `h755-io-debug` and `h755-ui-debug` presets;
-[build, flash and test instructions](examples/h755_dual_core/README.md) cover both
-images together. Release presets are also available.
+**M4 runs `io::Application`; M7 runs `ui::Application`.** Each firmware has its
+own main, ThreadX kernel, C++ runtime, heap, TLS and threads. Both use the same
+runtime implementation and HAL interfaces. No application object, mutex or
+scheduler is shared between cores.
 
-The H755 images do not yet run the application shells, ThreadX or p2p. The
-application/runtime descriptions and STM32 presets below describe the H753
-implementation awaiting migration; those H753 STM32 presets are not compatible
-with the new dual-core CubeMX export. Its previous export is preserved in
-[`backups/CubeMX`](backups/CubeMX/).
+Use `h755-io-debug` and `h755-ui-debug` (or their `-release` variants).
+[Build, flash, memory and peripheral ownership](docs/nucleo-h755ziq/README.md)
+are documented together. Both images must be flashed. The
+[CubeMX project](external/CubeMX/CubeMX.ioc) assigns peripherals to their cores.
+
+The current workers drive a HAL status LED: IO/green at approximately 2 Hz and
+UI/yellow at approximately 1 Hz. **P2P is disabled in H755 firmware** until the
+shared-memory transport is implemented. Motion control, planning, CLI and GUI
+are subsequent application work. The bare-metal LED samples remain available
+through the separate `h755-led-*` presets.
 
 ## Application layout
 
-The application is a scaffold for incremental reimplementation. `src/main.cpp`
-starts independent `io::Application` and `ui::Application` instances, connected
-through the serialized in-process p2p transport. Platform startup initializes the
-HAL and ThreadX once. Motion control, planning and CLI are not implemented in
-these new applications yet.
-
-| Directory | Intended responsibility |
+| Directory | Responsibility |
 | --- | --- |
-| `src/common/` | Shared contracts, the application lifecycle concept and `p2p/` |
-| `src/io/` | Hardware ownership, motion execution and sensor processing |
-| `src/ui/` | Robot planning, CLI and later GUI |
+| `src/common/` | Shared contracts, application lifecycle concept and portable `p2p/` |
+| `src/io/` | M4 entry point and IO application; future motion execution and sensors |
+| `src/ui/` | M7 entry point and UI application; future planning, CLI and GUI |
 
-Each application owns a bus, a bridge, its own coroutine context and its worker
-threads. Neither application depends on the other. Their CMake targets are
-`application::io` and `application::ui`; `application::common` stays independent
-of both implementations.
+Each firmware compiles only its own application target, `application::io` or
+`application::ui`. Both use `application::common`. The Linux entry point in
+`src/main.cpp` retains the in-process paired transport for host development and
+lifecycle tests. It is not compiled into either H755 image.
 
-The [application concept](src/common/Application.hpp) checks that each concrete
-class provides `void start()`, `void requestStop()` and `void join()`, without
-inheritance. `start()` schedules startup and returns without waiting for the
-peer. It may only be called once. `requestStop()` is an idempotent, thread-safe
-notification. `join()` waits for the workers; it does not initiate shutdown.
-Call start/join/destruction from one lifecycle owner, outside application workers.
-Destruction requests a stop and joins automatically; the transport must outlive
-the application.
+The [application concept](src/common/Application.hpp) enforces `void start()`,
+`void requestStop()` and `void join()` without inheritance. Construction starts
+no threads. `start()` is one-shot; `requestStop()` is an idempotent thread-safe
+notification; `join()` waits for completion. Destruction requests a stop and
+joins. Call start/join/destruction from the lifecycle owner, outside workers.
 
-Thread entry methods are declared with `runtime::thread::Definition` annotations
-in each `Application.hpp` and implemented in its `system_threads.cpp`.
-[ThreadGroup](platform/runtime/ThreadGroup.hpp) binds those methods to the owning
-instance, applies their priorities and stack sizes, and launches them only after
-all threads were created successfully. Unannotated methods are ignored.
+`runtime::thread::Definition` annotations in each `Application.hpp` declare its
+threads; `system_threads.cpp` defines their entries.
+[ThreadGroup](platform/runtime/ThreadGroup.hpp) creates all workers before
+releasing them. The status worker uses a condition-variable timed wait, so it
+sleeps between LED changes and can stop immediately. On exit it turns its LED off.
 
-Each side currently has a dedicated p2p runner and a lifecycle worker. The latter
-waits for a stop request, drains the bridge while its runner is still alive, then
-stops the context. Connection failure or an orderly peer shutdown also requests
-local shutdown. This permits both applications to shut down even while `main()`
-is waiting for the other application's workers. There is no automatic restart.
-
-| Thread | ThreadX priority (lower is higher) | Requested stack |
+| Thread in each H755 image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
-| `io.p2pThread` | 2 | 32 KiB |
-| `ui.p2pThread` | 4 | 32 KiB |
-| `io.applicationThread`, `ui.applicationThread` | 14 | 16 KiB each |
+| ThreadX timer worker | 0 | Port default |
+| `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
+| Runtime main/application entry | 15 | 8 KiB |
+| Runtime cleanup/reaper | 31 | 2 KiB |
 
-On H753, both applications share one scheduler. For the H747 migration, separate
-M4/IO and M7/UI firmware entry points will each construct only their own application
-and a shared-memory transport endpoint. Core-specific startup, linker layouts and
-that transport adapter remain future work; the application classes have no
-single-core/dual-core branches. Shared peripherals will need explicit ownership.
+Priorities belong to separate schedulers; M7 priorities do not preempt M4 work.
+`APPLICATION_ENABLE_P2P` retains the optional bus/bridge/context workers for
+host tests. H755 builds reject enabling it until a hardware transport is ready.
 
-The [application archive](backups/application/README.md) preserves the existing
-`main.cpp`, `system_threads.*`, control and CLI modules, and the p2p thread glue.
-The normal build uses the application shells and the maintained p2p library;
-control/CLI tests are archived. The STEP bench explicitly uses the archived motor
-and motion-profile sources so its existing tests remain available.
+The [application archive](backups/application/README.md) preserves the earlier
+control/CLI implementation for incremental reimplementation. Legacy H753 STM32
+presets are not compatible with the active dual-core CubeMX export; the old
+export remains in [`backups/CubeMX`](backups/CubeMX/).
 
 ## Setup and compilers
 
@@ -97,14 +83,16 @@ capture also require access to the ST-Link USB and serial devices.
 ## Build and run
 
 ```sh
-cmake --preset debug-stm32
-cmake --build --preset debug-stm32
+cmake --preset h755-io-debug
+cmake --build --preset h755-io-debug
+cmake --preset h755-ui-debug
+cmake --build --preset h755-ui-debug
 cmake --preset debug-linux
 cmake --build --preset debug-linux
 ./build/debug-linux/Application
 ```
 
-`release-stm32` and `release-linux` provide the optimized builds. After a
+`h755-io-release`, `h755-ui-release` and `release-linux` provide optimized builds. After a
 compiler upgrade use `cmake --preset <preset> --fresh` and rebuild cleanly.
 Use `-DBUILD_TESTING=OFF` when configuring Linux to build the template without
 fetching or building test dependencies.
@@ -113,7 +101,10 @@ All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.
 
-STM32 builds produce `Application.elf`, `.hex`, `.bin`, and `.map`. Flash with:
+H755 builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.
+Use the [combined flash command](docs/nucleo-h755ziq/README.md#flash-and-test).
+
+The following flash command applies only to the archived H753 setup:
 
 ```sh
 openocd -f interface/stlink.cfg -f target/stm32h7x_dual_bank.cfg \

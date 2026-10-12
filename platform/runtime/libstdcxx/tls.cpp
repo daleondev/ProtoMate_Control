@@ -343,9 +343,7 @@ extern "C" auto runtime_tls_thread_delete(TX_THREAD* thread) noexcept -> void
 #endif
 extern "C" auto __emutls_get_address(void* object_pointer) noexcept -> void*
 {
-    if (object_pointer == nullptr) {
-        tls_failure();
-    }
+    // The compiler's emutls ABI requires a non-null descriptor.
     auto& object{ *static_cast<EmutlsObject*>(object_pointer) };
     const std::uintptr_t offset{ emutls_offset(object) };
     void** const storage{ current_emutls_storage() };

@@ -189,42 +189,98 @@
         },
         {
             "name": "h755-io-debug",
+            "displayName": "NUCLEO-H755ZI-Q CM4 IO application (debug)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "H755_CORE": "CM4",
+                "H755_LED_SAMPLE": false,
+                "APPLICATION_ENABLE_P2P": false,
+                "RUNTIME_FILESYSTEM": false
+            }
+        },
+        {
+            "name": "h755-ui-debug",
+            "displayName": "NUCLEO-H755ZI-Q CM7 UI application (debug)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "H755_CORE": "CM7",
+                "H755_LED_SAMPLE": false,
+                "APPLICATION_ENABLE_P2P": false,
+                "RUNTIME_FILESYSTEM": false
+            }
+        },
+        {
+            "name": "h755-io-release",
+            "displayName": "NUCLEO-H755ZI-Q CM4 IO application (release)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "H755_CORE": "CM4",
+                "H755_LED_SAMPLE": false,
+                "APPLICATION_ENABLE_P2P": false,
+                "RUNTIME_FILESYSTEM": false
+            }
+        },
+        {
+            "name": "h755-ui-release",
+            "displayName": "NUCLEO-H755ZI-Q CM7 UI application (release)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "H755_CORE": "CM7",
+                "H755_LED_SAMPLE": false,
+                "APPLICATION_ENABLE_P2P": false,
+                "RUNTIME_FILESYSTEM": false
+            }
+        },
+        {
+            "name": "h755-led-io-debug",
             "displayName": "NUCLEO-H755ZI-Q CM4 IO LED sample (debug)",
             "inherits": "base",
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "H755_CORE": "CM4"
+                "H755_CORE": "CM4",
+                "H755_LED_SAMPLE": true
             }
         },
         {
-            "name": "h755-ui-debug",
+            "name": "h755-led-ui-debug",
             "displayName": "NUCLEO-H755ZI-Q CM7 UI LED sample (debug)",
             "inherits": "base",
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "H755_CORE": "CM7"
+                "H755_CORE": "CM7",
+                "H755_LED_SAMPLE": true
             }
         },
         {
-            "name": "h755-io-release",
+            "name": "h755-led-io-release",
             "displayName": "NUCLEO-H755ZI-Q CM4 IO LED sample (release)",
             "inherits": "base",
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "H755_CORE": "CM4"
+                "H755_CORE": "CM4",
+                "H755_LED_SAMPLE": true
             }
         },
         {
-            "name": "h755-ui-release",
+            "name": "h755-led-ui-release",
             "displayName": "NUCLEO-H755ZI-Q CM7 UI LED sample (release)",
             "inherits": "base",
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "H755_CORE": "CM7"
+                "H755_CORE": "CM7",
+                "H755_LED_SAMPLE": true
             }
         }
     ],
@@ -311,6 +367,22 @@
         {
             "name": "h755-ui-release",
             "configurePreset": "h755-ui-release"
+        },
+        {
+            "name": "h755-led-io-debug",
+            "configurePreset": "h755-led-io-debug"
+        },
+        {
+            "name": "h755-led-ui-debug",
+            "configurePreset": "h755-led-ui-debug"
+        },
+        {
+            "name": "h755-led-io-release",
+            "configurePreset": "h755-led-io-release"
+        },
+        {
+            "name": "h755-led-ui-release",
+            "configurePreset": "h755-led-ui-release"
         }
     ],
     "testPresets": [

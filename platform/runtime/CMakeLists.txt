@@ -1,4 +1,5 @@
 add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
+option(RUNTIME_FILESYSTEM "Build FileX/LevelX filesystem support" ON)
 
 # HAL factories and application code exchange C++ objects. On Arm, the
 # toolchain otherwise defaults shared_ptr to the single-threaded policy in
@@ -50,6 +51,9 @@ function(runtime_attach target_name)
         PRIVATE
             ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/startup.cpp
     )
+    if(NOT RUNTIME_FILESYSTEM)
+        target_compile_definitions(${target_name} PRIVATE RUNTIME_SKIP_STORAGE_INIT)
+    endif()
 
     target_link_libraries(${target_name}
         PRIVATE

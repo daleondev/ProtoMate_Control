@@ -15,7 +15,7 @@ namespace hal::timer
     namespace
     {
 
-        [[nodiscard]] auto timer5_input_frequency_hz() noexcept -> std::uint32_t
+        [[nodiscard]] auto apb1_timer_input_frequency_hz() noexcept -> std::uint32_t
         {
             RCC_ClkInitTypeDef clock_configuration{};
             std::uint32_t flash_latency{};
@@ -44,12 +44,20 @@ namespace hal::timer
 
     auto create(Configuration configuration) -> std::shared_ptr<ITimer>
     {
+#if defined(HAL_BOARD_NUCLEO_H755ZIQ) && defined(CORE_CM7)
+        if (configuration.peripheral != Peripheral::Tim12) {
+            return {};
+        }
+        static auto timer{ std::make_shared<Timer>(Timer::Configuration{
+          .handle = htim12, .input_frequency_hz = apb1_timer_input_frequency_hz(), .interrupt = TIM8_BRK_TIM12_IRQn }) };
+#else
         if (configuration.peripheral != Peripheral::Tim5) {
             return {};
         }
 
         static auto timer{ std::make_shared<Timer>(Timer::Configuration{
-          .handle = htim5, .input_frequency_hz = timer5_input_frequency_hz(), .interrupt = TIM5_IRQn }) };
+          .handle = htim5, .input_frequency_hz = apb1_timer_input_frequency_hz(), .interrupt = TIM5_IRQn }) };
+#endif
         return timer;
     }
 }
