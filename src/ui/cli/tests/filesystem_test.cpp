@@ -30,6 +30,16 @@ TEST(CliFilesystem, SupportsCommonFileAndDirectoryOperations)
     ui::cli::Parser parser;
     ui::cli::filesystem::setup(parser);
     ui::cli::utilities::setup(parser, bus);
+    ASSERT_NO_THROW(ui::cli::filesystem::setup(parser));
+    ASSERT_NO_THROW(ui::cli::utilities::setup(parser, bus));
+
+    ui::cli::Parser independent_parser;
+    ui::cli::utilities::setup(independent_parser, bus);
+    ui::cli::filesystem::setup(independent_parser);
+    ASSERT_NO_THROW(ui::cli::utilities::setup(independent_parser, bus));
+    ASSERT_NO_THROW(ui::cli::filesystem::setup(independent_parser));
+    EXPECT_TRUE(independent_parser.contains("pwd"));
+    EXPECT_TRUE(independent_parser.contains("echo"));
 
     std::ostringstream output;
     ASSERT_TRUE(execute(parser, "pwd", output));

@@ -29,5 +29,6 @@ namespace ui::cli::filesystem
     [[nodiscard]] auto expand_wildcards(std::string_view pattern, std::span<const std::uint8_t> wildcard_mask)
       -> WildcardResult;
 
+    // Registers once per parser. Set up modules before running the CLI.
     void setup(Parser& parser);
 }

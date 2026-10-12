@@ -8,15 +8,24 @@
 #include <functional>
 #include <iosfwd>
 #include <meta>
+#include <mutex>
 #include <optional>
 #include <span>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
+namespace pnm::msg { class Bus; }
+
 namespace ui::cli
 {
+    class Parser;
+
+    namespace filesystem { void setup(Parser& parser); }
+    namespace utilities { void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop); }
+
     struct ArgumentSpec
     {
         std::string name;
@@ -189,10 +198,15 @@ namespace ui::cli
           -> std::string;
 
       private:
+        friend void filesystem::setup(Parser& parser);
+        friend void utilities::setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);
+
         struct Executor;
         [[nodiscard]] auto find(std::string_view name) const noexcept -> const Command*;
 
         std::vector<Command> m_commands;
+        std::once_flag m_filesystemRegistration;
+        std::once_flag m_utilitiesRegistration;
     };
 
     template<size_t N1, size_t N2>

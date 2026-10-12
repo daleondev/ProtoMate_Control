@@ -9,6 +9,7 @@
 #include <cerrno>
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 #include <optional>
 #include <ostream>
 #include <ranges>
@@ -977,6 +978,8 @@ namespace ui::cli::filesystem
 
     void setup(Parser& parser)
     {
-        register_commands<^^commands>(parser);
+        std::call_once(parser.m_filesystemRegistration, [&parser] {
+            register_commands<^^commands>(parser);
+        });
     }
 }

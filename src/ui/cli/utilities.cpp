@@ -20,6 +20,7 @@
 #include <fstream>
 #include <istream>
 #include <iterator>
+#include <mutex>
 #include <optional>
 #include <ostream>
 #include <ranges>
@@ -660,19 +661,21 @@ namespace ui::cli::utilities
 
     void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop)
     {
-        const commands::Context context{ &parser, bus.service<^^icc::Services::io_memory>(), stop };
-        register_commands<^^commands>(parser, [context](auto function) -> Callback {
-            return [context, function](const Arguments& args, CommandIO& io) -> CallbackResult {
-                if constexpr (std::invocable<decltype(function),
-                                             const Arguments&,
-                                             CommandIO&,
-                                             const commands::Context&>) {
-                    return function(args, io, context);
-                }
-                else {
-                    return function(args, io);
-                }
-            };
+        std::call_once(parser.m_utilitiesRegistration, [&parser, &bus, stop] {
+            const commands::Context context{ &parser, bus.service<^^icc::Services::io_memory>(), stop };
+            register_commands<^^commands>(parser, [context](auto function) -> Callback {
+                return [context, function](const Arguments& args, CommandIO& io) -> CallbackResult {
+                    if constexpr (std::invocable<decltype(function),
+                                                 const Arguments&,
+                                                 CommandIO&,
+                                                 const commands::Context&>) {
+                        return function(args, io, context);
+                    }
+                    else {
+                        return function(args, io);
+                    }
+                };
+            });
         });
     }
 }
