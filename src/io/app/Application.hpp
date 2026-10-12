@@ -4,9 +4,9 @@
 #include "common/icc/bridge/Bridge.hpp"
 #include "io/diagnostics/Server.hpp"
 #include "io/motion/Controller.hpp"
+#include "io/motion/Server.hpp"
 #include "runtime/ThreadGroup.hpp"
 
-#include <condition_variable>
 #include <mutex>
 #include <stop_token>
 
@@ -59,12 +59,12 @@ namespace io
         std::shared_ptr<logging::Sink> m_logSink;
         diagnostics::Server m_diagnostics;
         std::mutex m_mutex;
-        std::condition_variable m_stopRequested;
         bool m_started{};
         bool m_stopping{};
         std::stop_source m_stopSource;
         // Created on start; shared enable remains off until explicitly requested.
         std::unique_ptr<motion::Controller> m_motion;
+        std::unique_ptr<motion::Server> m_motorServer;
         // Destroy/join workers before any of the state their entries access.
         runtime::ThreadGroup m_threads;
     };

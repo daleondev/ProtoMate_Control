@@ -1,4 +1,7 @@
 #pragma once
+#include <stop_token>
+
+namespace ui::motion { class Client; }
 
 namespace ui::cli
 {
@@ -7,6 +10,6 @@ namespace ui::cli
 
 namespace ui::cli::motor
 {
-    // Reserved for the future ICC client; currently registers no commands.
-    void setup(Parser& parser);
+    // Registers once per parser. The application-owned client outlives the parser.
+    void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop = {});
 }

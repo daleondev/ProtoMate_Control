@@ -53,22 +53,23 @@ namespace io::motion
         [[nodiscard]] const StepperMotor& motor(MotorId id) const;
         pnm::Result<> setMotionDefaults(MotorId id, Defaults defaults);
 
+        // Completion observers only notify a worker; they may run under command locks.
         std::future<StepperMotor::Result> moveRel(
           MotorId id, pnm::units::Angle distance, pnm::units::AngularVelocity velocity,
           pnm::units::AngularAcceleration acceleration = 0_rad_s2,
           pnm::units::AngularAcceleration deceleration = 0_rad_s2,
           pnm::units::AngularJerk jerk = 0_rad_s3, BufferMode buffer_mode = BufferMode::Aborting,
-          pnm::units::Time timeout = 0_s);
+          pnm::units::Time timeout = 0_s, std::function<void()> completed = {});
         std::future<StepperMotor::Result> moveAbs(
           MotorId id, pnm::units::Angle target, pnm::units::AngularVelocity velocity,
           pnm::units::AngularAcceleration acceleration = 0_rad_s2,
           pnm::units::AngularAcceleration deceleration = 0_rad_s2,
           pnm::units::AngularJerk jerk = 0_rad_s3, BufferMode buffer_mode = BufferMode::Aborting,
-          pnm::units::Time timeout = 0_s);
+          pnm::units::Time timeout = 0_s, std::function<void()> completed = {});
         std::future<StepperMotor::Result> reference(
           MotorId id, pnm::units::AngularVelocity seek_velocity = DEFAULT_REFERENCE_SEEK,
           pnm::units::AngularVelocity latch_velocity = DEFAULT_REFERENCE_LATCH,
-          pnm::units::Time timeout = DEFAULT_REFERENCE_TIMEOUT);
+          pnm::units::Time timeout = DEFAULT_REFERENCE_TIMEOUT, std::function<void()> completed = {});
         pnm::Result<hal::step::PulseCount> setVelocity(MotorId id, pnm::units::AngularVelocity velocity);
 
       private:

@@ -35,7 +35,7 @@ namespace io
             }
         });
 
-        runtime::thread::publish_attributes({ .name = "Logging", .priority = 20, .stack_size = 8192U });
+        runtime::thread::publish_attributes({ .name = "io.logging", .priority = 20, .stack_size = 8192U });
         pnm::log::initialize();
         pnm::log::info(m_logSink, "IO-Controller started");
     }
@@ -57,6 +57,7 @@ namespace io
         try {
             m_motion = std::make_unique<motion::Controller>(
               MOTOR_CONFIGURATION, motion::Controller::DriverFactory{}, m_logSink);
+            m_motorServer = std::make_unique<motion::Server>(m_bus, *m_motion);
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
             m_threads.start(*this, "io");
             m_bridge.start();
@@ -75,7 +76,6 @@ namespace io
             m_stopping = true;
         }
         m_stopSource.request_stop();
-        m_stopRequested.notify_all();
     }
 
     void Application::join() { m_threads.join(); }
@@ -96,8 +96,13 @@ namespace io
     void Application::applicationThread()
     {
         {
-            std::unique_lock lock(m_mutex);
-            m_stopRequested.wait(lock, [this] { return m_stopping; });
+            std::scoped_lock lock(m_mutex); // Wait until startup has finished.
+        }
+        try {
+            m_motorServer->run(m_stopSource.get_token());
+        } catch (const std::exception& error) {
+            pnm::log::error(m_logSink, "Motor service failed: {}", error.what());
+            requestStop();
         }
         if (m_motion) {
             m_motion->disable();

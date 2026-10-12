@@ -7,6 +7,8 @@ target_sources(proto_io_motion
         Limits.hpp
         Controller.hpp
         Controller.cpp
+        Server.hpp
+        Server.cpp
         StepperMotor.hpp
         StepperMotor.cpp 
         Sequence.hpp

@@ -1,3 +1,4 @@
+#include "ui/motion/Client.hpp"
 #include "ui/cli/Console.hpp"
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/motor.hpp"
@@ -105,12 +106,16 @@ namespace
         EXPECT_EQ(output.str(), "> \n");
     }
 
-    TEST_F(CliConsole, MotorModuleRemainsEmpty)
+    TEST_F(CliConsole, MotorCommandsAreRegisteredOncePerParser)
     {
         ui::cli::Parser parser;
-        ui::cli::motor::setup(parser);
-        EXPECT_FALSE(parser.contains("motor"));
-        EXPECT_FALSE(parser.contains("motor status"));
-        EXPECT_EQ(parser.execute("motor", output).error, ui::cli::ExecutionError::UnknownCommand);
+        pnm::msg::Bus bus;
+        ui::motion::Client client{ bus };
+        ui::cli::motor::setup(parser, client);
+        ASSERT_NO_THROW(ui::cli::motor::setup(parser, client));
+        EXPECT_TRUE(parser.contains("motor"));
+        EXPECT_TRUE(parser.contains("motor status"));
+        EXPECT_TRUE(parser.execute("motor", output));
+        EXPECT_NE(output.str().find("motor-shaft degrees"), std::string::npos);
     }
 }

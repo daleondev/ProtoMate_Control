@@ -18,6 +18,7 @@
 #include <vector>
 
 namespace pnm::msg { class Bus; }
+namespace ui::motion { class Client; }
 
 namespace ui::cli
 {
@@ -25,6 +26,7 @@ namespace ui::cli
 
     namespace filesystem { void setup(Parser& parser); }
     namespace utilities { void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop); }
+    namespace motor { void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop); }
 
     struct ArgumentSpec
     {
@@ -200,6 +202,7 @@ namespace ui::cli
       private:
         friend void filesystem::setup(Parser& parser);
         friend void utilities::setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);
+        friend void motor::setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
 
         struct Executor;
         [[nodiscard]] auto find(std::string_view name) const noexcept -> const Command*;
@@ -207,6 +210,7 @@ namespace ui::cli
         std::vector<Command> m_commands;
         std::once_flag m_filesystemRegistration;
         std::once_flag m_utilitiesRegistration;
+        std::once_flag m_motorRegistration;
     };
 
     template<size_t N1, size_t N2>

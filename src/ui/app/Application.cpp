@@ -19,6 +19,7 @@ namespace ui
     Application::Application(icc::ITransport& transport)
       : m_bridge(m_bus, m_iccContext, transport)
       , m_logs{ m_bus, cli::writeLog }
+      , m_motors{ m_bus }
     {
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
@@ -30,7 +31,7 @@ namespace ui
             }
         });
 
-        runtime::thread::publish_attributes({ .name = "Logging", .priority = 20, .stack_size = 8192U });
+        runtime::thread::publish_attributes({ .name = "ui.logging", .priority = 20, .stack_size = 8192U });
         pnm::log::initialize();
         installLogSink();
         pnm::log::info("UI-Controller started");
@@ -67,7 +68,6 @@ namespace ui
             m_stopping = true;
         }
         m_stopSource.request_stop();
-        m_stopRequested.notify_all();
     }
 
     void Application::join() { m_threads.join(); }
@@ -76,8 +76,8 @@ namespace ui
 
     void Application::installLogSink()
     {
-        if (!pnm::log::set_default_sink(pnm::log::Level::Trace, pnm::log::Level::Critical,
-                                        std::make_shared<logging::Sink>())) {
+        if (!pnm::log::set_default_sink(
+              pnm::log::Level::Trace, pnm::log::Level::Critical, std::make_shared<logging::Sink>())) {
             throw std::runtime_error("failed to configure UI logging");
         }
     }
@@ -100,7 +100,7 @@ namespace ui
             cli::Parser parser;
             cli::filesystem::setup(parser);
             cli::utilities::setup(parser, m_bus, m_stopSource.get_token());
-            cli::motor::setup(parser);
+            cli::motor::setup(parser, m_motors, m_stopSource.get_token());
             cli::run(parser, m_stopSource.get_token());
         } catch (const std::exception& error) {
             std::fprintf(stderr, "CLI failed: %s\n", error.what());
@@ -112,8 +112,13 @@ namespace ui
     void Application::applicationThread()
     {
         {
-            std::unique_lock lock(m_mutex);
-            m_stopRequested.wait(lock, [this] { return m_stopping; });
+            std::scoped_lock lock(m_mutex); // Wait until startup has finished.
+        }
+        try {
+            m_motors.run(m_stopSource.get_token());
+        } catch (const std::exception& error) {
+            std::fprintf(stderr, "Motor client failed: %s\n", error.what());
+            requestStop();
         }
         // Keep the context alive until bridge shutdown has drained its work.
         m_bridge.stop();

@@ -17,13 +17,9 @@ target_link_libraries(proto_io
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    # Instantiating the motors pulls in the C++ logging/units/runtime templates.
-    # As with ICC, retain debug symbols and stepping without exceeding CM4 flash.
-    target_compile_options(proto_io PRIVATE $<$<CONFIG:Debug>:-Og>)
-    # The application instantiates catalog routes and logger routing. Keep those
-    # templates compact; motor code retains -Og for normal debug stepping.
-    set_property(SOURCE app/Application.cpp logging/Sink.cpp diagnostics/Server.cpp APPEND PROPERTY
-        COMPILE_OPTIONS $<$<CONFIG:Debug>:-Os>)
+    # Motor commands and their serialized service/action endpoints must fit each
+    # core's 1 MiB flash bank. Retain Debug symbols with size optimization.
+    target_compile_options(proto_io PRIVATE $<$<CONFIG:Debug>:-Os>)
     set_property(SOURCE main.cpp TARGET_DIRECTORY ${PROJECT_NAME} APPEND PROPERTY
         COMPILE_OPTIONS $<$<CONFIG:Debug>:-Os>)
 endif()

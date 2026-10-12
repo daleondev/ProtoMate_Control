@@ -75,14 +75,14 @@ motors before draining ICC. Motor settings live in `io/app/Application.cpp`:
 1.8° full steps, 16 microsteps and placeholder 135° shaft reference coordinates.
 
 `src/ui/cli/` contains the annotation-based parser, filesystem and utility
-commands, Linux terminal frontend, and an empty `motor` module. Registration
-uses `ui::cli::register_commands` with a parser owned by the CLI thread; command callbacks
-have no dependency on the IO controller. The motor module currently registers
-no commands; connecting it through ICC is the next stage.
+commands, Linux terminal frontend and direct motor commands. Registration uses
+`ui::cli::register_commands` with a parser owned by the CLI thread. Each command
+module has its own per-parser `std::call_once` guard. Motor callbacks use the
+application-owned `ui::motion::Client`; only IO owns the physical controller.
 
 M7 exposes the CLI through ST-Link VCP at **115200 baud, 8N1**. Use `help` or
 `help <command>`. Available commands are `pwd`, `cd`, `ls`, `touch`, `mkdir`,
-`rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack` and `heap`.
+`rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack`, `heap` and `motor`.
 Quoting, wildcard expansion, pipes and `>`/`>>` redirection are supported.
 For example, `echo "hello world" | grep world` and `time "heap io"`.
 `heap ui` / `stack ui` inspect UI locally; `heap io` / `stack io` request IO's
@@ -91,6 +91,39 @@ is required. `time` measures execution on UI, including any remote round-trip wa
 Filesystem commands
 use the host filesystem on Linux and FileX on M7; no embedded volume is mounted
 yet, so file operations can report unavailable storage.
+
+Motor commands use **motor-shaft degrees and rpm for all three motors**, including
+M3. `motor` prints a guide; `help motor move` lists annotated options.
+
+```text
+motor driver init
+motor enable
+motor move m1 -90 --speed 5
+motor jobs
+motor status m1
+motor stop m1
+motor disable
+```
+
+- `motor status [m1|m2|m3|all]` shows commanded position/velocity, feedback and reference state.
+- `motor driver status [motor|all]` shows driver readiness, alarms and latched faults.
+- `motor driver init` initializes/recover drivers and the STEP timebase while disabled.
+- `motor enable` / `motor disable` operate the shared enable; disabling stops work and invalidates references.
+- `motor move <motor> <degrees> --speed <rpm>` submits a relative move.
+- `motor moveto <motor> <degrees> --speed <rpm>` requires successful homing.
+- `motor home <motor> [--seek 5] [--latch 0.5] [--timeout 30]` seeks, releases and slowly re-latches the reference switch.
+- `motor speed <motor> <rpm>` replans the uncommitted remainder of an active move. It can be rejected once all remaining pulses are already scheduled.
+- `motor defaults <motor> [--accel <deg/s²>] [--decel <deg/s²>] [--jerk <deg/s³>]` reads/updates idle motor defaults in RAM.
+- `motor stop [motor|all]` aborts the selected motor and its buffered successor while retaining holding torque. Other motors continue.
+- `motor jobs [id]` reports the most recent 32 jobs. Returning from a CLI command does not cancel its job.
+
+Moves accept `--accel`, `--decel`, `--jerk` (zero selects the motor default),
+`--timeout` (seconds, zero means unlimited) and `--buffer` (`aborting`, `buffered`,
+`blending-low`, `blending-previous`, `blending-next`, `blending-high`). A motor can
+have one queued successor. A configured default jerk of zero selects a trapezoid.
+`accepted` includes queued/executing work; only a terminal result confirms its outcome.
+INDEX feedback is labelled as a pseudo measurement of driver phase.
+No mechanical axis conversions, kinematics or synchronized moves are exposed.
 
 Linux uses ncursesw with separate logs, line editing and command history when
 attached to a terminal. Redirected input/output, `TERM=dumb`, or
@@ -110,7 +143,21 @@ The shared message catalogs live in `src/common/icc/catalog/`:
 
 Both applications register all three catalogs in their constructors using their
 own IO/UI role. `Topics::io_logs` carries IO log text to UI. `Services::io_memory`
-provides memory diagnostics; actions remain empty until motion integration.
+provides memory diagnostics. `Services::io_motor` carries status, initialization,
+enable, speed and default-setting requests. `Services::io_motor_stop` reserves
+urgent transport capacity for stop/disable. `Actions::io_motor_motion` carries
+individual moves and homing, with 50 Hz feedback and terminal results. Shared
+motor payloads live in `src/common/motion/Motor.hpp` and serialize through Pneumo.
+
+IO's application worker drives `io::motion::Server`; blocking driver operations
+and joins stay outside the ICC context. Controller completion callbacks only
+wake this worker. UI's application worker dispatches action callbacks for
+`ui::motion::Client`, retaining its job handles until completion. Services and
+action admission time out after three seconds; execution uses the requested
+motion timeout. No request is automatically retried. A stop/recovery generation
+rejects submissions overtaken by a stop, disable or initialization. Link shutdown
+drains IO motion and disables the shared enable before closing its bridge. UI
+reports uncertain communication outcomes as unknown rather than claiming a stop.
 
 Diagnostic snapshots and collection live in `src/common/diagnostics/`. IO's
 `io::diagnostics::Server` collects them on a dedicated worker; the CLI formats
@@ -216,11 +263,10 @@ fetching or building test dependencies.
 All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.
-Embedded Debug builds retain debug information and use `-Og` for IO, UI and ICC.
-Both applications' composition, log sink and entrypoint files use `-Os`, as does
-the IO memory diagnostic server, to fit the catalog and logger templates in each
-1 MiB flash bank.
-Motor and other UI code keep `-Og`.
+Embedded Debug builds retain debug information and use `-Os` for IO, UI, ICC
+and their entrypoints to fit the motor service/action templates in each 1 MiB
+flash bank. The libstdc++ runtime shim uses `-Og`; HAL optimization is unchanged.
+Source-level debugging remains available, with optimized stepping in these modules.
 
 H755 builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.
 Use the [combined flash command](docs/nucleo-h755ziq/README.md#flash-and-test).
@@ -835,7 +881,7 @@ The archived [control message catalogs](backups/application/control/Messages.hpp
 [server](backups/application/control/ControllerServer.hpp) are reference material
 for rebuilding the execution boundary. They are not part of the current normal build.
 
-STM32 Debug compiles the portable p2p library with `-Og` while retaining debug information.
+STM32 Debug compiles the portable ICC library with `-Os` while retaining debug information.
 
 Build and test the bridge independently:
 

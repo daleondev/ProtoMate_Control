@@ -36,3 +36,10 @@ target_compile_definitions(proto_logging_tests PRIVATE RUNTIME_APPLICATION_THREA
 runtime_attach(proto_logging_tests)
 add_test(NAME application.logging COMMAND proto_logging_tests)
 set_tests_properties(application.logging PROPERTIES TIMEOUT 30)
+
+add_executable(proto_motor_cli_tests motor_cli_test.cpp)
+target_link_libraries(proto_motor_cli_tests PRIVATE proto::io proto::ui GTest::gtest_main)
+target_compile_definitions(proto_motor_cli_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(proto_motor_cli_tests)
+add_test(NAME application.motor_cli COMMAND proto_motor_cli_tests)
+set_tests_properties(application.motor_cli PROPERTIES TIMEOUT 45)

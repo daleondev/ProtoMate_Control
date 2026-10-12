@@ -16,10 +16,11 @@ namespace io::motion
         constexpr auto DRIVER_POLL_INTERVAL{ 100ms };
         constexpr auto ENABLE_SETTLING_TIME{ 200ms };
 
-        std::future<StepperMotor::Result> rejectedMotion()
+        std::future<StepperMotor::Result> rejectedMotion(const std::function<void()>& notify)
         {
             std::promise<StepperMotor::Result> completion;
             completion.set_value(StepperMotor::Result::Rejected);
+            if (notify) { notify(); }
             return completion.get_future();
         }
     }
@@ -280,39 +281,45 @@ namespace io::motion
     std::future<StepperMotor::Result> Controller::moveRel(
       MotorId id, pnm::units::Angle distance, pnm::units::AngularVelocity velocity,
       pnm::units::AngularAcceleration acceleration, pnm::units::AngularAcceleration deceleration,
-      pnm::units::AngularJerk jerk, BufferMode buffer_mode, pnm::units::Time timeout)
+      pnm::units::AngularJerk jerk, BufferMode buffer_mode, pnm::units::Time timeout, std::function<void()> completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
         if (!canMoveLocked()) {
-            return rejectedMotion();
+            return rejectedMotion(completed);
         }
-        return target.moveRel(distance, velocity, acceleration, deceleration, jerk, buffer_mode, timeout);
+        auto future{ target.moveRel(distance, velocity, acceleration, deceleration, jerk, buffer_mode, timeout) };
+        target.m_lastCompletion.then(completed);
+        return future;
     }
 
     std::future<StepperMotor::Result> Controller::moveAbs(
       MotorId id, pnm::units::Angle position, pnm::units::AngularVelocity velocity,
       pnm::units::AngularAcceleration acceleration, pnm::units::AngularAcceleration deceleration,
-      pnm::units::AngularJerk jerk, BufferMode buffer_mode, pnm::units::Time timeout)
+      pnm::units::AngularJerk jerk, BufferMode buffer_mode, pnm::units::Time timeout, std::function<void()> completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
         if (!canMoveLocked()) {
-            return rejectedMotion();
+            return rejectedMotion(completed);
         }
-        return target.moveAbs(position, velocity, acceleration, deceleration, jerk, buffer_mode, timeout);
+        auto future{ target.moveAbs(position, velocity, acceleration, deceleration, jerk, buffer_mode, timeout) };
+        target.m_lastCompletion.then(completed);
+        return future;
     }
 
     std::future<StepperMotor::Result> Controller::reference(
       MotorId id, pnm::units::AngularVelocity seek_velocity,
-      pnm::units::AngularVelocity latch_velocity, pnm::units::Time timeout)
+      pnm::units::AngularVelocity latch_velocity, pnm::units::Time timeout, std::function<void()> completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
         if (!canMoveLocked()) {
-            return rejectedMotion();
+            return rejectedMotion(completed);
         }
-        return target.reference(seek_velocity, latch_velocity, timeout);
+        auto future{ target.reference(seek_velocity, latch_velocity, timeout) };
+        target.m_lastCompletion.then(completed);
+        return future;
     }
 
     pnm::Result<hal::step::PulseCount> Controller::setVelocity(

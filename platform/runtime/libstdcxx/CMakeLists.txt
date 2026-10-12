@@ -72,6 +72,9 @@ target_link_options(runtime_libstdcxx
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    # Avoid unoptimized STL instantiations exhausting a core's 1 MiB bank once
+    # the motor services/actions are linked. Preserve Debug symbols and stepping.
+    target_compile_options(runtime_libstdcxx PRIVATE $<$<CONFIG:Debug>:-Og>)
     target_link_options(runtime_libstdcxx
         INTERFACE
             LINKER:--undefined=__aeabi_read_tp

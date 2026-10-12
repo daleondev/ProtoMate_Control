@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <pneumo/messaging.hpp>
+#include "common/motion/Motor.hpp"
 
 namespace icc
 {
@@ -14,5 +15,7 @@ namespace icc
     // Shared application contracts. Both bridges register this catalog.
     struct Actions
     {
+        [[= ActionProvider::IO]]
+        pnm::msg::Action<motion::MotorGoal, motion::MotorProgress, motion::MotorResult> io_motor_motion;
     };
 }

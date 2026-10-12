@@ -172,7 +172,11 @@ The bridges register the `Topics`, `Services` and `Actions` catalogs in
 shared definitions to extend with application functionality. Topics carry IO
 logs; the IO `io/memory` service answers `heap io` and `stack io` from a dedicated
 diagnostic worker. UI formats the results, while `heap ui` and `stack ui` collect
-locally. Actions remain empty. Handshake and heartbeat traffic runs independently
+locally. `io/motor` handles direct motor status/configuration/control;
+`io/motor/stop` carries stop/disable over the urgent lane. `io/motor/motion` is the
+move/homing action, with 50 Hz progress and callback-driven completion. The IO
+application worker handles operations outside ICC; the UI application worker
+retains and dispatches job handles. Handshake and heartbeat traffic runs independently
 of application messages; there is no LED topic or local blink task.
 
 `proto::common` compiles the ICC bridge and transport implementations once for
@@ -254,7 +258,8 @@ storage is unavailable; that is expected without media.
 Both images have the timer, main, reaper, ICC context, transport notification and
 application threads. M7 also runs `ui.cliThread` on the ST-Link VCP console
 (115200 baud, 8N1, terminal local echo off). `help` lists the filesystem and
-utility commands; the motor module is empty. M4 has both the motion diagnostic
+utility and motor commands. `motor` prints its guide; `help motor move` lists
+options. Motor commands use shaft degrees/rpm, with independent execution only. M4 has both the motion diagnostic
 worker and the heap/stack service worker; individual motion workers are created
 only when commands are submitted. `hal_last_panic`, CFSR and HFSR
 should stay clear. Both scheduler counters and the urgent shared queue counters
@@ -269,7 +274,10 @@ capacity, counter rollover, cancellation, notification races and shutdown.
 Application tests cover startup handshakes, continued heartbeat
 traffic while idle, stop during handshake, peer loss, CLI EOF and teardown with
 an idle console. CLI tests cover command annotations, parsing, filesystem
-operations, utilities, line editing and cancellation. Lint and
+operations, utilities, line editing and cancellation. Motor integration tests run
+real serialized services/actions between two buses and cover command validation,
+independent stops, buffered moves, live speed changes, homing restart, stale
+submissions, bounded job history and peer shutdown. Lint and
 sanitizers are not run automatically for these intermediate migration steps.
 
 Both cores’ Debug and Release builds and the Linux Debug build pass without

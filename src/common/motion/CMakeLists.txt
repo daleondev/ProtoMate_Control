@@ -3,6 +3,7 @@ add_library(proto::common::motion ALIAS proto_common_motion)
 
 target_sources(proto_common_motion
     INTERFACE
+        Motor.hpp
         Profile.hpp
         Profile.cpp
 )

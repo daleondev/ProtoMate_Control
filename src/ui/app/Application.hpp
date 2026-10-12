@@ -4,8 +4,8 @@
 #include "common/icc/bridge/Bridge.hpp"
 #include "runtime/ThreadGroup.hpp"
 #include "ui/logging/Subscriber.hpp"
+#include "ui/motion/Client.hpp"
 
-#include <condition_variable>
 #include <mutex>
 #include <stop_token>
 
@@ -55,8 +55,8 @@ namespace ui
         pnm::coro::Context m_iccContext;
         icc::Bridge m_bridge;
         logging::Subscriber m_logs;
+        motion::Client m_motors;
         std::mutex m_mutex;
-        std::condition_variable m_stopRequested;
         bool m_started{};
         bool m_stopping{};
         std::stop_source m_stopSource;
