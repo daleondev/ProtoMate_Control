@@ -1,7 +1,7 @@
 add_library(hal_devices_impl INTERFACE)
 add_library(hal::devices::impl ALIAS hal_devices_impl)
 
-if(HAL_BOARD STREQUAL "nucleo_h755ziq")
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_sources(hal_devices_impl INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/Led.hpp ${CMAKE_CURRENT_SOURCE_DIR}/Led.cpp)
     return()

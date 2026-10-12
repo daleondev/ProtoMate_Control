@@ -16,135 +16,9 @@
             }
         },
         {
-            "name": "base-stm32",
-            "hidden": true,
-            "inherits": "base",
-            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
-            "cacheVariables": {
-                "RUNTIME_HARDWARE_SELF_TEST": false,
-                "RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD": false,
-                "RUNTIME_HARDWARE_ETHERNET_TEST": false,
-                "RUNTIME_HARDWARE_IO_TEST": false,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,
-                "RUNTIME_HARDWARE_STORAGE_STARTUP_TEST": false,
-                "HAL_HARDWARE_STEP_TEST": false,
-                "RUNTIME_STORAGE_REQUIRED": false,
-                "HAL_HARDWARE_TMC_TEST": false,
-                "HAL_HARDWARE_MOTOR_TEST": false,
-                "HAL_HARDWARE_TMC_STANDALONE_TEST": false,
-                "HAL_HARDWARE_SPI_TEST": false,
-                "HAL_HARDWARE_ETHERCAT_SLAVE": false
-            }
-        },
-        {
             "name": "base-linux",
             "hidden": true,
             "inherits": "base"
-        },
-        {
-            "name": "debug-stm32",
-            "displayName": "Debug STM32",
-            "inherits": "base-stm32",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "release-stm32",
-            "displayName": "Release STM32",
-            "inherits": "base-stm32",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "ethercat-test-stm32",
-            "displayName": "STM32 LAN9255 SPI Feasibility Test",
-            "inherits": "release-stm32",
-            "cacheVariables": {
-                "HAL_HARDWARE_SPI_TEST": true,
-                "RUNTIME_STORAGE_REQUIRED": false,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
-            }
-        },
-        {
-            "name": "ethercat-slave-stm32",
-            "displayName": "STM32 SOES EtherCAT Echo Slave",
-            "inherits": "release-stm32",
-            "cacheVariables": {
-                "HAL_HARDWARE_ETHERCAT_SLAVE": true,
-                "RUNTIME_STORAGE_REQUIRED": false,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
-            }
-        },
-        {
-            "name": "step-test-stm32",
-            "displayName": "STM32 Step Generator Bench Test",
-            "inherits": "release-stm32",
-            "cacheVariables": {
-                "HAL_HARDWARE_STEP_TEST": true,
-                "RUNTIME_STORAGE_REQUIRED": false,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
-            }
-        },
-        {
-            "name": "motor-test-stm32",
-            "displayName": "STM32 M1 DM542T and M2 TMC2209 Bench Test",
-            "inherits": "release-stm32",
-            "cacheVariables": {
-                "HAL_HARDWARE_MOTOR_TEST": true,
-                "RUNTIME_STORAGE_REQUIRED": false,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
-            }
-        },
-        {
-            "name": "tmc-test-stm32",
-            "displayName": "STM32 Single TMC2209 Bench Test",
-            "inherits": "release-stm32",
-            "cacheVariables": {
-                "HAL_HARDWARE_TMC_TEST": true,
-                "RUNTIME_STORAGE_REQUIRED": false,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
-            }
-        },
-        {
-            "name": "tmc-standalone-test-stm32",
-            "displayName": "STM32 TMC2209 STEP/DIR Test (No Driver UART)",
-            "inherits": "release-stm32",
-            "cacheVariables": {
-                "HAL_HARDWARE_TMC_STANDALONE_TEST": true,
-                "RUNTIME_STORAGE_REQUIRED": false,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
-            }
-        },
-        {
-            "name": "ethernet-test-stm32",
-            "displayName": "STM32 Ethernet Cable Test",
-            "inherits": "debug-stm32",
-            "cacheVariables": {
-                "RUNTIME_HARDWARE_ETHERNET_TEST": true,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
-            }
-        },
-        {
-            "name": "runtime-test-stm32",
-            "displayName": "STM32 Runtime Self-Test",
-            "inherits": "debug-stm32",
-            "cacheVariables": {
-                "RUNTIME_HARDWARE_SELF_TEST": true,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,
-                "RUNTIME_STORAGE_REQUIRED": true
-            }
-        },
-        {
-            "name": "io-test-stm32",
-            "displayName": "STM32 Serial and Persistence Test",
-            "inherits": "debug-stm32",
-            "cacheVariables": {
-                "RUNTIME_HARDWARE_IO_TEST": true,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,
-                "RUNTIME_STORAGE_REQUIRED": true
-            }
         },
         {
             "name": "debug-linux",
@@ -165,16 +39,6 @@
             "inherits": "base-linux",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "storage-startup-test-stm32",
-            "displayName": "STM32 Storage Startup Test",
-            "inherits": "debug-stm32",
-            "cacheVariables": {
-                "RUNTIME_HARDWARE_STORAGE_STARTUP_TEST": true,
-                "RUNTIME_STORAGE_REQUIRED": false,
-                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
             }
         },
         {
@@ -286,30 +150,6 @@
     ],
     "buildPresets": [
         {
-            "name": "motor-test-stm32",
-            "configurePreset": "motor-test-stm32"
-        },
-        {
-            "name": "step-test-stm32",
-            "configurePreset": "step-test-stm32"
-        },
-        {
-            "name": "debug-stm32",
-            "configurePreset": "debug-stm32"
-        },
-        {
-            "name": "release-stm32",
-            "configurePreset": "release-stm32"
-        },
-        {
-            "name": "runtime-test-stm32",
-            "configurePreset": "runtime-test-stm32"
-        },
-        {
-            "name": "ethernet-test-stm32",
-            "configurePreset": "ethernet-test-stm32"
-        },
-        {
             "name": "debug-linux",
             "configurePreset": "debug-linux"
         },
@@ -323,30 +163,6 @@
         {
             "name": "release-linux",
             "configurePreset": "release-linux"
-        },
-        {
-            "name": "io-test-stm32",
-            "configurePreset": "io-test-stm32"
-        },
-        {
-            "name": "storage-startup-test-stm32",
-            "configurePreset": "storage-startup-test-stm32"
-        },
-        {
-            "name": "tmc-test-stm32",
-            "configurePreset": "tmc-test-stm32"
-        },
-        {
-            "name": "tmc-standalone-test-stm32",
-            "configurePreset": "tmc-standalone-test-stm32"
-        },
-        {
-            "name": "ethercat-test-stm32",
-            "configurePreset": "ethercat-test-stm32"
-        },
-        {
-            "name": "ethercat-slave-stm32",
-            "configurePreset": "ethercat-slave-stm32"
         },
         {
             "name": "sanitize-linux",

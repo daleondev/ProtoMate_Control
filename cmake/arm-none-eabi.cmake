@@ -23,8 +23,10 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES H755_CORE)
 if(H755_CORE STREQUAL "CM4")
     set(ARM_CPU_FLAGS "-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
-else()
+elseif(H755_CORE STREQUAL "CM7")
     set(ARM_CPU_FLAGS "-mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard")
+else()
+    message(FATAL_ERROR "Select H755_CORE=CM4 or CM7 using an H755 preset")
 endif()
 
 # Toolchain files are evaluated again in CMake's try_compile projects. Use the

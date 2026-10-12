@@ -1,5 +1,4 @@
 #include "hal/hal.hpp"
-#include "hal/linux/console.hpp"
 
 #include <array>
 #include <cerrno>
@@ -13,14 +12,6 @@
 
 namespace
 {
-    auto print_message(std::string_view message) -> void
-    {
-        std::string line{ "[sim][hal] " };
-        line.append(message);
-        line.push_back('\n');
-        linux_console::publish(linux_console::Channel::Hal, line);
-    }
-
     auto panic_write(const char* text) noexcept -> void
     {
         if (text == nullptr) {
@@ -64,47 +55,6 @@ namespace
             panic_write(character.data());
         }
     }
-}
-
-extern "C" {
-
-HAL_StatusTypeDef HAL_Init()
-{
-    print_message("HAL_Init");
-    return HAL_OK;
-}
-
-void SystemClock_Config() { print_message("SystemClock_Config"); }
-
-void MPU_Config_User() { print_message("MPU_Config_User"); }
-
-void SCB_EnableICache() { print_message("SCB_EnableICache"); }
-
-void SCB_EnableDCache() { print_message("SCB_EnableDCache"); }
-
-void MX_GPIO_Init() { print_message("MX_GPIO_Init"); }
-
-void MX_ETH_Init() { print_message("MX_ETH_Init"); }
-
-void MX_RTC_Init() { print_message("MX_RTC_Init"); }
-
-void MX_DMA_Init() { print_message("MX_DMA_Init"); }
-
-void MX_TIM2_Init() { print_message("MX_TIM2_Init"); }
-
-void MX_TIM3_Init() { print_message("MX_TIM3_Init"); }
-
-void MX_TIM5_Init() { print_message("MX_TIM5_Init"); }
-
-void MX_RNG_Init() { print_message("MX_RNG_Init"); }
-
-int32_t BSP_COM_Init(COM_TypeDef com, COM_InitTypeDef* com_init)
-{
-    const auto baud_rate{ com_init != nullptr ? com_init->BaudRate : 0U };
-    print_message(std::string{ "BSP_COM_Init(com=" } + std::to_string(static_cast<int>(com)) +
-                  ", baud=" + std::to_string(baud_rate) + ')');
-    return BSP_ERROR_NONE;
-}
 }
 
 extern "C" [[gnu::weak, gnu::noinline, noreturn]] void hal_panic_handler(const HalPanicInfo* info) noexcept

@@ -1,0 +1,401 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 22,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+            }
+        },
+        {
+            "name": "base-stm32",
+            "hidden": true,
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "RUNTIME_HARDWARE_SELF_TEST": false,
+                "RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD": false,
+                "RUNTIME_HARDWARE_ETHERNET_TEST": false,
+                "RUNTIME_HARDWARE_IO_TEST": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,
+                "RUNTIME_HARDWARE_STORAGE_STARTUP_TEST": false,
+                "HAL_HARDWARE_STEP_TEST": false,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "HAL_HARDWARE_TMC_TEST": false,
+                "HAL_HARDWARE_MOTOR_TEST": false,
+                "HAL_HARDWARE_TMC_STANDALONE_TEST": false,
+                "HAL_HARDWARE_SPI_TEST": false,
+                "HAL_HARDWARE_ETHERCAT_SLAVE": false
+            }
+        },
+        {
+            "name": "base-linux",
+            "hidden": true,
+            "inherits": "base"
+        },
+        {
+            "name": "debug-stm32",
+            "displayName": "Debug STM32",
+            "inherits": "base-stm32",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release-stm32",
+            "displayName": "Release STM32",
+            "inherits": "base-stm32",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "ethercat-test-stm32",
+            "displayName": "STM32 LAN9255 SPI Feasibility Test",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_SPI_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "ethercat-slave-stm32",
+            "displayName": "STM32 SOES EtherCAT Echo Slave",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_ETHERCAT_SLAVE": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "step-test-stm32",
+            "displayName": "STM32 Step Generator Bench Test",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_STEP_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "motor-test-stm32",
+            "displayName": "STM32 M1 DM542T and M2 TMC2209 Bench Test",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_MOTOR_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "tmc-test-stm32",
+            "displayName": "STM32 Single TMC2209 Bench Test",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_TMC_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "tmc-standalone-test-stm32",
+            "displayName": "STM32 TMC2209 STEP/DIR Test (No Driver UART)",
+            "inherits": "release-stm32",
+            "cacheVariables": {
+                "HAL_HARDWARE_TMC_STANDALONE_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "ethernet-test-stm32",
+            "displayName": "STM32 Ethernet Cable Test",
+            "inherits": "debug-stm32",
+            "cacheVariables": {
+                "RUNTIME_HARDWARE_ETHERNET_TEST": true,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "runtime-test-stm32",
+            "displayName": "STM32 Runtime Self-Test",
+            "inherits": "debug-stm32",
+            "cacheVariables": {
+                "RUNTIME_HARDWARE_SELF_TEST": true,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,
+                "RUNTIME_STORAGE_REQUIRED": true
+            }
+        },
+        {
+            "name": "io-test-stm32",
+            "displayName": "STM32 Serial and Persistence Test",
+            "inherits": "debug-stm32",
+            "cacheVariables": {
+                "RUNTIME_HARDWARE_IO_TEST": true,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,
+                "RUNTIME_STORAGE_REQUIRED": true
+            }
+        },
+        {
+            "name": "debug-linux",
+            "displayName": "Debug Linux",
+            "inherits": "base-linux",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "clang-tidy-linux",
+            "displayName": "Clang-Tidy Linux (partial coverage)",
+            "inherits": "debug-linux"
+        },
+        {
+            "name": "release-linux",
+            "displayName": "Release Linux",
+            "inherits": "base-linux",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "storage-startup-test-stm32",
+            "displayName": "STM32 Storage Startup Test",
+            "inherits": "debug-stm32",
+            "cacheVariables": {
+                "RUNTIME_HARDWARE_STORAGE_STARTUP_TEST": true,
+                "RUNTIME_STORAGE_REQUIRED": false,
+                "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false
+            }
+        },
+        {
+            "name": "sanitize-linux",
+            "displayName": "Linux Address/Undefined Behavior Sanitizers",
+            "inherits": "debug-linux",
+            "cacheVariables": {
+                "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+                "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+            }
+        },
+        {
+            "name": "h755-io-debug",
+            "displayName": "NUCLEO-H755ZI-Q CM4 IO application (debug)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "H755_CORE": "CM4",
+                "H755_LED_SAMPLE": false,
+                "APPLICATION_ENABLE_P2P": false,
+                "RUNTIME_FILESYSTEM": false
+            }
+        },
+        {
+            "name": "h755-ui-debug",
+            "displayName": "NUCLEO-H755ZI-Q CM7 UI application (debug)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "H755_CORE": "CM7",
+                "H755_LED_SAMPLE": false,
+                "APPLICATION_ENABLE_P2P": false,
+                "RUNTIME_FILESYSTEM": false
+            }
+        },
+        {
+            "name": "h755-io-release",
+            "displayName": "NUCLEO-H755ZI-Q CM4 IO application (release)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "H755_CORE": "CM4",
+                "H755_LED_SAMPLE": false,
+                "APPLICATION_ENABLE_P2P": false,
+                "RUNTIME_FILESYSTEM": false
+            }
+        },
+        {
+            "name": "h755-ui-release",
+            "displayName": "NUCLEO-H755ZI-Q CM7 UI application (release)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "H755_CORE": "CM7",
+                "H755_LED_SAMPLE": false,
+                "APPLICATION_ENABLE_P2P": false,
+                "RUNTIME_FILESYSTEM": false
+            }
+        },
+        {
+            "name": "h755-led-io-debug",
+            "displayName": "NUCLEO-H755ZI-Q CM4 IO LED sample (debug)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "H755_CORE": "CM4",
+                "H755_LED_SAMPLE": true
+            }
+        },
+        {
+            "name": "h755-led-ui-debug",
+            "displayName": "NUCLEO-H755ZI-Q CM7 UI LED sample (debug)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "H755_CORE": "CM7",
+                "H755_LED_SAMPLE": true
+            }
+        },
+        {
+            "name": "h755-led-io-release",
+            "displayName": "NUCLEO-H755ZI-Q CM4 IO LED sample (release)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "H755_CORE": "CM4",
+                "H755_LED_SAMPLE": true
+            }
+        },
+        {
+            "name": "h755-led-ui-release",
+            "displayName": "NUCLEO-H755ZI-Q CM7 UI LED sample (release)",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "H755_CORE": "CM7",
+                "H755_LED_SAMPLE": true
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "motor-test-stm32",
+            "configurePreset": "motor-test-stm32"
+        },
+        {
+            "name": "step-test-stm32",
+            "configurePreset": "step-test-stm32"
+        },
+        {
+            "name": "debug-stm32",
+            "configurePreset": "debug-stm32"
+        },
+        {
+            "name": "release-stm32",
+            "configurePreset": "release-stm32"
+        },
+        {
+            "name": "runtime-test-stm32",
+            "configurePreset": "runtime-test-stm32"
+        },
+        {
+            "name": "ethernet-test-stm32",
+            "configurePreset": "ethernet-test-stm32"
+        },
+        {
+            "name": "debug-linux",
+            "configurePreset": "debug-linux"
+        },
+        {
+            "name": "clang-tidy-linux",
+            "configurePreset": "clang-tidy-linux",
+            "targets": [
+                "clang-tidy"
+            ]
+        },
+        {
+            "name": "release-linux",
+            "configurePreset": "release-linux"
+        },
+        {
+            "name": "io-test-stm32",
+            "configurePreset": "io-test-stm32"
+        },
+        {
+            "name": "storage-startup-test-stm32",
+            "configurePreset": "storage-startup-test-stm32"
+        },
+        {
+            "name": "tmc-test-stm32",
+            "configurePreset": "tmc-test-stm32"
+        },
+        {
+            "name": "tmc-standalone-test-stm32",
+            "configurePreset": "tmc-standalone-test-stm32"
+        },
+        {
+            "name": "ethercat-test-stm32",
+            "configurePreset": "ethercat-test-stm32"
+        },
+        {
+            "name": "ethercat-slave-stm32",
+            "configurePreset": "ethercat-slave-stm32"
+        },
+        {
+            "name": "sanitize-linux",
+            "configurePreset": "sanitize-linux"
+        },
+        {
+            "name": "h755-io-debug",
+            "configurePreset": "h755-io-debug"
+        },
+        {
+            "name": "h755-ui-debug",
+            "configurePreset": "h755-ui-debug"
+        },
+        {
+            "name": "h755-io-release",
+            "configurePreset": "h755-io-release"
+        },
+        {
+            "name": "h755-ui-release",
+            "configurePreset": "h755-ui-release"
+        },
+        {
+            "name": "h755-led-io-debug",
+            "configurePreset": "h755-led-io-debug"
+        },
+        {
+            "name": "h755-led-ui-debug",
+            "configurePreset": "h755-led-ui-debug"
+        },
+        {
+            "name": "h755-led-io-release",
+            "configurePreset": "h755-led-io-release"
+        },
+        {
+            "name": "h755-led-ui-release",
+            "configurePreset": "h755-led-ui-release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "sanitize-linux",
+            "configurePreset": "sanitize-linux",
+            "environment": {
+                "ASAN_OPTIONS": "use_sigaltstack=0",
+                "UBSAN_OPTIONS": "print_stacktrace=1"
+            },
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ]
+}

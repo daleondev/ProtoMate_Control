@@ -28,7 +28,7 @@ cmake --build --preset h755-led-ui-debug
 
 The corresponding optimized presets are `h755-led-io-release` and
 `h755-led-ui-release`. Each build produces its own `.elf`, `.hex`, `.bin` and `.map`
-in `build/<preset>/`. These presets bypass the H753 HAL/runtime integration.
+in `build/<preset>/`. These presets run without the project HAL/runtime integration.
 
 ## Flash and observe
 
@@ -73,8 +73,7 @@ presets use the generated startup/configuration/linker files and the repository'
 HAL/CMSIS submodules; they do not depend on CubeMX's generated absolute driver
 paths. Build through the root presets, not the generated standalone CMake files.
 
-The [H753 CubeMX backup](../../backups/CubeMX/) remains available. The runtime-based
-applications are described in [the board setup](../../docs/nucleo-h755ziq/README.md);
+The runtime-based applications are described in [the board setup](../../docs/nucleo-h755ziq/README.md);
 they use the separate `h755-io-*` and `h755-ui-*` presets.
 
 Debug and Release builds of both images pass. Both Debug images have been flashed

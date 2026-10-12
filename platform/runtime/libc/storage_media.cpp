@@ -13,14 +13,7 @@
 #include <memory>
 #include <ranges>
 
-#if defined(HAL_PLATFORM_STM32)
-#include "main.h"
-#include "quadspi.h"
-#include "sdmmc.h"
-#include <stm32h7xx_hal.h>
-#elif defined(HAL_PLATFORM_LINUX)
 #include <unistd.h>
-#endif
 
 // FileX exports this ABI symbol.
 // NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
@@ -29,9 +22,6 @@ extern "C" UINT _fx_partition_offset_calculate(void* partition_sector,
                                                ULONG* partition_start,
                                                ULONG* partition_size);
 
-#if defined(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
-extern "C" volatile std::uint32_t hardware_storage_startup_test_volume_mask;
-#endif
 
 namespace
 {
@@ -50,7 +40,6 @@ namespace
     constexpr std::uint32_t FLASH_JEDEC_ID{ 0xEF4018U };
     constexpr UINT ROOT_DIRECTORY_ENTRIES{ 128U };
 
-#if defined(HAL_PLATFORM_LINUX)
     struct FileCloser
     {
         // Invoked by unique_ptr, which transfers ownership to its deleter.
@@ -58,14 +47,11 @@ namespace
         void operator()(std::FILE* file) const noexcept { static_cast<void>(std::fclose(file)); }
     };
     using File = std::unique_ptr<std::FILE, FileCloser>;
-#endif
 
     struct DirectMedia
     {
-#if defined(HAL_PLATFORM_LINUX)
         File file;
         ULONG sectors{};
-#endif
     };
 
     // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
@@ -76,16 +62,11 @@ namespace
     // Each FileX media has its own mutex, so the two physical devices must
     // also have independent scratch storage when accessed concurrently.
     alignas(CACHE_LINE_BYTES) std::array<UCHAR, SECTOR_SIZE> flash_verify_buffer{};
-#if defined(HAL_PLATFORM_STM32)
-    alignas(CACHE_LINE_BYTES) std::array<UCHAR, SECTOR_SIZE> sd_transfer_buffer{};
-#endif
     FX_MEDIA flash_media{};
     FX_MEDIA sd_media{};
     LX_NOR_FLASH nor_flash{};
     DirectMedia sd_device{};
-#if defined(HAL_PLATFORM_LINUX)
     File nor_file{};
-#endif
     bool nor_open{};
     bool initialization_attempted{};
     bool flash_mounted{};
@@ -99,345 +80,6 @@ namespace
         return static_cast<std::size_t>(reinterpret_cast<std::uintptr_t>(address) - LEVELX_BASE_ADDRESS);
     }
 
-#if defined(HAL_PLATFORM_STM32)
-    constexpr std::uint32_t QSPI_TIMEOUT{ 5'000U };
-    constexpr std::uint32_t SD_TIMEOUT{ 5'000U };
-    constexpr std::uint32_t FLASH_POLL_INTERVAL{ 16U };
-    constexpr std::uint32_t FAST_READ_DUMMY_CYCLES{ 8U };
-    constexpr std::uint32_t UNKNOWN_FLASH_ID_ERROR{ 0xBAD00001U };
-    enum class SdBusWidth : std::uint8_t
-    {
-        One,
-        Four
-    };
-    constexpr std::uint32_t W25Q_WRITE_ENABLE{ 0x06U };
-    constexpr std::uint32_t W25Q_READ_STATUS_1{ 0x05U };
-    constexpr std::uint32_t W25Q_READ_STATUS_2{ 0x35U };
-    constexpr std::uint32_t W25Q_WRITE_STATUS{ 0x01U };
-    constexpr std::uint32_t W25Q_READ_JEDEC_ID{ 0x9FU };
-    constexpr std::uint32_t W25Q_RESET_ENABLE{ 0x66U };
-    constexpr std::uint32_t W25Q_RESET{ 0x99U };
-    constexpr std::uint32_t W25Q_FAST_READ{ 0x0BU };
-    constexpr std::uint32_t W25Q_QUAD_PAGE_PROGRAM{ 0x32U };
-    constexpr std::uint32_t W25Q_SECTOR_ERASE{ 0x20U };
-
-    static_assert(runtime::storage::detail::SD_DATA_CRC_ERROR == HAL_SD_ERROR_DATA_CRC_FAIL);
-
-    void configure_sd_handle(std::uint32_t bus_width) noexcept
-    {
-        hsd1 = {};
-        // CMSIS peripheral addresses are fixed by the STM32 memory map.
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        hsd1.Instance = SDMMC1;
-        hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
-        hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-        hsd1.Init.BusWide = bus_width;
-        hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-        hsd1.Init.ClockDiv = 0U;
-    }
-
-    [[nodiscard]] auto initialize_sd_card(SdBusWidth width) noexcept -> bool
-    {
-        configure_sd_handle(width == SdBusWidth::Four ? SDMMC_BUS_WIDE_4B : SDMMC_BUS_WIDE_1B);
-        runtime_storage_diagnostics.sd_bus_width = 0U;
-        if (HAL_SD_Init(&hsd1) != HAL_OK) {
-            runtime_storage_diagnostics.sd_error = hsd1.ErrorCode;
-            runtime_storage_diagnostics.sd_blocks = hsd1.SdCard.LogBlockNbr;
-            return false;
-        }
-
-        HAL_SD_CardInfoTypeDef info{};
-        if (HAL_SD_GetCardInfo(&hsd1, &info) != HAL_OK) {
-            runtime_storage_diagnostics.sd_error = hsd1.ErrorCode;
-            runtime_storage_diagnostics.sd_blocks = hsd1.SdCard.LogBlockNbr;
-            return false;
-        }
-
-        runtime_storage_diagnostics.sd_error = HAL_SD_ERROR_NONE;
-        runtime_storage_diagnostics.sd_blocks = info.LogBlockNbr;
-        runtime_storage_diagnostics.sd_bus_width = width == SdBusWidth::Four ? 4U : 1U;
-        return true;
-    }
-
-    void prepare_sd_mount_retry() noexcept
-    {
-        static_cast<void>(HAL_SD_DeInit(&hsd1));
-        hsd1 = {};
-        sd_media = {};
-        sd_media_cache.fill(0U);
-        sd_mounted = false;
-        runtime_storage_diagnostics.sd_mounted = 0U;
-        runtime_storage_diagnostics.sd_bus_width = 0U;
-    }
-
-    struct QspiTransfer
-    {
-        std::uint32_t instruction{}, address{}, address_mode{}, data_mode{}, count{}, dummy_cycles{};
-    };
-
-    [[nodiscard]] auto qspi_command(const QspiTransfer& transfer) noexcept -> bool
-    {
-        QSPI_CommandTypeDef command{};
-        command.Instruction = transfer.instruction;
-        command.Address = transfer.address;
-        command.AddressSize = QSPI_ADDRESS_24_BITS;
-        command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
-        command.AddressMode = transfer.address_mode;
-        command.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
-        command.DataMode = transfer.data_mode;
-        command.DummyCycles = transfer.dummy_cycles;
-        command.NbData = transfer.count;
-        command.DdrMode = QSPI_DDR_MODE_DISABLE;
-        command.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
-        command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
-        const HAL_StatusTypeDef status{ HAL_QSPI_Command(&hqspi, &command, QSPI_TIMEOUT) };
-        if (status != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error =
-              hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
-            return false;
-        }
-        return true;
-    }
-
-    [[nodiscard]] auto qspi_simple(std::uint32_t instruction) noexcept -> bool
-    {
-        return qspi_command({ .instruction = instruction,
-                              .address = 0U,
-                              .address_mode = QSPI_ADDRESS_NONE,
-                              .data_mode = QSPI_DATA_NONE,
-                              .count = 0U });
-    }
-
-    [[nodiscard]] auto qspi_read_register(std::uint32_t instruction, UCHAR& value) noexcept -> bool
-    {
-        if (!qspi_command({ .instruction = instruction,
-                            .address = 0U,
-                            .address_mode = QSPI_ADDRESS_NONE,
-                            .data_mode = QSPI_DATA_1_LINE,
-                            .count = 1U })) {
-            return false;
-        }
-        const HAL_StatusTypeDef status{ HAL_QSPI_Receive(&hqspi, &value, QSPI_TIMEOUT) };
-        if (status != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error =
-              hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
-            return false;
-        }
-        return true;
-    }
-
-    [[nodiscard]] auto qspi_wait_ready() noexcept -> bool
-    {
-        QSPI_CommandTypeDef command{};
-        command.Instruction = W25Q_READ_STATUS_1;
-        command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
-        command.AddressMode = QSPI_ADDRESS_NONE;
-        command.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
-        command.DataMode = QSPI_DATA_1_LINE;
-        command.NbData = 1U;
-        command.DdrMode = QSPI_DDR_MODE_DISABLE;
-        command.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
-        command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
-        QSPI_AutoPollingTypeDef polling{};
-        polling.Match = 0U;
-        polling.Mask = 1U;
-        polling.Interval = FLASH_POLL_INTERVAL;
-        polling.StatusBytesSize = 1U;
-        polling.MatchMode = QSPI_MATCH_MODE_AND;
-        polling.AutomaticStop = QSPI_AUTOMATIC_STOP_ENABLE;
-        const HAL_StatusTypeDef status{ HAL_QSPI_AutoPolling(&hqspi, &command, &polling, QSPI_TIMEOUT) };
-        if (status != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error =
-              hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
-            return false;
-        }
-        return true;
-    }
-
-    [[nodiscard]] auto qspi_write_enable() noexcept -> bool { return qspi_simple(W25Q_WRITE_ENABLE); }
-
-    [[nodiscard]] auto qspi_read(std::size_t offset, void* destination, std::size_t bytes) noexcept -> bool
-    {
-        if (offset > FLASH_BYTES || bytes > FLASH_BYTES - offset || bytes == 0U) {
-            return bytes == 0U;
-        }
-        // Keep reads in single-line fast-read mode: this is the mode verified
-        // to be reliable on the wired breakout. Quad page programming remains
-        // enabled and is verified by LevelX readback.
-        if (!qspi_command({ .instruction = W25Q_FAST_READ,
-                            .address = static_cast<std::uint32_t>(offset),
-                            .address_mode = QSPI_ADDRESS_1_LINE,
-                            .data_mode = QSPI_DATA_1_LINE,
-                            .count = static_cast<std::uint32_t>(bytes),
-                            .dummy_cycles = FAST_READ_DUMMY_CYCLES })) {
-            return false;
-        }
-        const HAL_StatusTypeDef status{ HAL_QSPI_Receive(
-          &hqspi, static_cast<UCHAR*>(destination), QSPI_TIMEOUT) };
-        if (status != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error =
-              hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
-            return false;
-        }
-        return true;
-    }
-
-    [[nodiscard]] auto qspi_write(std::size_t offset, const void* source, std::size_t bytes) noexcept -> bool
-    {
-        const auto* input{ static_cast<const UCHAR*>(source) };
-        if (offset > FLASH_BYTES || bytes > FLASH_BYTES - offset) {
-            return false;
-        }
-        while (bytes != 0U) {
-            const std::size_t page_bytes{ std::min<std::size_t>(
-              bytes, FLASH_PAGE_BYTES - (offset % FLASH_PAGE_BYTES)) };
-            if (!qspi_write_enable() || !qspi_command({ .instruction = W25Q_QUAD_PAGE_PROGRAM,
-                                                        .address = static_cast<std::uint32_t>(offset),
-                                                        .address_mode = QSPI_ADDRESS_1_LINE,
-                                                        .data_mode = QSPI_DATA_4_LINES,
-                                                        .count = static_cast<std::uint32_t>(page_bytes) })) {
-                return false;
-            }
-            // HAL transmits from this buffer without modifying it.
-            // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
-            const HAL_StatusTypeDef status{ HAL_QSPI_Transmit(
-              &hqspi, const_cast<UCHAR*>(input), QSPI_TIMEOUT) };
-            // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
-            if (status != HAL_OK || !qspi_wait_ready()) {
-                if (status != HAL_OK) {
-                    runtime_storage_diagnostics.qspi_error =
-                      hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
-                }
-                return false;
-            }
-            offset += page_bytes;
-            input += page_bytes;
-            bytes -= page_bytes;
-        }
-        return true;
-    }
-
-    [[nodiscard]] auto qspi_erase(std::size_t offset) noexcept -> bool
-    {
-        return offset < FLASH_BYTES && (offset % ERASE_BLOCK_BYTES) == 0U && qspi_write_enable() &&
-               qspi_command({ .instruction = W25Q_SECTOR_ERASE,
-                              .address = static_cast<std::uint32_t>(offset),
-                              .address_mode = QSPI_ADDRESS_1_LINE,
-                              .data_mode = QSPI_DATA_NONE,
-                              .count = 0U }) &&
-               qspi_wait_ready();
-    }
-
-    [[nodiscard]] auto initialize_qspi() noexcept -> bool
-    {
-        MX_QUADSPI_Init();
-        if (!qspi_simple(W25Q_RESET_ENABLE) || !qspi_simple(W25Q_RESET)) {
-            return false;
-        }
-        HAL_Delay(1U);
-
-        std::array<UCHAR, 3U> id{};
-        if (!qspi_command({ .instruction = W25Q_READ_JEDEC_ID,
-                            .address = 0U,
-                            .address_mode = QSPI_ADDRESS_NONE,
-                            .data_mode = QSPI_DATA_1_LINE,
-                            .count = id.size() }) ||
-            HAL_QSPI_Receive(&hqspi, id.data(), QSPI_TIMEOUT) != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error = hqspi.ErrorCode;
-            return false;
-        }
-        runtime_storage_diagnostics.flash_jedec_id = (static_cast<std::uint32_t>(id[0]) << (2U * CHAR_BIT)) |
-                                                     (static_cast<std::uint32_t>(id[1]) << CHAR_BIT) | id[2];
-        if (runtime_storage_diagnostics.flash_jedec_id != FLASH_JEDEC_ID) {
-            runtime_storage_diagnostics.qspi_error = UNKNOWN_FLASH_ID_ERROR;
-            return false;
-        }
-
-        UCHAR status_1{};
-        UCHAR status_2{};
-        if (!qspi_read_register(W25Q_READ_STATUS_1, status_1) ||
-            !qspi_read_register(W25Q_READ_STATUS_2, status_2)) {
-            return false;
-        }
-        if ((status_2 & 0x02U) == 0U) {
-            std::array<UCHAR, 2U> statuses{ status_1, static_cast<UCHAR>(status_2 | 0x02U) };
-            if (!qspi_write_enable() ||
-                !qspi_command({ .instruction = W25Q_WRITE_STATUS,
-                                .address = 0U,
-                                .address_mode = QSPI_ADDRESS_NONE,
-                                .data_mode = QSPI_DATA_1_LINE,
-                                .count = statuses.size() }) ||
-                HAL_QSPI_Transmit(&hqspi, statuses.data(), QSPI_TIMEOUT) != HAL_OK || !qspi_wait_ready() ||
-                !qspi_read_register(W25Q_READ_STATUS_2, status_2) || (status_2 & 0x02U) == 0U) {
-                runtime_storage_diagnostics.qspi_error = hqspi.ErrorCode;
-                return false;
-            }
-        }
-        return true;
-    }
-
-    [[nodiscard]] auto sd_wait_ready() noexcept -> bool
-    {
-        const std::uint32_t started{ HAL_GetTick() };
-        while (HAL_SD_GetCardState(&hsd1) != HAL_SD_CARD_TRANSFER) {
-            if (HAL_GetTick() - started >= SD_TIMEOUT) {
-                runtime_storage_diagnostics.sd_error =
-                  hsd1.ErrorCode != HAL_SD_ERROR_NONE ? hsd1.ErrorCode : HAL_SD_ERROR_TIMEOUT;
-                return false;
-            }
-            tx_thread_sleep(1U);
-        }
-        return true;
-    }
-
-    [[nodiscard]] auto sd_read(ULONG sector, void* destination, UINT sectors) noexcept -> bool
-    {
-        if (!runtime::storage::detail::valid_sector_range(sector, 0U, sectors, hsd1.SdCard.LogBlockNbr)) {
-            runtime_storage_diagnostics.sd_error = HAL_SD_ERROR_ADDR_OUT_OF_RANGE;
-            return false;
-        }
-        auto* output{ static_cast<UCHAR*>(destination) };
-        for (UINT index{}; index < sectors; ++index) {
-            if (HAL_SD_ReadBlocks(&hsd1,
-                                  sd_transfer_buffer.data(),
-                                  static_cast<std::uint32_t>(sector + index),
-                                  1U,
-                                  SD_TIMEOUT) != HAL_OK) {
-                runtime_storage_diagnostics.sd_error = hsd1.ErrorCode;
-                return false;
-            }
-            if (!sd_wait_ready()) {
-                return false;
-            }
-            std::memcpy(output + (index * SECTOR_SIZE), sd_transfer_buffer.data(), SECTOR_SIZE);
-        }
-        return true;
-    }
-
-    [[nodiscard]] auto sd_write(ULONG sector, const void* source, UINT sectors) noexcept -> bool
-    {
-        if (!runtime::storage::detail::valid_sector_range(sector, 0U, sectors, hsd1.SdCard.LogBlockNbr)) {
-            runtime_storage_diagnostics.sd_error = HAL_SD_ERROR_ADDR_OUT_OF_RANGE;
-            return false;
-        }
-        const auto* input{ static_cast<const UCHAR*>(source) };
-        for (UINT index{}; index < sectors; ++index) {
-            std::memcpy(sd_transfer_buffer.data(), input + (index * SECTOR_SIZE), SECTOR_SIZE);
-            if (HAL_SD_WriteBlocks(&hsd1,
-                                   sd_transfer_buffer.data(),
-                                   static_cast<std::uint32_t>(sector + index),
-                                   1U,
-                                   SD_TIMEOUT) != HAL_OK) {
-                runtime_storage_diagnostics.sd_error = hsd1.ErrorCode;
-                return false;
-            }
-            if (!sd_wait_ready()) {
-                return false;
-            }
-        }
-        return true;
-    }
-#else
     [[nodiscard]] auto file_read(std::FILE* file,
                                  std::size_t offset,
                                  void* destination,
@@ -472,7 +114,7 @@ namespace
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
         const int length{ std::snprintf(path.data(),
                                         path.size(),
-                                        "/tmp/nucleo-h753zi-%ld-%s.img",
+                                        "/tmp/protomate-%ld-%s.img",
                                         static_cast<long>(getpid()),
                                         configuration.kind) };
         if (length <= 0 || static_cast<std::size_t>(length) >= path.size()) {
@@ -562,7 +204,6 @@ namespace
                           source,
                           static_cast<std::size_t>(sectors) * SECTOR_SIZE);
     }
-#endif
 
     auto direct_media_driver(FX_MEDIA* media_ptr) noexcept -> void
     {
@@ -788,18 +429,6 @@ namespace
     [[nodiscard]] auto initialize_flash_media() noexcept -> bool
     {
         static auto name{ std::to_array("FLASH") };
-#if defined(HAL_PLATFORM_STM32)
-        if (!initialize_qspi()) {
-            return false;
-        }
-#if defined(RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT)
-        for (ULONG block{}; block < FLASH_BLOCKS; ++block) {
-            if (!qspi_erase(static_cast<std::size_t>(block) * ERASE_BLOCK_BYTES)) {
-                return false;
-            }
-        }
-#endif
-#else
         bool created{};
         if (!open_image({ .kind = "flash-levelx", .bytes = FLASH_BYTES, .fill = ERASED_FLASH_BYTE },
                         nor_file,
@@ -807,7 +436,6 @@ namespace
             return false;
         }
         runtime_storage_diagnostics.flash_jedec_id = FLASH_JEDEC_ID;
-#endif
         runtime_storage_diagnostics.flash_blocks = FLASH_BLOCKS;
         lx_nor_flash_initialize();
         if (open_levelx() != LX_SUCCESS) {
@@ -858,25 +486,6 @@ namespace
     [[nodiscard]] auto initialize_sd_media() noexcept -> bool
     {
         static auto name{ std::to_array("SD") };
-#if defined(HAL_PLATFORM_STM32)
-        runtime_storage_diagnostics.sd_detect_level =
-          // CMSIS GPIO port addresses are fixed by the STM32 memory map.
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          HAL_GPIO_ReadPin(SD_CARD_DETECT_GPIO_Port, SD_CARD_DETECT_Pin) == GPIO_PIN_SET ? 1U : 0U;
-        if (!initialize_sd_card(SdBusWidth::Four)) {
-            const std::uint32_t four_bit_error{ hsd1.ErrorCode };
-            const std::uint32_t four_bit_blocks{ hsd1.SdCard.LogBlockNbr };
-            runtime_storage_diagnostics.sd_fallback_error = four_bit_error;
-            runtime_storage_diagnostics.sd_fallback_used = 1U;
-            static_cast<void>(HAL_SD_DeInit(&hsd1));
-            if (!initialize_sd_card(SdBusWidth::One)) {
-                if (runtime_storage_diagnostics.sd_blocks == 0U) {
-                    runtime_storage_diagnostics.sd_blocks = four_bit_blocks;
-                }
-                return false;
-            }
-        }
-#else
         constexpr ULONG linux_sd_sectors{ 128U * 1024U };
         bool created{};
         if (!open_image({ .kind = "sd-filex",
@@ -908,36 +517,12 @@ namespace
                 return false;
             }
         }
-#endif
         UINT open_status{ fx_media_open(&sd_media,
                                         name.data(),
                                         direct_media_driver,
                                         &sd_device,
                                         sd_media_cache.data(),
                                         sd_media_cache.size()) };
-#if defined(HAL_PLATFORM_STM32)
-        if (runtime::storage::detail::should_retry_sd_mount_in_one_bit(
-              runtime_storage_diagnostics.sd_bus_width, open_status, runtime_storage_diagnostics.sd_error)) {
-            const std::uint32_t four_bit_error{ runtime_storage_diagnostics.sd_error };
-            const std::uint32_t four_bit_blocks{ runtime_storage_diagnostics.sd_blocks };
-            runtime_storage_diagnostics.sd_fallback_error = four_bit_error;
-            runtime_storage_diagnostics.sd_fallback_used = 1U;
-            prepare_sd_mount_retry();
-            if (!initialize_sd_card(SdBusWidth::One)) {
-                if (runtime_storage_diagnostics.sd_blocks == 0U) {
-                    runtime_storage_diagnostics.sd_blocks = four_bit_blocks;
-                }
-                runtime_storage_diagnostics.sd_filex_status = open_status;
-                return false;
-            }
-            open_status = fx_media_open(&sd_media,
-                                        name.data(),
-                                        direct_media_driver,
-                                        &sd_device,
-                                        sd_media_cache.data(),
-                                        sd_media_cache.size());
-        }
-#endif
         runtime_storage_diagnostics.sd_filex_status = open_status;
         sd_mounted = open_status == FX_SUCCESS;
         runtime_storage_diagnostics.sd_mounted = sd_mounted;
@@ -958,14 +543,8 @@ namespace runtime::storage
             return flash_mounted || sd_mounted;
         }
         runtime_storage_diagnostics = {};
-#if defined(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
-        const bool flash_ok{ (hardware_storage_startup_test_volume_mask & 1U) != 0U &&
-                             initialize_flash_media() };
-        const bool sd_ok{ (hardware_storage_startup_test_volume_mask & 2U) != 0U && initialize_sd_media() };
-#else
         const bool flash_ok{ initialize_flash_media() };
         const bool sd_ok{ initialize_sd_media() };
-#endif
         initialization_attempted = true;
         return flash_ok || sd_ok;
     }

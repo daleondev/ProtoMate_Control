@@ -4,6 +4,9 @@ endif()
 
 set(HAL_BOARD nucleo_h755ziq)
 set(RUNTIME_FILESYSTEM OFF CACHE BOOL "Build FileX/LevelX filesystem support")
+if(RUNTIME_FILESYSTEM)
+    message(FATAL_ERROR "H755 storage peripherals are not assigned; use RUNTIME_FILESYSTEM=OFF")
+endif()
 set(APPLICATION_ENABLE_P2P OFF CACHE BOOL "Enable application p2p workers")
 if(APPLICATION_ENABLE_P2P)
     message(FATAL_ERROR "H755 shared-memory p2p transport is not implemented yet")
@@ -64,7 +67,7 @@ target_include_directories(platform PUBLIC
     ${PROJECT_SOURCE_DIR}/external/cmsis-device-h7/Include)
 target_compile_definitions(platform PUBLIC
     STM32H755xx CORE_${H755_CORE} USE_HAL_DRIVER USE_PWR_DIRECT_SMPS_SUPPLY
-    USER_VECT_TAB_ADDRESS HAL_PLATFORM_STM32 HAL_BOARD_NUCLEO_H755ZIQ
+    USER_VECT_TAB_ADDRESS HAL_PLATFORM_STM32
     $<$<CONFIG:Debug>:DEBUG>)
 target_link_libraries(platform PUBLIC threadx project_compiler_settings)
 set_source_files_properties(
@@ -75,19 +78,24 @@ set_source_files_properties(
 add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${application_role}-controller)
 target_link_libraries(${PROJECT_NAME} PRIVATE platform project_compiler_settings)
+target_compile_options(${PROJECT_NAME} PRIVATE
+    "$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=8192U)
 configure_file(${PROJECT_SOURCE_DIR}/platform/runtime/stm32/h755.ld.in
                ${CMAKE_CURRENT_BINARY_DIR}/h755.ld @ONLY)
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/h755.ld)
 target_link_options(${PROJECT_NAME} PRIVATE
     -T${CMAKE_CURRENT_BINARY_DIR}/h755.ld --specs=nosys.specs
-    -Wl,--gc-sections -Wl,--print-memory-usage
+    -Wl,--gc-sections
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.map)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.hex
     COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.bin
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${PROJECT_NAME}>
     VERBATIM)
+
+include(${PROJECT_SOURCE_DIR}/cmake/memory_usage.cmake)
+firmware_memory_usage(${PROJECT_NAME} ${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.map)
 
 add_subdirectory(external/pneumo)
 add_subdirectory(platform/hal)

@@ -63,7 +63,7 @@ namespace
 
 int main()
 {
-    const std::string prefix{ "/tmp/nucleo-h753zi-" + std::to_string(::getpid()) };
+    const std::string prefix{ "/tmp/protomate-" + std::to_string(::getpid()) };
     Fixture flash{ prefix + "-flash-levelx.img" };
     Fixture sd{ prefix + "-sd-filex.img" };
     constexpr std::size_t FLASH_BYTES{ 16U * 1024U * 1024U };

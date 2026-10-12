@@ -1,7 +1,7 @@
 add_library(hal_drivers_impl INTERFACE)
 add_library(hal::drivers::impl ALIAS hal_drivers_impl)
 
-if(HAL_BOARD STREQUAL "nucleo_h755ziq")
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_sources(hal_drivers_impl INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.cpp
@@ -18,33 +18,7 @@ target_sources(hal_drivers_impl
         ${CMAKE_CURRENT_SOURCE_DIR}/StepOutput.cpp
 )
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    target_sources(hal_drivers_impl
-        INTERFACE
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/ethernet_dma.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Ethernet.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Ethernet.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/PwmOutput.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/PwmOutput.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/StepHardware.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/StepHardware.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/QuadratureEncoder.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/QuadratureEncoder.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rng.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rng.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rtc.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rtc.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Uart.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Uart.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Spi.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Spi.cpp
-    )
-
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Background services use the runtime C++ ABI; the remaining Linux HAL
     # retains its native ABI and crosses through opaque service objects.
     add_library(hal_linux_services OBJECT linux/StepHardware.cpp linux/QuadratureEncoder.cpp)

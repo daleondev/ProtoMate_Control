@@ -44,7 +44,7 @@ namespace hal::timer
 
     auto create(Configuration configuration) -> std::shared_ptr<ITimer>
     {
-#if defined(HAL_BOARD_NUCLEO_H755ZIQ) && defined(CORE_CM7)
+#if defined(CORE_CM7)
         if (configuration.peripheral != Peripheral::Tim12) {
             return {};
         }

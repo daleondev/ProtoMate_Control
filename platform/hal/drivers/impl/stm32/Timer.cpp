@@ -297,7 +297,7 @@ namespace hal
     }
 }
 
-#if !defined(HAL_BOARD_NUCLEO_H755ZIQ) || defined(CORE_CM4)
+#if defined(CORE_CM4)
 extern "C" void TIM5_IRQHandler()
 {
     if (__HAL_TIM_GET_FLAG(&htim5, TIM_FLAG_UPDATE) != RESET &&

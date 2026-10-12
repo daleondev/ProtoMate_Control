@@ -2,9 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build Debug",
+            "label": "Build H755 Debug",
             "type": "shell",
-            "command": "cmake --preset debug-stm32 && cmake --build --preset debug-stm32",
+            "command": "cmake --preset h755-io-debug && cmake --build --preset h755-io-debug && cmake --preset h755-ui-debug && cmake --build --preset h755-ui-debug",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
@@ -18,35 +18,14 @@
             ]
         },
         {
-            "label": "Flash",
+            "label": "Flash H755 Debug",
             "type": "shell",
-            "command": "openocd -f interface/stlink.cfg -f target/stm32h7x_dual_bank.cfg -c \"program ./build/debug-stm32/Application.elf verify reset exit\"",
+            "command": "openocd -f cmake/openocd/nucleo-h755ziq.cfg -c \"init; reset halt; targets stm32h7x.cpu0\" -c \"flash write_image erase build/h755-ui-debug/ui-controller.elf\" -c \"verify_image build/h755-ui-debug/ui-controller.elf\" -c \"flash write_image erase build/h755-io-debug/io-controller.elf\" -c \"verify_image build/h755-io-debug/io-controller.elf\" -c \"reset run; shutdown\"",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
             },
             "problemMatcher": []
-        },
-        {
-            "label": "Run Hardware Self-Test",
-            "type": "shell",
-            "command": "${workspaceFolder}/scripts/run_hardware_self_test.sh",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "presentation": {
-                "reveal": "always",
-                "focus": true,
-                "panel": "dedicated",
-                "clear": true
-            },
-            "group": {
-                "kind": "test",
-                "isDefault": true
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
         },
         {
             "label": "Build Debug Linux",
@@ -61,64 +40,13 @@
             ]
         },
         {
-            "label": "Debug Prerequisites",
+            "label": "H755 Debug Prerequisites",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Build Debug",
-                "Flash"
+                "Build H755 Debug",
+                "Flash H755 Debug"
             ],
             "problemMatcher": []
-        },
-        {
-            "label": "Run Serial and Persistence Test",
-            "type": "shell",
-            "command": "${workspaceFolder}/scripts/run_hardware_self_test.sh --io",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "presentation": {
-                "reveal": "always",
-                "focus": true,
-                "panel": "dedicated",
-                "clear": true
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
-        },
-        {
-            "label": "Run Ethernet Cable Test",
-            "type": "shell",
-            "command": "${workspaceFolder}/scripts/run_hardware_self_test.sh --ethernet",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "presentation": {
-                "reveal": "always",
-                "focus": true,
-                "panel": "dedicated",
-                "clear": true
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
-        },
-        {
-            "label": "Run Release Hardware Self-Test",
-            "type": "shell",
-            "command": "${workspaceFolder}/scripts/run_hardware_self_test.sh --configuration Release",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "presentation": {
-                "reveal": "always",
-                "focus": true,
-                "panel": "dedicated",
-                "clear": true
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
         },
         {
             "label": "Test Linux",

@@ -58,7 +58,7 @@ target_compile_options(${image} PRIVATE -Wall -Wextra -Wpedantic)
 target_link_options(${image} PRIVATE
     -T${linker_script}
     --specs=nano.specs --specs=nosys.specs
-    -Wl,--gc-sections -Wl,--print-memory-usage
+    -Wl,--gc-sections
     -Wl,-Map=${CMAKE_BINARY_DIR}/${image}.map
 )
 set_target_properties(${image} PROPERTIES
@@ -71,3 +71,6 @@ add_custom_command(TARGET ${image} POST_BUILD
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${image}>
     VERBATIM
 )
+
+include(${PROJECT_SOURCE_DIR}/cmake/memory_usage.cmake)
+firmware_memory_usage(${image} ${CMAKE_BINARY_DIR}/${image}.map)

@@ -1,5 +1,9 @@
 if(NOT DEFINED HAL_BOARD)
-    set(HAL_BOARD nucleo_h753zi)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(HAL_BOARD linux)
+    else()
+        message(FATAL_ERROR "The hardware platform must select its board")
+    endif()
 endif()
 add_subdirectory(${HAL_BOARD})
 

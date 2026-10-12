@@ -1,0 +1,227 @@
+cmake_minimum_required(VERSION 3.22)
+
+# Each H755 core gets its own configure/build tree and runtime instance.
+if(DEFINED H755_CORE)
+    project(Application LANGUAGES C CXX ASM)
+    option(H755_LED_SAMPLE "Build the initial bare-metal LED sample" OFF)
+    if(H755_LED_SAMPLE)
+        add_subdirectory(examples/h755_dual_core)
+    else()
+        include(cmake/application_h755.cmake)
+    endif()
+    return()
+endif()
+
+project(Application LANGUAGES C CXX ASM)
+
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+   CMAKE_CXX_COMPILER_VERSION VERSION_LESS 16 OR
+   CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 17)
+    message(FATAL_ERROR "This project requires GCC 16")
+endif()
+
+add_library(project_compiler_settings INTERFACE)
+target_compile_options(project_compiler_settings
+    INTERFACE
+        $<$<COMPILE_LANGUAGE:CXX>:-std=c++26>
+)
+
+option(RUNTIME_HARDWARE_SELF_TEST "Build the board-resident runtime conformance image" OFF)
+option(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD "Skip external storage in the runtime conformance image" OFF)
+option(RUNTIME_HARDWARE_ETHERNET_TEST "Build the Ethernet cable test image" OFF)
+option(RUNTIME_HARDWARE_IO_TEST "Build the serial and reset-persistence test image" OFF)
+option(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST "Build the storage-startup test image" OFF)
+option(HAL_HARDWARE_STEP_TEST "Build the interactive hardware step-generator test image" OFF)
+option(HAL_HARDWARE_ETHERCAT_SLAVE "Build the minimal SOES echo slave" OFF)
+option(HAL_HARDWARE_SPI_TEST "Build the LAN9255 ESC SPI feasibility test image" OFF)
+option(HAL_HARDWARE_TMC_TEST "Build the single-driver TMC2209 UART/motor bench test image" OFF)
+option(HAL_HARDWARE_MOTOR_TEST "Build the combined M1 DM542T / M2 TMC2209 bench image" OFF)
+option(HAL_HARDWARE_TMC_STANDALONE_TEST "Build the TMC2209 STEP/DIR bench image without driver UART" OFF)
+option(RUNTIME_STORAGE_REQUIRED "Require at least one mounted FileX volume at startup" OFF)
+option(RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT
+       "Destructively erase the external NOR flash before mounting (recovery only)"
+       OFF)
+
+if(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD AND (NOT RUNTIME_HARDWARE_SELF_TEST OR RUNTIME_STORAGE_REQUIRED))
+    message(FATAL_ERROR "Bare-board conformance requires RUNTIME_HARDWARE_SELF_TEST=ON and RUNTIME_STORAGE_REQUIRED=OFF")
+endif()
+
+if((RUNTIME_HARDWARE_SELF_TEST OR RUNTIME_HARDWARE_ETHERNET_TEST OR RUNTIME_HARDWARE_IO_TEST OR RUNTIME_HARDWARE_STORAGE_STARTUP_TEST OR HAL_HARDWARE_STEP_TEST OR HAL_HARDWARE_TMC_TEST OR HAL_HARDWARE_MOTOR_TEST OR HAL_HARDWARE_TMC_STANDALONE_TEST OR HAL_HARDWARE_SPI_TEST OR HAL_HARDWARE_ETHERCAT_SLAVE) AND
+   NOT CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    message(FATAL_ERROR "Hardware self-tests are only supported by the STM32 target")
+endif()
+set(hardware_image_count 0)
+foreach(image_option RUNTIME_HARDWARE_SELF_TEST RUNTIME_HARDWARE_ETHERNET_TEST RUNTIME_HARDWARE_IO_TEST RUNTIME_HARDWARE_STORAGE_STARTUP_TEST HAL_HARDWARE_STEP_TEST HAL_HARDWARE_TMC_TEST HAL_HARDWARE_MOTOR_TEST HAL_HARDWARE_TMC_STANDALONE_TEST HAL_HARDWARE_SPI_TEST HAL_HARDWARE_ETHERCAT_SLAVE)
+    if(${image_option})
+        math(EXPR hardware_image_count "${hardware_image_count} + 1")
+    endif()
+endforeach()
+if(hardware_image_count GREATER 0)
+    # Preserve debugger-visible diagnostics in optimized conformance images.
+    target_compile_options(project_compiler_settings INTERFACE $<$<CONFIG:Release>:-g>)
+endif()
+if(hardware_image_count GREATER 1)
+    message(FATAL_ERROR "Select one hardware self-test image at a time")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include(CTest)
+else()
+    option(BUILD_TESTING "Build tests" OFF)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include(cmake/platform_linux.cmake)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    include(cmake/platform_stm32.cmake)
+else()
+    message(FATAL_ERROR "Unsupported target system: ${CMAKE_SYSTEM_NAME}")
+endif()
+
+add_executable(${PROJECT_NAME})
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        platform
+        project_compiler_settings
+)
+
+target_compile_options(${PROJECT_NAME}
+    PRIVATE
+        "$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>"
+)
+
+if(hardware_image_count GREATER 0)
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+            RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U
+    )
+else()
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+            RUNTIME_APPLICATION_THREAD_STACK_SIZE=8192U
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
+        LINK_DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/external/CubeMX/STM32H753XX_FLASH.ld
+    )
+
+    target_link_options(${PROJECT_NAME}
+        PRIVATE
+            -T${CMAKE_CURRENT_SOURCE_DIR}/external/CubeMX/STM32H753XX_FLASH.ld
+            --specs=nosys.specs
+            -Wl,-Map=$<TARGET_FILE_DIR:${PROJECT_NAME}>/${PROJECT_NAME}.map
+            -Wl,--gc-sections
+            -Wl,--print-memory-usage
+    )
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O ihex
+                $<TARGET_FILE:${PROJECT_NAME}>
+                $<TARGET_FILE_DIR:${PROJECT_NAME}>/${PROJECT_NAME}.hex
+        COMMAND ${CMAKE_OBJCOPY} -O binary
+                $<TARGET_FILE:${PROJECT_NAME}>
+                $<TARGET_FILE_DIR:${PROJECT_NAME}>/${PROJECT_NAME}.bin
+        COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${PROJECT_NAME}>
+        COMMENT "Generating hex and bin files, and printing size"
+        VERBATIM
+    )
+endif()
+
+add_subdirectory(external/pneumo)
+
+add_subdirectory(platform/hal)
+add_subdirectory(platform/runtime)
+if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_subdirectory(platform/hal/tests)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_test(NAME hal.architecture
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/cmake/tests/verify_hal_architecture.py
+            --source ${PROJECT_SOURCE_DIR} --build ${PROJECT_BINARY_DIR} --platform linux)
+    add_test(NAME platform.timebase_priority_guard
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/cmake/tests/verify_timebase_priority_test.py
+            --source ${PROJECT_SOURCE_DIR} --cmake ${CMAKE_COMMAND})
+    set_tests_properties(platform.timebase_priority_guard PROPERTIES TIMEOUT 30)
+    add_test(NAME ethercat.assets
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/examples/ethercat_slave/test_assets.py)
+endif()
+
+if(HAL_HARDWARE_ETHERCAT_SLAVE)
+    add_subdirectory(examples/ethercat_slave)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_SKIP_STORAGE_INIT)
+elseif(HAL_HARDWARE_SPI_TEST)
+    target_sources(${PROJECT_NAME} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_spi_test.cpp)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_SKIP_STORAGE_INIT)
+elseif(HAL_HARDWARE_MOTOR_TEST)
+    target_sources(${PROJECT_NAME} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_motor_test.cpp)
+elseif(HAL_HARDWARE_TMC_STANDALONE_TEST)
+    target_sources(${PROJECT_NAME} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_tmc_standalone_test.cpp)
+elseif(HAL_HARDWARE_TMC_TEST)
+    target_sources(${PROJECT_NAME} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_tmc_test.cpp)
+elseif(HAL_HARDWARE_STEP_TEST)
+    add_subdirectory(src/common/p2p)
+    target_link_libraries(${PROJECT_NAME} PRIVATE application::p2p)
+    # Preserve the existing motor/profile bench while application control is
+    # rebuilt. The normal application never compiles the archived modules.
+    set(step_test_control ${CMAKE_CURRENT_SOURCE_DIR}/backups/application/control)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_step_test.cpp
+        ${step_test_control}/StepperMotor.cpp
+        ${step_test_control}/MotionProfile.cpp
+        ${step_test_control}/MotionSequence.cpp
+    )
+    set_source_files_properties(${step_test_control}/MotionProfile.cpp ${step_test_control}/MotionSequence.cpp PROPERTIES
+        COMPILE_OPTIONS "$<$<CONFIG:Release>:-O3>")
+    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/backups/application)
+    target_link_libraries(${PROJECT_NAME} PRIVATE pneumo::pneumo)
+elseif(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_storage_startup_test.cpp
+    )
+elseif(RUNTIME_HARDWARE_ETHERNET_TEST)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/hal/tests/hardware_ethernet_test.cpp
+    )
+elseif(RUNTIME_HARDWARE_IO_TEST)
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_io_test.cpp
+    )
+elseif(RUNTIME_HARDWARE_SELF_TEST)
+    if(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD=1)
+    endif()
+    target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_self_test.cpp
+    )
+else()
+    add_subdirectory(src)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Python3 QUIET COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+        add_custom_target(clang-tidy
+            COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/clang_tidy.py
+                --build-dir ${PROJECT_BINARY_DIR}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            USES_TERMINAL
+            VERBATIM
+            COMMENT "clang-tidy")
+        if(BUILD_TESTING)
+            add_test(NAME tooling.clang_tidy
+                COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/tests/test_clang_tidy.py)
+        endif()
+    endif()
+endif()

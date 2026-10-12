@@ -15,7 +15,7 @@ target_link_libraries(application_p2p
         application::p2p::transport
 )
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    # Coroutine and messaging templates otherwise exceed H753 flash in Debug.
+    # Coroutine and messaging templates otherwise exceed embedded flash in Debug.
     # Keep debug information and useful stepping, as for the control endpoints.
     target_compile_options(application_p2p PRIVATE $<$<CONFIG:Debug>:-Og>)
 endif()

@@ -115,7 +115,7 @@ int main(int argc, char** argv)
     expected_flash = flash == "valid";
     expected_sd = sd == "valid";
     fixtures.reserve(2);
-    const std::string prefix{ "/tmp/nucleo-h753zi-" + std::to_string(::getpid()) };
+    const std::string prefix{ "/tmp/protomate-" + std::to_string(::getpid()) };
     fixtures.push_back({ prefix + "-flash-levelx.img", flash, 16U * 1024U * 1024U });
     fixtures.push_back({ prefix + "-sd-filex.img", sd, 64U * 1024U * 1024U });
     for (auto& fixture : fixtures) if (!fixture.prepare()) return 3;

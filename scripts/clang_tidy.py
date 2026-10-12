@@ -131,9 +131,6 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
             source = source_file(entry)
             if not in_scope(source):
                 continue
-            if context != "linux" and not any(source.is_relative_to(ROOT / directory)
-                                              for directory in ("platform/hal", "platform/runtime")):
-                continue
             arguments = entry.get("arguments") or shlex.split(entry["command"])
             # runtime_attach also compiles this hook into tests and examples.
             # Analyze its actual Application configuration once per platform.
@@ -173,7 +170,9 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
     if extra_databases:
         expected = {source.resolve() for directory in ("platform/hal", "platform/runtime")
                     for source in (ROOT / directory).rglob("*")
-                    if source.suffix in (".cpp", ".cc", ".c", ".cxx") and in_scope(source.resolve())}
+                    if source.suffix in (".cpp", ".cc", ".c", ".cxx") and in_scope(source.resolve())
+                    and (not source.is_relative_to(ROOT / "platform/hal/board")
+                         or source.parent.name in ("linux", "nucleo_h755ziq"))}
         missing = expected - {Path(item["file"]) for item in selected}
         if missing:
             raise ValueError("HAL/runtime sources missing compilation commands: " + ", ".join(
@@ -344,7 +343,8 @@ def main():
         # headers of the host Linux build, without importing host C++ headers.
         for name in ("curses.h", "ncurses_dll.h", "unctrl.h"):
             shutil.copyfile(Path("/usr/include") / name, includes / name)
-        databases = [configure_database(args.output, "stm32", ["--preset", "debug-stm32"])]
+        databases = [configure_database(args.output, f"stm32-{core}", ["--preset", f"h755-{core}-debug"])
+                     for core in ("io", "ui")]
         arm_includes = arm_include_directories(databases[0][1])
         prepare_database(args.build_dir, args.output, databases, arm_includes)
         # Mount only header trees, never the host /usr over the image toolchain.

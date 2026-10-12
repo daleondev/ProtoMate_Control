@@ -13,6 +13,15 @@ SYNCHRONIZATION = {
     'hal/linux/ThreadMutex.hpp',
 }
 PORTABLE = ('hal/drivers/itf/', 'hal/devices/itf/', 'hal/util/')
+# These algorithms/devices currently run in host tests. Their hardware
+# resources will be assigned as the IO application is rebuilt.
+HOST_ONLY_IMPLEMENTATIONS = {
+    'hal/drivers/impl/StepOutput.cpp', 'hal/drivers/impl/StepGenerator.cpp',
+    *(f'hal/devices/impl/{name}.cpp' for name in (
+        'Button', 'Dm542tDriver', 'IndexFeedback', 'Lan9253',
+        'QuadratureEncoderFeedback', 'Tmc2209', 'Tmc2209Bus', 'Tmc2209Driver')),
+}
+HARDWARE_FACTORIES = {'gpio', 'timer', 'rtc', 'rng'}
 
 
 def include_error(source, target):
@@ -125,13 +134,19 @@ def check_build(root, build, platform_name):
             errors.append(f'{source}: wrong platform selected for {platform_name}')
     for path in (root / 'platform' / 'hal').rglob('*.cpp'):
         parts = path.relative_to(root / 'platform' / 'hal').parts
-        if 'tests' in parts or forbidden in parts:
+        board = 'linux' if platform_name == 'linux' else 'nucleo_h755ziq'
+        if ('tests' in parts or forbidden in parts
+                or (parts[0] == 'board' and parts[1] != board)):
             continue
         source = path.relative_to(root / 'platform').as_posix()
+        if platform_name == 'stm32' and source in HOST_ONLY_IMPLEMENTATIONS:
+            continue
         if source not in compiled:
             errors.append(f'{source}: selected production source is missing from the build')
     for layer in ('drivers', 'devices'):
         for header in (root / 'platform' / 'hal' / layer / 'factory').glob('*.hpp'):
+            if platform_name == 'stm32' and (layer != 'drivers' or header.stem not in HARDWARE_FACTORIES):
+                continue
             candidates = {
                 f'hal/{layer}/factory/{header.stem}.cpp',
                 f'hal/{layer}/factory/{platform_name}/{header.stem}.cpp',
@@ -149,14 +164,14 @@ def self_test():
         ('hal/drivers/impl/linux/Uart.cpp', 'hal/devices/impl/Tmc2209.hpp'),
         ('hal/drivers/impl/stm32/Spi.cpp', 'hal/drivers/factory/spi.hpp'),
         ('hal/devices/impl/IndexFeedback.cpp', 'hal/drivers/impl/linux/Gpio.hpp'),
-        ('hal/board/nucleo_h753zi/board.cpp', 'hal/devices/impl/linux/Tmc2209Model.hpp'),
+        ('hal/board/linux/board.cpp', 'hal/devices/impl/linux/Tmc2209Model.hpp'),
         ('hal/devices/impl/Tmc2209.cpp', 'control/StepperMotor.hpp'),
     ]
     allowed = [
         ('hal/drivers/impl/stm32/Spi.cpp', 'hal/drivers/itf/ISpi.hpp'),
         ('hal/devices/factory/linux/tmc2209.cpp', 'hal/drivers/impl/linux/Uart.hpp'),
         ('hal/devices/impl/IndexFeedback.cpp', 'hal/stm32/InterruptGuard.hpp'),
-        ('hal/board/nucleo_h753zi/board.cpp', 'hal/devices/factory/tmc2209.hpp'),
+        ('hal/board/linux/board.cpp', 'hal/devices/factory/tmc2209.hpp'),
     ]
     assert all(include_error(*edge) for edge in forbidden)
     assert not any(include_error(*edge) for edge in allowed)

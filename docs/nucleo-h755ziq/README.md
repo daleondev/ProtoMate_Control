@@ -52,6 +52,14 @@ cmake --preset h755-ui-debug
 cmake --build --preset h755-ui-debug
 ```
 
+Each build prints ELF memory occupancy and percentages, including up-to-date
+builds. To report only memory, use `cmake --build --preset h755-io-debug --target
+memory-usage` (or the corresponding UI preset). The report comes from the final
+ELF section run/load addresses and linker memory regions; it includes initialized
+RAM's flash image, alignment gaps, BSS, minimum heap and reserved main stack.
+`STACK = 100%` means the configured stack region is reserved, not that the running
+stack is full. Runtime heap growth and stack high-water marks are not measured.
+
 Use `h755-io-release` and `h755-ui-release` for optimized images. The initial
 bare-metal samples remain available as `h755-led-io-debug` and
 `h755-led-ui-debug`, also with Release variants.

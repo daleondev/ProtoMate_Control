@@ -2,27 +2,50 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "STM32H753ZI Debug",
+            "name": "H755 IO Debug",
             "type": "cortex-debug",
-            "request": "launch",
+            "request": "attach",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/build/debug-stm32/Application.elf",
+            "executable": "${workspaceFolder}/build/h755-io-debug/io-controller.elf",
             "loadFiles": [],
-            "device": "STM32H753ZI",
+            "device": "STM32H755ZI",
             "servertype": "openocd",
             "serverpath": "/usr/bin/openocd",
             "gdbPath": "arm-none-eabi-gdb",
             "configFiles": [
-                "interface/stlink.cfg",
-                "target/stm32h7x_dual_bank.cfg"
+                "${workspaceFolder}/cmake/openocd/nucleo-h755ziq.cfg"
             ],
             "searchDir": [
                 "/usr/share/openocd/scripts"
             ],
-            "preLaunchTask": "Debug Prerequisites",
+            "preLaunchTask": "H755 Debug Prerequisites",
             "rtos": "ThreadX",
-            "runToEntryPoint": "main",
-            "showDevDebugOutput": "none"
+            "showDevDebugOutput": "none",
+            "numberOfProcessors": 2,
+            "targetProcessor": 1
+        },
+        {
+            "name": "H755 UI Debug",
+            "type": "cortex-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/h755-ui-debug/ui-controller.elf",
+            "loadFiles": [],
+            "device": "STM32H755ZI",
+            "servertype": "openocd",
+            "serverpath": "/usr/bin/openocd",
+            "gdbPath": "arm-none-eabi-gdb",
+            "configFiles": [
+                "${workspaceFolder}/cmake/openocd/nucleo-h755ziq.cfg"
+            ],
+            "searchDir": [
+                "/usr/share/openocd/scripts"
+            ],
+            "preLaunchTask": "H755 Debug Prerequisites",
+            "rtos": "ThreadX",
+            "showDevDebugOutput": "none",
+            "numberOfProcessors": 2,
+            "targetProcessor": 0
         },
         {
             "name": "Linux Simulation Debug",

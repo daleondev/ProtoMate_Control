@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/cpp
 {
-    "name": "NUCLEO-H753ZI GCC 16",
+    "name": "NUCLEO-H755ZI-Q GCC 16",
     "build": {
         "dockerfile": "Dockerfile"
     },

@@ -13,9 +13,6 @@
 extern "C" int __real_main(int argc, char** argv);
 extern "C" void runtime_application_define() __attribute__((weak));
 extern "C" void runtime_filex_initialize();
-#if defined(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
-extern "C" void hardware_storage_startup_test_select();
-#endif
 #if defined(HAL_PLATFORM_LINUX)
 extern "C" void runtime_application_prepare() __attribute__((weak));
 #endif
@@ -59,9 +56,6 @@ namespace
     {
         static_cast<void>(input);
 #if defined(HAL_PLATFORM_STM32)
-#if defined(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
-        hardware_storage_startup_test_select();
-#endif
 #if !defined(RUNTIME_SKIP_STORAGE_INIT)
         runtime_filex_initialize();
 #endif

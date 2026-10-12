@@ -40,13 +40,7 @@ target_compile_features(runtime_libc
 )
 
 target_compile_definitions(runtime_libc PRIVATE RUNTIME_STORAGE_REQUIRED=$<BOOL:${RUNTIME_STORAGE_REQUIRED}>)
-if(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
-    target_compile_definitions(runtime_libc PUBLIC RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
-endif()
 
-if(RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT)
-    target_compile_definitions(runtime_libc PRIVATE RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT)
-endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     # Runtime hook providers and the FileX-backed syscall adapter have no

@@ -18,6 +18,9 @@
 
 namespace hal::board
 {
+    // Hardware currently implements only LEDs and the per-core runtime timer.
+    // The remaining device composition is available in Linux regression tests
+    // until the IO peripherals are assigned and ported to the physical board.
     enum class LedId : std::uint8_t
     {
         Green,
@@ -42,7 +45,7 @@ namespace hal::board
     // Per-core steady-clock counter. Its peripheral assignment belongs to the board.
     [[nodiscard]] auto create_runtime_timer() -> std::shared_ptr<ITimer>;
 
-    // LAN9255 ESC: SPI5 PF7/PF8/PF9, mode 0 at 937.5 kHz; CS PF6 active low.
+    // LAN9255 ESC bus and active-low chip select.
     // Create CS first. Bus ownership is exclusive; no automatic SPI traffic.
     [[nodiscard]] auto create_ethercat_spi() -> std::shared_ptr<ISpi>;
     [[nodiscard]] auto create_ethercat_chip_select() -> std::shared_ptr<IDigitalOutput>;
@@ -64,11 +67,11 @@ namespace hal::board
     // Pull-up, both edges, exclusive ownership; raw levels without debounce.
     [[nodiscard]] auto create_reference_limit_switch(MotorId id) -> std::shared_ptr<IDigitalInput>;
     [[nodiscard]] auto create_stepper_driver_bus() -> std::shared_ptr<IUart>;
-    // M1 PF2/CN9.17: DM542T ALM+, pull-up, rising EXTI; ALM- to GND.
+    // M1: DM542T ALM+, pull-up, rising EXTI; ALM- to GND.
     // Default normally conducting ALM: low = healthy, high = fault/open cable.
-    // M2 PD4/CN9.8, M3 PD3/CN9.10: active-high DIAG, pull-down, rising EXTI.
+    // M2/M3: active-high DIAG, pull-down, rising EXTI.
     [[nodiscard]] auto create_stepper_diagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>;
-    // Normal electrical INDEX (not index_step): M2 PD0/CN9.25, M3 PD1/CN9.27.
+    // Normal electrical INDEX (not index_step) for M2/M3.
     // 3.3 V, pull-down, both edges; four full steps per electrical cycle.
     [[nodiscard]] auto create_stepper_index(MotorId id) -> std::shared_ptr<IDigitalInput>;
 
