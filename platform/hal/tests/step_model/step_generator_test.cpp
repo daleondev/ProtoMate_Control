@@ -53,6 +53,24 @@ namespace
     };
 }
 
+TEST(StepArithmetic, AdditionMatchesCounterModulusIncludingCarryAndPark)
+{
+    constexpr std::array values{0U, 1U, 2U, 0x7FFFFFFFU, 0x80000000U, 0xFFFFFFFEU, 0xFFFFFFFFU};
+    const auto verify = [](std::uint32_t tick, std::uint32_t delta) {
+        EXPECT_EQ(hal::util::step_add(tick, delta),
+                  (std::uint64_t{tick} + delta) % hal::util::STEP_PARK);
+    };
+    for (auto tick : values) {
+        for (auto delta : values) { verify(tick, delta); }
+    }
+    std::uint32_t random{0xC001CAFEU};
+    for (unsigned i{}; i < 10000; ++i) {
+        const auto tick = random;
+        random = random * 1664525U + 1013904223U;
+        verify(tick, random);
+    }
+}
+
 TEST_F(StepTest, FiniteMovesFinishLowWithoutAnInterruptOrExtraWrapPulse)
 {
     hardware->interrupts_enabled = false;

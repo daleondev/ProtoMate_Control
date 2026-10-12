@@ -7,3 +7,5 @@ external/CubeMX/cmake/stm32cubemx/CMakeLists.txt
 # Python validation helpers
 __pycache__/
 .venv/
+
+apps/

@@ -30,7 +30,7 @@ int main()
     if (HAL_Init() != HAL_OK) {
         Error_Handler();
     }
-    // CubeMX selects direct SMPS and the internal 64 MHz HSI on this board.
+    // CubeMX selects direct SMPS and the crystal-derived 5 MHz ST-Link HSE input.
     SystemClock_Config();
     MX_GPIO_Init();
 

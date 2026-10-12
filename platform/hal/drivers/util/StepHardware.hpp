@@ -20,7 +20,13 @@ namespace hal::util
 
     [[nodiscard]] constexpr auto step_add(std::uint32_t tick, std::uint32_t delta) noexcept -> std::uint32_t
     {
-        return static_cast<std::uint32_t>((std::uint64_t{ tick } + delta) % STEP_PARK);
+        // CNT wraps modulo 2^32 - 1, not 2^32. Fold an unsigned carry
+        // back into bit zero; avoid a software 64-bit division on Cortex-M4.
+        auto sum{ tick + delta };
+        if (sum < tick) {
+            ++sum;
+        }
+        return sum == STEP_PARK ? 0U : sum;
     }
     [[nodiscard]] constexpr auto step_distance(std::uint32_t from, std::uint32_t to) noexcept -> std::uint32_t
     {

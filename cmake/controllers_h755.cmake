@@ -7,6 +7,9 @@ string(TOLOWER "${CMAKE_BUILD_TYPE}" configuration)
 
 foreach(role io ui)
     set(preset h755-${role}-${configuration})
+    if(H755_STEP_BENCH)
+        set(preset h755-step-${role}-${configuration})
+    endif()
     add_custom_target(${role}-controller
         COMMAND ${CMAKE_COMMAND} --preset ${preset}
         COMMAND ${CMAKE_COMMAND} --build --preset ${preset}

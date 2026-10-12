@@ -185,7 +185,13 @@ extern "C" int __io_getchar()
 {
 #if defined(CORE_CM7)
     std::uint8_t byte{};
-    return HAL_UART_Receive(&huart3, &byte, 1, HAL_MAX_DELAY) == HAL_OK ? byte : -1;
+    for (;;) {
+        // HAL skips its overrun recovery when Timeout == HAL_MAX_DELAY.
+        // Keep the public read blocking, but let HAL clear/recover RX errors.
+        const auto result = HAL_UART_Receive(&huart3, &byte, 1, 100);
+        if (result == HAL_OK) { return byte; }
+        if (result != HAL_TIMEOUT) { return -1; }
+    }
 #else
     return -1;
 #endif

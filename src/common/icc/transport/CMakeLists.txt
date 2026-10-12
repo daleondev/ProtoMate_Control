@@ -15,3 +15,8 @@ add_library(application_icc_intercore STATIC
 add_library(application::icc::intercore ALIAS application_icc_intercore)
 target_link_libraries(application_icc_intercore PUBLIC
     application::icc hal::core runtime::runtime)
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    # Match the portable bridge: coroutine/STL machinery at -O0 can starve
+    # application threads under bidirectional traffic on the 80 MHz M4.
+    target_compile_options(application_icc_intercore PRIVATE $<$<CONFIG:Debug>:-Og>)
+endif()

@@ -21,7 +21,7 @@ volume is mounted.
 | Runtime timer | TIM5, 32-bit, 1 MHz | TIM12, 16-bit, 1 MHz |
 | Status LED | LD1 green / PB0 | LD2 yellow / PE1 |
 | Additional onboard GPIO | — | LD3 red / PB14, user button / PC13 |
-| Console | — | USART3, PD8/PD9, ST-Link VCP, 115200 8N1 |
+| Console | — | USART3, PD8/PD9, ST-Link VCP, 115200 8N1, FIFO |
 | RTC and RNG | Serialized access | Initialization and serialized access |
 | Inter-core channel | Endpoint M4 | Endpoint M7 |
 | STEP scheduling | TIM2 CH1/3/4, DMA1 streams 0/1/2 | — |
@@ -48,12 +48,17 @@ initialization responsibilities shown above. Per-image leases prevent duplicate
 claims locally; the catalog assigns each motor peripheral exclusively to M4.
 
 M7 configures the direct SMPS supply and shared clocks before releasing M4.
-PLL1 derives **80 MHz** from HSI: 64 MHz / 8 × 40 / 4. Both CPUs and HCLK
+PLL1 derives **80 MHz** from the ST-Link crystal: 5 MHz / 1 × 64 / 4.
+**ST-Link MCO must be set to HSE/5 (5 MHz)**; CubeMX selects HSE bypass.
+This is a persistent ST-Link setting, separate from flashing either application.
+Use STLinkUpgrade with `-d32_msc -mco_hse 5 -force_prog`, then verify
+`MCO: HSE/5` with `-checkParam`. The default 8 MHz output is unsuitable for
+this configuration. Keep the ST-Link section powered. Both CPUs and HCLK
 use 80 MHz. All APB buses use 40 MHz and timer kernels use 80 MHz.
 TIM2 divides by 8 for the STEP engine’s 10 MHz / 100 ns time unit;
 TIM5/6/7/12 divide by 80 for 1 MHz counters. The backend checks the actual
-clock tree instead of assuming a fixed input frequency. HSI remains the
-frequency reference; this configuration does not establish crystal accuracy.
+clock tree instead of assuming a fixed input frequency. Both processor clocks
+and STEP scheduling follow the same crystal reference.
 RTC uses the onboard 32.768 kHz LSE crystal; RNG uses HSI48. RTC/RNG handles
 and local locks are private, with hardware semaphores protecting shared access.
 The RTC calendar starts at 2000-01-01 if its backup marker is absent and is
@@ -92,13 +97,21 @@ TIM2 generates all STEP edges in hardware using independent per-axis compare/DMA
 streams. Internal CH2/DMA stream 3 stops the timer if software misses a refill
 deadline. TIM7 checks finite-tail completion every 1 ms while needed; it never
 schedules STEP edges. Minimum high and low times are each 5 µs (100 kHz maximum
-requested STEP frequency). Sustained operation on this M4 needs bench validation.
+requested STEP frequency). The scheduling translation units use `-O2` in both
+Debug and Release to meet the M4 arming/refill deadlines.
 
 The CubeMX `TIM2_MspPostInit` USER CODE block leaves STEP as low GPIO outputs.
 The backend selects AF1 only when arming a channel after forcing its timer output
 inactive. The DMA buffers occupy a private, 32-byte-aligned `.StepDmaSection`
 before the heap, accessible to DMA1. M4 needs no cache maintenance; the backend
 cleans the buffer on cached M7 builds. This memory is separate from ICC SRAM4.
+
+During reset, STEP pins are high-impedance with no internal pull-down; the
+firmware's low-output configuration only applies after initialization. Keep the
+interface's external STEP pull-downs and EN_N pull-up. The archived interface
+provides these through M1's transistor base resistor network, M2/M3's 10 kΩ
+STEP pull-downs and the shared enable pull-up. An analyzer connected to the bare
+Nucleo can read floating STEP pins as high during reset.
 
 TIM3 counts the M1 encoder’s 1600 quadrature counts per shaft revolution. Its
 wrap/compare interrupts extend the count. TIM6 provides a dedicated 1 kHz service
@@ -248,4 +261,8 @@ Both cores’ Debug and Release builds and the Linux Debug build pass without
 compiler warnings. All 36 CTest suites pass, including motor factory composition,
 16 STEP register/DMA tests and three encoder sampling/teardown tests. Separate
 link checks retain every motor factory and verify the DMA section precedes the
-heap. This peripheral setup has not been flashed or verified on hardware.
+heap. External driver and feedback circuits still need their own hardware verification.
+The isolated `h755-step-debug` / `h755-step-release` presets build both cores
+for STEP bench testing. The normal IO/UI applications remain separate.
+`examples/h755_step_bench/capture.py` provides automated analyzer checks;
+the bench UART menu exposes cases 1–9 at 115200 baud, with motor enable kept high.

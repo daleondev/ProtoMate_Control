@@ -160,6 +160,54 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "H755_BUILD_BOTH": true
             }
+        },
+        {
+            "name": "h755-step-io-debug",
+            "inherits": "h755-io-debug",
+            "displayName": "H755 IO STEP bench (debug)",
+            "cacheVariables": {
+                "H755_STEP_BENCH": true
+            }
+        },
+        {
+            "name": "h755-step-ui-debug",
+            "inherits": "h755-ui-debug",
+            "displayName": "H755 UI STEP bench (debug)",
+            "cacheVariables": {
+                "H755_STEP_BENCH": true
+            }
+        },
+        {
+            "name": "h755-step-debug",
+            "inherits": "h755-debug",
+            "displayName": "H755 STEP bench pair (debug)",
+            "cacheVariables": {
+                "H755_STEP_BENCH": true
+            }
+        },
+        {
+            "name": "h755-step-io-release",
+            "inherits": "h755-io-release",
+            "displayName": "H755 IO STEP bench (release)",
+            "cacheVariables": {
+                "H755_STEP_BENCH": true
+            }
+        },
+        {
+            "name": "h755-step-ui-release",
+            "inherits": "h755-ui-release",
+            "displayName": "H755 UI STEP bench (release)",
+            "cacheVariables": {
+                "H755_STEP_BENCH": true
+            }
+        },
+        {
+            "name": "h755-step-release",
+            "inherits": "h755-release",
+            "displayName": "H755 STEP bench pair (release)",
+            "cacheVariables": {
+                "H755_STEP_BENCH": true
+            }
         }
     ],
     "buildPresets": [
@@ -221,6 +269,30 @@
         {
             "name": "h755-release",
             "configurePreset": "h755-release"
+        },
+        {
+            "name": "h755-step-io-debug",
+            "configurePreset": "h755-step-io-debug"
+        },
+        {
+            "name": "h755-step-ui-debug",
+            "configurePreset": "h755-step-ui-debug"
+        },
+        {
+            "name": "h755-step-debug",
+            "configurePreset": "h755-step-debug"
+        },
+        {
+            "name": "h755-step-io-release",
+            "configurePreset": "h755-step-io-release"
+        },
+        {
+            "name": "h755-step-ui-release",
+            "configurePreset": "h755-step-ui-release"
+        },
+        {
+            "name": "h755-step-release",
+            "configurePreset": "h755-step-release"
         }
     ],
     "testPresets": [

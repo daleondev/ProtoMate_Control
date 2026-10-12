@@ -22,6 +22,11 @@ target_link_libraries(hal_drivers
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_compile_definitions(hal_drivers PUBLIC HAL_PLATFORM_STM32)
     target_link_libraries(hal_drivers PUBLIC runtime::cxx_abi)
+    # DMA refill and arming have real-time deadlines, including in Debug.
+    # Keep symbols, but optimize these two scheduling translation units on
+    # the M4 as well as the M7; unoptimized STL access exceeds the arming budget.
+    set_source_files_properties(impl/StepGenerator.cpp impl/stm32/StepHardware.cpp
+        PROPERTIES COMPILE_OPTIONS "-O2")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(hal_drivers PUBLIC HAL_PLATFORM_LINUX HAL_STEP_THREADX)
     target_link_libraries(hal_drivers PUBLIC threadx)
