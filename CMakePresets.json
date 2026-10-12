@@ -60,8 +60,8 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "H755_CORE": "CM4",
                 "H755_LED_SAMPLE": false,
-                "APPLICATION_ENABLE_P2P": false,
-                "RUNTIME_FILESYSTEM": false
+                "APPLICATION_ENABLE_P2P": true,
+                "RUNTIME_FILESYSTEM": true
             }
         },
         {
@@ -73,8 +73,8 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "H755_CORE": "CM7",
                 "H755_LED_SAMPLE": false,
-                "APPLICATION_ENABLE_P2P": false,
-                "RUNTIME_FILESYSTEM": false
+                "APPLICATION_ENABLE_P2P": true,
+                "RUNTIME_FILESYSTEM": true
             }
         },
         {
@@ -86,8 +86,8 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "H755_CORE": "CM4",
                 "H755_LED_SAMPLE": false,
-                "APPLICATION_ENABLE_P2P": false,
-                "RUNTIME_FILESYSTEM": false
+                "APPLICATION_ENABLE_P2P": true,
+                "RUNTIME_FILESYSTEM": true
             }
         },
         {
@@ -99,8 +99,8 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "H755_CORE": "CM7",
                 "H755_LED_SAMPLE": false,
-                "APPLICATION_ENABLE_P2P": false,
-                "RUNTIME_FILESYSTEM": false
+                "APPLICATION_ENABLE_P2P": true,
+                "RUNTIME_FILESYSTEM": true
             }
         },
         {

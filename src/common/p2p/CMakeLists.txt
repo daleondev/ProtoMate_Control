@@ -25,6 +25,7 @@ if(TARGET runtime::cxx_abi)
     target_link_libraries(application_p2p PUBLIC runtime::cxx_abi)
 endif()
 
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_subdirectory(examples)
     if(BUILD_TESTING)

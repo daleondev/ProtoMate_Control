@@ -12,6 +12,9 @@
 #include "hal/drivers/itf/IStepGenerator.hpp"
 #include "hal/drivers/itf/IUart.hpp"
 #include "hal/util/Core.hpp"
+#include "hal/drivers/itf/IRtc.hpp"
+#include "hal/drivers/itf/IRng.hpp"
+#include "hal/drivers/itf/IInterCoreChannel.hpp"
 #include <array>
 
 #include <cstdint>
@@ -19,9 +22,8 @@
 
 namespace hal::board
 {
-    // Hardware currently implements only LEDs and the per-core runtime timer.
-    // The remaining device composition is available in Linux regression tests
-    // until the IO peripherals are assigned and ported to the physical board.
+    // H755 assigns onboard resources per core. RTC/RNG are initialized by M7
+    // and shared through serialized HAL access. External devices remain unassigned.
     enum class LedId : std::uint8_t
     {
         Green,
@@ -46,6 +48,9 @@ namespace hal::board
     // Physical resource mapping. Application/runtime code uses hal::core;
     // selecting another processor here cannot bypass factory ownership checks.
     [[nodiscard]] auto create_status_led(util::Core owner) -> std::shared_ptr<device::ILed>;
+    [[nodiscard]] auto create_rtc(util::Core owner) -> std::shared_ptr<IRtc>;
+    [[nodiscard]] auto create_rng(util::Core owner) -> std::shared_ptr<IRng>;
+    [[nodiscard]] auto create_intercore_channel(util::Core owner) -> std::shared_ptr<IInterCoreChannel>;
     [[nodiscard]] auto create_runtime_timer(util::Core owner) -> std::shared_ptr<ITimer>;
 
     // LAN9255 ESC bus and active-low chip select.

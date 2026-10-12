@@ -1,5 +1,4 @@
 #include "backend.hpp"
-#include "hal/drivers/factory/rtc.hpp"
 #include "hal/drivers/factory/timer.hpp"
 #include "hal/core/core.hpp"
 #include "hal/hal.hpp"
@@ -1497,7 +1496,7 @@ namespace runtime
         detail::tick_epoch = 0U;
         detail::system_clock_epoch_ticks = detail::steady_ticks();
 
-        const auto realtime_clock{ hal::rtc::create() };
+        const auto realtime_clock{ hal::core::create_rtc() };
         hal::IRtc::Timestamp timestamp{};
         bool realtime_clock_available{};
         if (realtime_clock) {

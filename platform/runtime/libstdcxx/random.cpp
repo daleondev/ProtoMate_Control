@@ -1,4 +1,4 @@
-#include "hal/drivers/factory/rng.hpp"
+#include "hal/core/core.hpp"
 
 #include <limits>
 #include <random>
@@ -11,7 +11,7 @@ namespace
 {
     [[nodiscard]] auto hardware_rng() -> hal::IRng&
     {
-        static const auto rng{ hal::rng::create() };
+        static const auto rng{ hal::core::create_rng() };
         if (rng == nullptr) {
             throw std::runtime_error{ "hardware random-number generator is unavailable" };
         }

@@ -27,7 +27,7 @@ namespace
             }
         }
         EXPECT_EQ(m4_count, 1U);
-        EXPECT_EQ(m7_count, 1U);
+        EXPECT_EQ(m7_count, 3U);
         EXPECT_TRUE(allows(Core::M4, hal::gpio::Pin{hal::gpio::Port::B, 0}));
         EXPECT_TRUE(allows(Core::M7, hal::gpio::Pin{hal::gpio::Port::E, 1}));
         EXPECT_FALSE(allows(Core::M4, hal::gpio::Pin{hal::gpio::Port::B, 16}));

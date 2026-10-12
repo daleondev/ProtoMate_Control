@@ -1,101 +1,122 @@
 # H755 application setup
 
-The two images run the actual `io::Application` and `ui::Application` classes
-with separate ThreadX kernels and the shared project C++ runtime implementation.
-P2P, CLI, motor hardware and external storage are disabled for this stage.
+M4 runs `io::Application`; M7 runs `ui::Application`. Each has a complete private
+ThreadX/C++ runtime, including threads, synchronization, TLS, allocation,
+exceptions, clocks, hardware entropy and FileX/LevelX support. Common HAL device
+implementations are compiled for both cores. External motors, Ethernet/SPI
+devices and storage media remain unassigned; no storage volume is mounted.
 
 ## Ownership
 
-| Resource | M4 / IO | M7 / UI |
+| Resource | M4 | M7 |
 | --- | --- | --- |
-| Entry point | `src/io/main.cpp` | `src/ui/main.cpp` |
+| Application entry | `src/io/main.cpp` | `src/ui/main.cpp` |
 | ThreadX port | `cortex_m4/gnu` | `cortex_m7/gnu` |
-| Program flash | `0x08100000`, 1 MiB | `0x08000000`, 1 MiB |
-| Globals, TLS and heap | D2 SRAM `0x30000000`, 280 KiB | AXI SRAM `0x24000000`, 512 KiB |
-| Main/interrupt stack | `0x30046000`, 8 KiB | DTCM `0x2001E000`, 8 KiB |
-| Scheduler and HAL tick | Core-local SysTick, 1 kHz | Core-local SysTick, 1 kHz |
-| Runtime counter | TIM5, 32-bit, 1 MHz | TIM12, 16-bit, 1 MHz |
-| Status LED | LD1 green / PB0, 250 ms per level | LD2 yellow / PE1, 500 ms per level |
+| Flash | `0x08100000`, 1 MiB | `0x08000000`, 1 MiB |
+| Globals, TLS, heap | D2 `0x30000000`, 280 KiB | AXI `0x24000000`, 512 KiB |
+| Interrupt/main stack | `0x30046000`, 8 KiB | DTCM `0x2001E000`, 8 KiB |
+| Scheduler/HAL tick | Private SysTick, 1 kHz | Private SysTick, 1 kHz |
+| Runtime timer | TIM5, 32-bit, 1 MHz | TIM12, 16-bit, 1 MHz |
+| Status LED | LD1 green / PB0 | LD2 yellow / PE1 |
+| Additional onboard GPIO | — | LD3 red / PB14, user button / PC13 |
+| Console | — | USART3, PD8/PD9, ST-Link VCP, 115200 8N1 |
+| RTC and RNG | Serialized access | Initialization and serialized access |
+| Inter-core channel | Endpoint M4 | Endpoint M7 |
 
-Each application owns its mutexes, condition variables, threads and runtime state.
-`hal::core::create_runtime_timer()` selects the counter through the board; the runtime does not
-select a board peripheral itself. TIM2 is free for the later IO motion port.
+`hal::core` selects only the executing processor. Physical GPIO/timer ownership
+is defined in `platform/hal/board/nucleo_h755ziq/resources.hpp`; direct factories
+also enforce it. GPIO configuration is serialized across processors because
+separate owned pins can share a GPIO port register. The HAL uses M4/M7 names;
+IO/UI are application roles.
 
-M7 owns shared clock and supply initialization (64 MHz HSI, direct SMPS). HSEM 0
-releases M4 after this setup. This startup handshake is the only inter-core
-coordination. Both images must be present and both cores enabled at boot.
-M7 caches are enabled over its private memory. SRAM4 at `0x38000000` is unused;
-shared-memory reservation, cache policy and transport notification remain later work.
+M7 configures the direct SMPS supply and shared clocks before releasing M4.
+Both CPUs and timer kernels run at 64 MHz from HSI. APB1 is 32 MHz to keep
+USART3 within the selected voltage range; its timer kernels remain at 64 MHz.
+RTC uses the onboard 32.768 kHz LSE crystal; RNG uses HSI48. RTC/RNG handles
+and local locks are private, with hardware semaphores protecting shared access.
+The RTC calendar starts at 2000-01-01 if its backup marker is absent and is
+preserved across system resets. It is not a synchronized real-world date.
+`system_clock` uses it with runtime counter interpolation; `steady_clock`
+continues to use the 1 ms scheduler tick. Entropy failure is reported, never
+replaced with deterministic numbers. Each sample checks RNG access at startup.
 
-The shared `hal::core` API exposes the executing processor's resources. It uses
-`Id::M4` and `Id::M7`; the IO/UI role names belong only to the application.
-Both mains call `hal::core::create_status_led()`, and the shared runtime calls
-`hal::core::create_runtime_timer()`. Neither call can select the other core.
+## Shared-memory transport and LED topic
 
-Physical assignments live in `platform/hal/board/nucleo_h755ziq/resources.hpp`.
-The board provides an immutable resource-access policy, which the GPIO/timer
-factories check even when called directly. Peer-owned and unassigned pins/timers
-return unavailable before any register access or resource claim. Keep this
-assignment aligned with CubeMX when adding a peripheral. Raw register access is
-outside this software ownership contract.
+```mermaid
+flowchart LR
+  UI["M7 UI worker: LED state every 500 ms"] --> UB[UI bus]
+  UB --> UBridge[p2p Bridge]
+  UBridge --> UT[InterCoreTransport]
+  UT <--> SRAM["SRAM4 byte queues + HSEM notifications"]
+  SRAM <--> IT[InterCoreTransport]
+  IT --> IBridge[p2p Bridge]
+  IBridge --> IB[IO bus]
+  IB --> IO["M4 IO worker: apply state to green LED"]
+```
 
-The HAL board factory also rejects a peer's status LED/runtime timer. Its
-current driver build includes GPIO and general timers. The shared RTC and RNG
-are unassigned: their factories return unavailable, and `std::random_device`
-does not produce substitute random data. Without an RTC, `system_clock` uses
-the runtime's elapsed-time fallback rather than a valid wall-clock date. Both
-`steady_clock` and that fallback currently have 1 ms resolution. The counters
-are available through `ITimer`; high-resolution wall-clock interpolation remains
-inactive until an RTC is provided.
+The catalog is `src/common/Topics.hpp`. `Topics::io_led_state` is marked with
+`TopicPublisher::UI`; its inferred topic name is `io/led/state`. The payload is
+`LedState { uint32_t sequence; bool on; }`, serialized by pneumo. UI shows the
+same state on its yellow LED. IO subscribes with latest-only delivery and sleeps
+until readiness or shutdown is signalled. IO never generates a blink locally.
 
-`RUNTIME_FILESYSTEM=OFF` removes FileX/LevelX and storage startup from these
-images. The C/C++ threading, allocation, TLS, exceptions and clocks use the same
-runtime as the other builds. No UART console is initialized yet. Panic details
-are retained in each core's `hal_last_panic` for SWD inspection.
+`application::p2p` remains portable. The separately linked
+`application::p2p::intercore` adapter wraps `hal::IInterCoreChannel`.
+The channel uses four SPSC queues: normal and urgent in each direction, four
+frames per queue, at most 2048 bytes per frame. Queue counters use aligned,
+lock-free 32-bit acquire/release accesses; no pointer, mutex, coroutine, or
+ThreadX object is shared. Cancellation wakes local coroutine waits, and the
+urgent lane has capacity independent of normal traffic.
+
+Both linkers reserve SRAM4 at `0x38000000` (64 KiB); the shared layout occupies
+32,880 bytes. Its `NOLOAD` section is outside both startup BSS ranges. M7 zeros
+it before releasing M4. M7 configures the region as normal, shareable,
+non-cacheable and execute-never before enabling its data cache. Private AXI
+RAM stays cached. This follows ST's [dual-core memory guidance](https://www.st.com/resource/en/application_note/an5557-stm32h745755-and-stm32h747757-lines-dualcore-architecture-stmicroelectronics.pdf).
+
+| HSEM | Purpose |
+| --- | --- |
+| 0 | Boot handshake |
+| 1 | Notify M4 of received data, freed space or closure |
+| 2 | Notify M7 of received data, freed space or closure |
+| 3 | RTC snapshot access |
+| 4 | RNG access |
+| 5 | GPIO configuration register access |
+
+HSEM interrupts only signal a local runtime notification. A worker wakes
+coroutines in thread context. Notifications can coalesce: queue counters are
+authoritative, and registration checks existing work. The bridge sends
+heartbeats every 100 ms and detects link loss after 500 ms. Link failure stops
+the application workers and turns their LEDs off. A halted core cannot turn off
+its own LED until it resumes.
+
+**Reset both cores together.** A closed channel cannot be reopened during that
+boot. Independent core restart/reconnection and cross-session stale-frame
+protection remain later work. Neither processor clears a live peer's queues.
+A board reset or USB power cycle initializes both endpoints afresh.
 
 ## Build
-
-From the repository root:
 
 ```sh
 cmake --preset h755-debug
 cmake --build --preset h755-debug
+# Optimized pair:
+cmake --preset h755-release
+cmake --build --preset h755-release
 ```
 
-The `controllers` target builds both applications. This is a small orchestration
-project without its own compiler or firmware: it configures and builds the
-existing `h755-io-debug` and `h755-ui-debug` presets. Output files remain in
-`build/h755-io-debug/` and `build/h755-ui-debug/`; the flash command below is
-unchanged. Each inner build remains incremental and prints its memory report.
-The same runtime and HAL implementations are compiled separately for each core.
+Per-core presets remain `h755-io-debug`, `h755-ui-debug` and their Release
+variants. Hardware application presets enable P2P and the full runtime.
+The separate `h755-led-*` presets retain the bare-metal startup samples.
+Both firmware builds report private memory and the same shared reservation;
+the two SHARED figures describe one physical region, not two allocations.
 
-The individual presets remain available. The combined project also accepts
-`--target io-controller` or `--target ui-controller`. It never flashes hardware.
-
-Each build prints ELF memory occupancy and percentages, including up-to-date
-builds. To report only memory, use `cmake --build --preset h755-io-debug --target
-memory-usage` (or the corresponding UI preset). The report comes from the final
-ELF section run/load addresses and linker memory regions; it includes initialized
-RAM's flash image, alignment gaps, BSS, minimum heap and reserved main stack.
-`STACK = 100%` means the configured stack region is reserved, not that the running
-stack is full. Runtime heap growth and stack high-water marks are not measured.
-
-Use `h755-release` to build both optimized images, or `h755-io-release` and
-`h755-ui-release` individually. The initial
-bare-metal samples remain available as `h755-led-io-debug` and
-`h755-led-ui-debug`, also with Release variants.
-
-CubeMX owns GPIO/timer setup and startup assembly under `external/CubeMX`.
-The runtime owns its interrupt integration, TLS/heap linker sections and
-allocator under `platform/runtime/stm32`, so regeneration cannot overwrite them.
-`cmake/application_h755.cmake` selects the core port, sources and private memory.
-It renames generated SysTick/PendSV/fault handlers so the runtime handlers own
-those vectors. The generated timer configuration remains in CubeMX.
+CubeMX owns onboard peripheral initialization. The runtime owns scheduler,
+fault and syscall hooks. HAL owns dynamic EXTI, timer and HSEM interrupt
+registration, shared-memory initialization and MPU setup. The custom linker
+owns private memory, compiler TLS and the shared reservation.
 
 ## Flash and test
-
-Connect the board's ST-LINK USB port. No peripherals are needed. Flash both
-images before releasing reset:
 
 ```sh
 openocd -f cmake/openocd/nucleo-h755ziq.cfg \
@@ -107,19 +128,25 @@ openocd -f cmake/openocd/nucleo-h755ziq.cfg \
   -c "reset run; shutdown"
 ```
 
-Green should blink at approximately 2 Hz and yellow at approximately 1 Hz.
-They are controlled by the annotated application workers through `ILed` and
-condition-variable waits. A reset or USB reconnect should restart both workers.
+Green follows yellow with a small transport delay: 500 ms on, 500 ms off. Reset or USB
+reconnection should restart the pair. No external wiring is needed. The M7
+console reports that storage is unavailable; that is expected without media.
 
-For debugger inspection, each image has four ThreadX threads: the kernel timer
-thread, runtime main thread, cleanup/reaper thread and its application worker.
-Both `_tx_timer_system_clock` counters should advance; `hal_last_panic`, CFSR and
-HFSR should remain clear. ThreadX normally idles inside PendSV when no thread is
-ready, so stopping there is expected. Use the ELF belonging to the selected core.
+Each image has six ThreadX threads: timer, main, reaper, p2p context, transport
+notification worker and application worker. `hal_last_panic`, CFSR and HFSR
+should stay clear. Both scheduler counters and all four shared queue counters
+should advance, with consumed queues draining. Use each core's own ELF in the
+debugger. Pausing a core for more than 500 ms deliberately fails the peer link;
+reset the board after such debugging.
 
-Debug and Release builds pass without compiler warnings. Both configurations
-passed flash readback verification, three reset/startup checks, live application
-thread checks and LED GPIO-rate checks, with clear fault/panic state. Linux
-application lifecycle tests also pass, including starting and stopping without
-a transport. The Debug pair is installed for further development. No lint or
-sanitizer runs were performed for this intermediate step.
+Host tests cover serialized delivery, queue saturation, independent urgent
+capacity, counter rollover, cancellation, notification races and shutdown.
+The application test confirms IO stays idle without a received LED topic and
+turns the LED off on peer loss. Lint and sanitizers are not run automatically
+for these intermediate migration steps.
+
+Debug and Release builds pass without compiler warnings. Both pairs passed
+flash verification, three resets, RTC/counter and RNG startup checks, LED topic
+delivery, and a deliberate M7 halt that caused IO to turn its LED off and close
+the link. Both Linux configurations pass all 34 CTest suites. The Debug pair is
+installed for development.

@@ -1,15 +1,6 @@
 add_library(hal_drivers_impl INTERFACE)
 add_library(hal::drivers::impl ALIAS hal_drivers_impl)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    target_sources(hal_drivers_impl INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.cpp)
-    return()
-endif()
-
 target_sources(hal_drivers_impl
     INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/StepGenerator.hpp
@@ -17,6 +8,21 @@ target_sources(hal_drivers_impl
         ${CMAKE_CURRENT_SOURCE_DIR}/StepOutput.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/StepOutput.cpp
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    target_sources(hal_drivers_impl INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/InterCoreChannel.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/InterCoreChannel.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rtc.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rtc.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rng.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rng.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.cpp)
+    return()
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Background services use the runtime C++ ABI; the remaining Linux HAL

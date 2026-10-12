@@ -3,6 +3,7 @@
 #include "Gpio.hpp"
 
 #include "hal/stm32/InterruptGuard.hpp"
+#include "hal/stm32/HardwareSemaphore.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -190,7 +191,8 @@ namespace hal
 #else
         EXTI_D1->IMR1 = EXTI_D1->IMR1 & ~static_cast<std::uint32_t>(GPIO_PIN_All);
 #endif
-        __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_All);
+        // Pending edge bits are shared by the cores. Each input constructor
+        // clears only its own line; never clear the peer's pending edges here.
         // NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         for (const auto irq :
              { EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn, EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn }) {
@@ -205,6 +207,9 @@ namespace hal
       , m_pinMask{ pin_mask(configuration.pin.number) }
       , m_interrupt{ interrupt_for(configuration.pin.number) }
     {
+        const stm32::InterruptGuard local_guard;
+        const stm32::HardwareSemaphore register_guard(5);
+        if (!register_guard) { hal::panic("GPIO configuration lock timeout"); }
         enable_port_clock(configuration.pin.port);
 
         if (configuration.edge != gpio::Edge::None) {
@@ -237,6 +242,9 @@ namespace hal
 
     GpioInput::~GpioInput()
     {
+        const stm32::InterruptGuard local_guard;
+        const stm32::HardwareSemaphore register_guard(5);
+        if (!register_guard) { hal::panic("GPIO configuration lock timeout"); }
         if (m_configuration.edge != gpio::Edge::None) {
             HAL_NVIC_DisableIRQ(m_interrupt);
             HAL_GPIO_DeInit(m_port, m_pinMask);
@@ -294,6 +302,9 @@ namespace hal
       : m_port{ gpio_port(configuration.pin.port) }
       , m_pinMask{ pin_mask(configuration.pin.number) }
     {
+        const stm32::InterruptGuard local_guard;
+        const stm32::HardwareSemaphore register_guard(5);
+        if (!register_guard) { hal::panic("GPIO configuration lock timeout"); }
         enable_port_clock(configuration.pin.port);
         HAL_GPIO_WritePin(m_port, m_pinMask, hal_level(configuration.initial_level));
 
@@ -307,7 +318,13 @@ namespace hal
         HAL_GPIO_Init(m_port, &gpio_configuration);
     }
 
-    GpioOutput::~GpioOutput() { HAL_GPIO_DeInit(m_port, m_pinMask); }
+    GpioOutput::~GpioOutput()
+    {
+        const stm32::InterruptGuard local_guard;
+        const stm32::HardwareSemaphore register_guard(5);
+        if (!register_guard) { hal::panic("GPIO configuration lock timeout"); }
+        HAL_GPIO_DeInit(m_port, m_pinMask);
+    }
 
     auto GpioOutput::read() const noexcept -> gpio::Level
     {

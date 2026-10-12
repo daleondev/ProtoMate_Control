@@ -15,11 +15,14 @@ Use `h755-debug` to build both applications, or `h755-io-debug` and
 are documented together. Both images must be flashed. The
 [CubeMX project](external/CubeMX/CubeMX.ioc) assigns peripherals to their cores.
 
-The current workers drive a HAL status LED: IO/green at approximately 2 Hz and
-UI/yellow at approximately 1 Hz. **P2P is disabled in H755 firmware** until the
-shared-memory transport is implemented. Motion control, planning, CLI and GUI
-are subsequent application work. The bare-metal LED samples remain available
-through the separate `h755-led-*` presets.
+The UI worker publishes `io/led/state` every 500 ms. Its yellow LED shows that
+state; the IO worker receives the serialized topic and applies it to the green
+LED. **P2P runs over shared SRAM4 and HSEM notifications**, with private buses,
+contexts and transport workers on both cores. No external wiring is needed.
+Both runtimes include filesystem support (no mounted media yet), RTC and
+hardware randomness. M7 owns the ST-Link serial console and user button.
+Motion control, planning, CLI and GUI are subsequent application work. The
+bare-metal LED samples retain their separate `h755-led-*` presets.
 
 ## Application layout
 
@@ -43,19 +46,23 @@ joins. Call start/join/destruction from the lifecycle owner, outside workers.
 `runtime::thread::Definition` annotations in each `Application.hpp` declare its
 threads; `system_threads.cpp` defines their entries.
 [ThreadGroup](platform/runtime/ThreadGroup.hpp) creates all workers before
-releasing them. The status worker uses a condition-variable timed wait, so it
-sleeps between LED changes and can stop immediately. On exit it turns its LED off.
+releasing them. UI uses a timed wait between publications; IO waits for topic readiness. Both
+can stop immediately and turn their LEDs off on exit. The shared catalog lives
+in [Topics.hpp](src/common/Topics.hpp).
 
 | Thread in each H755 image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
 | ThreadX timer worker | 0 | Port default |
+| `io.p2pThread` / `ui.p2pThread` | 2 | 32 KiB |
+| `intercore.notify` | 3 | 8 KiB |
 | `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
 | Runtime cleanup/reaper | 31 | 2 KiB |
 
 Priorities belong to separate schedulers; M7 priorities do not preempt M4 work.
-`APPLICATION_ENABLE_P2P` retains the optional bus/bridge/context workers for
-host tests. H755 builds reject enabling it until a hardware transport is ready.
+`APPLICATION_ENABLE_P2P` is enabled in both H755 application images. The portable
+bridge and the HAL/runtime transport adapter are separate targets. Reset both
+cores together; independent core reconnection remains future work.
 
 The [application archive](backups/application/README.md) preserves the earlier
 control/CLI implementation for incremental reimplementation. Retired hardware,
@@ -329,7 +336,8 @@ constexpr auto processor = hal::core::id(); // Id::M4, Id::M7, or Id::Host
 ```
 
 There is no API to select a different executing processor. IO/UI are application
-roles, not HAL names. On H755, M4 owns PB0/TIM5 and M7 owns PE1/TIM12. The board's
+roles, not HAL names. On H755, M4 owns PB0/TIM5; M7 owns PE1/TIM12,
+PB14 and PC13. RTC/RNG and inter-core access have explicit shared protocols. The board's
 [`resources.hpp`](platform/hal/board/nucleo_h755ziq/resources.hpp) defines that
 assignment. `hal::resources` supplies the immutable `ResourceAccess` policy to
 the driver factories without a driver dependency on board/core factories.
@@ -368,10 +376,11 @@ auto encoder = hal::encoder::create({
 ```
 
 These examples describe the retained factory contracts. On current hardware,
-only GPIO and the per-core timer are available: M4 owns TIM5 and M7 owns TIM12.
-RTC and RNG factories return unavailable until ownership is assigned. Motor,
-SPI, UART, Ethernet and storage hardware backends remain archived for porting;
-calling their factories is not supported in the H755 application yet.
+onboard GPIO, per-core timers, serialized RTC/RNG access and the inter-core
+channel are available. M4 owns TIM5; M7 owns TIM12 and the console UART.
+RTC and RNG are shared through hardware-semaphore protection. External motor,
+SPI, UART bus, Ethernet and storage backends still require H755 assignments;
+the console uses its dedicated onboard USART3 initialization.
 
 Linux provides virtual peripheral resources and device models for regression
 tests. Its board composition does not claim physical wiring. Construction never

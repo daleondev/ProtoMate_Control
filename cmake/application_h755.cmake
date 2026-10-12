@@ -3,13 +3,11 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Generic" OR NOT H755_CORE MATCHES "^CM[47]$")
 endif()
 
 set(HAL_BOARD nucleo_h755ziq)
-set(RUNTIME_FILESYSTEM OFF CACHE BOOL "Build FileX/LevelX filesystem support")
-if(RUNTIME_FILESYSTEM)
-    message(FATAL_ERROR "H755 storage peripherals are not assigned; use RUNTIME_FILESYSTEM=OFF")
-endif()
-set(APPLICATION_ENABLE_P2P OFF CACHE BOOL "Enable application p2p workers")
-if(APPLICATION_ENABLE_P2P)
-    message(FATAL_ERROR "H755 shared-memory p2p transport is not implemented yet")
+set(RUNTIME_FILESYSTEM ON CACHE BOOL "Build FileX/LevelX filesystem support")
+set(RUNTIME_STORAGE_REQUIRED OFF)
+set(APPLICATION_ENABLE_P2P ON CACHE BOOL "Enable application p2p workers")
+if(NOT APPLICATION_ENABLE_P2P)
+    message(FATAL_ERROR "H755 application requires its inter-core bridge")
 endif()
 set(BUILD_TESTING OFF)
 if(H755_CORE STREQUAL "CM4")
@@ -35,6 +33,19 @@ set(TX_USER_FILE ${PROJECT_SOURCE_DIR}/platform/runtime/tx_user.h)
 add_subdirectory(external/threadx)
 target_compile_definitions(threadx PUBLIC TX_ENABLE_STACK_CHECKING)
 
+if(RUNTIME_FILESYSTEM)
+    set(FX_USER_FILE ${PROJECT_SOURCE_DIR}/platform/runtime/fx_user.h)
+    add_subdirectory(external/filex)
+    include(cmake/patch_filex.cmake)
+    runtime_patch_filex()
+    target_link_libraries(filex PRIVATE project_compiler_settings)
+    set(LX_USER_FILE ${PROJECT_SOURCE_DIR}/platform/runtime/lx_user.h)
+    add_subdirectory(external/levelx)
+    include(cmake/patch_levelx.cmake)
+    runtime_patch_levelx()
+    target_link_libraries(levelx PRIVATE project_compiler_settings)
+endif()
+
 set(cube ${PROJECT_SOURCE_DIR}/external/CubeMX)
 set(core ${cube}/${H755_CORE})
 set(hal_sources ${PROJECT_SOURCE_DIR}/external/stm32h7xx-hal-driver/Src)
@@ -42,15 +53,20 @@ add_library(platform OBJECT
     ${core}/Startup/startup_stm32h755xx_${H755_CORE}.s
     ${core}/Src/main.c ${core}/Src/gpio.c ${core}/Src/tim.c
     ${core}/Src/stm32h7xx_hal_msp.c ${core}/Src/stm32h7xx_it.c
-    ${core}/Src/syscalls.c
     ${cube}/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c
     ${PROJECT_SOURCE_DIR}/platform/runtime/stm32/initialize.cpp
     ${PROJECT_SOURCE_DIR}/platform/runtime/stm32/sysmem.c
 )
 foreach(driver hal hal_cortex hal_gpio hal_rcc hal_rcc_ex hal_pwr hal_pwr_ex
-               hal_flash hal_flash_ex hal_hsem hal_tim hal_tim_ex)
+               hal_flash hal_flash_ex hal_hsem hal_tim hal_tim_ex hal_rtc hal_rtc_ex hal_rng hal_rng_ex hal_uart hal_uart_ex hal_dma hal_dma_ex)
     target_sources(platform PRIVATE ${hal_sources}/stm32h7xx_${driver}.c)
 endforeach()
+if(NOT RUNTIME_FILESYSTEM)
+    target_sources(platform PRIVATE ${core}/Src/syscalls.c)
+endif()
+if(H755_CORE STREQUAL "CM7")
+    target_sources(platform PRIVATE ${core}/Src/rtc.c ${core}/Src/rng.c ${core}/Src/usart.c)
+endif()
 set_source_files_properties(${core}/Src/main.c PROPERTIES
     COMPILE_DEFINITIONS "Error_Handler=CubeMX_Error_Handler")
 set_source_files_properties(${core}/Src/stm32h7xx_it.c PROPERTIES

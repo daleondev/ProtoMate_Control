@@ -1,0 +1,6 @@
+#include "hal/drivers/factory/intercore.hpp"
+
+namespace hal::intercore
+{
+    auto create(util::Core) -> std::shared_ptr<IInterCoreChannel> { return {}; }
+}

@@ -1,6 +1,9 @@
 // Host-only device composition for regression tests. These virtual resources
 // do not specify or reserve any pins on the physical controller.
 #include "hal/board/board.hpp"
+#include "hal/drivers/factory/intercore.hpp"
+#include "hal/drivers/factory/rtc.hpp"
+#include "hal/drivers/factory/rng.hpp"
 
 #include "hal/devices/factory/tmc2209.hpp"
 #include "hal/devices/impl/Button.hpp"
@@ -22,6 +25,16 @@
 
 namespace hal::board
 {
+    auto create_rtc(util::Core owner) -> std::shared_ptr<IRtc>
+    { return owner == util::executing_core() ? rtc::create() : nullptr; }
+    auto create_rng(util::Core owner) -> std::shared_ptr<IRng>
+    { return owner == util::executing_core() ? rng::create() : nullptr; }
+
+    auto create_intercore_channel(util::Core owner) -> std::shared_ptr<IInterCoreChannel>
+    {
+        return intercore::create(owner);
+    }
+
     auto create_status_led(util::Core) -> std::shared_ptr<device::ILed>
     {
         // Host composition has no physical core status LED.

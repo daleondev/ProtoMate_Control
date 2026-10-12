@@ -1,4 +1,7 @@
 #include "Application.hpp"
+#if defined(APPLICATION_ENABLE_P2P)
+#include "common/Topics.hpp"
+#endif
 
 #include <chrono>
 
@@ -16,14 +19,24 @@ namespace ui
     void Application::applicationThread()
     {
         {
+            bool on{};
             std::unique_lock lock(m_mutex);
             while (!m_stopping) {
+                on = !on;
+                ++m_ledSequence;
                 if (m_statusLed) {
-                    m_statusLed->toggle();
-                    m_stopRequested.wait_for(lock, std::chrono::milliseconds{500}, [this] { return m_stopping; });
-                } else {
-                    m_stopRequested.wait(lock, [this] { return m_stopping; });
+                    if (on) { m_statusLed->turnOn(); }
+                    else { m_statusLed->turnOff(); }
                 }
+#if defined(APPLICATION_ENABLE_P2P)
+                lock.unlock();
+                if (m_bridge) {
+                    m_bus.topic<^^application::Topics::io_led_state>().publish(
+                      application::LedState{.sequence = m_ledSequence, .on = on});
+                }
+                lock.lock();
+#endif
+                m_stopRequested.wait_for(lock, std::chrono::milliseconds{500}, [this] { return m_stopping; });
             }
             if (m_statusLed) {
                 m_statusLed->turnOff();

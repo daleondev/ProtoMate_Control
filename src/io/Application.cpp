@@ -1,4 +1,7 @@
 #include "Application.hpp"
+#if defined(APPLICATION_ENABLE_P2P)
+#include "common/Topics.hpp"
+#endif
 
 #include <stdexcept>
 #include <utility>
@@ -11,9 +14,11 @@ namespace io
     }
 
 #if defined(APPLICATION_ENABLE_P2P)
-    Application::Application(p2p::ITransport& transport)
+    Application::Application(p2p::ITransport& transport, std::shared_ptr<hal::device::ILed> statusLed)
       : m_bridge(std::in_place, m_bus, m_p2pContext, transport)
+      , m_statusLed(std::move(statusLed))
     {
+        m_bridge->registerTopics<application::Topics>(application::TopicPublisher::IO);
         m_bridge->setConnectionCallback([this](p2p::ConnectionStatus status) {
             if (status.state == p2p::ConnectionState::Failed || status.reason == p2p::ConnectionReason::PeerStopped) {
                 requestStop();

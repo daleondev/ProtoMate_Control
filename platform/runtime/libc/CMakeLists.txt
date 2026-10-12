@@ -6,11 +6,13 @@ target_sources(runtime_libc
         ${CMAKE_CURRENT_SOURCE_DIR}/libc.c
 )
 if(RUNTIME_FILESYSTEM)
-    target_sources(runtime_libc PRIVATE filesystem.cpp storage_media.cpp)
+    target_sources(runtime_libc PRIVATE filesystem.cpp)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+        target_sources(runtime_libc PRIVATE stm32/storage_media.cpp)
+    else()
+        target_sources(runtime_libc PRIVATE storage_media.cpp)
+    endif()
     target_link_libraries(runtime_libc PUBLIC filex levelx)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    target_sources(runtime_libc PRIVATE unavailable.c)
-    target_link_options(runtime_libc INTERFACE LINKER:--undefined=_getentropy)
 endif()
 
 target_link_libraries(runtime_libc
@@ -22,7 +24,8 @@ target_link_libraries(runtime_libc
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    target_sources(runtime_libc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cpu_clock.c)
+    target_sources(runtime_libc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cpu_clock.c entropy.cpp)
+    target_link_options(runtime_libc INTERFACE LINKER:--undefined=_getentropy)
     target_include_directories(runtime_libc
         BEFORE PUBLIC
             ${CMAKE_CURRENT_SOURCE_DIR}/include

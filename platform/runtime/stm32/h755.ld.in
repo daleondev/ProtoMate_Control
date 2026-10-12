@@ -50,12 +50,13 @@
 */
 
 /* Runtime-owned sections include compiler TLS and a bounded C/C++ heap.
- * Each image has private RAM; SRAM4 remains unallocated for future p2p. */
+ * Each image has private RAM; SRAM4 is reserved for the shared inter-core byte queues. */
 ENTRY(Reset_Handler)
 MEMORY
 {
     FLASH (rx) : ORIGIN = @H755_FLASH_ORIGIN@, LENGTH = 1M
     RAM (xrw) : ORIGIN = @H755_RAM_ORIGIN@, LENGTH = @H755_RAM_LENGTH@
+    SHARED (rw) : ORIGIN = 0x38000000, LENGTH = 64K
     STACK (rw) : ORIGIN = @H755_STACK_ORIGIN@, LENGTH = 8K
 }
 _Min_Heap_Size = 16K;
@@ -234,6 +235,11 @@ SECTIONS
     __HeapReservedEnd = .;
     __HeapLimit = ORIGIN(RAM) + LENGTH(RAM);
   } >RAM
+
+  .intercore (NOLOAD) : ALIGN(32)
+  {
+    KEEP(*(.intercore))
+  } >SHARED
 
   /* The MSP is used as the ThreadX system/interrupt stack. */
   .stack (NOLOAD) :

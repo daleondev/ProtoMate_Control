@@ -3,6 +3,7 @@ add_library(hal::drivers::factory ALIAS hal_drivers_factory)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_sources(hal_drivers_factory INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/intercore.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/gpio.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/timer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/rtc.cpp
@@ -31,6 +32,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(hal_drivers_factory
         INTERFACE
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/ethernet.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/intercore.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/gpio.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/rng.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/rtc.cpp

@@ -1,11 +1,27 @@
 #include "hal/hal.hpp"
 #include "hal/drivers/impl/stm32/Gpio.hpp"
+#include "hal/drivers/impl/stm32/InterCoreChannel.hpp"
+#include "hal/stm32/HardwareSemaphore.hpp"
+#include "hal/stm32/InterruptGuard.hpp"
 
 #include <cstdint>
+#if defined(CORE_CM7)
+#include "rtc.h"
+#include "rng.h"
+#include "usart.h"
+#endif
 
 namespace
 {
     constexpr std::uint32_t BOOT_SEMAPHORE{0};
+
+    void initialize_gpio()
+    {
+        const hal::stm32::InterruptGuard local;
+        const hal::stm32::HardwareSemaphore shared(5);
+        if (!shared) { hal::panic("GPIO startup lock timeout"); }
+        MX_GPIO_Init();
+    }
 
 #if defined(CORE_CM7)
     void wait_for_m4(bool awake)
@@ -35,7 +51,7 @@ namespace hal
         if (HAL_Init() != HAL_OK) {
             Error_Handler();
         }
-        MX_GPIO_Init();
+        initialize_gpio();
         MX_TIM5_Init();
 #else
         wait_for_m4(false);
@@ -43,21 +59,39 @@ namespace hal
             Error_Handler();
         }
         SystemClock_Config();
-        MX_GPIO_Init();
+        __HAL_RCC_HSEM_CLK_ENABLE();
+        initialize_gpio();
         MX_TIM12_Init();
+        MX_RTC_Init();
+        MX_RNG_Init();
+        MX_USART3_UART_Init();
         // Enable all currently owned clocks before releasing M4. Subsequent
         // factories only re-enable already set bits in the shared RCC registers.
         __HAL_RCC_GPIOB_CLK_ENABLE();
         __HAL_RCC_TIM5_CLK_ENABLE();
         __HAL_RCC_HSEM_CLK_ENABLE();
+        // Normal non-cacheable, shareable SRAM4. Keep private AXI RAM cached.
+        MPU_Region_InitTypeDef shared{};
+        shared.Enable = MPU_REGION_ENABLE;
+        shared.Number = MPU_REGION_NUMBER0;
+        shared.BaseAddress = 0x38000000;
+        shared.Size = MPU_REGION_SIZE_64KB;
+        shared.TypeExtField = MPU_TEX_LEVEL1;
+        shared.AccessPermission = MPU_REGION_FULL_ACCESS;
+        shared.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+        shared.IsShareable = MPU_ACCESS_SHAREABLE;
+        shared.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+        shared.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+        HAL_MPU_Disable();
+        HAL_MPU_ConfigRegion(&shared);
+        HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+        InterCoreChannel::initializeMemory();
         if (HAL_HSEM_FastTake(BOOT_SEMAPHORE) != HAL_OK) {
             Error_Handler();
         }
         HAL_HSEM_Release(BOOT_SEMAPHORE, 0);
         wait_for_m4(true);
         SCB_EnableICache();
-        // Private AXI data is cacheable. Shared SRAM/cache policy is deliberately
-        // deferred until the shared-memory transport is implemented.
         SCB_EnableDCache();
 #endif
         GpioInput::initializeInterrupts();
@@ -103,6 +137,23 @@ extern "C" void MemManage_Handler() { hal_fault_handler("MemManage"); }
 extern "C" void BusFault_Handler() { hal_fault_handler("BusFault"); }
 extern "C" void UsageFault_Handler() { hal_fault_handler("UsageFault"); }
 
-// No UART/stdio console is assigned in this profile yet. Report unavailable.
-extern "C" int __io_putchar(int) { return -1; }
-extern "C" int __io_getchar() { return -1; }
+// USART3/ST-Link VCP belongs to M7. M4 must send future log messages through p2p.
+extern "C" int __io_putchar(int value)
+{
+#if defined(CORE_CM7)
+    const auto byte = static_cast<std::uint8_t>(value);
+    return HAL_UART_Transmit(&huart3, &byte, 1, 100) == HAL_OK ? value : -1;
+#else
+    static_cast<void>(value);
+    return -1;
+#endif
+}
+extern "C" int __io_getchar()
+{
+#if defined(CORE_CM7)
+    std::uint8_t byte{};
+    return HAL_UART_Receive(&huart3, &byte, 1, HAL_MAX_DELAY) == HAL_OK ? byte : -1;
+#else
+    return -1;
+#endif
+}

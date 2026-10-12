@@ -22,7 +22,7 @@ namespace io
         explicit Application(std::shared_ptr<hal::device::ILed> statusLed = {});
 #if defined(APPLICATION_ENABLE_P2P)
         // The endpoint must outlive the application.
-        explicit Application(p2p::ITransport& transport);
+        explicit Application(p2p::ITransport& transport, std::shared_ptr<hal::device::ILed> statusLed = {});
 #endif
         ~Application();
         Application(const Application&) = delete;
@@ -61,6 +61,8 @@ namespace io
         std::condition_variable m_stopRequested;
         bool m_started{};
         bool m_stopping{};
+        bool m_topicReady{};
+        std::uint32_t m_ledSequence{};
         // Destroy/join workers before any of the state their entries access.
         runtime::ThreadGroup m_threads;
     };

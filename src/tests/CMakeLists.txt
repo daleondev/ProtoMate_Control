@@ -4,3 +4,10 @@ target_compile_definitions(application_lifecycle_tests PRIVATE RUNTIME_APPLICATI
 runtime_attach(application_lifecycle_tests)
 add_test(NAME application.lifecycle COMMAND application_lifecycle_tests)
 set_tests_properties(application.lifecycle PROPERTIES TIMEOUT 30)
+
+add_executable(application_intercore_tests intercore_test.cpp)
+target_link_libraries(application_intercore_tests PRIVATE application::p2p::intercore application::common GTest::gtest_main)
+target_compile_definitions(application_intercore_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(application_intercore_tests)
+add_test(NAME application.intercore COMMAND application_intercore_tests)
+set_tests_properties(application.intercore PROPERTIES TIMEOUT 30)
