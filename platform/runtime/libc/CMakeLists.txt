@@ -36,11 +36,6 @@ target_compile_features(runtime_libc
         c_std_11
 )
 
-target_compile_options(runtime_libc
-    PRIVATE
-        $<$<COMPILE_LANG_AND_ID:C,GNU,Clang>:-Wall;-Wextra;-Wpedantic>
-)
-
 target_compile_definitions(runtime_libc PRIVATE RUNTIME_STORAGE_REQUIRED=$<BOOL:${RUNTIME_STORAGE_REQUIRED}>)
 if(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)
     target_compile_definitions(runtime_libc PUBLIC RUNTIME_HARDWARE_STORAGE_STARTUP_TEST)

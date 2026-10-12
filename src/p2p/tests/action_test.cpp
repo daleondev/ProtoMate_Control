@@ -404,7 +404,12 @@ namespace
         auto providerReady=pnm::msg::watch(provider,[providerSignal] {providerSignal->notify();});
         Observer observer;
         auto goal=uiBus.action<^^Actions::io_count>().sendGoal(1,{.accept_timeout=2s},observer.callbacks());
-        while(!execution) {provider.poll(); if(!execution) ASSERT_TRUE(providerSignal->wait());}
+        while (!execution) {
+            provider.poll();
+            if (!execution) {
+                ASSERT_TRUE(providerSignal->wait());
+            }
+        }
         auto cancellationReady=pnm::msg::watch(*execution,[cancellationSignal] {cancellationSignal->notify();});
         std::jthread stopping([&] {ui.stop(2s);});
         while(!execution->cancelRequested()) ASSERT_TRUE(cancellationSignal->wait());
@@ -425,7 +430,12 @@ namespace
         auto providerReady=pnm::msg::watch(provider,[providerSignal] {providerSignal->notify();});
         Observer observer;
         auto goal=uiBus.action<^^Actions::io_count>().sendGoal(1,{.accept_timeout=2s},observer.callbacks());
-        while(!execution) {provider.poll(); if(!execution) ASSERT_TRUE(providerSignal->wait());}
+        while (!execution) {
+            provider.poll();
+            if (!execution) {
+                ASSERT_TRUE(providerSignal->wait());
+            }
+        }
         ui.stop(30ms); ASSERT_TRUE(goal.poll());
         EXPECT_TRUE(ui.failure()); EXPECT_EQ(observer.result->error(),Error::TransportError);
         EXPECT_TRUE(execution->pending()); EXPECT_TRUE(execution->cancelRequested());

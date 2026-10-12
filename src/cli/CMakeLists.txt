@@ -36,11 +36,6 @@ target_link_libraries(application_cli
         application::control_client
 )
 
-target_compile_options(application_cli
-    PRIVATE
-        $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall;-Wextra;-Wpedantic>
-)
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CURSES_NEED_WIDE TRUE)
     find_package(Curses REQUIRED)

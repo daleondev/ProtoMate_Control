@@ -43,7 +43,7 @@ namespace control
         {
             double speed{ DEFAULT_ROBOT_SPEED }; // Fraction of configured joint speed limits: (0, 1].
             pnm::units::Time timeout{ 0_s };
-            std::optional<ScaraKinematics::ElbowBranch> branch;
+            std::optional<ScaraKinematics::ElbowBranch> branch{};
         };
         using Motion = ControllerClient::GroupMotion;
         // Rest-to-rest, synchronized linear interpolation in JOINT coordinates.

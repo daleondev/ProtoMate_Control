@@ -3,7 +3,11 @@
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 
-#include <pthread.h>
+#ifdef HAL_STEP_THREADX
+#include "hal/linux/ThreadMutex.hpp"
+#else
+#include "hal/linux/Mutex.hpp"
+#endif
 
 #include <atomic>
 #include <memory>
@@ -32,7 +36,13 @@ namespace hal
 
         gpio::InputConfiguration m_configuration;
         std::atomic<gpio::Level> m_level{ gpio::Level::Low };
-        pthread_mutex_t m_callbackMutex{};
+        // Contention must suspend the simulated ThreadX caller, allowing the
+        // thread currently holding the callback lock to resume.
+#ifdef HAL_STEP_THREADX
+        linux::ThreadMutex m_callbackMutex;
+#else
+        linux::Mutex m_callbackMutex;
+#endif
         std::shared_ptr<EdgeCallback> m_edgeCallback;
     };
 

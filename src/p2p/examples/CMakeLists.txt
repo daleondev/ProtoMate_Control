@@ -1,6 +1,5 @@
 add_executable(application_p2p_example topics.cpp)
 target_link_libraries(application_p2p_example PRIVATE application::p2p)
-target_compile_options(application_p2p_example PRIVATE -Wall -Wextra -Wpedantic)
 
 if(COMMAND runtime_attach)
     target_compile_definitions(application_p2p_example PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
@@ -9,7 +8,6 @@ endif()
 
 add_executable(application_p2p_service_example services.cpp)
 target_link_libraries(application_p2p_service_example PRIVATE application::p2p)
-target_compile_options(application_p2p_service_example PRIVATE -Wall -Wextra -Wpedantic)
 if(COMMAND runtime_attach)
     target_compile_definitions(application_p2p_service_example PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
     runtime_attach(application_p2p_service_example)
@@ -23,7 +21,6 @@ endif()
 
 add_executable(application_p2p_action_example actions.cpp)
 target_link_libraries(application_p2p_action_example PRIVATE application::p2p)
-target_compile_options(application_p2p_action_example PRIVATE -Wall -Wextra -Wpedantic)
 if(COMMAND runtime_attach)
     target_compile_definitions(application_p2p_action_example PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
     runtime_attach(application_p2p_action_example)

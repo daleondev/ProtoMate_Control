@@ -36,6 +36,10 @@ compiler upgrade use `cmake --preset <preset> --fresh` and rebuild cleanly.
 Use `-DBUILD_TESTING=OFF` when configuring Linux to build the template without
 fetching or building test dependencies.
 
+All project C/C++ sources in `src/` and `platform/`, including tests, compile
+with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
+settings apply these flags to new module targets as well.
+
 STM32 builds produce `Application.elf`, `.hex`, `.bin`, and `.map`. Flash with:
 
 ```sh

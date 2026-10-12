@@ -2122,7 +2122,7 @@ extern "C" DIR* opendir(const char* path)
     std::memcpy(slot->path.data(), normalized.data(), std::strlen(normalized.data()) + 1U);
     if (resolved.virtual_root) {
         try {
-            for (const auto [volume, name] : { std::pair{ runtime::storage::Volume::Flash, "flash" },
+            for (const auto& [volume, name] : { std::pair{ runtime::storage::Volume::Flash, "flash" },
                                                std::pair{ runtime::storage::Volume::Sd, "sd" } }) {
                 if (runtime::storage::mounted(volume)) {
                     runtime_filex_directory_stream::Entry entry{};

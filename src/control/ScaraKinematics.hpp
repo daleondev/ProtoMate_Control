@@ -74,7 +74,7 @@ class ScaraKinematics final
         // second arm's frame: +X forward, +Y left, +Z up. Independent of tool_yaw.
         CartesianPosition tool_offset{};
         pnm::units::Angle tool_yaw{};
-        std::optional<JointLimits> limits;
+        std::optional<JointLimits> limits{};
         // Reject inverse solutions with |sin(effective elbow bend)| <= this.
         // This is a dimensionless singularity threshold, not a velocity limit.
         double minimum_bend_sine{ DEFAULT_MINIMUM_BEND_SINE };

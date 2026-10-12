@@ -1,55 +1,18 @@
 #include "Gpio.hpp"
 
 #include <exception>
+#include <mutex>
 #include <utility>
 
 namespace hal
 {
-    namespace
-    {
-        class PthreadLock
-        {
-          public:
-            explicit PthreadLock(pthread_mutex_t& mutex) noexcept
-              : m_mutex{ mutex }
-            {
-                if (pthread_mutex_lock(&m_mutex) != 0) {
-                    std::terminate();
-                }
-            }
-
-            ~PthreadLock()
-            {
-                if (pthread_mutex_unlock(&m_mutex) != 0) {
-                    std::terminate();
-                }
-            }
-
-            PthreadLock(const PthreadLock&) = delete;
-            PthreadLock& operator=(const PthreadLock&) = delete;
-            PthreadLock(PthreadLock&&) = delete;
-            PthreadLock& operator=(PthreadLock&&) = delete;
-
-          private:
-            pthread_mutex_t& m_mutex;
-        };
-    }
-
     GpioInput::GpioInput(gpio::InputConfiguration configuration)
       : m_configuration{ configuration }
       , m_level{ configuration.pull == gpio::Pull::Up ? gpio::Level::High : gpio::Level::Low }
     {
-        if (pthread_mutex_init(&m_callbackMutex, nullptr) != 0) {
-            std::terminate();
-        }
     }
 
-    GpioInput::~GpioInput()
-    {
-        if (pthread_mutex_destroy(&m_callbackMutex) != 0) {
-            std::terminate();
-        }
-    }
+    GpioInput::~GpioInput() = default;
 
     auto GpioInput::read() const noexcept -> gpio::Level { return m_level.load(std::memory_order_acquire); }
 
@@ -64,7 +27,7 @@ namespace hal
             }
         }
 
-        PthreadLock lock{ m_callbackMutex };
+        const std::scoped_lock lock{ m_callbackMutex };
         m_edgeCallback = std::move(replacement);
     }
 
@@ -77,7 +40,7 @@ namespace hal
 
         std::shared_ptr<EdgeCallback> callback;
         {
-            PthreadLock lock{ m_callbackMutex };
+            const std::scoped_lock lock{ m_callbackMutex };
             callback = m_edgeCallback;
         }
         if (callback && *callback) {

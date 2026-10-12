@@ -18,7 +18,7 @@ namespace runtime
         struct Attributes
         {
             // Thread name. Automatically generated if empty.
-            std::string_view name;
+            std::string_view name{};
 
             // ThreadX priorities are ordered from 0 (highest) to
             // TX_MAX_PRIORITIES - 1 (lowest). -1 selects the configured default.

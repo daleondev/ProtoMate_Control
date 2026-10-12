@@ -1,3 +1,6 @@
+# Also applies when the STEP bench image builds p2p without the rest of src/.
+add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
+
 add_subdirectory(bridge)
 add_subdirectory(transport)
 
@@ -11,7 +14,6 @@ target_link_libraries(application_p2p
         application::p2p::bridge
         application::p2p::transport
 )
-target_compile_options(application_p2p PRIVATE -Wall -Wextra -Wpedantic)
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     # Coroutine and messaging templates otherwise exceed H753 flash in Debug.
     # Keep debug information and useful stepping, as for the control endpoints.

@@ -1,3 +1,5 @@
+add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
+
 add_subdirectory(p2p)
 add_subdirectory(control)
 add_subdirectory(cli)

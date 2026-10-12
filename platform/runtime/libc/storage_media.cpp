@@ -192,7 +192,8 @@ namespace
         command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
         const HAL_StatusTypeDef status{ HAL_QSPI_Command(&hqspi, &command, QSPI_TIMEOUT) };
         if (status != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error = hqspi.ErrorCode != 0U ? hqspi.ErrorCode : status;
+            runtime_storage_diagnostics.qspi_error =
+              hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
             return false;
         }
         return true;
@@ -218,7 +219,8 @@ namespace
         }
         const HAL_StatusTypeDef status{ HAL_QSPI_Receive(&hqspi, &value, QSPI_TIMEOUT) };
         if (status != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error = hqspi.ErrorCode != 0U ? hqspi.ErrorCode : status;
+            runtime_storage_diagnostics.qspi_error =
+              hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
             return false;
         }
         return true;
@@ -245,7 +247,8 @@ namespace
         polling.AutomaticStop = QSPI_AUTOMATIC_STOP_ENABLE;
         const HAL_StatusTypeDef status{ HAL_QSPI_AutoPolling(&hqspi, &command, &polling, QSPI_TIMEOUT) };
         if (status != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error = hqspi.ErrorCode != 0U ? hqspi.ErrorCode : status;
+            runtime_storage_diagnostics.qspi_error =
+              hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
             return false;
         }
         return true;
@@ -272,7 +275,8 @@ namespace
         const HAL_StatusTypeDef status{ HAL_QSPI_Receive(
           &hqspi, static_cast<UCHAR*>(destination), QSPI_TIMEOUT) };
         if (status != HAL_OK) {
-            runtime_storage_diagnostics.qspi_error = hqspi.ErrorCode != 0U ? hqspi.ErrorCode : status;
+            runtime_storage_diagnostics.qspi_error =
+              hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
             return false;
         }
         return true;
@@ -301,7 +305,8 @@ namespace
             // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
             if (status != HAL_OK || !qspi_wait_ready()) {
                 if (status != HAL_OK) {
-                    runtime_storage_diagnostics.qspi_error = hqspi.ErrorCode != 0U ? hqspi.ErrorCode : status;
+                    runtime_storage_diagnostics.qspi_error =
+                      hqspi.ErrorCode != 0U ? hqspi.ErrorCode : static_cast<std::uint32_t>(status);
                 }
                 return false;
             }

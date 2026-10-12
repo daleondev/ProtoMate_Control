@@ -3,6 +3,7 @@
 #ifdef HAL_PLATFORM_STM32
 #include "hal/stm32/InterruptGuard.hpp"
 #else
+#include "hal/devices/util/DriverMutex.hpp"
 #include <mutex>
 #endif
 
@@ -35,7 +36,7 @@ namespace hal::device
             stm32::InterruptGuard interrupt_guard;
         };
 #else
-        using Mutex = std::mutex;
+        using Mutex = util::DriverMutex;
         using Guard = std::scoped_lock<Mutex>;
 #endif
         Mutex mutex;

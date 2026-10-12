@@ -259,8 +259,9 @@ TEST(SynchronizedSequence, UnequalCountsShareTheFinalTickWithoutAccumulatedRound
                     time += timing.period;
             }
         }
-        if (final)
+        if (final) {
             EXPECT_EQ(time, *final);
+        }
         final = time;
         EXPECT_FALSE(sequence.timing(count));
     }

@@ -43,13 +43,6 @@ target_compile_definitions(runtime_tests
         RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U
 )
 
-target_compile_options(runtime_tests
-    PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-)
-
 runtime_attach(runtime_tests)
 
 add_test(NAME runtime COMMAND runtime_tests --gtest_color=no)

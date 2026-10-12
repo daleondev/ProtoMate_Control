@@ -22,8 +22,9 @@ namespace
             ASSERT_LE(current.velocity, ceiling + 1e-8);
             ASSERT_LE(current.acceleration, limits.acceleration + 1e-8);
             ASSERT_GE(current.acceleration, -limits.deceleration - 1e-8);
-            if (limits.jerk > 0.0)
+            if (limits.jerk > 0.0) {
                 ASSERT_LE(std::abs(current.acceleration - previous.acceleration), (limits.jerk * dt) + 1e-8);
+            }
             // Inversion must recover the same continuous trajectory.
             ASSERT_NEAR(p.timeAt(current.position), t, std::max(1e-8, p.duration() * 1e-7));
             previous = current;

@@ -1,3 +1,5 @@
+add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
+
 add_subdirectory(drivers)
 add_subdirectory(devices)
 add_subdirectory(board)

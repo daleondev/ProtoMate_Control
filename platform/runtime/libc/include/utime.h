@@ -1,6 +1,8 @@
 #ifndef RUNTIME_UTIME_H
 #define RUNTIME_UTIME_H
 
+/* This system-header overlay intentionally uses GCC's include_next extension. */
+#pragma GCC system_header
 #include_next <utime.h>
 
 /* Bare-metal Newlib provides utimbuf but omits the syscall declaration. */

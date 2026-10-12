@@ -1,3 +1,5 @@
+add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
+
 # HAL factories and application code exchange C++ objects. On Arm, the
 # toolchain otherwise defaults shared_ptr to the single-threaded policy in
 # HAL and the atomic policy in the ThreadX application. Share headers and

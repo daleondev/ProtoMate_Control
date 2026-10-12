@@ -15,9 +15,6 @@ target_link_libraries(application_control_io PUBLIC application::control_common 
 add_library(application_control INTERFACE)
 add_library(application::control ALIAS application_control)
 target_link_libraries(application_control INTERFACE application::control_client application::control_io)
-foreach(target application_control_common application_control_client application_control_io)
-    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
-endforeach()
 set_source_files_properties(MotionProfile.cpp MotionSequence.cpp SynchronizedSequence.cpp PROPERTIES
     COMPILE_OPTIONS "$<$<CONFIG:Release>:-O3>")
 if(BUILD_TESTING)

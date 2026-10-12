@@ -51,19 +51,20 @@ namespace hal
             }
         }
 
+        auto make_timer_handle(TIM_TypeDef* instance) noexcept -> TIM_HandleTypeDef
+        {
+            TIM_HandleTypeDef handle{};
+            handle.Instance = instance;
+            return handle;
+        }
+
         auto timer_handle(std::uint8_t timer) -> TIM_HandleTypeDef&
         {
             // Generic PWM is independent of the board's TIM2 step engine.
             // These unused/reserved timers are initialized only when leased.
-            static TIM_HandleTypeDef pwm1{
-                .Instance = TIM1 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            static TIM_HandleTypeDef pwm4{
-                .Instance = TIM4 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            static TIM_HandleTypeDef pwm8{
-                .Instance = TIM8 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            static TIM_HandleTypeDef pwm1{ make_timer_handle(TIM1) }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            static TIM_HandleTypeDef pwm4{ make_timer_handle(TIM4) }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            static TIM_HandleTypeDef pwm8{ make_timer_handle(TIM8) }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             if (timer == TIMER_1) {
                 __HAL_RCC_TIM1_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 return pwm1;

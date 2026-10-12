@@ -79,7 +79,9 @@ namespace
             io.setConnectionCallback([this](auto status) {
                 // Reentrant reads prove callbacks run outside internal locks.
                 EXPECT_EQ(io.connectionStatus(), status);
-                if (status.state == State::Failed) EXPECT_TRUE(io.failure());
+                if (status.state == State::Failed) {
+                    EXPECT_TRUE(io.failure());
+                }
                 ioEvents.push_back(status);
             });
             ui.setConnectionCallback([this](auto status) { uiEvents.push_back(status); });
