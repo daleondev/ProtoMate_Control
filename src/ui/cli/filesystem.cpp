@@ -976,9 +976,9 @@ namespace ui::cli::filesystem
         return commands::expand_wildcards(pattern, wildcard_mask);
     }
 
-    auto setup() -> void
+    void setup(Parser& parser)
     {
         static std::once_flag registration;
-        std::call_once(registration, [] { register_commands<^^commands>(); });
+        std::call_once(registration, [&parser] { register_commands<^^commands>(parser); });
     }
 }

@@ -196,10 +196,10 @@ namespace ui::cli
     };
 
     /**
-     * Parser consumed by the application's CLI thread.
+     * Standalone parser registry for local commands and host tests.
      *
-     * Register commands before consuming input. One UI CLI owns this registry;
-     * Parser instances created directly are otherwise independent.
+     * Register commands before consuming input. The UI application's CLI thread
+     * owns a separate Parser with its own bus-bound callbacks.
      */
     [[nodiscard]] auto registry() noexcept -> Parser&;
 
@@ -341,7 +341,7 @@ namespace ui::cli
 
     // Bind adapts a reflected function to Callback (for example by capturing
     // an application-owned controller). Stateless modules use the identity
-    // binding and the UI application registry. Pass the command namespace explicitly
+    // binding and the standalone registry. Pass the command namespace explicitly
     // so registration does not depend on support for call-site namespace reflection.
     template<std::meta::info Commands, typename Bind = std::identity>
     constexpr auto register_commands(Parser& parser = registry(), Bind bind = {}) -> void

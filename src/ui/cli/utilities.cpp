@@ -1,12 +1,11 @@
 #include "utilities.hpp"
 
 #include "Parser.hpp"
+#include "common/diagnostics/Memory.hpp"
+#include "common/icc/catalog/services.hpp"
 #include "filesystem.hpp"
 
 #include "pneumo/meta.hpp"
-
-#include <malloc.h>
-#include <tx_thread.h>
 
 #include <algorithm>
 #include <array>
@@ -30,17 +29,6 @@
 #include <string_view>
 #include <system_error>
 #include <vector>
-
-#if defined(PNM_PLATFORM_LINUX)
-#include "tx_thread_stack_info.hpp"
-#endif
-
-#if !defined(PNM_PLATFORM_LINUX)
-extern "C" {
-extern std::byte __HeapBase;
-extern std::byte __HeapLimit;
-}
-#endif
 
 namespace ui::cli::utilities
 {
@@ -79,128 +67,79 @@ namespace ui::cli::utilities
                 return std::ranges::search(line, pattern, same_character).begin() != line.end();
             }
 
-            struct ThreadInfo
+            using diagnostics::HeapInfo;
+            using diagnostics::ThreadInfo;
+            using MemoryService = pnm::msg::Service<diagnostics::MemoryQuery, diagnostics::MemorySnapshot>;
+
+            struct Context
             {
-                std::uint32_t prio;
-                std::string_view name;
-                std::size_t stack_size;
-                std::size_t current_stack_usage;
-                std::size_t peak_stack_usage;
+                Parser* parser;
+                std::optional<MemoryService> memory;
+                std::stop_token stop;
             };
 
-            struct HeapInfo
+            std::string_view service_error(pnm::msg::ServiceError error)
             {
-                std::string_view allocator;
-                std::optional<std::size_t> capacity;
-                std::size_t reserved;
-                std::size_t used;
-                std::size_t available;
-                std::size_t releasable;
-                std::size_t free_blocks;
-                std::size_t mapped_regions;
-                std::size_t mapped_bytes;
-            };
-
-            auto refresh_thread_stack_info([[maybe_unused]] TX_THREAD* thread) -> void
-            {
-#if defined(TX_ENABLE_STACK_CHECKING) && !defined(PNM_PLATFORM_LINUX)
-                if (thread != TX_NULL && thread != _tx_thread_current_ptr &&
-                    thread->tx_thread_stack_ptr != TX_NULL &&
-                    thread->tx_thread_stack_highest_ptr != TX_NULL &&
-                    reinterpret_cast<uintptr_t>(thread->tx_thread_stack_ptr) <
-                      reinterpret_cast<uintptr_t>(thread->tx_thread_stack_highest_ptr)) {
-                    thread->tx_thread_stack_highest_ptr = thread->tx_thread_stack_ptr;
+                using Error = pnm::msg::ServiceError;
+                switch (error) {
+                    case Error::Unavailable:
+                        return "service unavailable";
+                    case Error::Busy:
+                        return "service busy";
+                    case Error::Timeout:
+                        return "request timed out";
+                    case Error::Cancelled:
+                        return "request cancelled";
+                    case Error::HandlerFailed:
+                        return "collection failed";
+                    case Error::TransportError:
+                        return "ICC connection failed";
                 }
-#endif
+                return "unknown service error";
             }
 
-            auto get_thread_information(TX_THREAD* thread) -> ThreadInfo
+            auto get_memory_information(const Arguments& args,
+                                        const Context& context,
+                                        diagnostics::MemoryQuery query)
+              -> std::expected<diagnostics::MemorySnapshot, CallbackError>
             {
-                refresh_thread_stack_info(thread);
-
-                // ThreadX exposes stack addresses as void pointers; compare their numeric addresses.
-                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
-                const auto stack_end = reinterpret_cast<uintptr_t>(thread->tx_thread_stack_end);
-                const auto current_stack_ptr = reinterpret_cast<uintptr_t>(thread->tx_thread_stack_ptr);
-                const auto peak_stack_ptr = reinterpret_cast<uintptr_t>(thread->tx_thread_stack_highest_ptr);
-                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
-                // Pneumo assertions implement failure reporting through a C macro.
-                // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
-                PNM_ASSERT(current_stack_ptr <= stack_end && peak_stack_ptr <= stack_end, "Invalid stack");
-                // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
-
-                return { .prio = thread->tx_thread_priority,
-                         .name =
-                           thread->tx_thread_name == TX_NULL ? std::string_view{} : thread->tx_thread_name,
-                         .stack_size = static_cast<std::size_t>(thread->tx_thread_stack_size),
-                         .current_stack_usage = static_cast<std::size_t>(stack_end - current_stack_ptr),
-                         .peak_stack_usage = static_cast<std::size_t>(stack_end - peak_stack_ptr) };
+                const auto controller{ args.require("controller") };
+                if (controller == "ui") {
+                    return diagnostics::collectMemory(query);
+                }
+                if (controller != "io") {
+                    return std::unexpected(CallbackError{ "controller must be 'ui' or 'io'" });
+                }
+                if (!context.memory) {
+                    return std::unexpected(CallbackError{ "IO diagnostics service is not connected" });
+                }
+                // Wait only on the CLI thread. ICC workers remain free to route
+                // the request/reply; shutdown cancels the outstanding request.
+                auto call{ context.memory->request(query, std::chrono::seconds{ 2 }, context.stop) };
+                auto result{ call.get() };
+                if (!result) {
+                    return std::unexpected(
+                      CallbackError{ "IO diagnostics: " + std::string{ service_error(result.error()) } });
+                }
+                if (result->query != query || result->stack.count > result->stack.threads.size() ||
+                    result->stack.total < result->stack.count) {
+                    return std::unexpected(CallbackError{ "IO diagnostics: invalid response" });
+                }
+                return std::move(*result);
             }
 
-            auto get_all_threads_information() -> std::vector<ThreadInfo>
+            std::string_view thread_name(const ThreadInfo& info)
             {
-                auto* first_thread{ _tx_thread_created_ptr };
-                if (first_thread == TX_NULL || _tx_thread_created_count == 0U) {
-                    return {};
-                }
-
-                std::vector<ThreadInfo> threads_info{};
-                threads_info.reserve(_tx_thread_created_count);
-
-                auto* current_thread{ first_thread };
-                for (;;) {
-                    threads_info.push_back(get_thread_information(current_thread));
-                    current_thread = current_thread->tx_thread_created_next;
-                    if (!(current_thread != first_thread)) {
-                        break;
-                    }
-                }
-
-                return threads_info;
+                const auto end{ std::ranges::find(info.name, '\0') };
+                return { info.name.data(), static_cast<std::size_t>(end - info.name.begin()) };
             }
 
-            [[nodiscard]] auto get_heap_information() -> HeapInfo
+            void write_controller(std::ostream& output, std::string_view controller, bool shared_runtime)
             {
-#if defined(PNM_PLATFORM_LINUX)
-                const struct mallinfo2 allocator_info{ ::mallinfo2() };
-                return {
-                    .allocator = "glibc",
-                    .capacity = std::nullopt,
-                    .reserved = allocator_info.arena + allocator_info.hblkhd,
-                    .used = allocator_info.uordblks + allocator_info.hblkhd,
-                    .available = allocator_info.fordblks,
-                    .releasable = allocator_info.keepcost,
-                    .free_blocks = allocator_info.ordblks,
-                    .mapped_regions = allocator_info.hblks,
-                    .mapped_bytes = allocator_info.hblkhd,
-                };
-#else
-                const struct mallinfo allocator_info{ ::mallinfo() };
-                // Linker symbols delimit raw addresses, not a C++ array object.
-                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
-                const auto heap_base{ reinterpret_cast<std::uintptr_t>(&__HeapBase) };
-                const auto heap_limit{ reinterpret_cast<std::uintptr_t>(&__HeapLimit) };
-                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
-                // Pneumo assertions implement failure reporting through a C macro.
-                // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
-                PNM_ASSERT(heap_base <= heap_limit, "Invalid heap bounds");
-                // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
-
-                const std::size_t capacity{ heap_limit - heap_base };
-                const std::size_t reserved{ allocator_info.arena };
-                const std::size_t headroom{ reserved < capacity ? capacity - reserved : 0U };
-                return {
-                    .allocator = "Newlib",
-                    .capacity = capacity,
-                    .reserved = reserved,
-                    .used = allocator_info.uordblks,
-                    .available = allocator_info.fordblks + headroom,
-                    .releasable = allocator_info.keepcost,
-                    .free_blocks = allocator_info.ordblks,
-                    .mapped_regions = allocator_info.hblks,
-                    .mapped_bytes = allocator_info.hblkhd,
-                };
-#endif
+                output << "Controller: " << (controller == "io" ? "IO" : "UI") << '\n';
+                if (shared_runtime) {
+                    output << "Linux: shared process heap and ThreadX threads (UI + IO).\n";
+                }
             }
 
             using namespace std::literals;
@@ -309,15 +248,20 @@ namespace ui::cli::utilities
             auto write_thread_row(std::ostream& output, const ThreadInfo& thread, std::size_t name_width)
               -> void
             {
-                const std::size_t usage_percent{ (thread.peak_stack_usage * 100U) / thread.stack_size };
-                const std::size_t bar_length{ std::min((usage_percent * BAR_WIDTH) / 100U, BAR_WIDTH) };
+                const auto usage_percent{ thread.stack_size == 0U
+                                            ? 0U
+                                            : (static_cast<std::uint64_t>(thread.peak_stack_usage) * 100U) /
+                                                thread.stack_size };
+                const auto name{ thread_name(thread) };
+                const auto bar_length{ static_cast<std::size_t>(
+                  std::min<std::uint64_t>((usage_percent * BAR_WIDTH) / 100U, BAR_WIDTH)) };
 
                 std::vformat_to(std::ostreambuf_iterator<char>{ output },
                                 "\u2502 {:>{}} \u2502 {:<{}} \u2502 {:>{}} \u2502 {:>{}} "
                                 "\u2502 {:>{}} \u2502 {:>{}} \u2502 ",
                                 std::make_format_args(thread.prio,
                                                       PRIO_WIDTH,
-                                                      thread.name,
+                                                      name,
                                                       name_width,
                                                       thread.stack_size,
                                                       AVAIL_WIDTH,
@@ -332,7 +276,7 @@ namespace ui::cli::utilities
                 output << " \u2502";
             }
 
-            [[nodiscard]] auto decimal_width(std::size_t value) -> std::size_t
+            [[nodiscard]] auto decimal_width(std::uint64_t value) -> std::size_t
             {
                 std::size_t width{ 1U };
                 while (value >= DECIMAL_BASE) {
@@ -561,14 +505,14 @@ namespace ui::cli::utilities
               "CPU resolution on STM32 is 10 ms."_fs,
             = Arg{ .name = "command"_fs,
                    .description = "command or pipeline to run, quoted as one argument"_fs }
-        ]] static auto time(const Arguments& args, CommandIO& io) -> CallbackResult
+        ]] static auto time(const Arguments& args, CommandIO& io, const Context& context) -> CallbackResult
         {
             const auto wall_before{ std::chrono::steady_clock::now() };
             const auto cpu_before{ std::clock() };
             if (cpu_before == static_cast<std::clock_t>(-1)) {
                 return callback_failure("CPU clock is unavailable");
             }
-            const auto result{ registry().execute(args.require("command"), io.output) };
+            const auto result{ context.parser->execute(args.require("command"), io.output) };
             const auto cpu_after{ std::clock() };
             const auto wall_after{ std::chrono::steady_clock::now() };
             if (cpu_after == static_cast<std::clock_t>(-1) || cpu_after < cpu_before) {
@@ -592,14 +536,17 @@ namespace ui::cli::utilities
             return result.exit_code;
         }
 
-        [[= "Print thread stack information."_fs]] static auto stack(const Arguments& /*unused*/,
-                                                                     CommandIO& io) -> CallbackResult
+        [[
+            = "Print thread stack information for a controller."_fs,
+            = Arg{ .name = "controller"_fs, .description = "ui (local) or io (via ICC)"_fs }
+        ]] static auto stack(const Arguments& args, CommandIO& io, const Context& context) -> CallbackResult
         {
-#if defined(PNM_PLATFORM_LINUX)
-            tx::linux::refresh_all_threads_stack_info();
-#endif
-
-            auto threads_info{ get_all_threads_information() };
+            auto result{ get_memory_information(args, context, diagnostics::MemoryQuery::Stack) };
+            if (!result) {
+                return std::unexpected(result.error());
+            }
+            write_controller(io.output, args.require("controller"), result->shared_runtime);
+            auto threads_info{ std::span{ result->stack.threads }.first(result->stack.count) };
             if (threads_info.empty()) {
                 io.output << "No threads running...\n";
                 return io.output ? CallbackResult{ 0 } : callback_failure("cannot write command output");
@@ -609,7 +556,7 @@ namespace ui::cli::utilities
 
             const std::size_t max_name_len{ std::ranges::fold_left(
               threads_info, NAME_HEADER.size(), [](std::size_t maximum, const ThreadInfo& thread) {
-                return std::max(maximum, thread.name.size());
+                return std::max(maximum, thread_name(thread).size());
             }) };
             const std::array stack_widths{ PRIO_WIDTH, max_name_len, AVAIL_WIDTH, CURR_WIDTH,
                                            PEAK_WIDTH, USAGE_WIDTH,  BAR_WIDTH };
@@ -633,22 +580,35 @@ namespace ui::cli::utilities
             }
 
             write_border(io.output, BOTTOM_LEFT, BOTTOM_JUNCTION, BOTTOM_RIGHT, stack_widths);
+            io.output << "Current: sampled/saved thread stack usage; peak: recorded high-water mark.\n";
+            if (result->stack.total > result->stack.count) {
+                io.output << "Snapshot limited to " << result->stack.count << " of " << result->stack.total
+                          << " threads.\n";
+            }
 
             return io.output ? CallbackResult{ 0 } : callback_failure("cannot write command output");
         }
 
-        [[= "Print heap allocator information."_fs]] static auto heap(const Arguments& /*unused*/,
-                                                                      CommandIO& io) -> CallbackResult
+        [[
+            = "Print heap allocator information for a controller."_fs,
+            = Arg{ .name = "controller"_fs, .description = "ui (local) or io (via ICC)"_fs }
+        ]] static auto heap(const Arguments& args, CommandIO& io, const Context& context) -> CallbackResult
         {
-            const HeapInfo heap_info{ get_heap_information() };
-            const std::size_t usage_capacity{ heap_info.capacity.value_or(heap_info.reserved) };
-            const std::size_t usage_percent{ usage_capacity == 0U
-                                               ? 0U
-                                               : (heap_info.used * 100U) / usage_capacity };
+            auto result{ get_memory_information(args, context, diagnostics::MemoryQuery::Heap) };
+            if (!result) {
+                return std::unexpected(result.error());
+            }
+            write_controller(io.output, args.require("controller"), result->shared_runtime);
+            const HeapInfo& heap_info{ result->heap };
+            const std::string_view allocator{ heap_info.allocator == diagnostics::Allocator::Glibc
+                                                ? "glibc"
+                                                : "Newlib" };
+            const auto usage_capacity{ heap_info.capacity != 0U ? heap_info.capacity : heap_info.reserved };
+            const auto usage_percent{ usage_capacity == 0U ? 0U : (heap_info.used * 100U) / usage_capacity };
             const std::size_t value_width{ std::max(
               { HEAP_VALUE_HEADER.size(),
-                heap_info.allocator.size(),
-                heap_info.capacity ? decimal_width(*heap_info.capacity) : "dynamic"sv.size(),
+                allocator.size(),
+                heap_info.capacity ? decimal_width(heap_info.capacity) : "dynamic"sv.size(),
                 decimal_width(heap_info.reserved),
                 decimal_width(heap_info.used),
                 decimal_width(heap_info.available),
@@ -675,9 +635,9 @@ namespace ui::cli::utilities
                 ++bar_row;
             };
 
-            write_value(HEAP_ALLOCATOR, heap_info.allocator);
+            write_value(HEAP_ALLOCATOR, allocator);
             if (heap_info.capacity) {
-                write_value(HEAP_CAPACITY, *heap_info.capacity);
+                write_value(HEAP_CAPACITY, heap_info.capacity);
             }
             else {
                 write_value(HEAP_CAPACITY, "dynamic"sv);
@@ -702,9 +662,34 @@ namespace ui::cli::utilities
         }
     }
 
-    auto setup() -> void
+    namespace
+    {
+        void register_utilities(Parser& parser,
+                                std::optional<commands::MemoryService> memory,
+                                std::stop_token stop)
+        {
+            const commands::Context context{ &parser, std::move(memory), stop };
+            register_commands<^^commands>(parser, [context](auto function) -> Callback {
+                return [context, function](const Arguments& args, CommandIO& io) -> CallbackResult {
+                    if constexpr (std::invocable<decltype(function),
+                                                 const Arguments&,
+                                                 CommandIO&,
+                                                 const commands::Context&>) {
+                        return function(args, io, context);
+                    }
+                    else {
+                        return function(args, io);
+                    }
+                };
+            });
+        }
+    }
+
+    void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop)
     {
         static std::once_flag registration;
-        std::call_once(registration, [] { register_commands<^^commands>(); });
+        std::call_once(registration, [&parser, &bus, stop] {
+            register_utilities(parser, bus.service<^^icc::Services::io_memory>(), stop);
+        });
     }
 }

@@ -2,15 +2,20 @@
 
 #include "common/app/Application.hpp"
 #include "common/icc/bridge/Bridge.hpp"
-#include "runtime/ThreadGroup.hpp"
+#include "io/diagnostics/Server.hpp"
 #include "io/motion/Controller.hpp"
+#include "runtime/ThreadGroup.hpp"
 
 #include <condition_variable>
 #include <mutex>
+#include <stop_token>
 
 namespace io
 {
-    namespace logging { class Sink; }
+    namespace logging
+    {
+        class Sink;
+    }
 
     class Application final
     {
@@ -38,21 +43,26 @@ namespace io
 
       private:
         friend class runtime::ThreadGroup;
-        static constexpr runtime::thread::Definition icc_THREAD{ .priority = 2, .stack_size = 32UZ * 1024UZ };
+        static constexpr runtime::thread::Definition ICC_THREAD{ .priority = 2, .stack_size = 32UZ * 1024UZ };
         static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14,
                                                                          .stack_size = 16UZ * 1024UZ };
+        static constexpr runtime::thread::Definition DIAGNOSTIC_THREAD{ .priority = 20,
+                                                                        .stack_size = 16UZ * 1024UZ };
 
-        [[= icc_THREAD]] void iccThread();
+        [[= ICC_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();
+        [[= DIAGNOSTIC_THREAD]] void diagnosticThread();
 
         pnm::msg::Bus m_bus;
         pnm::coro::Context m_iccContext;
         icc::Bridge m_bridge;
         std::shared_ptr<logging::Sink> m_logSink;
+        diagnostics::Server m_diagnostics;
         std::mutex m_mutex;
         std::condition_variable m_stopRequested;
         bool m_started{};
         bool m_stopping{};
+        std::stop_source m_stopSource;
         // Created on start; shared enable remains off until explicitly requested.
         std::unique_ptr<motion::Controller> m_motion;
         // Destroy/join workers before any of the state their entries access.

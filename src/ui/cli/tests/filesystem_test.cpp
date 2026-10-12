@@ -217,7 +217,7 @@ TEST(CliUtilities, PrintsHeapInformation)
     ui::cli::utilities::setup();
 
     std::ostringstream output;
-    const auto result{ execute(parser, "heap", output) };
+    const auto result{ execute(parser, "heap ui", output) };
 
     ASSERT_TRUE(result) << result.message;
     EXPECT_NE(output.str().find("Allocator"), std::string::npos);

@@ -167,11 +167,13 @@ flowchart LR
 ```
 
 Both applications require a transport and own a concrete bridge, bus and context.
-The bridges register the empty `Topics`, `Services` and `Actions` catalogs in
+The bridges register the `Topics`, `Services` and `Actions` catalogs in
 `src/common/icc/catalog/topics.hpp`, `services.hpp` and `actions.hpp`. These are the
-shared definitions to extend with application functionality. Handshake and
-heartbeat traffic runs even without application messages. The application
-workers sleep until shutdown; there is no LED topic or local blink task.
+shared definitions to extend with application functionality. Topics carry IO
+logs; the IO `io/memory` service answers `heap io` and `stack io` from a dedicated
+diagnostic worker. UI formats the results, while `heap ui` and `stack ui` collect
+locally. Actions remain empty. Handshake and heartbeat traffic runs independently
+of application messages; there is no LED topic or local blink task.
 
 `proto::common` compiles the ICC bridge and transport implementations once for
 each firmware. The bridge remains independent of hardware; its inter-core
@@ -252,17 +254,19 @@ storage is unavailable; that is expected without media.
 Both images have the timer, main, reaper, ICC context, transport notification and
 application threads. M7 also runs `ui.cliThread` on the ST-Link VCP console
 (115200 baud, 8N1, terminal local echo off). `help` lists the filesystem and
-utility commands; the motor module is empty. M4 has the motion diagnostic worker; individual motion
-workers are created only when commands are submitted. `hal_last_panic`, CFSR and HFSR
+utility commands; the motor module is empty. M4 has both the motion diagnostic
+worker and the heap/stack service worker; individual motion workers are created
+only when commands are submitted. `hal_last_panic`, CFSR and HFSR
 should stay clear. Both scheduler counters and the urgent shared queue counters
-should advance as heartbeats are exchanged; normal queues stay idle until
-application routes are added. Use each core's own ELF in the debugger. Pausing
+should advance as heartbeats are exchanged; normal queues carry memory diagnostic
+requests and responses, while logs use background queues. Use each core's own ELF
+in the debugger. Pausing
 a core for more than 500 ms deliberately fails the peer link; reset the board
 after such debugging.
 
 Host tests cover serialized delivery, queue saturation, independent urgent
 capacity, counter rollover, cancellation, notification races and shutdown.
-Application tests cover handshake with empty catalogs, continued heartbeat
+Application tests cover startup handshakes, continued heartbeat
 traffic while idle, stop during handshake, peer loss, CLI EOF and teardown with
 an idle console. CLI tests cover command annotations, parsing, filesystem
 operations, utilities, line editing and cancellation. Lint and

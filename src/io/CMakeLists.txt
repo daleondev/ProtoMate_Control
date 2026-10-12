@@ -1,4 +1,5 @@
 add_subdirectory(app)
+add_subdirectory(diagnostics)
 add_subdirectory(logging)
 add_subdirectory(motion)
 
@@ -10,6 +11,7 @@ target_link_libraries(proto_io
         proto::common
     PRIVATE
         proto::io::app
+        proto::io::diagnostics
         proto::io::logging
         proto::io::motion
 )
@@ -20,6 +22,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_compile_options(proto_io PRIVATE $<$<CONFIG:Debug>:-Og>)
     # The application instantiates catalog routes and logger routing. Keep those
     # templates compact; motor code retains -Og for normal debug stepping.
-    set_property(SOURCE app/Application.cpp logging/Sink.cpp APPEND PROPERTY
+    set_property(SOURCE app/Application.cpp logging/Sink.cpp diagnostics/Server.cpp APPEND PROPERTY
+        COMPILE_OPTIONS $<$<CONFIG:Debug>:-Os>)
+    set_property(SOURCE main.cpp TARGET_DIRECTORY ${PROJECT_NAME} APPEND PROPERTY
         COMPILE_OPTIONS $<$<CONFIG:Debug>:-Os>)
 endif()

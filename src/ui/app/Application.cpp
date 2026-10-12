@@ -97,9 +97,9 @@ namespace ui
     void Application::cliThread()
     {
         try {
-            auto& parser{ cli::registry() };
-            cli::filesystem::setup();
-            cli::utilities::setup();
+            cli::Parser parser;
+            cli::filesystem::setup(parser);
+            cli::utilities::setup(parser, m_bus, m_stopSource.get_token());
             cli::motor::setup(parser);
             cli::run(parser, m_stopSource.get_token());
         } catch (const std::exception& error) {

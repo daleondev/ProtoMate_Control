@@ -29,5 +29,6 @@ namespace ui::cli::filesystem
     [[nodiscard]] auto expand_wildcards(std::string_view pattern, std::span<const std::uint8_t> wildcard_mask)
       -> WildcardResult;
 
+    void setup(Parser& parser);
     auto setup() -> void;
 }

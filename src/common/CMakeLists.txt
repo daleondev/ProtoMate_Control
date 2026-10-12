@@ -2,6 +2,7 @@
 add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 
 add_subdirectory(app)
+add_subdirectory(diagnostics)
 add_subdirectory(icc)
 add_subdirectory(motion)
 add_subdirectory(util)
@@ -21,6 +22,7 @@ target_link_libraries(proto_common
         pneumo::coroutines
     PRIVATE
         proto::common::app
+        proto::common::diagnostics
         proto::common::icc
         proto::common::motion
         proto::common::util

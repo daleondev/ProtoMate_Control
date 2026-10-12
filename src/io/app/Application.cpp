@@ -23,6 +23,7 @@ namespace io
     Application::Application(icc::ITransport& transport)
       : m_bridge(m_bus, m_iccContext, transport)
       , m_logSink{ std::make_shared<logging::Sink>(m_bus) }
+      , m_diagnostics{ m_bus }
     {
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::IO);
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::IO);
@@ -73,6 +74,7 @@ namespace io
             std::scoped_lock lock(m_mutex);
             m_stopping = true;
         }
+        m_stopSource.request_stop();
         m_stopRequested.notify_all();
     }
 
@@ -88,6 +90,8 @@ namespace io
     }
 
     void Application::iccThread() { m_iccContext.run(); }
+
+    void Application::diagnosticThread() { m_diagnostics.run(m_stopSource.get_token()); }
 
     void Application::applicationThread()
     {

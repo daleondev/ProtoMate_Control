@@ -36,7 +36,7 @@ namespace ui
       private:
         friend class runtime::ThreadGroup;
         // Priorities are local to this application's scheduler.
-        static constexpr runtime::thread::Definition icc_THREAD{ .priority = 4, .stack_size = 32UZ * 1024UZ };
+        static constexpr runtime::thread::Definition ICC_THREAD{ .priority = 4, .stack_size = 32UZ * 1024UZ };
         static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14,
                                                                          .stack_size = 16UZ * 1024UZ };
         static constexpr runtime::thread::Definition LOG_THREAD{ .priority = 20, .stack_size = 8UZ * 1024UZ };
@@ -46,7 +46,7 @@ namespace ui
         static constexpr runtime::thread::Definition CLI_THREAD{ .priority = 5, .stack_size = 16UZ * 1024UZ };
 #endif
 
-        [[= icc_THREAD]] void iccThread();
+        [[= ICC_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();
         [[= CLI_THREAD]] void cliThread();
         [[= LOG_THREAD]] void logThread();

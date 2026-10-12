@@ -76,7 +76,7 @@ motors before draining ICC. Motor settings live in `io/app/Application.cpp`:
 
 `src/ui/cli/` contains the annotation-based parser, filesystem and utility
 commands, Linux terminal frontend, and an empty `motor` module. Registration
-uses `ui::cli::register_commands` and `ui::cli::registry()`; command callbacks
+uses `ui::cli::register_commands` with a parser owned by the CLI thread; command callbacks
 have no dependency on the IO controller. The motor module currently registers
 no commands; connecting it through ICC is the next stage.
 
@@ -84,8 +84,11 @@ M7 exposes the CLI through ST-Link VCP at **115200 baud, 8N1**. Use `help` or
 `help <command>`. Available commands are `pwd`, `cd`, `ls`, `touch`, `mkdir`,
 `rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack` and `heap`.
 Quoting, wildcard expansion, pipes and `>`/`>>` redirection are supported.
-For example, `echo "hello world" | grep world` and `time "heap"`.
-`stack`, `heap` and `time` describe the local UI runtime. Filesystem commands
+For example, `echo "hello world" | grep world` and `time "heap io"`.
+`heap ui` / `stack ui` inspect UI locally; `heap io` / `stack io` request IO's
+memory diagnostics through the `io/memory` ICC service. The controller argument
+is required. `time` measures execution on UI, including any remote round-trip wait.
+Filesystem commands
 use the host filesystem on Linux and FileX on M7; no embedded volume is mounted
 yet, so file operations can report unavailable storage.
 
@@ -106,8 +109,21 @@ The shared message catalogs live in `src/common/icc/catalog/`:
 - [actions.hpp](src/common/icc/catalog/actions.hpp): `Actions`, with `ActionProvider` annotations.
 
 Both applications register all three catalogs in their constructors using their
-own IO/UI role. `Topics::io_logs` carries IO log text to UI. Services and actions
-are empty until their application functionality is implemented.
+own IO/UI role. `Topics::io_logs` carries IO log text to UI. `Services::io_memory`
+provides memory diagnostics; actions remain empty until motion integration.
+
+Diagnostic snapshots and collection live in `src/common/diagnostics/`. IO's
+`io::diagnostics::Server` collects them on a dedicated worker; the CLI formats
+both local and remote results using the same tables. Remote requests have a
+two-second timeout, participate in UI shutdown cancellation and never fall back
+to UI measurements on failure. At most two requests are outstanding at the IO
+provider. Each response fits one ICC frame and includes up to 32 thread records
+with names limited to 31 characters; omitted threads and shortened names are
+identified in the output. Stack usage is sampled/saved usage and a recorded
+high-water mark, not a continuous measurement. The collection copies thread
+records under the local ThreadX interrupt lock, without allocation or formatting.
+On Linux both controllers share the process allocator and ThreadX kernel; the
+output explicitly labels that scope even when the request travels through ICC.
 
 IO's Pneumo sink publishes already formatted records on `io/logs`; UI adds an
 `[IO]` prefix and writes them directly to the console without logging them again.
@@ -141,6 +157,7 @@ a thread-context operation, not an ISR-safe or allocation-free API.
 | `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
 | M4 motion diagnostics | 18 | 8 KiB |
+| `io.diagnosticThread` (heap/stack service) | 20 | 16 KiB |
 | `ui.logThread` | 20 | 8 KiB |
 | Runtime cleanup/reaper | 31 | 2 KiB |
 
@@ -200,8 +217,9 @@ All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.
 Embedded Debug builds retain debug information and use `-Og` for IO, UI and ICC.
-Both applications' composition and log sink files use `-Os`, as does the UI
-entrypoint, to fit the catalog and logger templates in each 1 MiB flash bank.
+Both applications' composition, log sink and entrypoint files use `-Os`, as does
+the IO memory diagnostic server, to fit the catalog and logger templates in each
+1 MiB flash bank.
 Motor and other UI code keep `-Og`.
 
 H755 builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.

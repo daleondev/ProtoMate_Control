@@ -3,18 +3,18 @@ add_library(proto::common::icc::bridge ALIAS proto_common_icc_bridge)
 
 target_sources(proto_common_icc_bridge
     INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/Catalog.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Bridge.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Bridge.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ConnectionHealth.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ConnectionHealth.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/TopicBridge.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/TopicBridge.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ServiceBridge.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ServiceBridge.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ActionBridge.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/ActionBridge.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Frame.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Frame.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/OutgoingWakeup.hpp
+        Catalog.hpp
+        Bridge.hpp
+        Bridge.cpp
+        ConnectionHealth.hpp
+        ConnectionHealth.cpp
+        TopicBridge.hpp
+        TopicBridge.cpp
+        ServiceBridge.hpp
+        ServiceBridge.cpp
+        ActionBridge.hpp
+        ActionBridge.cpp
+        Frame.hpp
+        Frame.cpp
+        OutgoingWakeup.hpp
 )
