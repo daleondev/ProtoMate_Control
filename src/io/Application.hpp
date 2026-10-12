@@ -3,7 +3,7 @@
 #include "common/Application.hpp"
 #include "runtime/ThreadGroup.hpp"
 
-#include "p2p/bridge/Bridge.hpp"
+#include "icc/bridge/Bridge.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -14,7 +14,7 @@ namespace io
     {
       public:
         // Construction starts no threads. The endpoint must outlive the application.
-        explicit Application(p2p::ITransport& transport);
+        explicit Application(icc::ITransport& transport);
         ~Application();
         Application(const Application&) = delete;
         Application& operator=(const Application&) = delete;
@@ -28,19 +28,20 @@ namespace io
         void requestStop();
         // Waits for shutdown; does not initiate it. Never call from our workers.
         void join();
-        [[nodiscard]] p2p::ConnectionStatus connectionStatus() const;
+        [[nodiscard]] icc::ConnectionStatus connectionStatus() const;
 
       private:
         friend class runtime::ThreadGroup;
-        static constexpr runtime::thread::Definition P2P_THREAD{ .priority = 2, .stack_size = 32UZ * 1024UZ };
-        static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14, .stack_size = 16UZ * 1024UZ };
+        static constexpr runtime::thread::Definition icc_THREAD{ .priority = 2, .stack_size = 32UZ * 1024UZ };
+        static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14,
+                                                                         .stack_size = 16UZ * 1024UZ };
 
-        [[= P2P_THREAD]] void p2pThread();
+        [[= icc_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();
 
         pnm::msg::Bus m_bus;
-        pnm::coro::Context m_p2pContext;
-        p2p::Bridge m_bridge;
+        pnm::coro::Context m_iccContext;
+        icc::Bridge m_bridge;
         std::mutex m_mutex;
         std::condition_variable m_stopRequested;
         bool m_started{};

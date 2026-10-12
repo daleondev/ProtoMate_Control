@@ -1,20 +1,21 @@
 #include "Application.hpp"
-#include "p2p/topics.hpp"
-#include "p2p/services.hpp"
-#include "p2p/actions.hpp"
+#include "icc/catalog/actions.hpp"
+#include "icc/catalog/services.hpp"
+#include "icc/catalog/topics.hpp"
 
 #include <stdexcept>
 
 namespace io
 {
-    Application::Application(p2p::ITransport& transport)
-      : m_bridge(m_bus, m_p2pContext, transport)
+    Application::Application(icc::ITransport& transport)
+      : m_bridge(m_bus, m_iccContext, transport)
     {
         m_bridge.registerTopics<application::Topics>(application::TopicPublisher::IO);
         m_bridge.registerServices<application::Services>(application::ServiceProvider::IO);
         m_bridge.registerActions<application::Actions>(application::ActionProvider::IO);
-        m_bridge.setConnectionCallback([this](p2p::ConnectionStatus status) {
-            if (status.state == p2p::ConnectionState::Failed || status.reason == p2p::ConnectionReason::PeerStopped) {
+        m_bridge.setConnectionCallback([this](icc::ConnectionStatus status) {
+            if (status.state == icc::ConnectionState::Failed ||
+                status.reason == icc::ConnectionReason::PeerStopped) {
                 requestStop();
             }
         });
@@ -56,8 +57,5 @@ namespace io
 
     void Application::join() { m_threads.join(); }
 
-    p2p::ConnectionStatus Application::connectionStatus() const
-    {
-        return m_bridge.connectionStatus();
-    }
+    icc::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
 }

@@ -1,7 +1,7 @@
 #include "common/Application.hpp"
+#include "icc/transport/InProcessTransport.hpp"
 #include "io/Application.hpp"
 #include "ui/Application.hpp"
-#include "p2p/transport/InProcessTransport.hpp"
 
 #include <gtest/gtest.h>
 
@@ -41,9 +41,9 @@ namespace
 
     struct Applications
     {
-        decltype(p2p::InProcessTransport::pair()) endpoints{p2p::InProcessTransport::pair()};
-        io::Application io{*endpoints[0]};
-        ui::Application ui{*endpoints[1]};
+        decltype(icc::InProcessTransport::pair()) endpoints{ icc::InProcessTransport::pair() };
+        io::Application io{ *endpoints[0] };
+        ui::Application ui{ *endpoints[1] };
 
         void start()
         {
@@ -54,8 +54,8 @@ namespace
         bool connected()
         {
             return wait_until([this] {
-                return io.connectionStatus().state == p2p::ConnectionState::Connected &&
-                       ui.connectionStatus().state == p2p::ConnectionState::Connected;
+                return io.connectionStatus().state == icc::ConnectionState::Connected &&
+                       ui.connectionStatus().state == icc::ConnectionState::Connected;
             });
         }
     };
@@ -66,7 +66,7 @@ namespace
         apps.io.start();
         apps.io.requestStop();
         apps.io.join();
-        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Stopped);
+        EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Stopped);
         EXPECT_THROW(apps.io.start(), std::logic_error);
     }
 
@@ -78,15 +78,15 @@ namespace
         // Longer than the 500 ms link-loss deadline: heartbeat traffic must
         // continue even with no application topics, services or actions.
         std::this_thread::sleep_for(650ms);
-        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Connected);
-        EXPECT_EQ(apps.ui.connectionStatus().state, p2p::ConnectionState::Connected);
+        EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Connected);
+        EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Connected);
     }
 
     TEST(ApplicationLifecycle, ConstructionAndDestructionNeedNoRunningContexts)
     {
         Applications apps;
-        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Stopped);
-        EXPECT_EQ(apps.ui.connectionStatus().state, p2p::ConnectionState::Stopped);
+        EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Stopped);
+        EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Stopped);
         apps.io.join();
         apps.ui.join();
     }
@@ -100,8 +100,8 @@ namespace
         apps.ui.requestStop();
         apps.io.join();
         apps.ui.join();
-        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Stopped);
-        EXPECT_EQ(apps.ui.connectionStatus().state, p2p::ConnectionState::Stopped);
+        EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Stopped);
+        EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Stopped);
     }
 
     TEST(ApplicationLifecycle, UiStopWakesIoEvenWhenMainIsJoiningIoFirst)
@@ -112,8 +112,8 @@ namespace
         apps.ui.requestStop();
         apps.io.join();
         apps.ui.join();
-        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Stopped);
-        EXPECT_EQ(apps.io.connectionStatus().reason, p2p::ConnectionReason::PeerStopped);
+        EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Stopped);
+        EXPECT_EQ(apps.io.connectionStatus().reason, icc::ConnectionReason::PeerStopped);
     }
 
     TEST(ApplicationLifecycle, IoStopWakesUi)
@@ -124,7 +124,7 @@ namespace
         apps.io.requestStop();
         apps.ui.join();
         apps.io.join();
-        EXPECT_EQ(apps.ui.connectionStatus().reason, p2p::ConnectionReason::PeerStopped);
+        EXPECT_EQ(apps.ui.connectionStatus().reason, icc::ConnectionReason::PeerStopped);
     }
 
     TEST(ApplicationLifecycle, DisconnectStopsBothApplications)
@@ -135,8 +135,8 @@ namespace
         apps.endpoints[0]->close();
         apps.io.join();
         apps.ui.join();
-        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Failed);
-        EXPECT_EQ(apps.ui.connectionStatus().state, p2p::ConnectionState::Failed);
+        EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Failed);
+        EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Failed);
     }
 
     TEST(ApplicationLifecycle, MissingPeerDoesNotBlockStartAndEventuallyStops)
@@ -144,8 +144,8 @@ namespace
         Applications apps;
         apps.io.start();
         apps.io.join();
-        EXPECT_EQ(apps.io.connectionStatus().state, p2p::ConnectionState::Failed);
-        EXPECT_EQ(apps.io.connectionStatus().reason, p2p::ConnectionReason::HandshakeTimeout);
+        EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Failed);
+        EXPECT_EQ(apps.io.connectionStatus().reason, icc::ConnectionReason::HandshakeTimeout);
     }
 
     TEST(ApplicationLifecycle, ImmediateStopCanBeRepeated)
@@ -158,7 +158,7 @@ namespace
         apps.io.join();
         apps.ui.join();
         apps.io.join();
-        EXPECT_NE(apps.io.connectionStatus().state, p2p::ConnectionState::Connected);
+        EXPECT_NE(apps.io.connectionStatus().state, icc::ConnectionState::Connected);
     }
 
     TEST(ApplicationLifecycle, StartIsOneShotAndCannotFollowStopBeforeStart)

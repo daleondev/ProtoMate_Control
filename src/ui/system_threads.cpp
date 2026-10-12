@@ -2,10 +2,7 @@
 
 namespace ui
 {
-    void Application::p2pThread()
-    {
-        m_p2pContext.run();
-    }
+    void Application::iccThread() { m_iccContext.run(); }
 
     void Application::applicationThread()
     {
@@ -15,6 +12,6 @@ namespace ui
         }
         // Keep the context alive until bridge shutdown has drained its work.
         m_bridge.stop();
-        m_p2pContext.stop();
+        m_iccContext.stop();
     }
 }
