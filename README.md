@@ -5,22 +5,58 @@ Control software running on the robot controller of the ProtoMate SCARA Robot.
 ## Application layout
 
 The application is a scaffold for incremental reimplementation. `src/main.cpp`
-contains an empty `main()`; the existing platform startup still initializes the
-HAL and runtime. Application motion control, threads and CLI are not started.
+starts independent `io::Application` and `ui::Application` instances, connected
+through the serialized in-process p2p transport. Platform startup initializes the
+HAL and ThreadX once. Motion control, planning and CLI are not implemented in
+these new applications yet.
 
 | Directory | Intended responsibility |
 | --- | --- |
-| `src/common/` | Shared contracts and portable libraries; currently `p2p/` |
+| `src/common/` | Shared contracts, the application lifecycle concept and `p2p/` |
 | `src/io/` | Hardware ownership, motion execution and sensor processing |
 | `src/ui/` | Robot planning, CLI and later GUI |
 
-Both applications will use `common`, with their own instances and private state.
-Keep `common` independent of IO/UI implementations. Each future core executable
-will own its composition and worker threads.
+Each application owns a bus, a bridge, its own coroutine context and its worker
+threads. Neither application depends on the other. Their CMake targets are
+`application::io` and `application::ui`; `application::common` stays independent
+of both implementations.
+
+The [application concept](src/common/Application.hpp) checks that each concrete
+class provides `void start()`, `void requestStop()` and `void join()`, without
+inheritance. `start()` schedules startup and returns without waiting for the
+peer. It may only be called once. `requestStop()` is an idempotent, thread-safe
+notification. `join()` waits for the workers; it does not initiate shutdown.
+Call start/join/destruction from one lifecycle owner, outside application workers.
+Destruction requests a stop and joins automatically; the transport must outlive
+the application.
+
+Thread entry methods are declared with `runtime::thread::Definition` annotations
+in each `Application.hpp` and implemented in its `system_threads.cpp`.
+[ThreadGroup](platform/runtime/ThreadGroup.hpp) binds those methods to the owning
+instance, applies their priorities and stack sizes, and launches them only after
+all threads were created successfully. Unannotated methods are ignored.
+
+Each side currently has a dedicated p2p runner and a lifecycle worker. The latter
+waits for a stop request, drains the bridge while its runner is still alive, then
+stops the context. Connection failure or an orderly peer shutdown also requests
+local shutdown. This permits both applications to shut down even while `main()`
+is waiting for the other application's workers. There is no automatic restart.
+
+| Thread | ThreadX priority (lower is higher) | Requested stack |
+| --- | --- | --- |
+| `io.p2pThread` | 2 | 32 KiB |
+| `ui.p2pThread` | 4 | 32 KiB |
+| `io.applicationThread`, `ui.applicationThread` | 14 | 16 KiB each |
+
+On H753, both applications share one scheduler. For the H747 migration, separate
+M4/IO and M7/UI firmware entry points will each construct only their own application
+and a shared-memory transport endpoint. Core-specific startup, linker layouts and
+that transport adapter remain future work; the application classes have no
+single-core/dual-core branches. Shared peripherals will need explicit ownership.
 
 The [application archive](backups/application/README.md) preserves the existing
 `main.cpp`, `system_threads.*`, control and CLI modules, and the p2p thread glue.
-The normal build uses the empty application and the maintained p2p library;
+The normal build uses the application shells and the maintained p2p library;
 control/CLI tests are archived. The STEP bench explicitly uses the archived motor
 and motion-profile sources so its existing tests remain available.
 
@@ -76,8 +112,8 @@ control. Prefer its stable `/dev/serial/by-id/*STLINK*if02*` path.
 
 Linux simulates the HAL and uses the ThreadX Linux port. Standard Linux file
 I/O uses the host filesystem; explicit FileX tests use simulated media images.
-Runtime and HAL startup diagnostics appear on the terminal; the empty application
-then returns.
+Runtime and HAL startup diagnostics appear on the terminal. The application then
+runs the two p2p endpoints and waits without polling; there is no CLI yet.
 
 The STM32 SPI/UART polling drivers also have isolated host tests using a
 recording HAL and the system GoogleTest package:
@@ -415,11 +451,12 @@ flowchart LR
     UB <--> UI[UI bus]
 ```
 
-The example owns two independent buses and two bridges. Both bridges run on one
+The standalone topic example owns two independent buses and two bridges. Both bridges run on one
 coroutine context on a dedicated p2p thread. Each has a send and receive coroutine per lane, all on the same context.
 They suspend while waiting and yield after each frame so normal traffic cannot
 monopolize the context. Application subscriptions dispatch on
-their caller's thread. Each future core will own its own context and runner.
+their caller's thread. The application shells already use separate contexts and
+runners, matching the intended ownership of the future core applications.
 
 [Topics.hpp](src/common/p2p/examples/Topics.hpp) specifies the forwarded topics using
 `pnm::msg::Topic<T>` fields annotated with a publisher. No catalog

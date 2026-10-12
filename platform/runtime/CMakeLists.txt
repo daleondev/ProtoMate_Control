@@ -36,6 +36,11 @@ target_link_libraries(runtime
         project_compiler_settings
 )
 
+add_library(runtime_threads INTERFACE)
+add_library(runtime::threads ALIAS runtime_threads)
+target_sources(runtime_threads INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/ThreadGroup.hpp)
+target_link_libraries(runtime_threads INTERFACE runtime::runtime pneumo::meta)
+
 function(runtime_attach target_name)
     if(NOT TARGET ${target_name})
         message(FATAL_ERROR "Unknown runtime executable target: ${target_name}")

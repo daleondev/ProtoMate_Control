@@ -48,6 +48,13 @@ runtime_attach(runtime_tests)
 add_test(NAME runtime COMMAND runtime_tests --gtest_color=no)
 set_tests_properties(runtime PROPERTIES TIMEOUT 30)
 
+add_executable(runtime_thread_group_tests thread_group_test.cpp)
+target_link_libraries(runtime_thread_group_tests PRIVATE runtime::threads GTest::gtest_main)
+target_compile_definitions(runtime_thread_group_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(runtime_thread_group_tests)
+add_test(NAME runtime.thread_group COMMAND runtime_thread_group_tests)
+set_tests_properties(runtime.thread_group PROPERTIES TIMEOUT 10)
+
 add_executable(runtime_storage_failure_probe storage_failure_probe.cpp)
 target_compile_definitions(runtime_storage_failure_probe PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
 runtime_attach(runtime_storage_failure_probe)

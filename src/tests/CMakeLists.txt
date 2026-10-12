@@ -1,0 +1,6 @@
+add_executable(application_lifecycle_tests application_test.cpp)
+target_link_libraries(application_lifecycle_tests PRIVATE application::io application::ui GTest::gtest_main)
+target_compile_definitions(application_lifecycle_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(application_lifecycle_tests)
+add_test(NAME application.lifecycle COMMAND application_lifecycle_tests)
+set_tests_properties(application.lifecycle PROPERTIES TIMEOUT 30)
