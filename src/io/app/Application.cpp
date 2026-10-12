@@ -2,6 +2,7 @@
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
 #include "common/icc/catalog/topics.hpp"
+#include "io/logging/Sink.hpp"
 
 #include <stdexcept>
 
@@ -21,6 +22,7 @@ namespace io
 
     Application::Application(icc::ITransport& transport)
       : m_bridge(m_bus, m_iccContext, transport)
+      , m_logSink{ std::make_shared<logging::Sink>(m_bus) }
     {
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::IO);
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::IO);
@@ -37,6 +39,7 @@ namespace io
     {
         requestStop();
         join();
+        static_cast<void>(m_logSink->close());
     }
 
     void Application::start()
@@ -47,7 +50,8 @@ namespace io
         }
         m_started = true;
         try {
-            m_motion = std::make_unique<motion::Controller>(MOTOR_CONFIGURATION);
+            m_motion = std::make_unique<motion::Controller>(
+              MOTOR_CONFIGURATION, motion::Controller::DriverFactory{}, m_logSink);
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
             m_threads.start(*this, "io");
             m_bridge.start();
@@ -72,6 +76,13 @@ namespace io
 
     icc::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
 
+    void Application::installLogSink()
+    {
+        if (!pnm::log::set_default_sink(pnm::log::Level::Trace, pnm::log::Level::Critical, m_logSink)) {
+            throw std::runtime_error("failed to configure IO logging");
+        }
+    }
+
     void Application::iccThread() { m_iccContext.run(); }
 
     void Application::applicationThread()
@@ -83,6 +94,8 @@ namespace io
         if (m_motion) {
             m_motion->disable();
         }
+        // Queued logger entries can outlive shutdown, but must no longer publish.
+        static_cast<void>(m_logSink->close());
         // Keep the context alive until bridge shutdown has drained its work.
         m_bridge.stop();
         m_iccContext.stop();

@@ -24,7 +24,8 @@ namespace io::motion
         }
     }
 
-    Controller::Controller(const Configuration& configuration, const DriverFactory& driver_factory)
+    Controller::Controller(const Configuration& configuration, const DriverFactory& driver_factory,
+                           std::shared_ptr<pnm::log::ISink> log_sink)
       : m_enable{ hal::core::create_steppers_enable_output() }
       , m_generator{ hal::core::create_stepper_generator() }
     {
@@ -63,7 +64,7 @@ namespace io::motion
                   m_faulted.store(true);
                   m_enable->write(hal::gpio::Level::High);
                   m_driverNotification.signal();
-              });
+              }, log_sink);
         }
         m_driverWorker = runtime::thread::create_jthread(
           { .name = "motion diagnostics", .priority = 18, .stack_size = 8192U },

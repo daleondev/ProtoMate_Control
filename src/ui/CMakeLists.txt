@@ -1,4 +1,5 @@
 add_subdirectory(app)
+add_subdirectory(logging)
 add_subdirectory(cli)
 
 add_library(proto_ui STATIC)
@@ -9,6 +10,7 @@ target_link_libraries(proto_ui
         proto::common
     PRIVATE
         proto::ui::app
+        proto::ui::logging
         proto::ui::cli
 )
 

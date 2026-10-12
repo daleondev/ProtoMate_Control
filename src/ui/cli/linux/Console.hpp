@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stop_token>
+#include <string_view>
 
 namespace ui::cli
 {
@@ -14,6 +15,7 @@ namespace ui::cli
          * so their startup messages are buffered until the frontend is ready.
          */
         auto configure_logging() -> void;
+        auto write_log(std::string_view line) -> void;
 
         /**
          * Run the ncurses frontend on a terminal, or the stream frontend when

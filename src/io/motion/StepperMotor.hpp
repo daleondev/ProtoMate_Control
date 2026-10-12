@@ -15,6 +15,12 @@
 #include "hal/core/core.hpp"
 #include "hal/devices/itf/IMotorFeedback.hpp"
 
+namespace pnm::log
+{
+    class ISink;
+    enum class Level : std::uint8_t;
+}
+
 namespace io::motion
 {
     class Controller;
@@ -41,6 +47,7 @@ namespace io::motion
 
         // Driver is required, initialized by the shared controller while disabled.
         // An omitted feedback provider is selected through the core factory.
+        // An omitted log sink uses Pneumo's default for the message's level.
         StepperMotor(hal::core::MotorId id,
                      pnm::units::Angle reference_switch_position,
                      pnm::units::Angle full_step_angle,
@@ -48,7 +55,8 @@ namespace io::motion
                      const std::shared_ptr<hal::IStepGenerator>& step_generator,
                      std::shared_ptr<hal::device::IStepperDriver> driver,
                      std::shared_ptr<hal::device::IMotorFeedback> feedback = {},
-                     hal::device::IStepperDriver::FaultCallback shutdown = {});
+                     hal::device::IStepperDriver::FaultCallback shutdown = {},
+                     std::shared_ptr<pnm::log::ISink> log_sink = {});
         hal::device::IStepperDriver& driver() noexcept { return *m_driver; }
         const hal::device::IStepperDriver& driver() const noexcept { return *m_driver; }
         ~StepperMotor();
@@ -115,6 +123,7 @@ namespace io::motion
       private:
         friend class Controller;
         class CommandRunner;
+        std::shared_ptr<pnm::log::ISink> logSink(pnm::log::Level level) const;
 
         struct Command
         {
@@ -212,6 +221,7 @@ namespace io::motion
         std::shared_ptr<hal::IDigitalInput> m_referenceSwitchInput;
         std::shared_ptr<hal::device::IMotorFeedback> m_feedback;
         std::shared_ptr<hal::device::IStepperDriver> m_driver;
+        std::shared_ptr<pnm::log::ISink> m_logSink;
 
         mutable std::mutex m_mutex;
         std::mutex m_workerMutex;

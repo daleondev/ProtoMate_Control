@@ -3,6 +3,7 @@
 #include "common/app/Application.hpp"
 #include "common/icc/bridge/Bridge.hpp"
 #include "runtime/ThreadGroup.hpp"
+#include "ui/logging/Subscriber.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -36,6 +37,7 @@ namespace ui
         static constexpr runtime::thread::Definition icc_THREAD{ .priority = 4, .stack_size = 32UZ * 1024UZ };
         static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14,
                                                                          .stack_size = 16UZ * 1024UZ };
+        static constexpr runtime::thread::Definition LOG_THREAD{ .priority = 20, .stack_size = 8UZ * 1024UZ };
 #if defined(HAL_PLATFORM_LINUX)
         static constexpr runtime::thread::Definition CLI_THREAD{ .priority = 5, .stack_size = 64UZ * 1024UZ };
 #else
@@ -45,15 +47,18 @@ namespace ui
         [[= icc_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();
         [[= CLI_THREAD]] void cliThread();
+        [[= LOG_THREAD]] void logThread();
 
         pnm::msg::Bus m_bus;
         pnm::coro::Context m_iccContext;
         icc::Bridge m_bridge;
+        logging::Subscriber m_logs;
         std::mutex m_mutex;
         std::condition_variable m_stopRequested;
         bool m_started{};
         bool m_stopping{};
         std::stop_source m_cliStop;
+        std::stop_source m_logStop;
         runtime::ThreadGroup m_threads;
     };
 

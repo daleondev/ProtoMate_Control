@@ -10,6 +10,8 @@
 
 namespace io
 {
+    namespace logging { class Sink; }
+
     class Application final
     {
       public:
@@ -29,6 +31,9 @@ namespace io
         // Waits for shutdown; does not initiate it. Never call from our workers.
         void join();
         [[nodiscard]] icc::ConnectionStatus connectionStatus() const;
+        // Use in the M4 entrypoint, whose process contains only IO. Linux keeps
+        // global routing on UI and passes the IO sink to its producers explicitly.
+        void installLogSink();
 
       private:
         friend class runtime::ThreadGroup;
@@ -42,6 +47,7 @@ namespace io
         pnm::msg::Bus m_bus;
         pnm::coro::Context m_iccContext;
         icc::Bridge m_bridge;
+        std::shared_ptr<logging::Sink> m_logSink;
         std::mutex m_mutex;
         std::condition_variable m_stopRequested;
         bool m_started{};

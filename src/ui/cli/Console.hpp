@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stop_token>
+#include <string_view>
 
 namespace ui::cli
 {
@@ -13,4 +14,7 @@ namespace ui::cli
     // Plain console frontend shared by redirected Linux input and STM32 UART.
     // Input waits yield through the runtime so ICC can continue independently.
     void runStream(Parser& parser, std::stop_token stop, bool echo);
+
+    // Already formatted remote records, written only from the UI log worker.
+    void writeLog(std::string_view line);
 }

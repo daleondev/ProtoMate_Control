@@ -858,6 +858,11 @@ extern "C" void runtime_application_prepare()
 
 namespace ui::cli::terminal
 {
+    auto write_log(std::string_view line) -> void
+    {
+        linux_console::publish(linux_console::Channel::Log, line);
+    }
+
     auto configure_logging() -> void
     {
         auto sink{ std::make_shared<ConsoleSink>() };

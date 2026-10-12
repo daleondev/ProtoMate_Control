@@ -7,6 +7,7 @@
 #endif
 
 #include <chrono>
+#include <cstdio>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -14,6 +15,15 @@
 
 namespace ui::cli
 {
+    void writeLog(std::string_view line)
+    {
+#if defined(HAL_PLATFORM_LINUX)
+        terminal::write_log(line);
+#else
+        static_cast<void>(std::fwrite(line.data(), 1, line.size(), stderr));
+#endif
+    }
+
     void runStream(Parser& parser, std::stop_token stop, bool echo)
     {
         constexpr auto INPUT_INTERVAL{ std::chrono::milliseconds{ 10 } };

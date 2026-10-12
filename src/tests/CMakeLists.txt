@@ -22,3 +22,10 @@ target_compile_definitions(proto_motion_controller_tests PRIVATE RUNTIME_APPLICA
 runtime_attach(proto_motion_controller_tests)
 add_test(NAME application.motion_controller COMMAND proto_motion_controller_tests)
 set_tests_properties(application.motion_controller PROPERTIES TIMEOUT 30)
+
+add_executable(proto_logging_tests logging_test.cpp)
+target_link_libraries(proto_logging_tests PRIVATE proto::io proto::ui GTest::gtest_main)
+target_compile_definitions(proto_logging_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(proto_logging_tests)
+add_test(NAME application.logging COMMAND proto_logging_tests)
+set_tests_properties(application.logging PROPERTIES TIMEOUT 30)

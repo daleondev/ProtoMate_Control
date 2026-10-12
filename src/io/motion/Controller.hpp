@@ -29,7 +29,9 @@ namespace io::motion
 
         // Creates motors/feedback and a diagnostic worker, but neither configures
         // drivers nor starts the STEP timebase nor energizes the motors.
-        explicit Controller(const Configuration& configuration, const DriverFactory& driver_factory = {});
+        // The optional sink is shared by all motor workers.
+        explicit Controller(const Configuration& configuration, const DriverFactory& driver_factory = {},
+                            std::shared_ptr<pnm::log::ISink> log_sink = {});
         ~Controller();
         Controller(const Controller&) = delete;
         Controller& operator=(const Controller&) = delete;

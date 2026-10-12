@@ -108,13 +108,13 @@ namespace
         EXPECT_THROW(apps.io.start(), std::logic_error);
     }
 
-    TEST(ApplicationLifecycle, EmptyCatalogsKeepConnectionHealthyWhileApplicationsAreIdle)
+    TEST(ApplicationLifecycle, ConnectionStaysHealthyAfterStartupLogs)
     {
         Applications apps;
         apps.start();
         ASSERT_TRUE(apps.connected());
         // Longer than the 500 ms link-loss deadline: heartbeat traffic must
-        // continue even with no application topics, services or actions.
+        // continue after the startup log burst has finished.
         std::this_thread::sleep_for(650ms);
         EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Connected);
         EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Connected);

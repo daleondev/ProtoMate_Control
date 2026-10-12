@@ -18,9 +18,9 @@ are documented together. Both images must be flashed. The
 Both applications always own a private message bus, coroutine context and ICC
 bridge. **ICC runs over shared SRAM4 and HSEM notifications**, with transport
 workers on both cores. The bridges perform their handshake and exchange
-heartbeats; the application message catalogs are empty. Application workers
-sleep until shutdown while planning, GUI and motion message routes are developed.
-UI runs its CLI on a separate thread.
+heartbeats. IO publishes logs on a bounded background topic; UI displays them
+from a separate log worker alongside its CLI. Planning, GUI and motion message
+routes remain under development.
 No external wiring is needed. Both runtimes include filesystem support (no
 mounted media yet), RTC and hardware randomness. M7 owns the ST-Link serial
 console and user button. M4 exposes STEP/DIR/enable, reference switches,
@@ -105,8 +105,25 @@ The shared message catalogs live in `src/common/icc/catalog/`:
 - [actions.hpp](src/common/icc/catalog/actions.hpp): `Actions`, with `ActionProvider` annotations.
 
 Both applications register all three catalogs in their constructors using their
-own IO/UI role. Add message definitions to these catalogs as functionality is
-implemented; no application messages or LED demo are registered currently.
+own IO/UI role. `Topics::io_logs` carries IO log text to UI. Services and actions
+are empty until their application functionality is implemented.
+
+IO's Pneumo sink publishes already formatted records on `io/logs`; UI adds an
+`[IO]` prefix and writes them directly to the console without logging them again.
+Original timestamps and levels remain intact. Each record is limited to 384 bytes
+(longer records end with `[truncated]`), and both the outgoing bridge subscription
+and UI subscriber retain the newest 16 records. Overflow counters are available
+through bridge/subscriber statistics; the sink separately counts truncations.
+Console output runs on a notification-driven UI worker, never in ICC callbacks.
+On Linux it uses the console broker, including buffering before ncurses starts.
+
+The M4 entrypoint installs this sink as Pneumo's default for all levels. The motion
+controller also passes it explicitly to its motors, so Linux's IO logs use the same
+ICC path while UI retains its separate console routing in the shared process.
+Shutdown closes the IO sink before stopping ICC and wakes/joins UI's log worker.
+Logs are best effort and may be discarded at shutdown. These bounds apply to the
+ICC path; Pneumo's existing asynchronous logger queue is separate. Logging remains
+a thread-context operation, not an ISR-safe or allocation-free API.
 
 | Thread in each H755 image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
@@ -118,6 +135,7 @@ implemented; no application messages or LED demo are registered currently.
 | `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
 | M4 motion diagnostics | 18 | 8 KiB |
+| `ui.logThread` | 20 | 8 KiB |
 | Runtime cleanup/reaper | 31 | 2 KiB |
 
 Priorities belong to separate schedulers; M7 priorities do not preempt M4 work.
@@ -176,7 +194,9 @@ All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.
 Embedded Debug builds use `-Og` for IO, UI and ICC to fit their C++ templates in
-flash while retaining debug information.
+flash while retaining debug information. IO's application composition and log
+sink use `-Os` to fit the additional catalog/logger templates; motor code keeps
+`-Og`.
 
 H755 builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.
 Use the [combined flash command](docs/nucleo-h755ziq/README.md#flash-and-test).
@@ -647,7 +667,7 @@ transport/in-flight frames and returns `nullopt` after cleanup or for an unknown
 or incoming topic. Overflow is counted, and oversized background records are also
 dropped and counted instead of failing the control connection. Consumers should
 likewise use bounded subscriptions and dispatch UART output on their own worker.
-Logging sinks are not yet connected to this path; the topic example demonstrates it.
+The application's IO sink and UI subscriber use this path for `Topics::io_logs`.
 
 Background is best effort: shutdown cancels blocked sends without draining logs,
 and no delivery acknowledgement or replay is promised. Services and actions stay

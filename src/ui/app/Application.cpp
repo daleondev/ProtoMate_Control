@@ -15,6 +15,7 @@ namespace ui
 {
     Application::Application(icc::ITransport& transport)
       : m_bridge(m_bus, m_iccContext, transport)
+      , m_logs{ m_bus, cli::writeLog }
     {
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
@@ -58,6 +59,7 @@ namespace ui
             m_stopping = true;
         }
         m_cliStop.request_stop();
+        m_logStop.request_stop();
         m_stopRequested.notify_all();
     }
 
@@ -66,6 +68,16 @@ namespace ui
     icc::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
 
     void Application::iccThread() { m_iccContext.run(); }
+
+    void Application::logThread()
+    {
+        try {
+            m_logs.run(m_logStop.get_token());
+        } catch (const std::exception& error) {
+            std::fprintf(stderr, "Log subscriber failed: %s\n", error.what());
+            requestStop();
+        }
+    }
 
     void Application::cliThread()
     {
