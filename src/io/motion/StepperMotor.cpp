@@ -1,6 +1,6 @@
 #include "StepperMotor.hpp"
 #include "Limits.hpp"
-#include "MotionSequence.hpp"
+#include "Sequence.hpp"
 
 #include "pneumo/logging.hpp"
 #include "runtime/thread.hpp"
@@ -161,7 +161,7 @@ namespace io::motion
         return moveAbs(target, velocity, 0_rad_s2, 0_rad_s2, 0_rad_s3, BufferMode::Aborting, timeout);
     }
 
-    pnm::Result<> StepperMotor::setMotionDefaults(MotionDefaults defaults)
+    pnm::Result<> StepperMotor::setMotionDefaults(Defaults defaults)
     {
         if (!defaults.acceleration.isFinite() || defaults.acceleration <= 0_rad_s2 ||
             !defaults.deceleration.isFinite() || defaults.deceleration <= 0_rad_s2 ||
@@ -176,7 +176,7 @@ namespace io::motion
         return {};
     }
 
-    StepperMotor::MotionDefaults StepperMotor::motionDefaults() const
+    Defaults StepperMotor::motionDefaults() const
     {
         std::scoped_lock lock{ m_queueMutex };
         return m_motionDefaults;
@@ -184,14 +184,14 @@ namespace io::motion
 
     std::future<StepperMotor::Result> StepperMotor::submitMove(pnm::units::Angle position,
                                                                pnm::units::AngularVelocity velocity,
-                                                               MotionDefaults dynamics,
+                                                               Defaults dynamics,
                                                                BufferMode mode,
                                                                pnm::units::Time timeout,
                                                                bool relative)
     {
         const auto epoch = m_abortEpoch.load();
         const auto rejected = [this] {
-            control::Completion<Result> promise;
+            util::Completion<Result> promise;
             m_lastCompletion = promise;
             promise.setValue(Result::Rejected);
             return promise.getFuture();
@@ -312,12 +312,12 @@ namespace io::motion
             }
             return static_cast<Count>(pulses);
         }
-        static motion::Profile::Limits limits(const Command& request)
+        static ::motion::Profile::Limits limits(const Command& request)
         {
-            return motion::Profile::Limits{ .velocity = request.velocity.get(),
-                                            .acceleration = request.dynamics.acceleration.get(),
-                                            .deceleration = request.dynamics.deceleration.get(),
-                                            .jerk = request.dynamics.jerk.get() };
+            return ::motion::Profile::Limits{ .velocity = request.velocity.get(),
+                                              .acceleration = request.dynamics.acceleration.get(),
+                                              .deceleration = request.dynamics.deceleration.get(),
+                                              .jerk = request.dynamics.jerk.get() };
         }
         static Clock::time_point deadlineFor(const Command& request)
         {
@@ -356,17 +356,17 @@ namespace io::motion
         std::shared_ptr<motion::Sequence> makeBlend(const Command& next,
                                                     Count next_count,
                                                     Count begin,
-                                                    motion::Profile::State state,
+                                                    ::motion::Profile::State state,
                                                     double speed) const
         {
             auto constraints{ limits(*m_command) };
             constraints.velocity = std::max(constraints.velocity, speed);
-            const auto first{ motion::Profile::create(static_cast<double>(m_activeEnd - begin) * m_step,
-                                                      constraints,
-                                                      state.velocity,
-                                                      state.acceleration,
-                                                      speed) };
-            const auto second{ motion::Profile::create(
+            const auto first{ ::motion::Profile::create(static_cast<double>(m_activeEnd - begin) * m_step,
+                                                        constraints,
+                                                        state.velocity,
+                                                        state.acceleration,
+                                                        speed) };
+            const auto second{ ::motion::Profile::create(
               static_cast<double>(next_count) * m_step, limits(next), speed) };
             if (!first || !second) {
                 return {};
@@ -410,7 +410,9 @@ namespace io::motion
             }
             return replacement;
         }
-        bool blend(Count begin, motion::Profile::State state, std::optional<hal::step::ScheduleCursor> cursor)
+        bool blend(Count begin,
+                   ::motion::Profile::State state,
+                   std::optional<hal::step::ScheduleCursor> cursor)
         {
             std::shared_ptr<Command> next;
             {
@@ -517,12 +519,12 @@ namespace io::motion
                     const auto state{ m_sequence->atPulse(begin) };
                     m_command->velocity = m_update->velocity;
                     const auto end_speed{ m_following ? m_sequence->first().profile.endVelocity() : 0.0 };
-                    const auto profile{ motion::Profile::create(static_cast<double>(m_activeEnd - begin) *
-                                                                  m_step,
-                                                                limits(*m_command),
-                                                                state.velocity,
-                                                                state.acceleration,
-                                                                end_speed) };
+                    const auto profile{ ::motion::Profile::create(static_cast<double>(m_activeEnd - begin) *
+                                                                    m_step,
+                                                                  limits(*m_command),
+                                                                  state.velocity,
+                                                                  state.acceleration,
+                                                                  end_speed) };
                     if (!profile) {
                         break;
                     }
@@ -618,7 +620,7 @@ namespace io::motion
                 complete(Result::Rejected);
                 return false;
             }
-            const auto origin{ m_motor->position() };
+            const auto origin{ m_motor->setpointPosition() };
             const auto distance{ m_command->relative ? m_command->position : m_command->position - origin };
             const auto count{ quantize(distance) };
             if (!count) {
@@ -633,7 +635,8 @@ namespace io::motion
             m_sign = distance.get() >= 0.0 ? 1.0 : -1.0;
             m_activeEnd = *count;
             m_activeTarget = origin + m_motor->m_stepAngle * (m_sign * static_cast<double>(*count));
-            auto initial{ motion::Profile::create(static_cast<double>(*count) * m_step, limits(*m_command)) };
+            auto initial{ ::motion::Profile::create(static_cast<double>(*count) * m_step,
+                                                    limits(*m_command)) };
             if (!initial) {
                 complete(Result::Rejected);
                 return false;
@@ -944,7 +947,7 @@ namespace io::motion
             static_cast<void>(m_worker.request_stop());
             m_worker.join();
         }
-        control::Completion<Result> completion;
+        util::Completion<Result> completion;
         m_lastCompletion = completion;
         auto future{ completion.getFuture() };
         {
@@ -1246,8 +1249,9 @@ namespace io::motion
             result = Result::Faulted;
         }
 
-        pnm::log::debug(
-          "Motor motion ended: {}, position={} deg", result, position().get<pnm::units::AngleUnits::deg>());
+        pnm::log::debug("Motor motion ended: {}, position={} deg",
+                        result,
+                        setpointPosition().get<pnm::units::AngleUnits::deg>());
         return result;
     }
 
