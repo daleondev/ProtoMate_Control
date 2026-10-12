@@ -2,7 +2,13 @@
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
 #include "common/icc/catalog/topics.hpp"
+#include "ui/cli/Console.hpp"
+#include "ui/cli/Parser.hpp"
+#include "ui/cli/filesystem.hpp"
+#include "ui/cli/utilities.hpp"
+#include "ui/cli/motor.hpp"
 
+#include <cstdio>
 #include <stdexcept>
 
 namespace ui
@@ -51,6 +57,7 @@ namespace ui
             std::scoped_lock lock(m_mutex);
             m_stopping = true;
         }
+        m_cliStop.request_stop();
         m_stopRequested.notify_all();
     }
 
@@ -59,6 +66,21 @@ namespace ui
     icc::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
 
     void Application::iccThread() { m_iccContext.run(); }
+
+    void Application::cliThread()
+    {
+        try {
+            auto& parser{ cli::registry() };
+            cli::filesystem::setup();
+            cli::utilities::setup();
+            cli::motor::setup(parser);
+            cli::run(parser, m_cliStop.get_token());
+        } catch (const std::exception& error) {
+            std::fprintf(stderr, "CLI failed: %s\n", error.what());
+        }
+        // Closing the console also shuts down the UI and its peer cleanly.
+        requestStop();
+    }
 
     void Application::applicationThread()
     {

@@ -1,0 +1,11 @@
+add_library(proto_ui_cli_linux INTERFACE)
+add_library(proto::ui::cli::linux ALIAS proto_ui_cli_linux)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CURSES_NEED_WIDE TRUE)
+    find_package(Curses REQUIRED)
+    target_sources(proto_ui_cli_linux INTERFACE Console.hpp Console.cpp)
+    target_compile_definitions(proto_ui_cli_linux INTERFACE _XOPEN_SOURCE_EXTENDED=1)
+    target_include_directories(proto_ui_cli_linux INTERFACE ${CURSES_INCLUDE_DIRS})
+    target_link_libraries(proto_ui_cli_linux INTERFACE ${CURSES_LIBRARIES})
+endif()

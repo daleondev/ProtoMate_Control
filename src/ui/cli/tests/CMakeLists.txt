@@ -1,0 +1,6 @@
+add_executable(proto_cli_tests parser_test.cpp filesystem_test.cpp utilities_test.cpp console_test.cpp)
+target_link_libraries(proto_cli_tests PRIVATE proto::ui GTest::gtest_main)
+target_compile_definitions(proto_cli_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(proto_cli_tests)
+add_test(NAME application.cli COMMAND proto_cli_tests --gtest_color=no)
+set_tests_properties(application.cli PROPERTIES TIMEOUT 30)

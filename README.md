@@ -19,7 +19,8 @@ Both applications always own a private message bus, coroutine context and ICC
 bridge. **ICC runs over shared SRAM4 and HSEM notifications**, with transport
 workers on both cores. The bridges perform their handshake and exchange
 heartbeats; the application message catalogs are empty. Application workers
-sleep until shutdown while planning, CLI, GUI and motion message routes are developed.
+sleep until shutdown while planning, GUI and motion message routes are developed.
+UI runs its CLI on a separate thread.
 No external wiring is needed. Both runtimes include filesystem support (no
 mounted media yet), RTC and hardware randomness. M7 owns the ST-Link serial
 console and user button. M4 exposes STEP/DIR/enable, reference switches,
@@ -35,7 +36,7 @@ including the new **PE2 DM542T ALM assignment**. The bare-metal LED samples reta
 | --- | --- |
 | `src/common/` | Shared contracts, motion profiles, application lifecycle concept, ICC bridge and transports |
 | `src/io/` | M4 entry point, IO application, motor ownership and motion execution |
-| `src/ui/` | M7 entry point and UI application; future planning, CLI and GUI |
+| `src/ui/` | M7 entry point, UI application and CLI; future planning and GUI |
 
 Each firmware compiles only its own application target, `proto::io` or
 `proto::ui`. Both use `proto::common`. These are compiled static libraries;
@@ -72,6 +73,31 @@ Recovery requires explicit initialization and enabling. IO shutdown disables the
 motors before draining ICC. Motor settings live in `io/app/Application.cpp`:
 1.8° full steps, 16 microsteps and placeholder 135° shaft reference coordinates.
 
+`src/ui/cli/` contains the annotation-based parser, filesystem and utility
+commands, Linux terminal frontend, and an empty `motor` module. Registration
+uses `ui::cli::register_commands` and `ui::cli::registry()`; command callbacks
+have no dependency on the IO controller. The motor module currently registers
+no commands; connecting it through ICC is the next stage.
+
+M7 exposes the CLI through ST-Link VCP at **115200 baud, 8N1**. Use `help` or
+`help <command>`. Available commands are `pwd`, `cd`, `ls`, `touch`, `mkdir`,
+`rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack` and `heap`.
+Quoting, wildcard expansion, pipes and `>`/`>>` redirection are supported.
+For example, `echo "hello world" | grep world` and `time "heap"`.
+`stack`, `heap` and `time` describe the local UI runtime. Filesystem commands
+use the host filesystem on Linux and FileX on M7; no embedded volume is mounted
+yet, so file operations can report unavailable storage.
+
+Linux uses ncursesw with separate logs, line editing and command history when
+attached to a terminal. Redirected input/output, `TERM=dumb`, or
+`SIMPLCITY_CLI_PLAIN=1` select the plain frontend. Console EOF, Ctrl-C, or Ctrl-D
+on an empty interactive line shuts down the application pair. Application or
+peer shutdown also interrupts an idle CLI. Plain/serial lines are limited to
+4096 bytes; oversized lines are rejected. M7 receives bytes into a bounded IRQ
+buffer while commands execute; input errors stop the console instead of
+executing truncated input. The serial frontend echoes input, so disable local
+echo in the PC terminal.
+
 The shared message catalogs live in `src/common/icc/catalog/`:
 
 - [topics.hpp](src/common/icc/catalog/topics.hpp): `Topics`, with `TopicPublisher` annotations.
@@ -88,6 +114,7 @@ implemented; no application messages or LED demo are registered currently.
 | `io.iccThread` | 2 | 32 KiB |
 | `intercore.notify` | 3 | 8 KiB |
 | `ui.iccThread` | 4 | 32 KiB |
+| `ui.cliThread` | 5 | 16 KiB (64 KiB on Linux) |
 | `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
 | M4 motion diagnostics | 18 | 8 KiB |
@@ -112,6 +139,7 @@ git submodule update --init --recursive
 
 Install CMake 3.22 or newer (3.24 or newer for `--fresh`), Ninja, GCC 16,
 Arm GCC 16.1 or 16.2 with Newlib, OpenOCD, Arm GDB, Python 3, Git, and `patch`.
+Linux CLI builds also require ncursesw headers and libraries (`ncurses` on Arch).
 The project uses C++26 and the verified GCC 16 libstdc++ integration snapshot.
 Unknown compiler majors and unverified Arm libstdc++ snapshots are rejected.
 Linux tests download the pinned GoogleTest 1.17.0 source archive.
@@ -147,7 +175,7 @@ fetching or building test dependencies.
 All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.
-Embedded Debug builds use `-Og` for IO and ICC to fit their C++ templates in
+Embedded Debug builds use `-Og` for IO, UI and ICC to fit their C++ templates in
 flash while retaining debug information.
 
 H755 builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.
@@ -161,7 +189,8 @@ runtime stack or heap usage.
 
 Linux simulates the HAL and uses the ThreadX Linux port. Standard Linux file
 I/O uses the host filesystem; explicit FileX tests use simulated media images.
-The application runs the two p2p endpoints and waits without polling; there is no CLI yet.
+The application runs both ICC endpoints and the UI CLI. Redirecting a command
+script into `build/debug-linux/Application` executes it and exits at EOF.
 
 ## Linux sanitizer checks
 

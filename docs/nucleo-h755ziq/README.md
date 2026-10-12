@@ -247,7 +247,9 @@ USB reconnection restarts both bridge endpoints. The M7 console reports that
 storage is unavailable; that is expected without media.
 
 Both images have the timer, main, reaper, ICC context, transport notification and
-application threads. M4 also has the motion diagnostic worker; individual motion
+application threads. M7 also runs `ui.cliThread` on the ST-Link VCP console
+(115200 baud, 8N1, terminal local echo off). `help` lists the filesystem and
+utility commands; the motor module is empty. M4 has the motion diagnostic worker; individual motion
 workers are created only when commands are submitted. `hal_last_panic`, CFSR and HFSR
 should stay clear. Both scheduler counters and the urgent shared queue counters
 should advance as heartbeats are exchanged; normal queues stay idle until
@@ -258,7 +260,9 @@ after such debugging.
 Host tests cover serialized delivery, queue saturation, independent urgent
 capacity, counter rollover, cancellation, notification races and shutdown.
 Application tests cover handshake with empty catalogs, continued heartbeat
-traffic while idle, stop during handshake, peer loss and teardown. Lint and
+traffic while idle, stop during handshake, peer loss, CLI EOF and teardown with
+an idle console. CLI tests cover command annotations, parsing, filesystem
+operations, utilities, line editing and cancellation. Lint and
 sanitizers are not run automatically for these intermediate migration steps.
 
 Both cores’ Debug and Release builds and the Linux Debug build pass without

@@ -7,6 +7,7 @@ add_subdirectory(core)
 
 add_library(hal STATIC)
 add_library(platform::hal ALIAS hal)
+target_sources(hal PRIVATE console.hpp)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     set(HAL_PLATFORM_DIRECTORY stm32)

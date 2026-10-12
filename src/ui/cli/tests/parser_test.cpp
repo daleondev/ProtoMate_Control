@@ -1,0 +1,833 @@
+// Numeric values describe explicit test inputs, timing bounds and expected results.
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+#include "ui/cli/Parser.hpp"
+
+#include <gtest/gtest.h>
+
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <unistd.h>
+
+namespace annotated_cli_fixture::commands
+{
+    using namespace pnm::meta::string::literals;
+
+    [[
+        = "Echo annotated arguments."_fs,
+        = ui::cli::Arg{ .name = "text"_fs, .description = "Text to echo"_fs },
+        = ui::cli::Arg{ .name = "suffix"_fs, .description = "Optional suffix"_fs, .optional = true },
+        = ui::cli::Flag{ .name = "upper"_fs, .short_name = 'u', .description = "Mark as upper"_fs },
+        = ui::cli::Flag{ .name = "prefix"_fs,
+                     .short_name = 'p',
+                     .description = "Text prefix"_fs,
+                     .value_name = "text"_fs }
+    ]] static auto echo(const ui::cli::Arguments& args, std::ostream& out) -> ui::cli::CallbackResult
+    {
+        out << args.flagValue("prefix").value_or("") << args.require("text")
+            << args.get("suffix").value_or("") << (args.hasFlag("upper") ? "!" : "");
+        return 0;
+    }
+
+    [[ = "Forward pipeline input."_fs,
+       = ui::cli::Name{ "meta stream"_fs } ]] static auto stream(const ui::cli::Arguments& /*unused*/,
+                                                             ui::cli::CommandIO& io) -> ui::cli::CallbackResult
+    {
+        io.output << io.input.rdbuf();
+        return 0;
+    }
+}
+
+namespace bound_cli_fixture
+{
+    struct Context
+    {
+        int calls{};
+    };
+
+    namespace commands
+    {
+        using namespace pnm::meta::string::literals;
+
+        [[ = "Count calls on the injected context."_fs,
+           = ui::cli::Name{ "meta count"_fs } ]] static auto count(Context& context,
+                                                               const ui::cli::Arguments& /*unused*/,
+                                                               ui::cli::CommandIO& io) -> ui::cli::CallbackResult
+        {
+            io.output << ++context.calls;
+            return 0;
+        }
+    }
+
+    void setup(ui::cli::Parser& parser, const std::shared_ptr<Context>& context)
+    {
+        ui::cli::register_commands<^^commands>(parser, [context](auto command) {
+            return [context, command](const ui::cli::Arguments& args, ui::cli::CommandIO& io) {
+                return command(*context, args, io);
+            };
+        });
+    }
+}
+
+TEST(CliParser, RegistersAnnotationsWithInferredAndMultiwordNames)
+{
+    ui::cli::Parser parser;
+    ui::cli::register_commands<^^annotated_cli_fixture::commands>(parser);
+    EXPECT_TRUE(parser.contains("echo"));
+    EXPECT_TRUE(parser.contains("meta stream"));
+    EXPECT_FALSE(parser.contains("stream"));
+    EXPECT_FALSE(ui::cli::registry().contains("meta stream"));
+
+    std::ostringstream output;
+    ASSERT_TRUE(parser.execute("echo hello world -u --prefix=hi: | meta stream", output));
+    EXPECT_EQ(output.str(), "hi:helloworld!");
+    output.str({});
+    ASSERT_TRUE(parser.execute("echo only", output));
+    EXPECT_EQ(output.str(), "only");
+    EXPECT_EQ(parser.execute("echo", output).error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(parser.execute("echo ok --unknown", output).error, ui::cli::ExecutionError::InvalidArguments);
+    const auto help{ parser.help("echo") };
+    EXPECT_NE(help.find("Echo annotated arguments."), std::string::npos);
+    EXPECT_NE(help.find("Optional suffix"), std::string::npos);
+    EXPECT_NE(help.find("--prefix"), std::string::npos);
+    EXPECT_THROW(ui::cli::register_commands<^^annotated_cli_fixture::commands>(parser), std::runtime_error);
+}
+
+TEST(CliParser, AnnotationBindingsRetainContextAndKeepParsersIndependent)
+{
+    auto first{ std::make_shared<bound_cli_fixture::Context>() };
+    auto second{ std::make_shared<bound_cli_fixture::Context>() };
+    std::weak_ptr<bound_cli_fixture::Context> lifetime{ first };
+    {
+        ui::cli::Parser first_parser;
+        ui::cli::Parser second_parser;
+        bound_cli_fixture::setup(first_parser, first);
+        bound_cli_fixture::setup(second_parser, second);
+        first.reset();
+        EXPECT_FALSE(lifetime.expired());
+        std::ostringstream output;
+        ASSERT_TRUE(first_parser.execute("meta count", output));
+        ASSERT_TRUE(first_parser.execute("meta count", output));
+        ASSERT_TRUE(second_parser.execute("meta count", output));
+        EXPECT_EQ(output.str(), "121");
+        EXPECT_EQ(lifetime.lock()->calls, 2);
+        EXPECT_EQ(second->calls, 1);
+        EXPECT_FALSE(ui::cli::registry().contains("meta count"));
+    }
+    EXPECT_TRUE(lifetime.expired());
+}
+
+namespace
+{
+    auto register_copy_command(ui::cli::Parser& parser, std::string& first, std::string& second, int& calls)
+      -> void
+    {
+        auto result{ parser.registerCommand({
+          .name = "copy",
+          .description = "Copy a source to an optional destination",
+          .arguments =
+            {
+              { .name = "source", .description = "Source path" },
+              { .name = "destination", .description = "Destination path", .optional = true },
+            },
+          .flags = {},
+          .callback =
+            [&](const ui::cli::Arguments& arguments, std::ostream&) {
+                ++calls;
+                first = arguments.require("source");
+                second = arguments.get("destination").value_or("");
+                return 7;
+            },
+        }) };
+        ASSERT_TRUE(result) << result.error();
+    }
+}
+
+TEST(CliParser, InvokesARegisteredCommandWithRequiredAndOptionalArguments)
+{
+    ui::cli::Parser parser;
+    std::string source;
+    std::string destination;
+    int calls{};
+    register_copy_command(parser, source, destination, calls);
+
+    std::ostringstream output;
+    const auto first{ parser.execute("copy alpha", output) };
+    EXPECT_TRUE(first);
+    EXPECT_EQ(first.exit_code, 7);
+    EXPECT_EQ(calls, 1);
+    EXPECT_EQ(source, "alpha");
+    EXPECT_TRUE(destination.empty());
+
+    const auto second{ parser.execute("copy alpha beta", output) };
+    EXPECT_TRUE(second);
+    EXPECT_EQ(calls, 2);
+    EXPECT_EQ(source, "alpha");
+    EXPECT_EQ(destination, "beta");
+}
+
+TEST(CliParser, MapsRequiredArgumentsAfterAVariadicArgument)
+{
+    ui::cli::Parser parser;
+    std::string first_source;
+    std::string destination;
+    std::size_t value_count{};
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "multi",
+      .description = {},
+      .arguments =
+        {
+          { .name = "source", .description = {}, .variadic = true },
+          { .name = "destination", .description = {} },
+        },
+      .flags = {},
+      .callback =
+        [&](const ui::cli::Arguments& arguments, std::ostream&) {
+            first_source = arguments.require("source");
+            destination = arguments.require("destination");
+            value_count = arguments.size();
+            return 0;
+        },
+    }));
+
+    std::ostringstream output;
+    const auto result{ parser.execute("multi first second destination", output) };
+    EXPECT_TRUE(result) << result.message;
+    EXPECT_EQ(first_source, "first");
+    EXPECT_EQ(destination, "destination");
+    EXPECT_EQ(value_count, 3U);
+    EXPECT_EQ(parser.execute("multi only-source", output).error, ui::cli::ExecutionError::InvalidArguments);
+}
+
+TEST(CliParser, TokenizesQuotesEscapesAndEmptyArguments)
+{
+    ui::cli::Parser parser;
+    std::string source;
+    std::string destination;
+    int calls{};
+    register_copy_command(parser, source, destination, calls);
+    std::ostringstream output;
+
+    EXPECT_TRUE(parser.execute(R"(copy "source file" destination\ path)", output));
+    EXPECT_EQ(source, "source file");
+    EXPECT_EQ(destination, "destination path");
+
+    EXPECT_TRUE(parser.execute(R"(copy '' "")", output));
+    EXPECT_TRUE(source.empty());
+    EXPECT_TRUE(destination.empty());
+}
+
+TEST(CliParser, ParsesBundledLongAndValueFlags)
+{
+    ui::cli::Parser parser;
+    std::size_t all_count{};
+    bool long_listing{};
+    std::string format;
+    std::string path;
+    int calls{};
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "list",
+      .description = "List a path",
+      .arguments =
+        {
+          { .name = "path", .description = "Path to list", .optional = true },
+        },
+      .flags =
+        {
+          {
+            .name = "all",
+            .short_name = 'a',
+            .description = "Include hidden entries",
+            .value_name = std::nullopt,
+          },
+          {
+            .name = "long",
+            .short_name = 'l',
+            .description = "Use the long format",
+            .value_name = std::nullopt,
+          },
+          {
+            .name = "format",
+            .short_name = 'f',
+            .description = "Select an output format",
+            .value_name = "name",
+          },
+        },
+      .callback =
+        [&](const ui::cli::Arguments& arguments, std::ostream&) {
+            ++calls;
+            all_count = arguments.flagCount("all");
+            long_listing = arguments.hasFlag("long");
+            format = arguments.flagValue("format").value_or("");
+            path = arguments.get("path").value_or("");
+            return 0;
+        },
+    }));
+
+    std::ostringstream output;
+    EXPECT_TRUE(parser.execute("list -aal -fwide /tmp", output));
+    EXPECT_EQ(calls, 1);
+    EXPECT_EQ(all_count, 2U);
+    EXPECT_TRUE(long_listing);
+    EXPECT_EQ(format, "wide");
+    EXPECT_EQ(path, "/tmp");
+
+    EXPECT_TRUE(parser.execute("list --long --format=single -- -leading-dash", output));
+    EXPECT_EQ(calls, 2);
+    EXPECT_EQ(all_count, 0U);
+    EXPECT_TRUE(long_listing);
+    EXPECT_EQ(format, "single");
+    EXPECT_EQ(path, "-leading-dash");
+
+    EXPECT_TRUE(parser.execute("list /tmp --format records", output));
+    EXPECT_EQ(format, "records");
+}
+
+TEST(CliParser, ConnectsCommandStreamsWithPipes)
+{
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "source",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments&, std::ostream& output) {
+        output << "first\nsecond value\nthird\n";
+        return 0;
+    },
+    }));
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "select",
+      .description = {},
+      .arguments = { { .name = "text", .description = {} } },
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments& arguments, ui::cli::CommandIO& io) {
+        std::string line;
+        while (std::getline(io.input, line)) {
+            if (line.find(arguments.require("text")) != std::string::npos) {
+                io.output << line << '\n';
+            }
+        }
+        return 0;
+    },
+    }));
+
+    std::ostringstream output;
+    const auto result{ parser.execute(R"(source|select "second value"|select value)", output) };
+    EXPECT_TRUE(result) << result.message;
+    EXPECT_EQ(output.str(), "second value\n");
+}
+
+TEST(CliParser, TreatsQuotedAndEscapedOperatorsAsArguments)
+{
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "join",
+      .description = {},
+      .arguments =
+        {
+          {
+            .name = "values",
+            .description = {},
+            .optional = true,
+            .variadic = true,
+          },
+        },
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments& arguments, std::ostream& output) {
+            for (std::size_t index{}; index < arguments.size(); ++index) {
+                output << (index == 0U ? "" : ",") << arguments.at(index);
+            }
+            return 0;
+        },
+    }));
+
+    std::ostringstream output;
+    const auto result{ parser.execute(R"(join "left|right" 'a>b' escaped\>value)", output) };
+    EXPECT_TRUE(result) << result.message;
+    EXPECT_EQ(output.str(), "left|right,a>b,escaped>value");
+    EXPECT_EQ(parser.usage("join"), "join [values...]");
+}
+
+TEST(CliParser, ExpandsOnlyUnquotedAsteriskWildcards)
+{
+    namespace fs = std::filesystem;
+
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "join",
+      .description = {},
+      .arguments =
+        {
+          {
+            .name = "values",
+            .description = {},
+            .optional = true,
+            .variadic = true,
+          },
+        },
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments& arguments, std::ostream& output) {
+            for (std::size_t index{}; index < arguments.size(); ++index) {
+                output << (index == 0U ? "" : "\n") << arguments.at(index);
+            }
+            return 0;
+        },
+    }));
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "write",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments&, std::ostream& output) {
+        output << "data\n";
+        return 0;
+    },
+    }));
+
+    const fs::path directory{ fs::temp_directory_path() /
+                              ("simplcity-cli-wildcards-" + std::to_string(::getpid())) };
+    std::error_code error;
+    static_cast<void>(fs::remove_all(directory, error));
+    ASSERT_FALSE(error);
+    ASSERT_TRUE(fs::create_directories(directory / "nested"));
+    for (const auto& path : {
+           directory / "alpha.txt",
+           directory / "beta.txt",
+           directory / "gamma.bin",
+           directory / ".hidden.txt",
+           directory / "nested/inside.txt",
+         }) {
+        std::ofstream file{ path };
+        ASSERT_TRUE(file.is_open());
+        file << path.filename().generic_string() << '\n';
+    }
+
+    const std::string prefix{ directory.generic_string() };
+    std::ostringstream output;
+    auto result{ parser.execute("join " + prefix + "/*.txt", output) };
+    ASSERT_TRUE(result) << result.message;
+    EXPECT_EQ(output.str(), prefix + "/alpha.txt\n" + prefix + "/beta.txt");
+
+    output.str({});
+    output.clear();
+    result = parser.execute("join " + prefix + "/n*/inside.*", output);
+    ASSERT_TRUE(result) << result.message;
+    EXPECT_EQ(output.str(), prefix + "/nested/inside.txt");
+
+    output.str({});
+    output.clear();
+    result = parser.execute("join \"" + prefix + "/*.txt\" " + prefix + R"(/\*.txt)", output);
+    ASSERT_TRUE(result) << result.message;
+    EXPECT_EQ(output.str(), prefix + "/*.txt\n" + prefix + "/*.txt");
+
+    output.str({});
+    output.clear();
+    result = parser.execute("join " + prefix + "/missing-*.txt", output);
+    ASSERT_TRUE(result) << result.message;
+    EXPECT_EQ(output.str(), prefix + "/missing-*.txt");
+
+    result = parser.execute("write > " + prefix + "/*.txt", output);
+    EXPECT_EQ(result.error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_NE(result.message.find("ambiguous output redirection"), std::string::npos);
+
+    EXPECT_EQ(fs::remove_all(directory), 7U);
+}
+
+TEST(CliParser, RedirectsAndAppendsOutput)
+{
+    namespace fs = std::filesystem;
+
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "write",
+      .description = {},
+      .arguments = { { .name = "text", .description = {} } },
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments& arguments, std::ostream& output) {
+        output << arguments.require("text") << '\n';
+        return 0;
+    },
+    }));
+
+    const fs::path path{ fs::temp_directory_path() /
+                         ("simplcity-cli-redirection-" + std::to_string(::getpid())) };
+    std::error_code error;
+    static_cast<void>(fs::remove(path, error));
+
+    std::ostringstream output;
+    auto result{ parser.execute("write first > \"" + path.generic_string() + '"', output) };
+    ASSERT_TRUE(result) << result.message;
+    result = parser.execute("write second>>\"" + path.generic_string() + '"', output);
+    ASSERT_TRUE(result) << result.message;
+    EXPECT_TRUE(output.str().empty());
+
+    std::ifstream file{ path };
+    ASSERT_TRUE(file.is_open());
+    std::ostringstream contents;
+    contents << file.rdbuf();
+    EXPECT_EQ(contents.str(), "first\nsecond\n");
+    file.close();
+    EXPECT_TRUE(fs::remove(path));
+}
+
+TEST(CliParser, RejectsMalformedPipelinesAndBoundsIntermediateOutput)
+{
+    ui::cli::Parser parser;
+    int sink_calls{};
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "flood",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments&, std::ostream& output) {
+        output << std::string(40UZ * 1024UZ, 'x');
+        return 0;
+    },
+    }));
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "sink",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback =
+        [&sink_calls](const ui::cli::Arguments&, ui::cli::CommandIO&) {
+        ++sink_calls;
+        return 0;
+    },
+    }));
+
+    std::ostringstream output;
+    EXPECT_EQ(parser.execute("| flood", output).error, ui::cli::ExecutionError::InvalidSyntax);
+    EXPECT_EQ(parser.execute("flood |", output).error, ui::cli::ExecutionError::InvalidSyntax);
+    EXPECT_EQ(parser.execute("flood || sink", output).error, ui::cli::ExecutionError::InvalidSyntax);
+    EXPECT_EQ(parser.execute("flood >", output).error, ui::cli::ExecutionError::InvalidSyntax);
+    EXPECT_EQ(parser.execute("flood > file extra", output).error, ui::cli::ExecutionError::InvalidSyntax);
+
+    const auto overflow{ parser.execute("flood | sink", output) };
+    EXPECT_EQ(overflow.error, ui::cli::ExecutionError::CallbackFailed);
+    EXPECT_NE(overflow.message.find("pipeline output exceeded"), std::string::npos);
+    EXPECT_EQ(sink_calls, 0);
+}
+
+TEST(CliParser, RejectsUnknownFlagsAndMissingOrUnexpectedFlagValues)
+{
+    ui::cli::Parser parser;
+    int calls{};
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "list",
+      .description = {},
+      .arguments = {},
+      .flags =
+        {
+          {
+            .name = "all",
+            .short_name = 'a',
+            .description = {},
+            .value_name = std::nullopt,
+          },
+          {
+            .name = "format",
+            .short_name = 'f',
+            .description = {},
+            .value_name = "name",
+          },
+        },
+      .callback =
+        [&](const ui::cli::Arguments&, std::ostream&) {
+            ++calls;
+            return 0;
+        },
+    }));
+
+    std::ostringstream output;
+    EXPECT_EQ(parser.execute("list -x", output).error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(parser.execute("list --missing", output).error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(parser.execute("list -f", output).error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(parser.execute("list --format", output).error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(parser.execute("list --all=true", output).error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(calls, 0);
+}
+
+TEST(CliParser, RejectsMalformedInputAndWrongArgumentCounts)
+{
+    ui::cli::Parser parser;
+    std::string source;
+    std::string destination;
+    int calls{};
+    register_copy_command(parser, source, destination, calls);
+    std::ostringstream output;
+
+    const auto unterminated{ parser.execute(R"(copy "source)", output) };
+    EXPECT_EQ(unterminated.error, ui::cli::ExecutionError::InvalidSyntax);
+
+    const auto trailing_escape{ parser.execute("copy source\\", output) };
+    EXPECT_EQ(trailing_escape.error, ui::cli::ExecutionError::InvalidSyntax);
+
+    const auto too_few{ parser.execute("copy", output) };
+    EXPECT_EQ(too_few.error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(too_few.message, "usage: copy <source> [destination]");
+
+    const auto too_many{ parser.execute("copy one two three", output) };
+    EXPECT_EQ(too_many.error, ui::cli::ExecutionError::InvalidArguments);
+    EXPECT_EQ(calls, 0);
+}
+
+TEST(CliParser, RejectsInvalidRegistrations)
+{
+    ui::cli::Parser parser;
+    const auto callback{ [](const ui::cli::Arguments&, std::ostream&) { return 0; } };
+
+    EXPECT_FALSE(parser.registerCommand({
+      .name = "bad  name",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback = callback,
+    }));
+    EXPECT_FALSE(parser.registerCommand({
+      .name = "help",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback = callback,
+    }));
+    EXPECT_FALSE(parser.registerCommand({
+      .name = "missing-callback",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback = {},
+    }));
+
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "valid",
+      .description = {},
+      .arguments = { { .name = "optional", .description = {}, .optional = true } },
+      .flags = {},
+      .callback = callback,
+    }));
+    EXPECT_FALSE(parser.registerCommand({
+      .name = "valid",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback = callback,
+    }));
+    EXPECT_FALSE(parser.registerCommand({
+      .name = "bad-order",
+      .description = {},
+      .arguments =
+        {
+          { .name = "optional", .description = {}, .optional = true },
+          { .name = "required", .description = {} },
+        },
+      .flags = {},
+      .callback = callback,
+    }));
+    EXPECT_FALSE(parser.registerCommand({
+      .name = "multiple-variadic",
+      .description = {},
+      .arguments =
+        {
+          { .name = "first", .description = {}, .variadic = true },
+          { .name = "second", .description = {}, .variadic = true },
+        },
+      .flags = {},
+      .callback = callback,
+    }));
+    EXPECT_FALSE(parser.registerCommand({
+      .name = "duplicates",
+      .description = {},
+      .arguments =
+        {
+          { .name = "value", .description = {} },
+          { .name = "value", .description = {} },
+        },
+      .flags = {},
+      .callback = callback,
+    }));
+    EXPECT_FALSE(parser.registerCommand({
+      .name = "duplicate-flags",
+      .description = {},
+      .arguments = {},
+      .flags =
+        {
+          {
+            .name = "all",
+            .short_name = 'a',
+            .description = {},
+            .value_name = std::nullopt,
+          },
+          {
+            .name = "almost-all",
+            .short_name = 'a',
+            .description = {},
+            .value_name = std::nullopt,
+          },
+        },
+      .callback = callback,
+    }));
+}
+
+TEST(CliParser, ProvidesBuiltInHelpAndReportsUnknownCommands)
+{
+    ui::cli::Parser parser;
+    std::string source;
+    std::string destination;
+    int calls{};
+    register_copy_command(parser, source, destination, calls);
+
+    std::ostringstream output;
+    EXPECT_TRUE(parser.execute("help", output));
+    EXPECT_NE(output.str().find("copy <source> [destination]"), std::string::npos);
+
+    output.str({});
+    output.clear();
+    EXPECT_TRUE(parser.execute("help copy", output));
+    EXPECT_NE(output.str().find("Usage: copy <source> [destination]"), std::string::npos);
+    EXPECT_NE(output.str().find("source (required)"), std::string::npos);
+
+    const auto unknown{ parser.execute("missing", output) };
+    EXPECT_EQ(unknown.error, ui::cli::ExecutionError::UnknownCommand);
+    EXPECT_EQ(unknown.message, "unknown command 'missing'");
+}
+
+TEST(CliParser, ContainsCallbackExceptionsAndKeepsTheTerminalRunning)
+{
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "fail",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback = [](const ui::cli::Arguments&, std::ostream&) -> int {
+        throw std::runtime_error{ "expected failure" };
+    },
+    }));
+
+    std::ostringstream output;
+    const auto result{ parser.execute("fail", output) };
+    EXPECT_EQ(result.error, ui::cli::ExecutionError::CallbackFailed);
+    EXPECT_EQ(result.exit_code, 1);
+    EXPECT_NE(result.message.find("expected failure"), std::string::npos);
+}
+
+TEST(CliParser, ReportsStructuredcallback_failures)
+{
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "fail",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments&, std::ostream&) {
+        return ui::cli::callback_failure("the requested operation was rejected", 23);
+    },
+    }));
+
+    std::ostringstream output;
+    const auto result{ parser.execute("fail", output) };
+    EXPECT_EQ(result.error, ui::cli::ExecutionError::CallbackFailed);
+    EXPECT_EQ(result.exit_code, 23);
+    EXPECT_EQ(result.message, "command 'fail' failed: the requested operation was rejected");
+}
+
+TEST(CliParser, RunsAnInteractivePromptUntilEndOfInput)
+{
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand({
+      .name = "ping",
+      .description = {},
+      .arguments = {},
+      .flags = {},
+      .callback =
+        [](const ui::cli::Arguments&, std::ostream& output) {
+        output << "pong\n";
+        return 0;
+    },
+    }));
+
+    std::istringstream input{ "ping\nmissing\n\n" };
+    std::ostringstream output;
+    parser.run(input, output, "$ ");
+
+    EXPECT_EQ(output.str(), "$ pong\n$ error: unknown command 'missing'\n$ $ ");
+}
+
+TEST(CliParser, ResolvesLongestCommandPathsWithIndependentHelpAndFlags)
+{
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand(
+      { "robot", "Robot commands", {}, {}, [](const ui::cli::Arguments&, std::ostream& out) {
+        out << "group\n";
+        return 0;
+    } }));
+    ASSERT_TRUE(parser.registerCommand({ "robot axis move",
+                                         "Move one robot axis",
+                                         { { "distance", "Signed distance" } },
+                                         { { "speed", 's', "Speed", "value" } },
+                                         [](const ui::cli::Arguments& args, std::ostream& out) {
+        out << args.require("distance") << ' ' << args.flagValue("speed").value_or("unset") << '\n';
+        return 0;
+    } }));
+    std::ostringstream output;
+    ASSERT_TRUE(parser.execute("robot axis move -9e-1 --speed 2", output));
+    EXPECT_EQ(output.str(), "-9e-1 2\n");
+    output.str({});
+    ASSERT_TRUE(parser.execute("help robot axis move", output));
+    EXPECT_NE(output.str().find("Usage: robot axis move"), std::string::npos);
+    EXPECT_NE(output.str().find("Signed distance"), std::string::npos);
+    EXPECT_FALSE(parser.execute("robot axis move 1 --unknown", output));
+    EXPECT_FALSE(parser.execute("robot unknown", output));
+    EXPECT_TRUE(parser.contains("robot axis move"));
+}
+
+TEST(CliParser, NegativeNumbersRemainArgumentsUnlessTheNumericShortFlagIsRegistered)
+{
+    ui::cli::Parser parser;
+    ASSERT_TRUE(parser.registerCommand(
+      { "number", {}, { { "value", {} } }, {}, [](const ui::cli::Arguments& args, std::ostream& out) {
+        out << args.require("value");
+        return 0;
+    } }));
+    ASSERT_TRUE(parser.registerCommand({ "numericflag",
+                                         {},
+                                         {},
+                                         { { "one", '1', {}, std::nullopt } },
+                                         [](const ui::cli::Arguments& args, std::ostream& out) {
+        out << args.hasFlag("one");
+        return 0;
+    } }));
+    for (const auto* const number : { "-90", "-.5", "-1e-3" }) {
+        std::ostringstream output;
+        ASSERT_TRUE(parser.execute(std::string("number ") + number, output));
+        EXPECT_EQ(output.str(), number);
+    }
+    std::ostringstream output;
+    ASSERT_TRUE(parser.execute("numericflag -1", output));
+    EXPECT_EQ(output.str(), "1");
+    EXPECT_FALSE(parser.execute("number -typo", output));
+}
+
+TEST(CliParser, RejectsMalformedCommandPathsAndReservedHelpPaths)
+{
+    ui::cli::Parser parser;
+    for (const auto* const name : { " motor", "motor ", "motor  move", "motor\tmove", "help motor" })
+        EXPECT_FALSE(parser.registerCommand(
+          { name, {}, {}, {}, [](const ui::cli::Arguments&, std::ostream&) { return 0; } }));
+}
+
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)

@@ -1,4 +1,5 @@
 #include "hal/hal.hpp"
+#include "hal/console.hpp"
 #include "hal/drivers/impl/stm32/Gpio.hpp"
 #include "hal/drivers/impl/stm32/InterCoreChannel.hpp"
 #include "hal/stm32/HardwareSemaphore.hpp"
@@ -6,6 +7,8 @@
 #include "hal/stm32/FaultShutdown.hpp"
 
 #include <cstdint>
+#include <array>
+#include <atomic>
 #include "usart.h"
 #if defined(CORE_CM4)
 #include "dma.h"
@@ -17,6 +20,14 @@
 
 namespace
 {
+#if defined(CORE_CM7)
+    // Receive independently of command execution and console rendering. A
+    // polling CLI alone can lose a pasted command in the small hardware FIFO.
+    std::array<char, 4096> console_input{};
+    std::atomic_uint32_t console_head{}, console_tail{};
+    std::atomic_bool console_input_error{};
+    static_assert(std::atomic_uint32_t::is_always_lock_free);
+#endif
     constexpr std::uint32_t BOOT_SEMAPHORE{0};
 
     void initialize_gpio()
@@ -85,6 +96,9 @@ namespace hal
         MX_RTC_Init();
         MX_RNG_Init();
         MX_USART3_UART_Init();
+        HAL_NVIC_SetPriority(USART3_IRQn, 8, 0);
+        HAL_NVIC_EnableIRQ(USART3_IRQn);
+        __HAL_UART_ENABLE_IT(&huart3, UART_IT_RXNE);
         // Enable all currently owned clocks before releasing M4. Subsequent
         // factories only re-enable already set bits in the shared RCC registers.
         __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -183,16 +197,50 @@ extern "C" int __io_putchar(int value)
 }
 extern "C" int __io_getchar()
 {
-#if defined(CORE_CM7)
-    std::uint8_t byte{};
     for (;;) {
-        // HAL skips its overrun recovery when Timeout == HAL_MAX_DELAY.
-        // Keep the public read blocking, but let HAL clear/recover RX errors.
-        const auto result = HAL_UART_Receive(&huart3, &byte, 1, 100);
-        if (result == HAL_OK) { return byte; }
-        if (result != HAL_TIMEOUT) { return -1; }
+        const auto input{ hal::console::try_read() };
+        if (input.state == hal::console::InputState::Character) {
+            return static_cast<unsigned char>(input.character);
+        }
+        if (input.state != hal::console::InputState::Idle) { return -1; }
     }
+}
+
+hal::console::Input hal::console::try_read() noexcept
+{
+#if defined(CORE_CM7)
+    const hal::stm32::InterruptGuard guard;
+    if (console_input_error.exchange(false)) {
+        console_tail.store(console_head.load(std::memory_order_acquire), std::memory_order_release);
+        return { InputState::Error }; // Never execute a silently truncated command.
+    }
+    const auto tail{ console_tail.load(std::memory_order_relaxed) };
+    if (tail == console_head.load(std::memory_order_acquire)) { return {}; }
+    const auto character{ console_input[tail % console_input.size()] };
+    console_tail.store(tail + 1U, std::memory_order_release);
+    return { InputState::Character, character };
 #else
-    return -1;
+    return { InputState::Closed };
 #endif
 }
+
+#if defined(CORE_CM7)
+// Console RX has its own ring; no RTOS calls, allocations or command dispatch in IRQ context.
+extern "C" void USART3_IRQHandler()
+{
+    if ((USART3->ISR & (UART_FLAG_PE | UART_FLAG_FE | UART_FLAG_NE | UART_FLAG_ORE)) != 0U) {
+        __HAL_UART_CLEAR_FLAG(&huart3, UART_CLEAR_PEF | UART_CLEAR_FEF | UART_CLEAR_NEF | UART_CLEAR_OREF);
+        console_input_error.store(true);
+    }
+    while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_RXNE)) {
+        const auto byte{ static_cast<char>(USART3->RDR & 0xFFU) };
+        const auto head{ console_head.load(std::memory_order_relaxed) };
+        if (head - console_tail.load(std::memory_order_acquire) == console_input.size()) {
+            console_input_error.store(true);
+            continue;
+        }
+        console_input[head % console_input.size()] = byte;
+        console_head.store(head + 1U, std::memory_order_release);
+    }
+}
+#endif

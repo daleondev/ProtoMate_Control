@@ -8,6 +8,8 @@
 #include <chrono>
 #include <stdexcept>
 #include <thread>
+#include <array>
+#include <unistd.h>
 
 namespace
 {
@@ -39,8 +41,44 @@ namespace
         return predicate();
     }
 
+    // Keep CLI input open and idle during lifecycle tests, independently of
+    // CTest's redirected stdin. Its reader must still stop on peer/application stop.
+    class ConsoleInput
+    {
+      public:
+        ConsoleInput()
+        {
+            m_saved = ::dup(STDIN_FILENO);
+            if (m_saved < 0 || ::pipe(m_pipe.data()) != 0) {
+                throw std::runtime_error("cannot prepare test console");
+            }
+            if (::dup2(m_pipe[0], STDIN_FILENO) < 0) {
+                throw std::runtime_error("cannot attach test console");
+            }
+            ::close(m_pipe[0]);
+        }
+        ~ConsoleInput()
+        {
+            ::dup2(m_saved, STDIN_FILENO);
+            ::close(m_saved);
+            if (m_pipe[1] >= 0) { ::close(m_pipe[1]); }
+        }
+        ConsoleInput(const ConsoleInput&) = delete;
+        ConsoleInput& operator=(const ConsoleInput&) = delete;
+        void close()
+        {
+            ::close(m_pipe[1]);
+            m_pipe[1] = -1;
+        }
+
+      private:
+        std::array<int, 2> m_pipe{ -1, -1 };
+        int m_saved{};
+    };
+
     struct Applications
     {
+        ConsoleInput console;
         decltype(icc::InProcessTransport::pair()) endpoints{ icc::InProcessTransport::pair() };
         io::Application io{ *endpoints[0] };
         ui::Application ui{ *endpoints[1] };
@@ -125,6 +163,18 @@ namespace
         apps.ui.join();
         apps.io.join();
         EXPECT_EQ(apps.ui.connectionStatus().reason, icc::ConnectionReason::PeerStopped);
+    }
+
+    TEST(ApplicationLifecycle, ConsoleEofStopsUiAndItsPeer)
+    {
+        Applications apps;
+        apps.start();
+        ASSERT_TRUE(apps.connected());
+        apps.console.close();
+        apps.ui.join();
+        apps.io.join();
+        EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Stopped);
+        EXPECT_EQ(apps.io.connectionStatus().reason, icc::ConnectionReason::PeerStopped);
     }
 
     TEST(ApplicationLifecycle, DisconnectStopsBothApplications)
