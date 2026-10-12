@@ -832,8 +832,9 @@ ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ## Planned migration to STM32H747XIH6 (Arduino GIGA R1 WiFi)
 
 **Status: planned robot architecture.** The current NUCLEO-H755ZI-Q already runs
-separate M4/IO and M7/UI application shells. Shared-memory communication, robot
-execution, UI and the later GIGA board port remain separate implementation work.
+separate M4/IO and M7/UI applications with shared-memory ICC. The remaining robot
+integration, GUI and GIGA board port are future work. The external-flash layout
+below is a migration target; current H755 images execute from internal flash.
 
 ### Controller responsibilities
 
@@ -921,11 +922,10 @@ maximum planned velocity for each axis and coordinated group.
 ### Shared-memory command interface
 
 `ControllerClient` and `ControllerServer` are the intended execution boundary;
-their integration with the `p2p` bridge is pending, as described above.
-During H747 migration, replace `InProcessTransport` with shared-SRAM rings and HSEM notifications;
-reserve memory in both linker scripts, establish cache attributes and memory
-ordering, and verify reset/session coordination on both physical cores.
-Shared SRAM, HSEM and a second firmware image are not implemented yet.
+their integration with the ICC bridge is pending. H755 already uses shared-SRAM
+rings and HSEM notifications; `InProcessTransport` remains the Linux transport.
+Carry the hardware transport, linker reservations, cache attributes and memory
+ordering into the H747 port, and verify reset/session coordination on that board.
 
 Use two bounded, single-producer/single-consumer queues in shared RAM:
 
@@ -1017,6 +1017,66 @@ instances. Each firmware owns its RTOS objects; the shared transport uses a
 defined inter-core protocol. Separate CPU execution does not isolate the
 shared buses, clocks or peripherals, so assign resource ownership and validate
 motion timing under graphics and communication load.
+
+### External-flash application storage and execution
+
+**Planned GIGA layout:** keep startup and recovery in internal flash and store
+both complete application images in external flash. The GIGA provides **16 MB
+of QSPI NOR flash** and **8 MB of SDRAM** in addition to the MCU's internal memory.
+The H747 supports memory-mapped QSPI code execution from both cores, so most
+application code can execute in place (XIP) without copying the entire images
+into RAM. See the [GIGA datasheet](https://docs.arduino.cc/resources/datasheets/ABX00063-datasheet.pdf)
+and [H747 datasheet](https://www.st.com/resource/en/datasheet/stm32h747xi.pdf).
+
+| Memory | Planned contents |
+| --- | --- |
+| Internal flash | Per-core boot entry points, QSPI initialization, image validation and recovery/update support |
+| External QSPI flash | Separate M4 and M7 application images, including the load images of RAM-resident code/data; GUI assets and other reserved storage |
+| Internal RAM | Private runtime state and selected timing-critical code/data, plus the separately reserved shared ICC region |
+| External SDRAM | Primarily GUI framebuffers and larger UI data buffers; exact allocation remains to be measured |
+
+M7 owns QSPI initialization and operating-mode changes. Boot proceeds as follows:
+
+1. Start through internal-flash entry points, keeping M4 waiting in internal code
+   until the shared external memory is ready. Keep motor outputs disabled.
+2. M7 initializes QSPI, enables memory-mapped reads and validates both application
+   images and their compatibility. Invalid images stay in internal recovery code.
+3. Prepare each core's runtime memory, copy RAM-resident sections and establish
+   its vector table and applicable MPU/cache settings before enabling interrupts.
+4. Hand off to each core's separately linked application entry point. M4 must
+   not reinitialize QSPI while M7 is executing from it. ICC establishes the normal
+   session before application commands are accepted.
+
+External flash is shared: instruction-cache misses and simultaneous code/asset
+reads can delay either core. STEP edges remain timer/DMA generated, but DMA
+refill, feedback and stop paths still have CPU deadlines. Place the required
+critical routines, interrupt vectors/handlers and their transitive code/data
+dependencies in suitable internal executable RAM. Measure which paths need this
+placement; relocating only an ISR while its callees or constants remain external
+does not isolate it from QSPI delays. RAM-resident code is still stored in the
+external application image and copied at startup.
+
+Use explicit flash partitions and linker load/run addresses for both images.
+Reserve space for assets, update metadata and any retained Arduino Wi-Fi firmware
+or certificates; do not assume all 16 MB is available for application code.
+Decide how the custom boot flow coexists with or replaces the Arduino bootloader.
+Provide an external-flash programming/debug procedure and an internal recovery
+path that works even when external images are missing or corrupt.
+
+Flash updates are a coordinated maintenance operation: stop motion, disable the
+drivers and move both cores to internal code before leaving memory-mapped mode
+or erasing/programming QSPI flash. The update path, interrupts and data accesses
+must have no dependency on that flash during the operation. Validate the image
+pair before activating it, and handle interrupted updates through recovery rather
+than booting an incomplete or incompatible pair.
+
+Before adopting this layout, verify debugger-free cold boot, corrupt/missing
+image recovery, interrupted updates and simultaneous execution on both cores.
+Measure pulse counts, DMA refill headroom, feedback and stop latency under maximum
+GUI/asset, planning and ICC load, including cold-cache conditions. This requires
+new linker/startup and programming support; it is not enabled by increasing a
+CMake flash-size setting. No external-flash execution is implemented or verified
+on hardware yet.
 
 ### Migration work and validation
 
