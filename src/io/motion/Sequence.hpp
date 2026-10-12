@@ -16,13 +16,10 @@ namespace io::motion
             hal::step::PulseCount begin{}, end{};
         };
         Sequence(double step, const Part& first, const std::optional<Part>& second = {});
-        hal::step::PulseCount count() const noexcept override
-        {
-            return m_second ? m_second->end : m_first.end;
-        }
-        std::chrono::nanoseconds maximumPeriod() const noexcept override { return m_maximum; }
-        const Part& first() const noexcept { return m_first; }
-        const std::optional<Part>& second() const noexcept { return m_second; }
+        hal::step::PulseCount count() const noexcept override;
+        std::chrono::nanoseconds maximumPeriod() const noexcept override;
+        const Part& first() const noexcept;
+        const std::optional<Part>& second() const noexcept;
         ::motion::Profile::State atPulse(hal::step::PulseCount pulse) const noexcept;
         double timeAtPulse(hal::step::PulseCount pulse, double hint = 0.0) const noexcept;
         hal::util::Result<hal::step::Timing> timing(hal::step::PulseCount pulse) const noexcept override;

@@ -22,6 +22,14 @@ namespace io::motion
                                static_cast<double>(limits::MAX_BOUND.count())))) };
     }
 
+    hal::step::PulseCount Sequence::count() const noexcept { return m_second ? m_second->end : m_first.end; }
+
+    std::chrono::nanoseconds Sequence::maximumPeriod() const noexcept { return m_maximum; }
+
+    const Sequence::Part& Sequence::first() const noexcept { return m_first; }
+
+    const std::optional<Sequence::Part>& Sequence::second() const noexcept { return m_second; }
+
     ::motion::Profile::State Sequence::atPulse(hal::step::PulseCount pulse) const noexcept
     {
         const auto& part{ m_second && pulse > m_first.end ? *m_second : m_first };
