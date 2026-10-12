@@ -15,7 +15,6 @@ namespace hal
         constexpr auto PWM_INTERRUPT_PRIORITY{ 5U };
         constexpr auto TIMER_1{ std::to_underlying(timer::Peripheral::Tim1) };
         constexpr auto TIMER_4{ std::to_underlying(timer::Peripheral::Tim4) };
-        constexpr auto TIMER_8{ std::to_underlying(timer::Peripheral::Tim8) };
 
         auto timer_port(timer::Peripheral timer) noexcept -> GPIO_TypeDef*
         {

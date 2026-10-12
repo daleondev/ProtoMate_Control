@@ -83,7 +83,6 @@ namespace
     constexpr unsigned FAT_YEAR_SHIFT{ 9U }, FAT_MONTH_SHIFT{ 5U };
     constexpr unsigned FAT_HOUR_SHIFT{ 11U }, FAT_MINUTE_SHIFT{ 5U };
     constexpr std::uint32_t NANOSECONDS_PER_MICROSECOND{ 1'000U };
-    constexpr std::size_t MAXIMUM_ENTROPY_REQUEST{ 256U };
 
     struct ResolvedPath
     {
@@ -2052,6 +2051,7 @@ extern "C" void _exit(int /*unused*/)
 // NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _getentropy(void* buffer, std::size_t length)
 {
+    constexpr std::size_t maximum_entropy_request{ 256U };
     if (length == 0U) {
         return 0;
     }
@@ -2059,7 +2059,7 @@ extern "C" int _getentropy(void* buffer, std::size_t length)
         errno = EFAULT;
         return -1;
     }
-    if (length > MAXIMUM_ENTROPY_REQUEST) {
+    if (length > maximum_entropy_request) {
         errno = EIO;
         return -1;
     }

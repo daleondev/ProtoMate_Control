@@ -199,6 +199,13 @@ ordinary struct fields. `tooling.clang_tidy` tests diagnostic classification,
 source/test/vendor filtering, HAL/runtime inventory, C/C++ commands, target contexts
 and failure handling without Docker.
 
+Keep explicit default member initializers in aggregate configuration types,
+including `{}` for class-type members. The
+[`readability-redundant-member-init`](https://clang.llvm.org/extra/clang-tidy/checks/readability/redundant-member-init.html)
+check is disabled because removing those defaults conflicts with GCC's
+`-Wmissing-field-initializers` under `-Wextra`. The compiler warning remains
+enabled; lint fixes must preserve a warning-free GCC build.
+
 Cognitive-complexity checks count application control flow, excluding macro
 expansions. Compiler-generated coroutine diagnostics have narrowly named,
 commented `NOLINT` markers; the remaining check families stay enabled.

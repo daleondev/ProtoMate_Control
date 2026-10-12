@@ -1,4 +1,7 @@
 ---
+# Keep explicit default member initializers, including {} for class types.
+# Removing them from aggregate configuration types conflicts with GCC's
+# -Wmissing-field-initializers (enabled by -Wextra).
 Checks: >
   readability-*,
   bugprone-*,
@@ -8,6 +11,7 @@ Checks: >
   cppcoreguidelines-*,
   -readability-identifier-length,
   -readability-implicit-bool-conversion,
+  -readability-redundant-member-init,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
