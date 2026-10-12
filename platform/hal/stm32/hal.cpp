@@ -3,12 +3,16 @@
 #include "hal/drivers/impl/stm32/InterCoreChannel.hpp"
 #include "hal/stm32/HardwareSemaphore.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
+#include "hal/stm32/FaultShutdown.hpp"
 
 #include <cstdint>
+#include "usart.h"
+#if defined(CORE_CM4)
+#include "dma.h"
+#endif
 #if defined(CORE_CM7)
 #include "rtc.h"
 #include "rng.h"
-#include "usart.h"
 #endif
 
 namespace
@@ -21,6 +25,23 @@ namespace
         const hal::stm32::HardwareSemaphore shared(5);
         if (!shared) { hal::panic("GPIO startup lock timeout"); }
         MX_GPIO_Init();
+#if defined(CORE_CM4)
+        // MSP initialization also writes shared GPIO/RCC registers.
+        MX_DMA_Init();
+        MX_TIM2_Init();
+        MX_TIM3_Init();
+        MX_TIM5_Init();
+        MX_TIM6_Init();
+        MX_TIM7_Init();
+        MX_USART2_UART_Init();
+        // CubeMX enables these NVIC vectors with DMA initialization. The STEP
+        // backend enables them again only after installing its own owner.
+        for (const auto irq : {DMA1_Stream0_IRQn, DMA1_Stream1_IRQn,
+                               DMA1_Stream2_IRQn, DMA1_Stream3_IRQn}) {
+            HAL_NVIC_DisableIRQ(irq);
+            HAL_NVIC_ClearPendingIRQ(irq);
+        }
+#endif
     }
 
 #if defined(CORE_CM7)
@@ -52,7 +73,6 @@ namespace hal
             Error_Handler();
         }
         initialize_gpio();
-        MX_TIM5_Init();
 #else
         wait_for_m4(false);
         if (HAL_Init() != HAL_OK) {
@@ -68,7 +88,17 @@ namespace hal
         // Enable all currently owned clocks before releasing M4. Subsequent
         // factories only re-enable already set bits in the shared RCC registers.
         __HAL_RCC_GPIOB_CLK_ENABLE();
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        __HAL_RCC_GPIOD_CLK_ENABLE();
+        __HAL_RCC_GPIOE_CLK_ENABLE();
+        __HAL_RCC_TIM2_CLK_ENABLE();
+        __HAL_RCC_TIM3_CLK_ENABLE();
         __HAL_RCC_TIM5_CLK_ENABLE();
+        __HAL_RCC_TIM6_CLK_ENABLE();
+        __HAL_RCC_TIM7_CLK_ENABLE();
+        __HAL_RCC_USART2_CLK_ENABLE();
+        __HAL_RCC_DMA1_CLK_ENABLE();
+        __HAL_RCC_D2SRAM1_CLK_ENABLE();
         __HAL_RCC_HSEM_CLK_ENABLE();
         // Normal non-cacheable, shareable SRAM4. Keep private AXI RAM cached.
         MPU_Region_InitTypeDef shared{};
@@ -117,6 +147,9 @@ extern "C" {
 extern "C" [[noreturn]] __attribute__((weak)) void hal_panic_handler(const HalPanicInfo* info) noexcept
 {
     __disable_irq();
+#if defined(CORE_CM4)
+    hal::stm32::shutdown_motion_on_fault();
+#endif
     if (info) {
         hal_last_panic = *info;
     }
@@ -137,7 +170,7 @@ extern "C" void MemManage_Handler() { hal_fault_handler("MemManage"); }
 extern "C" void BusFault_Handler() { hal_fault_handler("BusFault"); }
 extern "C" void UsageFault_Handler() { hal_fault_handler("UsageFault"); }
 
-// USART3/ST-Link VCP belongs to M7. M4 must send future log messages through p2p.
+// USART3/ST-Link VCP belongs to M7. M4 must send future log messages through ICC.
 extern "C" int __io_putchar(int value)
 {
 #if defined(CORE_CM7)

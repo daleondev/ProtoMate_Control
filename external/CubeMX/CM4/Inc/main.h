@@ -57,8 +57,48 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define M1_ALM_Pin GPIO_PIN_2
+#define M1_ALM_GPIO_Port GPIOE
+#define M1_STEP_Pin GPIO_PIN_0
+#define M1_STEP_GPIO_Port GPIOA
 #define IO_LED_Pin GPIO_PIN_0
 #define IO_LED_GPIO_Port GPIOB
+#define M1_REF_Pin GPIO_PIN_7
+#define M1_REF_GPIO_Port GPIOE
+#define M2_REF_Pin GPIO_PIN_8
+#define M2_REF_GPIO_Port GPIOE
+#define M3_REF_Pin GPIO_PIN_10
+#define M3_REF_GPIO_Port GPIOE
+#define M1_DIR_Pin GPIO_PIN_12
+#define M1_DIR_GPIO_Port GPIOE
+#define M2_DIR_Pin GPIO_PIN_13
+#define M2_DIR_GPIO_Port GPIOE
+#define M3_DIR_Pin GPIO_PIN_14
+#define M3_DIR_GPIO_Port GPIOE
+#define STEPPERS_EN_N_Pin GPIO_PIN_15
+#define STEPPERS_EN_N_GPIO_Port GPIOE
+#define M2_STEP_Pin GPIO_PIN_10
+#define M2_STEP_GPIO_Port GPIOB
+#define M3_STEP_Pin GPIO_PIN_11
+#define M3_STEP_GPIO_Port GPIOB
+#define M2_INDEX_Pin GPIO_PIN_0
+#define M2_INDEX_GPIO_Port GPIOD
+#define M3_INDEX_Pin GPIO_PIN_1
+#define M3_INDEX_GPIO_Port GPIOD
+#define M3_DIAG_Pin GPIO_PIN_3
+#define M3_DIAG_GPIO_Port GPIOD
+#define M2_DIAG_Pin GPIO_PIN_4
+#define M2_DIAG_GPIO_Port GPIOD
+#define TMC_UART_TX_Pin GPIO_PIN_5
+#define TMC_UART_TX_GPIO_Port GPIOD
+#define TMC_UART_RX_Pin GPIO_PIN_6
+#define TMC_UART_RX_GPIO_Port GPIOD
+#define M1_ENC_A_Pin GPIO_PIN_4
+#define M1_ENC_A_GPIO_Port GPIOB
+#define M1_ENC_B_Pin GPIO_PIN_5
+#define M1_ENC_B_GPIO_Port GPIOB
+#define M1_ENC_Z_Pin GPIO_PIN_6
+#define M1_ENC_Z_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

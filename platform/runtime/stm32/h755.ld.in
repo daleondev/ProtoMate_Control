@@ -222,6 +222,13 @@ SECTIONS
   PROVIDE( __bss_start = __tbss_start );
   PROVIDE( __bss_size = __bss_end - __bss_start );
 
+  .StepDmaSection (NOLOAD) :
+  {
+    . = ALIGN(32);
+    *(.StepDmaSection)
+    . = ALIGN(32);
+  } >RAM
+
   /* Reserve the minimum heap in private RAM. The application-owned _sbrk()
    * may grow from __HeapBase up to __HeapLimit. */
   ._user_heap (NOLOAD) :

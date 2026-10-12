@@ -20,9 +20,11 @@ set(MX_Include_Dirs
 set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/dma.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/rng.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/rtc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/tim.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/usart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32h7xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/stm32h7xx_hal_msp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/sysmem.c
@@ -55,6 +57,8 @@ set(STM32_Drivers_Src
     /home/david/STM32Cube/Repository/STM32Cube_FW_H7_V1.13.0/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rtc_ex.c
     /home/david/STM32Cube/Repository/STM32Cube_FW_H7_V1.13.0/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c
     /home/david/STM32Cube/Repository/STM32Cube_FW_H7_V1.13.0/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c
+    /home/david/STM32Cube/Repository/STM32Cube_FW_H7_V1.13.0/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
+    /home/david/STM32Cube/Repository/STM32Cube_FW_H7_V1.13.0/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
 )
 
 # Drivers Midllewares

@@ -13,15 +13,8 @@ SYNCHRONIZATION = {
     'hal/linux/ThreadMutex.hpp',
 }
 PORTABLE = ('hal/drivers/itf/', 'hal/devices/itf/', 'hal/util/')
-# These algorithms/devices currently run in host tests. Their hardware
-# resources will be assigned as the IO application is rebuilt.
-HOST_ONLY_IMPLEMENTATIONS = {
-    'hal/drivers/impl/StepOutput.cpp', 'hal/drivers/impl/StepGenerator.cpp',
-    *(f'hal/devices/impl/{name}.cpp' for name in (
-        'Button', 'Dm542tDriver', 'IndexFeedback', 'Lan9253',
-        'QuadratureEncoderFeedback', 'Tmc2209', 'Tmc2209Bus', 'Tmc2209Driver')),
-}
-HARDWARE_FACTORIES = {'gpio', 'timer', 'rtc', 'rng'}
+HARDWARE_FACTORIES = {'gpio', 'timer', 'rtc', 'rng', 'step', 'encoder', 'uart', 'intercore'}
+HARDWARE_DEVICE_FACTORIES = {'tmc2209'}
 
 
 def include_error(source, target):
@@ -124,7 +117,8 @@ def check_build(root, build, platform_name):
         if not path.is_relative_to(root / 'platform' / 'hal'):
             continue
         source = path.relative_to(root / 'platform').as_posix()
-        if '/tests/' in source:
+        command = entry.get('output', entry.get('command', ''))
+        if '/tests/' in source or 'hal/tests/CMakeFiles/' in command:
             continue
         compiled.add(source)
         if source.startswith('hal/drivers/'):
@@ -139,7 +133,6 @@ def check_build(root, build, platform_name):
             owners = ('hal_core',)
         else:
             owners = ('hal',)
-        command = entry.get('output', entry.get('command', ''))
         if not any(f'CMakeFiles/{owner}.dir/' in command for owner in owners):
             errors.append(f'{source}: source must be compiled by {owners}')
         if f'/{forbidden}/' in source:
@@ -151,13 +144,12 @@ def check_build(root, build, platform_name):
                 or (parts[0] == 'board' and parts[1] != board)):
             continue
         source = path.relative_to(root / 'platform').as_posix()
-        if platform_name == 'stm32' and source in HOST_ONLY_IMPLEMENTATIONS:
-            continue
         if source not in compiled:
             errors.append(f'{source}: selected production source is missing from the build')
     for layer in ('drivers', 'devices'):
         for header in (root / 'platform' / 'hal' / layer / 'factory').glob('*.hpp'):
-            if platform_name == 'stm32' and (layer != 'drivers' or header.stem not in HARDWARE_FACTORIES):
+            if platform_name == 'stm32' and header.stem not in (
+                    HARDWARE_FACTORIES if layer == 'drivers' else HARDWARE_DEVICE_FACTORIES):
                 continue
             candidates = {
                 f'hal/{layer}/factory/{header.stem}.cpp',

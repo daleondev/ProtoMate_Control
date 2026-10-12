@@ -47,6 +47,57 @@ namespace
         EXPECT_EQ(M7.intercore_channel, hal::board::create_intercore_channel);
     }
 
+    TEST(HalCoreCatalog, MotorPeripheralsBelongToM4)
+    {
+        EXPECT_EQ(M4.stepper_generator, hal::board::create_stepper_generator);
+        EXPECT_EQ(M4.stepper_step_output, hal::board::create_stepper_step_output);
+        EXPECT_EQ(M4.stepper_direction_output, hal::board::create_stepper_direction_output);
+        EXPECT_EQ(M4.steppers_enable_output, hal::board::create_steppers_enable_output);
+        EXPECT_EQ(M4.reference_limit_switch, hal::board::create_reference_limit_switch);
+        EXPECT_EQ(M4.stepper_driver_bus, hal::board::create_stepper_driver_bus);
+        EXPECT_EQ(M4.stepper_drivers, hal::board::create_stepper_drivers);
+        EXPECT_EQ(M4.motor_feedback, hal::board::create_motor_feedback);
+        EXPECT_EQ(M7.stepper_generator, nullptr);
+        EXPECT_EQ(M7.stepper_step_output, nullptr);
+        EXPECT_EQ(M7.stepper_direction_output, nullptr);
+        EXPECT_EQ(M7.steppers_enable_output, nullptr);
+        EXPECT_EQ(M7.reference_limit_switch, nullptr);
+        EXPECT_EQ(M7.stepper_driver_bus, nullptr);
+        EXPECT_EQ(M7.stepper_drivers, nullptr);
+        EXPECT_EQ(M7.motor_feedback, nullptr);
+    }
+
+    TEST(HalCore, ConstructsStoppedMotorPeripherals)
+    {
+        using namespace pnm::units::literals;
+        auto enable = hal::core::create_steppers_enable_output();
+        ASSERT_TRUE(enable);
+        EXPECT_EQ(enable->read(), hal::gpio::Level::High);
+        auto generator = hal::core::create_stepper_generator();
+        ASSERT_TRUE(generator);
+        auto bus = hal::core::create_stepper_driver_bus();
+        ASSERT_TRUE(bus);
+        const auto drivers = hal::core::create_stepper_drivers({16, 16, 16}, enable, bus);
+        for (const auto id : {hal::core::MotorId::Motor1, hal::core::MotorId::Motor2, hal::core::MotorId::Motor3}) {
+            auto output = hal::core::create_stepper_step_output(generator, id);
+            ASSERT_TRUE(output);
+            EXPECT_NE(output->status().state, hal::step::State::Running);
+            auto direction = hal::core::create_stepper_direction_output(id);
+            ASSERT_TRUE(direction);
+            EXPECT_EQ(direction->read(), hal::gpio::Level::Low);
+            EXPECT_TRUE(hal::core::create_reference_limit_switch(id));
+            auto feedback = hal::core::create_motor_feedback(id, {1.8_deg, 16});
+            ASSERT_TRUE(feedback);
+            EXPECT_EQ(feedback->source(), id == hal::core::MotorId::Motor1
+                ? hal::device::IMotorFeedback::Source::ShaftEncoder
+                : hal::device::IMotorFeedback::Source::DriverIndex);
+            EXPECT_TRUE(drivers[static_cast<std::size_t>(id)]);
+        }
+        EXPECT_EQ(enable->read(), hal::gpio::Level::High);
+        EXPECT_FALSE(hal::core::create_stepper_direction_output(static_cast<hal::core::MotorId>(255)));
+        EXPECT_FALSE(hal::core::create_reference_limit_switch(static_cast<hal::core::MotorId>(255)));
+    }
+
     TEST(HalCore, HostSelectsItsOwnCatalog)
     {
         EXPECT_EQ(hal::core::id(), Core::Host);

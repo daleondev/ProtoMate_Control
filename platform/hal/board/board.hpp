@@ -4,6 +4,7 @@
 #include "hal/devices/itf/ILed.hpp"
 #include "hal/devices/itf/IMotorFeedback.hpp"
 #include "hal/devices/itf/IStepperDriver.hpp"
+#include "hal/devices/itf/MotorTypes.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IQuadratureEncoder.hpp"
@@ -35,12 +36,8 @@ namespace hal::board
         User
     };
 
-    enum class MotorId : std::uint8_t
-    {
-        Motor1,
-        Motor2,
-        Motor3
-    };
+    using MotorId = motor::Id;
+    using MotorFeedbackConfig = motor::FeedbackConfiguration;
 
     [[nodiscard]] auto create_led(LedId id) -> std::shared_ptr<device::ILed>;
     [[nodiscard]] auto create_button(ButtonId id) -> std::shared_ptr<device::IButton>;
@@ -87,11 +84,6 @@ namespace hal::board
                                               std::shared_ptr<IUart> uart = {})
       -> std::array<std::shared_ptr<device::IStepperDriver>, 3>;
 
-    struct MotorFeedbackConfig
-    {
-        pnm::units::Angle full_step_angle;
-        std::size_t microsteps{};
-    };
     // M1: measured shaft angle via quadrature. M2/M3: driver electrical INDEX.
     // Owns the exclusive inputs; leaves observation stopped. Scaling comes from
     // motor configuration; encoder resolution and pin selection belong here.

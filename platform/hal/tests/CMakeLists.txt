@@ -42,3 +42,37 @@ runtime_attach(hal_tests)
 
 add_test(NAME hal COMMAND hal_tests --gtest_color=no)
 set_tests_properties(hal PROPERTIES TIMEOUT 30)
+
+# Compile the production STM32 STEP backend against a register model. This
+# target uses the native host ABI and does not attach the ThreadX runtime.
+# The main project's gtest targets use the ThreadX ABI, so build a native copy
+# from the same already-fetched sources for these isolated register tests.
+find_package(Threads REQUIRED)
+FetchContent_GetProperties(googletest)
+add_library(hal_register_gtest STATIC
+    ${googletest_SOURCE_DIR}/googletest/src/gtest-all.cc
+    ${googletest_SOURCE_DIR}/googletest/src/gtest_main.cc)
+target_include_directories(hal_register_gtest PUBLIC ${googletest_SOURCE_DIR}/googletest/include
+    PRIVATE ${googletest_SOURCE_DIR}/googletest)
+target_link_libraries(hal_register_gtest PRIVATE Threads::Threads)
+add_executable(step_stm32_tests
+    step_model/step_stm32_test.cpp
+    ../drivers/impl/StepGenerator.cpp
+    ../drivers/impl/StepOutput.cpp
+    ../drivers/impl/stm32/StepHardware.cpp
+    ../stm32/FaultShutdown.cpp)
+target_include_directories(step_stm32_tests BEFORE PRIVATE
+    step_model/fakes ${PROJECT_SOURCE_DIR}/platform)
+target_compile_definitions(step_stm32_tests PRIVATE HAL_PLATFORM_STM32)
+target_link_libraries(step_stm32_tests PRIVATE hal_register_gtest project_compiler_settings)
+add_test(NAME step_stm32 COMMAND step_stm32_tests)
+set_tests_properties(step_stm32 PROPERTIES TIMEOUT 30)
+
+add_executable(encoder_stm32_tests
+    encoder_model/encoder_stm32_test.cpp ../drivers/impl/stm32/QuadratureEncoder.cpp)
+target_include_directories(encoder_stm32_tests BEFORE PRIVATE
+    encoder_model/fakes ${PROJECT_SOURCE_DIR}/platform)
+target_compile_definitions(encoder_stm32_tests PRIVATE HAL_PLATFORM_STM32)
+target_link_libraries(encoder_stm32_tests PRIVATE hal_register_gtest project_compiler_settings)
+add_test(NAME encoder_stm32 COMMAND encoder_stm32_tests)
+set_tests_properties(encoder_stm32 PROPERTIES TIMEOUT 10)

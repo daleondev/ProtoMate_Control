@@ -55,7 +55,10 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-
+extern DMA_HandleTypeDef hdma_tim2_ch1;
+extern DMA_HandleTypeDef hdma_tim2_ch3;
+extern DMA_HandleTypeDef hdma_tim2_ch4;
+extern DMA_HandleTypeDef hdma_tim2_ch2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */

@@ -62,6 +62,8 @@ if(NOT RUNTIME_FILESYSTEM)
 endif()
 if(H755_CORE STREQUAL "CM7")
     target_sources(platform PRIVATE ${core}/Src/rtc.c ${core}/Src/rng.c ${core}/Src/usart.c)
+else()
+    target_sources(platform PRIVATE ${core}/Src/dma.c ${core}/Src/usart.c)
 endif()
 set_source_files_properties(${core}/Src/main.c PROPERTIES
     COMPILE_DEFINITIONS "Error_Handler=CubeMX_Error_Handler")

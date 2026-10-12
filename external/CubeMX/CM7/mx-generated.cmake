@@ -20,6 +20,7 @@ set(MX_Include_Dirs
 set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/dma.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/rng.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/rtc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/tim.c

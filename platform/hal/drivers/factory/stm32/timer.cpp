@@ -3,7 +3,7 @@
 #include "hal/drivers/factory/timer.hpp"
 
 #include "hal/drivers/impl/stm32/Timer.hpp"
-#include "hal/hal.hpp"
+#include "hal/stm32/TimerClock.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -12,36 +12,6 @@
 
 namespace hal::timer
 {
-    namespace
-    {
-
-        [[nodiscard]] auto apb1_timer_input_frequency_hz() noexcept -> std::uint32_t
-        {
-            RCC_ClkInitTypeDef clock_configuration{};
-            std::uint32_t flash_latency{};
-            HAL_RCC_GetClockConfig(&clock_configuration, &flash_latency);
-
-            std::uint64_t frequency{ HAL_RCC_GetPCLK1Freq() };
-            if (
-              (RCC->CFGR & RCC_CFGR_TIMPRE) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              0U) { // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                if (clock_configuration.APB1CLKDivider == RCC_APB1_DIV1 ||
-                    clock_configuration.APB1CLKDivider == RCC_APB1_DIV2 ||
-                    clock_configuration.APB1CLKDivider == RCC_APB1_DIV4) {
-                    frequency = HAL_RCC_GetHCLKFreq();
-                }
-                else {
-                    frequency *= 4U;
-                }
-            }
-            else if (clock_configuration.APB1CLKDivider != RCC_APB1_DIV1) {
-                frequency *= 2U;
-            }
-            return static_cast<std::uint32_t>(
-              std::min<std::uint64_t>(frequency, std::numeric_limits<std::uint32_t>::max()));
-        }
-    }
-
     auto create(Configuration configuration) -> std::shared_ptr<ITimer>
     {
         // CubeMX startup owns hardware initialization. Each process keeps its
@@ -54,7 +24,7 @@ namespace hal::timer
                     handle.Instance = TIM5;
                     handle.State = HAL_TIM_STATE_READY;
                     return std::make_shared<Timer>(Timer::Configuration{
-                        .handle = handle, .input_frequency_hz = apb1_timer_input_frequency_hz(),
+                        .handle = handle, .input_frequency_hz = stm32::apb1_timer_input_frequency_hz(),
                         .interrupt = TIM5_IRQn});
                 }();
                 return instance;
@@ -65,7 +35,7 @@ namespace hal::timer
                     handle.Instance = TIM12;
                     handle.State = HAL_TIM_STATE_READY;
                     return std::make_shared<Timer>(Timer::Configuration{
-                        .handle = handle, .input_frequency_hz = apb1_timer_input_frequency_hz(),
+                        .handle = handle, .input_frequency_hz = stm32::apb1_timer_input_frequency_hz(),
                         .interrupt = TIM8_BRK_TIM12_IRQn});
                 }();
                 return instance;

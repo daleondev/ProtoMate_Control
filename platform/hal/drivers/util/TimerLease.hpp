@@ -9,7 +9,8 @@
 namespace hal::util
 {
     // One owner per timer: period/prescaler and internal compare channels are shared.
-    // TIM2/TIM7 (step engine), TIM5 (runtime) and TIM6 (HAL tick) cannot be leased here.
+    // TIM2/TIM7 (step engine) and TIM5/TIM12 (runtime) cannot be leased here.
+    // TIM6 is leased with TIM3 for encoder sampling; the HAL tick uses SysTick.
     class TimerLease final
     {
       public:
@@ -17,7 +18,8 @@ namespace hal::util
         {
             const auto timer{ std::to_underlying(peripheral) };
             if (peripheral != timer::Peripheral::Tim1 && peripheral != timer::Peripheral::Tim3 &&
-                peripheral != timer::Peripheral::Tim4 && peripheral != timer::Peripheral::Tim8) {
+                peripheral != timer::Peripheral::Tim4 && peripheral != timer::Peripheral::Tim6 &&
+                peripheral != timer::Peripheral::Tim8) {
                 return;
             }
             bool expected{ false };

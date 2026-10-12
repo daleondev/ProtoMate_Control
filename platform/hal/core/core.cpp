@@ -1,16 +1,18 @@
 #include "core.hpp"
 #include "Catalog.hpp"
 
+#include <utility>
+
 namespace hal::core
 {
     namespace
     {
         constexpr auto DEVICES = devices_for(util::executing_core());
 
-        template<typename T>
-        auto create(std::shared_ptr<T> (*factory)()) -> std::shared_ptr<T>
+        template<typename Result, typename... Parameters, typename... Arguments>
+        auto create(Result (*factory)(Parameters...), Arguments&&... arguments) -> Result
         {
-            return factory ? factory() : nullptr;
+            return factory ? factory(std::forward<Arguments>(arguments)...) : Result{};
         }
     }
 
@@ -21,4 +23,26 @@ namespace hal::core
     auto create_status_led() -> std::shared_ptr<device::ILed> { return create(DEVICES.status_led); }
     auto create_intercore_channel() -> std::shared_ptr<IInterCoreChannel> { return create(DEVICES.intercore_channel); }
     auto create_runtime_timer() -> std::shared_ptr<ITimer> { return create(DEVICES.runtime_timer); }
+
+    auto create_stepper_generator() -> std::shared_ptr<IStepGenerator>
+    { return create(DEVICES.stepper_generator); }
+    auto create_stepper_step_output(const std::shared_ptr<IStepGenerator>& generator, MotorId id)
+      -> std::shared_ptr<IStepOutput>
+    { return create(DEVICES.stepper_step_output, generator, id); }
+    auto create_stepper_direction_output(MotorId id) -> std::shared_ptr<IDigitalOutput>
+    { return create(DEVICES.stepper_direction_output, id); }
+    auto create_steppers_enable_output() -> std::shared_ptr<IDigitalOutput>
+    { return create(DEVICES.steppers_enable_output); }
+    auto create_reference_limit_switch(MotorId id) -> std::shared_ptr<IDigitalInput>
+    { return create(DEVICES.reference_limit_switch, id); }
+    auto create_stepper_driver_bus() -> std::shared_ptr<IUart>
+    { return create(DEVICES.stepper_driver_bus); }
+    auto create_stepper_drivers(const std::array<std::size_t, 3>& microsteps,
+                                const std::shared_ptr<IDigitalOutput>& enable,
+                                std::shared_ptr<IUart> uart)
+      -> std::array<std::shared_ptr<device::IStepperDriver>, 3>
+    { return create(DEVICES.stepper_drivers, microsteps, enable, std::move(uart)); }
+    auto create_motor_feedback(MotorId id, const MotorFeedbackConfig& config)
+      -> std::shared_ptr<device::IMotorFeedback>
+    { return create(DEVICES.motor_feedback, id, config); }
 }

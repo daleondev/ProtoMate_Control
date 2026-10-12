@@ -3,6 +3,9 @@ add_library(hal::drivers::factory ALIAS hal_drivers_factory)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_sources(hal_drivers_factory INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/step.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/encoder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/uart.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/intercore.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/gpio.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/timer.cpp

@@ -15,21 +15,24 @@ Use `h755-debug` to build both applications, or `h755-io-debug` and
 are documented together. Both images must be flashed. The
 [CubeMX project](external/CubeMX/CubeMX.ioc) assigns peripherals to their cores.
 
-Both applications always own a private message bus, coroutine context and p2p
-bridge. **P2P runs over shared SRAM4 and HSEM notifications**, with transport
+Both applications always own a private message bus, coroutine context and ICC
+bridge. **ICC runs over shared SRAM4 and HSEM notifications**, with transport
 workers on both cores. The bridges perform their handshake and exchange
 heartbeats; the application message catalogs are empty. Application workers
 sleep until shutdown while motion control, planning, CLI and GUI are developed.
 No external wiring is needed. Both runtimes include filesystem support (no
 mounted media yet), RTC and hardware randomness. M7 owns the ST-Link serial
-console and user button. The bare-metal LED samples retain their separate
+console and user button. M4 exposes STEP/DIR/enable, reference switches,
+DM542T/TMC2209 drivers and feedback through HAL; the application does not yet
+construct or run them. See the [motor pin table](docs/nucleo-h755ziq/README.md#motor-peripheral-wiring-and-construction),
+including the new **PE2 DM542T ALM assignment**. The bare-metal LED samples retain their separate
 `h755-led-*` presets.
 
 ## Application layout
 
 | Directory | Responsibility |
 | --- | --- |
-| `src/common/` | Shared contracts, application lifecycle concept and portable `p2p/` |
+| `src/common/` | Shared contracts, application lifecycle concept and portable `icc/` |
 | `src/io/` | M4 entry point and IO application; future motion execution and sensors |
 | `src/ui/` | M7 entry point and UI application; future planning, CLI and GUI |
 
@@ -47,16 +50,16 @@ joins. Call start/join/destruction from the lifecycle owner, outside workers.
 `runtime::thread::Definition` annotations in each `Application.hpp` declare its
 threads; `system_threads.cpp` defines their entries.
 [ThreadGroup](platform/runtime/ThreadGroup.hpp) creates all workers before
-releasing them. The p2p worker runs the context; the application worker waits
+releasing them. The ICC worker runs the context; the application worker waits
 for a stop request, then drains the bridge before stopping its context. Peer
 shutdown or link failure wakes the application worker. Each application requires
 a transport; the bridge is a concrete member with no optional execution path.
 
-The shared message catalogs live directly in `src/common/p2p/`:
+The shared message catalogs live directly in `src/common/icc/`:
 
-- [topics.hpp](src/common/p2p/topics.hpp): `Topics`, with `TopicPublisher` annotations.
-- [services.hpp](src/common/p2p/services.hpp): `Services`, with `ServiceProvider` annotations.
-- [actions.hpp](src/common/p2p/actions.hpp): `Actions`, with `ActionProvider` annotations.
+- [topics.hpp](src/common/icc/topics.hpp): `Topics`, with `TopicPublisher` annotations.
+- [services.hpp](src/common/icc/services.hpp): `Services`, with `ServiceProvider` annotations.
+- [actions.hpp](src/common/icc/actions.hpp): `Actions`, with `ActionProvider` annotations.
 
 Both applications register all three catalogs in their constructors using their
 own IO/UI role. Add message definitions to these catalogs as functionality is
@@ -65,15 +68,15 @@ implemented; no application messages or LED demo are registered currently.
 | Thread in each H755 image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
 | ThreadX timer worker | 0 | Port default |
-| `io.p2pThread` | 2 | 32 KiB |
+| `io.iccThread` | 2 | 32 KiB |
 | `intercore.notify` | 3 | 8 KiB |
-| `ui.p2pThread` | 4 | 32 KiB |
+| `ui.iccThread` | 4 | 32 KiB |
 | `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
 | Runtime cleanup/reaper | 31 | 2 KiB |
 
 Priorities belong to separate schedulers; M7 priorities do not preempt M4 work.
-P2P is a required part of both applications. The portable bridge and the
+ICC is a required part of both applications. The portable bridge and the
 HAL/runtime transport adapter are separate targets. Reset both
 cores together; independent core reconnection remains future work.
 
@@ -307,7 +310,8 @@ platform::hal → hal::core → hal::board → hal::devices → hal::drivers
 ```
 
 Each target compiles only its own sources; CMake selects the STM32 or Linux
-backend. The H755 currently enables only GPIO, runtime timers and LED devices.
+backend. H755 provides onboard resources plus M4 motor timers/DMA, USART2,
+reference/diagnostic inputs and feedback.
 The Linux board composition supplies virtual resources for device regression
 tests; it does not define H755 motor wiring. The Linux step and encoder workers are compiled as `hal_linux_services`
 objects using the runtime's C++ ABI and included in `hal_drivers`. Their opaque
@@ -362,12 +366,14 @@ entry lists the available roles and the board factories that create them:
 };
 ```
 
-Omitted roles are unavailable: their core factory returns `nullptr`. Reflection
+Omitted roles are unavailable: their core factory returns `nullptr` (or an
+array of null pointers for the driver set). Reflection
 selects the entry at compile time and rejects missing or duplicate assignments
 for the selected processor. No device is constructed by reading the catalog.
 M4 uses green/PB0 and TIM5; M7 uses yellow/PE1 and TIM12, plus red/PB14 and
 the user button/PC13. Both entries explicitly include shared RTC/RNG and their
-local inter-core endpoint. IO/UI are application names, not HAL identities.
+local inter-core endpoint. M4 also lists all motor factories; M7 has none.
+IO/UI are application names, not HAL identities.
 
 `hal::board` only describes physical wiring and construction. It has no core
 parameter, core identity include or ownership policy. For example,
@@ -382,7 +388,9 @@ Timer factories expose initialized TIM5 and TIM12 to either image. They wrap
 the peripheral without resetting it; CubeMX/platform startup still initializes
 the hardware once. Changing a catalog assignment that moves peripheral
 initialization or interrupts also requires updating that startup configuration.
-External motor/storage wiring remains unassigned on H755.
+Motor wiring and startup behavior are documented in the
+[H755 setup](docs/nucleo-h755ziq/README.md#motor-peripheral-wiring-and-construction).
+External storage and EtherCAT wiring remain unassigned.
 
 Host tests retain virtual board devices. `Core::Host` selects its own runtime
 timer, RTC/RNG, error LED and button, with no status LED or hardware peer channel.
@@ -416,9 +424,10 @@ auto encoder = hal::encoder::create({
 These examples describe the retained factory contracts. On current hardware,
 onboard GPIO, per-core timers, serialized RTC/RNG access and the inter-core
 channel are available. M4 owns TIM5; M7 owns TIM12 and the console UART.
-RTC and RNG are shared through hardware-semaphore protection. External motor,
-SPI, UART bus, Ethernet and storage backends still require H755 assignments;
-the console uses its dedicated onboard USART3 initialization.
+RTC and RNG are shared through hardware-semaphore protection. Motor peripherals
+use TIM2/TIM3/TIM6/TIM7, DMA1 and USART2 on M4. The generic SPI/PWM, Ethernet
+and storage backends still require H755 assignments; the console uses dedicated
+onboard USART3 initialization.
 
 Linux provides virtual peripheral resources and device models for regression
 tests. Its board composition does not claim physical wiring. Construction never
@@ -453,23 +462,23 @@ ownership require separate hardware validation as each subsystem is ported.
 
 ## Processor-to-processor messaging
 
-`application::p2p` supports serialized topics, services and actions, with peer
+`application::icc` supports serialized topics, services and actions, with peer
 readiness, connection health and state-change callbacks. It remains available as
 a portable library while application control and CLI are rebuilt.
-The [two-bus examples](src/common/p2p/examples/README.md), including the
-[action example](src/common/p2p/examples/actions.cpp), also run independently.
+The [two-bus examples](src/common/icc/examples/README.md), including the
+[action example](src/common/icc/examples/actions.cpp), also run independently.
 
 The implementation separates message routing from byte transport:
 
 | Location | Responsibility |
 | --- | --- |
-| [bridge/Bridge](src/common/p2p/bridge/Bridge.hpp) | Public registration API, lifecycle, send/receive loops, fair scheduling and failure handling |
-| [bridge/TopicBridge](src/common/p2p/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
-| [bridge/ServiceBridge](src/common/p2p/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
-| [bridge/ActionBridge](src/common/p2p/bridge/ActionBridge.hpp) | Reflected action registration, deferred admission, feedback, cancellation, acknowledged terminal results and cleanup |
-| [bridge/ConnectionHealth](src/common/p2p/bridge/ConnectionHealth.hpp) | Handshake, acknowledged heartbeats, deadlines and connection state notifications |
-| [bridge/Frame](src/common/p2p/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/common/p2p/bridge/OutgoingWakeup.hpp) | Shared wire encoding and coalesced readiness signals per lane |
-| [transport/](src/common/p2p/transport/ITransport.hpp) | Transport interface and paired in-process transport; transfers bytes without interpreting messages |
+| [bridge/Bridge](src/common/icc/bridge/Bridge.hpp) | Public registration API, lifecycle, send/receive loops, fair scheduling and failure handling |
+| [bridge/TopicBridge](src/common/icc/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
+| [bridge/ServiceBridge](src/common/icc/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
+| [bridge/ActionBridge](src/common/icc/bridge/ActionBridge.hpp) | Reflected action registration, deferred admission, feedback, cancellation, acknowledged terminal results and cleanup |
+| [bridge/ConnectionHealth](src/common/icc/bridge/ConnectionHealth.hpp) | Handshake, acknowledged heartbeats, deadlines and connection state notifications |
+| [bridge/Frame](src/common/icc/bridge/Frame.hpp), [bridge/OutgoingWakeup](src/common/icc/bridge/OutgoingWakeup.hpp) | Shared wire encoding and coalesced readiness signals per lane |
+| [transport/](src/common/icc/transport/ITransport.hpp) | Transport interface and paired in-process transport; transfers bytes without interpreting messages |
 
 `Bridge` owns its routing and connection helpers by value and serializes registration against startup.
 The helpers run on its coroutine context and cannot call back into `Bridge` or
@@ -493,7 +502,7 @@ monopolize the context. Application subscriptions dispatch on
 their caller's thread. The application shells already use separate contexts and
 runners, matching the intended ownership of the future core applications.
 
-[Topics.hpp](src/common/p2p/examples/Topics.hpp) specifies the forwarded topics using
+[Topics.hpp](src/common/icc/examples/Topics.hpp) specifies the forwarded topics using
 `pnm::msg::Topic<T>` fields annotated with a publisher. No catalog
 instance is constructed. Register the shared catalog once per bridge, identifying
 the local publisher:
@@ -525,8 +534,8 @@ follow the same validation and ordering rules as topic names and publishers;
 fields without the provider annotation stay local.
 Matching provider annotations accept incoming requests for local handlers; the
 peer's services forward outgoing requests. Replies return automatically.
-[Services.hpp](src/common/p2p/examples/Services.hpp) illustrates the catalog and
-[services.cpp](src/common/p2p/examples/services.cpp) runs an echo service. Applications
+[Services.hpp](src/common/icc/examples/Services.hpp) illustrates the catalog and
+[services.cpp](src/common/icc/examples/services.cpp) runs an echo service. Applications
 own and dispatch their handlers using the native or coroutine pneumo API. Bridge
 proxies use deferred replies; they never execute application handlers or block
 waiting for a result on the p2p context. Native readiness notifications and
@@ -581,7 +590,7 @@ across independently restarted cores remain future work.
 Actions use `registerActions<Actions>(ActionProvider::IO)` and reflected
 `bus.action<^^Actions::member>()` handles on both native and coroutine buses.
 Their catalogs follow the same optional name and provider rules as services.
-[Action usage](src/common/p2p/examples/actions.md) explains the provider and caller roles.
+[Action usage](src/common/icc/examples/actions.md) explains the provider and caller roles.
 The bridge forwards acceptance only after the real provider accepts. Feedback is
 latest-only; terminal results are retained until acknowledged by the peer. Each
 direction admits eight forwarded goals; each proxy admits eight native goals.
@@ -699,9 +708,9 @@ Build and test the bridge independently:
 
 ```sh
 cmake --build --preset debug-linux --target application_p2p_example application_p2p_service_example application_p2p_action_example application_p2p_transport_tests application_p2p_service_tests application_p2p_action_tests application_p2p_urgent_tests application_p2p_connection_tests
-./build/debug-linux/src/common/p2p/examples/application_p2p_example
-./build/debug-linux/src/common/p2p/examples/application_p2p_service_example
-./build/debug-linux/src/common/p2p/examples/application_p2p_action_example
+./build/debug-linux/src/common/icc/examples/application_p2p_example
+./build/debug-linux/src/common/icc/examples/application_p2p_service_example
+./build/debug-linux/src/common/icc/examples/application_p2p_action_example
 ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ```
 
@@ -898,7 +907,7 @@ motion timing under graphics and communication load.
 
 The H747 provides the timer capabilities needed to retain TIM2 channels 1/3/4
 for STEP, channel 2 for the internal deadline, TIM3 for quadrature feedback,
-TIM5 for runtime timekeeping, TIM6 for the HAL tick and TIM7 for completion
+TIM5 for runtime timekeeping, TIM6 for encoder sampling and TIM7 for completion
 monitoring. Assign these peripherals and their interrupts to the M4 IO core.
 Give the M7 runtime its own timebase; M7 initialization must not reconfigure
 IO timers or shared clocks after robot control starts. The GIGA pin map,

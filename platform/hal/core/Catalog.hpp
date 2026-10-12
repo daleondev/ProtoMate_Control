@@ -18,6 +18,14 @@ namespace hal::core
         std::shared_ptr<IRtc> (*rtc)(){};
         std::shared_ptr<IRng> (*rng)(){};
         std::shared_ptr<IInterCoreChannel> (*intercore_channel)(){};
+        decltype(&board::create_stepper_generator) stepper_generator{};
+        decltype(&board::create_stepper_step_output) stepper_step_output{};
+        decltype(&board::create_stepper_direction_output) stepper_direction_output{};
+        decltype(&board::create_steppers_enable_output) steppers_enable_output{};
+        decltype(&board::create_reference_limit_switch) reference_limit_switch{};
+        decltype(&board::create_stepper_driver_bus) stepper_driver_bus{};
+        decltype(&board::create_stepper_drivers) stepper_drivers{};
+        decltype(&board::create_motor_feedback) motor_feedback{};
     };
 
     // H755 processor assignments. Keep physical pins in board, and application
@@ -30,6 +38,14 @@ namespace hal::core
             .rtc = board::create_rtc,
             .rng = board::create_rng,
             .intercore_channel = board::create_intercore_channel,
+            .stepper_generator = board::create_stepper_generator,
+            .stepper_step_output = board::create_stepper_step_output,
+            .stepper_direction_output = board::create_stepper_direction_output,
+            .steppers_enable_output = board::create_steppers_enable_output,
+            .reference_limit_switch = board::create_reference_limit_switch,
+            .stepper_driver_bus = board::create_stepper_driver_bus,
+            .stepper_drivers = board::create_stepper_drivers,
+            .motor_feedback = board::create_motor_feedback,
         };
 
         [[= util::Core::M7]] static constexpr Devices m7{
@@ -48,6 +64,14 @@ namespace hal::core
             .runtime_timer = [] { return board::create_timer(timer::Peripheral::Tim5); },
             .rtc = board::create_rtc,
             .rng = board::create_rng,
+            .stepper_generator = board::create_stepper_generator,
+            .stepper_step_output = board::create_stepper_step_output,
+            .stepper_direction_output = board::create_stepper_direction_output,
+            .steppers_enable_output = board::create_steppers_enable_output,
+            .reference_limit_switch = board::create_reference_limit_switch,
+            .stepper_driver_bus = board::create_stepper_driver_bus,
+            .stepper_drivers = board::create_stepper_drivers,
+            .motor_feedback = board::create_motor_feedback,
         };
     };
 

@@ -11,6 +11,12 @@ target_sources(hal_drivers_impl
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     target_sources(hal_drivers_impl INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/StepHardware.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/StepHardware.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/QuadratureEncoder.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/QuadratureEncoder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Uart.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Uart.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/InterCoreChannel.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/InterCoreChannel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Rtc.hpp

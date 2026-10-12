@@ -2,6 +2,7 @@ add_library(hal_devices_factory INTERFACE)
 add_library(hal::devices::factory ALIAS hal_devices_factory)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    target_sources(hal_devices_factory INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/stm32/tmc2209.cpp)
     return()
 endif()
 

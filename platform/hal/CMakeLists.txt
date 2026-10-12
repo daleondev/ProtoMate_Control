@@ -10,6 +10,7 @@ add_library(platform::hal ALIAS hal)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     set(HAL_PLATFORM_DIRECTORY stm32)
+    target_sources(hal PRIVATE stm32/FaultShutdown.cpp stm32/FaultShutdown.hpp stm32/TimerClock.hpp)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(HAL_PLATFORM_DIRECTORY linux)
 else()
