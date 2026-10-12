@@ -28,9 +28,10 @@ namespace runtime::threadx
         constexpr std::uint64_t second{ 1'000'000'000ULL };
         constexpr std::uint64_t rate{ TX_TIMER_TICKS_PER_SECOND };
         const auto whole{ nanoseconds / second };
-        if (whole > maximum / rate)
+        if (whole > maximum / rate) {
             return maximum;
-        const auto ticks{ whole * rate + ((nanoseconds % second) * rate + second - 1U) / second };
+        }
+        const auto ticks{ (whole * rate) + (((nanoseconds % second) * rate + second - 1U) / second) };
         return static_cast<ULONG>(std::min<std::uint64_t>(ticks, maximum));
     }
 

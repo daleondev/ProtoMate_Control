@@ -6,22 +6,24 @@
 #include <tx_thread.h>
 #endif
 
+#include <array>
 #include <stdexcept>
 
 namespace runtime
 {
     Notification::Notification()
     {
-        if (!threadx::in_thread_context() ||
-            tx_event_flags_create(&m_event, const_cast<char*>("notification")) != TX_SUCCESS) {
+        static auto name{ std::to_array("notification") };
+        if (!threadx::in_thread_context() || tx_event_flags_create(&m_event, name.data()) != TX_SUCCESS) {
             throw std::runtime_error("notification creation failed");
         }
     }
     Notification::~Notification()
     {
         const auto status{ tx_event_flags_delete(&m_event) };
-        if (status != TX_SUCCESS)
+        if (status != TX_SUCCESS) {
             threadx::fatal_error("notification delete", status);
+        }
     }
     void Notification::signal() noexcept
     {
@@ -35,12 +37,15 @@ namespace runtime
 #if defined(HAL_PLATFORM_STM32)
         _tx_thread_preempt_disable = _tx_thread_preempt_disable - 1U;
         if (_tx_thread_preempt_disable == 0U && _tx_thread_current_ptr != _tx_thread_execute_ptr) {
+            // CMSIS register access requests deferred PendSV scheduling.
+            // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
         }
         static_cast<void>(tx_interrupt_control(posture));
 #endif
-        if (status != TX_SUCCESS)
+        if (status != TX_SUCCESS) {
             threadx::fatal_error("notification signal", status);
+        }
     }
     void Notification::clear()
     {
@@ -54,21 +59,25 @@ namespace runtime
     {
         while (true) {
             const auto now{ std::chrono::steady_clock::now() };
-            const auto ticks{
-                deadline == std::chrono::steady_clock::time_point::max() ? TX_WAIT_FOREVER
-                : deadline <= now
-                  ? TX_NO_WAIT
-                  : threadx::duration_to_ticks(static_cast<std::uint64_t>(
-                      std::chrono::duration_cast<std::chrono::nanoseconds>(deadline - now).count()))
-            };
+            ULONG ticks{ TX_NO_WAIT };
+            if (deadline == std::chrono::steady_clock::time_point::max()) {
+                ticks = TX_WAIT_FOREVER;
+            }
+            else if (deadline > now) {
+                ticks = threadx::duration_to_ticks(static_cast<std::uint64_t>(
+                  std::chrono::duration_cast<std::chrono::nanoseconds>(deadline - now).count()));
+            }
             ULONG flags{};
             const auto status{ tx_event_flags_get(&m_event, 1U, TX_OR_CLEAR, &flags, ticks) };
-            if (status == TX_SUCCESS)
+            if (status == TX_SUCCESS) {
                 return true;
-            if (status != TX_NO_EVENTS)
+            }
+            if (status != TX_NO_EVENTS) {
                 threadx::fatal_error("notification wait", status);
-            if (std::chrono::steady_clock::now() >= deadline)
+            }
+            if (std::chrono::steady_clock::now() >= deadline) {
                 return false;
+            }
             // A tick-based timeout may return just before a steady-clock deadline.
         }
     }

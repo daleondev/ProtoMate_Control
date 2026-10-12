@@ -26,7 +26,7 @@ static inline void runtime_cpu_clock_update(runtime_cpu_clock_counter* counter, 
 
 static inline uint64_t runtime_cpu_clock_ticks(uint64_t cycles, uint32_t frequency, uint32_t rate)
 {
-    return (cycles / frequency) * rate + ((cycles % frequency) * rate) / frequency;
+    return ((cycles / frequency) * rate) + (((cycles % frequency) * rate) / frequency);
 }
 
 #ifdef __cplusplus

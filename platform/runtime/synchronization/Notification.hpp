@@ -15,6 +15,8 @@ namespace runtime
         ~Notification();
         Notification(const Notification&) = delete;
         Notification& operator=(const Notification&) = delete;
+        Notification(Notification&&) = delete;
+        Notification& operator=(Notification&&) = delete;
         void signal() noexcept;
         // Consume one pending notification, or return false at the deadline.
         bool waitUntil(std::chrono::steady_clock::time_point deadline);

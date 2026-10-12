@@ -49,7 +49,7 @@ namespace
 
         void TearDown() override
         {
-            static_cast<void>(runtime::filex::setCurrentPath("/flash/"));
+            static_cast<void>(runtime::filex::set_current_path("/flash/"));
             static_cast<void>(_unlink("/flash/renamed.bin"));
             static_cast<void>(_unlink("/flash/mode.bin"));
             static_cast<void>(_unlink("/flash/append.bin"));
@@ -120,9 +120,9 @@ extern "C" int __io_putchar(int character)
 TEST_F(FileXTest, NormalizesAbsoluteAndRelativePaths)
 {
     char path[runtime::filex::MAXIMUM_PATH]{};
-    EXPECT_EQ(runtime::filex::normalizePath("/flash/alpha//beta/./gamma", path), 0);
+    EXPECT_EQ(runtime::filex::normalize_path("/flash/alpha//beta/./gamma", path), 0);
     EXPECT_STREQ(path, "/flash/alpha/beta/gamma");
-    EXPECT_EQ(runtime::filex::normalizePath("../../escape", path), EACCES);
+    EXPECT_EQ(runtime::filex::normalize_path("../../escape", path), EACCES);
 }
 
 TEST_F(FileXTest, ExposesPersistentFlashAndSdMounts)
@@ -146,8 +146,8 @@ TEST_F(FileXTest, ExposesPersistentFlashAndSdMounts)
 
 TEST_F(FileXTest, FlushesFilesAndMetadataAtDurabilityBoundaries)
 {
-    FX_MEDIA* const flash{ runtime::storage::media(runtime::storage::Volume::flash) };
-    FX_MEDIA* const sd{ runtime::storage::media(runtime::storage::Volume::sd) };
+    FX_MEDIA* const flash{ runtime::storage::media(runtime::storage::Volume::Flash) };
+    FX_MEDIA* const sd{ runtime::storage::media(runtime::storage::Volume::Sd) };
 
     ULONG flushes{ flash->fx_media_flushes };
     const int flash_file{ _open("/flash/durable-empty.bin", O_CREAT | O_RDONLY, 0666) };
@@ -186,8 +186,8 @@ TEST_F(FileXTest, FlushesFilesAndMetadataAtDurabilityBoundaries)
 
 TEST_F(FileXTest, TimestampSetterFlushesPendingWritesAndPreservesOffsetsOnBothVolumes)
 {
-    for (const auto volume : { runtime::storage::Volume::flash, runtime::storage::Volume::sd }) {
-        const char* const path{ volume == runtime::storage::Volume::flash ? "/flash/timestamp.bin"
+    for (const auto volume : { runtime::storage::Volume::Flash, runtime::storage::Volume::Sd }) {
+        const char* const path{ volume == runtime::storage::Volume::Flash ? "/flash/timestamp.bin"
                                                                           : "/sd/timestamp.bin" };
         const int file{ _open(path, O_CREAT | O_RDWR | O_TRUNC, 0666) };
         ASSERT_GE(file, 3);
@@ -278,7 +278,7 @@ TEST_F(FileXTest, RejectsPathsBeyondFileXLimit)
 {
     std::string path(runtime::filex::MAXIMUM_PATH, 'x');
     char normalized[runtime::filex::MAXIMUM_PATH]{};
-    EXPECT_EQ(runtime::filex::normalizePath(path.c_str(), normalized), ENAMETOOLONG);
+    EXPECT_EQ(runtime::filex::normalize_path(path.c_str(), normalized), ENAMETOOLONG);
 }
 
 TEST_F(FileXTest, NewlibDescriptorRoundTripAndMetadata)
@@ -468,11 +468,11 @@ TEST_F(FileXTest, RenameMigratesCurrentDirectoryAndRelativePaths)
 {
     ASSERT_EQ(_mkdir("/flash/Original-Cwd", 0777), 0);
     ASSERT_EQ(_mkdir("/flash/Original-Cwd/child", 0777), 0);
-    ASSERT_EQ(runtime::filex::setCurrentPath("/flash/original-cwd/child"), 0);
+    ASSERT_EQ(runtime::filex::set_current_path("/flash/original-cwd/child"), 0);
     ASSERT_EQ(_rename("/flash/ORIGINAL-CWD", "/flash/RENAMED-CWD"), 0);
 
     char current[runtime::filex::MAXIMUM_PATH]{};
-    EXPECT_EQ(runtime::filex::currentPath(current), 0);
+    EXPECT_EQ(runtime::filex::current_path(current), 0);
     EXPECT_STREQ(current, "/flash/RENAMED-CWD/child");
 
     const int file{ _open("relative.bin", O_CREAT | O_WRONLY | O_TRUNC, 0666) };
@@ -523,11 +523,11 @@ TEST_F(FileXTest, RejectsDirectoryMovesBelowItselfAndRemovalOfCurrentDirectory)
     EXPECT_EQ(_stat("/flash/self-tree/child", &metadata), 0);
 
     ASSERT_EQ(_mkdir("/flash/working-directory", 0777), 0);
-    ASSERT_EQ(runtime::filex::setCurrentPath("/flash/working-directory"), 0);
+    ASSERT_EQ(runtime::filex::set_current_path("/flash/working-directory"), 0);
     errno = 0;
     EXPECT_EQ(_rmdir("/flash/WORKING-DIRECTORY"), -1);
     EXPECT_EQ(errno, EBUSY);
-    ASSERT_EQ(runtime::filex::setCurrentPath("/flash/"), 0);
+    ASSERT_EQ(runtime::filex::set_current_path("/flash/"), 0);
     EXPECT_EQ(_rmdir("/flash/working-directory"), 0);
 }
 

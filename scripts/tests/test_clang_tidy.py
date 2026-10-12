@@ -28,41 +28,45 @@ class PartialLintTests(unittest.TestCase):
                    "arguments": ["g++", "-Ipath with spaces", "-DFLAG=7", "-freflection",
                                  "-std=c++26", "-c", "src/main.cpp"]}
             hal = {**app, "file": "platform/hal/hal.cpp"}
+            runtime = {**app, "file": "platform/runtime/threadx/Support.cpp"}
             excluded = [{**app, "file": filename} for filename in (
-                "external/dependency.cpp", "platform/runtime/Runtime.cpp",
+                "external/dependency.cpp", "platform/runtime/vendor/dependency.cpp",
                 "platform/hal_extra/example.cpp", "src_other/example.cpp",
+                "platform/runtime_extra/example.cpp", "platform/runtime/tests/libc_test.cpp",
                 "src/control/tests/stepper_motor_test.cpp", "src/p2p/tests/bridge_test.cpp",
                 "src/cli/test/test_parser.cpp", "platform/hal/tests/gpio_test.cpp",
                 "platform/hal/tests/step_model/step_stm32_test.cpp")]
-            original = json.dumps([app, hal, *excluded])
+            original = json.dumps([app, hal, runtime, *excluded])
             database = build / "compile_commands.json"
             database.write_text(original)
             tidy.prepare_database(build, output)
             prepared = json.loads((output / "analysis.json").read_text())
-            self.assertEqual(len(prepared), 2)
+            self.assertEqual(len(prepared), 3)
             self.assertEqual([entry["file"] for entry in prepared],
-                             [str(tidy.ROOT / entry["file"]) for entry in (app, hal)])
+                             [str(tidy.ROOT / entry["file"]) for entry in (app, hal, runtime)])
             self.assertEqual(prepared[0]["arguments"][0], tidy.COMPILER)
             self.assertIn("-stdlib=libstdc++", prepared[0]["arguments"])
             self.assertIn(str(output / "reflection-include"), prepared[0]["arguments"])
             self.assertEqual(prepared[0]["arguments"][-6:], app["arguments"][-6:])
             self.assertEqual(database.read_text(), original)
 
-    def test_header_filter_covers_hal_and_src_but_not_runtime_or_dependencies(self):
+    def test_header_filter_covers_application_hal_and_runtime_without_tests_or_vendor(self):
         pattern = tidy.re.compile(tidy.header_filter())
-        for filename in ("src/main.hpp", "platform/hal/drivers/impl/stm32/Spi.hpp"):
+        for filename in ("src/main.hpp", "platform/hal/drivers/impl/stm32/Spi.hpp",
+                         "platform/runtime/libstdcxx/backend.hpp"):
             self.assertIsNotNone(pattern.match(str(tidy.ROOT / filename)))
-        for filename in ("platform/runtime/Runtime.hpp", "external/pneumo/include/meta.hpp",
+        for filename in ("platform/runtime_extra/Runtime.hpp", "external/pneumo/include/meta.hpp",
                          "platform/hal_other/other.hpp", "src_other/other.hpp"):
             self.assertIsNone(pattern.match(str(tidy.ROOT / filename)))
         excluded = tidy.re.compile(tidy.EXCLUDED_HEADERS)
         for filename in ("src/control/tests/Connection.hpp", "src/p2p/tests/CommunicationLoad.hpp",
-                         "platform/hal/tests/transport_model/fakes/hal/hal.hpp", "src/test/helper.hpp"):
+                         "platform/hal/tests/transport_model/fakes/hal/hal.hpp", "src/test/helper.hpp",
+                         "platform/runtime/tests/helper.hpp", "platform/runtime/libstdcxx/vendor/gcc-16/filesystem/dir-common.h"):
             source = tidy.ROOT / filename
             self.assertIsNotNone(excluded.search(str(source)))
             self.assertFalse(tidy.in_scope(source))
         for filename in ("src/control/StepperMotor.hpp", "platform/hal/drivers/impl/stm32/Spi.hpp",
-                         "src/test_helpers/Test.hpp"):
+                         "src/test_helpers/Test.hpp", "platform/runtime/libstdcxx/include/bits/gthr-default.h"):
             self.assertIsNone(excluded.search(str(tidy.ROOT / filename)))
 
     def test_arm_and_host_commands_keep_separate_databases_and_target_settings(self):
@@ -97,17 +101,67 @@ class PartialLintTests(unittest.TestCase):
                 self.assertEqual(len(commands), 1)
                 self.assertEqual(commands[0]["arguments"], entry["arguments"])
 
-    def test_missing_hal_source_is_not_silently_omitted(self):
+    def test_missing_platform_source_is_not_silently_omitted(self):
+        for directory in ("platform/hal", "platform/runtime"):
+            with self.subTest(directory=directory), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                source = root / directory / "new_driver.cpp"
+                source.parent.mkdir(parents=True)
+                source.touch()
+                (root / "compile_commands.json").write_text(json.dumps([
+                    {"directory": str(root), "file": "src/main.cpp", "arguments": ["g++", "-c", "src/main.cpp"]}]))
+                with patch.object(tidy, "ROOT", root), patch.object(tidy, "SOURCE_ROOTS", (root / "src", root / directory)):
+                    with self.assertRaisesRegex(ValueError, "HAL/runtime sources missing compilation commands.*new_driver.cpp"):
+                        tidy.prepare_database(root, root, [("stm32", root)])
+
+    def test_runtime_c_sources_keep_c_language_in_both_contexts(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            source = root / "platform/hal/new_driver.cpp"
+            source = root / "platform/runtime/libc/libc.c"
             source.parent.mkdir(parents=True)
             source.touch()
-            (root / "compile_commands.json").write_text(json.dumps([
-                {"directory": str(root), "file": "src/main.cpp", "arguments": ["g++", "-c", "src/main.cpp"]}]))
-            with patch.object(tidy, "ROOT", root), patch.object(tidy, "SOURCE_ROOTS", (root / "src", root / "platform/hal")):
-                with self.assertRaisesRegex(ValueError, "HAL sources missing compilation commands.*new_driver.cpp"):
-                    tidy.prepare_database(root, root, [("stm32", root)])
+            # A copied GCC source is deliberately absent from the database.
+            vendor = root / "platform/runtime/libstdcxx/vendor/gcc-16/atomic.cc"
+            vendor.parent.mkdir(parents=True)
+            vendor.touch()
+            host, arm, output = (root / name for name in ("host", "arm", "lint"))
+            for directory in (host, arm, output):
+                directory.mkdir()
+            native = {"directory": str(root), "file": str(source),
+                      "arguments": ["gcc", "-DHAL_PLATFORM_LINUX", "-std=c11", "-c", str(source)]}
+            target = {**native, "arguments": ["arm-none-eabi-gcc", "-mcpu=cortex-m7",
+                      "-DHAL_PLATFORM_STM32", "-std=c11", "-c", str(source)]}
+            (host / "compile_commands.json").write_text(json.dumps([native]))
+            (arm / "compile_commands.json").write_text(json.dumps([target]))
+            with patch.object(tidy, "ROOT", root), patch.object(tidy, "SOURCE_ROOTS", (root / "platform/runtime",)):
+                tidy.prepare_database(host, output, [("stm32", arm)], [root / "arm-headers"])
+            entries = json.loads((output / "analysis.json").read_text())
+            self.assertEqual([entry["context"] for entry in entries], ["linux", "stm32"])
+            for entry in entries:
+                arguments = entry["arguments"]
+                self.assertEqual(arguments[0], tidy.C_COMPILER)
+                self.assertIn("-std=c11", arguments)
+                for flag in ("-stdlib=libstdc++", "-nostdinc++", "-fexpansion-statements", "-fannotation-attributes"):
+                    self.assertNotIn(flag, arguments)
+            self.assertIn("--target=arm-none-eabi", entries[1]["arguments"])
+
+    def test_startup_uses_application_command_instead_of_tests_or_examples(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            build = Path(temporary)
+            output = build / "lint"
+            output.mkdir()
+            source = tidy.ROOT / "platform/runtime/startup.cpp"
+            entries = [{"directory": str(build), "file": str(source),
+                        "arguments": ["g++", "-D" + label, "-o", obj, "-c", str(source)]}
+                       for label, obj in (
+                           ("TEST", "platform/runtime/tests/CMakeFiles/runtime_tests.dir/__/startup.cpp.o"),
+                           ("EXAMPLE", "src/p2p/examples/CMakeFiles/example.dir/startup.cpp.o"),
+                           ("APPLICATION", "CMakeFiles/Application.dir/platform/runtime/startup.cpp.o"))]
+            (build / "compile_commands.json").write_text(json.dumps(entries))
+            tidy.prepare_database(build, output)
+            selected = json.loads((output / "analysis.json").read_text())
+            self.assertEqual(len(selected), 1)
+            self.assertIn("-DAPPLICATION", selected[0]["arguments"])
 
     def test_cross_compiler_headers_exclude_gcc_builtins(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -183,18 +237,22 @@ class PartialLintTests(unittest.TestCase):
         self.assertEqual(tidy.classify(124, "ANALYSIS TIMED OUT"), "tool-failure")
         self.assertEqual(tidy.classify(-11, ""), "tool-failure")
 
-    def test_application_and_hal_diagnostics_are_collected_without_runtime(self):
+    def test_application_hal_and_runtime_diagnostics_are_collected_without_tests_or_vendor(self):
         root = tidy.ROOT
         log = (f"{root}/src/cli/../main.cpp:12:3: error: bad name "
                "[readability-identifier-naming,-warnings-as-errors]\n"
                f"{root}/external/example.hpp:1:1: warning: name [readability-identifier-naming]\n"
                f"{root}/platform/runtime/Runtime.hpp:1:1: warning: name [readability-identifier-naming]\n"
+               f"{root}/platform/runtime/tests/test.cpp:1:1: warning: name [readability-identifier-naming]\n"
+               f"{root}/platform/runtime/libstdcxx/vendor/gcc-16/atomic.cc:1:1: warning: name [readability-identifier-naming]\n"
                f"{root}/src/control/tests/Connection.hpp:1:1: warning: name [readability-identifier-naming]\n"
                f"{root}/platform/hal/tests/gpio_test.cpp:1:1: warning: name [readability-identifier-naming]\n"
                f"{root}/platform/hal/Gpio.hpp:3:4: warning: name [readability-identifier-naming]\n"
                f"{root}/src/main.cpp:2:1: error: missing type [clang-diagnostic-error]\n")
         self.assertEqual(tidy.collect_diagnostics(log), [{"file": "src/main.cpp", "line": 12,
             "column": 3, "message": "bad name", "checks": "readability-identifier-naming"},
+            {"file": "platform/runtime/Runtime.hpp", "line": 1, "column": 1,
+             "message": "name", "checks": "readability-identifier-naming"},
             {"file": "platform/hal/Gpio.hpp", "line": 3, "column": 4,
              "message": "name", "checks": "readability-identifier-naming"}])
 
@@ -280,7 +338,7 @@ class PartialLintTests(unittest.TestCase):
             self.assertEqual(report["coverage"], "complete")
             self.assertEqual(len(report["files"]), 2)
             self.assertEqual(len(report["findings"]), 1)
-            self.assertIn("1 unique src/ and platform/hal/ findings", (output / "summary.txt").read_text())
+            self.assertIn("1 unique src/, platform/hal/ and platform/runtime/ findings", (output / "summary.txt").read_text())
             self.assertEqual(len((output / "findings.txt").read_text().splitlines()), 1)
 
     def test_raw_output_preserves_stdout_stderr_order(self):

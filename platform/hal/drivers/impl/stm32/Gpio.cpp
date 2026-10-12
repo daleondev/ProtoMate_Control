@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <initializer_list>
 #include <utility>
 
 namespace hal
@@ -175,6 +176,22 @@ namespace hal
         [[nodiscard]] auto gpio_level(GPIO_PinState state) noexcept -> gpio::Level
         {
             return state == GPIO_PIN_SET ? gpio::Level::High : gpio::Level::Low;
+        }
+    }
+
+    auto GpioInput::initializeInterrupts() noexcept -> void
+    {
+        // Mask individual lines as well as their shared NVIC vectors: claiming
+        // one line must not expose pending edges on other, unowned inputs.
+        // CMSIS uses fixed MMIO addresses for the EXTI mask and pending registers.
+        // NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        EXTI_D1->IMR1 = EXTI_D1->IMR1 & ~static_cast<std::uint32_t>(GPIO_PIN_All);
+        __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_All);
+        // NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        for (const auto irq :
+             { EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn, EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn }) {
+            HAL_NVIC_DisableIRQ(irq);
+            HAL_NVIC_ClearPendingIRQ(irq);
         }
     }
 

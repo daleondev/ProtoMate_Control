@@ -1,3 +1,4 @@
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 
@@ -14,7 +15,7 @@ namespace
         const auto* bytes{ static_cast<const volatile std::uint8_t*>(pointer) };
         std::uint64_t value{};
         for (std::size_t index{}; index < sizeof(value); ++index) {
-            value |= static_cast<std::uint64_t>(bytes[index]) << (index * 8U);
+            value |= static_cast<std::uint64_t>(bytes[index]) << (index * CHAR_BIT);
         }
         return value;
     }
@@ -23,10 +24,12 @@ namespace
     {
         auto* bytes{ static_cast<volatile std::uint8_t*>(pointer) };
         for (std::size_t index{}; index < sizeof(value); ++index) {
-            bytes[index] = static_cast<std::uint8_t>(value >> (index * 8U));
+            bytes[index] = static_cast<std::uint8_t>(value >> (index * CHAR_BIT));
         }
     }
 
+    // Memory operation roles and ordering follow the libatomic ABI.
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void copy_bytes(volatile void* destination, const volatile void* source, std::size_t size) noexcept
     {
         auto* destination_bytes{ static_cast<volatile std::uint8_t*>(destination) };
@@ -36,6 +39,8 @@ namespace
         }
     }
 
+    // Memory operation roles and ordering follow the libatomic ABI.
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     [[nodiscard]] bool equal_bytes(const volatile void* left,
                                    const volatile void* right,
                                    std::size_t size) noexcept
@@ -66,19 +71,19 @@ namespace
 // Armv7-M. A short interrupt-masked region provides atomicity on this
 // single-core target and remains usable before the ThreadX scheduler starts.
 // NOLINTBEGIN(bugprone-reserved-identifier,cppcoreguidelines-macro-usage,readability-identifier-naming)
-extern "C" std::uint64_t __atomic_load_8(const volatile void* pointer, int)
+extern "C" std::uint64_t __atomic_load_8(const volatile void* pointer, int /*unused*/)
 {
     const hal::stm32::InterruptGuard interrupt_guard;
     return read_value(pointer);
 }
 
-extern "C" void __atomic_store_8(volatile void* pointer, std::uint64_t value, int)
+extern "C" void __atomic_store_8(volatile void* pointer, std::uint64_t value, int /*unused*/)
 {
     const hal::stm32::InterruptGuard interrupt_guard;
     write_value(pointer, value);
 }
 
-extern "C" std::uint64_t __atomic_exchange_8(volatile void* pointer, std::uint64_t value, int)
+extern "C" std::uint64_t __atomic_exchange_8(volatile void* pointer, std::uint64_t value, int /*unused*/)
 {
     const hal::stm32::InterruptGuard interrupt_guard;
     const std::uint64_t previous{ read_value(pointer) };
@@ -86,14 +91,19 @@ extern "C" std::uint64_t __atomic_exchange_8(volatile void* pointer, std::uint64
     return previous;
 }
 
-extern "C" bool runtime_atomic_compare_exchange_8(volatile void*, void*, std::uint64_t, int, int) asm(
-  "__atomic_compare_exchange_8");
+extern "C" bool runtime_atomic_compare_exchange_8(volatile void* /*pointer*/,
+                                                  void* /*expected_pointer*/,
+                                                  std::uint64_t /*desired*/,
+                                                  int /*unused*/,
+                                                  int /*unused*/) asm("__atomic_compare_exchange_8");
 
+// Memory operation roles and ordering follow the libatomic ABI.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 extern "C" bool runtime_atomic_compare_exchange_8(volatile void* pointer,
                                                   void* expected_pointer,
                                                   std::uint64_t desired,
-                                                  int,
-                                                  int)
+                                                  int /*unused*/,
+                                                  int /*unused*/)
 {
     const hal::stm32::InterruptGuard interrupt_guard;
     const std::uint64_t current{ read_value(pointer) };
@@ -129,35 +139,61 @@ RUNTIME_DEFINE_ATOMIC_FETCH_OPERATION(nand, ~(left& right))
 
 #undef RUNTIME_DEFINE_ATOMIC_FETCH_OPERATION
 
-extern "C" bool __atomic_is_lock_free(std::size_t size, const volatile void* pointer)
+// Keep the libatomic symbol without redefining Clang's builtin spelling.
+extern "C" bool runtime_atomic_is_lock_free(std::size_t size,
+                                            const volatile void* pointer) asm("__atomic_is_lock_free");
+
+extern "C" bool runtime_atomic_is_lock_free(std::size_t size, const volatile void* pointer)
 {
     // Match the native exclusive-access widths and their alignment. Other
     // sizes (including three-byte records) use the generic masked helpers.
     return size == 1U ||
+           // Alignment is defined by the numeric address in this libatomic hook.
+           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
            ((size == 2U || size == 4U) && reinterpret_cast<std::uintptr_t>(pointer) % size == 0U);
 }
 
 // Generic libatomic ABI used for std::atomic<T> when T has no sized compiler
 // intrinsic. The asm labels avoid conflicting with GCC's builtin spellings.
-extern "C" void runtime_atomic_load(std::size_t, void*, void*, int) asm("__atomic_load");
-extern "C" void runtime_atomic_store(std::size_t, void*, void*, int) asm("__atomic_store");
-extern "C" void runtime_atomic_exchange(std::size_t, void*, void*, void*, int) asm("__atomic_exchange");
-extern "C" bool runtime_atomic_compare_exchange(std::size_t, void*, void*, void*, int, int) asm(
-  "__atomic_compare_exchange");
+extern "C" void runtime_atomic_load(std::size_t /*size*/,
+                                    void* /*object*/,
+                                    void* /*result*/,
+                                    int /*unused*/) asm("__atomic_load");
+extern "C" void runtime_atomic_store(std::size_t /*size*/,
+                                     void* /*object*/,
+                                     void* /*value*/,
+                                     int /*unused*/) asm("__atomic_store");
+extern "C" void runtime_atomic_exchange(std::size_t /*size*/,
+                                        void* /*object*/,
+                                        void* /*value*/,
+                                        void* /*result*/,
+                                        int /*unused*/) asm("__atomic_exchange");
+extern "C" bool runtime_atomic_compare_exchange(std::size_t /*size*/,
+                                                void* /*object*/,
+                                                void* /*expected*/,
+                                                void* /*desired*/,
+                                                int /*unused*/,
+                                                int /*unused*/) asm("__atomic_compare_exchange");
 
-extern "C" void runtime_atomic_load(std::size_t size, void* object, void* result, int)
+extern "C" void runtime_atomic_load(std::size_t size, void* object, void* result, int /*unused*/)
 {
     const hal::stm32::InterruptGuard interrupt_guard;
     copy_bytes(result, object, size);
 }
 
-extern "C" void runtime_atomic_store(std::size_t size, void* object, void* value, int)
+extern "C" void runtime_atomic_store(std::size_t size, void* object, void* value, int /*unused*/)
 {
     const hal::stm32::InterruptGuard interrupt_guard;
     copy_bytes(object, value, size);
 }
 
-extern "C" void runtime_atomic_exchange(std::size_t size, void* object, void* value, void* result, int)
+// Memory operation roles and ordering follow the libatomic ABI.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
+extern "C" void runtime_atomic_exchange(std::size_t size,
+                                        void* object,
+                                        void* value,
+                                        void* result,
+                                        int /*unused*/)
 {
     const hal::stm32::InterruptGuard interrupt_guard;
     auto* object_bytes{ static_cast<volatile std::uint8_t*>(object) };
@@ -170,12 +206,16 @@ extern "C" void runtime_atomic_exchange(std::size_t size, void* object, void* va
     }
 }
 
+// NOLINTEND(bugprone-easily-swappable-parameters)
+
+// Memory operation roles and ordering follow the libatomic ABI.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 extern "C" bool runtime_atomic_compare_exchange(std::size_t size,
                                                 void* object,
                                                 void* expected,
                                                 void* desired,
-                                                int,
-                                                int)
+                                                int /*unused*/,
+                                                int /*unused*/)
 {
     const hal::stm32::InterruptGuard interrupt_guard;
     if (equal_bytes(object, expected, size)) {
@@ -185,6 +225,7 @@ extern "C" bool runtime_atomic_compare_exchange(std::size_t size,
     copy_bytes(expected, object, size);
     return false;
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 // NOLINTEND(bugprone-reserved-identifier,cppcoreguidelines-macro-usage,readability-identifier-naming)
 
 #endif

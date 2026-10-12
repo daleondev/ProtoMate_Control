@@ -11,7 +11,8 @@
 
 extern "C" {
 // Set mode at select(), after reset and runtime initialization: 0 prepares,
-// 1 verifies without rewriting. These symbols belong only to this test image.
+// 1 verifies without rewriting; 2 tests only serial input on a bare board.
+// These symbols belong only to this test image.
 volatile std::uint32_t hardware_io_test_mode{};
 volatile std::uint32_t hardware_io_test_status{};
 volatile std::uint32_t hardware_io_test_phase{};
@@ -107,11 +108,17 @@ int main()
     hardware_io_test_select();
     bool passed{};
     try {
-        if (hardware_io_test_mode == 0U) {
+        if (hardware_io_test_mode == 0U || hardware_io_test_mode == 2U) {
             hardware_io_test_phase = 1U;
             if (serial_roundtrip()) {
-                hardware_io_test_phase = 2U;
-                passed = prepare("/flash") && prepare("/sd");
+                if (hardware_io_test_mode == 2U) {
+                    std::puts("[io-test] SKIP storage persistence: bare-board serial test");
+                    passed = true;
+                }
+                else {
+                    hardware_io_test_phase = 2U;
+                    passed = prepare("/flash") && prepare("/sd");
+                }
             }
         }
         else if (hardware_io_test_mode == 1U) {

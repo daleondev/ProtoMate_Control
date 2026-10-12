@@ -128,13 +128,13 @@ def serial_device():
     return ports[0]
 
 
-def debugger_commands(symbol, port, io_test):
+def debugger_commands(symbol, port, io_test, bare_board=False):
     commands = ["set pagination off", "set confirm off", "set remotetimeout 10",
                 f"target extended-remote :{port}", "monitor reset halt", "load"]
     if io_test:
-        commands += [f"tbreak {symbol}_select", "continue", f"set variable {symbol}_mode = 0"]
+        commands += [f"tbreak {symbol}_select", "continue", f"set variable {symbol}_mode = {2 if bare_board else 0}"]
     commands += [f"tbreak {symbol}_complete", "continue"]
-    if io_test:
+    if io_test and not bare_board:
         commands += [f'printf "PREPARE_STATUS=0x%08x\\n", (unsigned int){symbol}_status',
                      f"if {symbol}_status != 0x600D600D", "quit 1", "end",
                      "monitor reset halt", f"tbreak {symbol}_select", "continue",
@@ -156,14 +156,20 @@ def main():
     modes.add_argument("--ethernet", action="store_true")
     modes.add_argument("--io", action="store_true")
     modes.add_argument("--storage-startup", action="store_true", help="Storage startup probe; combine with --help for its options")
+    parser.add_argument("--bare-board", action="store_true", help="Runtime or serial IO checks without external flash or SD; storage checks are skipped")
     parser.add_argument("--configuration", choices=["Debug", "Release"], default="Debug")
     parser.add_argument("--interface", help="Ethernet peer interface; starts and owns a peer when supplied")
     args = parser.parse_args()
+    if args.bare_board and args.ethernet:
+        parser.error("--bare-board is only supported by the runtime and IO tests")
     if args.interface and not args.ethernet:
         parser.error("--interface requires --ethernet")
     kind = "ethernet" if args.ethernet else "io" if args.io else "runtime"
     preset, symbol, phases = IMAGES[kind]
     suffix = "" if args.configuration == "Debug" else "-release"
+    if args.bare_board:
+        phases = 1 if args.io else 8
+        suffix += "-bare"
     build = ROOT / "build" / (preset + suffix)
     logs = build / "validation"
     logs.mkdir(parents=True, exist_ok=True)
@@ -177,12 +183,18 @@ def main():
         check.bind(("127.0.0.1", port))
     openocd = peer = capture = None
     report = {"image": kind, "configuration": args.configuration, "serial_port": serial_port,
-              "interface": args.interface, "passed": False}
+              "interface": args.interface, "bare_board": args.bare_board, "passed": False,
+              "skipped": (["storage persistence"] if args.io else ["file stream stress", "flash conformance", "SD conformance"]) if args.bare_board else []}
     try:
         print(f"Configuring and building {preset} ({args.configuration})...", flush=True)
-        run_logged(["cmake", "--preset", preset, "--fresh", "-B", str(build),
-                    f"-DCMAKE_BUILD_TYPE={args.configuration}",
-                    "-DRUNTIME_STORAGE_ERASE_FLASH_ON_BOOT=OFF"], logs / "configure.log")
+        configuration = ["cmake", "--preset", preset, "--fresh", "-B", str(build),
+                         f"-DCMAKE_BUILD_TYPE={args.configuration}",
+                         "-DRUNTIME_STORAGE_ERASE_FLASH_ON_BOOT=OFF"]
+        if args.bare_board:
+            configuration += ["-DRUNTIME_STORAGE_REQUIRED=OFF"]
+            if not args.io:
+                configuration += ["-DRUNTIME_HARDWARE_SELF_TEST_BARE_BOARD=ON"]
+        run_logged(configuration, logs / "configure.log")
         run_logged(["cmake", "--build", str(build), "--parallel", "8"], logs / "build.log")
         versions = {}
         for tool in ["cmake", "arm-none-eabi-g++", "arm-none-eabi-gdb", "openocd", "python3"]:
@@ -215,7 +227,7 @@ def main():
                 raise RuntimeError(f"OpenOCD did not become ready; see {logs / 'openocd.log'}")
             time.sleep(0.1)
         command_file = logs / "test.gdb"
-        command_file.write_text(debugger_commands(symbol, port, args.io))
+        command_file.write_text(debugger_commands(symbol, port, args.io, args.bare_board))
         print(f"Flashing and running {kind} test (timeout {timeout}s)...", flush=True)
         run_logged(["arm-none-eabi-gdb", "--batch", "--quiet", str(build / "Application.elf"),
                     "-x", str(command_file)], logs / "gdb.log", timeout=timeout)

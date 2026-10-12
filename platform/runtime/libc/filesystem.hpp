@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 namespace runtime::filex
 {
@@ -22,12 +23,12 @@ namespace runtime::filex
     };
 
     [[nodiscard]] auto initialized() noexcept -> bool;
-    [[nodiscard]] auto normalizePath(const char* path, char (&output)[MAXIMUM_PATH]) noexcept -> int;
+    [[nodiscard]] auto normalize_path(const char* path, std::span<char, MAXIMUM_PATH> output) noexcept -> int;
     [[nodiscard]] auto information(const char* path, EntryInformation& result) noexcept -> int;
-    [[nodiscard]] auto availableSpace(std::uint64_t& bytes) noexcept -> int;
-    [[nodiscard]] auto availableSpace(const char* path, std::uint64_t& bytes) noexcept -> int;
-    [[nodiscard]] auto currentPath(char (&output)[MAXIMUM_PATH]) noexcept -> int;
-    [[nodiscard]] auto setCurrentPath(const char* path) noexcept -> int;
+    [[nodiscard]] auto available_space(std::uint64_t& bytes) noexcept -> int;
+    [[nodiscard]] auto available_space(const char* path, std::uint64_t& bytes) noexcept -> int;
+    [[nodiscard]] auto current_path(std::span<char, MAXIMUM_PATH> output) noexcept -> int;
+    [[nodiscard]] auto set_current_path(const char* path) noexcept -> int;
 }
 
 extern "C" void runtime_filex_initialize();

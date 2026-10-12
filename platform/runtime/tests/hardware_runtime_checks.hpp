@@ -63,6 +63,51 @@ namespace runtime::hardware_checks
         return true;
     }
 
+    template<std::size_t Index>
+    struct alignas(64) TlsGrowthProbe
+    {
+        std::uint32_t value{ static_cast<std::uint32_t>(Index + 17U) };
+    };
+
+    template<std::size_t Index>
+    inline thread_local TlsGrowthProbe<Index> tls_growth_probe;
+
+    template<std::size_t... Indices>
+    [[nodiscard]] inline bool exercise_tls_growth(std::index_sequence<Indices...>, std::uint32_t tag)
+    {
+        // Keep the first allocation live while accessing enough independent
+        // TLS objects to force the emutls pointer table to grow more than once.
+        auto* first{ &tls_growth_probe<0> };
+        const bool initialized{ ((tls_growth_probe<Indices>.value == Indices + 17U) && ...) };
+        const bool aligned{ (
+          (reinterpret_cast<std::uintptr_t>(&tls_growth_probe<Indices>) % alignof(TlsGrowthProbe<Indices>) ==
+           0U) &&
+          ...) };
+        ((tls_growth_probe<Indices>.value = tag + Indices), ...);
+        return initialized && aligned && first == &tls_growth_probe<0> &&
+               ((tls_growth_probe<Indices>.value == tag + Indices) && ...);
+    }
+
+    [[nodiscard]] inline bool tls_table_growth()
+    {
+        constexpr auto indices{ std::make_index_sequence<96U>{} };
+        std::array<bool, 3U> passed{};
+        std::array<std::thread, 3U> workers;
+        for (std::size_t index{}; index < workers.size(); ++index) {
+            workers[index] = std::thread{ [&, index] {
+                passed[index] =
+                  exercise_tls_growth(indices, static_cast<std::uint32_t>(1000U * (index + 1U)));
+            } };
+        }
+        for (auto& worker : workers) {
+            worker.join();
+        }
+        bool fresh_thread{};
+        std::thread fresh{ [&] { fresh_thread = exercise_tls_growth(indices, 4000U); } };
+        fresh.join();
+        return passed[0] && passed[1] && passed[2] && fresh_thread;
+    }
+
     [[nodiscard]] inline bool tls_destructor_can_join()
     {
         struct State

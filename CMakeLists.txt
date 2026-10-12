@@ -14,6 +14,7 @@ target_compile_options(project_compiler_settings
 )
 
 option(RUNTIME_HARDWARE_SELF_TEST "Build the board-resident runtime conformance image" OFF)
+option(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD "Skip external storage in the runtime conformance image" OFF)
 option(RUNTIME_HARDWARE_ETHERNET_TEST "Build the Ethernet cable test image" OFF)
 option(RUNTIME_HARDWARE_IO_TEST "Build the serial and reset-persistence test image" OFF)
 option(RUNTIME_HARDWARE_STORAGE_STARTUP_TEST "Build the storage-startup test image" OFF)
@@ -27,6 +28,10 @@ option(RUNTIME_STORAGE_REQUIRED "Require at least one mounted FileX volume at st
 option(RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT
        "Destructively erase the external NOR flash before mounting (recovery only)"
        OFF)
+
+if(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD AND (NOT RUNTIME_HARDWARE_SELF_TEST OR RUNTIME_STORAGE_REQUIRED))
+    message(FATAL_ERROR "Bare-board conformance requires RUNTIME_HARDWARE_SELF_TEST=ON and RUNTIME_STORAGE_REQUIRED=OFF")
+endif()
 
 if((RUNTIME_HARDWARE_SELF_TEST OR RUNTIME_HARDWARE_ETHERNET_TEST OR RUNTIME_HARDWARE_IO_TEST OR RUNTIME_HARDWARE_STORAGE_STARTUP_TEST OR HAL_HARDWARE_STEP_TEST OR HAL_HARDWARE_TMC_TEST OR HAL_HARDWARE_MOTOR_TEST OR HAL_HARDWARE_TMC_STANDALONE_TEST OR HAL_HARDWARE_SPI_TEST OR HAL_HARDWARE_ETHERCAT_SLAVE) AND
    NOT CMAKE_SYSTEM_NAME STREQUAL "Generic")
@@ -177,6 +182,9 @@ elseif(RUNTIME_HARDWARE_IO_TEST)
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_io_test.cpp
     )
 elseif(RUNTIME_HARDWARE_SELF_TEST)
+    if(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD=1)
+    endif()
     target_sources(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/runtime/tests/hardware_self_test.cpp

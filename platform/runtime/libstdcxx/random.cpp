@@ -35,6 +35,8 @@ namespace
     }
 }
 
+// Definitions must match the non-static members declared by libstdc++.
+// NOLINTBEGIN(readability-convert-member-functions-to-static)
 namespace std
 {
     // The bare-metal libstdc++ supplied by the ARM toolchain implements
@@ -52,7 +54,7 @@ namespace std
         validate_token(string_view{ token, length });
     }
 
-    void random_device::_M_fini() { }
+    void random_device::_M_fini() {}
 
     random_device::result_type random_device::_M_getval() { return hardware_random_value(); }
 
@@ -63,3 +65,5 @@ namespace std
         return static_cast<double>(numeric_limits<result_type>::digits);
     }
 }
+
+// NOLINTEND(readability-convert-member-functions-to-static)

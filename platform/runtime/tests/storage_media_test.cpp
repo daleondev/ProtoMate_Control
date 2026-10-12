@@ -6,7 +6,7 @@
 
 namespace
 {
-    using runtime::storage::detail::sd_data_crc_error;
+    using runtime::storage::detail::SD_DATA_CRC_ERROR;
     using runtime::storage::detail::should_retry_sd_mount_in_one_bit;
     using runtime::storage::detail::valid_sector_range;
 }
@@ -27,11 +27,11 @@ TEST(StorageMediaPolicy, ValidatesPartitionOffsetsAndCountsWithoutOverflow)
 
 TEST(StorageMediaPolicy, RetriesOnlyFourBitBootReadsThatFailCrcValidation)
 {
-    EXPECT_TRUE(should_retry_sd_mount_in_one_bit(4U, FX_BOOT_ERROR, sd_data_crc_error));
-    EXPECT_TRUE(should_retry_sd_mount_in_one_bit(4U, FX_BOOT_ERROR, sd_data_crc_error | 0x80U));
+    EXPECT_TRUE(should_retry_sd_mount_in_one_bit(4U, FX_BOOT_ERROR, SD_DATA_CRC_ERROR));
+    EXPECT_TRUE(should_retry_sd_mount_in_one_bit(4U, FX_BOOT_ERROR, SD_DATA_CRC_ERROR | 0x80U));
 
-    EXPECT_FALSE(should_retry_sd_mount_in_one_bit(1U, FX_BOOT_ERROR, sd_data_crc_error));
-    EXPECT_FALSE(should_retry_sd_mount_in_one_bit(4U, FX_SUCCESS, sd_data_crc_error));
-    EXPECT_FALSE(should_retry_sd_mount_in_one_bit(4U, FX_MEDIA_INVALID, sd_data_crc_error));
+    EXPECT_FALSE(should_retry_sd_mount_in_one_bit(1U, FX_BOOT_ERROR, SD_DATA_CRC_ERROR));
+    EXPECT_FALSE(should_retry_sd_mount_in_one_bit(4U, FX_SUCCESS, SD_DATA_CRC_ERROR));
+    EXPECT_FALSE(should_retry_sd_mount_in_one_bit(4U, FX_MEDIA_INVALID, SD_DATA_CRC_ERROR));
     EXPECT_FALSE(should_retry_sd_mount_in_one_bit(4U, FX_BOOT_ERROR, 0U));
 }

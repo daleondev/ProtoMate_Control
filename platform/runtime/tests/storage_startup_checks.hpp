@@ -29,18 +29,26 @@ extern "C" int _utime(const char*, const struct utimbuf*);
 extern "C" int _chdir(const char*);
 extern "C" char* _getcwd(char*, std::size_t);
 
-#define STORAGE_CHECK(expression) do { if (!(expression)) { \
-    std::printf("[storage-check] %s:%d errno=%d: %s\n", __FILE__, __LINE__, errno, #expression); \
-    return __LINE__; } } while (false)
-#define STORAGE_NO_DEVICE(expression) do { errno = 0; STORAGE_CHECK((expression) == -1 && errno == ENODEV); } while (false)
+#define STORAGE_CHECK(expression)                                                                            \
+    do {                                                                                                     \
+        if (!(expression)) {                                                                                 \
+            std::printf("[storage-check] %s:%d errno=%d: %s\n", __FILE__, __LINE__, errno, #expression);     \
+            return __LINE__;                                                                                 \
+        }                                                                                                    \
+    } while (false)
+#define STORAGE_NO_DEVICE(expression)                                                                        \
+    do {                                                                                                     \
+        errno = 0;                                                                                           \
+        STORAGE_CHECK((expression) == -1 && errno == ENODEV);                                                \
+    } while (false)
 
 namespace runtime::tests
 {
     inline auto check_storage_startup_adapters(bool flash, bool sd) -> int
     {
         STORAGE_CHECK(runtime::filex::initialized() == (flash || sd));
-        STORAGE_CHECK(runtime::storage::mounted(runtime::storage::Volume::flash) == flash);
-        STORAGE_CHECK(runtime::storage::mounted(runtime::storage::Volume::sd) == sd);
+        STORAGE_CHECK(runtime::storage::mounted(runtime::storage::Volume::Flash) == flash);
+        STORAGE_CHECK(runtime::storage::mounted(runtime::storage::Volume::Sd) == sd);
         std::array<unsigned char, sizeof(runtime::storage::Diagnostics)> before{};
         std::memcpy(before.data(), &runtime::storage::diagnostics(), before.size());
         runtime_filex_initialize();
@@ -66,7 +74,7 @@ namespace runtime::tests
                 STORAGE_NO_DEVICE(_utime(file.data(), &timestamp));
                 STORAGE_NO_DEVICE(_chdir(mount));
                 std::uint64_t bytes{};
-                STORAGE_CHECK(runtime::filex::availableSpace(mount, bytes) == ENODEV);
+                STORAGE_CHECK(runtime::filex::available_space(mount, bytes) == ENODEV);
                 continue;
             }
             // Refuse existing fixtures; never replace another file.
@@ -93,7 +101,7 @@ namespace runtime::tests
             char path[256]{};
             errno = 0;
             STORAGE_CHECK(_getcwd(path, sizeof(path)) == nullptr && errno == ENODEV);
-            STORAGE_CHECK(runtime::filex::currentPath(path) == ENODEV);
+            STORAGE_CHECK(runtime::filex::current_path(path) == ENODEV);
             STORAGE_NO_DEVICE(_stat("/", &info));
             STORAGE_NO_DEVICE(_open("/", O_RDONLY));
             STORAGE_NO_DEVICE(_read(999, path, 1));
@@ -106,7 +114,7 @@ namespace runtime::tests
         }
         else {
             char path[256]{};
-            STORAGE_CHECK(runtime::filex::currentPath(path) == 0);
+            STORAGE_CHECK(runtime::filex::current_path(path) == 0);
             STORAGE_CHECK(std::strcmp(path, flash ? "/flash" : "/sd") == 0);
         }
         for (int descriptor{}; descriptor <= 2; ++descriptor) {

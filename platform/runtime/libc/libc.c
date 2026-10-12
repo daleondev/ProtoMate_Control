@@ -28,13 +28,12 @@ void runtime_libc_initialize(void)
  * C++ constructors run before tx_kernel_enter(). Make pre-main allocation
  * use Newlib's global state instead of passing a null reentrancy pointer into
  * malloc. The lock hooks below already treat this phase as single-threaded. */
-static void runtime_libc_preinitialize(void)
-{
-    _impure_ptr = &_impure_data;
-}
+static void runtime_libc_preinitialize(void) { _impure_ptr = &_impure_data; }
 
 __attribute__((used, section(".preinit_array")))
-static void (*const runtime_libc_preinitializer)(void) = runtime_libc_preinitialize;
+// The linker retains this immutable function pointer in .preinit_array.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static void (*const RUNTIME_LIBC_PREINITIALIZER)(void) = runtime_libc_preinitialize;
 
 /* Newlib deliberately keeps this type opaque, allowing the target to store
  * its native lock directly in each static and dynamically allocated object. */
@@ -46,8 +45,10 @@ struct __lock
     bool allocated;
     bool dynamic;
 };
-typedef struct __lock __lock_t;
+typedef struct __lock runtime_lock_t;
 
+// Newlib C hooks share these mutable ThreadX locks; ThreadX retains writable name pointers.
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 static CHAR arc4random_mutex_name[] = "Newlib arc4random";
 static CHAR at_quick_exit_mutex_name[] = "Newlib quick exit";
 static CHAR atexit_mutex_name[] = "Newlib atexit";
@@ -59,10 +60,11 @@ static CHAR tz_mutex_name[] = "Newlib timezone";
 static CHAR dynamic_mutex_name[] = "Newlib dynamic";
 static CHAR dynamic_pool_mutex_name[] = "Newlib lock pool";
 
-static __lock_t* dynamic_locks;
+static runtime_lock_t* dynamic_locks;
 static TX_MUTEX dynamic_pool_mutex;
 static bool libc_locks_ready;
 
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 static _Noreturn void libc_lock_failure(void)
 {
     Error_Handler();
@@ -137,22 +139,25 @@ static void release_libc_lock(_LOCK_T lock)
 /* These are the lock sentinels exported by Newlib's default lock object.
  * Providing them here keeps that object (and its no-op lock functions) out of
  * the link while preserving the ABI expected by the rest of Newlib. */
-__lock_t __lock___arc4random_mutex;
-__lock_t __lock___at_quick_exit_mutex;
-__lock_t __lock___atexit_recursive_mutex;
-__lock_t __lock___dd_hash_mutex;
-__lock_t __lock___env_recursive_mutex;
-__lock_t __lock___malloc_recursive_mutex;
-__lock_t __lock___sfp_recursive_mutex;
-__lock_t __lock___tz_mutex;
+// These mutable lock sentinels and their symbol names are fixed by Newlib.
+// NOLINTBEGIN(bugprone-reserved-identifier,cppcoreguidelines-avoid-non-const-global-variables)
+runtime_lock_t __lock___arc4random_mutex;
+runtime_lock_t __lock___at_quick_exit_mutex;
+runtime_lock_t __lock___atexit_recursive_mutex;
+runtime_lock_t __lock___dd_hash_mutex;
+runtime_lock_t __lock___env_recursive_mutex;
+runtime_lock_t __lock___malloc_recursive_mutex;
+runtime_lock_t __lock___sfp_recursive_mutex;
+runtime_lock_t __lock___tz_mutex;
 
+// NOLINTEND(bugprone-reserved-identifier,cppcoreguidelines-avoid-non-const-global-variables)
 typedef struct
 {
-    __lock_t* lock;
+    runtime_lock_t* lock;
     CHAR* name;
 } static_lock_definition_t;
 
-static int create_lock(__lock_t* lock, CHAR* name)
+static int create_lock(runtime_lock_t* lock, CHAR* name)
 {
     if (tx_mutex_create(&lock->mutex, name, TX_INHERIT) != TX_SUCCESS) {
         return 1;
@@ -185,7 +190,7 @@ void runtime_libc_initialize(void)
         }
     }
 
-    for (__lock_t* lock = dynamic_locks; lock != NULL; lock = lock->next) {
+    for (runtime_lock_t* lock = dynamic_locks; lock != NULL; lock = lock->next) {
         if (create_lock(lock, dynamic_mutex_name) != 0) {
             libc_lock_failure();
         }
@@ -220,7 +225,7 @@ void __retarget_lock_init(_LOCK_T* lock)
 
     lock_dynamic_pool();
 
-    for (__lock_t* candidate = dynamic_locks; candidate != NULL; candidate = candidate->next) {
+    for (runtime_lock_t* candidate = dynamic_locks; candidate != NULL; candidate = candidate->next) {
         if (!candidate->allocated) {
             candidate->allocated = true;
             *lock = candidate;
@@ -229,7 +234,7 @@ void __retarget_lock_init(_LOCK_T* lock)
         }
     }
 
-    __lock_t* const created_lock = (__lock_t*)calloc(1U, sizeof(*created_lock));
+    runtime_lock_t* const created_lock = (runtime_lock_t*)calloc(1U, sizeof(*created_lock));
     if (created_lock != NULL) {
         created_lock->allocated = true;
         created_lock->dynamic = true;
@@ -259,7 +264,7 @@ void __retarget_lock_close(_LOCK_T lock)
     }
 
     lock_dynamic_pool();
-    for (__lock_t* candidate = dynamic_locks; candidate != NULL; candidate = candidate->next) {
+    for (runtime_lock_t* candidate = dynamic_locks; candidate != NULL; candidate = candidate->next) {
         if (lock == candidate && candidate->dynamic) {
             candidate->allocated = false;
             unlock_dynamic_pool();
@@ -304,12 +309,16 @@ void runtime_libc_thread_delete(TX_THREAD* thread_ptr)
     _reclaim_reent(&thread_ptr->tx_thread_libc_reent);
 }
 
+// ThreadX execution-change ABI entry point.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 void _tx_execution_initialize(void)
 {
     _impure_ptr = &_impure_data;
     runtime_cpu_clock_initialize();
 }
 
+// ThreadX execution-change ABI entry point.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 void _tx_execution_thread_enter(void)
 {
     if (_tx_thread_current_ptr == TX_NULL) {
@@ -321,6 +330,8 @@ void _tx_execution_thread_enter(void)
     }
 }
 
+// ThreadX execution-change ABI entry point.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 void _tx_execution_thread_exit(void)
 {
     runtime_cpu_clock_thread_exit();
@@ -329,8 +340,12 @@ void _tx_execution_thread_exit(void)
 
 /* The 1 kHz SysTick samples even when a thread runs uninterrupted or the
  * scheduler stays idle, extending DWT's 32-bit cycle counter across wraps. */
+// ThreadX execution-change ABI entry point.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 void _tx_execution_isr_enter(void) { runtime_cpu_clock_sample(); }
 
+// ThreadX execution-change ABI entry point.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 void _tx_execution_isr_exit(void) { runtime_cpu_clock_sample(); }
 
 #endif

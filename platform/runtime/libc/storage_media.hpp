@@ -8,8 +8,8 @@ namespace runtime::storage
 {
     enum class Volume : std::uint8_t
     {
-        flash,
-        sd,
+        Flash,
+        Sd,
     };
 
     struct Diagnostics

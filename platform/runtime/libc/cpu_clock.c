@@ -6,13 +6,18 @@
 #include <sys/times.h>
 #include <time.h>
 
+// C hooks share this counter; every read/update is protected by PRIMASK.
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 static runtime_cpu_clock_counter counter;
 static uint32_t counter_frequency;
 
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 void runtime_cpu_clock_initialize(void)
 {
     const uint32_t posture = __get_PRIMASK();
     __disable_irq();
+    // CMSIS intentionally addresses memory-mapped registers.
+    // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
     counter = (runtime_cpu_clock_counter){ .last_cycle = DWT->CYCCNT };
@@ -24,6 +29,8 @@ static void set_running(bool running)
 {
     const uint32_t posture = __get_PRIMASK();
     __disable_irq();
+    // CMSIS intentionally addresses memory-mapped registers.
+    // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
     runtime_cpu_clock_update(&counter, DWT->CYCCNT);
     counter.running = running;
     __set_PRIMASK(posture);
@@ -36,10 +43,14 @@ void runtime_cpu_clock_sample(void)
 {
     const uint32_t posture = __get_PRIMASK();
     __disable_irq();
+    // CMSIS intentionally addresses memory-mapped registers.
+    // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
     runtime_cpu_clock_update(&counter, DWT->CYCCNT);
     __set_PRIMASK(posture);
 }
 
+// Newlib syscall ABI.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 clock_t _times(struct tms* value)
 {
     if (value == NULL) {
@@ -49,6 +60,8 @@ clock_t _times(struct tms* value)
 
     const uint32_t posture = __get_PRIMASK();
     __disable_irq();
+    // CMSIS intentionally addresses memory-mapped registers.
+    // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
     runtime_cpu_clock_update(&counter, DWT->CYCCNT);
     const runtime_cpu_clock_counter snapshot = counter;
     const uint32_t frequency = counter_frequency;

@@ -7,13 +7,19 @@
 
 #include <cxxabi.h>
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <new>
 
+// Compiler TLS ABI: linker symbols, tagged union, and raw blocks owned by ThreadX.
+// Allocation failures terminate before scheduler state can be exposed partially initialized.
+// NOLINTBEGIN(bugprone-reserved-identifier,cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory,cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr,cppcoreguidelines-pro-type-union-access,cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 extern "C" {
 extern std::byte __tdata_source[];
 extern std::byte __tls_base[];
@@ -25,6 +31,8 @@ extern std::byte __arm32_tls_tcb_offset;
 
 namespace
 {
+    constexpr std::size_t EMUTLS_GROWTH_SLOTS{ 32U };
+    constexpr std::size_t EXCEPTION_GLOBAL_WORDS{ 3U };
     struct ThreadLocalDestructor
     {
         void (*function)(void*);
@@ -41,25 +49,28 @@ namespace
     {
         std::uintptr_t size;
         std::uintptr_t alignment;
-        union
-        {
+        union {
             std::uintptr_t offset;
             void* pointer;
         } location;
         const void* initializer;
     };
 
+    // The dynamically sized pointer table is owned by unique_ptr<T[]>; its size is runtime-defined.
     struct EmutlsArray
     {
         std::size_t capacity;
-        void* entries[1];
+        std::unique_ptr<void*[]> entries;
     };
 
     static_assert(sizeof(EmutlsObject) == 4U * sizeof(std::uintptr_t));
 
+    // Pre-scheduler TLS state; emutls ID assignment is protected by PRIMASK.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
     ThreadLocalDestructor* startup_destructors{};
     void* startup_emutls{};
     std::uintptr_t emutls_object_count{};
+    // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
     [[nodiscard]] auto linker_value(const std::byte& symbol) noexcept -> std::size_t
     {
@@ -98,49 +109,47 @@ namespace
         }
     }
 
-    [[nodiscard]] auto emutls_array_size(std::size_t capacity) noexcept -> std::size_t
+    [[nodiscard]] auto allocate_emutls_entries(std::size_t capacity) noexcept -> std::unique_ptr<void*[]>
     {
-        if (capacity == 0U ||
-            capacity - 1U >
-              (std::numeric_limits<std::size_t>::max() - sizeof(EmutlsArray)) / sizeof(void*)) {
+        if (capacity == 0U || capacity > std::numeric_limits<std::size_t>::max() / sizeof(void*)) {
             tls_failure();
         }
-        return sizeof(EmutlsArray) + (capacity - 1U) * sizeof(void*);
+        std::unique_ptr<void*[]> entries{ new (std::nothrow) void*[capacity]{} };
+        if (!entries) {
+            tls_failure();
+        }
+        return entries;
     }
 
     [[nodiscard]] auto allocate_emutls_array(std::size_t capacity) noexcept -> EmutlsArray*
     {
-        auto* const array{ static_cast<EmutlsArray*>(std::calloc(1U, emutls_array_size(capacity))) };
-        if (array == nullptr) {
+        // The ThreadX extension owns this header until destroy_emutls().
+        auto array{ std::unique_ptr<EmutlsArray>{ new (std::nothrow) EmutlsArray{} } };
+        if (!array) {
             tls_failure();
         }
+        array->entries = allocate_emutls_entries(capacity);
         array->capacity = capacity;
-        return array;
+        return array.release();
     }
 
     [[nodiscard]] auto grow_emutls_array(EmutlsArray* array, std::size_t offset) noexcept -> EmutlsArray*
     {
         const std::size_t old_capacity{ array->capacity };
-        std::size_t new_capacity{
-            old_capacity <= std::numeric_limits<std::size_t>::max() / 2U ? old_capacity * 2U : offset
-        };
+        std::size_t new_capacity{ old_capacity <= std::numeric_limits<std::size_t>::max() / 2U
+                                    ? old_capacity * 2U
+                                    : offset };
         if (new_capacity < offset) {
-            if (offset > std::numeric_limits<std::size_t>::max() - 32U) {
+            if (offset > std::numeric_limits<std::size_t>::max() - EMUTLS_GROWTH_SLOTS) {
                 tls_failure();
             }
-            new_capacity = offset + 32U;
+            new_capacity = offset + EMUTLS_GROWTH_SLOTS;
         }
-
-        auto* const grown{ static_cast<EmutlsArray*>(
-          std::realloc(array, emutls_array_size(new_capacity))) };
-        if (grown == nullptr) {
-            tls_failure();
-        }
-        std::memset(grown->entries + old_capacity,
-                    0,
-                    (new_capacity - old_capacity) * sizeof(void*));
-        grown->capacity = new_capacity;
-        return grown;
+        auto entries{ allocate_emutls_entries(new_capacity) };
+        std::copy_n(array->entries.get(), old_capacity, entries.get());
+        array->entries = std::move(entries);
+        array->capacity = new_capacity;
+        return array;
     }
 
     [[nodiscard]] auto allocate_emutls_object(const EmutlsObject& object) noexcept -> void*
@@ -173,7 +182,7 @@ namespace
 
     auto destroy_emutls(void*& storage) noexcept -> void
     {
-        auto* const array{ static_cast<EmutlsArray*>(storage) };
+        const std::unique_ptr<EmutlsArray> array{ static_cast<EmutlsArray*>(storage) };
         if (array == nullptr) {
             return;
         }
@@ -182,7 +191,6 @@ namespace
                 std::free(static_cast<void**>(array->entries[index])[-1]);
             }
         }
-        std::free(array);
         storage = nullptr;
     }
 
@@ -211,8 +219,11 @@ namespace
         return offset;
     }
 
-    alignas(void*) thread_local std::byte exception_globals_storage[3U * sizeof(void*)]{};
-    static_assert(sizeof(exception_globals_storage) == 12U);
+    using ExceptionGlobals = std::array<std::byte, EXCEPTION_GLOBAL_WORDS * sizeof(void*)>;
+    // Each thread owns this compiler exception ABI storage.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    alignas(void*) thread_local ExceptionGlobals exception_globals_storage{};
+    static_assert(sizeof(exception_globals_storage) == EXCEPTION_GLOBAL_WORDS * sizeof(std::uintptr_t));
 }
 
 extern "C" [[gnu::noinline]] auto runtime_tls_read_thread_pointer() noexcept -> void*
@@ -268,7 +279,7 @@ extern "C" auto runtime_tls_thread_create(TX_THREAD* thread) noexcept -> void
     thread->tx_thread_runtime_tls_block = pointer;
     thread->tx_thread_runtime_tls_destructors = nullptr;
     thread->tx_thread_runtime_emutls = nullptr;
-    initialize_tls_data(tls_data(pointer), __tdata_source);
+    initialize_tls_data(tls_data(pointer), &__tdata_source[0]);
 }
 
 extern "C" auto runtime_tls_adopt_startup(TX_THREAD* thread) noexcept -> void
@@ -326,8 +337,10 @@ extern "C" auto runtime_tls_thread_delete(TX_THREAD* thread) noexcept -> void
     destroy_emutls(thread->tx_thread_runtime_emutls);
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wbuiltin-declaration-mismatch"
+#endif
 extern "C" auto __emutls_get_address(void* object_pointer) noexcept -> void*
 {
     if (object_pointer == nullptr) {
@@ -338,10 +351,10 @@ extern "C" auto __emutls_get_address(void* object_pointer) noexcept -> void*
     void** const storage{ current_emutls_storage() };
     auto* array{ static_cast<EmutlsArray*>(*storage) };
     if (array == nullptr) {
-        if (offset > std::numeric_limits<std::size_t>::max() - 32U) {
+        if (offset > std::numeric_limits<std::size_t>::max() - EMUTLS_GROWTH_SLOTS) {
             tls_failure();
         }
-        array = allocate_emutls_array(static_cast<std::size_t>(offset) + 32U);
+        array = allocate_emutls_array(static_cast<std::size_t>(offset) + EMUTLS_GROWTH_SLOTS);
         *storage = array;
     }
     else if (offset > array->capacity) {
@@ -356,10 +369,12 @@ extern "C" auto __emutls_get_address(void* object_pointer) noexcept -> void*
     return result;
 }
 
+// Parameter order is prescribed by the compiler ABI.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 extern "C" auto __emutls_register_common(void* object_pointer,
-                                           std::uintptr_t size,
-                                           std::uintptr_t alignment,
-                                           void* initializer) noexcept -> void
+                                         std::uintptr_t size,
+                                         std::uintptr_t alignment,
+                                         void* initializer) noexcept -> void
 {
     if (object_pointer == nullptr) {
         tls_failure();
@@ -370,17 +385,20 @@ extern "C" auto __emutls_register_common(void* object_pointer,
         object.size = size;
         object.initializer = nullptr;
     }
-    if (object.alignment < alignment) {
-        object.alignment = alignment;
-    }
+    object.alignment = std::max(object.alignment, alignment);
     if (initializer != nullptr && size == object.size) {
         object.initializer = initializer;
     }
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 
 namespace __cxxabiv1
 {
+    // Parameter order is prescribed by the compiler ABI.
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     extern "C" auto __cxa_thread_atexit(void (*destructor)(void*), void* object, void* dso_handle) noexcept
       -> int
     {
@@ -405,13 +423,15 @@ namespace __cxxabiv1
 
     extern "C" auto __cxa_get_globals() noexcept -> __cxa_eh_globals*
     {
-        return reinterpret_cast<__cxa_eh_globals*>(exception_globals_storage);
+        return reinterpret_cast<__cxa_eh_globals*>(exception_globals_storage.data());
     }
 
     extern "C" auto __cxa_get_globals_fast() noexcept -> __cxa_eh_globals*
     {
-        return reinterpret_cast<__cxa_eh_globals*>(exception_globals_storage);
+        return reinterpret_cast<__cxa_eh_globals*>(exception_globals_storage.data());
     }
 }
+
+// NOLINTEND(bugprone-reserved-identifier,cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory,cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr,cppcoreguidelines-pro-type-union-access,cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
 #endif

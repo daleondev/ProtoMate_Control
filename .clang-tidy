@@ -14,8 +14,8 @@ Checks: >
   -cppcoreguidelines-pro-bounds-constant-array-index
 
 WarningsAsErrors: "*"
-HeaderFilterRegex: ".*/(src|platform/hal)/.*"
-ExcludeHeaderFilterRegex: "(^|/)(test|tests)/"
+HeaderFilterRegex: ".*/(src|platform/hal|platform/runtime)/.*"
+ExcludeHeaderFilterRegex: "(^|/)(test|tests|vendor)/"
 CheckOptions:
   # Count application control flow, not GoogleTest/assertion macro internals.
   - key: readability-function-cognitive-complexity.IgnoreMacros

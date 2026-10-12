@@ -18,7 +18,7 @@ namespace runtime::thread
         {
           public:
             explicit PendingAttributesScope(const Attributes& attributes) noexcept
-              : m_previous_attributes{ consume_attributes() }
+              : m_previousAttributes{ consume_attributes() }
             {
                 publish_attributes(attributes);
             }
@@ -33,13 +33,13 @@ namespace runtime::thread
                 // Clear attributes that were not consumed because construction
                 // failed, then restore an enclosing/manual publication.
                 static_cast<void>(consume_attributes());
-                if (m_previous_attributes.has_value()) {
-                    publish_attributes(*m_previous_attributes);
+                if (m_previousAttributes.has_value()) {
+                    publish_attributes(*m_previousAttributes);
                 }
             }
 
           private:
-            std::optional<Attributes> m_previous_attributes;
+            std::optional<Attributes> m_previousAttributes;
         };
 
         template<typename Callable, typename... Arguments>

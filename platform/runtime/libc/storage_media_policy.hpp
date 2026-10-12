@@ -6,7 +6,7 @@
 
 namespace runtime::storage::detail
 {
-    inline constexpr std::uint32_t sd_data_crc_error{ 0x0000'0002U };
+    inline constexpr std::uint32_t SD_DATA_CRC_ERROR{ 0x0000'0002U };
 
     [[nodiscard]] constexpr auto valid_sector_range(std::uint64_t sector,
                                                     std::uint64_t hidden_sectors,
@@ -23,6 +23,6 @@ namespace runtime::storage::detail
                                                                   UINT filex_status,
                                                                   std::uint32_t sd_error) noexcept -> bool
     {
-        return bus_width == 4U && filex_status == FX_BOOT_ERROR && (sd_error & sd_data_crc_error) != 0U;
+        return bus_width == 4U && filex_status == FX_BOOT_ERROR && (sd_error & SD_DATA_CRC_ERROR) != 0U;
     }
 }

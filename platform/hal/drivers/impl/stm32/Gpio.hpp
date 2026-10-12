@@ -24,6 +24,10 @@ namespace hal
         [[nodiscard]] auto read() const noexcept -> gpio::Level override;
         auto setEdgeCallback(EdgeCallback callback) noexcept -> void override;
 
+        // Startup only, before any GPIO owner exists and with interrupts masked.
+        // This explicit dependency also keeps the EXTI vectors in minimal firmware.
+        static auto initializeInterrupts() noexcept -> void;
+
         [[nodiscard]] static auto interruptLineAvailable(gpio::Pin pin) noexcept -> bool;
         static auto dispatchEdge(std::uint16_t pin_mask) noexcept -> void;
 

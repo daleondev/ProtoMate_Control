@@ -91,11 +91,12 @@ LeakSanitizer needs permission to inspect process threads; run these tests outsi
 a ptrace-restricted sandbox. These checks exercise simulated
 hardware; STM32-specific register behavior still uses the isolated HAL tests.
 
-## Application and HAL linting
+## Application, HAL and runtime linting
 
 Run the configured readability, naming, bug-prone, modernization, performance,
-static-analyzer and Core Guidelines checks on production code in **`src/` and
-`platform/hal/`**, including both Linux and STM32 implementations, with:
+static-analyzer and Core Guidelines checks on production code in **`src/`,
+`platform/hal/` and `platform/runtime/`**, including both Linux and STM32
+implementations, with:
 
 ```sh
 cmake --preset debug-linux
@@ -125,18 +126,22 @@ are copied into the report directory. Firmware build flags,
 dependency declarations and application sources are not rewritten.
 
 The runner configures a private STM32 CMake directory under
-`<build-directory>/clang-tidy/configurations/stm32/` to obtain the HAL's actual
-includes and definitions without building or flashing anything. Separate analysis
+`<build-directory>/clang-tidy/configurations/stm32/` to obtain the HAL and runtime's
+actual includes and definitions without building or flashing anything. Separate analysis
 databases preserve Linux and STM32 contexts for shared sources. Every production
-HAL C/C++ source must have a compilation command; setup fails if a newly added
-file is missing from these configurations.
+HAL/runtime C/C++ source must have a compilation command; setup fails if a newly
+added file is missing from these configurations. Runtime C sources use Clang's C
+driver without C++ reflection flags. The shared `runtime/startup.cpp` hook uses
+the main `Application` target's configuration, excluding its duplicate test and
+example compilation commands.
 
 All `test/` and `tests/` directories, including unit tests, test helpers, model
 tests and hardware bench programs, are excluded from source selection, header
 diagnostics and reports. No test configurations are prepared for linting.
-`platform/runtime/` and external dependencies are also excluded. Their real
-headers are still parsed when required by a production source. Static analysis
-does not replace GCC builds or hardware tests.
+External dependencies and copied sources in `vendor/` directories, including the
+runtime's GCC source snapshot, are also excluded. Their real headers are still
+parsed when required by a production source. Static analysis does not replace GCC
+builds or hardware tests.
 
 The runner generates `reflection-include/` from the pinned Clang `<meta>` and
 consteval-type-trait headers. Only their library includes, namespace wrappers and
@@ -164,8 +169,8 @@ clang-tidy check filters. See the [clang-tidy documentation](https://clang.llvm.
 
 Reports are saved separately in `<build-directory>/clang-tidy/`:
 
-- `findings.txt`: deduplicated `src/` and `platform/hal/` diagnostics from fully
-  parsed files.
+- `findings.txt`: deduplicated `src/`, `platform/hal/` and `platform/runtime/`
+  diagnostics from fully parsed files.
 - `partial-findings.txt`: review-only diagnostics if clang-tidy fails to parse
   a file; normally empty.
 - `summary.txt` and `report.json`: coverage, blocked files and their errors.
@@ -187,8 +192,8 @@ python3 scripts/clang_tidy.py --build-dir build/debug-linux --strict
 The naming rules live in `.clang-tidy`. Clang 21 uses `GlobalConstant` for global
 constants including constexpr, and `PublicMember` for public fields including
 ordinary struct fields. `tooling.clang_tidy` tests diagnostic classification,
-source and test filtering, HAL inventory, target contexts and failure handling
-without Docker.
+source/test/vendor filtering, HAL/runtime inventory, C/C++ commands, target contexts
+and failure handling without Docker.
 
 Cognitive-complexity checks count application control flow, excluding macro
 expansions. Compiler-generated coroutine diagnostics have narrowly named,
@@ -950,6 +955,12 @@ fabrication outputs are supplied.
 Hardware startup continues without readable storage by default; file access
 then fails with `ENODEV`. Full hardware conformance requires both the W25Q128 NOR module and an existing FAT SD card;
 the reference SD self-test expects a card of at least 8 GiB.
+
+For a Nucleo without peripherals, run `python3 scripts/hardware_self_test.py --bare-board`
+(add `--configuration Release` for the optimized build). It runs eight runtime/HAL phases,
+including UART contention and internal Ethernet loopback, and explicitly skips external
+flash, SD and file-stream stress. No Ethernet cable is required.
+Use `--io --bare-board` for CR/LF/CRLF serial-input tests without storage-persistence checks.
 
 | Device signal | STM32 pin |
 | --- | --- |

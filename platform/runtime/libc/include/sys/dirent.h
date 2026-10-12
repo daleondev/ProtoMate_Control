@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+// C-compatible POSIX ABI: preserve the required names, macros and dirent layout.
+// NOLINTBEGIN(readability-identifier-naming,cppcoreguidelines-macro-usage,modernize-use-using,cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,4 +33,5 @@ typedef struct runtime_filex_directory_stream DIR;
 }
 #endif
 
+// NOLINTEND(readability-identifier-naming,cppcoreguidelines-macro-usage,modernize-use-using,cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 #endif

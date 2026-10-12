@@ -3,6 +3,9 @@
 
 #include <sys/types.h>
 
+// POSIX requires the statvfs tag spelling.
+// NOLINTBEGIN(readability-identifier-naming)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,4 +31,5 @@ int statvfs(const char* path, struct statvfs* value);
 }
 #endif
 
+// NOLINTEND(readability-identifier-naming)
 #endif

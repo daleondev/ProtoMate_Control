@@ -239,9 +239,8 @@ namespace runtime
                     if (written == output.size()) {
                         return std::nullopt;
                     }
-                    output[written++] = capitalize_next
-                                          ? static_cast<char>(std::toupper(static_cast<unsigned char>(c)))
-                                          : c;
+                    output[written++] =
+                      capitalize_next ? static_cast<char>(std::toupper(static_cast<unsigned char>(c))) : c;
                     capitalize_next = false;
                 }
 
@@ -832,14 +831,13 @@ namespace runtime
                                                 static_cast<unsigned long>(number)));
             }
             else {
-                std::array<char, sizeof(control->name)> convert_buff;
+                std::array<char, sizeof(control->name)> convert_buff{};
                 auto converted_name{ snake_to_camel(attributes.name, convert_buff).value_or("Unknown") };
-                static_cast<void>(
-                  std::snprintf(control->name,
-                                sizeof(control->name),
-                                "%.*s Thread",
-                                static_cast<int>(converted_name.size()),
-                                converted_name.data()));
+                static_cast<void>(std::snprintf(control->name,
+                                                sizeof(control->name),
+                                                "%.*s Thread",
+                                                static_cast<int>(converted_name.size()),
+                                                converted_name.data()));
             }
 
             if (tx_mutex_create(&control->lifecycle_mutex, lifecycle_mutex_name, TX_INHERIT) != TX_SUCCESS) {

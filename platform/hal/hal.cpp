@@ -3,11 +3,12 @@
 #include "hal.hpp"
 
 #include <cstdint>
-#include <initializer_list>
 
 #if defined(HAL_PLATFORM_STM32)
+#include "hal/drivers/impl/stm32/Gpio.hpp"
 #include "hal/drivers/impl/stm32/QuadratureEncoder.hpp"
 #include "hal/stm32/FaultShutdown.hpp"
+#include "hal/stm32/InterruptGuard.hpp"
 // ThreadX waits for work inside the lowest-priority PendSV handler. Its idle
 // loop can only be interrupted by a strictly higher-priority HAL timebase.
 static_assert(TICK_INT_PRIORITY < (1UL << __NVIC_PRIO_BITS) - 1UL,
@@ -44,13 +45,20 @@ namespace hal
 
         SystemClock_Config();
 
+#if defined(HAL_PLATFORM_STM32)
+        {
+            // CubeMX enables EXTI during pin setup. Keep startup edges from
+            // dispatching until unclaimed lines are masked and cleared.
+            const stm32::InterruptGuard guard;
+            MX_GPIO_Init();
+            GpioInput::initializeInterrupts();
+        }
+#else
         MX_GPIO_Init();
+#endif
 #if defined(HAL_HARDWARE_SPI_TEST)
         // Bare Nucleo + ESC bench: no motor timers/UART, Ethernet or storage.
-        // Keep the generated EN_N high. Unconnected motor inputs must not IRQ.
-        for (const auto irq :
-             { EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn, EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn })
-            HAL_NVIC_DisableIRQ(irq);
+        // Keep the generated EN_N high. Unclaimed EXTI lines remain masked.
         MX_RTC_Init();
 #else
         MX_DMA_Init();

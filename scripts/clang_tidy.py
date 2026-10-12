@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lint production src/ and platform/hal/ code with Pneumo's reflection compiler.
+"""Lint production src/, platform/hal/ and platform/runtime/ code with Pneumo's compiler.
 
 Each source runs directly through clang-tidy; its raw output goes to the console.
 Parallel runs keep each file's output together. Reports are saved separately.
@@ -26,18 +26,20 @@ ROOT = Path(__file__).resolve().parents[1]
 IMAGE = ("ghcr.io/daleondev/pneumo-devcontainer@"
          "sha256:1c10d580f47f4fa402da038896027629ded2d94de4ddd0f382f8a63830fae3e7")
 COMPILER = "/opt/clang-p2996/bin/clang++"
+C_COMPILER = "/opt/clang-p2996/bin/clang"
 TIDY = "/opt/clang-p2996/bin/clang-tidy"
 REFLECTION_HEADERS = Path("/opt/clang-p2996/include/c++/v1")
 DIAGNOSTIC = re.compile(
     r"^(.+?):(\d+):(\d+): (?:warning|error|fatal error): (.*?) \[([^\]]+)\]$", re.MULTILINE)
 OUTPUT_LOCK = Lock()
-SOURCE_ROOTS = (ROOT / "src", ROOT / "platform/hal")
-EXCLUDED_HEADERS = r"(^|/)(test|tests)/"
+SOURCE_ROOTS = (ROOT / "src", ROOT / "platform/hal", ROOT / "platform/runtime")
+EXCLUDED_DIRECTORIES = ("test", "tests", "vendor")
+EXCLUDED_HEADERS = r"(^|/)(" + "|".join(EXCLUDED_DIRECTORIES) + r")/"
 
 
 def in_scope(source):
     return any(source.is_relative_to(directory) and
-               not {"test", "tests"}.intersection(source.relative_to(directory).parts[:-1])
+               not set(EXCLUDED_DIRECTORIES).intersection(source.relative_to(directory).parts[:-1])
                for directory in SOURCE_ROOTS)
 
 
@@ -129,18 +131,33 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
             source = source_file(entry)
             if not in_scope(source):
                 continue
-            if context != "linux" and not source.is_relative_to(ROOT / "platform/hal"):
+            if context != "linux" and not any(source.is_relative_to(ROOT / directory)
+                                              for directory in ("platform/hal", "platform/runtime")):
                 continue
             arguments = entry.get("arguments") or shlex.split(entry["command"])
+            # runtime_attach also compiles this hook into tests and examples.
+            # Analyze its actual Application configuration once per platform.
+            if source == ROOT / "platform/runtime/startup.cpp":
+                object_file = entry.get("output")
+                if object_file is None and "-o" in arguments:
+                    object_file = arguments[arguments.index("-o") + 1]
+                if object_file is None:
+                    raise ValueError("Runtime startup command has no output; cannot identify Application")
+                relative_output = os.path.relpath(Path(entry["directory"]) / object_file, directory)
+                if not relative_output.startswith("CMakeFiles/Application.dir/"):
+                    continue
             arm = any(arg.startswith("-mcpu=") for arg in arguments)
+            cxx = source.suffix != ".c"
             if arm and not arm_includes:
                 raise ValueError("Arm compilation commands require the cross-compiler's headers")
-            target = (["--target=arm-none-eabi", "-nostdinc++"] if arm else ["-stdlib=libstdc++"])
+            target = ["--target=arm-none-eabi"] if arm else []
+            if cxx:
+                target.append("-nostdinc++" if arm else "-stdlib=libstdc++")
             includes = arm_includes if arm else [output / "system-include"]
             for include in includes:
                 target.extend(["-isystem", str(include)])
             commands.append({"directory": entry["directory"], "file": str(source), "arguments": [
-                COMPILER, "-fexpansion-statements", "-fannotation-attributes",
+                *([COMPILER, "-fexpansion-statements", "-fannotation-attributes"] if cxx else [C_COMPILER]),
                 "-isystem", str(output / "reflection-include"), "-Wno-c23-extensions",
                 *target, *arguments[1:]]})
         if len({item["file"] for item in commands}) != len(commands):
@@ -150,15 +167,16 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
         (database / "compile_commands.json").write_text(json.dumps(commands, indent=2) + "\n")
         selected.extend({**command, "context": context, "database": str(database)} for command in commands)
     if not selected:
-        raise ValueError("No src/ or platform/hal/ sources found; configure the debug-linux preset first")
+        raise ValueError("No application, HAL or runtime sources found; configure the debug-linux preset first")
     # An explicit inventory prevents new platform-only files from silently
     # falling outside the selected build configurations.
     if extra_databases:
-        expected = {source.resolve() for source in (ROOT / "platform/hal").rglob("*")
+        expected = {source.resolve() for directory in ("platform/hal", "platform/runtime")
+                    for source in (ROOT / directory).rglob("*")
                     if source.suffix in (".cpp", ".cc", ".c", ".cxx") and in_scope(source.resolve())}
         missing = expected - {Path(item["file"]) for item in selected}
         if missing:
-            raise ValueError("HAL sources missing compilation commands: " + ", ".join(
+            raise ValueError("HAL/runtime sources missing compilation commands: " + ", ".join(
                 str(source.relative_to(ROOT)) for source in sorted(missing)))
     (output / "analysis.json").write_text(json.dumps(selected, indent=2) + "\n")
     # Older versions wrote one host-only database here. Keep editors and manual
@@ -280,7 +298,7 @@ def run_inside(args):
     failures = [report for report in reports if report["status"] == "tool-failure"]
     summary = (f"Clang-tidy: {len(parsed)}/{len(reports)} translation units fully parsed; "
                f"{len(blocked)} blocked; {len(failures)} tool failures.\n"
-               f"{len(findings)} unique src/ and platform/hal/ findings in fully parsed units.\n"
+               f"{len(findings)} unique src/, platform/hal/ and platform/runtime/ findings in fully parsed units.\n"
                f"{len(partial)} additional diagnostics from blocked units (review only).\n"
                f"Coverage: {'PARTIAL' if blocked or failures else 'COMPLETE'}. "
                f"Mode: {'strict' if args.strict else 'partial coverage accepted'}.\n")
@@ -290,7 +308,7 @@ def run_inside(args):
     (args.output / "report.json").write_text(json.dumps({"image": IMAGE, "compiler": version,
         "standard_library": "libstdc++", "reflection_headers": "Clang/P2996; adapted includes and namespaces",
         "scope": [str(directory.relative_to(ROOT)) for directory in SOURCE_ROOTS],
-        "excluded_directories": ["test", "tests"],
+        "excluded_directories": list(EXCLUDED_DIRECTORIES),
         "coverage": "partial" if blocked or failures else "complete",
         "findings": findings, "partial_findings": list(partial.values()), "files": reports}, indent=2) + "\n")
     return exit_status(reports, findings, args.strict)

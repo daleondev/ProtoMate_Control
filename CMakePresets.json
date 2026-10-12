@@ -22,6 +22,7 @@
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "RUNTIME_HARDWARE_SELF_TEST": false,
+                "RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD": false,
                 "RUNTIME_HARDWARE_ETHERNET_TEST": false,
                 "RUNTIME_HARDWARE_IO_TEST": false,
                 "RUNTIME_STORAGE_ERASE_FLASH_ON_BOOT": false,

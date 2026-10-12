@@ -432,7 +432,8 @@ namespace
 
     [[nodiscard]] bool test_tls_and_thread_exit_order()
     {
-        if (!runtime::hardware_checks::tls_destructor_can_join() ||
+        if (!runtime::hardware_checks::tls_table_growth() ||
+            !runtime::hardware_checks::tls_destructor_can_join() ||
             !runtime::hardware_checks::late_startup_tls_is_preserved() ||
             !runtime::hardware_checks::native_thread_reset_reinitializes_runtime()) {
             return false;
@@ -619,6 +620,9 @@ namespace
 
     [[nodiscard]] bool test_many_streams_and_threads()
     {
+#if defined(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD)
+        log("[runtime-self-test] SKIP file stream stress: bare board has no external storage");
+#else
         namespace fs = std::filesystem;
         const fs::path directory{ "/flash/stream-stress" };
         std::error_code error;
@@ -659,6 +663,7 @@ namespace
             return false;
         }
 
+#endif
         for (std::size_t iteration{}; iteration < 128U; ++iteration) {
             std::thread thread{ [iteration] {
                 const auto allocation{ std::make_unique<std::uint32_t>(
@@ -724,10 +729,15 @@ namespace
 
     [[nodiscard]] bool test_hardware_timer()
     {
-        if (!hardware_driver_checks::gpio_output_toggle() ||
-            !hardware_driver_checks::gpio_interrupt_ownership() ||
-            !hardware_driver_checks::ethernet_loopback()) {
-            return false;
+        for (const auto& [name, check] : std::array{
+               std::pair{ "GPIO output", hardware_driver_checks::gpio_output_toggle },
+               std::pair{ "GPIO interrupt ownership", hardware_driver_checks::gpio_interrupt_ownership },
+               std::pair{ "Ethernet internal loopback", hardware_driver_checks::ethernet_loopback } }) {
+            if (!check()) {
+                log("[runtime-self-test] HAL FAIL %s", name);
+                return false;
+            }
+            log("[runtime-self-test] HAL PASS %s", name);
         }
         constexpr auto TIMER_PERIPHERAL{ hal::timer::Peripheral::Tim5 };
         constexpr std::uint32_t TEST_TICK_FREQUENCY_HZ{ 10'000U };
@@ -790,6 +800,7 @@ namespace
         return passed;
     }
 
+#if !defined(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD)
     [[nodiscard]] bool test_filex_standard_library()
     {
         if (!runtime::tests::check_storage_offsets("/flash/runtime-offset-test.bin")) {
@@ -937,6 +948,8 @@ namespace
         return passed && !error;
     }
 
+#endif
+
     struct NamedTest
     {
         const char* name;
@@ -952,8 +965,10 @@ namespace
         NamedTest{ "stream and thread stress", test_many_streams_and_threads },
         NamedTest{ "clocks", test_clocks },
         NamedTest{ "HAL peripherals", test_hardware_timer },
+#if !defined(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD)
         NamedTest{ "LevelX/FileX flash standard library", test_filex_standard_library },
         NamedTest{ "FileX SD standard library", test_sd_standard_library },
+#endif
     };
 
     [[noreturn]] void finish(bool passed, std::size_t phase)
@@ -971,6 +986,9 @@ namespace
 int main()
 {
     log("[runtime-self-test] ARM/Newlib/ThreadX conformance start");
+#if defined(RUNTIME_HARDWARE_SELF_TEST_BARE_BOARD)
+    log("[runtime-self-test] SKIP flash/SD conformance: bare board has no external storage");
+#endif
     for (std::size_t index{}; index < TESTS.size(); ++index) {
         runtime_hardware_self_test_phase = static_cast<std::uint32_t>(index + 1U);
         log("[runtime-self-test] RUN  %s", TESTS[index].name);

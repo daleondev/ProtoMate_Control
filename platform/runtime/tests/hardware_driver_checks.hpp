@@ -50,6 +50,11 @@ namespace hardware_driver_checks
             return false;
         }
 
+        // This image has no other GPIO-input owners. Claiming PC13 must leave
+        // every other line masked, including lines sharing its NVIC vector.
+        if ((EXTI_D1->IMR1 & GPIO_PIN_All) != GPIO_PIN_13) {
+            return false;
+        }
         HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
         __HAL_GPIO_EXTI_GENERATE_SWIT(GPIO_PIN_13);
         input.reset();
@@ -73,7 +78,10 @@ namespace hardware_driver_checks
 
     [[nodiscard]] inline auto ethernet_loopback() -> bool
     {
-        const auto ethernet{ hal::ethernet::create() };
+        // The factory defaults to unfiltered Ethernet. This test explicitly
+        // exercises EtherCAT filtering as well as MAC/DMA loopback.
+        const auto ethernet{ hal::ethernet::create(
+          { .receive_ether_type = hal::IEthernet::EtherType::EtherCAT }) };
         if (ethernet == nullptr || ethernet->isRunning()) {
             return false;
         }

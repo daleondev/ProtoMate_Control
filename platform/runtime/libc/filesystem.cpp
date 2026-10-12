@@ -15,16 +15,18 @@
 #include <climits>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <fcntl.h>
 #include <limits>
 #include <ranges>
+#include <span>
+#include <string_view>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <utime.h>
 #include <utility>
+#include <utime.h>
 #include <vector>
 
 #if defined(HAL_PLATFORM_STM32)
@@ -33,12 +35,20 @@
 #include <sys/statvfs.h>
 #endif
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _write(int file, const char* buffer, int length);
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int __io_putchar(int character) __attribute__((weak));
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int __io_getchar() __attribute__((weak));
 
 #if defined(HAL_PLATFORM_STM32)
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 struct runtime_filex_directory_stream
 {
     struct Entry
@@ -61,11 +71,24 @@ namespace
 
     constexpr ULONG SECTOR_SIZE{ 512U };
     constexpr int FIRST_FILE_DESCRIPTOR{ 3 };
+    constexpr mode_t READ_ONLY_PERMISSIONS{ 0444 };
+    constexpr mode_t READ_WRITE_PERMISSIONS{ 0666 };
+    constexpr mode_t DIRECTORY_SEARCH_PERMISSIONS{ 0111 };
+    constexpr std::uint32_t FNV_OFFSET_BASIS{ 2166136261U };
+    constexpr std::uint32_t FNV_PRIME{ 16777619U };
+    constexpr std::uint32_t RENAME_BACKUP_ATTEMPTS{ 256U };
+    constexpr std::uint32_t HEX_DIGIT_MASK{ 0xFU };
+    constexpr int FAT_FIRST_YEAR{ 1980 };
+    constexpr int FAT_YEAR_LIMIT{ 2108 };
+    constexpr unsigned FAT_YEAR_SHIFT{ 9U }, FAT_MONTH_SHIFT{ 5U };
+    constexpr unsigned FAT_HOUR_SHIFT{ 11U }, FAT_MINUTE_SHIFT{ 5U };
+    constexpr std::uint32_t NANOSECONDS_PER_MICROSECOND{ 1'000U };
+    constexpr std::size_t MAXIMUM_ENTROPY_REQUEST{ 256U };
 
     struct ResolvedPath
     {
         FX_MEDIA* media{};
-        runtime::storage::Volume volume{ runtime::storage::Volume::flash };
+        runtime::storage::Volume volume{ runtime::storage::Volume::Flash };
         std::array<char, MAXIMUM_PATH> local{};
         bool virtual_root{};
         bool mount_root{};
@@ -92,8 +115,13 @@ namespace
     std::array<runtime_filex_directory_stream, MAXIMUM_OPEN_DIRECTORIES> directories{};
 #endif
     std::array<char, MAXIMUM_PATH> current_directory{ '/' };
-    enum class InitializationState { not_attempted, ready, unavailable };
-    InitializationState filesystem_state{ InitializationState::not_attempted };
+    enum class InitializationState : std::uint8_t
+    {
+        NotAttempted,
+        Ready,
+        Unavailable
+    };
+    InitializationState filesystem_state{ InitializationState::NotAttempted };
     std::uint32_t rename_backup_sequence{};
     // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
@@ -102,7 +130,7 @@ namespace
       public:
         RegistryGuard() noexcept
         {
-            if (filesystem_state != InitializationState::ready) {
+            if (filesystem_state != InitializationState::Ready) {
                 m_error = ENODEV;
                 return;
             }
@@ -112,6 +140,11 @@ namespace
                 m_error = status == TX_WAIT_ABORTED ? EINTR : EIO;
             }
         }
+
+        RegistryGuard(const RegistryGuard&) = delete;
+        RegistryGuard& operator=(const RegistryGuard&) = delete;
+        RegistryGuard(RegistryGuard&&) = delete;
+        RegistryGuard& operator=(RegistryGuard&&) = delete;
 
         ~RegistryGuard()
         {
@@ -166,6 +199,12 @@ namespace
         }
     }
 
+    auto reset_default_directory(FX_MEDIA* media) -> UINT
+    {
+        auto root{ std::to_array("/") };
+        return fx_directory_default_set(media, root.data());
+    }
+
     [[nodiscard]] auto flush_media_unlocked(FX_MEDIA* media) noexcept -> int
     {
         return media == nullptr ? EIO : filex_errno(fx_media_flush(media));
@@ -179,21 +218,20 @@ namespace
             return false;
         }
 #endif
-        if (filesystem_state != InitializationState::ready) {
+        if (filesystem_state != InitializationState::Ready) {
             errno = ENODEV;
             return false;
         }
         return true;
     }
 
-    [[nodiscard]] auto normalize_path_unlocked(const char* path,
-                                                char (&output)[MAXIMUM_PATH]) noexcept -> int
+    [[nodiscard]] auto absolute_path_source(const char* path, std::span<char, MAXIMUM_PATH> source) noexcept
+      -> int
     {
         if (path == nullptr || path[0] == '\0') {
             return ENOENT;
         }
 
-        std::array<char, MAXIMUM_PATH> source{};
         std::size_t source_length{};
         if (path[0] != '/' && path[0] != '\\') {
             source_length = std::strlen(current_directory.data());
@@ -211,9 +249,55 @@ namespace
         }
         std::memcpy(source.data() + source_length, path, path_length + 1U);
 
+        return 0;
+    }
+
+    [[nodiscard]] auto append_path_component(std::span<char, MAXIMUM_PATH> output,
+                                             std::size_t& size,
+                                             std::string_view component) noexcept -> int
+    {
+        if (component.empty() || component == ".") {
+            return 0;
+        }
+        if (component == "..") {
+            if (size == 1U) {
+                return EACCES;
+            }
+            --size;
+            while (size > 1U && output[size - 1U] != '/') {
+                --size;
+            }
+            if (size > 1U) {
+                --size;
+            }
+            output[size] = '\0';
+            return 0;
+        }
+        if (size != 1U) {
+            if (size + 1U >= output.size()) {
+                return ENAMETOOLONG;
+            }
+            output[size++] = '/';
+        }
+        if (component.size() >= output.size() - size) {
+            return ENAMETOOLONG;
+        }
+        std::memcpy(output.data() + size, component.data(), component.size());
+        size += component.size();
+        output[size] = '\0';
+        return 0;
+    }
+
+    [[nodiscard]] auto normalize_path_unlocked(const char* path,
+                                               std::span<char, MAXIMUM_PATH> output) noexcept -> int
+    {
+        std::array<char, MAXIMUM_PATH> source{};
+        if (const int error{ absolute_path_source(path, source) }; error != 0) {
+            return error;
+        }
         output[0] = '/';
         output[1] = '\0';
-        std::size_t output_length{ 1U };
+        std::size_t size{ 1U };
         const char* cursor{ source.data() };
         while (*cursor != '\0') {
             while (*cursor == '/' || *cursor == '\\') {
@@ -223,36 +307,10 @@ namespace
             while (*cursor != '\0' && *cursor != '/' && *cursor != '\\') {
                 ++cursor;
             }
-            const std::size_t length{ static_cast<std::size_t>(cursor - component) };
-            if (length == 0U || (length == 1U && component[0] == '.')) {
-                continue;
+            const auto length{ static_cast<std::size_t>(cursor - component) };
+            if (const int error{ append_path_component(output, size, { component, length }) }; error != 0) {
+                return error;
             }
-            if (length == 2U && component[0] == '.' && component[1] == '.') {
-                if (output_length == 1U) {
-                    return EACCES;
-                }
-                --output_length;
-                while (output_length > 1U && output[output_length - 1U] != '/') {
-                    --output_length;
-                }
-                if (output_length > 1U) {
-                    --output_length;
-                }
-                output[output_length] = '\0';
-                continue;
-            }
-            if (output_length != 1U) {
-                if (output_length + 1U >= MAXIMUM_PATH) {
-                    return ENAMETOOLONG;
-                }
-                output[output_length++] = '/';
-            }
-            if (length >= MAXIMUM_PATH - output_length) {
-                return ENAMETOOLONG;
-            }
-            std::memcpy(output + output_length, component, length);
-            output_length += length;
-            output[output_length] = '\0';
         }
         return 0;
     }
@@ -286,11 +344,10 @@ namespace
 
     [[nodiscard]] constexpr auto mount_name(runtime::storage::Volume volume) noexcept -> const char*
     {
-        return volume == runtime::storage::Volume::flash ? "/flash" : "/sd";
+        return volume == runtime::storage::Volume::Flash ? "/flash" : "/sd";
     }
 
-    [[nodiscard]] auto resolve_normalized_path(const char* normalized,
-                                               ResolvedPath& result) noexcept -> int
+    [[nodiscard]] auto resolve_normalized_path(const char* normalized, ResolvedPath& result) noexcept -> int
     {
         result = {};
         if (std::strcmp(normalized, "/") == 0) {
@@ -299,8 +356,8 @@ namespace
             return 0;
         }
 
-        for (const runtime::storage::Volume volume : {
-               runtime::storage::Volume::flash, runtime::storage::Volume::sd }) {
+        for (const runtime::storage::Volume volume :
+             { runtime::storage::Volume::Flash, runtime::storage::Volume::Sd }) {
             const char* const prefix{ mount_name(volume) };
             if (!path_has_prefix(normalized, prefix, true)) {
                 continue;
@@ -320,11 +377,11 @@ namespace
     }
 
     [[nodiscard]] auto resolve_path_unlocked(const char* path,
-                                             char (&normalized)[MAXIMUM_PATH],
+                                             std::span<char, MAXIMUM_PATH> normalized,
                                              ResolvedPath& result) noexcept -> int
     {
         const int error{ normalize_path_unlocked(path, normalized) };
-        return error == 0 ? resolve_normalized_path(normalized, result) : error;
+        return error == 0 ? resolve_normalized_path(normalized.data(), result) : error;
     }
 
     [[nodiscard]] auto migrated_path_length(const char* path,
@@ -359,18 +416,18 @@ namespace
 
     [[nodiscard]] auto information_unlocked(const char* path, EntryInformation& result) noexcept -> int
     {
-        char normalized[MAXIMUM_PATH]{};
+        std::array<char, MAXIMUM_PATH> normalized{};
         const int path_error{ normalize_path_unlocked(path, normalized) };
         if (path_error != 0) {
             return path_error;
         }
-        if (std::strcmp(normalized, "/") == 0) {
+        if (std::strcmp(normalized.data(), "/") == 0) {
             result = EntryInformation{ .attributes = FX_DIRECTORY };
             return 0;
         }
 
         ResolvedPath resolved{};
-        const int resolve_error{ resolve_normalized_path(normalized, resolved) };
+        const int resolve_error{ resolve_normalized_path(normalized.data(), resolved) };
         if (resolve_error != 0) {
             return resolve_error;
         }
@@ -429,12 +486,11 @@ namespace
         if (old_resolved.media != new_resolved.media) {
             return EXDEV;
         }
-        const UINT status{ directory ? fx_directory_rename(old_resolved.media,
-                                                           old_resolved.local.data(),
-                                                           new_resolved.local.data())
-                                     : fx_file_rename(old_resolved.media,
-                                                      old_resolved.local.data(),
-                                                      new_resolved.local.data()) };
+        const UINT status{
+            directory
+              ? fx_directory_rename(old_resolved.media, old_resolved.local.data(), new_resolved.local.data())
+              : fx_file_rename(old_resolved.media, old_resolved.local.data(), new_resolved.local.data())
+        };
         return filex_errno(status);
     }
 
@@ -459,55 +515,74 @@ namespace
         UINT status{ fx_directory_default_set(resolved.media, resolved.local.data()) };
         int error{ filex_errno(status) };
         if (error == 0) {
-            char name[MAXIMUM_PATH]{};
+            std::array<char, MAXIMUM_PATH> name{};
             UINT attributes{};
             ULONG size{};
-            status = fx_directory_first_full_entry_find(
-              resolved.media, name, &attributes, &size, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+            status = fx_directory_first_full_entry_find(resolved.media,
+                                                        name.data(),
+                                                        &attributes,
+                                                        &size,
+                                                        nullptr,
+                                                        nullptr,
+                                                        nullptr,
+                                                        nullptr,
+                                                        nullptr,
+                                                        nullptr);
             while (status == FX_SUCCESS &&
-                   (std::strcmp(name, ".") == 0 || std::strcmp(name, "..") == 0)) {
-                status = fx_directory_next_full_entry_find(
-                  resolved.media, name, &attributes, &size, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+                   (std::strcmp(name.data(), ".") == 0 || std::strcmp(name.data(), "..") == 0)) {
+                status = fx_directory_next_full_entry_find(resolved.media,
+                                                           name.data(),
+                                                           &attributes,
+                                                           &size,
+                                                           nullptr,
+                                                           nullptr,
+                                                           nullptr,
+                                                           nullptr,
+                                                           nullptr,
+                                                           nullptr);
             }
-            error = status == FX_NO_MORE_ENTRIES ? 0
-                                                 : status == FX_SUCCESS ? ENOTEMPTY
-                                                                        : filex_errno(status);
+            if (status == FX_NO_MORE_ENTRIES) {
+                error = 0;
+            }
+            else if (status == FX_SUCCESS) {
+                error = ENOTEMPTY;
+            }
+            else {
+                error = filex_errno(status);
+            }
         }
 
-        const int reset_error{
-            filex_errno(fx_directory_default_set(resolved.media, const_cast<char*>("/")))
-        };
+        const int reset_error{ filex_errno(reset_default_directory(resolved.media)) };
         return error != 0 ? error : reset_error;
     }
 
     [[nodiscard]] auto find_rename_backup_unlocked(runtime::storage::Volume volume,
-                                                   char (&output)[MAXIMUM_PATH]) noexcept -> int
+                                                   std::span<char, MAXIMUM_PATH> output) noexcept -> int
     {
-        constexpr std::array<char, 16U> hexadecimal{
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
-        };
+        constexpr std::array<char, 16U> hexadecimal{ '0', '1', '2', '3', '4', '5', '6', '7',
+                                                     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
         constexpr std::size_t digit_count{ 5U };
         constexpr std::uint32_t sequence_mask{ 0xF'FFFFU };
 
         // FileX has no replace-existing rename operation. Reserve a short
         // root entry so the old destination can be restored if the source
         // rename fails. The registry mutex serializes candidate allocation.
-        for (std::uint32_t attempt{}; attempt < 256U; ++attempt) {
+        for (std::uint32_t attempt{}; attempt < RENAME_BACKUP_ATTEMPTS; ++attempt) {
             const char* const prefix{ mount_name(volume) };
             const std::size_t prefix_length{ std::strlen(prefix) };
-            constexpr char backup_suffix[]{ "/FXR00000.TMP" };
-            static_assert(sizeof(backup_suffix) + sizeof("/flash") <= MAXIMUM_PATH);
-            std::memcpy(output, prefix, prefix_length);
-            std::memcpy(output + prefix_length, backup_suffix, sizeof(backup_suffix));
+            constexpr std::string_view backup_suffix{ "/FXR00000.TMP" };
+            static_assert((backup_suffix.size() + 1U) + sizeof("/flash") <= MAXIMUM_PATH);
+            std::memcpy(output.data(), prefix, prefix_length);
+            std::memcpy(output.data() + prefix_length, backup_suffix.data(), (backup_suffix.size() + 1U));
             const std::size_t digit_offset{ prefix_length + 4U };
             const std::uint32_t sequence{ rename_backup_sequence++ & sequence_mask };
             for (std::size_t digit{}; digit < digit_count; ++digit) {
                 const std::size_t shift{ (digit_count - digit - 1U) * 4U };
-                output[digit_offset + digit] = hexadecimal[(sequence >> shift) & 0xFU];
+                output[digit_offset + digit] = hexadecimal[(sequence >> shift) & HEX_DIGIT_MASK];
             }
 
             EntryInformation information{};
-            const int error{ information_unlocked(output, information) };
+            const int error{ information_unlocked(output.data(), information) };
             if (error == ENOENT) {
                 return 0;
             }
@@ -538,9 +613,9 @@ namespace
         }
         if (requested_mode == FX_OPEN_FOR_READ &&
             std::ranges::any_of(descriptors, [&](const auto& candidate) {
-                return candidate.allocated && candidate.open_mode == FX_OPEN_FOR_WRITE &&
-                       paths_equal(candidate.path.data(), descriptor.path.data());
-            })) {
+            return candidate.allocated && candidate.open_mode == FX_OPEN_FOR_WRITE &&
+                   paths_equal(candidate.path.data(), descriptor.path.data());
+        })) {
             // FileX opens from the cached directory entry, which can still
             // describe the file before another handle's completed writes.
             // Publish that writer's size and cluster chain before opening a
@@ -551,6 +626,8 @@ namespace
             }
         }
         const UINT open_status{
+            // Forward through the Newlib variadic open ABI.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
             fx_file_open(resolved.media, &descriptor.file, resolved.local.data(), requested_mode)
         };
         if (open_status != FX_SUCCESS) {
@@ -573,7 +650,10 @@ namespace
         while (error == 0 && file.fx_file_current_file_size < size) {
             const ULONG chunk{ static_cast<ULONG>(
               std::min<std::uint64_t>(size - file.fx_file_current_file_size, zeroes.size())) };
+            // FileX only reads the write buffer; its API predates const-correctness.
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
             error = filex_errno(fx_file_write(&file, const_cast<std::byte*>(zeroes.data()), chunk));
+            // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
         }
         return error;
     }
@@ -596,13 +676,14 @@ namespace
     {
         std::memset(value, 0, sizeof(*value));
         const bool directory{ (information.attributes & FX_DIRECTORY) != 0U };
-        value->st_mode = static_cast<mode_t>((directory ? S_IFDIR : S_IFREG) |
-                                            ((information.attributes & FX_READ_ONLY) != 0U ? 0444 : 0666) |
-                                            (directory ? 0111 : 0));
+        value->st_mode =
+          ((directory ? S_IFDIR : S_IFREG) |
+           ((information.attributes & FX_READ_ONLY) != 0U ? READ_ONLY_PERMISSIONS : READ_WRITE_PERMISSIONS) |
+           (directory ? DIRECTORY_SEARCH_PERMISSIONS : 0));
         value->st_nlink = 1;
-        std::uint32_t inode{ 2166136261U };
-        for (const auto* cursor{ reinterpret_cast<const unsigned char*>(path) }; *cursor != 0U; ++cursor) {
-            inode = (inode ^ fold_ascii_case(static_cast<char>(*cursor))) * 16777619U;
+        std::uint32_t inode{ FNV_OFFSET_BASIS };
+        for (const auto* cursor{ path }; *cursor != '\0'; ++cursor) {
+            inode = (inode ^ fold_ascii_case(*cursor)) * FNV_PRIME;
         }
         value->st_ino = inode;
         value->st_size = static_cast<off_t>(information.size);
@@ -644,13 +725,246 @@ namespace
                                              static_cast<UINT>(time.minutes().count()),
                                              static_cast<UINT>(time.seconds().count() & ~1LL)));
     }
+    auto read_console(char* buffer, int length) -> int
+    {
+        if (length == 0) {
+            return 0;
+        }
+        if (__io_getchar == nullptr) {
+            errno = ENOSYS;
+            return -1;
+        }
+        for (int index{}; index < length; ++index) {
+            const int character{ __io_getchar() };
+            if (character < 0) {
+                errno = EIO;
+                return index == 0 ? -1 : index;
+            }
+            buffer[index] = static_cast<char>(character);
+            if (character == '\n') {
+                return index + 1;
+            }
+        }
+        return length;
+    }
+
+    auto write_console(const char* buffer, int length) -> int
+    {
+        if (length == 0) {
+            return 0;
+        }
+        if (__io_putchar == nullptr) {
+            errno = ENOSYS;
+            return -1;
+        }
+        for (int index{}; index < length; ++index) {
+            if (__io_putchar(static_cast<unsigned char>(buffer[index])) < 0) {
+                errno = EIO;
+                return index == 0 ? -1 : index;
+            }
+        }
+        return length;
+    }
+
+    void reset_descriptor(FileDescriptor& descriptor)
+    {
+        if (descriptor.open_mode >= 0) {
+            static_cast<void>(fx_file_close(&descriptor.file));
+        }
+        descriptor = {};
+    }
+
+    struct RenameOperation
+    {
+        std::array<char, MAXIMUM_PATH> old_name{}, new_name{};
+        ResolvedPath old_resolved{}, new_resolved{};
+        bool directory{}, spelling_changed{}, same_destination{}, destination_exists{},
+          destination_directory{};
+
+        int prepare(const char* old_path, const char* new_path)
+        {
+            int error{ resolve_path_unlocked(old_path, old_name, old_resolved) };
+            if (error != 0) {
+                return error;
+            }
+            error = resolve_path_unlocked(new_path, new_name, new_resolved);
+            if (error != 0) {
+                return error;
+            }
+            EntryInformation info{};
+            error = information_unlocked(old_name.data(), info);
+            if (error != 0) {
+                return error;
+            }
+            if (old_resolved.virtual_root || old_resolved.mount_root || new_resolved.virtual_root ||
+                new_resolved.mount_root) {
+                return EBUSY;
+            }
+            if (old_resolved.media != new_resolved.media) {
+                return EXDEV;
+            }
+            directory = (info.attributes & FX_DIRECTORY) != 0U;
+            spelling_changed = std::strcmp(old_name.data(), new_name.data()) != 0;
+            same_destination = paths_equal(old_name.data(), new_name.data());
+            // FileX otherwise permits orphaning a directory by moving it below itself.
+            if (directory && !same_destination && path_has_prefix(new_name.data(), old_name.data(), true)) {
+                return EINVAL;
+            }
+            return validateMigratedPaths();
+        }
+
+        int validateMigratedPaths() const
+        {
+            const auto too_long = [this](const auto& path) {
+                return migrated_path_length(path.data(), old_name.data(), new_name.data(), directory) >=
+                       MAXIMUM_PATH;
+            };
+            for (const auto& descriptor : descriptors) {
+                if (descriptor.allocated && too_long(descriptor.path)) {
+                    return ENAMETOOLONG;
+                }
+            }
+            if (!directory) {
+                return 0;
+            }
+            if (too_long(current_directory)) {
+                return ENAMETOOLONG;
+            }
+#if defined(HAL_PLATFORM_STM32)
+            for (const auto& entry : directories) {
+                if (entry.allocated && too_long(entry.path)) {
+                    return ENAMETOOLONG;
+                }
+            }
+#endif
+            return 0;
+        }
+
+        int inspectDestination()
+        {
+            if (!spelling_changed) {
+                return 0;
+            }
+            EntryInformation info{};
+            const int error{ information_unlocked(new_name.data(), info) };
+            if (error == ENOENT) {
+                return 0;
+            }
+            if (error != 0) {
+                return error;
+            }
+            destination_exists = true;
+            destination_directory = (info.attributes & FX_DIRECTORY) != 0U;
+            if (directory != destination_directory) {
+                return directory ? ENOTDIR : EISDIR;
+            }
+            if (same_destination) {
+                return 0;
+            }
+            // FileX has no anonymous handles to preserve a replaced destination.
+            const bool cwd_in_destination{ directory &&
+                                           path_has_prefix(current_directory.data(), new_name.data(), true) };
+            const bool open_destination{ std::ranges::any_of(descriptors, [this](const auto& descriptor) {
+                return descriptor.allocated &&
+                       path_has_prefix(descriptor.path.data(), new_name.data(), destination_directory);
+            }) };
+            if (cwd_in_destination || open_destination) {
+                return EBUSY;
+            }
+            return destination_directory ? require_empty_directory_unlocked(new_name.data()) : 0;
+        }
+
+        int flushSource() const
+        {
+            if (!spelling_changed) {
+                return 0;
+            }
+            const bool open{ std::ranges::any_of(descriptors, [this](const auto& descriptor) {
+                return descriptor.allocated && descriptor.open_mode >= 0 &&
+                       path_has_prefix(descriptor.path.data(), old_name.data(), directory);
+            }) };
+            // Publish modified size/cluster metadata before FileX copies it during rename.
+            return open ? flush_media_unlocked(old_resolved.media) : 0;
+        }
+
+        void migrateHandles() const
+        {
+            for (auto& descriptor : descriptors) {
+                if (descriptor.allocated) {
+                    migrate_path(descriptor.path, old_name.data(), new_name.data(), directory);
+                }
+            }
+            if (!directory) {
+                return;
+            }
+            migrate_path(current_directory, old_name.data(), new_name.data(), true);
+#if defined(HAL_PLATFORM_STM32)
+            for (auto& entry : directories) {
+                if (entry.allocated) {
+                    migrate_path(entry.path, old_name.data(), new_name.data(), true);
+                }
+            }
+#endif
+        }
+
+        int commit()
+        {
+            std::array<char, MAXIMUM_PATH> backup{};
+            const bool need_backup{ destination_exists && !same_destination };
+            if (need_backup) {
+                int error{ find_rename_backup_unlocked(old_resolved.volume, backup) };
+                if (error != 0) {
+                    return error;
+                }
+                error = rename_entry_unlocked(destination_directory, new_name.data(), backup.data());
+                if (error != 0) {
+                    return error;
+                }
+            }
+            if (spelling_changed) {
+                const int error{ rename_entry_unlocked(directory, old_name.data(), new_name.data()) };
+                if (error != 0) {
+                    // Preserve the original destination if the source move fails.
+                    const int restore_error{ need_backup ? rename_entry_unlocked(destination_directory,
+                                                                                 backup.data(),
+                                                                                 new_name.data())
+                                                         : 0 };
+                    return restore_error != 0 ? restore_error : error;
+                }
+            }
+            const int cleanup_error{ need_backup ? delete_entry_unlocked(destination_directory, backup.data())
+                                                 : 0 };
+            if (spelling_changed) {
+                migrateHandles();
+            }
+            if (cleanup_error != 0) {
+                return cleanup_error;
+            }
+            return spelling_changed ? flush_media_unlocked(old_resolved.media) : 0;
+        }
+
+        int execute(const char* old_path, const char* new_path)
+        {
+            int error{ prepare(old_path, new_path) };
+            if (error != 0) {
+                return error;
+            }
+            error = inspectDestination();
+            if (error != 0) {
+                return error;
+            }
+            error = flushSource();
+            return error != 0 ? error : commit();
+        }
+    };
+
 }
 
 namespace runtime::filex
 {
-    auto initialized() noexcept -> bool { return filesystem_state == InitializationState::ready; }
+    auto initialized() noexcept -> bool { return filesystem_state == InitializationState::Ready; }
 
-    auto normalizePath(const char* path, char (&output)[MAXIMUM_PATH]) noexcept -> int
+    auto normalize_path(const char* path, std::span<char, MAXIMUM_PATH> output) noexcept -> int
     {
         if (!usable()) {
             return errno;
@@ -668,12 +982,9 @@ namespace runtime::filex
         return guard ? information_unlocked(path, result) : guard.error();
     }
 
-    auto availableSpace(std::uint64_t& bytes) noexcept -> int
-    {
-        return availableSpace("/flash", bytes);
-    }
+    auto available_space(std::uint64_t& bytes) noexcept -> int { return available_space("/flash", bytes); }
 
-    auto availableSpace(const char* path, std::uint64_t& bytes) noexcept -> int
+    auto available_space(const char* path, std::uint64_t& bytes) noexcept -> int
     {
         if (!usable()) {
             return errno;
@@ -684,7 +995,7 @@ namespace runtime::filex
             bytes = 0U;
             return guard.error();
         }
-        char normalized[MAXIMUM_PATH]{};
+        std::array<char, MAXIMUM_PATH> normalized{};
         ResolvedPath resolved{};
         const int resolve_error{ resolve_path_unlocked(path, normalized, resolved) };
         if (resolve_error != 0 || resolved.virtual_root) {
@@ -696,7 +1007,7 @@ namespace runtime::filex
         return filex_errno(status);
     }
 
-    auto currentPath(char (&output)[MAXIMUM_PATH]) noexcept -> int
+    auto current_path(std::span<char, MAXIMUM_PATH> output) noexcept -> int
     {
         if (!usable()) {
             return errno;
@@ -705,11 +1016,11 @@ namespace runtime::filex
         if (!guard) {
             return guard.error();
         }
-        std::memcpy(output, current_directory.data(), std::strlen(current_directory.data()) + 1U);
+        std::memcpy(output.data(), current_directory.data(), std::strlen(current_directory.data()) + 1U);
         return 0;
     }
 
-    auto setCurrentPath(const char* path) noexcept -> int
+    auto set_current_path(const char* path) noexcept -> int
     {
         if (!usable()) {
             return errno;
@@ -718,17 +1029,17 @@ namespace runtime::filex
         if (!guard) {
             return guard.error();
         }
-        char normalized[MAXIMUM_PATH]{};
+        std::array<char, MAXIMUM_PATH> normalized{};
         EntryInformation info{};
         int error{ normalize_path_unlocked(path, normalized) };
         if (error == 0) {
-            error = information_unlocked(normalized, info);
+            error = information_unlocked(normalized.data(), info);
         }
         if (error == 0 && (info.attributes & FX_DIRECTORY) == 0U) {
             error = ENOTDIR;
         }
         if (error == 0) {
-            std::memcpy(current_directory.data(), normalized, std::strlen(normalized) + 1U);
+            std::memcpy(current_directory.data(), normalized.data(), std::strlen(normalized.data()) + 1U);
         }
         return error;
     }
@@ -736,40 +1047,40 @@ namespace runtime::filex
 
 extern "C" void runtime_filex_initialize()
 {
-    if (filesystem_state != InitializationState::not_attempted) {
+    static auto registry_name{ std::to_array("FileX descriptor registry") };
+    if (filesystem_state != InitializationState::NotAttempted) {
         return;
     }
     fx_system_initialize();
     initialize_filex_clock();
-    if (tx_mutex_create(&registry_mutex, const_cast<CHAR*>("FileX descriptor registry"), TX_INHERIT) !=
-        TX_SUCCESS) {
+    if (tx_mutex_create(&registry_mutex, registry_name.data(), TX_INHERIT) != TX_SUCCESS) {
         Error_Handler();
     }
     if (!runtime::storage::initialize()) {
-        filesystem_state = InitializationState::unavailable;
+        filesystem_state = InitializationState::Unavailable;
 #if RUNTIME_STORAGE_REQUIRED
         hal::panic("Persistent storage required but no volume is available");
 #else
-        constexpr char warning[]{ "[storage] unavailable; file access disabled\n" };
+        constexpr std::string_view warning{ "[storage] unavailable; file access disabled\n" };
         // Console descriptors bypass the filesystem guard. Reporting failure
         // is best effort and must not make optional storage fatal.
-        static_cast<void>(_write(STDERR_FILENO, warning, sizeof(warning) - 1U));
+        static_cast<void>(_write(STDERR_FILENO, warning.data(), static_cast<int>(warning.size())));
         return;
 #endif
     }
     current_directory.fill('\0');
-    const char* const initial_directory{
-        runtime::storage::mounted(runtime::storage::Volume::flash) ? "/flash" : "/sd"
-    };
+    const char* const initial_directory{ runtime::storage::mounted(runtime::storage::Volume::Flash) ? "/flash"
+                                                                                                    : "/sd" };
     std::memcpy(current_directory.data(), initial_directory, std::strlen(initial_directory) + 1U);
-    filesystem_state = InitializationState::ready;
+    filesystem_state = InitializationState::Ready;
 }
 
 #if defined(HAL_PLATFORM_STM32) || defined(HAL_PLATFORM_LINUX)
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _open(const char* path, int flags, ...)
 {
-    if ((flags & O_ACCMODE) != O_RDONLY && (flags & O_ACCMODE) != O_WRONLY &&
-        (flags & O_ACCMODE) != O_RDWR) {
+    if ((flags & O_ACCMODE) != O_RDONLY && (flags & O_ACCMODE) != O_WRONLY && (flags & O_ACCMODE) != O_RDWR) {
         errno = EINVAL;
         return -1;
     }
@@ -781,7 +1092,7 @@ extern "C" int _open(const char* path, int flags, ...)
         errno = guard.error();
         return -1;
     }
-    char normalized[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> normalized{};
     ResolvedPath resolved{};
     int error{ resolve_path_unlocked(path, normalized, resolved) };
     if (error != 0) {
@@ -793,16 +1104,15 @@ extern "C" int _open(const char* path, int flags, ...)
         return -1;
     }
 
-    auto slot{ std::find_if(descriptors.begin(), descriptors.end(), [](const auto& descriptor) {
-        return !descriptor.allocated;
-    }) };
+    auto* slot{ std::ranges::find_if(descriptors,
+                                     [](const auto& descriptor) { return !descriptor.allocated; }) };
     if (slot == descriptors.end()) {
         errno = EMFILE;
         return -1;
     }
 
     EntryInformation info{};
-    const int info_error{ information_unlocked(normalized, info) };
+    const int info_error{ information_unlocked(normalized.data(), info) };
     if (info_error != 0 && info_error != ENOENT) {
         errno = info_error;
         return -1;
@@ -836,7 +1146,7 @@ extern "C" int _open(const char* path, int flags, ...)
     slot->writable = (flags & O_ACCMODE) != O_RDONLY;
     slot->append = (flags & O_APPEND) != 0;
     slot->flush_on_close = !exists || slot->writable;
-    std::memcpy(slot->path.data(), normalized, std::strlen(normalized) + 1U);
+    std::memcpy(slot->path.data(), normalized.data(), std::strlen(normalized.data()) + 1U);
     slot->position = slot->append ? info.size : 0U;
     const int initial_mode{ slot->writable ? FX_OPEN_FOR_WRITE : FX_OPEN_FOR_READ };
     error = switch_mode(*slot, initial_mode);
@@ -845,16 +1155,15 @@ extern "C" int _open(const char* path, int flags, ...)
         slot->position = 0U;
     }
     if (error != 0) {
-        if (slot->open_mode >= 0) {
-            static_cast<void>(fx_file_close(&slot->file));
-        }
-        *slot = FileDescriptor{};
+        reset_descriptor(*slot);
         errno = error;
         return -1;
     }
     return FIRST_FILE_DESCRIPTOR + static_cast<int>(slot - descriptors.begin());
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _close(int file)
 {
     if (file >= 0 && file <= 2) {
@@ -890,6 +1199,8 @@ extern "C" int _close(int file)
     return 0;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _read(int file, char* buffer, int length)
 {
     if (length < 0 || (buffer == nullptr && length != 0)) {
@@ -897,25 +1208,7 @@ extern "C" int _read(int file, char* buffer, int length)
         return -1;
     }
     if (file == STDIN_FILENO) {
-        if (length == 0) {
-            return 0;
-        }
-        if (__io_getchar == nullptr) {
-            errno = ENOSYS;
-            return -1;
-        }
-        for (int index{}; index < length; ++index) {
-            const int character{ __io_getchar() };
-            if (character < 0) {
-                errno = EIO;
-                return index == 0 ? -1 : index;
-            }
-            buffer[index] = static_cast<char>(character);
-            if (character == '\n') {
-                return index + 1;
-            }
-        }
-        return length;
+        return read_console(buffer, length);
     }
     if (!usable()) {
         return -1;
@@ -956,6 +1249,8 @@ extern "C" int _read(int file, char* buffer, int length)
     return static_cast<int>(actual);
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _write(int file, const char* buffer, int length)
 {
     if (length < 0 || (buffer == nullptr && length != 0)) {
@@ -963,20 +1258,7 @@ extern "C" int _write(int file, const char* buffer, int length)
         return -1;
     }
     if (file == STDOUT_FILENO || file == STDERR_FILENO) {
-        if (length == 0) {
-            return 0;
-        }
-        if (__io_putchar == nullptr) {
-            errno = ENOSYS;
-            return -1;
-        }
-        for (int index{}; index < length; ++index) {
-            if (__io_putchar(static_cast<unsigned char>(buffer[index])) < 0) {
-                errno = EIO;
-                return index == 0 ? -1 : index;
-            }
-        }
-        return length;
+        return write_console(buffer, length);
     }
     if (!usable()) {
         return -1;
@@ -1008,8 +1290,11 @@ extern "C" int _write(int file, const char* buffer, int length)
         errno = error;
         return -1;
     }
+    // FileX only reads the write buffer; its API predates const-correctness.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     const UINT status{ fx_file_write(
       &descriptor->file, const_cast<char*>(buffer), static_cast<ULONG>(length)) };
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
     descriptor->position = descriptor->file.fx_file_current_file_offset;
     if (status != FX_SUCCESS) {
         errno = filex_errno(status);
@@ -1018,6 +1303,8 @@ extern "C" int _write(int file, const char* buffer, int length)
     return length;
 }
 
+// Descriptor/offset parameter types and ordering are fixed by Newlib.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters,bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" off_t _lseek(int file, off_t offset, int origin)
 {
     if (!usable()) {
@@ -1033,8 +1320,8 @@ extern "C" off_t _lseek(int file, off_t offset, int origin)
         return static_cast<off_t>(-1);
     }
     if (descriptor->open_mode < 0) {
-        const int reopen_error{ switch_mode(
-          *descriptor, descriptor->readable ? FX_OPEN_FOR_READ : FX_OPEN_FOR_WRITE) };
+        const int reopen_error{ switch_mode(*descriptor,
+                                            descriptor->readable ? FX_OPEN_FOR_READ : FX_OPEN_FOR_WRITE) };
         if (reopen_error != 0) {
             errno = reopen_error;
             return static_cast<off_t>(-1);
@@ -1088,6 +1375,8 @@ extern "C" off_t _lseek(int file, off_t offset, int origin)
     return static_cast<off_t>(target);
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _fstat(int file, struct stat* value)
 {
     if (value == nullptr) {
@@ -1096,7 +1385,7 @@ extern "C" int _fstat(int file, struct stat* value)
     }
     if (file >= 0 && file <= 2) {
         std::memset(value, 0, sizeof(*value));
-        value->st_mode = S_IFCHR | 0666;
+        value->st_mode = S_IFCHR | READ_WRITE_PERMISSIONS;
         return 0;
     }
     if (!usable()) {
@@ -1121,6 +1410,8 @@ extern "C" int _fstat(int file, struct stat* value)
     return 0;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _stat(const char* path, struct stat* value)
 {
     if (!usable() || value == nullptr) {
@@ -1138,7 +1429,7 @@ extern "C" int _stat(const char* path, struct stat* value)
         errno = error;
         return -1;
     }
-    char normalized[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> normalized{};
     const int normalize_error{ normalize_path_unlocked(path, normalized) };
     if (normalize_error != 0) {
         errno = normalize_error;
@@ -1146,7 +1437,7 @@ extern "C" int _stat(const char* path, struct stat* value)
     }
     for (const auto& descriptor : descriptors) {
         if (descriptor.allocated && descriptor.open_mode >= 0 &&
-            paths_equal(descriptor.path.data(), normalized)) {
+            paths_equal(descriptor.path.data(), normalized.data())) {
             if (descriptor.open_mode == FX_OPEN_FOR_WRITE) {
                 // The writer is authoritative after both growth and shrink.
                 // A reader may have opened against older directory metadata.
@@ -1156,10 +1447,12 @@ extern "C" int _stat(const char* path, struct stat* value)
             info.size = std::max<std::uint64_t>(info.size, descriptor.file.fx_file_current_file_size);
         }
     }
-    fill_stat(normalized, info, value);
+    fill_stat(normalized.data(), info, value);
     return 0;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _unlink(const char* path)
 {
     if (!usable()) {
@@ -1170,12 +1463,12 @@ extern "C" int _unlink(const char* path)
         errno = guard.error();
         return -1;
     }
-    char normalized[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> normalized{};
     ResolvedPath resolved{};
     EntryInformation info{};
     int error{ resolve_path_unlocked(path, normalized, resolved) };
     if (error == 0) {
-        error = information_unlocked(normalized, info);
+        error = information_unlocked(normalized.data(), info);
     }
     if (error == 0) {
         if ((info.attributes & FX_DIRECTORY) != 0U) {
@@ -1197,6 +1490,8 @@ extern "C" int _unlink(const char* path)
     return 0;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _rename(const char* old_path, const char* new_path)
 {
     if (!usable()) {
@@ -1207,170 +1502,8 @@ extern "C" int _rename(const char* old_path, const char* new_path)
         errno = guard.error();
         return -1;
     }
-    char old_name[MAXIMUM_PATH]{};
-    char new_name[MAXIMUM_PATH]{};
-    ResolvedPath old_resolved{};
-    ResolvedPath new_resolved{};
-    EntryInformation info{};
-    int error{ resolve_path_unlocked(old_path, old_name, old_resolved) };
-    if (error == 0) {
-        error = resolve_path_unlocked(new_path, new_name, new_resolved);
-    }
-    if (error == 0) {
-        error = information_unlocked(old_name, info);
-    }
-    if (error == 0 && (old_resolved.virtual_root || old_resolved.mount_root ||
-                       new_resolved.virtual_root || new_resolved.mount_root)) {
-        error = EBUSY;
-    }
-    if (error == 0 && old_resolved.media != new_resolved.media) {
-        error = EXDEV;
-    }
-    if (error == 0) {
-        const bool source_is_directory{ (info.attributes & FX_DIRECTORY) != 0U };
-        const bool include_descendants{ source_is_directory };
-
-        const bool spelling_changed{ std::strcmp(old_name, new_name) != 0 };
-        const bool destination_is_source{ paths_equal(old_name, new_name) };
-        if (source_is_directory && !destination_is_source &&
-            path_has_prefix(new_name, old_name, true)) {
-            // FileX accepts this move and orphans the directory tree. POSIX
-            // rename must reject moving a directory below itself.
-            error = EINVAL;
-        }
-
-        for (const auto& descriptor : descriptors) {
-            if (error != 0) {
-                break;
-            }
-            if (descriptor.allocated &&
-                migrated_path_length(descriptor.path.data(), old_name, new_name, include_descendants) >=
-                  MAXIMUM_PATH) {
-                error = ENAMETOOLONG;
-                break;
-            }
-        }
-        if (error == 0 && source_is_directory &&
-            migrated_path_length(current_directory.data(), old_name, new_name, true) >= MAXIMUM_PATH) {
-            error = ENAMETOOLONG;
-        }
-#if defined(HAL_PLATFORM_STM32)
-        if (error == 0 && source_is_directory) {
-            for (const auto& directory : directories) {
-                if (directory.allocated &&
-                    migrated_path_length(directory.path.data(), old_name, new_name, true) >= MAXIMUM_PATH) {
-                    error = ENAMETOOLONG;
-                    break;
-                }
-            }
-        }
-#endif
-
-        bool destination_exists{};
-        bool destination_is_directory{};
-        if (error == 0 && spelling_changed) {
-            EntryInformation destination_info{};
-            const int destination_error{ information_unlocked(new_name, destination_info) };
-            if (destination_error == 0) {
-                destination_exists = true;
-                destination_is_directory = (destination_info.attributes & FX_DIRECTORY) != 0U;
-                if (source_is_directory != destination_is_directory) {
-                    error = source_is_directory ? ENOTDIR : EISDIR;
-                }
-                else if (!destination_is_source && source_is_directory &&
-                         path_has_prefix(current_directory.data(), new_name, true)) {
-                    // FileX has no anonymous directory handle with which to keep
-                    // a replaced current working directory alive.
-                    error = EBUSY;
-                }
-                else if (!destination_is_source &&
-                         std::ranges::any_of(descriptors, [&](const auto& descriptor) {
-                             return descriptor.allocated &&
-                                    path_has_prefix(descriptor.path.data(),
-                                                    new_name,
-                                                    destination_is_directory);
-                         })) {
-                    // FileX has no anonymous file handle with which to keep a
-                    // replaced destination descriptor attached to the old
-                    // object. Refuse replacement instead of silently retargeting
-                    // the descriptor to the source on its next mode switch.
-                    error = EBUSY;
-                }
-            }
-            else if (destination_error != ENOENT) {
-                error = destination_error;
-            }
-        }
-        if (error == 0 && destination_exists && !destination_is_source &&
-            destination_is_directory) {
-            error = require_empty_directory_unlocked(new_name);
-        }
-
-        if (error == 0 && spelling_changed) {
-            const bool source_is_open{ std::ranges::any_of(descriptors, [&](const auto& descriptor) {
-                return descriptor.allocated && descriptor.open_mode >= 0 &&
-                       path_has_prefix(descriptor.path.data(), old_name, include_descendants);
-            }) };
-            if (source_is_open) {
-                // FileX rename copies the on-media directory entry before it
-                // updates open handles. Flush modified source handles first or
-                // a later mode switch can reopen a stale size/cluster entry as
-                // FX_FILE_CORRUPT.
-                error = filex_errno(fx_media_flush(old_resolved.media));
-            }
-        }
-
-        char destination_backup[MAXIMUM_PATH]{};
-        bool destination_was_backed_up{};
-        bool source_was_renamed{};
-        if (error == 0 && destination_exists && !destination_is_source) {
-            error = find_rename_backup_unlocked(old_resolved.volume, destination_backup);
-            if (error == 0) {
-                error = rename_entry_unlocked(destination_is_directory, new_name, destination_backup);
-                destination_was_backed_up = error == 0;
-            }
-        }
-
-        if (error == 0 && spelling_changed) {
-            error = rename_entry_unlocked(source_is_directory, old_name, new_name);
-            source_was_renamed = error == 0;
-            if (error != 0 && destination_was_backed_up) {
-                const int restore_error{
-                    rename_entry_unlocked(destination_is_directory, destination_backup, new_name)
-                };
-                if (restore_error != 0) {
-                    // Both entries still contain their original data, but an
-                    // I/O failure also prevented restoring the destination's
-                    // pathname. Report the restoration failure as the more
-                    // actionable state of the filesystem.
-                    error = restore_error;
-                }
-            }
-        }
-        if (error == 0 && destination_was_backed_up) {
-            error = delete_entry_unlocked(destination_is_directory, destination_backup);
-        }
-        if (source_was_renamed) {
-            for (auto& descriptor : descriptors) {
-                if (descriptor.allocated) {
-                    migrate_path(descriptor.path, old_name, new_name, include_descendants);
-                }
-            }
-            if (source_is_directory) {
-                migrate_path(current_directory, old_name, new_name, true);
-#if defined(HAL_PLATFORM_STM32)
-                for (auto& directory : directories) {
-                    if (directory.allocated) {
-                        migrate_path(directory.path, old_name, new_name, true);
-                    }
-                }
-#endif
-            }
-        }
-        if (error == 0 && spelling_changed) {
-            error = flush_media_unlocked(old_resolved.media);
-        }
-    }
+    RenameOperation operation;
+    const int error{ operation.execute(old_path, new_path) };
     if (error != 0) {
         errno = error;
         return -1;
@@ -1378,7 +1511,9 @@ extern "C" int _rename(const char* old_path, const char* new_path)
     return 0;
 }
 
-extern "C" int _mkdir(const char* path, mode_t)
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int _mkdir(const char* path, mode_t /*unused*/)
 {
     if (!usable()) {
         return -1;
@@ -1388,7 +1523,7 @@ extern "C" int _mkdir(const char* path, mode_t)
         errno = guard.error();
         return -1;
     }
-    char normalized[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> normalized{};
     ResolvedPath resolved{};
     int error{ resolve_path_unlocked(path, normalized, resolved) };
     if (error == 0) {
@@ -1406,6 +1541,8 @@ extern "C" int _mkdir(const char* path, mode_t)
     return 0;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _rmdir(const char* path)
 {
     if (!usable()) {
@@ -1416,21 +1553,19 @@ extern "C" int _rmdir(const char* path)
         errno = guard.error();
         return -1;
     }
-    char normalized[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> normalized{};
     ResolvedPath resolved{};
     EntryInformation info{};
     int error{ resolve_path_unlocked(path, normalized, resolved) };
     if (error == 0) {
-        error = information_unlocked(normalized, info);
+        error = information_unlocked(normalized.data(), info);
     }
     if (error == 0) {
         if ((info.attributes & FX_DIRECTORY) == 0U) {
             error = ENOTDIR;
         }
-        else if (resolved.virtual_root || resolved.mount_root) {
-            error = EBUSY;
-        }
-        else if (path_has_prefix(current_directory.data(), normalized, true)) {
+        else if (resolved.virtual_root || resolved.mount_root ||
+                 path_has_prefix(current_directory.data(), normalized.data(), true)) {
             // FileX does not track a process working directory. Removing it
             // here would leave the adapter's current_directory dangling.
             error = EBUSY;
@@ -1449,9 +1584,11 @@ extern "C" int _rmdir(const char* path)
     return 0;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _chdir(const char* path)
 {
-    const int error{ runtime::filex::setCurrentPath(path) };
+    const int error{ runtime::filex::set_current_path(path) };
     if (error != 0) {
         errno = error;
         return -1;
@@ -1459,23 +1596,27 @@ extern "C" int _chdir(const char* path)
     return 0;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" char* _getcwd(char* buffer, std::size_t size)
 {
     if (buffer == nullptr || size == 0U) {
         errno = EINVAL;
         return nullptr;
     }
-    char path[MAXIMUM_PATH]{};
-    const int error{ runtime::filex::currentPath(path) };
-    const std::size_t length{ std::strlen(path) + 1U };
+    std::array<char, MAXIMUM_PATH> path{};
+    const int error{ runtime::filex::current_path(path) };
+    const std::size_t length{ std::strlen(path.data()) + 1U };
     if (error != 0 || length > size) {
         errno = error != 0 ? error : ERANGE;
         return nullptr;
     }
-    std::memcpy(buffer, path, length);
+    std::memcpy(buffer, path.data(), length);
     return buffer;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _fsync(int file)
 {
     if (!usable()) {
@@ -1504,6 +1645,8 @@ extern "C" int _fsync(int file)
     return 0;
 }
 
+// Descriptor/offset parameter types and ordering are fixed by Newlib.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters,bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _ftruncate(int file, off_t length)
 {
     if (!usable() || length < 0) {
@@ -1524,8 +1667,8 @@ extern "C" int _ftruncate(int file, off_t length)
     if (error == 0) {
         const std::uint64_t original_size{ descriptor->file.fx_file_current_file_size };
         if (std::cmp_less(length, original_size)) {
-            error = filex_errno(
-              fx_file_extended_truncate_release(&descriptor->file, static_cast<ULONG64>(length)));
+            error =
+              filex_errno(fx_file_extended_truncate_release(&descriptor->file, static_cast<ULONG64>(length)));
         }
         else if (std::cmp_greater(length, original_size)) {
             error = extend_with_zeroes(descriptor->file, static_cast<std::uint64_t>(length));
@@ -1544,8 +1687,12 @@ extern "C" int _ftruncate(int file, off_t length)
     return 0;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _truncate(const char* path, off_t length)
 {
+    // Forward through the Newlib variadic open ABI.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
     const int descriptor{ _open(path, O_WRONLY) };
     if (descriptor < 0) {
         return -1;
@@ -1560,6 +1707,8 @@ extern "C" int _truncate(const char* path, off_t length)
     return -1;
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _utime(const char* path, const struct utimbuf* times)
 {
     if (!usable()) {
@@ -1570,7 +1719,7 @@ extern "C" int _utime(const char* path, const struct utimbuf* times)
         errno = guard.error();
         return -1;
     }
-    char normalized[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> normalized{};
     ResolvedPath resolved{};
     int error{ resolve_path_unlocked(path, normalized, resolved) };
     if (error == 0 && (resolved.virtual_root || resolved.mount_root)) {
@@ -1579,7 +1728,7 @@ extern "C" int _utime(const char* path, const struct utimbuf* times)
     }
     EntryInformation information{};
     if (error == 0) {
-        error = information_unlocked(normalized, information);
+        error = information_unlocked(normalized.data(), information);
     }
     if (error != 0) {
         errno = error;
@@ -1591,8 +1740,8 @@ extern "C" int _utime(const char* path, const struct utimbuf* times)
                                                   : sys_seconds{ seconds{ times->modtime } } };
     // Validate before converting to year_month_day: arbitrary time_t values
     // can exceed chrono::year's range as well as FAT's 1980..2107 range.
-    if (timestamp < sys_days{ year{ 1980 } / January / 1 } ||
-        timestamp >= sys_days{ year{ 2108 } / January / 1 }) {
+    if (timestamp < sys_days{ year{ FAT_FIRST_YEAR } / January / 1 } ||
+        timestamp >= sys_days{ year{ FAT_YEAR_LIMIT } / January / 1 }) {
         errno = EOVERFLOW;
         return -1;
     }
@@ -1624,10 +1773,12 @@ extern "C" int _utime(const char* path, const struct utimbuf* times)
         // may update mtime normally, but merely closing must preserve this value.
         for (auto& descriptor : descriptors) {
             if (descriptor.allocated && descriptor.open_mode >= 0 &&
-                paths_equal(descriptor.path.data(), normalized)) {
+                paths_equal(descriptor.path.data(), normalized.data())) {
                 auto& entry{ descriptor.file.fx_file_dir_entry };
-                entry.fx_dir_entry_date = ((year_value - 1980U) << 9U) | (month_value << 5U) | day_value;
-                entry.fx_dir_entry_time = (hour_value << 11U) | (minute_value << 5U) | (second_value / 2U);
+                entry.fx_dir_entry_date = ((year_value - FAT_FIRST_YEAR) << FAT_YEAR_SHIFT) |
+                                          (month_value << FAT_MONTH_SHIFT) | day_value;
+                entry.fx_dir_entry_time =
+                  (hour_value << FAT_HOUR_SHIFT) | (minute_value << FAT_MINUTE_SHIFT) | (second_value / 2U);
             }
         }
         error = flush_media_unlocked(resolved.media);
@@ -1639,7 +1790,9 @@ extern "C" int _utime(const char* path, const struct utimbuf* times)
     return 0;
 }
 
-extern "C" int _gettimeofday(struct timeval* value, void*)
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int _gettimeofday(struct timeval* value, void* /*unused*/)
 {
     if (value == nullptr) {
         errno = EFAULT;
@@ -1657,7 +1810,8 @@ extern "C" int _gettimeofday(struct timeval* value, void*)
         return -1;
     }
     value->tv_sec = static_cast<decltype(value->tv_sec)>(timestamp->seconds_since_epoch);
-    value->tv_usec = static_cast<decltype(value->tv_usec)>(timestamp->nanoseconds / 1'000U);
+    value->tv_usec =
+      static_cast<decltype(value->tv_usec)>(timestamp->nanoseconds / NANOSECONDS_PER_MICROSECOND);
     return 0;
 }
 
@@ -1674,66 +1828,86 @@ namespace
     }
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _open_r(_reent* context, const char* path, int flags, int mode)
 {
+    // Forward through the Newlib variadic open ABI.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
     return copy_errno_to_reent(context, _open(path, flags, mode));
 }
 
-extern "C" int _close_r(_reent* context, int file)
-{
-    return copy_errno_to_reent(context, _close(file));
-}
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int _close_r(_reent* context, int file) { return copy_errno_to_reent(context, _close(file)); }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" _ssize_t _read_r(_reent* context, int file, void* buffer, std::size_t length)
 {
     if (length > static_cast<std::size_t>(INT_MAX)) {
         errno = EINVAL;
         return copy_errno_to_reent(context, -1);
     }
-    return copy_errno_to_reent(
-      context, _read(file, static_cast<char*>(buffer), static_cast<int>(length)));
+    return copy_errno_to_reent(context, _read(file, static_cast<char*>(buffer), static_cast<int>(length)));
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" _ssize_t _write_r(_reent* context, int file, const void* buffer, std::size_t length)
 {
     if (length > static_cast<std::size_t>(INT_MAX)) {
         errno = EINVAL;
         return copy_errno_to_reent(context, -1);
     }
-    return copy_errno_to_reent(
-      context, _write(file, static_cast<const char*>(buffer), static_cast<int>(length)));
+    return copy_errno_to_reent(context,
+                               _write(file, static_cast<const char*>(buffer), static_cast<int>(length)));
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" _off_t _lseek_r(_reent* context, int file, _off_t offset, int origin)
 {
     return static_cast<_off_t>(
       copy_errno_to_reent(context, _lseek(file, static_cast<off_t>(offset), origin)));
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _fstat_r(_reent* context, int file, struct stat* value)
 {
     return copy_errno_to_reent(context, _fstat(file, value));
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _stat_r(_reent* context, const char* path, struct stat* value)
 {
     return copy_errno_to_reent(context, _stat(path, value));
 }
 
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _unlink_r(_reent* context, const char* path)
 {
     return copy_errno_to_reent(context, _unlink(path));
 }
 
-extern "C" int _rename_r(_reent* context, const char* old_path, const char* new_path)
+// Match the parameter names in Newlib declarations.
+// NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int _rename_r(_reent* context, const char* _old, const char* _new)
 {
-    return copy_errno_to_reent(context, _rename(old_path, new_path));
+    return copy_errno_to_reent(context, _rename(_old, _new));
 }
+// NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
 
-extern "C" int _gettimeofday_r(_reent* context, struct timeval* value, void* timezone)
+// Match the parameter names in Newlib declarations.
+// NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int _gettimeofday_r(_reent* context, struct timeval* __tp, void* __tzp)
 {
-    return copy_errno_to_reent(context, _gettimeofday(value, timezone));
+    return copy_errno_to_reent(context, _gettimeofday(__tp, __tzp));
 }
+// NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
 
 extern "C" int mkdir(const char* path, mode_t mode) { return _mkdir(path, mode); }
 extern "C" int rmdir(const char* path) { return _rmdir(path); }
@@ -1746,14 +1920,24 @@ extern "C" int remove(const char* path)
 }
 extern "C" int chdir(const char* path) { return _chdir(path); }
 extern "C" int truncate(const char* path, off_t length) { return _truncate(path, length); }
-extern "C" int ftruncate(int file, off_t length) { return _ftruncate(file, length); }
-extern "C" int fsync(int file) { return _fsync(file); }
+// Match the parameter names in Newlib declarations.
+// NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int ftruncate(int __fd, off_t length) { return _ftruncate(__fd, length); }
+// NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
+// Match the parameter names in Newlib declarations.
+// NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int fsync(int __fd) { return _fsync(__fd); }
+// NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int utime(const char* path, const struct utimbuf* times) { return _utime(path, times); }
 
-extern "C" char* getcwd(char* buffer, std::size_t size)
+// POSIX getcwd(nullptr, ...) transfers a malloc-owned buffer to its caller.
+// NOLINTBEGIN(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
+// Match the parameter names in Newlib declarations.
+// NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" char* getcwd(char* __buf, std::size_t __size)
 {
-    if (buffer != nullptr) {
-        return _getcwd(buffer, size);
+    if (__buf != nullptr) {
+        return _getcwd(__buf, __size);
     }
     auto* const allocated{ static_cast<char*>(std::malloc(MAXIMUM_PATH)) };
     if (allocated == nullptr) {
@@ -1766,8 +1950,11 @@ extern "C" char* getcwd(char* buffer, std::size_t size)
     }
     return allocated;
 }
+// NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
 
-extern "C" long pathconf(const char*, int name)
+// NOLINTEND(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
+
+extern "C" long pathconf(const char* /*unused*/, int name)
 {
     switch (name) {
 #ifdef _PC_PATH_MAX
@@ -1793,9 +1980,7 @@ extern "C" int statvfs(const char* path, struct statvfs* value)
     EntryInformation information{};
     const int path_error{ runtime::filex::information(path, information) };
     std::uint64_t available{};
-    const int space_error{
-        path_error == 0 ? runtime::filex::availableSpace(path, available) : path_error
-    };
+    const int space_error{ path_error == 0 ? runtime::filex::available_space(path, available) : path_error };
     if (space_error != 0) {
         errno = space_error;
         return -1;
@@ -1803,10 +1988,10 @@ extern "C" int statvfs(const char* path, struct statvfs* value)
     *value = {};
     value->f_bsize = SECTOR_SIZE;
     value->f_frsize = SECTOR_SIZE;
-    char normalized[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> normalized{};
     ResolvedPath resolved{};
-    const int resolve_error{ runtime::filex::normalizePath(path, normalized) };
-    if (resolve_error != 0 || resolve_normalized_path(normalized, resolved) != 0 ||
+    const int resolve_error{ runtime::filex::normalize_path(path, normalized) };
+    if (resolve_error != 0 || resolve_normalized_path(normalized.data(), resolved) != 0 ||
         resolved.virtual_root) {
         errno = resolve_error != 0 ? resolve_error : EINVAL;
         return -1;
@@ -1818,19 +2003,21 @@ extern "C" int statvfs(const char* path, struct statvfs* value)
     return 0;
 }
 
-extern "C" int _link(const char*, const char*)
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int _link(const char* /*unused*/, const char* /*unused*/)
 {
     errno = ENOTSUP;
     return -1;
 }
 
-extern "C" int symlink(const char*, const char*)
+extern "C" int symlink(const char* /*unused*/, const char* /*unused*/)
 {
     errno = ENOTSUP;
     return -1;
 }
 
-extern "C" ssize_t readlink(const char*, char*, std::size_t)
+extern "C" ssize_t readlink(const char* /*unused*/, char* /*unused*/, std::size_t /*unused*/)
 {
     errno = ENOTSUP;
     return -1;
@@ -1840,18 +2027,29 @@ extern "C" ssize_t readlink(const char*, char*, std::size_t)
 #endif
 
 #if defined(HAL_PLATFORM_STM32)
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _isatty(int file) { return file >= 0 && file <= 2 ? 1 : 0; }
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _getpid() { return 1; }
-extern "C" int _kill(int, int)
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" int _kill(int /*unused*/, int /*unused*/)
 {
     errno = EINVAL;
     return -1;
 }
-extern "C" [[noreturn]] void _exit(int)
+// Inherit Newlib's noreturn attribute from <unistd.h>.
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
+extern "C" void _exit(int /*unused*/)
 {
     while (true) {
     }
 }
+// Required Newlib/BSP ABI spelling.
+// NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 extern "C" int _getentropy(void* buffer, std::size_t length)
 {
     if (length == 0U) {
@@ -1861,7 +2059,7 @@ extern "C" int _getentropy(void* buffer, std::size_t length)
         errno = EFAULT;
         return -1;
     }
-    if (length > 256U) {
+    if (length > MAXIMUM_ENTROPY_REQUEST) {
         errno = EIO;
         return -1;
     }
@@ -1900,11 +2098,11 @@ extern "C" DIR* opendir(const char* path)
         return nullptr;
     }
     EntryInformation info{};
-    char normalized[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> normalized{};
     ResolvedPath resolved{};
     int error{ resolve_path_unlocked(path, normalized, resolved) };
     if (error == 0) {
-        error = information_unlocked(normalized, info);
+        error = information_unlocked(normalized.data(), info);
     }
     if (error == 0 && (info.attributes & FX_DIRECTORY) == 0U) {
         error = ENOTDIR;
@@ -1913,30 +2111,27 @@ extern "C" DIR* opendir(const char* path)
         errno = error;
         return nullptr;
     }
-    auto slot{ std::find_if(directories.begin(), directories.end(), [](const auto& directory) {
-        return !directory.allocated;
-    }) };
+    auto* slot{ std::ranges::find_if(directories,
+                                     [](const auto& directory) { return !directory.allocated; }) };
     if (slot == directories.end()) {
         errno = EMFILE;
         return nullptr;
     }
     *slot = runtime_filex_directory_stream{};
     slot->allocated = true;
-    std::memcpy(slot->path.data(), normalized, std::strlen(normalized) + 1U);
+    std::memcpy(slot->path.data(), normalized.data(), std::strlen(normalized.data()) + 1U);
     if (resolved.virtual_root) {
         try {
-            for (const auto [volume, name] : {
-                   std::pair{ runtime::storage::Volume::flash, "flash" },
-                   std::pair{ runtime::storage::Volume::sd, "sd" } }) {
+            for (const auto [volume, name] : { std::pair{ runtime::storage::Volume::Flash, "flash" },
+                                               std::pair{ runtime::storage::Volume::Sd, "sd" } }) {
                 if (runtime::storage::mounted(volume)) {
                     runtime_filex_directory_stream::Entry entry{};
                     std::memcpy(entry.name.data(), name, std::strlen(name) + 1U);
                     entry.type = DT_DIR;
-                    slot->entries.push_back(std::move(entry));
+                    slot->entries.push_back(entry);
                 }
             }
-        }
-        catch (...) {
+        } catch (...) {
             *slot = runtime_filex_directory_stream{};
             errno = ENOMEM;
             return nullptr;
@@ -1948,39 +2143,45 @@ extern "C" DIR* opendir(const char* path)
         errno = EIO;
         return nullptr;
     }
-    char name[MAXIMUM_PATH]{};
+    std::array<char, MAXIMUM_PATH> name{};
     UINT attributes{};
     ULONG size{};
-    UINT status{ fx_directory_first_full_entry_find(
-      resolved.media, name, &attributes, &size, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) };
+    UINT status{ fx_directory_first_full_entry_find(resolved.media,
+                                                    name.data(),
+                                                    &attributes,
+                                                    &size,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr) };
     try {
         while (status == FX_SUCCESS) {
-            if (std::strcmp(name, ".") != 0 && std::strcmp(name, "..") != 0) {
+            if (std::strcmp(name.data(), ".") != 0 && std::strcmp(name.data(), "..") != 0) {
                 runtime_filex_directory_stream::Entry entry{};
-                std::memcpy(entry.name.data(), name, std::strlen(name) + 1U);
+                std::memcpy(entry.name.data(), name.data(), std::strlen(name.data()) + 1U);
                 entry.type = (attributes & FX_DIRECTORY) != 0U ? DT_DIR : DT_REG;
-                slot->entries.push_back(std::move(entry));
+                slot->entries.push_back(entry);
             }
-            status = fx_directory_next_full_entry_find(
-              resolved.media,
-              name,
-              &attributes,
-              &size,
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr);
+            status = fx_directory_next_full_entry_find(resolved.media,
+                                                       name.data(),
+                                                       &attributes,
+                                                       &size,
+                                                       nullptr,
+                                                       nullptr,
+                                                       nullptr,
+                                                       nullptr,
+                                                       nullptr,
+                                                       nullptr);
         }
-    }
-    catch (...) {
-        static_cast<void>(fx_directory_default_set(resolved.media, const_cast<CHAR*>("/")));
+    } catch (...) {
+        static_cast<void>(reset_default_directory(resolved.media));
         *slot = runtime_filex_directory_stream{};
         errno = ENOMEM;
         return nullptr;
     }
-    static_cast<void>(fx_directory_default_set(resolved.media, const_cast<CHAR*>("/")));
+    static_cast<void>(reset_default_directory(resolved.media));
     if (status != FX_NO_MORE_ENTRIES) {
         *slot = runtime_filex_directory_stream{};
         errno = filex_errno(status);
@@ -2015,7 +2216,7 @@ extern "C" dirent* readdir(DIR* directory)
     directory->entry.d_ino = static_cast<std::uint32_t>(directory->position + 1);
     directory->entry.d_reclen = sizeof(dirent);
     directory->entry.d_type = snapshot.type;
-    std::memcpy(directory->entry.d_name, snapshot.name.data(), std::strlen(snapshot.name.data()) + 1U);
+    std::memcpy(&directory->entry.d_name[0], snapshot.name.data(), std::strlen(snapshot.name.data()) + 1U);
     ++directory->position;
     return &directory->entry;
 }
@@ -2106,7 +2307,7 @@ extern "C" void seekdir(DIR* directory, long position)
     }
     directory->position = position;
 }
-extern "C" int dirfd(DIR*)
+extern "C" int dirfd(DIR* /*unused*/)
 {
     errno = ENOTSUP;
     return -1;
