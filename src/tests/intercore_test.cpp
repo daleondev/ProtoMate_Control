@@ -1,7 +1,7 @@
 #include "hal/util/InterCoreMemory.hpp"
-#include "icc/bridge/Bridge.hpp"
-#include "icc/examples/ContextThread.hpp"
-#include "icc/transport/InterCoreTransport.hpp"
+#include "common/icc/bridge/Bridge.hpp"
+#include "common/icc/examples/ContextThread.hpp"
+#include "common/icc/transport/InterCoreTransport.hpp"
 
 #include <future>
 #include <gtest/gtest.h>

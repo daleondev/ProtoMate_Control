@@ -1,7 +1,7 @@
-#include "common/Application.hpp"
-#include "icc/transport/InProcessTransport.hpp"
-#include "io/Application.hpp"
-#include "ui/Application.hpp"
+#include "common/app/Application.hpp"
+#include "common/icc/transport/InProcessTransport.hpp"
+#include "io/app/Application.hpp"
+#include "ui/app/Application.hpp"
 
 #include <gtest/gtest.h>
 
@@ -24,8 +24,8 @@ namespace
         void requestStop();
         void join();
     };
-    static_assert(!application::Application<MissingJoin>);
-    static_assert(!application::Application<WrongReturnType>);
+    static_assert(!app::Application<MissingJoin>);
+    static_assert(!app::Application<WrongReturnType>);
     static_assert(!std::default_initializable<io::Application>);
     static_assert(!std::default_initializable<ui::Application>);
 

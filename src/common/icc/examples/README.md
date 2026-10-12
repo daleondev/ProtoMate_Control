@@ -4,18 +4,18 @@ Build and run from the repository root (GCC 16 with reflection):
 
 ```sh
 cmake --preset debug-linux
-cmake --build --preset debug-linux --target application_icc_example application_icc_service_example application_icc_action_example application_icc_transport_tests application_icc_service_tests application_icc_action_tests
-./build/debug-linux/src/common/icc/examples/application_icc_example
-./build/debug-linux/src/common/icc/examples/application_icc_service_example
-./build/debug-linux/src/common/icc/examples/application_icc_action_example
+cmake --build --preset debug-linux --target proto_common_icc_example proto_common_icc_service_example proto_common_icc_action_example proto_common_icc_transport_tests proto_common_icc_service_tests proto_common_icc_action_tests
+./build/debug-linux/src/common/icc/examples/proto_common_icc_example
+./build/debug-linux/src/common/icc/examples/proto_common_icc_service_example
+./build/debug-linux/src/common/icc/examples/proto_common_icc_action_example
 ctest --test-dir build/debug-linux -R '^application\.icc\.' --output-on-failure
 ```
 
 The examples build independently of the unfinished Robot/Controller integration
 and require no hardware. The repository build uses its Linux/ThreadX runtime.
 
-The application includes `icc/bridge/Bridge.hpp` and
-`icc/transport/InProcessTransport.hpp`. Registration still goes through `Bridge`.
+The application includes `common/icc/bridge/Bridge.hpp` and
+`common/icc/transport/InProcessTransport.hpp`. Registration still goes through `Bridge`.
 For implementation details, read [Bridge.cpp](../bridge/Bridge.cpp) for the
 send/receive loops and lifecycle, [TopicBridge.hpp](../bridge/TopicBridge.hpp)
 for topic routing, and [ServiceBridge.hpp](../bridge/ServiceBridge.hpp) for

@@ -1,6 +1,6 @@
-#include "icc/transport/InProcessTransport.hpp"
-#include "io/Application.hpp"
-#include "ui/Application.hpp"
+#include "common/icc/transport/InProcessTransport.hpp"
+#include "io/app/Application.hpp"
+#include "ui/app/Application.hpp"
 
 #include <cstdio>
 #include <cstdlib>

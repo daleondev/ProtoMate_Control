@@ -1,3 +1,6 @@
+# Common is also built directly by hardware examples, without src/CMakeLists.txt.
+add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
+
 add_subdirectory(app)
 add_subdirectory(icc)
 
@@ -12,6 +15,7 @@ target_include_directories(proto_common
 target_link_libraries(proto_common 
     PUBLIC 
         project_compiler_settings
+        pneumo::coroutines
     PRIVATE
         proto::common::app
         proto::common::icc

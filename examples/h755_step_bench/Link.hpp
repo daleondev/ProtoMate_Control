@@ -1,8 +1,8 @@
 #pragma once
 
 #include "hal/core/core.hpp"
-#include "icc/bridge/Bridge.hpp"
-#include "icc/transport/InterCoreTransport.hpp"
+#include "common/icc/bridge/Bridge.hpp"
+#include "common/icc/transport/InterCoreTransport.hpp"
 #include "runtime/thread.hpp"
 
 #include <array>

@@ -1,7 +1,7 @@
 #include "Actions.hpp"
 #include "ContextThread.hpp"
-#include "icc/bridge/Bridge.hpp"
-#include "icc/transport/InProcessTransport.hpp"
+#include "common/icc/bridge/Bridge.hpp"
+#include "common/icc/transport/InProcessTransport.hpp"
 
 #include <chrono>
 #include <condition_variable>

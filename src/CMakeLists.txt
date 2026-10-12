@@ -24,8 +24,17 @@ if(DEFINED H755_CORE)
 else()
     add_subdirectory(io)
     add_subdirectory(ui)
-    target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
-    target_link_libraries(${PROJECT_NAME} PRIVATE application::io application::ui)
+
+    target_sources(${PROJECT_NAME} 
+        PRIVATE 
+            ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    )
+
+    target_link_libraries(${PROJECT_NAME} 
+        PRIVATE 
+            proto::io 
+            proto::ui
+    )
 endif()
 
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")

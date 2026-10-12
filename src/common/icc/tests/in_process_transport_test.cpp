@@ -1,5 +1,5 @@
-#include "icc/bridge/Bridge.hpp"
-#include "icc/transport/InProcessTransport.hpp"
+#include "common/icc/bridge/Bridge.hpp"
+#include "common/icc/transport/InProcessTransport.hpp"
 
 #include <gtest/gtest.h>
 

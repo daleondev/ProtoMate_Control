@@ -3,8 +3,8 @@
 Start with [Actions.hpp](Actions.hpp), then run [actions.cpp](actions.cpp):
 
 ```sh
-cmake --build --preset debug-linux --target application_icc_action_example application_icc_action_tests
-./build/debug-linux/src/common/icc/examples/application_icc_action_example
+cmake --build --preset debug-linux --target proto_common_icc_action_example proto_common_icc_action_tests
+./build/debug-linux/src/common/icc/examples/proto_common_icc_action_example
 ctest --test-dir build/debug-linux -R 'application\.icc\.(actions|action_example)$' --output-on-failure
 ```
 

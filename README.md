@@ -32,34 +32,38 @@ including the new **PE2 DM542T ALM assignment**. The bare-metal LED samples reta
 
 | Directory | Responsibility |
 | --- | --- |
-| `src/common/` | Shared contracts, application lifecycle concept and portable `icc/` |
+| `src/common/` | Shared contracts, application lifecycle concept, ICC bridge and transports |
 | `src/io/` | M4 entry point and IO application; future motion execution and sensors |
 | `src/ui/` | M7 entry point and UI application; future planning, CLI and GUI |
 
-Each firmware compiles only its own application target, `application::io` or
-`application::ui`. Both use `application::common`. The Linux entry point in
+Each firmware compiles only its own application target, `proto::io` or
+`proto::ui`. Both use `proto::common`. These are compiled static libraries;
+their nested `INTERFACE` targets collect sources privately into the owning
+library. Tests and examples link the compiled libraries so implementation files
+are compiled once per build. Public include paths start at `src/`, for example
+`common/icc/bridge/Bridge.hpp` and `io/app/Application.hpp`. The Linux entry point in
 `src/main.cpp` retains the in-process paired transport for host development and
 lifecycle tests. It is not compiled into either H755 image.
 
-The [application concept](src/common/Application.hpp) enforces `void start()`,
+The [application concept](src/common/app/Application.hpp) enforces `void start()`,
 `void requestStop()` and `void join()` without inheritance. Construction starts
 no threads. `start()` is one-shot; `requestStop()` is an idempotent thread-safe
 notification; `join()` waits for completion. Destruction requests a stop and
 joins. Call start/join/destruction from the lifecycle owner, outside workers.
 
-`runtime::thread::Definition` annotations in each `Application.hpp` declare its
-threads; `system_threads.cpp` defines their entries.
+`runtime::thread::Definition` annotations in each `app/Application.hpp` declare
+its threads; `app/Application.cpp` defines their entries.
 [ThreadGroup](platform/runtime/ThreadGroup.hpp) creates all workers before
 releasing them. The ICC worker runs the context; the application worker waits
 for a stop request, then drains the bridge before stopping its context. Peer
 shutdown or link failure wakes the application worker. Each application requires
 a transport; the bridge is a concrete member with no optional execution path.
 
-The shared message catalogs live directly in `src/common/icc/`:
+The shared message catalogs live in `src/common/icc/catalog/`:
 
-- [topics.hpp](src/common/icc/topics.hpp): `Topics`, with `TopicPublisher` annotations.
-- [services.hpp](src/common/icc/services.hpp): `Services`, with `ServiceProvider` annotations.
-- [actions.hpp](src/common/icc/actions.hpp): `Actions`, with `ActionProvider` annotations.
+- [topics.hpp](src/common/icc/catalog/topics.hpp): `Topics`, with `TopicPublisher` annotations.
+- [services.hpp](src/common/icc/catalog/services.hpp): `Services`, with `ServiceProvider` annotations.
+- [actions.hpp](src/common/icc/catalog/actions.hpp): `Actions`, with `ActionProvider` annotations.
 
 Both applications register all three catalogs in their constructors using their
 own IO/UI role. Add message definitions to these catalogs as functionality is
@@ -462,9 +466,10 @@ ownership require separate hardware validation as each subsystem is ported.
 
 ## Processor-to-processor messaging
 
-`application::icc` supports serialized topics, services and actions, with peer
-readiness, connection health and state-change callbacks. It remains available as
-a portable library while application control and CLI are rebuilt.
+The ICC implementation in `proto::common` supports serialized topics, services
+and actions, with peer readiness, connection health and state-change callbacks.
+The bridge is independent of hardware; the common library also includes the
+HAL/runtime inter-core adapter and, on Linux, the in-process transport.
 The [two-bus examples](src/common/icc/examples/README.md), including the
 [action example](src/common/icc/examples/actions.cpp), also run independently.
 

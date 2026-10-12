@@ -166,13 +166,14 @@ flowchart LR
 
 Both applications require a transport and own a concrete bridge, bus and context.
 The bridges register the empty `Topics`, `Services` and `Actions` catalogs in
-`src/common/icc/topics.hpp`, `services.hpp` and `actions.hpp`. These are the
+`src/common/icc/catalog/topics.hpp`, `services.hpp` and `actions.hpp`. These are the
 shared definitions to extend with application functionality. Handshake and
 heartbeat traffic runs even without application messages. The application
 workers sleep until shutdown; there is no LED topic or local blink task.
 
-`application::icc` remains portable. The separately linked
-`application::icc::intercore` adapter wraps `hal::IInterCoreChannel`.
+`proto::common` compiles the ICC bridge and transport implementations once for
+each firmware. The bridge remains independent of hardware; its inter-core
+adapter wraps `hal::IInterCoreChannel` using the local runtime.
 The channel uses four SPSC queues: normal and urgent in each direction, four
 frames per queue, at most 2048 bytes per frame. Queue counters use aligned,
 lock-free 32-bit acquire/release accesses; no pointer, mutex, coroutine, or
