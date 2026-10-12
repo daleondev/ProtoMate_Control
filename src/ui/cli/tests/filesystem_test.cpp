@@ -3,6 +3,7 @@
 #include "ui/cli/utilities.hpp"
 
 #include <gtest/gtest.h>
+#include <pneumo/messaging.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -25,11 +26,10 @@ namespace
 
 TEST(CliFilesystem, SupportsCommonFileAndDirectoryOperations)
 {
-    auto& parser{ ui::cli::registry() };
-    ui::cli::filesystem::setup();
-    ui::cli::utilities::setup();
-    ui::cli::filesystem::setup();
-    ui::cli::utilities::setup();
+    pnm::msg::Bus bus;
+    ui::cli::Parser parser;
+    ui::cli::filesystem::setup(parser);
+    ui::cli::utilities::setup(parser, bus);
 
     std::ostringstream output;
     ASSERT_TRUE(execute(parser, "pwd", output));
@@ -213,8 +213,9 @@ TEST(CliFilesystem, SupportsCommonFileAndDirectoryOperations)
 
 TEST(CliUtilities, PrintsHeapInformation)
 {
-    auto& parser{ ui::cli::registry() };
-    ui::cli::utilities::setup();
+    pnm::msg::Bus bus;
+    ui::cli::Parser parser;
+    ui::cli::utilities::setup(parser, bus);
 
     std::ostringstream output;
     const auto result{ execute(parser, "heap ui", output) };

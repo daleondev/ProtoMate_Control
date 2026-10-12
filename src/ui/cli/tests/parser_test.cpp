@@ -80,7 +80,8 @@ TEST(CliParser, RegistersAnnotationsWithInferredAndMultiwordNames)
     EXPECT_TRUE(parser.contains("echo"));
     EXPECT_TRUE(parser.contains("meta stream"));
     EXPECT_FALSE(parser.contains("stream"));
-    EXPECT_FALSE(ui::cli::registry().contains("meta stream"));
+    const ui::cli::Parser independent_parser;
+    EXPECT_FALSE(independent_parser.contains("meta stream"));
 
     std::ostringstream output;
     ASSERT_TRUE(parser.execute("echo hello world -u --prefix=hi: | meta stream", output));
@@ -116,7 +117,8 @@ TEST(CliParser, AnnotationBindingsRetainContextAndKeepParsersIndependent)
         EXPECT_EQ(output.str(), "121");
         EXPECT_EQ(lifetime.lock()->calls, 2);
         EXPECT_EQ(second->calls, 1);
-        EXPECT_FALSE(ui::cli::registry().contains("meta count"));
+        const ui::cli::Parser independent_parser;
+        EXPECT_FALSE(independent_parser.contains("meta count"));
     }
     EXPECT_TRUE(lifetime.expired());
 }

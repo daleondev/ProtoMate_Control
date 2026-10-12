@@ -30,5 +30,4 @@ namespace ui::cli::filesystem
       -> WildcardResult;
 
     void setup(Parser& parser);
-    auto setup() -> void;
 }

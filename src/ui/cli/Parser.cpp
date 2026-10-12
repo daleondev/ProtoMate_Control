@@ -954,10 +954,4 @@ namespace ui::cli
             }
         }
     }
-
-    auto registry() noexcept -> Parser&
-    {
-        static Parser parser;
-        return parser;
-    }
 }

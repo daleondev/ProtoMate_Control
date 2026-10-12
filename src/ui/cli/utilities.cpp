@@ -20,7 +20,6 @@
 #include <fstream>
 #include <istream>
 #include <iterator>
-#include <mutex>
 #include <optional>
 #include <ostream>
 #include <ranges>
@@ -74,7 +73,7 @@ namespace ui::cli::utilities
             struct Context
             {
                 Parser* parser;
-                std::optional<MemoryService> memory;
+                MemoryService memory;
                 std::stop_token stop;
             };
 
@@ -110,12 +109,9 @@ namespace ui::cli::utilities
                 if (controller != "io") {
                     return std::unexpected(CallbackError{ "controller must be 'ui' or 'io'" });
                 }
-                if (!context.memory) {
-                    return std::unexpected(CallbackError{ "IO diagnostics service is not connected" });
-                }
                 // Wait only on the CLI thread. ICC workers remain free to route
                 // the request/reply; shutdown cancels the outstanding request.
-                auto call{ context.memory->request(query, std::chrono::seconds{ 2 }, context.stop) };
+                auto call{ context.memory.request(query, std::chrono::seconds{ 2 }, context.stop) };
                 auto result{ call.get() };
                 if (!result) {
                     return std::unexpected(
@@ -662,34 +658,21 @@ namespace ui::cli::utilities
         }
     }
 
-    namespace
-    {
-        void register_utilities(Parser& parser,
-                                std::optional<commands::MemoryService> memory,
-                                std::stop_token stop)
-        {
-            const commands::Context context{ &parser, std::move(memory), stop };
-            register_commands<^^commands>(parser, [context](auto function) -> Callback {
-                return [context, function](const Arguments& args, CommandIO& io) -> CallbackResult {
-                    if constexpr (std::invocable<decltype(function),
-                                                 const Arguments&,
-                                                 CommandIO&,
-                                                 const commands::Context&>) {
-                        return function(args, io, context);
-                    }
-                    else {
-                        return function(args, io);
-                    }
-                };
-            });
-        }
-    }
-
     void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop)
     {
-        static std::once_flag registration;
-        std::call_once(registration, [&parser, &bus, stop] {
-            register_utilities(parser, bus.service<^^icc::Services::io_memory>(), stop);
+        const commands::Context context{ &parser, bus.service<^^icc::Services::io_memory>(), stop };
+        register_commands<^^commands>(parser, [context](auto function) -> Callback {
+            return [context, function](const Arguments& args, CommandIO& io) -> CallbackResult {
+                if constexpr (std::invocable<decltype(function),
+                                             const Arguments&,
+                                             CommandIO&,
+                                             const commands::Context&>) {
+                    return function(args, io, context);
+                }
+                else {
+                    return function(args, io);
+                }
+            };
         });
     }
 }
