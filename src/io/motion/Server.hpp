@@ -26,7 +26,7 @@ namespace io::motion
             pnm::msg::ReadinessRegistration cancellation;
         };
         ::motion::MotorResponse request(const ::motion::MotorRequest& request, bool urgent);
-        ::motion::MotorResponse snapshot() const;
+        ::motion::MotorSnapshot snapshot();
         ::motion::MotorProgress progress(::motion::MotorId id) const;
         void admit(const ::motion::MotorGoal& goal, Execution execution);
         void dispatchJobs(bool feedback);
@@ -34,8 +34,9 @@ namespace io::motion
         Controller* m_controller;
         std::shared_ptr<runtime::Notification> m_notification{ std::make_shared<runtime::Notification>() };
         std::array<std::optional<Job>, 8> m_jobs;
-        std::uint64_t m_generation{ 1 };
+        std::uint64_t m_commandGeneration{ 1 }, m_sequence{};
         std::stop_token m_stop;
+        pnm::msg::Topic<::motion::MotorSnapshot> m_state;
         pnm::msg::ServiceServer<::motion::MotorRequest, ::motion::MotorResponse> m_commands, m_urgent;
         pnm::msg::ActionServer<::motion::MotorGoal, ::motion::MotorProgress, ::motion::MotorResult> m_motions;
     };

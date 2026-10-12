@@ -1,6 +1,7 @@
 #include "Client.hpp"
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
+#include "common/icc/catalog/topics.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -30,8 +31,38 @@ namespace ui::motion
       : m_commands{ bus.service<^^icc::Services::io_motor>() }
       , m_urgent{ bus.service<^^icc::Services::io_motor_stop>() }
       , m_motions{ bus.action<^^icc::Actions::io_motor_motion>() }
+      , m_stateSubscription{ bus.topic<^^icc::Topics::io_motor_state>().subscribe(
+          [this](const MotorSnapshot& value) {
+              std::scoped_lock lock{ m_mutex };
+              if (!m_connected || m_stopped || (m_state && value.sequence <= m_state->sequence)) { return; }
+              m_state = value;
+              m_receivedAt = std::chrono::steady_clock::now();
+              // An older sample can arrive after a newer command acknowledgement.
+              m_commandGeneration = std::max(m_commandGeneration.value_or(0), value.commandGeneration);
+          }, pnm::msg::SubscriptionOptions::latestOnly()) }
     {
         m_jobs.reserve(32);
+    }
+
+    void Client::setConnected(bool connected)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (m_connected != connected) {
+            m_state.reset();
+            m_commandGeneration.reset();
+        }
+        m_connected = connected;
+    }
+
+    MotorSnapshot Client::state() const
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (m_stopped || !m_connected) { throw std::runtime_error("motor state unavailable: IO disconnected; motor stop unconfirmed"); }
+        if (!m_state) { throw std::runtime_error("motor state unavailable: awaiting IO telemetry"); }
+        if (std::chrono::steady_clock::now() - m_receivedAt > MOTOR_STATE_MAX_AGE) {
+            throw std::runtime_error("motor state stale: no fresh IO telemetry for 500 ms; motor stop unconfirmed");
+        }
+        return *m_state;
     }
 
     MotorResponse Client::request(const MotorRequest& value, std::stop_token stop)
@@ -46,20 +77,25 @@ namespace ui::motion
         const std::stop_callback cancellation{ stop, [&call] { call.cancel(); } };
         auto result{ call.get() };
         if (!result) { throw std::runtime_error(serviceError(result.error())); }
+        {
+            std::scoped_lock lock{ m_mutex };
+            if (m_connected && !m_stopped) {
+                m_commandGeneration = std::max(m_commandGeneration.value_or(0), result->commandGeneration);
+            }
+        }
         if (!result->ok) { throw std::runtime_error(result->message); }
         return std::move(*result);
     }
 
     std::uint64_t Client::submit(MotorGoal goal, std::stop_token stop)
     {
-        // Snapshot and submission are distinct: IO rejects a plan overtaken by stop.
-        const auto status{ request({}, stop) };
-        if (!status.ready || !status.enabled) {
-            throw std::runtime_error("run 'motor driver init' and 'motor enable' before moving");
-        }
-        goal.generation = status.generation;
         std::scoped_lock lock{ m_mutex };
         if (m_stopped || stop.stop_requested()) { throw std::runtime_error("UI controller is stopping"); }
+        if (!m_connected) { throw std::runtime_error("IO motor controller disconnected"); }
+        if (!m_commandGeneration) { throw std::runtime_error("awaiting IO motor state or command acknowledgement"); }
+        // IO authoritatively checks readiness and the stop generation. Cached
+        // display state must not admit a move or delay one after an acknowledgement.
+        goal.commandGeneration = *m_commandGeneration;
         if (m_jobs.size() == 32) {
             const auto completed{ std::ranges::find_if(m_jobs, [](const auto& job) { return !job->handle; }) };
             if (completed == m_jobs.end()) { throw std::runtime_error("motor job registry is full"); }
@@ -128,8 +164,10 @@ namespace ui::motion
 
     void Client::run(std::stop_token stop)
     {
+        const auto ready{ pnm::msg::watch(m_stateSubscription, [notification = m_notification] { notification->signal(); }) };
         const std::stop_callback cancellation{ stop, [notification = m_notification] { notification->signal(); } };
         while (!stop.stop_requested()) {
+            m_stateSubscription.pollSome(1);
             {
                 std::scoped_lock lock{ m_mutex };
                 for (const auto& job : m_jobs) {

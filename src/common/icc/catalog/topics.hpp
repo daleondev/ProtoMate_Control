@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include "common/icc/transport/ITransport.hpp"
+#include "common/motion/Motor.hpp"
 #include <pneumo/messaging.hpp>
 
 namespace icc
@@ -23,5 +24,8 @@ namespace icc
     {
         [[= TopicPublisher::IO, = Lane::Background, = LOG_SUBSCRIPTION]]
         pnm::msg::Topic<std::string> io_logs;
+
+        [[= TopicPublisher::IO, = pnm::msg::SubscriptionOptions::latestOnly()]]
+        pnm::msg::Topic<motion::MotorSnapshot> io_motor_state;
     };
 }

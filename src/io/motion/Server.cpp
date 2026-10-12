@@ -1,6 +1,7 @@
 #include "Server.hpp"
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
+#include "common/icc/catalog/topics.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -37,6 +38,7 @@ namespace io::motion
 
     Server::Server(pnm::msg::Bus& bus, Controller& controller)
       : m_controller{ &controller }
+      , m_state{ bus.topic<^^icc::Topics::io_motor_state>() }
       , m_commands{ bus.service<^^icc::Services::io_motor>().serve(
           [this](const MotorRequest& value) { return request(value, false); }, { .max_pending = 4 }) }
       , m_urgent{ bus.service<^^icc::Services::io_motor_stop>().serve(
@@ -54,10 +56,13 @@ namespace io::motion
                  axis.setpointVelocity().get<AngularVelocityUnits::rpm>(), axis.isReferenced() };
     }
 
-    MotorResponse Server::snapshot() const
+    MotorSnapshot Server::snapshot()
     {
-        MotorResponse result;
-        result.generation = m_generation;
+        MotorSnapshot result;
+        result.commandGeneration = m_commandGeneration;
+        result.sequence = ++m_sequence;
+        result.sampled_at_us = std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now().time_since_epoch()).count();
         result.enabled = m_controller->enabled();
         result.ready = m_controller->ready();
         for (std::size_t i{}; i < result.motors.size(); ++i) {
@@ -100,12 +105,11 @@ namespace io::motion
             const bool stopping{ value.operation == MotorOperation::Stop || value.operation == MotorOperation::Disable };
             if (urgent != stopping) { throw std::invalid_argument("incorrect motor command lane"); }
             switch (value.operation) {
-                case MotorOperation::Status: break;
-                case MotorOperation::Initialize: ++m_generation; m_controller->initializeDrivers(); break;
+                case MotorOperation::Initialize: ++m_commandGeneration; m_controller->initializeDrivers(); break;
                 case MotorOperation::Enable: m_controller->enable(); break;
-                case MotorOperation::Disable: ++m_generation; m_controller->disable(); break;
+                case MotorOperation::Disable: ++m_commandGeneration; m_controller->disable(); break;
                 case MotorOperation::Stop:
-                    ++m_generation;
+                    ++m_commandGeneration;
                     m_controller->stop(value.motor == MotorId::All ? std::nullopt : std::optional{ id(value.motor) });
                     break;
                 case MotorOperation::Defaults: {
@@ -118,6 +122,9 @@ namespace io::motion
                         const auto changed{ m_controller->setMotionDefaults(id(value.motor), defaults) };
                         if (!changed) { throw std::runtime_error(changed.error().message()); }
                     }
+                    result.defaults = { defaults.acceleration.get<AngularAccelerationUnits::deg_s2>(),
+                                        defaults.deceleration.get<AngularAccelerationUnits::deg_s2>(),
+                                        defaults.jerk.get<AngularJerkUnits::deg_s3>() };
                     break;
                 }
                 case MotorOperation::Speed: {
@@ -128,19 +135,17 @@ namespace io::motion
                 }
                 default: throw std::invalid_argument("unknown motor operation");
             }
-            const auto pulse{ result.pulse };
-            result = snapshot();
-            result.pulse = pulse;
         } catch (const std::exception& error) {
             result.ok = false;
             result.message = std::string_view{ error.what() }.substr(0, 160);
         }
+        result.commandGeneration = m_commandGeneration;
         return result;
     }
 
     void Server::admit(const MotorGoal& goal, Execution execution)
     {
-        if (m_stop.stop_requested() || !valid(goal) || goal.generation != m_generation ||
+        if (m_stop.stop_requested() || !valid(goal) || goal.commandGeneration != m_commandGeneration ||
             !m_controller->ready() || !m_controller->enabled() ||
             (goal.motion == MotorMotion::Absolute && !m_controller->motor(id(goal.motor)).isReferenced())) {
             execution.reject();
@@ -180,7 +185,7 @@ namespace io::motion
         for (auto& job : m_jobs) {
             if (!job) { continue; }
             if (!job->finished->ready.load() && job->execution.cancelRequested()) {
-                ++m_generation;
+                ++m_commandGeneration;
                 // Cancellation is an axis stop, including its buffered successor.
                 // Join before reporting a terminal result; other motors keep running.
                 m_controller->stop(id(job->motor));
@@ -214,9 +219,11 @@ namespace io::motion
                 m_motions.poll();
                 const auto now{ std::chrono::steady_clock::now() };
                 dispatchJobs(now >= feedback);
-                if (now >= feedback) { feedback = now + 20ms; }
-                const bool active{ std::ranges::any_of(m_jobs, [](const auto& job) { return job.has_value(); }) };
-                m_notification->waitUntil(active ? feedback : std::chrono::steady_clock::time_point::max());
+                if (now >= feedback) {
+                    m_state.publish(snapshot());
+                    feedback = now + MOTOR_STATE_PERIOD;
+                }
+                m_notification->waitUntil(feedback);
             }
         } catch (...) {
             m_controller->disable();

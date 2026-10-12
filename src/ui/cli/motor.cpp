@@ -101,7 +101,7 @@ namespace ui::cli::motor
         CallbackResult status(const Context& context, const Arguments& args, std::ostream& out, bool drivers)
         {
             const auto selected{ selection(args) };
-            const auto response{ context.client->request({}, context.stop) };
+            const auto response{ context.client->state() };
             out << "Drivers: " << (response.enabled ? "enabled" : "disabled")
                 << " | controller: " << (response.ready ? "ready" : "not ready") << '\n';
             for (std::size_t i{}; i < response.motors.size(); ++i) {
@@ -239,7 +239,7 @@ namespace ui::cli::motor
                 .jerk = numericOption(args, "jerk", 0),
                 .dynamics_fields = static_cast<std::uint8_t>((args.hasFlag("accel") ? 1 : 0) |
                   (args.hasFlag("decel") ? 2 : 0) | (args.hasFlag("jerk") ? 4 : 0)) }, context.stop) };
-            const auto& state{ result.motors[static_cast<std::size_t>(motor)] };
+            const auto& state{ result.defaults };
             out << std::format("m{}: accel={} deg/s^2  decel={} deg/s^2  jerk={} deg/s^3\n",
                 static_cast<unsigned>(motor) + 1, state.acceleration, state.deceleration, state.jerk);
             return 0;

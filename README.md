@@ -142,20 +142,35 @@ The shared message catalogs live in `src/common/icc/catalog/`:
 - [actions.hpp](src/common/icc/catalog/actions.hpp): `Actions`, with `ActionProvider` annotations.
 
 Both applications register all three catalogs in their constructors using their
-own IO/UI role. `Topics::io_logs` carries IO log text to UI. `Services::io_memory`
-provides memory diagnostics. `Services::io_motor` carries status, initialization,
+own IO/UI role. `Topics::io_logs` carries IO log text to UI. `Topics::io_motor_state`
+publishes all three motor states at 50 Hz, including while idle or disabled.
+Both the bridge and UI subscription use latest-only delivery. `Services::io_memory`
+provides memory diagnostics. `Services::io_motor` carries initialization,
 enable, speed and default-setting requests. `Services::io_motor_stop` reserves
 urgent transport capacity for stop/disable. `Actions::io_motor_motion` carries
 individual moves and homing, with 50 Hz feedback and terminal results. Shared
 motor payloads live in `src/common/motion/Motor.hpp` and serialize through Pneumo.
 
+`motor status` and `motor driver status` read UI's latest snapshot without a
+service request. Missing telemetry, disconnection and samples older than 500 ms
+produce explicit errors. Freshness uses UI's local receive clock; the snapshot's
+IO timestamp is informational, and its increasing sequence rejects duplicate or
+out-of-order samples. Blocking IO operations can delay the nominal 20 ms
+publication interval. Command replies contain the outcome, `commandGeneration`
+and operation-specific values (motion defaults or the scheduled speed-change
+pulse), without copying motor states. Actions still report acceptance and terminal
+results independently of telemetry.
+
 IO's application worker drives `io::motion::Server`; blocking driver operations
 and joins stay outside the ICC context. Controller completion callbacks only
-wake this worker. UI's application worker dispatches action callbacks for
+wake this worker. UI's application worker caches telemetry and dispatches action callbacks for
 `ui::motion::Client`, retaining its job handles until completion. Services and
 action admission time out after three seconds; execution uses the requested
-motion timeout. No request is automatically retried. A stop/recovery generation
-rejects submissions overtaken by a stop, disable or initialization. Link shutdown
+motion timeout. No request is automatically retried. `commandGeneration`
+rejects submissions overtaken by a stop, disable or initialization. Acknowledgements
+update UI's generation immediately, so subsequent moves do not wait for telemetry;
+older snapshots cannot roll it back. IO validates admission against its current
+state rather than trusting UI's cache. Link shutdown
 drains IO motion and disables the shared enable before closing its bridge. UI
 reports uncertain communication outcomes as unknown rather than claiming a stop.
 

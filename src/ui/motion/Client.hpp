@@ -24,6 +24,11 @@ namespace ui::motion
         };
 
         explicit Client(pnm::msg::Bus& bus);
+        // Called by the application's ICC connection callback. Losing the link
+        // invalidates telemetry immediately; it does not confirm a motor stop.
+        void setConnected(bool connected);
+        // Latest received state; throws for missing, stale or disconnected data.
+        ::motion::MotorSnapshot state() const;
         ::motion::MotorResponse request(const ::motion::MotorRequest& request, std::stop_token stop = {});
         std::uint64_t submit(::motion::MotorGoal goal, std::stop_token stop = {});
         std::vector<JobInfo> jobs() const;
@@ -38,10 +43,14 @@ namespace ui::motion
         };
         pnm::msg::Service<::motion::MotorRequest, ::motion::MotorResponse> m_commands, m_urgent;
         pnm::msg::Action<::motion::MotorGoal, ::motion::MotorProgress, ::motion::MotorResult> m_motions;
+        pnm::msg::Subscription<::motion::MotorSnapshot> m_stateSubscription;
         std::shared_ptr<runtime::Notification> m_notification{ std::make_shared<runtime::Notification>() };
         mutable std::mutex m_mutex;
         std::vector<std::shared_ptr<Job>> m_jobs;
+        std::optional<::motion::MotorSnapshot> m_state;
+        std::chrono::steady_clock::time_point m_receivedAt;
+        std::optional<std::uint64_t> m_commandGeneration;
         std::uint64_t m_nextId{ 1 };
-        bool m_stopped{};
+        bool m_stopped{}, m_connected{};
     };
 }

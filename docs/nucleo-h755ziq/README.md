@@ -170,13 +170,19 @@ Both applications require a transport and own a concrete bridge, bus and context
 The bridges register the `Topics`, `Services` and `Actions` catalogs in
 `src/common/icc/catalog/topics.hpp`, `services.hpp` and `actions.hpp`. These are the
 shared definitions to extend with application functionality. Topics carry IO
-logs; the IO `io/memory` service answers `heap io` and `stack io` from a dedicated
+logs and `io/motor/state` snapshots at 50 Hz with latest-only delivery. The IO
+`io/memory` service answers `heap io` and `stack io` from a dedicated
 diagnostic worker. UI formats the results, while `heap ui` and `stack ui` collect
-locally. `io/motor` handles direct motor status/configuration/control;
+locally. `io/motor` handles direct motor configuration/control;
 `io/motor/stop` carries stop/disable over the urgent lane. `io/motor/motion` is the
 move/homing action, with 50 Hz progress and callback-driven completion. The IO
 application worker handles operations outside ICC; the UI application worker
-retains and dispatches job handles. Handshake and heartbeat traffic runs independently
+retains and dispatches job handles and caches motor telemetry. Motor status
+commands read this cache, rejecting missing, disconnected or older-than-500-ms
+samples. Freshness uses UI's receive clock; IO and UI timestamps are not compared.
+Command acknowledgements carry `commandGeneration` and operation-specific values,
+while motor states travel only on the topic. IO remains authoritative for motion
+admission. Handshake and heartbeat traffic runs independently
 of application messages; there is no LED topic or local blink task.
 
 `proto::common` compiles the ICC bridge and transport implementations once for

@@ -1,6 +1,7 @@
 #include "common/icc/bridge/Bridge.hpp"
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
+#include "common/icc/catalog/topics.hpp"
 #include "common/icc/examples/ContextThread.hpp"
 #include "common/icc/transport/InProcessTransport.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
@@ -43,8 +44,11 @@ namespace
     template<typename Predicate> bool waitUntil(Predicate predicate)
     {
         const auto end{ std::chrono::steady_clock::now() + 3s };
-        while (!predicate() && std::chrono::steady_clock::now() < end) { std::this_thread::sleep_for(1ms); }
-        return predicate();
+        while (true) {
+            if (predicate()) { return true; }
+            if (std::chrono::steady_clock::now() >= end) { return false; }
+            std::this_thread::sleep_for(1ms);
+        }
     }
 
     class MotorCli : public ::testing::Test
@@ -74,6 +78,11 @@ namespace
             uiBridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
             ioBridge.registerActions<icc::Actions>(icc::ActionProvider::IO);
             uiBridge.registerActions<icc::Actions>(icc::ActionProvider::UI);
+            ioBridge.registerTopics<icc::Topics>(icc::TopicPublisher::IO);
+            uiBridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
+            uiBridge.setConnectionCallback([this](icc::ConnectionStatus value) {
+                client.setConnected(value.state == icc::ConnectionState::Connected);
+            });
             ioBridge.setConnectionCallback([this](icc::ConnectionStatus value) {
                 if (value.state == icc::ConnectionState::Failed || value.reason == icc::ConnectionReason::PeerStopped) {
                     ioStop.request_stop();
@@ -84,6 +93,9 @@ namespace
             uiWorker = std::jthread([this] { client.run(uiStop.get_token()); });
             ioBridge.start();
             uiBridge.start();
+            ASSERT_TRUE(waitUntil([this] {
+                try { return client.state().sequence > 0; } catch (...) { return false; }
+            }));
         }
         void TearDown() override
         {
@@ -139,7 +151,8 @@ namespace
             EXPECT_FALSE(command(text)) << text;
         }
         EXPECT_TRUE(client.jobs().empty());
-        EXPECT_FALSE(command("motor move m1 1 --speed 5"));
+        EXPECT_TRUE(command("motor move m1 1 --speed 5"));
+        ASSERT_TRUE(waitUntil([&] { return jobIs(1, State::Rejected); }));
         ASSERT_TRUE(command("motor status"));
         EXPECT_NE(output.str().find("not ready"), std::string::npos);
         EXPECT_NE(output.str().find("driver INDEX (pseudo)"), std::string::npos);
@@ -215,13 +228,13 @@ namespace
     TEST_F(MotorCli, StaleAndMalformedGoalsCannotMoveHardware)
     {
         enable();
-        const auto status{ client.request({}) };
-        MotorGoal goal{ .motor = MotorId::M1, .position = -10, .velocity = 5, .generation = status.generation };
+        const auto status{ client.request({ .operation = MotorOperation::Enable }) };
+        MotorGoal goal{ .motor = MotorId::M1, .position = -10, .velocity = 5, .commandGeneration = status.commandGeneration };
         ASSERT_TRUE(command("motor stop"));
         auto result{ rejected(goal) };
         ASSERT_TRUE(result);
         EXPECT_EQ(result->error(), pnm::msg::ActionError::Rejected);
-        goal.generation = client.request({}).generation;
+        goal.commandGeneration = client.request({ .operation = MotorOperation::Stop }).commandGeneration;
         goal.velocity = std::numeric_limits<double>::quiet_NaN();
         result = rejected(goal);
         ASSERT_TRUE(result);
@@ -238,10 +251,10 @@ namespace
     {
         enable();
         ASSERT_TRUE(command("motor move m2 -90 --speed 5"));
-        const auto status{ client.request({}) };
+        const auto status{ client.request({ .operation = MotorOperation::Enable }) };
         std::optional<pnm::msg::ActionResult<MotorResult>> result;
         auto action{ uiBus.action<^^icc::Actions::io_motor_motion>().sendGoal(
-            { .motor = MotorId::M1, .position = -90, .velocity = 5, .generation = status.generation },
+            { .motor = MotorId::M1, .position = -90, .velocity = 5, .commandGeneration = status.commandGeneration },
             { .accept_timeout = 2s }, { .on_result = [&result](auto value) { result = value; } }) };
         ASSERT_TRUE(waitUntil([&] { action.poll(); return position(Id::Motor1) < -1; }));
         action.requestCancel();
@@ -303,5 +316,127 @@ namespace
         EXPECT_TRUE(output.str().empty());
         // TearDown normally joins this thread.
         ioWorker = std::jthread([] {});
+    }
+
+    TEST_F(MotorCli, TelemetryUpdatesWhileIdleAndMovingWithoutStatusRequests)
+    {
+        const auto first{ client.state() };
+        EXPECT_FALSE(first.enabled);
+        ASSERT_TRUE(waitUntil([&] { return client.state().sequence >= first.sequence + 3; }));
+        EXPECT_GT(client.state().sampled_at_us, first.sampled_at_us);
+        enable();
+        ASSERT_TRUE(command("motor move m1 -90 --speed 5"));
+        ASSERT_TRUE(waitUntil([&] {
+            const auto state{ client.state() };
+            return state.ready && state.enabled && state.motors[0].position < -1 && state.motors[0].velocity < 0;
+        }));
+        ASSERT_TRUE(command("motor stop m1"));
+        ASSERT_TRUE(waitUntil([&] { return client.state().motors[0].velocity == 0; }));
+
+        // Stop only the server, leaving ICC healthy. Status still reads the cache
+        // without a service provider, then explicitly expires its last sample.
+        ioStop.request_stop();
+        ioWorker.join();
+        ioWorker = std::jthread([] {});
+        ASSERT_TRUE(command("motor status"));
+        ASSERT_TRUE(waitUntil([&] { return !command("motor status"); }));
+        const auto stale{ command("motor status") };
+        EXPECT_NE(stale.message.find("stale"), std::string::npos);
+        EXPECT_TRUE(output.str().empty());
+    }
+
+    class MotorTelemetry : public ::testing::Test
+    {
+      protected:
+        pnm::msg::Bus bus;
+        ui::motion::Client client{ bus };
+        pnm::msg::Topic<MotorSnapshot> topic{ bus.topic<^^icc::Topics::io_motor_state>() };
+        // Declared last so its destructor stops and joins before destroying Client.
+        std::jthread worker;
+
+        void start()
+        {
+            client.setConnected(true);
+            worker = std::jthread([this](std::stop_token stop) { client.run(stop); });
+        }
+        void expectUnavailable(std::string_view reason)
+        {
+            try { static_cast<void>(client.state()); FAIL() << "expected unavailable telemetry"; }
+            catch (const std::runtime_error& error) { EXPECT_NE(std::string_view{ error.what() }.find(reason), std::string_view::npos); }
+        }
+        bool received(std::uint64_t sequence)
+        {
+            try { return client.state().sequence == sequence; } catch (...) { return false; }
+        }
+    };
+
+    TEST_F(MotorTelemetry, MissingStaleDuplicateAndDisconnectedSamplesAreNotLiveState)
+    {
+        expectUnavailable("disconnected");
+        start();
+        expectUnavailable("awaiting");
+        // The IO clock has a different epoch; freshness uses UI's receipt time.
+        topic.publish({ .commandGeneration = 1, .sequence = 10, .sampled_at_us = std::numeric_limits<std::uint64_t>::max() });
+        ASSERT_TRUE(waitUntil([&] { return received(10); }));
+        std::this_thread::sleep_for(MOTOR_STATE_MAX_AGE + 30ms);
+        expectUnavailable("stale");
+        topic.publish({ .commandGeneration = 1, .sequence = 10 });
+        std::this_thread::sleep_for(20ms);
+        expectUnavailable("stale");
+        topic.publish({ .commandGeneration = 1, .sequence = 9 });
+        std::this_thread::sleep_for(20ms);
+        expectUnavailable("stale");
+        topic.publish({ .commandGeneration = 1, .sequence = 11 });
+        ASSERT_TRUE(waitUntil([&] { return received(11); }));
+        client.setConnected(false);
+        expectUnavailable("disconnected");
+        EXPECT_THROW(client.submit({ .position = 1, .velocity = 5 }), std::runtime_error);
+    }
+
+    TEST_F(MotorTelemetry, CacheReceivesLatestValueAfterConsumerWasNotRunning)
+    {
+        for (std::uint64_t sequence = 1; sequence <= 1000; ++sequence) {
+            topic.publish({ .commandGeneration = 1, .sequence = sequence });
+        }
+        start();
+        ASSERT_TRUE(waitUntil([&] { return received(1000); }));
+    }
+
+    TEST_F(MotorTelemetry, AcknowledgementsAdvanceGenerationWithoutWaitingForTelemetry)
+    {
+        start();
+        MotorResponse reply{ .message = {}, .commandGeneration = 7 };
+        auto commands{ bus.service<^^icc::Services::io_motor>().serve([&](const MotorRequest&) { return reply; }) };
+        std::uint64_t submitted{};
+        auto actions{ bus.action<^^icc::Actions::io_motor_motion>().serveDeferred(
+            [&](const MotorGoal& goal, pnm::msg::ActionExecution<MotorProgress, MotorResult> execution) {
+                submitted = goal.commandGeneration;
+                execution.accept();
+                execution.succeed({ MotorOutcome::Completed, {} });
+            }) };
+        const auto request = [&] {
+            auto future{ std::async(std::launch::async, [&] { return client.request({ .operation = MotorOperation::Initialize }); }) };
+            EXPECT_TRUE(waitUntil([&] { return commands.poll() != 0; }));
+            return future.get();
+        };
+        EXPECT_EQ(request().commandGeneration, 7U);
+        expectUnavailable("awaiting");
+        client.submit({ .position = 1, .velocity = 5 });
+        ASSERT_TRUE(waitUntil([&] { return actions.poll() != 0; }));
+        EXPECT_EQ(submitted, 7U);
+
+        // A delayed snapshot must not undo the newer acknowledged generation.
+        topic.publish({ .commandGeneration = 1, .sequence = 1 });
+        ASSERT_TRUE(waitUntil([&] { return received(1); }));
+        client.submit({ .position = 1, .velocity = 5 });
+        ASSERT_TRUE(waitUntil([&] { return actions.poll() != 0; }));
+        EXPECT_EQ(submitted, 7U);
+
+        // Initialization can invalidate commands and subsequently fail.
+        reply = { .ok = false, .message = "driver unavailable", .commandGeneration = 8 };
+        EXPECT_THROW(request(), std::runtime_error);
+        client.submit({ .position = 1, .velocity = 5 });
+        ASSERT_TRUE(waitUntil([&] { return actions.poll() != 0; }));
+        EXPECT_EQ(submitted, 8U);
     }
 }

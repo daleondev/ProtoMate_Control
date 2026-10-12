@@ -25,6 +25,7 @@ namespace ui
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
         m_bridge.registerActions<icc::Actions>(icc::ActionProvider::UI);
         m_bridge.setConnectionCallback([this](icc::ConnectionStatus status) {
+            m_motors.setConnected(status.state == icc::ConnectionState::Connected);
             if (status.state == icc::ConnectionState::Failed ||
                 status.reason == icc::ConnectionReason::PeerStopped) {
                 requestStop();
