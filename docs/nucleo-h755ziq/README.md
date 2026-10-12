@@ -4,8 +4,10 @@ M4 runs `io::Application`; M7 runs `ui::Application`. Each has a complete privat
 ThreadX/C++ runtime, including threads, synchronization, TLS, allocation,
 exceptions, clocks, hardware entropy and FileX/LevelX support. Common HAL device
 implementations are compiled for both cores. The M4 catalog exposes the three
-motors’ peripherals, drivers and feedback providers. Applications do not construct
-or start motors yet. Ethernet/SPI and storage media remain unassigned; no storage
+motors’ peripherals, drivers and feedback providers. IO constructs a
+`motion::Controller` owning all three motors, with shared enable off and driver
+initialization deferred. Feedback observation starts, but no STEP pulses are
+generated. Ethernet/SPI and storage media remain unassigned; no storage
 volume is mounted.
 
 ## Ownership
@@ -244,8 +246,9 @@ No external wiring is needed. The applications do not drive the LEDs. Reset or
 USB reconnection restarts both bridge endpoints. The M7 console reports that
 storage is unavailable; that is expected without media.
 
-Each image has six ThreadX threads: timer, main, reaper, icc context, transport
-notification worker and application worker. `hal_last_panic`, CFSR and HFSR
+Both images have the timer, main, reaper, ICC context, transport notification and
+application threads. M4 also has the motion diagnostic worker; individual motion
+workers are created only when commands are submitted. `hal_last_panic`, CFSR and HFSR
 should stay clear. Both scheduler counters and the urgent shared queue counters
 should advance as heartbeats are exchanged; normal queues stay idle until
 application routes are added. Use each core's own ELF in the debugger. Pausing
@@ -259,8 +262,10 @@ traffic while idle, stop during handshake, peer loss and teardown. Lint and
 sanitizers are not run automatically for these intermediate migration steps.
 
 Both cores’ Debug and Release builds and the Linux Debug build pass without
-compiler warnings. All 36 CTest suites pass, including motor factory composition,
-16 STEP register/DMA tests and three encoder sampling/teardown tests. Separate
+compiler warnings. Host tests cover motor factory composition, STEP register/DMA
+behavior and encoder sampling/teardown. Controller tests also cover disabled
+admission, initialization failures, independent stops, shared fault recovery,
+homing → stop → homing and lifetime cleanup. Separate
 link checks retain every motor factory and verify the DMA section precedes the
 heap. External driver and feedback circuits still need their own hardware verification.
 The isolated `h755-step-debug` / `h755-step-release` presets build both cores

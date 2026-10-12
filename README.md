@@ -19,12 +19,13 @@ Both applications always own a private message bus, coroutine context and ICC
 bridge. **ICC runs over shared SRAM4 and HSEM notifications**, with transport
 workers on both cores. The bridges perform their handshake and exchange
 heartbeats; the application message catalogs are empty. Application workers
-sleep until shutdown while motion control, planning, CLI and GUI are developed.
+sleep until shutdown while planning, CLI, GUI and motion message routes are developed.
 No external wiring is needed. Both runtimes include filesystem support (no
 mounted media yet), RTC and hardware randomness. M7 owns the ST-Link serial
 console and user button. M4 exposes STEP/DIR/enable, reference switches,
-DM542T/TMC2209 drivers and feedback through HAL; the application does not yet
-construct or run them. See the [motor pin table](docs/nucleo-h755ziq/README.md#motor-peripheral-wiring-and-construction),
+DM542T/TMC2209 drivers and feedback through HAL. On startup, IO constructs its
+motion controller with all motors disabled; driver initialization and motion
+commands are explicit. See the [motor pin table](docs/nucleo-h755ziq/README.md#motor-peripheral-wiring-and-construction),
 including the new **PE2 DM542T ALM assignment**. The bare-metal LED samples retain their separate
 `h755-led-*` presets.
 
@@ -32,8 +33,8 @@ including the new **PE2 DM542T ALM assignment**. The bare-metal LED samples reta
 
 | Directory | Responsibility |
 | --- | --- |
-| `src/common/` | Shared contracts, application lifecycle concept, ICC bridge and transports |
-| `src/io/` | M4 entry point and IO application; future motion execution and sensors |
+| `src/common/` | Shared contracts, motion profiles, application lifecycle concept, ICC bridge and transports |
+| `src/io/` | M4 entry point, IO application, motor ownership and motion execution |
 | `src/ui/` | M7 entry point and UI application; future planning, CLI and GUI |
 
 Each firmware compiles only its own application target, `proto::io` or
@@ -59,6 +60,18 @@ for a stop request, then drains the bridge before stopping its context. Peer
 shutdown or link failure wakes the application worker. Each application requires
 a transport; the bridge is a concrete member with no optional execution path.
 
+[`io::motion::Controller`](src/io/motion/Controller.hpp) owns three `StepperMotor`
+instances, their shared STEP generator and enable output. Drivers and feedback
+belong to each motor. `initializeDrivers()` configures the drivers and starts the
+idle timebase; `enable()` verifies readiness before energizing the motors.
+Controller move/reference methods preserve independent axis execution and
+buffering. `stop(id)` stops one motor, `stop()` stops all while retaining torque,
+and `disable()` also removes enable and invalidates references. Driver faults
+immediately drop shared enable; a diagnostic worker cancels and joins all motion.
+Recovery requires explicit initialization and enabling. IO shutdown disables the
+motors before draining ICC. Motor settings live in `io/app/Application.cpp`:
+1.8° full steps, 16 microsteps and placeholder 135° shaft reference coordinates.
+
 The shared message catalogs live in `src/common/icc/catalog/`:
 
 - [topics.hpp](src/common/icc/catalog/topics.hpp): `Topics`, with `TopicPublisher` annotations.
@@ -77,6 +90,7 @@ implemented; no application messages or LED demo are registered currently.
 | `ui.iccThread` | 4 | 32 KiB |
 | `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
+| M4 motion diagnostics | 18 | 8 KiB |
 | Runtime cleanup/reaper | 31 | 2 KiB |
 
 Priorities belong to separate schedulers; M7 priorities do not preempt M4 work.
@@ -133,6 +147,8 @@ fetching or building test dependencies.
 All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.
+Embedded Debug builds use `-Og` for IO and ICC to fit their C++ templates in
+flash while retaining debug information.
 
 H755 builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.
 Use the [combined flash command](docs/nucleo-h755ziq/README.md#flash-and-test).

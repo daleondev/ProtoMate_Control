@@ -3,6 +3,7 @@
 #include "common/app/Application.hpp"
 #include "common/icc/bridge/Bridge.hpp"
 #include "runtime/ThreadGroup.hpp"
+#include "io/motion/Controller.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -45,6 +46,8 @@ namespace io
         std::condition_variable m_stopRequested;
         bool m_started{};
         bool m_stopping{};
+        // Created on start; shared enable remains off until explicitly requested.
+        std::unique_ptr<motion::Controller> m_motion;
         // Destroy/join workers before any of the state their entries access.
         runtime::ThreadGroup m_threads;
     };

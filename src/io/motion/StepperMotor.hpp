@@ -12,7 +12,7 @@
 #include <optional>
 #include <thread>
 
-#include "hal/board/board.hpp"
+#include "hal/core/core.hpp"
 #include "hal/devices/itf/IMotorFeedback.hpp"
 
 namespace io::motion
@@ -40,8 +40,8 @@ namespace io::motion
         };
 
         // Driver is required, initialized by the shared controller while disabled.
-        // An omitted feedback provider is selected through the board factory.
-        StepperMotor(hal::board::MotorId id,
+        // An omitted feedback provider is selected through the core factory.
+        StepperMotor(hal::core::MotorId id,
                      pnm::units::Angle reference_switch_position,
                      pnm::units::Angle full_step_angle,
                      size_t microsteps,
@@ -49,7 +49,8 @@ namespace io::motion
                      std::shared_ptr<hal::device::IStepperDriver> driver,
                      std::shared_ptr<hal::device::IMotorFeedback> feedback = {},
                      hal::device::IStepperDriver::FaultCallback shutdown = {});
-        hal::device::IStepperDriver& driver() const noexcept { return *m_driver; }
+        hal::device::IStepperDriver& driver() noexcept { return *m_driver; }
+        const hal::device::IStepperDriver& driver() const noexcept { return *m_driver; }
         ~StepperMotor();
 
         StepperMotor(const StepperMotor&) = delete;
@@ -198,7 +199,7 @@ namespace io::motion
 
         void accountFeedback(const hal::device::IMotorFeedback::Sample& sample) noexcept;
 
-        hal::board::MotorId m_id;
+        hal::core::MotorId m_id;
         pnm::units::Angle m_referenceSwitchPosition;
         pnm::units::Angle m_fullStepAngle;
         size_t m_microsteps;

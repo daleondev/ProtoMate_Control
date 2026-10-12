@@ -26,7 +26,7 @@ namespace io::motion
         }
     }
 
-    StepperMotor::StepperMotor(hal::board::MotorId id,
+    StepperMotor::StepperMotor(hal::core::MotorId id,
                                pnm::units::Angle reference_switch_position,
                                pnm::units::Angle full_step_angle,
                                size_t microsteps,
@@ -38,11 +38,11 @@ namespace io::motion
       , m_referenceSwitchPosition{ reference_switch_position }
       , m_fullStepAngle{ full_step_angle }
       , m_microsteps{ microsteps }
-      , m_stepOutput{ hal::board::create_stepper_step_output(step_generator, id) }
-      , m_dirOutput{ hal::board::create_stepper_direction_output(id) }
-      , m_referenceSwitchInput{ hal::board::create_reference_limit_switch(id) }
+      , m_stepOutput{ hal::core::create_stepper_step_output(step_generator, id) }
+      , m_dirOutput{ hal::core::create_stepper_direction_output(id) }
+      , m_referenceSwitchInput{ hal::core::create_reference_limit_switch(id) }
       , m_feedback{ feedback ? std::move(feedback)
-                             : hal::board::create_motor_feedback(
+                             : hal::core::create_motor_feedback(
                                  id,
                                  { .full_step_angle = full_step_angle, .microsteps = microsteps }) }
       , m_driver{ std::move(driver) }

@@ -5,6 +5,8 @@ target_sources(proto_io_motion
     INTERFACE
         Defaults.hpp
         Limits.hpp
+        Controller.hpp
+        Controller.cpp
         StepperMotor.hpp
         StepperMotor.cpp 
         Sequence.hpp

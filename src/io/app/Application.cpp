@@ -7,6 +7,18 @@
 
 namespace io
 {
+    namespace
+    {
+        using namespace pnm::units::literals;
+        // Motor-shaft units, retaining the previous application's placeholder
+        // reference coordinates until the mechanics are calibrated.
+        constexpr motion::Controller::Configuration MOTOR_CONFIGURATION{
+            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16U },
+            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16U },
+            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16U }
+        };
+    }
+
     Application::Application(icc::ITransport& transport)
       : m_bridge(m_bus, m_iccContext, transport)
     {
@@ -35,6 +47,7 @@ namespace io
         }
         m_started = true;
         try {
+            m_motion = std::make_unique<motion::Controller>(MOTOR_CONFIGURATION);
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
             m_threads.start(*this, "io");
             m_bridge.start();
@@ -66,6 +79,9 @@ namespace io
         {
             std::unique_lock lock(m_mutex);
             m_stopRequested.wait(lock, [this] { return m_stopping; });
+        }
+        if (m_motion) {
+            m_motion->disable();
         }
         // Keep the context alive until bridge shutdown has drained its work.
         m_bridge.stop();
