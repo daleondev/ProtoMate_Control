@@ -3,6 +3,7 @@ add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 
 add_subdirectory(app)
 add_subdirectory(icc)
+add_subdirectory(util)
 
 add_library(proto_common STATIC)
 add_library(proto::common ALIAS proto_common)
@@ -19,6 +20,7 @@ target_link_libraries(proto_common
     PRIVATE
         proto::common::app
         proto::common::icc
+        proto::common::util
 )
 
 if(TARGET runtime::cxx_abi)

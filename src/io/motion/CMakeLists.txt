@@ -1,0 +1,14 @@
+add_library(proto_io_motion INTERFACE)
+add_library(proto::io::motion ALIAS proto_io_motion)
+
+target_sources(proto_io_motion
+    INTERFACE
+        Defaults.hpp
+        StepperMotor.hpp
+        StepperMotor.cpp 
+)
+
+target_link_libraries(proto_io_motion 
+    INTERFACE
+        platform::hal
+)
