@@ -2,6 +2,21 @@
 
 Control software running on the robot controller of the ProtoMate SCARA Robot.
 
+## Current hardware: NUCLEO-H755ZI-Q
+
+The current bring-up uses two minimal bare-metal LED applications: **M4/IO**
+blinks LD1 green at 2 Hz, and **M7/UI** blinks LD2 yellow at 1 Hz. The new
+[CubeMX project](external/CubeMX/CubeMX.ioc) generates startup and GPIO
+configuration for both cores. Use the `h755-io-debug` and `h755-ui-debug` presets;
+[build, flash and test instructions](examples/h755_dual_core/README.md) cover both
+images together. Release presets are also available.
+
+The H755 images do not yet run the application shells, ThreadX or p2p. The
+application/runtime descriptions and STM32 presets below describe the H753
+implementation awaiting migration; those H753 STM32 presets are not compatible
+with the new dual-core CubeMX export. Its previous export is preserved in
+[`backups/CubeMX`](backups/CubeMX/).
+
 ## Application layout
 
 The application is a scaffold for incremental reimplementation. `src/main.cpp`

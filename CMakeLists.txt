@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.22)
+
+# Initial H755 board bring-up is intentionally independent of the H753 runtime,
+# robot application and p2p bridge. Each core gets its own configure/build tree.
+if(DEFINED H755_CORE)
+    project(H755Bringup LANGUAGES C CXX ASM)
+    add_subdirectory(examples/h755_dual_core)
+    return()
+endif()
+
 project(Application LANGUAGES C CXX ASM)
 
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
