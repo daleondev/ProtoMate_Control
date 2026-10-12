@@ -15,7 +15,8 @@ namespace io
     class Application final
     {
       public:
-        // Construction starts no threads. The endpoint must outlive the application.
+        // Construction initializes logging; application workers start in start().
+        // The endpoint must outlive the application.
         explicit Application(icc::ITransport& transport);
         ~Application();
         Application(const Application&) = delete;

@@ -9,12 +9,6 @@ namespace ui::cli
 
     namespace terminal
     {
-        /**
-         * Route Pneumo's default Linux sinks through the console broker.
-         * Call after runtime initialization and before starting log producers,
-         * so their startup messages are buffered until the frontend is ready.
-         */
-        auto configure_logging() -> void;
         auto write_log(std::string_view line) -> void;
 
         /**

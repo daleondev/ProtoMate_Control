@@ -33,6 +33,10 @@ namespace io
                 requestStop();
             }
         });
+
+        runtime::thread::publish_attributes({ .name = "Logging", .priority = 20, .stack_size = 8192U });
+        pnm::log::initialize();
+        pnm::log::info(m_logSink, "IO-Controller started");
     }
 
     Application::~Application()

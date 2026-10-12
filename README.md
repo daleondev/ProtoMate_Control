@@ -48,10 +48,11 @@ are compiled once per build. Public include paths start at `src/`, for example
 lifecycle tests. It is not compiled into either H755 image.
 
 The [application concept](src/common/app/Application.hpp) enforces `void start()`,
-`void requestStop()` and `void join()` without inheritance. Construction starts
-no threads. `start()` is one-shot; `requestStop()` is an idempotent thread-safe
-notification; `join()` waits for completion. Destruction requests a stop and
-joins. Call start/join/destruction from the lifecycle owner, outside workers.
+`void requestStop()` and `void join()` without inheritance. Construction initializes
+logging; application workers launch in `start()`. `start()` is one-shot;
+`requestStop()` is an idempotent thread-safe notification; `join()` waits for
+completion. Destruction requests a stop and joins. Call start/join/destruction
+from the lifecycle owner, outside workers.
 
 `runtime::thread::Definition` annotations in each `app/Application.hpp` declare
 its threads; `app/Application.cpp` defines their entries.
@@ -116,6 +117,11 @@ and UI subscriber retain the newest 16 records. Overflow counters are available
 through bridge/subscriber statistics; the sink separately counts truncations.
 Console output runs on a notification-driven UI worker, never in ICC callbacks.
 On Linux it uses the console broker, including buffering before ncurses starts.
+
+UI installs its own Pneumo sink for all levels before its first startup log.
+It prefixes local records with `[UI]` and calls `cli::writeLog`, the same output
+function used by the IO subscriber. Received IO records retain `[IO]` and bypass
+the local sink. The CLI frontend does not replace either logging route.
 
 The M4 entrypoint installs this sink as Pneumo's default for all levels. The motion
 controller also passes it explicitly to its motors, so Linux's IO logs use the same
@@ -193,10 +199,10 @@ fetching or building test dependencies.
 All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.
-Embedded Debug builds use `-Og` for IO, UI and ICC to fit their C++ templates in
-flash while retaining debug information. IO's application composition and log
-sink use `-Os` to fit the additional catalog/logger templates; motor code keeps
-`-Og`.
+Embedded Debug builds retain debug information and use `-Og` for IO, UI and ICC.
+Both applications' composition and log sink files use `-Os`, as does the UI
+entrypoint, to fit the catalog and logger templates in each 1 MiB flash bank.
+Motor and other UI code keep `-Og`.
 
 H755 builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.
 Use the [combined flash command](docs/nucleo-h755ziq/README.md#flash-and-test).

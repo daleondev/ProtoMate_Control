@@ -3,7 +3,6 @@
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/Console.hpp"
 #include "hal/linux/console.hpp"
-#include "pneumo/logging.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,7 +18,6 @@
 #include <cwctype>
 #include <deque>
 #include <iostream>
-#include <memory>
 #include <poll.h>
 #include <sstream>
 #include <stdexcept>
@@ -46,27 +44,6 @@ namespace
     constexpr int INPUT_REFRESH_MILLISECONDS{ 50 };
     constexpr std::size_t MAX_LOG_LINES{ 2'000U };
     constexpr std::size_t DRAIN_BATCH_SIZE{ 64U };
-
-    class ConsoleSink final : public pnm::log::SinkBase<ConsoleSink>
-    {
-      public:
-        [[nodiscard]] auto isOpen() const -> bool override { return true; }
-
-        auto open() -> pnm::Result<> override { return {}; }
-
-        auto close() -> pnm::Result<> override { return {}; }
-
-        auto write(std::span<const std::byte> data) -> pnm::Result<std::size_t> override
-        {
-            // Character views may alias an existing byte buffer without copying.
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-            const auto* const characters{ reinterpret_cast<const char*>(data.data()) };
-            linux_console::publish(linux_console::Channel::Log, { characters, data.size() });
-            return data.size();
-        }
-
-        auto flush() -> pnm::Result<> override { return {}; }
-    };
 
     [[nodiscard]] auto plain_requested() noexcept -> bool
     {
@@ -861,14 +838,6 @@ namespace ui::cli::terminal
     auto write_log(std::string_view line) -> void
     {
         linux_console::publish(linux_console::Channel::Log, line);
-    }
-
-    auto configure_logging() -> void
-    {
-        auto sink{ std::make_shared<ConsoleSink>() };
-        if (!pnm::log::set_default_sink(pnm::log::Level::Trace, pnm::log::Level::Critical, std::move(sink))) {
-            throw std::runtime_error{ "failed to configure the Linux console log sink" };
-        }
     }
 
     auto run(Parser& parser, std::stop_token stop) -> void

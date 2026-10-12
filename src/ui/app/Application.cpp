@@ -5,11 +5,14 @@
 #include "ui/cli/Console.hpp"
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/filesystem.hpp"
-#include "ui/cli/utilities.hpp"
 #include "ui/cli/motor.hpp"
+#include "ui/cli/utilities.hpp"
+#include "ui/logging/Sink.hpp"
 
 #include <cstdio>
 #include <stdexcept>
+
+#include "pneumo/logging.hpp"
 
 namespace ui
 {
@@ -26,6 +29,11 @@ namespace ui
                 requestStop();
             }
         });
+
+        runtime::thread::publish_attributes({ .name = "Logging", .priority = 20, .stack_size = 8192U });
+        pnm::log::initialize();
+        installLogSink();
+        pnm::log::info("UI-Controller started");
     }
 
     Application::~Application()
@@ -58,8 +66,7 @@ namespace ui
             std::scoped_lock lock(m_mutex);
             m_stopping = true;
         }
-        m_cliStop.request_stop();
-        m_logStop.request_stop();
+        m_stopSource.request_stop();
         m_stopRequested.notify_all();
     }
 
@@ -67,12 +74,20 @@ namespace ui
 
     icc::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
 
+    void Application::installLogSink()
+    {
+        if (!pnm::log::set_default_sink(pnm::log::Level::Trace, pnm::log::Level::Critical,
+                                        std::make_shared<logging::Sink>())) {
+            throw std::runtime_error("failed to configure UI logging");
+        }
+    }
+
     void Application::iccThread() { m_iccContext.run(); }
 
     void Application::logThread()
     {
         try {
-            m_logs.run(m_logStop.get_token());
+            m_logs.run(m_stopSource.get_token());
         } catch (const std::exception& error) {
             std::fprintf(stderr, "Log subscriber failed: %s\n", error.what());
             requestStop();
@@ -86,7 +101,7 @@ namespace ui
             cli::filesystem::setup();
             cli::utilities::setup();
             cli::motor::setup(parser);
-            cli::run(parser, m_cliStop.get_token());
+            cli::run(parser, m_stopSource.get_token());
         } catch (const std::exception& error) {
             std::fprintf(stderr, "CLI failed: %s\n", error.what());
         }

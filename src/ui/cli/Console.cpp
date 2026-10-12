@@ -95,7 +95,6 @@ namespace ui::cli
     void run(Parser& parser, std::stop_token stop)
     {
 #if defined(HAL_PLATFORM_LINUX)
-        terminal::configure_logging();
         terminal::run(parser, stop);
 #else
         runStream(parser, stop, true);

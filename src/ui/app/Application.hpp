@@ -14,7 +14,8 @@ namespace ui
     class Application final
     {
       public:
-        // Construction starts no threads. The endpoint must outlive the application.
+        // Construction initializes logging; application workers start in start().
+        // The endpoint must outlive the application.
         explicit Application(icc::ITransport& transport);
         ~Application();
         Application(const Application&) = delete;
@@ -30,6 +31,7 @@ namespace ui
         // Waits for shutdown; does not initiate it. Never call from our workers.
         void join();
         [[nodiscard]] icc::ConnectionStatus connectionStatus() const;
+        void installLogSink();
 
       private:
         friend class runtime::ThreadGroup;
@@ -57,8 +59,7 @@ namespace ui
         std::condition_variable m_stopRequested;
         bool m_started{};
         bool m_stopping{};
-        std::stop_source m_cliStop;
-        std::stop_source m_logStop;
+        std::stop_source m_stopSource;
         runtime::ThreadGroup m_threads;
     };
 
