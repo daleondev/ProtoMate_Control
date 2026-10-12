@@ -146,6 +146,24 @@
                 "H755_CORE": "CM7",
                 "H755_LED_SAMPLE": true
             }
+        },
+        {
+            "name": "h755-debug",
+            "displayName": "NUCLEO-H755ZI-Q IO + UI applications (debug)",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "H755_BUILD_BOTH": true
+            }
+        },
+        {
+            "name": "h755-release",
+            "displayName": "NUCLEO-H755ZI-Q IO + UI applications (release)",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "H755_BUILD_BOTH": true
+            }
         }
     ],
     "buildPresets": [
@@ -199,6 +217,14 @@
         {
             "name": "h755-led-ui-release",
             "configurePreset": "h755-led-ui-release"
+        },
+        {
+            "name": "h755-debug",
+            "configurePreset": "h755-debug"
+        },
+        {
+            "name": "h755-release",
+            "configurePreset": "h755-release"
         }
     ],
     "testPresets": [

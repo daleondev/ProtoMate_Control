@@ -9,7 +9,8 @@ own main, ThreadX kernel, C++ runtime, heap, TLS and threads. Both use the same
 runtime implementation and HAL interfaces. No application object, mutex or
 scheduler is shared between cores.
 
-Use `h755-io-debug` and `h755-ui-debug` (or their `-release` variants).
+Use `h755-debug` to build both applications, or `h755-io-debug` and
+`h755-ui-debug` individually. Each also has a `-release` variant.
 [Build, flash, memory and peripheral ownership](docs/nucleo-h755ziq/README.md)
 are documented together. Both images must be flashed. The
 [CubeMX project](external/CubeMX/CubeMX.ioc) assigns peripherals to their cores.
@@ -82,16 +83,22 @@ capture also require access to the ST-Link USB and serial devices.
 ## Build and run
 
 ```sh
-cmake --preset h755-io-debug
-cmake --build --preset h755-io-debug
-cmake --preset h755-ui-debug
-cmake --build --preset h755-ui-debug
+cmake --preset h755-debug
+cmake --build --preset h755-debug
 cmake --preset debug-linux
 cmake --build --preset debug-linux
 ./build/debug-linux/Application
 ```
 
-`h755-io-release`, `h755-ui-release` and `release-linux` provide optimized builds. After a
+The combined preset's default target is `controllers`. It builds both firmware
+images using the existing per-core presets and output directories, including
+both memory reports. It does not flash the board. Use `--target io-controller`
+or `--target ui-controller` to build just one through the combined project.
+
+Runtime and HAL source implementations are shared; each core compiles and links
+its own copy with its own CPU flags, ThreadX port and private runtime state.
+
+`h755-release` and `release-linux` provide optimized builds. After a
 compiler upgrade use `cmake --preset <preset> --fresh` and rebuild cleanly.
 Use `-DBUILD_TESTING=OFF` when configuring Linux to build the template without
 fetching or building test dependencies.
@@ -269,13 +276,14 @@ Paths in this table are relative to [`platform/hal`](platform/hal).
 | `devices/impl` | Device behavior and protocols: TMC2209, DM542T, LAN9253, feedback, button and LED adapters | Injected driver interfaces and device helpers |
 | `devices/factory` | Construction that differs by platform, currently TMC2209 transport/model composition | Driver factories and the selected device model |
 | `board/board.hpp`, `board/nucleo_h755ziq/board.cpp`, `board/linux/board.cpp` | Translate robot/board roles into pins, peripherals, driver addresses and device compositions | Public factories and portable device implementations |
+| `core` | Expose resources belonging to the executing processor (`M4`, `M7`, or `Host`); select its status LED and runtime timer | Board factories and capability contracts |
 | `hal.hpp/.cpp`, `stm32`, `linux` | Platform startup, console, panic handling, interrupt dispatch and platform synchronization | Selected platform/vendor facilities |
 | `util`, `drivers/util`, `devices/util` | Common result types or helpers private to their respective layer | Same-layer or lower-level contracts; never board/application policy |
 
 Each compiled layer has its own target. The public dependency chain is:
 
 ```text
-platform::hal → hal::board → hal::devices → hal::drivers
+platform::hal → hal::core → hal::board → hal::devices → hal::drivers
 ```
 
 Each target compiles only its own sources; CMake selects the STM32 or Linux
@@ -311,6 +319,28 @@ factory attaches `Tmc2209Model` to a generic UART; tests can instead construct
 and inject their own model/transport. Generic SPI/UART drivers contain no motor
 or EtherCAT protocol. `hal.hpp` is the startup/vendor bridge and is not a header
 for ordinary device implementations or public contracts.
+
+Application entry points and runtime counter setup use `hal::core`:
+
+```cpp
+auto led = hal::core::create_status_led();
+auto timer = hal::core::create_runtime_timer();
+constexpr auto processor = hal::core::id(); // Id::M4, Id::M7, or Id::Host
+```
+
+There is no API to select a different executing processor. IO/UI are application
+roles, not HAL names. On H755, M4 owns PB0/TIM5 and M7 owns PE1/TIM12. The board's
+[`resources.hpp`](platform/hal/board/nucleo_h755ziq/resources.hpp) defines that
+assignment. `hal::resources` supplies the immutable `ResourceAccess` policy to
+the driver factories without a driver dependency on board/core factories.
+GPIO and timer factories reject peer-owned and unassigned resources before
+claiming them or accessing registers, including calls made directly to those
+factories. Normal per-core lease/mutex checks still prevent duplicate ownership
+inside one firmware. This is an API ownership rule, not hardware memory isolation;
+direct register access must still respect the board's assignments.
+
+Host tests keep their virtual board resources. `Id::Host` provides a host runtime
+counter and no physical core status LED; it does not impersonate M4 or M7.
 
 ### Factories and resource selection
 

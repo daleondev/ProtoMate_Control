@@ -18,7 +18,7 @@ P2P, CLI, motor hardware and external storage are disabled for this stage.
 | Status LED | LD1 green / PB0, 250 ms per level | LD2 yellow / PE1, 500 ms per level |
 
 Each application owns its mutexes, condition variables, threads and runtime state.
-`hal::board::create_runtime_timer()` selects the counter; the runtime does not
+`hal::core::create_runtime_timer()` selects the counter through the board; the runtime does not
 select a board peripheral itself. TIM2 is free for the later IO motion port.
 
 M7 owns shared clock and supply initialization (64 MHz HSI, direct SMPS). HSEM 0
@@ -27,7 +27,19 @@ coordination. Both images must be present and both cores enabled at boot.
 M7 caches are enabled over its private memory. SRAM4 at `0x38000000` is unused;
 shared-memory reservation, cache policy and transport notification remain later work.
 
-The HAL board factory only exposes the LED owned by the selected core. Its
+The shared `hal::core` API exposes the executing processor's resources. It uses
+`Id::M4` and `Id::M7`; the IO/UI role names belong only to the application.
+Both mains call `hal::core::create_status_led()`, and the shared runtime calls
+`hal::core::create_runtime_timer()`. Neither call can select the other core.
+
+Physical assignments live in `platform/hal/board/nucleo_h755ziq/resources.hpp`.
+The board provides an immutable resource-access policy, which the GPIO/timer
+factories check even when called directly. Peer-owned and unassigned pins/timers
+return unavailable before any register access or resource claim. Keep this
+assignment aligned with CubeMX when adding a peripheral. Raw register access is
+outside this software ownership contract.
+
+The HAL board factory also rejects a peer's status LED/runtime timer. Its
 current driver build includes GPIO and general timers. The shared RTC and RNG
 are unassigned: their factories return unavailable, and `std::random_device`
 does not produce substitute random data. Without an RTC, `system_clock` uses
@@ -46,11 +58,19 @@ are retained in each core's `hal_last_panic` for SWD inspection.
 From the repository root:
 
 ```sh
-cmake --preset h755-io-debug
-cmake --build --preset h755-io-debug
-cmake --preset h755-ui-debug
-cmake --build --preset h755-ui-debug
+cmake --preset h755-debug
+cmake --build --preset h755-debug
 ```
+
+The `controllers` target builds both applications. This is a small orchestration
+project without its own compiler or firmware: it configures and builds the
+existing `h755-io-debug` and `h755-ui-debug` presets. Output files remain in
+`build/h755-io-debug/` and `build/h755-ui-debug/`; the flash command below is
+unchanged. Each inner build remains incremental and prints its memory report.
+The same runtime and HAL implementations are compiled separately for each core.
+
+The individual presets remain available. The combined project also accepts
+`--target io-controller` or `--target ui-controller`. It never flashes hardware.
 
 Each build prints ELF memory occupancy and percentages, including up-to-date
 builds. To report only memory, use `cmake --build --preset h755-io-debug --target
@@ -60,7 +80,8 @@ RAM's flash image, alignment gaps, BSS, minimum heap and reserved main stack.
 `STACK = 100%` means the configured stack region is reserved, not that the running
 stack is full. Runtime heap growth and stack high-water marks are not measured.
 
-Use `h755-io-release` and `h755-ui-release` for optimized images. The initial
+Use `h755-release` to build both optimized images, or `h755-io-release` and
+`h755-ui-release` individually. The initial
 bare-metal samples remain available as `h755-led-io-debug` and
 `h755-led-ui-debug`, also with Release variants.
 

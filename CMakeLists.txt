@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.22)
+
+# This entry point orchestrates two independent compiler configurations.
+option(H755_BUILD_BOTH "Build both H755 controller applications" OFF)
+if(H755_BUILD_BOTH)
+    project(Controllers LANGUAGES NONE)
+    include(cmake/controllers_h755.cmake)
+    return()
+endif()
+
 project(Application LANGUAGES C CXX ASM)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

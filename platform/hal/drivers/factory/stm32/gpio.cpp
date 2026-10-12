@@ -1,6 +1,7 @@
 #include "hal/drivers/factory/gpio.hpp"
 
 #include "hal/drivers/impl/stm32/Gpio.hpp"
+#include "hal/util/ResourceAccess.hpp"
 
 #include <tx_api.h>
 
@@ -116,7 +117,7 @@ namespace hal::gpio
         template<typename Interface, typename Implementation, typename Configuration>
         [[nodiscard]] auto create_pin(Configuration configuration) -> std::shared_ptr<Interface>
         {
-            if (!valid(configuration.pin)) {
+            if (!valid(configuration.pin) || !util::resource_allowed(configuration.pin)) {
                 return {};
             }
 

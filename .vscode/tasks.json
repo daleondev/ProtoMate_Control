@@ -4,7 +4,7 @@
         {
             "label": "Build H755 Debug",
             "type": "shell",
-            "command": "cmake --preset h755-io-debug && cmake --build --preset h755-io-debug && cmake --preset h755-ui-debug && cmake --build --preset h755-ui-debug",
+            "command": "cmake --preset h755-debug && cmake --build --preset h755-debug",
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"

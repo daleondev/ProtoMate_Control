@@ -2,32 +2,65 @@
 #include "hal/devices/impl/Led.hpp"
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/factory/timer.hpp"
+#include "resources.hpp"
 
 namespace hal::board
 {
-    auto create_led(LedId id) -> std::shared_ptr<device::ILed>
+    namespace
     {
-#if defined(CORE_CM4)
-        constexpr auto owned_id = LedId::Green;
-        constexpr gpio::Pin pin{gpio::Port::B, 0};
-#else
-        constexpr auto owned_id = LedId::Yellow;
-        constexpr gpio::Pin pin{gpio::Port::E, 1};
-#endif
-        if (id != owned_id) {
-            return {};
+        auto make_led(gpio::Pin pin) -> std::shared_ptr<device::ILed>
+        {
+            auto output = gpio::create_output({.pin = pin, .initial_level = gpio::Level::Low});
+            if (!output) {
+                return {};
+            }
+            return std::make_shared<device::Led>(std::move(output), gpio::Level::High);
         }
-        static auto led = std::make_shared<device::Led>(
-          gpio::create_output({.pin = pin, .initial_level = gpio::Level::Low}), gpio::Level::High);
-        return led;
     }
 
-    auto create_runtime_timer() -> std::shared_ptr<ITimer>
+    auto create_led(LedId id) -> std::shared_ptr<device::ILed>
     {
-#if defined(CORE_CM4)
-        return timer::create({.peripheral = timer::Peripheral::Tim5});
-#else
-        return timer::create({.peripheral = timer::Peripheral::Tim12});
-#endif
+        switch (id) {
+            case LedId::Green: {
+                if (!util::resource_allowed(resources::M4_STATUS_LED)) {
+                    return {};
+                }
+                static auto led = make_led(resources::M4_STATUS_LED);
+                return led;
+            }
+            case LedId::Yellow: {
+                if (!util::resource_allowed(resources::M7_STATUS_LED)) {
+                    return {};
+                }
+                static auto led = make_led(resources::M7_STATUS_LED);
+                return led;
+            }
+            default:
+                return {};
+        }
+    }
+
+    auto create_status_led(util::Core owner) -> std::shared_ptr<device::ILed>
+    {
+        if (owner != util::executing_core()) {
+            return {};
+        }
+        switch (owner) {
+            case util::Core::M4: return create_led(LedId::Green);
+            case util::Core::M7: return create_led(LedId::Yellow);
+            default: return {};
+        }
+    }
+
+    auto create_runtime_timer(util::Core owner) -> std::shared_ptr<ITimer>
+    {
+        if (owner != util::executing_core()) {
+            return {};
+        }
+        switch (owner) {
+            case util::Core::M4: return timer::create({.peripheral = resources::M4_RUNTIME_TIMER});
+            case util::Core::M7: return timer::create({.peripheral = resources::M7_RUNTIME_TIMER});
+            default: return {};
+        }
     }
 }

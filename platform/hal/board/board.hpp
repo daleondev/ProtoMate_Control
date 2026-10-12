@@ -11,6 +11,7 @@
 #include "hal/drivers/itf/ITimer.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
 #include "hal/drivers/itf/IUart.hpp"
+#include "hal/util/Core.hpp"
 #include <array>
 
 #include <cstdint>
@@ -42,8 +43,10 @@ namespace hal::board
 
     [[nodiscard]] auto create_led(LedId id) -> std::shared_ptr<device::ILed>;
     [[nodiscard]] auto create_button(ButtonId id) -> std::shared_ptr<device::IButton>;
-    // Per-core steady-clock counter. Its peripheral assignment belongs to the board.
-    [[nodiscard]] auto create_runtime_timer() -> std::shared_ptr<ITimer>;
+    // Physical resource mapping. Application/runtime code uses hal::core;
+    // selecting another processor here cannot bypass factory ownership checks.
+    [[nodiscard]] auto create_status_led(util::Core owner) -> std::shared_ptr<device::ILed>;
+    [[nodiscard]] auto create_runtime_timer(util::Core owner) -> std::shared_ptr<ITimer>;
 
     // LAN9255 ESC bus and active-low chip select.
     // Create CS first. Bus ownership is exclusive; no automatic SPI traffic.

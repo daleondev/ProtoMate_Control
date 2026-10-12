@@ -1,7 +1,7 @@
 #include "backend.hpp"
 #include "hal/drivers/factory/rtc.hpp"
 #include "hal/drivers/factory/timer.hpp"
-#include "hal/board/board.hpp"
+#include "hal/core/core.hpp"
 #include "hal/hal.hpp"
 
 #include <algorithm>
@@ -1522,7 +1522,7 @@ namespace runtime
               timestamp.nanoseconds;
         }
 
-        detail::high_resolution_timer = hal::board::create_runtime_timer();
+        detail::high_resolution_timer = hal::core::create_runtime_timer();
         detail::high_resolution_counter_available =
           detail::high_resolution_timer && detail::high_resolution_timer->start() &&
           detail::read_high_resolution_counter(detail::high_resolution_counter_epoch);

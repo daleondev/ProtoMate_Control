@@ -1,12 +1,12 @@
 #include "Application.hpp"
-#include "hal/board/board.hpp"
+#include "hal/core/core.hpp"
 #include "hal/hal.hpp"
 
 #include <memory>
 
 int main()
 {
-    auto led = hal::board::create_led(hal::board::LedId::Yellow);
+    auto led = hal::core::create_status_led();
     if (!led) {
         hal::panic("UI status LED unavailable");
     }

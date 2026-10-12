@@ -3,6 +3,7 @@ add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 add_subdirectory(drivers)
 add_subdirectory(devices)
 add_subdirectory(board)
+add_subdirectory(core)
 
 add_library(hal STATIC)
 add_library(platform::hal ALIAS hal)
@@ -22,7 +23,7 @@ endif()
 
 target_link_libraries(hal
     PUBLIC
-        hal::board
+        hal::core
         platform
         project_compiler_settings
 )

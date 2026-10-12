@@ -22,8 +22,17 @@
 
 namespace hal::board
 {
-    auto create_runtime_timer() -> std::shared_ptr<ITimer>
+    auto create_status_led(util::Core) -> std::shared_ptr<device::ILed>
     {
+        // Host composition has no physical core status LED.
+        return {};
+    }
+
+    auto create_runtime_timer(util::Core owner) -> std::shared_ptr<ITimer>
+    {
+        if (owner != util::Core::Host) {
+            return {};
+        }
         return timer::create({.peripheral = timer::Peripheral::Tim5});
     }
     namespace

@@ -4,6 +4,7 @@
 
 #include "hal/drivers/impl/stm32/Timer.hpp"
 #include "hal/hal.hpp"
+#include "hal/util/ResourceAccess.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -44,6 +45,9 @@ namespace hal::timer
 
     auto create(Configuration configuration) -> std::shared_ptr<ITimer>
     {
+        if (!util::resource_allowed(configuration.peripheral)) {
+            return {};
+        }
 #if defined(CORE_CM7)
         if (configuration.peripheral != Peripheral::Tim12) {
             return {};
