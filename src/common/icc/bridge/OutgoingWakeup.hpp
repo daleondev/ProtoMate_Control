@@ -29,20 +29,29 @@ namespace icc::util
     };
 
     // Independent waiters prevent one sender from consuming the other's wakeup.
-    // A readiness event may affect both lanes (for example a timed-out request).
+    // A readiness event may affect multiple lanes (for example link shutdown).
     struct OutgoingWakeup
     {
-        OutgoingSignal normal, urgent;
-        OutgoingSignal& signal(Lane lane) { return lane == Lane::Urgent ? urgent : normal; }
+        OutgoingSignal normal, urgent, background;
+        OutgoingSignal& signal(Lane lane)
+        {
+            switch (lane) {
+                case Lane::Urgent: return urgent;
+                case Lane::Background: return background;
+                default: return normal;
+            }
+        }
         void notify() noexcept
         {
             urgent.notify();
             normal.notify();
+            background.notify();
         }
         void close()
         {
             urgent.ready.close();
             normal.ready.close();
+            background.ready.close();
         }
     };
 }

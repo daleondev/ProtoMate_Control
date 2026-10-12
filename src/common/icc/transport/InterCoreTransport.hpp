@@ -35,7 +35,7 @@ namespace icc
         std::shared_ptr<hal::IInterCoreChannel> m_channel;
         runtime::Notification m_notification;
         std::mutex m_mutex;
-        std::array<std::optional<pnm::coro::Channel<bool>>, 4> m_waiters;
+        std::array<std::optional<pnm::coro::Channel<bool>>, 2 * LANE_COUNT> m_waiters;
         bool m_closed{};
         std::atomic_bool m_stopping{};
         std::thread m_worker;

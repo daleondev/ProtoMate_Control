@@ -84,10 +84,10 @@ namespace hal
     std::expected<void, IInterCoreChannel::Error> InterCoreChannel::trySend(
       std::span<const std::byte> frame, Lane lane) noexcept
     {
-        if (disconnected() || (lane != Lane::Normal && lane != Lane::Urgent)) {
+        if (disconnected()) {
             return std::unexpected(Error::Disconnected);
         }
-        auto result = memory.inbox[1 - SIDE][static_cast<std::size_t>(lane)].push(frame);
+        auto result = memory.push(1 - SIDE, frame, lane);
         if (result) { notifyPeer(); }
         return result;
     }
@@ -95,11 +95,15 @@ namespace hal
     std::expected<std::size_t, IInterCoreChannel::Error> InterCoreChannel::tryReceive(
       std::span<std::byte> buffer, Lane lane) noexcept
     {
-        if (disconnected() || (lane != Lane::Normal && lane != Lane::Urgent)) {
+        if (disconnected()) {
             return std::unexpected(Error::Disconnected);
         }
-        auto result = memory.inbox[SIDE][static_cast<std::size_t>(lane)].pop(buffer);
-        if (result) { notifyPeer(); }
+        auto result = memory.pop(SIDE, buffer, lane);
+        if (result) {
+            notifyPeer();
+            const stm32::InterruptGuard guard;
+            if (m_notification) { m_notification(); }
+        }
         return result;
     }
 

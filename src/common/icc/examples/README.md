@@ -170,4 +170,4 @@ acknowledged heartbeats run every 100 ms with a 500 ms deadline. Register
 `connectionStatus().reason` for the cause. Callbacks run on the icc context and
 must not block or call `stop()`. An orderly peer stop has reason `PeerStopped`;
 timeouts and transport errors remain latched until explicit reconstruction.
-The wire version is 6. The full connection contract is in the project's README.
+The wire version is 7. The full connection contract is in the project's README.

@@ -18,6 +18,9 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
     message(FATAL_ERROR "This project requires GCC 16")
 endif()
 
+# Portable contracts shared by HAL and application code, without runtime dependencies.
+add_subdirectory(platform/communication)
+
 # Each hardware core has a separate configure tree, image and runtime instance.
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     if(NOT H755_CORE MATCHES "^CM[47]$")

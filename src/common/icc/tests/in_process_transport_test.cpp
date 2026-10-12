@@ -133,6 +133,77 @@ namespace
         EXPECT_EQ(waiting.get(), std::unexpected(Error::Cancelled));
     }
 
+    TEST_F(TransportTest, BackgroundCapacityDoesNotBlockControlAndReceivesRespectPriority)
+    {
+        using icc::Lane;
+        const std::array frame{ std::byte{ 7 } };
+        for (std::size_t i{}; i < Transport::FRAME_CAPACITY; ++i) {
+            ASSERT_TRUE(run(endpoints[0]->send(frame, Lane::Background)));
+        }
+        std::stop_source stop;
+        auto blocked = launch(context, endpoints[0]->send(frame, Lane::Background, stop.get_token()));
+        drain();
+        ASSERT_EQ(blocked.wait_for(0ms), std::future_status::timeout);
+        ASSERT_TRUE(run(endpoints[0]->send(frame, Lane::Normal)));
+        ASSERT_TRUE(run(endpoints[0]->send(frame, Lane::Urgent)));
+        std::array<std::byte, 1> background{}, normal{}, urgent{};
+        auto low = launch(context, endpoints[1]->receive(background, Lane::Background));
+        auto middle = launch(context, endpoints[1]->receive(normal, Lane::Normal));
+        drain();
+        EXPECT_EQ(low.wait_for(0ms), std::future_status::timeout);
+        EXPECT_EQ(middle.wait_for(0ms), std::future_status::timeout);
+        // Freeing urgent capacity wakes normal, which in turn wakes background.
+        ASSERT_TRUE(run(endpoints[1]->receive(urgent, Lane::Urgent)));
+        ASSERT_EQ(middle.wait_for(0ms), std::future_status::ready);
+        ASSERT_EQ(low.wait_for(0ms), std::future_status::ready);
+        EXPECT_TRUE(middle.get());
+        EXPECT_TRUE(low.get());
+        ASSERT_EQ(blocked.wait_for(0ms), std::future_status::ready);
+        EXPECT_TRUE(blocked.get());
+        EXPECT_EQ(background, frame);
+    }
+
+    TEST_F(TransportTest, BackgroundSizeLimitAndCancellationPreserveQueuedFrames)
+    {
+        using icc::Lane;
+        std::array<std::byte, icc::MAX_BACKGROUND_FRAME_BYTES> frame{};
+        frame.fill(std::byte{ 42 });
+        ASSERT_TRUE(run(endpoints[0]->send(frame, Lane::Background)));
+        std::array<std::byte, 1> small{};
+        EXPECT_EQ(run(endpoints[1]->receive(small, Lane::Background)), std::unexpected(Error::BufferTooSmall));
+        std::array<std::byte, icc::MAX_BACKGROUND_FRAME_BYTES> received{};
+        ASSERT_TRUE(run(endpoints[1]->receive(received, Lane::Background)));
+        EXPECT_EQ(received, frame);
+        std::array<std::byte, icc::MAX_BACKGROUND_FRAME_BYTES + 1> oversized{};
+        EXPECT_EQ(run(endpoints[0]->send(oversized, Lane::Background)), std::unexpected(Error::TooLarge));
+        std::stop_source stop;
+        auto waiting = launch(context, endpoints[1]->receive(received, Lane::Background, stop.get_token()));
+        drain();
+        stop.request_stop();
+        drain();
+        ASSERT_EQ(waiting.wait_for(0ms), std::future_status::ready);
+        EXPECT_EQ(waiting.get(), std::unexpected(Error::Cancelled));
+        EXPECT_EQ(received, frame);
+    }
+
+    TEST_F(TransportTest, ClosingWakesBlockedBackgroundSendAndReceive)
+    {
+        const std::array frame{ std::byte{ 1 } };
+        for (std::size_t i{}; i < Transport::FRAME_CAPACITY; ++i) {
+            ASSERT_TRUE(run(endpoints[0]->send(frame, icc::Lane::Background)));
+        }
+        auto sending = launch(context, endpoints[0]->send(frame, icc::Lane::Background));
+        std::array<std::byte, 1> buffer{};
+        auto receiving = launch(context, endpoints[0]->receive(buffer, icc::Lane::Background));
+        drain();
+        endpoints[1]->close();
+        drain();
+        ASSERT_EQ(sending.wait_for(0ms), std::future_status::ready);
+        ASSERT_EQ(receiving.wait_for(0ms), std::future_status::ready);
+        EXPECT_EQ(sending.get(), std::unexpected(Error::Disconnected));
+        EXPECT_EQ(receiving.get(), std::unexpected(Error::Disconnected));
+    }
+
     TEST_F(TransportTest, EmptyReceiveSuspendsAndWakesWhenDataArrives)
     {
         std::array<std::byte, 3> received{};
@@ -215,7 +286,6 @@ namespace
         // A full urgent lane does not consume any of the normal lane's slots.
         fill();
         std::array<std::byte, 1> received{};
-        EXPECT_TRUE(run(endpoints[1]->receive(received)));
         EXPECT_EQ(blocked.wait_for(0ms), std::future_status::timeout);
         EXPECT_TRUE(run(endpoints[1]->receive(received, icc::Lane::Urgent)));
         EXPECT_EQ(received[0], std::byte{ 0 });
@@ -227,19 +297,26 @@ namespace
         }
         EXPECT_TRUE(run(endpoints[1]->receive(received, icc::Lane::Urgent)));
         EXPECT_EQ(received, urgent);
+        // Normal frames remain queued until urgent has drained.
+        for (std::size_t i{}; i < Transport::FRAME_CAPACITY; ++i) {
+            ASSERT_TRUE(run(endpoints[1]->receive(received)));
+            EXPECT_EQ(received[0], static_cast<std::byte>(i));
+        }
     }
 
-    TEST_F(TransportTest, ClosingWakesAllFourLaneReceivers)
+    TEST_F(TransportTest, ClosingWakesAllSixLaneReceivers)
     {
-        std::array<std::array<std::byte, 1>, 4> buffers{};
+        std::array<std::array<std::byte, 1>, 6> buffers{};
         auto a = launch(context, endpoints[0]->receive(buffers[0]));
         auto b = launch(context, endpoints[0]->receive(buffers[1], icc::Lane::Urgent));
         auto c = launch(context, endpoints[1]->receive(buffers[2]));
         auto d = launch(context, endpoints[1]->receive(buffers[3], icc::Lane::Urgent));
+        auto e = launch(context, endpoints[0]->receive(buffers[4], icc::Lane::Background));
+        auto f = launch(context, endpoints[1]->receive(buffers[5], icc::Lane::Background));
         drain();
         endpoints[0]->close();
         drain();
-        for (auto* result : { &a, &b, &c, &d }) {
+        for (auto* result : { &a, &b, &c, &d, &e, &f }) {
             ASSERT_EQ(result->wait_for(0ms), std::future_status::ready);
             EXPECT_EQ(result->get(), std::unexpected(Error::Disconnected));
         }
@@ -454,15 +531,20 @@ namespace
           launch(context, exchange(*endpoints[0], std::byte{ 0xCC }, std::byte{ 0xDD }, icc::Lane::Urgent));
         auto urgentRight = launch(
           peerContext, exchange(*endpoints[1], std::byte{ 0xDD }, std::byte{ 0xCC }, icc::Lane::Urgent));
+        auto backgroundLeft = launch(context, exchange(*endpoints[0], std::byte{ 0xEE }, std::byte{ 0xFF }, icc::Lane::Background));
+        auto backgroundRight = launch(peerContext, exchange(*endpoints[1], std::byte{ 0xFF }, std::byte{ 0xEE }, icc::Lane::Background));
         std::jthread leftRunner([&] { context.run(); }), rightRunner([&] { peerContext.run(); });
         const auto leftStatus = left.wait_for(5s), rightStatus = right.wait_for(5s);
         const auto urgentLeftStatus = urgentLeft.wait_for(5s), urgentRightStatus = urgentRight.wait_for(5s);
+        const auto backgroundLeftStatus = backgroundLeft.wait_for(5s), backgroundRightStatus = backgroundRight.wait_for(5s);
         endpoints[0]->close();
         // Keep both contexts running through disconnection cleanup, even on failure.
         left.wait();
         right.wait();
         urgentLeft.wait();
         urgentRight.wait();
+        backgroundLeft.wait();
+        backgroundRight.wait();
         context.stop();
         peerContext.stop();
         leftRunner.join();
@@ -475,6 +557,10 @@ namespace
         EXPECT_EQ(urgentRightStatus, std::future_status::ready);
         EXPECT_NO_THROW(urgentLeft.get());
         EXPECT_NO_THROW(urgentRight.get());
+        EXPECT_EQ(backgroundLeftStatus, std::future_status::ready);
+        EXPECT_EQ(backgroundRightStatus, std::future_status::ready);
+        EXPECT_NO_THROW(backgroundLeft.get());
+        EXPECT_NO_THROW(backgroundRight.get());
     }
 
     enum class TopicPublisher

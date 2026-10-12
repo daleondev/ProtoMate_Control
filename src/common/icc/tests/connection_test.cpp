@@ -450,7 +450,7 @@ namespace
     std::array<std::byte, 16> control(unsigned kind, std::uint64_t id = 0)
     {
         std::array<std::byte, 16> bytes{};
-        bytes[0] = std::byte{ 6 };
+        bytes[0] = std::byte{ 7 };
         bytes[1] = static_cast<std::byte>(kind);
         for (unsigned i = 0; i < 8; ++i)
             bytes[4 + i] = static_cast<std::byte>(id >> (8 * i));

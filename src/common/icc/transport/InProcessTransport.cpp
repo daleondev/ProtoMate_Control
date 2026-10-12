@@ -31,8 +31,17 @@ namespace icc
         };
 
         std::mutex mutex;
-        std::array<std::array<Queue, 2>, 2> inbox;
+        std::array<std::array<Queue, LANE_COUNT>, 2> inbox;
         bool closed{};
+
+        bool higherPriorityPending(std::size_t side, Lane lane) const
+        {
+            for (const auto priority : LANE_PRIORITY) {
+                if (priority == lane) { break; }
+                if (inbox[side][static_cast<std::size_t>(priority)].count != 0) { return true; }
+            }
+            return false;
+        }
     };
 
     InProcessTransport::InProcessTransport(std::shared_ptr<Shared> shared, std::size_t side)
@@ -55,6 +64,9 @@ namespace icc
       Lane lane,
       std::stop_token stop)
     {
+        if (static_cast<std::size_t>(lane) >= LANE_COUNT) {
+            co_return std::unexpected(Error::Disconnected);
+        }
         auto shared = m_shared;
         auto& queue = shared->inbox[1 - m_side].at(static_cast<std::size_t>(lane));
         std::unique_lock lock(shared->mutex);
@@ -65,7 +77,7 @@ namespace icc
             if (shared->closed) {
                 co_return std::unexpected(Error::Disconnected);
             }
-            if (frame.size() > MAX_FRAME_BYTES) {
+            if (frame.size() > (lane == Lane::Background ? MAX_BACKGROUND_FRAME_BYTES : MAX_FRAME_BYTES)) {
                 co_return std::unexpected(Error::TooLarge);
             }
             if (queue.count < FRAME_CAPACITY) {
@@ -99,6 +111,9 @@ namespace icc
       Lane lane,
       std::stop_token stop)
     {
+        if (static_cast<std::size_t>(lane) >= LANE_COUNT) {
+            co_return std::unexpected(Error::Disconnected);
+        }
         auto shared = m_shared;
         auto& queue = shared->inbox[m_side].at(static_cast<std::size_t>(lane));
         std::unique_lock lock(shared->mutex);
@@ -109,7 +124,7 @@ namespace icc
             if (shared->closed) {
                 co_return std::unexpected(Error::Disconnected);
             }
-            if (queue.count != 0) {
+            if (queue.count != 0 && !shared->higherPriorityPending(m_side, lane)) {
                 break;
             }
 
@@ -131,16 +146,26 @@ namespace icc
         queue.head = (queue.head + 1) % FRAME_CAPACITY;
         --queue.count;
         auto wake = std::exchange(queue.space_ready, std::nullopt);
+        // Consuming a higher lane can make a waiting lower lane eligible even
+        // though no new frame arrived. Wake in priority order, outside the lock.
+        std::array<std::optional<pnm::coro::Channel<bool>>, LANE_COUNT> receivers;
+        for (std::size_t index{}; index < LANE_COUNT; ++index) {
+            auto& candidate = shared->inbox[m_side][static_cast<std::size_t>(LANE_PRIORITY[index])];
+            receivers[index] = std::exchange(candidate.data_ready, std::nullopt);
+        }
         lock.unlock();
         if (wake) {
             wake->close();
+        }
+        for (auto& receiver : receivers) {
+            if (receiver) { receiver->close(); }
         }
         co_return size;
     }
 
     void InProcessTransport::close() noexcept
     {
-        constexpr std::size_t signal_count{ 8 };
+        constexpr std::size_t signal_count{ 4 * LANE_COUNT };
         std::array<std::optional<pnm::coro::Channel<bool>>, signal_count> wake;
         {
             std::scoped_lock lock(m_shared->mutex);
@@ -149,10 +174,10 @@ namespace icc
             }
             m_shared->closed = true;
             for (std::size_t side = 0; side < m_shared->inbox.size(); ++side) {
-                for (std::size_t lane = 0; lane < 2; ++lane) {
+                for (std::size_t lane = 0; lane < LANE_COUNT; ++lane) {
                     auto& queue = m_shared->inbox[side][lane];
                     queue.count = 0;
-                    const auto index = (4 * side) + (2 * lane);
+                    const auto index = (2 * LANE_COUNT * side) + (2 * lane);
                     wake[index] = std::exchange(queue.data_ready, std::nullopt);
                     wake[index + 1] = std::exchange(queue.space_ready, std::nullopt);
                 }

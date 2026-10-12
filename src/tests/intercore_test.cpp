@@ -22,6 +22,8 @@ namespace
     struct TestTopics
     {
         [[= Publisher::Sender]] pnm::msg::Topic<std::uint32_t> test_value;
+        [[= Publisher::Sender, = icc::Lane::Background, = pnm::msg::SubscriptionOptions{ .capacity = 8 }]]
+        pnm::msg::Topic<std::uint32_t> test_logs;
     };
 
     // Model only the MMIO/interrupt boundary, using the production ring layout.
@@ -47,7 +49,7 @@ namespace
             if (m_pair->closed) {
                 return std::unexpected(Channel::Error::Disconnected);
             }
-            auto result = m_pair->memory.inbox[1 - m_side][static_cast<std::size_t>(lane)].push(bytes);
+            auto result = m_pair->memory.push(1 - m_side, bytes, lane);
             if (result && m_pair->notify[1 - m_side]) {
                 m_pair->notify[1 - m_side]();
             }
@@ -60,9 +62,12 @@ namespace
             if (m_pair->closed) {
                 return std::unexpected(Channel::Error::Disconnected);
             }
-            auto result = m_pair->memory.inbox[m_side][static_cast<std::size_t>(lane)].pop(bytes);
+            auto result = m_pair->memory.pop(m_side, bytes, lane);
             if (result && m_pair->notify[1 - m_side]) {
                 m_pair->notify[1 - m_side]();
+            }
+            if (result && m_pair->notify[m_side]) {
+                m_pair->notify[m_side]();
             }
             return result;
         }
@@ -230,6 +235,46 @@ namespace
         EXPECT_EQ(receiver.get().error(), Error::Disconnected);
     }
 
+    TEST(InterCoreTransport, BackgroundPriorityWakeupCapacityAndCancellation)
+    {
+        using icc::Lane;
+        TransportPair pair;
+        const std::array frame{ std::byte{ 8 } };
+        for (unsigned i{}; i < Queue::CAPACITY; ++i) {
+            ASSERT_TRUE(pair.run(pair.a.send(frame, Lane::Background)));
+        }
+        std::stop_source stop;
+        auto full = pair.launch(pair.a.send(frame, Lane::Background, stop.get_token()));
+        EXPECT_EQ(full.wait_for(10ms), std::future_status::timeout);
+        ASSERT_TRUE(pair.run(pair.a.send(frame, Lane::Normal)));
+        ASSERT_TRUE(pair.run(pair.a.send(frame, Lane::Urgent)));
+        std::array<std::byte, 1> low{}, middle{}, high{};
+        auto background = pair.launch(pair.b.receive(low, Lane::Background));
+        auto normal = pair.launch(pair.b.receive(middle, Lane::Normal));
+        EXPECT_EQ(background.wait_for(10ms), std::future_status::timeout);
+        EXPECT_EQ(normal.wait_for(10ms), std::future_status::timeout);
+        // Requires the local wake on consumption, not just the peer IRQ.
+        ASSERT_TRUE(pair.run(pair.b.receive(high, Lane::Urgent)));
+        ASSERT_EQ(normal.wait_for(2s), std::future_status::ready);
+        ASSERT_EQ(background.wait_for(2s), std::future_status::ready);
+        ASSERT_EQ(full.wait_for(2s), std::future_status::ready);
+        EXPECT_TRUE(normal.get());
+        EXPECT_TRUE(background.get());
+        EXPECT_TRUE(full.get());
+        EXPECT_EQ(low, frame);
+        auto cancelled = pair.launch(pair.a.send(frame, Lane::Background, stop.get_token()));
+        EXPECT_EQ(cancelled.wait_for(10ms), std::future_status::timeout);
+        stop.request_stop();
+        ASSERT_EQ(cancelled.wait_for(2s), std::future_status::ready);
+        EXPECT_EQ(cancelled.get().error(), Error::Cancelled);
+        std::array<std::byte, communication::MAX_BACKGROUND_FRAME_BYTES + 1> oversized{};
+        EXPECT_EQ(pair.run(pair.a.send(oversized, Lane::Background)).error(), Error::TooLarge);
+        auto receiver = pair.launch(pair.a.receive(high, Lane::Background));
+        pair.b.close();
+        ASSERT_EQ(receiver.wait_for(2s), std::future_status::ready);
+        EXPECT_EQ(receiver.get().error(), Error::Disconnected);
+    }
+
     TEST(InterCoreTransport, CompleteBridgeHandshakeAndSerializedTopic)
     {
         TransportPair pair;
@@ -241,11 +286,17 @@ namespace
         std::uint32_t result{};
         auto subscription =
           io.topic<^^TestTopics::test_value>().subscribe([&](std::uint32_t value) { result = value; });
+        std::vector<std::uint32_t> logs;
+        auto log_subscription = io.topic<^^TestTopics::test_logs>().subscribe([&](auto value) { logs.push_back(value); });
+        for (unsigned i{}; i < 8; ++i) { ui.topic<^^TestTopics::test_logs>().publish(i); }
         io_bridge.start();
         ui_bridge.start();
         ui.topic<^^TestTopics::test_value>().publish(42U);
         ASSERT_EQ(subscription.poll(2s), 1U);
         EXPECT_EQ(result, 42U);
+        const auto deadline = std::chrono::steady_clock::now() + 2s;
+        while (logs.size() < 8 && std::chrono::steady_clock::now() < deadline) { log_subscription.poll(10ms); }
+        EXPECT_EQ(logs, (std::vector<std::uint32_t>{ 0, 1, 2, 3, 4, 5, 6, 7 }));
         ui_bridge.stop();
         io_bridge.stop();
     }

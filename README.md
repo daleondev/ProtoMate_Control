@@ -523,7 +523,7 @@ The implementation separates message routing from byte transport:
 | Location | Responsibility |
 | --- | --- |
 | [bridge/Bridge](src/common/icc/bridge/Bridge.hpp) | Public registration API, lifecycle, send/receive loops, fair scheduling and failure handling |
-| [bridge/TopicBridge](src/common/icc/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, latest-value coalescing and incoming publications |
+| [bridge/TopicBridge](src/common/icc/bridge/TopicBridge.hpp) | Reflected topic registration, subscriptions, bounded FIFO/latest-value delivery, drop statistics and incoming publications |
 | [bridge/ServiceBridge](src/common/icc/bridge/ServiceBridge.hpp) | Reflected service registration, deferred proxies, call IDs, replies, cancellation, deadlines and cleanup |
 | [bridge/ActionBridge](src/common/icc/bridge/ActionBridge.hpp) | Reflected action registration, deferred admission, feedback, cancellation, acknowledged terminal results and cleanup |
 | [bridge/ConnectionHealth](src/common/icc/bridge/ConnectionHealth.hpp) | Handshake, acknowledged heartbeats, deadlines and connection state notifications |
@@ -533,7 +533,7 @@ The implementation separates message routing from byte transport:
 `Bridge` owns its routing and connection helpers by value and serializes registration against startup.
 The helpers run on its coroutine context and cannot call back into `Bridge` or
 access the transport. Shutdown first drains actions while communication continues,
-then closes services and disconnects topic subscriptions after its four transport
+then closes services and disconnects topic subscriptions after its six transport
 loops and health timer loop finish. The caller owns the context and runner thread;
 the previous application thread glue is archived with `system_threads`.
 
@@ -591,16 +591,27 @@ proxies use deferred replies; they never execute application handlers or block
 waiting for a result on the p2p context. Native readiness notifications and
 deadline timers wake the bridge. No waiting thread is created per call.
 
+The lane enum, priority order and background frame limit are defined once in
+[`platform/communication/Lanes.hpp`](platform/communication/Lanes.hpp), exposed by
+the header-only `platform::communication` target. It depends only on standard
+headers; both HAL and ICC use this contract without depending on each other.
+`icc::Lane` and `hal::IInterCoreChannel::Lane` are aliases of the same type.
+
 `ITransport` asynchronously sends and receives complete frames using borrowed
-spans. Its `Lane::Normal` and `Lane::Urgent` queues have independent capacity,
-waiters and sender/receiver coroutines. `InProcessTransport::pair()` reserves eight
-2048-byte frame slots per lane and direction (four queues). A full normal queue
-cannot block urgent send or receive. Each lane preserves FIFO order; there is no
-ordering between lanes. Urgent traffic remains bounded and can itself back up.
+spans. Its `Lane::Urgent`, `Lane::Normal` and `Lane::Background` queues have independent
+capacity, waiters and sender/receiver coroutines. `InProcessTransport::pair()`
+reserves eight frame slots per lane and direction (six queues). Normal and urgent
+frames may use 2048 bytes; background frames are limited to 512 bytes including
+header and topic name. A full background queue cannot block normal or urgent
+traffic. Each lane preserves FIFO order. At each receive boundary, queued urgent
+frames take precedence over normal, which take precedence over background. An
+already consumed frame is not preempted. Independent rings can enqueue concurrently;
+priority applies when consuming frames. Both peers must service all lanes in use.
+Sustained higher-priority traffic may starve background delivery. Urgent traffic remains bounded and can itself back up.
 It does not preempt a running handler or rescue a stalled context. Cancellation and `close()` wake waiting operations; closing either
 endpoint disconnects the pair. Reconnection requires a new pair.
 
-The frame has a 16-byte header: version (currently 6), frame kind, 16-bit name
+The frame has a 16-byte header: version (currently 7), frame kind, 16-bit name
 length, 64-bit call ID and 32-bit remaining timeout in milliseconds. Integers are
 little endian. Name bytes and serialized payload follow, with a 2048-byte total
 limit. Topics, service requests and action goals identify their destination by
@@ -612,8 +623,36 @@ Payloads use pneumo serialization. `std::string` sends its characters, not its
 native object layout. Compound types need explicit serialization adapters with
 portable field widths and byte order before use between different targets.
 
-Each bridge accepts up to 16 topics, 16 services and 16 actions. Outgoing subscriptions retain only the
-latest pending value per topic, and readiness notifications wake the sender.
+Each bridge accepts up to 16 topics, 16 services and 16 actions. Topics default to
+normal-lane, latest-only delivery. Optional catalog annotations choose a lane and
+bounded FIFO delivery, independently:
+
+```cpp
+struct Topics {
+    [[= TopicPublisher::IO, = icc::Lane::Background,
+      = pnm::msg::SubscriptionOptions{ .capacity = 16 }]]
+    pnm::msg::Topic<std::string> io_logs;
+};
+```
+
+`SubscriptionOptions` accepts 1–64 queued records; the default overflow policy
+is `DropOldest`, with `DropNewest` available to preserve the oldest queued records.
+The bridge dispatches one record per turn using Pneumo's `Subscription::pollSome()`.
+Readiness notifications wake the appropriate lane. Publication never waits for
+transport space; a blocked background send suspends only its own coroutine while
+the bounded subscription handles overflow. At most one additional topic frame per
+lane is in flight, plus the transport's reserved slots. `topicStatistics("io/logs")`
+returns pending subscription records and cumulative dropped records; it excludes
+transport/in-flight frames and returns `nullopt` after cleanup or for an unknown
+or incoming topic. Overflow is counted, and oversized background records are also
+dropped and counted instead of failing the control connection. Consumers should
+likewise use bounded subscriptions and dispatch UART output on their own worker.
+Logging sinks are not yet connected to this path; the topic example demonstrates it.
+
+Background is best effort: shutdown cancels blocked sends without draining logs,
+and no delivery acknowledgement or replay is promised. Services and actions stay
+on the control lanes. Operational faults must be conveyed separately from their
+background log text.
 Service requests are never coalesced. There are eight forwarded calls per
 lane and direction, eight queued/pending requests per local proxy, and eight queued
 rejection replies per lane. Normal traffic cannot consume urgent service slots. Excess calls report `Busy`; a peer overrunning the rejection

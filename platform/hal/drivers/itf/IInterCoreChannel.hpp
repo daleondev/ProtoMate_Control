@@ -1,5 +1,7 @@
 #pragma once
 
+#include "communication/Lanes.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -13,7 +15,7 @@ namespace hal
     class IInterCoreChannel
     {
       public:
-        enum class Lane : std::uint8_t { Normal, Urgent };
+        using Lane = communication::Lane;
         enum class Error : std::uint8_t { WouldBlock, Disconnected, TooLarge, BufferTooSmall };
         using Notification = std::move_only_function<void() noexcept>;
 
@@ -23,7 +25,9 @@ namespace hal
         IInterCoreChannel(IInterCoreChannel&&) = delete;
         IInterCoreChannel& operator=(IInterCoreChannel&&) = delete;
         // One producer/consumer per lane; neither operation waits. Errors leave
-        // buffers/queues untouched. Normal and urgent capacity is independent.
+        // buffers/queues untouched. All lanes have independent capacity.
+        // Receive returns WouldBlock while a higher-priority lane has queued
+        // frames. Servicing that lane must notify local waiters as well as the peer.
         virtual std::expected<void, Error> trySend(std::span<const std::byte> frame, Lane lane) noexcept = 0;
         virtual std::expected<std::size_t, Error> tryReceive(std::span<std::byte> buffer, Lane lane) noexcept = 0;
         // Callback may run in an ISR: only notify a local worker. Registration

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "communication/Lanes.hpp"
 #include <pneumo/coroutines.hpp>
 
 #include <cstddef>
@@ -10,17 +11,19 @@
 
 namespace icc
 {
-    enum class Lane : std::uint8_t
-    {
-        Normal,
-        Urgent
-    };
+    using communication::Lane;
+    using communication::LANE_PRIORITY;
+    using communication::LANE_COUNT;
+    using communication::MAX_BACKGROUND_FRAME_BYTES;
 
     // One endpoint of a connection between two bridges. Transfers complete,
     // ordered byte frames within each lane. Message types belong to the bridge.
-    // Normal and urgent lanes have independent capacity and waiters. There is
-    // no ordering between lanes. One send and one receive PER LANE may be pending
-    // concurrently. A full normal lane must never block urgent operations. Waiting
+    // Lanes have independent capacity and waiters. Receives prefer queued urgent
+    // frames, then normal, then background, at frame boundaries. A receiver must
+    // service all lanes in use; sustained higher-priority traffic can starve logs.
+    // One send and one receive PER LANE may be pending concurrently. Full lower
+    // lanes never block higher lanes. Independent rings enqueue without waiting
+    // for higher lanes to drain; priority is applied when consuming frames. Waiting
     // suspends the calling coroutine, leaving the context free to run other work.
     class ITransport
     {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "common/icc/transport/ITransport.hpp"
 
 #include <pneumo/messaging.hpp>
 
@@ -22,5 +23,9 @@ namespace example
     {
         [[= TopicPublisher::IO]] pnm::msg::Topic<std::string> demo_io_state;
         [[= TopicPublisher::UI, = "demo/ui/status"_fs]] pnm::msg::Topic<std::string> status;
+        // FIFO events: independent background capacity, keep at most 16 records.
+        [[= TopicPublisher::IO, = icc::Lane::Background,
+          = pnm::msg::SubscriptionOptions{ .capacity = 16 }]]
+        pnm::msg::Topic<std::string> demo_io_logs;
     };
 }

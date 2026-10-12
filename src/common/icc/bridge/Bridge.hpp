@@ -54,12 +54,21 @@ namespace icc
         // Members without this publisher annotation stay local. Unrelated
         // annotations are ignored; annotated static declarations are rejected.
         // Register before start(), with matching names and payload types on both
-        // peers. Each outgoing topic retains only its latest pending value.
+        // peers. Topics default to Normal/latest-only. Optional Lane::Background
+        // and pnm::msg::SubscriptionOptions annotations select a separate lane
+        // and a bounded FIFO (1..64 records, drop-oldest or drop-newest).
+        // Background frames are limited to 512 bytes including header/name;
+        // oversized publications are dropped and counted without failing control.
         // Payloads use pneumo serialization. Portable wire representations require
         // adapters with explicit field sizes and byte order.
         template<typename Catalog, typename Publisher>
             requires std::is_enum_v<Publisher>
         void registerTopics(Publisher local_publisher);
+
+        // Thread-safe pending subscription records and cumulative overflow/size
+        // drops. Excludes frames already handed to the transport; no delivery ACK.
+        // nullopt for unknown/incoming topics or after bridge cleanup.
+        [[nodiscard]] std::optional<pnm::msg::SubscriptionStatistics> topicStatistics(std::string_view name) const;
 
         // Catalog annotations identify the PROVIDER. Replies return automatically.
         // Register before start(), with matching names and Request/Response types
@@ -164,9 +173,9 @@ namespace icc
         ActionBridge m_actions;
         ConnectionHealth m_connection;
         std::shared_ptr<util::OutgoingSignal> m_healthWakeup{ std::make_shared<util::OutgoingSignal>() };
-        std::array<std::size_t, 2> m_nextHelper{};
+        std::array<std::size_t, LANE_COUNT> m_nextHelper{};
         // Keep the last action ACK alive while the other sender checks shutdown.
-        std::array<bool, 2> m_actionSending{};
+        std::array<bool, LANE_COUNT> m_actionSending{};
         std::atomic_bool m_shutdownRequested;
 
         // Never request cancellation under this lock: stop callbacks can run inline.
@@ -177,6 +186,8 @@ namespace icc
         bool m_receiveRunning{};
         bool m_urgentSendRunning{};
         bool m_urgentReceiveRunning{};
+        bool m_backgroundSendRunning{};
+        bool m_backgroundReceiveRunning{};
         bool m_healthRunning{};
         bool m_cleanupRunning{};
         bool m_peerStopped{};

@@ -12,6 +12,7 @@ target_include_directories(hal_drivers
 target_link_libraries(hal_drivers
     PUBLIC
         platform
+        platform::communication
         project_compiler_settings
         pneumo::units
     PRIVATE

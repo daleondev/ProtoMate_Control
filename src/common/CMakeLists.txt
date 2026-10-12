@@ -17,6 +17,7 @@ target_include_directories(proto_common
 target_link_libraries(proto_common 
     PUBLIC 
         project_compiler_settings
+        platform::communication
         pneumo::coroutines
     PRIVATE
         proto::common::app

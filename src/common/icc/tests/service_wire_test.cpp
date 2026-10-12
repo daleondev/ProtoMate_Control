@@ -37,7 +37,7 @@ namespace
                                  unsigned timeout = 0)
     {
         std::vector<std::byte> bytes(16 + name.size() + payload.size());
-        bytes[0] = std::byte{ 6 };
+        bytes[0] = std::byte{ 7 };
         bytes[1] = static_cast<std::byte>(kind);
         bytes[2] = static_cast<std::byte>(name.size() & 255);
         bytes[3] = static_cast<std::byte>(name.size() >> 8);

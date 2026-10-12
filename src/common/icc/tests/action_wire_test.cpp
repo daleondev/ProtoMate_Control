@@ -30,7 +30,7 @@ namespace
                                  unsigned budget = 0)
     {
         std::vector<std::byte> result(16 + name.size() + payload.size());
-        result[0] = std::byte{ 6 };
+        result[0] = std::byte{ 7 };
         result[1] = static_cast<std::byte>(kind);
         result[2] = static_cast<std::byte>(name.size());
         result[3] = static_cast<std::byte>(name.size() >> 8);

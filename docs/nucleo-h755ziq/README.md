@@ -176,14 +176,17 @@ workers sleep until shutdown; there is no LED topic or local blink task.
 `proto::common` compiles the ICC bridge and transport implementations once for
 each firmware. The bridge remains independent of hardware; its inter-core
 adapter wraps `hal::IInterCoreChannel` using the local runtime.
-The channel uses four SPSC queues: normal and urgent in each direction, four
-frames per queue, at most 2048 bytes per frame. Queue counters use aligned,
+The channel uses six SPSC queues: normal, urgent and background in each direction,
+four frames per queue. Normal/urgent frames are limited to 2048 bytes, background
+frames to 512 bytes. Receive priority is urgent, then normal, then background. Queue counters use aligned,
 lock-free 32-bit acquire/release accesses; no pointer, mutex, coroutine, or
 ThreadX object is shared. Cancellation wakes local coroutine waits, and the
-urgent lane has capacity independent of normal traffic.
+three lanes have independent capacity. Consuming a higher-priority frame also
+wakes local lower-priority receivers; no new peer transmission is needed.
 
 Both linkers reserve SRAM4 at `0x38000000` (64 KiB); the shared layout occupies
-32,880 bytes. Its `NOLOAD` section is outside both startup BSS ranges. M7 zeros
+49,312 bytes (shared layout version 2). Both core images must use the same
+layout and bridge protocol version 7; flash the pair together. Its `NOLOAD` section is outside both startup BSS ranges. M7 zeros
 it before releasing M4. M7 configures the region as normal, shareable,
 non-cacheable and execute-never before enabling its data cache. Private AXI
 RAM stays cached. This follows ST's [dual-core memory guidance](https://www.st.com/resource/en/application_note/an5557-stm32h745755-and-stm32h747757-lines-dualcore-architecture-stmicroelectronics.pdf).

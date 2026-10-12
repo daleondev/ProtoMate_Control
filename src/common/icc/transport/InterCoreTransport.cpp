@@ -56,8 +56,10 @@ namespace icc
         decltype(m_waiters) wake;
         {
             const std::scoped_lock lock(m_mutex);
-            for (std::size_t index{}; index < wake.size(); ++index) {
-                wake[index] = std::exchange(m_waiters[index], std::nullopt);
+            for (std::size_t priority{}; priority < LANE_COUNT; ++priority) {
+                const auto index = 2 * static_cast<std::size_t>(LANE_PRIORITY[priority]);
+                wake[2 * priority] = std::exchange(m_waiters[index], std::nullopt);
+                wake[2 * priority + 1] = std::exchange(m_waiters[index + 1], std::nullopt);
             }
         }
         for (auto& signal : wake) {
@@ -95,7 +97,7 @@ namespace icc
             if (m_closed) {
                 co_return std::unexpected(Error::Disconnected);
             }
-            const auto result = m_channel->trySend(frame, static_cast<hal::IInterCoreChannel::Lane>(lane));
+            const auto result = m_channel->trySend(frame, lane);
             if (result) {
                 co_return pnm::EmptyResult<Error>{};
             }
@@ -128,7 +130,7 @@ namespace icc
                 co_return std::unexpected(Error::Disconnected);
             }
             const auto result =
-              m_channel->tryReceive(buffer, static_cast<hal::IInterCoreChannel::Lane>(lane));
+              m_channel->tryReceive(buffer, lane);
             if (result) {
                 co_return *result;
             }

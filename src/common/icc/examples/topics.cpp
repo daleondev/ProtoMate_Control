@@ -11,6 +11,7 @@
 #include <stop_token>
 #include <string>
 #include <thread>
+#include <vector>
 
 int main()
 {
@@ -46,6 +47,16 @@ int main()
             received_status = value;
             std::cout << "IO received demo/ui/status: " << value << '\n';
         });
+        std::vector<std::string> received_logs;
+        auto log_subscription = ui_bus.topic<^^Topics::demo_io_logs>().subscribe([&](const auto& value) {
+            received_logs.push_back(value);
+            std::cout << "UI received IO log: " << value << '\n';
+        }, { .capacity = 16 });
+
+        // Startup messages can queue before the peer is ready, within the bound.
+        io_bus.topic<^^Topics::demo_io_logs>().publish("Motor initialized");
+        io_bus.topic<^^Topics::demo_io_logs>().publish("Reference switch activated");
+        io_bus.topic<^^Topics::demo_io_logs>().publish("Motion stopped");
 
         io_bridge.start();
         ui_bridge.start();
@@ -59,6 +70,14 @@ int main()
         }
         if (received_state != "idle" || received_status != "ready") {
             throw std::runtime_error("Forwarded topic value did not match");
+        }
+        const auto deadline = std::chrono::steady_clock::now() + 2s;
+        while (received_logs.size() < 3 && std::chrono::steady_clock::now() < deadline) {
+            log_subscription.poll(10ms);
+        }
+        if (received_logs != std::vector<std::string>{ "Motor initialized", "Reference switch activated", "Motion stopped" } ||
+            io_bridge.topicStatistics("demo/io/logs")->dropped != 0) {
+            throw std::runtime_error("Background FIFO lost or reordered records");
         }
 
         io_bridge.stop();

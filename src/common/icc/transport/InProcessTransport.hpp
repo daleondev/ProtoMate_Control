@@ -16,7 +16,7 @@ namespace icc
         static constexpr std::size_t FRAME_CAPACITY{ 8 };
         static constexpr std::size_t MAX_FRAME_BYTES{ 2048 };
 
-        // Allocate all four queues' frame storage once. Coroutine waits may still
+        // Allocate all six queues' frame storage once. Coroutine waits may still
         // allocate their task and notification state.
         static std::array<std::shared_ptr<InProcessTransport>, 2> pair();
         ~InProcessTransport() override;

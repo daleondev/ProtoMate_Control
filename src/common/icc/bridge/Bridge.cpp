@@ -58,6 +58,10 @@ namespace icc
               runLoop(sendLoop(Lane::Urgent, m_stopSource.get_token()), &m_urgentSendRunning);
             auto urgent_receiver =
               runLoop(receiveLoop(Lane::Urgent, m_stopSource.get_token()), &m_urgentReceiveRunning);
+            auto background_sender =
+              runLoop(sendLoop(Lane::Background, m_stopSource.get_token()), &m_backgroundSendRunning);
+            auto background_receiver =
+              runLoop(receiveLoop(Lane::Background, m_stopSource.get_token()), &m_backgroundReceiveRunning);
 
             pnm::coro::co_spawn(m_context, std::move(health));
             m_healthRunning = true;
@@ -70,6 +74,10 @@ namespace icc
 
             pnm::coro::co_spawn(m_context, std::move(receiver));
             m_receiveRunning = true;
+            pnm::coro::co_spawn(m_context, std::move(background_sender));
+            m_backgroundSendRunning = true;
+            pnm::coro::co_spawn(m_context, std::move(background_receiver));
+            m_backgroundReceiveRunning = true;
             // Holding the mutex prevents an immediately completing handler from
             // clearing its flag before its scheduling has been recorded.
         } catch (...) {
@@ -118,6 +126,7 @@ namespace icc
     bool Bridge::loopsStopped() const
     {
         return !m_sendRunning && !m_receiveRunning && !m_urgentSendRunning && !m_urgentReceiveRunning &&
+               !m_backgroundSendRunning && !m_backgroundReceiveRunning &&
                !m_healthRunning && !m_cleanupRunning;
     }
 
@@ -135,6 +144,11 @@ namespace icc
     }
 
     ConnectionStatus Bridge::connectionStatus() const { return m_connection.status(); }
+
+    std::optional<pnm::msg::SubscriptionStatistics> Bridge::topicStatistics(std::string_view name) const
+    {
+        return m_topics.statistics(name);
+    }
 
     void Bridge::beginShutdown()
     {
@@ -224,6 +238,12 @@ namespace icc
 
     std::optional<Bridge::OutgoingFrame> Bridge::takeReadyFrame(Lane lane)
     {
+        if (lane == Lane::Background) {
+            // Logs never participate in service/action admission or graceful
+            // result draining. Pending background traffic is expendable at stop.
+            return m_connection.ready() && !m_shutdownRequested.load()
+                     ? m_topics.takeFrame(lane) : std::nullopt;
+        }
         if (lane == Lane::Urgent) {
             if (auto frame = m_connection.takeFrame()) {
                 m_healthWakeup->notify();
@@ -254,7 +274,7 @@ namespace icc
             case 1:
                 return m_services.takeFrame(lane);
             default:
-                return lane == Lane::Normal ? m_topics.takeFrame() : std::nullopt;
+                return lane == Lane::Normal ? m_topics.takeFrame(lane) : std::nullopt;
         }
     }
 
@@ -262,6 +282,10 @@ namespace icc
     {
         m_connection.checkDeadline();
         const auto frame = util::decode_frame(bytes);
+        if (lane == Lane::Background &&
+            (frame.kind != util::FrameKind::Topic || bytes.size() > MAX_BACKGROUND_FRAME_BYTES)) {
+            throw std::invalid_argument("Invalid background frame");
+        }
         if (frame.kind >= util::FrameKind::Hello) {
             if (m_connection.dispatch(frame, lane)) {
                 m_peerStopped = true;
@@ -281,10 +305,10 @@ namespace icc
             throw std::invalid_argument("Application frame before handshake completion");
         }
         if (frame.kind == util::FrameKind::Topic) {
-            if (lane != Lane::Normal) {
+            if (lane == Lane::Urgent) {
                 throw std::invalid_argument("Topics cannot use the urgent lane");
             }
-            m_topics.dispatch(frame);
+            m_topics.dispatch(frame, lane);
         }
         else if (frame.kind >= util::FrameKind::ActionGoal && frame.kind <= util::FrameKind::ActionAck) {
             m_actions.dispatch(frame, lane);
@@ -407,7 +431,7 @@ namespace icc
         // This buffer lives in the coroutine frame across suspension and is
         // reused only after the previous frame has been dispatched.
         std::array<std::byte, util::MAX_FRAME_BYTES> buffer{};
-        if (lane == Lane::Normal && !(co_await m_connection.waitReady(stop))) {
+        if (lane != Lane::Urgent && !(co_await m_connection.waitReady(stop))) {
             co_return pnm::EmptyResult<ITransport::Error>{};
         }
         while (!stop.stop_requested()) {

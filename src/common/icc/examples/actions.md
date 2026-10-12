@@ -155,7 +155,7 @@ records that cleanup could not be confirmed. Keep the context and application
 workers running until `stop()` returns; native UI callbacks still require their
 owner to poll. Queued goals refused during shutdown receive `Unavailable`.
 
-Frames use version 6. Action kinds are goal (6), acceptance (7), feedback (8),
+Frames use version 7. Action kinds are goal (6), acceptance (7), feedback (8),
 result (9), error (10), cancellation (11) and terminal acknowledgement (12).
 Only goal frames carry a name and remaining admission budget. Result payloads
 start with status 1=succeeded, 2=aborted, 3=cancelled or 4=rejected. Error codes
