@@ -4,7 +4,6 @@
 
 #include "hal/drivers/impl/stm32/Timer.hpp"
 #include "hal/hal.hpp"
-#include "hal/util/ResourceAccess.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -45,23 +44,33 @@ namespace hal::timer
 
     auto create(Configuration configuration) -> std::shared_ptr<ITimer>
     {
-        if (!util::resource_allowed(configuration.peripheral)) {
-            return {};
+        // CubeMX startup owns hardware initialization. Each process keeps its
+        // own handle, selected by peripheral rather than by executing core.
+        // Constructing a wrapper neither resets nor reconfigures the timer.
+        switch (configuration.peripheral) {
+            case Peripheral::Tim5: {
+                static TIM_HandleTypeDef handle{};
+                static auto instance = [] {
+                    handle.Instance = TIM5;
+                    handle.State = HAL_TIM_STATE_READY;
+                    return std::make_shared<Timer>(Timer::Configuration{
+                        .handle = handle, .input_frequency_hz = apb1_timer_input_frequency_hz(),
+                        .interrupt = TIM5_IRQn});
+                }();
+                return instance;
+            }
+            case Peripheral::Tim12: {
+                static TIM_HandleTypeDef handle{};
+                static auto instance = [] {
+                    handle.Instance = TIM12;
+                    handle.State = HAL_TIM_STATE_READY;
+                    return std::make_shared<Timer>(Timer::Configuration{
+                        .handle = handle, .input_frequency_hz = apb1_timer_input_frequency_hz(),
+                        .interrupt = TIM8_BRK_TIM12_IRQn});
+                }();
+                return instance;
+            }
+            default: return {};
         }
-#if defined(CORE_CM7)
-        if (configuration.peripheral != Peripheral::Tim12) {
-            return {};
-        }
-        static auto timer{ std::make_shared<Timer>(Timer::Configuration{
-          .handle = htim12, .input_frequency_hz = apb1_timer_input_frequency_hz(), .interrupt = TIM8_BRK_TIM12_IRQn }) };
-#else
-        if (configuration.peripheral != Peripheral::Tim5) {
-            return {};
-        }
-
-        static auto timer{ std::make_shared<Timer>(Timer::Configuration{
-          .handle = htim5, .input_frequency_hz = apb1_timer_input_frequency_hz(), .interrupt = TIM5_IRQn }) };
-#endif
-        return timer;
     }
 }

@@ -16,8 +16,8 @@ namespace hal::core
 
     [[nodiscard]] constexpr auto id() noexcept -> Id { return util::executing_core(); }
 
-    // Only the executing core can be selected. These factories create no
-    // peer-core objects and do not start the returned devices.
+    // Select construction recipes from Catalog using util::executing_core().
+    // Unassigned roles return nullptr. There is no peer-core selector here.
     [[nodiscard]] auto create_user_button() -> std::shared_ptr<device::IButton>;
     [[nodiscard]] auto create_error_led() -> std::shared_ptr<device::ILed>;
     [[nodiscard]] auto create_rtc() -> std::shared_ptr<IRtc>;

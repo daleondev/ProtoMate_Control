@@ -1,58 +1,76 @@
 #include "hal/core/core.hpp"
+#include "hal/core/Catalog.hpp"
 #include "hal/board/board.hpp"
-#include "hal/board/nucleo_h755ziq/resources.hpp"
 
 #include <gtest/gtest.h>
-
-#include <cstdint>
 
 namespace
 {
     using Core = hal::core::Id;
-    using hal::board::resources::allows;
+    constexpr auto M4 = hal::core::devices_for(Core::M4);
+    constexpr auto M7 = hal::core::devices_for(Core::M7);
+    constexpr auto HOST = hal::core::devices_for(Core::Host);
 
-    TEST(HalCoreOwnership, PinAssignmentsAreExclusiveAndUnassignedPinsAreDenied)
+    // Exercise both hardware catalogs without selecting another executing core
+    // or touching real hardware: the board underneath these tests is virtual.
+    TEST(HalCoreCatalog, M4HasOnlyItsAssignedRoles)
     {
-        unsigned m4_count{};
-        unsigned m7_count{};
-        for (unsigned port{}; port <= static_cast<unsigned>(hal::gpio::Port::K); ++port) {
-            for (std::uint8_t number{}; number < 16; ++number) {
-                const hal::gpio::Pin pin{static_cast<hal::gpio::Port>(port), number};
-                const bool m4 = allows(Core::M4, pin);
-                const bool m7 = allows(Core::M7, pin);
-                EXPECT_FALSE(m4 && m7);
-                EXPECT_FALSE(allows(Core::Host, pin));
-                m4_count += m4;
-                m7_count += m7;
-            }
-        }
-        EXPECT_EQ(m4_count, 1U);
-        EXPECT_EQ(m7_count, 3U);
-        EXPECT_TRUE(allows(Core::M4, hal::gpio::Pin{hal::gpio::Port::B, 0}));
-        EXPECT_TRUE(allows(Core::M7, hal::gpio::Pin{hal::gpio::Port::E, 1}));
-        EXPECT_FALSE(allows(Core::M4, hal::gpio::Pin{hal::gpio::Port::B, 16}));
-        EXPECT_FALSE(allows(Core::M7, hal::gpio::Pin{static_cast<hal::gpio::Port>(255), 1}));
+        ASSERT_NE(M4.status_led, nullptr);
+        EXPECT_EQ(M4.status_led(), hal::board::create_led(hal::board::LedId::Green));
+        ASSERT_NE(M4.runtime_timer, nullptr);
+        EXPECT_EQ(M4.runtime_timer(), hal::board::create_timer(hal::timer::Peripheral::Tim5));
+        EXPECT_EQ(M4.error_led, nullptr);
+        EXPECT_EQ(M4.user_button, nullptr);
     }
 
-    TEST(HalCoreOwnership, TimersAreExclusiveAndUnknownIdsAreDenied)
+    TEST(HalCoreCatalog, M7HasItsAssignedLedsAndButton)
     {
-        for (unsigned value{}; value <= 255; ++value) {
-            const auto timer = static_cast<hal::timer::Peripheral>(value);
-            EXPECT_EQ(allows(Core::M4, timer), timer == hal::timer::Peripheral::Tim5);
-            EXPECT_EQ(allows(Core::M7, timer), timer == hal::timer::Peripheral::Tim12);
-            EXPECT_FALSE(allows(Core::Host, timer));
-            EXPECT_FALSE(allows(static_cast<Core>(255), timer));
-        }
+        ASSERT_NE(M7.status_led, nullptr);
+        EXPECT_EQ(M7.status_led(), hal::board::create_led(hal::board::LedId::Yellow));
+        ASSERT_NE(M7.error_led, nullptr);
+        EXPECT_EQ(M7.error_led(), hal::board::create_led(hal::board::LedId::Red));
+        ASSERT_NE(M7.user_button, nullptr);
+        EXPECT_EQ(M7.user_button(), hal::board::create_button(hal::board::ButtonId::User));
+        ASSERT_NE(M7.runtime_timer, nullptr);
+        ASSERT_TRUE(M7.runtime_timer());
+        EXPECT_EQ(M7.runtime_timer(), hal::board::create_timer(hal::timer::Peripheral::Tim12));
+        EXPECT_NE(M7.runtime_timer(), M4.runtime_timer());
     }
 
-    TEST(HalCore, HostDoesNotImpersonateEitherHardwareCore)
+    TEST(HalCoreCatalog, SharedCapabilitiesUseTheSameBoardFactories)
+    {
+        EXPECT_EQ(M4.rtc, hal::board::create_rtc);
+        EXPECT_EQ(M7.rtc, hal::board::create_rtc);
+        EXPECT_EQ(M4.rng, hal::board::create_rng);
+        EXPECT_EQ(M7.rng, hal::board::create_rng);
+        EXPECT_EQ(M4.intercore_channel, hal::board::create_intercore_channel);
+        EXPECT_EQ(M7.intercore_channel, hal::board::create_intercore_channel);
+    }
+
+    TEST(HalCore, HostSelectsItsOwnCatalog)
     {
         EXPECT_EQ(hal::core::id(), Core::Host);
+        EXPECT_EQ(HOST.status_led, nullptr);
+        EXPECT_EQ(HOST.intercore_channel, nullptr);
         EXPECT_FALSE(hal::core::create_status_led());
-        const auto timer = hal::core::create_runtime_timer();
-        ASSERT_TRUE(timer);
-        EXPECT_EQ(timer, hal::board::create_runtime_timer(Core::Host));
-        EXPECT_FALSE(hal::board::create_runtime_timer(Core::M4));
-        EXPECT_FALSE(hal::board::create_runtime_timer(Core::M7));
+        EXPECT_FALSE(hal::core::create_intercore_channel());
+        ASSERT_TRUE(hal::core::create_runtime_timer());
+        EXPECT_EQ(hal::core::create_runtime_timer(), HOST.runtime_timer());
+        EXPECT_EQ(hal::core::create_user_button(), HOST.user_button());
+        EXPECT_EQ(hal::core::create_error_led(), HOST.error_led());
+        EXPECT_EQ(hal::core::create_rtc(), HOST.rtc());
+        EXPECT_EQ(hal::core::create_rng(), HOST.rng());
+    }
+
+    TEST(HalBoard, AccessIsIndependentOfCoreAssignments)
+    {
+        // Host has no assigned status LED, but the board still exposes all LEDs.
+        for (const auto id : {hal::board::LedId::Green, hal::board::LedId::Yellow, hal::board::LedId::Red}) {
+            EXPECT_TRUE(hal::board::create_led(id));
+        }
+        EXPECT_TRUE(hal::board::create_button(hal::board::ButtonId::User));
+        EXPECT_FALSE(hal::board::create_led(static_cast<hal::board::LedId>(255)));
+        EXPECT_FALSE(hal::board::create_button(static_cast<hal::board::ButtonId>(255)));
+        EXPECT_FALSE(hal::board::create_timer(static_cast<hal::timer::Peripheral>(255)));
     }
 }

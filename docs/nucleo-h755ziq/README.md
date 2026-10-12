@@ -23,11 +23,22 @@ devices and storage media remain unassigned; no storage volume is mounted.
 | RTC and RNG | Serialized access | Initialization and serialized access |
 | Inter-core channel | Endpoint M4 | Endpoint M7 |
 
-`hal::core` selects only the executing processor. Physical GPIO/timer ownership
-is defined in `platform/hal/board/nucleo_h755ziq/resources.hpp`; direct factories
-also enforce it. GPIO configuration is serialized across processors because
-separate owned pins can share a GPIO port register. The HAL uses M4/M7 names;
+`hal::core` selects its construction recipes from
+[`Catalog.hpp`](../../platform/hal/core/Catalog.hpp) using `util::executing_core()`.
+The `[[= Core::M4]]` / `[[= Core::M7]]` entries list available roles and their
+board factories; omitted roles return `nullptr`. The HAL uses M4/M7 names;
 IO/UI are application roles.
+
+`hal::board` maps hardware and creates devices independently of core ownership.
+It exposes all prepared onboard devices with no core parameters or checks.
+Driver factories also select hardware independently of the core. Applications
+and runtime use `hal::core` to honor the assignments; direct board/driver calls
+must respect other users of the same peripheral. GPIO configuration remains
+serialized across processors because different pins can share a port register.
+Timer wrappers use private handles and route interrupts by peripheral; creation
+does not reset or initialize a timer. CubeMX/platform startup retains the
+initialization responsibilities shown above. External device wiring is unchanged
+and remains unassigned.
 
 M7 configures the direct SMPS supply and shared clocks before releasing M4.
 Both CPUs and timer kernels run at 64 MHz from HSI. APB1 is 32 MHz to keep

@@ -335,20 +335,45 @@ auto timer = hal::core::create_runtime_timer();
 constexpr auto processor = hal::core::id(); // Id::M4, Id::M7, or Id::Host
 ```
 
-There is no API to select a different executing processor. IO/UI are application
-roles, not HAL names. On H755, M4 owns PB0/TIM5; M7 owns PE1/TIM12,
-PB14 and PC13. RTC/RNG and inter-core access have explicit shared protocols. The board's
-[`resources.hpp`](platform/hal/board/nucleo_h755ziq/resources.hpp) defines that
-assignment. `hal::resources` supplies the immutable `ResourceAccess` policy to
-the driver factories without a driver dependency on board/core factories.
-GPIO and timer factories reject peer-owned and unassigned resources before
-claiming them or accessing registers, including calls made directly to those
-factories. Normal per-core lease/mutex checks still prevent duplicate ownership
-inside one firmware. This is an API ownership rule, not hardware memory isolation;
-direct register access must still respect the board's assignments.
+`hal::core` uses `util::executing_core()` to select the compile-time construction
+catalog in [`core/Catalog.hpp`](platform/hal/core/Catalog.hpp). Each annotated
+entry lists the available roles and the board factories that create them:
 
-Host tests keep their virtual board resources. `Id::Host` provides a host runtime
-counter and no physical core status LED; it does not impersonate M4 or M7.
+```cpp
+[[= util::Core::M4]] static constexpr Devices m4{
+    .status_led = [] { return board::create_led(board::LedId::Green); },
+    .runtime_timer = [] { return board::create_timer(timer::Peripheral::Tim5); },
+    .rtc = board::create_rtc,
+    .rng = board::create_rng,
+    .intercore_channel = board::create_intercore_channel,
+};
+```
+
+Omitted roles are unavailable: their core factory returns `nullptr`. Reflection
+selects the entry at compile time and rejects missing or duplicate assignments
+for the selected processor. No device is constructed by reading the catalog.
+M4 uses green/PB0 and TIM5; M7 uses yellow/PE1 and TIM12, plus red/PB14 and
+the user button/PC13. Both entries explicitly include shared RTC/RNG and their
+local inter-core endpoint. IO/UI are application names, not HAL identities.
+
+`hal::board` only describes physical wiring and construction. It has no core
+parameter, core identity include or ownership policy. For example,
+`board::create_led(LedId::Red)` is available independently of the caller.
+GPIO and timer factories likewise select hardware without consulting core
+assignments. Application/runtime code uses `hal::core` to respect the catalog;
+direct board/driver access is intentionally unrestricted and must not operate a
+resource concurrently owned by another processor. Existing per-image resource
+leases and cross-core synchronization for shared devices remain in place.
+
+Timer factories expose initialized TIM5 and TIM12 to either image. They wrap
+the peripheral without resetting it; CubeMX/platform startup still initializes
+the hardware once. Changing a catalog assignment that moves peripheral
+initialization or interrupts also requires updating that startup configuration.
+External motor/storage wiring remains unassigned on H755.
+
+Host tests retain virtual board devices. `Core::Host` selects its own runtime
+timer, RTC/RNG, error LED and button, with no status LED or hardware peer channel.
+The board can still construct its virtual LEDs independently of those roles.
 
 ### Factories and resource selection
 

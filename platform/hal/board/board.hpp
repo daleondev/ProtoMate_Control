@@ -11,7 +11,6 @@
 #include "hal/drivers/itf/ITimer.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
 #include "hal/drivers/itf/IUart.hpp"
-#include "hal/util/Core.hpp"
 #include "hal/drivers/itf/IRtc.hpp"
 #include "hal/drivers/itf/IRng.hpp"
 #include "hal/drivers/itf/IInterCoreChannel.hpp"
@@ -22,8 +21,8 @@
 
 namespace hal::board
 {
-    // H755 assigns onboard resources per core. RTC/RNG are initialized by M7
-    // and shared through serialized HAL access. External devices remain unassigned.
+    // Physical wiring and device construction only. Access is independent of
+    // the caller; processor assignments are defined separately in hal::core.
     enum class LedId : std::uint8_t
     {
         Green,
@@ -45,13 +44,10 @@ namespace hal::board
 
     [[nodiscard]] auto create_led(LedId id) -> std::shared_ptr<device::ILed>;
     [[nodiscard]] auto create_button(ButtonId id) -> std::shared_ptr<device::IButton>;
-    // Physical resource mapping. Application/runtime code uses hal::core;
-    // selecting another processor here cannot bypass factory ownership checks.
-    [[nodiscard]] auto create_status_led(util::Core owner) -> std::shared_ptr<device::ILed>;
-    [[nodiscard]] auto create_rtc(util::Core owner) -> std::shared_ptr<IRtc>;
-    [[nodiscard]] auto create_rng(util::Core owner) -> std::shared_ptr<IRng>;
-    [[nodiscard]] auto create_intercore_channel(util::Core owner) -> std::shared_ptr<IInterCoreChannel>;
-    [[nodiscard]] auto create_runtime_timer(util::Core owner) -> std::shared_ptr<ITimer>;
+    [[nodiscard]] auto create_timer(timer::Peripheral peripheral) -> std::shared_ptr<ITimer>;
+    [[nodiscard]] auto create_rtc() -> std::shared_ptr<IRtc>;
+    [[nodiscard]] auto create_rng() -> std::shared_ptr<IRng>;
+    [[nodiscard]] auto create_intercore_channel() -> std::shared_ptr<IInterCoreChannel>;
 
     // LAN9255 ESC bus and active-low chip select.
     // Create CS first. Bus ownership is exclusive; no automatic SPI traffic.

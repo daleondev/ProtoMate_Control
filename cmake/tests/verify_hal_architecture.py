@@ -53,8 +53,8 @@ def include_error(source, target):
             if target == 'hal/hal.hpp':
                 return 'device behavior must not access bootstrap/vendor HAL'
     if source.startswith('hal/board/'):
-        if target.startswith('hal/core/'):
-            return 'board wiring must not depend on core factories'
+        if target.startswith('hal/core/') or target == 'hal/util/Core.hpp':
+            return 'board wiring must not depend on core identity or assignments'
         if target.startswith(('hal/drivers/impl/', 'hal/drivers/util/', 'hal/devices/impl/linux/', 'hal/devices/impl/stm32/')):
             return 'board wiring must use factories and portable device implementations'
     if source.startswith('hal/core/') and target.startswith(
@@ -88,6 +88,10 @@ def check_sources(root):
             errors.append(f'{source}: implementation must have a matching declaration header')
         if '/itf/' in source and path.stem.startswith('I') and not re.search(r'\bclass\s+' + path.stem + r'\b', text):
             errors.append(f'{source}: I-prefixed contract headers must declare their interface')
+        if source.startswith('hal/board/'):
+            code = re.sub(r'//[^\n]*|/\*.*?\*/', '', text, flags=re.DOTALL)
+            if re.search(r'\b(?:CORE_CM[47]|executing_core|core::|util::Core)\b', code):
+                errors.append(f'{source}: board construction must not select or identify a processor')
         targets = []
         for match in INCLUDE.finditer(text):
             target = match.group(1)
@@ -130,7 +134,7 @@ def check_build(root, build, platform_name):
         elif source.startswith('hal/devices/'):
             owners = ('hal_devices',)
         elif source.startswith('hal/board/'):
-            owners = ('hal_board_resources',) if path.name == 'resources.cpp' else ('hal_board',)
+            owners = ('hal_board',)
         elif source.startswith('hal/core/'):
             owners = ('hal_core',)
         else:
@@ -176,6 +180,7 @@ def self_test():
         ('hal/devices/impl/Tmc2209.cpp', 'control/StepperMotor.hpp'),
         ('hal/drivers/factory/stm32/gpio.cpp', 'hal/core/core.hpp'),
         ('hal/board/nucleo_h755ziq/board.cpp', 'hal/core/core.hpp'),
+        ('hal/board/nucleo_h755ziq/board.cpp', 'hal/util/Core.hpp'),
         ('hal/core/core.cpp', 'hal/drivers/factory/gpio.hpp'),
     ]
     allowed = [
@@ -184,7 +189,6 @@ def self_test():
         ('hal/devices/impl/IndexFeedback.cpp', 'hal/stm32/InterruptGuard.hpp'),
         ('hal/board/linux/board.cpp', 'hal/devices/factory/tmc2209.hpp'),
         ('hal/core/core.cpp', 'hal/board/board.hpp'),
-        ('hal/drivers/factory/stm32/gpio.cpp', 'hal/util/ResourceAccess.hpp'),
     ]
     assert all(include_error(*edge) for edge in forbidden)
     assert not any(include_error(*edge) for edge in allowed)

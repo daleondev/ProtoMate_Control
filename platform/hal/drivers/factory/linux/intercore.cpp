@@ -2,5 +2,5 @@
 
 namespace hal::intercore
 {
-    auto create(util::Core) -> std::shared_ptr<IInterCoreChannel> { return {}; }
+    auto create() -> std::shared_ptr<IInterCoreChannel> { return {}; }
 }

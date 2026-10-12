@@ -17,7 +17,6 @@ target_link_libraries(hal_drivers
     PRIVATE
         hal::drivers::factory
         hal::drivers::impl
-        hal::resources
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")

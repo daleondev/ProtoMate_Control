@@ -5,9 +5,8 @@
 
 namespace hal::intercore
 {
-    auto create(util::Core owner) -> std::shared_ptr<IInterCoreChannel>
+    auto create() -> std::shared_ptr<IInterCoreChannel>
     {
-        if (owner != util::executing_core()) { return {}; }
         static std::mutex mutex;
         static std::weak_ptr<IInterCoreChannel> endpoint;
         const std::scoped_lock lock(mutex);

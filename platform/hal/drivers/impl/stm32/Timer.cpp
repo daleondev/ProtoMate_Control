@@ -25,8 +25,9 @@ namespace hal
       , m_timerInputHz{ configuration.input_frequency_hz }
       , m_interrupt{ configuration.interrupt }
     {
+        const stm32::InterruptGuard interrupt_guard;
         if (std::ranges::any_of(s_registry, [&](const Timer* timer) {
-            return timer != nullptr && &timer->m_handle == &configuration.handle;
+            return timer != nullptr && timer->m_handle.Instance == configuration.handle.Instance;
         })) {
             std::terminate();
         }
@@ -40,6 +41,7 @@ namespace hal
 
     Timer::~Timer()
     {
+        const stm32::InterruptGuard interrupt_guard;
         static_cast<void>(HAL_TIM_Base_Stop_IT(&m_handle));
         HAL_NVIC_DisableIRQ(m_interrupt);
         HAL_NVIC_ClearPendingIRQ(m_interrupt);
@@ -286,33 +288,28 @@ namespace hal
         static_cast<void>(m_stateVersion.fetch_add(1U, std::memory_order_relaxed));
     }
 
-    auto Timer::dispatchPeriodElapsed(TIM_HandleTypeDef* handle) noexcept -> void
+    auto Timer::dispatchInterrupt(TIM_TypeDef* instance) noexcept -> void
     {
-        auto* const timer{ std::ranges::find_if(s_registry, [&](const Timer* candidate) {
-            return candidate != nullptr && &candidate->m_handle == handle;
+        auto* const entry{ std::ranges::find_if(s_registry, [&](const Timer* candidate) {
+            return candidate != nullptr && candidate->m_handle.Instance == instance;
         }) };
-        if (timer != s_registry.end() && (*timer)->m_periodElapsedCallback) {
-            (*timer)->m_periodElapsedCallback();
+        if (entry == s_registry.end()) { return; }
+        auto& timer = **entry;
+        auto& handle = timer.m_handle;
+        if (__HAL_TIM_GET_FLAG(&handle, TIM_FLAG_UPDATE) != RESET &&
+            __HAL_TIM_GET_IT_SOURCE(&handle, TIM_IT_UPDATE) != RESET) {
+            __HAL_TIM_CLEAR_IT(&handle, TIM_IT_UPDATE);
+            if (timer.m_periodElapsedCallback) { timer.m_periodElapsedCallback(); }
         }
     }
 }
 
-#if defined(CORE_CM4)
 extern "C" void TIM5_IRQHandler()
 {
-    if (__HAL_TIM_GET_FLAG(&htim5, TIM_FLAG_UPDATE) != RESET &&
-        __HAL_TIM_GET_IT_SOURCE(&htim5, TIM_IT_UPDATE) != RESET) {
-        __HAL_TIM_CLEAR_IT(&htim5, TIM_IT_UPDATE);
-        hal::Timer::dispatchPeriodElapsed(&htim5);
-    }
+    hal::Timer::dispatchInterrupt(TIM5);
 }
-#else
+
 extern "C" void TIM8_BRK_TIM12_IRQHandler()
 {
-    if (__HAL_TIM_GET_FLAG(&htim12, TIM_FLAG_UPDATE) != RESET &&
-        __HAL_TIM_GET_IT_SOURCE(&htim12, TIM_IT_UPDATE) != RESET) {
-        __HAL_TIM_CLEAR_IT(&htim12, TIM_IT_UPDATE);
-        hal::Timer::dispatchPeriodElapsed(&htim12);
-    }
+    hal::Timer::dispatchInterrupt(TIM12);
 }
-#endif

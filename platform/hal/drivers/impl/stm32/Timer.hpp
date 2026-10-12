@@ -53,7 +53,7 @@ namespace hal
 
         [[nodiscard]] auto getElapsedTime() const noexcept -> std::chrono::nanoseconds override;
 
-        static auto dispatchPeriodElapsed(TIM_HandleTypeDef* handle) noexcept -> void;
+        static auto dispatchInterrupt(TIM_TypeDef* instance) noexcept -> void;
 
         auto setPeriodElapsedCallback(PeriodElapsedCallback callback) noexcept -> void override;
 

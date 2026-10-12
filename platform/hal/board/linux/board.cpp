@@ -25,29 +25,14 @@
 
 namespace hal::board
 {
-    auto create_rtc(util::Core owner) -> std::shared_ptr<IRtc>
-    { return owner == util::executing_core() ? rtc::create() : nullptr; }
-    auto create_rng(util::Core owner) -> std::shared_ptr<IRng>
-    { return owner == util::executing_core() ? rng::create() : nullptr; }
-
-    auto create_intercore_channel(util::Core owner) -> std::shared_ptr<IInterCoreChannel>
+    auto create_rtc() -> std::shared_ptr<IRtc> { return rtc::create(); }
+    auto create_rng() -> std::shared_ptr<IRng> { return rng::create(); }
+    auto create_intercore_channel() -> std::shared_ptr<IInterCoreChannel> { return intercore::create(); }
+    auto create_timer(timer::Peripheral peripheral) -> std::shared_ptr<ITimer>
     {
-        return intercore::create(owner);
+        return timer::create({.peripheral = peripheral});
     }
 
-    auto create_status_led(util::Core) -> std::shared_ptr<device::ILed>
-    {
-        // Host composition has no physical core status LED.
-        return {};
-    }
-
-    auto create_runtime_timer(util::Core owner) -> std::shared_ptr<ITimer>
-    {
-        if (owner != util::Core::Host) {
-            return {};
-        }
-        return timer::create({.peripheral = timer::Peripheral::Tim5});
-    }
     namespace
     {
         constexpr auto MAX_MICROSTEPS{ 256U };

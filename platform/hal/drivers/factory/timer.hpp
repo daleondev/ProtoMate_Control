@@ -5,7 +5,7 @@
 
 namespace hal::timer
 {
-    // Only timers assigned to this core's general timer driver are available.
-    // hal::core selects its runtime counter through the board mapping.
+    // Select an initialized general-purpose timer. Hardware configuration is
+    // established by platform startup; processor ownership belongs to hal::core.
     [[nodiscard]] auto create(Configuration configuration) -> std::shared_ptr<ITimer>;
 }
