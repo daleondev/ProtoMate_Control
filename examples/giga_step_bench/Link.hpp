@@ -31,6 +31,7 @@ namespace bench
         std::uint32_t progress{}, guard_stopped{};
         std::uint64_t changed_at{};
         std::uint32_t load_received{}, load_errors{};
+        std::uint32_t service_cycles{}, stop_cycles{};
     };
     struct Load
     {

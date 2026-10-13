@@ -10,6 +10,11 @@
 
 #include <array>
 
+#if defined(CORE_CM4)
+// Debugger/bench counters: core cycles, including refill and progress callbacks.
+extern "C" { volatile std::uint32_t giga_step_irq_cycles_max{}; }
+#endif
+
 namespace
 {
     inline constexpr auto DMA_CACHE_LINE_BYTES{ 32 };
@@ -128,6 +133,11 @@ namespace hal::stm32
     auto StepHardware::buffers() noexcept -> util::StepBuffers& { return memory.edges; }
     auto StepHardware::reset() noexcept -> bool
     {
+#if defined(CORE_CM4)
+        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+        DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+        giga_step_irq_cycles_max = 0;
+#endif
         static_cast<void>(stop());
         {
             const HardwareSemaphore shared(5);
@@ -442,6 +452,9 @@ namespace hal::stm32
     auto register_step_generator(util::StepGenerator* value) noexcept -> void { generator = value; }
     auto step_interrupt() noexcept -> void
     {
+#if defined(CORE_CM4)
+        const auto started = DWT->CYCCNT;
+#endif
         const InterruptGuard lock;
         // Clear HT flags only; the core consumes TC together with CT/NDTR.
         DMA1->LIFCR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -460,6 +473,10 @@ namespace hal::stm32
                << SHIFTS[2]) | // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               (ALL_FLAGS << SHIFTS[3]);
         }
+#if defined(CORE_CM4)
+        const auto elapsed = DWT->CYCCNT - started;
+        if (elapsed > giga_step_irq_cycles_max) { giga_step_irq_cycles_max = elapsed; }
+#endif
     }
 }
 

@@ -3,6 +3,7 @@ add_executable(hal_tests)
 target_sources(hal_tests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/clock_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/display_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/core_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/bus_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/clock_reference_test.cpp
@@ -76,3 +77,11 @@ target_compile_definitions(encoder_stm32_tests PRIVATE HAL_PLATFORM_STM32)
 target_link_libraries(encoder_stm32_tests PRIVATE hal_register_gtest project_compiler_settings)
 add_test(NAME encoder_stm32 COMMAND encoder_stm32_tests)
 set_tests_properties(encoder_stm32 PROPERTIES TIMEOUT 10)
+
+add_executable(usb_console_tests usb_model/usb_console_test.cpp ../stm32/console.cpp)
+target_include_directories(usb_console_tests BEFORE PRIVATE
+    usb_model/fakes ${PROJECT_SOURCE_DIR}/platform)
+target_compile_definitions(usb_console_tests PRIVATE HAL_PLATFORM_STM32 CORE_CM7)
+target_link_libraries(usb_console_tests PRIVATE hal_register_gtest project_compiler_settings)
+add_test(NAME usb_console COMMAND usb_console_tests)
+set_tests_properties(usb_console PROPERTIES TIMEOUT 10)

@@ -2,33 +2,25 @@
 
 Control software running on the robot controller of the ProtoMate SCARA Robot.
 
-## Current hardware: NUCLEO-H755ZI-Q
+## Current target: Arduino GIGA R1 WiFi
 
-**M4 runs `io::Application`; M7 runs `ui::Application`.** Each firmware has its
-own main, ThreadX kernel, C++ runtime, heap, TLS and threads. Both use the same
-runtime implementation and HAL interfaces. No application object, mutex or
-scheduler is shared between cores.
+**M4 runs `io::Application`; M7 runs `ui::Application`.** Each independently
+linked image owns its main, ThreadX kernel, C++ runtime, heap, TLS, threads,
+message bus, coroutine context and ICC bridge. Common implementations are
+compiled separately for each core. ICC uses bounded shared-SRAM queues with
+urgent, normal and background lanes; M7 writes the physical USB-C CDC console.
 
-Use `h755-debug` to build both applications, or `h755-io-debug` and
-`h755-ui-debug` individually. Each also has a `-release` variant.
-[Build, flash, memory and peripheral ownership](docs/nucleo-h755ziq/README.md)
-are documented together. Both images must be flashed. The
-[CubeMX project](external/CubeMX/CubeMX.ioc) assigns peripherals to their cores.
+The STM32H747 CubeMX, HAL, external-flash bootstrap and build port are implemented.
+**Hardware bring-up is pending**; no GIGA flashing or electrical test has been
+performed. [Wiring, memory, backup/flash/debug commands and acceptance gates](#arduino-giga-hardware-boot-and-bring-up)
+are documented below. Linux keeps the paired in-process transport for tests.
 
-Both applications always own a private message bus, coroutine context and ICC
-bridge. **ICC runs over shared SRAM4 and HSEM notifications**, with transport
-workers on both cores. The bridges perform their handshake and exchange
-heartbeats. IO publishes logs on a bounded background topic; UI displays them
-from a separate log worker alongside its CLI. Planning, GUI and motion message
-routes remain under development.
-No external wiring is needed. Both runtimes include filesystem support (no
-mounted media yet), RTC and hardware randomness. M7 owns the ST-Link serial
-console and user button. M4 exposes STEP/DIR/enable, reference switches,
-DM542T/TMC2209 drivers and feedback through HAL. On startup, IO constructs its
-motion controller with all motors disabled; driver initialization and motion
-commands are explicit. See the [motor pin table](docs/nucleo-h755ziq/README.md#motor-peripheral-wiring-and-construction),
-including the new **PE2 DM542T ALM assignment**. The bare-metal LED samples retain their separate
-`h755-led-*` presets.
+M4 exposes STEP/DIR/enable, switches, DM542T/TMC2209 drivers, feedback and the
+future EtherCAT SPI connection. M7 owns the RGB LED, user button, display/touch
+and console. Both runtimes include filesystem support with no mounted medium.
+Motor construction leaves all drivers disabled; initialization, enabling and
+motion are explicit CLI operations. Display/touch bring-up uses `display`
+commands; TouchGFX and robot planning remain future work.
 
 ## Application layout
 
@@ -45,7 +37,7 @@ library. Tests and examples link the compiled libraries so implementation files
 are compiled once per build. Public include paths start at `src/`, for example
 `common/icc/bridge/Bridge.hpp` and `io/app/Application.hpp`. The Linux entry point in
 `src/main.cpp` retains the in-process paired transport for host development and
-lifecycle tests. It is not compiled into either H755 image.
+lifecycle tests. It is not compiled into either GIGA image.
 
 The [application concept](src/common/app/Application.hpp) enforces `void start()`,
 `void requestStop()` and `void join()` without inheritance. Construction initializes
@@ -80,7 +72,7 @@ commands, Linux terminal frontend and direct motor commands. Registration uses
 module has its own per-parser `std::call_once` guard. Motor callbacks use the
 application-owned `ui::motion::Client`; only IO owns the physical controller.
 
-M7 exposes the CLI through ST-Link VCP at **115200 baud, 8N1**. Use `help` or
+M7 exposes the CLI through **USB-C CDC** (no UART bridge). Use `help` or
 `help <command>`. Available commands are `pwd`, `cd`, `ls`, `touch`, `mkdir`,
 `rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack`, `heap` and `motor`.
 Quoting, wildcard expansion, pipes and `>`/`>>` redirection are supported.
@@ -209,7 +201,7 @@ Logs are best effort and may be discarded at shutdown. These bounds apply to the
 ICC path; Pneumo's existing asynchronous logger queue is separate. Logging remains
 a thread-context operation, not an ISR-safe or allocation-free API.
 
-| Thread in each H755 image | ThreadX priority (lower is higher) | Stack |
+| Thread in each GIGA image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
 | ThreadX timer worker | 0 | Port default |
 | `io.iccThread` | 2 | 32 KiB |
@@ -250,27 +242,27 @@ Linux tests download the pinned GoogleTest 1.17.0 source archive.
 The VS Code devcontainer uses Arch Linux and checks that both compiler major
 versions remain 16. Rebuild it after changing its Dockerfile. It exposes USB
 and uses a development user with serial permissions. Host flashing and serial
-capture also require access to the ST-Link USB and serial devices.
+capture also require access to Atmel-ICE, USB CDC and the logic analyzer.
 
 ## Build and run
 
 ```sh
-cmake --preset h755-debug
-cmake --build --preset h755-debug
+cmake --preset giga-debug
+cmake --build --preset giga-debug
 cmake --preset debug-linux
 cmake --build --preset debug-linux
 ./build/debug-linux/Application
 ```
 
-The combined preset's default target is `controllers`. It builds both firmware
-images using the existing per-core presets and output directories, including
+The combined preset builds `controllers` and the matching `images` bundle by
+default, using the per-core presets and output directories, including
 both memory reports. It does not flash the board. Use `--target io-controller`
 or `--target ui-controller` to build just one through the combined project.
 
 Runtime and HAL source implementations are shared; each core compiles and links
 its own copy with its own CPU flags, ThreadX port and private runtime state.
 
-`h755-release` and `release-linux` provide optimized builds. After a
+`giga-release` and `release-linux` provide optimized builds. After a
 compiler upgrade use `cmake --preset <preset> --fresh` and rebuild cleanly.
 Use `-DBUILD_TESTING=OFF` when configuring Linux to build the template without
 fetching or building test dependencies.
@@ -279,12 +271,12 @@ All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.
 Embedded Debug builds retain debug information and use `-Os` for IO, UI, ICC
-and their entrypoints to fit the motor service/action templates in each 1 MiB
-flash bank. The libstdc++ runtime shim uses `-Og`; HAL optimization is unchanged.
+and their entrypoints. Real-time M4 sources use `-Os` or `-O2` in RAM;
+the libstdc++ runtime shim uses `-Og` outside the selected fast paths.
 Source-level debugging remains available, with optimized stepping in these modules.
 
-H755 builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.
-Use the [combined flash command](docs/nucleo-h755ziq/README.md#flash-and-test).
+GIGA builds produce `io-controller` or `ui-controller` ELF/HEX/BIN/MAP files.
+Use the validated combined programming workflow below.
 
 Every default hardware build prints used bytes, region capacity and percentages,
 including builds where the ELF is already up to date. The `memory-usage` target
@@ -452,7 +444,7 @@ Paths in this table are relative to [`platform/hal`](platform/hal).
 | `devices/itf` | Device capabilities such as `IMotorFeedback`, `IStepperDriver`, `IButton` and `ILed` | Device/driver contracts and common `util` |
 | `devices/impl` | Device behavior and protocols: TMC2209, DM542T, LAN9253, feedback, button and LED adapters | Injected driver interfaces and device helpers |
 | `devices/factory` | Construction that differs by platform, currently TMC2209 transport/model composition | Driver factories and the selected device model |
-| `board/board.hpp`, `board/nucleo_h755ziq/board.cpp`, `board/linux/board.cpp` | Translate robot/board roles into pins, peripherals, driver addresses and device compositions | Public factories and portable device implementations |
+| `board/board.hpp`, `board/arduino_giga/board.cpp`, `board/linux/board.cpp` | Translate robot/board roles into pins, peripherals, driver addresses and device compositions | Public factories and portable device implementations |
 | `core` | Expose resources belonging to the executing processor (`M4`, `M7`, or `Host`); select its status LED and runtime timer | Board factories and capability contracts |
 | `hal.hpp/.cpp`, `stm32`, `linux` | Platform startup, console, panic handling, interrupt dispatch and platform synchronization | Selected platform/vendor facilities |
 | `util`, `drivers/util`, `devices/util` | Common result types or helpers private to their respective layer | Same-layer or lower-level contracts; never board/application policy |
@@ -464,10 +456,10 @@ platform::hal → hal::core → hal::board → hal::devices → hal::drivers
 ```
 
 Each target compiles only its own sources; CMake selects the STM32 or Linux
-backend. H755 provides onboard resources plus M4 motor timers/DMA, USART2,
+backend. GIGA provides onboard resources plus M4 motor timers/DMA, USART2,
 reference/diagnostic inputs and feedback.
 The Linux board composition supplies virtual resources for device regression
-tests; it does not define H755 motor wiring. The Linux step and encoder workers are compiled as `hal_linux_services`
+tests; it does not define GIGA motor wiring. The Linux step and encoder workers are compiled as `hal_linux_services`
 objects using the runtime's C++ ABI and included in `hal_drivers`. Their opaque
 service objects keep that ABI boundary out of public interfaces.
 
@@ -512,7 +504,6 @@ entry lists the available roles and the board factories that create them:
 
 ```cpp
 [[= util::Core::M4]] static constexpr Devices m4{
-    .status_led = [] { return board::create_led(board::LedId::Green); },
     .runtime_timer = [] { return board::create_timer(timer::Peripheral::Tim5); },
     .rtc = board::create_rtc,
     .rng = board::create_rng,
@@ -524,8 +515,8 @@ Omitted roles are unavailable: their core factory returns `nullptr` (or an
 array of null pointers for the driver set). Reflection
 selects the entry at compile time and rejects missing or duplicate assignments
 for the selected processor. No device is constructed by reading the catalog.
-M4 uses green/PB0 and TIM5; M7 uses yellow/PE1 and TIM12, plus red/PB14 and
-the user button/PC13. Both entries explicitly include shared RTC/RNG and their
+M4 owns TIM5 and has no physical LED/button; M7 owns TIM12, green/PJ13,
+red/PI12, blue/PE3 and the user button/PC13. Both entries explicitly include shared RTC/RNG and their
 local inter-core endpoint. M4 also lists all motor factories; M7 has none.
 IO/UI are application names, not HAL identities.
 
@@ -542,9 +533,8 @@ Timer factories expose initialized TIM5 and TIM12 to either image. They wrap
 the peripheral without resetting it; CubeMX/platform startup still initializes
 the hardware once. Changing a catalog assignment that moves peripheral
 initialization or interrupts also requires updating that startup configuration.
-Motor wiring and startup behavior are documented in the
-[H755 setup](docs/nucleo-h755ziq/README.md#motor-peripheral-wiring-and-construction).
-External storage and EtherCAT wiring remain unassigned.
+Motor wiring and startup behavior are listed in the GIGA table below.
+SPI5 is prepared for EtherCAT; external filesystem storage is unassigned.
 
 Host tests retain virtual board devices. `Core::Host` selects its own runtime
 timer, RTC/RNG, error LED and button, with no status LED or hardware peer channel.
@@ -571,17 +561,16 @@ auto pwm = hal::pwm::create({
 });
 auto encoder = hal::encoder::create({
     .timer = hal::timer::Peripheral::Tim3,
-    .a = { hal::gpio::Port::B, 4 }, .b = { hal::gpio::Port::B, 5 }
+    .a = { hal::gpio::Port::B, 4 }, .b = { hal::gpio::Port::A, 7 }
 });
 ```
 
 These examples describe the retained factory contracts. On current hardware,
 onboard GPIO, per-core timers, serialized RTC/RNG access and the inter-core
-channel are available. M4 owns TIM5; M7 owns TIM12 and the console UART.
+channel are available. M4 owns TIM5; M7 owns TIM12 and USB CDC.
 RTC and RNG are shared through hardware-semaphore protection. Motor peripherals
-use TIM2/TIM3/TIM6/TIM7, DMA1 and USART2 on M4. The generic SPI/PWM, Ethernet
-and storage backends still require H755 assignments; the console uses dedicated
-onboard USART3 initialization.
+use TIM2/TIM3/TIM6/TIM7, DMA1 and USART2 on M4. SPI5 is prepared for EtherCAT, and TIM8 drives the display backlight.
+Filesystem storage and native Ethernet remain unassigned.
 
 Linux provides virtual peripheral resources and device models for regression
 tests. Its board composition does not claim physical wiring. Construction never
@@ -606,8 +595,8 @@ explicitly after configuring them:
 
 ```sh
 python3 cmake/tests/verify_hal_architecture.py --source . --build build/debug-linux
-python3 cmake/tests/verify_hal_architecture.py --source . --build build/h755-io-debug --platform stm32
-python3 cmake/tests/verify_hal_architecture.py --source . --build build/h755-ui-debug --platform stm32
+python3 cmake/tests/verify_hal_architecture.py --source . --build build/giga-io-debug --platform stm32
+python3 cmake/tests/verify_hal_architecture.py --source . --build build/giga-ui-debug --platform stm32
 ctest --test-dir build/debug-linux --output-on-failure
 ```
 
@@ -908,292 +897,287 @@ cmake --build --preset debug-linux --target application_p2p_example application_
 ctest --test-dir build/debug-linux -R '^application\.p2p\.' --output-on-failure
 ```
 
-## Planned migration to STM32H747XIH6 (Arduino GIGA R1 WiFi)
+## Arduino GIGA hardware, boot and bring-up
 
-**Status: planned robot architecture.** The current NUCLEO-H755ZI-Q already runs
-separate M4/IO and M7/UI applications with shared-memory ICC. The remaining robot
-integration, GUI and GIGA board port are future work. The external-flash layout
-below is a migration target; current H755 images execute from internal flash.
+**Software status:** the STM32H747 port, external-flash loader, USB console,
+ICC transport, motor peripherals and display/touch bring-up commands are
+implemented. Debug, Release, M4 RAM-debug and the isolated bench build as
+separate M4/M7 images. Host tests exercise the existing motion/ICC behavior,
+STM32 STEP/encoder register models, USB buffering and boot-image validation.
+**GIGA hardware validation is pending:** no GIGA or Atmel-ICE was available to
+perform the factory backup, flash or electrical measurements. Build success is
+not evidence of cold boot, memory stability, USB enumeration or pulse timing.
+TouchGFX screens, M7 robot planning and EtherCAT robot integration remain future
+work. The existing KiCad wiring must be adapted to these GIGA connections before
+using it; Nucleo connector numbers do not apply.
 
-### Controller responsibilities
+### Clocks and ownership
 
-Use the STM32H747XIH6 as two controllers with separate firmware images and
-separate application state. **M7 plans robot motion; M4 owns its execution and
-can stop it independently.**
+The [CubeMX project](external/CubeMX/CubeMX.ioc) targets STM32H747XIH6 and exports
+separate CM4/CM7 CMake peripheral files, preserving user code. Application entry
+points and ThreadX remain repository-owned. Do not start the generated
+`SystemClock_Config`, FMC or QSPI initialization from an application.
 
-| Responsibility | IO controller: Cortex-M4, 240 MHz | UI and planning controller: Cortex-M7, 480 MHz |
+| Resource | Configuration / owner |
+| --- | --- |
+| Supply / reference | LDO, VOS0, onboard 16 MHz HSE crystal; LSE 32.768 kHz |
+| PLL1 | HSE /4 ×240, P2/Q20: M7 480 MHz, USB 48 MHz |
+| Bus clocks | HCLK/M4 240 MHz; APB 120 MHz; timer kernels 240 MHz |
+| PLL2 | HSE /4 ×100, R2: FMC/QSPI 200 MHz; SDRAM 100 MHz; QSPI 50 MHz |
+| PLL3 | HSE /5 ×160, R10: LTDC 51.2 MHz |
+| M4 | TIM2 CH1/3/4 STEP, CH2 guard; DMA1 streams 0–3; TIM3 encoder; TIM6 sampling; TIM7 completion; USART2; SPI5 |
+| Runtime | M4 TIM5 and M7 TIM12 at 1 MHz; per-core 1 kHz ThreadX/HAL SysTick |
+| M7 | USB-C CDC, LED/button, LTDC/DMA2D, TIM8 backlight, I2C4 touch |
+| Shared | M7 initializes RTC/RNG once; HAL serializes later access with hardware semaphores; SRAM4/HSEM for ICC |
+
+TIM2 uses PSC=23 for the existing **10 MHz timeline**. STEP interrupt priority
+and runtime timer priority remain 5; SysTick priority is 4. DMA generates edges; IRQs refill buffers
+and report progress. M4 has no physical LED or console writer. M7 receives IO
+logs through ICC's bounded background lane. USB-A host, DSI, wireless, camera
+and audio are disabled. The board uses its own crystal: there is no ST-Link MCO
+clock setting to change.
+
+### Motor and EtherCAT wiring
+
+**Enable polarity is HIGH = disabled, LOW = enabled**, matching the existing
+DM542T transistor stage and TMC2209 EN inputs. Both bootstrap and fault paths
+force enable HIGH and STEP LOW. Provide an external enable pull-up and STEP
+pull-downs so these levels also hold while reset makes the MCU pins high impedance.
+The STEP backend forces OC inactive before switching GPIOs into timer AF mode.
+
+| Signal | Arduino label | STM32 pin / function |
 | --- | --- | --- |
-| Hardware | Motor drivers, STEP/DIR/ENABLE, encoders, INDEX and switches | Display, touch and console |
-| Motion execution | `MotionController`, `StepperMotor`, trajectory execution and timer/DMA scheduling | Submit planned motions |
-| Robot model | Enforce axis constraints and apply configured motor/axis conversions | `Robot`, kinematics and Cartesian/joint conversions |
-| Motion planning | Local homing and stopping profiles | Paths, coordinated profiles, blending and lookahead |
-| State | Authoritative motor/axis positions, velocities, reference state, configuration and faults | Consume snapshots; calculate and present robot state |
-| Fault handling | React immediately, stop affected motion and invalidate commands/references as required | Report faults and request recovery |
-| EtherCAT (future robot integration) | ESC transport, cyclic exchange, communication watchdog and command ownership | Plan high-level robot requests when needed |
+| M1 / M2 / M3 STEP | A7 / D3 / D2 | PA0 / PA2 / PA3, TIM2 CH1/3/4 AF1 |
+| M1 / M2 / M3 DIR | D4 / D6 / D16 | PJ8 / PD13 / PH13 |
+| Shared enable | D15 | PC7, initially HIGH |
+| M1 encoder A / B | D7 / D5 | PB4 / PA7, TIM3 CH1/2 AF2 |
+| M1 encoder Z | D53 | PG7, EXTI7 |
+| M1 / M2 / M3 reference | D49 / D51 / D47 | PE4 / PE5 / PB2, EXTI4/5/2 |
+| DM542T ALM | A3 | PB1, EXTI1 |
+| M2 / M3 DIAG | A4 / A6 | PC3 / PC0, EXTI3/0 |
+| M2 / M3 INDEX | D8 / D9 | PB8 / PB9, EXTI8/9 |
+| TMC UART TX / RX | D18 / D19 | PD5 / PD6, USART2 |
+| ESC SCK / MISO / MOSI | D13 / D12 / D11 | PH6 / PJ11 / PJ10, SPI5 |
+| ESC CS | D10 | PK1, initially HIGH |
+| ESC IRQ / SYNC0 | D64 / D63 | PH10 / PH11, EXTI10/11 |
+| ESC reset | D65 | PH9, open-drain, released |
 
-M7 runs the planner in its own worker, independently of TouchGFX rendering and
-CLI processing. GUI and CLI use the same application/control services; neither
-frontend owns the physical `StepperMotor` objects. Display and console activity
-must not prevent the planner from meeting the trajectory queue's refill deadline.
+Retain the established voltage-conversion circuits and shared TMC UART wiring.
+M2/M3 addresses are 0/1, microstepping is 1/16 and stealthChop is the default.
+Reference inputs use pull-ups and both edges; LOW is the healthy NC circuit,
+HIGH means switch activation or an open cable. ALM is pulled up; DIAG/INDEX are
+pulled down. GPIO callbacks and motion-blocking rules retain their existing
+polarity. Shared EXTI handlers process only their own core's enabled lines.
 
-M7's processing speed, caches and double-precision FPU suit the current
-`double`-based motion calculations. Graphics acceleration can reduce rendering
-work, but planner throughput must still be measured under GUI load. See the
-[H747 datasheet](https://www.st.com/resource/en/datasheet/stm32h747xi.pdf) and
-[TouchGFX hardware guidance](https://support.touchgfx.com/docs/development/hardware-selection/hardware-components/hardware-selection-mcu).
+SPI5 is initialized for mode 0, 8 bits, MSB first at 937.5 kHz. Board/core
+factories expose SPI, CS, reset, IRQ and SYNC0; the portable `Lan9253` adapter
+remains available. No EtherCAT stack starts automatically, and DMA2 remains
+reserved for future SPI transfers. Connect EVB J3.1=SCK, .5=MISO, .4=MOSI,
+.3=CS, .2/.8=GND; TP1=IRQ, J15=SYNC0 and J5.1=RSTn. Use ordinary-SPI straps
+and the previously verified ESC configuration.
 
-### Planning and execution boundary
+### Display and console
 
-Separate three stages:
+Smartwin SMMH0701024600S-C20: RGB24 physical bus, **1024×600 RGB565** buffers.
+LTDC timing is 1+159+1024+160 horizontal and 1+22+600+12 vertical, totaling
+1344×635 at 51.2 MHz (approximately 60 Hz). DE is active high; pixel-clock phase
+still requires checking on the actual panel. DSI is disabled.
 
-1. **M7 planning:** calculate the path and acceleration/deceleration/jerk profile,
-   then produce synchronized joint trajectory segments.
-2. **M4 trajectory execution:** validate and consume the segments, track progress
-   and prepare upcoming integer step timings with bounded computation.
-3. **M4 pulse generation:** timers and DMA generate the STEP edges. Segment
-   reception and GUI scheduling do not determine individual edge timing.
-
-The coordinated-motion contracts describe complete bounded profiles; bridging
-those contracts is pending. A later planning step is a stream of buffered trajectory segments describing
-selected joints over defined intervals. Segment duration, queue capacity and
-refill/braking reserves require implementation and timing validation. The M4 evaluator must preserve step-count accuracy and synchronization
-while meeting the DMA refill deadlines. Expensive planning and blocking work
-must stay outside interrupt handlers.
-
-In the archived implementation, `StepperMotor` creates
-profiles and blends commands, and `StepGenerator::fill()` invokes
-`Sequence::generate()` to evaluate profiles while preparing DMA data. Moving
-`Robot` and profile creation to M7 alone would leave profile evaluation on M4.
-Extract planning from execution and benchmark the remaining evaluator explicitly.
-
-Commands identify their affected axes. Independent axis operations remain
-supported; coordinated commands explicitly group axes and use one agreed
-execution timeline. A stalled segment stream for a coordinated move must trigger
-the group's defined stopping behavior rather than let its axes diverge.
-
-M4 owns motor/axis configuration, including direction, microsteps, conversions
-and execution limits. M7 plans against versioned snapshots of that configuration
-and the commanded execution state. Encoder/INDEX feedback retains its source and
-validity information when reported to M7; planned positions do not replace
-measured or estimated feedback.
-
-### Local stopping and recovery
-
-M4 must handle a stalled or restarted M7 without waiting for further messages:
-
-- Execute homing locally and react directly to reference switches and driver
-  faults.
-- Validate reference state, axis limits, configuration and execution ownership
-  before accepting motion.
-- Maintain a local stopping mechanism and enough trajectory/braking reserve to
-  start deceleration before an input queue runs empty. Queue exhaustion must not
-  first be discovered when the next pulse is already due.
-- Define when a fault requires immediate pulse inhibition or driver disable
-  instead of a controlled stop. The local stop path has priority over queued work.
-- Invalidate affected queued segments after a stop, fault, reset or configuration
-  change. Resuming requires explicit admission of a valid command.
-
-Completing an already accepted finite motion or stopping on loss of M7 is an
-explicit execution policy. Continued operation must never depend on an unbounded
-wait for the planner. Required reserve and stop behavior must be validated at the
-maximum planned velocity for each axis and coordinated group.
-
-### Shared-memory command interface
-
-`ControllerClient` and `ControllerServer` are the intended execution boundary;
-their integration with the ICC bridge is pending. H755 already uses shared-SRAM
-rings and HSEM notifications; `InProcessTransport` remains the Linux transport.
-Carry the hardware transport, linker reservations, cache attributes and memory
-ordering into the H747 port, and verify reset/session coordination on that board.
-
-Use two bounded, single-producer/single-consumer queues in shared RAM:
-
-| Queue | Payloads |
+| Display signal | STM32 pins |
 | --- | --- |
-| M7 to M4 | Trajectory segments, execution commands, jog/home, configuration and status requests |
-| M4 to M7 | Acceptance/rejection, completion, faults, queue capacity and versioned state/configuration snapshots |
+| R0–R7 | PG13, PJ0, PJ1, PJ2, PJ3, PJ4, PJ5, PJ6 |
+| G0–G7 | PJ7, PE6, PI15, PG10, PH15, PK0, PI11, PK2 |
+| B0–B7 | PJ12, PG12, PJ14, PJ15, PK3, PK4, PK5, PK6 |
+| CLK / DE / HSYNC / VSYNC | PI14 / PK7 / PI10 / PI13 |
+| Backlight / standby / TFT reset | PC6/D68 TIM8_CH1, PI0/D69, PI2/D71 |
+| Touch reset / interrupt | PI3/D72, PB12/D74 EXTI12 |
+| Touch SCL / SDA | PB6/D101, PH12/D102, I2C4 100 kHz |
 
-Each controller has one communication worker that owns its outgoing queue and
-consumes its incoming queue. GUI/CLI requests and IO events from other local
-threads or callbacks are serialized through that worker. Hardware interrupt
-handlers notify local workers rather than execute commands or become additional
-producers of the shared queue.
+Use a separate adequately rated 3.3 V display supply; the specified backlight
+alone is roughly 1 A. The RGB connector adapter is a separate hardware task.
+The panel remains off at application startup. `display bars` initializes it,
+exercises DMA2D, switches framebuffer at vertical blank and sets 10% backlight.
+Run it twice to check both buffers. `display backlight 0..100` controls the
+1 kHz PWM. `display touch` reports ST1633i firmware/status and up to five points
+at address 0x55; absent touch returns a bounded error. Device logic lives above
+`IRgbOutput` and `II2c`; the STM32 implementations own the peripherals.
 
-Commands carry correlation IDs. Acceptance means a command was admitted;
-completion or failure is a separate response. GUI and CLI can therefore track
-asynchronous operations independently. M4 performs the authoritative state,
-limit and parameter checks, regardless of validation performed by M7.
+USB-C uses USB_OTG_FS PA11/PA12, device-only CDC with VBUS sensing disabled and
+ST USB Device middleware matching Cube H7 V1.13.0. Open the CDC port (`/dev/ttyACM*`
+on Linux); nominal baud is immaterial for USB. Startup never waits for a host.
+The 4 KiB input and 8 KiB output queues are bounded; dropped output is counted in
+`giga_console_dropped_bytes`. Disconnect/overflow clears partial commands;
+suspend/resume retains the host's open state. Callbacks notify the console worker,
+which owns transmit submission. They never parse CLI commands. Motor fault
+shutdown does not depend on USB or log delivery.
 
-Plans identify the configuration revision and starting execution state used by
-the planner, or an agreed endpoint of an already accepted queued motion. M4
-rejects stale plans instead of silently executing them from a different origin.
-Segment sequence numbers, axis/group identity and execution timing must be
-explicit. Timing uses the M4 execution clock or an agreed conversion to it; message
-arrival time does not define the motion start.
+### Images, RAM and startup
 
-Messages contain explicitly defined data: message type, protocol version,
-session/command IDs, payload length, numeric values with defined units, and
-status/error codes. Specify field widths and numeric representation rather
-than copying compiler-dependent object layouts. Do not send pointers, virtual
-objects, `std::string`, callbacks or futures between firmware images. Each
-controller may build local C++ abstractions around received messages.
+| QSPI address | Size | Contents |
+| --- | ---: | --- |
+| 0x90000000 | 1 MiB | Preserved factory reserve |
+| 0x90100000 | 3 MiB | M4 executable and RAM load images |
+| 0x90400000 | 4 MiB | M7 executable and RAM load images |
+| 0x90800000 | 6 MiB | Future GUI assets |
+| 0x90E00000 | 1 MiB | Manifest / activation / maintenance |
+| 0x90F00000 | 1 MiB | Preserved factory wireless reserve |
 
-The transport must provide these behaviours:
+The loader verifies AT25SF128A JEDEC 1F8901 and the SFDP signature, preserves
+status bits, enables volatile QE, then uses 0x6B quad-output, 24-bit addresses,
+eight dummy clocks at 50 MHz. Reserved areas do not imply Arduino filesystem
+compatibility. No application filesystem writes to XIP flash.
 
-- Bound queue capacity and message size. Report backpressure explicitly; never
-  silently discard commands, command results or fault events. M4 must not wait
-  indefinitely for M7 to consume messages. Report the buffered execution horizon
-  so M7 can refill before the local stopping reserve is reached.
-- Coalesce frequent position/velocity updates into the latest status rather
-  than letting telemetry exhaust capacity needed for command results.
-- Give stop requests a dedicated urgent path, such as a latched shared request
-  with its own notification and acknowledgement, so ordinary queue congestion
-  cannot delay their delivery. IO continues to handle hardware faults and
-  reference inputs locally.
-- Establish a versioned startup handshake and session identity. Detect a peer
-  restart, invalidate stale pending requests and do not replay motion commands
-  from an earlier session. Define link-loss behaviour, including expiry of
-  continuously commanded jogging, before enabling remote motion. Stops and
-  recovery must also invalidate pending commands in the M7 planner/client.
-
-### EtherCAT ownership
-
-Assign the LAN9255 ESC SPI transport and the EtherCAT worker to M4. Cyclic joint
-commands and feedback use the local motion execution interface without requiring
-a round trip through M7 on every EtherCAT cycle. High-level Cartesian requests
-can be forwarded to M7's `Robot`/planner and return as admitted trajectories.
-
-M4 arbitrates control ownership between EtherCAT and local GUI/CLI requests.
-Only one command source may control an axis or coordinated group at a time;
-ownership changes require a defined handover and invalidate stale queued work.
-Fault and stop handling remain local regardless of the active source. A missed
-EtherCAT deadline or communication watchdog event invokes the configured local
-stop policy. Robot-facing EtherCAT modes, PDOs and synchronization remain future
-work; the standalone echo example does not implement them.
-
-### Memory and notification rules
-
-Reserve a dedicated shared region, initially targeting **SRAM4**, in both
-linker scripts. Exclude it from private heaps, stacks and independent startup
-clearing. Coordinate initialization so one core cannot erase live queues when
-it boots or restarts. Configure the region as non-cacheable on M7.
-Use aligned indices plus explicit inter-core memory ordering: finish writing
-the payload before publishing it, and finish reading it before releasing its slot.
-Neither `volatile` nor disabling interrupts on one core is sufficient for
-cross-core synchronization.
-
-Use **HSEM notifications** to wake the receiving controller's local worker.
-Notifications may coalesce: the queue is the source of truth, and the receiver
-drains it and uses a recheck-before-sleep protocol to avoid lost wakeups. HSEM
-provides the notification; queue correctness still depends on publication and
-consumption ordering. Size trajectory storage from the measured execution reserve;
-SRAM4 is the initial candidate, not an assumption that every motion buffer fits
-there. ST documents shared SRAM, MPU/cache handling and HSEM
-notifications in [AN5617](https://www.st.com/resource/en/application_note/an5617-stm32h745755-and-stm32h747757-lines-interprocessor-communications-stmicroelectronics.pdf).
-
-Do not share a normal ThreadX queue, semaphore or mutex between the two kernel
-instances. Each firmware owns its RTOS objects; the shared transport uses a
-defined inter-core protocol. Separate CPU execution does not isolate the
-shared buses, clocks or peripherals, so assign resource ownership and validate
-motion timing under graphics and communication load.
-
-### External-flash application storage and execution
-
-**Planned GIGA layout:** keep startup and recovery in internal flash and store
-both complete application images in external flash. The GIGA provides **16 MB
-of QSPI NOR flash** and **8 MB of SDRAM** in addition to the MCU's internal memory.
-The H747 supports memory-mapped QSPI code execution from both cores, so most
-application code can execute in place (XIP) without copying the entire images
-into RAM. See the [GIGA datasheet](https://docs.arduino.cc/resources/datasheets/ABX00063-datasheet.pdf)
-and [H747 datasheet](https://www.st.com/resource/en/datasheet/stm32h747xi.pdf).
-
-| Memory | Planned contents |
+| RAM / internal flash | Allocation |
 | --- | --- |
-| Internal flash | Per-core boot entry points, QSPI initialization, image validation and recovery/update support |
-| External QSPI flash | Separate M4 and M7 application images, including the load images of RAM-resident code/data; GUI assets and other reserved storage |
-| Internal RAM | Private runtime state and selected timing-critical code/data, plus the separately reserved shared ICC region |
-| External SDRAM | Primarily GUI framebuffers and larger UI data buffers; exact allocation remains to be measured |
+| 0x08000000 / 0x08100000 | One 128 KiB sector per internal M7/M4 bootstrap |
+| 0x10000000 | 2 KiB M4 vectors; remaining 126 KiB D2 SRAM1 instruction alias for fast code/constants |
+| 0x30020000 / 0x30046000 | 152 KiB M4 data/DMA; 8 KiB M4 MSP |
+| 0x24000000 / 0x24040000 | 256 KiB M7 data/heap; 256 KiB M4 heap |
+| 0x00000000 | 64 KiB M7 ITCM, `.itcm` sections |
+| 0x20000000 | M7 vectors (2 KiB), `.dtcm`/`.dtcm_bss` working data (110 KiB) |
+| 0x2001C000 / 0x2001E000 | 8 KiB bootstrap scratch; 8 KiB M7 MSP |
+| 0x38000000 / 0x3800F000 | 60 KiB ICC reservation; 4 KiB boot handoff |
+| 0xC0000000 / 0xC0200000 | Two 2 MiB framebuffer slots; each uses 1,228,800 bytes |
+| 0xC0400000 | 2 MiB M4 RAM-debug code |
+| 0xC0600000 | 2 MiB future large UI buffers |
 
-M7 owns QSPI initialization and operating-mode changes. Boot proceeds as follows:
+The onboard SDRAM is 8 MiB AS4C4M16SA, bank 1, 16-bit, four banks, **12 row
+bits / 8 column bits**, 100 MHz, CAS3; timings 2/7/5/7/3/2/2, refresh count 1542.
+M4's 0x10000000 code address aliases SRAM1; it is not additional RAM.
 
-1. Start through internal-flash entry points, keeping M4 waiting in internal code
-   until the shared external memory is ready. Keep motor outputs disabled.
-2. M7 initializes QSPI, enables memory-mapped reads and validates both application
-   images and their compatibility. Invalid images stay in internal recovery code.
-3. Prepare each core's runtime memory, copy RAM-resident sections and establish
-   its vector table and applicable MPU/cache settings before enabling interrupts.
-4. Hand off to each core's separately linked application entry point. M4 must
-   not reinitialize QSPI while M7 is executing from it. ICC establishes the normal
-   session before application commands are accepted.
+MPU is configured before M7 caches: ICC and framebuffers normal/non-cacheable/XN;
+QSPI read-only executable; private RAM/heaps XN; UI SDRAM cacheable/XN; M4 debug
+SDRAM normal executable. Future DMA users of cacheable UI buffers must clean
+before DMA reads and invalidate after DMA writes, with exclusive 32-byte-aligned
+cache-line ownership. Current DMA2D framebuffers are non-cacheable and require
+only the existing publication barriers. Future ITCM kernels should avoid C++
+exceptions across memory regions until their unwind placement has been extended.
 
-External flash is shared: instruction-cache misses and simultaneous code/asset
-reads can delay either core. STEP edges remain timer/DMA generated, but DMA
-refill, feedback and stop paths still have CPU deadlines. Place the required
-critical routines, interrupt vectors/handlers and their transitive code/data
-dependencies in suitable internal executable RAM. Measure which paths need this
-placement; relocating only an ISR while its callees or constants remain external
-does not isolate it from QSPI delays. RAM-resident code is still stored in the
-external application image and copied at startup.
+M7 parks M4 in its internal stub, configures clocks/memories, validates both
+images and loads explicit copy/zero records. Application vectors, stack, segment
+bounds, image CRCs and matching pair identifiers are checked; invalid pairs stay
+in internal recovery with motor outputs disabled. M7 application startup enables
+caches, initializes local HAL plus shared RTC/RNG/ICC memory and releases M4.
+Each core runs its own constructors, TLS setup and ThreadX exactly once.
+Applications do not initialize shared clocks, QSPI, FMC or peer-owned memory.
+Generated application clock requests are wrapped by a read-only check against
+bootstrap settings; a mismatch fails instead of restarting a shared PLL.
+ICC must establish its session before accepting commands.
 
-Use explicit flash partitions and linker load/run addresses for both images.
-Reserve space for assets, update metadata and any retained Arduino Wi-Fi firmware
-or certificates; do not assume all 16 MB is available for application code.
-Decide how the custom boot flow coexists with or replaces the Arduino bootloader.
-Provide an external-flash programming/debug procedure and an internal recovery
-path that works even when external images are missing or corrupt.
+The linker bounds every region. M4 STEP/refill, sequence evaluation, feedback,
+fault handling and required callees/constants are copied to internal RAM.
+`scripts/giga_ram_audit.py` checks the linked direct call graph and explicitly
+listed callback/virtual targets and writes `ram-audit.json`; new callback types
+need reviewing there. Separate Arm exception-unwind tables cover RAM and XIP.
+This static audit does not replace latency measurements under bus contention.
 
-Flash updates are a coordinated maintenance operation: stop motion, disable the
-drivers and move both cores to internal code before leaving memory-mapped mode
-or erasing/programming QSPI flash. The update path, interrupts and data accesses
-must have no dependency on that flash during the operation. Validate the image
-pair before activating it, and handle interrupted updates through recovery rather
-than booting an incomplete or incompatible pair.
+### Build, backup, program and debug
 
-Before adopting this layout, verify debugger-free cold boot, corrupt/missing
-image recovery, interrupted updates and simultaneous execution on both cores.
-Measure pulse counts, DMA refill headroom, feedback and stop latency under maximum
-GUI/asset, planning and ICC load, including cold-cache conditions. This requires
-new linker/startup and programming support; it is not enabled by increasing a
-CMake flash-size setting. No external-flash execution is implemented or verified
-on hardware yet.
+```sh
+cmake --preset giga-debug
+cmake --build --preset giga-debug
+# Also available: giga-release, giga-ram-debug, giga-bench-debug.
+# Individual applications: giga-io-debug, giga-ui-debug, -release variants,
+# and giga-io-ram-debug.
+```
 
-### Migration work and validation
+Per-core directories contain ELF, BIN, HEX, MAP and separate `.debug` symbols,
+internal bootstrap images, memory percentages and M4 RAM audit reports. The M7
+build also produces `memory-helper.elf`. Combined builds produce `images/io.bin`,
+`ui.bin`, a fixed little-endian `manifest.bin`, and readable `manifest.json`.
+The manifest carries lengths, CRC32s, SHA256 pair ID, entry/vector/stack addresses
+and at most 16 explicit copy/zero segments per core. The pair ID is also appended
+to each image. It binds a pair; this is corruption detection, not secure boot.
 
-The H747 provides the timer capabilities needed to retain TIM2 channels 1/3/4
-for STEP, channel 2 for the internal deadline, TIM3 for quadrature feedback,
-TIM5 for runtime timekeeping, TIM6 for encoder sampling and TIM7 for completion
-monitoring. Assign these peripherals and their interrupts to the M4 IO core.
-Give the M7 runtime its own timebase; M7 initialization must not reconfigure
-IO timers or shared clocks after robot control starts. The GIGA pin map,
-display-dependent pin conflicts and peripheral interrupt routing still need
-their own CubeMX configuration; the archived wiring is not a GIGA assignment. See the [H747 datasheet](https://www.st.com/resource/en/datasheet/stm32h747xi.pdf)
-and [GIGA pinout](https://docs.arduino.cc/resources/pinouts/ABX00063-full-pinout.pdf).
+Connect Atmel-ICE's **SAM/Cortex** SWD port to GIGA SWDIO, SWCLK, NRST, GND and
+3.3 V VTref; power the board separately through USB-C. VTref is not board power.
+Keep motor power disconnected during initial validation. One CMSIS-DAP OpenOCD
+instance runs at 1 MHz and exposes M7 on GDB 3333 and M4 on 3334.
 
-Migration includes board-specific startup/clocks, core boot coordination,
-memory partitioning for both images and any bootloader, DMA/MPU configuration,
-SWD debugging, the UI console, storage/network adapters and updated KiCad
-connections. Retain CMake/GCC, the HAL and the IO runtime; using the GIGA does
-not require adopting the Arduino application framework. Integrate the M7's
-TouchGFX runtime and board drivers separately.
+```sh
+python3 scripts/giga_program.py probe
+python3 scripts/giga_program.py backup
+python3 scripts/giga_program.py memory-test
+python3 scripts/giga_program.py flash --build build/giga-debug
+# Equivalent combined target, after the verified backup exists:
+cmake --build --preset giga-debug --target flash
+```
 
-Validate the split in this order:
+Backup writes `backups/hardware/giga-factory/`: all 2 MiB internal flash, all
+16 MiB external flash, readable option registers, MCU UID and SHA256 metadata.
+It verifies repeated reads and refuses to overwrite an existing backup. The
+RAM helper needs no valid application images; it initializes QSPI/SDRAM, checks
+every SDRAM word with address/complement patterns and leaves results in
+`giga_boot_status` / `GigaHandoff` at 0x3800F000. Status 0x600D means helper success.
+No factory flash or nonvolatile QSPI status is changed by backup/memory testing.
 
-1. Extract the execution interface and planning responsibilities on the current
-   Nucleo. Preserve independent moves, coordinated timing, homing, blending,
-   cancellation and feedback semantics with local interface tests.
-2. Establish both firmware images, resource ownership, boot coordination and the
-   shared-memory protocol. Test ordering, saturation, lost/coalesced notifications,
-   configuration revisions and rejection of stale commands across peer restarts.
-3. Benchmark M7 trajectory production under GUI/CLI load and M4 evaluation/DMA
-   refill for three active axes. Establish segment format, queue capacity and
-   minimum stopping reserve from measured worst-case headroom.
-4. Repeat pulse-count, synchronization, feedback, homing and fault tests on the
-   GIGA. Deliberately stall/reset M7 and exhaust the trajectory input; verify M4's
-   stopping policy and that obsolete commands cannot resume motion.
-5. Integrate EtherCAT robot control, then test cyclic deadlines, command-source
-   handover, watchdog behavior and recovery under simultaneous graphics and
-   communication load.
+Flashing validates the backup UID and exact ELF-derived image contents, halts
+both cores, initializes external memory, invalidates activation, programs and
+verifies both applications and bootstraps, then writes activation **last**.
+Only boot-address/core-enable option bits are changed; protection/watchdog
+settings are preserved. BOOT0 high retains the M7 ROM loader. An interrupted
+update must be retried through SWD; no automatic mixed-pair activation occurs.
+Never program QSPI while either application executes from it. This replaces
+the Arduino installation; retaining the backup is required by the flash tool.
 
-The final display, segment representation, queue sizes, update rates and memory
-allocation remain implementation decisions to establish by these checks.
-No GIGA hardware verification is claimed by this plan.
+For debugging an already programmed pair:
+
+```sh
+openocd -f scripts/openocd/arduino_giga.cfg
+arm-none-eabi-gdb build/giga-ui-debug/ui-controller.elf
+# GDB: target extended-remote :3333
+# A second GDB loads the matching io-controller.elf and connects to :3334.
+```
+
+Use `monitor giga_halt_both` before reset/maintenance; flash with the script,
+not GDB `load`. Ordinary M4 XIP code cannot use FPB hardware breakpoints at
+0x90xxxxxx. `giga-ram-debug` stores the image in QSPI but executes its ordinary
+code in SDRAM at 0xC0400000, permitting **software** breakpoints after bootstrap
+has copied it. Attach after startup and explicitly disable GDB's read-only
+memory-map inference (`set mem inaccessible-by-default off`,
+`mem 0xC0400000 0xC0600000 rw`) before setting these breakpoints. RAM-resident fast
+code at 0x10000000 supports hardware breakpoints. The OpenOCD helper workspace
+uses upper AXI RAM/M4 SRAM2, never ICC; applications are halted first. M7 planning
+can later opt into the reserved ITCM/DTCM sections.
+
+### Acceptance gates and bench
+
+Run these in order; **all physical gates remain pending**:
+
+1. Probe both cores and verify factory backup. Check clocks, disabled outputs,
+   LED/button and debugger-free power cycling with internal recovery/startup.
+2. Verify QSPI identity/repeated reads and the complete 8 MiB SDRAM test. Review
+   MPU attributes, including executable helper workspace.
+3. Boot the matched pair; inspect vectors, constructors, TLS and timers. Exercise
+   missing/corrupt/mismatched images and interrupted updates. Test an M4 SDRAM
+   software breakpoint with the RAM-debug pair.
+4. Check USB open/close/unplug/replug, runtime counter rollover, ICC lanes,
+   heartbeat/peer restart and background-log saturation. Reset both cores for
+   recovery; stale queued motion must not resume.
+5. With motor power off, flash `giga-bench-debug`. Analyzer D0 → A7/PA0,
+   D1 → D3/PA2, D2 → D2/PA3, D3 → D15/PC7, GND → GND. Commands 1–9 test small
+   exact counts, independent starts, 100 kHz, velocity changes, stop/restart,
+   timer wrap, intentional underrun, combined load and variable periods.
+   `python3 examples/giga_step_bench/capture.py --port /dev/ttyACM0` runs them
+   with the 24 MHz analyzer. Test 8 exercises QSPI reads, USB output, ICC traffic,
+   DMA2D fills and LTDC scanout while all STEP channels run. Bench reports worst
+   ISR cycles, stop-call cycles and LTDC underruns; 100 kHz tests require at least
+   2× DMA-buffer service headroom. Results need confirming with edge captures;
+   the cycle counter does not measure external switch-to-stop latency.
+6. Flash the normal pair; verify `display bars`, both buffers, RGB ordering,
+   DE/clock phasing, underrun counts and `display touch` with the actual panel.
+7. Exercise encoder/INDEX, reference and diagnostic edges, then powered motor
+   moves and homing → stop → homing. Measure interrupt-entry/stop latency under
+   combined load before establishing a supported motion rate.
+8. With LAN9255 connected, repeat ordinary-SPI identification/stress and recovery
+   using bench command `e` (identification followed by 100,000 BYTE_TEST reads).
+   The EVB must already supply valid ESC boot configuration/EEPROM; check 81
+   means identification was not ready. This command does not program its EEPROM
+   or provide SII emulation. SOES robot control remains subsequent work.
+
+The GIGA schematic/pinout and local MCU/panel references are in
+[`docs/arduino_giga_r1_wifi`](docs/arduino_giga_r1_wifi) and
+[`docs/display`](docs/display). Shared trajectory planning will later live on
+M7; independent motor profile generation remains on M4 for now. Its bounded
+execution contract and ICC services/actions/topics remain separate from the
+physical transport and the future GUI.

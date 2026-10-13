@@ -69,20 +69,6 @@ namespace runtime
                 std::uint32_t state_version{};
             };
 
-            [[nodiscard]] std::int64_t ticks_to_nanoseconds(std::uint64_t ticks) noexcept
-            {
-                const std::uint64_t seconds{ ticks / TX_TIMER_TICKS_PER_SECOND };
-                const std::uint64_t remainder{ ticks % TX_TIMER_TICKS_PER_SECOND };
-                constexpr auto maximum{ static_cast<std::uint64_t>(
-                  std::numeric_limits<std::int64_t>::max()) };
-                const std::uint64_t fractional_nanoseconds{ remainder * NANOSECONDS_PER_SECOND /
-                                                            TX_TIMER_TICKS_PER_SECOND };
-                if (seconds > (maximum - fractional_nanoseconds) / NANOSECONDS_PER_SECOND) {
-                    return std::numeric_limits<std::int64_t>::max();
-                }
-                return static_cast<std::int64_t>(seconds * NANOSECONDS_PER_SECOND + fractional_nanoseconds);
-            }
-
             struct MutexImplementation
             {
                 TX_MUTEX mutex{};
@@ -164,8 +150,8 @@ namespace runtime
             ULONG next_registry_id{ 1U };
             ThreadControl* registry_head{};
             KeyDefinition keys[RUNTIME_THREAD_KEY_COUNT];
-            std::uint32_t last_tick{};
-            std::uint64_t tick_epoch{};
+
+
             std::int64_t system_clock_epoch_nanoseconds{};
             std::uint64_t system_clock_epoch_ticks{};
             std::atomic<std::int64_t> last_system_time_nanoseconds{};
@@ -1422,28 +1408,6 @@ namespace runtime
             return tx_semaphore_put(&implementation->semaphore) == TX_SUCCESS ? 0 : EOVERFLOW;
         }
 
-        std::uint64_t steady_ticks() noexcept
-        {
-            const ULONG old_posture{ tx_interrupt_control(TX_INT_DISABLE) };
-            const auto current_tick{ static_cast<std::uint32_t>(tx_time_get()) };
-            const std::uint64_t result{ extend_tick_counter(tick_epoch, last_tick, current_tick) };
-            static_cast<void>(tx_interrupt_control(old_posture));
-            return result;
-        }
-
-        std::uint64_t extend_tick_counter(std::uint64_t& epoch,
-                                          std::uint32_t& previous,
-                                          std::uint32_t current) noexcept
-        {
-            if (current < previous) {
-                epoch += (1ULL << 32U);
-            }
-            previous = current;
-            return epoch | current;
-        }
-
-        std::int64_t steady_time_nanoseconds() noexcept { return ticks_to_nanoseconds(steady_ticks()); }
-
         std::int64_t system_time_nanoseconds() noexcept
         {
             const std::uint64_t current_ticks{ steady_ticks() };
@@ -1492,8 +1456,7 @@ namespace runtime
             return TX_SUCCESS;
         }
 
-        detail::last_tick = static_cast<std::uint32_t>(tx_time_get());
-        detail::tick_epoch = 0U;
+        detail::initialize_steady_clock();
         detail::system_clock_epoch_ticks = detail::steady_ticks();
 
         const auto realtime_clock{ hal::core::create_rtc() };

@@ -1,5 +1,6 @@
 #include "Link.hpp"
 #include "hal/hal.hpp"
+#include "hal/console.hpp"
 
 #include <cstdio>
 #include <exception>
@@ -8,9 +9,15 @@ int main()
 {
     using namespace std::chrono_literals;
     using Clock = std::chrono::steady_clock;
+    hal::console::initialize();
     std::setvbuf(stdin, nullptr, _IONBF, 0);
     try {
         bench::Link link{ bench::Publisher::UI };
+        auto panel = hal::core::create_display();
+        if (!panel || !panel->initialize()) { hal::panic("Bench display pipeline initialization failed"); }
+        // LTDC can exercise SDRAM without an attached panel. Keep backlight off.
+        unsigned slot{};
+        volatile std::uint32_t qspi_checksum{};
         std::atomic_bool busy_load{};
         std::atomic_uint32_t sent{}, echoes{}, errors{};
         auto echo = link.bus.topic<^^bench::Topics::bench_echo>().subscribe([&](const bench::Load& packet) {
@@ -24,6 +31,13 @@ int main()
             while (!stop.stop_requested()) {
                 if (busy_load) {
                     link.bus.topic<^^bench::Topics::bench_load>().publish(bench::packet(++sent));
+                    slot ^= 1u;
+                    if (!panel->fill(slot, slot ? 0xF800 : 0x001F) || !panel->present(slot)) { ++errors; }
+                    auto* flash = reinterpret_cast<const volatile std::uint32_t*>(0x90800000u);
+                    std::uint32_t sum{};
+                    for (unsigned i = 0; i < 65536; ++i) { sum ^= flash[i]; }
+                    qspi_checksum = sum;
+                    std::puts("[step-bench] USB/ICC/QSPI/DMA2D/LTDC load active........................................");
                 }
                 echo.poll();
                 // Planned application state rate, with a 256-byte payload each way.
@@ -42,20 +56,20 @@ int main()
         }
         std::uint32_t sequence{};
         std::puts("[step-bench] READY M7 console -> ICC -> M4 STEP; EN_N remains HIGH");
-        for (;;) {
-            std::puts("[step-bench] 1 tiny, 2 independent, 3 100kHz, 4 update, 5 restart, 6 wrap, 7 "
-                      "underrun, 8 ICC load, 9 profile; h help");
+        std::puts("[step-bench] 1 tiny, 2 independent, 3 100kHz, 4 update, 5 restart, 6 wrap, 7 "
+                      "underrun, 8 combined load, 9 profile; e ESC identification/100000 reads");
             std::fflush(stdout);
-            const auto input = std::getchar();
-            if (input == EOF) {
-                std::clearerr(stdin);
+        for (;;) {
+            const auto character = hal::console::try_read();
+            if (character.state != hal::console::InputState::Character) {
                 std::this_thread::sleep_for(10ms);
                 continue;
             }
-            if (input < '1' || input > '9') {
+            const auto input = character.character;
+            if ((input < '1' || input > '9') && input != 'e') {
                 continue;
             }
-            const auto test = static_cast<std::uint32_t>(input - '0');
+            const auto test = input == 'e' ? 10u : static_cast<std::uint32_t>(input - '0');
             if (!link.connected()) {
                 std::puts("[step-bench] FAIL: ICC disconnected; reset both cores");
                 continue;
@@ -71,7 +85,7 @@ int main()
                         static_cast<unsigned long>(++sequence));
             std::fflush(stdout);
             link.bus.topic<^^bench::Topics::bench_command>().publish(bench::Command{ sequence, test });
-            const auto until = Clock::now() + 8s;
+            const auto until = Clock::now() + (test == 10 ? 60s : 8s);
             while (result.sequence != sequence && Clock::now() < until) {
                 reports.poll(100ms);
             }
@@ -86,7 +100,7 @@ int main()
             }
             const auto verified = echoes.load() - before;
             const auto errors_seen = errors.load() - prior_errors;
-            const bool passed = result.passed && !errors_seen && (test != 8 || verified >= 10);
+            const bool passed = result.passed && !errors_seen && !panel->underruns() && (test != 8 || verified >= 10);
             std::printf("[step-bench] %s case=%lu check=%lu pulses=%llu,%llu,%llu completions=%lu,%lu,%lu "
                         "progress=%lu changed_at=%llu guard=%lu load=%lu echoes=%lu errors=%lu\n",
                         passed ? "PASS" : "FAIL",
@@ -104,6 +118,9 @@ int main()
                         static_cast<unsigned long>(result.load_received),
                         static_cast<unsigned long>(verified),
                         static_cast<unsigned long>(errors_seen + result.load_errors));
+            std::printf("[step-bench] service_max=%lu cycles (240 MHz); stop=%lu cycles; LTDC underruns=%lu; QSPI=%lu\n",
+                        static_cast<unsigned long>(result.service_cycles), static_cast<unsigned long>(result.stop_cycles),
+                        static_cast<unsigned long>(panel->underruns()), static_cast<unsigned long>(qspi_checksum));
             std::fflush(stdout);
         }
     } catch (const std::exception& error) {

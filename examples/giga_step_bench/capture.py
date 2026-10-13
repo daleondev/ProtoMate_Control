@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Run the flashed H755 STEP bench and validate 24 MHz analyzer captures.
+"""Run the flashed GIGA STEP bench and validate 24 MHz analyzer captures.
 
-Requires sigrok-cli, NumPy, and access to ST-Link VCP / the USB analyzer.
+Requires sigrok-cli, NumPy, and access to USB-C CDC / the USB analyzer.
 Motor drivers must remain disconnected. Captures/results default to build/.
-Build/flash both h755-step-io-debug and h755-step-ui-debug images first.
-D0=CN10.29, D1=CN10.32, D2=CN10.34, D3=CN10.30, GND=CN10.22.
-The ST-Link MCO must be HSE/5 (5 MHz), matching the CubeMX configuration.
+Build/flash giga-bench-debug first.
+D0=A7/PA0, D1=D3/PA2, D2=D2/PA3, D3=D15/PC7, GND=GND.
+The board uses its own 16 MHz HSE crystal.
 This script does not flash firmware or change the board clock configuration.
 """
 import argparse
@@ -131,13 +131,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port")
     parser.add_argument("--cases", default="1,2,3,4,5,6,7,8,9")
-    parser.add_argument("--output", type=Path, default=Path("build/h755-step-results"))
+    parser.add_argument("--output", type=Path, default=Path("build/giga-step-results"))
     parser.add_argument("--seconds", type=float, default=3.0)
     args = parser.parse_args()
-    ports = glob.glob("/dev/serial/by-id/*STLINK*")
+    ports = glob.glob("/dev/ttyACM*")
     port = args.port or (ports[0] if len(ports) == 1 else None)
     if not port:
-        parser.error("Specify --port; no unique ST-Link serial device found")
+        parser.error("Specify --port; no unique USB CDC serial device found")
     args.output.mkdir(parents=True, exist_ok=True)
     serial = Serial(port)
     results_path = args.output / "results.json"

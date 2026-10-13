@@ -29,6 +29,7 @@ namespace hal {
         }
         __HAL_LTDC_LAYER_DISABLE(&m_lcd, 1);
         __HAL_LTDC_RELOAD_CONFIG(&m_lcd);
+        LTDC->ICR = LTDC_ICR_CFUIF | LTDC_ICR_CTERRIF | LTDC_ICR_CRRIF | LTDC_ICR_CLIF;
         HAL_NVIC_SetPriority(LTDC_IRQn, 10, 0);
         HAL_NVIC_EnableIRQ(LTDC_IRQn);
         __HAL_LTDC_ENABLE_IT(&m_lcd, LTDC_IT_FU | LTDC_IT_TE);

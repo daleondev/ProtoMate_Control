@@ -2,8 +2,10 @@
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 #include "runtime/synchronization/Notification.hpp"
+#include "hal/devices/impl/Lan9253.hpp"
 
 #include <exception>
+extern "C" volatile std::uint32_t giga_step_irq_cycles_max;
 
 namespace
 {
@@ -107,6 +109,9 @@ namespace
                     case 9:
                         ok = profile();
                         break;
+                    case 10:
+                        ok = ethercat();
+                        break;
                     default:
                         ok = check(false, 99);
                         break;
@@ -122,10 +127,30 @@ namespace
                     3) &&
               ok;
             report.passed = ok;
+            report.service_cycles = giga_step_irq_cycles_max;
+            // At 100 kHz one 512-edge DMA buffer lasts 2.56 ms. Require
+            // service <=1.28 ms (2x headroom); the analyzer verifies edges.
+            if (command.test == 3 || command.test == 8) {
+                report.passed &= check(report.service_cycles <= 307200u, 70);
+            }
             return report;
         }
 
       private:
+        bool ethercat()
+        {
+            auto spi = hal::core::create_ethercat_spi();
+            auto cs = hal::core::create_ethercat_chip_select();
+            auto reset = hal::core::create_ethercat_reset();
+            if (!check(spi && cs && reset, 80)) { return false; }
+            hal::device::Lan9253 esc{*spi, *cs};
+            if (!check(esc.identify().has_value(), 81)) { return false; }
+            for (unsigned i = 0; i < 100000; ++i) {
+                const auto value = esc.readSystemRegister(hal::device::Lan9253::BYTE_TEST_ADDRESS);
+                if (!check(value && *value == hal::device::Lan9253::BYTE_TEST_VALUE, 82)) { return false; }
+            }
+            return true;
+        }
         bool check(bool value, std::uint32_t code)
         {
             if (!value && !report.check) {
@@ -135,7 +160,7 @@ namespace
         }
         static bool padsLow()
         {
-            return !(GPIOA->IDR & GPIO_PIN_0) && !(GPIOB->IDR & (GPIO_PIN_10 | GPIO_PIN_11));
+            return !(GPIOA->IDR & (GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3));
         }
         bool constant(std::array<std::chrono::nanoseconds, 3> periods, Counts counts)
         {
@@ -203,7 +228,9 @@ namespace
                 return false;
             }
             std::this_thread::sleep_for(40ms);
+            const auto stop_started = DWT->CYCCNT;
             const auto stopped = axes[1]->stop();
+            report.stop_cycles = DWT->CYCCNT - stop_started;
             report.pulses[1] = stopped.pulses;
             if (!check(stopped.state == State::Stopped && stopped.counts_exact && stopped.pulses > 0, 40)) {
                 return false;

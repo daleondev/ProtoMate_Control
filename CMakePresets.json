@@ -126,6 +126,27 @@
             "cacheVariables": {
                 "GIGA_M4_RAM_DEBUG": true
             }
+        },
+        {
+            "name": "giga-io-bench-debug",
+            "inherits": "giga-io-debug",
+            "cacheVariables": {
+                "GIGA_STEP_BENCH": true
+            }
+        },
+        {
+            "name": "giga-ui-bench-debug",
+            "inherits": "giga-ui-debug",
+            "cacheVariables": {
+                "GIGA_STEP_BENCH": true
+            }
+        },
+        {
+            "name": "giga-bench-debug",
+            "inherits": "giga-debug",
+            "cacheVariables": {
+                "GIGA_STEP_BENCH": true
+            }
         }
     ],
     "buildPresets": [
@@ -179,6 +200,18 @@
         {
             "name": "giga-ram-debug",
             "configurePreset": "giga-ram-debug"
+        },
+        {
+            "name": "giga-io-bench-debug",
+            "configurePreset": "giga-io-bench-debug"
+        },
+        {
+            "name": "giga-ui-bench-debug",
+            "configurePreset": "giga-ui-bench-debug"
+        },
+        {
+            "name": "giga-bench-debug",
+            "configurePreset": "giga-bench-debug"
         }
     ],
     "testPresets": [

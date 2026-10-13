@@ -1,5 +1,8 @@
 build/
 
+# Per-device factory firmware and option-byte backups stay local.
+backups/hardware/
+
 # CubeMX user specific files
 .mxproject
 external/CubeMX/cmake/stm32cubemx/CMakeLists.txt

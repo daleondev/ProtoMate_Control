@@ -13,7 +13,8 @@ namespace {
     std::array<std::uint8_t, 8192> output{};
     std::array<std::uint8_t, 64> packet{};
     std::uint32_t inputHead{}, inputTail{}, outputHead{}, outputTail{};
-    bool connected{}, inFlight{}, resetPending{}, quarantine{}, started{};
+    bool connected{}, dtr{}, suspended{}, inFlight{}, resetPending{}, quarantine{}, started{};
+    std::uint32_t packetLength{};
     TX_EVENT_FLAGS_GROUP events{};
     TX_THREAD worker{};
     alignas(8) std::array<std::uint8_t,4096> workerStack{};
@@ -36,6 +37,7 @@ namespace {
         if (CDC_Transmit_FS(packet.data(), static_cast<std::uint16_t>(count)) == USBD_OK) {
             outputTail += count;
             inFlight = true;
+            packetLength = count;
         }
     }
 }
@@ -45,6 +47,8 @@ extern "C" void giga_console_reset()
 {
     const hal::stm32::InterruptGuard guard;
     connected = false;
+    dtr = false;
+    suspended = false;
     inputTail = inputHead;
     giga_console_dropped_bytes += outputHead - outputTail;
     outputTail = outputHead;
@@ -56,7 +60,24 @@ extern "C" void giga_console_connected(int value)
 {
     const hal::stm32::InterruptGuard guard;
     if (!value) { giga_console_reset(); return; }
-    connected = true;
+    dtr = true;
+    connected = !suspended;
+    resetPending = true;
+    notify();
+}
+extern "C" void giga_console_suspend()
+{
+    const hal::stm32::InterruptGuard guard;
+    const bool previousDtr = dtr;
+    giga_console_reset();
+    dtr = previousDtr;
+    suspended = true;
+}
+extern "C" void giga_console_resume()
+{
+    const hal::stm32::InterruptGuard guard;
+    suspended = false;
+    connected = dtr;
     resetPending = true;
     notify();
 }
@@ -82,6 +103,7 @@ extern "C" void giga_console_receive(const std::uint8_t* bytes, std::uint32_t co
 extern "C" void giga_console_deinitialized()
 {
     const hal::stm32::InterruptGuard guard;
+    if (inFlight) { giga_console_dropped_bytes += packetLength; }
     inFlight = false;
     giga_console_reset();
 }

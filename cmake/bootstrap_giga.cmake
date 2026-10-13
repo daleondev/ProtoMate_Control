@@ -22,7 +22,7 @@ function(giga_boot_image target helper)
         ${core}/Src/main.c ${core}/Src/stm32h7xx_hal_msp.c
         ${cube}/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c)
     if(STM32_CORE STREQUAL "CM7")
-        target_sources(${target} PRIVATE ${boot}/memories.c ${core}/Src/quadspi.c ${core}/Src/fmc.c)
+        target_sources(${target} PRIVATE ${boot}/memories.c ${boot}/clocks.c ${core}/Src/quadspi.c ${core}/Src/fmc.c)
         foreach(driver hal_qspi hal_sdram ll_fmc)
             target_sources(${target} PRIVATE ${hal_sources}/stm32h7xx_${driver}.c)
         endforeach()

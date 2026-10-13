@@ -126,6 +126,7 @@ void giga_start(void)
     h->status = 0;
     SystemClock_Config();
     PeriphCommonClock_Config();
+    giga_peripheral_clocks_initialize();
     giga_configure_mpu(0);
     giga_boot_status = 0x20;
     giga_memories_initialize();
@@ -143,12 +144,8 @@ void giga_start(void)
     if (!giga_manifest_valid(manifest)) { giga_fail(0x301); }
     for (unsigned i = 0; i < 2; ++i) {
         const GigaImage *image = &manifest->images[i];
-        if (giga_crc32((const void *)image->storage, image->size) != image->crc) {
+        if (!giga_image_valid(image, manifest->pair_id, (const void *)image->storage, image->size)) {
             giga_fail(0x302);
-        }
-        const uint8_t *pair = (const uint8_t *)(image->storage + image->size - sizeof(manifest->pair_id));
-        for (unsigned byte = 0; byte < sizeof(manifest->pair_id); ++byte) {
-            if (pair[byte] != ((const uint8_t *)manifest->pair_id)[byte]) { giga_fail(0x304); }
         }
     }
     load_image(&manifest->images[0]);

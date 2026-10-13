@@ -33,6 +33,7 @@ extern "C" {
 #endif
 uint32_t giga_crc32(const void *data, size_t size);
 int giga_manifest_valid(const GigaManifest *manifest);
+int giga_image_valid(const GigaImage *image, const uint32_t pair_id[8], const void *payload, size_t available);
 #ifdef __cplusplus
 }
 static_assert(sizeof(GigaManifest) == 624);

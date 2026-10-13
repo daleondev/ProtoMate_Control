@@ -7,7 +7,7 @@ from pathlib import Path
 import struct
 import subprocess
 import tempfile
-from giga_images import Elf
+from giga_images import Elf, pair
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / 'scripts/openocd/arduino_giga.cfg'
@@ -50,7 +50,10 @@ def helper_commands(helper):
         f'mww 0xE000ED08 {names["g_pfnVectors"]:#x}',
         f'resume {entry & ~1:#x}', 'wait_halt 30000',
         f'if {{[mrw {names["giga_boot_status"]:#x}] != 0x600D}} {{error "Memory helper failed; inspect giga_boot_status and boot handoff"}}',
-        'reg primask 1', 'flash probe giga.qspi', 'flash info giga.qspi',
+        # OpenOCD's flash algorithms execute in the reserved AXI workspace,
+        # which is XN in the application MPU. Caches are off in this helper.
+        'reg primask 1', 'mww 0xE000ED94 0',
+        'flash probe giga.qspi', 'flash info giga.qspi',
     ]
 
 
@@ -76,6 +79,9 @@ def main():
     configuration = 'release' if 'release' in build.name else 'debug'
     ui = ROOT / f'build/giga-ui-{configuration}'
     io = ROOT / ('build/giga-io-ram-debug' if 'ram-debug' in build.name else f'build/giga-io-{configuration}')
+    if (build / 'firmware-paths.json').exists():
+        paths = json.loads((build / 'firmware-paths.json').read_text())
+        io, ui = Path(paths['io']), Path(paths['ui'])
     helper = ui / 'memory-helper.elf'
     commands = ['init', 'giga_halt_both', 'targets', 'flash banks',
                 'mdw 0x5C001000', 'mdw 0x1FF1E800 3',
@@ -116,10 +122,10 @@ def main():
         commands += [f'if {{[mrw {0x1FF1E800 + i*4:#x}] != {word:#x}}} {{error "Backup belongs to another MCU"}}']
     commands += ['if {[mrw 0x5200201c] & 0x80000000} {error "Unexpected swapped internal banks; inspect option bytes before programming"}']
     images = build / 'images'
-    for name, limit in [('io.bin', 3 << 20), ('ui.bin', 4 << 20), ('manifest.bin', 624)]:
-        data = (images / name).read_bytes()
-        if not 0 < len(data) <= limit:
-            raise ValueError(f'Invalid image size: {name}')
+    expected_io, expected_ui, expected_manifest, _ = pair(io / 'io-controller.elf', ui / 'ui-controller.elf')
+    for name, expected in [('io.bin', expected_io), ('ui.bin', expected_ui), ('manifest.bin', expected_manifest)]:
+        if (images / name).read_bytes() != expected:
+            raise ValueError(f'Stale or corrupt {name}; rebuild the combined images target before programming')
     for path in [io / 'bootstrap-io.bin', ui / 'bootstrap-ui.bin']:
         if not 0 < path.stat().st_size <= 128 << 10:
             raise ValueError('Bootstrap exceeds its reserved sector')

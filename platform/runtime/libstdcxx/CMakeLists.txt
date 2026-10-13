@@ -12,6 +12,7 @@ target_sources(runtime_libstdcxx
         ${CMAKE_CURRENT_SOURCE_DIR}/atomic.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/backend.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/clock.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/SteadyClock.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/condition_variable.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/cxx_guard.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/future.cpp

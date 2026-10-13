@@ -80,6 +80,7 @@ add_library(platform OBJECT
     ${PROJECT_SOURCE_DIR}/platform/boot/giga/application.c
     ${PROJECT_SOURCE_DIR}/platform/boot/giga/entry.S
     ${PROJECT_SOURCE_DIR}/platform/boot/giga/mpu.c
+    ${PROJECT_SOURCE_DIR}/platform/boot/giga/clocks.c
 )
 foreach(driver hal hal_cortex hal_gpio hal_rcc hal_rcc_ex hal_pwr hal_pwr_ex
                hal_flash hal_flash_ex hal_hsem hal_tim hal_tim_ex hal_rtc hal_rtc_ex hal_rng hal_rng_ex hal_uart hal_uart_ex hal_dma hal_dma_ex hal_spi hal_spi_ex)
@@ -130,6 +131,7 @@ set_source_files_properties(
     ${PROJECT_SOURCE_DIR}/platform/boot/giga/application.c
     ${PROJECT_SOURCE_DIR}/platform/boot/giga/entry.S
     ${PROJECT_SOURCE_DIR}/platform/boot/giga/mpu.c
+    ${PROJECT_SOURCE_DIR}/platform/boot/giga/clocks.c
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic")
 
 add_executable(${PROJECT_NAME})
@@ -147,23 +149,32 @@ else()
 endif()
 string(REPLACE ".text* .rodata*" ".ARM.extab*" GIGA_FAST_EXTAB "${GIGA_FAST_OBJECTS}")
 string(REPLACE ".text* .rodata*" ".ARM.exidx*" GIGA_FAST_EXIDX "${GIGA_FAST_OBJECTS}")
-string(REPLACE ".text." ".ARM.extab." GIGA_FAST_EXTAB "${GIGA_FAST_EXTAB}")
-string(REPLACE ".text." ".ARM.exidx." GIGA_FAST_EXIDX "${GIGA_FAST_EXIDX}")
+string(REPLACE ".text." ".ARM.extab.text." GIGA_FAST_EXTAB "${GIGA_FAST_EXTAB}")
+string(REPLACE ".text." ".ARM.exidx.text." GIGA_FAST_EXIDX "${GIGA_FAST_EXIDX}")
 configure_file(${PROJECT_SOURCE_DIR}/platform/boot/giga/application.ld.in
                ${CMAKE_CURRENT_BINARY_DIR}/giga.ld @ONLY)
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/giga.ld)
 target_link_options(${PROJECT_NAME} PRIVATE
     -T${CMAKE_CURRENT_BINARY_DIR}/giga.ld --specs=nosys.specs
     -Wl,--gc-sections -Wl,--print-memory-usage
+    -Wl,--wrap=HAL_RCCEx_PeriphCLKConfig
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.map)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.hex
     COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.bin
+    COMMAND ${CMAKE_OBJCOPY} --only-keep-debug $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.debug
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${PROJECT_NAME}>
     VERBATIM)
 
 include(${PROJECT_SOURCE_DIR}/cmake/memory_usage.cmake)
 firmware_memory_usage(${PROJECT_NAME} ${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.map)
+if(STM32_CORE STREQUAL "CM4" AND NOT GIGA_STEP_BENCH)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_custom_target(ram-audit ALL
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/giga_ram_audit.py
+            $<TARGET_FILE:${PROJECT_NAME}> --report ${PROJECT_BINARY_DIR}/ram-audit.json
+        DEPENDS ${PROJECT_NAME} VERBATIM)
+endif()
 
 add_subdirectory(external/pneumo)
 add_subdirectory(platform/hal)
@@ -172,14 +183,23 @@ add_subdirectory(src)
 include(${PROJECT_SOURCE_DIR}/cmake/bootstrap_giga.cmake)
 
 if(STM32_CORE STREQUAL "CM4")
+    set(fast_directories Application)
+    foreach(owner proto_io proto_common hal hal_drivers hal_devices hal_devices_util runtime_synchronization runtime_libstdcxx runtime_threadx)
+        if(TARGET ${owner})
+            list(APPEND fast_directories ${owner})
+        endif()
+    endforeach()
     foreach(source IN LISTS giga_fast_sources)
         set(fast_opt -Os)
         if(source MATCHES "(StepGenerator|StepHardware)\\.cpp$")
             set(fast_opt -O2)
         endif()
         set_source_files_properties(${PROJECT_SOURCE_DIR}/${source}
-            TARGET_DIRECTORY Application proto_io proto_common hal hal_drivers hal_devices runtime_synchronization runtime_libstdcxx runtime_threadx
+            TARGET_DIRECTORY ${fast_directories}
             PROPERTIES COMPILE_OPTIONS "${fast_opt};-include;${PROJECT_SOURCE_DIR}/platform/boot/giga/fast_unwind.h")
     endforeach()
     target_compile_options(threadx PRIVATE -Os)
 endif()
+
+target_include_directories(runtime_threadx PRIVATE $<TARGET_PROPERTY:platform,INCLUDE_DIRECTORIES>)
+target_compile_definitions(runtime_threadx PRIVATE $<TARGET_PROPERTY:platform,COMPILE_DEFINITIONS>)

@@ -35,7 +35,8 @@ namespace hal
         SystemCoreClockUpdate();
         if (HAL_Init() != HAL_OK) { Error_Handler(); }
         {
-            const stm32::InterruptGuard local;
+            // Startup runs before application threads/callback registration.
+            // Leave SysTick enabled so HAL peripheral timeout loops stay bounded.
             const stm32::HardwareSemaphore shared(5);
             if (!shared) { panic("GPIO startup lock timeout"); }
             MX_GPIO_Init();

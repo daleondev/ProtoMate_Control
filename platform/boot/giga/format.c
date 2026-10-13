@@ -64,3 +64,13 @@ int giga_manifest_valid(const GigaManifest *m)
     }
     return 1;
 }
+
+int giga_image_valid(const GigaImage *image, const uint32_t pair_id[8], const void *payload, size_t available)
+{
+    if (image->size > available || image->size <= 32 || giga_crc32(payload, image->size) != image->crc) { return 0; }
+    const uint8_t *footer = (const uint8_t *)payload + image->size - 32;
+    for (unsigned i = 0; i < 32; ++i) {
+        if (footer[i] != ((const uint8_t *)pair_id)[i]) { return 0; }
+    }
+    return 1;
+}

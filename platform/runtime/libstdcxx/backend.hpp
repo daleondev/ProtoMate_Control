@@ -119,6 +119,8 @@ namespace runtime
         int semaphore_post(SemaphoreHandle* semaphore) noexcept;
 
         [[nodiscard]] std::uint64_t steady_ticks() noexcept;
+        void initialize_steady_clock() noexcept;
+        [[nodiscard]] std::int64_t ticks_to_nanoseconds(std::uint64_t ticks) noexcept;
         [[nodiscard]] std::uint64_t extend_tick_counter(std::uint64_t& epoch,
                                                         std::uint32_t& previous,
                                                         std::uint32_t current) noexcept;

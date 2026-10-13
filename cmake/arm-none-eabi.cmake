@@ -39,9 +39,9 @@ set(CMAKE_C_FLAGS_DEBUG "-O0 -g3" CACHE STRING "C debug flags")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3" CACHE STRING "C++ debug flags")
 set(CMAKE_ASM_FLAGS_DEBUG "-g3" CACHE STRING "ASM debug flags")
 
-set(CMAKE_C_FLAGS_RELEASE "-Os -g0 -DNDEBUG" CACHE STRING "C release flags")
-set(CMAKE_CXX_FLAGS_RELEASE "-Os -g0 -DNDEBUG" CACHE STRING "C++ release flags")
-set(CMAKE_ASM_FLAGS_RELEASE "-g0" CACHE STRING "ASM release flags")
+set(CMAKE_C_FLAGS_RELEASE "-Os -g3 -DNDEBUG" CACHE STRING "C release flags")
+set(CMAKE_CXX_FLAGS_RELEASE "-Os -g3 -DNDEBUG" CACHE STRING "C++ release flags")
+set(CMAKE_ASM_FLAGS_RELEASE "-g3" CACHE STRING "ASM release flags")
 
 # Search host tools on the host and headers/libraries/packages in the target
 # toolchain sysroot inferred by the Arm compiler.

@@ -59,6 +59,10 @@ if(BUILD_TESTING)
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/tests/test_clang_tidy.py)
     add_test(NAME tooling.memory_usage
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/cmake/tests/memory_usage_test.py)
+    add_test(NAME boot.giga_images
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/tests/test_giga_images.py)
+    add_test(NAME boot.giga_mpu
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/tests/test_giga_mpu.py)
 endif()
 
 add_custom_target(clang-tidy

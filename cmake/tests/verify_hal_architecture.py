@@ -111,6 +111,8 @@ def check_sources(root):
 def check_build(root, build, platform_name):
     errors = []
     compiled = set()
+    cache = (build / 'CMakeCache.txt').read_text()
+    m4 = platform_name == 'stm32' and bool(re.search(r'^STM32_CORE:[^=]+=CM4$', cache, re.M))
     forbidden = 'linux' if platform_name == 'stm32' else 'stm32'
     for entry in json.loads((build / 'compile_commands.json').read_text()):
         path = Path(entry['file']).resolve()
@@ -145,6 +147,10 @@ def check_build(root, build, platform_name):
             continue
         source = path.relative_to(root / 'platform').as_posix()
         if source not in compiled:
+            # These peripheral blocks belong exclusively to M7; their public
+            # factories still compile on M4 and reject unavailable resources.
+            if m4 and source in ('hal/drivers/impl/stm32/RgbOutput.cpp', 'hal/drivers/impl/stm32/I2c.cpp'):
+                continue
             errors.append(f'{source}: selected production source is missing from the build')
     for layer in ('drivers', 'devices'):
         for header in (root / 'platform' / 'hal' / layer / 'factory').glob('*.hpp'):

@@ -2,6 +2,11 @@ add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 
 add_subdirectory(common)
 
+if(GIGA_STEP_BENCH)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/examples/giga_step_bench ${PROJECT_BINARY_DIR}/step_bench)
+    return()
+endif()
+
 if(DEFINED STM32_CORE)
     if(STM32_CORE STREQUAL "CM4")
         set(application_role io)
