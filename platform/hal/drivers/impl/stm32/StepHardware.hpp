@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hal/drivers/util/StepHardware.hpp"
+#include "hal/drivers/itf/IDigitalInput.hpp"
 
 namespace hal::util
 {
@@ -11,7 +12,7 @@ namespace hal::stm32
     class StepHardware final : public util::StepHardware
     {
       public:
-        StepHardware() = default;
+        explicit StepHardware(std::array<gpio::Pin, 3> pins) : m_pins{pins} {}
         StepHardware(const StepHardware&) = delete;
         StepHardware& operator=(const StepHardware&) = delete;
         StepHardware(StepHardware&&) = delete;
@@ -30,6 +31,9 @@ namespace hal::stm32
         auto stopAxis(std::size_t axis) noexcept -> util::StepSample override;
         auto finishAxis(std::size_t axis) noexcept -> void override;
         auto stop() noexcept -> util::StepSample override;
+      private:
+        std::array<gpio::Pin, 3> m_pins;
+        auto pin_mode(std::size_t axis, bool alternate) noexcept -> void;
     };
 
     // Registration is protected by PRIMASK, before interrupts are armed.

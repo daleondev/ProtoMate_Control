@@ -9,134 +9,67 @@
 #include <cstdint>
 #include <array>
 #include <atomic>
-#include "usart.h"
 #if defined(CORE_CM4)
+#include "usart.h"
 #include "dma.h"
+#include "spi.h"
 #endif
 #if defined(CORE_CM7)
 #include "rtc.h"
 #include "rng.h"
 #endif
 
-namespace
-{
+#include "platform.h"
 #if defined(CORE_CM7)
-    // Receive independently of command execution and console rendering. A
-    // polling CLI alone can lose a pasted command in the small hardware FIFO.
-    std::array<char, 4096> console_input{};
-    std::atomic_uint32_t console_head{}, console_tail{};
-    std::atomic_bool console_input_error{};
-    static_assert(std::atomic_uint32_t::is_always_lock_free);
+#include "usb_device.h"
+#include "ltdc.h"
+#include "dma2d.h"
+#include "i2c.h"
 #endif
-    constexpr std::uint32_t BOOT_SEMAPHORE{0};
-
-    void initialize_gpio()
-    {
-        const hal::stm32::InterruptGuard local;
-        const hal::stm32::HardwareSemaphore shared(5);
-        if (!shared) { hal::panic("GPIO startup lock timeout"); }
-        MX_GPIO_Init();
-#if defined(CORE_CM4)
-        // MSP initialization also writes shared GPIO/RCC registers.
-        MX_DMA_Init();
-        MX_TIM2_Init();
-        MX_TIM3_Init();
-        MX_TIM5_Init();
-        MX_TIM6_Init();
-        MX_TIM7_Init();
-        MX_USART2_UART_Init();
-        // CubeMX enables these NVIC vectors with DMA initialization. The STEP
-        // backend enables them again only after installing its own owner.
-        for (const auto irq : {DMA1_Stream0_IRQn, DMA1_Stream1_IRQn,
-                               DMA1_Stream2_IRQn, DMA1_Stream3_IRQn}) {
-            HAL_NVIC_DisableIRQ(irq);
-            HAL_NVIC_ClearPendingIRQ(irq);
-        }
-#endif
-    }
-
-#if defined(CORE_CM7)
-    void wait_for_m4(bool awake)
-    {
-        std::uint32_t remaining{1'000'000};
-        while ((__HAL_RCC_GET_FLAG(RCC_FLAG_D2CKRDY) != RESET) != awake) {
-            if (remaining-- == 0) {
-                hal::panic("M4 startup timeout");
-            }
-        }
-    }
-#endif
-}
 
 namespace hal
 {
     void initialize() noexcept
     {
-#if defined(CORE_CM4)
-        __HAL_RCC_HSEM_CLK_ENABLE();
-        HAL_HSEM_ActivateNotification(__HAL_HSEM_SEMID_TO_MASK(BOOT_SEMAPHORE));
-        HAL_PWREx_ClearPendingEvent();
-        HAL_PWREx_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE, PWR_D2_DOMAIN);
-        __HAL_HSEM_CLEAR_FLAG(__HAL_HSEM_SEMID_TO_MASK(BOOT_SEMAPHORE));
-        HAL_HSEM_DeactivateNotification(__HAL_HSEM_SEMID_TO_MASK(BOOT_SEMAPHORE));
+        // Shared clocks, QSPI, FMC, MPU and caches belong to the bootstrap.
         SystemCoreClockUpdate();
-        if (HAL_Init() != HAL_OK) {
-            Error_Handler();
-        }
-        initialize_gpio();
+        if (HAL_Init() != HAL_OK) { Error_Handler(); }
+        {
+            const stm32::InterruptGuard local;
+            const stm32::HardwareSemaphore shared(5);
+            if (!shared) { panic("GPIO startup lock timeout"); }
+            MX_GPIO_Init();
+#if defined(CORE_CM4)
+            MX_DMA_Init();
+            MX_TIM2_Init();
+            MX_TIM3_Init();
+            MX_TIM5_Init();
+            MX_TIM6_Init();
+            MX_TIM7_Init();
+            MX_USART2_UART_Init();
+            MX_SPI5_Init();
+            // Owners install callbacks before enabling STEP DMA interrupts.
+            for (const auto irq : {DMA1_Stream0_IRQn, DMA1_Stream1_IRQn,
+                                   DMA1_Stream2_IRQn, DMA1_Stream3_IRQn}) {
+                HAL_NVIC_DisableIRQ(irq);
+                HAL_NVIC_ClearPendingIRQ(irq);
+            }
 #else
-        wait_for_m4(false);
-        if (HAL_Init() != HAL_OK) {
-            Error_Handler();
+            MX_TIM12_Init();
+            MX_RTC_Init();
+            MX_RNG_Init();
+            MX_TIM8_Init();
+            MX_DMA2D_Init();
+            MX_LTDC_Init();
+            __HAL_LTDC_DISABLE(&hltdc);
+            MX_I2C4_Init();
+#endif
         }
-        SystemClock_Config();
-        __HAL_RCC_HSEM_CLK_ENABLE();
-        initialize_gpio();
-        MX_TIM12_Init();
-        MX_RTC_Init();
-        MX_RNG_Init();
-        MX_USART3_UART_Init();
-        HAL_NVIC_SetPriority(USART3_IRQn, 8, 0);
-        HAL_NVIC_EnableIRQ(USART3_IRQn);
-        __HAL_UART_ENABLE_IT(&huart3, UART_IT_RXNE);
-        // Enable all currently owned clocks before releasing M4. Subsequent
-        // factories only re-enable already set bits in the shared RCC registers.
-        __HAL_RCC_GPIOB_CLK_ENABLE();
-        __HAL_RCC_GPIOA_CLK_ENABLE();
-        __HAL_RCC_GPIOD_CLK_ENABLE();
-        __HAL_RCC_GPIOE_CLK_ENABLE();
-        __HAL_RCC_TIM2_CLK_ENABLE();
-        __HAL_RCC_TIM3_CLK_ENABLE();
-        __HAL_RCC_TIM5_CLK_ENABLE();
-        __HAL_RCC_TIM6_CLK_ENABLE();
-        __HAL_RCC_TIM7_CLK_ENABLE();
-        __HAL_RCC_USART2_CLK_ENABLE();
-        __HAL_RCC_DMA1_CLK_ENABLE();
-        __HAL_RCC_D2SRAM1_CLK_ENABLE();
-        __HAL_RCC_HSEM_CLK_ENABLE();
-        // Normal non-cacheable, shareable SRAM4. Keep private AXI RAM cached.
-        MPU_Region_InitTypeDef shared{};
-        shared.Enable = MPU_REGION_ENABLE;
-        shared.Number = MPU_REGION_NUMBER0;
-        shared.BaseAddress = 0x38000000;
-        shared.Size = MPU_REGION_SIZE_64KB;
-        shared.TypeExtField = MPU_TEX_LEVEL1;
-        shared.AccessPermission = MPU_REGION_FULL_ACCESS;
-        shared.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
-        shared.IsShareable = MPU_ACCESS_SHAREABLE;
-        shared.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
-        shared.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
-        HAL_MPU_Disable();
-        HAL_MPU_ConfigRegion(&shared);
-        HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+#if defined(CORE_CM7)
         InterCoreChannel::initializeMemory();
-        if (HAL_HSEM_FastTake(BOOT_SEMAPHORE) != HAL_OK) {
-            Error_Handler();
-        }
-        HAL_HSEM_Release(BOOT_SEMAPHORE, 0);
-        wait_for_m4(true);
-        SCB_EnableICache();
-        SCB_EnableDCache();
+        HAL_PWREx_EnableUSBVoltageDetector();
+        MX_USB_DEVICE_Init();
+        giga_release_m4();
 #endif
         GpioInput::initializeInterrupts();
     }
@@ -184,63 +117,3 @@ extern "C" void MemManage_Handler() { hal_fault_handler("MemManage"); }
 extern "C" void BusFault_Handler() { hal_fault_handler("BusFault"); }
 extern "C" void UsageFault_Handler() { hal_fault_handler("UsageFault"); }
 
-// USART3/ST-Link VCP belongs to M7. M4 must send future log messages through ICC.
-extern "C" int __io_putchar(int value)
-{
-#if defined(CORE_CM7)
-    const auto byte = static_cast<std::uint8_t>(value);
-    return HAL_UART_Transmit(&huart3, &byte, 1, 100) == HAL_OK ? value : -1;
-#else
-    static_cast<void>(value);
-    return -1;
-#endif
-}
-extern "C" int __io_getchar()
-{
-    for (;;) {
-        const auto input{ hal::console::try_read() };
-        if (input.state == hal::console::InputState::Character) {
-            return static_cast<unsigned char>(input.character);
-        }
-        if (input.state != hal::console::InputState::Idle) { return -1; }
-    }
-}
-
-hal::console::Input hal::console::try_read() noexcept
-{
-#if defined(CORE_CM7)
-    const hal::stm32::InterruptGuard guard;
-    if (console_input_error.exchange(false)) {
-        console_tail.store(console_head.load(std::memory_order_acquire), std::memory_order_release);
-        return { InputState::Error }; // Never execute a silently truncated command.
-    }
-    const auto tail{ console_tail.load(std::memory_order_relaxed) };
-    if (tail == console_head.load(std::memory_order_acquire)) { return {}; }
-    const auto character{ console_input[tail % console_input.size()] };
-    console_tail.store(tail + 1U, std::memory_order_release);
-    return { InputState::Character, character };
-#else
-    return { InputState::Closed };
-#endif
-}
-
-#if defined(CORE_CM7)
-// Console RX has its own ring; no RTOS calls, allocations or command dispatch in IRQ context.
-extern "C" void USART3_IRQHandler()
-{
-    if ((USART3->ISR & (UART_FLAG_PE | UART_FLAG_FE | UART_FLAG_NE | UART_FLAG_ORE)) != 0U) {
-        __HAL_UART_CLEAR_FLAG(&huart3, UART_CLEAR_PEF | UART_CLEAR_FEF | UART_CLEAR_NEF | UART_CLEAR_OREF);
-        console_input_error.store(true);
-    }
-    while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_RXNE)) {
-        const auto byte{ static_cast<char>(USART3->RDR & 0xFFU) };
-        const auto head{ console_head.load(std::memory_order_relaxed) };
-        if (head - console_tail.load(std::memory_order_acquire) == console_input.size()) {
-            console_input_error.store(true);
-            continue;
-        }
-        console_input[head % console_input.size()] = byte;
-        console_head.store(head + 1U, std::memory_order_release);
-    }
-}
-#endif

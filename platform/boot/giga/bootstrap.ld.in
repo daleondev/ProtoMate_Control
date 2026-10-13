@@ -1,0 +1,19 @@
+ENTRY(Reset_Handler)
+MEMORY {
+    CODE (rx) : ORIGIN = @BOOT_CODE_ORIGIN@, LENGTH = @BOOT_CODE_LENGTH@
+    RAM (rw) : ORIGIN = @BOOT_RAM_ORIGIN@, LENGTH = 8K
+    STACK (rw) : ORIGIN = @BOOT_STACK_ORIGIN@, LENGTH = 8K
+}
+_estack = ORIGIN(STACK) + LENGTH(STACK);
+SECTIONS {
+    .isr_vector : { KEEP(*(.isr_vector)) } >CODE
+    .text : { *(.text*) *(.rodata*) . = ALIGN(4); } >CODE
+    .ARM.extab : { *(.ARM.extab*) } >CODE
+    .ARM.exidx : { __exidx_start = .; *(.ARM.exidx*) __exidx_end = .; } >CODE
+    .data : { . = ALIGN(4); _sdata = .; *(.data*) . = ALIGN(4); _edata = .; } >RAM AT>CODE
+    _sidata = LOADADDR(.data);
+    .bss (NOLOAD) : { . = ALIGN(4); _sbss = .; *(.bss*) *(COMMON) . = ALIGN(4); _ebss = .; } >RAM
+    .stack (NOLOAD) : { . = . + LENGTH(STACK); } >STACK
+    /DISCARD/ : { *(.comment) *(.note*) }
+    .ARM.attributes 0 : { *(.ARM.attributes) }
+}

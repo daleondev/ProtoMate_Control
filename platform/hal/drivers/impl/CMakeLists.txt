@@ -15,6 +15,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/StepHardware.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/QuadratureEncoder.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/QuadratureEncoder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Spi.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Spi.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Uart.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Uart.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/InterCoreChannel.hpp
@@ -27,6 +29,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Gpio.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.cpp)
+    if(STM32_CORE STREQUAL "CM7")
+        target_sources(hal_drivers_impl INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/RgbOutput.hpp ${CMAKE_CURRENT_SOURCE_DIR}/stm32/RgbOutput.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/I2c.hpp ${CMAKE_CURRENT_SOURCE_DIR}/stm32/I2c.cpp)
+    endif()
     return()
 endif()
 

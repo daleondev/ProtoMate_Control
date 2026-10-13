@@ -1,4 +1,5 @@
 #pragma once
+#include "GpioTypes.hpp"
 
 #include "hal/util/Result.hpp"
 #include <chrono>
@@ -53,5 +54,6 @@ namespace hal::uart
     {
         Peripheral peripheral{};
         IUart::Configuration transport{};
+        gpio::Pin tx{}, rx{};
     };
 }

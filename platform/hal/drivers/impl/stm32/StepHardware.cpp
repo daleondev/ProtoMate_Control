@@ -77,24 +77,6 @@ namespace hal::stm32
             }
             __DSB();
         }
-        auto pin_mode(std::size_t axis, bool alternate) noexcept -> void
-        {
-            const HardwareSemaphore shared(5);
-            if (!shared) { hal::panic("STEP GPIO configuration lock timeout"); }
-            auto* port{
-                axis == 0U ? GPIOA : GPIOB // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            constexpr std::array pins{ GPIO_PIN_0, GPIO_PIN_10, GPIO_PIN_11 };
-            const auto pin{ pins[axis] };
-            HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
-            GPIO_InitTypeDef config{};
-            config.Mode = alternate ? GPIO_MODE_AF_PP : GPIO_MODE_OUTPUT_PP;
-            config.Pull = GPIO_PULLDOWN;
-            config.Speed = GPIO_SPEED_FREQ_LOW;
-            config.Alternate = GPIO_AF1_TIM2;
-            config.Pin = pin;
-            HAL_GPIO_Init(port, &config);
-        }
         enum class OutputMode : std::uint8_t
         {
             Inactive = TIM_OCMODE_FORCED_INACTIVE,
@@ -112,6 +94,21 @@ namespace hal::stm32
         }
 
     }
+        auto StepHardware::pin_mode(std::size_t axis, bool alternate) noexcept -> void
+        {
+            const HardwareSemaphore shared(5);
+            if (!shared) { hal::panic("STEP GPIO configuration lock timeout"); }
+            auto* port = m_pins[axis].port == gpio::Port::A ? GPIOA : GPIOB;
+            const auto pin = static_cast<std::uint16_t>(1U << m_pins[axis].number);
+            HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
+            GPIO_InitTypeDef config{};
+            config.Mode = alternate ? GPIO_MODE_AF_PP : GPIO_MODE_OUTPUT_PP;
+            config.Pull = GPIO_PULLDOWN;
+            config.Speed = GPIO_SPEED_FREQ_LOW;
+            config.Alternate = GPIO_AF1_TIM2;
+            config.Pin = pin;
+            HAL_GPIO_Init(port, &config);
+        }
     StepHardware::~StepHardware()
     {
         const InterruptGuard lock;

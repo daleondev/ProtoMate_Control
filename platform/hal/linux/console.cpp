@@ -227,3 +227,5 @@ namespace linux_console
         return written;
     }
 }
+
+void hal::console::initialize() {}

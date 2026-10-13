@@ -349,27 +349,37 @@ namespace hal
 // NOLINTNEXTLINE(readability-identifier-naming)
 extern "C" void HAL_GPIO_EXTI_Callback(std::uint16_t GPIO_Pin) { hal::GpioInput::dispatchEdge(GPIO_Pin); }
 
-extern "C" void EXTI0_IRQHandler() { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0); }
-extern "C" void EXTI1_IRQHandler() { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1); }
-extern "C" void EXTI2_IRQHandler() { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2); }
-extern "C" void EXTI3_IRQHandler() { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3); }
-extern "C" void EXTI4_IRQHandler() { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4); }
+namespace {
+    void core_exti(std::uint16_t pin) {
+#if defined(CORE_CM4)
+        const auto mask = EXTI_D2->IMR1;
+#else
+        const auto mask = EXTI_D1->IMR1;
+#endif
+        if ((mask & pin) != 0U) { HAL_GPIO_EXTI_IRQHandler(pin); }
+    }
+}
+extern "C" void EXTI0_IRQHandler() { core_exti(GPIO_PIN_0); }
+extern "C" void EXTI1_IRQHandler() { core_exti(GPIO_PIN_1); }
+extern "C" void EXTI2_IRQHandler() { core_exti(GPIO_PIN_2); }
+extern "C" void EXTI3_IRQHandler() { core_exti(GPIO_PIN_3); }
+extern "C" void EXTI4_IRQHandler() { core_exti(GPIO_PIN_4); }
 
 extern "C" void EXTI9_5_IRQHandler()
 {
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
+    core_exti(GPIO_PIN_5);
+    core_exti(GPIO_PIN_6);
+    core_exti(GPIO_PIN_7);
+    core_exti(GPIO_PIN_8);
+    core_exti(GPIO_PIN_9);
 }
 
 extern "C" void EXTI15_10_IRQHandler()
 {
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_11);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_14);
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_15);
+    core_exti(GPIO_PIN_10);
+    core_exti(GPIO_PIN_11);
+    core_exti(GPIO_PIN_12);
+    core_exti(GPIO_PIN_13);
+    core_exti(GPIO_PIN_14);
+    core_exti(GPIO_PIN_15);
 }

@@ -2,8 +2,8 @@ add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 
 add_subdirectory(common)
 
-if(DEFINED H755_CORE)
-    if(H755_CORE STREQUAL "CM4")
+if(DEFINED STM32_CORE)
+    if(STM32_CORE STREQUAL "CM4")
         set(application_role io)
     else()
         set(application_role ui)

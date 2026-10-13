@@ -54,6 +54,12 @@ namespace ui::cli
                     if (!line.empty() || overflow) { execute(); }
                     std::cout.flush();
                     return;
+                case hal::console::InputState::Reset:
+                    line.clear();
+                    after_cr = false;
+                    overflow = false;
+                    std::cout << "\r\n> " << std::flush;
+                    continue;
                 case hal::console::InputState::Error:
                     throw std::runtime_error("console input failed");
                 case hal::console::InputState::Character:

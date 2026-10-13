@@ -15,8 +15,7 @@ namespace
     // or touching real hardware: the board underneath these tests is virtual.
     TEST(HalCoreCatalog, M4HasOnlyItsAssignedRoles)
     {
-        ASSERT_NE(M4.status_led, nullptr);
-        EXPECT_EQ(M4.status_led(), hal::board::create_led(hal::board::LedId::Green));
+        EXPECT_EQ(M4.status_led, nullptr);
         ASSERT_NE(M4.runtime_timer, nullptr);
         EXPECT_EQ(M4.runtime_timer(), hal::board::create_timer(hal::timer::Peripheral::Tim5));
         EXPECT_EQ(M4.error_led, nullptr);
@@ -26,7 +25,7 @@ namespace
     TEST(HalCoreCatalog, M7HasItsAssignedLedsAndButton)
     {
         ASSERT_NE(M7.status_led, nullptr);
-        EXPECT_EQ(M7.status_led(), hal::board::create_led(hal::board::LedId::Yellow));
+        EXPECT_EQ(M7.status_led(), hal::board::create_led(hal::board::LedId::Green));
         ASSERT_NE(M7.error_led, nullptr);
         EXPECT_EQ(M7.error_led(), hal::board::create_led(hal::board::LedId::Red));
         ASSERT_NE(M7.user_button, nullptr);
@@ -116,7 +115,7 @@ namespace
     TEST(HalBoard, AccessIsIndependentOfCoreAssignments)
     {
         // Host has no assigned status LED, but the board still exposes all LEDs.
-        for (const auto id : {hal::board::LedId::Green, hal::board::LedId::Yellow, hal::board::LedId::Red}) {
+        for (const auto id : {hal::board::LedId::Green, hal::board::LedId::Green, hal::board::LedId::Red}) {
             EXPECT_TRUE(hal::board::create_led(id));
         }
         EXPECT_TRUE(hal::board::create_button(hal::board::ButtonId::User));

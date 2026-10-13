@@ -116,12 +116,12 @@ inline void HAL_NVIC_EnableIRQ(IRQn_Type irq) { irq_enabled[irq] = true; }
 inline void HAL_NVIC_DisableIRQ(IRQn_Type irq) { irq_enabled[irq] = false; }
 inline void HAL_NVIC_ClearPendingIRQ(IRQn_Type) {}
 inline void HAL_NVIC_SetPriority(IRQn_Type, uint32_t, uint32_t) {}
-inline bool tim2_clock_enabled{}, gpio_a_clock_enabled{}, gpio_b_clock_enabled{}, gpio_e_clock_enabled{};
+inline bool tim2_clock_enabled{}, gpio_a_clock_enabled{}, gpio_b_clock_enabled{}, gpio_c_clock_enabled{};
 inline void __HAL_RCC_TIM2_CLK_ENABLE() { tim2_clock_enabled = true; }
 inline bool __HAL_RCC_TIM2_IS_CLK_ENABLED() { return tim2_clock_enabled; }
 inline void __HAL_RCC_GPIOA_CLK_ENABLE() { gpio_a_clock_enabled = true; }
 inline void __HAL_RCC_GPIOB_CLK_ENABLE() { gpio_b_clock_enabled = true; }
-inline void __HAL_RCC_GPIOE_CLK_ENABLE() { gpio_e_clock_enabled = true; }
+inline void __HAL_RCC_GPIOC_CLK_ENABLE() { gpio_c_clock_enabled = true; }
 inline void __HAL_RCC_TIM7_CLK_ENABLE() {}
 inline void __HAL_RCC_DMA1_CLK_ENABLE() {}
 inline void __HAL_RCC_D2SRAM1_CLK_ENABLE() {}
@@ -158,16 +158,16 @@ struct GPIO_TypeDef
     } BSRR{ this };
     std::array<uint32_t, 16> mode{}, alternate{};
 };
-inline GPIO_TypeDef gpio_a, gpio_b, gpio_e;
+inline GPIO_TypeDef gpio_a, gpio_b, gpio_c;
 inline auto* GPIOA = &gpio_a;
 inline auto* GPIOB = &gpio_b;
-inline auto* GPIOE = &gpio_e;
+inline auto* GPIOC = &gpio_c;
 inline auto* M1_STEP_GPIO_Port = GPIOA;
-inline auto* M2_STEP_GPIO_Port = GPIOB;
-inline auto* M3_STEP_GPIO_Port = GPIOB;
-inline auto* STEPPERS_EN_N_GPIO_Port = GPIOE;
-constexpr uint32_t M1_STEP_Pin = 1, M2_STEP_Pin = 1U << 10, M3_STEP_Pin = 1U << 11,
-                   STEPPERS_EN_N_Pin = 1U << 15;
+inline auto* M2_STEP_GPIO_Port = GPIOA;
+inline auto* M3_STEP_GPIO_Port = GPIOA;
+inline auto* STEPPERS_EN_N_GPIO_Port = GPIOC;
+constexpr uint32_t M1_STEP_Pin = 1, M2_STEP_Pin = 1U << 2, M3_STEP_Pin = 1U << 3,
+                   STEPPERS_EN_N_Pin = 1U << 7;
 constexpr uint32_t GPIO_PIN_15 = 1U << 15, GPIO_PIN_0 = 1, GPIO_PIN_10 = 1U << 10, GPIO_PIN_11 = 1U << 11, GPIO_PIN_RESET = 0;
 constexpr uint32_t GPIO_MODE_AF_PP = 2, GPIO_MODE_OUTPUT_PP = 1, GPIO_PULLDOWN = 2, GPIO_SPEED_FREQ_LOW = 0,
                    GPIO_AF1_TIM2 = 1;
@@ -188,3 +188,5 @@ inline void HAL_GPIO_Init(GPIO_TypeDef* gpio, const GPIO_InitTypeDef* config)
             gpio->alternate[pin] = config->Alternate;
         }
 }
+
+constexpr uint32_t GPIO_PIN_2 = 1U << 2, GPIO_PIN_3 = 1U << 3, GPIO_PIN_7 = 1U << 7;

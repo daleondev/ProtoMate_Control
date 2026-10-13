@@ -17,7 +17,8 @@ namespace hal::encoder
         using enum gpio::Port;
         if (configuration.timer != timer::Peripheral::Tim3 ||
             configuration.a != gpio::Pin{ .port = B, .number = 4U } ||
-            configuration.b != gpio::Pin{ .port = B, .number = ENCODER_B_PIN_NUMBER }) {
+            (configuration.b != gpio::Pin{ .port = B, .number = ENCODER_B_PIN_NUMBER } &&
+             configuration.b != gpio::Pin{ .port = A, .number = 7U })) {
             return {};
         }
         util::TimerLease lease{ configuration.timer };

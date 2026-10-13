@@ -7,7 +7,7 @@
 
 namespace hal::step
 {
-    auto create() -> std::shared_ptr<IStepGenerator>
+    auto create(Configuration /*configuration*/) -> std::shared_ptr<IStepGenerator>
     {
         using enum gpio::Port;
         constexpr std::array pins{ gpio::Pin{ .port = A, .number = 0U },

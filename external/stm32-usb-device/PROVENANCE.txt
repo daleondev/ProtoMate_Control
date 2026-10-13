@@ -1,0 +1,2 @@
+ST STM32_USB_Device_Library from STM32Cube_FW_H7_V1.13.0.
+Only Core and CDC class are vendored. See LICENSE.txt and Release_Notes.html.

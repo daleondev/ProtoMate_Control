@@ -1,0 +1,24 @@
+#include "hal/devices/factory/display.hpp"
+#include "hal/devices/impl/SmartwinDisplay.hpp"
+#include "hal/devices/impl/St1633i.hpp"
+#include "hal/drivers/factory/gpio.hpp"
+#include "hal/drivers/factory/rgb.hpp"
+#include "hal/drivers/factory/i2c.hpp"
+namespace hal::device::display {
+    auto create(PanelConfiguration configuration) -> std::shared_ptr<IDisplay> {
+        auto output = rgb::create({.backlight=configuration.backlight});
+        if (!output) { return {}; }
+        auto standby = gpio::create_output({.pin=configuration.standby});
+        auto reset = gpio::create_output({.pin=configuration.reset});
+        if (!standby || !reset) { return {}; }
+        return std::make_shared<SmartwinDisplay>(std::move(output), std::move(standby), std::move(reset));
+    }
+    auto create_touch(TouchConfiguration configuration) -> std::shared_ptr<ITouch> {
+        auto bus = i2c::create(i2c::Peripheral::I2c4);
+        if (!bus || configuration.address > 0x7F) { return {}; }
+        auto reset = gpio::create_output({.pin=configuration.reset});
+        auto interrupt = gpio::create_input({.pin=configuration.interrupt, .pull=gpio::Pull::Up, .edge=gpio::Edge::Falling});
+        if (!reset || !interrupt) { return {}; }
+        return std::make_shared<St1633i>(std::move(bus), configuration.address, std::move(reset), std::move(interrupt));
+    }
+}

@@ -1,4 +1,7 @@
 #include "Support.hpp"
+#if defined(HAL_PLATFORM_STM32)
+#include "hal/hal.hpp"
+#endif
 
 #include <algorithm>
 #include <exception>
@@ -39,6 +42,10 @@ namespace runtime::threadx
     {
         static_cast<void>(operation);
         static_cast<void>(status);
+#if defined(HAL_PLATFORM_STM32)
+        hal::panic(operation);
+#else
         std::terminate();
+#endif
     }
 }

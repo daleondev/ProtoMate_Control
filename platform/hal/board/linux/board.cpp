@@ -326,3 +326,13 @@ namespace hal::board
         return {};
     }
 }
+
+namespace hal::board {
+    // These physical devices have no host backend. Catalog inspection is still
+    // available on Linux; construction explicitly reports unavailability.
+    auto create_display() -> std::shared_ptr<device::IDisplay> { return {}; }
+    auto create_touch() -> std::shared_ptr<device::ITouch> { return {}; }
+    auto create_ethercat_reset() -> std::shared_ptr<IDigitalOutput> { return {}; }
+    auto create_ethercat_interrupt() -> std::shared_ptr<IDigitalInput> { return {}; }
+    auto create_ethercat_sync0() -> std::shared_ptr<IDigitalInput> { return {}; }
+}

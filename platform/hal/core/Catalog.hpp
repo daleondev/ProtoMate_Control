@@ -26,14 +26,20 @@ namespace hal::core
         decltype(&board::create_stepper_driver_bus) stepper_driver_bus{};
         decltype(&board::create_stepper_drivers) stepper_drivers{};
         decltype(&board::create_motor_feedback) motor_feedback{};
+        decltype(&board::create_ethercat_spi) ethercat_spi{};
+        decltype(&board::create_ethercat_chip_select) ethercat_chip_select{};
+        decltype(&board::create_ethercat_reset) ethercat_reset{};
+        decltype(&board::create_ethercat_interrupt) ethercat_interrupt{};
+        decltype(&board::create_ethercat_sync0) ethercat_sync0{};
+        decltype(&board::create_display) display{};
+        decltype(&board::create_touch) touch{};
     };
 
-    // H755 processor assignments. Keep physical pins in board, and application
+    // Processor assignments. Keep physical pins in board, and application
     // roles (IO/UI) outside HAL. Shared devices use synchronized implementations.
     struct Catalog
     {
         [[= util::Core::M4]] static constexpr Devices m4{
-            .status_led = [] { return board::create_led(board::LedId::Green); },
             .runtime_timer = [] { return board::create_timer(timer::Peripheral::Tim5); },
             .rtc = board::create_rtc,
             .rng = board::create_rng,
@@ -46,16 +52,24 @@ namespace hal::core
             .stepper_driver_bus = board::create_stepper_driver_bus,
             .stepper_drivers = board::create_stepper_drivers,
             .motor_feedback = board::create_motor_feedback,
+            .ethercat_spi = board::create_ethercat_spi,
+            .ethercat_chip_select = board::create_ethercat_chip_select,
+            .ethercat_reset = board::create_ethercat_reset,
+            .ethercat_interrupt = board::create_ethercat_interrupt,
+            .ethercat_sync0 = board::create_ethercat_sync0,
+
         };
 
         [[= util::Core::M7]] static constexpr Devices m7{
-            .status_led = [] { return board::create_led(board::LedId::Yellow); },
+            .status_led = [] { return board::create_led(board::LedId::Green); },
             .error_led = [] { return board::create_led(board::LedId::Red); },
             .user_button = [] { return board::create_button(board::ButtonId::User); },
             .runtime_timer = [] { return board::create_timer(timer::Peripheral::Tim12); },
             .rtc = board::create_rtc,
             .rng = board::create_rng,
             .intercore_channel = board::create_intercore_channel,
+            .display = board::create_display,
+            .touch = board::create_touch,
         };
 
         [[= util::Core::Host]] static constexpr Devices host{

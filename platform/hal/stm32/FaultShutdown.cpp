@@ -3,8 +3,10 @@
 #include "FaultShutdown.hpp"
 
 #include "hal/hal.hpp"
+#include "hal/board/arduino_giga/pins.h"
 
 #include <bit>
+#include <initializer_list>
 #include <cstdint>
 
 namespace
@@ -36,22 +38,15 @@ namespace hal::stm32
         }
         // A pending step DMA transfer can only write a CCR or clear CR1; it
         // cannot restart this timer. Do not wait for DMA or call driver stop().
-        __HAL_RCC_GPIOE_CLK_ENABLE(); // NOLINT(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        __HAL_RCC_GPIOA_CLK_ENABLE(); // NOLINT(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        __HAL_RCC_GPIOB_CLK_ENABLE(); // NOLINT(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        BOARD_MOTOR_GPIO_CLOCKS();
         __DSB();
-        force_output(GPIOE, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                     GPIO_PIN_15,
-                     true); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        force_output(GPIOA, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                     GPIO_PIN_0,
-                     false); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        force_output(GPIOB, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                     GPIO_PIN_10,
-                     false); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        force_output(GPIOB, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                     GPIO_PIN_11,
-                     false); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        force_output(BOARD_ENABLE_PORT, BOARD_ENABLE_PIN, true);
+        std::uint32_t pins = BOARD_STEP_PINS;
+        while (pins) {
+            const auto pin = 1U << std::countr_zero(pins);
+            force_output(BOARD_STEP_PORT, pin, false);
+            pins &= ~pin;
+        }
         __DSB();
     }
 }

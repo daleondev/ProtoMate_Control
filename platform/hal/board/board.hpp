@@ -1,4 +1,6 @@
 #pragma once
+#include "hal/devices/itf/IDisplay.hpp"
+#include "hal/devices/itf/ITouch.hpp"
 
 #include "hal/devices/itf/IButton.hpp"
 #include "hal/devices/itf/ILed.hpp"
@@ -28,6 +30,7 @@ namespace hal::board
     {
         Green,
         Yellow,
+        Blue,
         Red
     };
 
@@ -89,4 +92,9 @@ namespace hal::board
     // motor configuration; encoder resolution and pin selection belong here.
     [[nodiscard]] auto create_motor_feedback(MotorId id, const MotorFeedbackConfig& config)
       -> std::shared_ptr<device::IMotorFeedback>;
+    [[nodiscard]] auto create_ethercat_reset() -> std::shared_ptr<IDigitalOutput>;
+    [[nodiscard]] auto create_ethercat_interrupt() -> std::shared_ptr<IDigitalInput>;
+    [[nodiscard]] auto create_ethercat_sync0() -> std::shared_ptr<IDigitalInput>;
+    [[nodiscard]] auto create_display() -> std::shared_ptr<device::IDisplay>;
+    [[nodiscard]] auto create_touch() -> std::shared_ptr<device::ITouch>;
 }

@@ -11,6 +11,7 @@ namespace hal::uart
     auto create(Configuration configuration) -> std::shared_ptr<IUart>
     {
         if (configuration.peripheral != Peripheral::Usart2 ||
+            (configuration.tx != gpio::Pin{gpio::Port::D, 5} || configuration.rx != gpio::Pin{gpio::Port::D, 6}) ||
             !util::valid_uart_configuration(configuration.transport) ||
             !__HAL_RCC_USART2_IS_CLK_ENABLED()) {
             return {};
@@ -20,12 +21,12 @@ namespace hal::uart
             (USART2->CR2 & USART_CR2_STOP) != 0U) {
             return {};
         }
-        auto tx{ gpio::create_output({ .pin = { gpio::Port::D, 5U },
+        auto tx{ gpio::create_output({ .pin = configuration.tx,
                                       .initial_level = gpio::Level::High,
                                       .pull = gpio::Pull::Up,
                                       .alternate_function = 7U }) };
         if (!tx) { return {}; }
-        auto rx{ gpio::create_input({ .pin = { gpio::Port::D, 6U },
+        auto rx{ gpio::create_input({ .pin = configuration.rx,
                                      .pull = gpio::Pull::Up,
                                      .alternate_function = 7U }) };
         if (!rx) { return {}; }

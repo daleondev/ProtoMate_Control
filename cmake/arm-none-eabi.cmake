@@ -20,13 +20,13 @@ set(CMAKE_EXECUTABLE_SUFFIX_CXX ".elf")
 # Compiler checks cannot link firmware without the application linker script.
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES H755_CORE)
-if(H755_CORE STREQUAL "CM4")
+list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES STM32_CORE)
+if(STM32_CORE STREQUAL "CM4")
     set(ARM_CPU_FLAGS "-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
-elseif(H755_CORE STREQUAL "CM7")
+elseif(STM32_CORE STREQUAL "CM7")
     set(ARM_CPU_FLAGS "-mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard")
 else()
-    message(FATAL_ERROR "Select H755_CORE=CM4 or CM7 using an H755 preset")
+    message(FATAL_ERROR "Select STM32_CORE=CM4 or CM7 using an GIGA preset")
 endif()
 
 # Toolchain files are evaluated again in CMake's try_compile projects. Use the

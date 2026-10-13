@@ -28,6 +28,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     # the M4 as well as the M7; unoptimized STL access exceeds the arming budget.
     set_source_files_properties(impl/StepGenerator.cpp impl/stm32/StepHardware.cpp
         PROPERTIES COMPILE_OPTIONS "-O2")
+    if(STM32_CORE STREQUAL "CM4")
+        set_source_files_properties(impl/StepGenerator.cpp impl/StepOutput.cpp
+            impl/stm32/StepHardware.cpp impl/stm32/QuadratureEncoder.cpp impl/stm32/Gpio.cpp
+            PROPERTIES COMPILE_OPTIONS "-O2;-include;${PROJECT_SOURCE_DIR}/platform/boot/giga/fast_unwind.h")
+    endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(hal_drivers PUBLIC HAL_PLATFORM_LINUX HAL_STEP_THREADX)
     target_link_libraries(hal_drivers PUBLIC threadx)

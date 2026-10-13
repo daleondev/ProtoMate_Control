@@ -45,4 +45,11 @@ namespace hal::core
     auto create_motor_feedback(MotorId id, const MotorFeedbackConfig& config)
       -> std::shared_ptr<device::IMotorFeedback>
     { return create(DEVICES.motor_feedback, id, config); }
+    auto create_ethercat_spi() -> std::shared_ptr<ISpi> { return create(DEVICES.ethercat_spi); }
+    auto create_ethercat_chip_select() -> std::shared_ptr<IDigitalOutput> { return create(DEVICES.ethercat_chip_select); }
+    auto create_ethercat_reset() -> std::shared_ptr<IDigitalOutput> { return create(DEVICES.ethercat_reset); }
+    auto create_ethercat_interrupt() -> std::shared_ptr<IDigitalInput> { return create(DEVICES.ethercat_interrupt); }
+    auto create_ethercat_sync0() -> std::shared_ptr<IDigitalInput> { return create(DEVICES.ethercat_sync0); }
+    auto create_display() -> std::shared_ptr<device::IDisplay> { return create(DEVICES.display); }
+    auto create_touch() -> std::shared_ptr<device::ITouch> { return create(DEVICES.touch); }
 }

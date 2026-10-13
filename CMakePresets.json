@@ -52,161 +52,79 @@
             }
         },
         {
-            "name": "h755-io-debug",
-            "displayName": "NUCLEO-H755ZI-Q CM4 IO application (debug)",
+            "name": "giga-io-debug",
+            "displayName": "Arduino GIGA CM4 IO application (debug)",
             "inherits": "base",
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "H755_CORE": "CM4",
-                "H755_LED_SAMPLE": false,
+                "STM32_CORE": "CM4",
                 "RUNTIME_FILESYSTEM": true
             }
         },
         {
-            "name": "h755-ui-debug",
-            "displayName": "NUCLEO-H755ZI-Q CM7 UI application (debug)",
+            "name": "giga-ui-debug",
+            "displayName": "Arduino GIGA CM7 UI application (debug)",
             "inherits": "base",
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "H755_CORE": "CM7",
-                "H755_LED_SAMPLE": false,
+                "STM32_CORE": "CM7",
                 "RUNTIME_FILESYSTEM": true
             }
         },
         {
-            "name": "h755-io-release",
-            "displayName": "NUCLEO-H755ZI-Q CM4 IO application (release)",
+            "name": "giga-io-release",
+            "displayName": "Arduino GIGA CM4 IO application (release)",
             "inherits": "base",
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "H755_CORE": "CM4",
-                "H755_LED_SAMPLE": false,
+                "STM32_CORE": "CM4",
                 "RUNTIME_FILESYSTEM": true
             }
         },
         {
-            "name": "h755-ui-release",
-            "displayName": "NUCLEO-H755ZI-Q CM7 UI application (release)",
+            "name": "giga-ui-release",
+            "displayName": "Arduino GIGA CM7 UI application (release)",
             "inherits": "base",
             "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "H755_CORE": "CM7",
-                "H755_LED_SAMPLE": false,
+                "STM32_CORE": "CM7",
                 "RUNTIME_FILESYSTEM": true
             }
         },
         {
-            "name": "h755-led-io-debug",
-            "displayName": "NUCLEO-H755ZI-Q CM4 IO LED sample (debug)",
-            "inherits": "base",
-            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "H755_CORE": "CM4",
-                "H755_LED_SAMPLE": true
-            }
-        },
-        {
-            "name": "h755-led-ui-debug",
-            "displayName": "NUCLEO-H755ZI-Q CM7 UI LED sample (debug)",
-            "inherits": "base",
-            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "H755_CORE": "CM7",
-                "H755_LED_SAMPLE": true
-            }
-        },
-        {
-            "name": "h755-led-io-release",
-            "displayName": "NUCLEO-H755ZI-Q CM4 IO LED sample (release)",
-            "inherits": "base",
-            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "H755_CORE": "CM4",
-                "H755_LED_SAMPLE": true
-            }
-        },
-        {
-            "name": "h755-led-ui-release",
-            "displayName": "NUCLEO-H755ZI-Q CM7 UI LED sample (release)",
-            "inherits": "base",
-            "toolchainFile": "${sourceDir}/cmake/arm-none-eabi.cmake",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "H755_CORE": "CM7",
-                "H755_LED_SAMPLE": true
-            }
-        },
-        {
-            "name": "h755-debug",
-            "displayName": "NUCLEO-H755ZI-Q IO + UI applications (debug)",
+            "name": "giga-debug",
+            "displayName": "Arduino GIGA IO + UI applications (debug)",
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "H755_BUILD_BOTH": true
+                "GIGA_BUILD_BOTH": true
             }
         },
         {
-            "name": "h755-release",
-            "displayName": "NUCLEO-H755ZI-Q IO + UI applications (release)",
+            "name": "giga-release",
+            "displayName": "Arduino GIGA IO + UI applications (release)",
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "H755_BUILD_BOTH": true
+                "GIGA_BUILD_BOTH": true
             }
         },
         {
-            "name": "h755-step-io-debug",
-            "inherits": "h755-io-debug",
-            "displayName": "H755 IO STEP bench (debug)",
+            "name": "giga-io-ram-debug",
+            "inherits": "giga-io-debug",
             "cacheVariables": {
-                "H755_STEP_BENCH": true
+                "GIGA_M4_RAM_DEBUG": true
             }
         },
         {
-            "name": "h755-step-ui-debug",
-            "inherits": "h755-ui-debug",
-            "displayName": "H755 UI STEP bench (debug)",
+            "name": "giga-ram-debug",
+            "inherits": "giga-debug",
             "cacheVariables": {
-                "H755_STEP_BENCH": true
-            }
-        },
-        {
-            "name": "h755-step-debug",
-            "inherits": "h755-debug",
-            "displayName": "H755 STEP bench pair (debug)",
-            "cacheVariables": {
-                "H755_STEP_BENCH": true
-            }
-        },
-        {
-            "name": "h755-step-io-release",
-            "inherits": "h755-io-release",
-            "displayName": "H755 IO STEP bench (release)",
-            "cacheVariables": {
-                "H755_STEP_BENCH": true
-            }
-        },
-        {
-            "name": "h755-step-ui-release",
-            "inherits": "h755-ui-release",
-            "displayName": "H755 UI STEP bench (release)",
-            "cacheVariables": {
-                "H755_STEP_BENCH": true
-            }
-        },
-        {
-            "name": "h755-step-release",
-            "inherits": "h755-release",
-            "displayName": "H755 STEP bench pair (release)",
-            "cacheVariables": {
-                "H755_STEP_BENCH": true
+                "GIGA_M4_RAM_DEBUG": true
             }
         }
     ],
@@ -231,68 +149,36 @@
             "configurePreset": "sanitize-linux"
         },
         {
-            "name": "h755-io-debug",
-            "configurePreset": "h755-io-debug"
+            "name": "giga-io-debug",
+            "configurePreset": "giga-io-debug"
         },
         {
-            "name": "h755-ui-debug",
-            "configurePreset": "h755-ui-debug"
+            "name": "giga-ui-debug",
+            "configurePreset": "giga-ui-debug"
         },
         {
-            "name": "h755-io-release",
-            "configurePreset": "h755-io-release"
+            "name": "giga-io-release",
+            "configurePreset": "giga-io-release"
         },
         {
-            "name": "h755-ui-release",
-            "configurePreset": "h755-ui-release"
+            "name": "giga-ui-release",
+            "configurePreset": "giga-ui-release"
         },
         {
-            "name": "h755-led-io-debug",
-            "configurePreset": "h755-led-io-debug"
+            "name": "giga-debug",
+            "configurePreset": "giga-debug"
         },
         {
-            "name": "h755-led-ui-debug",
-            "configurePreset": "h755-led-ui-debug"
+            "name": "giga-release",
+            "configurePreset": "giga-release"
         },
         {
-            "name": "h755-led-io-release",
-            "configurePreset": "h755-led-io-release"
+            "name": "giga-io-ram-debug",
+            "configurePreset": "giga-io-ram-debug"
         },
         {
-            "name": "h755-led-ui-release",
-            "configurePreset": "h755-led-ui-release"
-        },
-        {
-            "name": "h755-debug",
-            "configurePreset": "h755-debug"
-        },
-        {
-            "name": "h755-release",
-            "configurePreset": "h755-release"
-        },
-        {
-            "name": "h755-step-io-debug",
-            "configurePreset": "h755-step-io-debug"
-        },
-        {
-            "name": "h755-step-ui-debug",
-            "configurePreset": "h755-step-ui-debug"
-        },
-        {
-            "name": "h755-step-debug",
-            "configurePreset": "h755-step-debug"
-        },
-        {
-            "name": "h755-step-io-release",
-            "configurePreset": "h755-step-io-release"
-        },
-        {
-            "name": "h755-step-ui-release",
-            "configurePreset": "h755-step-ui-release"
-        },
-        {
-            "name": "h755-step-release",
-            "configurePreset": "h755-step-release"
+            "name": "giga-ram-debug",
+            "configurePreset": "giga-ram-debug"
         }
     ],
     "testPresets": [

@@ -39,7 +39,7 @@ namespace
             dma_streams = {};
             primask = 0;
             timer.CR1 = 0;
-            auto hardware{ std::make_unique<hal::stm32::StepHardware>() };
+            auto hardware{ std::make_unique<hal::stm32::StepHardware>(std::array<hal::gpio::Pin, 3>{hal::gpio::Pin{hal::gpio::Port::A, 0}, hal::gpio::Pin{hal::gpio::Port::A, 2}, hal::gpio::Pin{hal::gpio::Port::A, 3}}) };
             engine = std::make_shared<hal::util::StepGenerator>(std::move(hardware));
             hal::stm32::register_step_generator(engine.get());
             for (unsigned i = 0; i < 3; ++i)
@@ -121,8 +121,8 @@ namespace
                 for (unsigned i = 0; i < 3; ++i)
                     if (events[i] == next) {
                         if (compare(i) != hal::util::STEP_PARK && (timer.CCER & enable[i])) {
-                            auto* gpio = i == 0U ? GPIOA : GPIOB;
-                            const auto mask = i == 0U ? GPIO_PIN_0 : i == 1U ? GPIO_PIN_10 : GPIO_PIN_11;
+                            auto* gpio = GPIOA;
+                            const auto mask = i == 0U ? GPIO_PIN_0 : i == 1U ? GPIO_PIN_2 : GPIO_PIN_3;
                             high[i] = !(gpio->IDR & mask);
                             gpio->IDR = (gpio->IDR & ~mask) | (high[i] ? mask : 0U);
                             (high[i] ? rising[i] : falling[i]).push_back(elapsed);
@@ -161,8 +161,8 @@ TEST_F(RegisterTest, ConfiguresRealAdapterForIndependentWordDmaAndHardwareGuard)
     EXPECT_EQ(timer.CCMR2, TIM_OCMODE_TOGGLE | (TIM_OCMODE_TOGGLE << 8U));
     EXPECT_EQ(timer.CCER, TIM_CCER_CC1E | TIM_CCER_CC3E | TIM_CCER_CC4E);
     EXPECT_EQ(gpio_a.alternate[0], 1U);
-    EXPECT_EQ(gpio_b.alternate[10], 1U);
-    EXPECT_EQ(gpio_b.alternate[11], 1U);
+    EXPECT_EQ(gpio_a.alternate[2], 1U);
+    EXPECT_EQ(gpio_a.alternate[3], 1U);
     EXPECT_EQ(mux[0].CCR, 18U);
     EXPECT_EQ(mux[1].CCR, 20U);
     EXPECT_EQ(mux[2].CCR, 21U);
@@ -184,25 +184,25 @@ TEST_F(RegisterTest, FatalShutdownStopsActiveDmaMotionWithoutDriverOrInterruptSe
     advance(100U); // All three outputs are in their first high phase.
     for (const auto& edges : rising)
         ASSERT_EQ(edges.size(), 1U);
-    gpio_e.level = 0U; // Drivers enabled.
-    gpio_e.MODER = 0xAAAAAAAAU;
-    gpio_e.OTYPER = 0xFFFFU;
-    gpio_e.OSPEEDR = gpio_e.PUPDR = 0xFFFFFFFFU;
+    gpio_c.level = 0U; // Drivers enabled.
+    gpio_c.MODER = 0xAAAAAAAAU;
+    gpio_c.OTYPER = 0xFFFFU;
+    gpio_c.OSPEEDR = gpio_c.PUPDR = 0xFFFFFFFFU;
     hal::stm32::shutdown_motion_on_fault();
     EXPECT_EQ(primask, 1U);
     EXPECT_EQ(timer.CR1, 0U);
     EXPECT_EQ(timer.DIER, 0U);
     EXPECT_EQ(timer.CCER, 0U);
-    EXPECT_EQ(gpio_e.level & STEPPERS_EN_N_Pin, STEPPERS_EN_N_Pin);
-    EXPECT_EQ(gpio_e.MODER >> 30U, 1U);
-    EXPECT_EQ(gpio_e.MODER & 0x3FFFFFFFU, 0x2AAAAAAAU); // Other pins unchanged.
-    EXPECT_EQ(gpio_e.OTYPER & STEPPERS_EN_N_Pin, 0U);
-    EXPECT_EQ(gpio_e.OSPEEDR >> 30U, 0U);
-    EXPECT_EQ(gpio_e.PUPDR >> 30U, 0U);
+    EXPECT_EQ(gpio_c.level & STEPPERS_EN_N_Pin, STEPPERS_EN_N_Pin);
+    EXPECT_EQ((gpio_c.MODER >> 14U) & 3U, 1U);
+    EXPECT_EQ(gpio_c.MODER & ~(3U << 14U), 0xAAAAAAAAU & ~(3U << 14U)); // Other pins unchanged.
+    EXPECT_EQ(gpio_c.OTYPER & STEPPERS_EN_N_Pin, 0U);
+    EXPECT_EQ((gpio_c.OSPEEDR >> 14U) & 3U, 0U);
+    EXPECT_EQ((gpio_c.PUPDR >> 14U) & 3U, 0U);
     EXPECT_EQ(gpio_a.level & M1_STEP_Pin, 0U);
-    EXPECT_EQ(gpio_b.level & (M2_STEP_Pin | M3_STEP_Pin), 0U);
+    EXPECT_EQ(gpio_a.level & (M2_STEP_Pin | M3_STEP_Pin), 0U);
     EXPECT_EQ(gpio_a.MODER & 3U, 1U);
-    EXPECT_EQ((gpio_b.MODER >> 20U) & 15U, 5U);
+    EXPECT_EQ((gpio_a.MODER >> 4U) & 15U, 5U);
     // Even an already pending DMA request cannot restart output generation.
     for (unsigned i = 0; i < 4; ++i)
         dmaTransfer(i);
@@ -214,21 +214,20 @@ TEST_F(RegisterTest, FatalShutdownStopsActiveDmaMotionWithoutDriverOrInterruptSe
 TEST_F(RegisterTest, FatalShutdownBeforeInitializationEnablesGpioClocksAndIsIdempotent)
 {
     tim2_clock_enabled = false;
-    gpio_a_clock_enabled = gpio_b_clock_enabled = gpio_e_clock_enabled = false;
+    gpio_a_clock_enabled = gpio_b_clock_enabled = gpio_c_clock_enabled = false;
     timer.CR1 = 0xABCDU; // A clock-gated peripheral must not be accessed.
-    gpio_a.level = M1_STEP_Pin;
-    gpio_b.level = M2_STEP_Pin | M3_STEP_Pin;
-    gpio_e.level = 0U;
+    gpio_a.level = M1_STEP_Pin | M2_STEP_Pin | M3_STEP_Pin;
+    gpio_c.level = 0U;
     hal::stm32::shutdown_motion_on_fault();
     hal::stm32::shutdown_motion_on_fault();
     EXPECT_EQ(timer.CR1, 0xABCDU);
     EXPECT_FALSE(tim2_clock_enabled);
     EXPECT_TRUE(gpio_a_clock_enabled);
-    EXPECT_TRUE(gpio_b_clock_enabled);
-    EXPECT_TRUE(gpio_e_clock_enabled);
-    EXPECT_EQ(gpio_e.level & STEPPERS_EN_N_Pin, STEPPERS_EN_N_Pin);
+    EXPECT_FALSE(gpio_b_clock_enabled);
+    EXPECT_TRUE(gpio_c_clock_enabled);
+    EXPECT_EQ(gpio_c.level & STEPPERS_EN_N_Pin, STEPPERS_EN_N_Pin);
     EXPECT_EQ(gpio_a.level & M1_STEP_Pin, 0U);
-    EXPECT_EQ(gpio_b.level & (M2_STEP_Pin | M3_STEP_Pin), 0U);
+    EXPECT_EQ(gpio_a.level & (M2_STEP_Pin | M3_STEP_Pin), 0U);
     timer.CR1 = 0U;
 }
 
@@ -252,7 +251,7 @@ TEST_F(RegisterTest, ThreeRealDmaStreamsCompleteAtDifferentRatesWithoutGaps)
         }
     }
     EXPECT_EQ(gpio_a.mode[0], GPIO_MODE_OUTPUT_PP);
-    EXPECT_EQ(gpio_b.mode[10], GPIO_MODE_OUTPUT_PP);
+    EXPECT_EQ(gpio_a.mode[2], GPIO_MODE_OUTPUT_PP);
 }
 
 TEST_F(RegisterTest, NormalFiniteGuardDoesNotNeedAnyIrqToPreventAnotherPulse)

@@ -13,8 +13,8 @@ SYNCHRONIZATION = {
     'hal/linux/ThreadMutex.hpp',
 }
 PORTABLE = ('hal/drivers/itf/', 'hal/devices/itf/', 'hal/util/')
-HARDWARE_FACTORIES = {'gpio', 'timer', 'rtc', 'rng', 'step', 'encoder', 'uart', 'intercore'}
-HARDWARE_DEVICE_FACTORIES = {'tmc2209'}
+HARDWARE_FACTORIES = {'gpio', 'timer', 'rtc', 'rng', 'step', 'encoder', 'uart', 'intercore', 'spi', 'rgb', 'i2c'}
+HARDWARE_DEVICE_FACTORIES = {'tmc2209', 'display'}
 
 
 def include_error(source, target):
@@ -139,7 +139,7 @@ def check_build(root, build, platform_name):
             errors.append(f'{source}: wrong platform selected for {platform_name}')
     for path in (root / 'platform' / 'hal').rglob('*.cpp'):
         parts = path.relative_to(root / 'platform' / 'hal').parts
-        board = 'linux' if platform_name == 'linux' else 'nucleo_h755ziq'
+        board = 'linux' if platform_name == 'linux' else 'arduino_giga'
         if ('tests' in parts or forbidden in parts
                 or (parts[0] == 'board' and parts[1] != board)):
             continue

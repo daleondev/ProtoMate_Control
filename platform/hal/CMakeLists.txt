@@ -11,7 +11,11 @@ target_sources(hal PRIVATE console.hpp)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     set(HAL_PLATFORM_DIRECTORY stm32)
-    target_sources(hal PRIVATE stm32/FaultShutdown.cpp stm32/FaultShutdown.hpp stm32/TimerClock.hpp)
+    target_sources(hal PRIVATE stm32/FaultShutdown.cpp stm32/FaultShutdown.hpp stm32/TimerClock.hpp stm32/console.cpp stm32/UsbConsole.h)
+    if(STM32_CORE STREQUAL "CM4")
+        set_source_files_properties(stm32/FaultShutdown.cpp PROPERTIES COMPILE_OPTIONS
+            "-O2;-include;${PROJECT_SOURCE_DIR}/platform/boot/giga/fast_unwind.h")
+    endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(HAL_PLATFORM_DIRECTORY linux)
 else()

@@ -1,4 +1,6 @@
 #pragma once
+#include "hal/devices/itf/IDisplay.hpp"
+#include "hal/devices/itf/ITouch.hpp"
 
 #include "hal/devices/itf/ILed.hpp"
 #include "hal/devices/itf/IButton.hpp"
@@ -15,6 +17,7 @@
 #include "hal/drivers/itf/IStepGenerator.hpp"
 #include "hal/drivers/itf/IUart.hpp"
 
+#include "hal/drivers/itf/ISpi.hpp"
 #include <memory>
 #include <array>
 
@@ -52,4 +55,11 @@ namespace hal::core
       -> std::array<std::shared_ptr<device::IStepperDriver>, 3>;
     [[nodiscard]] auto create_motor_feedback(MotorId id, const MotorFeedbackConfig& config)
       -> std::shared_ptr<device::IMotorFeedback>;
+    [[nodiscard]] auto create_ethercat_reset() -> std::shared_ptr<IDigitalOutput>;
+    [[nodiscard]] auto create_ethercat_interrupt() -> std::shared_ptr<IDigitalInput>;
+    [[nodiscard]] auto create_ethercat_sync0() -> std::shared_ptr<IDigitalInput>;
+    [[nodiscard]] auto create_ethercat_spi() -> std::shared_ptr<ISpi>;
+    [[nodiscard]] auto create_ethercat_chip_select() -> std::shared_ptr<IDigitalOutput>;
+    [[nodiscard]] auto create_display() -> std::shared_ptr<device::IDisplay>;
+    [[nodiscard]] auto create_touch() -> std::shared_ptr<device::ITouch>;
 }

@@ -30,3 +30,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Tmc2209Model.cpp
     )
 endif()
+
+target_sources(hal_devices_impl INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/SmartwinDisplay.hpp ${CMAKE_CURRENT_SOURCE_DIR}/SmartwinDisplay.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/St1633i.hpp ${CMAKE_CURRENT_SOURCE_DIR}/St1633i.cpp)

@@ -3,6 +3,8 @@
 #include "common/icc/catalog/services.hpp"
 #include "common/icc/catalog/topics.hpp"
 #include "ui/cli/Console.hpp"
+#include "hal/console.hpp"
+#include "ui/cli/display.hpp"
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/filesystem.hpp"
 #include "ui/cli/motor.hpp"
@@ -21,6 +23,7 @@ namespace ui
       , m_logs{ m_bus, cli::writeLog }
       , m_motors{ m_bus }
     {
+        hal::console::initialize();
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
         m_bridge.registerActions<icc::Actions>(icc::ActionProvider::UI);
@@ -100,6 +103,7 @@ namespace ui
         try {
             cli::Parser parser;
             cli::filesystem::setup(parser);
+            cli::display::setup(parser);
             cli::utilities::setup(parser, m_bus, m_stopSource.get_token());
             cli::motor::setup(parser, m_motors, m_stopSource.get_token());
             cli::run(parser, m_stopSource.get_token());
