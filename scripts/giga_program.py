@@ -24,12 +24,16 @@ def run(commands, log):
     with tempfile.TemporaryDirectory(prefix='giga-openocd-') as directory:
         script = Path(directory) / 'session.tcl'
         script.write_text('\n'.join(commands) + '\nshutdown\n')
-        result = subprocess.run(['openocd', '-f', str(CONFIG), '-f', str(script)],
-                                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         log.parent.mkdir(parents=True, exist_ok=True)
-        log.write_text(result.stdout)
-        print(result.stdout, end='')
-        if result.returncode:
+        with log.open('w') as output, subprocess.Popen(
+                ['openocd', '-f', str(CONFIG), '-f', str(script)],
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
+            for line in process.stdout:
+                output.write(line)
+                output.flush()
+                print(line, end='', flush=True)
+            returncode = process.wait()
+        if returncode:
             raise RuntimeError(f'OpenOCD failed; see {log}')
 
 
@@ -39,22 +43,29 @@ def symbols(elf):
             for line in output.splitlines() if len(line.split()) == 3}
 
 
-def helper_commands(helper):
+def helper_commands(helper, *, test_sdram=False, probe_qspi=False):
     names = symbols(helper)
     entry = Elf(helper).entry
-    return [
+    commands = [
         'reset halt', 'giga_halt_both',
         f'load_image {quote(helper)}',
-        'reg control 0', 'reg primask 1', 'reg basepri 0',
-        'reg xpsr 0x01000000', f'reg msp {names["_estack"]:#x}',
+        f'verify_image {quote(helper)}',
+        # Start from the reset register state. The entry stub sets MSP and
+        # masks interrupts; avoid writes to OpenOCD's packed special registers.
+        f'mww 0x3800F024 {int(test_sdram)}',
         f'mww 0xE000ED08 {names["g_pfnVectors"]:#x}',
         f'resume {entry & ~1:#x}', 'wait_halt 30000',
-        f'if {{[mrw {names["giga_boot_status"]:#x}] != 0x600D}} {{error "Memory helper failed; inspect giga_boot_status and boot handoff"}}',
+        f'set giga_status [mrw {names["giga_boot_status"]:#x}]',
+        'if {$giga_status != 0x600D} {error [format "Memory helper failed: status 0x%03x" $giga_status]}',
         # OpenOCD's flash algorithms execute in the reserved AXI workspace,
         # which is XN in the application MPU. Caches are off in this helper.
-        'reg primask 1', 'mww 0xE000ED94 0',
-        'flash probe giga.qspi', 'flash info giga.qspi',
+        'mww 0xE000ED94 0',
     ]
+    if test_sdram:
+        commands += ['if {[mrw 0x3800F020] != 1} {error "SDRAM test did not pass"}']
+    if probe_qspi:
+        commands += ['flash probe giga.qspi', 'flash info giga.qspi']
+    return commands
 
 
 def validated_backup(directory):
@@ -83,9 +94,10 @@ def main():
         paths = json.loads((build / 'firmware-paths.json').read_text())
         io, ui = Path(paths['io']), Path(paths['ui'])
     helper = ui / 'memory-helper.elf'
-    commands = ['init', 'giga_halt_both', 'targets', 'flash banks',
-                'mdw 0x5C001000', 'mdw 0x1FF1E800 3',
-                'stm32h7x option_read 0 0x1c', 'stm32h7x option_read 0 0x40', 'stm32h7x option_read 0 0x48']
+    commands = ['init', 'reset halt', 'giga_halt_both', 'echo [targets]', 'echo [flash banks]',
+                'echo [mdw 0x5C001000]', 'echo [mdw 0x1FF1E800 3]',
+                'echo [stm32h7x option_read 0 0x1c]', 'echo [stm32h7x option_read 0 0x40]',
+                'echo [stm32h7x option_read 0 0x48]']
     if args.operation == 'probe':
         run(commands, build / 'probe.log')
         return
@@ -94,15 +106,24 @@ def main():
             raise ValueError('Backup directory already exists; choose a new directory to avoid overwriting it')
         args.backup.mkdir(parents=True)
         commands += [f'dump_image {quote(args.backup / "uid.bin")} 0x1FF1E800 12',
-                     f'dump_image {quote(args.backup / "internal.bin")} 0x08000000 0x200000',
-                     f'verify_image {quote(args.backup / "internal.bin")} 0x08000000 bin']
+                     'echo {Reading internal flash}',
+                     f'echo [dump_image {quote(args.backup / "internal.bin")} 0x08000000 0x200000]',
+                     f'echo [verify_image {quote(args.backup / "internal.bin")} 0x08000000 bin]']
         # Preserve every readable current option register without writing options.
-        for offset in [0x1C, 0x28, 0x30, 0x38, 0x40, 0x48, 0x128, 0x130, 0x138]:
+        options = [0x1C, 0x28, 0x30, 0x38, 0x40, 0x48, 0x128, 0x130, 0x138]
+        for offset in options:
+            commands += [f'set option_{offset:x} [mrw {0x52002000 + offset:#x}]']
             commands += [f'dump_image {quote(args.backup / f"option-{offset:03x}.bin")} {0x52002000 + offset:#x} 4']
         commands += helper_commands(helper)
-        # Driver read avoids speculative mapped reads beyond the final flash word.
-        commands += [f'flash read_bank giga.qspi {quote(args.backup / "external.bin")} 0 0x1000000',
-                     f'flash read_bank giga.qspi {quote(args.backup / "external-verify.bin")} 0 0x1000000']
+        # Read through the initialized mapping, independent of OpenOCD's
+        # programming driver. Verify every byte with a second complete read.
+        commands += ['echo {Reading external flash}',
+                     f'echo [dump_image {quote(args.backup / "external.bin")} 0x90000000 0x1000000]',
+                     'echo {Reading external flash a second time}',
+                     f'echo [dump_image {quote(args.backup / "external-verify.bin")} 0x90000000 0x1000000]',
+                     f'echo [verify_image {quote(args.backup / "internal.bin")} 0x08000000 bin]']
+        for offset in options:
+            commands += [f'if {{[mrw {0x52002000 + offset:#x}] != $option_{offset:x}}} {{error "Option register changed"}}']
         run(commands, args.backup / 'openocd.log')
         if (args.backup / 'external.bin').read_bytes() != (args.backup / 'external-verify.bin').read_bytes():
             raise ValueError('External-flash repeated read mismatch')
@@ -114,7 +135,7 @@ def main():
         print(f'Factory backup verified: {args.backup}. Flash contents and option bytes unchanged.')
         return
     if args.operation == 'memory-test':
-        run(commands + helper_commands(helper), build / 'memory-test.log')
+        run(commands + helper_commands(helper, test_sdram=True), build / 'memory-test.log')
         return
     uid = validated_backup(args.backup)
     # Match this physical board before any erase/program operation.
@@ -129,7 +150,7 @@ def main():
     for path in [io / 'bootstrap-io.bin', ui / 'bootstrap-ui.bin']:
         if not 0 < path.stat().st_size <= 128 << 10:
             raise ValueError('Bootstrap exceeds its reserved sector')
-    commands += helper_commands(helper)
+    commands += helper_commands(helper, test_sdram=True, probe_qspi=True)
     # Invalidate activation first. An interrupted update cannot start a mixed pair.
     commands += ['flash erase_address 0x90E00000 0x10000']
     for name, address in [('io.bin', 0x90100000), ('ui.bin', 0x90400000)]:

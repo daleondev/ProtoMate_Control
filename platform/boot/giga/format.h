@@ -11,6 +11,7 @@
 #define GIGA_RAM_DEBUG 1u
 #define GIGA_HANDOFF_ADDRESS 0x3800F000u
 #define GIGA_HANDOFF_MAGIC 0x47424F54u
+#define GIGA_MAINTENANCE_TEST_SDRAM 1u
 
 /* Wire format: little-endian 32-bit words. No pointers or native-size fields. */
 typedef struct { uint32_t load, run, size, flags; } GigaSegment;
@@ -25,7 +26,7 @@ typedef struct {
 } GigaManifest;
 typedef struct {
     uint32_t magic, m4_entry, m4_vectors, m4_stack, m4_flags, status;
-    uint32_t qspi_id, qspi_sfdp, memory_test, reserved[7];
+    uint32_t qspi_id, qspi_sfdp, memory_test, maintenance_request, reserved[6];
 } GigaHandoff;
 
 #ifdef __cplusplus
@@ -37,6 +38,8 @@ int giga_image_valid(const GigaImage *image, const uint32_t pair_id[8], const vo
 #ifdef __cplusplus
 }
 static_assert(sizeof(GigaManifest) == 624);
+static_assert(offsetof(GigaHandoff, maintenance_request) == 0x24);
 #else
 _Static_assert(sizeof(GigaManifest) == 624, "Manifest layout changed");
+_Static_assert(offsetof(GigaHandoff, maintenance_request) == 0x24, "Maintenance command offset changed");
 #endif

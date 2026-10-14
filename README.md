@@ -11,8 +11,8 @@ compiled separately for each core. ICC uses bounded shared-SRAM queues with
 urgent, normal and background lanes; M7 writes the physical USB-C CDC console.
 
 The STM32H747 CubeMX, HAL, external-flash bootstrap and build port are implemented.
-**Hardware bring-up is pending**; no GIGA flashing or electrical test has been
-performed. [Wiring, memory, backup/flash/debug commands and acceptance gates](#arduino-giga-hardware-boot-and-bring-up)
+**Factory backup and SWD access are verified; application bring-up is pending.**
+The factory firmware remains installed. [Wiring, memory, backup/flash/debug commands and acceptance gates](#arduino-giga-hardware-boot-and-bring-up)
 are documented below. Linux keeps the paired in-process transport for tests.
 
 M4 exposes STEP/DIR/enable, switches, DM542T/TMC2209 drivers, feedback and the
@@ -904,9 +904,15 @@ ICC transport, motor peripherals and display/touch bring-up commands are
 implemented. Debug, Release, M4 RAM-debug and the isolated bench build as
 separate M4/M7 images. Host tests exercise the existing motion/ICC behavior,
 STM32 STEP/encoder register models, USB buffering and boot-image validation.
-**GIGA hardware validation is pending:** no GIGA or Atmel-ICE was available to
-perform the factory backup, flash or electrical measurements. Build success is
-not evidence of cold boot, memory stability, USB enumeration or pulse timing.
+**Verified on the GIGA:** Atmel-ICE SWD access to both cores, QSPI identity
+`0x1F8901`, and the complete factory backup. The 2 MiB internal flash verifies;
+two complete 16 MiB external-flash reads match byte for byte; all nine saved
+current option registers remain unchanged. Files and SHA256 checksums are in
+`backups/hardware/giga-factory/`. No application has been flashed.
+**Bring-up issue:** the SDRAM self-test returned `0x212` and still needs
+investigation. Backup uses QSPI alone; flashing requires the SDRAM test to pass.
+Cold boot of our applications, runtime stability, USB console and pulse timing
+remain unverified.
 TouchGFX screens, M7 robot planning and EtherCAT robot integration remain future
 work. The existing KiCad wiring must be adapted to these GIGA connections before
 using it; Nucleo connector numbers do not apply.
@@ -1092,7 +1098,8 @@ to each image. It binds a pair; this is corruption detection, not secure boot.
 Connect Atmel-ICE's **SAM/Cortex** SWD port to GIGA SWDIO, SWCLK, NRST, GND and
 3.3 V VTref; power the board separately through USB-C. VTref is not board power.
 Keep motor power disconnected during initial validation. One CMSIS-DAP OpenOCD
-instance runs at 1 MHz and exposes M7 on GDB 3333 and M4 on 3334.
+instance connects under reset at 1 MHz and exposes M7 on GDB 3333 and M4 on
+3334. Full factory readback has also been verified at 4 MHz SWD.
 
 ```sh
 python3 scripts/giga_program.py probe
@@ -1106,9 +1113,15 @@ cmake --build --preset giga-debug --target flash
 Backup writes `backups/hardware/giga-factory/`: all 2 MiB internal flash, all
 16 MiB external flash, readable option registers, MCU UID and SHA256 metadata.
 It verifies repeated reads and refuses to overwrite an existing backup. The
-RAM helper needs no valid application images; it initializes QSPI/SDRAM, checks
-every SDRAM word with address/complement patterns and leaves results in
-`giga_boot_status` / `GigaHandoff` at 0x3800F000. Status 0x600D means helper success.
+RAM helper needs no valid application images. Backup initializes QSPI alone;
+`memory-test` and `flash` additionally initialize SDRAM and check every word
+with address/complement patterns. Results are in `giga_boot_status` /
+`GigaHandoff` at 0x3800F000. Status 0x600D means the requested helper operation
+succeeded; `memory_test == 1` additionally confirms SDRAM passed. The maintenance
+request is at 0x3800F024 (0 for QSPI only, 1 for SDRAM testing).
+For complete debug-port reads, the helper maps a 32 MiB address window around
+the physical 16 MiB QSPI device, avoiding a bus stall from read-ahead at its end.
+The backup remains exactly 16 MiB, and application mappings remain unchanged.
 No factory flash or nonvolatile QSPI status is changed by backup/memory testing.
 
 Flashing validates the backup UID and exact ELF-derived image contents, halts
@@ -1142,7 +1155,8 @@ can later opt into the reserved ITCM/DTCM sections.
 
 ### Acceptance gates and bench
 
-Run these in order; **all physical gates remain pending**:
+Run these in order. SWD access and factory backup are complete; the remaining
+acceptance checks are pending, with SDRAM testing currently failing:
 
 1. Probe both cores and verify factory backup. Check clocks, disabled outputs,
    LED/button and debugger-free power cycling with internal recovery/startup.

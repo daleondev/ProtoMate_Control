@@ -24,6 +24,9 @@ void giga_fail(uint32_t reason)
     giga_boot_status = reason;
     ((volatile GigaHandoff *)GIGA_HANDOFF_ADDRESS)->status = reason;
     __DSB();
+#if defined(GIGA_MEMORY_HELPER)
+    __BKPT(0); /* Report a helper failure immediately to the attached debugger. */
+#endif
     for (;;) { __WFI(); }
 }
 
@@ -129,11 +132,23 @@ void giga_start(void)
     giga_peripheral_clocks_initialize();
     giga_configure_mpu(0);
     giga_boot_status = 0x20;
+#if defined(GIGA_MEMORY_HELPER)
+    /* A factory flash backup must not depend on working SDRAM. Explicit
+       memory tests and flashing still require the complete SDRAM check. */
+    h->memory_test = 0;
+    if (h->maintenance_request == GIGA_MAINTENANCE_TEST_SDRAM) {
+        giga_memories_initialize();
+        giga_boot_status = 0x21;
+        h->memory_test = giga_sdram_test() ? 1 : 0;
+        if (!h->memory_test) { giga_fail(0x212); }
+    } else {
+        giga_qspi_initialize();
+    }
+#else
     giga_memories_initialize();
     giga_boot_status = 0x21;
+#endif
 #if defined(GIGA_MEMORY_HELPER)
-    h->memory_test = giga_sdram_test() ? 1 : 0;
-    if (!h->memory_test) { giga_fail(0x212); }
     giga_boot_status = 0x600D;
     h->status = 0x600D;
     __DSB();

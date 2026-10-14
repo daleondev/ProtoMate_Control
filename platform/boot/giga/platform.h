@@ -8,6 +8,7 @@ void giga_safe_outputs(void);
 void giga_configure_mpu(uint32_t ram_debug);
 void giga_release_m4(void);
 void giga_memories_initialize(void);
+void giga_qspi_initialize(void);
 void giga_peripheral_clocks_initialize(void);
 int giga_sdram_test(void);
 void giga_fail(uint32_t reason) __attribute__((noreturn));

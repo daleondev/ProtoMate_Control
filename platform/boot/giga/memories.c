@@ -19,7 +19,7 @@ static void command(uint32_t opcode, uint8_t *data, uint32_t count, int write)
                         : HAL_QSPI_Receive(&hqspi, data, 100)) != HAL_OK) { giga_fail(0x202); }
 }
 
-static void qspi_initialize(void)
+void giga_qspi_initialize(void)
 {
     MX_QUADSPI_Init();
     command(0x66, 0, 0, 0); /* reset-enable, reset; internal/RAM code only */
@@ -63,6 +63,13 @@ static void qspi_initialize(void)
     c.Instruction = 0x6B;
     c.DataMode = QSPI_DATA_4_LINES;
     c.NbData = 0;
+#if defined(GIGA_MEMORY_HELPER)
+    /* The debug AP can read ahead past the final requested word. Give its
+       mapped reads a guard window so a complete 16 MiB dump does not stall
+       the bus at the controller's address limit. Flash commands stay 24-bit;
+       the physical device and the saved backup are still exactly 16 MiB. */
+    MODIFY_REG(hqspi.Instance->DCR, QUADSPI_DCR_FSIZE, 24u << QUADSPI_DCR_FSIZE_Pos);
+#endif
     QSPI_MemoryMappedTypeDef map = { .TimeOutActivation = QSPI_TIMEOUT_COUNTER_DISABLE };
     if (HAL_QSPI_MemoryMapped(&hqspi, &c, &map) != HAL_OK) { giga_fail(0x207); }
 }
@@ -78,7 +85,7 @@ static void sdram_command(uint32_t mode, uint32_t refresh, uint32_t mode_registe
 
 void giga_memories_initialize(void)
 {
-    qspi_initialize();
+    giga_qspi_initialize();
     MX_FMC_Init();
     sdram_command(FMC_SDRAM_CMD_CLK_ENABLE, 1, 0);
     HAL_Delay(1);
