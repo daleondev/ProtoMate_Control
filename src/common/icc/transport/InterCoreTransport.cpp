@@ -64,7 +64,7 @@ namespace icc
         }
         for (auto& signal : wake) {
             if (signal) {
-                signal->close();
+                signal->push(true);
             }
         }
     }
@@ -88,8 +88,8 @@ namespace icc
       std::stop_token stop)
     {
         const auto index = 2 * static_cast<std::size_t>(lane);
+        std::optional<pnm::coro::Channel<bool>> ready;
         for (;;) {
-            pnm::coro::Channel<bool> ready;
             std::unique_lock lock(m_mutex);
             if (stop.stop_requested()) {
                 co_return std::unexpected(Error::Cancelled);
@@ -106,9 +106,12 @@ namespace icc
             }
             // Installing under the same lock as the worker's exchange prevents
             // a notification between the failed operation and arming the wait.
-            m_waiters.at(index) = ready;
+            // Allocate only when blocked, and reuse the notification across
+            // unrelated lane wakeups instead of rebuilding its mutexes each time.
+            if (!ready) { ready.emplace(); }
+            m_waiters.at(index) = *ready;
             lock.unlock();
-            co_await ready.next(stop);
+            co_await ready->next(stop);
             lock.lock();
             m_waiters.at(index).reset();
         }
@@ -120,8 +123,8 @@ namespace icc
       std::stop_token stop)
     {
         const auto index = 2 * static_cast<std::size_t>(lane) + 1;
+        std::optional<pnm::coro::Channel<bool>> ready;
         for (;;) {
-            pnm::coro::Channel<bool> ready;
             std::unique_lock lock(m_mutex);
             if (stop.stop_requested()) {
                 co_return std::unexpected(Error::Cancelled);
@@ -137,9 +140,10 @@ namespace icc
             if (result.error() != hal::IInterCoreChannel::Error::WouldBlock) {
                 co_return std::unexpected(transport_error(result.error()));
             }
-            m_waiters.at(index) = ready;
+            if (!ready) { ready.emplace(); }
+            m_waiters.at(index) = *ready;
             lock.unlock();
-            co_await ready.next(stop);
+            co_await ready->next(stop);
             lock.lock();
             m_waiters.at(index).reset();
         }

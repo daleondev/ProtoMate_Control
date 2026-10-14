@@ -135,20 +135,21 @@ The shared message catalogs live in `src/common/icc/catalog/`:
 
 Both applications register all three catalogs in their constructors using their
 own IO/UI role. `Topics::io_logs` carries IO log text to UI. `Topics::io_motor_state`
-publishes all three motor states at 50 Hz, including while idle or disabled.
+publishes all three motor states at up to 50 Hz, including while idle or disabled.
 Both the bridge and UI subscription use latest-only delivery. `Services::io_memory`
 provides memory diagnostics. `Services::io_motor` carries initialization,
 enable, speed and default-setting requests. `Services::io_motor_stop` reserves
 urgent transport capacity for stop/disable. `Actions::io_motor_motion` carries
-individual moves and homing, with 50 Hz feedback and terminal results. Shared
+individual moves and homing, with periodic feedback and terminal results. Shared
 motor payloads live in `src/common/motion/Motor.hpp` and serialize through Pneumo.
 
 `motor status` and `motor driver status` read UI's latest snapshot without a
 service request. Missing telemetry, disconnection and samples older than 500 ms
 produce explicit errors. Freshness uses UI's local receive clock; the snapshot's
 IO timestamp is informational, and its increasing sequence rejects duplicate or
-out-of-order samples. Blocking IO operations can delay the nominal 20 ms
-publication interval. Command replies contain the outcome, `commandGeneration`
+out-of-order samples. The worker waits 20 ms after publishing; blocking IO or ICC
+processing can extend the interval. It does not catch up missed publications in
+a tight loop that would starve diagnostics and logging. Command replies contain the outcome, `commandGeneration`
 and operation-specific values (motion defaults or the scheduled speed-change
 pulse), without copying motor states. Actions still report acceptance and terminal
 results independently of telemetry.
@@ -905,19 +906,31 @@ implemented. Debug, Release, M4 RAM-debug and the isolated bench build as
 separate M4/M7 images. Host tests exercise the existing motion/ICC behavior,
 STM32 STEP/encoder register models, USB buffering and boot-image validation.
 **Verified on the GIGA:** Atmel-ICE SWD access to both cores, QSPI identity
-`0x1F8901`, and the complete factory backup. The 2 MiB internal flash verifies;
-two complete 16 MiB external-flash reads match byte for byte; all nine saved
-current option registers remain unchanged. Files and SHA256 checksums are in
-`backups/hardware/giga-factory/`. No application has been flashed.
-The complete 8 MiB SDRAM test passes across **10 hardware-reset cycles**, with
-factory firmware running between tests. Each run takes approximately 1.56 s
-with caches disabled: walking bits, byte/halfword writes, full-memory
-address/complement and pseudorandom patterns, 250 ms refresh retention and
-final zero verification. The RAM helper's code also verifies after every run.
-The test log is `build/giga-debug/sdram-validation.log`.
-Backup uses QSPI alone; flashing requires the SDRAM test to pass.
-Cold boot of our applications, runtime stability, USB console and pulse timing
-remain unverified.
+`0x1F8901`, full factory backup, QSPI erase/program/readback, and both internal
+bootstraps plus the matched external-flash application pair. Factory images,
+original option registers and SHA256 checksums remain in
+`backups/hardware/giga-factory/`; the board now runs our firmware. Both reserved
+1 MiB QSPI factory regions also verify unchanged after programming.
+The complete 8 MiB SDRAM test passes across **10 hardware-reset cycles**. Each run
+takes approximately 1.56 s with caches disabled: walking bits, byte/halfword
+writes, full-memory address/complement and pseudorandom patterns, 250 ms refresh
+retention and final zero verification. Flashing requires this test to pass.
+
+Both ThreadX runtimes start at M7 480 MHz / M4 240 MHz, with vectors relocated to
+0x20000000 / 0x10000000. USB CDC enumerates, the ICC handshake completes, and
+`help`, `heap ui`, `heap io`, `stack ui`, `stack io` and `motor status` work with
+no external peripherals. Drivers remain disabled. Missing/corrupt manifests,
+invalid image CRCs and mismatched pair identifiers enter recovery with STEP low
+and enable inactive; restoring the valid activation record restores startup.
+The M4 RAM-debug pair also passes these commands; a software breakpoint at
+`icc::ConnectionHealth::tick` in SDRAM was hit and removed successfully.
+The normal Debug pair also starts after a physical USB power cycle with no
+debugger session active. Twelve CLI checks passed across three subsequent serial
+close/reopen cycles, including heap/stack requests to M4 over ICC.
+Hardware logs are in `build/giga-debug/{flash,boot-validation,cold-start-results,cold-start-console}.log`
+and `build/giga-ram-debug/{console-check-clean,breakpoint}.log`.
+Sustained runtime/load validation and pulse timing remain
+pending; successful register checks do not prove absence of reset pulses.
 TouchGFX screens, M7 robot planning and EtherCAT robot integration remain future
 work. The existing KiCad wiring must be adapted to these GIGA connections before
 using it; Nucleo connector numbers do not apply.
@@ -1070,9 +1083,13 @@ only the existing publication barriers. Future ITCM kernels should avoid C++
 exceptions across memory regions until their unwind placement has been extended.
 Bootstrap enters after hardware reset and invalidates retained cache contents
 without cleaning them, preventing old dirty lines from overwriting a newly
-downloaded RAM helper. Applications enable caches after memory initialization.
+downloaded RAM helper. M7 enables caches after memory initialization. M4 inherits
+its final MPU setup from the internal stub: disabling the MPU while executing
+the RAM-debug image would make SDRAM instruction fetches non-executable.
 
-M7 parks M4 in its internal stub, configures clocks/memories, validates both
+M7 waits for M4 to park before requesting D2 SRAM clocks; its clock requests
+would otherwise keep D2CKRDY asserted. M4 enables SEVONPEND so the HSEM event can
+wake its masked-interrupt STOP wait. M7 configures clocks/memories, validates both
 images and loads explicit copy/zero records. Application vectors, stack, segment
 bounds, image CRCs and matching pair identifiers are checked; invalid pairs stay
 in internal recovery with motor outputs disabled. M7 application startup enables
@@ -1084,7 +1101,8 @@ bootstrap settings; a mismatch fails instead of restarting a shared PLL.
 ICC must establish its session before accepting commands.
 
 The linker bounds every region. M4 STEP/refill, sequence evaluation, feedback,
-fault handling and required callees/constants are copied to internal RAM.
+fault handling, scheduler/timekeeping hooks, synchronization and allocator hot
+paths, and their selected constants are copied to internal RAM.
 `scripts/giga_ram_audit.py` checks the linked direct call graph and explicitly
 listed callback/virtual targets and writes `ram-audit.json`; new callback types
 need reviewing there. Separate Arm exception-unwind tables cover RAM and XIP.
@@ -1141,6 +1159,9 @@ Always check status 0x600D and `memory_test == 1` before treating a run as passe
 For complete debug-port reads, the helper maps a 32 MiB address window around
 the physical 16 MiB QSPI device, avoiding a bus stall from read-ahead at its end.
 The backup remains exactly 16 MiB, and application mappings remain unchanged.
+The helper uses ordinary 1-1-1 fast reads (0x0B) so OpenOCD infers the correct
+status/program command widths. Application boot uses quad-output reads (0x6B).
+Programming runs at 4 MHz SWD after initialization and verifies every image.
 No factory flash or nonvolatile QSPI status is changed by backup/memory testing.
 
 Flashing validates the backup UID and exact ELF-derived image contents, halts
@@ -1165,9 +1186,11 @@ Use `monitor giga_halt_both` before reset/maintenance; flash with the script,
 not GDB `load`. Ordinary M4 XIP code cannot use FPB hardware breakpoints at
 0x90xxxxxx. `giga-ram-debug` stores the image in QSPI but executes its ordinary
 code in SDRAM at 0xC0400000, permitting **software** breakpoints after bootstrap
-has copied it. Attach after startup and explicitly disable GDB's read-only
-memory-map inference (`set mem inaccessible-by-default off`,
-`mem 0xC0400000 0xC0600000 rw`) before setting these breakpoints. RAM-resident fast
+has copied it. Read-only data and exception metadata remain in QSPI: prebuilt
+libc/C++ routines can use unaligned reads that FMC does not support
+([ES0445 §2.7.3](https://www.st.com/resource/en/errata_sheet/es0445-stm32h745xig-stm32h755xi-stm32h747xig-stm32h757xi-device-errata-stmicroelectronics.pdf)).
+Attach after startup; use `set mem inaccessible-by-default off` and
+`set breakpoint auto-hw off` before setting software breakpoints. RAM-resident fast
 code at 0x10000000 supports hardware breakpoints. The OpenOCD helper workspace
 uses upper AXI RAM/M4 SRAM2, never ICC; applications are halted first. M7 planning
 can later opt into the reserved ITCM/DTCM sections.
@@ -1175,8 +1198,9 @@ can later opt into the reserved ITCM/DTCM sections.
 ### Acceptance gates and bench
 
 Run these in order. SWD access, factory backup, QSPI readback and the complete
-SDRAM test across hardware resets are verified. Application cold startup and
-the remaining acceptance checks are pending:
+SDRAM test across hardware resets, matched-pair boot, invalid-image recovery,
+USB console, basic ICC services and M4 SDRAM software breakpoints are verified.
+Use this checklist for subsequent regression and load tests:
 
 1. Probe both cores and verify factory backup. Check clocks, disabled outputs,
    LED/button and debugger-free power cycling with internal recovery/startup.

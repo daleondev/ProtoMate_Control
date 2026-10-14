@@ -101,17 +101,23 @@ void giga_start(void)
     for (to = &_sbss; to < &_ebss;) { *to++ = 0; }
     SCB->VTOR = (uint32_t)g_pfnVectors;
     __HAL_RCC_HSEM_CLK_ENABLE();
+#if defined(CORE_CM4)
     __HAL_RCC_D2SRAM1_CLK_ENABLE();
     __HAL_RCC_D2SRAM2_CLK_ENABLE();
     __HAL_RCC_D2SRAM3_CLK_ENABLE();
+#endif
     volatile GigaHandoff *h = (volatile GigaHandoff *)GIGA_HANDOFF_ADDRESS;
 #if defined(CORE_CM4)
     /* Always require a fresh M7 release; retained SRAM is not a boot request. */
+    /* The generated SystemInit normally enables this. Our reset entry owns
+       startup: pending HSEM interrupts must wake WFE even with IRQs masked. */
+    SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
     HAL_HSEM_ActivateNotification(__HAL_HSEM_SEMID_TO_MASK(0));
     HAL_PWREx_ClearPendingEvent();
     HAL_PWREx_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE, PWR_D2_DOMAIN);
     __HAL_HSEM_CLEAR_FLAG(__HAL_HSEM_SEMID_TO_MASK(0));
     HAL_HSEM_DeactivateNotification(__HAL_HSEM_SEMID_TO_MASK(0));
+    NVIC_ClearPendingIRQ(HSEM2_IRQn);
     __DMB();
     if (h->magic != GIGA_HANDOFF_MAGIC || !(h->m4_entry & 1u)) { giga_fail(0x401); }
     giga_configure_mpu(h->m4_flags & GIGA_RAM_DEBUG);
@@ -136,6 +142,11 @@ void giga_start(void)
         if (HAL_GetTick() - deadline >= 1000) { giga_fail(0x107); }
     }
 #endif
+    /* M7's SRAM clock requests keep D2CKRDY asserted even with M4 in STOP.
+       Enable them only after observing that M4 has parked. */
+    __HAL_RCC_D2SRAM1_CLK_ENABLE();
+    __HAL_RCC_D2SRAM2_CLK_ENABLE();
+    __HAL_RCC_D2SRAM3_CLK_ENABLE();
     h->magic = 0;
     h->status = 0;
     SystemClock_Config();

@@ -221,7 +221,10 @@ namespace io::motion
                 dispatchJobs(now >= feedback);
                 if (now >= feedback) {
                     m_state.publish(snapshot());
-                    feedback = now + MOTOR_STATE_PERIOD;
+                    // Publishing can preempt this worker while ICC serializes
+                    // the snapshot. Do not catch up an already expired period
+                    // in a tight loop and starve diagnostics/logging workers.
+                    feedback = std::chrono::steady_clock::now() + MOTOR_STATE_PERIOD;
                 }
                 m_notification->waitUntil(feedback);
             }

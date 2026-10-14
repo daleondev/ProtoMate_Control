@@ -35,7 +35,9 @@ demangled=subprocess.check_output(['arm-none-eabi-c++filt'],input='\n'.join(name
 labels=dict(zip(names,demangled))
 roots=[]
 for n,label in labels.items():
- if n in ('HardFault_Handler','MemManage_Handler','BusFault_Handler','UsageFault_Handler'):roots.append(n)
+ if n in ('HardFault_Handler','MemManage_Handler','BusFault_Handler','UsageFault_Handler',
+          'SysTick_Handler','PendSV_Handler','_tx_execution_isr_enter','_tx_execution_isr_exit',
+          '_tx_execution_thread_enter','_tx_execution_thread_exit'):roots.append(n)
  if 'thread_stack_error_handler(' in label or label == 'std::chrono::_V2::steady_clock::now()':roots.append(n)
  if re.match(r'^(DMA1_Stream[0-3]|TIM[3567](?:_DAC)?|EXTI[0-9_]+)_IRQHandler$',n):roots.append(n)
  if '_S_call_storage' in label and '_Base_invoker<true' in label and any(c in label for c in ['StepperMotor::StepperMotor','Controller::Controller','IndexFeedback::IndexFeedback','QuadratureEncoderFeedback::subscribe','DriverFaultMonitor::DriverFaultMonitor']):roots.append(n)
@@ -62,7 +64,8 @@ for line in symbols.splitlines():
    address=int(line.split()[0],16);vtables[cls]=address
    if not 0x10000000 <= address < 0x10020000:outside.append(('vtable for '+cls,address))
 for required in ['DMA1_Stream0_IRQHandler','DMA1_Stream3_IRQHandler','TIM7_IRQHandler',
-                 'TIM3_IRQHandler','TIM6_DAC_IRQHandler','TIM5_IRQHandler','HardFault_Handler']:
+                 'TIM3_IRQHandler','TIM6_DAC_IRQHandler','TIM5_IRQHandler','HardFault_Handler',
+                 'SysTick_Handler','_tx_execution_thread_enter','_tx_execution_thread_exit']:
  if required not in roots:raise SystemExit('Missing mandatory interrupt root: '+required)
 report=dict(elf=str(args.elf), roots=[labels[n] for n in sorted(set(roots))],
             functions=len(seen), outside_ram=[dict(symbol=labels.get(n,n),address=hex(a)) for n,a in outside],

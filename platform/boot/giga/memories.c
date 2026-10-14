@@ -64,6 +64,11 @@ void giga_qspi_initialize(void)
     c.DataMode = QSPI_DATA_4_LINES;
     c.NbData = 0;
 #if defined(GIGA_MEMORY_HELPER)
+    /* OpenOCD derives status/program command widths from the mapped read.
+       Use 1-1-1 SPI for maintenance; 1-1-4 reads otherwise make it read status
+       on four lines although the flash remains in ordinary SPI command mode. */
+    c.Instruction = 0x0B;
+    c.DataMode = QSPI_DATA_1_LINE;
     /* The debug AP can read ahead past the final requested word. Give its
        mapped reads a guard window so a complete 16 MiB dump does not stall
        the bus at the controller's address limit. Flash commands stay 24-bit;

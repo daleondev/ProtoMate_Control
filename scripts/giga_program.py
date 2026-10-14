@@ -154,17 +154,21 @@ def main():
         if not 0 < path.stat().st_size <= 128 << 10:
             raise ValueError('Bootstrap exceeds its reserved sector')
     commands += helper_commands(helper, test_sdram=True, probe_qspi=True)
+    commands += ['adapter speed 4000', 'echo {Invalidating application activation record}']
     # Invalidate activation first. An interrupted update cannot start a mixed pair.
     commands += ['flash erase_address 0x90E00000 0x10000']
     for name, address in [('io.bin', 0x90100000), ('ui.bin', 0x90400000)]:
-        commands += [f'flash write_image erase {quote(images/name)} {address:#x} bin',
-                     f'verify_image {quote(images/name)} {address:#x} bin']
+        commands += [f'echo {{Programming and verifying {name}}}',
+                     f'echo [flash write_image erase {quote(images/name)} {address:#x} bin]',
+                     f'echo [verify_image {quote(images/name)} {address:#x} bin]']
     for path, address in [(io / 'bootstrap-io.bin', 0x08100000), (ui / 'bootstrap-ui.bin', 0x08000000)]:
-        commands += [f'flash write_image erase {quote(path)} {address:#x} bin',
-                     f'verify_image {quote(path)} {address:#x} bin']
+        commands += [f'echo {{Programming and verifying {path.name}}}',
+                     f'echo [flash write_image erase {quote(path)} {address:#x} bin]',
+                     f'echo [verify_image {quote(path)} {address:#x} bin]']
     # Preserve protection/watchdog/calibration settings. Boot0 keeps the M7 ROM
     # loader reachable; both M4 boot choices stay in its inert internal stub.
-    commands += ['stm32h7x option_write 0 0x44 0x1FF00800',
+    commands += ['echo {Configuring boot addresses and activating the verified pair}',
+                 'stm32h7x option_write 0 0x44 0x1FF00800',
                  'stm32h7x option_write 0 0x4c 0x08100810',
                  'stm32h7x option_write 0 0x20 0x00C00000 0x00C00000',
                  f'flash write_image {quote(images/"manifest.bin")} 0x90E00000 bin',

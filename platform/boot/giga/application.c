@@ -9,8 +9,12 @@ void giga_start(void)
     SCB->CPACR |= 0xFu << 20;
     __DSB(); __ISB();
     SystemCoreClockUpdate();
+#if defined(CORE_CM7)
     const volatile GigaHandoff *h = (const volatile GigaHandoff *)GIGA_HANDOFF_ADDRESS;
     giga_configure_mpu(h->m4_flags & GIGA_RAM_DEBUG);
+#endif
+    /* M4 inherits its final MPU configuration from the internal bootstrap.
+       Disabling it here would make RAM-debug's SDRAM instruction fetches XN. */
     SCB->VTOR = (uint32_t)g_pfnVectors;
 #if defined(CORE_CM7)
     SCB_EnableICache();

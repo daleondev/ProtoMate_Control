@@ -183,7 +183,7 @@ add_subdirectory(src)
 include(${PROJECT_SOURCE_DIR}/cmake/bootstrap_giga.cmake)
 
 if(STM32_CORE STREQUAL "CM4")
-    set(fast_directories Application)
+    set(fast_directories Application platform runtime_libc)
     foreach(owner proto_io proto_common hal hal_drivers hal_devices hal_devices_util runtime_synchronization runtime_libstdcxx runtime_threadx)
         if(TARGET ${owner})
             list(APPEND fast_directories ${owner})
@@ -196,7 +196,7 @@ if(STM32_CORE STREQUAL "CM4")
         endif()
         set_source_files_properties(${PROJECT_SOURCE_DIR}/${source}
             TARGET_DIRECTORY ${fast_directories}
-            PROPERTIES COMPILE_OPTIONS "${fast_opt};-include;${PROJECT_SOURCE_DIR}/platform/boot/giga/fast_unwind.h")
+            PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;${fast_opt};-include;${PROJECT_SOURCE_DIR}/platform/boot/giga/fast_unwind.h")
     endforeach()
     target_compile_options(threadx PRIVATE -Os)
 endif()

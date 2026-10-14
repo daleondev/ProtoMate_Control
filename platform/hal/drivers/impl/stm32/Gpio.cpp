@@ -18,6 +18,15 @@ namespace hal
     {
         constexpr std::uint32_t GPIO_INTERRUPT_PRIORITY{ 5U };
 
+        void clear_pending(std::uint32_t mask) noexcept
+        {
+#if defined(CORE_CM4)
+            __HAL_GPIO_EXTID2_CLEAR_IT(mask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+#else
+            __HAL_GPIO_EXTI_CLEAR_IT(mask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+#endif
+        }
+
         [[nodiscard]] auto gpio_port(gpio::Port port) noexcept -> GPIO_TypeDef*
         {
             switch (port) {
@@ -188,11 +197,13 @@ namespace hal
         // NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 #if defined(CORE_CM4)
         EXTI_D2->IMR1 = EXTI_D2->IMR1 & ~static_cast<std::uint32_t>(GPIO_PIN_All);
+        EXTI_D2->PR1 = GPIO_PIN_All;
 #else
         EXTI_D1->IMR1 = EXTI_D1->IMR1 & ~static_cast<std::uint32_t>(GPIO_PIN_All);
+        EXTI_D1->PR1 = GPIO_PIN_All;
 #endif
-        // Pending edge bits are shared by the cores. Each input constructor
-        // clears only its own line; never clear the peer's pending edges here.
+        // Pending flags are core-local. Discard edges left by MX_GPIO_Init
+        // before enabling any grouped NVIC interrupt; preserve the peer's flags.
         // NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         for (const auto irq :
              { EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn, EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn }) {
@@ -233,8 +244,7 @@ namespace hal
             // NVIC pending state is shared by grouped EXTI lines. Clear only
             // this pin's peripheral flag so a previous owner cannot trigger
             // the new callback, while preserving other pins' pending edges.
-            __HAL_GPIO_EXTI_CLEAR_IT( // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              m_pinMask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            clear_pending(m_pinMask);
             HAL_NVIC_SetPriority(m_interrupt, GPIO_INTERRUPT_PRIORITY, 0U);
             HAL_NVIC_EnableIRQ(m_interrupt);
         }
@@ -248,8 +258,7 @@ namespace hal
         if (m_configuration.edge != gpio::Edge::None) {
             HAL_NVIC_DisableIRQ(m_interrupt);
             HAL_GPIO_DeInit(m_port, m_pinMask);
-            __HAL_GPIO_EXTI_CLEAR_IT( // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              m_pinMask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            clear_pending(m_pinMask);
             s_interruptRegistry[m_configuration.pin.number] = nullptr;
 
             const bool group_still_used{ std::ranges::any_of(s_interruptRegistry, [&](const auto* input) {
