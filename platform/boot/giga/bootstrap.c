@@ -87,7 +87,11 @@ void giga_start(void)
     __DSB(); __ISB();
 #if defined(CORE_CM7)
     SCB_DisableICache();
-    SCB_DisableDCache();
+    /* This entry requires a hardware reset. Discard retained cache contents:
+       cleaning them could overwrite a helper freshly downloaded into SRAM. */
+    SCB->CCR &= ~SCB_CCR_DC_Msk;
+    __DSB();
+    SCB_InvalidateDCache();
     SCB->ITCMCR = SCB_ITCMCR_EN_Msk;
     SCB->DTCMCR = SCB_DTCMCR_EN_Msk;
     __DSB(); __ISB();
@@ -114,6 +118,13 @@ void giga_start(void)
     prepare_jump(h->m4_vectors);
     giga_jump(h->m4_entry, h->m4_stack);
 #else
+    h->memory_test = 0;
+    h->sdram_phase = 0;
+    h->sdram_address = 0;
+    h->sdram_expected = 0;
+    h->sdram_actual = 0;
+    h->sdram_elapsed_ms = 0;
+    h->sdram_bytes = 0;
     giga_safe_outputs();
     SystemCoreClockUpdate();
     __enable_irq();

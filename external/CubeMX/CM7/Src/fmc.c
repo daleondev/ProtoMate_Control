@@ -77,7 +77,12 @@ static uint32_t FMC_Initialized = 0;
 
 static void HAL_FMC_MspInit(void){
   /* USER CODE BEGIN FMC_MspInit 0 */
-
+  /* Bootstrap/maintenance initializes FMC before application MX_GPIO_Init. */
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOG_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   /* USER CODE END FMC_MspInit 0 */
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   if (FMC_Initialized) {

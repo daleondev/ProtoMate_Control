@@ -96,28 +96,112 @@ void giga_memories_initialize(void)
     if (HAL_SDRAM_ProgramRefreshRate(&hsdram1, 1542) != HAL_OK) { giga_fail(0x211); }
 }
 
+static int sdram_failure(uint32_t phase, volatile uint32_t *address,
+                         uint32_t expected, uint32_t actual, uint32_t started)
+{
+    volatile GigaHandoff *h = (volatile GigaHandoff *)GIGA_HANDOFF_ADDRESS;
+    h->sdram_phase = phase;
+    h->sdram_address = (uint32_t)address;
+    h->sdram_expected = expected;
+    h->sdram_actual = actual;
+    h->sdram_elapsed_ms = HAL_GetTick() - started;
+    return 0;
+}
+
+static uint32_t sdram_pattern(uint32_t state)
+{
+    /* Reproducible xorshift32: exercise varying data across all banks/rows. */
+    state ^= state << 13;
+    state ^= state >> 17;
+    state ^= state << 5;
+    return state;
+}
+
 int giga_sdram_test(void)
 {
     /* Destructive maintenance test, before applications/graphics own SDRAM.
        Every word tested in both directions, including each bank/address bit. */
     volatile uint32_t *ram = (volatile uint32_t *)0xC0000000u;
     const uint32_t words = (8u * 1024u * 1024u) / sizeof(uint32_t);
-    for (unsigned bit = 0; bit < 32; ++bit) {
-        ram[0] = 1u << bit;
-        __DSB();
-        if (ram[0] != (1u << bit)) { return 0; }
+    volatile GigaHandoff *h = (volatile GigaHandoff *)GIGA_HANDOFF_ADDRESS;
+    const uint32_t started = HAL_GetTick();
+    h->sdram_phase = 0;
+    h->sdram_address = 0;
+    h->sdram_expected = 0;
+    h->sdram_actual = 0;
+    h->sdram_elapsed_ms = 0;
+    h->sdram_bytes = 0;
+    for (unsigned phase = 1; phase <= 2; ++phase) {
+        h->sdram_phase = phase;
+        for (unsigned bit = 0; bit < 32; ++bit) {
+            const uint32_t expected = phase == 1 ? 1u << bit : ~(1u << bit);
+            ram[0] = expected;
+            __DSB();
+            const uint32_t actual = ram[0];
+            if (actual != expected) { return sdram_failure(phase, ram, expected, actual, started); }
+        }
     }
+    /* Check NBL0/NBL1 byte masking and halfword stores on the 16-bit bus. */
+    h->sdram_phase = 3;
+    ram[0] = 0;
+    uint32_t expected = 0;
+    volatile uint8_t *bytes = (volatile uint8_t *)ram;
+    for (unsigned lane = 0; lane < 4; ++lane) {
+        const uint8_t value = (uint8_t)(0xA5u ^ (lane * 0x11u));
+        bytes[lane] = value;
+        expected |= (uint32_t)value << (8 * lane);
+        __DSB();
+        const uint32_t actual = ram[0];
+        if (actual != expected) { return sdram_failure(3, ram, expected, actual, started); }
+    }
+    h->sdram_phase = 4;
+    volatile uint16_t *halfwords = (volatile uint16_t *)ram;
+    for (unsigned lane = 0; lane < 2; ++lane) {
+        const uint16_t value = lane == 0 ? 0xA55Au : 0x3CC3u;
+        halfwords[lane] = value;
+        expected = (expected & ~(0xFFFFu << (16 * lane))) | ((uint32_t)value << (16 * lane));
+        __DSB();
+        const uint32_t actual = ram[0];
+        if (actual != expected) { return sdram_failure(4, ram, expected, actual, started); }
+    }
+    h->sdram_phase = 5;
     for (uint32_t i = 0; i < words; ++i) { ram[i] = i ^ 0xA55A3CC3u; }
     __DSB();
     for (uint32_t i = 0; i < words; ++i) {
-        if (ram[i] != (i ^ 0xA55A3CC3u)) { return 0; }
+        const uint32_t expected = i ^ 0xA55A3CC3u;
+        const uint32_t actual = ram[i];
+        if (actual != expected) { return sdram_failure(5, &ram[i], expected, actual, started); }
         ram[i] = ~(i ^ 0xA55A3CC3u);
     }
     __DSB();
+    h->sdram_phase = 6;
     for (uint32_t i = words; i-- != 0;) {
-        if (ram[i] != ~(i ^ 0xA55A3CC3u)) { return 0; }
+        const uint32_t expected = ~(i ^ 0xA55A3CC3u);
+        const uint32_t actual = ram[i];
+        if (actual != expected) { return sdram_failure(6, &ram[i], expected, actual, started); }
         ram[i] = 0;
     }
     __DSB();
+    h->sdram_phase = 7;
+    uint32_t pattern = 0x12345678u;
+    for (uint32_t i = 0; i < words; ++i) { ram[i] = pattern = sdram_pattern(pattern); }
+    __DSB();
+    HAL_Delay(250); /* Several complete 64 ms refresh intervals, no SDRAM access. */
+    pattern = 0x12345678u;
+    for (uint32_t i = 0; i < words; ++i) {
+        pattern = sdram_pattern(pattern);
+        const uint32_t actual = ram[i];
+        if (actual != pattern) { return sdram_failure(7, &ram[i], pattern, actual, started); }
+        ram[i] = 0;
+    }
+    __DSB();
+    h->sdram_phase = 8;
+    for (uint32_t i = 0; i < words; ++i) {
+        const uint32_t actual = ram[i];
+        if (actual != 0) { return sdram_failure(8, &ram[i], 0, actual, started); }
+    }
+    h->sdram_phase = 0;
+    h->sdram_elapsed_ms = HAL_GetTick() - started;
+    h->sdram_bytes = words * sizeof(uint32_t);
     return 1;
 }

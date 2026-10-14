@@ -56,6 +56,9 @@ def helper_commands(helper, *, test_sdram=False, probe_qspi=False):
         f'mww 0xE000ED08 {names["g_pfnVectors"]:#x}',
         f'resume {entry & ~1:#x}', 'wait_halt 30000',
         f'set giga_status [mrw {names["giga_boot_status"]:#x}]',
+        'if {[mrw 0x3800F024] == 1} {echo [format "SDRAM: phase=%u address=0x%08x expected=0x%08x actual=0x%08x elapsed=%u ms bytes=%u" '
+        '[mrw 0x3800F028] [mrw 0x3800F02C] [mrw 0x3800F030] [mrw 0x3800F034] '
+        '[mrw 0x3800F038] [mrw 0x3800F03C]]}',
         'if {$giga_status != 0x600D} {error [format "Memory helper failed: status 0x%03x" $giga_status]}',
         # OpenOCD's flash algorithms execute in the reserved AXI workspace,
         # which is XN in the application MPU. Caches are off in this helper.

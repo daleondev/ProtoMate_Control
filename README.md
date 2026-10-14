@@ -909,8 +909,13 @@ STM32 STEP/encoder register models, USB buffering and boot-image validation.
 two complete 16 MiB external-flash reads match byte for byte; all nine saved
 current option registers remain unchanged. Files and SHA256 checksums are in
 `backups/hardware/giga-factory/`. No application has been flashed.
-**Bring-up issue:** the SDRAM self-test returned `0x212` and still needs
-investigation. Backup uses QSPI alone; flashing requires the SDRAM test to pass.
+The complete 8 MiB SDRAM test passes across **10 hardware-reset cycles**, with
+factory firmware running between tests. Each run takes approximately 1.56 s
+with caches disabled: walking bits, byte/halfword writes, full-memory
+address/complement and pseudorandom patterns, 250 ms refresh retention and
+final zero verification. The RAM helper's code also verifies after every run.
+The test log is `build/giga-debug/sdram-validation.log`.
+Backup uses QSPI alone; flashing requires the SDRAM test to pass.
 Cold boot of our applications, runtime stability, USB console and pulse timing
 remain unverified.
 TouchGFX screens, M7 robot planning and EtherCAT robot integration remain future
@@ -1047,8 +1052,13 @@ compatibility. No application filesystem writes to XIP flash.
 | 0xC0400000 | 2 MiB M4 RAM-debug code |
 | 0xC0600000 | 2 MiB future large UI buffers |
 
-The onboard SDRAM is 8 MiB AS4C4M16SA, bank 1, 16-bit, four banks, **12 row
+The onboard SDRAM is 8 MiB AS4C4M16SA-6BIN, bank 1, 16-bit, four banks, **12 row
 bits / 8 column bits**, 100 MHz, CAS3; timings 2/7/5/7/3/2/2, refresh count 1542.
+This industrial part specifies 4096 refreshes per 64 ms; use the
+[industrial datasheet](https://www.alliancememory.com/wp-content/uploads/Alliance_Memory_64M-AS4C4M16SA-CI_v5.0_October_2018.pdf).
+FMC initialization enables its GPIO D/E/F/G/H clocks itself, since bootstrap
+does not run the application's general GPIO initialization. GPIOH carries
+SDRAM clock-enable, chip-select and write-enable.
 M4's 0x10000000 code address aliases SRAM1; it is not additional RAM.
 
 MPU is configured before M7 caches: ICC and framebuffers normal/non-cacheable/XN;
@@ -1058,6 +1068,9 @@ before DMA reads and invalidate after DMA writes, with exclusive 32-byte-aligned
 cache-line ownership. Current DMA2D framebuffers are non-cacheable and require
 only the existing publication barriers. Future ITCM kernels should avoid C++
 exceptions across memory regions until their unwind placement has been extended.
+Bootstrap enters after hardware reset and invalidates retained cache contents
+without cleaning them, preventing old dirty lines from overwriting a newly
+downloaded RAM helper. Applications enable caches after memory initialization.
 
 M7 parks M4 in its internal stub, configures clocks/memories, validates both
 images and loads explicit copy/zero records. Application vectors, stack, segment
@@ -1114,11 +1127,17 @@ Backup writes `backups/hardware/giga-factory/`: all 2 MiB internal flash, all
 16 MiB external flash, readable option registers, MCU UID and SHA256 metadata.
 It verifies repeated reads and refuses to overwrite an existing backup. The
 RAM helper needs no valid application images. Backup initializes QSPI alone;
-`memory-test` and `flash` additionally initialize SDRAM and check every word
-with address/complement patterns. Results are in `giga_boot_status` /
+`memory-test` and `flash` additionally initialize SDRAM and run the physical
+memory tests described above. Results are in `giga_boot_status` /
 `GigaHandoff` at 0x3800F000. Status 0x600D means the requested helper operation
 succeeded; `memory_test == 1` additionally confirms SDRAM passed. The maintenance
 request is at 0x3800F024 (0 for QSPI only, 1 for SDRAM testing).
+The helper prints the failing phase, address, expected/actual data, elapsed
+milliseconds and successful coverage in bytes. These six words occupy
+0x3800F028–0x3800F03C. Phase 0 means no failing test; phases 1–8 identify walking
+ones, walking zeros, byte writes, halfword writes, address patterns, inverted
+address patterns, retained pseudorandom data and final zeros, respectively.
+Always check status 0x600D and `memory_test == 1` before treating a run as passed.
 For complete debug-port reads, the helper maps a 32 MiB address window around
 the physical 16 MiB QSPI device, avoiding a bus stall from read-ahead at its end.
 The backup remains exactly 16 MiB, and application mappings remain unchanged.
@@ -1155,8 +1174,9 @@ can later opt into the reserved ITCM/DTCM sections.
 
 ### Acceptance gates and bench
 
-Run these in order. SWD access and factory backup are complete; the remaining
-acceptance checks are pending, with SDRAM testing currently failing:
+Run these in order. SWD access, factory backup, QSPI readback and the complete
+SDRAM test across hardware resets are verified. Application cold startup and
+the remaining acceptance checks are pending:
 
 1. Probe both cores and verify factory backup. Check clocks, disabled outputs,
    LED/button and debugger-free power cycling with internal recovery/startup.
