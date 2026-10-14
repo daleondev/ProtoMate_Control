@@ -929,8 +929,41 @@ debugger session active. Twelve CLI checks passed across three subsequent serial
 close/reopen cycles, including heap/stack requests to M4 over ICC.
 Hardware logs are in `build/giga-debug/{flash,boot-validation,cold-start-results,cold-start-console}.log`
 and `build/giga-ram-debug/{console-check-clean,breakpoint}.log`.
-Sustained runtime/load validation and pulse timing remain
-pending; successful register checks do not prove absence of reset pulses.
+The 24 MHz logic analyzer verifies STEP counts and timing in all nine bench
+scenarios: tiny moves, independent starts, 100 kHz, velocity updates, stop/restart,
+timer wrap, deliberate underrun, combined load and variable periods. All interval
+residuals are below one analyzer sample (41.7 ns) after removing the common clock
+offset. The measured frequency differs by about +0.0138% from the analyzer's
+reference; neither clock is independently calibrated.
+
+| Measured STEP check | Result |
+| --- | --- |
+| Three channels at 100 kHz, including combined load | Exactly 100,000 pulses per channel; enable remains inactive |
+| Programmed 5 µs HIGH phase | 120–121 analyzer samples (5.000–5.042 µs) |
+| Refill interrupts withheld before arming | Hardware guard stops at 512 / 256 / 128 pulses, all outputs LOW |
+| Combined-load worst STEP service time | 145,140 cycles / 604.75 µs; 4.23× headroom against the 2.56 ms DMA buffer window |
+| Measured individual stop call | 11,781 cycles / 49.09 µs; other channels continue |
+
+**Combined-load acceptance remains open:** pulse timing passes and LTDC reports
+zero underruns, but only six validated ICC load packets and six echoes complete
+during the one-second motion, below the test's minimum of ten. The bench correctly
+reports FAIL for this case; the other eight cases pass. ICC throughput under
+simultaneous QSPI/USB/graphics traffic needs further investigation before claiming
+complete combined-load validation. Latest-only topic delivery permits coalescing,
+but does not waive this acceptance check. Raw captures, console logs, the matching
+image manifest and separate timing/overall verdicts are in
+`build/giga-step-results/` (`results.json`, `final-run.log`).
+
+These measurements cover the isolated bench, not powered motors or external
+feedback/switch inputs. Stop-call duration is not external-input-to-stop latency.
+Reset-state verification remains a separate acceptance step: with only the bare
+board and analyzer connected, all three STEP inputs read HIGH for approximately
+172 ms during a debugger-held reset, while enable reads inactive throughout.
+Fit the specified external STEP pull-downs and enable pull-up before repeating
+the reset capture; firmware cannot maintain GPIO output drive while reset is
+asserted. The capture and transitions are recorded in
+`build/giga-step-results/reset-results.json`. Normal Debug firmware is restored;
+IO heap/stack services and disabled-motor status work over USB/ICC.
 TouchGFX screens, M7 robot planning and EtherCAT robot integration remain future
 work. The existing KiCad wiring must be adapted to these GIGA connections before
 using it; Nucleo connector numbers do not apply.
@@ -1101,7 +1134,7 @@ bootstrap settings; a mismatch fails instead of restarting a shared PLL.
 ICC must establish its session before accepting commands.
 
 The linker bounds every region. M4 STEP/refill, sequence evaluation, feedback,
-fault handling, scheduler/timekeeping hooks, synchronization and allocator hot
+fault handling, scheduler/timekeeping hooks, synchronization, memory copies and allocator hot
 paths, and their selected constants are copied to internal RAM.
 `scripts/giga_ram_audit.py` checks the linked direct call graph and explicitly
 listed callback/virtual targets and writes `ram-audit.json`; new callback types

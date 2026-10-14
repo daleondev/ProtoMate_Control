@@ -25,6 +25,8 @@ RATE = 24_000_000
 RESULT = re.compile(r"\[step-bench\] (PASS|FAIL) case=(\d+) check=(\d+) pulses=(\d+),(\d+),(\d+) "
                     r"completions=(\d+),(\d+),(\d+) progress=(\d+) changed_at=(\d+) "
                     r"guard=(\d+) load=(\d+) echoes=(\d+) errors=(\d+)")
+METRICS = re.compile(r"\[step-bench\] service_max=(\d+) cycles \(240 MHz\); stop=(\d+) cycles; "
+                     r"LTDC underruns=(\d+); QSPI=(\d+)")
 
 
 class Serial:
@@ -123,7 +125,7 @@ def analyze(path, case, result):
                      "first_sample": int(rising[0]), "last_sample": int(falling[-1])})
     if case not in (2,):
         assert max(a["first_sample"] for a in axes) - min(a["first_sample"] for a in axes) <= 2, "Initial edges not aligned"
-    return {"case": case, "passed": True, "samples": int(raw.size), "sample_rate": RATE,
+    return {"case": case, "passed": True, "timing_passed": True, "samples": int(raw.size), "sample_rate": RATE,
             "firmware": result.group(0), "axes": axes}
 
 
@@ -162,23 +164,30 @@ def main():
                     os.write(serial.fd, f"{case}\n".encode())
                     deadline = time.monotonic() + 9
                     result = None
+                    metrics = None
                     while time.monotonic() < deadline:
                         text = serial.drain(0.05)
                         result = next((m for m in RESULT.finditer(text) if int(m.group(2)) == case), None)
-                        if result:
+                        metrics = METRICS.search(text)
+                        if result and metrics:
                             break
                     (args.output / f"case-{case}.uart.log").write_bytes(serial.buffer)
                     assert result, f"No firmware result: {serial.buffer.decode(errors='replace')}"
+                    assert metrics, "Missing firmware service/stop timing metrics"
                     print(result.group(0), flush=True)
                     assert process.wait(timeout=6) == 0, log.read_text()
                     assert capture.stat().st_size == int(RATE * args.seconds), "Incomplete capture"
-                    assert result.group(1) == "PASS", "Firmware reported failure"
                     measurement = analyze(capture, case, result)
+                    measurement["passed"] = result.group(1) == "PASS"
+                    measurement["service_max_cycles"] = int(metrics.group(1))
+                    measurement["stop_cycles"] = int(metrics.group(2))
+                    measurement["ltdc_underruns"] = int(metrics.group(3))
                     results = [entry for entry in results if entry["case"] != case]
                     results.append(measurement)
                     results_path.write_text(json.dumps(sorted(results, key=lambda entry: entry["case"]), indent=2) + "\n")
                     print(f"Analyzer PASS case={case}: counts={[a['pulses'] for a in measurement['axes']]}; "
                           f"frequency error={[round(a['frequency_error_percent'], 4) if a['frequency_error_percent'] is not None else None for a in measurement['axes']]}%", flush=True)
+                    assert measurement["passed"], "Pulse timing passed, but firmware reported failure"
                 finally:
                     if process.poll() is None:
                         process.terminate()

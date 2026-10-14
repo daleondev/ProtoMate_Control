@@ -242,7 +242,8 @@ namespace
         }
         bool underrun()
         {
-            if (!constant({ 10us, 20us, 40us }, { 100000, 50000, 25000 }) || !start()) {
+            if (!constant({ 10us, 20us, 40us }, { 100000, 50000, 25000 }) ||
+                !check(generator->start().has_value(), 11)) {
                 return false;
             }
             constexpr std::array irqs{
@@ -252,14 +253,23 @@ namespace
                 HAL_NVIC_DisableIRQ(irq);
             }
             __DSB();
-            std::this_thread::sleep_for(20ms);
-            report.guard_stopped = !(TIM2->CR1 & TIM_CR1_CEN);
+            // Mask refill interrupts before arming any output. The calling
+            // thread can be preempted after startPrepared returns, so masking
+            // afterward would allow an arbitrary number of buffers to run.
+            const bool started = check(generator->startPrepared({ 1ms, 1ms, 1ms }).has_value(), 12);
+            if (started) {
+                std::this_thread::sleep_for(20ms);
+                report.guard_stopped = !(TIM2->CR1 & TIM_CR1_CEN);
+            }
             for (const auto irq : irqs) {
                 HAL_NVIC_EnableIRQ(irq);
             }
+            if (!started) {
+                return false;
+            }
             const auto state = generator->status();
             return check(report.guard_stopped && state.state == State::Underrun && state.counts_exact &&
-                           state.pulses[0] == 512,
+                           state.pulses == Counts{ 512, 256, 128 },
                          50);
         }
         bool profile()
