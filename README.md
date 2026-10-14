@@ -1098,7 +1098,9 @@ still requires checking on the actual panel. DSI is disabled.
 | Touch SCL / SDA | PB6/D101, PH12/D102, I2C4 100 kHz |
 
 Use a separate adequately rated 3.3 V display supply; the specified backlight
-alone is roughly 1 A. The RGB connector adapter is a separate hardware task.
+alone is roughly 1 A. The [Smartwin–GIGA adapter projects](hardware/display/README.md)
+provide the two PCBs, protected interfaces, cable specification and manufacturing
+packages. First-board electrical and display testing remains required.
 The panel remains off at application startup. `display bars` initializes it,
 exercises DMA2D, switches framebuffer at vertical blank and sets 10% backlight.
 Run it twice to check both buffers. `display backlight 0..100` controls the

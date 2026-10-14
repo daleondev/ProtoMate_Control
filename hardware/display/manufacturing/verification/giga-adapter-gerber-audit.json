@@ -1,0 +1,148 @@
+{
+  "board": "giga-adapter",
+  "result": "PASS",
+  "exported_pad_coordinates_and_nets_checked": 575,
+  "drill_hits_checked": 312,
+  "ffc_paste_windows_checked": 80,
+  "layers": {
+    "top-copper": {
+      "objects": 1529,
+      "bounds_mm": [
+        [
+          17.921590000000002,
+          1.34
+        ],
+        [
+          121.65,
+          52.34
+        ]
+      ]
+    },
+    "top-mask": {
+      "objects": 472,
+      "bounds_mm": [
+        [
+          12.364208,
+          0.844815
+        ],
+        [
+          121.685,
+          52.835185
+        ]
+      ]
+    },
+    "top-silk": {
+      "objects": 962,
+      "bounds_mm": [
+        [
+          12.364208,
+          0.844815
+        ],
+        [
+          121.685,
+          52.835185
+        ]
+      ]
+    },
+    "top-paste": {
+      "objects": 350,
+      "bounds_mm": [
+        [
+          30.025,
+          3.49
+        ],
+        [
+          121.65,
+          50.665
+        ]
+      ]
+    },
+    "bottom-copper": {
+      "objects": 616,
+      "bounds_mm": [
+        [
+          17.921590000000002,
+          1.6526900000000002
+        ],
+        [
+          119.675,
+          51.71266
+        ]
+      ]
+    },
+    "bottom-mask": {
+      "objects": 114,
+      "bounds_mm": [
+        [
+          12.364208,
+          0.908608
+        ],
+        [
+          98.151392,
+          52.431392
+        ]
+      ]
+    },
+    "bottom-silk": {
+      "objects": 204,
+      "bounds_mm": [
+        [
+          12.364208,
+          0.908608
+        ],
+        [
+          98.151392,
+          52.431392
+        ]
+      ]
+    },
+    "bottom-paste": {
+      "objects": 0,
+      "bounds_mm": null
+    },
+    "inner_1-copper": {
+      "objects": 309,
+      "bounds_mm": [
+        [
+          11.3005,
+          0.3005
+        ],
+        [
+          121.6995,
+          53.0395
+        ]
+      ]
+    },
+    "inner_2-copper": {
+      "objects": 765,
+      "bounds_mm": [
+        [
+          17.921590000000002,
+          1.2671
+        ],
+        [
+          119.675,
+          51.71266
+        ]
+      ]
+    },
+    "mechanical-outline": {
+      "objects": 8,
+      "bounds_mm": [
+        [
+          10.975,
+          -0.025
+        ],
+        [
+          122.025,
+          53.365
+        ]
+      ]
+    }
+  },
+  "parser_notes": [
+    "G90 header statement found after end of header; KiCad emits G90 after %. Absolute coordinates verified against PCB.",
+    "The renderer reports an unused additional argument in KiCad RoundRect aperture macros; Gerbonara renders the defined macro primitives. Pad coordinates and connector paste dimensions were independently checked."
+  ],
+  "visual_inspection": "See inspection/*.svg and top/bottom.png; recorded separately in release status."
+}

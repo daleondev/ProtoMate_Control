@@ -1,0 +1,54 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-10-14T23:25:07",
+    "ignored_checks": [],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.0.6",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d",
+            "violations": []
+        },
+        {
+            "path": "/ribbon/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/b3d0f0f2-e1e2-5a31-b41a-8ff6e9ef3e64",
+            "violations": []
+        },
+        {
+            "path": "/buffer1/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/a6e5921d-e699-5ee2-b908-ffa5bb8ca762",
+            "violations": []
+        },
+        {
+            "path": "/buffer2/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/88371b07-7180-5074-a6ad-200b6214d05f",
+            "violations": []
+        },
+        {
+            "path": "/buffer3/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/af27e671-f470-5485-8262-19ad0c6278ba",
+            "violations": []
+        },
+        {
+            "path": "/buffer4/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/4d25a35b-2dcb-53b1-9f1c-71c9b6845d59",
+            "violations": []
+        },
+        {
+            "path": "/touch/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/b7f2b962-0824-5171-8ace-8ac871501314",
+            "violations": []
+        },
+        {
+            "path": "/headers/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/0ade953f-3e8b-53f3-9d88-689aeb7d9b87",
+            "violations": []
+        }
+    ],
+    "source": "giga-adapter.kicad_sch"
+}

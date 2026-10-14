@@ -1,0 +1,13 @@
+KiCad library contributors
+Source: https://www.kicad.org/libraries/license/
+License: Creative Commons Attribution-ShareAlike 4.0 International
+Full license: CC-BY-SA-4.0.txt in this directory
+
+KiCad's additional exception:
+To the extent that the creation of electronic designs that use 'Licensed
+Material' can be considered to be 'Adapted Material', then the copyright holder
+waives article 3 of the license with respect to these designs and any generated
+files which use data provided as part of the 'Licensed Material'.
+
+Redistributed library collections retain the CC-BY-SA license and attribution.
+The libraries are provided without warranty.

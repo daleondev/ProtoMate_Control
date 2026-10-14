@@ -1,0 +1,19 @@
+{
+  "display-adapter": {
+    "schematic_pcb_pin_pairs": 180,
+    "components": 28,
+    "tracks": 1291,
+    "ground_reference": "In1.Cu uninterrupted GND plane"
+  },
+  "giga-adapter": {
+    "schematic_pcb_pin_pairs": 465,
+    "components": 99,
+    "tracks": 1826,
+    "ground_reference": "In1.Cu uninterrupted GND plane"
+  },
+  "display_contacts": 50,
+  "ribbon_conductors": 80,
+  "signals": 35,
+  "firmware_pin_conflicts": 0,
+  "physical_hardware_test": "NOT PERFORMED"
+}

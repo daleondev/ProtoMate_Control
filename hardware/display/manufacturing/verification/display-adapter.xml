@@ -1,0 +1,1549 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display-adapter.kicad_sch</source>
+    <date>2026-10-14T23:24:18</date>
+    <tool>Eeschema 10.0.6</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>display-adapter / Smartwin display interface</title>
+        <company>ProtoMate</company>
+        <rev>A</rev>
+        <date>2026-10-14</date>
+        <source>display-adapter.kicad_sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="2" name="/display/" tstamps="/d20c06ac-ff14-5ca2-81bd-11924a5b33cd/">
+      <title_block>
+        <title>display-adapter / display</title>
+        <company>ProtoMate</company>
+        <rev>A</rev>
+        <date>2026-10-14</date>
+        <source>display.kicad_sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="3" name="/ribbon/" tstamps="/cf5962c3-c032-5d87-b92a-3dd219e20aca/">
+      <title_block>
+        <title>display-adapter / ribbon</title>
+        <company>ProtoMate</company>
+        <rev>A</rev>
+        <date>2026-10-14</date>
+        <source>ribbon.kicad_sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="4" name="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/">
+      <title_block>
+        <title>display-adapter / power</title>
+        <company>ProtoMate</company>
+        <rev>A</rev>
+        <date>2026-10-14</date>
+        <source>power.kicad_sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="J1">
+      <value>DF23C-50DP-0.5V(92)</value>
+      <footprint>DisplayAdapter:DF23C-50DP-0.5V</footprint>
+      <fields>
+        <field name="Manufacturer">Hirose</field>
+        <field name="MPN">DF23C-50DP-0.5V(92)</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:DF23C-50DP-0.5V</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="DF23" description=""/>
+      <property name="Manufacturer" value="Hirose"/>
+      <property name="MPN" value="DF23C-50DP-0.5V(92)"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="display"/>
+      <property name="Sheetfile" value="display.kicad_sch"/>
+      <sheetpath names="/display/" tstamps="/d20c06ac-ff14-5ca2-81bd-11924a5b33cd/"/>
+      <tstamps>9c531141-f0ef-5ed5-9712-051ada78a472</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="3"/>
+            <pin num="5"/>
+            <pin num="7"/>
+            <pin num="9"/>
+            <pin num="11"/>
+            <pin num="13"/>
+            <pin num="15"/>
+            <pin num="17"/>
+            <pin num="19"/>
+            <pin num="21"/>
+            <pin num="23"/>
+            <pin num="25"/>
+            <pin num="27"/>
+            <pin num="29"/>
+            <pin num="31"/>
+            <pin num="33"/>
+            <pin num="35"/>
+            <pin num="37"/>
+            <pin num="39"/>
+            <pin num="41"/>
+            <pin num="43"/>
+            <pin num="45"/>
+            <pin num="47"/>
+            <pin num="49"/>
+            <pin num="2"/>
+            <pin num="4"/>
+            <pin num="6"/>
+            <pin num="8"/>
+            <pin num="10"/>
+            <pin num="12"/>
+            <pin num="14"/>
+            <pin num="16"/>
+            <pin num="18"/>
+            <pin num="20"/>
+            <pin num="22"/>
+            <pin num="24"/>
+            <pin num="26"/>
+            <pin num="28"/>
+            <pin num="30"/>
+            <pin num="32"/>
+            <pin num="34"/>
+            <pin num="36"/>
+            <pin num="38"/>
+            <pin num="40"/>
+            <pin num="42"/>
+            <pin num="44"/>
+            <pin num="46"/>
+            <pin num="48"/>
+            <pin num="50"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J2">
+      <value>FH28H-80S-0.5SH(05)</value>
+      <footprint>DisplayAdapter:FH28H-80S-0.5SH</footprint>
+      <fields>
+        <field name="Manufacturer">Hirose</field>
+        <field name="MPN">FH28H-80S-0.5SH(05)</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:FH28H-80S-0.5SH</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="FFC" description=""/>
+      <property name="Manufacturer" value="Hirose"/>
+      <property name="MPN" value="FH28H-80S-0.5SH(05)"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="ribbon"/>
+      <property name="Sheetfile" value="ribbon.kicad_sch"/>
+      <sheetpath names="/ribbon/" tstamps="/cf5962c3-c032-5d87-b92a-3dd219e20aca/"/>
+      <tstamps>4ddd5d29-97fb-5959-ae48-fca70dd71f48</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="80"/>
+            <pin num="78"/>
+            <pin num="76"/>
+            <pin num="74"/>
+            <pin num="72"/>
+            <pin num="70"/>
+            <pin num="68"/>
+            <pin num="66"/>
+            <pin num="64"/>
+            <pin num="62"/>
+            <pin num="60"/>
+            <pin num="58"/>
+            <pin num="56"/>
+            <pin num="54"/>
+            <pin num="52"/>
+            <pin num="50"/>
+            <pin num="48"/>
+            <pin num="46"/>
+            <pin num="44"/>
+            <pin num="42"/>
+            <pin num="40"/>
+            <pin num="38"/>
+            <pin num="36"/>
+            <pin num="34"/>
+            <pin num="32"/>
+            <pin num="30"/>
+            <pin num="28"/>
+            <pin num="26"/>
+            <pin num="24"/>
+            <pin num="22"/>
+            <pin num="20"/>
+            <pin num="18"/>
+            <pin num="16"/>
+            <pin num="14"/>
+            <pin num="12"/>
+            <pin num="10"/>
+            <pin num="8"/>
+            <pin num="6"/>
+            <pin num="4"/>
+            <pin num="2"/>
+            <pin num="MP1"/>
+            <pin num="79"/>
+            <pin num="77"/>
+            <pin num="75"/>
+            <pin num="73"/>
+            <pin num="71"/>
+            <pin num="69"/>
+            <pin num="67"/>
+            <pin num="65"/>
+            <pin num="63"/>
+            <pin num="61"/>
+            <pin num="59"/>
+            <pin num="57"/>
+            <pin num="55"/>
+            <pin num="53"/>
+            <pin num="51"/>
+            <pin num="49"/>
+            <pin num="47"/>
+            <pin num="45"/>
+            <pin num="43"/>
+            <pin num="41"/>
+            <pin num="39"/>
+            <pin num="37"/>
+            <pin num="35"/>
+            <pin num="33"/>
+            <pin num="31"/>
+            <pin num="29"/>
+            <pin num="27"/>
+            <pin num="25"/>
+            <pin num="23"/>
+            <pin num="21"/>
+            <pin num="19"/>
+            <pin num="17"/>
+            <pin num="15"/>
+            <pin num="13"/>
+            <pin num="11"/>
+            <pin num="9"/>
+            <pin num="7"/>
+            <pin num="5"/>
+            <pin num="3"/>
+            <pin num="1"/>
+            <pin num="MP2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C1">
+      <value>47u / 10V X5R</value>
+      <footprint>DisplayAdapter:C_1210_3225Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM32ER61A476KE20L</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:C_1210_3225Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="C47U" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM32ER61A476KE20L"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>554f9942-eb60-51c4-958d-d55f11bd9d2b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C2">
+      <value>47u / 10V X5R</value>
+      <footprint>DisplayAdapter:C_1210_3225Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM32ER61A476KE20L</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:C_1210_3225Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="C47U" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM32ER61A476KE20L"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>ef7ce545-06dd-570e-b6c6-6e54cc7fc8e1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C3">
+      <value>47u / 10V X5R</value>
+      <footprint>DisplayAdapter:C_1210_3225Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM32ER61A476KE20L</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:C_1210_3225Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="C47U" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM32ER61A476KE20L"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>2f1a2234-b3b8-5bfc-8d4b-781ac8372823</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C4">
+      <value>47u / 10V X5R</value>
+      <footprint>DisplayAdapter:C_1210_3225Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM32ER61A476KE20L</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:C_1210_3225Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="C47U" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM32ER61A476KE20L"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>ce391cc0-e9fa-5d8f-9bf0-46afa1406a9b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C5">
+      <value>10u / 10V X5R</value>
+      <footprint>DisplayAdapter:C_0805_2012Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM21BR61A106KE19L</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="C10U" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM21BR61A106KE19L"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>982a51f6-c5fe-5e7f-89e8-701245887bda</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C6">
+      <value>10u / 10V X5R</value>
+      <footprint>DisplayAdapter:C_0805_2012Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM21BR61A106KE19L</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="C10U" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM21BR61A106KE19L"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>96221aa6-2ca5-5b49-abe7-e102ff4fdce6</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C7">
+      <value>100n / 16V X7R</value>
+      <footprint>DisplayAdapter:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM188R71C104KA01D</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="C100N" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM188R71C104KA01D"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>2dfea3ba-e179-5e0e-9915-140888a20411</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C8">
+      <value>100n / 16V X7R</value>
+      <footprint>DisplayAdapter:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM188R71C104KA01D</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="C100N" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM188R71C104KA01D"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>b94efb20-c6ef-50c6-b40f-ac79cdcdbc4d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="F1">
+      <value>2.5A fast fuse</value>
+      <footprint>DisplayAdapter:Fuse_0603_1608Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Littelfuse</field>
+        <field name="MPN">046702.5NRHF</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:Fuse_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="FUSE" description=""/>
+      <property name="Manufacturer" value="Littelfuse"/>
+      <property name="MPN" value="046702.5NRHF"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>9140c28f-f890-5265-be91-e87bbafa9d91</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J3">
+      <value>3.3V INPUT</value>
+      <footprint>DisplayAdapter:TerminalBlock_1x02_P3.50mm</footprint>
+      <fields>
+        <field name="Manufacturer">Phoenix Contact</field>
+        <field name="MPN">1751248</field>
+        <field name="Assembly">HAND</field>
+        <field name="Footprint">DisplayAdapter:TerminalBlock_1x02_P3.50mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="POWER" description=""/>
+      <property name="Manufacturer" value="Phoenix Contact"/>
+      <property name="MPN" value="1751248"/>
+      <property name="Assembly" value="HAND"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>b81d0354-15a9-5253-b9e9-7653e59f0275</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="Q1">
+      <value>DMP2035U-7</value>
+      <footprint>DisplayAdapter:SOT-23</footprint>
+      <fields>
+        <field name="Manufacturer">Diodes Incorporated</field>
+        <field name="MPN">DMP2035U-7</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:SOT-23</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="PMOS" description=""/>
+      <property name="Manufacturer" value="Diodes Incorporated"/>
+      <property name="MPN" value="DMP2035U-7"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>40199b4f-bb7d-5597-bdae-335d23f76544</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="3"/>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="Q2">
+      <value>DMP2035U-7</value>
+      <footprint>DisplayAdapter:SOT-23</footprint>
+      <fields>
+        <field name="Manufacturer">Diodes Incorporated</field>
+        <field name="MPN">DMP2035U-7</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:SOT-23</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="PMOS" description=""/>
+      <property name="Manufacturer" value="Diodes Incorporated"/>
+      <property name="MPN" value="DMP2035U-7"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>7de6b522-5538-568d-8506-e1ae97258091</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="3"/>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R1">
+      <value>100k</value>
+      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Yageo</field>
+        <field name="MPN">RC0402FR-07100KL</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="R100K" description=""/>
+      <property name="Manufacturer" value="Yageo"/>
+      <property name="MPN" value="RC0402FR-07100KL"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>5a366a1e-1135-5dbf-bfeb-61c234121a81</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R2">
+      <value>47k</value>
+      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Yageo</field>
+        <field name="MPN">RC0402FR-0747KL</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="R47K" description=""/>
+      <property name="Manufacturer" value="Yageo"/>
+      <property name="MPN" value="RC0402FR-0747KL"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>02fdf697-d54f-56a0-bcdc-1d7a2c17bdb0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R3">
+      <value>47k</value>
+      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Yageo</field>
+        <field name="MPN">RC0402FR-0747KL</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="R47K" description=""/>
+      <property name="Manufacturer" value="Yageo"/>
+      <property name="MPN" value="RC0402FR-0747KL"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>3beea7f3-f4fd-5c71-9fac-40e6bfc3c2b0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R4">
+      <value>47k</value>
+      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Yageo</field>
+        <field name="MPN">RC0402FR-0747KL</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="R47K" description=""/>
+      <property name="Manufacturer" value="Yageo"/>
+      <property name="MPN" value="RC0402FR-0747KL"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>16d010dc-ff3d-5014-aef4-058d319edb38</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R5">
+      <value>47k</value>
+      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Yageo</field>
+        <field name="MPN">RC0402FR-0747KL</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="R47K" description=""/>
+      <property name="Manufacturer" value="Yageo"/>
+      <property name="MPN" value="RC0402FR-0747KL"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>2e34f9f2-cb8e-5b10-ac09-a71e1ef1b796</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R6">
+      <value>4k7</value>
+      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Yageo</field>
+        <field name="MPN">RC0402FR-074K7L</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="R4K7" description=""/>
+      <property name="Manufacturer" value="Yageo"/>
+      <property name="MPN" value="RC0402FR-074K7L"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>30091a19-bb8f-5387-a3aa-26d7302a7887</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R7">
+      <value>4k7</value>
+      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Yageo</field>
+        <field name="MPN">RC0402FR-074K7L</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="R4K7" description=""/>
+      <property name="Manufacturer" value="Yageo"/>
+      <property name="MPN" value="RC0402FR-074K7L"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>b7dcf559-6afd-5a00-b00e-48a21284c546</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R8">
+      <value>47k</value>
+      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="Manufacturer">Yageo</field>
+        <field name="MPN">RC0402FR-0747KL</field>
+        <field name="Assembly">SMT</field>
+        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="R47K" description=""/>
+      <property name="Manufacturer" value="Yageo"/>
+      <property name="MPN" value="RC0402FR-0747KL"/>
+      <property name="Assembly" value="SMT"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>b22119cb-bd45-5c7f-ba05-7088fcbf9434</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP1">
+      <value>Probe pad</value>
+      <footprint>DisplayAdapter:TestPoint_1.0mm</footprint>
+      <fields>
+        <field name="Manufacturer">PCB</field>
+        <field name="MPN">PCB copper feature</field>
+        <field name="Assembly">PCB</field>
+        <field name="Footprint">DisplayAdapter:TestPoint_1.0mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="TP" description=""/>
+      <property name="Manufacturer" value="PCB"/>
+      <property name="MPN" value="PCB copper feature"/>
+      <property name="Assembly" value="PCB"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <property name="exclude_from_bom"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>e1cf9513-4b32-5e8f-8651-d30fd22e1306</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP2">
+      <value>Probe pad</value>
+      <footprint>DisplayAdapter:TestPoint_1.0mm</footprint>
+      <fields>
+        <field name="Manufacturer">PCB</field>
+        <field name="MPN">PCB copper feature</field>
+        <field name="Assembly">PCB</field>
+        <field name="Footprint">DisplayAdapter:TestPoint_1.0mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="TP" description=""/>
+      <property name="Manufacturer" value="PCB"/>
+      <property name="MPN" value="PCB copper feature"/>
+      <property name="Assembly" value="PCB"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <property name="exclude_from_bom"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>f08591fd-1e00-5ec9-996d-68646484c5b8</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP3">
+      <value>Probe pad</value>
+      <footprint>DisplayAdapter:TestPoint_1.0mm</footprint>
+      <fields>
+        <field name="Manufacturer">PCB</field>
+        <field name="MPN">PCB copper feature</field>
+        <field name="Assembly">PCB</field>
+        <field name="Footprint">DisplayAdapter:TestPoint_1.0mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="TP" description=""/>
+      <property name="Manufacturer" value="PCB"/>
+      <property name="MPN" value="PCB copper feature"/>
+      <property name="Assembly" value="PCB"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <property name="exclude_from_bom"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>2126d2c5-d4b1-5733-86c3-f2867790e882</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP4">
+      <value>Probe pad</value>
+      <footprint>DisplayAdapter:TestPoint_1.0mm</footprint>
+      <fields>
+        <field name="Manufacturer">PCB</field>
+        <field name="MPN">PCB copper feature</field>
+        <field name="Assembly">PCB</field>
+        <field name="Footprint">DisplayAdapter:TestPoint_1.0mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="TP" description=""/>
+      <property name="Manufacturer" value="PCB"/>
+      <property name="MPN" value="PCB copper feature"/>
+      <property name="Assembly" value="PCB"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <property name="exclude_from_bom"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>8d9eeee1-8127-548e-88cd-fb0f80673915</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP5">
+      <value>Probe pad</value>
+      <footprint>DisplayAdapter:TestPoint_1.0mm</footprint>
+      <fields>
+        <field name="Manufacturer">PCB</field>
+        <field name="MPN">PCB copper feature</field>
+        <field name="Assembly">PCB</field>
+        <field name="Footprint">DisplayAdapter:TestPoint_1.0mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="TP" description=""/>
+      <property name="Manufacturer" value="PCB"/>
+      <property name="MPN" value="PCB copper feature"/>
+      <property name="Assembly" value="PCB"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <property name="exclude_from_bom"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>c70ad386-3bfb-5b53-b694-6ae8815a9883</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP6">
+      <value>Probe pad</value>
+      <footprint>DisplayAdapter:TestPoint_1.0mm</footprint>
+      <fields>
+        <field name="Manufacturer">PCB</field>
+        <field name="MPN">PCB copper feature</field>
+        <field name="Assembly">PCB</field>
+        <field name="Footprint">DisplayAdapter:TestPoint_1.0mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="TP" description=""/>
+      <property name="Manufacturer" value="PCB"/>
+      <property name="MPN" value="PCB copper feature"/>
+      <property name="Assembly" value="PCB"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <property name="exclude_from_bom"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>be1d3caf-94ab-5530-8eb7-ad8c49341b9d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="DisplayAdapter" part="C100N">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">100n / 16V X7R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="C10U">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">10u / 10V X5R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="C47U">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">47u / 10V X5R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="DF23">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">DF23C-50DP-0.5V(92)</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+        <pin num="3" name="3" type="passive"/>
+        <pin num="4" name="4" type="passive"/>
+        <pin num="5" name="5" type="passive"/>
+        <pin num="6" name="6" type="passive"/>
+        <pin num="7" name="7" type="passive"/>
+        <pin num="8" name="8" type="passive"/>
+        <pin num="9" name="9" type="passive"/>
+        <pin num="10" name="10" type="passive"/>
+        <pin num="11" name="11" type="passive"/>
+        <pin num="12" name="12" type="passive"/>
+        <pin num="13" name="13" type="passive"/>
+        <pin num="14" name="14" type="passive"/>
+        <pin num="15" name="15" type="passive"/>
+        <pin num="16" name="16" type="passive"/>
+        <pin num="17" name="17" type="passive"/>
+        <pin num="18" name="18" type="passive"/>
+        <pin num="19" name="19" type="passive"/>
+        <pin num="20" name="20" type="passive"/>
+        <pin num="21" name="21" type="passive"/>
+        <pin num="22" name="22" type="passive"/>
+        <pin num="23" name="23" type="passive"/>
+        <pin num="24" name="24" type="passive"/>
+        <pin num="25" name="25" type="passive"/>
+        <pin num="26" name="26" type="passive"/>
+        <pin num="27" name="27" type="passive"/>
+        <pin num="28" name="28" type="passive"/>
+        <pin num="29" name="29" type="passive"/>
+        <pin num="30" name="30" type="passive"/>
+        <pin num="31" name="31" type="passive"/>
+        <pin num="32" name="32" type="passive"/>
+        <pin num="33" name="33" type="passive"/>
+        <pin num="34" name="34" type="passive"/>
+        <pin num="35" name="35" type="passive"/>
+        <pin num="36" name="36" type="passive"/>
+        <pin num="37" name="37" type="passive"/>
+        <pin num="38" name="38" type="passive"/>
+        <pin num="39" name="39" type="passive"/>
+        <pin num="40" name="40" type="passive"/>
+        <pin num="41" name="41" type="passive"/>
+        <pin num="42" name="42" type="passive"/>
+        <pin num="43" name="43" type="passive"/>
+        <pin num="44" name="44" type="passive"/>
+        <pin num="45" name="45" type="passive"/>
+        <pin num="46" name="46" type="passive"/>
+        <pin num="47" name="47" type="passive"/>
+        <pin num="48" name="48" type="passive"/>
+        <pin num="49" name="49" type="passive"/>
+        <pin num="50" name="50" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="FFC">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">FH28H-80S-0.5SH(05)</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+        <pin num="3" name="3" type="passive"/>
+        <pin num="4" name="4" type="passive"/>
+        <pin num="5" name="5" type="passive"/>
+        <pin num="6" name="6" type="passive"/>
+        <pin num="7" name="7" type="passive"/>
+        <pin num="8" name="8" type="passive"/>
+        <pin num="9" name="9" type="passive"/>
+        <pin num="10" name="10" type="passive"/>
+        <pin num="11" name="11" type="passive"/>
+        <pin num="12" name="12" type="passive"/>
+        <pin num="13" name="13" type="passive"/>
+        <pin num="14" name="14" type="passive"/>
+        <pin num="15" name="15" type="passive"/>
+        <pin num="16" name="16" type="passive"/>
+        <pin num="17" name="17" type="passive"/>
+        <pin num="18" name="18" type="passive"/>
+        <pin num="19" name="19" type="passive"/>
+        <pin num="20" name="20" type="passive"/>
+        <pin num="21" name="21" type="passive"/>
+        <pin num="22" name="22" type="passive"/>
+        <pin num="23" name="23" type="passive"/>
+        <pin num="24" name="24" type="passive"/>
+        <pin num="25" name="25" type="passive"/>
+        <pin num="26" name="26" type="passive"/>
+        <pin num="27" name="27" type="passive"/>
+        <pin num="28" name="28" type="passive"/>
+        <pin num="29" name="29" type="passive"/>
+        <pin num="30" name="30" type="passive"/>
+        <pin num="31" name="31" type="passive"/>
+        <pin num="32" name="32" type="passive"/>
+        <pin num="33" name="33" type="passive"/>
+        <pin num="34" name="34" type="passive"/>
+        <pin num="35" name="35" type="passive"/>
+        <pin num="36" name="36" type="passive"/>
+        <pin num="37" name="37" type="passive"/>
+        <pin num="38" name="38" type="passive"/>
+        <pin num="39" name="39" type="passive"/>
+        <pin num="40" name="40" type="passive"/>
+        <pin num="41" name="41" type="passive"/>
+        <pin num="42" name="42" type="passive"/>
+        <pin num="43" name="43" type="passive"/>
+        <pin num="44" name="44" type="passive"/>
+        <pin num="45" name="45" type="passive"/>
+        <pin num="46" name="46" type="passive"/>
+        <pin num="47" name="47" type="passive"/>
+        <pin num="48" name="48" type="passive"/>
+        <pin num="49" name="49" type="passive"/>
+        <pin num="50" name="50" type="passive"/>
+        <pin num="51" name="51" type="passive"/>
+        <pin num="52" name="52" type="passive"/>
+        <pin num="53" name="53" type="passive"/>
+        <pin num="54" name="54" type="passive"/>
+        <pin num="55" name="55" type="passive"/>
+        <pin num="56" name="56" type="passive"/>
+        <pin num="57" name="57" type="passive"/>
+        <pin num="58" name="58" type="passive"/>
+        <pin num="59" name="59" type="passive"/>
+        <pin num="60" name="60" type="passive"/>
+        <pin num="61" name="61" type="passive"/>
+        <pin num="62" name="62" type="passive"/>
+        <pin num="63" name="63" type="passive"/>
+        <pin num="64" name="64" type="passive"/>
+        <pin num="65" name="65" type="passive"/>
+        <pin num="66" name="66" type="passive"/>
+        <pin num="67" name="67" type="passive"/>
+        <pin num="68" name="68" type="passive"/>
+        <pin num="69" name="69" type="passive"/>
+        <pin num="70" name="70" type="passive"/>
+        <pin num="71" name="71" type="passive"/>
+        <pin num="72" name="72" type="passive"/>
+        <pin num="73" name="73" type="passive"/>
+        <pin num="74" name="74" type="passive"/>
+        <pin num="75" name="75" type="passive"/>
+        <pin num="76" name="76" type="passive"/>
+        <pin num="77" name="77" type="passive"/>
+        <pin num="78" name="78" type="passive"/>
+        <pin num="79" name="79" type="passive"/>
+        <pin num="80" name="80" type="passive"/>
+        <pin num="MP1" name="MP1" type="passive"/>
+        <pin num="MP2" name="MP2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="FUSE">
+      <fields>
+        <field name="Reference">F</field>
+        <field name="Value">2.5A fast fuse</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="PMOS">
+      <fields>
+        <field name="Reference">Q</field>
+        <field name="Value">DMP2035U-7</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="G" type="input"/>
+        <pin num="2" name="S_/_PROTECTED" type="passive"/>
+        <pin num="3" name="D_/_INPUT" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="POWER">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">3.3V INPUT</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="R100K">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">100k</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="R47K">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">47k</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="R4K7">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">4k7</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="TP">
+      <fields>
+        <field name="Reference">T</field>
+        <field name="Value">Probe pad</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="PROBE" type="passive"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="DisplayAdapter">
+      <uri>${KIPRJMOD}/Adapter.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="+3V3_FUSED" class="Default">
+      <node ref="F1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="Q1" pin="3" pinfunction="D_/_INPUT_3" pintype="passive"/>
+      <node ref="Q2" pin="3" pinfunction="D_/_INPUT_3" pintype="passive"/>
+    </net>
+    <net code="2" name="+3V3_INPUT" class="Default">
+      <node ref="F1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J3" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="3" name="+3V3_PANEL" class="Default">
+      <node ref="C1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C3" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C4" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C5" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C6" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C7" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C8" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J1" pin="10" pinfunction="10_10" pintype="passive"/>
+      <node ref="J1" pin="49" pinfunction="49_49" pintype="passive"/>
+      <node ref="J1" pin="5" pinfunction="5_5" pintype="passive"/>
+      <node ref="J1" pin="6" pinfunction="6_6" pintype="passive"/>
+      <node ref="J1" pin="7" pinfunction="7_7" pintype="passive"/>
+      <node ref="J1" pin="8" pinfunction="8_8" pintype="passive"/>
+      <node ref="J2" pin="72" pinfunction="72_72" pintype="passive"/>
+      <node ref="J2" pin="74" pinfunction="74_74" pintype="passive"/>
+      <node ref="J2" pin="76" pinfunction="76_76" pintype="passive"/>
+      <node ref="J2" pin="78" pinfunction="78_78" pintype="passive"/>
+      <node ref="Q1" pin="2" pinfunction="S_/_PROTECTED_2" pintype="passive"/>
+      <node ref="Q2" pin="2" pinfunction="S_/_PROTECTED_2" pintype="passive"/>
+      <node ref="R6" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R7" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R8" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="TP1" pin="1" pinfunction="PROBE_1" pintype="passive"/>
+    </net>
+    <net code="4" name="GND" class="Default">
+      <node ref="C1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C2" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C3" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C4" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C5" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C6" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C7" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C8" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="J1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J1" pin="11" pinfunction="11_11" pintype="passive"/>
+      <node ref="J1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="J1" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="J1" pin="36" pinfunction="36_36" pintype="passive"/>
+      <node ref="J1" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="J1" pin="40" pinfunction="40_40" pintype="passive"/>
+      <node ref="J1" pin="42" pinfunction="42_42" pintype="passive"/>
+      <node ref="J1" pin="50" pinfunction="50_50" pintype="passive"/>
+      <node ref="J2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J2" pin="11" pinfunction="11_11" pintype="passive"/>
+      <node ref="J2" pin="13" pinfunction="13_13" pintype="passive"/>
+      <node ref="J2" pin="15" pinfunction="15_15" pintype="passive"/>
+      <node ref="J2" pin="17" pinfunction="17_17" pintype="passive"/>
+      <node ref="J2" pin="19" pinfunction="19_19" pintype="passive"/>
+      <node ref="J2" pin="21" pinfunction="21_21" pintype="passive"/>
+      <node ref="J2" pin="23" pinfunction="23_23" pintype="passive"/>
+      <node ref="J2" pin="25" pinfunction="25_25" pintype="passive"/>
+      <node ref="J2" pin="27" pinfunction="27_27" pintype="passive"/>
+      <node ref="J2" pin="29" pinfunction="29_29" pintype="passive"/>
+      <node ref="J2" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="J2" pin="31" pinfunction="31_31" pintype="passive"/>
+      <node ref="J2" pin="33" pinfunction="33_33" pintype="passive"/>
+      <node ref="J2" pin="35" pinfunction="35_35" pintype="passive"/>
+      <node ref="J2" pin="37" pinfunction="37_37" pintype="passive"/>
+      <node ref="J2" pin="39" pinfunction="39_39" pintype="passive"/>
+      <node ref="J2" pin="41" pinfunction="41_41" pintype="passive"/>
+      <node ref="J2" pin="43" pinfunction="43_43" pintype="passive"/>
+      <node ref="J2" pin="45" pinfunction="45_45" pintype="passive"/>
+      <node ref="J2" pin="47" pinfunction="47_47" pintype="passive"/>
+      <node ref="J2" pin="49" pinfunction="49_49" pintype="passive"/>
+      <node ref="J2" pin="5" pinfunction="5_5" pintype="passive"/>
+      <node ref="J2" pin="51" pinfunction="51_51" pintype="passive"/>
+      <node ref="J2" pin="53" pinfunction="53_53" pintype="passive"/>
+      <node ref="J2" pin="55" pinfunction="55_55" pintype="passive"/>
+      <node ref="J2" pin="57" pinfunction="57_57" pintype="passive"/>
+      <node ref="J2" pin="59" pinfunction="59_59" pintype="passive"/>
+      <node ref="J2" pin="61" pinfunction="61_61" pintype="passive"/>
+      <node ref="J2" pin="63" pinfunction="63_63" pintype="passive"/>
+      <node ref="J2" pin="65" pinfunction="65_65" pintype="passive"/>
+      <node ref="J2" pin="67" pinfunction="67_67" pintype="passive"/>
+      <node ref="J2" pin="69" pinfunction="69_69" pintype="passive"/>
+      <node ref="J2" pin="7" pinfunction="7_7" pintype="passive"/>
+      <node ref="J2" pin="71" pinfunction="71_71" pintype="passive"/>
+      <node ref="J2" pin="73" pinfunction="73_73" pintype="passive"/>
+      <node ref="J2" pin="75" pinfunction="75_75" pintype="passive"/>
+      <node ref="J2" pin="77" pinfunction="77_77" pintype="passive"/>
+      <node ref="J2" pin="79" pinfunction="79_79" pintype="passive"/>
+      <node ref="J2" pin="80" pinfunction="80_80" pintype="passive"/>
+      <node ref="J2" pin="9" pinfunction="9_9" pintype="passive"/>
+      <node ref="J2" pin="MP1" pinfunction="MP1_MP1" pintype="passive"/>
+      <node ref="J2" pin="MP2" pinfunction="MP2_MP2" pintype="passive"/>
+      <node ref="J3" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R2" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R3" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R4" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R5" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="TP2" pin="1" pinfunction="PROBE_1" pintype="passive"/>
+      <node ref="TP4" pin="1" pinfunction="PROBE_1" pintype="passive"/>
+    </net>
+    <net code="5" name="LCD_B0" class="Default">
+      <node ref="J1" pin="28" pinfunction="28_28" pintype="passive"/>
+      <node ref="J2" pin="18" pinfunction="18_18" pintype="passive"/>
+    </net>
+    <net code="6" name="LCD_B1" class="Default">
+      <node ref="J1" pin="29" pinfunction="29_29" pintype="passive"/>
+      <node ref="J2" pin="20" pinfunction="20_20" pintype="passive"/>
+    </net>
+    <net code="7" name="LCD_B2" class="Default">
+      <node ref="J1" pin="30" pinfunction="30_30" pintype="passive"/>
+      <node ref="J2" pin="22" pinfunction="22_22" pintype="passive"/>
+    </net>
+    <net code="8" name="LCD_B3" class="Default">
+      <node ref="J1" pin="31" pinfunction="31_31" pintype="passive"/>
+      <node ref="J2" pin="24" pinfunction="24_24" pintype="passive"/>
+    </net>
+    <net code="9" name="LCD_B4" class="Default">
+      <node ref="J1" pin="32" pinfunction="32_32" pintype="passive"/>
+      <node ref="J2" pin="26" pinfunction="26_26" pintype="passive"/>
+    </net>
+    <net code="10" name="LCD_B5" class="Default">
+      <node ref="J1" pin="33" pinfunction="33_33" pintype="passive"/>
+      <node ref="J2" pin="28" pinfunction="28_28" pintype="passive"/>
+    </net>
+    <net code="11" name="LCD_B6" class="Default">
+      <node ref="J1" pin="34" pinfunction="34_34" pintype="passive"/>
+      <node ref="J2" pin="30" pinfunction="30_30" pintype="passive"/>
+    </net>
+    <net code="12" name="LCD_B7" class="Default">
+      <node ref="J1" pin="35" pinfunction="35_35" pintype="passive"/>
+      <node ref="J2" pin="32" pinfunction="32_32" pintype="passive"/>
+    </net>
+    <net code="13" name="LCD_DE" class="Default">
+      <node ref="J1" pin="39" pinfunction="39_39" pintype="passive"/>
+      <node ref="J2" pin="52" pinfunction="52_52" pintype="passive"/>
+    </net>
+    <net code="14" name="LCD_G0" class="Default">
+      <node ref="J1" pin="20" pinfunction="20_20" pintype="passive"/>
+      <node ref="J2" pin="34" pinfunction="34_34" pintype="passive"/>
+    </net>
+    <net code="15" name="LCD_G1" class="Default">
+      <node ref="J1" pin="21" pinfunction="21_21" pintype="passive"/>
+      <node ref="J2" pin="36" pinfunction="36_36" pintype="passive"/>
+    </net>
+    <net code="16" name="LCD_G2" class="Default">
+      <node ref="J1" pin="22" pinfunction="22_22" pintype="passive"/>
+      <node ref="J2" pin="38" pinfunction="38_38" pintype="passive"/>
+    </net>
+    <net code="17" name="LCD_G3" class="Default">
+      <node ref="J1" pin="23" pinfunction="23_23" pintype="passive"/>
+      <node ref="J2" pin="40" pinfunction="40_40" pintype="passive"/>
+    </net>
+    <net code="18" name="LCD_G4" class="Default">
+      <node ref="J1" pin="24" pinfunction="24_24" pintype="passive"/>
+      <node ref="J2" pin="42" pinfunction="42_42" pintype="passive"/>
+    </net>
+    <net code="19" name="LCD_G5" class="Default">
+      <node ref="J1" pin="25" pinfunction="25_25" pintype="passive"/>
+      <node ref="J2" pin="44" pinfunction="44_44" pintype="passive"/>
+    </net>
+    <net code="20" name="LCD_G6" class="Default">
+      <node ref="J1" pin="26" pinfunction="26_26" pintype="passive"/>
+      <node ref="J2" pin="46" pinfunction="46_46" pintype="passive"/>
+    </net>
+    <net code="21" name="LCD_G7" class="Default">
+      <node ref="J1" pin="27" pinfunction="27_27" pintype="passive"/>
+      <node ref="J2" pin="48" pinfunction="48_48" pintype="passive"/>
+    </net>
+    <net code="22" name="LCD_HSYNC" class="Default">
+      <node ref="J1" pin="38" pinfunction="38_38" pintype="passive"/>
+      <node ref="J2" pin="54" pinfunction="54_54" pintype="passive"/>
+    </net>
+    <net code="23" name="LCD_PCLK" class="Default">
+      <node ref="J1" pin="41" pinfunction="41_41" pintype="passive"/>
+      <node ref="J2" pin="50" pinfunction="50_50" pintype="passive"/>
+      <node ref="TP3" pin="1" pinfunction="PROBE_1" pintype="passive"/>
+    </net>
+    <net code="24" name="LCD_PWM" class="Default">
+      <node ref="J1" pin="9" pinfunction="9_9" pintype="passive"/>
+      <node ref="J2" pin="58" pinfunction="58_58" pintype="passive"/>
+      <node ref="R2" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="25" name="LCD_R0" class="Default">
+      <node ref="J1" pin="12" pinfunction="12_12" pintype="passive"/>
+      <node ref="J2" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="26" name="LCD_R1" class="Default">
+      <node ref="J1" pin="13" pinfunction="13_13" pintype="passive"/>
+      <node ref="J2" pin="4" pinfunction="4_4" pintype="passive"/>
+    </net>
+    <net code="27" name="LCD_R2" class="Default">
+      <node ref="J1" pin="14" pinfunction="14_14" pintype="passive"/>
+      <node ref="J2" pin="6" pinfunction="6_6" pintype="passive"/>
+    </net>
+    <net code="28" name="LCD_R3" class="Default">
+      <node ref="J1" pin="15" pinfunction="15_15" pintype="passive"/>
+      <node ref="J2" pin="8" pinfunction="8_8" pintype="passive"/>
+    </net>
+    <net code="29" name="LCD_R4" class="Default">
+      <node ref="J1" pin="16" pinfunction="16_16" pintype="passive"/>
+      <node ref="J2" pin="10" pinfunction="10_10" pintype="passive"/>
+    </net>
+    <net code="30" name="LCD_R5" class="Default">
+      <node ref="J1" pin="17" pinfunction="17_17" pintype="passive"/>
+      <node ref="J2" pin="12" pinfunction="12_12" pintype="passive"/>
+    </net>
+    <net code="31" name="LCD_R6" class="Default">
+      <node ref="J1" pin="18" pinfunction="18_18" pintype="passive"/>
+      <node ref="J2" pin="14" pinfunction="14_14" pintype="passive"/>
+    </net>
+    <net code="32" name="LCD_R7" class="Default">
+      <node ref="J1" pin="19" pinfunction="19_19" pintype="passive"/>
+      <node ref="J2" pin="16" pinfunction="16_16" pintype="passive"/>
+    </net>
+    <net code="33" name="LCD_SCL" class="Default">
+      <node ref="J1" pin="48" pinfunction="48_48" pintype="passive"/>
+      <node ref="J2" pin="70" pinfunction="70_70" pintype="passive"/>
+      <node ref="R7" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="TP6" pin="1" pinfunction="PROBE_1" pintype="passive"/>
+    </net>
+    <net code="34" name="LCD_SDA" class="Default">
+      <node ref="J1" pin="47" pinfunction="47_47" pintype="passive"/>
+      <node ref="J2" pin="68" pinfunction="68_68" pintype="passive"/>
+      <node ref="R6" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="TP5" pin="1" pinfunction="PROBE_1" pintype="passive"/>
+    </net>
+    <net code="35" name="LCD_STANDBY" class="Default">
+      <node ref="J1" pin="43" pinfunction="43_43" pintype="passive"/>
+      <node ref="J2" pin="60" pinfunction="60_60" pintype="passive"/>
+      <node ref="R3" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="36" name="LCD_TFT_RESET_N" class="Default">
+      <node ref="J1" pin="44" pinfunction="44_44" pintype="passive"/>
+      <node ref="J2" pin="62" pinfunction="62_62" pintype="passive"/>
+      <node ref="R4" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="37" name="LCD_TOUCH_INT_N" class="Default">
+      <node ref="J1" pin="46" pinfunction="46_46" pintype="passive"/>
+      <node ref="J2" pin="66" pinfunction="66_66" pintype="passive"/>
+      <node ref="R8" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="38" name="LCD_TOUCH_RESET_N" class="Default">
+      <node ref="J1" pin="45" pinfunction="45_45" pintype="passive"/>
+      <node ref="J2" pin="64" pinfunction="64_64" pintype="passive"/>
+      <node ref="R5" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="39" name="LCD_VSYNC" class="Default">
+      <node ref="J1" pin="37" pinfunction="37_37" pintype="passive"/>
+      <node ref="J2" pin="56" pinfunction="56_56" pintype="passive"/>
+    </net>
+    <net code="40" name="PWR_GATE" class="Default">
+      <node ref="Q1" pin="1" pinfunction="G_1" pintype="input"/>
+      <node ref="Q2" pin="1" pinfunction="G_1" pintype="input"/>
+      <node ref="R1" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+  </nets>
+</export>

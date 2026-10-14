@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Measure electrically connected route lengths between specified physical pads."""
+import csv,heapq,json,math
+from collections import defaultdict
+import pcbnew as k
+from design import ROOT,SIGNALS
+k.SwigPyIterator.next=k.SwigPyIterator.__next__
+LAYERS=[k.F_Cu,k.In1_Cu,k.In2_Cu,k.B_Cu]
+def coord(p):return round(k.ToMM(p.x),6),round(k.ToMM(p.y),6)
+def length(b,ref1,pin1,ref2,pin2):
+    fp={f.GetReference():f for f in b.GetFootprints()}
+    a=next(p for p in fp[ref1].Pads() if p.GetNumber()==str(pin1));c=next(p for p in fp[ref2].Pads() if p.GetNumber()==str(pin2));net=a.GetNetname();assert c.GetNetname()==net
+    tracks=[t for t in b.GetTracks() if t.GetNetname()==net];pads=[p for f in b.GetFootprints() for p in f.Pads() if p.GetNetname()==net]
+    nodes=set();edges=defaultdict(list);lines=[];vias=[]
+    def add(u,v,d):edges[u].append((v,d));edges[v].append((u,d))
+    for t in tracks:
+        if isinstance(t,k.PCB_VIA):
+            x,y=coord(t.GetPosition());ns=[(l,x,y) for l in LAYERS];nodes.update(ns);vias.append(ns)
+        else:
+            u=(t.GetLayer(),*coord(t.GetStart()));v=(t.GetLayer(),*coord(t.GetEnd()));nodes.update([u,v]);lines.append((u,v))
+    for p in pads:
+        for l in LAYERS:
+            if p.IsOnLayer(l):nodes.add((l,*coord(p.GetPosition())))
+    for u,v in lines:
+        l,x,y=u;_,xx,yy=v;dx,dy=xx-x,yy-y;dd=dx*dx+dy*dy
+        if dd<1e-12:continue
+        points=[]
+        for n in nodes:
+            if n[0]!=l:continue
+            t=((n[1]-x)*dx+(n[2]-y)*dy)/dd
+            if -.00001<=t<=1.00001 and abs((n[1]-x)*dy-(n[2]-y)*dx)/math.sqrt(dd)<.002:points.append((t,n))
+        points.sort()
+        for (_,s),(_,e) in zip(points,points[1:]):add(s,e,math.hypot(e[1]-s[1],e[2]-s[2]))
+    for p in pads:
+        x,y=coord(p.GetPosition());ns=[]
+        for l in LAYERS:
+            if not p.IsOnLayer(l):continue
+            centre=(l,x,y);ns.append(centre);shape=p.GetEffectiveShape(l)
+            for n in nodes:
+                if n[0]==l and shape.Collide(k.VECTOR2I(k.FromMM(n[1]),k.FromMM(n[2])),k.FromMM(.002)):add(centre,n,math.hypot(n[1]-x,n[2]-y))
+        if p.GetDrillSize().x:vias.append(ns)
+    for ns in vias:
+        for u in ns:
+            for v in ns:
+                if u!=v:add(u,v,0)
+    sources=[(l,*coord(a.GetPosition())) for l in LAYERS if a.IsOnLayer(l)];targets={(l,*coord(c.GetPosition())) for l in LAYERS if c.IsOnLayer(l)}
+    q=[(0,n) for n in sources];heapq.heapify(q)
+    cost={n:0 for n in sources}
+    while q:
+        d,n=heapq.heappop(q)
+        if d!=cost.get(n):continue
+        if n in targets:return d
+        for v,w in edges[n]:
+            nd=d+w
+            if nd<cost.get(v,float('inf')):cost[v]=nd;heapq.heappush(q,(nd,v))
+    raise RuntimeError(f'No measured route {ref1}.{pin1} -> {ref2}.{pin2} ({net})')
+
+def main():
+    g=k.LoadBoard(str(ROOT/'giga-adapter/giga-adapter.kicad_pcb'));d=k.LoadBoard(str(ROOT/'display-adapter/display-adapter.kicad_pcb'))
+    rows=[]
+    for i,s in enumerate(SIGNALS[:32]):
+        u=f'U{i//8+1}';ch=i%8
+        row={'signal':s['name'],'giga_input_mm':length(g,s['adapter_header'],s['adapter_header_pin'],u,3+ch),'buffer_to_series_mm':length(g,u,21-ch,f'R{i+1}',1),'series_to_ffc_mm':length(g,f'R{i+1}',2,'J1',s['giga_ffc']),'display_ffc_to_panel_mm':length(d,'J2',s['display_ffc'],'J1',s['panel'])}
+        row['total_adapter_copper_mm']=sum(v for v in row.values() if isinstance(v,float));rows.append(row)
+    clock=next(r['total_adapter_copper_mm'] for r in rows if r['signal']=='PCLK')
+    for r in rows:r['relative_to_clock_mm']=r['total_adapter_copper_mm']-clock
+    report=ROOT/'manufacturing/verification'
+    with (report/'route-lengths.csv').open('w') as f:
+        w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows([{a:round(b,4) if isinstance(b,float) else b for a,b in r.items()} for r in rows])
+    skew=max(abs(r['relative_to_clock_mm']) for r in rows[:24])*.007
+    delta=[r['relative_to_clock_mm']*.007 for r in rows[:24]]
+    result={'method':'Shortest physical copper path, splitting segments at intersections and pad/via anchors. Horizontal lengths; package/via internal delay excluded.','pixel_clock_MHz':51.2,'half_period_ns':9.765625,'panel_setup_hold_ns':5,'buffer_interdevice_worst_case_range_ns':3.5,'adapter_trace_skew_estimate_ns_at_7ps_per_mm':skew,'stm32_DS12930_table105_conditions':'VDD >2.7V, OSPEED=11, IO compensation enabled, stated load and voltage-scale conditions; these are qualification conditions, not proof the present firmware meets them.','stm32_data_valid_max_ns':.5,'stm32_data_hold_min_ns':0,'stm32_half_cycle_tolerance_ns':.5,'conditional_setup_margin_ns_before_unmodelled_terms':9.765625-.5-.5-3.5-5-max(delta),'conditional_hold_margin_ns_before_unmodelled_terms':9.765625-.5-3.5-5+min(delta),'unmodelled_terms':['Arduino PCB routes','FFC conductor skew, material and connector/package effects','Via discontinuities, rise/fall settling and clock jitter','Actual display sampling phase and compliance with ST characterization conditions'],'physical_timing_verification':'NOT PERFORMED. Remaining sub-nanosecond worst-case margin is not full timing closure; qualify at the panel connector before accepting operation.'}
+    (report/'timing-budget.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
+
+if __name__=='__main__':main()

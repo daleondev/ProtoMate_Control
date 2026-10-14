@@ -1,0 +1,80 @@
+{
+  "revision": "A",
+  "date": "2026-10-14",
+  "release": "PROTOTYPE FABRICATION AND SMT ASSEMBLY",
+  "digital_release_checks": "PASS",
+  "boards": {
+    "display-adapter": {
+      "ERC_violations": 0,
+      "DRC_violations": 0,
+      "unrouted_connections": 0,
+      "ignored_ERC_categories": 0,
+      "ignored_DRC_categories": 0,
+      "excluded_findings": 0,
+      "SMT_components": 21,
+      "exported_pad_coordinates_checked": 182,
+      "drill_hits_checked": 207
+    },
+    "giga-adapter": {
+      "ERC_violations": 0,
+      "DRC_violations": 0,
+      "unrouted_connections": 0,
+      "ignored_ERC_categories": 0,
+      "ignored_DRC_categories": 0,
+      "excluded_findings": 0,
+      "SMT_components": 86,
+      "exported_pad_coordinates_checked": 575,
+      "drill_hits_checked": 312
+    }
+  },
+  "electrical_audit": {
+    "panel_contacts": 50,
+    "FFC_conductors": 80,
+    "signals": 35,
+    "firmware_pin_conflicts": 0,
+    "supply_isolation_topology": "PASS \u2014 distinct GIGA/panel rails, power-off isolation parts and defined biasing"
+  },
+  "mechanical_review": "PASS for nominal drawing/CAD geometry; 110 header centres checked. Physical tolerances and connector fit remain first-board tests.",
+  "visual_review": {
+    "reviewed": [
+      "Both outer copper/mask/silk sides rendered from exported Gerbers",
+      "Both internal copper layers and continuous In1 ground references",
+      "Fine-pitch paste apertures and drill exports",
+      "Schematic PDFs, connector orientation, assembly PDFs and cable drawing",
+      "Nominal GIGA/carrier 3D assembly and display top/bottom envelope models"
+    ],
+    "result": "PASS \u2014 fabrication package review"
+  },
+  "intentional_ERC_DRC_warnings": [],
+  "tool_notices": [
+    {
+      "tool": "Gerbonara Excellon parser",
+      "notice": "KiCad places G90 after the header terminator.",
+      "disposition": "Accepted: absolute drill coordinates, counts, diameters and plating matched the source PCB."
+    },
+    {
+      "tool": "Gerbonara aperture renderer",
+      "notice": "KiCad RoundRect macros include an unused argument.",
+      "disposition": "Accepted: macro primitives render; exported pad coordinates and all 80 FFC paste apertures checked."
+    },
+    {
+      "tool": "KiCad pcbnew Python bindings",
+      "notice": "Debug builds emit PROPERTY_ENUM/duplicate image-handler messages.",
+      "disposition": "Tool initialization notices; CLI ERC/DRC and independent export audits completed successfully."
+    }
+  ],
+  "physical_qualification": {
+    "status": "NOT PERFORMED",
+    "pending": [
+      "Actual connector fit, standoff tolerances and strain relief",
+      "3.3 V input rise time, supply isolation during either power sequence",
+      "Full-brightness current sharing, voltage drop and temperature",
+      "Panel-side PCLK/data timing and signal integrity over the chosen FFC",
+      "Bars, both framebuffer slots, PWM brightness and touch",
+      "Combined graphics/ICC/logging load and power-cycle reinitialization"
+    ]
+  },
+  "timing_qualification": "CONDITIONAL CALCULATION ONLY. Sub-nanosecond residual worst-case margin before unmodelled terms; not complete PVT timing closure. See verification/timing-budget.json and README.",
+  "manufacturing_order_placed": false,
+  "firmware_changed": false
+}

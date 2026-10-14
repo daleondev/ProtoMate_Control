@@ -1,0 +1,8 @@
+{
+  "revision": "A",
+  "SMT_reference_count": 21,
+  "result": "PASS",
+  "units": "mm",
+  "origin": "X=0, lower board edge; positive Y up; bottom X not negated",
+  "rotation": "KiCad native degrees, component-side convention; see assembly PDF"
+}
