@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "name": "perfboard-print",
+    "version": 5
+  },
+  "board": {
+    "b_silks": "rgb(20, 25, 30)",
+    "cmts_user": "rgb(25, 35, 45)",
+    "dwgs_user": "rgb(170, 177, 183)",
+    "edge_cuts": "rgb(20, 25, 30)",
+    "f_fab": "rgb(30, 40, 50)",
+    "f_silks": "rgb(20, 25, 30)",
+    "pad_plated_hole": "rgb(194, 194, 0)",
+    "plated_hole": "rgb(26, 196, 210)",
+    "via_hole": "rgb(227, 183, 46)",
+    "via_hole_walls": "rgb(236, 236, 236)",
+    "copper": {
+      "f": "rgb(192, 50, 40)",
+      "b": "rgb(25, 85, 160)"
+    }
+  }
+}

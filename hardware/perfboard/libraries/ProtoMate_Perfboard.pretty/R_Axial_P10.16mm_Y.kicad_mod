@@ -1,0 +1,109 @@
+(footprint "R_Axial_P10.16mm_Y"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 3.809999 5.079999 0)
+		(layer "F.SilkS")
+		(uuid "2e4c5bb4-dd07-4619-b69d-884c06af228c")
+		(effects
+			(font
+				(size 1.1 1.1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "R_Axial_P10.16mm_Y"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "99db540f-f0a8-44ba-94d2-6ffa68768d5c")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "d5b7aaa5-52f8-4c66-8dde-ef77663fdfc7")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "d7aca630-cae9-4daf-be80-df0598b2cf38")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -1.27 1.778)
+		(end 1.27 1.778)
+		(stroke
+			(width 0.15)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "2fc7db99-94ff-4699-b4ae-090138790712")
+	)
+	(fp_line
+		(start -1.27 8.382)
+		(end -1.27 1.778)
+		(stroke
+			(width 0.15)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "b26d3a20-a164-4380-9f65-e8d25ba01f2c")
+	)
+	(fp_line
+		(start 1.27 1.778)
+		(end 1.27 8.382)
+		(stroke
+			(width 0.15)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "1de55a36-ea77-4273-bac6-9416e78af9f3")
+	)
+	(fp_line
+		(start 1.27 8.382)
+		(end -1.27 8.382)
+		(stroke
+			(width 0.15)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "633f9055-1c17-4706-a00e-371258ef6450")
+	)
+	(pad "1" thru_hole rect
+		(at 0 0)
+		(size 1.7 1.7)
+		(drill 0.9)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(thermal_bridge_angle 45)
+		(uuid "66807c5a-093d-424e-851f-0387609f0ca8")
+	)
+	(pad "2" thru_hole circle
+		(at 0 10.16)
+		(size 1.7 1.7)
+		(drill 0.9)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "fa002a75-a61c-4bfd-8d13-83e6f0a21b80")
+	)
+	(embedded_fonts no)
+)

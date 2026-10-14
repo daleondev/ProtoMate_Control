@@ -1,0 +1,31 @@
+References,Quantity,Part,Mounting / note
+Q1 Q2 Q3 Q4 Q5 Q6,6,Diotec 2N2222A,TO-92; E1/B2/C3; 2.54 mm lead spacing
+U2,1,AM26C32CN,DIP-16; 7.62 mm rows
+U2 socket,1,DIP-16 socket,7.62 mm rows
+U3,1,SN74HC126N,PDIP-14; 7.62 mm rows; user already owns
+U3 socket,1,DIP-14 socket,7.62 mm rows; notch toward row A
+R1 R3 R5 R22 R25 R28 R29,7,1 kohm resistor,Axial 0.25 W; 10.16 mm hole spacing
+R2 R4 R6 R8 R9 R21 R24 R27,8,10 kohm resistor,Axial 0.25 W; 10.16 mm hole spacing
+R20 R23 R26 R30,4,4.7 kohm resistor,Axial 0.25 W; 10.16 mm hole spacing
+R7,1,470 ohm resistor,Axial 0.25 W; 10.16 mm hole spacing
+R10 R11 R12,0,DNP termination resistors,Leave empty; 10.16 mm reserved hole spacing
+C3 C4,2,100 nF ceramic capacitor,Nonpolar; >=16 V; 2.54 mm lead spacing
+C5 C6,2,1 uF nonpolar capacitor,>=16 V; 5.08 mm lead spacing
+J101,1,2x6 male header,2.54 mm pitch
+J102,1,2x3 male header,2.54 mm pitch; paired encoder returns to Nucleo
+J108,1,1x4 male header,2.54 mm pitch; three reference signals and shared ground
+J109 J110 J111,3,1x2 male header,2.54 mm pitch; three NC switch cables
+J104,1,10-way 5.08 mm screw terminal,50.8 x 8 mm body; row D columns 2-20 every second hole; wire entry toward row A; pins 1-6 control / 7-8 ALM / 9-10 power
+J105 J106,2,1x10 long-tail male header,2.54 mm pitch; solder each Adafruit #6121 directly to perfboard; >=6 mm clear gap; support terminal side with insulating spacers
+J107,1,1x8 male header,2.54 mm pitch
+Board,1,65 x 47 hole individual-pad perfboard,Orient as 47 columns x 65 rows; 2.54 mm grid; A1:BM47; 116.84 x 162.56 mm outer hole-centre span
+Wiring,As required,Insulated hookup wire and mating connectors,0.5 mm2 insulated copper for power-class wires; thin hookup wire for signals; Wires.csv gives routes
+A3 A4,2,Adafruit #6121 TMC2209 module,26.67 x 24.13 mm; direct JP4 + two-pin JP1 power mount; replace six-way terminal with four-way 2.54 mm motor terminal
+A3 A4 supports,As required,Insulating spacers/support pads,Support terminal-block side at >=6 mm gap; do not force module mounting holes onto perfboard grid
+U1,1,QIQIAZI XY-3606 / HCW-P715 buck module,63 x 27 mm; directly mounted at J103; remove VIN/VOUT screw blocks; retain barrel jack and USB
+J103,4 pins,Long-tail male header pins,5.08 mm within pairs; 50.8 mm between pairs; >=6 mm gap; all four pins wired (5 V/GND and 24 V/GND)
+U1 support,As required,Insulating supports / strain relief,Match 6 mm module gap; support barrel-jack side against cable forces
+C1 C2,2,100 uF / 50 V radial electrolytic,Polarized; body <=10 mm; 5.08 mm formed lead pitch; square pad positive
+J105 J106 power pins,2,1x2 long-tail male header,2.54 mm pitch; JP1.6 (+) / JP1.5 (-); downward direct mount at same module height as JP4
+A3 A4 motor terminals,2,4-way screw terminal,2.54 mm pitch; JP1.4-1; motor order 2B/2A/1A/1B; upward on module
+J113,1,2x4 male header,2.54 mm pitch; UART TX/RX plus two DIAG and two INDEX signals; GND pins 2 and 8
