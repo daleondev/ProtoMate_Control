@@ -482,6 +482,31 @@ TEST(RuntimeLibstdcxx, StopTokensAndJthreads)
     EXPECT_TRUE(wait_was_stopped);
 }
 
+TEST(RuntimeLibstdcxx, YieldAllowsLowerPriorityLockOwnerToRun)
+{
+    // libstdc++ uses yield in the stop_token callback-list spinlock. The
+    // waiter can preempt its owner between lock acquisition and release.
+    std::binary_semaphore owner_locked{ 0 };
+    std::atomic_bool owner_released{};
+    bool made_progress{};
+    auto waiter{ runtime::thread::create({ .priority = 8, .stack_size = 8192 }, [&] {
+        owner_locked.acquire();
+        const auto deadline{ std::chrono::steady_clock::now() + 100ms };
+        while (!owner_released.load(std::memory_order_acquire) &&
+               std::chrono::steady_clock::now() < deadline) {
+            std::this_thread::yield();
+        }
+        made_progress = owner_released.load(std::memory_order_acquire);
+    }) };
+    auto owner{ runtime::thread::create({ .priority = 17, .stack_size = 8192 }, [&] {
+        owner_locked.release(); // Immediately preempted by the higher-priority waiter.
+        owner_released.store(true, std::memory_order_release);
+    }) };
+    waiter.join();
+    owner.join();
+    EXPECT_TRUE(made_progress);
+}
+
 TEST(RuntimeLibstdcxx, BarriersAndLatches)
 {
     std::atomic<int> barrier_count{};

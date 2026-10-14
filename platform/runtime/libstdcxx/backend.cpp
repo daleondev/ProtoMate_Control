@@ -941,8 +941,11 @@ namespace runtime
             if (require_thread_context() != 0) {
                 return EPERM;
             }
-            tx_thread_relinquish();
-            return 0;
+            // libstdc++ uses yield while acquiring internal spinlocks (notably
+            // stop_token's callback list). Relinquish only schedules equal or
+            // higher priorities, so a preempted lower-priority lock owner could
+            // never release its lock. Suspend for one tick to let it progress.
+            return tx_thread_sleep(1U) == TX_SUCCESS ? 0 : EPERM;
         }
 
         int key_create(KeyHandle* key, void (*destructor)(void*)) noexcept

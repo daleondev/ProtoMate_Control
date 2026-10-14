@@ -11,8 +11,8 @@ compiled separately for each core. ICC uses bounded shared-SRAM queues with
 urgent, normal and background lanes; M7 writes the physical USB-C CDC console.
 
 The STM32H747 CubeMX, HAL, external-flash bootstrap and build port are implemented.
-**Factory backup and SWD access are verified; application bring-up is pending.**
-The factory firmware remains installed. [Wiring, memory, backup/flash/debug commands and acceptance gates](#arduino-giga-hardware-boot-and-bring-up)
+**Both applications boot from QSPI; USB/ICC services and STEP generation under combined load are verified.**
+Factory backups are preserved. [Wiring, memory, backup/flash/debug commands and acceptance gates](#arduino-giga-hardware-boot-and-bring-up)
 are documented below. Linux keeps the paired in-process transport for tests.
 
 M4 exposes STEP/DIR/enable, switches, DM542T/TMC2209 drivers, feedback and the
@@ -713,6 +713,9 @@ Each transfer direction reuses one coalesced notification, including across
 cancellation. Bridge heartbeats wake only their urgent sender; service/action
 events leave the background sender asleep. The channel's direct `wait()` awaiter
 avoids constructing an extra coroutine task for these notifications.
+The ThreadX C++ runtime suspends `std::this_thread::yield()` for one tick so
+libstdc++ cancellation spinlocks cannot starve a lower-priority lock owner.
+STEP interrupts do not use this thread-level wait.
 
 The frame has a 16-byte header: version (currently 7), frame kind, 16-bit name
 length, 64-bit call ID and 32-bit remaining timeout in milliseconds. Integers are
@@ -931,12 +934,12 @@ no external peripherals. Drivers remain disabled. Missing/corrupt manifests,
 invalid image CRCs and mismatched pair identifiers enter recovery with STEP low
 and enable inactive; restoring the valid activation record restores startup.
 The M4 RAM-debug pair also passes these commands; a software breakpoint at
-`icc::ConnectionHealth::tick` in SDRAM was hit and removed successfully.
+`diagnostics::collectMemory` in SDRAM was hit and removed successfully.
 The normal Debug pair also starts after a physical USB power cycle with no
 debugger session active. Twelve CLI checks passed across three subsequent serial
 close/reopen cycles, including heap/stack requests to M4 over ICC.
-Hardware logs are in `build/giga-debug/{flash,boot-validation,cold-start-results,cold-start-console}.log`
-and `build/giga-ram-debug/{console-check-clean,breakpoint}.log`.
+Hardware logs are in `build/giga-debug/{flash,boot-validation,cold-start-results,cold-start-console,icc-console-check}.log`
+and `build/giga-ram-debug/{icc-console-check,icc-breakpoint}.log`.
 The 24 MHz logic analyzer verifies STEP counts and timing in all nine bench
 scenarios: tiny moves, independent starts, 100 kHz, velocity updates, stop/restart,
 timer wrap, deliberate underrun, combined load and variable periods. All interval
@@ -949,18 +952,22 @@ reference; neither clock is independently calibrated.
 | Three channels at 100 kHz, including combined load | Exactly 100,000 pulses per channel; enable remains inactive |
 | Programmed 5 µs HIGH phase | 120–121 analyzer samples (5.000–5.042 µs) |
 | Refill interrupts withheld before arming | Hardware guard stops at 512 / 256 / 128 pulses, all outputs LOW |
-| Combined-load worst STEP service time | 145,140 cycles / 604.75 µs; 4.23× headroom against the 2.56 ms DMA buffer window |
-| Measured individual stop call | 11,781 cycles / 49.09 µs; other channels continue |
+| Combined-load worst STEP service time | 145,456 cycles / 606.07 µs; 4.22× headroom against the 2.56 ms DMA buffer window |
+| Measured individual stop call | 11,947 cycles / 49.78 µs; other channels continue |
+| ICC load packets validated during one-second motion | 36–39 per run, with zero payload errors |
+| Urgent ICC echo service under combined load | Zero errors; worst observed round trip 59 ms |
 
-**Combined-load acceptance remains open:** pulse timing passes and LTDC reports
-zero underruns, but only six validated ICC load packets and six echoes complete
-during the one-second motion, below the test's minimum of ten. The bench correctly
-reports FAIL for this case; the other eight cases pass. ICC throughput under
-simultaneous QSPI/USB/graphics traffic needs further investigation before claiming
-complete combined-load validation. Latest-only topic delivery permits coalescing,
-but does not waive this acceptance check. Raw captures, console logs, the matching
-image manifest and separate timing/overall verdicts are in
-`build/giga-step-results/` (`results.json`, `final-run.log`).
+**Combined-load acceptance passes:** all nine analyzer scenarios and ten additional
+combined-load runs complete without stalls, data errors, disconnects or LTDC
+underruns. Each load run verifies 100,000 pulses on every channel while exercising
+DMA2D/LTDC, QSPI reads, USB output, normal ICC topics and urgent ICC service calls.
+The topic producer targets 50 Hz; measured delivery under this load is 36–39 Hz,
+above the bench's minimum of ten packets per second. This is best-effort topic
+delivery, not a 50 Hz real-time guarantee. Urgent round-trip time includes both
+bridge contexts and the service worker; it is not the hardware stop latency.
+Raw captures, console logs, the matching image manifest and timing/overall
+verdicts are in `build/giga-icc-results/accepted/` (`results.json`, `run.log`,
+`repeat-*/results.json`, `repeats.log`, `manifest.json`).
 
 These measurements cover the isolated bench, not powered motors or external
 feedback/switch inputs. Stop-call duration is not external-input-to-stop latency.
@@ -1221,7 +1228,8 @@ the Arduino installation; retaining the backup is required by the flash tool.
 For debugging an already programmed pair:
 
 ```sh
-openocd -f scripts/openocd/arduino_giga.cfg
+openocd -f scripts/openocd/arduino_giga.cfg \
+  -c "reset_config srst_only srst_nogate connect_deassert_srst"
 arm-none-eabi-gdb build/giga-ui-debug/ui-controller.elf
 # GDB: target extended-remote :3333
 # A second GDB loads the matching io-controller.elf and connects to :3334.

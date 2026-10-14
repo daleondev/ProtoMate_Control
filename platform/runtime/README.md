@@ -34,6 +34,14 @@ application context. Static constructors can use TLS, exceptions, and local
 static initialization before the scheduler starts. Blocking runtime calls
 are not supported from interrupt handlers.
 
+`std::this_thread::yield()` suspends the caller for one ThreadX tick (1 ms
+at the configured tick rate). This allows lower-priority threads to run:
+libstdc++ uses yield while waiting for internal spinlocks, including the
+`std::stop_token` callback list. ThreadX's equal-priority relinquish alone
+can permanently starve a preempted lock owner. Prefer blocking notifications
+or priority-inheriting mutexes in application code; yield is not a precise
+timing primitive.
+
 Thread exit completes TLS/TSS destructors before publishing completion to
 `join()`. Native `tx_thread_reset()` recreates TLS and Newlib state and clears
 thread-specific keys before the thread runs again. Externally terminating a
