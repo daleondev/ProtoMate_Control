@@ -100,9 +100,9 @@ namespace
     TEST(HalCore, HostSelectsItsOwnCatalog)
     {
         EXPECT_EQ(hal::core::id(), Core::Host);
-        EXPECT_EQ(HOST.status_led, nullptr);
+        ASSERT_NE(HOST.status_led, nullptr);
         EXPECT_EQ(HOST.intercore_channel, nullptr);
-        EXPECT_FALSE(hal::core::create_status_led());
+        EXPECT_EQ(hal::core::create_status_led(), HOST.status_led());
         EXPECT_FALSE(hal::core::create_intercore_channel());
         ASSERT_TRUE(hal::core::create_runtime_timer());
         EXPECT_EQ(hal::core::create_runtime_timer(), HOST.runtime_timer());
@@ -114,8 +114,8 @@ namespace
 
     TEST(HalBoard, AccessIsIndependentOfCoreAssignments)
     {
-        // Host has no assigned status LED, but the board still exposes all LEDs.
-        for (const auto id : {hal::board::LedId::Green, hal::board::LedId::Green, hal::board::LedId::Red}) {
+        // Core availability does not restrict physical board factories.
+        for (const auto id : {hal::board::LedId::Green, hal::board::LedId::Blue, hal::board::LedId::Red}) {
             EXPECT_TRUE(hal::board::create_led(id));
         }
         EXPECT_TRUE(hal::board::create_button(hal::board::ButtonId::User));

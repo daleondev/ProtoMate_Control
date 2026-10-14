@@ -10,6 +10,11 @@
 #include <string_view>
 #include <unistd.h>
 
+namespace hal
+{
+    void start_secondary_cores() noexcept {}
+}
+
 namespace
 {
     auto panic_write(const char* text) noexcept -> void

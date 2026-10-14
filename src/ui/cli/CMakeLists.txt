@@ -14,6 +14,8 @@ target_sources(proto_ui_cli INTERFACE
     utilities.cpp
     display.hpp
     display.cpp
+    state.hpp
+    state.cpp
     motor.hpp 
     motor.cpp
 )

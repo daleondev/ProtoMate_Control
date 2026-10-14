@@ -4,12 +4,22 @@ This directory contains project-owned system runtime integration. It lives
 under `platform/`, alongside the HAL, so application code in `src` does not
 share a source tree with hardware, toolchain, RTOS, or C library adaptation.
 
-On the H755, each core links its own kernel and runtime instance. The M4 uses
+On the GIGA's STM32H747, each core links its own kernel and runtime instance. The M4 uses
 the ThreadX Cortex-M4 port, and M7 uses the Cortex-M7 port. `stm32/` owns the
 runtime SysTick integration, per-image TLS/heap linker layout and bounded heap
-allocator. See the [H755 setup](../../docs/nucleo-h755ziq/README.md) for memory and
-peripheral ownership. `RUNTIME_FILESYSTEM=OFF` omits storage support for this
-initial application setup; the threading runtime remains active on both cores.
+allocator. See the [GIGA setup](../../README.md#arduino-giga-hardware-boot-and-bring-up)
+for memory and peripheral ownership. `RUNTIME_FILESYSTEM=OFF` omits storage
+support; the threading runtime remains active on both cores.
+
+M7 mounts `/flash` on 512 KiB of internal flash (bank 2 sectors 4–7). The
+append-only `libc/storage/FlashJournal` exposes 256 KiB of logical sectors to
+FileX, reserving room for commit records and garbage collection. The STM32
+`InternalFlash` implementation enforces partition bounds and 32-byte, single-write
+ECC programming. FileX fault-tolerant metadata recovery is enabled. Blank media
+is formatted once; corrupt/unknown media is never automatically reformatted.
+M4 does not mount this volume. M7 releases M4 through `hal::start_secondary_cores()`
+only after filesystem initialization, before entering application main.
+Linux storage tests retain simulated LevelX NOR/SD media.
 
 ## Ownership
 
@@ -51,7 +61,7 @@ exit cooperatively rather than being forcibly terminated through ThreadX.
 
 ## File timestamps
 
-The following describes the optional FileX adapter exercised by host tests.
+The following describes the FileX adapter used by M7 and exercised by host tests.
 
 `std::filesystem::last_write_time(path, time)` supports files and directories
 on `/flash` and `/sd`, through the FileX-backed `utime()` adapter. Timestamps

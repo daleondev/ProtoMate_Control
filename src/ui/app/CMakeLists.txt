@@ -5,6 +5,8 @@ target_sources(proto_ui_app
     INTERFACE
         Application.hpp
         Application.cpp 
+        SystemState.hpp
+        SystemState.cpp
 )
 
 target_link_libraries(proto_ui_app 

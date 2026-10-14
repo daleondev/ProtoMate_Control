@@ -3,6 +3,11 @@
 #if !defined(GIGA_APPLICATION) && defined(CORE_CM7)
 void giga_peripheral_clocks_initialize(void)
 {
+    /* RM0399 table 16: VOS0, 240 MHz AXI flash clock requires WRHIGHFREQ=2.
+       Cube's SystemClock_Config sets read latency only; the reset value (3)
+       is not a documented programming setting for this operating point. */
+    MODIFY_REG(FLASH->ACR, FLASH_ACR_WRHIGHFREQ, FLASH_ACR_WRHIGHFREQ_1);
+    __DSB();
     /* CubeMX puts independent kernel clocks in MSP callbacks. Establish them
        here before either application; the application wrapper below is read-only. */
     RCC_PeriphCLKInitTypeDef c = {0};

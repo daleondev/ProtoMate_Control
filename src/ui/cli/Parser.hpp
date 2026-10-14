@@ -18,6 +18,7 @@
 #include <vector>
 
 namespace pnm::msg { class Bus; }
+namespace ui { class SystemState; }
 namespace ui::motion { class Client; }
 
 namespace ui::cli
@@ -25,6 +26,7 @@ namespace ui::cli
     class Parser;
 
     namespace display { void setup(Parser& parser); }
+    namespace state { void setup(Parser& parser, const SystemState& system); }
     namespace filesystem { void setup(Parser& parser); }
     namespace utilities { void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop); }
     namespace motor { void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop); }
@@ -202,6 +204,7 @@ namespace ui::cli
 
       private:
         friend void display::setup(Parser& parser);
+        friend void state::setup(Parser& parser, const SystemState& system);
         friend void filesystem::setup(Parser& parser);
         friend void utilities::setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);
         friend void motor::setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
@@ -214,6 +217,7 @@ namespace ui::cli
         std::once_flag m_utilitiesRegistration;
         std::once_flag m_motorRegistration;
         std::once_flag m_displayRegistration;
+        std::once_flag m_stateRegistration;
     };
 
     template<size_t N1, size_t N2>

@@ -17,7 +17,8 @@ are documented below. Linux keeps the paired in-process transport for tests.
 
 M4 exposes STEP/DIR/enable, switches, DM542T/TMC2209 drivers, feedback and the
 future EtherCAT SPI connection. M7 owns the RGB LED, user button, display/touch
-and console. Both runtimes include filesystem support with no mounted medium.
+and console. M7 mounts persistent internal-flash storage at `/flash`; M4 does
+not mount the volume. Both runtimes include filesystem support.
 Motor construction leaves all drivers disabled; initialization, enabling and
 motion are explicit CLI operations. Display/touch bring-up uses `display`
 commands; TouchGFX and robot planning remain future work.
@@ -54,6 +55,36 @@ for a stop request, then drains the bridge before stopping its context. Peer
 shutdown or link failure wakes the application worker. Each application requires
 a transport; the bridge is a concrete member with no optional execution path.
 
+Each application exposes a lifecycle `state()`: `Starting`, `Ready`, `Stopping`,
+`Stopped` or `Fault` ([shared definition](src/common/app/State.hpp)). IO publishes
+its state on the latest-only `io/controller/state` topic every 100 ms. UI owns
+[`SystemState`](src/ui/app/SystemState.hpp), combining its local state, the
+received IO state and ICC connection health; `ui::Application::systemState()`
+returns this snapshot. Refresh uses timers on the existing ICC workers.
+The CLI command `state` displays the same combined state and LED colour, both
+controller states, and whether the received IO state is fresh. `help state`
+describes the command; reading state does not issue an IO request or move motors.
+
+UI displays the combined state on the GIGA's onboard RGB LED:
+
+| Colour | Meaning |
+| --- | --- |
+| Green | Both applications are `Ready`, ICC is connected and IO state is fresh |
+| Yellow (red + green) | Starting, awaiting IO state, or orderly stopping/stopped |
+| Red | Application fault, ICC failure, or no IO state for 500 ms while connected |
+
+Blue stays off. Freshness uses UI's receive clock; timestamps need not be
+synchronized between cores. Fault indications latch until application restart;
+shutdown cannot clear them. Final topic delivery is best effort, with ICC's
+orderly goodbye distinguishing normal peer shutdown from communication failure.
+These are **controller application states**, not motor readiness or enable
+indicators. Green does not mean drivers are initialized, motors are referenced,
+or motion is enabled. Motor telemetry and admission checks remain separate;
+an LED or lost communication cannot confirm that physical motion has stopped.
+GIGA Debug verification checks the LED GPIO levels: green during normal paired
+operation, yellow after CLI shutdown, and red after halting M4 until a coordinated
+restart. Shared motor enable remains inactive throughout these checks.
+
 [`io::motion::Controller`](src/io/motion/Controller.hpp) owns three `StepperMotor`
 instances, their shared STEP generator and enable output. Drivers and feedback
 belong to each motor. `initializeDrivers()` configures the drivers and starts the
@@ -74,15 +105,15 @@ application-owned `ui::motion::Client`; only IO owns the physical controller.
 
 M7 exposes the CLI through **USB-C CDC** (no UART bridge). Use `help` or
 `help <command>`. Available commands are `pwd`, `cd`, `ls`, `touch`, `mkdir`,
-`rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack`, `heap` and `motor`.
+`rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack`, `heap`, `state` and `motor`.
 Quoting, wildcard expansion, pipes and `>`/`>>` redirection are supported.
 For example, `echo "hello world" | grep world` and `time "heap io"`.
 `heap ui` / `stack ui` inspect UI locally; `heap io` / `stack io` request IO's
 memory diagnostics through the `io/memory` ICC service. The controller argument
 is required. `time` measures execution on UI, including any remote round-trip wait.
-Filesystem commands
-use the host filesystem on Linux and FileX on M7; no embedded volume is mounted
-yet, so file operations can report unavailable storage.
+Filesystem commands use the host filesystem on Linux and FileX on M7.
+On GIGA, `/flash` is persistent internal-flash storage; see
+[persistent files](#persistent-files-in-internal-flash) for capacity and behavior.
 
 Motor commands use **motor-shaft degrees and rpm for all three motors**, including
 M3. `motor` prints a guide; `help motor move` lists annotated options.
@@ -535,7 +566,8 @@ the peripheral without resetting it; CubeMX/platform startup still initializes
 the hardware once. Changing a catalog assignment that moves peripheral
 initialization or interrupts also requires updating that startup configuration.
 Motor wiring and startup behavior are listed in the GIGA table below.
-SPI5 is prepared for EtherCAT; external filesystem storage is unassigned.
+SPI5 is prepared for EtherCAT. M7's runtime owns internal-flash file storage;
+QSPI remains reserved for executable images and assets.
 
 Host tests retain virtual board devices. `Core::Host` selects its own runtime
 timer, RTC/RNG, error LED and button, with no status LED or hardware peer channel.
@@ -571,7 +603,7 @@ onboard GPIO, per-core timers, serialized RTC/RNG access and the inter-core
 channel are available. M4 owns TIM5; M7 owns TIM12 and USB CDC.
 RTC and RNG are shared through hardware-semaphore protection. Motor peripherals
 use TIM2/TIM3/TIM6/TIM7, DMA1 and USART2 on M4. SPI5 is prepared for EtherCAT, and TIM8 drives the display backlight.
-Filesystem storage and native Ethernet remain unassigned.
+M7's runtime mounts the internal-flash volume. Native Ethernet remains unassigned.
 
 Linux provides virtual peripheral resources and device models for regression
 tests. Its board composition does not claim physical wiring. Construction never
@@ -1102,6 +1134,7 @@ compatibility. No application filesystem writes to XIP flash.
 | RAM / internal flash | Allocation |
 | --- | --- |
 | 0x08000000 / 0x08100000 | One 128 KiB sector per internal M7/M4 bootstrap |
+| 0x08180000–0x081FFFFF | 512 KiB persistent storage, bank 2 sectors 4–7; M7 owner |
 | 0x10000000 | 2 KiB M4 vectors; remaining 190 KiB SRAM1/SRAM2 instruction alias for motion, runtime and ICC code/constants |
 | 0x30030000 / 0x30046000 | 88 KiB M4 data/DMA; 8 KiB M4 MSP |
 | 0x24000000 / 0x24040000 | 256 KiB M7 data/heap; 256 KiB M4 heap |
@@ -1127,7 +1160,7 @@ bridge/transport code resides here so UI QSPI reads do not stall those instructi
 fetches. The M4 heap remains a separate 256 KiB AXI SRAM allocation.
 
 MPU is configured before M7 caches: ICC and framebuffers normal/non-cacheable/XN;
-QSPI read-only executable; private RAM/heaps XN; UI SDRAM cacheable/XN; M4 debug
+QSPI read-only executable; internal file storage non-cacheable/XN; private RAM/heaps XN; UI SDRAM cacheable/XN; M4 debug
 SDRAM normal executable. Future DMA users of cacheable UI buffers must clean
 before DMA reads and invalidate after DMA writes, with exclusive 32-byte-aligned
 cache-line ownership. Current DMA2D framebuffers are non-cacheable and require
@@ -1142,10 +1175,13 @@ the RAM-debug image would make SDRAM instruction fetches non-executable.
 M7 waits for M4 to park before requesting D2 SRAM clocks; its clock requests
 would otherwise keep D2CKRDY asserted. M4 enables SEVONPEND so the HSEM event can
 wake its masked-interrupt STOP wait. M7 configures clocks/memories, validates both
-images and loads explicit copy/zero records. Application vectors, stack, segment
+images and loads explicit copy/zero records. M4 ignores unrelated wake events
+until the boot semaphore is released. Application vectors, stack, segment
 bounds, image CRCs and matching pair identifiers are checked; invalid pairs stay
 in internal recovery with motor outputs disabled. M7 application startup enables
-caches, initializes local HAL plus shared RTC/RNG/ICC memory and releases M4.
+caches and initializes local HAL plus shared RTC/RNG/ICC memory. Its runtime
+mounts/recovers storage before `hal::start_secondary_cores()` releases M4, so
+filesystem startup cannot consume the ICC handshake deadline.
 Each core runs its own constructors, TLS setup and ThreadX exactly once.
 Applications do not initialize shared clocks, QSPI, FMC or peer-owned memory.
 Generated application clock requests are wrapped by a read-only check against
@@ -1159,6 +1195,62 @@ paths, and their selected constants are copied to internal RAM.
 listed callback/virtual targets and writes `ram-audit.json`; new callback types
 need reviewing there. Separate Arm exception-unwind tables cover RAM and XIP.
 This static audit does not replace latency measurements under bus contention.
+
+### Persistent files in internal flash
+
+The **512 KiB physical partition** at `0x08180000` contains a **256 KiB logical
+FileX volume**, with **247.5 KiB free** on an empty formatted volume after FAT
+and recovery metadata.
+The remaining space accommodates append-only records and a spare erase sector
+for recycling. This leaves **1.25 MiB of internal flash unallocated**, in addition
+to the two reserved bootstrap sectors. No extra component is required and QSPI
+stays in execution mode during file operations.
+
+```text
+mkdir /flash/config
+echo "prototype" > /flash/config/name.txt
+cat /flash/config/name.txt
+ls -l /flash/config
+```
+
+Existing `cp`, `mv`, `rm`, `>` and `>>` commands work on this volume. Files survive
+board resets and normal `giga_program.py flash` updates. A full-chip erase or
+factory restoration can destroy them; the factory backup is not a backup of
+files created later. M7 exclusively owns the mounted volume; M4 file access
+would require a future ICC service.
+
+The runtime formats only a completely erased partition. Unrecognized or corrupt
+contents leave storage unavailable, with no automatic erase. FileX fault-tolerant
+metadata recovery is enabled. The sector journal writes each 32-byte ECC flashword
+once, writes the commit record last, and copies live records before reclaiming
+an erase sector. This avoids the repeated small metadata writes required by the
+LevelX NOR backend used by our Linux storage tests. Sector updates are atomic;
+an arbitrary multi-sector file overwrite is not a whole-file transaction.
+
+The bootstrap sets `FLASH_ACR.WRHIGHFREQ=2` for VOS0 / 240 MHz, as required by
+RM0399 table 16; setting read latency alone is insufficient for programming.
+Storage is non-cacheable and guarded reads detect uncorrectable flash ECC.
+MPU attributes also apply at fault priority, keeping these reads non-cacheable.
+The journal, FileX media state and buffers occupy about 27 KiB of M7 DTCM,
+preserving AXI heap space for the CLI and ICC workers.
+Use this volume for settings and occasional saved files. Flash reclamation is
+synchronous on UI and has finite write endurance; high-rate logs belong elsewhere.
+Storage operations run on M7. M4 does not wait for the filesystem or access
+the storage bank; its motion timing under simultaneous writes remains a separate
+hardware load test.
+
+Implementation: [partition](platform/storage/InternalFlashLayout.h),
+[journal](platform/runtime/libc/storage/FlashJournal.hpp),
+[STM32 access](platform/runtime/libc/stm32/InternalFlash.cpp), and
+[FileX driver](platform/runtime/libc/stm32/storage_media.cpp).
+
+Validation includes 45 host CTest targets (including journal interruption,
+corruption and reclamation tests), image/MPU checks, and both cores' Debug and
+Release builds. On the GIGA, filesystem CLI operations, 240 verified overwrites
+and 12 reclamation erases passed while ICC diagnostics remained responsive.
+Saved contents survived a coordinated reset and a normal firmware update.
+Hardware logs are in `build/giga-storage-results/`; simulated interrupted writes
+are covered by host tests, not a claim of physical power-cut qualification.
 
 ### Build, backup, program and debug
 
@@ -1219,6 +1311,7 @@ No factory flash or nonvolatile QSPI status is changed by backup/memory testing.
 Flashing validates the backup UID and exact ELF-derived image contents, halts
 both cores, initializes external memory, invalidates activation, programs and
 verifies both applications and bootstraps, then writes activation **last**.
+Internal erases cover only the two bootstrap sectors; `/flash` is preserved.
 Only boot-address/core-enable option bits are changed; protection/watchdog
 settings are preserved. BOOT0 high retains the M7 ROM loader. An interrupted
 update must be retried through SWD; no automatic mixed-pair activation occurs.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/app/Application.hpp"
+#include "common/app/State.hpp"
 #include "common/icc/bridge/Bridge.hpp"
 #include "io/diagnostics/Server.hpp"
 #include "io/motion/Controller.hpp"
@@ -37,6 +38,7 @@ namespace io
         // Waits for shutdown; does not initiate it. Never call from our workers.
         void join();
         [[nodiscard]] icc::ConnectionStatus connectionStatus() const;
+        [[nodiscard]] app::State state() const noexcept { return m_state.get(); }
         // Use in the M4 entrypoint, whose process contains only IO. Linux keeps
         // global routing on UI and passes the IO sink to its producers explicitly.
         void installLogSink();
@@ -52,10 +54,14 @@ namespace io
         [[= ICC_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();
         [[= DIAGNOSTIC_THREAD]] void diagnosticThread();
+        void publishState();
 
         pnm::msg::Bus m_bus;
         pnm::coro::Context m_iccContext;
         icc::Bridge m_bridge;
+        app::ControllerState m_state;
+        pnm::msg::Topic<app::State> m_stateTopic;
+        pnm::coro::Context::Timer m_stateTimer;
         std::shared_ptr<logging::Sink> m_logSink;
         diagnostics::Server m_diagnostics;
         std::mutex m_mutex;

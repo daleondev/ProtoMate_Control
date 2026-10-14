@@ -113,16 +113,25 @@ namespace
         Applications apps;
         apps.start();
         ASSERT_TRUE(apps.connected());
+        ASSERT_TRUE(wait_until([&] { return apps.ui.systemState().combined == app::State::Ready; }));
+        EXPECT_EQ(apps.io.state(), app::State::Ready);
+        EXPECT_EQ(apps.ui.state(), app::State::Ready);
+        EXPECT_EQ(apps.ui.systemState().io, app::State::Ready);
         // Longer than the 500 ms link-loss deadline: heartbeat traffic must
         // continue after the startup log burst has finished.
         std::this_thread::sleep_for(650ms);
         EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Connected);
         EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Connected);
+        EXPECT_TRUE(apps.ui.systemState().io_fresh);
+        EXPECT_EQ(apps.ui.systemState().combined, app::State::Ready);
     }
 
     TEST(ApplicationLifecycle, ConstructionAndDestructionNeedNoRunningContexts)
     {
         Applications apps;
+        EXPECT_EQ(apps.io.state(), app::State::Starting);
+        EXPECT_EQ(apps.ui.state(), app::State::Starting);
+        EXPECT_EQ(apps.ui.systemState().combined, app::State::Starting);
         EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Stopped);
         EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Stopped);
         apps.io.join();
@@ -163,6 +172,9 @@ namespace
         apps.ui.join();
         apps.io.join();
         EXPECT_EQ(apps.ui.connectionStatus().reason, icc::ConnectionReason::PeerStopped);
+        EXPECT_EQ(apps.io.state(), app::State::Stopped);
+        EXPECT_EQ(apps.ui.state(), app::State::Stopped);
+        EXPECT_EQ(apps.ui.systemState().combined, app::State::Stopped);
     }
 
     TEST(ApplicationLifecycle, ConsoleEofStopsUiAndItsPeer)
@@ -187,6 +199,9 @@ namespace
         apps.ui.join();
         EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Failed);
         EXPECT_EQ(apps.ui.connectionStatus().state, icc::ConnectionState::Failed);
+        EXPECT_EQ(apps.io.state(), app::State::Fault);
+        EXPECT_EQ(apps.ui.state(), app::State::Fault);
+        EXPECT_EQ(apps.ui.systemState().combined, app::State::Fault);
     }
 
     TEST(ApplicationLifecycle, MissingPeerDoesNotBlockStartAndEventuallyStops)
@@ -196,6 +211,7 @@ namespace
         apps.io.join();
         EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Failed);
         EXPECT_EQ(apps.io.connectionStatus().reason, icc::ConnectionReason::HandshakeTimeout);
+        EXPECT_EQ(apps.io.state(), app::State::Fault);
     }
 
     TEST(ApplicationLifecycle, ImmediateStopCanBeRepeated)

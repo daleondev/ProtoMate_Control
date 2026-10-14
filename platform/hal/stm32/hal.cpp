@@ -70,9 +70,15 @@ namespace hal
         InterCoreChannel::initializeMemory();
         HAL_PWREx_EnableUSBVoltageDetector();
         MX_USB_DEVICE_Init();
-        giga_release_m4();
 #endif
         GpioInput::initializeInterrupts();
+    }
+
+    void start_secondary_cores() noexcept
+    {
+#if defined(CORE_CM7)
+        giga_release_m4();
+#endif
     }
 
     [[noreturn]] void panic(const char* message, std::source_location location) noexcept

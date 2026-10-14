@@ -186,3 +186,12 @@ foreach(scenario both flash sd none corrupt flash-corrupt-sd sd-corrupt-flash wa
             -P ${CMAKE_CURRENT_SOURCE_DIR}/verify_storage_startup.cmake)
     set_tests_properties(runtime.storage.startup.${scenario} PROPERTIES TIMEOUT 35)
 endforeach()
+
+add_executable(runtime_flash_journal_tests
+    flash_journal_test.cpp
+    ../libc/storage/FlashJournal.cpp)
+target_link_libraries(runtime_flash_journal_tests PRIVATE GTest::gtest_main)
+target_compile_definitions(runtime_flash_journal_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(runtime_flash_journal_tests)
+add_test(NAME runtime.flash_journal COMMAND runtime_flash_journal_tests)
+set_tests_properties(runtime.flash_journal PROPERTIES TIMEOUT 60)

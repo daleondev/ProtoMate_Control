@@ -73,6 +73,7 @@ namespace hal::core
         };
 
         [[= util::Core::Host]] static constexpr Devices host{
+            .status_led = [] { return board::create_led(board::LedId::Green); },
             .error_led = [] { return board::create_led(board::LedId::Red); },
             .user_button = [] { return board::create_button(board::ButtonId::User); },
             .runtime_timer = [] { return board::create_timer(timer::Peripheral::Tim5); },

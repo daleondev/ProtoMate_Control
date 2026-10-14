@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/app/Application.hpp"
+#include "SystemState.hpp"
 #include "common/icc/bridge/Bridge.hpp"
 #include "runtime/ThreadGroup.hpp"
 #include "ui/logging/Subscriber.hpp"
@@ -31,6 +32,8 @@ namespace ui
         // Waits for shutdown; does not initiate it. Never call from our workers.
         void join();
         [[nodiscard]] icc::ConnectionStatus connectionStatus() const;
+        [[nodiscard]] app::State state() const { return m_systemState.snapshot().ui; }
+        [[nodiscard]] SystemState::Snapshot systemState() const { return m_systemState.snapshot(); }
         void installLogSink();
 
       private:
@@ -50,10 +53,14 @@ namespace ui
         [[= APPLICATION_THREAD]] void applicationThread();
         [[= CLI_THREAD]] void cliThread();
         [[= LOG_THREAD]] void logThread();
+        void refreshState();
 
         pnm::msg::Bus m_bus;
         pnm::coro::Context m_iccContext;
         icc::Bridge m_bridge;
+        SystemState m_systemState;
+        pnm::msg::Subscription<app::State> m_ioState;
+        pnm::coro::Context::Timer m_stateTimer;
         logging::Subscriber m_logs;
         motion::Client m_motors;
         std::mutex m_mutex;

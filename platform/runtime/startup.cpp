@@ -60,6 +60,7 @@ namespace
         runtime_filex_initialize();
 #endif
 #endif
+        hal::start_secondary_cores();
         int exit_status{};
         try {
             exit_status = __real_main(application_argc, application_argv);

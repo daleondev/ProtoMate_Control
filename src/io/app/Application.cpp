@@ -22,6 +22,7 @@ namespace io
 
     Application::Application(icc::ITransport& transport)
       : m_bridge(m_bus, m_iccContext, transport)
+      , m_stateTopic{ m_bus.topic<^^icc::Topics::io_controller_state>() }
       , m_logSink{ std::make_shared<logging::Sink>(m_bus) }
       , m_diagnostics{ m_bus }
     {
@@ -29,6 +30,7 @@ namespace io
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::IO);
         m_bridge.registerActions<icc::Actions>(icc::ActionProvider::IO);
         m_bridge.setConnectionCallback([this](icc::ConnectionStatus status) {
+            if (status.state == icc::ConnectionState::Failed) { m_state.fail(); }
             if (status.state == icc::ConnectionState::Failed ||
                 status.reason == icc::ConnectionReason::PeerStopped) {
                 requestStop();
@@ -61,7 +63,9 @@ namespace io
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
             m_threads.start(*this, "io");
             m_bridge.start();
+            m_state.ready();
         } catch (...) {
+            m_state.fail();
             lock.unlock();
             requestStop();
             join();
@@ -74,11 +78,16 @@ namespace io
         {
             std::scoped_lock lock(m_mutex);
             m_stopping = true;
+            m_state.stopping();
         }
         m_stopSource.request_stop();
     }
 
-    void Application::join() { m_threads.join(); }
+    void Application::join()
+    {
+        m_threads.join();
+        if (m_stopSource.stop_requested()) { m_state.stopped(); }
+    }
 
     icc::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
 
@@ -89,9 +98,38 @@ namespace io
         }
     }
 
-    void Application::iccThread() { m_iccContext.run(); }
+    void Application::publishState()
+    {
+        try {
+            m_stateTopic.publish(state());
+            if (!m_stopSource.stop_requested()) {
+                m_stateTimer = m_iccContext.scheduleAt(
+                  std::chrono::steady_clock::now() + app::STATE_PERIOD, [this] { publishState(); });
+            }
+        } catch (...) {
+            if (!m_stopSource.stop_requested()) {
+                m_state.fail();
+                requestStop();
+            }
+        }
+    }
 
-    void Application::diagnosticThread() { m_diagnostics.run(m_stopSource.get_token()); }
+    void Application::iccThread()
+    {
+        // Timer callbacks share the ICC worker; no extra thread or busy polling.
+        publishState();
+        m_iccContext.run();
+        m_stateTimer.cancel();
+    }
+
+    void Application::diagnosticThread()
+    {
+        try { m_diagnostics.run(m_stopSource.get_token()); }
+        catch (...) {
+            m_state.fail();
+            requestStop();
+        }
+    }
 
     void Application::applicationThread()
     {
@@ -101,7 +139,11 @@ namespace io
         try {
             m_motorServer->run(m_stopSource.get_token());
         } catch (const std::exception& error) {
+            m_state.fail();
             pnm::log::error(m_logSink, "Motor service failed: {}", error.what());
+            requestStop();
+        } catch (...) {
+            m_state.fail();
             requestStop();
         }
         if (m_motion) {
@@ -109,6 +151,9 @@ namespace io
         }
         // Queued logger entries can outlive shutdown, but must no longer publish.
         static_cast<void>(m_logSink->close());
+        // Best effort: topics are not acknowledged. Peer goodbye/link health
+        // still governs shutdown when this final publication cannot be delivered.
+        try { m_stateTopic.publish(state()); } catch (...) {}
         // Keep the context alive until bridge shutdown has drained its work.
         m_bridge.stop();
         m_iccContext.stop();

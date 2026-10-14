@@ -4,6 +4,7 @@
 #include <string>
 #include "common/icc/transport/ITransport.hpp"
 #include "common/motion/Motor.hpp"
+#include "common/app/State.hpp"
 #include <pneumo/messaging.hpp>
 
 namespace icc
@@ -22,6 +23,9 @@ namespace icc
     // Shared application contracts. Both bridges register this catalog.
     struct Topics
     {
+        [[= TopicPublisher::IO, = pnm::msg::SubscriptionOptions::latestOnly()]]
+        pnm::msg::Topic<app::State> io_controller_state;
+
         [[= TopicPublisher::IO, = Lane::Background, = LOG_SUBSCRIPTION]]
         pnm::msg::Topic<std::string> io_logs;
 

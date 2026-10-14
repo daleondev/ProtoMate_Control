@@ -1,4 +1,5 @@
 #include "platform.h"
+#include "storage/InternalFlashLayout.h"
 
 static void region(uint32_t number, uint32_t base, uint32_t size, uint32_t execute, uint32_t cache, uint32_t access)
 {
@@ -40,8 +41,18 @@ void giga_configure_mpu(uint32_t ram_debug)
     region(7, 0x30000000, MPU_REGION_SIZE_512KB, 0, 0, MPU_REGION_FULL_ACCESS);
 #else
     region(7, 0x20000000, MPU_REGION_SIZE_128KB, 0, 0, MPU_REGION_FULL_ACCESS);
+    /* Persistent data: no speculative instruction fetch or stale D-cache/ECC
+       reads. M7 is the only application core allowed to access the volume. */
+    region(8, STORAGE_INTERNAL_ORIGIN, MPU_REGION_SIZE_512KB, 0, 0, MPU_REGION_FULL_ACCESS);
 #endif
+#if defined(CORE_CM7)
+    /* Keep attributes in effect at FAULTMASK/HardFault priority too. Storage
+       ECC probes use FAULTMASK: bypassing the MPU there would make internal
+       flash cacheable again and return stale data after programming. */
+    HAL_MPU_Enable(MPU_HFNMI_PRIVDEF);
+#else
     HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+#endif
     __DSB();
     __ISB();
 }

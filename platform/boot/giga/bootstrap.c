@@ -112,9 +112,17 @@ void giga_start(void)
     /* The generated SystemInit normally enables this. Our reset entry owns
        startup: pending HSEM interrupts must wake WFE even with IRQs masked. */
     SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
+    __HAL_HSEM_CLEAR_FLAG(__HAL_HSEM_SEMID_TO_MASK(0));
     HAL_HSEM_ActivateNotification(__HAL_HSEM_SEMID_TO_MASK(0));
-    HAL_PWREx_ClearPendingEvent();
-    HAL_PWREx_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE, PWR_D2_DOMAIN);
+    /* WFE may wake for unrelated events while M7 initializes its runtime and
+       recovers storage. Only the explicit boot semaphore release permits entry.
+       Recheck after clearing the event so a concurrent release cannot be lost. */
+    while (__HAL_HSEM_GET_FLAG(__HAL_HSEM_SEMID_TO_MASK(0)) == 0) {
+        HAL_PWREx_ClearPendingEvent();
+        if (__HAL_HSEM_GET_FLAG(__HAL_HSEM_SEMID_TO_MASK(0)) == 0) {
+            HAL_PWREx_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE, PWR_D2_DOMAIN);
+        }
+    }
     __HAL_HSEM_CLEAR_FLAG(__HAL_HSEM_SEMID_TO_MASK(0));
     HAL_HSEM_DeactivateNotification(__HAL_HSEM_SEMID_TO_MASK(0));
     NVIC_ClearPendingIRQ(HSEM2_IRQn);

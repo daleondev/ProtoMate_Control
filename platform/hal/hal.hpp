@@ -16,6 +16,10 @@ namespace hal
 {
     auto initialize() noexcept -> void;
 
+    // Called once after this core's runtime services have initialized. Keep
+    // secondary cores parked until potentially slow storage recovery is done.
+    auto start_secondary_cores() noexcept -> void;
+
     [[noreturn]] auto panic(const char* message,
                             std::source_location location = std::source_location::current()) noexcept -> void;
 

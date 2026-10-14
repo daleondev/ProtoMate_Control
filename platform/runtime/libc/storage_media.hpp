@@ -21,6 +21,8 @@ namespace runtime::storage
         std::uint32_t qspi_error{};
         std::uint32_t sd_error{};
         std::uint32_t sd_fallback_error{};
+        std::uint32_t internal_flash_error{};
+        std::uint32_t flash_erase_operations{};
         std::uint32_t levelx_status{};
         std::uint32_t flash_filex_status{};
         std::uint32_t sd_filex_status{};

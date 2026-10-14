@@ -8,4 +8,7 @@
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define FX_UPDATE_RATE_IN_TICKS 10000UL
 
+/* The internal-flash volume enables FileX metadata recovery after mounting. */
+#define FX_ENABLE_FAULT_TOLERANT
+
 #endif /* RUNTIME_FILEX_FX_USER_H */
