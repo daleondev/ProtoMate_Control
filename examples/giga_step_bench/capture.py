@@ -27,6 +27,8 @@ RESULT = re.compile(r"\[step-bench\] (PASS|FAIL) case=(\d+) check=(\d+) pulses=(
                     r"guard=(\d+) load=(\d+) echoes=(\d+) errors=(\d+)")
 METRICS = re.compile(r"\[step-bench\] service_max=(\d+) cycles \(240 MHz\); stop=(\d+) cycles; "
                      r"LTDC underruns=(\d+); QSPI=(\d+)")
+ICC_METRICS = re.compile(r"\[step-bench\] ICC published=(\d+) elapsed_ms=(\d+) outgoing_dropped=(\d+) "
+                         r"connected=(\d+) urgent_replies=(\d+) urgent_errors=(\d+) urgent_max_us=(\d+)")
 
 
 class Serial:
@@ -165,15 +167,18 @@ def main():
                     deadline = time.monotonic() + 9
                     result = None
                     metrics = None
+                    icc_metrics = None
                     while time.monotonic() < deadline:
                         text = serial.drain(0.05)
                         result = next((m for m in RESULT.finditer(text) if int(m.group(2)) == case), None)
                         metrics = METRICS.search(text)
-                        if result and metrics:
+                        icc_metrics = ICC_METRICS.search(text)
+                        if result and metrics and (case != 8 or icc_metrics):
                             break
                     (args.output / f"case-{case}.uart.log").write_bytes(serial.buffer)
                     assert result, f"No firmware result: {serial.buffer.decode(errors='replace')}"
                     assert metrics, "Missing firmware service/stop timing metrics"
+                    assert case != 8 or icc_metrics, "Missing ICC load metrics"
                     print(result.group(0), flush=True)
                     assert process.wait(timeout=6) == 0, log.read_text()
                     assert capture.stat().st_size == int(RATE * args.seconds), "Incomplete capture"
@@ -182,6 +187,10 @@ def main():
                     measurement["service_max_cycles"] = int(metrics.group(1))
                     measurement["stop_cycles"] = int(metrics.group(2))
                     measurement["ltdc_underruns"] = int(metrics.group(3))
+                    if icc_metrics:
+                        measurement["icc"] = dict(zip(
+                            ("published", "elapsed_ms", "outgoing_dropped", "connected", "urgent_replies",
+                             "urgent_errors", "urgent_max_us"), map(int, icc_metrics.groups())))
                     results = [entry for entry in results if entry["case"] != case]
                     results.append(measurement)
                     results_path.write_text(json.dumps(sorted(results, key=lambda entry: entry["case"]), indent=2) + "\n")

@@ -49,7 +49,7 @@ while todo:
  n=todo.pop()
  if n in seen or n not in funcs:continue
  seen.add(n);f=funcs[n]
- if not 0x10000000 <= f['address'] < 0x10020000:outside.append((n,f['address']))
+ if not 0x10000000 <= f['address'] < 0x10030000:outside.append((n,f['address']))
  todo.extend(f['calls'])
 
 # Virtual dispatch reads these tables before entering the concrete RAM methods.
@@ -62,16 +62,28 @@ for line in symbols.splitlines():
  for cls in vtable_classes:
   if line.endswith('vtable for '+cls):
    address=int(line.split()[0],16);vtables[cls]=address
-   if not 0x10000000 <= address < 0x10020000:outside.append(('vtable for '+cls,address))
+   if not 0x10000000 <= address < 0x10030000:outside.append(('vtable for '+cls,address))
 for required in ['DMA1_Stream0_IRQHandler','DMA1_Stream3_IRQHandler','TIM7_IRQHandler',
                  'TIM3_IRQHandler','TIM6_DAC_IRQHandler','TIM5_IRQHandler','HardFault_Handler',
                  'SysTick_Handler','_tx_execution_thread_enter','_tx_execution_thread_exit']:
  if required not in roots:raise SystemExit('Missing mandatory interrupt root: '+required)
+# ICC is not an ISR call tree: cold callees may still execute from QSPI. Guard
+# the profiled hot entry points themselves against accidental linker changes.
+icc_prefixes=[f'icc::Bridge::{name}(' for name in
+              ['sendLoop','receiveLoop','healthLoop','nextOutgoingFrame','dispatchIncomingFrame']]
+icc_prefixes += [f'icc::InterCoreTransport::{name}(' for name in ['send','receive','wakeWaiters']]
+icc_hot={}
+for prefix in icc_prefixes:
+ matches=[n for n in names if labels[n].startswith(prefix) and 'veneer' not in n]
+ if not matches:raise SystemExit('Missing ICC hot entry point: '+prefix)
+ for n in matches:
+  address=funcs[n]['address'];icc_hot[labels[n]]=hex(address)
+  if not 0x10000000 <= address < 0x10030000:outside.append((n,address))
 report=dict(elf=str(args.elf), roots=[labels[n] for n in sorted(set(roots))],
             functions=len(seen), outside_ram=[dict(symbol=labels.get(n,n),address=hex(a)) for n,a in outside],
-            vtables={n:hex(a) for n,a in vtables.items()},
+            vtables={n:hex(a) for n,a in vtables.items()}, icc_hot=icc_hot,
             indirect_calls={labels[n]:funcs[n]['indirect'] for n in sorted(seen) if funcs[n]['indirect']})
 if args.report:args.report.write_text(json.dumps(report,indent=2)+'\n')
 for n,a in outside:print(f'{a:#010x}: {labels.get(n,n)}')
-print(f'M4 RAM audit: {len(set(roots))} roots, {len(seen)} reachable functions, {len(vtables)} vtables; {len(outside)} outside RAM')
+print(f'M4 RAM audit: {len(set(roots))} roots, {len(seen)} reachable functions, {len(vtables)} vtables, {len(icc_hot)} ICC entry points; {len(outside)} outside RAM')
 raise SystemExit(bool(outside))

@@ -54,6 +54,11 @@ namespace bench
         [[= Publisher::UI]] pnm::msg::Topic<Load> bench_load;
         [[= Publisher::IO]] pnm::msg::Topic<Load> bench_echo;
     };
+    struct Services
+    {
+        [[= Publisher::IO, = icc::Lane::Urgent]]
+        pnm::msg::Service<std::uint32_t, std::uint32_t> bench_ping;
+    };
 
     // Independent test endpoints using the production transport/runtime. No
     // test routes or workers are added to the normal application catalogs.
@@ -69,6 +74,7 @@ namespace bench
         explicit Link(Publisher publisher)
         {
             bridge.registerTopics<Topics>(publisher);
+            bridge.registerServices<Services>(publisher);
             worker = runtime::thread::create_jthread({ .name = "bench.icc",
                                                        .priority = publisher == Publisher::IO ? 2 : 4,
                                                        .stack_size = 32U * 1024U },

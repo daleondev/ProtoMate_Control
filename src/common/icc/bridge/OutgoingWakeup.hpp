@@ -41,10 +41,14 @@ namespace icc::util
                 default: return normal;
             }
         }
-        void notify() noexcept
+        void notifyControl() noexcept
         {
             urgent.notify();
             normal.notify();
+        }
+        void notify() noexcept
+        {
+            notifyControl();
             background.notify();
         }
         void close()

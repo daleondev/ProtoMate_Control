@@ -35,7 +35,15 @@ namespace icc
         std::shared_ptr<hal::IInterCoreChannel> m_channel;
         runtime::Notification m_notification;
         std::mutex m_mutex;
-        std::array<std::optional<pnm::coro::Channel<bool>>, 2 * LANE_COUNT> m_waiters;
+        struct Waiter
+        {
+            pnm::coro::Channel<bool> ready;
+            bool waiting{};
+            bool pending{};
+        };
+        // Reused across operations. pending coalesces notifications even when a
+        // cancellation leaves a wakeup queued for the next operation.
+        std::array<Waiter, 2 * LANE_COUNT> m_waiters;
         bool m_closed{};
         std::atomic_bool m_stopping{};
         std::thread m_worker;

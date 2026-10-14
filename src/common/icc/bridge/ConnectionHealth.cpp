@@ -177,7 +177,7 @@ namespace icc
     pnm::coro::Task<bool> ConnectionHealth::waitReady(std::stop_token stop)
     {
         if (!m_ready) {
-            co_await m_connected.next(stop);
+            co_await m_connected.wait(stop);
         }
         co_return m_ready && !stop.stop_requested();
     }

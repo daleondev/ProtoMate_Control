@@ -14,7 +14,8 @@ static void region(uint32_t number, uint32_t base, uint32_t size, uint32_t execu
     r.IsCacheable = cache ? MPU_ACCESS_CACHEABLE : MPU_ACCESS_NOT_CACHEABLE;
     r.IsBufferable = cache ? MPU_ACCESS_BUFFERABLE : MPU_ACCESS_NOT_BUFFERABLE;
 #if defined(CORE_CM4)
-    /* Cover SRAM2/3 and MSP as XN while leaving the SRAM1 code alias alone. */
+    /* Cover data/MSP and the SRAM2 data alias as XN. Execution uses the
+       separate 0x10000000 instruction alias for SRAM1 and part of SRAM2. */
     if (number == 7) { r.SubRegionDisable = 0x03; }
 #endif
     HAL_MPU_ConfigRegion(&r);

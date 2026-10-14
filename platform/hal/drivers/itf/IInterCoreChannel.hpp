@@ -3,6 +3,7 @@
 #include "communication/Lanes.hpp"
 
 #include <cstddef>
+#include <array>
 #include <cstdint>
 #include <expected>
 #include <functional>
@@ -18,6 +19,11 @@ namespace hal
         using Lane = communication::Lane;
         enum class Error : std::uint8_t { WouldBlock, Disconnected, TooLarge, BufferTooSmall };
         using Notification = std::move_only_function<void() noexcept>;
+        struct Readiness
+        {
+            std::array<bool, communication::LANE_COUNT> send{};
+            std::array<bool, communication::LANE_COUNT> receive{};
+        };
 
         virtual ~IInterCoreChannel() = default;
         IInterCoreChannel(const IInterCoreChannel&) = delete;
@@ -30,6 +36,11 @@ namespace hal
         // frames. Servicing that lane must notify local waiters as well as the peer.
         virtual std::expected<void, Error> trySend(std::span<const std::byte> frame, Lane lane) noexcept = 0;
         virtual std::expected<std::size_t, Error> tryReceive(std::span<std::byte> buffer, Lane lane) noexcept = 0;
+        // Advisory, non-consuming snapshot for a notification worker. Receive
+        // readiness respects lane priority. Closed endpoints report all ready
+        // so pending transfers can retry and observe Disconnected. A transfer
+        // must still check its result: the peer can change readiness meanwhile.
+        virtual Readiness readiness() noexcept = 0;
         // Callback may run in an ISR: only notify a local worker. Registration
         // and clearing are synchronized with the ISR; setting also signals once
         // so data queued before registration cannot be missed.

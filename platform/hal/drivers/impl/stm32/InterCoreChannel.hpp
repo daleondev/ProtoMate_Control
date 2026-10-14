@@ -12,6 +12,7 @@ namespace hal
         ~InterCoreChannel() override;
         std::expected<void, Error> trySend(std::span<const std::byte> frame, Lane lane) noexcept override;
         std::expected<std::size_t, Error> tryReceive(std::span<std::byte> buffer, Lane lane) noexcept override;
+        Readiness readiness() noexcept override;
         void setNotification(Notification callback) noexcept override;
         void close() noexcept override;
 

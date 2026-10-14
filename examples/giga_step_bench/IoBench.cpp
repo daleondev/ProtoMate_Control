@@ -303,6 +303,13 @@ int main()
     try {
         bench::Link link{ bench::Publisher::IO };
         Bench test;
+        auto ping = link.bus.service<^^bench::Services::bench_ping>().serve([](std::uint32_t value) {
+            return value ^ 0xA55AA55Au;
+        });
+        auto control_worker = runtime::thread::create_jthread(
+          { .name = "bench.control", .priority = 10, .stack_size = 8192 }, [&](std::stop_token stop) {
+            while (!stop.stop_requested()) { ping.poll(10ms); }
+        });
         std::atomic_uint32_t received{}, errors{};
         auto load = link.bus.topic<^^bench::Topics::bench_load>().subscribe([&](const bench::Load& data) {
             ++received;

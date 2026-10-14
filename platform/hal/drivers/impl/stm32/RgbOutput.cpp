@@ -60,6 +60,14 @@ namespace hal {
         if (result == HAL_OK) { result = HAL_DMA2D_Start(&m_dma, 0xFF000000u | red << 16 | green << 8 | blue,
             reinterpret_cast<std::uint32_t>(framebuffer(slot).data()), 1024, 600); }
         if (result == HAL_OK) { result = HAL_DMA2D_PollForTransfer(&m_dma, 100); }
+        // HAL can be preempted between testing TC and testing its deadline.
+        // If completion is now latched without a hardware error, finish HAL's
+        // normal cleanup instead of aborting an already completed transfer.
+        if (result == HAL_TIMEOUT &&
+            (m_dma.Instance->ISR & (DMA2D_ISR_TCIF | DMA2D_ISR_CEIF | DMA2D_ISR_TEIF)) == DMA2D_ISR_TCIF) {
+            m_dma.ErrorCode &= ~HAL_DMA2D_ERROR_TIMEOUT;
+            result = HAL_DMA2D_PollForTransfer(&m_dma, 0);
+        }
         if (result != HAL_OK) { static_cast<void>(HAL_DMA2D_Abort(&m_dma)); }
         return make_result(result);
     }
@@ -71,8 +79,12 @@ namespace hal {
         if (result == HAL_OK) { result = HAL_LTDC_Reload(&m_lcd, LTDC_RELOAD_VERTICAL_BLANKING); }
         if (result != HAL_OK) { return make_result(result); }
         const auto start = HAL_GetTick();
-        while (LTDC->SRCR & LTDC_SRCR_VBR) {
-            if (HAL_GetTick() - start >= 50) { return std::unexpected(std::make_error_code(std::errc::timed_out)); }
+        for (;;) {
+            // Read completion after the clock: an intervening preemption must
+            // not turn a completed reload into a timeout and leave m_active stale.
+            const bool expired = HAL_GetTick() - start >= 50;
+            if (!(LTDC->SRCR & LTDC_SRCR_VBR)) { break; }
+            if (expired) { return std::unexpected(std::make_error_code(std::errc::timed_out)); }
         }
         m_active = slot;
         return {};

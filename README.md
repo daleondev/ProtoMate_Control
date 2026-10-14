@@ -706,6 +706,14 @@ Sustained higher-priority traffic may starve background delivery. Urgent traffic
 It does not preempt a running handler or rescue a stalled context. Cancellation and `close()` wake waiting operations; closing either
 endpoint disconnects the pair. Reconnection requires a new pair.
 
+The hardware transport's notification worker checks the shared ring counters
+before waking a lane. Empty receivers and full senders remain suspended;
+consuming a higher-priority frame also rechecks lower-priority receivers.
+Each transfer direction reuses one coalesced notification, including across
+cancellation. Bridge heartbeats wake only their urgent sender; service/action
+events leave the background sender asleep. The channel's direct `wait()` awaiter
+avoids constructing an extra coroutine task for these notifications.
+
 The frame has a 16-byte header: version (currently 7), frame kind, 16-bit name
 length, 64-bit call ID and 32-bit remaining timeout in milliseconds. Integers are
 little endian. Name bytes and serialized payload follow, with a 2048-byte total
@@ -1087,8 +1095,8 @@ compatibility. No application filesystem writes to XIP flash.
 | RAM / internal flash | Allocation |
 | --- | --- |
 | 0x08000000 / 0x08100000 | One 128 KiB sector per internal M7/M4 bootstrap |
-| 0x10000000 | 2 KiB M4 vectors; remaining 126 KiB D2 SRAM1 instruction alias for fast code/constants |
-| 0x30020000 / 0x30046000 | 152 KiB M4 data/DMA; 8 KiB M4 MSP |
+| 0x10000000 | 2 KiB M4 vectors; remaining 190 KiB SRAM1/SRAM2 instruction alias for motion, runtime and ICC code/constants |
+| 0x30030000 / 0x30046000 | 88 KiB M4 data/DMA; 8 KiB M4 MSP |
 | 0x24000000 / 0x24040000 | 256 KiB M7 data/heap; 256 KiB M4 heap |
 | 0x00000000 | 64 KiB M7 ITCM, `.itcm` sections |
 | 0x20000000 | M7 vectors (2 KiB), `.dtcm`/`.dtcm_bss` working data (110 KiB) |
@@ -1105,7 +1113,11 @@ This industrial part specifies 4096 refreshes per 64 ms; use the
 FMC initialization enables its GPIO D/E/F/G/H clocks itself, since bootstrap
 does not run the application's general GPIO initialization. GPIOH carries
 SDRAM clock-enable, chip-select and write-enable.
-M4's 0x10000000 code address aliases SRAM1; it is not additional RAM.
+M4's 0x10000000 code range aliases SRAM1 and the first 64 KiB of SRAM2;
+it is not additional RAM. The linker and both image validators exclude the
+corresponding data alias from application data segments. Frequently executed ICC
+bridge/transport code resides here so UI QSPI reads do not stall those instruction
+fetches. The M4 heap remains a separate 256 KiB AXI SRAM allocation.
 
 MPU is configured before M7 caches: ICC and framebuffers normal/non-cacheable/XN;
 QSPI read-only executable; private RAM/heaps XN; UI SDRAM cacheable/XN; M4 debug

@@ -226,7 +226,7 @@ namespace icc
             try {
                 const auto id = ++m_lastOutgoing;
                 auto frame = util::encode_frame(Kind::ActionGoal, name, id, value);
-                auto readiness = pnm::msg::watch(*owned, [signal = m_wakeup] { signal->notify(); });
+                auto readiness = pnm::msg::watch(*owned, [signal = m_wakeup] { signal->notifyControl(); });
                 auto timer = wakeAfter(owned->remainingAcceptanceTime());
                 m_outgoingGoals.push_back({
                   .id = id,
@@ -246,7 +246,7 @@ namespace icc
                 owned->fail(Error::TransportError);
             }
         }, { .max_goals = MAX_GOALS });
-        auto readiness = pnm::msg::watch(proxy, [signal = m_wakeup] { signal->notify(); });
+        auto readiness = pnm::msg::watch(proxy, [signal = m_wakeup] { signal->notifyControl(); });
         m_outgoingRoutes.push_back({ .name = std::string(name), .poll = [proxy = std::move(proxy)]() mutable {
             proxy.poll();
         }, .readiness = std::move(readiness) });
@@ -333,7 +333,7 @@ namespace icc
                     events->terminal = makeError(id, Error::TransportError);
                 }
             } }));
-            auto readiness = pnm::msg::watch(*handle, [signal = m_wakeup] { signal->notify(); });
+            auto readiness = pnm::msg::watch(*handle, [signal = m_wakeup] { signal->notifyControl(); });
             auto timer = wakeAfter(timeout);
             return IncomingGoal{
                 .id = id,

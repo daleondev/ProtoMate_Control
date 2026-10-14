@@ -82,6 +82,21 @@ class ManifestTests(unittest.TestCase):
         words[25] = 0xC0600000
         self.assertFalse(self.valid(seal(words)))
 
+    def test_m4_instruction_and_data_alias_ownership(self):
+        # SRAM2's lower half belongs to instruction RAM. Its 0x3002xxxx
+        # alias must not also accept a data segment and overwrite loaded code.
+        for address, size, expected in [
+                (0x10020000, 64, True), (0x1002FFC0, 64, True),
+                (0x1002FFC0, 65, False), (0x10030000, 64, False),
+                (0x30020000, 64, False), (0x3002FFC0, 64, False),
+                (0x30030000, 64, True), (0x30045FC0, 64, True),
+                (0x30045FC0, 65, False), (0x30046000, 64, False)]:
+            words = manifest()
+            words[18] = 2
+            words[24:28] = [0x90100080, address, size, 1]
+            self.assertEqual(self.valid(seal(words)), expected, (hex(address), size))
+            self.assertEqual(images.destination(4, address, size, False), expected, (hex(address), size))
+
     def test_payload_crc_and_matching_pair_footer(self):
         pair = bytes(range(32))
         payload = bytes(range(64)) + pair

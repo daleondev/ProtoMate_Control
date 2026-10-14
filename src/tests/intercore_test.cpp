@@ -3,6 +3,7 @@
 #include "common/icc/examples/ContextThread.hpp"
 #include "common/icc/transport/InterCoreTransport.hpp"
 
+#include <condition_variable>
 #include <future>
 #include <gtest/gtest.h>
 #include <limits>
@@ -33,8 +34,11 @@ namespace
         struct Pair
         {
             std::mutex mutex;
+            std::condition_variable changed;
             hal::util::InterCoreMemory memory{};
             std::array<Notification, 2> notify;
+            std::array<std::array<unsigned, communication::LANE_COUNT>, 2> receive_attempts{};
+            std::array<unsigned, 2> readiness_checks{};
             bool closed{};
         };
         ChannelModel(std::shared_ptr<Pair> pair, std::size_t side)
@@ -59,6 +63,8 @@ namespace
                                                               Lane lane) noexcept override
         {
             const std::scoped_lock lock(m_pair->mutex);
+            ++m_pair->receive_attempts[m_side][static_cast<std::size_t>(lane)];
+            m_pair->changed.notify_all();
             if (m_pair->closed) {
                 return std::unexpected(Channel::Error::Disconnected);
             }
@@ -70,6 +76,19 @@ namespace
                 m_pair->notify[m_side]();
             }
             return result;
+        }
+        Readiness readiness() noexcept override
+        {
+            const std::scoped_lock lock(m_pair->mutex);
+            ++m_pair->readiness_checks[m_side];
+            m_pair->changed.notify_all();
+            if (m_pair->closed) {
+                Readiness result;
+                result.send.fill(true);
+                result.receive.fill(true);
+                return result;
+            }
+            return m_pair->memory.readiness(m_side);
         }
         void setNotification(Notification callback) noexcept override
         {
@@ -273,6 +292,115 @@ namespace
         pair.b.close();
         ASSERT_EQ(receiver.wait_for(2s), std::future_status::ready);
         EXPECT_EQ(receiver.get().error(), Error::Disconnected);
+    }
+
+    TEST(InterCoreQueue, ReadinessRespectsPriorityCapacityRolloverAndClosure)
+    {
+        using communication::Lane;
+        auto memory = std::make_unique<hal::util::InterCoreMemory>();
+        const auto normal = static_cast<std::size_t>(Lane::Normal);
+        const auto urgent = static_cast<std::size_t>(Lane::Urgent);
+        const auto background = static_cast<std::size_t>(Lane::Background);
+        auto& queue = memory->inbox[1][normal];
+        queue.read = queue.written = std::numeric_limits<std::uint32_t>::max() - 1;
+        const std::array frame{ std::byte{ 7 } };
+        for (unsigned i{}; i < Queue::CAPACITY; ++i) { ASSERT_TRUE(memory->push(1, frame, Lane::Normal)); }
+        auto ready = memory->readiness(0);
+        EXPECT_FALSE(ready.send[normal]);
+        EXPECT_TRUE(ready.send[urgent]);
+        ASSERT_TRUE(memory->push(1, frame, Lane::Background));
+        ASSERT_TRUE(memory->push(1, frame, Lane::Urgent));
+        ready = memory->readiness(1);
+        EXPECT_TRUE(ready.receive[urgent]);
+        EXPECT_FALSE(ready.receive[normal]);
+        EXPECT_FALSE(ready.receive[background]);
+        std::array<std::byte, 1> out{};
+        ASSERT_TRUE(memory->pop(1, out, Lane::Urgent));
+        EXPECT_TRUE(memory->readiness(1).receive[normal]);
+        EXPECT_FALSE(memory->readiness(1).receive[background]);
+        ASSERT_TRUE(memory->pop(1, out, Lane::Normal));
+        EXPECT_TRUE(memory->readiness(0).send[normal]);
+        for (unsigned i = 1; i < Queue::CAPACITY; ++i) { ASSERT_TRUE(memory->pop(1, out, Lane::Normal)); }
+        EXPECT_TRUE(memory->readiness(1).receive[background]);
+        memory->state[0] = 2;
+        for (const auto side : {0U, 1U}) {
+            ready = memory->readiness(side);
+            for (std::size_t i{}; i < communication::LANE_COUNT; ++i) {
+                EXPECT_TRUE(ready.send[i]);
+                EXPECT_TRUE(ready.receive[i]);
+            }
+        }
+    }
+
+    TEST(InterCoreTransport, UrgentNotificationsDoNotRetryAnEmptyBackgroundReceiver)
+    {
+        using icc::Lane;
+        TransportPair pair;
+        std::stop_source stop;
+        const auto background = static_cast<std::size_t>(Lane::Background);
+        std::array<std::byte, 1> low{}, high{};
+        auto waiting = pair.launch(pair.b.receive(low, Lane::Background, stop.get_token()));
+        {
+            std::unique_lock lock(pair.memory->mutex);
+            ASSERT_TRUE(pair.memory->changed.wait_for(lock, 2s, [&] {
+                return pair.memory->receive_attempts[1][background] != 0;
+            }));
+        }
+        const std::array frame{ std::byte{ 4 } };
+        for (unsigned i{}; i < 32; ++i) {
+            ASSERT_TRUE(pair.run(pair.a.send(frame, Lane::Urgent)));
+            ASSERT_TRUE(pair.run(pair.b.receive(high, Lane::Urgent)));
+            EXPECT_EQ(high, frame);
+        }
+        EXPECT_EQ(waiting.wait_for(10ms), std::future_status::timeout);
+        {
+            const std::scoped_lock lock(pair.memory->mutex);
+            EXPECT_GT(pair.memory->readiness_checks[1], 0U);
+            EXPECT_EQ(pair.memory->receive_attempts[1][background], 1U);
+        }
+        stop.request_stop();
+        ASSERT_EQ(waiting.wait_for(2s), std::future_status::ready);
+        EXPECT_EQ(waiting.get().error(), Error::Cancelled);
+        // The same lane still wakes for real data after cancelling its prior wait.
+        auto next = pair.launch(pair.b.receive(low, Lane::Background));
+        ASSERT_TRUE(pair.run(pair.a.send(frame, Lane::Background)));
+        ASSERT_EQ(next.wait_for(2s), std::future_status::ready);
+        EXPECT_TRUE(next.get());
+        EXPECT_EQ(low, frame);
+    }
+
+    TEST(InterCoreTransport, ReusedLaneSurvivesCancellationRacingDelivery)
+    {
+        TransportPair pair;
+        for (unsigned i{}; i < 100; ++i) {
+            std::stop_source stop;
+            const std::array frame{ static_cast<std::byte>(i) };
+            std::array<std::byte, 1> received{};
+            auto pending = pair.launch(pair.b.receive(received, icc::Lane::Normal, stop.get_token()));
+            std::jthread cancellation([&] { stop.request_stop(); });
+            ASSERT_TRUE(pair.run(pair.a.send(frame)));
+            ASSERT_EQ(pending.wait_for(2s), std::future_status::ready);
+            auto result = pending.get();
+            if (!result) {
+                ASSERT_EQ(result.error(), Error::Cancelled);
+                // Cancellation cannot consume the frame or lose its wakeup.
+                ASSERT_EQ(pair.run(pair.b.receive(received)).value(), frame.size());
+            }
+            EXPECT_EQ(received, frame);
+        }
+    }
+
+    TEST(InterCoreTransport, InvalidLaneCannotIndexOrChangeQueues)
+    {
+        TransportPair pair;
+        const std::array frame{ std::byte{ 7 } };
+        std::array<std::byte, 1> out{};
+        const auto invalid = static_cast<icc::Lane>(communication::LANE_COUNT);
+        EXPECT_EQ(pair.run(pair.a.send(frame, invalid)).error(), Error::Disconnected);
+        EXPECT_EQ(pair.run(pair.b.receive(out, invalid)).error(), Error::Disconnected);
+        ASSERT_TRUE(pair.run(pair.a.send(frame)));
+        ASSERT_TRUE(pair.run(pair.b.receive(out)));
+        EXPECT_EQ(out, frame);
     }
 
     TEST(InterCoreTransport, CompleteBridgeHandshakeAndSerializedTopic)

@@ -114,6 +114,11 @@ namespace hal
         if (m_notification) { m_notification(); }
     }
 
+    IInterCoreChannel::Readiness InterCoreChannel::readiness() noexcept
+    {
+        return memory.readiness(SIDE);
+    }
+
     void InterCoreChannel::close() noexcept
     {
         const stm32::InterruptGuard guard;

@@ -134,7 +134,7 @@ namespace icc
         const auto now = Clock::now();
         const auto deadline =
           delay >= Clock::time_point::max() - now ? Clock::time_point::max() : now + delay;
-        return m_context.scheduleAt(deadline, [signal = m_wakeup] { signal->notify(); });
+        return m_context.scheduleAt(deadline, [signal = m_wakeup] { signal->notifyControl(); });
     }
 
     void ActionBridge::poll()
@@ -157,7 +157,7 @@ namespace icc
             throw std::runtime_error("Peer exceeded action rejection capacity");
         }
         m_rejections.push_back({ .id = id, .terminal = makeError(id, error) });
-        m_wakeup->notify();
+        m_wakeup->notifyControl();
     }
 
     std::optional<ActionBridge::Frame> ActionBridge::takeFrame(Lane lane)
@@ -219,7 +219,7 @@ namespace icc
             if (goal.request) {
                 const auto remaining = std::chrono::ceil<std::chrono::milliseconds>(goal.remaining()).count();
                 if (remaining <= 0) {
-                    m_wakeup->notify();
+                    m_wakeup->notifyControl();
                     continue;
                 }
                 auto frame = *goal.request;
@@ -245,7 +245,7 @@ namespace icc
         for (auto& goal : m_incomingGoals) {
             goal.cancel();
         }
-        m_wakeup->notify();
+        m_wakeup->notifyControl();
     }
 
     bool ActionBridge::drained() const
@@ -331,7 +331,7 @@ namespace icc
             }
             try {
                 m_rejections.push_back({ .id = id, .terminal = route->cancelled(id) });
-                m_wakeup->notify();
+                m_wakeup->notifyControl();
             } catch (...) {
                 reject(id, Error::TransportError);
             }
@@ -382,7 +382,7 @@ namespace icc
                 m_rejections.erase(rejection);
             }
         }
-        m_wakeup->notify();
+        m_wakeup->notifyControl();
     }
 
     std::pair<std::optional<ActionBridge::Status>, std::optional<ActionBridge::Error>> ActionBridge::
@@ -472,6 +472,6 @@ namespace icc
             }
             m_acknowledgements.push_back(id);
         }
-        m_wakeup->notify();
+        m_wakeup->notifyControl();
     }
 }

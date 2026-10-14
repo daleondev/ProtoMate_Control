@@ -31,6 +31,12 @@ namespace hal::util
                    std::atomic_ref(written).load(std::memory_order_acquire);
         }
 
+        bool full() noexcept
+        {
+            return std::atomic_ref(written).load(std::memory_order_relaxed) -
+                     std::atomic_ref(read).load(std::memory_order_acquire) >= CAPACITY;
+        }
+
         std::expected<void, IInterCoreChannel::Error> push(std::span<const std::byte> bytes) noexcept
         {
             using Error = IInterCoreChannel::Error;
@@ -73,6 +79,27 @@ namespace hal::util
         std::array<std::uint32_t, 2> state;
         // [destination: M4=0, M7=1][normal=0, urgent=1, background=2]
         std::array<std::array<InterCoreQueue, communication::LANE_COUNT>, 2> inbox;
+
+        IInterCoreChannel::Readiness readiness(std::size_t side) noexcept
+        {
+            IInterCoreChannel::Readiness result;
+            if (side >= inbox.size() ||
+                std::atomic_ref(state[side]).load(std::memory_order_acquire) == 2 ||
+                std::atomic_ref(state[1 - side]).load(std::memory_order_acquire) == 2) {
+                result.send.fill(true);
+                result.receive.fill(true);
+                return result;
+            }
+            bool higher_pending{};
+            for (const auto lane : communication::LANE_PRIORITY) {
+                const auto index = static_cast<std::size_t>(lane);
+                const bool pending = !inbox[side][index].empty();
+                result.send[index] = !inbox[1 - side][index].full();
+                result.receive[index] = pending && !higher_pending;
+                higher_pending |= pending;
+            }
+            return result;
+        }
 
         std::expected<void, IInterCoreChannel::Error> push(
           std::size_t destination, std::span<const std::byte> bytes, IInterCoreChannel::Lane lane) noexcept

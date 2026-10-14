@@ -106,7 +106,7 @@ namespace icc
         const auto now = Clock::now();
         const auto deadline =
           delay >= Clock::time_point::max() - now ? Clock::time_point::max() : now + delay;
-        return m_context.scheduleAt(deadline, [signal = m_outgoingWakeup] { signal->notify(); });
+        return m_context.scheduleAt(deadline, [signal = m_outgoingWakeup] { signal->notifyControl(); });
     }
 
     void ServiceBridge::queueServiceError(std::uint64_t id, ServiceError error, Lane lane)
@@ -118,7 +118,7 @@ namespace icc
             throw std::runtime_error("Peer exceeded service reply capacity");
         }
         m_serviceReplies.emplace_back(lane, makeServiceError(id, error));
-        m_outgoingWakeup->notify();
+        m_outgoingWakeup->notifyControl();
     }
 
     std::optional<ServiceBridge::OutgoingFrame> ServiceBridge::takeFrame(Lane lane)
@@ -163,7 +163,7 @@ namespace icc
             if (call.lane == lane && call.request) {
                 const auto remaining = std::chrono::ceil<std::chrono::milliseconds>(call.remaining()).count();
                 if (remaining <= 0) {
-                    m_outgoingWakeup->notify();
+                    m_outgoingWakeup->notifyControl();
                     continue;
                 }
                 auto frame = *call.request;

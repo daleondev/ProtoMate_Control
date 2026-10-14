@@ -170,17 +170,17 @@ namespace icc
     pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> Bridge::healthLoop(std::stop_token stop)
     {
         m_connection.begin();
-        m_outgoingWakeup->notify();
+        m_outgoingWakeup->signal(Lane::Urgent).notify();
         while (!stop.stop_requested()) {
             if (m_shutdownRequested.load()) {
                 beginShutdown();
             }
             if (m_connection.tick()) {
-                m_outgoingWakeup->notify();
+                m_outgoingWakeup->signal(Lane::Urgent).notify();
             }
             auto timer =
               m_context.scheduleAt(m_connection.nextWake(), [signal = m_healthWakeup] { signal->notify(); });
-            if (!(co_await m_healthWakeup->ready.next(stop))) {
+            if (!(co_await m_healthWakeup->ready.wait(stop))) {
                 if (stop.stop_requested()) {
                     break;
                 }
@@ -206,7 +206,7 @@ namespace icc
                 beginShutdown();
             }
             m_connection.checkDeadline();
-            if (m_connection.ready()) {
+            if (lane != Lane::Background && m_connection.ready()) {
                 m_services.poll();
                 m_actions.poll();
             }
@@ -223,7 +223,7 @@ namespace icc
                 co_return frame;
             }
 
-            if (!(co_await m_outgoingWakeup->signal(lane).ready.next(stop))) {
+            if (!(co_await m_outgoingWakeup->signal(lane).ready.wait(stop))) {
                 if (stop.stop_requested()) {
                     co_return std::nullopt;
                 }
@@ -287,6 +287,7 @@ namespace icc
             throw std::invalid_argument("Invalid background frame");
         }
         if (frame.kind >= util::FrameKind::Hello) {
+            const bool was_ready = m_connection.ready();
             if (m_connection.dispatch(frame, lane)) {
                 m_peerStopped = true;
                 if (!m_actions.drained()) {
@@ -298,7 +299,15 @@ namespace icc
                 m_stopSource.request_stop();
             }
             m_healthWakeup->notify();
-            m_outgoingWakeup->notify();
+            if (!was_ready && m_connection.ready()) {
+                // The handshake releases every application's outgoing queue.
+                m_outgoingWakeup->notify();
+            }
+            else if (frame.kind == util::FrameKind::Hello || frame.kind == util::FrameKind::Heartbeat) {
+                // Only the urgent sender has a reply to produce. Heartbeat
+                // acknowledgements just reschedule the health timer.
+                m_outgoingWakeup->signal(Lane::Urgent).notify();
+            }
             return;
         }
         if (!m_connection.ready()) {

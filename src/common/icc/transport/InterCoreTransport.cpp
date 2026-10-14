@@ -53,13 +53,22 @@ namespace icc
 
     void InterCoreTransport::wakeWaiters()
     {
-        decltype(m_waiters) wake;
+        std::array<std::optional<pnm::coro::Channel<bool>>, 2 * LANE_COUNT> wake;
         {
             const std::scoped_lock lock(m_mutex);
+            const auto ready = m_channel->readiness();
             for (std::size_t priority{}; priority < LANE_COUNT; ++priority) {
-                const auto index = 2 * static_cast<std::size_t>(LANE_PRIORITY[priority]);
-                wake[2 * priority] = std::exchange(m_waiters[index], std::nullopt);
-                wake[2 * priority + 1] = std::exchange(m_waiters[index + 1], std::nullopt);
+                const auto lane = static_cast<std::size_t>(LANE_PRIORITY[priority]);
+                const auto index = 2 * lane;
+                for (std::size_t operation{}; operation < 2; ++operation) {
+                    auto& waiter = m_waiters[index + operation];
+                    const bool available = operation == 0 ? ready.send[lane] : ready.receive[lane];
+                    if (waiter.waiting && !waiter.pending && (m_closed || available)) {
+                        waiter.waiting = false;
+                        waiter.pending = true;
+                        wake[2 * priority + operation] = waiter.ready;
+                    }
+                }
             }
         }
         for (auto& signal : wake) {
@@ -88,7 +97,8 @@ namespace icc
       std::stop_token stop)
     {
         const auto index = 2 * static_cast<std::size_t>(lane);
-        std::optional<pnm::coro::Channel<bool>> ready;
+        if (index >= m_waiters.size()) { co_return std::unexpected(Error::Disconnected); }
+        auto& waiter = m_waiters.at(index);
         for (;;) {
             std::unique_lock lock(m_mutex);
             if (stop.stop_requested()) {
@@ -106,14 +116,12 @@ namespace icc
             }
             // Installing under the same lock as the worker's exchange prevents
             // a notification between the failed operation and arming the wait.
-            // Allocate only when blocked, and reuse the notification across
-            // unrelated lane wakeups instead of rebuilding its mutexes each time.
-            if (!ready) { ready.emplace(); }
-            m_waiters.at(index) = *ready;
+            waiter.waiting = true;
             lock.unlock();
-            co_await ready->next(stop);
+            const auto notified = co_await waiter.ready.wait(stop);
             lock.lock();
-            m_waiters.at(index).reset();
+            waiter.waiting = false;
+            if (notified) { waiter.pending = false; }
         }
     }
 
@@ -123,7 +131,8 @@ namespace icc
       std::stop_token stop)
     {
         const auto index = 2 * static_cast<std::size_t>(lane) + 1;
-        std::optional<pnm::coro::Channel<bool>> ready;
+        if (index >= m_waiters.size()) { co_return std::unexpected(Error::Disconnected); }
+        auto& waiter = m_waiters.at(index);
         for (;;) {
             std::unique_lock lock(m_mutex);
             if (stop.stop_requested()) {
@@ -140,12 +149,12 @@ namespace icc
             if (result.error() != hal::IInterCoreChannel::Error::WouldBlock) {
                 co_return std::unexpected(transport_error(result.error()));
             }
-            if (!ready) { ready.emplace(); }
-            m_waiters.at(index) = *ready;
+            waiter.waiting = true;
             lock.unlock();
-            co_await ready->next(stop);
+            const auto notified = co_await waiter.ready.wait(stop);
             lock.lock();
-            m_waiters.at(index).reset();
+            waiter.waiting = false;
+            if (notified) { waiter.pending = false; }
         }
     }
 }

@@ -218,7 +218,7 @@ namespace icc
                 const auto id = ++m_lastCallId;
                 auto frame = util::encode_frame(FrameKind::Request, name, id, value);
                 auto timer = wakeAfter(owned->remainingTime());
-                auto readiness = pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notify(); });
+                auto readiness = pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notifyControl(); });
                 m_outgoingCalls.push_back({
                   .id = id,
                   .lane = lane,
@@ -249,7 +249,7 @@ namespace icc
                 owned->fail(ServiceError::TransportError);
             }
         }, { .max_pending = MAX_CALLS });
-        auto readiness = pnm::msg::watch(proxy, [signal = m_outgoingWakeup] { signal->notify(); });
+        auto readiness = pnm::msg::watch(proxy, [signal = m_outgoingWakeup] { signal->notifyControl(); });
         m_outgoingServices.push_back({
           .name = std::string(service),
           .poll = [proxy = std::move(proxy)]() mutable { proxy.poll(); },
@@ -273,7 +273,7 @@ namespace icc
             // request() enqueues for the application's provider; it never executes
             // its handler here. Only inspect get() after ready() confirms completion.
             auto call = std::make_shared<pnm::msg::PendingCall<Response>>(local.request(value, timeout));
-            auto readiness = pnm::msg::watch(*call, [signal = m_outgoingWakeup] { signal->notify(); });
+            auto readiness = pnm::msg::watch(*call, [signal = m_outgoingWakeup] { signal->notifyControl(); });
             auto timer = wakeAfter(timeout);
             return IncomingCall{
                 .id = id,

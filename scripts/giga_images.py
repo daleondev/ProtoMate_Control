@@ -50,7 +50,7 @@ class Elf:
 
 
 def destination(core, address, length, ram_debug):
-    regions = ([(0x10000000, 128 << 10), (0x30020000, 152 << 10)] +
+    regions = ([(0x10000000, 192 << 10), (0x30030000, 88 << 10)] +
                ([(0xC0400000, 2 << 20)] if ram_debug else [])) if core == 4 else [
                    (0, 64 << 10), (0x20000000, 112 << 10), (0x24000000, 256 << 10)]
     return any(start <= address and address + length <= start + size for start, size in regions)

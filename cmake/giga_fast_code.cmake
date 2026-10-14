@@ -18,6 +18,13 @@ set(giga_fast_sources
     src/io/motion/Controller.cpp
     src/io/motion/Sequence.cpp
     src/common/motion/Profile.cpp
+    src/common/icc/bridge/Bridge.cpp
+    src/common/icc/bridge/ConnectionHealth.cpp
+    src/common/icc/bridge/TopicBridge.cpp
+    src/common/icc/bridge/ServiceBridge.cpp
+    src/common/icc/bridge/ActionBridge.cpp
+    src/common/icc/bridge/Frame.cpp
+    src/common/icc/transport/InterCoreTransport.cpp
     platform/runtime/synchronization/Notification.cpp
     platform/runtime/libstdcxx/clock.cpp
     platform/runtime/libstdcxx/SteadyClock.cpp
@@ -35,7 +42,9 @@ endif()
 set(GIGA_FAST_OBJECTS "")
 foreach(source IN LISTS giga_fast_sources)
     get_filename_component(name ${source} NAME)
-    string(APPEND GIGA_FAST_OBJECTS " *${name}.obj(.text* .rodata*)")
+    # Match the complete basename, both standalone and in an archive. A suffix
+    # match for Bridge.cpp would also silently relocate ActionBridge.cpp, etc.
+    string(APPEND GIGA_FAST_OBJECTS " */${name}.obj(.text* .rodata*) *:${name}.obj(.text* .rodata*)")
 endforeach()
 # RTOS wakeups and software floating-point helpers are used by ISR callbacks.
 string(APPEND GIGA_FAST_OBJECTS " *libthreadx.a:*(.text* .rodata*) *libgcc.a:*(.text* .rodata*)")
@@ -47,6 +56,9 @@ string(APPEND GIGA_FAST_OBJECTS " *stm32h7xx_hal_gpio.c.obj(.text* .rodata*)")
 set(giga_fast_functions
     memcpy memmove memcmp memset ceil sqrt cbrt __ieee754_sqrt __errno
     malloc free _malloc_r _free_r __malloc_lock __malloc_unlock
+    # Profiled ICC wake/transfer paths. M4 has no instruction cache for QSPI;
+    # these small, frequently executed paths otherwise compete with UI reads.
+    _Znwj _ZdlPv*
     HAL_HSEM_FastTake HAL_HSEM_Release HAL_HSEM_IRQHandler HAL_HSEM_ActivateNotification HAL_IncTick
     _ZNSt3_V216generic_categoryEv
     _ZNSt6chronossIxSt5ratioILx1ELx1000000000EExS2_EEDaRKNS_8durationIT_T0_EERKNS3_IT1_T2_EE)
