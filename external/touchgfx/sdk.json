@@ -1,0 +1,23 @@
+{
+  "version": "4.27.0",
+  "archive": "STMicroelectronics.X-CUBE-TOUCHGFX.4.27.0.zip",
+  "sha256": "abe5c11b3b457644c5ff7251bc73130c0f610770c89dab41b3f56b3baf53cc15",
+  "source": "https://www.st.com/en/embedded-software/x-cube-touchgfx.html",
+  "sdk_subdirectory": "Projects/STM32F746G-DISCO/Applications/DynamicGraph/Middlewares/ST/touchgfx",
+  "license": "Package_license.html (SLA0048 and third-party terms), LICENSE, and retained per-file notices",
+  "directories": [
+    "framework/include",
+    "framework/source",
+    "framework/tools/textconvert"
+  ],
+  "files": [
+    "lib/core/cortex_m7/gcc/libtouchgfx-float-abi-hard.a",
+    "lib/linux/libtouchgfx.a",
+    "framework/tools/fontconvert/build/linux/fontconvert.out",
+    "framework/tools/imageconvert/build/linux/imageconvert.out"
+  ],
+  "license_files": {
+    "Package_license.html": "Package_license.html",
+    "Projects/LICENSE.txt": "LICENSE"
+  }
+}

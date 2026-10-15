@@ -1,2 +1,4 @@
 external/CubeMX/** whitespace=cr-at-eol
 backups/h753/hardware/assembly/*.csv whitespace=cr-at-eol
+# Preserve the vendored SDK byte-for-byte, including upstream CRLF files.
+external/touchgfx/** -text whitespace=cr-at-eol

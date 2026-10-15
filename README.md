@@ -342,10 +342,11 @@ flowchart TB
 
 ### SDK and assets
 
-Download **X-CUBE-TOUCHGFX 4.27.0** from ST, retain its license, then:
+The required **TouchGFX 4.27.0** SDK files are versioned in
+[`external/touchgfx`](external/touchgfx): headers/support sources, the M7 and
+Linux engines, and Linux font/text/image converters. Install the host tools, then:
 
 ```sh
-python3 scripts/touchgfx_setup.py apps/STMicroelectronics.X-CUBE-TOUCHGFX.4.27.0.zip
 # Ruby, nokogiri and librsvg/rsvg-convert are needed by the Linux converters.
 gem install --install-dir "$PWD/apps/ruby-gems" nokogiri -v 1.19.4 --no-document
 cmake --preset debug-linux
@@ -353,11 +354,18 @@ cmake --build --preset debug-linux
 ./build/debug-linux/Application
 ```
 
-The setup script verifies the archive SHA256 pinned in
-[`sdk.json`](src/ui/gui/assets/sdk.json), extracts the matching headers/libraries/
-converters and retains package license files. The SDK itself is not redistributed.
-Set `TOUCHGFX_ROOT` (environment or CMake cache) to another installed `touchgfx/`
-directory if needed; configuration rejects versions other than 4.27.0. M7 uses
+The SDK retains ST's **SLA0048** and third-party licenses; redistribution is
+permitted under those conditions, including the ST-device usage restriction.
+See its [license/provenance notes](external/touchgfx/README.md) and
+[original package terms](external/touchgfx/Package_license.html). Its pinned
+archive metadata and imported-file checksums are stored alongside the SDK.
+`scripts/touchgfx_setup.py` reproduces this subset from the original archive;
+it is not needed for a normal checkout/build.
+`TOUCHGFX_ROOT` defaults to `external/touchgfx`; an environment or CMake cache
+override can select another SDK directory containing `framework/` and `lib/`.
+Configuration rejects versions other than 4.27.0. To clear a cached SDK path
+from an older build, configure with `cmake --preset debug-linux -U TOUCHGFX_ROOT`
+(or the appropriate hardware preset). M7 uses
 the GCC hard-float engine without RTTI; Linux uses the x86-64 engine with RTTI.
 Both link with our GCC 16 runtime. Vendor support has separate compilation flags;
 GUI rendering is optimized with `-O2` in Debug as well as Release, retaining symbols.

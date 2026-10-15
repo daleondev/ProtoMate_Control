@@ -1,4 +1,6 @@
 build/
+# These are upstream executable assets, not local build output.
+!external/touchgfx/framework/tools/*/build/
 
 # Per-device factory firmware and option-byte backups stay local.
 backups/hardware/
