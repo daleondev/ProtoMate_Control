@@ -47,7 +47,9 @@ def main():
         while True:
             status = command('display status')
             assert 'GUI running;' in status and 'graphics verified=1' in status, status
-            fields = {name: int(value) for name, value in re.findall(r'([A-Za-z ]+)=([0-9]+)', status)}
+            # The 3D diagnostics have independent rendered/presented counters.
+            gui_status = status.split('3D running=', 1)[0]
+            fields = {name: int(value) for name, value in re.findall(r'([A-Za-z ]+)=([0-9]+)', gui_status)}
             fields = {name.strip(): value for name, value in fields.items()}
             for name in ('underruns', 'errors', 'queue overflow', 'DMA errors', 'render failures', 'input overflow'):
                 assert fields.get(name) == 0, status

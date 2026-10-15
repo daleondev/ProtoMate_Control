@@ -28,3 +28,6 @@
 [submodule "external/stm32-usb-device"]
 	path = external/stm32-usb-device
 	url = git@github.com:STMicroelectronics/stm32-mw-usb-device.git
+[submodule "external/tgx"]
+	path = external/tgx
+	url = https://github.com/vindar/tgx.git

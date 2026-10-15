@@ -104,6 +104,8 @@ namespace ui::gui
             {
                 HAL::endFrame();
                 auto micros = timer.elapsed().count();
+                const auto drawUs=micros;
+                std::uint32_t synchronizeUs{};
                 auto& graphics = static_cast<GraphicsDMA&>(dma);
                 if (graphics.failed()) {
                     owner.m_renderFailed = true;
@@ -114,6 +116,7 @@ namespace ui::gui
                 }
                 const auto active = owner.m_display->state().active;
                 if (!owner.m_renderFailed && active != previous) {
+                    owner.m_scene.presented();
                     // Reload has completed: the former scanout buffer is now
                     // exclusively ours. Keep only changed regions synchronized.
                     timer.start();
@@ -122,11 +125,18 @@ namespace ui::gui
                                                                     owner.m_display->framebuffer(previous),
                                                                     dirty[i]);
                     }
-                    micros += timer.elapsed().count();
+                    synchronizeUs=timer.elapsed().count();
+                    micros += synchronizeUs;
                     dirtyCount = 0;
                 }
                 std::scoped_lock lock(owner.m_mutex);
                 ++owner.m_status.frames;
+                owner.m_status.drawUs=drawUs;
+                owner.m_status.synchronizeUs=synchronizeUs;
+                owner.m_status.totalDrawUs+=drawUs;
+                owner.m_status.totalSynchronizeUs+=synchronizeUs;
+                owner.m_status.imageTransferUs=graphics.imageTransferUs();
+                owner.m_status.imageTransfers=graphics.imageTransfers();
                 owner.m_status.maximumRenderUs =
                   std::max(owner.m_status.maximumRenderUs, static_cast<std::uint32_t>(micros));
                 if (micros > 16669) {
@@ -158,6 +168,7 @@ namespace ui::gui
           : dma(hal::core::create_graphics(), stop)
           , touch(owner)
           , port(owner, dma, lcd, touch, stop)
+          , frontend(owner.m_scene)
         {
             touchgfx_paint_link();
             os::prepare(stop);
@@ -208,6 +219,11 @@ namespace ui::gui
     }
     bool Controller::bars() { return enqueue({ Command::Bars, 0 }); }
     bool Controller::showcase() { return enqueue({ Command::Showcase, 0 }); }
+    bool Controller::scene(unsigned triangles)
+    {
+        return (triangles == 500 || triangles == 2000 || triangles == 5000) &&
+          enqueue({Command::Scene, triangles});
+    }
     bool Controller::backlight(unsigned percent)
     {
         return percent <= 100 && enqueue({ Command::Backlight, percent });
@@ -230,6 +246,9 @@ namespace ui::gui
             }
             else if (request.command == Command::Showcase) {
                 engine.frontend.diagnostics(false);
+            }
+            else if (request.command == Command::Scene) {
+                engine.frontend.scene(request.value);
             }
             else if (!m_display->backlight(request.value)) {
                 m_renderFailed = true;
@@ -336,6 +355,7 @@ namespace ui::gui
         }
         m_display->setCallback({});
         m_display->shutdown(); // aborts pending ownership before engine/buffers disappear
+        m_scene.stopAndWait();
         m_engine.reset();
         os::finish();
         m_display.reset();

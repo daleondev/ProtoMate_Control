@@ -14,6 +14,16 @@ namespace ui::cli::display {
         auto showcase(ui::gui::Controller& gui, const Arguments&, std::ostream&) -> CallbackResult {
             return gui.showcase() ? CallbackResult{0} : callback_failure("GUI unavailable or request queue full");
         }
+        [[= "Run the shaded 3D performance benchmark."_fs, = Name{"display scene"_fs},
+          = Arg{.name="triangles"_fs, .description="500, 2000 or 5000"_fs}]]
+        auto scene(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult {
+            unsigned triangles{}; const auto text=args.require("triangles");
+            const auto [end,error]=std::from_chars(text.data(),text.data()+text.size(),triangles);
+            if (error!=std::errc{} || end!=text.data()+text.size() || !gui.scene(triangles)) {
+                return callback_failure("Expected 500, 2000 or 5000; GUI must be available");
+            }
+            return 0;
+        }
         [[= "Set display backlight (0..100 percent)."_fs, = Name{"display backlight"_fs},
           = Arg{.name="percent"_fs, .description="0..100"_fs}]]
         auto backlight(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult {
@@ -41,6 +51,19 @@ namespace ui::cli::display {
                 << "; underruns=" << s.underruns << "; errors=" << s.errors << "; queue overflow=" << s.queueOverflow
                 << "; graphics verified=" << s.graphicsVerified << "; interactions=" << s.interactions << "; value=" << s.value << "; animating=" << s.animating << '\n';
             out << "DMA errors=" << s.dmaErrors << "; render failures=" << s.renderFailures << "; input overflow=" << s.inputOverflow << '\n';
+            out << "GUI draw us=" << s.drawUs << "; synchronization us=" << s.synchronizeUs << '\n';
+            out << "GUI total draw us=" << s.totalDrawUs << "; total sync us=" << s.totalSynchronizeUs
+                << "; image transfer us=" << s.imageTransferUs << "; image transfers=" << s.imageTransfers << '\n';
+            const auto r=gui.sceneStatus();
+            out << "3D running=" << r.running << "; visible=" << r.visible << "; failed=" << r.failed
+                << "; rendered=" << r.rendered << "; acquired=" << r.acquired
+                << "; presented=" << r.presented << "; presented revision=" << r.presentedRevision
+                << "; latency us=" << r.lastLatencyUs << "; max latency us=" << r.maximumLatencyUs
+                << "; last us=" << r.lastRenderUs << "; max us=" << r.maximumRenderUs
+                << "; clear us=" << r.clearUs << "; geometry us=" << r.geometryUs
+                << "; total us=" << r.totalRenderUs << "; completed revision=" << r.completedRevision
+                << "; acquired revision=" << r.acquiredRevision << "; replaced=" << r.replaced
+                << "; rejected=" << r.rejected << '\n';
             return 0;
         }
     }

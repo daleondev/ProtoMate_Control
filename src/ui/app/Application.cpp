@@ -140,6 +140,7 @@ namespace ui
     }
 
     void Application::guiThread() { if (m_gui.run(m_stopSource.get_token())) { requestStop(); } }
+    void Application::renderThread() { m_gui.render3d(m_stopSource.get_token()); }
     void Application::touchThread() { m_gui.acquireTouch(m_stopSource.get_token()); }
 
     void Application::cliThread()

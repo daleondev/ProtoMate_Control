@@ -23,6 +23,8 @@ namespace ui::gui
                         const touchgfx::Rect& region);
         bool failed() const noexcept { return m_failed; }
         std::uint32_t errors() const noexcept { return m_graphics ? m_graphics->errors() : 0; }
+        std::uint64_t imageTransferUs() const noexcept { return m_imageTransferUs; }
+        unsigned imageTransfers() const noexcept { return m_imageTransfers; }
 
       protected:
         void setupDataCopy(const touchgfx::BlitOp& operation) override { addToQueue(operation); }
@@ -38,5 +40,7 @@ namespace ui::gui
         std::atomic_bool m_done{};
         std::atomic<hal::graphics::Completion> m_result{};
         bool m_failed{};
+        std::uint64_t m_imageTransferUs{};
+        unsigned m_imageTransfers{};
     };
 }

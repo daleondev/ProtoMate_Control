@@ -374,8 +374,9 @@ the 6 MiB independent GUI-assets partition remains reserved.
 
 ### Workers, ownership and shutdown
 
-The application owns `gui::Controller` and two workers using its shared stop token:
-GUI priority **8 / 32 KiB stack**, touch priority **7 / 8 KiB**. ICC remains higher
+The application owns `gui::Controller` and three workers using its shared stop token:
+GUI priority **8 / 16 KiB stack**, touch priority **7 / 8 KiB**, and the experimental
+3D renderer priority **16 / 16 KiB**. The renderer sleeps when its benchmark is hidden. ICC remains higher
 priority. Widgets are accessed only by the GUI worker. CLI commands submit to an
 8-entry request queue; overflow is counted and rejected. `status()` returns a
 thread-safe snapshot. There are no application-owned allocations during the
@@ -432,6 +433,113 @@ Future ICC subscriptions/services should deliver bounded values to the Model
 through the GUI owner. They must neither touch widgets in callbacks nor block the
 rendering thread waiting for remote work.
 
+### Shaded 3D performance prototype — acceptance gate not met
+
+[`scene3d`](src/ui/gui/scene3d) is the first-stage implementation of the 3D
+viewport plan. **It is a benchmark foundation, not the completed interactive
+viewport.** The 640×400 shaded workload does not meet the GIGA requirement of
+20 newly presented images/s at 2,000 triangles and produces LTDC underruns.
+The normal 2D showcase remains the startup screen. Only `display scene` enables
+this experimental workload; return with `display gui`.
+
+```text
+display scene 500
+display scene 2000
+display scene 5000
+display status
+display gui
+```
+
+The benchmark renders five independently transformed, overlapping ellipsoids.
+`Scene` describes immutable meshes, material overrides and up to 32 nodes;
+parents precede their children. `SceneSnapshot` contains local translation,
+quaternion rotation, uniform scale, camera, revision and source timestamp.
+Scenes/assets must outlive submitted work. `Renderer` uses caller-owned RGB565
+and 16-bit depth buffers. `RenderService` has one replaceable pending snapshot,
+finishes the current render, and holds completed/displayed buffers until the
+GUI releases them. Visibility generations discard results from a hidden view.
+Only the GUI accesses TouchGFX/DMA2D; shutdown drains rendering before removing
+the bitmap registrations. Presentation revisions advance after the display
+handoff, independently of GUI ticks or completed renders.
+
+TGX **v1.1.4 / `d43f88906ab87f877ea249af2232896b097f15a7`** remains unchanged in
+`external/tgx`. The project-owned [`cmake/tgx.cmake`](cmake/tgx.cmake) wrapper
+isolates vendor flags and links it only into M7/Linux. Perspective, Gouraud
+lighting, clipping and depth testing are enabled; texture shaders are excluded.
+TGX's [LGPL-2.1 license](external/tgx/LICENSE) and upstream provenance remain in
+the submodule. Keep that license/source information with distributed builds.
+
+`scripts/scene3d_assets.py` uses the pinned TGX meshlet conversion modules and
+NumPy, without installing the upstream GUI tools. It accepts OBJ/MTL, retains
+units, local origins, normals and material colours, discards UV/image references,
+and rejects invalid/degenerate geometry. For example:
+
+```sh
+python3 scripts/scene3d_assets.py --tgx external/tgx \
+  --input path/to/part.obj --output build/meshes --name part
+```
+
+Outputs are constant `.h`/`.cpp` mesh data and a JSON report with triangle counts,
+bounds and storage sizes. The benchmark's three assets are generated
+incrementally by CMake into `build/<preset>/generated/scene3d`; assets are linked
+into M7's existing QSPI image. There is no texture conversion or storage.
+
+The linker reserves **1,536,000 bytes** at `0xC0600000`: two 640×400 RGB565 images
+and one 16-bit depth buffer, all cache-line aligned. Pixels are initialized before
+publication; arbitrary C++ objects stay in internal RAM. Existing HAL cache
+maintenance cleans sources before DMA2D reads. The linker enforces the reserved
+2 MiB region and the 64 KiB working-storage allowance. Profiled mesh/raster hot
+paths use approximately **16 KiB ITCM**, with an enforced 24 KiB cap.
+
+`display status` reports render/completion/presentation revisions, overwritten
+requests, frame latency, render wall time, bitmap transfer time and GUI-buffer
+resynchronization. Render wall time includes higher-priority GUI/ICC work;
+clear/geometry sub-timings have the runtime clock's millisecond resolution.
+The benchmark deliberately places its image at odd coordinates `(49,137)`.
+
+Reproduce the panel-free performance gate with normal Release firmware:
+
+```sh
+cmake --build --preset giga-release --target images
+python3 scripts/giga_program.py flash --build build/giga-release
+python3 scripts/scene3d_hardware_check.py --seconds 15
+```
+
+The script records counters and CLI/ICC diagnostics under
+`build/scene3d-validation`, restores the normal showcase, and returns exit code
+2 when the gate is not met. No motor command is sent. The established DMA2D
+dead-time remains **16**.
+
+Measured on the GIGA at 480 MHz with normal GUI/ICC activity, motor power off,
+and no panel, using the final Release image and 15-second measurement windows:
+
+| Triangles | New 3D presentations/s | Render wall time | Bitmap transfer | Buffer resynchronization | LTDC underruns |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 500 | 11.15 | 75.6 ms | 20.6 ms | 23.6 ms | 251 |
+| 2,000 | 10.30 | 84.4 ms | 19.7 ms | 24.1 ms | 216 |
+| 5,000 | 9.27 | 93.9 ms | 20.3 ms | 23.1 ms | 184 |
+
+These durations overlap: render wall time includes preemption while the GUI
+transfers images. They must not be added together as independent CPU costs.
+The GUI and renderer retain **85.6% and 64.2% stack headroom**, respectively;
+both controllers remain Ready and DMA reports no transfer errors. The measured
+memory/transfer cost prevents accepting the current viewport configuration.
+Reaching the target needs a smaller rendering surface or a more substantial
+change to the rendering/composition pipeline; simply budgeting triangles is
+insufficient. The raw final counters are in `build/scene3d-validation`.
+SWD readback of both display framebuffers confirms the shaded image at the odd
+widget coordinates (317 distinct RGB565 colours, 75,796 non-background viewport
+pixels in the captured frame). Captures are `frame-0.png` and `frame-1.png` in
+that directory. This verifies memory output, not a physical display.
+
+Host regressions cover deterministic shaded output, depth/occlusion,
+hierarchy, near-plane/viewport clipping, invalid input, latest-only scheduling,
+immutable displayed images, stalled handoff, visibility changes and stopping.
+The existing Linux GUI interaction, presentation-timeout and X11 tests also pass.
+Orbit/zoom/reset controls, the reusable public `Viewport3D` widget, 10-minute 3D
+endurance/latency acceptance and STEP-under-3D-load validation are deferred at
+the failed performance gate. Physical-panel validation remains separate.
+
 ### Verification
 
 ```sh
@@ -463,27 +571,25 @@ then masks LTDC interrupts. It requires a bounded GUI fault, zero backlight duty
 and working CLI/ICC before resetting both cores. Its live showcase readback is
 not an atomic screenshot of the moving indicator.
 
-The normal GIGA **Release** application passes a ten-minute panel-free run:
+The normal GIGA **Release** 2D showcase passes a 30-second panel-free regression
+with the 3D worker idle:
 
 | Check | Result |
 | --- | --- |
-| LTDC framebuffer deliveries | 35,343; 58.91 presentations/s |
-| Render work completed within one display period | 99.84% of measured frames |
+| LTDC framebuffer deliveries | 1,805; 59.86 presentations/s |
+| Render work completed within one display period | 99.94% of measured frames |
 | LTDC underruns / transfer errors / DMA errors | 0 / 0 / 0 |
 | ICC/controller health | Ready throughout; IO diagnostic services exercised |
-| Heap growth over the run | −8 bytes; no increasing trend |
-| GUI / touch stack headroom | 92.86% / 93.60% |
-| Both SDRAM framebuffer slots | Every diagnostic-bar pixel and static showcase regions verified via SWD |
-| LTDC interrupts deliberately removed | GUI reports fault; backlight duty becomes zero; CLI and ICC remain usable; reset recovers |
+| Heap growth over the run | 40 bytes |
+| GUI / touch stack headroom | 86.20% / 93.60% with 16 / 8 KiB stacks |
 
 Performance acceptance uses Release. Debug remains usable for development but
 presents the full application showcase at roughly 53 Hz. These are framebuffer
-delivery rates, not observations of a physical panel. Artifacts and matching
-manifest are in `build/gui-release-validation/`; framebuffer PNG/readbacks and
-fault-injection logs are in `build/gui-inspection/`. Linux deterministic input
+delivery rates, not observations of a physical panel. The current regression
+and matching manifest are in `build/scene3d-validation/normal-gui/`. Linux deterministic input
 has approximately **34 ms p95** event-to-framebuffer-presentation latency in the
 dummy backend; tests cover both that backend and SDL's real X11/Mesa path when
-`xvfb-run` is installed. All **50 tests** pass in both Debug and Release host suites, and closing
+`xvfb-run` is installed. All **52 tests** pass in both Debug and Release host suites, and closing
 via CLI or the window releases the application workers and SDL resources.
 
 **Physical panel validation remains pending:** supply/reset timing at the panel,

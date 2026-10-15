@@ -50,9 +50,11 @@ namespace ui
         static constexpr runtime::thread::Definition CLI_THREAD{ .priority = 5, .stack_size = 16UZ * 1024UZ };
 #endif
 
-        static constexpr runtime::thread::Definition GUI_THREAD{.priority=8, .stack_size=32UZ*1024UZ};
+        static constexpr runtime::thread::Definition GUI_THREAD{.priority=8, .stack_size=16UZ*1024UZ};
+        static constexpr runtime::thread::Definition RENDER_THREAD{.priority=16, .stack_size=16UZ*1024UZ};
         static constexpr runtime::thread::Definition TOUCH_THREAD{.priority=7, .stack_size=8UZ*1024UZ};
         [[= GUI_THREAD]] void guiThread();
+        [[= RENDER_THREAD]] void renderThread();
         [[= TOUCH_THREAD]] void touchThread();
         [[= ICC_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();

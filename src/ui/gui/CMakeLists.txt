@@ -1,14 +1,17 @@
 include(${PROJECT_SOURCE_DIR}/cmake/touchgfx.cmake)
+add_subdirectory(scene3d)
 add_library(proto_ui_gui STATIC
     Controller.hpp Controller.cpp util/FrameTimer.hpp
     frontend/Theme.hpp frontend/Model.hpp
     frontend/Frontend.hpp frontend/Frontend.cpp
     frontend/Components.hpp frontend/Components.cpp
     integration/OS.hpp integration/OS.cpp
-    integration/GraphicsDMA.hpp integration/GraphicsDMA.cpp)
+    integration/GraphicsDMA.hpp integration/GraphicsDMA.cpp
+    scene3d/RenderService.hpp scene3d/RenderService.cpp)
 add_library(proto::ui::gui ALIAS proto_ui_gui)
 target_include_directories(proto_ui_gui PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(proto_ui_gui PUBLIC runtime::runtime platform::hal PRIVATE touchgfx::support pneumo::logging)
+target_link_libraries(proto_ui_gui PUBLIC proto::ui::gui::scene3d)
 add_dependencies(proto_ui_gui gui-assets)
 # Rendering must be optimized even in Debug; preserve symbols.
 target_compile_options(proto_ui_gui PRIVATE -O2)
@@ -24,6 +27,11 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(gui_port_tests PRIVATE proto::ui::gui GTest::gtest_main touchgfx::engine)
     runtime_attach(gui_port_tests)
     add_test(NAME gui.graphics COMMAND gui_port_tests)
+    add_executable(scene_service_tests tests/scene_service_test.cpp)
+    target_link_libraries(scene_service_tests PRIVATE proto::ui::gui GTest::gtest_main)
+    runtime_attach(scene_service_tests)
+    add_test(NAME gui.scene3d.service COMMAND scene_service_tests)
+    set_tests_properties(gui.scene3d.service PROPERTIES TIMEOUT 10)
     set_tests_properties(gui.graphics PROPERTIES TIMEOUT 10)
     add_library(gui_test_native OBJECT tests/native_host.cpp)
     target_include_directories(gui_test_native PRIVATE ${PROJECT_SOURCE_DIR}/platform)

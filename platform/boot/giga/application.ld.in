@@ -13,6 +13,7 @@ MEMORY
     SHARED (rw) : ORIGIN = 0x38000000, LENGTH = 60K
     HANDOFF (rw) : ORIGIN = 0x3800F000, LENGTH = 4K
     STACK (rw) : ORIGIN = @GIGA_STACK_ORIGIN@, LENGTH = 8K
+    @GIGA_GUI_MEMORY@
 }
 @GIGA_CODE_ALIAS@
 _Min_Heap_Size = 16K;
@@ -21,6 +22,7 @@ _estack = ORIGIN(STACK) + LENGTH(STACK);
 _sstack = ORIGIN(STACK);
 SECTIONS
 {
+  @GIGA_GUI_SECTIONS@
   /* The startup code goes first into FLASH */
   .isr_vector :
   {

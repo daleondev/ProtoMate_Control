@@ -6,6 +6,8 @@ set(HAL_BOARD arduino_giga)
 set(RUNTIME_FILESYSTEM ON CACHE BOOL "Build FileX/LevelX filesystem support")
 set(RUNTIME_STORAGE_REQUIRED OFF)
 set(BUILD_TESTING OFF)
+set(GIGA_GUI_MEMORY "")
+set(GIGA_GUI_SECTIONS "")
 if(STM32_CORE STREQUAL "CM4")
     set(THREADX_ARCH cortex_m4)
     set(application_role io)
@@ -44,7 +46,21 @@ else()
     set(GIGA_RAM_LENGTH 256K)
     set(GIGA_STACK_ORIGIN 0x2001E000)
     set(GIGA_HEAP_REGION RAM)
+    # Profiled mesh transform/raster paths exceed M7 I-cache working-set size.
+    # Keep this initial renderer reservation below 24 KiB.
     set(GIGA_FAST_OBJECTS "")
+    foreach(symbol "*_drawMesh*" "*uber_shader*" "*_discardBox*")
+        string(APPEND GIGA_FAST_OBJECTS " *libproto_scene3d_renderer.a:Renderer.cpp.obj(.text.${symbol})")
+    endforeach()
+    set(GIGA_GUI_MEMORY "GUI (rw) : ORIGIN = 0xC0600000, LENGTH = 2M")
+    # Owner initializes every pixel/depth word before use. No bootstrap clear,
+    # heap, general C++ objects or M4 RAM-debug overlap in this reservation.
+    set(GIGA_GUI_SECTIONS ".gui_sdram (NOLOAD) : ALIGN(32) {
+      __gui_sdram_start = .; *(.gui_sdram .gui_sdram.*) . = ALIGN(32);
+      __gui_sdram_end = .;
+    } >GUI
+    ASSERT(SIZEOF(.fast) + SIZEOF(.ARM.fast_extab) + SIZEOF(.ARM.fast_exidx) <= 24576, \"Initial M7 ITCM budget exceeded\")
+    ASSERT(SIZEOF(.gui_sdram) <= 1601536, \"3D buffers exceed their budget\")")
     # CPU-only metadata, console rings and runtime stacks use private DTCM.
     # USB FS uses FIFO copies (no DMA); its Cube buffers remain in AXI SRAM.
     # Keep the general heap in AXI, so arbitrary application buffers remain

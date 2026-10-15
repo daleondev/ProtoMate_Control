@@ -78,8 +78,13 @@ namespace ui::gui
             transfer.source = { reinterpret_cast<const std::byte*>(op.pSrc),
                                 (std::size_t(op.nLoops) - 1) * sourceStride + width * sourceBytes };
         }
+        const auto began=std::chrono::steady_clock::now();
         if (!execute(transfer)) {
             m_failed = true;
+        }
+        if (!fill && !alphaFill) {
+            m_imageTransferUs+=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-began).count();
+            ++m_imageTransfers;
         }
     }
     bool GraphicsDMA::execute(const hal::graphics::Transfer& transfer)

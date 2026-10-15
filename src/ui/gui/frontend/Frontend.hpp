@@ -1,6 +1,7 @@
 #pragma once
 #include "Components.hpp"
 #include "Model.hpp"
+#include "ui/gui/scene3d/RenderService.hpp"
 #include <array>
 #include <mvp/MVPApplication.hpp>
 #include <mvp/Presenter.hpp>
@@ -74,7 +75,7 @@ namespace ui::gui
     class Frontend final : public touchgfx::MVPApplication
     {
       public:
-        Frontend();
+        explicit Frontend(scene3d::RenderService& renderer);
         ~Frontend() override;
         void changeToStartScreen() override;
         void handleTickEvent() override;
@@ -85,6 +86,7 @@ namespace ui::gui
             m_context = context;
         }
         void diagnostics(bool enabled);
+        void scene(unsigned triangles);
         const Model& model() const { return m_model; }
 
       private:
@@ -95,6 +97,27 @@ namespace ui::gui
         Presenter m_presenter;
         DetailsView m_detailsView;
         DetailsPresenter m_detailsPresenter;
+        class SceneView final : public touchgfx::Screen
+        {
+          public:
+            explicit SceneView(scene3d::RenderService& renderer);
+            ~SceneView() override;
+            void setupScreen() override;
+            void tearDownScreen() override;
+            void handleTickEvent() override;
+            unsigned triangles{2000};
+          private:
+            scene3d::RenderService& m_renderer;
+            touchgfx::Box m_background;
+            touchgfx::Image m_image;
+            touchgfx::TextAreaWithOneWildcard m_label;
+            std::array<touchgfx::Unicode::UnicodeChar, 80> m_labelText{};
+            alignas(32) std::array<std::uint16_t, 512> m_cache{};
+            std::array<touchgfx::BitmapId, 2> m_bitmaps{};
+            bool m_registered{};
+            std::uint64_t m_revision{};
+        } m_sceneView;
+        bool m_sceneRequested{}, m_sceneActive{};
         bool m_detailsActive{};
         void transition();
     };
