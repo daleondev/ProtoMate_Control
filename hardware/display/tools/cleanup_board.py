@@ -2,7 +2,7 @@
 """Finalize annotations without changing copper or component placement."""
 import json,re,sys
 import pcbnew as k
-from design import ROOT
+from design import ROOT, BOARDS
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 def main(name):
     path=ROOT/name/(name+'.kicad_pcb');parts=json.loads((ROOT/name/'components.json').read_text())
@@ -11,10 +11,10 @@ def main(name):
     def clean(m):
         ref=re.search(r'\(gr_text "([^"]+)"',m[0]);return '' if ref and ref[1] in refs else m[0]
     s=re.sub(r'(?ms)^\t\(gr_text .*?^\t\)\n',clean,s);path.write_text(s)
-    b=k.LoadBoard(str(path));tb=b.GetTitleBlock();tb.SetTitle(name+' / Smartwin–GIGA');tb.SetRevision('A');tb.SetDate('2026-10-14');tb.SetCompany('ProtoMate');b.SetTitleBlock(tb)
+    b=k.LoadBoard(str(path));tb=b.GetTitleBlock();tb.SetTitle(name+' / Smartwin–GIGA');tb.SetRevision(BOARDS[name]['revision']);tb.SetDate(BOARDS[name]['date']);tb.SetCompany('ProtoMate');b.SetTitleBlock(tb)
     if name=='display-adapter':
         refs={f.GetReference():f for f in b.GetFootprints()}
-        for ref,x,y in [('FID4',12,16),('FID5',42.5,17),('FID6',16.5,33)]:
+        for ref,x,y in [('FID3',49,27),('FID4',5,16),('FID5',50,16),('FID6',8,33)]:
             if ref in refs:
                 refs[ref].SetPosition(k.VECTOR2I(k.FromMM(x),k.FromMM(y)));continue
             f=k.FootprintLoad('/usr/share/kicad/footprints/Fiducial.pretty','Fiducial_1mm_Mask2mm');b.Add(f)

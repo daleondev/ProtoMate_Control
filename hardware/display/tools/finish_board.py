@@ -3,7 +3,7 @@
 import argparse
 import re
 import pcbnew as k
-from design import ROOT
+from design import ROOT, BOARDS
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 def point(x,y):return k.VECTOR2I(k.FromMM(x),k.FromMM(y))
 
@@ -23,9 +23,9 @@ def finish(name,session):
         if layer==k.B_SilkS:t.SetMirrored(True)
         b.Add(t)
     if name=='display-adapter':
-        for s,x,y in [('1',48.5,8.7),('80',6.2,8.7),('+',4.2,28.9),('GND',10,29.4),('3V3',20,34.2),('G',22,34.2),('CLK',38,16.5),('G',40,16.5),('SDA',47,16.5),('SCL',50,19.5)]:text(s,x,y)
+        for s,x,y in [('1',48.5,8.7),('80',6.2,8.7),('+',4.2,28.9),('GND',10,29.4),('3V3',5,16.7),('G',7,16.7),('CLK',38,16.5),('G',40,16.5),('SDA',47,16.5),('SCL',50,19.5)]:text(s,x,y)
         text('J1 PIN 1',22,28,1,k.B_SilkS)
-        text('SMARTWIN / A',27.5,15,1,k.B_SilkS)
+        text('SMARTWIN / '+BOARDS[name]['revision'],27.5,15,1,k.B_SilkS)
     else:
         for s,x,y in [('80',112.5,5.8),('1',112.5,47.2),('3V3',101,51),('PWR',104,51),('G',107,51)]:text(s,x,y)
         text('GIGA DISPLAY / A',57,7,1,k.B_SilkS)
@@ -50,6 +50,10 @@ def finish(name,session):
       (layer "B.Paste" (type "Bottom Solder Paste"))
       (layer "B.SilkS" (type "Bottom Silk Screen") (color "White"))
       (copper_finish "ENIG") (dielectric_constraints no))'''
+    if BOARDS[name]['layers']==2:
+        start=stack.index('      (layer "dielectric 1"')
+        end=stack.index('      (layer "B.Cu"')
+        stack=stack[:start]+f'      (layer "dielectric 1" (type "core") (thickness {thickness-.07:.3f}) (material "FR4") (epsilon_r 4.3) (loss_tangent 0.02))\n'+stack[end:]
     s=path.read_text();s=s.replace('(setup\n','(setup\n\t\t'+stack+'\n',1);path.write_text(s)
     print(path)
 

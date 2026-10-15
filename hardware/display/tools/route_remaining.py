@@ -2,7 +2,8 @@
 """Finish short residual connections on a conservative grid; KiCad DRC is final.
 
 This is a layout-generation aid, not a substitute for the release ERC/DRC audit.
-In1 is never available for routing. Via-in-pad is prohibited.
+Uses only enabled signal layers; In1 remains reserved on four-layer boards.
+Via-in-pad is prohibited.
 """
 import heapq,math,json,subprocess,sys
 from pathlib import Path
@@ -17,6 +18,8 @@ def mm(v):return k.FromMM(v)
 def xy(x,y):return k.VECTOR2I(mm(x),mm(y))
 
 def route(b,which,entry):
+    global LAYERS
+    LAYERS=[k.F_Cu,k.B_Cu] if b.GetCopperLayerCount()==2 else [k.F_Cu,k.In2_Cu,k.B_Cu]
     items={t.m_Uuid.AsString():t for t in b.GetTracks()}
     items.update({p.m_Uuid.AsString():p for f in b.GetFootprints() for p in f.Pads()})
     a,c=[items[i['uuid']] for i in entry['items']]
@@ -114,7 +117,7 @@ def route(b,which,entry):
             yy,xx=y+dy,x+dx
             if 0<=yy<H and 0<=xx<W and not blocked[l,yy,xx] and not blocked[l,y,xx] and not blocked[l,yy,x]:options.append(((l,yy,xx),dist))
         if not via_block[y,x]:
-            options += [((ll,y,x),24) for ll in range(3) if ll!=l and not blocked[ll,y,x]]
+            options += [((ll,y,x),24) for ll in range(len(LAYERS)) if ll!=l and not blocked[ll,y,x]]
         for q,d in options:
             ng=g+d
             if ng<cost.get(q,float('inf')):

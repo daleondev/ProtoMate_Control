@@ -10,11 +10,11 @@ import pcbnew as k
 from gerbonara import LayerStack
 from gerbonara.graphic_objects import Flash
 from gerbonara.utils import MM
-from design import ROOT
+from design import ROOT, BOARDS, release_name
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 
 def main(name):
-    out=ROOT/'manufacturing'/(name+'-rev-A');report=ROOT/'manufacturing/verification';preview=out/'inspection';preview.mkdir(exist_ok=True)
+    out=ROOT/'manufacturing'/release_name(name);report=ROOT/'manufacturing/verification';preview=out/'inspection';preview.mkdir(exist_ok=True)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always');stack=LayerStack.open(out/'gerbers')
     allowed='G90 header statement found after end of header'
@@ -53,7 +53,8 @@ def main(name):
         index=next((i for i,(xx,yy,dd,pp) in enumerate(remaining) if pp==plated and dd==diameter and math.hypot(x-xx,y-yy)<=.0008),None)
         assert index is not None,('Drill coordinate/tool/plating mismatch',x,y,diameter,plated)
         remaining.pop(index)
-    expected_layers={('top',v) for v in ['copper','mask','paste','silk']}|{('bottom',v) for v in ['copper','mask','paste','silk']}|{('inner_1','copper'),('inner_2','copper'),('mechanical','outline')}
+    expected_layers={('top',v) for v in ['copper','mask','paste','silk']}|{('bottom',v) for v in ['copper','mask','paste','silk']}|{('mechanical','outline')}
+    if BOARDS[name]['layers']==4:expected_layers|={('inner_1','copper'),('inner_2','copper')}
     assert set(stack.graphic_layers)==expected_layers
     outline=stack.graphic_layers['mechanical','outline'];bbox=outline.bounding_box()
     width=55 if name=='display-adapter' else 111;height=35 if name=='display-adapter' else 53.34

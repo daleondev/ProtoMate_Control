@@ -1,6 +1,6 @@
 {
-  "revision": "A",
-  "date": "2026-10-14",
+  "revision": "B",
+  "date": "2026-10-15",
   "release": "PROTOTYPE FABRICATION AND SMT ASSEMBLY",
   "digital_release_checks": "PASS",
   "boards": {
@@ -13,7 +13,9 @@
       "excluded_findings": 0,
       "SMT_components": 21,
       "exported_pad_coordinates_checked": 182,
-      "drill_hits_checked": 207
+      "drill_hits_checked": 161,
+      "revision": "B",
+      "copper_layers": 2
     },
     "giga-adapter": {
       "ERC_violations": 0,
@@ -24,7 +26,9 @@
       "excluded_findings": 0,
       "SMT_components": 86,
       "exported_pad_coordinates_checked": 575,
-      "drill_hits_checked": 312
+      "drill_hits_checked": 312,
+      "revision": "A",
+      "copper_layers": 4
     }
   },
   "electrical_audit": {
@@ -34,14 +38,15 @@
     "firmware_pin_conflicts": 0,
     "supply_isolation_topology": "PASS \u2014 distinct GIGA/panel rails, power-off isolation parts and defined biasing"
   },
-  "mechanical_review": "PASS for nominal drawing/CAD geometry; 110 header centres checked. Physical tolerances and connector fit remain first-board tests.",
+  "mechanical_review": "PASS for nominal drawing/CAD geometry; 110 GIGA header centres checked. Display connector positions, outline and mounting holes retained; revised passive/fiducial placement reviewed in top/bottom 3D models. Physical tolerances and connector fit remain first-board tests.",
   "visual_review": {
     "reviewed": [
-      "Both outer copper/mask/silk sides rendered from exported Gerbers",
-      "Both internal copper layers and continuous In1 ground references",
+      "Display revision B: both outer copper/mask/silk sides rendered independently from exported Gerbers",
+      "Display revision B: connected F.Cu/B.Cu ground pours, stitching and clock return geometry",
+      "GIGA revision A: retained reviewed four-layer layout and In1 ground reference; native PCB unchanged",
       "Fine-pitch paste apertures and drill exports",
-      "Schematic PDFs, connector orientation, assembly PDFs and cable drawing",
-      "Nominal GIGA/carrier 3D assembly and display top/bottom envelope models"
+      "Schematic PDFs, connector orientation, assembly PDFs, fabrication drawing and unchanged cable drawing",
+      "Nominal GIGA/carrier 3D assembly and display revision-B top/bottom envelope models"
     ],
     "result": "PASS \u2014 fabrication package review"
   },

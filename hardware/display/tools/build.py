@@ -12,7 +12,7 @@ import shutil
 import uuid
 from pathlib import Path
 import pcbnew as k
-from design import ROOT, PARTS, SIGNALS, GEOMETRY, REVISION, components
+from design import ROOT, PARTS, SIGNALS, GEOMETRY, REVISION, BOARDS, components
 
 k.SwigPyIterator.next = k.SwigPyIterator.__next__
 LIB = ROOT/'libraries/DisplayAdapter.pretty'
@@ -155,7 +155,7 @@ def schematic(which,parts):
     (dest/'sym-lib-table').write_text('(sym_lib_table (lib (name "DisplayAdapter") (type "KiCad") (uri "${KIPRJMOD}/Adapter.kicad_sym") (options "") (descr "Verified local adapter symbols")))\n')
     (dest/'fp-lib-table').write_text('(fp_lib_table (lib (name "DisplayAdapter") (type "KiCad") (uri "${KIPRJMOD}/../libraries/DisplayAdapter.pretty") (options "") (descr "Project-local footprints")))\n')
     def start(sheetid,title,syms):
-        return f'(kicad_sch (version 20250114) (generator eeschema) (uuid "{sheetid}") (paper "A3") (title_block (title {q(title)}) (date "2026-10-14") (rev "A") (company "ProtoMate")) (lib_symbols '+''.join(syms)+')\n'
+        return f'(kicad_sch (version 20250114) (generator eeschema) (uuid "{sheetid}") (paper "A3") (title_block (title {q(title)}) (date {q(BOARDS[which]["date"])}) (rev {q(BOARDS[which]["revision"])}) (company "ProtoMate")) (lib_symbols '+''.join(syms)+')\n'
     flag='(symbol "DisplayAdapter:SupplyPresent" (pin_names (offset 0)) (in_bom no) (on_board no) (property "Reference" "#FLG" (at 0 3 0) (effects (font (size 1 1)))) (property "Value" "SupplyPresent" (at 0 1 0) (effects (font (size 1 1)))) (symbol "SupplyPresent_0_1" (polyline (pts (xy 0 0) (xy -1.27 1.27) (xy 0 2.54) (xy 1.27 1.27) (xy 0 0)) (stroke (width .15) (type default)) (fill (type none)))) (symbol "SupplyPresent_1_1" (pin power_out line (at 0 0 90) (length 0) (name "power" (effects (font (size 1 1)))) (number "1" (effects (font (size 1 1)))))))'
     libfile=dest/'Adapter.kicad_sym';lib=libfile.read_text();libfile.write_text(lib[:-2]+flag.replace('"DisplayAdapter:', '"')+')\n')
     root=start(rootid,which+' / Smartwin display interface',[flag])
@@ -208,10 +208,10 @@ def schematic(which,parts):
     (dest/(which+'.kicad_sch')).write_text(root)
 
 def board(which,parts):
-    b=k.BOARD();b.SetCopperLayerCount(4)
+    b=k.BOARD();b.SetCopperLayerCount(BOARDS[which]["layers"])
     ds=b.GetDesignSettings();ds.SetBoardThickness(mm(1 if which=='display-adapter' else 1.6))
-    ds.m_MinClearance=mm(.15);ds.m_TrackMinWidth=mm(.15);ds.m_MinThroughDrill=mm(.3)
-    ds.m_ViasMinSize=mm(.65);ds.m_ViasMinAnnularWidth=mm(.15)
+    ds.m_MinClearance=mm(.15);ds.m_TrackMinWidth=mm(.15);ds.m_MinThroughDrill=mm(BOARDS[which]['via_drill'])
+    ds.m_ViasMinSize=mm(BOARDS[which]['via_diameter']);ds.m_ViasMinAnnularWidth=mm(.15)
     ds.m_SolderMaskExpansion=mm(.035);ds.m_SolderMaskMinWidth=mm(.1)
     ds.m_MinSilkTextHeight=mm(.8);ds.m_MinSilkTextThickness=mm(.15)
     nc=ds.m_NetSettings.GetDefaultNetclass();nc.SetClearance(mm(.15));nc.SetTrackWidth(mm(.18));nc.SetViaDiameter(mm(.65));nc.SetViaDrill(mm(.3))
@@ -259,20 +259,20 @@ def board(which,parts):
                 if item.GetLayer()==k.F_CrtYd:f.Remove(item)
             circle=k.PCB_SHAPE(f);circle.SetShape(k.SHAPE_T_CIRCLE);circle.SetCenter(point(0,0));circle.SetEnd(point(1.65 if y<5 else 1.85,0));circle.SetWidth(mm(.05));circle.SetLayer(k.F_CrtYd);f.Add(circle)
         f.SetReference(f'H{i+1}');f.SetPosition(point(x,y));f.Reference().SetVisible(False);f.Value().SetVisible(False);f.SetAttributes(k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES);b.Add(f)
-    for i,(x,y) in enumerate(([(9,11),(52,16),(46,33)] if which=='display-adapter' else [(27,7.5),(117,1.5),(117,51.5)])):
+    for i,(x,y) in enumerate(([(9,11),(52,16),(49,27)] if which=='display-adapter' else [(27,7.5),(117,1.5),(117,51.5)])):
         f=k.FootprintLoad('/usr/share/kicad/footprints/Fiducial.pretty','Fiducial_1mm_Mask2mm');f.SetReference(f'FID{i+1}');f.SetPosition(point(x,y));f.Reference().SetVisible(False);f.Value().SetVisible(False);f.SetAttributes(k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES);b.Add(f)
-    # In1 is a continuous reference plane; F/In2/B carry signals and power.
-    for layer in [k.In1_Cu]:
+    # The two-layer display adapter uses stitched outer pours.
+    for layer in ([k.F_Cu,k.B_Cu] if BOARDS[which]["layers"]==2 else [k.In1_Cu]):
         z=k.ZONE(b);z.SetLayer(layer);z.SetNet(nets['GND']);z.SetLocalClearance(mm(.2));z.SetPadConnection(k.ZONE_CONNECTION_FULL);z.SetMinThickness(mm(.15))
         poly=z.Outline();poly.NewOutline()
         for x,y in contour:poly.Append(mm(x),mm(y))
         b.Add(z)
-    for text,x,y,size in ([('SMARTWIN / A',27.5,15,1),('3V3 ONLY',7,19.2,.9),('100mm TYPE-A',27.5,11,.8)] if which=='display-adapter' else [('GIGA DISPLAY / A',57,7,1),('FFC TO DISPLAY',115,50, .8)]):
+    for text,x,y,size in ([('SMARTWIN / '+BOARDS[which]['revision'],27.5,15,1),('3V3 ONLY',7,19.2,.9),('100mm TYPE-A',27.5,11,.8)] if which=='display-adapter' else [('GIGA DISPLAY / A',57,7,1),('FFC TO DISPLAY',115,50, .8)]):
         t=k.PCB_TEXT(b);t.SetText(text);t.SetPosition(point(x,y));t.SetTextSize(point(size,size));t.SetTextThickness(mm(.15));t.SetLayer(k.F_SilkS);b.Add(t)
     out=ROOT/'build'/which;out.mkdir(parents=True,exist_ok=True)
     path=out/(which+'.kicad_pcb');k.SaveBoard(str(path),b)
     # Explicit project rules, no blanket suppression of fabrication findings.
-    pro={'meta':{'filename':which+'.kicad_pro','version':1},'board':{'design_settings':{'rules':{'min_clearance':.15,'min_track_width':.15,'min_through_hole_diameter':.3,'min_via_diameter':.65,'min_via_annular_width':.15,'min_hole_clearance':.25,'min_copper_edge_clearance':.3,'min_silk_clearance':.1,'min_silk_text_height':.8,'min_silk_text_thickness':.15}}},
+    pro={'meta':{'filename':which+'.kicad_pro','version':1},'board':{'design_settings':{'rules':{'min_clearance':.15,'min_track_width':.15,'min_through_hole_diameter':BOARDS[which]['via_drill'],'min_via_diameter':BOARDS[which]['via_diameter'],'min_via_annular_width':.15,'min_hole_clearance':.25,'min_copper_edge_clearance':.3,'min_silk_clearance':.1,'min_silk_text_height':.8,'min_silk_text_thickness':.15}}},
          'net_settings':{'classes':[{'name':'Default','clearance':.15,'track_width':.18,'via_diameter':.65,'via_drill':.3,'microvia_diameter':.3,'microvia_drill':.1,'diff_pair_width':.18,'diff_pair_gap':.2,'diff_pair_via_gap':.25}],'meta':{'version':4}},
          'erc':{'erc_exclusions':[]}}
     (ROOT/which/(which+'.kicad_pro')).write_text(json.dumps(pro,indent=2)+'\n')

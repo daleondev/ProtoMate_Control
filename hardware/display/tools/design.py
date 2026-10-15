@@ -1,4 +1,4 @@
-"""Electrical source of truth for the two display adapter designs (revision A).
+"""Electrical source of truth for the two display adapter designs.
 
 Pin numbers are physical connector/device pins, not array offsets.  This file is
 also consumed by the independent exported-netlist audit and manufacturing BOM.
@@ -8,7 +8,19 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 GEOMETRY = json.loads((ROOT/'references/giga-geometry.json').read_text())
-REVISION = 'A'
+REVISION = 'B'  # Source bundle; individual board revisions below.
+BOARDS = {
+    'display-adapter': dict(revision='B', date='2026-10-15', layers=2, via_drill=.25, via_diameter=.55),
+    'giga-adapter': dict(revision='A', date='2026-10-14', layers=4, via_drill=.30, via_diameter=.65),
+}
+
+
+def release_name(board):
+    return board + '-rev-' + BOARDS[board]['revision']
+
+
+def copper_layers(board):
+    return ['F.Cu', 'B.Cu'] if BOARDS[board]['layers'] == 2 else ['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu']
 
 # Order follows the ribbon, not the display connector. Every signal has adjacent
 # grounds. A same-contact-side FFC between facing sockets reverses socket numbering.
@@ -108,18 +120,18 @@ def components(which):
         add('Q1','PMOS',{1:'PWR_GATE',2:'+3V3_PANEL',3:'+3V3_FUSED'},(16,29,0,'F'),'power')
         add('Q2','PMOS',{1:'PWR_GATE',2:'+3V3_PANEL',3:'+3V3_FUSED'},(16,33,0,'F'),'power')
         add('R1','R100K',{1:'PWR_GATE',2:'GND'},(13,31,0,'F'),'power')
-        for i,(x,y) in enumerate([(20,28),(24,28),(28,28),(32,28)],1):
+        for i,(x,y) in enumerate([(22,31),(26,31),(30,31),(34,31)],1):
             add(f'C{i}','C47U',{1:'+3V3_PANEL',2:'GND'},(x,y,90,'F'),'power')
-        for i,(x,y) in enumerate([(20,20),(35,20)],5):
+        for i,(x,y) in enumerate([(18,20),(36,20)],5):
             add(f'C{i}','C10U',{1:'+3V3_PANEL',2:'GND'},(x,y,0,'F'),'power')
-        for i,(x,y) in enumerate([(23.5,20),(31.5,20)],7):
+        for i,(x,y) in enumerate([(20,17),(36,23)],7):
             add(f'C{i}','C100N',{1:'+3V3_PANEL',2:'GND'},(x,y,0,'F'),'power')
         for i,(s,x,y) in enumerate([('PWM',39,26),('STANDBY',39,28),('TFT_RESET_N',39,30),('TOUCH_RESET_N',39,32)],2):
             add(f'R{i}','R47K',{1:'LCD_'+s,2:'GND'},(x,y,0,'F'),'power')
         for i,(s,y) in enumerate([('SDA',25),('SCL',28)],6):
             add(f'R{i}','R4K7',{1:'LCD_'+s,2:'+3V3_PANEL'},(46,y,0,'F'),'power')
         add('R8','R47K',{1:'LCD_TOUCH_INT_N',2:'+3V3_PANEL'},(46,31,0,'F'),'power')
-        for i,(net,x,y) in enumerate([('+3V3_PANEL',20,33),('GND',22,33),('LCD_PCLK',38,18),('GND',40,18),('LCD_SDA',47,18),('LCD_SCL',50,18)],1):
+        for i,(net,x,y) in enumerate([('+3V3_PANEL',5,18),('GND',7,18),('LCD_PCLK',38,18),('GND',40,18),('LCD_SDA',47,18),('LCD_SCL',50,18)],1):
             add(f'TP{i}','TP',{1:net},(x,y,0,'F'),'power')
             out[-1]['assembly']='PCB'
     else:

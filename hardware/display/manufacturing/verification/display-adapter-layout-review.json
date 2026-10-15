@@ -1,0 +1,27 @@
+{
+  "board": "display-adapter",
+  "revision": "B",
+  "copper_layers": 2,
+  "ground_pour_area_mm2": {
+    "F.Cu": 1183.84,
+    "B.Cu": 1193.32
+  },
+  "total_ground_vias": 46,
+  "clock_signal_vias": [
+    [
+      34.161,
+      21.214
+    ],
+    [
+      23.75,
+      3.3
+    ]
+  ],
+  "clock_via_nearest_ground_via_mm": [
+    2.216,
+    2.0
+  ],
+  "maximum_clock_centre_to_same_layer_ground_pour_mm": 1.144,
+  "sample_spacing_mm": 0.1,
+  "interpretation": "Geometric return-path review; both ground pours are connected and stitched. This is not field-solver impedance or signal-integrity validation. Confirm panel-side timing and ringing on the first board."
+}

@@ -1,0 +1,25 @@
+Drill report for display-adapter.kicad_pcb
+Created on 2026-10-15T14:36:51
+
+Copper Layer Stackup:
+    =============================================================
+    L1 :  F.Cu                      front
+    L2 :  B.Cu                      back
+
+
+Drill file 'display-adapter-PTH.drl' contains
+    plated through holes:
+    =============================================================
+    T1  0.250mm  0.0098"  (26 holes))
+    T2  0.300mm  0.0118"  (129 holes))
+    T3  1.200mm  0.0472"  (2 holes))
+
+    Total plated holes count 157
+
+
+Drill file 'display-adapter-NPTH.drl' contains
+    unplated through holes:
+    =============================================================
+    T1  2.200mm  0.0866"  (4 holes))
+
+    Total unplated holes count 4

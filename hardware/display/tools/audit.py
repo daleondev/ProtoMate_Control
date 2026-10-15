@@ -10,7 +10,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import pcbnew as k
-from design import ROOT
+from design import ROOT, BOARDS
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 
 PANEL={**{n:'GND' for n in [1,2,3,4,11,36,40,42,50]},
@@ -52,12 +52,18 @@ def main():
             assert abs(k.ToMM(actual.x)-part['pos'][0])<.00002 and abs(k.ToMM(actual.y)-part['pos'][1])<.00002,(name,part['ref'],'placement source mismatch')
         for t in b.GetTracks():
             if isinstance(t,k.PCB_VIA):
-                assert t.GetDrillValue()>=k.FromMM(.3)
+                assert t.GetDrillValue()>=k.FromMM(BOARDS[name]['via_drill'])
+                assert t.GetWidth(k.F_Cu)>=k.FromMM(BOARDS[name]['via_diameter'])
+                assert (t.GetWidth(k.F_Cu)-t.GetDrillValue())/2>=k.FromMM(.15)
             else:
-                assert t.GetLayer() in [k.F_Cu,k.In2_Cu,k.B_Cu],('Signal cuts a reference plane',name,t.GetNetname())
+                allowed=[k.F_Cu,k.B_Cu] if BOARDS[name]['layers']==2 else [k.F_Cu,k.In2_Cu,k.B_Cu]
+                assert t.GetLayer() in allowed,('Unexpected routing layer',name,t.GetNetname())
                 assert t.GetWidth()>=k.FromMM(.15),(name,t.GetNetname(),t.GetWidth())
-        assert b.GetCopperLayerCount()==4
-        summary[name]={'schematic_pcb_pin_pairs':len(nets),'components':len(source_parts),'tracks':len(b.GetTracks()),'ground_reference':'In1.Cu uninterrupted GND plane'}
+        assert b.GetCopperLayerCount()==BOARDS[name]['layers']
+        assert b.GetTitleBlock().GetRevision()==BOARDS[name]['revision']
+        ground_layers={z.GetLayer() for z in b.Zones() if z.GetNetname()=='GND'}
+        assert ground_layers==({k.F_Cu,k.B_Cu} if BOARDS[name]['layers']==2 else {k.In1_Cu})
+        summary[name]={'revision':BOARDS[name]['revision'],'copper_layers':b.GetCopperLayerCount(),'schematic_pcb_pin_pairs':len(nets),'components':len(source_parts),'tracks':len(b.GetTracks()),'ground_reference':'Stitched F.Cu/B.Cu ground pours' if BOARDS[name]['layers']==2 else 'In1.Cu uninterrupted GND plane'}
         pins[name]=nets
     d,g=pins['display-adapter'],pins['giga-adapter']
     for p,net in PANEL.items():assert d['J1',str(p)]==net,(p,net)

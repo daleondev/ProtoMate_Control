@@ -1,11 +1,15 @@
 {
   "display-adapter": {
+    "revision": "B",
+    "copper_layers": 2,
     "schematic_pcb_pin_pairs": 180,
     "components": 28,
-    "tracks": 1291,
-    "ground_reference": "In1.Cu uninterrupted GND plane"
+    "tracks": 986,
+    "ground_reference": "Stitched F.Cu/B.Cu ground pours"
   },
   "giga-adapter": {
+    "revision": "A",
+    "copper_layers": 4,
     "schematic_pcb_pin_pairs": 465,
     "components": 99,
     "tracks": 1826,

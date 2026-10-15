@@ -1,15 +1,16 @@
-# Smartwin–GIGA display adapters — revision A
+# Smartwin–GIGA display adapters
 
-Two four-layer boards connect the Smartwin **SMMH0701024600S-C20** to the Arduino
-**GIGA R1 WiFi**, preserving the firmware's existing display pin assignments.
+The **two-layer display adapter (revision B)** and **four-layer GIGA adapter
+(revision A)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
+**GIGA R1 WiFi**, preserving the firmware's display pin assignments and cable pinout.
 Open either project in KiCad 10; both use `libraries/` and require no downloaded
 symbol or footprint library. Keep this directory structure when moving them.
 
 Release files:
 
-- [Display adapter: fabrication and assembly ZIP](releases/display-adapter-rev-A-pcbway.zip)
+- [Display adapter: fabrication and assembly ZIP](releases/display-adapter-rev-B-pcbway.zip)
 - [GIGA adapter: fabrication and assembly ZIP](releases/giga-adapter-rev-A-pcbway.zip)
-- [Both KiCad projects, libraries and models](releases/smartwin-giga-rev-A-source.zip)
+- [Both KiCad projects, libraries and models](releases/smartwin-giga-rev-B-source.zip)
 - [Nominal GIGA mating assembly preview](assembly/giga-mated-rev-A.png)
 
 Each PCBWay ZIP contains `PCBWAY_ORDER.txt`, separate SMT/full BOMs and the
@@ -17,8 +18,8 @@ matching placement file. `releases/SHA256SUMS` identifies the final archives.
 
 | Project | Board | Assembly |
 |---|---|---|
-| `display-adapter/display-adapter.kicad_pro` | 55 × 35 × 1.0 mm | SMT on both sides; J3 hand soldered |
-| `giga-adapter/giga-adapter.kicad_pro` | 111 × 53.34 × 1.6 mm maximum, C-shaped | SMT on top; J2–J9 hand soldered |
+| `display-adapter/display-adapter.kicad_pro` | Rev B, **2 layers**, 55 × 35 × 1.0 mm | SMT on both sides; J3 hand soldered |
+| `giga-adapter/giga-adapter.kicad_pro` | Rev A, **4 layers**, 111 × 53.34 × 1.6 mm maximum, C-shaped | SMT on top; J2–J9 hand soldered |
 
 The display adapter carries a **DF23C-50DP-0.5V(92) plug on its underside**.
 It mates with the existing display connector; do not remove the display connector
@@ -67,11 +68,11 @@ Conservative voltage-drop allowance at 1.5 A:
 | Fuse, including operating-temperature allowance | 40 mΩ | 60 mV |
 | Parallel PMOS pair, twice the 25°C maximum resistance | 45 mΩ | 67.5 mV |
 | Input terminal contact | 10 mΩ | 15 mV |
-| PCB supply/return copper and vias | 20 mΩ | 30 mV |
+| PCB supply/return copper and vias | 30 mΩ | 45 mV |
 | DF23 supply and return contacts | allocated | 30 mV |
-| Total | | **202.5 mV** |
+| Total | | **217.5 mV** |
 
-At a 3.267 V minimum input this leaves approximately **3.064 V** at the panel,
+At a 3.267 V minimum input this leaves approximately **3.049 V** at the panel,
 above its 3.0 V minimum. Fuse/copper/hot-device allowances must be checked on the
 first board; external cable loss is excluded because the input specification is
 at J3. The panel also specifies a 1–20 ms supply rise time. Verify the chosen
@@ -176,10 +177,10 @@ The firmware's 51.2 MHz pixel clock has a 19.53125 ns period and a 9.765625 ns
 half-period. Smartwin requires 5 ns setup and hold. With data launched on the
 opposite edge, the AXC8's 0.5–4.0 ns propagation range gives a conservative
 3.5 ns clock/data mismatch allowance across devices. The adapter's routed RGB
-length mismatch contributes up to 0.329 ns using a 7 ps/mm propagation estimate.
+length mismatch contributes up to 0.406 ns using a 7 ps/mm propagation estimate.
 ST's DS12930 Table 105 additionally allows 0.5 ns half-cycle error and 0.5 ns
 maximum data-valid delay. Under that table's characterization conditions, the
-remaining calculated setup/hold margins are only **0.271 ns / 0.437 ns**, before
+remaining calculated setup/hold margins are only **0.238 ns / 0.360 ns**, before
 Arduino PCB skew, cable/connector effects, settling and jitter. Those conditions
 include the specified output speed, load and IO compensation; this hardware
 task does not change firmware to establish them.
@@ -195,9 +196,20 @@ resistors only from measurements. The panel's stated 40–60% duty-cycle limit a
 the MCU's own output timing are part of this check. A clean static image alone
 does not prove timing margin over temperature and supply variation.
 
-In1.Cu is a continuous ground reference; F.Cu, In2.Cu and B.Cu carry routing.
-Signal routes never cut In1. Minimum track/clearance is 0.15 mm; minimum drilled
-via is 0.30 mm with 0.65 mm copper diameter. Vias are tented on both outer sides,
+The display adapter routes all signals on **F.Cu and B.Cu**, with ground pours on
+both sides and 46 ground vias tying the returns together. A ground rail connects
+the FFC ground contacts. Staggered Hirose escapes use **0.55 mm copper / 0.25 mm
+drilled vias**, retaining 0.15 mm annular rings and 0.15 mm track/clearance rules.
+The larger power and ground vias remain 0.65/0.30 mm. Bulk capacitors are below
+the connector fan-out; the backlight feed uses dedicated broad traces. PCLK has
+a deliberate length adjustment to balance setup/hold against the GIGA routing.
+These are connected ground pours, not an uninterrupted internal reference plane;
+the first-board signal-integrity checks remain necessary. The geometric ground
+review is in `manufacturing/verification/display-adapter-layout-review.json`.
+
+The GIGA adapter retains its uninterrupted **In1.Cu ground plane**, with signals
+on F.Cu, In2.Cu and B.Cu and minimum 0.65/0.30 mm vias. Both boards use minimum
+0.15 mm tracks and clearances. Vias are tented on both outer sides,
 including beneath the Hirose bodies. No open via is used in a solder pad.
 Global fiducials are provided on both populated sides of the display adapter
 and on the GIGA adapter's populated top side.
@@ -209,8 +221,9 @@ for routing between contacts. Other stacking headers retain 1.8 mm pads.
 
 ## Fabrication and assembly order
 
-Use the separate revision-A ZIP for each board. Select four-layer FR-4, 1 oz
-copper on every layer, ENIG, green solder mask, white silkscreen, IPC Class 2 and
+Use the **display revision-B ZIP with two layers** and the **GIGA revision-A ZIP
+with four layers**. Select FR-4, 1 oz copper on every copper layer, ENIG, green
+solder mask, white silkscreen, IPC Class 2 and
 100% electrical test. Finished thickness is **1.0 mm display / 1.6 mm GIGA**.
 The routed outline is authoritative. Do not mirror bottom Gerbers. Request
 PCBWay's assembly panelization/rails; do not alter the individual board outline.
@@ -262,5 +275,15 @@ nets, manufacturer pin tables, all cable conductors and the CubeMX pin assignmen
 `tools/inspect_gerbers.py` parses the exported files with Gerbonara, independent of
 KiCad, and checks exported pad/drill coordinates and layer geometry. Release
 archives are made only after these checks and visual/mechanical review.
+
+`tools/design.py` defines each board's revision and layer/via rules separately;
+the source bundle revision is B. `tools/review_layout.py` uses Shapely to measure
+the display board's filled ground geometry. It reports geometry only, not a
+field-solver or physical timing result. To refresh the display release, run
+`export_release.py display-adapter`, `audit.py`, `routing_report.py`,
+`review_layout.py`, and `inspect_gerbers.py display-adapter`; regenerate its
+fabrication drawing with `drawings.fabrication('display-adapter')`, review the
+exports, then run `package_release.py --reviewed --boards display-adapter`.
+Use the release status to record the actual reviews before packaging.
 
 Source documents and attribution are listed in `references/SOURCES.md`.

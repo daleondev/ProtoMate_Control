@@ -13,7 +13,7 @@ import shutil
 import tempfile
 import zipfile
 
-from design import ROOT, REVISION
+from design import ROOT, REVISION, BOARDS, release_name, copper_layers
 
 
 def digest(path):
@@ -46,16 +46,17 @@ def archive(folder, output):
 
 def order_notes(name):
     display = name == 'display-adapter'
-    return f'''ProtoMate Smartwin–GIGA / {name} / revision {REVISION}
+    return f'''ProtoMate Smartwin–GIGA / {name} / revision {BOARDS[name]['revision']}
 PROTOTYPE FABRICATION AND SMT ASSEMBLY PACKAGE
 
 FABRICATION
-4-layer FR-4, 1 oz copper on all four layers, ENIG.
+{BOARDS[name]['layers']}-layer FR-4, 1 oz copper on every copper layer, ENIG.
 Green solder mask, white silkscreen, IPC Class 2, 100% electrical test.
 Finished board: {'55 x 35 x 1.0 mm' if display else '111 x 53.34 x 1.6 mm maximum; C-shaped outline'}.
-Layer order: F.Cu / In1.Cu GND / In2.Cu / B.Cu.
+Layer order: {' / '.join(copper_layers(name))}.
 Gerbers and separate PTH/NPTH drills in gerbers/ are authoritative.
-Minimum track/clearance 0.15 mm, via drill 0.30 mm, via diameter 0.65 mm.
+Minimum track/clearance 0.15 mm; minimum via drill {BOARDS[name]['via_drill']:.2f} mm,
+minimum via diameter {BOARDS[name]['via_diameter']:.2f} mm, annular ring >=0.15 mm.
 Preserve 0.13 mm fine-pitch mask webs. Tent vias on both sides; no via-in-pad.
 Panelize with assembly rails as required without changing the individual outline.
 Do not mirror bottom Gerbers. See fabrication-and-assembly-notes.pdf.
@@ -98,13 +99,16 @@ No manufacturing order has been placed.
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--reviewed', action='store_true', required=True)
-    parser.parse_args()
+    parser.add_argument('--boards', nargs='+', choices=list(BOARDS), default=list(BOARDS))
+    args=parser.parse_args()
     manufacturing = ROOT / 'manufacturing'
     verification = manufacturing / 'verification'
     status = json.loads((manufacturing / 'release-status.json').read_text())
     assert status['digital_release_checks'] == 'PASS' and status['revision'] == REVISION
     names = ['display-adapter', 'giga-adapter']
     for name in names:
+        assert status['boards'][name]['revision'] == BOARDS[name]['revision']
+        assert status['boards'][name]['copper_layers'] == BOARDS[name]['layers']
         erc = json.loads((verification / (name + '-erc.json')).read_text())
         drc = json.loads((verification / (name + '-drc.json')).read_text())
         assert not erc['ignored_checks'] and not drc['ignored_checks']
@@ -112,6 +116,9 @@ def main():
         assert not drc['violations'] and not drc['unconnected_items']
         for suffix in ['bom-placement', 'gerber-audit']:
             assert json.loads((verification / (name + '-' + suffix + '.json')).read_text())['result'] == 'PASS'
+        job = json.loads((manufacturing / release_name(name) / 'gerbers' /
+                          (name + '-job.gbrjob')).read_text())
+        assert job['GeneralSpecs']['LayerNumber'] == BOARDS[name]['layers']
         project = json.loads((ROOT / name / (name + '.kicad_pro')).read_text())
         assert not project['board']['design_settings']['drc_exclusions']
         assert not project['erc']['erc_exclusions']
@@ -129,8 +136,8 @@ def main():
     guide = guide[:start] + guide[end:]
     with tempfile.TemporaryDirectory(prefix='display-release-') as scratch:
         temporary = Path(scratch)
-        for name in names:
-            folder = temporary / (name + '-rev-' + REVISION)
+        for name in args.boards:
+            folder = temporary / release_name(name)
             copy_tree(manufacturing / folder.name, folder)
             copy_tree(verification, folder / 'verification')
             for part in [name, 'libraries', 'references']:

@@ -1,4 +1,4 @@
-# Design sources and attribution — revision A
+# Design sources and attribution — display B / GIGA A
 
 Reviewed 2026-10-14. Local copies retain the manufacturers' copyright. They are
 engineering references, not project-authored specifications.

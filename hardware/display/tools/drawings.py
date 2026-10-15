@@ -7,11 +7,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle,Polygon,Circle
 from matplotlib.backends.backend_pdf import PdfPages
-from design import ROOT,REVISION,SIGNALS,ribbon_nets,GEOMETRY
+from design import ROOT,REVISION,BOARDS,release_name,copper_layers,SIGNALS,ribbon_nets,GEOMETRY
 
-def sheet(title):
+def sheet(title, revision="A", date="2026-10-14"):
     fig=plt.figure(figsize=(11.69,8.27));fig.text(.04,.95,title,fontsize=16,weight='bold')
-    fig.text(.04,.025,'ProtoMate | Revision A | 2026-10-14 | Dimensions in mm | Physical operation not yet verified',fontsize=8)
+    fig.text(.04,.025,f'ProtoMate | Revision {revision} | {date} | Dimensions in mm | Physical operation not yet verified',fontsize=8)
     return fig
 def notes(fig,lines,x=.06,y=.86,width=115,size=10):
     for line in lines:
@@ -52,9 +52,9 @@ def cable():
         pdf.savefig(fig);plt.close(fig)
 
 def fabrication(name):
-    out=ROOT/'manufacturing'/(name+'-rev-A');out.mkdir(parents=True,exist_ok=True)
+    out=ROOT/'manufacturing'/release_name(name);out.mkdir(parents=True,exist_ok=True)
     with PdfPages(out/'fabrication-and-assembly-notes.pdf') as pdf:
-        fig=sheet(name+' — fabrication drawing')
+        fig=sheet(name+' — fabrication drawing', BOARDS[name]['revision'], BOARDS[name]['date'])
         ax=fig.add_axes([.05,.38,.62,.5]);ax.set_aspect('equal');ax.axis('off')
         if name=='display-adapter':
             contour=[(0,0),(55,0),(55,35),(0,35)];holes=[(3,12),(52,12),(3,32),(52,32)];diam=2.2;width,height=55,35;thick=1.0
@@ -66,16 +66,16 @@ def fabrication(name):
         left=min(x for x,y in contour);right=max(x for x,y in contour)
         ax.annotate('',(left,-5),(right,-5),arrowprops={'arrowstyle':'<->'});ax.text((left+right)/2,-6,f'{width:.2f}',ha='center')
         ax.annotate('',(right+5,0),(right+5,height),arrowprops={'arrowstyle':'<->'});ax.text(right+6,height/2,f'{height:.2f}',rotation=90,va='center')
-        fig.text(.70,.80,f'Finished thickness: {thick:.1f} mm\n4 layers, FR-4\n1 oz copper, all layers\nENIG\nGreen mask / white silk\nIPC Class 2\nElectrical test: 100%',fontsize=11,linespacing=1.8)
+        fig.text(.70,.90,f'Finished thickness: {thick:.1f} mm\n{BOARDS[name]["layers"]} layers, FR-4\n1 oz copper, all layers\nENIG\nGreen mask / white silk\nIPC Class 2\nElectrical test: 100%',fontsize=11,linespacing=1.8,va='top')
         notes(fig,[
-            'Layer order: F.Cu / In1.Cu (GND reference) / In2.Cu / B.Cu. Routed Edge.Cuts and drill files are authoritative. Nominal stackup is embedded in the KiCad board; equivalent FR-4 laminate construction is acceptable at the specified finished thickness.',
-            'Minimum track and copper clearance 0.15 mm; through via drill 0.30 mm, diameter 0.65 mm. Tented vias both sides, no via-in-pad. Preserve fine-pitch solder-mask webs (minimum 0.13 mm).',
+            f'Layer order: {" / ".join(copper_layers(name))}. Routed Edge.Cuts and drill files are authoritative. Nominal stackup is embedded in the KiCad board; equivalent FR-4 laminate construction is acceptable at the specified finished thickness.',
+            f'Minimum track and copper clearance 0.15 mm; through via drill {BOARDS[name]["via_drill"]:.2f} mm, diameter {BOARDS[name]["via_diameter"]:.2f} mm, annular ring 0.15 mm. Tented vias both sides, no via-in-pad. Preserve fine-pitch solder-mask webs (minimum 0.13 mm).',
             'PCBWay to add assembly rails/panelization without changing individual outlines or mounting coordinates. Do not mirror bottom fabrication files. PTH and NPTH files are separate.',
             'Origin in Gerbers, drills and placement: X=0, Y=lower board edge; positive Y upward. Drawing coordinates above use KiCad top-left Y-down for mechanical reference.',
             'Stencil: stepped 0.15 mm at FH28 and 0.10–0.12 mm at 0402/TSSOP parts. Hirose paste apertures are already reduced in the supplied paste layers. No substitutions for connector suffixes or header tail lengths.'
         ],y=.33,width=140,size=9)
         pdf.savefig(fig);plt.close(fig)
-        fig=sheet(name+' — assembly instructions')
+        fig=sheet(name+' — assembly instructions', BOARDS[name]['revision'], BOARDS[name]['date'])
         lines=[
             'Use assembly-F.pdf and assembly-B.pdf for reference designators, pin numbers and component orientation. Bottom drawing is mirrored to show the actual bottom view. Native KiCad placement rotations are retained in placement.csv.',
             'All components in bom-pcbway-smt.csv are FIT. No DNP SMT components. Parts marked HAND in bom-all.csv are supplied/installed separately and must not appear in the SMT placement file.',
