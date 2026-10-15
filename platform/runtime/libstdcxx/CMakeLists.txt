@@ -61,6 +61,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # GCC emits libatomic calls for std::atomic<T> objects that are wider
     # than the host's native lock-free operations.
     target_link_libraries(runtime_libstdcxx PUBLIC atomic)
+    # These replacements belong to ThreadX application objects. Exporting them
+    # interposes on native shared libraries (e.g. Mesa/LLVM's __cxa_guard_acquire
+    # during SDL presentation), causing native threads to enter ThreadX.
+    # Local application references still resolve to this archive normally.
+    target_link_options(runtime_libstdcxx INTERFACE
+        "LINKER:--exclude-libs,$<TARGET_FILE_NAME:runtime_libstdcxx>")
 endif()
 
 # Keep the automatic runtime hook and the replacement guard ABI in the final

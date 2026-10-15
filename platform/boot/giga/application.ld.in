@@ -45,8 +45,8 @@ SECTIONS
     @GIGA_FAST_EXIDX@
     __fast_exidx_end = .;
   } >FAST AT>FLASH
-  .dtcm : ALIGN(8) { *(.dtcm .dtcm.*) . = ALIGN(8); } >TCM AT>FLASH
-  .dtcm_bss (NOLOAD) : ALIGN(8) { *(.dtcm_bss .dtcm_bss.*) . = ALIGN(8); } >TCM
+  .dtcm : ALIGN(8) { *(.dtcm .dtcm.*) @GIGA_TCM_DATA@ . = ALIGN(8); } >TCM AT>FLASH
+  .dtcm_bss (NOLOAD) : ALIGN(8) { *(.dtcm_bss .dtcm_bss.*) @GIGA_TCM_BSS@ . = ALIGN(8); } >TCM
 
   /* The program code and other data goes into FLASH */
   .text :

@@ -139,12 +139,15 @@ namespace ui
         }
     }
 
+    void Application::guiThread() { if (m_gui.run(m_stopSource.get_token())) { requestStop(); } }
+    void Application::touchThread() { m_gui.acquireTouch(m_stopSource.get_token()); }
+
     void Application::cliThread()
     {
         try {
             cli::Parser parser;
             cli::filesystem::setup(parser);
-            cli::display::setup(parser);
+            cli::display::setup(parser, m_gui);
             cli::state::setup(parser, m_systemState);
             cli::utilities::setup(parser, m_bus, m_stopSource.get_token());
             cli::motor::setup(parser, m_motors, m_stopSource.get_token());

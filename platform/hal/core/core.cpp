@@ -50,6 +50,7 @@ namespace hal::core
     auto create_ethercat_reset() -> std::shared_ptr<IDigitalOutput> { return create(DEVICES.ethercat_reset); }
     auto create_ethercat_interrupt() -> std::shared_ptr<IDigitalInput> { return create(DEVICES.ethercat_interrupt); }
     auto create_ethercat_sync0() -> std::shared_ptr<IDigitalInput> { return create(DEVICES.ethercat_sync0); }
+    auto create_graphics() -> std::shared_ptr<IGraphics> { return create(DEVICES.graphics); }
     auto create_display() -> std::shared_ptr<device::IDisplay> { return create(DEVICES.display); }
     auto create_touch() -> std::shared_ptr<device::ITouch> { return create(DEVICES.touch); }
 }

@@ -10,7 +10,9 @@
 #include <tx_thread.h>
 namespace {
     std::array<std::uint8_t, 4096> input{};
-    std::array<std::uint8_t, 8192> output{};
+    // A complete `stack ui` table with the GUI/touch workers exceeds 8 KiB.
+    // Keep one bounded burst without waiting for a host or truncating its prompt.
+    std::array<std::uint8_t, 16384> output{};
     std::array<std::uint8_t, 64> packet{};
     std::uint32_t inputHead{}, inputTail{}, outputHead{}, outputTail{};
     bool connected{}, dtr{}, suspended{}, inFlight{}, resetPending{}, quarantine{}, started{};

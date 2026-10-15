@@ -21,7 +21,7 @@ and console. M7 mounts persistent internal-flash storage at `/flash`; M4 does
 not mount the volume. Both runtimes include filesystem support.
 Motor construction leaves all drivers disabled; initialization, enabling and
 motion are explicit CLI operations. Display/touch bring-up uses `display`
-commands; TouchGFX and robot planning remain future work.
+commands. A shared TouchGFX showcase runs on M7 and Linux; robot planning and application-specific screens remain future work.
 
 ## Application layout
 
@@ -29,7 +29,7 @@ commands; TouchGFX and robot planning remain future work.
 | --- | --- |
 | `src/common/` | Shared contracts, motion profiles, application lifecycle concept, ICC bridge and transports |
 | `src/io/` | M4 entry point, IO application, motor ownership and motion execution |
-| `src/ui/` | M7 entry point, UI application and CLI; future planning and GUI |
+| `src/ui/` | M7 entry point, UI application, CLI and shared GUI; future planning |
 
 Each firmware compiles only its own application target, `proto::io` or
 `proto::ui`. Both use `proto::common`. These are compiled static libraries;
@@ -266,7 +266,7 @@ git submodule update --init --recursive
 
 Install CMake 3.22 or newer (3.24 or newer for `--fresh`), Ninja, GCC 16,
 Arm GCC 16.1 or 16.2 with Newlib, OpenOCD, Arm GDB, Python 3, Git, and `patch`.
-Linux CLI builds also require ncursesw headers and libraries (`ncurses` on Arch).
+Linux builds also require ncursesw and SDL2 headers/libraries (`ncurses`, `sdl2` or `sdl2-compat` on Arch). Install the pinned TouchGFX SDK and asset tools described below before configuring M7 or Linux.
 The project uses C++26 and the verified GCC 16 libstdc++ integration snapshot.
 Unknown compiler majors and unverified Arm libstdc++ snapshots are rejected.
 Linux tests download the pinned GoogleTest 1.17.0 source archive.
@@ -318,8 +318,179 @@ runtime stack or heap usage.
 
 Linux simulates the HAL and uses the ThreadX Linux port. Standard Linux file
 I/O uses the host filesystem; explicit FileX tests use simulated media images.
-The application runs both ICC endpoints and the UI CLI. Redirecting a command
+The application runs both ICC endpoints, the UI CLI and the GUI window. Use `SDL_VIDEODRIVER=dummy` for automated runs without a desktop. Redirecting a command
 script into `build/debug-linux/Application` executes it and exits at EOF.
+
+## Shared TouchGFX GUI
+
+`proto::ui::gui` owns a 1024×600 RGB565 frontend shared by GIGA M7 and Linux.
+M4 does not link TouchGFX. No robot commands or GUI-specific ICC contracts are
+introduced. The showcase exercises text, buttons, a slider, transparency and a
+small animated region; its Framework details / Back navigation demonstrates
+transitions between two permanently allocated views and presenters.
+
+```mermaid
+flowchart TB
+    A[ui::Application] --> C[gui::Controller]
+    C --> MVP[Model / Presenters / Views / Components]
+    MVP --> T[TouchGFX 4.27.0]
+    T --> P[Port + GraphicsDMA + OSWrappers]
+    P --> H[HAL display / graphics / cached touch]
+    H --> G[GIGA: LTDC + DMA2D + ST1633i]
+    H --> L[Linux: native SDL display + software graphics]
+```
+
+### SDK and assets
+
+Download **X-CUBE-TOUCHGFX 4.27.0** from ST, retain its license, then:
+
+```sh
+python3 scripts/touchgfx_setup.py apps/STMicroelectronics.X-CUBE-TOUCHGFX.4.27.0.zip
+# Ruby, nokogiri and librsvg/rsvg-convert are needed by the Linux converters.
+gem install --install-dir "$PWD/apps/ruby-gems" nokogiri -v 1.19.4 --no-document
+cmake --preset debug-linux
+cmake --build --preset debug-linux
+./build/debug-linux/Application
+```
+
+The setup script verifies the archive SHA256 pinned in
+[`sdk.json`](src/ui/gui/assets/sdk.json), extracts the matching headers/libraries/
+converters and retains package license files. The SDK itself is not redistributed.
+Set `TOUCHGFX_ROOT` (environment or CMake cache) to another installed `touchgfx/`
+directory if needed; configuration rejects versions other than 4.27.0. M7 uses
+the GCC hard-float engine without RTTI; Linux uses the x86-64 engine with RTTI.
+Both link with our GCC 16 runtime. Vendor support has separate compilation flags;
+GUI rendering is optimized with `-O2` in Debug as well as Release, retaining symbols.
+
+Versioned assets are in [`src/ui/gui/assets`](src/ui/gui/assets): Noto Sans under
+OFL, three font sizes (18/24/36), bounded Latin/German glyphs, stable text IDs in
+`texts.xml`, SVG/PNG sources and `images.json`. `gui-assets` runs ST's Linux font,
+text and image converters incrementally. SVG sources are rasterized with
+`rsvg-convert` first. Generated C++ stays in `build/.../generated/gui`. The font
+converter reports unsupported GPOS subtable 8; the selected Latin/German text
+is covered by the visual checks. More complex scripts need separate validation.
+Code/fonts/images currently share the M7 QSPI image and its normal manifest;
+the 6 MiB independent GUI-assets partition remains reserved.
+
+### Workers, ownership and shutdown
+
+The application owns `gui::Controller` and two workers using its shared stop token:
+GUI priority **8 / 32 KiB stack**, touch priority **7 / 8 KiB**. ICC remains higher
+priority. Widgets are accessed only by the GUI worker. CLI commands submit to an
+8-entry request queue; overflow is counted and rejected. `status()` returns a
+thread-safe snapshot. There are no application-owned allocations during the
+showcase's steady-state rendering or screen transitions.
+
+GIGA framebuffers are non-cacheable SDRAM at `0xC0000000` and `0xC0200000`,
+1,228,800 bytes each. LTDC reload completion transfers ownership at vertical
+blank; a timeout never makes a pending buffer reusable. The port records dirty
+regions and copies them from the completed frame into the released buffer using
+DMA2D, preserving unchanged pixels without copying the whole screen each frame. One HAL driver owns LTDC IRQ 10; another owns
+DMA2D IRQ 11. Graphics transfers support RGB565 fill/copy and RGB565/ARGB8888
+conversion/blending, with software fallback for unsupported engine operations.
+Solid-color alpha fills also use DMA2D. DMA callbacks notify the GUI worker;
+no widget code runs in interrupts. LTDC has priority for AXI reads and DMA2D
+inserts 16 bus cycles between transfers to leave scanout bandwidth.
+DMA2D operations are submitted one at a time and suspend the worker until
+completion (100 ms deadline), rather than busy-waiting. The current adapter does
+not overlap multiple DMA blits with CPU drawing. CRC is enabled in CubeMX.
+
+Touch acquisition resets/probes ST1633i, samples at 8 ms while pressed and wakes
+on EXTI12 from idle. Unavailable devices retry at a bounded rate. `sampleTouch()`
+reads the cached report only; it never performs I²C. One primary contact is tracked
+until release, native landscape coordinates are bounds-checked, and errors/stale
+reports cancel the contact. Weak MCU I²C pull-ups keep disconnected lines defined;
+the display adapter's external pull-ups remain required for connected operation.
+
+On Linux the original OS thread owns SDL creation, events, texture copies and
+presentation; a native pthread hosts ThreadX. Bounded pthread-protected mailboxes
+cross that boundary without invoking ThreadX-backed C++ synchronization from SDL.
+The runtime replacement C++ symbols are hidden from native shared libraries,
+so SDL/Mesa/LLVM keep their native C++ synchronization instead of entering
+ThreadX from the SDL thread. The window scales proportionally, letterboxes, transforms pointer coordinates and
+cancels contact on focus loss/exit. SDL finishes copying a framebuffer before
+returning it to the GUI. Closing the window or exiting CLI stops application
+workers, disables callbacks/backlight and drains/aborts pending graphics work.
+SDL resources are destroyed before process termination. The permanent hosted
+ThreadX scheduler ends with the process.
+
+### Adding screens
+
+Use [`frontend/Frontend.hpp`](src/ui/gui/frontend/Frontend.hpp) as the working
+template: a `touchgfx::View<Presenter>` owns widgets and bounded Unicode buffers;
+a presenter updates the shared Model, and the Model holds presentation values.
+Add the view and presenter as bounded members of `Frontend`, bind them once, and
+choose them in `handlePendingScreenTransition()`. Do not call `switchScreen()`
+from `handleTickEvent()`: that runs while the engine owns its framebuffer lock.
+The Details screen is the minimal example, including setup and a return action.
+
+Theme tokens and reusable Button/Slider components define colors, typography,
+spacing, touch size, focus/pressed/disabled states and animation duration. Touch
+targets are at least 56 pixels high. Invalidate only changed regions. Extend the
+text catalog and regenerate assets for new text; keep wildcard buffers bounded.
+Future ICC subscriptions/services should deliver bounded values to the Model
+through the GUI owner. They must neither touch widgets in callbacks nor block the
+rendering thread waiting for remote work.
+
+### Verification
+
+```sh
+cmake --build --preset debug-linux
+ctest --test-dir build/debug-linux -R '^gui\.' --output-on-failure
+# All host regressions, including existing motion/ICC tests:
+ctest --test-dir build/debug-linux --output-on-failure
+cmake --build --preset giga-debug
+python3 scripts/giga_program.py flash --build build/giga-debug
+# Performance acceptance uses optimized Release firmware, without a debugger:
+cmake --build --preset giga-release
+python3 scripts/giga_program.py flash --build build/giga-release
+python3 scripts/gui_hardware_check.py --build build/giga-release --seconds 600
+# After endurance, inspect pixels and deliberately remove LTDC interrupts:
+python3 scripts/gui_hardware_inspect.py
+```
+
+The GUI tests use SDL's dummy video backend automatically. They cover pixel
+checks/captures, dragging, resized letterboxing, focus-loss release, screen
+transitions, request saturation, missing presentation completion, DMA errors,
+cancellation and lost wakeups. `gui-*.bmp` captures are written inside the test
+build directory. `GraphicsDMA::verify()` also runs on GIGA at startup, comparing
+fill/copy/conversion/blend results and guard pixels at odd offsets and widths.
+`graphics verified=1` in `display status` confirms it completed successfully.
+The hardware scripts require pyserial (and Pillow for exported PNGs), keep motors
+disabled, and write artifacts under `build/`. The inspection script reads both
+framebuffer slots, checks every color-bar pixel and static showcase regions,
+then masks LTDC interrupts. It requires a bounded GUI fault, zero backlight duty
+and working CLI/ICC before resetting both cores. Its live showcase readback is
+not an atomic screenshot of the moving indicator.
+
+The normal GIGA **Release** application passes a ten-minute panel-free run:
+
+| Check | Result |
+| --- | --- |
+| LTDC framebuffer deliveries | 35,343; 58.91 presentations/s |
+| Render work completed within one display period | 99.84% of measured frames |
+| LTDC underruns / transfer errors / DMA errors | 0 / 0 / 0 |
+| ICC/controller health | Ready throughout; IO diagnostic services exercised |
+| Heap growth over the run | −8 bytes; no increasing trend |
+| GUI / touch stack headroom | 92.86% / 93.60% |
+| Both SDRAM framebuffer slots | Every diagnostic-bar pixel and static showcase regions verified via SWD |
+| LTDC interrupts deliberately removed | GUI reports fault; backlight duty becomes zero; CLI and ICC remain usable; reset recovers |
+
+Performance acceptance uses Release. Debug remains usable for development but
+presents the full application showcase at roughly 53 Hz. These are framebuffer
+delivery rates, not observations of a physical panel. Artifacts and matching
+manifest are in `build/gui-release-validation/`; framebuffer PNG/readbacks and
+fault-injection logs are in `build/gui-inspection/`. Linux deterministic input
+has approximately **34 ms p95** event-to-framebuffer-presentation latency in the
+dummy backend; tests cover both that backend and SDL's real X11/Mesa path when
+`xvfb-run` is installed. All **50 tests** pass in both Debug and Release host suites, and closing
+via CLI or the window releases the application workers and SDL resources.
+
+**Physical panel validation remains pending:** supply/reset timing at the panel,
+visible RGB ordering/orientation, pixel-clock phase, tearing, backlight response,
+ST1633i communication/coordinates and independent supply sequencing. Rendering
+and LTDC presentation counts measured without a panel do not establish any of
+those properties. No application-specific screens or robot GUI behavior are included.
 
 ## Linux sanitizer checks
 
@@ -979,27 +1150,26 @@ residuals are below one analyzer sample (41.7 ns) after removing the common cloc
 offset. The measured frequency differs by about +0.0138% from the analyzer's
 reference; neither clock is independently calibrated.
 
-| Measured STEP check | Result |
+| Measured STEP check with the shared GUI active | Result |
 | --- | --- |
-| Three channels at 100 kHz, including combined load | Exactly 100,000 pulses per channel; enable remains inactive |
+| Three channels at 100 kHz, including combined load | Exactly 100,000 pulses per channel |
 | Programmed 5 µs HIGH phase | 120–121 analyzer samples (5.000–5.042 µs) |
 | Refill interrupts withheld before arming | Hardware guard stops at 512 / 256 / 128 pulses, all outputs LOW |
-| Combined-load worst STEP service time | 145,456 cycles / 606.07 µs; 4.22× headroom against the 2.56 ms DMA buffer window |
+| Combined-load worst STEP service time | 145,327 cycles / 605.53 µs; 4.23× headroom against the 2.56 ms DMA buffer window |
 | Measured individual stop call | 11,947 cycles / 49.78 µs; other channels continue |
-| ICC load packets validated during one-second motion | 36–39 per run, with zero payload errors |
-| Urgent ICC echo service under combined load | Zero errors; worst observed round trip 59 ms |
+| ICC echo packets validated during combined-load cases | 39–47 per run, zero payload errors |
+| Urgent ICC echo service under combined load | Zero errors; worst observed round trip 63 ms |
 
-**Combined-load acceptance passes:** all nine analyzer scenarios and ten additional
-combined-load runs complete without stalls, data errors, disconnects or LTDC
-underruns. Each load run verifies 100,000 pulses on every channel while exercising
-DMA2D/LTDC, QSPI reads, USB output, normal ICC topics and urgent ICC service calls.
-The topic producer targets 50 Hz; measured delivery under this load is 36–39 Hz,
-above the bench's minimum of ten packets per second. This is best-effort topic
-delivery, not a 50 Hz real-time guarantee. Urgent round-trip time includes both
-bridge contexts and the service worker; it is not the hardware stop latency.
-Raw captures, console logs, the matching image manifest and timing/overall
-verdicts are in `build/giga-icc-results/accepted/` (`results.json`, `run.log`,
-`repeat-*/results.json`, `repeats.log`, `manifest.json`).
+All nine analyzer scenarios and an additional combined-load capture pass with
+zero LTDC underruns. The M7 runs the same TouchGFX controller as the normal
+application while the load case exercises QSPI reads, USB output, normal ICC
+topics and urgent services. Each combined-load capture verifies 100,000 pulses
+on each channel. The captures cover STEP only (`--step-only`); driver enable
+remains inactive in firmware but was not connected to an analyzer channel.
+Topic traffic is best effort; urgent round-trip time includes both bridge
+contexts and the service worker and is not the hardware stop latency.
+Raw captures, console logs, image manifest and measurements are in
+`build/gui-step-results-final/`, including `repeat-1/`.
 
 These measurements cover the isolated bench, not powered motors or external
 feedback/switch inputs. Stop-call duration is not external-input-to-stop latency.
@@ -1011,9 +1181,7 @@ the reset capture; firmware cannot maintain GPIO output drive while reset is
 asserted. The capture and transitions are recorded in
 `build/giga-step-results/reset-results.json`. Normal Debug firmware is restored;
 IO heap/stack services and disabled-motor status work over USB/ICC.
-TouchGFX screens, M7 robot planning and EtherCAT robot integration remain future
-work. The existing KiCad wiring must be adapted to these GIGA connections before
-using it; Nucleo connector numbers do not apply.
+The shared GUI foundation is described above. Application-specific screens, M7 robot planning and EtherCAT robot integration remain future work. Use the GIGA KiCad wiring; Nucleo connector numbers do not apply.
 
 ### Clocks and ownership
 
@@ -1108,12 +1276,7 @@ The [Smartwin–GIGA adapter projects](hardware/display/README.md) accept regula
 USB-C remains available for CDC; GIGA and display 3.3 V rails stay separate.
 The projects include protected interfaces, cable specifications and manufacturing
 packages. First-board electrical and display testing remains required.
-The panel remains off at application startup. `display bars` initializes it,
-exercises DMA2D, switches framebuffer at vertical blank and sets 10% backlight.
-Run it twice to check both buffers. `display backlight 0..100` controls the
-1 kHz PWM. `display touch` reports ST1633i firmware/status and up to five points
-at address 0x55; absent touch returns a bounded error. Device logic lives above
-`IRgbOutput` and `II2c`; the STM32 implementations own the peripherals.
+The GUI starts automatically. Backlight stays off until the first complete frame is presented, then starts at 10%. `display bars` selects the diagnostic pattern; `display gui` returns to the showcase. `display backlight 0..100` controls the 1 kHz PWM. `display touch` reports cached primary-contact coordinates, availability and age, without performing I²C transactions. `display status` reports rendering/presentation counters, deadlines, transfer errors and queue overflow. Missing touch does not prevent rendering, CLI or ICC operation. Device logic lives above `IRgbOutput`, `IGraphics` and `II2c`; STM32 drivers own the peripherals.
 
 USB-C uses USB_OTG_FS PA11/PA12, device-only CDC with VBUS sensing disabled and
 ST USB Device middleware matching Cube H7 V1.13.0. Open the CDC port (`/dev/ttyACM*`
@@ -1166,9 +1329,14 @@ M4's 0x10000000 code range aliases SRAM1 and the first 64 KiB of SRAM2;
 it is not additional RAM. The linker and both image validators exclude the
 corresponding data alias from application data segments. Frequently executed ICC
 bridge/transport code resides here so UI QSPI reads do not stall those instruction
-fetches. The M4 heap remains a separate 256 KiB AXI SRAM allocation.
+fetches. The M4 heap remains a separate 256 KiB AXI SRAM allocation. M7 CPU-only filesystem metadata, startup/reaper stacks and console rings occupy `.dtcm`/`.dtcm_bss`; USB FS copies through its FIFO and its DMA-capable Cube buffers remain in AXI SRAM. The general M7 heap remains in AXI SRAM. Both copy and zero tables cover these DTCM sections.
 
-MPU is configured before M7 caches: ICC and framebuffers normal/non-cacheable/XN;
+MPU is configured before M7 caches. A low-priority, no-access/XN region blocks
+unused external addresses (`0x60000000..0xDFFFFFFF`); higher-priority regions
+explicitly map the installed QSPI/SDRAM. This prevents speculative M7 accesses
+to unused FMC banks from stalling SDRAM and underrunning LTDC, as described in
+[ST AN4861](https://www.st.com/resource/en/application_note/an4861-introduction-to-lcdtft-display-controller-ltdc-on-stm32-mcus-stmicroelectronics.pdf).
+The remaining attributes are: ICC and framebuffers normal/non-cacheable/XN;
 QSPI read-only executable; internal file storage non-cacheable/XN; private RAM/heaps XN; UI SDRAM cacheable/XN; M4 debug
 SDRAM normal executable. Future DMA users of cacheable UI buffers must clean
 before DMA reads and invalidate after DMA writes, with exclusive 32-byte-aligned
@@ -1331,11 +1499,17 @@ For debugging an already programmed pair:
 
 ```sh
 openocd -f scripts/openocd/arduino_giga.cfg \
+  -c "gdb_memory_map disable; gdb_flash_program disable" \
   -c "reset_config srst_only srst_nogate connect_deassert_srst"
 arm-none-eabi-gdb build/giga-ui-debug/ui-controller.elf
 # GDB: target extended-remote :3333
 # A second GDB loads the matching io-controller.elf and connects to :3334.
 ```
+
+Keep automatic GDB flash-map probing disabled for a live XIP application:
+probing `stmqspi` changes the QSPI mode while both cores execute from it. After
+detaching, explicitly resume any core left halted. A deliberate core halt will
+trigger the existing ICC connection-loss policy; reset both cores afterwards.
 
 Use `monitor giga_halt_both` before reset/maintenance; flash with the script,
 not GDB `load`. Ordinary M4 XIP code cannot use FPB hardware breakpoints at
@@ -1393,4 +1567,4 @@ The GIGA schematic/pinout and local MCU/panel references are in
 [`docs/display`](docs/display). Shared trajectory planning will later live on
 M7; independent motor profile generation remains on M4 for now. Its bounded
 execution contract and ICC services/actions/topics remain separate from the
-physical transport and the future GUI.
+physical transport and the GUI.

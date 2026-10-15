@@ -4,7 +4,6 @@
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/util/ExclusiveInstances.hpp"
 #include "ltdc.h"
-#include "dma2d.h"
 #include "tim.h"
 #endif
 namespace hal::rgb {
@@ -15,7 +14,7 @@ namespace hal::rgb {
         auto pin = gpio::create_output({.pin=configuration.backlight, .alternate_function=3});
         if (!pin) { return {}; }
         static util::ExclusiveInstances<1> instances;
-        return instances.create<RgbOutput>(0, hltdc, hdma2d, htim8, std::move(pin));
+        return instances.create<RgbOutput>(0, hltdc, htim8, std::move(pin));
 #else
         static_cast<void>(configuration); return {};
 #endif

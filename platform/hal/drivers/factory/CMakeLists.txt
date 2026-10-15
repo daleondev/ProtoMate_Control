@@ -7,6 +7,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/encoder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/uart.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/spi.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/graphics.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/rgb.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/i2c.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/intercore.cpp
@@ -44,6 +45,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/rtc.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/timer.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/spi.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/graphics.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/rgb.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/i2c.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/uart.cpp

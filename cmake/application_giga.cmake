@@ -45,6 +45,15 @@ else()
     set(GIGA_STACK_ORIGIN 0x2001E000)
     set(GIGA_HEAP_REGION RAM)
     set(GIGA_FAST_OBJECTS "")
+    # CPU-only metadata, console rings and runtime stacks use private DTCM.
+    # USB FS uses FIFO copies (no DMA); its Cube buffers remain in AXI SRAM.
+    # Keep the general heap in AXI, so arbitrary application buffers remain
+    # accessible to peripherals. M4 owns its separate AXI half unchanged.
+    set(GIGA_TCM_DATA "*libruntime_libc.a:filesystem.cpp.obj(.data .data.*)")
+    set(GIGA_TCM_BSS "*startup.cpp.obj(.bss .bss.*)
+      *libhal.a:console.cpp.obj(.bss .bss.*)
+      *libruntime_libc.a:filesystem.cpp.obj(.bss .bss.*)
+      *(.bss.*reaper_stack*)")
 
 endif()
 
@@ -92,9 +101,9 @@ if(NOT RUNTIME_FILESYSTEM)
 endif()
 if(STM32_CORE STREQUAL "CM7")
     target_sources(platform PRIVATE ${core}/Src/rtc.c ${core}/Src/rng.c
-        ${core}/Src/dma2d.c ${core}/Src/ltdc.c ${core}/Src/i2c.c
+        ${core}/Src/crc.c ${core}/Src/dma2d.c ${core}/Src/ltdc.c ${core}/Src/i2c.c
         ${core}/Src/usb_device.c ${core}/Src/usbd_conf.c ${core}/Src/usbd_desc.c ${core}/Src/usbd_cdc_if.c)
-    foreach(driver hal_pcd hal_pcd_ex ll_usb hal_ltdc hal_ltdc_ex hal_dma2d hal_i2c hal_i2c_ex)
+    foreach(driver hal_crc hal_crc_ex hal_pcd hal_pcd_ex ll_usb hal_ltdc hal_ltdc_ex hal_dma2d hal_i2c hal_i2c_ex)
         target_sources(platform PRIVATE ${hal_sources}/stm32h7xx_${driver}.c)
     endforeach()
     set(usb ${PROJECT_SOURCE_DIR}/external/stm32-usb-device)

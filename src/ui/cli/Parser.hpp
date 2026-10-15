@@ -1,4 +1,5 @@
 #pragma once
+namespace ui::gui { class Controller; }
 #include <cstdint>
 
 #include "pneumo/meta.hpp"
@@ -25,7 +26,7 @@ namespace ui::cli
 {
     class Parser;
 
-    namespace display { void setup(Parser& parser); }
+    namespace display { void setup(Parser& parser, ui::gui::Controller& gui); }
     namespace state { void setup(Parser& parser, const SystemState& system); }
     namespace filesystem { void setup(Parser& parser); }
     namespace utilities { void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop); }
@@ -203,7 +204,7 @@ namespace ui::cli
           -> std::string;
 
       private:
-        friend void display::setup(Parser& parser);
+        friend void display::setup(Parser& parser, ui::gui::Controller& gui);
         friend void state::setup(Parser& parser, const SystemState& system);
         friend void filesystem::setup(Parser& parser);
         friend void utilities::setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);

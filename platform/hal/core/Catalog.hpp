@@ -31,6 +31,7 @@ namespace hal::core
         decltype(&board::create_ethercat_reset) ethercat_reset{};
         decltype(&board::create_ethercat_interrupt) ethercat_interrupt{};
         decltype(&board::create_ethercat_sync0) ethercat_sync0{};
+        decltype(&board::create_graphics) graphics{};
         decltype(&board::create_display) display{};
         decltype(&board::create_touch) touch{};
     };
@@ -68,6 +69,7 @@ namespace hal::core
             .rtc = board::create_rtc,
             .rng = board::create_rng,
             .intercore_channel = board::create_intercore_channel,
+            .graphics = board::create_graphics,
             .display = board::create_display,
             .touch = board::create_touch,
         };
@@ -87,6 +89,9 @@ namespace hal::core
             .stepper_driver_bus = board::create_stepper_driver_bus,
             .stepper_drivers = board::create_stepper_drivers,
             .motor_feedback = board::create_motor_feedback,
+            .graphics = board::create_graphics,
+            .display = board::create_display,
+            .touch = board::create_touch,
         };
     };
 

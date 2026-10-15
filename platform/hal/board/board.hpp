@@ -1,4 +1,5 @@
 #pragma once
+#include "hal/drivers/itf/IGraphics.hpp"
 #include "hal/devices/itf/IDisplay.hpp"
 #include "hal/devices/itf/ITouch.hpp"
 
@@ -95,6 +96,7 @@ namespace hal::board
     [[nodiscard]] auto create_ethercat_reset() -> std::shared_ptr<IDigitalOutput>;
     [[nodiscard]] auto create_ethercat_interrupt() -> std::shared_ptr<IDigitalInput>;
     [[nodiscard]] auto create_ethercat_sync0() -> std::shared_ptr<IDigitalInput>;
+    [[nodiscard]] auto create_graphics() -> std::shared_ptr<IGraphics>;
     [[nodiscard]] auto create_display() -> std::shared_ptr<device::IDisplay>;
     [[nodiscard]] auto create_touch() -> std::shared_ptr<device::ITouch>;
 }

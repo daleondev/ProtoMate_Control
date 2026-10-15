@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextDatabase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="4.27.0">
+  <Languages><Language Id="EN" /></Languages>
+  <Texts><TextGroup Id="Foundation">
+    <Text Id="Title" TypographyId="Heading" Alignment="Left"><Translation Language="EN">Interface studio</Translation></Text>
+    <Text Id="Subtitle" TypographyId="Body" Alignment="Left"><Translation Language="EN">A shared canvas for GIGA and Linux</Translation></Text>
+    <Text Id="Button" TypographyId="Body" Alignment="Center"><Translation Language="EN">Pause animation</Translation></Text>
+    <Text Id="BodyValue" TypographyId="Body" Alignment="Left"><Translation Language="EN">&lt;&gt;</Translation></Text>
+    <Text Id="CaptionValue" TypographyId="Caption" Alignment="Left"><Translation Language="EN">&lt;&gt;</Translation></Text>
+    <Text Id="Caption" TypographyId="Caption" Alignment="Left"><Translation Language="EN">1024 × 600 · RGB565 · TouchGFX 4.27</Translation></Text>
+    <Text Id="DetailsTitle" TypographyId="Heading" Alignment="Left"><Translation Language="EN">A framework for what comes next</Translation></Text>
+    <Text Id="DetailsBody" TypographyId="Body" Alignment="Left"><Translation Language="EN">One frontend. Two platforms.
+Views own layout. Presenters handle interactions.
+The model receives bounded data from future services.
+
+This page uses the Linux asset pipeline: SVG to ARGB8888.
+Latin text: Ä Ö Ü ä ö ü ß · 24°</Translation></Text>
+  </TextGroup></Texts>
+  <Typographies>
+    <Typography Id="Caption" Font="NotoSans-Regular.ttf" Size="18" Bpp="4" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÄÖÜäöüß°×·" IsVector="no" />
+    <Typography Id="Body" Font="NotoSans-Regular.ttf" Size="24" Bpp="4" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÄÖÜäöüß°×·" IsVector="no" />
+    <Typography Id="Heading" Font="NotoSans-Regular.ttf" Size="36" Bpp="4" Direction="LTR" FallbackCharacter="?" IsVector="no" />
+  </Typographies>
+</TextDatabase>

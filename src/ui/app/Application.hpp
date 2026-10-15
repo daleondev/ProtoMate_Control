@@ -6,6 +6,7 @@
 #include "runtime/ThreadGroup.hpp"
 #include "ui/logging/Subscriber.hpp"
 #include "ui/motion/Client.hpp"
+#include "ui/gui/Controller.hpp"
 
 #include <mutex>
 #include <stop_token>
@@ -49,6 +50,10 @@ namespace ui
         static constexpr runtime::thread::Definition CLI_THREAD{ .priority = 5, .stack_size = 16UZ * 1024UZ };
 #endif
 
+        static constexpr runtime::thread::Definition GUI_THREAD{.priority=8, .stack_size=32UZ*1024UZ};
+        static constexpr runtime::thread::Definition TOUCH_THREAD{.priority=7, .stack_size=8UZ*1024UZ};
+        [[= GUI_THREAD]] void guiThread();
+        [[= TOUCH_THREAD]] void touchThread();
         [[= ICC_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();
         [[= CLI_THREAD]] void cliThread();
@@ -63,6 +68,7 @@ namespace ui
         pnm::coro::Context::Timer m_stateTimer;
         logging::Subscriber m_logs;
         motion::Client m_motors;
+        gui::Controller m_gui;
         std::mutex m_mutex;
         bool m_started{};
         bool m_stopping{};

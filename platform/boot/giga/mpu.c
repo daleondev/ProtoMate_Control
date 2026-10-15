@@ -5,7 +5,13 @@ static void region(uint32_t number, uint32_t base, uint32_t size, uint32_t execu
 {
     MPU_Region_InitTypeDef r = {0};
     r.Enable = MPU_REGION_ENABLE;
+    /* M7 region zero blocks unused external addresses. More specific regions
+       below override it; M4 has no speculative fetches and only eight slots. */
+#if defined(CORE_CM7)
+    r.Number = number + 1;
+#else
     r.Number = number;
+#endif
     r.BaseAddress = base;
     r.Size = size;
     r.TypeExtField = MPU_TEX_LEVEL1;
@@ -24,6 +30,22 @@ static void region(uint32_t number, uint32_t base, uint32_t size, uint32_t execu
 void giga_configure_mpu(uint32_t ram_debug)
 {
     HAL_MPU_Disable();
+#if defined(CORE_CM7)
+    /* AN4861: speculative M7 reads into the default FMC NOR/SRAM windows can
+       monopolize FMC and starve LTDC even while the CPU appears idle. Deny
+       0x60000000..0xDFFFFFFF, then explicitly map only installed memories.
+       Subregions 0/1/2 and 7 retain the architectural internal/peripheral map. */
+    MPU_Region_InitTypeDef guard = {0};
+    guard.Enable = MPU_REGION_ENABLE;
+    guard.Number = 0;
+    guard.BaseAddress = 0;
+    guard.Size = MPU_REGION_SIZE_4GB;
+    guard.SubRegionDisable = 0x87;
+    guard.AccessPermission = MPU_REGION_NO_ACCESS;
+    guard.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+    guard.IsShareable = MPU_ACCESS_SHAREABLE;
+    HAL_MPU_ConfigRegion(&guard);
+#endif
     /* Shared queues: normal memory, not Device, for C++ atomics and byte access. */
     region(0, 0x38000000, MPU_REGION_SIZE_64KB, 0, 0, MPU_REGION_FULL_ACCESS);
     region(1, 0x90000000, MPU_REGION_SIZE_16MB, 1, 1, MPU_REGION_PRIV_RO_URO);

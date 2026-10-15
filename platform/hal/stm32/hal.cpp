@@ -24,6 +24,7 @@
 #include "usb_device.h"
 #include "ltdc.h"
 #include "dma2d.h"
+#include "crc.h"
 #include "i2c.h"
 #endif
 
@@ -60,6 +61,7 @@ namespace hal
             MX_RTC_Init();
             MX_RNG_Init();
             MX_TIM8_Init();
+            MX_CRC_Init();
             MX_DMA2D_Init();
             MX_LTDC_Init();
             __HAL_LTDC_DISABLE(&hltdc);

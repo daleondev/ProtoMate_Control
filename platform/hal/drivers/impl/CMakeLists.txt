@@ -31,6 +31,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
         ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Timer.cpp)
     if(STM32_CORE STREQUAL "CM7")
         target_sources(hal_drivers_impl INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Graphics.hpp ${CMAKE_CURRENT_SOURCE_DIR}/stm32/Graphics.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/RgbOutput.hpp ${CMAKE_CURRENT_SOURCE_DIR}/stm32/RgbOutput.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/stm32/I2c.hpp ${CMAKE_CURRENT_SOURCE_DIR}/stm32/I2c.cpp)
     endif()
@@ -48,6 +49,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     target_sources(hal_drivers_impl
         INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/Graphics.hpp ${CMAKE_CURRENT_SOURCE_DIR}/linux/Graphics.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/RgbOutput.hpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/linux/RgbOutput.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Ethernet.hpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Ethernet.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Gpio.hpp

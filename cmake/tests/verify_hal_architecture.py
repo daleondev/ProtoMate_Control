@@ -13,7 +13,7 @@ SYNCHRONIZATION = {
     'hal/linux/ThreadMutex.hpp',
 }
 PORTABLE = ('hal/drivers/itf/', 'hal/devices/itf/', 'hal/util/')
-HARDWARE_FACTORIES = {'gpio', 'timer', 'rtc', 'rng', 'step', 'encoder', 'uart', 'intercore', 'spi', 'rgb', 'i2c'}
+HARDWARE_FACTORIES = {'gpio', 'timer', 'rtc', 'rng', 'step', 'encoder', 'uart', 'intercore', 'spi', 'rgb', 'i2c', 'graphics'}
 HARDWARE_DEVICE_FACTORIES = {'tmc2209', 'display'}
 
 
@@ -135,6 +135,8 @@ def check_build(root, build, platform_name):
             owners = ('hal_core',)
         else:
             owners = ('hal',)
+        if source == 'hal/linux/DisplayHost.cpp':
+            owners = ('hal_linux_display',)
         if not any(f'CMakeFiles/{owner}.dir/' in command for owner in owners):
             errors.append(f'{source}: source must be compiled by {owners}')
         if f'/{forbidden}/' in source:
@@ -149,7 +151,7 @@ def check_build(root, build, platform_name):
         if source not in compiled:
             # These peripheral blocks belong exclusively to M7; their public
             # factories still compile on M4 and reject unavailable resources.
-            if m4 and source in ('hal/drivers/impl/stm32/RgbOutput.cpp', 'hal/drivers/impl/stm32/I2c.cpp'):
+            if m4 and source in ('hal/drivers/impl/stm32/RgbOutput.cpp', 'hal/drivers/impl/stm32/Graphics.cpp', 'hal/drivers/impl/stm32/I2c.cpp'):
                 continue
             errors.append(f'{source}: selected production source is missing from the build')
     for layer in ('drivers', 'devices'):

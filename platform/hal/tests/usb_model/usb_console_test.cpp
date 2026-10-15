@@ -88,7 +88,7 @@ TEST_F(UsbConsole, OverflowCannotExecuteTruncatedInput)
 TEST_F(UsbConsole, OutputIsBoundedAndPacketRemainsStableUntilCompletion)
 {
     giga_console_connected(1);
-    for (unsigned i=0;i<8200;++i) { __io_putchar('a'); }
+    for (unsigned i=0;i<16392;++i) { __io_putchar('a'); }
     EXPECT_EQ(giga_console_dropped_bytes,8u);
     service(); ASSERT_EQ(transfers.size(),1u);
     ASSERT_EQ(activePacket.size(),64u);

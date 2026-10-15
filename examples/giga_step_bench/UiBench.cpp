@@ -1,6 +1,7 @@
 #include "Link.hpp"
-#include "hal/hal.hpp"
 #include "hal/console.hpp"
+#include "hal/hal.hpp"
+#include "ui/gui/Controller.hpp"
 
 #include <cstdio>
 #include <exception>
@@ -13,10 +14,13 @@ int main()
     std::setvbuf(stdin, nullptr, _IONBF, 0);
     try {
         bench::Link link{ bench::Publisher::UI };
-        auto panel = hal::core::create_display();
-        if (!panel || !panel->initialize()) { hal::panic("Bench display pipeline initialization failed"); }
-        // LTDC can exercise SDRAM without an attached panel. Keep backlight off.
-        unsigned slot{};
+        ui::gui::Controller gui;
+        auto graphics =
+          runtime::thread::create_jthread({ .name = "bench.gui", .priority = 8, .stack_size = 32768 },
+                                          [&](std::stop_token stop) { static_cast<void>(gui.run(stop)); });
+        auto touch =
+          runtime::thread::create_jthread({ .name = "bench.touch", .priority = 7, .stack_size = 8192 },
+                                          [&](std::stop_token stop) { gui.acquireTouch(stop); });
         volatile std::uint32_t qspi_checksum{};
         std::atomic_bool busy_load{};
         std::atomic_uint32_t sent{}, echoes{}, errors{};
@@ -37,7 +41,9 @@ int main()
                 }
                 echo.poll();
                 next += 20ms;
-                if (next < Clock::now()) { next = Clock::now(); }
+                if (next < Clock::now()) {
+                    next = Clock::now();
+                }
                 std::this_thread::sleep_until(next);
             }
         });
@@ -51,9 +57,15 @@ int main()
                     const auto reply = call.get();
                     const auto elapsed = static_cast<std::uint32_t>(
                       std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - started).count());
-                    if (!reply || *reply != (challenge ^ 0xA55AA55Au)) { ++ping_errors; }
-                    else { ++ping_count; }
-                    if (elapsed > ping_max_us.load()) { ping_max_us = elapsed; }
+                    if (!reply || *reply != (challenge ^ 0xA55AA55Au)) {
+                        ++ping_errors;
+                    }
+                    else {
+                        ++ping_count;
+                    }
+                    if (elapsed > ping_max_us.load()) {
+                        ping_max_us = elapsed;
+                    }
                 }
                 std::this_thread::sleep_for(200ms);
             }
@@ -62,20 +74,14 @@ int main()
           { .name = "bench.load", .priority = 10, .stack_size = 8192 }, [&](std::stop_token stop) {
             while (!stop.stop_requested()) {
                 if (busy_load) {
-                    slot ^= 1u;
-                    const auto filled = panel->fill(slot, slot ? 0xF800 : 0x001F);
-                    const auto presented = filled ? panel->present(slot) : filled;
-                    if (!presented) {
-                        ++errors;
-                        std::printf("[step-bench] graphics %s failed: %s (%d)\n",
-                                    filled ? "present" : "fill", presented.error().category().name(),
-                                    presented.error().value());
-                    }
                     auto* flash = reinterpret_cast<const volatile std::uint32_t*>(0x90800000u);
                     std::uint32_t sum{};
-                    for (unsigned i = 0; i < 65536; ++i) { sum ^= flash[i]; }
+                    for (unsigned i = 0; i < 65536; ++i) {
+                        sum ^= flash[i];
+                    }
                     qspi_checksum = sum;
-                    std::puts("[step-bench] USB/ICC/QSPI/DMA2D/LTDC load active........................................");
+                    std::puts("[step-bench] USB/ICC/QSPI/DMA2D/LTDC load "
+                              "active........................................");
                 }
                 std::this_thread::sleep_for(20ms);
             }
@@ -93,8 +99,8 @@ int main()
         std::uint32_t sequence{};
         std::puts("[step-bench] READY M7 console -> ICC -> M4 STEP; EN_N remains HIGH");
         std::puts("[step-bench] 1 tiny, 2 independent, 3 100kHz, 4 update, 5 restart, 6 wrap, 7 "
-                      "underrun, 8 combined load, 9 profile; e ESC identification/100000 reads");
-            std::fflush(stdout);
+                  "underrun, 8 combined load, 9 profile; e ESC identification/100000 reads");
+        std::fflush(stdout);
         for (;;) {
             const auto character = hal::console::try_read();
             if (character.state != hal::console::InputState::Character) {
@@ -142,7 +148,9 @@ int main()
             const auto errors_seen = errors.load() - prior_errors;
             const auto pings = ping_count.load() - prior_ping_count;
             const auto bad_pings = ping_errors.load() - prior_ping_errors;
-            const bool passed = result.passed && !errors_seen && !panel->underruns() &&
+            const bool passed = result.passed && !errors_seen &&
+                                gui.status().state == ui::gui::State::Running && !gui.status().errors &&
+                                !gui.status().underruns &&
                                 (test != 8 || (verified >= 10 && pings != 0 && bad_pings == 0));
             std::printf("[step-bench] %s case=%lu check=%lu pulses=%llu,%llu,%llu completions=%lu,%lu,%lu "
                         "progress=%lu changed_at=%llu guard=%lu load=%lu echoes=%lu errors=%lu\n",
@@ -161,18 +169,35 @@ int main()
                         static_cast<unsigned long>(result.load_received),
                         static_cast<unsigned long>(verified),
                         static_cast<unsigned long>(errors_seen + result.load_errors));
-            std::printf("[step-bench] service_max=%lu cycles (240 MHz); stop=%lu cycles; LTDC underruns=%lu; QSPI=%lu\n",
-                        static_cast<unsigned long>(result.service_cycles), static_cast<unsigned long>(result.stop_cycles),
-                        static_cast<unsigned long>(panel->underruns()), static_cast<unsigned long>(qspi_checksum));
+            std::printf("[step-bench] service_max=%lu cycles (240 MHz); stop=%lu cycles; LTDC underruns=%lu; "
+                        "QSPI=%lu\n",
+                        static_cast<unsigned long>(result.service_cycles),
+                        static_cast<unsigned long>(result.stop_cycles),
+                        static_cast<unsigned long>(gui.status().underruns),
+                        static_cast<unsigned long>(qspi_checksum));
+            const auto guiStatus = gui.status();
+            std::printf(
+              "[step-bench] GUI frames=%lu presented=%lu late=%lu max_us=%lu errors=%lu verified=%u\n",
+              static_cast<unsigned long>(guiStatus.frames),
+              static_cast<unsigned long>(guiStatus.presented),
+              static_cast<unsigned long>(guiStatus.missedDeadlines),
+              static_cast<unsigned long>(guiStatus.maximumRenderUs),
+              static_cast<unsigned long>(guiStatus.errors),
+              guiStatus.graphicsVerified);
             if (test == 8) {
                 const auto stats = link.bridge.topicStatistics("bench/load");
-                std::printf("[step-bench] ICC published=%lu elapsed_ms=%lld outgoing_dropped=%llu connected=%u "
-                            "urgent_replies=%lu urgent_errors=%lu urgent_max_us=%lu\n",
-                            static_cast<unsigned long>(sent.load() - sent_before),
-                            static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - load_started).count()),
-                            static_cast<unsigned long long>(stats ? stats->dropped : 0), unsigned(link.connected()),
-                            static_cast<unsigned long>(pings), static_cast<unsigned long>(bad_pings),
-                            static_cast<unsigned long>(ping_max_us.load()));
+                std::printf(
+                  "[step-bench] ICC published=%lu elapsed_ms=%lld outgoing_dropped=%llu connected=%u "
+                  "urgent_replies=%lu urgent_errors=%lu urgent_max_us=%lu\n",
+                  static_cast<unsigned long>(sent.load() - sent_before),
+                  static_cast<long long>(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - load_started)
+                      .count()),
+                  static_cast<unsigned long long>(stats ? stats->dropped : 0),
+                  unsigned(link.connected()),
+                  static_cast<unsigned long>(pings),
+                  static_cast<unsigned long>(bad_pings),
+                  static_cast<unsigned long>(ping_max_us.load()));
             }
             std::fflush(stdout);
         }

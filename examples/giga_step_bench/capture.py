@@ -62,10 +62,11 @@ def summary(values):
     return {"min": values.min().item(), "max": values.max().item(), "mean": float(values.mean())}
 
 
-def analyze(path, case, result):
+def analyze(path, case, result, check_enable=True):
     raw = np.fromfile(path, dtype=np.uint8)
     assert raw.size, "Empty analyzer capture"
-    assert np.all(raw & 8), "EN_N fell low during capture"
+    if check_enable:
+        assert np.all(raw & 8), "EN_N fell low during capture"
     expected = [int(result.group(i)) for i in (4, 5, 6)]
     completions = [int(result.group(i)) for i in (7, 8, 9)]
     assert completions == ([1, 2, 1] if case == 5 else [1, 1, 1]), completions
@@ -134,6 +135,7 @@ def analyze(path, case, result):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port")
+    parser.add_argument("--step-only", action="store_true", help="Capture only STEP; D3/enable is not connected or verified")
     parser.add_argument("--cases", default="1,2,3,4,5,6,7,8,9")
     parser.add_argument("--output", type=Path, default=Path("build/giga-step-results"))
     parser.add_argument("--seconds", type=float, default=3.0)
@@ -154,7 +156,7 @@ def main():
             capture.unlink(missing_ok=True)
             with log.open("w") as output:
                 process = subprocess.Popen(["sigrok-cli", "--driver", "fx2lafw", "--config", f"samplerate={RATE}",
-                    "--channels", "D0,D1,D2,D3", "--samples", str(int(RATE * args.seconds)),
+                    "--channels", "D0,D1,D2" if args.step_only else "D0,D1,D2,D3", "--samples", str(int(RATE * args.seconds)),
                     "--output-format", "binary", "--output-file", str(capture)], stdout=output, stderr=output)
                 try:
                     deadline = time.monotonic() + 5
@@ -182,7 +184,7 @@ def main():
                     print(result.group(0), flush=True)
                     assert process.wait(timeout=6) == 0, log.read_text()
                     assert capture.stat().st_size == int(RATE * args.seconds), "Incomplete capture"
-                    measurement = analyze(capture, case, result)
+                    measurement = analyze(capture, case, result, not args.step_only)
                     measurement["passed"] = result.group(1) == "PASS"
                     measurement["service_max_cycles"] = int(metrics.group(1))
                     measurement["stop_cycles"] = int(metrics.group(2))

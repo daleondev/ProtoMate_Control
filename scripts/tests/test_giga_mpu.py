@@ -20,7 +20,7 @@ class MpuTests(unittest.TestCase):
                        MPU_INSTRUCTION_ACCESS_DISABLE=1,MPU_ACCESS_NOT_SHAREABLE=0,
                        MPU_ACCESS_SHAREABLE=1,MPU_ACCESS_CACHEABLE=1,MPU_ACCESS_NOT_CACHEABLE=0,
                        MPU_ACCESS_BUFFERABLE=1,MPU_ACCESS_NOT_BUFFERABLE=0,
-                       MPU_REGION_FULL_ACCESS=3,MPU_REGION_PRIV_RO_URO=6,MPU_PRIVILEGED_DEFAULT=4,MPU_HFNMI_PRIVDEF=6)
+                       MPU_REGION_NO_ACCESS=0,MPU_REGION_SIZE_4GB=31,MPU_REGION_FULL_ACCESS=3,MPU_REGION_PRIV_RO_URO=6,MPU_PRIVILEGED_DEFAULT=4,MPU_HFNMI_PRIVDEF=6)
         for name,size in [('64KB',65536),('128KB',131072),('256KB',262144),('512KB',524288),('2MB',2097152),('8MB',8388608),('16MB',16777216)]:
             constants['MPU_REGION_SIZE_'+name]=size
         header='#include <stdint.h>\ntypedef struct {'+''.join('uint32_t '+n+';' for n in FIELDS)+'} MPU_Region_InitTypeDef;\n'
@@ -40,7 +40,17 @@ class MpuTests(unittest.TestCase):
     def tearDownClass(cls):cls.temporary.cleanup()
     def regions(self,variant,debug=0):
         library=self.libraries[variant];library.giga_configure_mpu(debug)
-        return (Region*16).in_dll(library,'regions')
+        regions=(Region*16).in_dll(library,'regions')
+        return regions if variant == 'm4' else regions[1:]
+    def test_m7_unused_external_windows_are_inaccessible(self):
+        for variant in ['m7','helper']:
+            self.regions(variant)
+            guard=(Region*16).in_dll(self.libraries[variant],'regions')[0]
+            self.assertEqual((guard.Enable,guard.BaseAddress,guard.Size,guard.SubRegionDisable,
+                              guard.AccessPermission,guard.DisableExec),(1,0,31,0x87,0,1))
+            # QSPI and installed SDRAM have higher-priority explicit mappings.
+            self.assertGreater(self.regions(variant)[1].Number,guard.Number)
+            self.assertGreater(self.regions(variant)[2].Number,guard.Number)
     def test_maintenance_code_is_executable_but_application_data_is_not(self):
         self.assertEqual(self.regions('helper')[5].DisableExec,0)
         self.assertEqual(self.regions('m7')[5].DisableExec,1)

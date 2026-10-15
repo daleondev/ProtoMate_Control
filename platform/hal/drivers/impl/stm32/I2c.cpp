@@ -14,6 +14,12 @@ namespace hal {
     {
         if (__get_IPSR() || address > 0x7F || bytes.empty() || !util::valid_transfer_size(bytes.size()) ||
             !util::valid_transfer_timeout(timeout)) { return std::unexpected(std::make_error_code(std::errc::invalid_argument)); }
+        // HAL's memory-read entry otherwise spins for a fixed 25 ms, even
+        // when the caller requested a shorter timeout. An absent/unpowered
+        // peripheral must not monopolize this higher-priority input worker.
+        if (__HAL_I2C_GET_FLAG(&m_handle, I2C_FLAG_BUSY)) {
+            return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
+        }
         return make_result(HAL_I2C_Mem_Read(&m_handle, address << 1, reg, I2C_MEMADD_SIZE_8BIT,
                                           bytes.data(), bytes.size(), timeout.count()));
     }

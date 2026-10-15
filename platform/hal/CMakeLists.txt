@@ -37,3 +37,13 @@ target_link_libraries(hal
 target_compile_definitions(hal PUBLIC
     $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Generic>:HAL_PLATFORM_STM32>
     $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Linux>:HAL_PLATFORM_LINUX>)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET GLOBAL sdl2)
+    # Native SDL/pthread boundary: never compile with the ThreadX C++ ABI.
+    add_library(hal_linux_display STATIC linux/DisplayHost.cpp linux/DisplayHost.hpp)
+    target_include_directories(hal_linux_display PUBLIC ${PROJECT_SOURCE_DIR}/platform)
+    target_link_libraries(hal_linux_display PRIVATE PkgConfig::SDL2)
+    target_link_libraries(hal_drivers PRIVATE hal_linux_display)
+endif()

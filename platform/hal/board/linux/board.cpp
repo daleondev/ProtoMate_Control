@@ -1,11 +1,13 @@
 // Host-only device composition for regression tests. These virtual resources
 // do not specify or reserve any pins on the physical controller.
 #include "hal/board/board.hpp"
+#include "hal/drivers/factory/graphics.hpp"
 #include "hal/drivers/factory/intercore.hpp"
 #include "hal/drivers/factory/rtc.hpp"
 #include "hal/drivers/factory/rng.hpp"
 
 #include "hal/devices/factory/tmc2209.hpp"
+#include "hal/devices/factory/display.hpp"
 #include "hal/devices/impl/Button.hpp"
 #include "hal/devices/impl/IndexFeedback.hpp"
 #include "hal/devices/impl/Led.hpp"
@@ -334,8 +336,9 @@ namespace hal::board
 namespace hal::board {
     // These physical devices have no host backend. Catalog inspection is still
     // available on Linux; construction explicitly reports unavailability.
-    auto create_display() -> std::shared_ptr<device::IDisplay> { return {}; }
-    auto create_touch() -> std::shared_ptr<device::ITouch> { return {}; }
+    auto create_graphics() -> std::shared_ptr<IGraphics> { return graphics::create(graphics::Peripheral::Dma2d); }
+    auto create_display() -> std::shared_ptr<device::IDisplay> { return device::display::create({.standby={gpio::Port::I,0}, .reset={gpio::Port::I,2}, .backlight={gpio::Port::C,6}}); }
+    auto create_touch() -> std::shared_ptr<device::ITouch> { return device::display::create_touch({.reset={gpio::Port::I,3}, .interrupt={gpio::Port::B,12}, .address=0x55}); }
     auto create_ethercat_reset() -> std::shared_ptr<IDigitalOutput> { return {}; }
     auto create_ethercat_interrupt() -> std::shared_ptr<IDigitalInput> { return {}; }
     auto create_ethercat_sync0() -> std::shared_ptr<IDigitalInput> { return {}; }
