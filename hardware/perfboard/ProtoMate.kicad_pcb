@@ -9,8 +9,8 @@
 	(paper "A4" portrait)
 	(title_block
 		(title "ProtoMate interface - perfboard hand wiring")
-		(date "2026-10-08")
-		(rev "5.0")
+		(date "2026-10-15")
+		(rev "6.0")
 		(comment 1 "47 columns x 65 rows - underside wiring with insulated crossover links")
 	)
 	(layers
@@ -2382,7 +2382,7 @@
 				)
 			)
 		)
-		(property "Value" "Nucleo UART / DIAG / INDEX / 2x04"
+		(property "Value" "GIGA UART / DIAG / INDEX / 2x04"
 			(at -12.54 1.27 90)
 			(layer "F.Fab")
 			(hide yes)
@@ -3165,7 +3165,7 @@
 				)
 			)
 		)
-		(property "Value" "Nucleo references / 1x04"
+		(property "Value" "GIGA references / 1x04"
 			(at 1.27 7.46 180)
 			(layer "F.Fab")
 			(hide yes)
@@ -4513,7 +4513,7 @@
 				)
 			)
 		)
-		(property "Value" "Nucleo encoder / 2x03"
+		(property "Value" "GIGA encoder / 2x03"
 			(at 1.27 7.46 180)
 			(layer "F.Fab")
 			(hide yes)
@@ -6105,7 +6105,7 @@
 				)
 			)
 		)
-		(property "Value" "Nucleo motion / 2x06"
+		(property "Value" "GIGA motion / 2x06"
 			(at 1.27 20.16 180)
 			(layer "F.Fab")
 			(hide yes)
@@ -47742,7 +47742,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "J101 pins 1/3/5/7/9/11/12 -> CN10 pins 29/26/32/10/34/8/30."
+	(gr_text "J101 pins 1/3/5/7/9/11/12 -> GIGA A7/D4/D3/D6/D2/D16/D15."
 		(at 109.22 230.18 0)
 		(layer "B.SilkS")
 		(uuid "ddd56ac8-2e5a-4cf1-9212-2ca66bd9b27b")
@@ -47754,7 +47754,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "J101.8 -> CN8.7 (3V3); .4 -> CN9.17 (ALM); GND .2/.6/.10. R10-R12 DNP."
+	(gr_text "J101.8 -> GIGA 3V3; .4 -> A3 (ALM); GND .2/.6/.10. R10-R12 DNP."
 		(at 109.22 233.18 0)
 		(layer "B.SilkS")
 		(uuid "f1b71138-7a6b-4d63-8602-d6e0dcac4223")
@@ -47790,7 +47790,7 @@
 			(justify mirror)
 		)
 	)
-	(gr_text "J113 1/3/5/7 -> CN9 6/4/8/10; 4/6 -> CN9 25/27 (INDEX); GND 2/8."
+	(gr_text "J113 1/3/5/7 -> GIGA D18/D19/A4/A6; 4/6 -> D8/D9 (INDEX); GND 2/8."
 		(at 109.22 242.18 0)
 		(layer "B.SilkS")
 		(uuid "41368f08-41b9-4f8b-92df-f289b4aa0761")
@@ -50922,7 +50922,7 @@
 			)
 		)
 	)
-	(gr_text "J101 pins 1/3/5/7/9/11/12 -> CN10 pins 29/26/32/10/34/8/30."
+	(gr_text "J101 pins 1/3/5/7/9/11/12 -> GIGA A7/D4/D3/D6/D2/D16/D15."
 		(at 109.22 230.18 0)
 		(layer "Cmts.User")
 		(uuid "38c3622b-374d-4469-a7a5-fe9d4ea78eca")
@@ -50933,7 +50933,7 @@
 			)
 		)
 	)
-	(gr_text "J101.8 -> CN8.7 (3V3); .4 -> CN9.17 (ALM); GND .2/.6/.10. R10-R12 DNP."
+	(gr_text "J101.8 -> GIGA 3V3; .4 -> A3 (ALM); GND .2/.6/.10. R10-R12 DNP."
 		(at 109.22 233.18 0)
 		(layer "Cmts.User")
 		(uuid "ca265030-3370-487a-a2b4-30d49617db75")

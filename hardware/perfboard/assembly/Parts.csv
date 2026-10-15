@@ -12,7 +12,7 @@ R10 R11 R12,0,DNP termination resistors,Leave empty; 10.16 mm reserved hole spac
 C3 C4,2,100 nF ceramic capacitor,Nonpolar; >=16 V; 2.54 mm lead spacing
 C5 C6,2,1 uF nonpolar capacitor,>=16 V; 5.08 mm lead spacing
 J101,1,2x6 male header,2.54 mm pitch
-J102,1,2x3 male header,2.54 mm pitch; paired encoder returns to Nucleo
+J102,1,2x3 male header,2.54 mm pitch; paired encoder returns to GIGA
 J108,1,1x4 male header,2.54 mm pitch; three reference signals and shared ground
 J109 J110 J111,3,1x2 male header,2.54 mm pitch; three NC switch cables
 J104,1,10-way 5.08 mm screw terminal,50.8 x 8 mm body; row D columns 2-20 every second hole; wire entry toward row A; pins 1-6 control / 7-8 ALM / 9-10 power

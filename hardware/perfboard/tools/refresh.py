@@ -25,6 +25,7 @@ ASSEMBLY = ROOT / "assembly"
 EXPORTS = ROOT / "exports"
 BOARD = ROOT / "ProtoMate.kicad_pcb"
 SCHEMATIC = ROOT / "ProtoMate.kicad_sch"
+DEFAULT_IOC = ROOT.parents[1] / "external/CubeMX/CubeMX.ioc"
 MODULE_MOUNTS = {"A3": "J105", "A4": "J106"}
 MOUNTED_MODULES = {"U1": "J103", **MODULE_MOUNTS}
 # The purchased 65 x 47 hole board is mounted with its long edge vertical.
@@ -57,7 +58,7 @@ def read_csv(name):
 
 def write_csv(name, headings, rows):
     with (ASSEMBLY / name).open("w", newline="") as stream:
-        writer = csv.writer(stream)
+        writer = csv.writer(stream, lineterminator="\n")
         writer.writerow(headings)
         writer.writerows(rows)
 
@@ -84,7 +85,7 @@ def hole(item):
     return row_name(round(y) + 1) + str(round(x) + 1)
 
 
-def verify(netlist, board, ioc_path=None):
+def verify(netlist, board, ioc_path):
     edges = [item for item in board.GetDrawings() if item.GetLayer() == pcb.Edge_Cuts]
     corners = {(round(pcb.ToMM(v.x), 6), round(pcb.ToMM(v.y), 6))
                for edge in edges for v in (edge.GetStart(), edge.GetEnd())}
@@ -106,83 +107,93 @@ def verify(netlist, board, ioc_path=None):
     require(onboard.keys() == footprints.keys(), "Schematic/board component sets differ")
     source = {(n.get("ref"), n.get("pin")): net.get("name")
               for net in document.findall("./nets/net") for n in net.findall("node")}
-    # The restored project uses the original Nucleo harness. Only compare it
-    # with firmware when an explicit matching CubeMX file is supplied.
     ioc = dict(line.split("=", 1) for line in
                ioc_path.read_text().splitlines()
-               if "=" in line and not line.startswith("#")) if ioc_path else None
+               if "=" in line and not line.startswith("#"))
+    require(ioc.get("Mcu.CPN") == "STM32H747XIH6", "Expected the GIGA's STM32H747XIH6")
+    # Arduino silkscreen labels, not ordinal positions on a connector. The
+    # final field is the current firmware label; UART pins have no GPIO label.
     controller_routes = {
-        "M1_ALM": ("PF2", "CN9.17", "GPXTI2"),
-        "M1_STEP": ("PA0", "CN10.29", "S_TIM2_CH1_ETR"),
-        "M2_STEP": ("PB10", "CN10.32", "S_TIM2_CH3"),
-        "M3_STEP": ("PB11", "CN10.34", "S_TIM2_CH4"),
-        "M1_DIR": ("PE12", "CN10.26", "GPIO_Output"),
-        "M2_DIR": ("PE13", "CN10.10", "GPIO_Output"),
-        "M3_DIR": ("PE14", "CN10.8", "GPIO_Output"),
-        "STEPPERS_EN_N": ("PE15", "CN10.30", "GPIO_Output"),
-        "M1_ENC_A": (r"PB4\ (NJTRST)", "CN7.19", "S_TIM3_CH1"),
-        "M1_ENC_B": ("PB5", "CN7.13", "S_TIM3_CH2"),
-        "M1_ENC_Z": ("PB6", "CN12.17", "GPXTI6"),
-        "M1_REF": ("PE7", "CN10.20", "GPXTI7"),
-        "M2_REF": ("PE8", "CN10.18", "GPXTI8"),
-        "M3_REF": ("PE10", "CN10.24", "GPXTI10"),
-        "TMC_UART_TX": ("PD5", "CN9.6", "USART2_TX"),
-        "TMC_UART_RX": ("PD6", "CN9.4", "USART2_RX"),
-        "M2_INDEX": ("PD0", "CN9.25", "GPXTI0"),
-        "M3_INDEX": ("PD1", "CN9.27", "GPXTI1"),
-        "M2_DIAG": ("PD4", "CN9.8", "GPXTI4"),
-        "M3_DIAG": ("PD3", "CN9.10", "GPXTI3"),
-        "FLASH_CLK": ("PB2", "CN10.15", "QUADSPI_CLK"),
-        "FLASH_CS_N": ("PG6", "CN10.13", "QUADSPI_BK1_NCS"),
-        "FLASH_IO0": ("PD11", "CN10.23", "QUADSPI_BK1_IO0"),
-        "FLASH_IO1": ("PD12", "CN10.21", "QUADSPI_BK1_IO1"),
-        "FLASH_IO2": ("PE2", "CN10.25", "QUADSPI_BK1_IO2"),
-        "FLASH_IO3": ("PD13", "CN10.19", "QUADSPI_BK1_IO3"),
-        "SD_D0": ("PC8", "CN8.2", "SDMMC1_D0"),
-        "SD_D1": ("PC9", "CN8.4", "SDMMC1_D1"),
-        "SD_D2": ("PC10", "CN8.6", "SDMMC1_D2"),
-        "SD_D3": ("PC11", "CN8.8", "SDMMC1_D3"),
-        "SD_CLK": ("PC12", "CN8.10", "SDMMC1_CK"),
-        "SD_CMD": ("PD2", "CN8.12", "SDMMC1_CMD"),
-        "SD_CD_N": ("PG2", "CN8.14", "GPIO_Input"),
+        "M1_ALM": ("PB1", "A3", "GPXTI1", "M1_ALARM"),
+        "M1_STEP": ("PA0", "A7", "S_TIM2_CH1_ETR", "M1_STEP"),
+        "M2_STEP": ("PA2", "D3", "S_TIM2_CH3", "M2_STEP"),
+        "M3_STEP": ("PA3", "D2", "S_TIM2_CH4", "M3_STEP"),
+        "M1_DIR": ("PJ8", "D4", "GPIO_Output", "M1_DIR"),
+        "M2_DIR": ("PD13", "D6", "GPIO_Output", "M2_DIR"),
+        "M3_DIR": ("PH13", "D16", "GPIO_Output", "M3_DIR"),
+        "STEPPERS_EN_N": ("PC7", "D15", "GPIO_Output", "STEPPERS_ENABLE"),
+        "M1_ENC_A": (r"PB4\ (NJTRST)", "D7", "S_TIM3_CH1", "M1_ENC_A"),
+        "M1_ENC_B": ("PA7", "D5", "S_TIM3_CH2", "M1_ENC_B"),
+        "M1_ENC_Z": ("PG7", "D53", "GPXTI7", "M1_ENC_Z"),
+        "M1_REF": ("PE4", "D49", "GPXTI4", "M1_REFERENCE"),
+        "M2_REF": ("PE5", "D51", "GPXTI5", "M2_REFERENCE"),
+        "M3_REF": ("PB2", "D47", "GPXTI2", "M3_REFERENCE"),
+        "TMC_UART_TX": ("PD5", "D18", "USART2_TX", None),
+        "TMC_UART_RX": ("PD6", "D19", "USART2_RX", None),
+        "M2_INDEX": ("PB8", "D8", "GPXTI8", "M2_INDEX"),
+        "M3_INDEX": ("PB9", "D9", "GPXTI9", "M3_INDEX"),
+        "M2_DIAG": ("PC3", "A4", "GPXTI3", "M2_DIAG"),
+        "M3_DIAG": ("PC0", "A6", "GPXTI0", "M3_DIAG"),
     }
-    for net, (pin, contact, signal) in controller_routes.items():
+    for net, (pin, contact, signal, label) in controller_routes.items():
         require(source.get(("A1", contact)) == net, f"Controller contact differs: {net}")
-        if ioc is not None:
-            require(ioc.get(f"{pin}.Signal") == signal,
-                    f"CubeMX GPIO/timer differs from wiring: {net}")
-            if net.startswith(("M1_", "M2_", "M3_", "STEPPERS_", "TMC_")):
-                require(ioc.get(f"{pin}.GPIO_Label") == net, f"CubeMX label differs: {net}")
-    if ioc is not None:
-        for pin in ("PE7", "PE8", "PE10"):
-            require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLUP" and
-                    ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING_FALLING",
-                    f"NC reference input requires pull-up and both-edge EXTI: {pin}")
-        require(ioc.get("PB6.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
-                "Encoder index must use rising-edge EXTI after the polarity-preserving interface")
-        require(ioc.get("PE15.PinState") == "GPIO_PIN_SET",
-                "Shared active-low enable must start high (drivers disabled)")
-        for pin in ("PD0", "PD1"):
-            require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN" and
-                    ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING_FALLING",
-                    f"Driver INDEX requires pull-down and both-edge EXTI: {pin}")
-        for pin in ("PD3", "PD4"):
-            require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN" and
-                    ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
-                    f"Driver DIAG requires pull-down and rising-edge EXTI: {pin}")
-        require(ioc.get("PF2.GPIO_PuPd") == "GPIO_PULLUP" and
-                ioc.get("PF2.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
-                "DM542T ALM requires pull-up and rising-edge EXTI2")
+        require(ioc.get(f"{pin}.Signal") == signal,
+                f"CubeMX GPIO/timer differs from wiring: {net}")
+        require(ioc.get(f"{pin}.ContextOwner") == "CortexM4",
+                f"Motor peripheral must belong to Cortex-M4: {net}")
+        if label is not None:
+            require(ioc.get(f"{pin}.GPIO_Label") == label, f"CubeMX label differs: {net}")
+    require(components["A1"].findtext("value") == "Arduino GIGA R1 WiFi / ABX00063",
+            "Controller symbol must identify the GIGA")
+    require({pin: net for (ref, pin), net in source.items() if ref == "A1"} ==
+            {**{route[1]: net for net, route in controller_routes.items()},
+             "3V3": "+3V3", "GND": "GND"},
+            "GIGA harness must carry only motor signals, 3V3 and GND; no buck 5 V or storage bus")
+    require(not any(net.startswith(("FLASH_", "SD_")) for net in source.values()),
+            "External storage wiring does not belong to the GIGA perfboard")
+    for pin in ("PE4", "PE5", "PB2"):
+        require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLUP" and
+                ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING_FALLING",
+                f"NC reference input requires pull-up and both-edge EXTI: {pin}")
+    require(ioc.get("PG7.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
+            "Encoder index must use rising-edge EXTI after the polarity-preserving interface")
+    require(ioc.get("PC7.PinState") == "GPIO_PIN_SET",
+            "Shared active-low enable must start high (drivers disabled)")
+    require(ioc.get("TIM2.Prescaler") == "23", "TIM2 must retain the GIGA STEP prescaler")
+    for pin in ("PA0", "PA2", "PA3"):
+        require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN",
+                f"STEP idle GPIO pull must be LOW: {pin}")
+    for pin in ("PB8", "PB9"):
+        require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN" and
+                ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING_FALLING",
+                f"Driver INDEX requires pull-down and both-edge EXTI: {pin}")
+    for pin in ("PC0", "PC3"):
+        require(ioc.get(f"{pin}.GPIO_PuPd") == "GPIO_PULLDOWN" and
+                ioc.get(f"{pin}.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
+                f"Driver DIAG requires pull-down and rising-edge EXTI: {pin}")
+    require(ioc.get("PB1.GPIO_PuPd") == "GPIO_PULLUP" and
+            ioc.get("PB1.GPIO_ModeDefaultEXTI") == "GPIO_MODE_IT_RISING",
+            "DM542T ALM requires pull-up and rising-edge EXTI1")
     for ref, pin, net in (("A2", "ALM+", "M1_ALM"), ("A2", "ALM-", "GND"),
                           ("R30", "1", "+3V3"), ("R30", "2", "M1_ALM"),
                           ("J104", "7", "M1_ALM"), ("J104", "8", "GND"),
                           ("J101", "4", "M1_ALM")):
         require(source.get((ref, pin)) == net, f"DM542T alarm connection differs: {ref}.{pin}")
     require(components["R30"].findtext("value") == "4k7", "ALM needs its 4.7k external 3.3 V pull-up")
-    if ioc is not None:
-        require(ioc.get("USART2.BaudRate") == "115200" and
-                ioc.get("USART2.FIFOMode") == "FIFOMODE_ENABLE",
-                "Shared driver UART must preserve 115200 baud and RX FIFO")
+    require(ioc.get("USART2.BaudRate") == "115200" and
+            ioc.get("USART2.FIFOMode") == "FIFOMODE_ENABLE",
+            "Shared driver UART must preserve 115200 baud and RX FIFO")
+    # Physical reset bias remains effective before firmware configures GPIOs.
+    for ref, value, first, second in (("R7", "470R", "+3V3", "STEPPERS_EN_N"),
+                                      ("R8", "10k", "M2_STEP", "GND"),
+                                      ("R9", "10k", "M3_STEP", "GND")):
+        require(components[ref].findtext("value") == value and
+                source[ref, "1"] == first and source[ref, "2"] == second,
+                f"Reset-state bias differs: {ref}")
+    require(source["R1", "1"] == "M1_STEP" and source["R1", "2"] == source["R2", "1"]
+            and source["R2", "2"] == "GND" and components["R1"].findtext("value") == "1k"
+            and components["R2"].findtext("value") == "10k",
+            "M1 STEP must retain its R1/R2 path to GND during reset")
     for module, ms1 in (("A3", "GND"), ("A4", "+3V3")):
         require(source[module, "JP4.5"] == ms1 and source[module, "JP4.6"] == "GND" and
                 source[module, "JP4.9"] == "TMC_UART_RX",
@@ -345,7 +356,7 @@ def verify(netlist, board, ioc_path=None):
                  "M2_DIAG", "M3_INDEX", "M3_DIAG", "GND"],
     }
     require({r["Perfboard header"] for r in controller_harness} == expected_headers.keys(),
-            "Unexpected or missing Nucleo harness header")
+            "Unexpected or missing GIGA harness header")
     for ref, nets in expected_headers.items():
         require({pin: p.GetNetname() for (r, pin), p in pads.items() if r == ref}
                 == {str(i): net for i, net in enumerate(nets, 1)},
@@ -372,13 +383,13 @@ def verify(netlist, board, ioc_path=None):
               f"{len(vias) // 2} crossovers with dedicated free holes.",
               "PASS: at most three scheduled wire ends per component solder joint.",
               f"PASS: {len(harness)} header positions and their external destinations match the schematic.",
-              "PASS: four Nucleo harnesses; 21 distinct signal/supply contacts and nine ground returns.",
+              "PASS: four GIGA harnesses; 21 distinct signal/supply contacts and nine ground returns.",
               "PASS: STEP and encoder pairs retain ground returns; reference/UART/DIAG share returns; ALM uses J101.4.",
-              f"PASS: {len(controller_routes)} motor, encoder, reference and storage contacts match the Nucleo schematic.",
-              (f"PASS: supplied CubeMX pins, labels, input pulls/edges, UART and disabled startup match wiring: {ioc_path}"
-               if ioc is not None else
-               "NOT CHECKED: firmware compatibility; no --ioc supplied. This project retains the original Nucleo wiring."),
-              "PASS: DM542T ALM uses PF2/CN9.17, 4.7k pull-up to 3.3 V and GND return; high = fault/open.",
+              f"PASS: {len(controller_routes)} motor, encoder, reference and driver contacts match the GIGA schematic.",
+              f"PASS: CubeMX pins, M4 ownership, labels, input pulls/edges, UART and disabled startup match wiring: {ioc_path}",
+              "PASS: GIGA has only signal/3V3/GND connections; no buck 5 V feed or external storage bus.",
+              "PASS: existing R7 enable pull-up and R1/R2, R8/R9 STEP pull-down paths remain fitted.",
+              "PASS: DM542T ALM uses A3/PB1, 4.7k pull-up to 3.3 V and GND return; high = fault/open.",
               "PASS: shared UART bus, 1k TX resistor and driver address straps 0/1 match system wiring.",
               "PASS: all three module bodies fit; direct mounting contacts match system wiring.",
               "PASS: J104 combines DM542T control 1-6, ALM 7/8 and 24 V/GND 9/10 in one outward-facing screw terminal.",
@@ -445,7 +456,8 @@ def assembly_pdf(tmp):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check-only", action="store_true", help="Refresh checks only; skip PDF and table exports")
-    parser.add_argument("--ioc", type=Path, help="Optionally verify a matching Nucleo CubeMX file; current GIGA firmware uses different wiring")
+    parser.add_argument("--ioc", type=Path, default=DEFAULT_IOC,
+                        help="GIGA CubeMX configuration to verify (default: repository external/CubeMX/CubeMX.ioc)")
     args = parser.parse_args()
     EXPORTS.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="protomate-kicad-") as directory:

@@ -26,7 +26,7 @@ centres; assembly coordinates are defined by the holes, independently of the
 physical edge margins. The grid continues uniformly across the whole assembly.
 J104 and both TMC2209 modules occupy the top edge, with cable entries facing
 outward. J107 sits directly below J104, grouping the motor-1 driver and encoder
-cables in the upper-left area. The four Nucleo headers form a bank along the
+cables in the upper-left area. The four GIGA headers form a bank along the
 left edge, with 9.1 mm between connector bodies and all pin-1 pads at the bottom.
 The encoder receiver and conversion stages occupy the centre-left; the DM542T
 transistor stages run down the right interior at 30.48 mm spacing. The encoder
@@ -96,7 +96,7 @@ the board thickness at each crossover, and comfortable bends. No schematic
 connection is implied by two insulated wires merely touching or crossing.
 
 The DM542T alarm uses R30 (4.7 kΩ): H18 = 3.3 V, H14 = ALM. J104 and R30 sit
-at the upper left; J101.4 at Y3 carries ALM to the Nucleo. ALM is low when healthy and high for an open
+at the upper left; J101.4 at Y3 carries ALM to the GIGA. ALM is low when healthy and high for an open
 cable or driver fault; its output uses the default normally conducting polarity.
 Do not connect this alarm circuit to 5 V or 24 V. Follow the ALM and ground
 routes in Wires.csv.
@@ -148,22 +148,22 @@ encoder's output-current limit as described in the main README.
 
 ## External connections
 
-These are **perfboard header numbers**, not Nucleo connector numbers. All
+These are **perfboard header numbers**; GIGA destinations use printed D/A labels. All
 contacts land on the 2.54 mm grid; J103's pairs and J104's terminal pitch span two intervals (5.08 mm).
 Use the harness table for cables and direct module contacts.
 
 | Header | Connection |
 | --- | --- |
-| J101, 2×6 | Nucleo STEP/DIR/enable, ALM and 3.3 V. STEP/GND pairs 1/2, 5/6, 9/10; ALM 4; 3.3 V 8; enable 12. |
-| J102, 2×3 | Encoder A/B/Z returns to the Nucleo; each paired even pin is ground. |
+| J101, 2×6 | GIGA STEP/DIR/enable, ALM and 3.3 V. STEP/GND pairs 1/2, 5/6, 9/10; ALM 4; 3.3 V 8; enable 12. |
+| J102, 2×3 | Encoder A/B/Z returns to the GIGA; each paired even pin is ground. |
 | J103, four module pins | Buck: 1 = OUT+ / 5 V, 2 = OUT− / GND, 3 = VIN− / GND, 4 = VIN+ / 24 V. |
 | J104, 10-way 5.08 mm screw terminal | DM542T: PUL+, PUL−, DIR+, DIR−, ENA+, ENA−, ALM+, ALM−, +24 V, GND, in pin order. Signal selector stays at 5 V. |
 | J105, 10 + 2 module pins | M2 / A3: pins 1–10 = JP4 control header; 11 = JP1.6 / 24 V; 12 = JP1.5 / GND. |
 | J106, 10 + 2 module pins | M3 / A4, same order as J105. |
 | J107, 1×8 | Encoder: GND, A+, A−, B+, B−, Z+, Z−, +5 V, matching the motor's numbered encoder connector. |
-| J108, 1×4 | Nucleo reference inputs: 1 = M1_REF, 2 = M2_REF, 3 = M3_REF; 4 = shared GND. |
+| J108, 1×4 | GIGA reference inputs: 1 = M1_REF, 2 = M2_REF, 3 = M3_REF; 4 = shared GND. |
 | J109/J110/J111, each 1×2 | M1/M2/M3 reference switch respectively: pin 1 = REF to NC contact, pin 2 = GND to COM contact. |
-| J113, 2×4 | Nucleo UART/diagnostics: 1 = TX, 3 = RX, 4 = M2_INDEX, 5 = M2_DIAG, 6 = M3_INDEX, 7 = M3_DIAG; 2/8 = GND. |
+| J113, 2×4 | GIGA UART/diagnostics: 1 = TX, 3 = RX, 4 = M2_INDEX, 5 = M2_DIAG, 6 = M3_INDEX, 7 = M3_DIAG; 2/8 = GND. |
 
 J104 mounts horizontally at the top left, **wire entries toward row A**, beside
 both TMC2209 modules. Use a ten-way, single-row **5.08 mm** screw terminal with
@@ -191,7 +191,7 @@ J107 is horizontal immediately below J104. Its pin 1 is **L3**, with pins
 increasing to the right through pin 8 at **L10**. This keeps the encoder cable
 beside the other motor-1 connections without crowding the screw terminal.
 
-The Nucleo connectors share a straight left-edge bank. In the top view,
+The GIGA connectors share a straight left-edge bank. In the top view,
 double-row headers have odd pins up column 4 and even pins up column 3;
 J108 is a single column. Pin 1 is at the bottom of every header:
 
@@ -205,31 +205,42 @@ J108 is a single column. Pin 1 is at the bottom of every header:
 The 9.1 mm body gaps leave room to grip the cable plugs. Keep these cables
 exiting toward the left edge and the motor cables toward the top edge.
 
-J101 pin assignments: 1→PA0/CN10.29, 3→PE12/CN10.26,
-5→PB10/CN10.32, 7→PE13/CN10.10, 9→PB11/CN10.34,
-11→PE14/CN10.8, 12→PE15/CN10.30, 8→3V3/CN8.7,
-4→PF2/CN9.17 (ALM); grounds 2/6/10→CN11.8.
+J101 pin assignments use **Arduino labels**, with MCU pins in parentheses:
+
+| J101 pin | GIGA connection |
+| --- | --- |
+| 1 | A7 (PA0), M1 STEP |
+| 3 | D4 (PJ8), M1 DIR |
+| 4 | A3 (PB1), DM542T ALM |
+| 5 | D3 (PA2), M2 STEP |
+| 7 | D6 (PD13), M2 DIR |
+| 8 | 3V3 output |
+| 9 | D2 (PA3), M3 STEP |
+| 11 | D16 (PH13), M3 DIR |
+| 12 | D15 (PC7), shared active-low enable |
+| 2 / 6 / 10 | Common GND |
+
 In the top view, **J101 pin 1 is at Z4**, at the lower-right corner of the
 header. Odd pins run upward along column 4; even pins run upward along
 column 3, ending at pin 11 / U4 and pin 12 / U3. **Only pins 2/6/10 are GND.**
 Follow the square pin-1 pad when orienting the cable.
-All STEP pins use TIM2 output compare / AF1 (channels 1, 3, 4).
-PA0 uses SB75 ON; keep the user button on PC13 (SB58 OFF).
-PE9/PE11 and PC6/PC7 are reserved for future encoder inputs and have no cables fitted.
-Configure the onboard STLINK-V3 MCO to **HSE/5 = 5 MHz**, matching CubeMX's
-HSE bypass clock of this original Nucleo design. The GIGA uses its own crystal
-and different pin assignments.
-J102: 1→PB4/CN7.19, 3→PB5/CN7.13, 5→PB6/CN12.17.
-J108: 1→PE7/CN10.20, 2→PE8/CN10.18, 3→PE10/CN10.24;
-connect its shared ground (pin 4) to Nucleo CN10.22.
-Connect the ground conductors to Nucleo ground, common with buck output ground.
-The existing system schematic identifies CN11.8 as a Nucleo ground contact.
+All STEP pins use TIM2 output compare / AF1 (channels 1, 3, 4), owned by M4.
+The GIGA uses its own 16 MHz HSE crystal, with no ST-Link clock connection.
+R7 biases enable HIGH (disabled); R8/R9 pull M2/M3 STEP LOW. M1 STEP has
+its pull-down path through series R1 and base/emitter resistor R2.
 
-The four Nucleo harnesses carry 21 distinct signal/supply contacts and nine
+J102: 1→D7 (PB4), 3→D5 (PA7), 5→D53 (PG7); even pins are GND.
+J108: 1→D49 (PE4), 2→D51 (PE5), 3→D47 (PB2); pin 4 is GND.
+Connect all ground conductors to a common ground bus beside the GIGA,
+joined to a labelled GND contact on its power header and to perfboard GND.
+Power the GIGA through USB-C. Its 3V3 output feeds J101.8; **do not connect
+the buck's 5 V output to GIGA 5V, VIN or USB**.
+
+The four GIGA harnesses carry 21 distinct signal/supply contacts and nine
 shared-net ground returns. Pair each STEP and encoder signal with its assigned
 ground conductor; use shared returns for DIR/enable/ALM, reference switches and
 UART/diagnostics. Join returns at a small ground bus immediately beside the
-Nucleo, with a short solid connection to its GND. Keep these local harnesses
+GIGA, with a short solid connection to its GND. Keep these local harnesses
 short and separate from motor wiring. Do not use them as motor-power returns.
 All perfboard ground links in Wires.csv still need to be fitted.
 
@@ -239,14 +250,14 @@ Firmware overrides the straps for 1/16 microstepping. Keep both **SPRD jumpers
 open**. UART current settings bypass the onboard potentiometers.
 
 **J113 spans rows AE–AH, columns 3–4.** Pin 1 is AH4 and pin 2 is AH3;
-odd pins run up column 4, even pins up column 3. Connect 1→CN9.6 (PD5 TX),
-3→CN9.4 (PD6 RX), 5→CN9.8 (PD4 M2 DIAG), 7→CN9.10 (PD3 M3 DIAG),
-4→CN9.25 (PD0 M2 INDEX), 6→CN9.27 (PD1 M3 INDEX), with pins 2/8 returning
-to Nucleo GND. These are **CN9** contacts, not CN10 STEP pins.
+odd pins run up column 4, even pins up column 3. Connect 1→D18 (PD5 TX),
+3→D19 (PD6 RX), 5→A4 (PC3 M2 DIAG), 7→A6 (PC0 M3 DIAG),
+4→D8 (PB8 M2 INDEX), 6→D9 (PB9 M3 INDEX), with pins 2/8 returning
+to GIGA GND. These are Arduino silkscreen labels, not header contact numbers.
 
 **R29 is 1 kΩ, with leads at AB8 and AB12.** Its pin 1 connects to J113.1;
 its pin 2 joins J113.3 and both modules' pin 9 (UART). Only TX passes through
-the resistor. Module pin 7 is the respective DIAG signal; pin 8 (INDEX) connects to the respective PD0/PD1 feedback input. Fit the complete ten-pin headers. All bus signals are 3.3 V.
+the resistor. Module pin 7 is the respective DIAG signal; pin 8 (INDEX) connects to the respective PB8/PB9 feedback input. Fit the complete ten-pin headers. All bus signals are 3.3 V.
 
 ### Directly mounted TMC2209 modules
 
@@ -319,14 +330,14 @@ Their underside joints are the star points, not extra connections inside the
 screw clamps. Driver logic grounds join their local power grounds; the
 remaining logic ground joins the buck output ground. Follow the specified
 return paths instead of using thin signal-ground wires for motor power.
-The Nucleo 5 V supply remains a separate branch from the buck output;
-J101 carries the Nucleo's 3.3 V output.
+The GIGA is powered independently through USB-C. J101 carries its 3.3 V
+output and common ground; buck 5 V supplies only the DM542T signal and encoder circuits.
 
 ### Reference-switch cables
 
 The three switch headers occupy the lower-right area: J109 pin 1 is **BC41**,
 J110 pin 1 is **BG41**, and J111 pin 1 is **BK41**. Each switch header's
-adjacent pin 2 is ground. J108 returns their signals to the Nucleo from the
+adjacent pin 2 is ground. J108 returns their signals to the GIGA from the
 left-edge connector bank, with pin 1 at **AW3**. Follow Wires.csv for each
 REF and GND route and any top-side crossovers.
 
@@ -337,21 +348,22 @@ when released and opens when pressed. Connect that pair to its REF/GND cable;
 leave the remaining contact unused. Do not apply power based on `V/G/S`
 silkscreen labels. Only the unpopulated dry-contact version is represented.
 
-The Nucleo supplies the signal bias through its configured internal **3.3 V
+The GIGA supplies the signal bias through its configured internal **3.3 V
 pull-ups**: low = released, high = pressed or unplugged. The perfboard adds no
 pull-up, debounce or filter components. Route each signal with its ground
 return away from motor wiring. Before motion use, validate noise immunity and
-contact debounce with the actual cables; filtering and homing/stop logic are
-not implemented by this wiring addition.
+contact debounce with the actual cables. M4 firmware implements homing and
+motion-stop behavior; the perfboard itself contains only the switch wiring.
 
-The Nucleo, DM542T, motors, reference switches and storage modules remain
-external. U1/A3/A4 sit directly on J103/J105/J106. **24 V driver supply
+The GIGA, DM542T, motors and reference switches remain external. U1/A3/A4 sit directly on J103/J105/J106. **24 V driver supply
 currents use the designated underside power wiring**; winding cables run
 directly from each driver to its motor.
 Connect those parts as shown in
 [the system wiring schematic](../exports/Wiring.pdf). In particular,
-the Nucleo's 5 V input is supplied separately from the buck; J101 supplies this
-interface with the Nucleo's 3.3 V output, not the other way around.
+the GIGA uses USB-C power and supplies the interface with 3.3 V through
+J101.8. Its ground is common with the buck; their 5 V supplies are not joined.
+The GIGA owns its QSPI and filesystem storage; no external flash or SD module
+is connected through this perfboard.
 
 ## Checks
 
@@ -366,7 +378,7 @@ The model uses project-local footprints and PTH/via graphics to represent real
 component holes and wire passages. Manufacturing silkscreen and missing-courtyard
 checks are waived for this assembly map; electrical clearance, unconnected-pad,
 schematic-parity and library-consistency checks remain enabled. Passing those checks does
-not verify a soldered assembly. Before fitting ICs or attaching the Nucleo,
+not verify a soldered assembly. Before fitting ICs or attaching the GIGA,
 check continuity against the wire table and verify the 5 V and 3.3 V supplies
 are separate and neither is shorted to ground.
 

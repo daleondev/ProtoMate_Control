@@ -7,11 +7,13 @@ PASS: 139 scheduled connections span all 45 connected nets.
 PASS: 83 underside-only wires; 56 wires use 57 crossovers with dedicated free holes.
 PASS: at most three scheduled wire ends per component solder joint.
 PASS: 82 header positions and their external destinations match the schematic.
-PASS: four Nucleo harnesses; 21 distinct signal/supply contacts and nine ground returns.
+PASS: four GIGA harnesses; 21 distinct signal/supply contacts and nine ground returns.
 PASS: STEP and encoder pairs retain ground returns; reference/UART/DIAG share returns; ALM uses J101.4.
-PASS: 33 motor, encoder, reference and storage contacts match the Nucleo schematic.
-NOT CHECKED: firmware compatibility; no --ioc supplied. This project retains the original Nucleo wiring.
-PASS: DM542T ALM uses PF2/CN9.17, 4.7k pull-up to 3.3 V and GND return; high = fault/open.
+PASS: 20 motor, encoder, reference and driver contacts match the GIGA schematic.
+PASS: CubeMX pins, M4 ownership, labels, input pulls/edges, UART and disabled startup match wiring: /home/david/Dokumente/ProtoMate_Control/external/CubeMX/CubeMX.ioc
+PASS: GIGA has only signal/3V3/GND connections; no buck 5 V feed or external storage bus.
+PASS: existing R7 enable pull-up and R1/R2, R8/R9 STEP pull-down paths remain fitted.
+PASS: DM542T ALM uses A3/PB1, 4.7k pull-up to 3.3 V and GND return; high = fault/open.
 PASS: shared UART bus, 1k TX resistor and driver address straps 0/1 match system wiring.
 PASS: all three module bodies fit; direct mounting contacts match system wiring.
 PASS: J104 combines DM542T control 1-6, ALM 7/8 and 24 V/GND 9/10 in one outward-facing screw terminal.
@@ -22,11 +24,10 @@ PASS: all parts on top; R10-R12 are DNP; 24 V and logic rails remain distinct.
 Native ERC and DRC (including schematic parity): see ERC.rpt and DRC.rpt.
 Wire endpoints/passages are checked; routing lengths and sides need review after route edits.
 This checks the wiring model, not an assembled circuit or transistor switching speed.
-Board SHA256: 30fcef69b7aa7dd4e57ba6b380ee6207f0995d68f362f3db74b9a6b8cbc654f6
-ProtoMate.kicad_sch SHA256: 09a5c3463fdc40b66cb12ac9936f201c82d5207fbc3ce808b07b07dec89039ad
-sheets/M1_DM542T.kicad_sch SHA256: 8dcadb967e0561bd023220f1c8ba9ea5795c5292530b806278a4e74caedd17f5
-sheets/M1_Encoder.kicad_sch SHA256: be5309fec5e61dd4de375c13dba40f8bd4a10a357447ce463ce407d741e9e460
-sheets/M2_M3_TMC2209.kicad_sch SHA256: 48026943bdbacefe3466fb50d9062d4ef189d35e49bc0d725a8893cb71012f0b
-sheets/Perfboard_Connectors.kicad_sch SHA256: 476e94d918186a561abfc8f5f3e745fe0a8aeeef77368006b1253999748c86e4
-sheets/Reference_Switches.kicad_sch SHA256: a9e4a10683cf57dea1fc10bef198f9211632064f8b9cf67e9408de7a810dd883
-sheets/Storage.kicad_sch SHA256: 05e746f4934a312b0a44f53c42a7ce1028f44eb125290488ca6e03564e129aa5
+Board SHA256: f761c1e14f85985cadf89aa6d7cd23d781109aa2a17546e4dd88a55803b3fc6b
+ProtoMate.kicad_sch SHA256: 289065a17ef391b0aef55363c3aabd1e2d05a1e4399a4867b5b405e05034b419
+sheets/M1_DM542T.kicad_sch SHA256: a0db992db9e13b5ccc6f79f714b3556153ee65bf4955fcf4214268a376029f23
+sheets/M1_Encoder.kicad_sch SHA256: 63f71f8f8bb98fd98a23362e9734721a9ce2a80467ab96ecb4424c1d8312763d
+sheets/M2_M3_TMC2209.kicad_sch SHA256: d97544fc2d0f57a73a51209c65c55edec7ea16b8d14716858a073d72d9a21c63
+sheets/Perfboard_Connectors.kicad_sch SHA256: 9d368faa3a29cf5ebf6cd30db2a882f99229c72cce888829b39d6105f38266c8
+sheets/Reference_Switches.kicad_sch SHA256: 6a08a35dd41271264a0a50868852746d4526f7b52420235157a369ccecd14d6b

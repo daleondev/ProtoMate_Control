@@ -1068,6 +1068,10 @@ The STEP backend forces OC inactive before switching GPIOs into timer AF mode.
 
 Retain the established voltage-conversion circuits and shared TMC UART wiring.
 M2/M3 addresses are 0/1, microstepping is 1/16 and stealthChop is the default.
+The [motor perfboard KiCad project](hardware/perfboard/README.md) provides the
+GIGA wiring schematic, hand-soldering layout and complete harness table. Power
+the GIGA through USB-C; the perfboard receives its 3.3 V output and shares ground,
+while the buck's 5 V output stays on the motor-interface board.
 Reference inputs use pull-ups and both edges; LOW is the healthy NC circuit,
 HIGH means switch activation or an open cable. ALM is pulled up; DIAG/INDEX are
 pulled down. GPIO callbacks and motion-blocking rules retain their existing
