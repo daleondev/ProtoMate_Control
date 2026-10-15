@@ -25,3 +25,6 @@
 [submodule "external/SOES"]
 	path = external/SOES
 	url = git@github.com:OpenEtherCATsociety/SOES.git
+[submodule "external/stm32-usb-device"]
+	path = external/stm32-usb-device
+	url = git@github.com:STMicroelectronics/stm32-mw-usb-device.git
