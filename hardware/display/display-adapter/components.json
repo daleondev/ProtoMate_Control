@@ -60,7 +60,7 @@
     },
     "pos": [
       27.5,
-      23.0,
+      23,
       180,
       "B"
     ],
@@ -77,9 +77,9 @@
     "mpn": "FH28H-80S-0.5SH(05)",
     "footprint": "FH28H-80S-0.5SH",
     "nets": {
-      "80": "GND",
+      "80": "+24V_DISPLAY",
       "79": "GND",
-      "78": "+3V3_PANEL",
+      "78": "+24V_DISPLAY",
       "77": "GND",
       "76": "+3V3_PANEL",
       "75": "GND",
@@ -162,7 +162,7 @@
     },
     "pos": [
       27.5,
-      7.0,
+      7,
       0,
       "F"
     ],
@@ -172,115 +172,70 @@
     "sheet_uuid": "cf5962c3-c032-5d87-b92a-3dd219e20aca"
   },
   {
-    "ref": "J3",
-    "kind": "POWER",
-    "value": "3.3V INPUT",
-    "mfr": "Phoenix Contact",
-    "mpn": "1751248",
-    "footprint": "TerminalBlock_1x02_P3.50mm",
+    "ref": "U1",
+    "kind": "BUCK33",
+    "value": "TSR 2-2433 / 3.3V 2A",
+    "mfr": "TRACO Power",
+    "mpn": "TSR 2-2433",
+    "footprint": "Converter_DCDC_TRACO_TSR2-xxxx_THT",
     "nets": {
-      "1": "+3V3_INPUT",
-      "2": "GND"
+      "1": "+24V_DISPLAY",
+      "2": "GND",
+      "3": "+3V3_PANEL"
     },
     "pos": [
-      6.0,
-      24.0,
-      0,
+      10,
+      26,
+      180,
       "F"
     ],
     "page": "power",
     "assembly": "HAND",
-    "uuid": "b81d0354-15a9-5253-b9e9-7653e59f0275",
+    "uuid": "f383fc04-b41f-59fb-9b26-b4cbf0562030",
     "sheet_uuid": "226852bb-9991-58dd-a166-d40f4e3ee0ce"
   },
   {
-    "ref": "F1",
-    "kind": "FUSE",
-    "value": "2.5A fast fuse",
-    "mfr": "Littelfuse",
-    "mpn": "046702.5NRHF",
-    "footprint": "Fuse_0603_1608Metric",
+    "ref": "C9",
+    "kind": "C10U50",
+    "value": "10u / 50V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM32ER71H106KA12L",
+    "footprint": "C_1210_3225Metric",
     "nets": {
-      "1": "+3V3_INPUT",
-      "2": "+3V3_FUSED"
-    },
-    "pos": [
-      13.5,
-      26.0,
-      0,
-      "F"
-    ],
-    "page": "power",
-    "assembly": "SMT",
-    "uuid": "9140c28f-f890-5265-be91-e87bbafa9d91",
-    "sheet_uuid": "226852bb-9991-58dd-a166-d40f4e3ee0ce"
-  },
-  {
-    "ref": "Q1",
-    "kind": "PMOS",
-    "value": "DMP2035U-7",
-    "mfr": "Diodes Incorporated",
-    "mpn": "DMP2035U-7",
-    "footprint": "SOT-23",
-    "nets": {
-      "1": "PWR_GATE",
-      "2": "+3V3_PANEL",
-      "3": "+3V3_FUSED"
-    },
-    "pos": [
-      16.0,
-      29.0,
-      0,
-      "F"
-    ],
-    "page": "power",
-    "assembly": "SMT",
-    "uuid": "40199b4f-bb7d-5597-bdae-335d23f76544",
-    "sheet_uuid": "226852bb-9991-58dd-a166-d40f4e3ee0ce"
-  },
-  {
-    "ref": "Q2",
-    "kind": "PMOS",
-    "value": "DMP2035U-7",
-    "mfr": "Diodes Incorporated",
-    "mpn": "DMP2035U-7",
-    "footprint": "SOT-23",
-    "nets": {
-      "1": "PWR_GATE",
-      "2": "+3V3_PANEL",
-      "3": "+3V3_FUSED"
-    },
-    "pos": [
-      16.0,
-      33.0,
-      0,
-      "F"
-    ],
-    "page": "power",
-    "assembly": "SMT",
-    "uuid": "7de6b522-5538-568d-8506-e1ae97258091",
-    "sheet_uuid": "226852bb-9991-58dd-a166-d40f4e3ee0ce"
-  },
-  {
-    "ref": "R1",
-    "kind": "R100K",
-    "value": "100k",
-    "mfr": "Yageo",
-    "mpn": "RC0402FR-07100KL",
-    "footprint": "R_0402_1005Metric",
-    "nets": {
-      "1": "PWR_GATE",
+      "1": "+24V_DISPLAY",
       "2": "GND"
     },
     "pos": [
-      13.0,
-      31.0,
+      17,
+      29,
+      90,
+      "F"
+    ],
+    "page": "power",
+    "assembly": "SMT",
+    "uuid": "5b21fab6-affe-59a3-bec5-ee18519a7d9f",
+    "sheet_uuid": "226852bb-9991-58dd-a166-d40f4e3ee0ce"
+  },
+  {
+    "ref": "C10",
+    "kind": "C100N50",
+    "value": "100n / 50V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM188R71H104KA93D",
+    "footprint": "C_0603_1608Metric",
+    "nets": {
+      "1": "+24V_DISPLAY",
+      "2": "GND"
+    },
+    "pos": [
+      17,
+      25,
       0,
       "F"
     ],
     "page": "power",
     "assembly": "SMT",
-    "uuid": "5a366a1e-1135-5dbf-bfeb-61c234121a81",
+    "uuid": "b5ff72ff-22fc-592f-b460-87ff318d6d86",
     "sheet_uuid": "226852bb-9991-58dd-a166-d40f4e3ee0ce"
   },
   {
@@ -295,8 +250,8 @@
       "2": "GND"
     },
     "pos": [
-      22.0,
-      31.0,
+      22,
+      31,
       90,
       "F"
     ],
@@ -317,8 +272,8 @@
       "2": "GND"
     },
     "pos": [
-      26.0,
-      31.0,
+      26,
+      31,
       90,
       "F"
     ],
@@ -339,8 +294,8 @@
       "2": "GND"
     },
     "pos": [
-      30.0,
-      31.0,
+      30,
+      31,
       90,
       "F"
     ],
@@ -361,8 +316,8 @@
       "2": "GND"
     },
     "pos": [
-      34.0,
-      31.0,
+      34,
+      31,
       90,
       "F"
     ],
@@ -383,8 +338,8 @@
       "2": "GND"
     },
     "pos": [
-      18.0,
-      20.0,
+      18,
+      20,
       0,
       "F"
     ],
@@ -405,8 +360,8 @@
       "2": "GND"
     },
     "pos": [
-      36.0,
-      20.0,
+      36,
+      20,
       0,
       "F"
     ],
@@ -427,8 +382,8 @@
       "2": "GND"
     },
     "pos": [
-      20.0,
-      17.0,
+      20,
+      17,
       0,
       "F"
     ],
@@ -449,8 +404,8 @@
       "2": "GND"
     },
     "pos": [
-      36.0,
-      23.0,
+      36,
+      23,
       0,
       "F"
     ],
@@ -471,8 +426,8 @@
       "2": "GND"
     },
     "pos": [
-      39.0,
-      26.0,
+      39,
+      26,
       0,
       "F"
     ],
@@ -493,8 +448,8 @@
       "2": "GND"
     },
     "pos": [
-      39.0,
-      28.0,
+      39,
+      28,
       0,
       "F"
     ],
@@ -515,8 +470,8 @@
       "2": "GND"
     },
     "pos": [
-      39.0,
-      30.0,
+      39,
+      30,
       0,
       "F"
     ],
@@ -537,8 +492,8 @@
       "2": "GND"
     },
     "pos": [
-      39.0,
-      32.0,
+      39,
+      32,
       0,
       "F"
     ],
@@ -559,8 +514,8 @@
       "2": "+3V3_PANEL"
     },
     "pos": [
-      46.0,
-      25.0,
+      46,
+      25,
       0,
       "F"
     ],
@@ -581,8 +536,8 @@
       "2": "+3V3_PANEL"
     },
     "pos": [
-      46.0,
-      28.0,
+      46,
+      28,
       0,
       "F"
     ],
@@ -603,8 +558,8 @@
       "2": "+3V3_PANEL"
     },
     "pos": [
-      46.0,
-      31.0,
+      46,
+      31,
       0,
       "F"
     ],
@@ -624,8 +579,8 @@
       "1": "+3V3_PANEL"
     },
     "pos": [
-      5.0,
-      18.0,
+      4.5,
+      18,
       0,
       "F"
     ],
@@ -645,8 +600,8 @@
       "1": "GND"
     },
     "pos": [
-      7.0,
-      18.0,
+      4.5,
+      20,
       0,
       "F"
     ],
@@ -666,8 +621,8 @@
       "1": "LCD_PCLK"
     },
     "pos": [
-      38.0,
-      18.0,
+      38,
+      18,
       0,
       "F"
     ],
@@ -687,8 +642,8 @@
       "1": "GND"
     },
     "pos": [
-      40.0,
-      18.0,
+      40,
+      18,
       0,
       "F"
     ],
@@ -708,8 +663,8 @@
       "1": "LCD_SDA"
     },
     "pos": [
-      47.0,
-      18.0,
+      47,
+      18,
       0,
       "F"
     ],
@@ -729,8 +684,8 @@
       "1": "LCD_SCL"
     },
     "pos": [
-      50.0,
-      18.0,
+      50,
+      18,
       0,
       "F"
     ],

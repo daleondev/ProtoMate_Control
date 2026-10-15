@@ -11,7 +11,7 @@
   "inner_entry_hole_diameter_mm": 1.1,
   "pin_square_diagonal_mm": 0.905096679918781,
   "display_connector_mated_plane_mm": 1.5,
-  "display_terminal_max_tail_below_pcb_mm": 0.8,
+  "display_converter_max_tail_below_pcb_mm": 0.8,
   "qualifications": [
     "Official GIGA STEP omits outer socket bodies; added 8.5mm nominal envelopes are identified, not manufacturer models.",
     "Hirose models are drawing-based envelopes, not production-tooling models.",

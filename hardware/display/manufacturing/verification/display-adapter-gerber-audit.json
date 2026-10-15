@@ -1,12 +1,12 @@
 {
   "board": "display-adapter",
   "result": "PASS",
-  "exported_pad_coordinates_and_nets_checked": 182,
-  "drill_hits_checked": 161,
+  "exported_pad_coordinates_and_nets_checked": 178,
+  "drill_hits_checked": 155,
   "ffc_paste_windows_checked": 80,
   "layers": {
     "top-copper": {
-      "objects": 769,
+      "objects": 842,
       "bounds_mm": [
         [
           0.3005,
@@ -19,11 +19,11 @@
       ]
     },
     "top-mask": {
-      "objects": 137,
+      "objects": 132,
       "bounds_mm": [
         [
           1.868499,
-          0.715
+          1.868499
         ],
         [
           53.131501,
@@ -32,11 +32,11 @@
       ]
     },
     "top-silk": {
-      "objects": 644,
+      "objects": 580,
       "bounds_mm": [
         [
           1.868499,
-          0.38
+          1.3722290000000001
         ],
         [
           53.131501,
@@ -45,11 +45,11 @@
       ]
     },
     "top-paste": {
-      "objects": 122,
+      "objects": 116,
       "bounds_mm": [
         [
           4.15,
-          0.75
+          1.95
         ],
         [
           50.849999999999994,
@@ -58,7 +58,7 @@
       ]
     },
     "bottom-copper": {
-      "objects": 574,
+      "objects": 639,
       "bounds_mm": [
         [
           0.3005,
@@ -71,7 +71,7 @@
       ]
     },
     "bottom-mask": {
-      "objects": 59,
+      "objects": 60,
       "bounds_mm": [
         [
           1.868499,
@@ -84,7 +84,7 @@
       ]
     },
     "bottom-silk": {
-      "objects": 154,
+      "objects": 242,
       "bounds_mm": [
         [
           1.868499,

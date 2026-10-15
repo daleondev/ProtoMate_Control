@@ -1,12 +1,12 @@
 {
   "board": "giga-adapter",
   "result": "PASS",
-  "exported_pad_coordinates_and_nets_checked": 575,
-  "drill_hits_checked": 312,
+  "exported_pad_coordinates_and_nets_checked": 634,
+  "drill_hits_checked": 335,
   "ffc_paste_windows_checked": 80,
   "layers": {
     "top-copper": {
-      "objects": 1529,
+      "objects": 2327,
       "bounds_mm": [
         [
           17.921590000000002,
@@ -19,7 +19,7 @@
       ]
     },
     "top-mask": {
-      "objects": 472,
+      "objects": 526,
       "bounds_mm": [
         [
           12.364208,
@@ -32,7 +32,7 @@
       ]
     },
     "top-silk": {
-      "objects": 962,
+      "objects": 1116,
       "bounds_mm": [
         [
           12.364208,
@@ -45,7 +45,7 @@
       ]
     },
     "top-paste": {
-      "objects": 350,
+      "objects": 400,
       "bounds_mm": [
         [
           30.025,
@@ -58,7 +58,7 @@
       ]
     },
     "bottom-copper": {
-      "objects": 616,
+      "objects": 746,
       "bounds_mm": [
         [
           17.921590000000002,
@@ -71,7 +71,7 @@
       ]
     },
     "bottom-mask": {
-      "objects": 114,
+      "objects": 119,
       "bounds_mm": [
         [
           12.364208,
@@ -84,7 +84,7 @@
       ]
     },
     "bottom-silk": {
-      "objects": 204,
+      "objects": 268,
       "bounds_mm": [
         [
           12.364208,
@@ -101,7 +101,7 @@
       "bounds_mm": null
     },
     "inner_1-copper": {
-      "objects": 309,
+      "objects": 332,
       "bounds_mm": [
         [
           11.3005,
@@ -114,7 +114,7 @@
       ]
     },
     "inner_2-copper": {
-      "objects": 765,
+      "objects": 838,
       "bounds_mm": [
         [
           17.921590000000002,
@@ -127,7 +127,7 @@
       ]
     },
     "mechanical-outline": {
-      "objects": 8,
+      "objects": 10,
       "bounds_mm": [
         [
           10.975,

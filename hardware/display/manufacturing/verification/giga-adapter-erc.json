@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.kicad.org/erc.v1.json",
     "coordinate_units": "mm",
-    "date": "2026-10-14T23:25:07",
+    "date": "2026-10-15T16:10:28",
     "ignored_checks": [],
     "included_severities": [
         "error",
@@ -42,6 +42,16 @@
         {
             "path": "/touch/",
             "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/b7f2b962-0824-5171-8ace-8ac871501314",
+            "violations": []
+        },
+        {
+            "path": "/power_input/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/a292052b-5cf9-5ca3-8d62-a3b86ad56ac7",
+            "violations": []
+        },
+        {
+            "path": "/power12/",
+            "uuid_path": "/347f2d75-53fc-5727-903f-c2947bd8a30d/d0588a50-c8b1-5b77-839e-aaff48d47765",
             "violations": []
         },
         {

@@ -1,6 +1,6 @@
 {
-  "revision": "B",
-  "SMT_reference_count": 21,
+  "revision": "C",
+  "SMT_reference_count": 19,
   "result": "PASS",
   "units": "mm",
   "origin": "X=0, lower board edge; positive Y up; bottom X not negated",

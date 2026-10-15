@@ -2,13 +2,13 @@
 <export version="E">
   <design>
     <source>/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display-adapter.kicad_sch</source>
-    <date>2026-10-15T14:39:16</date>
+    <date>2026-10-15T16:07:09</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>display-adapter / Smartwin display interface</title>
         <company>ProtoMate</company>
-        <rev>B</rev>
+        <rev>C</rev>
         <date>2026-10-15</date>
         <source>display-adapter.kicad_sch</source>
         <comment number="1" value=""/>
@@ -26,7 +26,7 @@
       <title_block>
         <title>display-adapter / display</title>
         <company>ProtoMate</company>
-        <rev>B</rev>
+        <rev>C</rev>
         <date>2026-10-15</date>
         <source>display.kicad_sch</source>
         <comment number="1" value=""/>
@@ -44,7 +44,7 @@
       <title_block>
         <title>display-adapter / ribbon</title>
         <company>ProtoMate</company>
-        <rev>B</rev>
+        <rev>C</rev>
         <date>2026-10-15</date>
         <source>ribbon.kicad_sch</source>
         <comment number="1" value=""/>
@@ -62,7 +62,7 @@
       <title_block>
         <title>display-adapter / power</title>
         <company>ProtoMate</company>
-        <rev>B</rev>
+        <rev>C</rev>
         <date>2026-10-15</date>
         <source>power.kicad_sch</source>
         <comment number="1" value=""/>
@@ -486,25 +486,25 @@
         </unit>
       </units>
     </comp>
-    <comp ref="F1">
-      <value>2.5A fast fuse</value>
-      <footprint>DisplayAdapter:Fuse_0603_1608Metric</footprint>
+    <comp ref="C9">
+      <value>10u / 50V X7R</value>
+      <footprint>DisplayAdapter:C_1210_3225Metric</footprint>
       <fields>
-        <field name="Manufacturer">Littelfuse</field>
-        <field name="MPN">046702.5NRHF</field>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM32ER71H106KA12L</field>
         <field name="Assembly">SMT</field>
-        <field name="Footprint">DisplayAdapter:Fuse_0603_1608Metric</field>
+        <field name="Footprint">DisplayAdapter:C_1210_3225Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="DisplayAdapter" part="FUSE" description=""/>
-      <property name="Manufacturer" value="Littelfuse"/>
-      <property name="MPN" value="046702.5NRHF"/>
+      <libsource lib="DisplayAdapter" part="C10U50" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM32ER71H106KA12L"/>
       <property name="Assembly" value="SMT"/>
       <property name="Sheetname" value="power"/>
       <property name="Sheetfile" value="power.kicad_sch"/>
       <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
-      <tstamps>9140c28f-f890-5265-be91-e87bbafa9d91</tstamps>
+      <tstamps>5b21fab6-affe-59a3-bec5-ee18519a7d9f</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -514,111 +514,25 @@
         </unit>
       </units>
     </comp>
-    <comp ref="J3">
-      <value>3.3V INPUT</value>
-      <footprint>DisplayAdapter:TerminalBlock_1x02_P3.50mm</footprint>
+    <comp ref="C10">
+      <value>100n / 50V X7R</value>
+      <footprint>DisplayAdapter:C_0603_1608Metric</footprint>
       <fields>
-        <field name="Manufacturer">Phoenix Contact</field>
-        <field name="MPN">1751248</field>
-        <field name="Assembly">HAND</field>
-        <field name="Footprint">DisplayAdapter:TerminalBlock_1x02_P3.50mm</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <libsource lib="DisplayAdapter" part="POWER" description=""/>
-      <property name="Manufacturer" value="Phoenix Contact"/>
-      <property name="MPN" value="1751248"/>
-      <property name="Assembly" value="HAND"/>
-      <property name="Sheetname" value="power"/>
-      <property name="Sheetfile" value="power.kicad_sch"/>
-      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
-      <tstamps>b81d0354-15a9-5253-b9e9-7653e59f0275</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
-    <comp ref="Q1">
-      <value>DMP2035U-7</value>
-      <footprint>DisplayAdapter:SOT-23</footprint>
-      <fields>
-        <field name="Manufacturer">Diodes Incorporated</field>
-        <field name="MPN">DMP2035U-7</field>
+        <field name="Manufacturer">Murata</field>
+        <field name="MPN">GRM188R71H104KA93D</field>
         <field name="Assembly">SMT</field>
-        <field name="Footprint">DisplayAdapter:SOT-23</field>
+        <field name="Footprint">DisplayAdapter:C_0603_1608Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="DisplayAdapter" part="PMOS" description=""/>
-      <property name="Manufacturer" value="Diodes Incorporated"/>
-      <property name="MPN" value="DMP2035U-7"/>
+      <libsource lib="DisplayAdapter" part="C100N50" description=""/>
+      <property name="Manufacturer" value="Murata"/>
+      <property name="MPN" value="GRM188R71H104KA93D"/>
       <property name="Assembly" value="SMT"/>
       <property name="Sheetname" value="power"/>
       <property name="Sheetfile" value="power.kicad_sch"/>
       <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
-      <tstamps>40199b4f-bb7d-5597-bdae-335d23f76544</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="3"/>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
-    <comp ref="Q2">
-      <value>DMP2035U-7</value>
-      <footprint>DisplayAdapter:SOT-23</footprint>
-      <fields>
-        <field name="Manufacturer">Diodes Incorporated</field>
-        <field name="MPN">DMP2035U-7</field>
-        <field name="Assembly">SMT</field>
-        <field name="Footprint">DisplayAdapter:SOT-23</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <libsource lib="DisplayAdapter" part="PMOS" description=""/>
-      <property name="Manufacturer" value="Diodes Incorporated"/>
-      <property name="MPN" value="DMP2035U-7"/>
-      <property name="Assembly" value="SMT"/>
-      <property name="Sheetname" value="power"/>
-      <property name="Sheetfile" value="power.kicad_sch"/>
-      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
-      <tstamps>7de6b522-5538-568d-8506-e1ae97258091</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="3"/>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
-    <comp ref="R1">
-      <value>100k</value>
-      <footprint>DisplayAdapter:R_0402_1005Metric</footprint>
-      <fields>
-        <field name="Manufacturer">Yageo</field>
-        <field name="MPN">RC0402FR-07100KL</field>
-        <field name="Assembly">SMT</field>
-        <field name="Footprint">DisplayAdapter:R_0402_1005Metric</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <libsource lib="DisplayAdapter" part="R100K" description=""/>
-      <property name="Manufacturer" value="Yageo"/>
-      <property name="MPN" value="RC0402FR-07100KL"/>
-      <property name="Assembly" value="SMT"/>
-      <property name="Sheetname" value="power"/>
-      <property name="Sheetfile" value="power.kicad_sch"/>
-      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
-      <tstamps>5a366a1e-1135-5dbf-bfeb-61c234121a81</tstamps>
+      <tstamps>b5ff72ff-22fc-592f-b460-87ff318d6d86</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -992,8 +906,51 @@
         </unit>
       </units>
     </comp>
+    <comp ref="U1">
+      <value>TSR 2-2433 / 3.3V 2A</value>
+      <footprint>DisplayAdapter:Converter_DCDC_TRACO_TSR2-xxxx_THT</footprint>
+      <fields>
+        <field name="Manufacturer">TRACO Power</field>
+        <field name="MPN">TSR 2-2433</field>
+        <field name="Assembly">HAND</field>
+        <field name="Footprint">DisplayAdapter:Converter_DCDC_TRACO_TSR2-xxxx_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="DisplayAdapter" part="BUCK33" description=""/>
+      <property name="Manufacturer" value="TRACO Power"/>
+      <property name="MPN" value="TSR 2-2433"/>
+      <property name="Assembly" value="HAND"/>
+      <property name="Sheetname" value="power"/>
+      <property name="Sheetfile" value="power.kicad_sch"/>
+      <sheetpath names="/power/" tstamps="/226852bb-9991-58dd-a166-d40f4e3ee0ce/"/>
+      <tstamps>f383fc04-b41f-59fb-9b26-b4cbf0562030</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
   </components>
   <libparts>
+    <libpart lib="DisplayAdapter" part="BUCK33">
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">TSR 2-2433 / 3.3V 2A</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="VIN" type="passive"/>
+        <pin num="2" name="GND" type="passive"/>
+        <pin num="3" name="VOUT" type="passive"/>
+      </pins>
+    </libpart>
     <libpart lib="DisplayAdapter" part="C100N">
       <fields>
         <field name="Reference">C</field>
@@ -1007,10 +964,36 @@
         <pin num="2" name="2" type="passive"/>
       </pins>
     </libpart>
+    <libpart lib="DisplayAdapter" part="C100N50">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">100n / 50V X7R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
     <libpart lib="DisplayAdapter" part="C10U">
       <fields>
         <field name="Reference">C</field>
         <field name="Value">10u / 10V X5R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="DisplayAdapter" part="C10U50">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">10u / 50V X7R</field>
         <field name="Footprint"/>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1187,59 +1170,6 @@
         <pin num="MP2" name="MP2" type="passive"/>
       </pins>
     </libpart>
-    <libpart lib="DisplayAdapter" part="FUSE">
-      <fields>
-        <field name="Reference">F</field>
-        <field name="Value">2.5A fast fuse</field>
-        <field name="Footprint"/>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <pins>
-        <pin num="1" name="1" type="passive"/>
-        <pin num="2" name="2" type="passive"/>
-      </pins>
-    </libpart>
-    <libpart lib="DisplayAdapter" part="PMOS">
-      <fields>
-        <field name="Reference">Q</field>
-        <field name="Value">DMP2035U-7</field>
-        <field name="Footprint"/>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <pins>
-        <pin num="1" name="G" type="input"/>
-        <pin num="2" name="S_/_PROTECTED" type="passive"/>
-        <pin num="3" name="D_/_INPUT" type="passive"/>
-      </pins>
-    </libpart>
-    <libpart lib="DisplayAdapter" part="POWER">
-      <fields>
-        <field name="Reference">J</field>
-        <field name="Value">3.3V INPUT</field>
-        <field name="Footprint"/>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <pins>
-        <pin num="1" name="1" type="passive"/>
-        <pin num="2" name="2" type="passive"/>
-      </pins>
-    </libpart>
-    <libpart lib="DisplayAdapter" part="R100K">
-      <fields>
-        <field name="Reference">R</field>
-        <field name="Value">100k</field>
-        <field name="Footprint"/>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <pins>
-        <pin num="1" name="1" type="passive"/>
-        <pin num="2" name="2" type="passive"/>
-      </pins>
-    </libpart>
     <libpart lib="DisplayAdapter" part="R47K">
       <fields>
         <field name="Reference">R</field>
@@ -1285,16 +1215,7 @@
     </library>
   </libraries>
   <nets>
-    <net code="1" name="+3V3_FUSED" class="Default">
-      <node ref="F1" pin="2" pinfunction="2_2" pintype="passive"/>
-      <node ref="Q1" pin="3" pinfunction="D_/_INPUT_3" pintype="passive"/>
-      <node ref="Q2" pin="3" pinfunction="D_/_INPUT_3" pintype="passive"/>
-    </net>
-    <net code="2" name="+3V3_INPUT" class="Default">
-      <node ref="F1" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="J3" pin="1" pinfunction="1_1" pintype="passive"/>
-    </net>
-    <net code="3" name="+3V3_PANEL" class="Default">
+    <net code="1" name="+3V3_PANEL" class="Default">
       <node ref="C1" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C2" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C3" pin="1" pinfunction="1_1" pintype="passive"/>
@@ -1312,16 +1233,22 @@
       <node ref="J2" pin="72" pinfunction="72_72" pintype="passive"/>
       <node ref="J2" pin="74" pinfunction="74_74" pintype="passive"/>
       <node ref="J2" pin="76" pinfunction="76_76" pintype="passive"/>
-      <node ref="J2" pin="78" pinfunction="78_78" pintype="passive"/>
-      <node ref="Q1" pin="2" pinfunction="S_/_PROTECTED_2" pintype="passive"/>
-      <node ref="Q2" pin="2" pinfunction="S_/_PROTECTED_2" pintype="passive"/>
       <node ref="R6" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R7" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R8" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="TP1" pin="1" pinfunction="PROBE_1" pintype="passive"/>
+      <node ref="U1" pin="3" pinfunction="VOUT_3" pintype="passive"/>
     </net>
-    <net code="4" name="GND" class="Default">
+    <net code="2" name="+24V_DISPLAY" class="Default">
+      <node ref="C10" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C9" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J2" pin="78" pinfunction="78_78" pintype="passive"/>
+      <node ref="J2" pin="80" pinfunction="80_80" pintype="passive"/>
+      <node ref="U1" pin="1" pinfunction="VIN_1" pintype="passive"/>
+    </net>
+    <net code="3" name="GND" class="Default">
       <node ref="C1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C10" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C2" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C3" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C4" pin="2" pinfunction="2_2" pintype="passive"/>
@@ -1329,6 +1256,7 @@
       <node ref="C6" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C7" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C8" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C9" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="J1" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="J1" pin="11" pinfunction="11_11" pintype="passive"/>
       <node ref="J1" pin="2" pinfunction="2_2" pintype="passive"/>
@@ -1377,173 +1305,166 @@
       <node ref="J2" pin="75" pinfunction="75_75" pintype="passive"/>
       <node ref="J2" pin="77" pinfunction="77_77" pintype="passive"/>
       <node ref="J2" pin="79" pinfunction="79_79" pintype="passive"/>
-      <node ref="J2" pin="80" pinfunction="80_80" pintype="passive"/>
       <node ref="J2" pin="9" pinfunction="9_9" pintype="passive"/>
       <node ref="J2" pin="MP1" pinfunction="MP1_MP1" pintype="passive"/>
       <node ref="J2" pin="MP2" pinfunction="MP2_MP2" pintype="passive"/>
-      <node ref="J3" pin="2" pinfunction="2_2" pintype="passive"/>
-      <node ref="R1" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R2" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R3" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R4" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R5" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="TP2" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="TP4" pin="1" pinfunction="PROBE_1" pintype="passive"/>
+      <node ref="U1" pin="2" pinfunction="GND_2" pintype="passive"/>
     </net>
-    <net code="5" name="LCD_B0" class="Default">
+    <net code="4" name="LCD_B0" class="Default">
       <node ref="J1" pin="28" pinfunction="28_28" pintype="passive"/>
       <node ref="J2" pin="18" pinfunction="18_18" pintype="passive"/>
     </net>
-    <net code="6" name="LCD_B1" class="Default">
+    <net code="5" name="LCD_B1" class="Default">
       <node ref="J1" pin="29" pinfunction="29_29" pintype="passive"/>
       <node ref="J2" pin="20" pinfunction="20_20" pintype="passive"/>
     </net>
-    <net code="7" name="LCD_B2" class="Default">
+    <net code="6" name="LCD_B2" class="Default">
       <node ref="J1" pin="30" pinfunction="30_30" pintype="passive"/>
       <node ref="J2" pin="22" pinfunction="22_22" pintype="passive"/>
     </net>
-    <net code="8" name="LCD_B3" class="Default">
+    <net code="7" name="LCD_B3" class="Default">
       <node ref="J1" pin="31" pinfunction="31_31" pintype="passive"/>
       <node ref="J2" pin="24" pinfunction="24_24" pintype="passive"/>
     </net>
-    <net code="9" name="LCD_B4" class="Default">
+    <net code="8" name="LCD_B4" class="Default">
       <node ref="J1" pin="32" pinfunction="32_32" pintype="passive"/>
       <node ref="J2" pin="26" pinfunction="26_26" pintype="passive"/>
     </net>
-    <net code="10" name="LCD_B5" class="Default">
+    <net code="9" name="LCD_B5" class="Default">
       <node ref="J1" pin="33" pinfunction="33_33" pintype="passive"/>
       <node ref="J2" pin="28" pinfunction="28_28" pintype="passive"/>
     </net>
-    <net code="11" name="LCD_B6" class="Default">
+    <net code="10" name="LCD_B6" class="Default">
       <node ref="J1" pin="34" pinfunction="34_34" pintype="passive"/>
       <node ref="J2" pin="30" pinfunction="30_30" pintype="passive"/>
     </net>
-    <net code="12" name="LCD_B7" class="Default">
+    <net code="11" name="LCD_B7" class="Default">
       <node ref="J1" pin="35" pinfunction="35_35" pintype="passive"/>
       <node ref="J2" pin="32" pinfunction="32_32" pintype="passive"/>
     </net>
-    <net code="13" name="LCD_DE" class="Default">
+    <net code="12" name="LCD_DE" class="Default">
       <node ref="J1" pin="39" pinfunction="39_39" pintype="passive"/>
       <node ref="J2" pin="52" pinfunction="52_52" pintype="passive"/>
     </net>
-    <net code="14" name="LCD_G0" class="Default">
+    <net code="13" name="LCD_G0" class="Default">
       <node ref="J1" pin="20" pinfunction="20_20" pintype="passive"/>
       <node ref="J2" pin="34" pinfunction="34_34" pintype="passive"/>
     </net>
-    <net code="15" name="LCD_G1" class="Default">
+    <net code="14" name="LCD_G1" class="Default">
       <node ref="J1" pin="21" pinfunction="21_21" pintype="passive"/>
       <node ref="J2" pin="36" pinfunction="36_36" pintype="passive"/>
     </net>
-    <net code="16" name="LCD_G2" class="Default">
+    <net code="15" name="LCD_G2" class="Default">
       <node ref="J1" pin="22" pinfunction="22_22" pintype="passive"/>
       <node ref="J2" pin="38" pinfunction="38_38" pintype="passive"/>
     </net>
-    <net code="17" name="LCD_G3" class="Default">
+    <net code="16" name="LCD_G3" class="Default">
       <node ref="J1" pin="23" pinfunction="23_23" pintype="passive"/>
       <node ref="J2" pin="40" pinfunction="40_40" pintype="passive"/>
     </net>
-    <net code="18" name="LCD_G4" class="Default">
+    <net code="17" name="LCD_G4" class="Default">
       <node ref="J1" pin="24" pinfunction="24_24" pintype="passive"/>
       <node ref="J2" pin="42" pinfunction="42_42" pintype="passive"/>
     </net>
-    <net code="19" name="LCD_G5" class="Default">
+    <net code="18" name="LCD_G5" class="Default">
       <node ref="J1" pin="25" pinfunction="25_25" pintype="passive"/>
       <node ref="J2" pin="44" pinfunction="44_44" pintype="passive"/>
     </net>
-    <net code="20" name="LCD_G6" class="Default">
+    <net code="19" name="LCD_G6" class="Default">
       <node ref="J1" pin="26" pinfunction="26_26" pintype="passive"/>
       <node ref="J2" pin="46" pinfunction="46_46" pintype="passive"/>
     </net>
-    <net code="21" name="LCD_G7" class="Default">
+    <net code="20" name="LCD_G7" class="Default">
       <node ref="J1" pin="27" pinfunction="27_27" pintype="passive"/>
       <node ref="J2" pin="48" pinfunction="48_48" pintype="passive"/>
     </net>
-    <net code="22" name="LCD_HSYNC" class="Default">
+    <net code="21" name="LCD_HSYNC" class="Default">
       <node ref="J1" pin="38" pinfunction="38_38" pintype="passive"/>
       <node ref="J2" pin="54" pinfunction="54_54" pintype="passive"/>
     </net>
-    <net code="23" name="LCD_PCLK" class="Default">
+    <net code="22" name="LCD_PCLK" class="Default">
       <node ref="J1" pin="41" pinfunction="41_41" pintype="passive"/>
       <node ref="J2" pin="50" pinfunction="50_50" pintype="passive"/>
       <node ref="TP3" pin="1" pinfunction="PROBE_1" pintype="passive"/>
     </net>
-    <net code="24" name="LCD_PWM" class="Default">
+    <net code="23" name="LCD_PWM" class="Default">
       <node ref="J1" pin="9" pinfunction="9_9" pintype="passive"/>
       <node ref="J2" pin="58" pinfunction="58_58" pintype="passive"/>
       <node ref="R2" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="25" name="LCD_R0" class="Default">
+    <net code="24" name="LCD_R0" class="Default">
       <node ref="J1" pin="12" pinfunction="12_12" pintype="passive"/>
       <node ref="J2" pin="2" pinfunction="2_2" pintype="passive"/>
     </net>
-    <net code="26" name="LCD_R1" class="Default">
+    <net code="25" name="LCD_R1" class="Default">
       <node ref="J1" pin="13" pinfunction="13_13" pintype="passive"/>
       <node ref="J2" pin="4" pinfunction="4_4" pintype="passive"/>
     </net>
-    <net code="27" name="LCD_R2" class="Default">
+    <net code="26" name="LCD_R2" class="Default">
       <node ref="J1" pin="14" pinfunction="14_14" pintype="passive"/>
       <node ref="J2" pin="6" pinfunction="6_6" pintype="passive"/>
     </net>
-    <net code="28" name="LCD_R3" class="Default">
+    <net code="27" name="LCD_R3" class="Default">
       <node ref="J1" pin="15" pinfunction="15_15" pintype="passive"/>
       <node ref="J2" pin="8" pinfunction="8_8" pintype="passive"/>
     </net>
-    <net code="29" name="LCD_R4" class="Default">
+    <net code="28" name="LCD_R4" class="Default">
       <node ref="J1" pin="16" pinfunction="16_16" pintype="passive"/>
       <node ref="J2" pin="10" pinfunction="10_10" pintype="passive"/>
     </net>
-    <net code="30" name="LCD_R5" class="Default">
+    <net code="29" name="LCD_R5" class="Default">
       <node ref="J1" pin="17" pinfunction="17_17" pintype="passive"/>
       <node ref="J2" pin="12" pinfunction="12_12" pintype="passive"/>
     </net>
-    <net code="31" name="LCD_R6" class="Default">
+    <net code="30" name="LCD_R6" class="Default">
       <node ref="J1" pin="18" pinfunction="18_18" pintype="passive"/>
       <node ref="J2" pin="14" pinfunction="14_14" pintype="passive"/>
     </net>
-    <net code="32" name="LCD_R7" class="Default">
+    <net code="31" name="LCD_R7" class="Default">
       <node ref="J1" pin="19" pinfunction="19_19" pintype="passive"/>
       <node ref="J2" pin="16" pinfunction="16_16" pintype="passive"/>
     </net>
-    <net code="33" name="LCD_SCL" class="Default">
+    <net code="32" name="LCD_SCL" class="Default">
       <node ref="J1" pin="48" pinfunction="48_48" pintype="passive"/>
       <node ref="J2" pin="70" pinfunction="70_70" pintype="passive"/>
       <node ref="R7" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP6" pin="1" pinfunction="PROBE_1" pintype="passive"/>
     </net>
-    <net code="34" name="LCD_SDA" class="Default">
+    <net code="33" name="LCD_SDA" class="Default">
       <node ref="J1" pin="47" pinfunction="47_47" pintype="passive"/>
       <node ref="J2" pin="68" pinfunction="68_68" pintype="passive"/>
       <node ref="R6" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP5" pin="1" pinfunction="PROBE_1" pintype="passive"/>
     </net>
-    <net code="35" name="LCD_STANDBY" class="Default">
+    <net code="34" name="LCD_STANDBY" class="Default">
       <node ref="J1" pin="43" pinfunction="43_43" pintype="passive"/>
       <node ref="J2" pin="60" pinfunction="60_60" pintype="passive"/>
       <node ref="R3" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="36" name="LCD_TFT_RESET_N" class="Default">
+    <net code="35" name="LCD_TFT_RESET_N" class="Default">
       <node ref="J1" pin="44" pinfunction="44_44" pintype="passive"/>
       <node ref="J2" pin="62" pinfunction="62_62" pintype="passive"/>
       <node ref="R4" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="37" name="LCD_TOUCH_INT_N" class="Default">
+    <net code="36" name="LCD_TOUCH_INT_N" class="Default">
       <node ref="J1" pin="46" pinfunction="46_46" pintype="passive"/>
       <node ref="J2" pin="66" pinfunction="66_66" pintype="passive"/>
       <node ref="R8" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="38" name="LCD_TOUCH_RESET_N" class="Default">
+    <net code="37" name="LCD_TOUCH_RESET_N" class="Default">
       <node ref="J1" pin="45" pinfunction="45_45" pintype="passive"/>
       <node ref="J2" pin="64" pinfunction="64_64" pintype="passive"/>
       <node ref="R5" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="39" name="LCD_VSYNC" class="Default">
+    <net code="38" name="LCD_VSYNC" class="Default">
       <node ref="J1" pin="37" pinfunction="37_37" pintype="passive"/>
       <node ref="J2" pin="56" pinfunction="56_56" pintype="passive"/>
-    </net>
-    <net code="40" name="PWR_GATE" class="Default">
-      <node ref="Q1" pin="1" pinfunction="G_1" pintype="input"/>
-      <node ref="Q2" pin="1" pinfunction="G_1" pintype="input"/>
-      <node ref="R1" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
   </nets>
 </export>

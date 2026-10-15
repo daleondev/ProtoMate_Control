@@ -1,31 +1,31 @@
 # Smartwin–GIGA display adapters
 
-The **two-layer display adapter (revision B)** and **four-layer GIGA adapter
-(revision A)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
-**GIGA R1 WiFi**, preserving the firmware's display pin assignments and cable pinout.
+The **two-layer display adapter (revision C)** and **four-layer GIGA adapter
+(revision B)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
+**GIGA R1 WiFi**, preserving the firmware's display pin assignments.
 Open either project in KiCad 10; both use `libraries/` and require no downloaded
 symbol or footprint library. Keep this directory structure when moving them.
 
 Release files:
 
-- [Display adapter: fabrication and assembly ZIP](releases/display-adapter-rev-B-pcbway.zip)
-- [GIGA adapter: fabrication and assembly ZIP](releases/giga-adapter-rev-A-pcbway.zip)
-- [Both KiCad projects, libraries and models](releases/smartwin-giga-rev-B-source.zip)
-- [Nominal GIGA mating assembly preview](assembly/giga-mated-rev-A.png)
+- [Display adapter: fabrication and assembly ZIP](releases/display-adapter-rev-C-pcbway.zip)
+- [GIGA adapter: fabrication and assembly ZIP](releases/giga-adapter-rev-B-pcbway.zip)
+- [Both KiCad projects, libraries and models](releases/smartwin-giga-rev-C-source.zip)
+- [Nominal GIGA mating assembly preview](assembly/giga-mated-rev-B.png)
 
 Each PCBWay ZIP contains `PCBWAY_ORDER.txt`, separate SMT/full BOMs and the
 matching placement file. `releases/SHA256SUMS` identifies the final archives.
 
 | Project | Board | Assembly |
 |---|---|---|
-| `display-adapter/display-adapter.kicad_pro` | Rev B, **2 layers**, 55 × 35 × 1.0 mm | SMT on both sides; J3 hand soldered |
-| `giga-adapter/giga-adapter.kicad_pro` | Rev A, **4 layers**, 111 × 53.34 × 1.6 mm maximum, C-shaped | SMT on top; J2–J9 hand soldered |
+| `display-adapter/display-adapter.kicad_pro` | Rev C, **2 layers**, 55 × 35 × 1.0 mm | SMT on both sides; U1 converter hand soldered |
+| `giga-adapter/giga-adapter.kicad_pro` | Rev B, **4 layers**, 111 × 53.34 × 1.6 mm maximum, central power tab | SMT on top; J2–J10 and U8 hand soldered |
 
 The display adapter carries a **DF23C-50DP-0.5V(92) plug on its underside**.
 It mates with the existing display connector; do not remove the display connector
 or solder the adapter directly to the display flex. The GIGA adapter plugs into
 the existing headers, with stacking sockets preserving access to every collected
-contact. USB, SWD, buttons, LEDs and the central board area remain accessible.
+contact. USB, SWD, buttons, LEDs and stacking contacts remain accessible. The inward power tab occupies the upper central area; the lower service opening remains clear.
 
 **Physical operation has not been tested.** Fabrication verification and first-board
 electrical qualification are separate. The machine-readable release status and
@@ -35,50 +35,78 @@ Do not manufacture a working-directory draft without its matching release ZIP.
 ## Connection and power
 
 ```text
-GIGA → stacking adapter J1 ⇄ 80-way FFC ⇄ display adapter J2
-                                              │
-External regulated 3.3 V → display J3 → protection → J1 → Smartwin
+Regulated 24 V -> GIGA shield J10 -> fuse / TVS / TPS26600 protection
+                                     |                    |
+                               TSR 1-24120          0.8 A branch fuse
+                                   12 V                   |
+                              blocking diode         80-way ribbon
+                                     |                    |
+                                  GIGA VIN       display TSR 2-2433
+                                                          |
+                                                 3.3 V -> Smartwin
+                                                          |
+                                   separate 3.3 V reference return to buffers
 ```
 
-Use **3.30 V ±1% at J3 under load**, with at least **2 A continuous capability**.
-J3 pin 1 is positive and pin 2 is ground. This is a 3.3 V input, not a 5 V input.
-The GIGA's 3.3 V output must not power the panel or be connected to this supply.
-Ground is common. The panel supply crosses the cable only to power the display
-sides of the interface ICs; backlight current stays on the display adapter.
+Connect the existing **regulated 24 V supply to shield J10: pin 1 = +24 V,
+pin 2 = GND**. Allow at least 2 A supply capacity for this assembly; the input
+protection limits combined current to approximately 1.49 A. The recommended
+supply range is 24 V ±10%. Keep grounds common with the robot. This input powers
+both GIGA and the display; the display adapter has no separate power terminal.
 
-F1 is a 2.5 A fast fuse. Q1/Q2 are parallel reverse-polarity PMOS devices, with
-their drains toward the input and sources toward the protected panel rail.
-This protects against reversed input and limits fault energy; it does not regulate
-the voltage or protect against connecting a sustained 5 V supply.
-Four 47 µF capacitors provide bulk decoupling; 10 µF and 100 nF capacitors provide
-local TFT/touch decoupling. Each interface IC has local bypass capacitors.
+- **Shield U8: TRACO TSR 1-24120**, 24 V to 12 V, rated 1 A output. D3 feeds
+  VIN through a Schottky diode, so actual VIN is slightly below 12 V. VIN reaches
+  both corresponding GIGA header contacts, J5.8 and J9.24.
+- **Display U1: TRACO TSR 2-2433**, 24 V to 3.3 V, rated 2 A output. Its local
+  10 µF/50 V and 100 nF/50 V input capacitors suppress cable-side switching
+  current. Four 47 µF output capacitors and local 10 µF/100 nF bypass capacitors
+  support the panel load; nominal external output capacitance stays below the
+  module's 900 µF limit. Do not exchange the two converter types.
+- **USB-C may remain connected for CDC CLI/logging.** GIGA retains its onboard
+  USB/VIN power arrangement. D3 blocks reverse feed from VIN into U8 when only
+  USB is present. USB alone runs GIGA, but does not power the display or the
+  external 24 V rail. Do not connect another source to VIN simultaneously.
+- **GIGA_3V3 and PANEL_3V3 remain separate.** Three FFC contacts return the panel
+  rail to the panel sides of the AXC/TCA interface devices. This return carries
+  interface current, while the backlight's 3.3 V current stays on the display
+  board. All grounds are common.
 
-The design current budget is **1.5 A**: 1.05 A typical backlight, 0.25 A maximum TFT,
-and 0.20 A reserved for touch, interface switching and margin. Smartwin does not
-specify a maximum backlight current; this is a qualification budget, not a claim
-that 1.5 A is the panel's guaranteed maximum. The four DF23 backlight contacts are
-all connected; at the documented typical current each carries approximately
-0.263 A, below the connector's 0.3 A/contact rating. First-board testing must
-confirm current sharing, voltage and temperature at full brightness.
+Shield F1 is a **2 A/63 V time-lag fuse** and D1 a bidirectional **SMBJ33CA** TVS.
+U7 **TPS26600PWPR** provides reverse-polarity/reverse-current protection,
+undervoltage and overvoltage cutoff, controlled inrush and current limiting.
+The dividers set nominal startup at **18.2 V** and overvoltage cutoff at
+**28.1 V**. Including comparator and resistor tolerances, the upper cutoff is
+29.47 V, below the converters' 36 V input rating. C16 gives an approximately
+9.8 ms protected-24 V ramp; MODE selects automatic retry after overload.
+The TVS handles short transients, while the eFuse disconnects excessive input
+voltage. These component ratings are not a tested industrial surge rating.
 
-Conservative voltage-drop allowance at 1.5 A:
+**U7 RTN and its exposed pad must not be connected to GND.** They use a separate
+thermal copper island and four thermal vias. Pin 9 alone is the system-ground
+connection. D2 clamps negative excursions on the protected output. F2 is a
+**0.8 A/63 V time-lag fuse** for the ribbon branch. Two parallel contacts carry
+24 V; even at 2 A converter output, 18 V input and an 80% efficiency allowance,
+each carries approximately 0.23 A, below the connector's 0.5 A/contact rating.
+The specified cable copper and contacts have under 0.10 V allocated drop in
+that conservative load case. Power is disconnected before inserting/removing
+the ribbon; these connectors are not hot-plug power connectors.
 
-| Element | Allowance | Drop |
-|---|---:|---:|
-| Fuse, including operating-temperature allowance | 40 mΩ | 60 mV |
-| Parallel PMOS pair, twice the 25°C maximum resistance | 45 mΩ | 67.5 mV |
-| Input terminal contact | 10 mΩ | 15 mV |
-| PCB supply/return copper and vias | 30 mΩ | 45 mV |
-| DF23 supply and return contacts | allocated | 30 mV |
-| Total | | **217.5 mV** |
+The display qualification budget is **1.5 A at 3.3 V**: 1.05 A typical backlight,
+0.25 A maximum TFT, and 0.20 A for touch/interface current and margin. The
+backlight maximum is unspecified; 1.5 A is not a guaranteed panel maximum.
+All four backlight contacts are connected; at the documented typical current
+each carries approximately 0.263 A, below the DF23's 0.3 A/contact rating.
 
-At a 3.267 V minimum input this leaves approximately **3.049 V** at the panel,
-above its 3.0 V minimum. Fuse/copper/hot-device allowances must be checked on the
-first board; external cable loss is excluded because the input specification is
-at J3. The panel also specifies a 1–20 ms supply rise time. Verify the chosen
-regulated supply and wiring meet that requirement; the PMOS stage is not a
-controlled soft-start circuit. Do not compensate for excessive loss by exceeding
-the panel's 3.6 V absolute supply limit.
+The calculated panel-voltage budget uses converter accuracy, line/load
+regulation, ±0.02%/K temperature coefficient over a 0–70°C calculation range,
+a 50 mV negative ripple allowance, 40 mΩ of PCB supply/return resistance and
+30 mV of contact drop. At 1.5 A this leaves approximately **3.015 V**, above the
+panel's **3.0 V minimum**, with limited worst-case margin. This is a conservative
+allocation, not measured performance; verify it at CN1 under full brightness
+and the actual enclosure temperature. Module derating, ripple, current sharing
+and the panel's **1–20 ms supply rise time** remain first-board checks.
+`manufacturing/verification/power-budget.json` records the calculations and
+assumptions. Do not exceed the panel's 3.6 V absolute supply limit.
 
 ## Interfaces and startup
 
@@ -118,9 +146,18 @@ colour of an arbitrary cable stiffener. A Type B/opposite-contact cable is not
 an interchangeable substitute.
 
 The facing connectors reverse numbering: **GIGA J1 pin n connects to display J2
-pin 81−n**. Forty-one conductors are ground, 35 carry signals, and four return the
-panel supply reference. PCLK has ground immediately on both sides. GIGA contacts
-3/5/7/9 carry PANEL_3V3 and connect to display contacts 78/76/74/72.
+pin 81−n**. Forty conductors are ground, 35 carry signals, two carry protected 24 V, and
+three return the panel supply reference. PCLK has ground on both sides.
+
+| Rail | GIGA J1 contacts | Display J2 contacts |
+|---|---|---|
+| Protected, branch-fused 24 V | 1, 3 | 80, 78 |
+| PANEL_3V3 reference return | 5, 7, 9 | 76, 74, 72 |
+
+Use the **display-C / GIGA-B pair**. Its powered cable assignment is incompatible
+with the earlier separately powered adapters: do not mix revisions. The cable
+must be rated at least 60 V and 0.5 A per conductor, with copper cross-section
+at least 0.0105 mm²; a mechanically fitting cable alone is insufficient.
 
 Viewed from the display adapter's top, J1 pin 1 is at the lower left of its pad
 array, pin 2 above it, and pin 49 at the lower right. J1 itself is mounted on the
@@ -153,19 +190,19 @@ Add cable clamping to that frame near each FFC socket. The ribbon, power leads
 and adapter must not hang from the display flex or its DF23 connector. Keep the
 FFC short and flat; do not sharply crease it at either stiffener.
 
-PCBWay assembles every SMT part, including the bottom-side DF23. J3 on the display
-adapter and J2–J9 on the GIGA adapter are **HAND** parts in the full BOM and absent
+PCBWay assembles every SMT part, including the bottom-side DF23. U1 on the display
+adapter, and J2–J10 plus U8 on the GIGA adapter, are **HAND** parts in the full BOM and absent
 from the SMT BOM/centroid file. Solder stacking headers with a mechanical jig or
 an unpowered GIGA used only as an alignment fixture; avoid heating the board's
-existing sockets unnecessarily. Fit the power terminal with its wire opening
-facing the lower board edge. Probe pads, fiducials and mounting holes are PCB
+existing sockets unnecessarily. Fit shield J10 with its wire opening
+facing left into the central opening. Probe pads, fiducials and mounting holes are PCB
 features, not purchased parts.
 
-After soldering J3, **clip its two leads to at most 0.8 mm below the PCB**, without
+After soldering display U1, **clip its three leads to at most 0.8 mm below the PCB**, without
 cutting into the solder joints. The local assembly model includes this trim.
 This keeps the leads above the display flex's nominal 1.5 mm mating plane.
 
-The local STEP models for Hirose connectors, terminal and stacking sockets are
+The local STEP models for Hirose connectors, terminal, converter/eFuse envelopes and stacking sockets are
 dimensioned mechanical envelopes derived from manufacturer drawings. They
 simplify latch/contact details and are labelled accordingly; they are not
 manufacturer production-tooling models. Standard IC/passive models and the
@@ -197,7 +234,7 @@ the MCU's own output timing are part of this check. A clean static image alone
 does not prove timing margin over temperature and supply variation.
 
 The display adapter routes all signals on **F.Cu and B.Cu**, with ground pours on
-both sides and 46 ground vias tying the returns together. A ground rail connects
+both sides and 41 ground vias tying the returns together. A ground rail connects
 the FFC ground contacts. Staggered Hirose escapes use **0.55 mm copper / 0.25 mm
 drilled vias**, retaining 0.15 mm annular rings and 0.15 mm track/clearance rules.
 The larger power and ground vias remain 0.65/0.30 mm. Bulk capacitors are below
@@ -207,7 +244,7 @@ These are connected ground pours, not an uninterrupted internal reference plane;
 the first-board signal-integrity checks remain necessary. The geometric ground
 review is in `manufacturing/verification/display-adapter-layout-review.json`.
 
-The GIGA adapter retains its uninterrupted **In1.Cu ground plane**, with signals
+The GIGA adapter uses an **In1.Cu ground reference plane**, with signals
 on F.Cu, In2.Cu and B.Cu and minimum 0.65/0.30 mm vias. Both boards use minimum
 0.15 mm tracks and clearances. Vias are tented on both outer sides,
 including beneath the Hirose bodies. No open via is used in a solder pad.
@@ -221,7 +258,7 @@ for routing between contacts. Other stacking headers retain 1.8 mm pads.
 
 ## Fabrication and assembly order
 
-Use the **display revision-B ZIP with two layers** and the **GIGA revision-A ZIP
+Use the **display revision-C ZIP with two layers** and the **GIGA revision-B ZIP
 with four layers**. Select FR-4, 1 oz copper on every copper layer, ENIG, green
 solder mask, white silkscreen, IPC Class 2 and
 100% electrical test. Finished thickness is **1.0 mm display / 1.6 mm GIGA**.
@@ -247,20 +284,21 @@ files does not place an order; no order has been placed by this work.
 
 ## First-board acceptance
 
-1. With both supplies off and no panel fitted, check for shorts, all connector
+1. With 24 V and USB disconnected and no panel fitted, check for shorts, all connector
    contacts and all 80 cable conductors. Confirm that GIGA_3V3 and PANEL_3V3 are
    separate, and all specified grounds are connected. Verify cable orientation.
-2. Power each side alone with a current-limited source. Confirm no powered-off
-   rail is driven through signals, backlight stays off and panel resets remain
-   LOW until commanded. Check the protected supply polarity and rise time.
+2. Apply current-limited 24 V with GIGA/panel initially unplugged. Check U8's
+   12 V, VIN after D3, and the display 3.3 V output before attaching loads.
+   Verify UV/OV cutoffs and current limiting using a bench supply. Then test
+   USB-only operation: no 24 V or panel-3.3 V backfeed, backlight off, resets LOW.
 3. Attach the unpowered panel, power normally and run `display bars`. Check colour
    order, all active pixels and both framebuffer slots. Exercise brightness from
    zero to full and `display touch`, including touch reset and interrupt.
 4. Measure panel supply at full brightness, input/backlight current, connector
    and protection-component temperatures, PCLK frequency/duty/phase and data
    setup/hold at the panel. Qualify the 33 Ω values and the full 100 mm cable.
-5. Test either supply starting first, either side switching off, reconnecting USB
-   and explicit display reinitialization. Repeat under graphics/ICC/logging load.
+5. Test 24 V first, USB first, removal of either supply and explicit display
+   reinitialization after power recovery. Repeat under graphics/ICC/logging load.
 
 ## Reproducibility
 
@@ -277,7 +315,7 @@ KiCad, and checks exported pad/drill coordinates and layer geometry. Release
 archives are made only after these checks and visual/mechanical review.
 
 `tools/design.py` defines each board's revision and layer/via rules separately;
-the source bundle revision is B. `tools/review_layout.py` uses Shapely to measure
+the source bundle revision is C. `tools/review_layout.py` uses Shapely to measure
 the display board's filled ground geometry. It reports geometry only, not a
 field-solver or physical timing result. To refresh the display release, run
 `export_release.py display-adapter`, `audit.py`, `routing_report.py`,

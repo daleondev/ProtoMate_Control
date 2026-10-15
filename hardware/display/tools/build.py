@@ -12,7 +12,7 @@ import shutil
 import uuid
 from pathlib import Path
 import pcbnew as k
-from design import ROOT, PARTS, SIGNALS, GEOMETRY, REVISION, BOARDS, components
+from design import ROOT, PARTS, SIGNALS, GEOMETRY, REVISION, BOARDS, components, board_outline
 
 k.SwigPyIterator.next = k.SwigPyIterator.__next__
 LIB = ROOT/'libraries/DisplayAdapter.pretty'
@@ -48,9 +48,20 @@ def fp_text(name, pads, outline, desc, model=None, attr='smd'):
 def footprints():
     for kind,(_,_,_,name) in PARTS.items():
         if kind in ['FFC','DF23','POWER','TP']:continue
-        paths=list(Path('/usr/share/kicad/footprints').glob(f'*.pretty/{name}.kicad_mod'))
+        stock='HTSSOP-16-1EP_4.4x5mm_P0.65mm_EP3x3mm' if kind=='EFUSE' else name
+        paths=list(Path('/usr/share/kicad/footprints').glob(f'*.pretty/{stock}.kicad_mod'))
         assert len(paths)==1,(kind,name,paths)
         text=paths[0].read_text()
+        if kind=='BUCK33':
+            text=text.replace('${KICAD10_3DMODEL_DIR}/Converter_DCDC.3dshapes/Converter_DCDC_TRACO_TSR2-xxxx_THT.step', '${KIPRJMOD}/../libraries/3dmodels/TSR2-2433-trimmed.step')
+        if kind=='EFUSE':
+            text=text.replace('${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/HTSSOP-16-1EP_4.4x5mm_P0.65mm_EP3x3mm.step', '${KIPRJMOD}/../libraries/3dmodels/TPS26600-PWP0016A.step')
+            # TI PWP0016A drawing: 1.5x0.45 leads on 5.8 row spacing,
+            # 3.3x3.3 exposed pad. Retain a windowed paste aperture.
+            text=text.replace('(footprint "'+stock+'"','(footprint "'+name+'"',1)
+            text=text.replace('(size 1.55 0.4)','(size 1.5 0.45)').replace('(size 3 3)','(size 3.3 3.3)')
+            text=text.replace('(at -2.875 ', '(at -2.9 ').replace('(at 2.875 ', '(at 2.9 ')
+            text=text.replace('(size 1.21 1.21)','(size 1.4 1.4)')
         if kind=='I2C':
             # TI DGK land drawing: 0.45 mm width leaves a 0.13 mm mask web.
             text=text.replace('(size 1.625 0.5)', '(size 1.625 0.45)')
@@ -102,8 +113,13 @@ def pin_specs(part):
     elif kind=='I2C':
         left=[('1','VCCA / PANEL','power_in'),('2','SCLA','bidirectional'),('3','SDAA','bidirectional'),('4','GND','power_in')]
         right=[('8','VCCB / GIGA','power_in'),('7','SCLB','bidirectional'),('6','SDAB','bidirectional'),('5','EN','input')]
-    elif kind=='PMOS':
-        left=[('3','D / INPUT','passive'),('1','G','input')];right=[('2','S / PROTECTED','passive')]
+    elif kind.startswith('BUCK'):
+        left=[('1','VIN','passive'),('2','GND','passive')];right=[('3','VOUT','passive')]
+    elif kind=='EFUSE':
+        left=[(str(i),n,'passive') for i,n in enumerate(['IN','IN','UVLO','NC','OVP','MODE','SHDN','RTN'],1)]
+        right=[(str(i),n,'passive') for i,n in enumerate(['GND','IMON','ILIM','dVdT','NC','FLT','OUT','OUT','EP / RTN'],9)]
+    elif kind=='SCHOTTKY':
+        left=[('1','K','passive')];right=[('2','A','passive')]
     elif kind=='TP':
         left=[('1','PROBE','passive')];right=[]
     else:
@@ -163,21 +179,22 @@ def schematic(which,parts):
         x=30.48+idx*76.2;y=246.38;pid=uid(which+net+'flag')
         root+=f'(symbol (lib_id "DisplayAdapter:SupplyPresent") (at {x} {y} 0) (unit 1) (in_bom no) (on_board no) (dnp no) (uuid "{pid}") (property "Reference" "#FLG0{idx+1}" (at {x} {y-5} 0) (effects (font (size 1 1)) (hide yes))) (property "Value" "SupplyPresent" (at {x} {y-4} 0) (effects (font (size 1 1)))) (instances (project {q(which)} (path "/{rootid}" (reference "#FLG0{idx+1}") (unit 1)))))'
         root+=f'(global_label {q(net)} (shape input) (at {x} {y} 90) (effects (font (size 1 1)) (justify left)) (uuid "{uid(pid+"net")}") (property "Intersheetrefs" "${{INTERSHEET_REFS}}" (at {x} {y} 0) (effects (font (size 1 1)) (hide yes))))'
-    root+='(text "Revision A | 3.3 V signals | Separate 3.3 V display supply | <=100 mm Type-A 80-way FFC" (at 20.32 25.4 0) (effects (font (size 1.524 1.524)) (justify left)) (uuid "'+uid(which+'note')+'"))\n'
+    root+='(text "24V input on GIGA shield | Local 3.3V display conversion | <=100 mm Type-A 80-way FFC" (at 20.32 25.4 0) (effects (font (size 1.524 1.524)) (justify left)) (uuid "'+uid(which+'note')+'"))\n'
     for idx,page in enumerate(pages):
         sid=uid(which+'/'+page);filename=page+'.kicad_sch';px=20.32+(idx%3)*121.92;py=45.72+(idx//3)*60.96
         root+=f'(sheet (at {px} {py}) (size 101.6 35.56) (stroke (width .254) (type default)) (fill (color 0 0 0 0)) (uuid "{sid}") (property "Sheetname" {q(page)} (at {px} {py-1.27} 0) (effects (font (size 1.524 1.524)) (justify left))) (property "Sheetfile" {q(filename)} (at {px} {py+36.83} 0) (effects (font (size 1.27 1.27)) (justify left))) (instances (project {q(which)} (path "/{rootid}" (page "{idx+2}")))))\n'
         selected=[p for p in parts if p['page']==page]
         syms={symbol(p)[0]:symbol(p)[1] for p in selected}
         s=start(sid,which+' / '+page,list(syms.values()))
-        major=[p for p in selected if len(p['nets'])>3]; minor=[p for p in selected if len(p['nets'])<=3]
+        major=[p for p in selected if len(p['nets'])>3 or p['kind'].startswith('BUCK')]
+        minor=[p for p in selected if p not in major]
         poses={}
         if page=='headers':
             for i,p in enumerate(major):poses[p['ref']]=(55.88+(i%4)*101.6,60.96+(i//4)*116.84)
         else:
             for i,p in enumerate(major):poses[p['ref']]=(86.36+172.72*i,91.44)
         for i,p in enumerate(minor):
-            poses[p['ref']]=(45.72+(i%4)*96.52,(175.26 if major else 55.88)+(i//4)*20.32)
+            poses[p['ref']]=(45.72+(i%4)*96.52,((129.54 if page in ('power','power12') else 175.26) if major else 55.88)+(i//4)*20.32)
         for p in selected:
             name,_,pins,h=symbol(p);x,y=poses[p['ref']];pid=uid(which+'/'+p['ref']);p['uuid']=pid;p['sheet_uuid']=sid
             bom='no' if p['assembly']=='PCB' else 'yes'
@@ -201,7 +218,9 @@ def schematic(which,parts):
               'touch':'TCA9517 A = panel; B = GIGA. GIGA R26/R27 already provide 5.1k pull-ups. AXC1 direction A -> B.',
               'ribbon':'80-way Type-A (same-side contacts), 0.5mm pitch, 0.30mm mating thickness. GIGA pin n <-> display socket pin 81-n.',
               'display':'Bottom-mounted DF23 plug. Pin orientation follows Smartwin mechanical drawing Detail A. All supply/GND pins used.',
-              'power':'3.30V +/-1% regulated input, >=2A continuous. Q1 D=input / S=output. Backlight power does not pass through FFC.'}[page]
+              'power':'U1: 24V from ribbon -> 3.3V / 2A. Never join panel 3.3V to GIGA 3.3V. Module is hand soldered; trim leads.',
+              'power_input':'24V nominal input. UVLO ~18.2V; OVP ~28.1V; current limit ~1.49A. RTN is NOT system GND. SHDN floats (internal pull-up).',
+              'power12':'U8: 24V -> 12V / 1A. D3 blocks USB-only reverse feed into U8. F2 protects the two parallel 24V ribbon conductors.'}[page]
         s+=f'(text {q(note)} (at 20.32 22.86 0) (effects (font (size 1.27 1.27)) (justify left)) (uuid "{uid(sid+"note")}"))\n'
         (dest/filename).write_text(s+')\n')
     root+='(sheet_instances (path "/" (page "1"))))\n'
@@ -244,9 +263,9 @@ def board(which,parts):
             text.SetPosition(point(sum(a['x'] for a in p['pads'])/len(p['pads']),sum(a['y'] for a in p['pads'])/len(p['pads'])))
         if p['kind'] in ['HEADER','FFC','DF23','POWER','TP']:b.Add(text)
     if which=='display-adapter':
-        contour=[(0,0),(55,0),(55,35),(0,35)];holes=[(3,12),(52,12),(3,32),(52,32)]
+        contour=board_outline(which);holes=[(3,12),(52,12),(3,32),(52,32)]
     else:
-        contour=[(12,0),(122,0),(122,53.34),(11,53.34),(11,47),(78,47),(78,10),(12,10)]
+        contour=board_outline(which)
         holes=[p for p in GEOMETRY['mounting_holes'] if p[0]>88 or (p[0]<17 and (p[1]<5 or p[1]>49))]
     for a,c in zip(contour,contour[1:]+contour[:1]):
         line=k.PCB_SHAPE();line.SetShape(k.SHAPE_T_SEGMENT);line.SetStart(point(*a));line.SetEnd(point(*c));line.SetLayer(k.Edge_Cuts);line.SetWidth(mm(.05));b.Add(line)
@@ -267,7 +286,7 @@ def board(which,parts):
         poly=z.Outline();poly.NewOutline()
         for x,y in contour:poly.Append(mm(x),mm(y))
         b.Add(z)
-    for text,x,y,size in ([('SMARTWIN / '+BOARDS[which]['revision'],27.5,15,1),('3V3 ONLY',7,19.2,.9),('100mm TYPE-A',27.5,11,.8)] if which=='display-adapter' else [('GIGA DISPLAY / A',57,7,1),('FFC TO DISPLAY',115,50, .8)]):
+    for text,x,y,size in ([('SMARTWIN / '+BOARDS[which]['revision'],27.5,15,1),('24V VIA FFC',12,33,.8),('100mm TYPE-A',27.5,11,.8)] if which=='display-adapter' else [('GIGA DISPLAY / '+BOARDS[which]['revision'],51,7,1),('FFC TO DISPLAY',115,50, .8)]):
         t=k.PCB_TEXT(b);t.SetText(text);t.SetPosition(point(x,y));t.SetTextSize(point(size,size));t.SetTextThickness(mm(.15));t.SetLayer(k.F_SilkS);b.Add(t)
     out=ROOT/'build'/which;out.mkdir(parents=True,exist_ok=True)
     path=out/(which+'.kicad_pcb');k.SaveBoard(str(path),b)
@@ -275,6 +294,17 @@ def board(which,parts):
     pro={'meta':{'filename':which+'.kicad_pro','version':1},'board':{'design_settings':{'rules':{'min_clearance':.15,'min_track_width':.15,'min_through_hole_diameter':BOARDS[which]['via_drill'],'min_via_diameter':BOARDS[which]['via_diameter'],'min_via_annular_width':.15,'min_hole_clearance':.25,'min_copper_edge_clearance':.3,'min_silk_clearance':.1,'min_silk_text_height':.8,'min_silk_text_thickness':.15}}},
          'net_settings':{'classes':[{'name':'Default','clearance':.15,'track_width':.18,'via_diameter':.65,'via_drill':.3,'microvia_diameter':.3,'microvia_drill':.1,'diff_pair_width':.18,'diff_pair_gap':.2,'diff_pair_via_gap':.25}],'meta':{'version':4}},
          'erc':{'erc_exclusions':[]}}
+    # Preserve project-specific rule severities and editor settings when regenerating.
+    project=ROOT/which/(which+'.kicad_pro')
+    if project.exists():
+        existing=json.loads(project.read_text())
+        existing.setdefault('board',{}).setdefault('design_settings',{}).setdefault('rules',{}).update(pro['board']['design_settings']['rules'])
+        pro=existing
+    for key in ['missing_courtyard','track_not_centered_on_via','tuning_profile_track_geometries','footprint_filters_mismatch','footprint_type_mismatch']:
+        pro['board']['design_settings'].setdefault('rule_severities',{})[key]='warning'
+    for key in ['single_global_label','four_way_junction','simulation_model_issue','footprint_filter']:
+        pro.setdefault('erc',{}).setdefault('rule_severities',{})[key]='warning'
+    pro['board']['design_settings'].setdefault('drc_exclusions',[])
     (ROOT/which/(which+'.kicad_pro')).write_text(json.dumps(pro,indent=2)+'\n')
     (out/(which+'.kicad_pro')).write_text(json.dumps(pro,indent=2)+'\n')
     for table in ['fp-lib-table','sym-lib-table']:
@@ -287,7 +317,7 @@ def main():
         parts=components(which);schematic(which,parts);board(which,parts)
         (ROOT/which/'components.json').write_text(json.dumps(parts,indent=2)+'\n')
     with (ROOT/'connections.csv').open('w') as f:
-        w=csv.DictWriter(f,fieldnames=list(SIGNALS[0]));w.writeheader();w.writerows(SIGNALS)
+        w=csv.DictWriter(f,fieldnames=list(SIGNALS[0]),lineterminator="\n");w.writeheader();w.writerows(SIGNALS)
     print('Generated schematics, local footprints and build/* placement PCBs.')
 
 if __name__=='__main__':main()

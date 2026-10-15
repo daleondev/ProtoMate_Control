@@ -8,11 +8,19 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 GEOMETRY = json.loads((ROOT/'references/giga-geometry.json').read_text())
-REVISION = 'B'  # Source bundle; individual board revisions below.
+REVISION = 'C'  # Source bundle; individual board revisions below.
 BOARDS = {
-    'display-adapter': dict(revision='B', date='2026-10-15', layers=2, via_drill=.25, via_diameter=.55),
-    'giga-adapter': dict(revision='A', date='2026-10-14', layers=4, via_drill=.30, via_diameter=.65),
+    'display-adapter': dict(revision='C', date='2026-10-15', layers=2, via_drill=.25, via_diameter=.55),
+    'giga-adapter': dict(revision='B', date='2026-10-15', layers=4, via_drill=.30, via_diameter=.65),
 }
+
+
+def board_outline(board):
+    if board == 'display-adapter':
+        return [(0,0),(55,0),(55,35),(0,35)]
+    # Inward power tab, leaving USB, SWD and the lower service opening accessible.
+    return [(12,0),(122,0),(122,53.34),(11,53.34),(11,47),
+            (78,47),(78,29),(42,29),(42,10),(12,10)]
 
 
 def release_name(board):
@@ -58,7 +66,9 @@ def ribbon_nets(reverse=False):
     nets = {str(i):'GND' for i in range(1,81)}
     for s in SIGNALS:
         nets[str(s['giga_ffc'])] = 'LCD_'+s['name']
-    for pin in (3,5,7,9):
+    for pin in (1,3):
+        nets[str(pin)] = '+24V_DISPLAY'
+    for pin in (5,7,9):
         nets[str(pin)] = '+3V3_PANEL'
     if reverse:
         nets = {str(81-int(p)):n for p,n in nets.items()}
@@ -84,9 +94,23 @@ PARTS = {
  'AXC8': ('SN74AXC8T245PWR','Texas Instruments','SN74AXC8T245PWR','TSSOP-24_4.4x7.8mm_P0.65mm'),
  'AXC1': ('SN74AXC1T45DBVR','Texas Instruments','SN74AXC1T45DBVR','SOT-23-6'),
  'I2C': ('TCA9517ADGKR','Texas Instruments','TCA9517ADGKR','VSSOP-8_3x3mm_P0.65mm'),
- 'PMOS': ('DMP2035U-7','Diodes Incorporated','DMP2035U-7','SOT-23'),
- 'FUSE': ('2.5A fast fuse','Littelfuse','046702.5NRHF','Fuse_0603_1608Metric'),
- 'POWER': ('3.3V INPUT','Phoenix Contact','1751248','TerminalBlock_1x02_P3.50mm'),
+ 'BUCK12': ('TSR 1-24120 / 12V 1A','TRACO Power','TSR 1-24120','Converter_DCDC_TRACO_TSR-1_THT'),
+ 'BUCK33': ('TSR 2-2433 / 3.3V 2A','TRACO Power','TSR 2-2433','Converter_DCDC_TRACO_TSR2-xxxx_THT'),
+ 'EFUSE': ('TPS26600PWPR','Texas Instruments','TPS26600PWPR','HTSSOP-16_PWP0016A_EP3.3x3.3mm'),
+ 'TVS': ('33V bidirectional TVS','Littelfuse','SMBJ33CA','D_SMB'),
+ 'SCHOTTKY': ('60V / 3A Schottky','Diodes Incorporated','B360A-13-F','D_SMA'),
+ 'FUSE2A': ('2A / 63V time-lag','Bourns','SF-1206S200-2','Fuse_1206_3216Metric'),
+ 'FUSE800M': ('0.8A / 63V time-lag','Bourns','SF-1206S080-2','Fuse_1206_3216Metric'),
+ 'POWER': ('24V INPUT','Phoenix Contact','1751248','TerminalBlock_1x02_P3.50mm'),
+ 'C100N50': ('100n / 50V X7R','Murata','GRM188R71H104KA93D','C_0603_1608Metric'),
+ 'C1U100': ('1u / 100V X7R','Murata','GRM31CR72A105KA01L','C_1206_3216Metric'),
+ 'C10U50': ('10u / 50V X7R','Murata','GRM32ER71H106KA12L','C_1210_3225Metric'),
+ 'C10U25': ('10u / 25V X5R','Murata','GRM21BR61E106KA73L','C_0805_2012Metric'),
+ 'C47N': ('47n / 16V X7R','Murata','GRM188R71C473KA01D','C_0603_1608Metric'),
+ 'R143K': ('143k / 1%','Yageo','RC0603FR-07143KL','R_0603_1608Metric'),
+ 'R226K': ('226k / 1%','Yageo','RC0603FR-07226KL','R_0603_1608Metric'),
+ 'R10K': ('10k / 1%','Yageo','RC0603FR-0710KL','R_0603_1608Metric'),
+ 'R8K06': ('8.06k / 1%','Yageo','RC0603FR-078K06L','R_0603_1608Metric'),
  'FFC': ('FH28H-80S-0.5SH(05)','Hirose','FH28H-80S-0.5SH(05)','FH28H-80S-0.5SH'),
  'DF23': ('DF23C-50DP-0.5V(92)','Hirose','DF23C-50DP-0.5V(92)','DF23C-50DP-0.5V'),
  'TP': ('Probe pad','PCB','PCB copper feature','TestPoint_1.0mm'),
@@ -95,6 +119,7 @@ PARTS = {
 def header_net(p):
     if p['net']=='GND': return 'GND'
     if p['net']=='+3V3': return '+3V3_GIGA'
+    if p['net']=='VIN': return '+12V_GIGA'
     for s in SIGNALS:
         if p['net'] == {'SDA':'I2C4.SDA','SCL':'I2C4.SCL'}.get(s['name'],s['mcu']):
             return 'MCU_'+s['name']
@@ -112,14 +137,10 @@ def components(which):
         # pin 1 is bottom-left, pin 2 top-left (Smartwin drawing Detail A).
         add('J1','DF23',panel_nets(),(27.5,23,180,'B'),'display')
         add('J2','FFC',ribbon_nets(True),(27.5,7,0,'F'),'ribbon')
-        add('J3','POWER',{1:'+3V3_INPUT',2:'GND'},(6,24,0,'F'),'power')
+        add('U1','BUCK33',{1:'+24V_DISPLAY',2:'GND',3:'+3V3_PANEL'},(10,26,180,'F'),'power')
         out[-1]['assembly']='HAND'
-        add('F1','FUSE',{1:'+3V3_INPUT',2:'+3V3_FUSED'},(13.5,26,0,'F'),'power')
-        # Reverse-polarity PMOS: D to input, S to protected output; body diode
-        # points from input to output. Gate pulled to return.
-        add('Q1','PMOS',{1:'PWR_GATE',2:'+3V3_PANEL',3:'+3V3_FUSED'},(16,29,0,'F'),'power')
-        add('Q2','PMOS',{1:'PWR_GATE',2:'+3V3_PANEL',3:'+3V3_FUSED'},(16,33,0,'F'),'power')
-        add('R1','R100K',{1:'PWR_GATE',2:'GND'},(13,31,0,'F'),'power')
+        add('C9','C10U50',{1:'+24V_DISPLAY',2:'GND'},(17,29,90,'F'),'power')
+        add('C10','C100N50',{1:'+24V_DISPLAY',2:'GND'},(17,25,0,'F'),'power')
         for i,(x,y) in enumerate([(22,31),(26,31),(30,31),(34,31)],1):
             add(f'C{i}','C47U',{1:'+3V3_PANEL',2:'GND'},(x,y,90,'F'),'power')
         for i,(x,y) in enumerate([(18,20),(36,20)],5):
@@ -131,7 +152,7 @@ def components(which):
         for i,(s,y) in enumerate([('SDA',25),('SCL',28)],6):
             add(f'R{i}','R4K7',{1:'LCD_'+s,2:'+3V3_PANEL'},(46,y,0,'F'),'power')
         add('R8','R47K',{1:'LCD_TOUCH_INT_N',2:'+3V3_PANEL'},(46,31,0,'F'),'power')
-        for i,(net,x,y) in enumerate([('+3V3_PANEL',5,18),('GND',7,18),('LCD_PCLK',38,18),('GND',40,18),('LCD_SDA',47,18),('LCD_SCL',50,18)],1):
+        for i,(net,x,y) in enumerate([('+3V3_PANEL',4.5,18),('GND',4.5,20),('LCD_PCLK',38,18),('GND',40,18),('LCD_SDA',47,18),('LCD_SCL',50,18)],1):
             add(f'TP{i}','TP',{1:net},(x,y,0,'F'),'power')
             out[-1]['assembly']='PCB'
     else:
@@ -161,6 +182,33 @@ def components(which):
         for i,(net,x,y) in enumerate([('+3V3_GIGA',101,49),('+3V3_PANEL',104,49),('GND',107,49),('LCD_PCLK',112,37),('GND',112,39)],1):
             add(f'TP{i}','TP',{1:net},(x,y,0,'F'),'touch')
             out[-1]['assembly']='PCB'
+        add('J10','POWER',{1:'+24V_INPUT',2:'GND'},(46,23,270,'F'),'power_input')
+        out[-1]['assembly']='HAND'
+        add('F1','FUSE2A',{1:'+24V_INPUT',2:'+24V_FUSED'},(52.5,26,0,'F'),'power_input')
+        add('D1','TVS',{1:'+24V_FUSED',2:'GND'},(59,25,0,'F'),'power_input')
+        add('C15','C1U100',{1:'+24V_FUSED',2:'GND'},(46,12,90,'F'),'power_input')
+        add('U7','EFUSE',{1:'+24V_FUSED',2:'+24V_FUSED',3:'PWR_UVLO',4:None,5:'PWR_OVP',
+            6:'PWR_RTN',7:None,8:'PWR_RTN',9:'GND',10:None,11:'PWR_ILIM',12:'PWR_DVDT',
+            13:None,14:None,15:'+24V_PROTECTED',16:'+24V_PROTECTED',17:'PWR_RTN'},
+            (53,16,0,'F'),'power_input')
+        for ref,kind,nets,pos in [
+            ('R66','R143K',{1:'+24V_FUSED',2:'PWR_UVLO'},(46,16,0,'F')),
+            ('R67','R10K',{1:'PWR_UVLO',2:'PWR_RTN'},(46,18,0,'F')),
+            ('R68','R226K',{1:'+24V_FUSED',2:'PWR_OVP'},(46,20,0,'F')),
+            ('R69','R10K',{1:'PWR_OVP',2:'PWR_RTN'},(50.5,20,0,'F')),
+            ('R70','R8K06',{1:'PWR_ILIM',2:'PWR_RTN'},(59,18,0,'F')),
+        ]: add(ref,kind,nets,pos,'power_input')
+        add('C16','C47N',{1:'PWR_DVDT',2:'PWR_RTN'},(59,16,0,'F'),'power_input')
+        add('C17','C10U50',{1:'+24V_PROTECTED',2:'GND'},(59.5,11,90,'F'),'power_input')
+        add('D2','SCHOTTKY',{1:'+24V_PROTECTED',2:'GND'},(65,23.5,90,'F'),'power_input')
+        add('F2','FUSE800M',{1:'+24V_PROTECTED',2:'+24V_DISPLAY'},(71,25.5,0,'F'),'power12')
+        add('U8','BUCK12',{1:'+24V_PROTECTED',2:'GND',3:'+12V_CONVERTER'},(67,12,0,'F'),'power12')
+        out[-1]['assembly']='HAND'
+        add('C18','C10U50',{1:'+24V_PROTECTED',2:'GND'},(65,17.5,90,'F'),'power12')
+        add('C19','C10U25',{1:'+12V_CONVERTER',2:'GND'},(75.5,16.5,90,'F'),'power12')
+        add('D3','SCHOTTKY',{1:'+12V_GIGA',2:'+12V_CONVERTER'},(71,19.5,0,'F'),'power12')
+        add('TP6','TP',{1:'+24V_PROTECTED'},(74,23.5,0,'F'),'power12');out[-1]['assembly']='PCB'
+        add('TP7','TP',{1:'+12V_GIGA'},(69,16,0,'F'),'power12');out[-1]['assembly']='PCB'
         # GIGA already has R26/R27 = 5.1k on I2C4; no duplicate host pull-ups.
         groups=[('JDIGITAL',1,10,'J2'),('JDIGITAL',11,18,'J3'),('JDIGITAL',19,26,'J4'),
                 ('JANALOG',1,8,'J5'),('JANALOG',9,16,'J6'),('JANALOG',17,24,'J7'),

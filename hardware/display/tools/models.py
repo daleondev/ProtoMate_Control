@@ -28,10 +28,19 @@ contacts=[box(-6+i*.5-.095,y,0,.19,.9,.15) for i in range(25) for y in [-2.15,1.
 save('DF23C-50DP',[shell,*contacts])
 
 # Phoenix 1751248: 7.5 x 7.3 x 8.5 above PCB. Supplied tails are
-# 3.5mm; the assembly operation clips them to 0.8mm below the 1mm PCB.
+# 3.5mm; shown at their supplied length for the 1.6mm GIGA shield.
 body=box(-2,-3.9,0,7.5,7.3,8.5)
 for x in [0,3.5]:body=body.cut(box(x-1.2,-4,1,2.4,3,2.5))
-save('Terminal_2x3.5',[body,*[box(x-.25,-.45,-1.8,.5,.9,1.8) for x in [0,3.5]]])
+save('Terminal_2x3.5',[body,*[box(x-.25,-.45,-3.5,.5,.9,3.5) for x in [0,3.5]]])
+
+# TI PWP0016A: nominal HTSSOP body/lead envelope and exposed thermal pad.
+save('TPS26600-PWP0016A',[box(-2.2,-2.5,.1,4.4,5,1.1),box(-1.5,-1.5,0,3,3,.1),
+    *[box(x,-2.275+i*.65-.15,0,1,.3,.15) for x in [-3.2,2.2] for i in range(8)]])
+
+# TRACO TSR 2-2433: drawing-based envelope, body 7.5 x 14 x 10.1.
+# Axis/pin datum follows the local KiCad footprint. Trim tails for the display.
+save('TSR2-2433-trimmed',[box(-3.89,-9.58,0,7.5,14,10.1),
+    *[box(-.25,-y-.25,-1.8,.5,.5,1.8) for y in [0,2.54,5.08]]])
 
 for p in components('giga-adapter'):
     if p['kind']!='HEADER':continue

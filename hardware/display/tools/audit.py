@@ -50,6 +50,10 @@ def main():
             assert elem.findtext('./fields/field[@name="MPN"]')==part['mpn'],part['ref']
             actual=footprints[part['ref']].GetPosition()
             assert abs(k.ToMM(actual.x)-part['pos'][0])<.00002 and abs(k.ToMM(actual.y)-part['pos'][1])<.00002,(name,part['ref'],'placement source mismatch')
+        for f in b.GetFootprints():
+            for model in f.Models():
+                path=model.m_Filename.replace('${KIPRJMOD}',str(ROOT/name))
+                assert '${' not in path and Path(path).is_file(),(name,f.GetReference(),'missing local 3D model',path)
         for t in b.GetTracks():
             if isinstance(t,k.PCB_VIA):
                 assert t.GetDrillValue()>=k.FromMM(BOARDS[name]['via_drill'])
@@ -63,15 +67,15 @@ def main():
         assert b.GetTitleBlock().GetRevision()==BOARDS[name]['revision']
         ground_layers={z.GetLayer() for z in b.Zones() if z.GetNetname()=='GND'}
         assert ground_layers==({k.F_Cu,k.B_Cu} if BOARDS[name]['layers']==2 else {k.In1_Cu})
-        summary[name]={'revision':BOARDS[name]['revision'],'copper_layers':b.GetCopperLayerCount(),'schematic_pcb_pin_pairs':len(nets),'components':len(source_parts),'tracks':len(b.GetTracks()),'ground_reference':'Stitched F.Cu/B.Cu ground pours' if BOARDS[name]['layers']==2 else 'In1.Cu uninterrupted GND plane'}
+        summary[name]={'revision':BOARDS[name]['revision'],'copper_layers':b.GetCopperLayerCount(),'schematic_pcb_pin_pairs':len(nets),'components':len(source_parts),'tracks':len(b.GetTracks()),'ground_reference':'Stitched F.Cu/B.Cu ground pours' if BOARDS[name]['layers']==2 else 'In1.Cu GND reference plane'}
         pins[name]=nets
     d,g=pins['display-adapter'],pins['giga-adapter']
     for p,net in PANEL.items():assert d['J1',str(p)]==net,(p,net)
     assert len(PANEL)==50
-    # Every FFC conductor, including unused ground contacts and four supply feeds.
+    # Every FFC conductor, including 24V feeds and the separate 3.3V reference return.
     for p in range(1,81):assert g['J1',str(p)]==d['J2',str(81-p)],p
-    assert {p for p in range(1,81) if g['J1',str(p)]=='+3V3_PANEL'}=={3,5,7,9}
-    assert sum(g['J1',str(p)]=='GND' for p in range(1,81))==41
+    assert {p for p in range(1,81) if g['J1',str(p)]=='+3V3_PANEL'}=={5,7,9}
+    assert sum(g['J1',str(p)]=='GND' for p in range(1,81))==40
     rows=list(csv.DictReader((ROOT/'connections.csv').open()))
     assert len(rows)==35
     config=dict(line.strip().split('=',1) for line in next((ROOT.parents[1]/'external/CubeMX').glob('*.ioc')).read_text().splitlines() if '=' in line)
@@ -97,8 +101,20 @@ def main():
     assert g['U6','1']=='+3V3_PANEL' and g['U6','8']==g['U6','5']=='+3V3_GIGA'
     assert g['U6','2']=='LCD_SCL' and g['U6','3']=='LCD_SDA'
     assert g['U6','7']=='MCU_SCL' and g['U6','6']=='MCU_SDA'
-    for q in ['Q1','Q2']:
-        assert d[q,'1']=='PWR_GATE' and d[q,'2']=='+3V3_PANEL' and d[q,'3']=='+3V3_FUSED'
+    assert {p for p in range(1,81) if g['J1',str(p)]=='+24V_DISPLAY'}=={1,3}
+    assert d['U1','1']==d['C9','1']=='+24V_DISPLAY'
+    assert d['U1','2']=='GND' and d['U1','3']=='+3V3_PANEL'
+    assert g['J10','1']==g['F1','1']=='+24V_INPUT' and g['J10','2']=='GND'
+    assert g['F1','2']==g['D1','1']==g['U7','1']==g['U7','2']=='+24V_FUSED'
+    assert g['U7','15']==g['U7','16']==g['U8','1']==g['F2','1']=='+24V_PROTECTED'
+    assert g['F2','2']=='+24V_DISPLAY'
+    assert g['U7','6']==g['U7','8']==g['U7','17']=='PWR_RTN'
+    assert g['U7','9']=='GND' and g['U8','2']=='GND'
+    assert g['U8','3']==g['D3','2']=='+12V_CONVERTER'
+    assert g['D3','1']==g['J5','8']==g['J9','24']=='+12V_GIGA'
+    for pin in ['4','7','10','13','14']:assert g['U7',pin]==''
+    for ref in ['R67','R69','R70','C16']:assert g[ref,'2']=='PWR_RTN'
+    assert g['D2','1']=='+24V_PROTECTED' and g['D2','2']=='GND'
     # Physical mating orientation, independently checking final placed coordinates.
     fp={f.GetReference():f for f in boards['display-adapter'].GetFootprints()}
     j={p.GetNumber():p.GetPosition() for p in fp['J1'].Pads()}

@@ -10,21 +10,20 @@ from pathlib import Path
 import numpy as np
 from PIL import Image,ImageDraw
 import pcbnew as k
-from design import ROOT
+from design import ROOT, board_outline
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 GRID=.05
 LAYERS=[k.F_Cu,k.In2_Cu,k.B_Cu]
 def mm(v):return k.FromMM(v)
 def xy(x,y):return k.VECTOR2I(mm(x),mm(y))
 
-def route(b,which,entry):
+def route(b,which,entry,width=.15):
     global LAYERS
     LAYERS=[k.F_Cu,k.B_Cu] if b.GetCopperLayerCount()==2 else [k.F_Cu,k.In2_Cu,k.B_Cu]
     items={t.m_Uuid.AsString():t for t in b.GetTracks()}
     items.update({p.m_Uuid.AsString():p for f in b.GetFootprints() for p in f.Pads()})
     a,c=[items[i['uuid']] for i in entry['items']]
-    net=a.GetNet();name=a.GetNetname();width=.15
-    if name.startswith('+'):width=.15
+    net=a.GetNet();name=a.GetNetname()
     # Connector pad escapes stay no wider than their copper.
     if any(isinstance(t,k.PAD) and min(t.GetSize().x,t.GetSize().y)<mm(.3) for t in [a,c]):width=.15
     W,H=(1101,701) if which=='display-adapter' else (2441,1068)
@@ -64,7 +63,7 @@ def route(b,which,entry):
             r=k.ToMM(t.GetWidth())/2
             if t.GetLayer() in LAYERS:segment(draws[LAYERS.index(t.GetLayer())],t.GetStart(),t.GetEnd(),r+margin)
             segment(vd,t.GetStart(),t.GetEnd(),r+.325+.15+.01)
-    contour=[(0,0),(55,0),(55,35),(0,35)] if which=='display-adapter' else [(12,0),(122,0),(122,53.34),(11,53.34),(11,47),(78,47),(78,10),(12,10)]
+    contour=board_outline(which)
     for im,edge in [(i,.3+width/2+.01) for i in images]+[(vi,.635)]:
         outside=Image.new('1',(W,H),1);d=ImageDraw.Draw(outside);pts=[(x/GRID,y/GRID) for x,y in contour];d.polygon(pts,fill=0);d.line(pts+[pts[0]],fill=1,width=math.ceil(2*edge/GRID),joint='curve')
         im.paste(1,mask=outside)

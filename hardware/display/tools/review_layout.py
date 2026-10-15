@@ -9,7 +9,7 @@ import pcbnew as k
 from shapely.geometry import Polygon,Point,LineString
 from shapely.ops import unary_union
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
-from design import ROOT
+from design import ROOT,BOARDS
 p=ROOT/'display-adapter/display-adapter.kicad_pcb';b=k.LoadBoard(str(p))
 def point(v):return (k.ToMM(v.x),k.ToMM(v.y))
 def loop(line):return [point(line.CPoint(i)) for i in range(line.PointCount())]
@@ -30,5 +30,5 @@ for t in b.GetTracks():
  if isinstance(t,k.PCB_VIA) or t.GetNetname()!='LCD_PCLK':continue
  line=LineString([point(t.GetStart()),point(t.GetEnd())]);length=line.length
  distances += [line.interpolate(i/max(1,math.ceil(length/.1)),normalized=True).distance(g[t.GetLayer()]) for i in range(math.ceil(length/.1)+1)]
-report={'board':'display-adapter','revision':'B','copper_layers':2,'ground_pour_area_mm2':{b.GetLayerName(l):round(shape.area,2) for l,shape in g.items()},'total_ground_vias':len(existing),'clock_signal_vias':clockvias,'clock_via_nearest_ground_via_mm':[round(min(math.hypot(x-a,y-c) for a,c in existing),3) for x,y in clockvias],'maximum_clock_centre_to_same_layer_ground_pour_mm':round(max(distances),3),'sample_spacing_mm':.1,'interpretation':'Geometric return-path review; both ground pours are connected and stitched. This is not field-solver impedance or signal-integrity validation. Confirm panel-side timing and ringing on the first board.'}
+report={'board':'display-adapter','revision':BOARDS['display-adapter']['revision'],'copper_layers':2,'ground_pour_area_mm2':{b.GetLayerName(l):round(shape.area,2) for l,shape in g.items()},'total_ground_vias':len(existing),'clock_signal_vias':clockvias,'clock_via_nearest_ground_via_mm':[round(min(math.hypot(x-a,y-c) for a,c in existing),3) for x,y in clockvias],'maximum_clock_centre_to_same_layer_ground_pour_mm':round(max(distances),3),'sample_spacing_mm':.1,'interpretation':'Geometric return-path review; both ground pours are connected and stitched. This is not field-solver impedance or signal-integrity validation. Confirm panel-side timing and ringing on the first board.'}
 (ROOT/'manufacturing/verification/display-adapter-layout-review.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

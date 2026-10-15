@@ -52,7 +52,7 @@ PROTOTYPE FABRICATION AND SMT ASSEMBLY PACKAGE
 FABRICATION
 {BOARDS[name]['layers']}-layer FR-4, 1 oz copper on every copper layer, ENIG.
 Green solder mask, white silkscreen, IPC Class 2, 100% electrical test.
-Finished board: {'55 x 35 x 1.0 mm' if display else '111 x 53.34 x 1.6 mm maximum; C-shaped outline'}.
+Finished board: {'55 x 35 x 1.0 mm' if display else '111 x 53.34 x 1.6 mm maximum; outline with central power tab'}.
 Layer order: {' / '.join(copper_layers(name))}.
 Gerbers and separate PTH/NPTH drills in gerbers/ are authoritative.
 Minimum track/clearance 0.15 mm; minimum via drill {BOARDS[name]['via_drill']:.2f} mm,
@@ -65,7 +65,7 @@ ASSEMBLY
 Populate exactly bom-pcbway-smt.csv using placement.csv.
 {'Both sides populated; DF23 J1 on BOTTOM.' if display else 'Top side SMT only.'}
 All SMT BOM entries FIT; no DNP SMT components.
-{'J3 power terminal' if display else 'J2–J9 stacking headers'}: HAND installation, not part of PCBWay SMT placement.
+{'U1 3.3V converter' if display else 'J2–J9 stacking headers, J10 terminal and U8 12V converter'}: HAND installation, not part of PCBWay SMT placement.
 Full procurement BOM, including HAND parts: bom-all.csv.
 Placement units mm; origin X=0 at lower board edge; positive Y upward.
 Bottom-side X is not negated. Native KiCad rotations; use assembly drawings.
@@ -73,7 +73,7 @@ No substitutions for Hirose connector suffixes or Samtec header tail lengths.
 Hirose FH28 paste: 0.25 x 1.00 mm windows, 0.15 mm stencil at connector.
 Use a stepped stencil, 0.10–0.12 mm at 0402/TSSOP, or an explicitly reviewed
 equivalent assembly process. Do not silently enlarge the apertures.
-{'Trim J3 leads to <=0.8 mm below PCB after hand soldering. J3 pin 1 = +3.3 V.' if display else 'Carrier underside 13.0 mm above GIGA; J2–J8 10 mm tails, J9 14.83 mm tails.'}
+{'Trim U1 leads to <=0.8 mm below PCB after hand soldering. Input power arrives on the FFC.' if display else 'Carrier underside 13.0 mm above GIGA; J2–J8 10 mm tails, J9 14.83 mm tails.'}
 
 CONTENTS
 gerbers/: copper, mask, silk, paste, outline, drill files and drill maps.

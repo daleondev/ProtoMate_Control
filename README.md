@@ -1070,7 +1070,8 @@ Retain the established voltage-conversion circuits and shared TMC UART wiring.
 M2/M3 addresses are 0/1, microstepping is 1/16 and stealthChop is the default.
 The [motor perfboard KiCad project](hardware/perfboard/README.md) provides the
 GIGA wiring schematic, hand-soldering layout and complete harness table. Power
-the GIGA through USB-C; the perfboard receives its 3.3 V output and shares ground,
+the GIGA through USB-C or the display shield’s protected VIN supply; the perfboard
+receives its 3.3 V output and shares ground,
 while the buck's 5 V output stays on the motor-interface board.
 Reference inputs use pull-ups and both edges; LOW is the healthy NC circuit,
 HIGH means switch activation or an open cable. ALM is pulled up; DIAG/INDEX are
@@ -1101,9 +1102,11 @@ still requires checking on the actual panel. DSI is disabled.
 | Touch reset / interrupt | PI3/D72, PB12/D74 EXTI12 |
 | Touch SCL / SDA | PB6/D101, PH12/D102, I2C4 100 kHz |
 
-Use a separate adequately rated 3.3 V display supply; the specified backlight
-alone is roughly 1 A. The [Smartwin–GIGA adapter projects](hardware/display/README.md)
-provide the two PCBs, protected interfaces, cable specification and manufacturing
+The [Smartwin–GIGA adapter projects](hardware/display/README.md) accept regulated
+24 V on the GIGA shield, convert it to 12 V for GIGA VIN, and carry protected
+24 V through the ribbon to a local 3.3 V/2 A converter on the display adapter.
+USB-C remains available for CDC; GIGA and display 3.3 V rails stay separate.
+The projects include protected interfaces, cable specifications and manufacturing
 packages. First-board electrical and display testing remains required.
 The panel remains off at application startup. `display bars` initializes it,
 exercises DMA2D, switches framebuffer at vertical blank and sets 10% backlight.

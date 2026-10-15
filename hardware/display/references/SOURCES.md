@@ -1,6 +1,6 @@
-# Design sources and attribution — display B / GIGA A
+# Design sources and attribution — display C / GIGA B
 
-Reviewed 2026-10-14. Local copies retain the manufacturers' copyright. They are
+Reviewed 2026-10-15. Local copies retain the manufacturers' copyright. They are
 engineering references, not project-authored specifications.
 
 | Source | Use in this design |
@@ -16,8 +16,12 @@ engineering references, not project-authored specifications.
 | [TI SN74AXC8T245](https://www.ti.com/lit/ds/symlink/sn74axc8t245.pdf), local copy | Supply isolation, opposite DIR1/DIR2 levels, pinout and propagation limits |
 | [TI SN74AXC1T45](https://www.ti.com/lit/ds/symlink/sn74axc1t45.pdf), local copy | Returning interrupt translation and power-off behavior |
 | [TI TCA9517A](https://www.ti.com/lit/ds/symlink/tca9517a.pdf), local copy | A/B bus assignment, low-level offset and power-off behavior |
-| [Diodes DMP2035U](https://www.diodes.com/datasheet/download/DMP2035U.pdf) | PMOS pinout, low-voltage gate drive and resistance |
-| [Littelfuse 467](https://www.littelfuse.com/assetdocs/fuse-467-datasheet?assetguid=4a59f034-1cca-460e-a5ba-e1e66247c76d) | 2.5 A fuse selection and resistance |
+| [TI TPS26600](https://www.ti.com/lit/ds/symlink/tps2660.pdf), `TPS2660.pdf` | Reverse polarity/current protection, RTN isolation, threshold dividers, current limit, slew and PWP0016A land pattern |
+| [TRACO TSR 1](https://www.tracopower.com/products/tsr1.pdf), `TRACO_TSR1.pdf` | TSR 1-24120 input/output limits and mechanical pinout |
+| [TRACO TSR 2](https://www.tracopower.com/products/tsr2.pdf), `TRACO_TSR2.pdf` | TSR 2-2433 regulation, thermal coefficient, load limits and mechanical pinout |
+| [Bourns SF-1206S](https://www.bourns.com/docs/product-datasheets/sf-1206s.pdf), `Bourns_SF1206S.pdf` | 2 A and 0.8 A 63 V time-lag fuses and pad dimensions |
+| [Littelfuse SMBJ](https://m.littelfuse.com/~/media/electronics/datasheets/tvs_diodes/littelfuse_tvs_diode_smbj_datasheet.pdf.pdf) | SMBJ33CA bidirectional TVS, 33 V standoff / 53.3 V rated clamp |
+| [Diodes B360A](https://www.diodes.com/datasheet/download/B360A.pdf) | 60 V Schottky polarity, SMA package and forward drop |
 | [Phoenix 1751248](https://www.phoenixcontact.com/en-dk/products/pcb-terminal-block-mkds-1-2-35-1751248) | 3.5 mm terminal pitch, body and lead length |
 | [Samtec socket catalogue](https://suddendocs.samtec.com/catalog_english/ssw_th.pdf), `Samtec_SSQ.pdf` | SSQ body dimensions and distinct -03 / -04 tail lengths |
 | ST DS12930 Rev 3 Table 105, repository `docs/arduino_giga_r1_wifi/DS_stm32h747xi.pdf` | Conditional LTDC timing budget and its characterization conditions |
@@ -43,7 +47,7 @@ models originate from the KiCad library contributors, installed KiCad libraries
 on this workstation. Their license is CC-BY-SA 4.0 with KiCad's electronic-design
 exception; see `KiCad-LIBRARY-LICENSE.txt` and the full CC license. Local changes
 replace model paths, suppress crowded reference silkscreen and set project
-manufacturing clearances. The original component geometry is retained.
+manufacturing clearances. The TPS26600 land pattern uses TI’s PWP0016A recommended 3.3 mm exposed pad and 1.5 × 0.45 mm leads. Its 3D envelope and the display converter envelope follow the retained drawings; they are not production-tooling models.
 
 Hirose, terminal and GIGA stacking-header footprints and simplified mechanical
 envelopes were constructed for this project from the cited drawings. They are
@@ -57,3 +61,11 @@ FreeRouting was a routing aid; the reviewed KiCad PCB is authoritative. FreeCAD
 1.1.3 generated envelope models and the mating assembly. Gerbonara 1.6.3 parsed
 the exported Gerbers and drills independently of KiCad; Inkscape rendered those
 parsed layers. Project-specific audits are retained in `tools/`.
+
+The manufacturer-authored TRACO PDFs were obtained from the
+[datasheets.com TSR1 mirror](https://www.datasheets.com/traco-power/tsr1-24120/datasheet.pdf)
+and [TSR2 mirror](https://datasheet.octopart.com/TSR2-2433-Tracopower-datasheet-140787542.pdf)
+when the manufacturer's download endpoint rejected automated access. The retained
+TSR2 specification is dated 2020-04-27; the installed KiCad footprint has a larger
+courtyard around the same 14 × 7.5 mm nominal body. Supply ratings and tolerance
+budgets use the retained manufacturer specification, including ±0.02%/K.

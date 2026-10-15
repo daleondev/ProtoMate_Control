@@ -1,0 +1,36 @@
+{
+  "revision": "C",
+  "status": "CALCULATED DESIGN BUDGET; PHYSICAL QUALIFICATION PENDING",
+  "input": "24V nominal, recommended regulated 24V +/-10%, >=2A available for this assembly",
+  "uv_start_min_typ_max_V": [
+    17.644777227722773,
+    18.207,
+    19.09638888888889
+  ],
+  "ov_cutoff_min_typ_max_V": [
+    27.088396039603957,
+    28.084,
+    29.46929292929293
+  ],
+  "efuse_typical_current_limit_A": 1.488833746898263,
+  "efuse_typical_24V_ramp_ms": 9.75609756097561,
+  "both_converters_full_rated_output_input_A_at_18V_80percent": 1.2916666666666667,
+  "display_2A_input_A_at_18V_80percent": 0.4583333333333333,
+  "FFC_power_current_per_contact_A": 0.22916666666666666,
+  "FFC_24V_drop_allowance_at_full_module_load_V": 0.09548611111111112,
+  "display_qualification_current_budget_A": 1.5,
+  "regulator_min_before_ripple_and_copper_V": 3.1548,
+  "ripple_negative_allowance_V": 0.05,
+  "pcb_supply_return_allowance_ohm": 0.04,
+  "connector_drop_allowance_V": 0.03,
+  "panel_min_calculated_V": 3.0148,
+  "panel_min_required_V": 3.0,
+  "panel_max_absolute_V": 3.6,
+  "limitations": [
+    "Efficiency is a budgeting allowance; verify both modules at the actual 24V input, load and enclosure temperature.",
+    "The panel backlight maximum is unspecified. Its four 0.3A contacts limit permissible backlight current; measure it.",
+    "3.3V rise time must be measured at CN1 and satisfy the panel 1..20ms requirement.",
+    "Converter ripple, hot copper/contact losses, current sharing and supply sequencing remain first-board tests.",
+    "TVS/eFuse ratings do not establish a tested surge-immunity level."
+  ]
+}

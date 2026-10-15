@@ -7,9 +7,9 @@
     "mpn": "FH28H-80S-0.5SH(05)",
     "footprint": "FH28H-80S-0.5SH",
     "nets": {
-      "1": "GND",
+      "1": "+24V_DISPLAY",
       "2": "GND",
-      "3": "+3V3_PANEL",
+      "3": "+24V_DISPLAY",
       "4": "GND",
       "5": "+3V3_PANEL",
       "6": "GND",
@@ -2175,6 +2175,460 @@
     "sheet_uuid": "b7f2b962-0824-5171-8ace-8ac871501314"
   },
   {
+    "ref": "J10",
+    "kind": "POWER",
+    "value": "24V INPUT",
+    "mfr": "Phoenix Contact",
+    "mpn": "1751248",
+    "footprint": "TerminalBlock_1x02_P3.50mm",
+    "nets": {
+      "1": "+24V_INPUT",
+      "2": "GND"
+    },
+    "pos": [
+      46,
+      23,
+      270,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "HAND",
+    "uuid": "78945f79-f60c-503b-9e8e-0334d5ac2b6a",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "F1",
+    "kind": "FUSE2A",
+    "value": "2A / 63V time-lag",
+    "mfr": "Bourns",
+    "mpn": "SF-1206S200-2",
+    "footprint": "Fuse_1206_3216Metric",
+    "nets": {
+      "1": "+24V_INPUT",
+      "2": "+24V_FUSED"
+    },
+    "pos": [
+      52.5,
+      26,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "46395012-75f0-5a47-a653-e73822140d00",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "D1",
+    "kind": "TVS",
+    "value": "33V bidirectional TVS",
+    "mfr": "Littelfuse",
+    "mpn": "SMBJ33CA",
+    "footprint": "D_SMB",
+    "nets": {
+      "1": "+24V_FUSED",
+      "2": "GND"
+    },
+    "pos": [
+      59,
+      25,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "307932f4-a01a-5560-a743-870587ee0646",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "C15",
+    "kind": "C1U100",
+    "value": "1u / 100V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM31CR72A105KA01L",
+    "footprint": "C_1206_3216Metric",
+    "nets": {
+      "1": "+24V_FUSED",
+      "2": "GND"
+    },
+    "pos": [
+      46,
+      12,
+      90,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "e45f2199-bbcd-5b25-bd2a-b434626ca802",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "U7",
+    "kind": "EFUSE",
+    "value": "TPS26600PWPR",
+    "mfr": "Texas Instruments",
+    "mpn": "TPS26600PWPR",
+    "footprint": "HTSSOP-16_PWP0016A_EP3.3x3.3mm",
+    "nets": {
+      "1": "+24V_FUSED",
+      "2": "+24V_FUSED",
+      "3": "PWR_UVLO",
+      "4": null,
+      "5": "PWR_OVP",
+      "6": "PWR_RTN",
+      "7": null,
+      "8": "PWR_RTN",
+      "9": "GND",
+      "10": null,
+      "11": "PWR_ILIM",
+      "12": "PWR_DVDT",
+      "13": null,
+      "14": null,
+      "15": "+24V_PROTECTED",
+      "16": "+24V_PROTECTED",
+      "17": "PWR_RTN"
+    },
+    "pos": [
+      53,
+      16,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "6807c147-778b-5372-a1f8-6ff69a4f6bc1",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "R66",
+    "kind": "R143K",
+    "value": "143k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-07143KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "+24V_FUSED",
+      "2": "PWR_UVLO"
+    },
+    "pos": [
+      46,
+      16,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "63c219df-5cd8-5055-9473-421e52f87fe9",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "R67",
+    "kind": "R10K",
+    "value": "10k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "PWR_UVLO",
+      "2": "PWR_RTN"
+    },
+    "pos": [
+      46,
+      18,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "07e7cbd3-0f7f-5ad4-bcdb-b6c160fa0d15",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "R68",
+    "kind": "R226K",
+    "value": "226k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-07226KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "+24V_FUSED",
+      "2": "PWR_OVP"
+    },
+    "pos": [
+      46,
+      20,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "e3556357-43d0-54c7-bcfd-46945a3f4531",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "R69",
+    "kind": "R10K",
+    "value": "10k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "PWR_OVP",
+      "2": "PWR_RTN"
+    },
+    "pos": [
+      50.5,
+      20,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "b60ba9c1-5fe9-5892-a0d5-caf2b0a96ba5",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "R70",
+    "kind": "R8K06",
+    "value": "8.06k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-078K06L",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "PWR_ILIM",
+      "2": "PWR_RTN"
+    },
+    "pos": [
+      59,
+      18,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "3c572430-ca96-50d9-85d3-4053d4ee00b2",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "C16",
+    "kind": "C47N",
+    "value": "47n / 16V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM188R71C473KA01D",
+    "footprint": "C_0603_1608Metric",
+    "nets": {
+      "1": "PWR_DVDT",
+      "2": "PWR_RTN"
+    },
+    "pos": [
+      59,
+      16,
+      0,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "c8255735-41a9-57b8-b781-6f4d44df5336",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "C17",
+    "kind": "C10U50",
+    "value": "10u / 50V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM32ER71H106KA12L",
+    "footprint": "C_1210_3225Metric",
+    "nets": {
+      "1": "+24V_PROTECTED",
+      "2": "GND"
+    },
+    "pos": [
+      59.5,
+      11,
+      90,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "91ec517d-e4b0-5d4b-926b-764e04504913",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "D2",
+    "kind": "SCHOTTKY",
+    "value": "60V / 3A Schottky",
+    "mfr": "Diodes Incorporated",
+    "mpn": "B360A-13-F",
+    "footprint": "D_SMA",
+    "nets": {
+      "1": "+24V_PROTECTED",
+      "2": "GND"
+    },
+    "pos": [
+      65,
+      23.5,
+      90,
+      "F"
+    ],
+    "page": "power_input",
+    "assembly": "SMT",
+    "uuid": "67e3e6fd-2285-5050-8a52-10d19be7c104",
+    "sheet_uuid": "a292052b-5cf9-5ca3-8d62-a3b86ad56ac7"
+  },
+  {
+    "ref": "F2",
+    "kind": "FUSE800M",
+    "value": "0.8A / 63V time-lag",
+    "mfr": "Bourns",
+    "mpn": "SF-1206S080-2",
+    "footprint": "Fuse_1206_3216Metric",
+    "nets": {
+      "1": "+24V_PROTECTED",
+      "2": "+24V_DISPLAY"
+    },
+    "pos": [
+      71,
+      25.5,
+      0,
+      "F"
+    ],
+    "page": "power12",
+    "assembly": "SMT",
+    "uuid": "e1988fe1-61f3-56c1-9b50-8331d5e6cbb9",
+    "sheet_uuid": "d0588a50-c8b1-5b77-839e-aaff48d47765"
+  },
+  {
+    "ref": "U8",
+    "kind": "BUCK12",
+    "value": "TSR 1-24120 / 12V 1A",
+    "mfr": "TRACO Power",
+    "mpn": "TSR 1-24120",
+    "footprint": "Converter_DCDC_TRACO_TSR-1_THT",
+    "nets": {
+      "1": "+24V_PROTECTED",
+      "2": "GND",
+      "3": "+12V_CONVERTER"
+    },
+    "pos": [
+      67,
+      12,
+      0,
+      "F"
+    ],
+    "page": "power12",
+    "assembly": "HAND",
+    "uuid": "619c1401-3f1c-595d-bb7e-13df068905e4",
+    "sheet_uuid": "d0588a50-c8b1-5b77-839e-aaff48d47765"
+  },
+  {
+    "ref": "C18",
+    "kind": "C10U50",
+    "value": "10u / 50V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM32ER71H106KA12L",
+    "footprint": "C_1210_3225Metric",
+    "nets": {
+      "1": "+24V_PROTECTED",
+      "2": "GND"
+    },
+    "pos": [
+      65,
+      17.5,
+      90,
+      "F"
+    ],
+    "page": "power12",
+    "assembly": "SMT",
+    "uuid": "498da9e8-1d4c-5c30-9fbc-59deb8204de7",
+    "sheet_uuid": "d0588a50-c8b1-5b77-839e-aaff48d47765"
+  },
+  {
+    "ref": "C19",
+    "kind": "C10U25",
+    "value": "10u / 25V X5R",
+    "mfr": "Murata",
+    "mpn": "GRM21BR61E106KA73L",
+    "footprint": "C_0805_2012Metric",
+    "nets": {
+      "1": "+12V_CONVERTER",
+      "2": "GND"
+    },
+    "pos": [
+      75.5,
+      16.5,
+      90,
+      "F"
+    ],
+    "page": "power12",
+    "assembly": "SMT",
+    "uuid": "4cc15c9a-3510-5cce-93f9-6a1a511cc30f",
+    "sheet_uuid": "d0588a50-c8b1-5b77-839e-aaff48d47765"
+  },
+  {
+    "ref": "D3",
+    "kind": "SCHOTTKY",
+    "value": "60V / 3A Schottky",
+    "mfr": "Diodes Incorporated",
+    "mpn": "B360A-13-F",
+    "footprint": "D_SMA",
+    "nets": {
+      "1": "+12V_GIGA",
+      "2": "+12V_CONVERTER"
+    },
+    "pos": [
+      71,
+      19.5,
+      0,
+      "F"
+    ],
+    "page": "power12",
+    "assembly": "SMT",
+    "uuid": "c2680af9-f4f3-5aa0-958e-8ec54ef0d874",
+    "sheet_uuid": "d0588a50-c8b1-5b77-839e-aaff48d47765"
+  },
+  {
+    "ref": "TP6",
+    "kind": "TP",
+    "value": "Probe pad",
+    "mfr": "PCB",
+    "mpn": "PCB copper feature",
+    "footprint": "TestPoint_1.0mm",
+    "nets": {
+      "1": "+24V_PROTECTED"
+    },
+    "pos": [
+      74,
+      23.5,
+      0,
+      "F"
+    ],
+    "page": "power12",
+    "assembly": "PCB",
+    "uuid": "afa864e3-31c4-5ece-965b-741f967a2d16",
+    "sheet_uuid": "d0588a50-c8b1-5b77-839e-aaff48d47765"
+  },
+  {
+    "ref": "TP7",
+    "kind": "TP",
+    "value": "Probe pad",
+    "mfr": "PCB",
+    "mpn": "PCB copper feature",
+    "footprint": "TestPoint_1.0mm",
+    "nets": {
+      "1": "+12V_GIGA"
+    },
+    "pos": [
+      69,
+      16,
+      0,
+      "F"
+    ],
+    "page": "power12",
+    "assembly": "PCB",
+    "uuid": "dd25a93d-d250-5172-9d64-bbc592dccd78",
+    "sheet_uuid": "d0588a50-c8b1-5b77-839e-aaff48d47765"
+  },
+  {
     "ref": "J2",
     "kind": "HEADER",
     "value": "JDIGITAL 1..10",
@@ -2463,7 +2917,7 @@
       "5": null,
       "6": "GND",
       "7": "GND",
-      "8": null
+      "8": "+12V_GIGA"
     },
     "pos": [
       0,
@@ -3047,7 +3501,7 @@
       "21": null,
       "22": "GND",
       "23": "+3V3_GIGA",
-      "24": null
+      "24": "+12V_GIGA"
     },
     "pos": [
       0,

@@ -1,5 +1,5 @@
 {
-  "revision": "B",
+  "revision": "C",
   "date": "2026-10-15",
   "release": "PROTOTYPE FABRICATION AND SMT ASSEMBLY",
   "digital_release_checks": "PASS",
@@ -11,10 +11,10 @@
       "ignored_ERC_categories": 0,
       "ignored_DRC_categories": 0,
       "excluded_findings": 0,
-      "SMT_components": 21,
-      "exported_pad_coordinates_checked": 182,
-      "drill_hits_checked": 161,
-      "revision": "B",
+      "SMT_components": 19,
+      "exported_pad_coordinates_checked": 178,
+      "drill_hits_checked": 155,
+      "revision": "C",
       "copper_layers": 2
     },
     "giga-adapter": {
@@ -24,10 +24,10 @@
       "ignored_ERC_categories": 0,
       "ignored_DRC_categories": 0,
       "excluded_findings": 0,
-      "SMT_components": 86,
-      "exported_pad_coordinates_checked": 575,
-      "drill_hits_checked": 312,
-      "revision": "A",
+      "SMT_components": 102,
+      "exported_pad_coordinates_checked": 634,
+      "drill_hits_checked": 335,
+      "revision": "B",
       "copper_layers": 4
     }
   },
@@ -36,19 +36,19 @@
     "FFC_conductors": 80,
     "signals": 35,
     "firmware_pin_conflicts": 0,
-    "supply_isolation_topology": "PASS \u2014 distinct GIGA/panel rails, power-off isolation parts and defined biasing"
+    "supply_isolation_topology": "PASS — distinct GIGA/panel rails, power-off isolation parts and defined biasing",
+    "power_topology": "PASS — shield 24V input/protection, 12V-to-VIN blocking diode, two fused 24V FFC conductors, local display 3.3V converter, three separate 3.3V reference-return conductors; U7 RTN isolated from GND."
   },
-  "mechanical_review": "PASS for nominal drawing/CAD geometry; 110 GIGA header centres checked. Display connector positions, outline and mounting holes retained; revised passive/fiducial placement reviewed in top/bottom 3D models. Physical tolerances and connector fit remain first-board tests.",
+  "mechanical_review": "PASS for nominal drawing/CAD geometry; 110 GIGA header centres checked. Power tab clears the lower SWD opening; 13mm standoffs clear underlying components. Display retains 55x35mm outline and mounting holes; converter fits on top with trimmed leads. Physical tolerances and connector fit remain first-board tests.",
   "visual_review": {
     "reviewed": [
-      "Display revision B: both outer copper/mask/silk sides rendered independently from exported Gerbers",
-      "Display revision B: connected F.Cu/B.Cu ground pours, stitching and clock return geometry",
-      "GIGA revision A: retained reviewed four-layer layout and In1 ground reference; native PCB unchanged",
-      "Fine-pitch paste apertures and drill exports",
-      "Schematic PDFs, connector orientation, assembly PDFs, fabrication drawing and unchanged cable drawing",
-      "Nominal GIGA/carrier 3D assembly and display revision-B top/bottom envelope models"
+      "Display C: both outer copper/mask/silk sides independently rendered from Gerbers; connected ground pours and converter/output-current routing.",
+      "GIGA B: both outer sides, In1 GND reference, RTN thermal island/vias, protected power routes and input polarity.",
+      "Fine-pitch paste apertures and separate PTH/NPTH drill exports; SMT BOM/placement reference sets.",
+      "Final power schematic pages, assembly/fabrication drawings, powered cable drawing and complete conductor map.",
+      "GIGA/carrier 3D assembly, USB/SWD/controls access, display top/bottom models and trimmed converter tails."
     ],
-    "result": "PASS \u2014 fabrication package review"
+    "result": "PASS — fabrication package review"
   },
   "intentional_ERC_DRC_warnings": [],
   "tool_notices": [
@@ -72,7 +72,7 @@
     "status": "NOT PERFORMED",
     "pending": [
       "Actual connector fit, standoff tolerances and strain relief",
-      "3.3 V input rise time, supply isolation during either power sequence",
+      "24V input protection, converter voltages/rise time, USB-only isolation and supply sequencing",
       "Full-brightness current sharing, voltage drop and temperature",
       "Panel-side PCLK/data timing and signal integrity over the chosen FFC",
       "Bars, both framebuffer slots, PWM brightness and touch",
@@ -81,5 +81,6 @@
   },
   "timing_qualification": "CONDITIONAL CALCULATION ONLY. Sub-nanosecond residual worst-case margin before unmodelled terms; not complete PVT timing closure. See verification/timing-budget.json and README.",
   "manufacturing_order_placed": false,
-  "firmware_changed": false
+  "firmware_changed": false,
+  "power_qualification": "CALCULATED ALLOWANCES ONLY; see verification/power-budget.json. Verify panel minimum 3.0V, 1..20ms rise, maximum connector current and thermal derating at full brightness."
 }
