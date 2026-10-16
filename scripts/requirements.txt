@@ -1,1 +1,6 @@
-pyserial
+# TGX mesh conversion and STEP capture analysis.
+numpy==2.5.2
+# Exporting framebuffer captures as PNG.
+Pillow==12.3.0
+# USB CDC console and hardware validation scripts.
+pyserial==3.5

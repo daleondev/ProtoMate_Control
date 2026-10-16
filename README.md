@@ -266,15 +266,40 @@ git submodule update --init --recursive
 
 Install CMake 3.22 or newer (3.24 or newer for `--fresh`), Ninja, GCC 16,
 Arm GCC 16.1 or 16.2 with Newlib, OpenOCD, Arm GDB, Python 3, Git, and `patch`.
-Linux builds also require ncursesw and SDL2 headers/libraries (`ncurses`, `sdl2` or `sdl2-compat` on Arch). Install the pinned TouchGFX SDK and asset tools described below before configuring M7 or Linux.
+Linux builds also require ncursesw and SDL2 headers/libraries (`ncurses`, `sdl2` or `sdl2-compat` on Arch). The pinned TouchGFX SDK is included in `external/touchgfx`; install the asset tools described below before configuring M7 or Linux.
 The project uses C++26 and the verified GCC 16 libstdc++ integration snapshot.
 Unknown compiler majors and unverified Arm libstdc++ snapshots are rejected.
 Linux tests download the pinned GoogleTest 1.17.0 source archive.
 
-The VS Code devcontainer uses Arch Linux and checks that both compiler major
-versions remain 16. Rebuild it after changing its Dockerfile. It exposes USB
-and uses a development user with serial permissions. Host flashing and serial
-capture also require access to Atmel-ICE, USB CDC and the logic analyzer.
+The **ProtoMate · Arduino GIGA R1 WiFi · GCC 16** VS Code devcontainer uses Arch
+Linux and checks that both compiler major versions remain 16. It includes
+SDL2/ncurses, Ruby with ERB/Nokogiri and `rsvg-convert` for GUI builds; Mesa, Xvfb and
+`xauth` for headless GUI tests; and OpenOCD, Arm GDB, `sigrok-cli` and FX2 analyzer
+firmware for hardware work. Python dependencies from
+[`scripts/requirements.txt`](scripts/requirements.txt) (NumPy, Pillow, pyserial)
+are installed in `/opt/protomate-venv`, selected automatically through `PATH`
+and VS Code's Python interpreter setting. No activation or system-wide pip
+installation is needed in the container.
+
+After changing the Dockerfile or requirements, run **Dev Containers: Rebuild
+Container**. The image build context includes only the Dockerfile and Python
+requirements; the workspace and downloaded SDK archives are not copied into
+the image. The container exposes USB and uses a development user with serial
+permissions. Host flashing and serial capture also require access to Atmel-ICE,
+USB CDC and the logic analyzer. Building and headless tests need no desktop
+connection; opening an interactive simulator window requires X11/Wayland access
+from the container, which is not enabled automatically.
+When switching an existing build directory between host and container, configure
+with `--fresh` to discard cached host paths (for example,
+`cmake --preset debug-linux --fresh`).
+
+For builds outside the devcontainer, install the Python dependencies separately:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r scripts/requirements.txt
+```
 
 ## Build and run
 
@@ -344,10 +369,12 @@ flowchart TB
 
 The required **TouchGFX 4.27.0** SDK files are versioned in
 [`external/touchgfx`](external/touchgfx): headers/support sources, the M7 and
-Linux engines, and Linux font/text/image converters. Install the host tools, then:
+Linux engines, and Linux font/text/image converters. The devcontainer already
+includes the host tools. Outside it, install Ruby (including ERB), Nokogiri and
+librsvg (`ruby`, `ruby-erb`, `ruby-nokogiri`, `librsvg` on Arch), then:
 
 ```sh
-# Ruby, nokogiri and librsvg/rsvg-convert are needed by the Linux converters.
+# Only needed outside the devcontainer if Nokogiri is not installed system-wide:
 gem install --install-dir "$PWD/apps/ruby-gems" nokogiri -v 1.19.4 --no-document
 cmake --preset debug-linux
 cmake --build --preset debug-linux

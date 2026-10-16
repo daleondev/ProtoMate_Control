@@ -1,0 +1,8 @@
+# The devcontainer needs only its recipe and Python requirements at image build
+# time. Source code is mounted by VS Code; keep SDKs, build trees and local
+# credentials out of the Docker build context.
+**
+!.devcontainer/
+!.devcontainer/Dockerfile
+!scripts/
+!scripts/requirements.txt

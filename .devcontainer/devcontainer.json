@@ -1,9 +1,10 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/cpp
 {
-    "name": "NUCLEO-H755ZI-Q GCC 16",
+    "name": "ProtoMate · Arduino GIGA R1 WiFi · GCC 16",
     "build": {
-        "dockerfile": "Dockerfile"
+        "dockerfile": "Dockerfile",
+        "context": ".."
     },
     "initializeCommand": "git submodule sync --recursive && git submodule update --init --recursive",
     "runArgs": [
@@ -15,13 +16,15 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "terminal.integrated.defaultProfile.linux": "bash"
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "python.defaultInterpreterPath": "/opt/protomate-venv/bin/python"
             },
             "extensions": [
                 "ms-vscode.cpptools",
                 "ms-vscode.cpptools-extension-pack",
                 "ms-vscode.cmake-tools",
-                "marus25.cortex-debug"
+                "marus25.cortex-debug",
+                "ms-python.python"
             ]
         }
     },
