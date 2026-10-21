@@ -49,6 +49,11 @@ STM32 characterization terms and panel requirements; it reports the remaining
 conditional margins in [`timing-budget.json`](verification/timing-budget.json).
 Clock phase, loading, ringing and cable/Arduino-board skew still require physical
 qualification. The calculated margins are not guaranteed interface closure.
+The panel samples on the falling pixel-clock edge; the configured LTDC clock
+polarity places data transitions on the opposite edge. `LTDC_DEPOLARITY_AL`
+is intentional: ST's LTDC inverts DE, so this produces HIGH during active pixels
+(ST AN4861, control-signal polarity configuration). These settings still require
+connector-level measurement on the assembled boards.
 
 ## Local verification
 
@@ -85,6 +90,17 @@ Seven focused boot/HAL/GUI/lifecycle regression suites pass.
 The HAL tests cover missing-power startup, valid-frame gating, brownout during
 startup, power loss/recovery with a static framebuffer, and shutdown. These are
 software tests; no physical panel or assembled adapter was tested.
+Firmware holds the backlight off for 200 ms after standby release, then requires
+a valid framebuffer scan boundary. This allows the panel's multi-frame internal
+power sequence in Smartwin page 15 to finish. A regression test checks that valid
+frames during the early startup interval cannot turn the backlight on.
+
+The final independent order review is recorded in
+[`order-review.json`](verification/order-review.json). It binds the checks to the
+two exact ODB++ archives and lists the remaining physical/procurement conditions.
+No PCB connectivity or local manufacturing-rule defect remains identified.
+This is approval for prototype fabrication, not certification of a functioning
+assembled system or a substitute for AISLER's processed preview.
 
 ## Assembly and first-board acceptance
 
@@ -118,6 +134,10 @@ supervision to conceal an inadequate supply. Smartwin gives typical backlight
 current, not a guaranteed maximum. All four contacts must stay within their
 individual 0.3 A ratings. Keep total converter output capacitance, including the
 panel, within 900 µF. These are first-board acceptance requirements.
+The calculated static contact voltage is **3.019 V** at the 1.2 A allocation.
+The 50 mV downward ripple allowance exceeds the quoted 50 mV peak-to-peak
+typical value but is not a manufacturer-guaranteed bound. Therefore the 19 mV
+static margin cannot be presented as a worst-case transient guarantee.
 
 Use the revision-E Type-A cable drawing: 80 ways, 0.50 mm pitch, 0.30 mm mating
 thickness, same-side contacts, ≤100 mm, ≥60 V / 0.5 A per conductor and copper

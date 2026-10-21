@@ -99,7 +99,7 @@ void startPanel(hal::device::SmartwinDisplay& display)
     display.service();
     std::this_thread::sleep_for(3ms);display.service();
     std::this_thread::sleep_for(11ms);display.service();
-    std::this_thread::sleep_for(61ms);display.service();
+    std::this_thread::sleep_for(201ms);display.service();
 }
 }
 TEST(TouchDisplay, SupplyLossGatesBrightnessAndRecoveryRepeatsResetWithoutStoppingRendering)
@@ -135,4 +135,23 @@ TEST(TouchDisplay, BrownoutDuringStartupRestartsTheSequence)
     power->ready=false;display.service();EXPECT_EQ(reset->value,hal::gpio::Level::Low);
     EXPECT_EQ(standby->value,hal::gpio::Level::Low);EXPECT_EQ(rgb->brightness,0u);
     EXPECT_FALSE(display.backlight(101));
+}
+TEST(TouchDisplay, ValidFramesCannotEnableBacklightBeforePanelRailsHaveSettled)
+{
+    using namespace std::chrono_literals;
+    auto rgb=std::make_shared<DisplayOutput>();auto standby=std::make_shared<ResetPin>();
+    auto reset=std::make_shared<ResetPin>();auto power=std::make_shared<SupplyReady>();power->ready=true;
+    hal::device::SmartwinDisplay display(rgb,standby,reset,power);
+    ASSERT_TRUE(display.initialize());ASSERT_TRUE(display.backlight(100));
+    std::this_thread::sleep_for(3ms);display.service();
+    std::this_thread::sleep_for(11ms);display.service();
+    ASSERT_EQ(standby->value,hal::gpio::Level::High);
+    rgb->current.presentations=1;
+    std::this_thread::sleep_for(80ms);
+    for (unsigned i=0;i<3;++i) { ++rgb->current.vsyncs;display.service(); }
+    EXPECT_EQ(rgb->brightness,0u);
+    std::this_thread::sleep_for(121ms);display.service();
+    EXPECT_EQ(rgb->brightness,0u);
+    ++rgb->current.vsyncs;display.service();
+    EXPECT_EQ(rgb->brightness,100u);
 }

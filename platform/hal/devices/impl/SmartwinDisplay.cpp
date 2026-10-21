@@ -90,7 +90,10 @@ namespace hal::device
         case Phase::ResetReleased:
             if (now >= m_deadline) {
                 m_standby->write(gpio::Level::High);
-                m_deadline = now + 60ms;
+                // Smartwin's power-on/standby-exit diagram needs multiple
+                // scan frames to establish the internal panel rails and data.
+                // Allow about twelve frames at 59.95 Hz before lighting it.
+                m_deadline = now + 200ms;
                 m_phase = Phase::Starting;
             }
             break;

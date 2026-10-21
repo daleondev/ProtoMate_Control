@@ -26,7 +26,14 @@
     "external/CubeMX/CM7/Src/ltdc.c": "ad46902ba206afb7d5d5d6f425ad603b75a9241a11068e8aef2f8e37acd5aec9",
     "external/CubeMX/CM7/Src/gpio.c": "da0c0f31f420bf5277255f30b250146928b23283d2355884c2d26b6eb362f531",
     "platform/boot/giga/clocks.c": "fd9c164e32f0b4cd48e602090c02185cee5d8e63828fe3468ded3ead105831c4",
-    "platform/hal/devices/impl/SmartwinDisplay.cpp": "3d2b5246b17f2960a60c8c237026e3d9b2339d7427ba1002403c4065d1d4656f",
-    "platform/hal/devices/impl/St1633i.cpp": "275ba2ced3f4d96e8307651997e58ed6951a4e1ffba562971715e895258c666c"
+    "platform/hal/devices/impl/SmartwinDisplay.cpp": "fd17dd59970a7eab6b043fde2626a3b6c196b18af52ad846ab27d9fc1cc16cba",
+    "platform/hal/devices/impl/St1633i.cpp": "275ba2ced3f4d96e8307651997e58ed6951a4e1ffba562971715e895258c666c",
+    "platform/hal/tests/display_test.cpp": "41a2bcb66e567a52ca540d7a796e251f5f3a64128c5dc02cc03ce9f554c10e43"
+  },
+  "panel_startup_settle_after_standby_ms": 200,
+  "regression_scope": "Includes preventing early backlight activation despite completed frames; missing supply, brownout, recovery and shutdown.",
+  "image_pairs": {
+    "giga-debug": "e56adf9623689873",
+    "giga-release": "77337748a1ac9473"
   }
 }

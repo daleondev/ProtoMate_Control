@@ -72,6 +72,12 @@ def main():
     delta=[r['relative_to_clock_mm']*.007 for r in timed_rows]
     result={'method':'Shortest physical copper path, splitting segments at intersections and pad/via anchors. Horizontal lengths; package/via internal delay excluded.','pixel_clock_MHz':40.96,'half_period_ns':12.20703125,'panel_setup_hold_ns':5,'buffer_interdevice_worst_case_range_ns':3.5,'adapter_trace_skew_estimate_ns_at_7ps_per_mm':skew,'stm32_DS12930_table105_conditions':'VDD >2.7V, OSPEED=11, IO compensation enabled, stated load and voltage-scale conditions; Very-high GPIO speed and CSI-referenced IO compensation are configured in firmware; physical loading remains to be qualified.','stm32_data_valid_max_ns':.5,'stm32_data_hold_min_ns':0,'stm32_half_cycle_tolerance_ns':.5,'conditional_setup_margin_ns_before_unmodelled_terms':12.20703125-.5-.5-3.5-5-max(delta),'conditional_hold_margin_ns_before_unmodelled_terms':12.20703125-.5-3.5-5+min(delta),'unmodelled_terms':['Arduino PCB routes','FFC conductor skew, material and connector/package effects','Via discontinuities, rise/fall settling and clock jitter','Actual display sampling phase and compliance with ST characterization conditions'],'physical_timing_verification':'NOT PERFORMED. Calculated margin does not replace connector-level setup/hold measurement; qualify at the panel connector before accepting operation.'}
     result['timed_signals']=[r['signal'] for r in timed_rows]
+    result['translator_characterization']={
+        'source':'SN74AXC8T245 SCES875C section 5.13 / figures 6-2 and 6-3',
+        'propagation_delay_min_max_ns':[.5,4], 'load_pF':15,
+        'input_slew_ns_per_V_max':1,
+        'measurement_voltage_fraction':.5,
+        'qualification':'Actual cable/panel load is not measured. The 3.5ns spread is conditional on the datasheet test conditions, and panel thresholds are 30/70%, not 50%.'}
     result['timing_closure']='OPEN — conditional estimate is not a guaranteed interface timing result'
     result['additional_qualification_requirements']=[
         'Bootstrap enables CSI and waits for IO compensation READY before starting either application.',

@@ -73,6 +73,8 @@
     "static_min_before_ripple_and_copper_V": 3.1548,
     "ripple_negative_allowance_V": 0.05,
     "routed_return_contact_drop_V": 0.08558883433702213,
+    "datasheet_ripple_Vpp_typical": 0.05,
+    "ripple_limit_status": "The retained TSR2 datasheet gives a typical value, not a guaranteed maximum. The negative ripple allowance is a design assumption to qualify.",
     "static_min_with_allowances_V": 3.019211165662978,
     "nominal_external_capacitance_uF": 188,
     "converter_capacitive_load_limit_uF": 900,
@@ -95,7 +97,7 @@
     "delay_configuration": "100k from CT to +3V3_PANEL; VDD and MR tied to +3V3_PANEL, ensuring supervision remains valid whenever the gates are powered",
     "gating": "SN74LVC08A AND gates PWM, STANDBY, TFT_RESET_N and TOUCH_RESET_N with READY; 10k output pull-downs.",
     "host_ready": "FFC GIGA.10 -> display.71; AXC1 isolation -> PI1 / D70, pull-down when absent.",
-    "firmware": "Rendering continues without panel power. Return of READY repeats reset/standby delays; backlight waits for a valid scan boundary."
+    "firmware": "Rendering continues without panel power. Return of READY repeats reset/standby delays; backlight waits 200ms after standby release and then for a valid scan boundary."
   },
   "limitations": [
     "No physical panel is connected. Static arithmetic and component specifications do not establish transient or thermal qualification.",

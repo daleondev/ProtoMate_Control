@@ -1,4 +1,4 @@
-# Design sources and attribution — display D / GIGA C
+# Design sources and attribution — display E / GIGA D
 
 Reviewed 2026-10-21. Local copies retain the manufacturers' copyright. They are
 engineering references, not project-authored specifications.
@@ -29,6 +29,7 @@ engineering references, not project-authored specifications.
 | [Phoenix 1751248](https://www.phoenixcontact.com/en-dk/products/pcb-terminal-block-mkds-1-2-35-1751248) | 3.5 mm terminal pitch, body and lead length |
 | [Samtec socket catalogue](https://suddendocs.samtec.com/catalog_english/ssw_th.pdf), `Samtec_SSQ.pdf` | SSQ body dimensions and distinct -03 / -04 tail lengths |
 | ST DS12930 Rev 3 Table 105, repository `docs/arduino_giga_r1_wifi/DS_stm32h747xi.pdf` | Conditional LTDC timing budget and its characterization conditions |
+| [ST AN4861, LTDC polarity configuration](https://www.st.com/resource/en/application_note/an4861-lcdtft-display-controller-ltdc-on-stm32-mcus-stmicroelectronics.pdf) | DE must use the inverted LTDC setting; cross-checked against RM0399 `DEPOL` (not-data-enable polarity) |
 | [AISLER references and locked support templates](AISLER.md) | ENIG HD rules, layer stack, mask processing, exposed vias, milling and ODB++ bridge markers; bare boards only |
 
 The retained FH28 PDF is a manufacturer-authored catalogue obtained from the

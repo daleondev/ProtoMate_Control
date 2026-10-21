@@ -47,6 +47,17 @@
     "HSYNC",
     "VSYNC"
   ],
+  "translator_characterization": {
+    "source": "SN74AXC8T245 SCES875C section 5.13 / figures 6-2 and 6-3",
+    "propagation_delay_min_max_ns": [
+      0.5,
+      4
+    ],
+    "load_pF": 15,
+    "input_slew_ns_per_V_max": 1,
+    "measurement_voltage_fraction": 0.5,
+    "qualification": "Actual cable/panel load is not measured. The 3.5ns spread is conditional on the datasheet test conditions, and panel thresholds are 30/70%, not 50%."
+  },
   "timing_closure": "OPEN \u2014 conditional estimate is not a guaranteed interface timing result",
   "additional_qualification_requirements": [
     "Bootstrap enables CSI and waits for IO compensation READY before starting either application.",

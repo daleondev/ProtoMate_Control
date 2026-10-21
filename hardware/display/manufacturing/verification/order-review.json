@@ -1,0 +1,146 @@
+{
+  "reviewed_utc": "2026-10-21T20:17:45+00:00",
+  "decision": "LOCAL PROTOTYPE FABRICATION CHECKS PASS; AISLER CAM review required before order; assembled-system operation is unverified.",
+  "scope": "Exact display-E/GIGA-D sources and upload archives, primary-datasheet electrical review, nominal mechanical review, manufacturing export checks and firmware compatibility.",
+  "PCB_changes_in_this_review": false,
+  "boards": {
+    "display-adapter": {
+      "revision": "E",
+      "upload": "display-adapter-rev-E-aisler-odb.zip",
+      "upload_sha256": "390106aad778d67d5a6657d60995218c61862b7ee895e392d16714ea6c582475",
+      "PCB_sha256": "8d5bd84cab8c82618b4ad20d3db91558dce6de90636a33bc596b9b9d51ef749f",
+      "ERC_violations": 0,
+      "DRC_violations": 0,
+      "unrouted_connections": 0,
+      "schematic_parity_violations": 0,
+      "waivers": [],
+      "exported_pad_coordinates_and_nets_checked": 258,
+      "drill_hits_checked": 217,
+      "minimum_processed_fine_pitch_pad_mask_web_mm": 0.15999999999999928,
+      "minimum_processed_connector_to_via_mask_web_mm": 0.13499999999999893,
+      "evidence_sha256": {
+        "display-adapter-erc.json": "d06832adb351850eee1340bf1586810d8b0c74b7b6dc755756617b6cca4ebb2f",
+        "display-adapter-drc.json": "ad632e0c342ea24a262b097b91a3166c326c1aed86bc23a11a9e702cdc359080",
+        "display-adapter-aisler-audit.json": "64b841655c2b7627195b6be0fe328fdddb00514faa509f2b3ab3e054ffadfb8d",
+        "display-adapter-odb-audit.json": "7ae5acf47472148b130c54a010fe5b204260697a176041f6de69b7bf67ba38d2",
+        "display-adapter-gerber-audit.json": "317b61f4443a877937def1ebe0df50bff22d787db6a0fa107bcc1c977303b44f",
+        "display-adapter-bom-placement.json": "4d256c92e830feb3694688ebaa5279f9903aa9db733c543f009cce4390899495"
+      }
+    },
+    "giga-adapter": {
+      "revision": "D",
+      "upload": "giga-adapter-rev-D-aisler-odb.zip",
+      "upload_sha256": "e1a93c2d0eef49cbef7edee1cec875d2c898dbabb2720af04b06062fbf5cbd48",
+      "PCB_sha256": "933b41c231b95ff243af8666cc8801020eef58f71ac0c4014164a6c0ec54158e",
+      "ERC_violations": 0,
+      "DRC_violations": 0,
+      "unrouted_connections": 0,
+      "schematic_parity_violations": 0,
+      "waivers": [],
+      "exported_pad_coordinates_and_nets_checked": 646,
+      "drill_hits_checked": 347,
+      "minimum_processed_fine_pitch_pad_mask_web_mm": 0.15999999999999928,
+      "minimum_processed_connector_to_via_mask_web_mm": 0.1136999999999864,
+      "evidence_sha256": {
+        "giga-adapter-erc.json": "bb08c6f6803b265ebab07198f45ef972ba68d810b2c82a05e8b591625e40cf62",
+        "giga-adapter-drc.json": "e7f8c2c608023d454639036262ff5b446637f9437d2a39df9c750e260ef5c421",
+        "giga-adapter-aisler-audit.json": "2e0b12196e4e51f0358d3f2106e13900d7bc77534a6c80bd821bcb76117432a9",
+        "giga-adapter-odb-audit.json": "581304d314fc8dd9e641f0ca0ddbd70eb9e517bac905e45bdff2eeddb6580fa9",
+        "giga-adapter-gerber-audit.json": "e9d6d441b40b8697b8012ce58174967f98bc9578e694437122049ef26c31cab6",
+        "giga-adapter-bom-placement.json": "2e6fbb07eb20f130e4de02e5f669041feaced99e591249384f69e57f09ed5680"
+      }
+    }
+  },
+  "manual_electrical_checks": [
+    {
+      "circuit": "Display pin assignment and mating connector",
+      "result": "PASS against supplied drawings",
+      "evidence": "Smartwin pp12-14 and rear-view Detail A p26; Hirose EDC3-164006-03 Fig1/Fig4. All 50 contacts checked. Display plug is bottom mounted; numbering and mirrored assembly view agree."
+    },
+    {
+      "circuit": "FFC orientation",
+      "result": "PASS at drawing/netlist level",
+      "evidence": "FH28H bottom-contact sockets; same-contact-face Type-A cable gives J1.n to J2.(81-n). All 80 mappings checked, PCLK retains adjacent grounds. Exact cable purchase and continuity remain outstanding."
+    },
+    {
+      "circuit": "AXC8 direction, supplies and power-off behavior",
+      "result": "PASS",
+      "evidence": "SCES875C PW pin table and truth table: DIR1 high, DIR2 low for all-eight A-to-B. VCCA=GIGA, VCCB=panel. No 3.3V supply tie. Ioff/VCC isolation and input/output startup pull-downs checked."
+    },
+    {
+      "circuit": "Returning INT and READY",
+      "result": "PASS",
+      "evidence": "AXC1 DBV pinout: A/VCCA/DIR on panel side; B/VCCB on GIGA side. INT has pull-ups, READY has MCU pull-down. No motor/EtherCAT pin conflict; READY is PI1/D70."
+    },
+    {
+      "circuit": "Touch I2C",
+      "result": "PASS",
+      "evidence": "TCA9517A: A side=panel, B side=STM32; GIGA 5.1k pull-ups and display 4.7k pull-ups, 100kHz. VCCB/EN=GIGA, VCCA=panel. Either supply order supported per section 9; B-side low-level contention requirement checked against STM32 drive."
+    },
+    {
+      "circuit": "Protected 24V, GIGA VIN and USB",
+      "result": "PASS for specified regulated supply; surge/EMC not qualified",
+      "evidence": "TPS26600 PWP pinout, isolated RTN/EP, open SHDN, retry mode, fuse/TVS/clamp polarity and reverse VIN blocking checked. Worst calculated OVP threshold remains below converter 36V operating limit. USB/GIGA3.3 never feed display3.3."
+    },
+    {
+      "circuit": "Precision logic regulator",
+      "result": "PASS for stated allocation and thermal assumptions",
+      "evidence": "TPS7A9101 DSK pinout/EP, 31.2k/10k 0.1% divider, SS_CTRL ground and 47nF NR/SS; input/output capacitance and 5V headroom checked. WSON underside must be soldered. Actual DC-bias capacitance, rise time, transients and junction temperature remain first-board measurements."
+    },
+    {
+      "circuit": "Dual rail supervision and hardware gates",
+      "result": "PASS for circuit connectivity and component ratings",
+      "evidence": "TPS3808 DBV SENSE input accepts 0..6.5V independently of VDD (absolute maximum 7V), so a live 3.3V backlight sense with logic supply off is within the input rating. CT=100k to VDD; nominal release 300ms (180..420ms). Both open-drain outputs share READY. SN74LVC08A gates four controls, with output pull-downs."
+    },
+    {
+      "circuit": "Display control timing",
+      "result": "PASS for configuration; analog timing pending",
+      "evidence": "Smartwin p18 samples falling PCLK; STM32 DS12930 Fig49 with PCPOL=1 changes data on rising edge. DEPOL=0 produces active-high external DE (AN4861/RM0399). 40.96MHz/1120/610 complies with supplied DE timing range. Backlight waits 200ms after standby plus a valid scan boundary."
+    }
+  ],
+  "manual_mechanical_export_checks": [
+    "Both outside copper/mask/silk exports and both inner layers inspected independently of the KiCad renderer; continuous In1 ground and isolated RTN verified.",
+    "Hirose DF23 0.25x1.0mm pads, 0.5mm pitch, 3.9mm row centres and forbidden exposed-copper bands checked against drawing. FH28H 0.30x1.30mm lands and retention pads checked against catalogue.",
+    "GIGA official CAD contact centres, distinct SSQ -03/-04 tails, 13mm spacing, service cutouts, display connector orientation and <=0.8mm trimmed converter tails reviewed. Simplified models are not a physical fit test.",
+    "AISLER 4-layer ENIG rules checked online; 1.6mm +/-10%, 35um copper, layer order, mask processing, rings, hole spacing, edges, exposed vias and bridge document layers checked. No fiducials or rule waivers.",
+    "Release ZIP CRCs and nested checksum manifests verified; exported ODB matches the intended upload byte-for-byte. BOM/placement identities and orientations agree with source."
+  ],
+  "firmware_validation": "firmware-validation.json",
+  "firmware_validation_sha256": "e35c545a1dfe9575c2dae814e9b969ca98a79c7df8da8289dc79aeb41a3d525c",
+  "remaining_conditions": [
+    {
+      "stage": "Before ordering",
+      "condition": "Inspect AISLER CAM preview for these exact ODB archives: 4 layers, ENIG, 1.6mm, outline, drills, bridges and fine-pitch mask. No AISLER job has been uploaded here."
+    },
+    {
+      "stage": "Procurement",
+      "condition": "Confirm a supplier can make or supply the revision-E 80-way gold-contact Type-A FFC and the exact connectors/stacking headers. No exact cable MPN is qualified."
+    },
+    {
+      "stage": "Assembly",
+      "condition": "Provide controlled reflow/hot-air capability for the WSON exposed pad and fine-pitch connectors; preserve lead trim and insulating supports."
+    },
+    {
+      "stage": "First board",
+      "condition": "Backlight typical current is 1.05A, not a guaranteed maximum; equal-sharing contact ceiling is 1.2A. Static budget is 3.019V with assumed ripple allowance. 250mV specified load-step excursion can retrigger the supervisor. Actual PWM/full-brightness operation and current sharing are not certified."
+    },
+    {
+      "stage": "First board",
+      "condition": "Measure connector-level PCLK setup/hold and duty cycle with the actual cable and panel; TI propagation limits assume 15pF and 1ns/V input slew, and use 50% thresholds. Conditional calculated margins are not measured timing closure."
+    },
+    {
+      "stage": "First board",
+      "condition": "Verify mating fit, rails, isolation, ramp/recovery, temperature, touch and visible operation before accepting the assembled system."
+    }
+  ],
+  "order_placed": false,
+  "physical_testing_performed": false,
+  "evidence_sha256": {
+    "electrical-audit.json": "519550c0a9825fc4386ef647fe103e78403a3885687dc77e28fc82e5d05bb0ad",
+    "power-routing.json": "1926874ed363fa781650a4f06182e747207edcd6354166766ce3cf42ee98f8b2",
+    "power-budget.json": "27f1d34cfb6e23d19e1cddc2a45694d35f123469092e630a37b8360174f20557",
+    "power-review.json": "849335adcc3c12df3d62906aecc8803e636adce0b0d304ef5440cf1d31de60d0",
+    "timing-budget.json": "d8b6229e4ac2cb3e965f1cf1dfbbc1f5951e48244454753b8da8e1b740ed9c83",
+    "mechanical-audit.json": "67c390763095eb7a41d886250ff675c7ebc1b6c519c5f97ba04ff5e906e01c21"
+  }
+}

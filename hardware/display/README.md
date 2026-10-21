@@ -135,6 +135,10 @@ The backlight converter is independent. Its specified load-step excursion can
 reach 250 mV. The added bulk capacitance and actual PWM load therefore need a
 first-board test for rail dips and supervisor retriggering. The supervisors inhibit
 the panel on undervoltage; they do not make an undersized supply acceptable.
+The calculated static minimum at the backlight contacts is 3.019 V at the
+1.2 A allocation. Its 50 mV downward ripple allowance is a design assumption:
+TRACO specifies 50 mV peak-to-peak **typical**, not a guaranteed maximum. This
+small remaining margin does not establish operation under every load transient.
 
 ## Interfaces and startup
 
@@ -167,8 +171,9 @@ the panel on undervoltage; they do not make an undersized supply acceptable.
   unpowered adapter. READY uses shield FFC contact **10**, display FFC **71**.
 - Firmware continues rendering when the panel is absent. After READY returns,
   it holds reset LOW for 2 ms, releases reset, waits 10 ms, releases standby,
-  waits 60 ms, then waits for a valid framebuffer scan before restoring the
-  requested brightness. Touch acquisition retries separately after I²C failure.
+  waits 200 ms for the panel's multi-frame startup, then waits for a valid
+  framebuffer scan before restoring the requested brightness. Touch acquisition
+  retries separately after I²C failure.
   Initial brightness is 10%; USB-only operation keeps the physical backlight off.
 
 ## Cable and numbering

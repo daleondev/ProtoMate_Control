@@ -570,5 +570,10 @@
   "manufacturing_order_placed": false,
   "assembly_order_placed": false,
   "stencil_order_placed": false,
-  "firmware_changed": true
+  "firmware_changed": true,
+  "final_order_review": {
+    "result": "LOCAL PROTOTYPE FABRICATION CHECKS PASS; AISLER CAM review required before order; assembled-system operation is unverified.",
+    "report": "verification/order-review.json",
+    "sha256": "1b628944fe08203a13e62b7008ef627902c74a06b6abc326853c3800ce408a82"
+  }
 }
