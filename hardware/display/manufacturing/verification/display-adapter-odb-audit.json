@@ -3,7 +3,7 @@
   "board": "display-adapter",
   "revision": "D",
   "upload_zip": "display-adapter-rev-D-aisler-odb.zip",
-  "upload_sha256": "5e21f949e37b60a28778d922b018a9929524df5708d638f5dd19524115ea28fa",
+  "upload_sha256": "469cbeb1283b9e47ddb70f05e08e0258f6fe7e3fea2d8f4a9e20c6255246685d",
   "copper_layers": [
     "F.CU",
     "B.CU"
@@ -13,8 +13,8 @@
   "netlist_pad_contacts_checked": 175,
   "drill_hits_checked": 155,
   "mask_pad_openings_checked": {
-    "f": 132,
-    "b": 60
+    "f": 129,
+    "b": 57
   },
   "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
   "aisler_processing_acceptance": "PENDING"

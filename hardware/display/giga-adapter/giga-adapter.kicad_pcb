@@ -12805,126 +12805,6 @@
 			)
 		)
 	)
-	(footprint "Fiducial_1mm_Mask2mm"
-		(layer "F.Cu")
-		(uuid "7970d999-e5f6-415a-8831-66d79d473af3")
-		(at 117 1.5)
-		(descr "Fiducial, circular marking, 1mm bare copper, 2mm soldermask opening (Level A)")
-		(tags "fiducial")
-		(property "Reference" "FID2"
-			(at 0 -1.95 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(uuid "2c2507d4-c5dd-4e21-b802-344ff2b76d28")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Value" "Fiducial_1mm_Mask2mm"
-			(at 0 1.95 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "6487c192-4278-4274-aa72-259b296a8acd")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 0 0 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "2db4d430-139d-4e2e-9ccd-15cf668e8ad6")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 0 0 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "801acf2b-5357-4884-984f-179c15effbbe")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KiLib_Generator" "fiducial"
-			(at 0 0 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(uuid "2ab364f9-72df-45ca-a19b-63e8a9d6ff6d")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(attr board_only exclude_from_pos_files exclude_from_bom)
-		(duplicate_pad_numbers_are_jumpers no)
-		(fp_circle
-			(center 0 0)
-			(end 1 0)
-			(stroke
-				(width 0)
-				(type default)
-			)
-			(fill yes)
-			(layer "F.Mask")
-			(uuid "a4495925-c94b-4289-bd9f-d09165b913a2")
-		)
-		(fp_circle
-			(center 0 0)
-			(end 1.25 0)
-			(stroke
-				(width 0.05)
-				(type solid)
-			)
-			(fill no)
-			(layer "F.CrtYd")
-			(uuid "c6d7dbfd-84da-4268-a6d8-e38fc848e3db")
-		)
-		(fp_circle
-			(center 0 0)
-			(end 1 0)
-			(stroke
-				(width 0.1)
-				(type solid)
-			)
-			(fill no)
-			(layer "F.Fab")
-			(uuid "56312a0c-4a50-43f2-ab54-6bc858842a8f")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(layer "F.Fab")
-			(uuid "d5fede9a-b457-4972-bed1-6af297ce3144")
-			(effects
-				(font
-					(size 0.5 0.5)
-					(thickness 0.08)
-				)
-			)
-		)
-		(pad "" smd circle
-			(at 0 0)
-			(size 1 1)
-			(layers "F.Cu" "F.Mask")
-			(solder_mask_margin 0)
-			(clearance 0.6)
-			(uuid "4b09ecd2-b158-4a93-be04-a17d7d15a57c")
-		)
-		(embedded_fonts no)
-	)
 	(footprint "DisplayAdapter:GIGA_J4_JDIGITAL"
 		(layer "F.Cu")
 		(uuid "7a66d6d1-8f9e-4507-a871-732beead416e")
@@ -18027,126 +17907,6 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "Fiducial_1mm_Mask2mm"
-		(layer "F.Cu")
-		(uuid "a514cbbb-bb0c-4539-b776-377a45278e9e")
-		(at 27 7.5)
-		(descr "Fiducial, circular marking, 1mm bare copper, 2mm soldermask opening (Level A)")
-		(tags "fiducial")
-		(property "Reference" "FID1"
-			(at 0 -1.95 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(uuid "298e6ea7-5a3d-4eb9-ac1e-39a28454c402")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Value" "Fiducial_1mm_Mask2mm"
-			(at 0 1.95 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "e4b94438-1846-4be7-80a0-f17e5d5ebbee")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 0 0 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "8df1792c-894f-4db6-ac69-6dc463cce0fd")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 0 0 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "5dcb3c7a-a63f-4b1e-9368-0fe03b59b778")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KiLib_Generator" "fiducial"
-			(at 0 0 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(uuid "248583f6-3981-4f98-be1f-3c91e3d4d3e0")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(attr board_only exclude_from_pos_files exclude_from_bom)
-		(duplicate_pad_numbers_are_jumpers no)
-		(fp_circle
-			(center 0 0)
-			(end 1 0)
-			(stroke
-				(width 0)
-				(type default)
-			)
-			(fill yes)
-			(layer "F.Mask")
-			(uuid "2e149af2-915f-4b56-9edb-3602875712e5")
-		)
-		(fp_circle
-			(center 0 0)
-			(end 1.25 0)
-			(stroke
-				(width 0.05)
-				(type solid)
-			)
-			(fill no)
-			(layer "F.CrtYd")
-			(uuid "cda2bcd1-5eeb-4b47-8fa5-a6e4d0403d65")
-		)
-		(fp_circle
-			(center 0 0)
-			(end 1 0)
-			(stroke
-				(width 0.1)
-				(type solid)
-			)
-			(fill no)
-			(layer "F.Fab")
-			(uuid "713be54c-5c30-493c-91f9-6bf6532b31e3")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(layer "F.Fab")
-			(uuid "ae44f80e-c0f5-48a9-b529-91e14cb8c72b")
-			(effects
-				(font
-					(size 0.5 0.5)
-					(thickness 0.08)
-				)
-			)
-		)
-		(pad "" smd circle
-			(at 0 0)
-			(size 1 1)
-			(layers "F.Cu" "F.Mask")
-			(solder_mask_margin 0)
-			(clearance 0.6)
-			(uuid "d0736166-8252-46d0-8624-caa47d8a48c8")
-		)
-		(embedded_fonts no)
-	)
 	(footprint "DisplayAdapter:TestPoint_1.0mm"
 		(layer "F.Cu")
 		(uuid "a55182c1-c2a5-424f-afeb-7446924f1ce5")
@@ -19810,126 +19570,6 @@
 				(xyz 0 0 0)
 			)
 		)
-	)
-	(footprint "Fiducial_1mm_Mask2mm"
-		(layer "F.Cu")
-		(uuid "b387a6f2-b372-44af-84a3-137564295b8e")
-		(at 117 51.5)
-		(descr "Fiducial, circular marking, 1mm bare copper, 2mm soldermask opening (Level A)")
-		(tags "fiducial")
-		(property "Reference" "FID3"
-			(at 0 -1.95 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(uuid "1e65eee8-1023-47f3-83f9-7d50442e2c28")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Value" "Fiducial_1mm_Mask2mm"
-			(at 0 1.95 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "68992ec3-25c8-4e12-aa16-3d549910ef79")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 0 0 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "074ed792-df65-49f0-b249-a5baa6b85282")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 0 0 0)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "78f4311c-b83b-4996-ad16-fc9065118e57")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "KiLib_Generator" "fiducial"
-			(at 0 0 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(uuid "0e6c4326-4ecf-484e-a872-3549421d60c5")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(attr board_only exclude_from_pos_files exclude_from_bom)
-		(duplicate_pad_numbers_are_jumpers no)
-		(fp_circle
-			(center 0 0)
-			(end 1 0)
-			(stroke
-				(width 0)
-				(type default)
-			)
-			(fill yes)
-			(layer "F.Mask")
-			(uuid "ff126a73-dcf5-4d9f-a526-37de750b4c5e")
-		)
-		(fp_circle
-			(center 0 0)
-			(end 1.25 0)
-			(stroke
-				(width 0.05)
-				(type solid)
-			)
-			(fill no)
-			(layer "F.CrtYd")
-			(uuid "843bf7e0-e874-4d3f-ba57-1e5ac2d44a31")
-		)
-		(fp_circle
-			(center 0 0)
-			(end 1 0)
-			(stroke
-				(width 0.1)
-				(type solid)
-			)
-			(fill no)
-			(layer "F.Fab")
-			(uuid "d4f246f8-dbe6-4102-8e2a-e0c041b740dd")
-		)
-		(fp_text user "${REFERENCE}"
-			(at 0 0 0)
-			(layer "F.Fab")
-			(uuid "c3b234e6-431a-4707-bfcc-38ea0fc671e4")
-			(effects
-				(font
-					(size 0.5 0.5)
-					(thickness 0.08)
-				)
-			)
-		)
-		(pad "" smd circle
-			(at 0 0)
-			(size 1 1)
-			(layers "F.Cu" "F.Mask")
-			(solder_mask_margin 0)
-			(clearance 0.6)
-			(uuid "c7d2bf2f-0c10-4014-9276-1aad6c9441f2")
-		)
-		(embedded_fonts no)
 	)
 	(footprint "DisplayAdapter:R_0603_1608Metric"
 		(layer "F.Cu")
@@ -27293,7 +26933,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "18b1490e-089a-4f1c-883c-9412b544b123")
+		(uuid "6924372b-84db-4db3-a928-6f7b9e08b8c3")
 	)
 	(gr_line
 		(start 11 53.34)
@@ -27303,7 +26943,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "e4420ad2-e8bb-410a-b7a2-b83b5182631a")
+		(uuid "d317d980-1447-48de-bd56-44f1fa342f1a")
 	)
 	(gr_line
 		(start 12 0)
@@ -27313,7 +26953,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "fff8b777-b9e2-4a06-a9a7-5b1c0650c821")
+		(uuid "1516188b-27f3-45d7-ad66-4deacb0f4401")
 	)
 	(gr_line
 		(start 12 10)
@@ -27323,7 +26963,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "dd2125de-a44c-4120-86f4-e44e4c1a549c")
+		(uuid "e0ba1a4c-dda4-40e9-a8c1-6c91ebee08aa")
 	)
 	(gr_line
 		(start 41.1 10)
@@ -27333,7 +26973,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "302a6b2f-394a-4767-86ff-06b82e0b2e5b")
+		(uuid "1e3165b0-987d-424a-98e7-c0a305e7491d")
 	)
 	(gr_arc
 		(start 41.1 10)
@@ -27344,7 +26984,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "5561665f-ce66-4789-9806-b8de73a5cff1")
+		(uuid "24919e1e-4f8c-4495-9902-1badfde1d5af")
 	)
 	(gr_line
 		(start 42 29)
@@ -27354,7 +26994,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "09d7be34-5c0c-4604-9bd0-f1da19673f0c")
+		(uuid "6204e1ed-ec2b-40bf-b060-864c040326ef")
 	)
 	(gr_line
 		(start 77.1 29)
@@ -27364,7 +27004,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "de5f731c-0d7b-4e98-acc7-874a22d20495")
+		(uuid "6d0d2748-1a1b-47ae-a581-baaac51de76b")
 	)
 	(gr_arc
 		(start 77.1 29)
@@ -27375,7 +27015,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "788dc35f-7963-4efd-9318-762c8adc7e82")
+		(uuid "4395acc5-1b44-4609-8d6b-f205863feb52")
 	)
 	(gr_arc
 		(start 78 46.1)
@@ -27386,7 +27026,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "e616c324-d721-42b0-81b3-9e933f3b5ca1")
+		(uuid "4807ca03-fab1-40b4-a056-6a3ea96de945")
 	)
 	(gr_line
 		(start 78 46.1)
@@ -27396,7 +27036,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "1d090b36-c02a-4993-9dd4-5ea19d401b68")
+		(uuid "88496d32-e8f0-4089-beba-f9858ce3196d")
 	)
 	(gr_line
 		(start 122 0)
@@ -27406,7 +27046,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "f9dbdafd-f5da-4980-8b99-e41173549b13")
+		(uuid "6d9d92c8-fe8f-4365-9df8-c9a7e4813a1d")
 	)
 	(gr_line
 		(start 122 53.34)
@@ -27416,7 +27056,7 @@
 			(type default)
 		)
 		(layer "Edge.Cuts")
-		(uuid "84617d0e-c4c4-479c-8394-1151ab6c33a7")
+		(uuid "f748d0a8-c498-4b01-95bc-08a359787ef5")
 	)
 	(gr_line
 		(start 10.6 50)
@@ -27426,7 +27066,7 @@
 			(type default)
 		)
 		(layer "User.1")
-		(uuid "74bb990a-69bd-48c1-adb3-840c12f1eca8")
+		(uuid "58491b1d-f2a6-4252-b6ae-10ea87103ef1")
 	)
 	(gr_line
 		(start 35 -0.4)
@@ -27436,7 +27076,7 @@
 			(type default)
 		)
 		(layer "User.1")
-		(uuid "89492fea-2005-4010-84da-a5abbae87b9a")
+		(uuid "d38629f0-7916-433c-89df-08cd7480be21")
 	)
 	(gr_line
 		(start 35 53.74)
@@ -27446,7 +27086,7 @@
 			(type default)
 		)
 		(layer "User.1")
-		(uuid "c631fc26-1109-4a65-aab2-9b289e538515")
+		(uuid "65532275-e95d-4cb8-b250-3b9ab9238065")
 	)
 	(gr_line
 		(start 85 -0.4)
@@ -27456,7 +27096,7 @@
 			(type default)
 		)
 		(layer "User.1")
-		(uuid "c723899b-aaac-4f2d-8b23-fe74394a45aa")
+		(uuid "439eec63-537b-4a93-8387-a7d761ee1c8c")
 	)
 	(gr_line
 		(start 85 53.74)
@@ -27466,7 +27106,7 @@
 			(type default)
 		)
 		(layer "User.1")
-		(uuid "908f62d0-958a-4497-89da-90b8e5580dc5")
+		(uuid "d7c19f48-6af3-439b-8735-a6e847822223")
 	)
 	(gr_line
 		(start 122.4 26)
@@ -27476,7 +27116,7 @@
 			(type default)
 		)
 		(layer "User.1")
-		(uuid "45db1037-5d8c-47b4-9435-5d67e26b35e2")
+		(uuid "d15d201b-ec59-49c0-972a-279cbd080655")
 	)
 	(gr_text "24V INPUT"
 		(at 48 9 0)

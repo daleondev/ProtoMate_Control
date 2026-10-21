@@ -14,7 +14,7 @@ def finish(name,session):
     height=35 if name=='display-adapter' else 53.34
     b.GetDesignSettings().SetAuxOrigin(point(0,height))
     for f in b.GetFootprints():
-        if f.GetReference().startswith(('TP','H','FID')):
+        if f.GetReference().startswith(('TP','H')):
             f.SetAttributes(f.GetAttributes()|k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES)
     for t in b.GetTracks():
         if isinstance(t,k.PCB_VIA):

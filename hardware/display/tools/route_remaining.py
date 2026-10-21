@@ -159,8 +159,6 @@ def route(b,which,entry,width=.15):
 def main(which):
     path=ROOT/which/(which+'.kicad_pcb');report=Path('/tmp')/(which+'-finish-drc.json')
     b=k.LoadBoard(str(path))
-    if which=='display-adapter':
-        next(f for f in b.GetFootprints() if f.GetReference()=='FID2').SetPosition(xy(52,16))
     for attempt in range(40):
         b.BuildConnectivity();k.ZONE_FILLER(b).Fill(b.Zones());k.SaveBoard(str(path),b)
         subprocess.run(['kicad-cli','pcb','drc','--format','json','-o',str(report),str(path)],check=True,stdout=subprocess.DEVNULL)

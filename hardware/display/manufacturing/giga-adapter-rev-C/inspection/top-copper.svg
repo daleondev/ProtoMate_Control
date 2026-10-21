@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<svg width="105.72841mm" height="53.0mm" viewBox="16.921590000000002 0.3400000000000001 105.72841 53.0" style="background-color:white" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <g transform="translate(17.9216 52.34) scale(1 -1) translate(-17.9216 -1.34)">
+<svg width="105.72841mm" height="52.43291000000001mm" viewBox="16.921590000000002 0.6526900000000002 105.72841 52.43291000000001" style="background-color:white" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g transform="translate(17.9216 52.0856) scale(1 -1) translate(-17.9216 -1.65269)">
     <path d="M 98.555 33.78 L 98.825 33.78 L 98.825 34.15 L 98.555 34.15 L 98.555 33.78" fill="black"/>
     <circle cx="98.555" cy="33.78" r="0.135" fill="black"/>
     <circle cx="98.825" cy="33.78" r="0.135" fill="black"/>
@@ -1603,7 +1603,6 @@
     <rect x="110.46" y="31.33" width="0.37" height="0.27" transform="rotate(90.0 110.645 31.465)" fill="black"/>
     <rect x="110.375" y="31.515" width="0.27" height="0.27" transform="rotate(180.0 110.51 31.65)" fill="black"/>
     <rect x="110.19" y="31.33" width="0.37" height="0.27" transform="rotate(-90.0 110.375 31.465)" fill="black"/>
-    <circle cx="117.0" cy="51.84" r="0.5" fill="black"/>
     <rect x="67.7056" y="49.9127" width="1.8" height="1.8" fill="black"/>
     <path d="M 71.1456 50.8127 L 71.1456 50.8127" fill="none" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
     <path d="M 73.6856 50.8127 L 73.6856 50.8127" fill="none" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
@@ -2150,7 +2149,6 @@
     <rect x="114.35" y="46.44" width="1.3" height="0.3" fill="black"/>
     <rect x="119.85" y="47.84" width="1.8" height="2.35" fill="black"/>
     <rect x="119.85" y="3.49" width="1.8" height="2.35" fill="black"/>
-    <circle cx="27.0" cy="45.84" r="0.5" fill="black"/>
     <rect x="68.5" y="36.84" width="1.0" height="1.0" fill="black"/>
     <path d="M 109.355 9.53 L 109.625 9.53 L 109.625 9.9 L 109.355 9.9 L 109.355 9.53" fill="black"/>
     <circle cx="109.355" cy="9.53" r="0.135" fill="black"/>
@@ -2279,7 +2277,6 @@
     <rect x="110.46" y="18.58" width="0.37" height="0.27" transform="rotate(90.0 110.645 18.715)" fill="black"/>
     <rect x="110.375" y="18.765" width="0.27" height="0.27" transform="rotate(180.0 110.51 18.9)" fill="black"/>
     <rect x="110.19" y="18.58" width="0.37" height="0.27" transform="rotate(-90.0 110.375 18.715)" fill="black"/>
-    <circle cx="117.0" cy="1.84" r="0.5" fill="black"/>
     <path d="M 49.475 33.065 L 49.875 33.065 L 49.875 33.615 L 49.475 33.615 L 49.475 33.065" fill="black"/>
     <circle cx="49.475" cy="33.065" r="0.2" fill="black"/>
     <circle cx="49.875" cy="33.065" r="0.2" fill="black"/>

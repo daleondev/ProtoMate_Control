@@ -283,8 +283,6 @@ def board(which,parts):
                 if item.GetLayer()==k.F_CrtYd:f.Remove(item)
             circle=k.PCB_SHAPE(f);circle.SetShape(k.SHAPE_T_CIRCLE);circle.SetCenter(point(0,0));circle.SetEnd(point(1.65 if y<5 else 1.85,0));circle.SetWidth(mm(.05));circle.SetLayer(k.F_CrtYd);f.Add(circle)
         f.SetReference(f'H{i+1}');f.SetPosition(point(x,y));f.Reference().SetVisible(False);f.Value().SetVisible(False);f.SetAttributes(k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES);b.Add(f)
-    for i,(x,y) in enumerate(([(9,11),(52,16),(49,27)] if which=='display-adapter' else [(27,7.5),(117,1.5),(117,51.5)])):
-        f=k.FootprintLoad('/usr/share/kicad/footprints/Fiducial.pretty','Fiducial_1mm_Mask2mm');f.SetReference(f'FID{i+1}');f.SetPosition(point(x,y));f.Reference().SetVisible(False);f.Value().SetVisible(False);f.SetAttributes(k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES);b.Add(f)
     # The two-layer display adapter uses stitched outer pours.
     for layer in ([k.F_Cu,k.B_Cu] if BOARDS[which]["layers"]==2 else [k.In1_Cu]):
         z=k.ZONE(b);z.SetLayer(layer);z.SetNet(nets['GND']);z.SetLocalClearance(mm(.2));z.SetPadConnection(k.ZONE_CONNECTION_FULL);z.SetMinThickness(mm(.15))

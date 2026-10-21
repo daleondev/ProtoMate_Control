@@ -208,7 +208,7 @@ and J2–J10 plus U8 on the GIGA adapter are marked **HAND** in the full BOM; th
 SMD-only BOM and placement file are assembly aids, not an AISLER assembly order. Solder stacking headers with a mechanical jig or
 an unpowered GIGA used only as an alignment fixture; avoid heating the board's
 existing sockets unnecessarily. Fit shield J10 with its wire opening
-facing left into the central opening. Probe pads, fiducials and mounting holes are PCB
+facing left into the central opening. Probe pads and mounting holes are PCB
 features, not purchased parts.
 
 After soldering display U1, **clip its three leads to at most 0.8 mm below the PCB**, without
@@ -263,9 +263,7 @@ on F.Cu, In2.Cu and B.Cu and minimum 0.65/0.30 mm vias. Both boards use minimum
 plugging or filling. DF23 note-3 contact bands are via keepouts. FH28 has a
 fully molded bottom, which its datasheet explicitly permits PCB patterning beneath.
 No via is used in a solder pad.
-Global fiducials are provided on both populated sides of the display adapter
-and on the GIGA adapter's populated top side.
-Source mask expansion is zero. Fiducials have explicit 2 mm mask openings.
+Source mask expansion is zero.
 The mask audit includes AISLER’s published 20 µm per-side enlargement and
 requires at least 0.10 mm webs between fine-pitch contacts. The FFC
 paste windows follow Hirose's 0.25 × 1.00 mm recommendation.

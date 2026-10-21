@@ -77,17 +77,6 @@ def configure_project(name, directory=None):
 def normalize_footprint(f):
     """Apply identically to local library footprints and their placed instances."""
     for p in f.Pads():
-        if f.GetReference().startswith('FID') or str(f.GetFPID().GetLibItemName()).startswith('Fiducial'):
-            if (p.GetLocalSolderMaskMargin() or 0) > 0:
-                # Preserve the fiducial's 2mm mask opening without a pad override.
-                shape = k.PCB_SHAPE(f)
-                shape.SetShape(k.SHAPE_T_CIRCLE)
-                shape.SetCenter(p.GetPosition())
-                shape.SetEnd(p.GetPosition() + point(1, 0))
-                shape.SetWidth(0)
-                shape.SetFillMode(k.FILL_T_FILLED_SHAPE)
-                shape.SetLayer(k.B_Mask if f.IsFlipped() else k.F_Mask)
-                f.Add(shape)
         p.SetLocalSolderMaskMargin(0)
         if 'GIGA_J8' in str(f.GetFPID().GetLibItemName()) or f.GetReference() == 'J8':
             p.SetSize(point(1.70, 1.70))
@@ -179,7 +168,7 @@ def board_settings(b, name):
                     if not net:
                         net=k.NETINFO_ITEM(b,netname);b.Add(net)
                     p.SetNet(net)
-        elif f.GetReference().startswith(('FID','H')):
+        elif f.GetReference().startswith('H'):
             f.SetAttributes(f.GetAttributes() | k.FP_BOARD_ONLY)
     for v in b.GetTracks():
         if isinstance(v, k.PCB_VIA):

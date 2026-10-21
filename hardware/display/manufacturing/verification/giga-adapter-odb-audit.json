@@ -3,7 +3,7 @@
   "board": "giga-adapter",
   "revision": "C",
   "upload_zip": "giga-adapter-rev-C-aisler-odb.zip",
-  "upload_sha256": "ad119aa63c88a5c8d6430c979dd24fff582362fc21e78e4f01f6a1c9ea4a67f8",
+  "upload_sha256": "d029fae250eacbc1801644a372aba357086e0f42959d64ced9cace39af991595",
   "copper_layers": [
     "F.CU",
     "IN1.CU",
@@ -15,7 +15,7 @@
   "netlist_pad_contacts_checked": 519,
   "drill_hits_checked": 335,
   "mask_pad_openings_checked": {
-    "f": 526,
+    "f": 523,
     "b": 119
   },
   "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",

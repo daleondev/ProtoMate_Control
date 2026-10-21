@@ -5,46 +5,46 @@
   "drill_hits_checked": 335,
   "ffc_paste_windows_checked": 80,
   "silk_coverage_upper_bound_percent": {
-    "top": 20.086166223970146,
+    "top": 19.797403614799006,
     "bottom": 12.340651697655893
   },
   "layers": {
     "top-copper": {
-      "objects": 2327,
+      "objects": 2324,
       "bounds_mm": [
         [
           17.921590000000002,
-          1.34
+          1.6526900000000002
         ],
         [
           121.65,
-          52.34
+          52.08560000000001
         ]
       ]
     },
     "top-mask": {
-      "objects": 736,
+      "objects": 733,
       "bounds_mm": [
         [
           12.400532,
-          0.844815
+          0.944932
         ],
         [
           121.65,
-          52.835185
+          52.395068
         ]
       ]
     },
     "top-silk": {
-      "objects": 1172,
+      "objects": 1169,
       "bounds_mm": [
         [
           12.400532,
-          0.844815
+          0.944932
         ],
         [
           121.65,
-          52.835185
+          52.395068
         ]
       ]
     },
