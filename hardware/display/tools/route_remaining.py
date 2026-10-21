@@ -29,8 +29,8 @@ def route(b,which,entry,width=.15):
     a,c=[items[i['uuid']] for i in entry['items']]
     net=a.GetNet();name=a.GetNetname()
     # Connector pad escapes stay no wider than their copper.
-    if any(isinstance(t,k.PAD) and min(t.GetSize().x,t.GetSize().y)<mm(.3) for t in [a,c]):width=.15
-    w,h=(55,35) if which=='display-adapter' else (122,53.34)
+    if any(isinstance(t,k.PAD) and min(t.GetSize().x,t.GetSize().y)<mm(.8) for t in [a,c]):width=.15
+    w,h=(55,50) if which=='display-adapter' else (122,53.34)
     W,H=math.ceil(w/GRID)+1,math.ceil(h/GRID)+1
     images=[Image.new('1',(W,H)) for _ in LAYERS];vi=Image.new('1',(W,H))
     def px(p):return (k.ToMM(p.x)/GRID,k.ToMM(p.y)/GRID)
@@ -51,29 +51,29 @@ def route(b,which,entry,width=.15):
         for y0,y1 in [(21.5,22.2),(23.8,24.5)]:
             vd.rectangle(((21-via_radius-.03)/GRID,(y0-via_radius-.03)/GRID,
                           (34+via_radius+.03)/GRID,(y1+via_radius+.03)/GRID),fill=1)
-    margin=clearance+width/2+.002
+    margin=clearance+width/2+.04
     pads=[p for f in b.GetFootprints() for p in f.Pads()]
     for p in pads:
         if p.GetNetname()!=name:
             for l,d in zip(LAYERS,draws):
                 if p.IsOnLayer(l):pad(d,p,max(margin,k.ToMM(p.GetLocalClearance() or 0)+width/2+.01))
-            pad(vd,p,via_radius+max(.15,k.ToMM(p.GetLocalClearance() or 0))+.01)
+            pad(vd,p,via_radius+max(.15,k.ToMM(p.GetLocalClearance() or 0))+.04)
         else:pad(vd,p,via_radius+.025) # no via-in-pad, even on same net
         if p.GetDrillSize().x:
             r=max(p.GetDrillSize().x,p.GetDrillSize().y)/2/1e6
             circle(vd,p.GetPosition(),r+.15+.30+.01)
             if p.GetNetname()!=name:
-                for d in draws:circle(d,p.GetPosition(),r+margin)
+                for d in draws:circle(d,p.GetPosition(),r+max(clearance,.3)+width/2+.06)
     for t in b.GetTracks():
         if isinstance(t,k.PCB_VIA):
             if t.GetNetname()!=name:
                 for d in draws:circle(d,t.GetPosition(),k.ToMM(t.GetWidth(k.F_Cu))/2+margin)
-                circle(vd,t.GetPosition(),k.ToMM(t.GetWidth(k.F_Cu))/2+via_radius+.15+.01)
+                circle(vd,t.GetPosition(),k.ToMM(t.GetWidth(k.F_Cu))/2+via_radius+.15+.04)
             circle(vd,t.GetPosition(),k.ToMM(t.GetDrillValue())/2+.15+.30+.01)
         elif t.GetNetname()!=name:
             r=k.ToMM(t.GetWidth())/2
             if t.GetLayer() in LAYERS:segment(draws[LAYERS.index(t.GetLayer())],t.GetStart(),t.GetEnd(),r+margin)
-            segment(vd,t.GetStart(),t.GetEnd(),r+via_radius+.15+.01)
+            segment(vd,t.GetStart(),t.GetEnd(),r+via_radius+.15+.04)
     contour=board_outline(which)
     for im,edge in [(i,.3+width/2+.01) for i in images]+[(vi,.635)]:
         outside=Image.new('1',(W,H),1);d=ImageDraw.Draw(outside);pts=[(x/GRID,y/GRID) for x,y in contour];d.polygon(pts,fill=0);d.line(pts+[pts[0]],fill=1,width=math.ceil(2*edge/GRID),joint='curve')

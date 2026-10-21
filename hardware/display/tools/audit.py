@@ -15,9 +15,9 @@ from design import ROOT, BOARDS
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 
 PANEL={**{n:'GND' for n in [1,2,3,4,11,36,40,42,50]},
-       **{n:'+3V3_PANEL' for n in [5,6,7,8,10,49]},
-       9:'LCD_PWM',37:'LCD_VSYNC',38:'LCD_HSYNC',39:'LCD_DE',41:'LCD_PCLK',
-       43:'LCD_STANDBY',44:'LCD_TFT_RESET_N',45:'LCD_TOUCH_RESET_N',
+       **{n:'+3V3_BKL' for n in [5,6,7,8]}, **{n:'+3V3_PANEL' for n in [10,49]},
+       9:'PANEL_PWM',37:'LCD_VSYNC',38:'LCD_HSYNC',39:'LCD_DE',41:'LCD_PCLK',
+       43:'PANEL_STANDBY',44:'PANEL_TFT_RESET_N',45:'PANEL_TOUCH_RESET_N',
        46:'LCD_TOUCH_INT_N',47:'LCD_SDA',48:'LCD_SCL'}
 for start,c in [(12,'R'),(20,'G'),(28,'B')]:
     PANEL.update({start+i:f'LCD_{c}{i}' for i in range(8)})
@@ -67,7 +67,7 @@ def main():
         assert b.GetCopperLayerCount()==BOARDS[name]['layers']
         assert b.GetTitleBlock().GetRevision()==BOARDS[name]['revision']
         ground_layers={z.GetLayer() for z in b.Zones() if z.GetNetname()=='GND'}
-        assert ground_layers==({k.F_Cu,k.B_Cu} if BOARDS[name]['layers']==2 else {k.In1_Cu})
+        assert k.In1_Cu in ground_layers and all(z.GetNetname()=='GND' for z in b.Zones() if z.GetLayer()==k.In1_Cu and not z.GetIsRuleArea())
         summary[name]={'revision':BOARDS[name]['revision'],'copper_layers':b.GetCopperLayerCount(),'schematic_pcb_pin_pairs':len(nets),'components':len(source_parts),'tracks':len(b.GetTracks()),'ground_reference':'Stitched F.Cu/B.Cu ground pours' if BOARDS[name]['layers']==2 else 'In1.Cu GND reference plane'}
         pins[name]=nets
     d,g=pins['display-adapter'],pins['giga-adapter']
@@ -76,7 +76,7 @@ def main():
     # Every FFC conductor, including 24V feeds and the separate 3.3V reference return.
     for p in range(1,81):assert g['J1',str(p)]==d['J2',str(81-p)],p
     assert {p for p in range(1,81) if g['J1',str(p)]=='+3V3_PANEL'}=={5,7,9}
-    assert sum(g['J1',str(p)]=='GND' for p in range(1,81))==40
+    assert sum(g['J1',str(p)]=='GND' for p in range(1,81))==39
     rows=list(csv.DictReader((ROOT/'connections.csv').open()))
     assert len(rows)==35
     ioc=next((ROOT.parents[1]/'external/CubeMX').glob('*.ioc'),None)
@@ -84,7 +84,9 @@ def main():
     if ioc:
         config=dict(line.strip().split('=',1) for line in ioc.read_text().splitlines() if '=' in line)
         pin_reference=dict(source=ioc.name,sha256=hashlib.sha256(ioc.read_bytes()).hexdigest(),
-                           signals={p+'.Signal':config[p+'.Signal'] for p in MCU.values()})
+                           signals={key: config[key] for key in [*[p+'.Signal' for p in MCU.values()],
+                               'PI1.Signal', 'PI1.PinAttribute', 'RCC.LTDCFreq_Value',
+                               'LTDC.TotalWidth', 'LTDC.TotalHeigh']})
         reference.write_text(json.dumps(pin_reference,indent=2)+'\n')
         firmware_source='current repository CubeMX project'
     else:
@@ -97,7 +99,8 @@ def main():
     for row in rows:
         n=row['name'];assert MCU[n]==row['mcu'];assert row['mcu'] not in RESERVED
         assert g[row['adapter_header'],row['adapter_header_pin']]=='MCU_'+n
-        assert g['J1',row['giga_ffc']]==d['J2',row['display_ffc']]==d['J1',row['panel']]=='LCD_'+n
+        assert g['J1',row['giga_ffc']]==d['J2',row['display_ffc']]=='LCD_'+n
+        assert d['J1',row['panel']]==('PANEL_' if n in ['PWM','STANDBY','TFT_RESET_N','TOUCH_RESET_N'] else 'LCD_')+n
         function='LTDC_'+n if len(n)==2 and n[0] in 'RGB' else expected[n]
         assert config[row['mcu']+'.Signal']==function,(n,config[row['mcu']+'.Signal'],function)
     clock=next(int(r['giga_ffc']) for r in rows if r['name']=='PCLK')
@@ -119,7 +122,31 @@ def main():
     assert g['U6','7']=='MCU_SCL' and g['U6','6']=='MCU_SDA'
     assert {p for p in range(1,81) if g['J1',str(p)]=='+24V_DISPLAY'}=={1,3}
     assert d['U1','1']==d['C9','1']=='+24V_DISPLAY'
-    assert d['U1','2']=='GND' and d['U1','3']=='+3V3_PANEL'
+    assert d['U1','2']=='GND' and d['U1','3']=='+3V3_BKL'
+    # Supply supervision and independent rail domains, checked pin by pin.
+    assert d['U2','1']=='+24V_DISPLAY' and d['U2','3']=='+5V_LOGIC'
+    assert d['U3','1']==d['U3','2']=='+3V3_PANEL'
+    assert d['U3','9']==d['U3','10']==d['U3','7']=='+5V_LOGIC'
+    assert d['U3','4']==d['U3','6']==d['U3','11']=='GND'
+    assert d['U3','3']==d['R9','2']==d['R10','1']=='LOGIC_FB'
+    assert d['R9','1']=='+3V3_PANEL' and d['R10','2']=='GND'
+    assert d['U3','8']==d['C15','1']=='LOGIC_SS' and d['C15','2']=='GND'
+    for ref,supply in [('U4','+3V3_PANEL'),('U6','+3V3_BKL')]:
+        assert d[ref,'1']=='PANEL_READY' and d[ref,'2']=='GND' and d[ref,'5']==supply
+        assert d[ref,'3']==d[ref,'6']=='+3V3_PANEL'
+    assert d['R11','1']=='+3V3_PANEL' and d['R11','2']=='PANEL_READY'
+    for signal,a,b,y in [('PWM',1,2,3),('STANDBY',4,5,6),('TFT_RESET_N',9,10,8),('TOUCH_RESET_N',12,13,11)]:
+        assert d['U5',str(a)]=='LCD_'+signal and d['U5',str(b)]=='PANEL_READY'
+        assert d['U5',str(y)]=='PANEL_'+signal
+    assert d['U5','7']=='GND' and d['U5','14']=='+3V3_PANEL'
+    assert d['J2','71']==g['J1','10']==g['U9','3']=='PANEL_READY'
+    assert g['U9','1']==g['U9','5']=='+3V3_PANEL' and g['U9','6']=='+3V3_GIGA'
+    assert g['U9','4']==g['R71','1']==g['J9','15']=='MCU_PANEL_READY'
+    assert g['R71','2']=='GND'
+    assert config['PI1.Signal']=='GPIO_Input' and config['PI1.PinAttribute']=='CortexM7'
+    assert 'PI1' not in RESERVED
+    assert config['RCC.LTDCFreq_Value']=='40960000'
+    assert config['LTDC.TotalWidth']=='1119' and config['LTDC.TotalHeigh']=='609'
     assert g['J10','1']==g['F1','1']=='+24V_INPUT' and g['J10','2']=='GND'
     assert g['F1','2']==g['D1','1']==g['U7','1']==g['U7','2']=='+24V_FUSED'
     assert g['U7','15']==g['U7','16']==g['U8','1']==g['F2','1']=='+24V_PROTECTED'
@@ -143,7 +170,7 @@ def main():
     assert gj['1'].y>gj['80'].y
     labels={t.GetText():t.GetPosition() for t in boards['giga-adapter'].GetDrawings() if isinstance(t,k.PCB_TEXT) and t.GetText() in ('1','80')}
     assert labels['1'].y>gj['1'].y and labels['80'].y<gj['80'].y
-    summary.update(display_contacts=50,ribbon_conductors=80,signals=35,firmware_pin_conflicts=0,
+    summary.update(display_contacts=50,ribbon_conductors=80,display_signals=35,supply_ready_signals=1,firmware_pin_conflicts=0,
                    firmware_assignment_source=firmware_source,firmware_source_sha256=pin_reference['sha256'],
                    physical_hardware_test='NOT PERFORMED')
     (reports/'electrical-audit.json').write_text(json.dumps(summary,indent=2)+'\n')

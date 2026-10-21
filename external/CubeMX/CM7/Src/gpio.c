@@ -77,6 +77,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
+  /* Display adapter supervised supplies, D70 / PI1. Absent adapter reads LOW. */
+  GPIO_InitStruct.Pin = DISPLAY_READY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(DISPLAY_READY_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : BLUE_LED_Pin */
   GPIO_InitStruct.Pin = BLUE_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;

@@ -58,7 +58,7 @@ def length(b,ref1,pin1,ref2,pin2):
 def main():
     g=k.LoadBoard(str(ROOT/'giga-adapter/giga-adapter.kicad_pcb'));d=k.LoadBoard(str(ROOT/'display-adapter/display-adapter.kicad_pcb'))
     rows=[]
-    for i,s in enumerate(SIGNALS[:32]):
+    for i,s in enumerate(SIGNALS[:28]):
         u=f'U{i//8+1}';ch=i%8
         row={'signal':s['name'],'giga_input_mm':length(g,s['adapter_header'],s['adapter_header_pin'],u,3+ch),'buffer_to_series_mm':length(g,u,21-ch,f'R{i+1}',1),'series_to_ffc_mm':length(g,f'R{i+1}',2,'J1',s['giga_ffc']),'display_ffc_to_panel_mm':length(d,'J2',s['display_ffc'],'J1',s['panel'])}
         row['total_adapter_copper_mm']=sum(v for v in row.values() if isinstance(v,float));rows.append(row)
@@ -70,19 +70,15 @@ def main():
     timed_rows=[r for r in rows if r['signal'] in {s['name'] for s in SIGNALS[:24]}|{'DE','HSYNC','VSYNC'}]
     skew=max(abs(r['relative_to_clock_mm']) for r in timed_rows)*.007
     delta=[r['relative_to_clock_mm']*.007 for r in timed_rows]
-    result={'method':'Shortest physical copper path, splitting segments at intersections and pad/via anchors. Horizontal lengths; package/via internal delay excluded.','pixel_clock_MHz':51.2,'half_period_ns':9.765625,'panel_setup_hold_ns':5,'buffer_interdevice_worst_case_range_ns':3.5,'adapter_trace_skew_estimate_ns_at_7ps_per_mm':skew,'stm32_DS12930_table105_conditions':'VDD >2.7V, OSPEED=11, IO compensation enabled, stated load and voltage-scale conditions; these are qualification conditions, not proof the present firmware meets them.','stm32_data_valid_max_ns':.5,'stm32_data_hold_min_ns':0,'stm32_half_cycle_tolerance_ns':.5,'conditional_setup_margin_ns_before_unmodelled_terms':9.765625-.5-.5-3.5-5-max(delta),'conditional_hold_margin_ns_before_unmodelled_terms':9.765625-.5-3.5-5+min(delta),'unmodelled_terms':['Arduino PCB routes','FFC conductor skew, material and connector/package effects','Via discontinuities, rise/fall settling and clock jitter','Actual display sampling phase and compliance with ST characterization conditions'],'physical_timing_verification':'NOT PERFORMED. Remaining sub-nanosecond worst-case margin is not full timing closure; qualify at the panel connector before accepting operation.'}
+    result={'method':'Shortest physical copper path, splitting segments at intersections and pad/via anchors. Horizontal lengths; package/via internal delay excluded.','pixel_clock_MHz':40.96,'half_period_ns':12.20703125,'panel_setup_hold_ns':5,'buffer_interdevice_worst_case_range_ns':3.5,'adapter_trace_skew_estimate_ns_at_7ps_per_mm':skew,'stm32_DS12930_table105_conditions':'VDD >2.7V, OSPEED=11, IO compensation enabled, stated load and voltage-scale conditions; Very-high GPIO speed and CSI-referenced IO compensation are configured in firmware; physical loading remains to be qualified.','stm32_data_valid_max_ns':.5,'stm32_data_hold_min_ns':0,'stm32_half_cycle_tolerance_ns':.5,'conditional_setup_margin_ns_before_unmodelled_terms':12.20703125-.5-.5-3.5-5-max(delta),'conditional_hold_margin_ns_before_unmodelled_terms':12.20703125-.5-3.5-5+min(delta),'unmodelled_terms':['Arduino PCB routes','FFC conductor skew, material and connector/package effects','Via discontinuities, rise/fall settling and clock jitter','Actual display sampling phase and compliance with ST characterization conditions'],'physical_timing_verification':'NOT PERFORMED. Calculated margin does not replace connector-level setup/hold measurement; qualify at the panel connector before accepting operation.'}
     result['timed_signals']=[r['signal'] for r in timed_rows]
     result['timing_closure']='OPEN — conditional estimate is not a guaranteed interface timing result'
     result['additional_qualification_requirements']=[
-        'Enable and settle STM32 IO compensation before LTDC output; current firmware has no explicit enable call.',
+        'Bootstrap enables CSI and waits for IO compensation READY before starting either application.',
         'Validate total buffer load and input slew against the TI switching-characteristic test conditions.',
         'Measure PCLK high/low times and setup/hold at the panel including translator pulse-width distortion.',
     ]
-    result['lower_clock_candidate']={'pixel_clock_MHz':40.96,'horizontal_total':1120,
-        'vertical_total':610,'frame_rate_Hz':40.96e6/(1120*610),
-        'conditional_setup_margin_ns':1e3/40.96/2-.5-.5-3.5-5-max(delta),
-        'conditional_hold_margin_ns':1e3/40.96/2-.5-3.5-5+min(delta),
-        'status':'UNIMPLEMENTED candidate within Smartwin DE-mode clock/blanking limits; not proof of operation'}
+    result['display_timing']={'horizontal_total':1120,'vertical_total':610,'frame_rate_Hz':40.96e6/(1120*610),'status':'CONFIGURED in CubeMX and bootstrap; panel testing pending'}
     (report/'timing-budget.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
 
 if __name__=='__main__':main()

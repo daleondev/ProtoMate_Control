@@ -32,6 +32,7 @@ namespace hal::device
     }
     auto St1633i::initialize() -> util::Result<>
     {
+        m_initialized = false;
         m_reset->write(gpio::Level::Low);
         std::this_thread::sleep_for(std::chrono::milliseconds{ 2 });
         m_reset->write(gpio::Level::High);

@@ -3,12 +3,12 @@ GIGA_J1,Display_J2,Net,Display_J1_contacts
 2,79,GND,"1,2,3,4,11,36,40,42,50"
 3,78,+24V_DISPLAY,
 4,77,GND,"1,2,3,4,11,36,40,42,50"
-5,76,+3V3_PANEL,"5,6,7,8,10,49"
+5,76,+3V3_PANEL,"10,49; logic supply only"
 6,75,GND,"1,2,3,4,11,36,40,42,50"
-7,74,+3V3_PANEL,"5,6,7,8,10,49"
+7,74,+3V3_PANEL,"10,49; logic supply only"
 8,73,GND,"1,2,3,4,11,36,40,42,50"
-9,72,+3V3_PANEL,"5,6,7,8,10,49"
-10,71,GND,"1,2,3,4,11,36,40,42,50"
+9,72,+3V3_PANEL,"10,49; logic supply only"
+10,71,PANEL_READY,Adapter supervisors -> PI1 / D70; no direct panel pin
 11,70,LCD_SCL,48
 12,69,GND,"1,2,3,4,11,36,40,42,50"
 13,68,LCD_SDA,47

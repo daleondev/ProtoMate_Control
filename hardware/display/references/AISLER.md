@@ -11,8 +11,7 @@ templates; template rule severities that would hide useful checks are not copied
 
 | Reference | Applied requirement |
 |---|---|
-| [2-layer ENIG rules](https://community.aisler.net/t/2-layer-1-6mm-35-m-enig-design-rules/3732) | Display: HD profile, 1.6 mm, 35 µm, ENIG |
-| [4-layer ENIG rules](https://community.aisler.net/t/4-layer-35-m-enig-design-rules/3733) | GIGA: HD profile; component-hole annular rings ≥0.30 mm |
+| [4-layer ENIG rules](https://community.aisler.net/t/4-layer-35-m-enig-design-rules/3733) | Both boards: four-layer HD profile; component-hole annular rings ≥0.30 mm |
 | [Published 4-layer stackup](https://community.aisler.net/t/4-layers-1-6mm-35-m-stackup/5457) | 0.14 / 1.20 / 0.14 mm dielectrics; 1.6 mm ±10% finished thickness |
 | [Mask processing](https://community.aisler.net/t/soldermask-opening-adjustment/3464) | Zero source expansion; model 20 µm enlargement per side and verify ≥0.10 mm fine-pitch webs |
 | [Via treatment](https://community.aisler.net/t/via-plugging-filling-via-drill-vs-via-size/5522/2) | Exposed through-vias; no reliance on tenting, plugging or filling |
@@ -37,8 +36,8 @@ the geometric audit also includes the enlarged mask aperture. The retained
 Hirose FH28 datasheet describes its fully molded bottom and explicitly permits
 PCB patterning beneath the insulated body. Solder pads and mating space remain
 clear. The local models are drawing-based envelopes; physical fit is untested.
-The retained TRACO TSR2 specification identifies non-conductive plastic housing;
-the converter's three conductive leads are confined to their plated pads and
+The retained TRACO TSR1 and TSR2 specifications identify non-conductive plastic housing;
+each converter's three conductive leads are confined to their plated pads and
 must be trimmed to the documented 0.8 mm protrusion. The GIGA carrier's underside
 clearance and insulated stacking sockets separate its open vias from the MCU board.
 

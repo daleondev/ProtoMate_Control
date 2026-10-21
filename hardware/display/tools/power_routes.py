@@ -85,7 +85,7 @@ def main():
     loads += [('J1',10,.25,'TFT'),('J1',49,.05,'touch'),('J2',76,.15,'interface reference rail')]
     paths=[];currents=defaultdict(float)
     for ref,pin,amps,label in loads:
-        resistance,path=resistance_path(b,'U1',3,ref,pin)
+        resistance,path=resistance_path(b,'U1' if label=='backlight' else 'U3',3 if label=='backlight' else 1,ref,pin)
         paths.append((ref,pin,amps,label,resistance,path))
         for edge,r in path:currents[edge]+=amps
     results=[]
@@ -95,6 +95,8 @@ def main():
                             supply_drop_V=drop))
     result=dict(revision=REVISION,method='Measured connected copper paths with length/width resistance at 35um; 1.3 hot-copper factor. Shared segments carry the sum of allocated loads. Parallel paths and copper pours are ignored. Pad interiors treated as equipotential; each via transition allocated 2mOhm. Return copper and connector losses remain separate budget allowances.',
                 total_budget_A=sum(p[2] for p in paths),loads=results,
+                maximum_logic_supply_drop_V=max(r['supply_drop_V'] for r in results if r['load']!='backlight'),
+                maximum_backlight_supply_drop_V=max(r['supply_drop_V'] for r in results if r['load']=='backlight'),
                 maximum_panel_supply_drop_V=max(r['supply_drop_V'] for r in results if r['pad'].startswith('J1')),
                 return_allowance_ohm=.02,physical_verification='PENDING: actual current, via plating, return spreading and temperature')
     (ROOT/'manufacturing/verification/power-routing.json').write_text(json.dumps(result,indent=2)+'\n')

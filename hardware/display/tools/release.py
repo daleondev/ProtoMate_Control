@@ -82,9 +82,9 @@ def status():
             'Connector fit, 1.6mm thickness tolerance, converter lead trim, mounting and strain relief',
             'Supply isolation, inrush, rise time, full-brightness voltage/current and thermal behaviour',
             'Panel clock/data timing, colour order, touch and independent supply sequencing']),
-        timing_qualification='OPEN: conditional calculation only; sub-nanosecond margin, IO compensation and physical timing/load qualification required. See timing-budget.json.',
-        power_qualification='OPEN: 3.011V calculated DC minimum does not establish transient compliance or maximum panel current. See power-budget.json.',
-        manufacturing_order_placed=False,assembly_order_placed=False,stencil_order_placed=False,firmware_changed=False)
+        timing_qualification='40.96MHz configured; bootstrap enables IO compensation. Calculated timing margin is conditional; first-board timing/load qualification remains pending. See timing-budget.json.',
+        power_qualification='Independent precision logic and backlight supplies with supervised startup. First-board transient/current/thermal tests remain pending. See power-budget.json.',
+        manufacturing_order_placed=False,assembly_order_placed=False,stencil_order_placed=False,firmware_changed=True)
     (ROOT/'manufacturing/release-status.json').write_text(json.dumps(result,indent=2)+'\n')
 
 

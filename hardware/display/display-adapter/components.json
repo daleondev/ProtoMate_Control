@@ -11,11 +11,11 @@
       "2": "GND",
       "3": "GND",
       "4": "GND",
-      "5": "+3V3_PANEL",
-      "6": "+3V3_PANEL",
-      "7": "+3V3_PANEL",
-      "8": "+3V3_PANEL",
-      "9": "LCD_PWM",
+      "5": "+3V3_BKL",
+      "6": "+3V3_BKL",
+      "7": "+3V3_BKL",
+      "8": "+3V3_BKL",
+      "9": "PANEL_PWM",
       "10": "+3V3_PANEL",
       "11": "GND",
       "12": "LCD_R0",
@@ -49,9 +49,9 @@
       "40": "GND",
       "41": "LCD_PCLK",
       "42": "GND",
-      "43": "LCD_STANDBY",
-      "44": "LCD_TFT_RESET_N",
-      "45": "LCD_TOUCH_RESET_N",
+      "43": "PANEL_STANDBY",
+      "44": "PANEL_TFT_RESET_N",
+      "45": "PANEL_TOUCH_RESET_N",
       "46": "LCD_TOUCH_INT_N",
       "47": "LCD_SDA",
       "48": "LCD_SCL",
@@ -86,7 +86,7 @@
       "74": "+3V3_PANEL",
       "73": "GND",
       "72": "+3V3_PANEL",
-      "71": "GND",
+      "71": "PANEL_READY",
       "70": "LCD_SCL",
       "69": "GND",
       "68": "LCD_SDA",
@@ -181,7 +181,7 @@
     "nets": {
       "1": "+24V_DISPLAY",
       "2": "GND",
-      "3": "+3V3_PANEL"
+      "3": "+3V3_BKL"
     },
     "pos": [
       10,
@@ -246,7 +246,7 @@
     "mpn": "GRM32ER61A476KE20L",
     "footprint": "C_1210_3225Metric",
     "nets": {
-      "1": "+3V3_PANEL",
+      "1": "+3V3_BKL",
       "2": "GND"
     },
     "pos": [
@@ -268,7 +268,7 @@
     "mpn": "GRM32ER61A476KE20L",
     "footprint": "C_1210_3225Metric",
     "nets": {
-      "1": "+3V3_PANEL",
+      "1": "+3V3_BKL",
       "2": "GND"
     },
     "pos": [
@@ -290,7 +290,7 @@
     "mpn": "GRM32ER61A476KE20L",
     "footprint": "C_1210_3225Metric",
     "nets": {
-      "1": "+3V3_PANEL",
+      "1": "+3V3_BKL",
       "2": "GND"
     },
     "pos": [
@@ -312,7 +312,7 @@
     "mpn": "GRM32ER61A476KE20L",
     "footprint": "C_1210_3225Metric",
     "nets": {
-      "1": "+3V3_PANEL",
+      "1": "+3V3_BKL",
       "2": "GND"
     },
     "pos": [
@@ -426,8 +426,8 @@
       "2": "GND"
     },
     "pos": [
-      39,
-      26,
+      38,
+      29,
       0,
       "F"
     ],
@@ -448,8 +448,8 @@
       "2": "GND"
     },
     "pos": [
-      39,
-      28,
+      38,
+      31,
       0,
       "F"
     ],
@@ -470,8 +470,8 @@
       "2": "GND"
     },
     "pos": [
-      39,
-      30,
+      38,
+      33,
       0,
       "F"
     ],
@@ -492,8 +492,8 @@
       "2": "GND"
     },
     "pos": [
-      39,
-      32,
+      38,
+      35,
       0,
       "F"
     ],
@@ -558,8 +558,8 @@
       "2": "+3V3_PANEL"
     },
     "pos": [
-      46,
-      31,
+      51,
+      37,
       0,
       "F"
     ],
@@ -693,5 +693,582 @@
     "assembly": "PCB",
     "uuid": "be1d3caf-94ab-5530-8eb7-ad8c49341b9d",
     "sheet_uuid": "226852bb-9991-58dd-a166-d40f4e3ee0ce"
+  },
+  {
+    "ref": "U2",
+    "kind": "BUCK5",
+    "value": "TSR 1-2450 / 5V 1A",
+    "mfr": "TRACO Power",
+    "mpn": "TSR 1-2450",
+    "footprint": "Converter_DCDC_TRACO_TSR-1_THT_Trimmed",
+    "nets": {
+      "1": "+24V_DISPLAY",
+      "2": "GND",
+      "3": "+5V_LOGIC"
+    },
+    "pos": [
+      15,
+      38,
+      180,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "HAND",
+    "uuid": "ba5c929c-79c8-5fdc-ad25-c8d4181c5043",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "U3",
+    "kind": "LDO",
+    "value": "TPS7A9101DSKR",
+    "mfr": "Texas Instruments",
+    "mpn": "TPS7A9101DSKR",
+    "footprint": "WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "+3V3_PANEL",
+      "3": "LOGIC_FB",
+      "4": "GND",
+      "5": null,
+      "6": "GND",
+      "7": "+5V_LOGIC",
+      "8": "LOGIC_SS",
+      "9": "+5V_LOGIC",
+      "10": "+5V_LOGIC",
+      "11": "GND"
+    },
+    "pos": [
+      27,
+      41,
+      180,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "dbcb0b2b-82cb-5803-aafc-991ad3c4a3a5",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "C11",
+    "kind": "C10U50",
+    "value": "10u / 50V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM32ER71H106KA12L",
+    "footprint": "C_1210_3225Metric",
+    "nets": {
+      "1": "+24V_DISPLAY",
+      "2": "GND"
+    },
+    "pos": [
+      21,
+      46,
+      90,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "b7188bb3-15e4-5b4b-960f-c4578f90adb6",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "C12",
+    "kind": "C47U",
+    "value": "47u / 10V X5R",
+    "mfr": "Murata",
+    "mpn": "GRM32ER61A476KE20L",
+    "footprint": "C_1210_3225Metric",
+    "nets": {
+      "1": "+5V_LOGIC",
+      "2": "GND"
+    },
+    "pos": [
+      21,
+      40,
+      90,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "4d0932e5-7c6a-5dfa-a9c6-896d16004bf7",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "C13",
+    "kind": "C47U",
+    "value": "47u / 10V X5R",
+    "mfr": "Murata",
+    "mpn": "GRM32ER61A476KE20L",
+    "footprint": "C_1210_3225Metric",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "GND"
+    },
+    "pos": [
+      31,
+      36.5,
+      90,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "69e0980a-1eea-5d45-bfc6-c90a132bd1eb",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "C14",
+    "kind": "C47U",
+    "value": "47u / 10V X5R",
+    "mfr": "Murata",
+    "mpn": "GRM32ER61A476KE20L",
+    "footprint": "C_1210_3225Metric",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "GND"
+    },
+    "pos": [
+      31,
+      45,
+      270,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "3516f9c7-cf57-5bd0-85a0-705dd7e3f3ec",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "C15",
+    "kind": "C47N",
+    "value": "47n / 16V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM188R71C473KA01D",
+    "footprint": "C_0603_1608Metric",
+    "nets": {
+      "1": "LOGIC_SS",
+      "2": "GND"
+    },
+    "pos": [
+      25,
+      37.5,
+      0,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "63d706a7-abfc-588c-b4f6-e913aff04e8b",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "R9",
+    "kind": "R31K2",
+    "value": "31.2k / 0.1%",
+    "mfr": "Yageo",
+    "mpn": "RT0603BRD0731K2L",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "LOGIC_FB"
+    },
+    "pos": [
+      31,
+      40,
+      0,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "cf43715f-377a-5584-9562-1f2f8be22c17",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "R10",
+    "kind": "R10K01",
+    "value": "10k / 0.1%",
+    "mfr": "Yageo",
+    "mpn": "RT0603BRD0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "LOGIC_FB",
+      "2": "GND"
+    },
+    "pos": [
+      34,
+      41.5,
+      0,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "7359d706-2f47-55ca-9377-0196729fc6bd",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "R11",
+    "kind": "R10K",
+    "value": "10k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "PANEL_READY"
+    },
+    "pos": [
+      39,
+      46,
+      0,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "SMT",
+    "uuid": "313b2c64-954c-5da7-ad00-8b0a2ef06cd8",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
+  },
+  {
+    "ref": "U4",
+    "kind": "SUPERVISOR",
+    "value": "TPS3808G33DBVR",
+    "mfr": "Texas Instruments",
+    "mpn": "TPS3808G33DBVR",
+    "footprint": "SOT-23-6_UpperPin1",
+    "nets": {
+      "1": "PANEL_READY",
+      "2": "GND",
+      "3": "+3V3_PANEL",
+      "4": "U4_DELAY",
+      "5": "+3V3_PANEL",
+      "6": "+3V3_PANEL"
+    },
+    "pos": [
+      38,
+      41,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "dde068db-c0fd-5316-a159-5adccf6c2b48",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "C16",
+    "kind": "C100N",
+    "value": "100n / 16V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM188R71C104KA01D",
+    "footprint": "C_0603_1608Metric",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "GND"
+    },
+    "pos": [
+      38,
+      37.5,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "ff3dcd06-2975-5776-9dab-526c3c577669",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "R16",
+    "kind": "R100K",
+    "value": "100k",
+    "mfr": "Yageo",
+    "mpn": "RC0402FR-07100KL",
+    "footprint": "R_0402_1005Metric",
+    "nets": {
+      "1": "U4_DELAY",
+      "2": "+3V3_PANEL"
+    },
+    "pos": [
+      38,
+      44.5,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "cf328af6-374d-5cd5-af51-04e3cc1e5c01",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "U6",
+    "kind": "SUPERVISOR",
+    "value": "TPS3808G33DBVR",
+    "mfr": "Texas Instruments",
+    "mpn": "TPS3808G33DBVR",
+    "footprint": "SOT-23-6_UpperPin1",
+    "nets": {
+      "1": "PANEL_READY",
+      "2": "GND",
+      "3": "+3V3_PANEL",
+      "4": "U6_DELAY",
+      "5": "+3V3_BKL",
+      "6": "+3V3_PANEL"
+    },
+    "pos": [
+      47,
+      41,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "380cb6e9-bc9c-5d0d-b3c8-397e16e5f1fd",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "C18",
+    "kind": "C100N",
+    "value": "100n / 16V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM188R71C104KA01D",
+    "footprint": "C_0603_1608Metric",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "GND"
+    },
+    "pos": [
+      47,
+      37.5,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "79f1f3f7-6bfd-5099-b27f-460deca179b2",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "R17",
+    "kind": "R100K",
+    "value": "100k",
+    "mfr": "Yageo",
+    "mpn": "RC0402FR-07100KL",
+    "footprint": "R_0402_1005Metric",
+    "nets": {
+      "1": "U6_DELAY",
+      "2": "+3V3_PANEL"
+    },
+    "pos": [
+      47,
+      44.5,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "4ae95630-51e4-5bf6-8d80-d812a9f62ac8",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "U5",
+    "kind": "AND4",
+    "value": "SN74LVC08APWR",
+    "mfr": "Texas Instruments",
+    "mpn": "SN74LVC08APWR",
+    "footprint": "TSSOP-14_4.4x5mm_P0.65mm",
+    "nets": {
+      "1": "LCD_PWM",
+      "2": "PANEL_READY",
+      "3": "PANEL_PWM",
+      "4": "LCD_STANDBY",
+      "5": "PANEL_READY",
+      "6": "PANEL_STANDBY",
+      "7": "GND",
+      "8": "PANEL_TFT_RESET_N",
+      "9": "LCD_TFT_RESET_N",
+      "10": "PANEL_READY",
+      "11": "PANEL_TOUCH_RESET_N",
+      "12": "LCD_TOUCH_RESET_N",
+      "13": "PANEL_READY",
+      "14": "+3V3_PANEL"
+    },
+    "pos": [
+      44,
+      32,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "0db92c1e-e1d2-5826-8858-7a1f0f281977",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "C17",
+    "kind": "C100N",
+    "value": "100n / 16V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM188R71C104KA01D",
+    "footprint": "C_0603_1608Metric",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "GND"
+    },
+    "pos": [
+      42,
+      27,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "4a14dc79-3440-5ac8-8144-3bbbe084edae",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "R12",
+    "kind": "R10K",
+    "value": "10k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "PANEL_PWM",
+      "2": "GND"
+    },
+    "pos": [
+      51,
+      29,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "237f2c88-9771-5d05-8cc5-2b84bf25a529",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "R13",
+    "kind": "R10K",
+    "value": "10k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "PANEL_STANDBY",
+      "2": "GND"
+    },
+    "pos": [
+      51,
+      31,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "155b6b87-f351-5a3b-9048-d65e9802c7b0",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "R14",
+    "kind": "R10K",
+    "value": "10k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "PANEL_TFT_RESET_N",
+      "2": "GND"
+    },
+    "pos": [
+      51,
+      33,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "9894216d-4b55-5e5a-a5aa-f580068ca867",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "R15",
+    "kind": "R10K",
+    "value": "10k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "PANEL_TOUCH_RESET_N",
+      "2": "GND"
+    },
+    "pos": [
+      51,
+      35,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "SMT",
+    "uuid": "d0f6c1f8-101e-540e-95d8-b165674b1595",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "TP7",
+    "kind": "TP",
+    "value": "Probe pad",
+    "mfr": "PCB",
+    "mpn": "PCB copper feature",
+    "footprint": "TestPoint_1.0mm",
+    "nets": {
+      "1": "PANEL_READY"
+    },
+    "pos": [
+      42,
+      46,
+      0,
+      "F"
+    ],
+    "page": "sequencing",
+    "assembly": "PCB",
+    "uuid": "0534d35f-e4c0-5936-b2fd-c3fc3266396f",
+    "sheet_uuid": "84378192-f908-5fdc-a283-732d0892ab60"
+  },
+  {
+    "ref": "TP8",
+    "kind": "TP",
+    "value": "Probe pad",
+    "mfr": "PCB",
+    "mpn": "PCB copper feature",
+    "footprint": "TestPoint_1.0mm",
+    "nets": {
+      "1": "+3V3_BKL"
+    },
+    "pos": [
+      18,
+      34,
+      0,
+      "F"
+    ],
+    "page": "power",
+    "assembly": "PCB",
+    "uuid": "8222d2fb-85eb-5d75-8363-213dfe2c11e6",
+    "sheet_uuid": "226852bb-9991-58dd-a166-d40f4e3ee0ce"
+  },
+  {
+    "ref": "TP9",
+    "kind": "TP",
+    "value": "Probe pad",
+    "mfr": "PCB",
+    "mpn": "PCB copper feature",
+    "footprint": "TestPoint_1.0mm",
+    "nets": {
+      "1": "+5V_LOGIC"
+    },
+    "pos": [
+      4,
+      39,
+      0,
+      "F"
+    ],
+    "page": "logic_power",
+    "assembly": "PCB",
+    "uuid": "3cbb872f-7575-5c16-a44a-b481a3b3bec2",
+    "sheet_uuid": "a1a1a51b-ff01-5b75-9876-a8a0035c8a41"
   }
 ]

@@ -1337,7 +1337,7 @@ points and ThreadX remain repository-owned. Do not start the generated
 | PLL1 | HSE /4 ×240, P2/Q20: M7 480 MHz, USB 48 MHz |
 | Bus clocks | HCLK/M4 240 MHz; APB 120 MHz; timer kernels 240 MHz |
 | PLL2 | HSE /4 ×100, R2: FMC/QSPI 200 MHz; SDRAM 100 MHz; QSPI 50 MHz |
-| PLL3 | HSE /5 ×160, R10: LTDC 51.2 MHz |
+| PLL3 | HSE /5 ×128, R10: LTDC 40.96 MHz |
 | M4 | TIM2 CH1/3/4 STEP, CH2 guard; DMA1 streams 0–3; TIM3 encoder; TIM6 sampling; TIM7 completion; USART2; SPI5 |
 | Runtime | M4 TIM5 and M7 TIM12 at 1 MHz; per-core 1 kHz ThreadX/HAL SysTick |
 | M7 | USB-C CDC, LED/button, LTDC/DMA2D, TIM8 backlight, I2C4 touch |
@@ -1397,8 +1397,8 @@ and the previously verified ESC configuration.
 ### Display and console
 
 Smartwin SMMH0701024600S-C20: RGB24 physical bus, **1024×600 RGB565** buffers.
-LTDC timing is 1+159+1024+160 horizontal and 1+22+600+12 vertical, totaling
-1344×635 at 51.2 MHz (approximately 60 Hz). DE is active high; pixel-clock phase
+LTDC timing is 1+47+1024+48 horizontal and 1+4+600+5 vertical, totaling
+1120×610 at 40.96 MHz (approximately 60 Hz). DE is active high; pixel-clock phase
 still requires checking on the actual panel. DSI is disabled.
 
 | Display signal | STM32 pins |
@@ -1410,19 +1410,22 @@ still requires checking on the actual panel. DSI is disabled.
 | Backlight / standby / TFT reset | PC6/D68 TIM8_CH1, PI0/D69, PI2/D71 |
 | Touch reset / interrupt | PI3/D72, PB12/D74 EXTI12 |
 | Touch SCL / SDA | PB6/D101, PH12/D102, I2C4 100 kHz |
+| Adapter power READY | PI1/D70, input with pull-down |
 
 The [Smartwin–GIGA adapter projects](hardware/display/README.md) accept regulated
 24 V on the GIGA shield, convert it to 12 V for GIGA VIN, and carry protected
-24 V through the ribbon to a local 3.3 V/2 A converter on the display adapter.
+24 V through the ribbon to independent backlight and precision LCD/touch supplies
+on the display adapter. Hardware supervisors gate PWM/reset/standby; PI1/D70
+reports supply readiness so firmware repeats initialization after power recovery.
 USB-C remains available for CDC; GIGA and display 3.3 V rails stay separate.
 The projects include protected interfaces, cable specifications and AISLER
-bare-board upload packages: display revision D (two layers) and GIGA revision C
-(four layers), both 1.6 mm with ENIG. Local fabrication checks pass; AISLER's
+bare-board upload packages: display revision E and GIGA revision D
+(both four layers), both 1.6 mm with ENIG. Local fabrication checks pass; AISLER's
 processed-job acceptance and first-board fit/electrical/display testing remain pending.
 The [hardware review](hardware/display/manufacturing/REVIEW.md) identifies open
 RGB timing and supply-transient qualification; fabrication readiness does not
 mean the complete display interface has been electrically qualified.
-The GUI starts automatically. Backlight stays off until the first complete frame is presented, then starts at 10%. `display bars` selects the diagnostic pattern; `display gui` returns to the showcase. `display backlight 0..100` controls the 1 kHz PWM. `display touch` reports cached primary-contact coordinates, availability and age, without performing I²C transactions. `display status` reports rendering/presentation counters, deadlines, transfer errors and queue overflow. Missing touch does not prevent rendering, CLI or ICC operation. Device logic lives above `IRgbOutput`, `IGraphics` and `II2c`; STM32 drivers own the peripherals.
+The GUI starts automatically. Backlight stays off until the adapter reports stable supplies, panel sequencing completes and a valid framebuffer is scanned, then starts at 10%. Rendering continues without panel power. `display bars` selects the diagnostic pattern; `display gui` returns to the showcase. `display backlight 0..100` controls the 1 kHz PWM. `display touch` reports cached primary-contact coordinates, availability and age, without performing I²C transactions. `display status` reports rendering/presentation counters, deadlines, transfer errors and queue overflow. Missing touch does not prevent rendering, CLI or ICC operation. Device logic lives above `IRgbOutput`, `IGraphics` and `II2c`; STM32 drivers own the peripherals.
 
 USB-C uses USB_OTG_FS PA11/PA12, device-only CDC with VBUS sensing disabled and
 ST USB Device middleware matching Cube H7 V1.13.0. Open the CDC port (`/dev/ttyACM*`

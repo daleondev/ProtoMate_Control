@@ -7,7 +7,7 @@
 	(property "Reference" "REF**"
 		(at 0 -4.4 0)
 		(layer "F.SilkS")
-		(uuid "be9aeb42-b63a-4719-b513-4f3879fef34b")
+		(uuid "bc5da66b-1fca-4991-819d-1a11bd90c19a")
 		(effects
 			(font
 				(size 1 1)
@@ -18,7 +18,7 @@
 	(property "Value" "TerminalBlock_1x02_P3.50mm"
 		(at 0 4.9 0)
 		(layer "F.Fab")
-		(uuid "30db990c-77eb-4fa0-b55e-029b1ab45b34")
+		(uuid "4136507e-d33e-4da7-9cec-322766378006")
 		(effects
 			(font
 				(size 1 1)
@@ -30,7 +30,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "0198d9dd-8bbf-4119-988c-5759fa34b081")
+		(uuid "3000b53c-a186-4217-9422-8981514248c3")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -41,7 +41,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "4be64085-4be5-49fc-ba9a-0a58eb1a59a2")
+		(uuid "834ed852-1015-4d0d-a688-0ce54fdf3b6f")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -59,7 +59,7 @@
 		)
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "461962a0-6eb8-4ec7-984d-018e41c103ae")
+		(uuid "066fb705-3c17-4b68-9248-5831e6f45f25")
 	)
 	(fp_rect
 		(start -2 -3.4)
@@ -70,7 +70,7 @@
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "04da0201-9032-44b2-ae10-32a83ea23759")
+		(uuid "9565a77e-93d7-499a-a887-dcc8a71f7e66")
 	)
 	(pad "1" thru_hole rect
 		(at 0 0)
@@ -79,7 +79,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "19a25d5b-6f29-4a31-a971-7f805a889087")
+		(uuid "43ac76e2-5d03-457c-9e87-a6e2c3200bbc")
 	)
 	(pad "2" thru_hole oval
 		(at 3.5 0)
@@ -88,7 +88,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "c965d18b-2481-4b09-ab66-286bc59c6f99")
+		(uuid "05e82239-e26f-4610-b806-8c8c1ab070c0")
 	)
 	(embedded_fonts no)
 	(model "${KIPRJMOD}/../libraries/3dmodels/Terminal_2x3.5.step"

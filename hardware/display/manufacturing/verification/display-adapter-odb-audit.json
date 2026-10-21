@@ -1,20 +1,22 @@
 {
   "result": "PASS",
   "board": "display-adapter",
-  "revision": "D",
-  "upload_zip": "display-adapter-rev-D-aisler-odb.zip",
-  "upload_sha256": "26b8af62f7bc5633008d02ee6883cec732838b4117e37d3b0320137d2a2357a3",
+  "revision": "E",
+  "upload_zip": "display-adapter-rev-E-aisler-odb.zip",
+  "upload_sha256": "390106aad778d67d5a6657d60995218c61862b7ee895e392d16714ea6c582475",
   "copper_layers": [
     "F.CU",
+    "IN1.CU",
+    "IN2.CU",
     "B.CU"
   ],
-  "pcb_profile_area_mm2": 1925.0,
+  "pcb_profile_area_mm2": 2750.0,
   "bridges_checked": 4,
-  "netlist_pad_contacts_checked": 175,
-  "drill_hits_checked": 155,
+  "netlist_pad_contacts_checked": 252,
+  "drill_hits_checked": 217,
   "mask_pad_openings_checked": {
-    "f": 129,
-    "b": 57
+    "f": 206,
+    "b": 60
   },
   "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
   "aisler_processing_acceptance": "PENDING"

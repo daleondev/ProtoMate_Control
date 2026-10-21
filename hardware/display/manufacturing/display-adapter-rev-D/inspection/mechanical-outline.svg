@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<svg width="57.05mm" height="37.05mm" viewBox="-1.025 -1.025 57.05 37.05" style="background-color:white" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <g transform="translate(-0.025 35.025) scale(1 -1) translate(0.025 0.025)">
-    <path d="M 0.0 35.0 L 55.0 35.0" fill="none" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.05"/>
-    <path d="M 0.0 0.0 L 0.0 35.0" fill="none" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.05"/>
-    <path d="M 55.0 35.0 L 55.0 0.0 L 0.0 0.0" fill="none" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.05"/>
-  </g>
-</svg>

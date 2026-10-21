@@ -1,6 +1,6 @@
 {
   "source": "CubeMX.ioc",
-  "sha256": "d9803d8fdaa3f8a0c0e7343975a5d719a50c6b19c109c13b7c9cec0d812b5017",
+  "sha256": "d478eb55afc0d60b739b090cc9dfb548b0fec09169a1b33c05132a3ff3098d43",
   "signals": {
     "PG13.Signal": "LTDC_R0",
     "PJ0.Signal": "LTDC_R1",
@@ -36,6 +36,11 @@
     "PI3.Signal": "GPIO_Output",
     "PB12.Signal": "GPXTI12",
     "PH12.Signal": "I2C4_SDA",
-    "PB6.Signal": "I2C4_SCL"
+    "PB6.Signal": "I2C4_SCL",
+    "PI1.Signal": "GPIO_Input",
+    "PI1.PinAttribute": "CortexM7",
+    "RCC.LTDCFreq_Value": "40960000",
+    "LTDC.TotalWidth": "1119",
+    "LTDC.TotalHeigh": "609"
   }
 }

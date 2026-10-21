@@ -1,19 +1,19 @@
 # Smartwin–GIGA display adapters
 
-The **two-layer display adapter (revision D)** and **four-layer GIGA adapter
-(revision C)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
+The **four-layer display adapter (revision E)** and **four-layer GIGA adapter
+(revision D)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
 **GIGA R1 WiFi**, preserving the firmware's display pin assignments.
 Open either project in KiCad 10; both use `libraries/` and require no downloaded
 symbol or footprint library. Keep this directory structure when moving them.
 
 Release files:
 
-- [Display D: AISLER ODB++ upload](releases/display-adapter-rev-D-aisler-odb.zip)
-- [GIGA C: AISLER ODB++ upload](releases/giga-adapter-rev-C-aisler-odb.zip)
-- [Display D: review and soldering package](releases/display-adapter-rev-D-aisler-review.zip)
-- [GIGA C: review and soldering package](releases/giga-adapter-rev-C-aisler-review.zip)
-- [Source bundle D: projects, libraries, models and tools](releases/smartwin-giga-rev-D-source.zip)
-- [Nominal GIGA mating assembly](assembly/giga-mated-rev-C.png)
+- [Display E: AISLER ODB++ upload](releases/display-adapter-rev-E-aisler-odb.zip)
+- [GIGA D: AISLER ODB++ upload](releases/giga-adapter-rev-D-aisler-odb.zip)
+- [Display E: review and soldering package](releases/display-adapter-rev-E-aisler-review.zip)
+- [GIGA D: review and soldering package](releases/giga-adapter-rev-D-aisler-review.zip)
+- [Source bundle E: projects, libraries, models and tools](releases/smartwin-giga-rev-E-source.zip)
+- [Nominal GIGA mating assembly](assembly/giga-mated-rev-D.png)
 
 Upload only the two ZIPs labelled **AISLER ODB++ upload**, one job per board.
 The review packages contain fabrication references, procurement BOMs, placement
@@ -22,8 +22,8 @@ identifies the exact archives.
 
 | Project | Board | AISLER profile | Finish |
 |---|---|---|---|
-| `display-adapter/display-adapter.kicad_pro` | Rev D, 2 layers, 55 × 35 × 1.6 mm | `aisler-2-layer-hd-drc` | ENIG |
-| `giga-adapter/giga-adapter.kicad_pro` | Rev C, 4 layers, 111 × 53.34 × 1.6 mm maximum | `aisler-4-layer-hd-drc` | ENIG |
+| `display-adapter/display-adapter.kicad_pro` | Rev E, 4 layers, 55 × 50 × 1.6 mm | `aisler-4-layer-hd-drc` | ENIG |
+| `giga-adapter/giga-adapter.kicad_pro` | Rev D, 4 layers, 111 × 53.34 × 1.6 mm maximum | `aisler-4-layer-hd-drc` | ENIG |
 
 Both are **bare boards**, with 35 µm copper on every layer, green solder mask
 and white silkscreen. All components are sourced and installed separately.
@@ -48,17 +48,21 @@ Do not manufacture a working-directory draft without its matching release ZIP.
 ## Connection and power
 
 ```text
-Regulated 24 V -> GIGA shield J10 -> fuse / TVS / TPS26600 protection
-                                     |                    |
-                               TSR 1-24120          0.8 A branch fuse
-                                   12 V                   |
-                              blocking diode         80-way ribbon
-                                     |                    |
-                                  GIGA VIN       display TSR 2-2433
-                                                          |
-                                                 3.3 V -> Smartwin
-                                                          |
-                                   separate 3.3 V reference return to buffers
+24 V -> shield J10 -> fuse / TVS / TPS26600
+                        |                  |
+                   TSR 1-24120       0.8 A ribbon fuse
+                      12 V                 |
+                   blocking D3          80-way FFC
+                        |                  |
+                     GIGA VIN       +------+------+
+                                    |             |
+                                TSR 2-2433    TSR 1-2450
+                                3.3 V BKL        5 V
+                                    |         TPS7A91
+                                backlight    3.296 V logic
+                                                  |
+                                      TFT / touch / buffer reference
+Both panel rails -> supervisors -> READY -> reset/standby/PWM gates + GIGA D70
 ```
 
 Connect the existing **regulated 24 V supply to shield J10: pin 1 = +24 V,
@@ -70,13 +74,19 @@ both GIGA and the display; the display adapter has no separate power terminal.
 - **Shield U8: TRACO TSR 1-24120**, 24 V to 12 V, rated 1 A output. D3 feeds
   VIN through a Schottky diode, so actual VIN is slightly below 12 V. VIN reaches
   both corresponding GIGA header contacts, J5.8 and J9.24.
-- **Display U1: TRACO TSR 2-2433**, 24 V to 3.3 V, rated 2 A output. Its local
-  10 µF/50 V and 100 nF/50 V input capacitors suppress cable-side switching
-  current. Four 47 µF output capacitors and local 10 µF/100 nF bypass capacitors
-  support the panel load; nominal external output capacitance stays below the
-  module's 900 µF limit: 208.2 µF on this board plus 10.6 µF on the shield's
-  panel rail. The panel's unspecified internal capacitance must also fit this
-  limit. Do not exchange the two converter types.
+- **Display U1: TRACO TSR 2-2433**, 3.3 V / 2 A, supplies only the backlight
+  contacts 5–8. Four local 47 µF capacitors support its load. Keep total output
+  capacitance, including the panel, below the module's 900 µF limit.
+- **Display U2: TRACO TSR 1-2450**, 5 V / 1 A, feeds **U3 TPS7A9101DSKR**.
+  The precision LDO supplies TFT pin 10, touch pin 49 and the interface-reference
+  return. Its 31.2 kΩ / 10 kΩ, 0.1% divider sets **3.296 V**. The regulator's
+  1% line/load/temperature accuracy gives much more room inside the panel's
+  3.0–3.6 V range. The 47 nF soft-start capacitor sets an approximately 6 ms ramp;
+  the component-limit estimate is 3.3–11.3 ms. Keep SS_CTRL grounded.
+- The logic load allocation is **0.45 A**; the backlight contact ceiling is
+  **1.2 A** total, subject to current sharing among its four 0.3 A contacts.
+  Allow up to **0.75 A at GIGA VIN** in the combined input budget. These are design
+  allocations, not measured panel maxima or simultaneous converter nameplate ratings.
 - **USB-C may remain connected for CDC CLI/logging.** GIGA retains its onboard
   USB/VIN power arrangement. D3 blocks reverse feed from VIN into U8 when only
   USB is present. USB alone runs GIGA, but does not power the display or the
@@ -101,48 +111,37 @@ The fused-input feed from F1 to U7 uses 0.60 mm copper throughout.
 top and bottom thermal copper islands joined by four vias. Pin 9 alone is the system-ground
 connection. D2 clamps negative excursions on the protected output. F2 is a
 **0.8 A/63 V time-lag fuse** for the ribbon branch. Two parallel contacts carry
-24 V; even at 2 A converter output, 18 V input and an 80% efficiency allowance,
-each carries approximately 0.23 A, below the connector's 0.5 A/contact rating.
+24 V; at the allocated backlight/logic loads, 18 V input and an 80% efficiency allowance,
+each carries approximately 0.216 A, below the connector's 0.5 A/contact rating.
 The specified cable copper and contacts have under 0.10 V allocated drop in
 that conservative load case. Power is disconnected before inserting/removing
 the ribbon; these connectors are not hot-plug power connectors.
 
-The display qualification budget is **1.5 A at 3.3 V**: 1.05 A typical backlight,
-0.25 A maximum TFT, and 0.20 A for touch/interface current and margin. The
-backlight maximum is unspecified; 1.5 A is not a guaranteed panel maximum.
-All four backlight contacts (J1 pins **5–8**) are connected; pin **10** supplies
-the TFT electronics and pin **49** supplies touch. At the documented typical backlight current
-each carries approximately 0.263 A, below the DF23's 0.3 A/contact rating.
+All four backlight contacts (J1 **5–8**) are connected. TFT uses **10**, touch
+uses **49**. Smartwin specifies backlight current as 1.05 A typical, not a maximum.
+Its connector table specifies 3.3 V, so this design keeps that voltage despite
+broader input ratings in the internal backlight-driver description.
 
-The calculated panel-voltage budget uses converter accuracy, line/load
-regulation, ±0.02%/K temperature coefficient over a 0–70°C calculation range,
-a 50 mV negative ripple allowance, 33.5 mV of routed supply drop plus a 20 mΩ return allowance and
-30 mV of contact drop. At 1.5 A this leaves approximately **3.011 V**, above the
-panel's **3.0 V minimum**, with limited worst-case margin. This is a conservative
-allocation, not measured performance; verify it at CN1 under full brightness
-and the actual enclosure temperature. Module derating, ripple, current sharing
-and the panel's **1–20 ms supply rise time** remain first-board checks.
-`manufacturing/verification/power-budget.json` records the calculations and
-assumptions. `power-routing.json` derives branch resistance from the final track lengths and widths,
-including the relocated touch-power branch. The 1.5 A budget is explicitly split
-between backlight (1.05 A), TFT (0.25 A), touch (0.05 A) and interface rail
-(0.15 A); this split also needs checking on the first board. Keep the panel's
-digital supply within its specified **3.0–3.6 V** range.
+`manufacturing/verification/power-budget.json` records the component tolerances,
+soft-start range, thermal estimate and load allocations. `power-routing.json`
+calculates copper losses from the actual layout, including shared path currents.
+The logic budget reserves **100 mV for dynamic drop** in addition to regulator,
+route, return and contact losses; this is an allowance to qualify, not a guaranteed
+transient specification. The LDO's exposed pad is soldered to ground copper with
+external thermal stitching. Qualify operation at up to **55°C enclosure ambient**
+for the 0.45 A allocation; the thermal estimate is not a measured enclosure result.
 
-This is a **steady-state** budget. TRACO specifies up to 250 mV peak deviation
-for a 50% load step on this converter family; that excursion would exceed the
-remaining worst-case DC margin. The actual panel load and added capacitors
-must be tested during brightness changes and power sequencing. The present
-calculation does not establish transient compliance or a guaranteed 1.5 A
-panel load: Smartwin specifies 1.05 A backlight current only as typical.
+The backlight converter is independent. Its specified load-step excursion can
+reach 250 mV. The added bulk capacitance and actual PWM load therefore need a
+first-board test for rail dips and supervisor retriggering. The supervisors inhibit
+the panel on undervoltage; they do not make an undersized supply acceptable.
 
 ## Interfaces and startup
 
 - U1–U4 are SN74AXC8T245PWR, with VCCA = GIGA and VCCB = panel. **DIR1 is HIGH,
   DIR2 is LOW**, which selects A→B for all eight channels. Their `/OE` inputs are
-  LOW. Each MCU input has a 47 kΩ pull-down. The panel's PWM, standby and reset
-  lines also have 47 kΩ pull-downs, so disabled buffers leave the backlight off
-  and resets asserted. The AXC devices provide partial-power-down isolation.
+  LOW. Each MCU input has a 47 kΩ pull-down. The display-side gate inputs have 47 kΩ pull-downs and their outputs have
+  10 kΩ pull-downs, keeping PWM/standby LOW and resets asserted when inactive. The AXC devices provide partial-power-down isolation.
 - U5 is SN74AXC1T45DBVR, A = panel interrupt, B = GIGA input, DIR = panel rail.
   Both interrupt sides have defined pull-ups. The interrupt is active LOW.
 - U6 is TCA9517ADGKR: **A side faces the panel**, B side faces the GIGA, EN is tied
@@ -156,9 +155,21 @@ panel load: Smartwin specifies 1.05 A backlight current only as typical.
   accessible for probing individual RGB/control channels.
 - The existing panel backlight driver is retained: 1 kHz PWM, including steady
   HIGH for full brightness. No external LED-current driver is required.
-- The GIGA firmware's reset/standby sequencing still applies. Supply isolation
-  does not automatically reinitialize the panel when its power returns; use the
-  existing display initialization commands after a separate panel power cycle.
+- Display **U4/U6 TPS3808G33** supervise the logic and backlight rails. Their
+  open-drain RESET outputs are wired together as **PANEL_READY**, pulled up to
+  the logic rail. Both supplies must remain above the nominal 3.07 V thresholds
+  for **300 ms** before release. VDD and MR use the logic rail, so the supervisors
+  stay valid whenever the control gates are powered.
+- Display **U5 SN74LVC08A** AND-gates PWM, standby and both resets with READY.
+  A brownout clamps them without depending on the GUI, USB or polling.
+- Shield **U9 SN74AXC1T45** translates READY back to **PI1 / D70 / J9.15**,
+  with a 10 kΩ pull-down on the MCU side. This also handles a disconnected or
+  unpowered adapter. READY uses shield FFC contact **10**, display FFC **71**.
+- Firmware continues rendering when the panel is absent. After READY returns,
+  it holds reset LOW for 2 ms, releases reset, waits 10 ms, releases standby,
+  waits 60 ms, then waits for a valid framebuffer scan before restoring the
+  requested brightness. Touch acquisition retries separately after I²C failure.
+  Initial brightness is 10%; USB-only operation keeps the physical backlight off.
 
 ## Cable and numbering
 
@@ -174,15 +185,19 @@ colour of an arbitrary cable stiffener. A Type B/opposite-contact cable is not
 an interchangeable substitute.
 
 The facing connectors reverse numbering: **GIGA J1 pin n connects to display J2
-pin 81−n**. Forty conductors are ground, 35 carry signals, two carry protected 24 V, and
+pin 81−n**. Thirty-nine conductors are ground, 35 carry display signals, one returns READY,
+two carry protected 24 V, and
 three return the panel supply reference. PCLK has ground on both sides.
 
 | Rail | GIGA J1 contacts | Display J2 contacts |
 |---|---|---|
 | Protected, branch-fused 24 V | 1, 3 | 80, 78 |
 | PANEL_3V3 reference return | 5, 7, 9 | 76, 74, 72 |
+| PANEL_READY return → GIGA D70 | 10 | 71 |
 
-Use the **display-D / GIGA-C pair** and its revision-D cable drawing. The cable
+Use the **display-E / GIGA-D pair** and its revision-E cable drawing.
+Flash the updated bootstrap and UI firmware together using the repository’s
+combined GIGA flash workflow; both the pixel clock and READY sequencing changed. The cable
 must be rated at least 60 V and 0.5 A per conductor, with copper cross-section
 at least 0.0105 mm²; a mechanically fitting cable alone is insufficient.
 
@@ -218,7 +233,7 @@ and adapter must not hang from the display flex or its DF23 connector. Keep the
 FFC short and flat; do not sharply crease it at either stiffener.
 
 Install all components yourself or through a separately arranged process. The bottom-side
-DF23 and both FFC connectors require particular care. U1 on the display adapter
+DF23 and both FFC connectors require particular care. U1/U2 on the display adapter
 and J2–J10 plus U8 on the GIGA adapter are marked **HAND** in the full BOM; the
 SMD-only BOM and placement file are assembly aids, not an AISLER assembly order. Solder stacking headers with a mechanical jig or
 an unpowered GIGA used only as an alignment fixture; avoid heating the board's
@@ -226,9 +241,13 @@ existing sockets unnecessarily. Fit shield J10 with its wire opening
 facing left into the central opening. Probe pads and mounting holes are PCB
 features, not purchased parts.
 
-After soldering display U1, **clip its three leads to at most 0.8 mm below the PCB**, without
+After soldering display U1/U2, **clip their leads to at most 0.8 mm below the PCB**, without
 cutting into the solder joints. The local assembly model includes this trim.
 This keeps the leads above the display flex's nominal 1.5 mm mating plane.
+
+**Display U3 is a WSON with an exposed pad.** Use controlled hot-air/reflow
+and solder paste; edge-only iron soldering cannot solder its thermal pad.
+Inspect the joints before applying power. No filled or tented vias are needed.
 
 The local STEP models for Hirose connectors, terminal, converter/eFuse envelopes and stacking sockets are
 dimensioned mechanical envelopes derived from manufacturer drawings. They
@@ -238,59 +257,32 @@ official Arduino assembly are retained locally as well.
 
 ## Timing and layout
 
-The firmware's 51.2 MHz pixel clock has a 19.53125 ns period and a 9.765625 ns
-half-period. Smartwin requires 5 ns setup and hold. With data launched on the
-opposite edge, the AXC8's 0.5–4.0 ns propagation range gives a conservative
-3.5 ns clock/data mismatch allowance across devices. The adapter's routed RGB
-length mismatch contributes up to 0.407 ns using a 7 ps/mm propagation estimate.
-ST's DS12930 Table 105 additionally allows 0.5 ns half-cycle error and 0.5 ns
-maximum data-valid delay. Under that table's characterization conditions, the
-remaining calculated setup/hold margins are only **0.240 ns / 0.358 ns**, before
-Arduino PCB skew, cable/connector effects, settling and jitter. Those conditions
-include the specified output speed, load and IO compensation. LTDC pins are
-configured for very-high speed, but the current firmware has no explicit IO
-compensation enable. Enable and settle it before using this timing budget;
-this board review does not change firmware.
+Firmware uses **40.96 MHz**, with **1120 × 610** total timing and
+1024 × 600 active pixels: approximately **59.95 Hz**. Horizontal timing is
+1 sync + 47 back porch + 1024 active + 48 front porch; vertical timing is
+1 + 4 + 600 + 5. Both CubeMX and the shared bootstrap configure PLL3 /5 ×128 /10.
+The bootstrap enables CSI and waits for the IO-compensation cell before either
+application starts; LTDC pins use very-high GPIO speed.
 
-This is **not complete worst-case timing closure**. The routed-length report
-and `timing-budget.json` expose the calculation and omitted terms. The boards
-are prepared for prototype fabrication; reliable operation across voltage and
-temperature requires the first-board timing qualification below.
+The 12.207 ns half-period is budgeted against Smartwin's 5 ns setup/hold,
+the AXC8 inter-device propagation spread, STM32 output timing and measured
+adapter routing. See `timing-budget.json` for the resulting conditional margins.
+Arduino traces, cable skew, actual capacitive loading, settling and clock duty
+cycle still require connector-level measurement. The cable limit is **100 mm**;
+use a shorter specified cable when the enclosure permits. The 33 Ω series
+resistors are fitted starting values, to be qualified with the actual panel.
 
-The budget covers RGB, DE, HSYNC and VSYNC. It does not prove buffer timing
-at the actual ribbon/panel capacitive load or bound clock pulse-width distortion.
-A possible bring-up fallback is **40.96 MHz with 1120 × 610 total timing**,
-approximately 59.95 Hz, within the panel's DE-mode clock/blanking limits. It
-adds about 2.44 ns to each half-period. This candidate is recorded in the
-timing report; it is **not implemented or physically validated**.
+**Both boards are four-layer**, with an uninterrupted In1 ground reference.
+Display signal routing uses F.Cu, In2.Cu and B.Cu, supplemented by stitched outer
+ground copper. The dedicated backlight supply uses wide traces. The source
+retains the GIGA power-route geometry; its fused input remains at least 0.60 mm.
 
-Keep the 100 mm cable limit. At first-board qualification measure PCLK and data
-at the panel connector, confirm the configured sampling phase, and adjust series
-resistors only from measurements. The panel's stated 40–60% duty-cycle limit and
-the MCU's own output timing are part of this check. A clean static image alone
-does not prove timing margin over temperature and supply variation.
-
-The display adapter routes all signals on **F.Cu and B.Cu**, with ground pours on
-both sides and 41 ground vias tying the returns together. A ground rail connects
-the FFC ground contacts. Staggered Hirose escapes use **0.55 mm copper / 0.25 mm
-drilled vias**, retaining 0.15 mm annular rings, 0.15 mm tracks and 0.125 mm HD clearances.
-The larger power and ground vias remain 0.65/0.30 mm. Bulk capacitors are below
-the connector fan-out; the backlight feed uses dedicated broad traces. PCLK has
-a deliberate length adjustment to balance setup/hold against the GIGA routing.
-These are connected ground pours, not an uninterrupted internal reference plane;
-the first-board signal-integrity checks remain necessary. The geometric ground
-review is in `manufacturing/verification/display-adapter-layout-review.json`.
-
-The GIGA adapter uses an **In1.Cu ground reference plane**, with signals
-on F.Cu, In2.Cu and B.Cu and minimum 0.65/0.30 mm vias. Both boards use minimum
-0.15 mm tracks; GIGA clearances remain 0.15 mm. All vias are exposed through-vias; isolation does not depend on tenting,
-plugging or filling. DF23 note-3 contact bands are via keepouts. FH28 has a
-fully molded bottom, which its datasheet explicitly permits PCB patterning beneath.
-No via is used in a solder pad.
-Source mask expansion is zero.
-The mask audit includes AISLER’s published 20 µm per-side enlargement and
-requires at least 0.10 mm webs between fine-pitch contacts. The FFC
-paste windows follow Hirose's 0.25 × 1.00 mm recommendation.
+Vias are exposed through-vias, with no dependence on tenting, plugging or filling.
+DF23 exposed-contact bands are via keepouts. Ordinary molded IC bodies may have
+vias underneath; no via is in a solder pad. There are no fiducials.
+Source mask expansion is zero. The independent mask audit applies AISLER's
+20 µm per-side processing enlargement and requires at least 0.10 mm webs around
+fine-pitch contacts. FH28 paste windows follow Hirose's 0.25 × 1.00 mm drawing.
 
 J8 uses 1.70 mm pads with 1.05 mm holes (0.325 mm annular rings). U8’s
 narrow pad dimension is 1.70 mm with its original 1.00 mm drill. Other stacking
@@ -298,9 +290,9 @@ headers retain 1.8 mm pads. All component-hole rings are at least 0.30 mm.
 
 ## AISLER upload and manufacturing review
 
-1. Upload `display-adapter-rev-D-aisler-odb.zip` and
-   `giga-adapter-rev-C-aisler-odb.zip` as separate AISLER projects.
-2. Confirm **2/4 layers respectively, ENIG on both, 1.6 mm ±10%, 35 µm copper**,
+1. Upload `display-adapter-rev-E-aisler-odb.zip` and
+   `giga-adapter-rev-D-aisler-odb.zip` as separate AISLER projects.
+2. Confirm **4 layers on both, ENIG on both, 1.6 mm ±10%, 35 µm copper**,
    green mask and white silk. Select bare boards only; no assembly or stencil.
 3. Inspect the processed copper, holes and mask. Confirm all 50 display contacts,
    80 FFC contacts, separate plated/non-plated drills, exposed vias and fine webs.
@@ -315,8 +307,8 @@ headers retain 1.8 mm pads. All component-hole rings are at least 0.30 mm.
 
 The four-layer stack uses the published 0.14 / 1.20 / 0.14 mm dielectric
 construction with four 35 µm copper layers. The nominal layer sum is 1.62 mm,
-within the specified 1.6 mm ±10% finished thickness. The two-layer nominal
-1.53 mm core is mechanical bookkeeping; AISLER controls its production laminate.
+within the specified 1.6 mm ±10% finished thickness. AISLER controls the
+production laminate.
 Concave outline corners use 0.9 mm radii for a 1.8 mm milling tool.
 
 The display PCB is 1.6 mm thick. DF23 mating separation is measured between
@@ -332,11 +324,10 @@ Gerber/drill/place coordinates use the lower-edge auxiliary origin; ODB++ uses
 absolute KiCad X and negated Y. Each format is internally audited.
 No bottom fabrication layer is mirrored manually.
 
-Local checks pass with zero ERC/DRC/parity findings, zero unrouted connections
-and no manufacturing waivers. The processed connector-mask estimate is at
-least 0.152 mm on the display board and 0.113 mm on GIGA, including nearby
-exposed vias; pad-to-pad fine-pitch webs are at least 0.160 mm. These are
-local calculations, to be confirmed in AISLER’s processed preview.
+The release pipeline requires zero ERC/DRC/parity findings, zero unrouted
+connections and no manufacturing waivers. Processed mask estimates, copper
+connectivity and source hashes are recorded in `manufacturing/verification/`.
+Only the matching checksummed release ZIPs are manufacturing inputs.
 
 Rules are based on support revision
 `00fe215f96ce7a938946e1a176de4ca8cac291ef`. The upstream submodule remains unchanged.
@@ -350,7 +341,7 @@ See [manufacturer references and locked inputs](references/AISLER.md).
    contacts and all 80 cable conductors. Confirm that GIGA_3V3 and PANEL_3V3 are
    separate, and all specified grounds are connected. Verify cable orientation.
 2. Apply current-limited 24 V with GIGA/panel initially unplugged. Check U8's
-   12 V, VIN after D3, and the display 3.3 V output before attaching loads.
+   12 V, VIN after D3, 5 V preregulator and both display 3.3 V rails before attaching loads.
    Verify UV/OV cutoffs and current limiting using a bench supply. Then test
    USB-only operation: no 24 V or panel-3.3 V backfeed, backlight off, resets LOW.
 3. Attach the unpowered panel, power normally and run `display bars`. Check colour
@@ -359,8 +350,8 @@ See [manufacturer references and locked inputs](references/AISLER.md).
 4. Measure panel supply at full brightness, input/backlight current, connector
    and protection-component temperatures, PCLK frequency/duty/phase and data
    setup/hold at the panel. Qualify the 33 Ω values and the full 100 mm cable.
-5. Test 24 V first, USB first, removal of either supply and explicit display
-   reinitialization after power recovery. Repeat under graphics/ICC/logging load.
+5. Test 24 V first, USB first, removal of either supply and automatic display
+   reinitialization after power recovery. Verify READY timing and hardware gating. Repeat under graphics/ICC/logging load.
 
 ## Reproducibility
 
@@ -380,7 +371,7 @@ archives are made only after these checks and visual/mechanical review.
 
 `tools/design.py` defines board revisions and layer/via settings;
 `tools/aisler.py` applies the pinned manufacturing profiles without replacing
-routing. The source bundle revision is D. The source bundle includes the same
+routing. The source bundle revision is E. The source bundle includes the same
 support templates and a hashed CubeMX pin snapshot for offline reproduction.
 In the full repository, the electrical audit checks the current CubeMX file;
 outside it, the report explicitly identifies the recorded release assignments.

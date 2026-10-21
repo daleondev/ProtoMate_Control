@@ -7,7 +7,7 @@
 	(property "Reference" "REF**"
 		(at 0 -1.5 0)
 		(layer "F.SilkS")
-		(uuid "32a4970f-73e7-473c-bbe8-ba845e40625c")
+		(uuid "0fcbdbfa-742d-428d-b844-3b064647a92a")
 		(effects
 			(font
 				(size 1 1)
@@ -18,7 +18,7 @@
 	(property "Value" "TestPoint_1.0mm"
 		(at 0 1.5 0)
 		(layer "F.Fab")
-		(uuid "75a8cdbc-dfe0-4be7-9d5e-a6c1c9cb8599")
+		(uuid "8b9ecc7d-60a6-43e3-b7c9-c14d9e017c71")
 		(effects
 			(font
 				(size 1 1)
@@ -30,7 +30,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "7fecf9b5-edcc-4ca0-8707-d586cfcfcaf0")
+		(uuid "59dcd68c-6252-4206-b0b1-1f4de6fbf1f2")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -41,7 +41,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "349facaa-78f6-43d2-907d-bdeda0989914")
+		(uuid "1c7a7dc2-c234-4d51-b00d-91679ee2960f")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -59,7 +59,7 @@
 		)
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "d75ddd57-a3f7-4248-9f73-7d6f380409a5")
+		(uuid "bd2a5eb7-ea96-4e31-9e5d-286ad885256d")
 	)
 	(fp_rect
 		(start -0.5 -0.5)
@@ -70,14 +70,14 @@
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "4767a3e5-04f3-414a-b556-2b9386442ed9")
+		(uuid "a72b680b-9aba-47d5-b895-8a2e6f8dbbee")
 	)
 	(pad "1" smd rect
 		(at 0 0)
 		(size 1 1)
 		(layers "F.Cu" "F.Mask")
 		(solder_mask_margin 0)
-		(uuid "b324ffd9-bd9f-4650-a221-86ac97cd9acf")
+		(uuid "e5bfa71c-8601-4efc-8151-8b4697118064")
 	)
 	(embedded_fonts no)
 )

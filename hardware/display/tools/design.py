@@ -8,18 +8,18 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 GEOMETRY = json.loads((ROOT/'references/giga-geometry.json').read_text())
-REVISION = 'D'  # Source bundle; individual board revisions below.
+REVISION = 'E'  # Source bundle; individual board revisions below.
 BOARDS = {
-    'display-adapter': dict(revision='D', date='2026-10-21', layers=2, via_drill=.25, via_diameter=.55,
-                            thickness=1.6, template='aisler-2-layer-hd-drc'),
-    'giga-adapter': dict(revision='C', date='2026-10-21', layers=4, via_drill=.30, via_diameter=.65,
+    'display-adapter': dict(revision='E', date='2026-10-21', layers=4, via_drill=.25, via_diameter=.55,
+                            thickness=1.6, template='aisler-4-layer-hd-drc'),
+    'giga-adapter': dict(revision='D', date='2026-10-21', layers=4, via_drill=.30, via_diameter=.65,
                          thickness=1.6, template='aisler-4-layer-hd-drc'),
 }
 
 
 def board_outline(board):
     if board == 'display-adapter':
-        return [(0,0),(55,0),(55,35),(0,35)]
+        return [(0,0),(55,0),(55,50),(0,50)]
     # Inward power tab, leaving USB, SWD and the lower service opening accessible.
     return [(12,0),(122,0),(122,53.34),(11,53.34),(11,47),
             (78,47),(78,29),(42,29),(42,10),(12,10)]
@@ -72,6 +72,7 @@ def ribbon_nets(reverse=False):
         nets[str(pin)] = '+24V_DISPLAY'
     for pin in (5,7,9):
         nets[str(pin)] = '+3V3_PANEL'
+    nets['10'] = 'PANEL_READY'  # Return signal; replaces a ground, not any display signal.
     if reverse:
         nets = {str(81-int(p)):n for p,n in nets.items()}
     nets.update(MP1='GND', MP2='GND')
@@ -81,8 +82,12 @@ def panel_nets():
     nets={str(i):'GND' for i in range(1,51)}
     for s in SIGNALS:
         nets[str(s['panel'])]='LCD_'+s['name']
-    for i in [5,6,7,8,10,49]:
+    for i in [10,49]:
         nets[str(i)]='+3V3_PANEL'
+    for i in [5,6,7,8]:
+        nets[str(i)]='+3V3_BKL'
+    for signal in SIGNALS[28:32]:
+        nets[str(signal['panel'])]='PANEL_'+signal['name']
     return nets
 
 PARTS = {
@@ -98,6 +103,12 @@ PARTS = {
  'I2C': ('TCA9517ADGKR','Texas Instruments','TCA9517ADGKR','VSSOP-8_3x3mm_P0.65mm'),
  'BUCK12': ('TSR 1-24120 / 12V 1A','TRACO Power','TSR 1-24120','Converter_DCDC_TRACO_TSR-1_THT'),
  'BUCK33': ('TSR 2-2433 / 3.3V 2A','TRACO Power','TSR 2-2433','Converter_DCDC_TRACO_TSR2-xxxx_THT'),
+ 'BUCK5': ('TSR 1-2450 / 5V 1A','TRACO Power','TSR 1-2450','Converter_DCDC_TRACO_TSR-1_THT_Trimmed'),
+ 'LDO': ('TPS7A9101DSKR','Texas Instruments','TPS7A9101DSKR','WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm'),
+ 'SUPERVISOR': ('TPS3808G33DBVR','Texas Instruments','TPS3808G33DBVR','SOT-23-6_UpperPin1'),
+ 'AND4': ('SN74LVC08APWR','Texas Instruments','SN74LVC08APWR','TSSOP-14_4.4x5mm_P0.65mm'),
+ 'R31K2': ('31.2k / 0.1%','Yageo','RT0603BRD0731K2L','R_0603_1608Metric'),
+ 'R10K01': ('10k / 0.1%','Yageo','RT0603BRD0710KL','R_0603_1608Metric'),
  'EFUSE': ('TPS26600PWPR','Texas Instruments','TPS26600PWPR','HTSSOP-16_PWP0016A_EP3.3x3.3mm'),
  'TVS': ('33V bidirectional TVS','Littelfuse','SMBJ33CA','D_SMB'),
  'SCHOTTKY': ('60V / 3A Schottky','Diodes Incorporated','B360A-13-F','D_SMA'),
@@ -122,6 +133,7 @@ def header_net(p):
     if p['net']=='GND': return 'GND'
     if p['net']=='+3V3': return '+3V3_GIGA'
     if p['net']=='VIN': return '+12V_GIGA'
+    if p['net']=='PI1': return 'MCU_PANEL_READY'
     for s in SIGNALS:
         if p['net'] == {'SDA':'I2C4.SDA','SCL':'I2C4.SCL'}.get(s['name'],s['mcu']):
             return 'MCU_'+s['name']
@@ -139,24 +151,54 @@ def components(which):
         # pin 1 is bottom-left, pin 2 top-left (Smartwin drawing Detail A).
         add('J1','DF23',panel_nets(),(27.5,23,180,'B'),'display')
         add('J2','FFC',ribbon_nets(True),(27.5,7,0,'F'),'ribbon')
-        add('U1','BUCK33',{1:'+24V_DISPLAY',2:'GND',3:'+3V3_PANEL'},(10,26,180,'F'),'power')
+        add('U1','BUCK33',{1:'+24V_DISPLAY',2:'GND',3:'+3V3_BKL'},(10,26,180,'F'),'power')
         out[-1]['assembly']='HAND'
         add('C9','C10U50',{1:'+24V_DISPLAY',2:'GND'},(17,29,90,'F'),'power')
         add('C10','C100N50',{1:'+24V_DISPLAY',2:'GND'},(17,25,0,'F'),'power')
         for i,(x,y) in enumerate([(22,31),(26,31),(30,31),(34,31)],1):
-            add(f'C{i}','C47U',{1:'+3V3_PANEL',2:'GND'},(x,y,90,'F'),'power')
+            add(f'C{i}','C47U',{1:'+3V3_BKL',2:'GND'},(x,y,90,'F'),'power')
         for i,(x,y) in enumerate([(18,20),(36,20)],5):
             add(f'C{i}','C10U',{1:'+3V3_PANEL',2:'GND'},(x,y,0,'F'),'power')
         for i,(x,y) in enumerate([(20,17),(36,23)],7):
             add(f'C{i}','C100N',{1:'+3V3_PANEL',2:'GND'},(x,y,0,'F'),'power')
-        for i,(s,x,y) in enumerate([('PWM',39,26),('STANDBY',39,28),('TFT_RESET_N',39,30),('TOUCH_RESET_N',39,32)],2):
+        for i,(s,x,y) in enumerate([('PWM',38,29),('STANDBY',38,31),('TFT_RESET_N',38,33),('TOUCH_RESET_N',38,35)],2):
             add(f'R{i}','R47K',{1:'LCD_'+s,2:'GND'},(x,y,0,'F'),'power')
         for i,(s,y) in enumerate([('SDA',25),('SCL',28)],6):
             add(f'R{i}','R4K7',{1:'LCD_'+s,2:'+3V3_PANEL'},(46,y,0,'F'),'power')
-        add('R8','R47K',{1:'LCD_TOUCH_INT_N',2:'+3V3_PANEL'},(46,31,0,'F'),'power')
+        add('R8','R47K',{1:'LCD_TOUCH_INT_N',2:'+3V3_PANEL'},(51,37,0,'F'),'power')
         for i,(net,x,y) in enumerate([('+3V3_PANEL',4.5,18),('GND',4.5,20),('LCD_PCLK',38,18),('GND',40,18),('LCD_SDA',47,18),('LCD_SCL',50,18)],1):
             add(f'TP{i}','TP',{1:net},(x,y,0,'F'),'power')
             out[-1]['assembly']='PCB'
+        # The backlight converter no longer supplies the LCD/touch/interface rail.
+        add('U2','BUCK5',{1:'+24V_DISPLAY',2:'GND',3:'+5V_LOGIC'},(15,38,180,'F'),'logic_power')
+        out[-1]['assembly']='HAND'
+        add('U3','LDO',{1:'+3V3_PANEL',2:'+3V3_PANEL',3:'LOGIC_FB',4:'GND',5:None,
+            6:'GND',7:'+5V_LOGIC',8:'LOGIC_SS',9:'+5V_LOGIC',10:'+5V_LOGIC',11:'GND'},
+            (27,41,180,'F'),'logic_power')
+        for ref,kind,nets,pos in [
+            ('C11','C10U50',{1:'+24V_DISPLAY',2:'GND'},(21,46,90,'F')),
+            ('C12','C47U',{1:'+5V_LOGIC',2:'GND'},(21,40,90,'F')),
+            ('C13','C47U',{1:'+3V3_PANEL',2:'GND'},(31,36.5,90,'F')),
+            ('C14','C47U',{1:'+3V3_PANEL',2:'GND'},(31,45,270,'F')),
+            ('C15','C47N',{1:'LOGIC_SS',2:'GND'},(25,37.5,0,'F')),
+            ('R9','R31K2',{1:'+3V3_PANEL',2:'LOGIC_FB'},(31,40,0,'F')),
+            ('R10','R10K01',{1:'LOGIC_FB',2:'GND'},(34,41.5,0,'F')),
+            ('R11','R10K',{1:'+3V3_PANEL',2:'PANEL_READY'},(39,46,0,'F')),
+        ]: add(ref,kind,nets,pos,'logic_power')
+        # Both rails must be valid for 300 ms. Open-drain resets are wired AND.
+        for ref,x,sense,cap,res in [('U4',38,'+3V3_PANEL','C16','R16'),('U6',47,'+3V3_BKL','C18','R17')]:
+            add(ref,'SUPERVISOR',{1:'PANEL_READY',2:'GND',3:'+3V3_PANEL',4:ref+'_DELAY',5:sense,6:'+3V3_PANEL'},(x,41,0,'F'),'sequencing')
+            add(cap,'C100N',{1:'+3V3_PANEL',2:'GND'},(x,37.5,0,'F'),'sequencing')
+            add(res,'R100K',{1:ref+'_DELAY',2:'+3V3_PANEL'},(x,44.5,0,'F'),'sequencing')
+        add('U5','AND4',{1:'LCD_PWM',2:'PANEL_READY',3:'PANEL_PWM',4:'LCD_STANDBY',5:'PANEL_READY',6:'PANEL_STANDBY',7:'GND',
+            8:'PANEL_TFT_RESET_N',9:'LCD_TFT_RESET_N',10:'PANEL_READY',11:'PANEL_TOUCH_RESET_N',12:'LCD_TOUCH_RESET_N',13:'PANEL_READY',14:'+3V3_PANEL'},
+            (44,32,0,'F'),'sequencing')
+        add('C17','C100N',{1:'+3V3_PANEL',2:'GND'},(42,27,0,'F'),'sequencing')
+        for i,(name,y) in enumerate([('PWM',29),('STANDBY',31),('TFT_RESET_N',33),('TOUCH_RESET_N',35)],12):
+            add(f'R{i}','R10K',{1:'PANEL_'+name,2:'GND'},(51,y,0,'F'),'sequencing')
+        add('TP7','TP',{1:'PANEL_READY'},(42,46,0,'F'),'sequencing');out[-1]['assembly']='PCB'
+        add('TP8','TP',{1:'+3V3_BKL'},(18,34,0,'F'),'power');out[-1]['assembly']='PCB'
+        add('TP9','TP',{1:'+5V_LOGIC'},(4,39,0,'F'),'logic_power');out[-1]['assembly']='PCB'
     else:
         add('J1','FFC',ribbon_nets(),(115,26.5,270,'F'),'ribbon')
         for bank in range(4):
@@ -211,6 +253,10 @@ def components(which):
         add('D3','SCHOTTKY',{1:'+12V_GIGA',2:'+12V_CONVERTER'},(71,19.5,0,'F'),'power12')
         add('TP6','TP',{1:'+24V_PROTECTED'},(74,23.5,0,'F'),'power12');out[-1]['assembly']='PCB'
         add('TP7','TP',{1:'+12V_GIGA'},(69,16,0,'F'),'power12');out[-1]['assembly']='PCB'
+        add('U9','AXC1',{1:'+3V3_PANEL',2:'GND',3:'PANEL_READY',4:'MCU_PANEL_READY',5:'+3V3_PANEL',6:'+3V3_GIGA'},(88.2,34,0,'F'),'touch')
+        add('C20','C100N',{1:'+3V3_PANEL',2:'GND'},(88,30,0,'F'),'touch')
+        add('C21','C100N',{1:'+3V3_GIGA',2:'GND'},(90,27.5,0,'F'),'touch')
+        add('R71','R10K',{1:'MCU_PANEL_READY',2:'GND'},(88,38,0,'F'),'touch')
         # GIGA already has R26/R27 = 5.1k on I2C4; no duplicate host pull-ups.
         groups=[('JDIGITAL',1,10,'J2'),('JDIGITAL',11,18,'J3'),('JDIGITAL',19,26,'J4'),
                 ('JANALOG',1,8,'J5'),('JANALOG',9,16,'J6'),('JANALOG',17,24,'J7'),

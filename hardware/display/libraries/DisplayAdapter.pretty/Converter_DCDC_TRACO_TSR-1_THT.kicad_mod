@@ -8,7 +8,7 @@
 	(property "Reference" "REF**"
 		(at -1.5 -6.71 0)
 		(layer "F.SilkS")
-		(uuid "604bdbf0-1e68-41b8-ac8c-cb05ae266e31")
+		(uuid "4213234b-48d7-4dd2-a016-2e99fbbfddc9")
 		(effects
 			(font
 				(size 1 1)
@@ -19,7 +19,7 @@
 	(property "Value" "Converter_DCDC_TRACO_TSR-1_THT"
 		(at 2.5 3.25 0)
 		(layer "F.Fab")
-		(uuid "f7a87612-bcf5-4286-aaf5-86e7d7c2ba2d")
+		(uuid "df2b74bf-3167-441f-aeb4-16efeef5a964")
 		(effects
 			(font
 				(size 1 1)
@@ -32,7 +32,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "4d4698de-d22b-4efe-bc8b-ab883ccccf40")
+		(uuid "9e681f5e-81dd-4cfe-bcbb-94c676c9608a")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -45,7 +45,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "b2df1480-b843-46a0-8e74-766e504762ff")
+		(uuid "67a1e42a-696f-4928-b73c-f5dacc633116")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -63,7 +63,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "e7d80e51-b68e-458f-be4e-5ea4b63a1a12")
+		(uuid "c58413ff-5040-44b1-88a9-5f830d92bee4")
 	)
 	(fp_line
 		(start -3.75 2.45)
@@ -73,7 +73,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "835a077b-df88-4211-83a7-cf126a5a85e8")
+		(uuid "42bf247c-8da6-49ab-a82c-da934618e861")
 	)
 	(fp_line
 		(start -3.42 -5.73)
@@ -83,7 +83,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "e4a12fa3-ae7d-4715-bc1f-ac77f0b895fe")
+		(uuid "97fa5b88-cd4a-4d26-9be6-840088b20972")
 	)
 	(fp_line
 		(start -3.42 2.12)
@@ -93,7 +93,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "a9d7ac0c-35f9-4921-a791-f20a1a27a107")
+		(uuid "9138802a-a408-4e86-b94f-92b07c2d7547")
 	)
 	(fp_line
 		(start 8.52 -5.73)
@@ -103,7 +103,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "7c6a5ff0-fb2f-4809-926c-f97e3ba77cb4")
+		(uuid "7ae9ee68-e2d0-4cee-8b32-58804575eeb8")
 	)
 	(fp_line
 		(start 8.52 2.12)
@@ -113,7 +113,7 @@
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "1b048712-bbef-4342-8908-863d68b64e5f")
+		(uuid "88eef849-2dd5-45d7-a3f3-8216a8d0350f")
 	)
 	(fp_line
 		(start -3.55 -5.85)
@@ -123,7 +123,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "ba2a564c-3ef2-4684-b1e2-c6677c47e016")
+		(uuid "58ccc0c2-15d6-4091-86a9-cbff2d7108b9")
 	)
 	(fp_line
 		(start -3.55 2.25)
@@ -133,7 +133,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "893fd006-8f59-4f6d-8888-ddc9328c5ca3")
+		(uuid "f9d54e88-9c75-42a0-ab38-5748e3b6f0b4")
 	)
 	(fp_line
 		(start 8.65 -5.85)
@@ -143,7 +143,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "c59e8642-743d-4e81-bce4-470d401a568a")
+		(uuid "b2b53090-ff05-459a-aa30-a3bf290aa72a")
 	)
 	(fp_line
 		(start 8.65 2.25)
@@ -153,7 +153,7 @@
 			(type solid)
 		)
 		(layer "F.CrtYd")
-		(uuid "ff869614-5501-4637-ac84-a65380f34b6e")
+		(uuid "5363b942-3677-4d50-bce3-77a91f9b08fd")
 	)
 	(fp_line
 		(start -3.3 -5.6)
@@ -163,7 +163,7 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "3e0916c9-aa30-4801-84e5-f83c7d29b6b4")
+		(uuid "a95dca0d-aace-44bd-93a8-78410ce01602")
 	)
 	(fp_line
 		(start -3.3 1)
@@ -173,7 +173,7 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "8fcfb21a-3698-40b1-ae81-b522b27d841e")
+		(uuid "5a7c2b8c-cd1f-46c9-8d98-dca29c560e35")
 	)
 	(fp_line
 		(start -3.3 1)
@@ -183,7 +183,7 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "60f6d73f-19ef-41c5-928a-3bcb02db37a9")
+		(uuid "62881732-6e95-4ae6-ba21-613d4f030cde")
 	)
 	(fp_line
 		(start -2.3 2)
@@ -193,7 +193,7 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "29638bd1-eb8e-4335-9730-104646638c08")
+		(uuid "7444fdc2-b193-415b-88e4-37f70d29c760")
 	)
 	(fp_line
 		(start 8.4 2)
@@ -203,12 +203,12 @@
 			(type solid)
 		)
 		(layer "F.Fab")
-		(uuid "ea800cf5-cbb7-4774-a154-ef5d6bf74336")
+		(uuid "637d10c1-181c-4e10-9e7e-f04883b7af1e")
 	)
 	(fp_text user "${REFERENCE}"
 		(at 3 -3 0)
 		(layer "F.Fab")
-		(uuid "d306e2e1-52e1-4925-aec2-2823913dcfe4")
+		(uuid "ed5e1c84-bc05-43a4-9f8e-2ab154a45c9f")
 		(effects
 			(font
 				(size 1 1)
@@ -223,7 +223,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "9e8cf507-483d-4857-8d41-552c17c4dd83")
+		(uuid "1bdd31ea-764f-49e4-8320-cdc7bbbb08f1")
 	)
 	(pad "2" thru_hole oval
 		(at 2.54 0)
@@ -232,7 +232,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "c6306d01-e99c-4add-bd4d-63e242e6bbdd")
+		(uuid "425c5519-e7f9-4c64-bbcc-a6059593fa07")
 	)
 	(pad "3" thru_hole oval
 		(at 5.08 0)
@@ -241,7 +241,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "7d472a08-30c8-4872-b6da-68e775d5bea3")
+		(uuid "2cfdd4b6-c1f5-49e7-8bb9-49cdaa2701c1")
 	)
 	(embedded_fonts no)
 	(model "${KIPRJMOD}/../libraries/3dmodels/Converter_DCDC_TRACO_TSR-1_THT.step"

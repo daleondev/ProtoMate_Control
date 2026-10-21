@@ -57,12 +57,12 @@ ENIG, green solder mask and white silkscreen. Bare boards only.
 No assembly service, stencil or component purchase is included.
 
 Layer order: {' / '.join(copper_layers(name))}.
-{'55 x 35 mm display board.' if display else '111 x 53.34 mm maximum, with the drawn service cutouts and power tab.'}
+{'55 x 50 mm display board.' if display else '111 x 53.34 mm maximum, with the drawn service cutouts and power tab.'}
 Keep the closed profile; bridge positions are on the AISLER-BRIDGES document layer.
 All vias are exposed through-vias. No tenting, filling, plugging or via-in-pad.
 Zero mask expansion in source. Check AISLER processed webs >=0.10 mm.
 Minimum component-hole ring 0.30 mm; J8 and U8 narrow pads 1.70 mm.
-{'Two-layer FR4 nominal core 1.53 mm.' if display else 'Published dielectric spacing: 0.14 / 1.20 / 0.14 mm; four 35 um copper layers.'}
+Published dielectric spacing: 0.14 / 1.20 / 0.14 mm; four 35 um copper layers.
 
 BEFORE ORDERING
 Confirm detected layer count, ENIG on BOTH jobs, thickness, plated/non-plated
@@ -74,7 +74,7 @@ AISLER processing acceptance is PENDING; these local exports are not proof of it
 SOLDERING
 All entries in bom-all.csv are FIT. Purchase/install components separately.
 bom-smd.csv, placement.csv and assembly-F/B.pdf are soldering/inspection aids.
-{'J1 DF23 is BOTTOM mounted. Clip U1 tails to <=0.8 mm below the board.' if display else 'Carrier underside 13mm above GIGA; J2-J8 10mm tails, J9 14.83mm tails. J10 wire entry faces the service opening.'}
+{'J1 DF23 is BOTTOM mounted. Clip U1/U2 tails to <=0.8 mm below the board. U3 WSON requires soldered exposed pad, using hot air/reflow.' if display else 'Carrier underside 13mm above GIGA; J2-J8 10mm tails, J9 14.83mm tails. J10 wire entry faces the service opening.'}
 Use the exact Hirose suffixes and specified same-side-contact Type-A FFC.
 Disconnect power before connecting the cable. See design-guide.md and cable PDF.
 The FH28 paste windows follow Hirose's recommendation; stencil data is retained
@@ -127,9 +127,9 @@ def main():
     # the automated audit itself does not claim visual or manufacturer acceptance.
     status['visual_review'] = dict(result='PASS — local export/nominal mechanical review',reviewed=[
         'Both outer sides: independent Gerber copper/mask/silk renders; connector numbering and open vias',
-        'GIGA inner copper layers, ground reference and isolated RTN thermal island',
+        'Both inner copper layers, ground references and the GIGA isolated RTN thermal island',
         'Fine-pitch paste, plated/non-plated drills and BOM/placement agreement',
-        'Schematics, fabrication/assembly drawings and revision-D cable map',
+        'Schematics, fabrication/assembly drawings and current-revision cable map',
         'GIGA mating assembly and display top/bottom models, including 1.6mm thickness and trimmed leads'])
     (manufacturing/'release-status.json').write_text(json.dumps(status,indent=2)+'\n')
     releases = ROOT / 'releases'
@@ -154,7 +154,9 @@ def main():
                 shutil.copy2(ROOT / item, folder / item)
             shutil.copy2(manufacturing / 'release-status.json', folder / 'release-status.json')
             (folder/'REVIEW.md').write_text((manufacturing/'REVIEW.md').read_text().replace(
-                '`../references/`', '`source/references/`'))
+                '`../references/`', '`source/references/`').replace(
+                '(../references/', '(source/references/').replace(
+                '(../releases/SHA256SUMS)', '(SHA256SUMS)'))
             (folder / 'AISLER_ORDER.txt').write_text(order_notes(name))
             (folder / 'design-guide.md').write_text(guide)
             archive(folder, releases / (folder.name + '-aisler-review.zip'))

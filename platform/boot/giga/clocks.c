@@ -3,6 +3,19 @@
 #if !defined(GIGA_APPLICATION) && defined(CORE_CM7)
 void giga_peripheral_clocks_initialize(void)
 {
+    /* GPIO timing specifications for the RGB bus require the compensation
+       cell. Its reference is CSI; neither is a fallback system clock. */
+    __HAL_RCC_CSI_ENABLE();
+    uint32_t start = HAL_GetTick();
+    while (!__HAL_RCC_GET_FLAG(RCC_FLAG_CSIRDY)) {
+        if ((uint32_t)(HAL_GetTick() - start) > 10) { giga_fail(0x109); }
+    }
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
+    HAL_EnableCompensationCell();
+    start = HAL_GetTick();
+    while (!(SYSCFG->CCCSR & SYSCFG_CCCSR_READY)) {
+        if ((uint32_t)(HAL_GetTick() - start) > 10) { giga_fail(0x10A); }
+    }
     /* RM0399 table 16: VOS0, 240 MHz AXI flash clock requires WRHIGHFREQ=2.
        Cube's SystemClock_Config sets read latency only; the reset value (3)
        is not a documented programming setting for this operating point. */
@@ -14,7 +27,7 @@ void giga_peripheral_clocks_initialize(void)
     c.PeriphClockSelection = RCC_PERIPHCLK_LTDC | RCC_PERIPHCLK_USB | RCC_PERIPHCLK_RNG |
         RCC_PERIPHCLK_RTC | RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_SPI5 | RCC_PERIPHCLK_USART2;
     c.PLL3.PLL3M = 5;
-    c.PLL3.PLL3N = 160;
+    c.PLL3.PLL3N = 128;
     c.PLL3.PLL3P = 2;
     c.PLL3.PLL3Q = 2;
     c.PLL3.PLL3R = 10;

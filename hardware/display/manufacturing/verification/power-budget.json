@@ -1,7 +1,7 @@
 {
-  "revision": "D",
-  "status": "CALCULATED DESIGN BUDGET; PHYSICAL QUALIFICATION PENDING",
-  "input": "24V nominal, recommended regulated 24V +/-10%, >=2A available for this assembly",
+  "revision": "E",
+  "status": "CALCULATED DESIGN BUDGET; FIRST-BOARD QUALIFICATION PENDING",
+  "input": "24V nominal, regulated +/-10%, >=2A source available; common ground",
   "uv_start_min_typ_max_V": [
     17.644777227722773,
     18.207,
@@ -13,46 +13,94 @@
     29.46929292929293
   ],
   "efuse_typical_current_limit_A": 1.488833746898263,
-  "efuse_typical_24V_ramp_ms": 9.75609756097561,
-  "both_converters_full_rated_output_input_A_at_18V_80percent": 1.2916666666666667,
-  "display_2A_input_A_at_18V_80percent": 0.4583333333333333,
-  "FFC_power_current_per_contact_A": 0.22916666666666666,
-  "FFC_24V_drop_allowance_at_full_module_load_V": 0.09548611111111112,
-  "display_qualification_current_budget_A": 1.5,
-  "regulator_min_before_ripple_and_copper_V": 3.1548,
-  "ripple_negative_allowance_V": 0.05,
-  "measured_geometry_supply_drop_V": 0.033509711950798195,
-  "pcb_return_allowance_ohm": 0.02,
-  "pcb_supply_and_return_drop_V": 0.06350971195079819,
-  "connector_drop_allowance_V": 0.03,
-  "panel_min_calculated_V": 3.011290288049202,
-  "panel_min_required_V": 3.0,
-  "panel_max_specified_V": 3.6,
-  "backlight_supply_contacts": [
-    5,
-    6,
-    7,
-    8
-  ],
-  "TFT_supply_contact": 10,
-  "DF23_contact_rating_A": 0.3,
-  "backlight_equal_share_contact_ceiling_A": 1.2,
-  "nominal_display_board_output_capacitance_uF": 208.2,
-  "nominal_shield_panel_rail_capacitance_uF": 10.6,
-  "nominal_external_converter_output_capacitance_uF": 218.8,
-  "panel_internal_capacitance": "Not specified; must also fit within the converter capacitive-load limit.",
-  "converter_output_capacitance_limit_uF": 900,
-  "load_step_qualification": {
-    "status": "OPEN \u2014 steady-state budget does not bound startup/load-step transients",
-    "TSR2_datasheet_50percent_load_step_peak_max_V": 0.25,
-    "qualification": "Measure panel rails during backlight transitions and power sequencing; 3.0..3.6V and 1..20ms rise must hold. Additional capacitors and actual load may alter the datasheet response."
+  "allocated_loads": {
+    "backlight_A_max_contact_ceiling": 1.2,
+    "logic_A": 0.45,
+    "GIGA_VIN_A_at_12V": 0.75
+  },
+  "combined_input_A_at_18V_80percent_efficiency": 1.05625,
+  "display_input_A_at_18V_80percent_efficiency": 0.4312499999999999,
+  "FFC_power_current_per_contact_A": 0.21562499999999996,
+  "FFC_24V_drop_allowance_V": 0.08984375,
+  "precision_logic_rail": {
+    "regulator": "TPS7A9101DSKR fed by TSR 1-2450",
+    "nominal_V": 3.2960000000000003,
+    "static_min_max_V": [
+      3.2426721293273544,
+      3.3497996204515803
+    ],
+    "routed_supply_return_contact_drop_V": 0.1256243834102733,
+    "dynamic_drop_allowance_V": 0.1,
+    "panel_min_with_allowance_V": 3.017047745917081,
+    "panel_requirement_V": [
+      3.0,
+      3.6
+    ],
+    "rise_estimate_min_typ_max_ms": [
+      3.3422222222222224,
+      6.064516129032258,
+      11.28
+    ],
+    "soft_start_C_nF": 47,
+    "soft_start_current_uA": [
+      4,
+      6.2,
+      9
+    ],
+    "feedback_resistors_ohm": [
+      31200,
+      10000
+    ],
+    "feedback_resistor_tolerance_percent": 0.1,
+    "feedback_resistor_TCR_ppm_per_K": 25,
+    "resistor_temperature_excursion_from_25C_K": 100,
+    "feedback_pin_leakage_limit_nA": 100,
+    "accuracy_load_range_A": [
+      0.005,
+      1.0
+    ],
+    "output_capacitance_regulator_local_nominal_uF": 94,
+    "additional_external_capacitance": "Display connector and supervisor bypass capacitors, plus GIGA interface decoupling; panel internal capacitance is unspecified.",
+    "regulator_minimum_effective_output_capacitance_uF": 10,
+    "thermal_power_upper_budget_W": 0.91229754180269,
+    "thermal_JA_datasheet_C_per_W": 62.5,
+    "junction_estimate_at_55C_ambient_C": 112.01859636266812,
+    "thermal_qualification": "Solder exposed pad; ground copper and external thermal stitching. Qualify <=55C enclosure ambient at 0.45A. JEDEC thetaJA is an estimate, not a measured board thermal result."
+  },
+  "backlight_rail": {
+    "regulator": "TSR 2-2433; independent from precision logic supply",
+    "nominal_V": 3.3,
+    "static_min_before_ripple_and_copper_V": 3.1548,
+    "ripple_negative_allowance_V": 0.05,
+    "routed_return_contact_drop_V": 0.08558883433702213,
+    "static_min_with_allowances_V": 3.019211165662978,
+    "nominal_external_capacitance_uF": 188,
+    "converter_capacitive_load_limit_uF": 900,
+    "unknown_panel_capacitance": "Included in the 900uF limit; first-board check.",
+    "maximum_datasheet_50percent_load_step_excursion_V": 0.25,
+    "qualification": "Measure PWM/load-step behaviour. The converter transient bound can cross the 3.07V supervisor threshold; verify no retriggering at requested brightness. Hardware inhibits the panel rather than relying on operation during undervoltage.",
+    "connector_contacts": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "contact_rating_A": 0.3,
+    "supply_voltage_decision": "3.3V retained: the panel connector table does not authorize 5V at these contacts."
+  },
+  "sequencing": {
+    "supervisor": "Two TPS3808G33DBVR, one per rail, open-drain outputs wired AND",
+    "falling_threshold_nominal_V": 3.07,
+    "release_delay_nominal_ms": 300,
+    "delay_configuration": "100k from CT to +3V3_PANEL; VDD and MR tied to +3V3_PANEL, ensuring supervision remains valid whenever the gates are powered",
+    "gating": "SN74LVC08A AND gates PWM, STANDBY, TFT_RESET_N and TOUCH_RESET_N with READY; 10k output pull-downs.",
+    "host_ready": "FFC GIGA.10 -> display.71; AXC1 isolation -> PI1 / D70, pull-down when absent.",
+    "firmware": "Rendering continues without panel power. Return of READY repeats reset/standby delays; backlight waits for a valid scan boundary."
   },
   "limitations": [
-    "Efficiency is a budgeting allowance; verify both modules at the actual 24V input, load and enclosure temperature.",
-    "The panel backlight maximum is unspecified. Its four 0.3A contacts limit permissible backlight current; measure it.",
-    "3.3V rise time must be measured at CN1 and satisfy the panel 1..20ms requirement.",
-    "The converter specifies up to 250mV excursions for a 50% load step; the DC margin does not prove transient compliance.",
-    "Converter ripple, hot copper/contact losses, current sharing and supply sequencing remain first-board tests.",
-    "TVS/eFuse ratings do not establish a tested surge-immunity level."
+    "No physical panel is connected. Static arithmetic and component specifications do not establish transient or thermal qualification.",
+    "Backlight maximum current and contact sharing are unspecified by Smartwin; measure full brightness and remain within every 0.3A contact rating.",
+    "Both rail ramps, brownout/recovery, temperature, ripple and full-brightness current are first-board acceptance measurements.",
+    "No certified surge/EMC claim is made."
   ]
 }

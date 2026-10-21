@@ -1,57 +1,11 @@
 {
-  "revision": "D",
+  "revision": "E",
   "date": "2026-10-21",
   "release": "AISLER BARE-BOARD PROTOTYPE",
   "digital_release_checks": "PASS",
   "boards": {
     "display-adapter": {
-      "revision": "D",
-      "copper_layers": 2,
-      "thickness_mm": 1.6,
-      "copper_um": 35,
-      "finish": "ENIG",
-      "template": "aisler-2-layer-hd-drc",
-      "ERC_violations": 0,
-      "DRC_violations": 0,
-      "schematic_parity_violations": 0,
-      "unrouted_connections": 0,
-      "excluded_findings": 0,
-      "ignored_ERC_categories": 0,
-      "ignored_DRC_categories": 0,
-      "SMT_components": 19,
-      "exported_pad_coordinates_checked": 178,
-      "drill_hits_checked": 155,
-      "upload": "display-adapter-rev-D-aisler-odb.zip",
-      "odb_audit": {
-        "result": "PASS",
-        "board": "display-adapter",
-        "revision": "D",
-        "upload_zip": "display-adapter-rev-D-aisler-odb.zip",
-        "upload_sha256": "26b8af62f7bc5633008d02ee6883cec732838b4117e37d3b0320137d2a2357a3",
-        "copper_layers": [
-          "F.CU",
-          "B.CU"
-        ],
-        "pcb_profile_area_mm2": 1925.0,
-        "bridges_checked": 4,
-        "netlist_pad_contacts_checked": 175,
-        "drill_hits_checked": 155,
-        "mask_pad_openings_checked": {
-          "f": 129,
-          "b": 57
-        },
-        "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
-        "aisler_processing_acceptance": "PENDING"
-      },
-      "checked_source_sha256": {
-        ".kicad_pcb": "6f9a53af705ef9a671c1f1491bd775ebf1b80e7ed5ec1cbdea4acb563bb00c94",
-        ".kicad_pro": "9c7df4ddeecc0bebabe7af3cbd35e71e5923baf54a616332227f68f33523031c",
-        ".kicad_sch": "9dec0ea2afad9ba23f6580c67f102b6ce34dd25bf2eac891610b3c19e9cfa649",
-        ".kicad_dru": "4b6bc4d274c5044aacca23ccec0b28f0781ceabe2c928df1f018d9fc2c48d204"
-      }
-    },
-    "giga-adapter": {
-      "revision": "C",
+      "revision": "E",
       "copper_layers": 4,
       "thickness_mm": 1.6,
       "copper_um": 35,
@@ -64,16 +18,64 @@
       "excluded_findings": 0,
       "ignored_ERC_categories": 0,
       "ignored_DRC_categories": 0,
-      "SMT_components": 102,
-      "exported_pad_coordinates_checked": 634,
-      "drill_hits_checked": 335,
-      "upload": "giga-adapter-rev-C-aisler-odb.zip",
+      "SMT_components": 40,
+      "exported_pad_coordinates_checked": 258,
+      "drill_hits_checked": 217,
+      "upload": "display-adapter-rev-E-aisler-odb.zip",
+      "odb_audit": {
+        "result": "PASS",
+        "board": "display-adapter",
+        "revision": "E",
+        "upload_zip": "display-adapter-rev-E-aisler-odb.zip",
+        "upload_sha256": "390106aad778d67d5a6657d60995218c61862b7ee895e392d16714ea6c582475",
+        "copper_layers": [
+          "F.CU",
+          "IN1.CU",
+          "IN2.CU",
+          "B.CU"
+        ],
+        "pcb_profile_area_mm2": 2750.0,
+        "bridges_checked": 4,
+        "netlist_pad_contacts_checked": 252,
+        "drill_hits_checked": 217,
+        "mask_pad_openings_checked": {
+          "f": 206,
+          "b": 60
+        },
+        "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
+        "aisler_processing_acceptance": "PENDING"
+      },
+      "checked_source_sha256": {
+        ".kicad_pcb": "8d5bd84cab8c82618b4ad20d3db91558dce6de90636a33bc596b9b9d51ef749f",
+        ".kicad_pro": "9c7df4ddeecc0bebabe7af3cbd35e71e5923baf54a616332227f68f33523031c",
+        ".kicad_sch": "506c57bda2599d592bdea8fbd19b78812c0ca5406c468f8a4821986176354ac7",
+        ".kicad_dru": "4b6bc4d274c5044aacca23ccec0b28f0781ceabe2c928df1f018d9fc2c48d204"
+      }
+    },
+    "giga-adapter": {
+      "revision": "D",
+      "copper_layers": 4,
+      "thickness_mm": 1.6,
+      "copper_um": 35,
+      "finish": "ENIG",
+      "template": "aisler-4-layer-hd-drc",
+      "ERC_violations": 0,
+      "DRC_violations": 0,
+      "schematic_parity_violations": 0,
+      "unrouted_connections": 0,
+      "excluded_findings": 0,
+      "ignored_ERC_categories": 0,
+      "ignored_DRC_categories": 0,
+      "SMT_components": 106,
+      "exported_pad_coordinates_checked": 646,
+      "drill_hits_checked": 347,
+      "upload": "giga-adapter-rev-D-aisler-odb.zip",
       "odb_audit": {
         "result": "PASS",
         "board": "giga-adapter",
-        "revision": "C",
-        "upload_zip": "giga-adapter-rev-C-aisler-odb.zip",
-        "upload_sha256": "04a2c97071dc15e3743fd92648d9ee977e7569b770ab0d5d7a10d497df5c8406",
+        "revision": "D",
+        "upload_zip": "giga-adapter-rev-D-aisler-odb.zip",
+        "upload_sha256": "e1a93c2d0eef49cbef7edee1cec875d2c898dbabb2720af04b06062fbf5cbd48",
         "copper_layers": [
           "F.CU",
           "IN1.CU",
@@ -82,19 +84,19 @@
         ],
         "pcb_profile_area_mm2": 4116.264605371729,
         "bridges_checked": 6,
-        "netlist_pad_contacts_checked": 519,
-        "drill_hits_checked": 335,
+        "netlist_pad_contacts_checked": 531,
+        "drill_hits_checked": 347,
         "mask_pad_openings_checked": {
-          "f": 523,
+          "f": 535,
           "b": 119
         },
         "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
         "aisler_processing_acceptance": "PENDING"
       },
       "checked_source_sha256": {
-        ".kicad_pcb": "97c71dd418d7e7f73d9807fad624db11d28fde34bc5729d055ef29e2f61cff6c",
+        ".kicad_pcb": "933b41c231b95ff243af8666cc8801020eef58f71ac0c4014164a6c0ec54158e",
         ".kicad_pro": "f0083da0f6f9a6ded7255673048efcf95ed9d8bc3996675dbcf447670ff67ce7",
-        ".kicad_sch": "135d57c753b1f21072084e766875551489027bfe3ab512e9c6dd790f0bf65325",
+        ".kicad_sch": "73596f3f750c275555461ca3eaa5b34e0dcbe95aa946e51e564b51fc155fe659",
         ".kicad_dru": "4b6bc4d274c5044aacca23ccec0b28f0781ceabe2c928df1f018d9fc2c48d204"
       }
     }
@@ -136,16 +138,18 @@
     "display-adapter/.history/.gitignore": "1e18182125437ce3d2ec460b357a9ea06f059d795052de04a9a9f1044b8e20ba",
     "display-adapter/.history/README.txt": "79c41e25e7633a1deff5e5a7456573c64f0061d508b7e0e5753d985456fe29e7",
     "display-adapter/.history/display-adapter.kicad_pcb": "f71e5af15082a087cd415389829f376e4e5fff0c9fc4addd9b757e1e2f69efbc",
-    "display-adapter/Adapter.kicad_sym": "0ce0d9f2c1cec25f2fbb9d1177d94d70a3104b155eef1ee3d0b544087d6422fb",
-    "display-adapter/components.json": "bd788fd3e4743a4b65d871ec56d19a301a6a4b993117605a82a81bae688ae9f9",
+    "display-adapter/Adapter.kicad_sym": "6968db45403be3d6fe9998677cf646d1d49d1a3a15f11f943e7d5795ed2094c9",
+    "display-adapter/components.json": "501037901da58272ac4746d7659a824afd49c2c1b73346038401a8306fa03510",
     "display-adapter/display-adapter.kicad_dru": "4b6bc4d274c5044aacca23ccec0b28f0781ceabe2c928df1f018d9fc2c48d204",
-    "display-adapter/display-adapter.kicad_pcb": "6f9a53af705ef9a671c1f1491bd775ebf1b80e7ed5ec1cbdea4acb563bb00c94",
+    "display-adapter/display-adapter.kicad_pcb": "8d5bd84cab8c82618b4ad20d3db91558dce6de90636a33bc596b9b9d51ef749f",
     "display-adapter/display-adapter.kicad_pro": "9c7df4ddeecc0bebabe7af3cbd35e71e5923baf54a616332227f68f33523031c",
-    "display-adapter/display-adapter.kicad_sch": "9dec0ea2afad9ba23f6580c67f102b6ce34dd25bf2eac891610b3c19e9cfa649",
-    "display-adapter/display.kicad_sch": "c868dfd25d7d39a5286d4c1fc18bc6d8834fc15974ed411fa85e39e7de719e74",
+    "display-adapter/display-adapter.kicad_sch": "506c57bda2599d592bdea8fbd19b78812c0ca5406c468f8a4821986176354ac7",
+    "display-adapter/display.kicad_sch": "5362a2e017c4041317dece8a810288f29cd105ce0f17affe2cecd82f3aca2db4",
     "display-adapter/fp-lib-table": "834f959bf5d24fee4684b6fff3098ea2648fba593ff2fb33f87dd7dfdceb2b58",
-    "display-adapter/power.kicad_sch": "2b3a1c87d17b1dc9b4934916980d9d29e954b4c910e0fe5d05250f6f8d2c9f45",
-    "display-adapter/ribbon.kicad_sch": "b3eaf5b6bccb84c94450f9e4183857edc020d782b902c9463d04dc3f088dfe85",
+    "display-adapter/logic_power.kicad_sch": "1c263c003cac5da817680be48f810cc4405d8464ef37839e0c0f587cbfe93f23",
+    "display-adapter/power.kicad_sch": "8eb2075ade975c40714c2db672c0a2b0ff52be5103bedc9cfcc794ccba919587",
+    "display-adapter/ribbon.kicad_sch": "8482157b001af071723bfebad84fdc9d2c6162a56092915d076dd14a38a31714",
+    "display-adapter/sequencing.kicad_sch": "23088cedaee327440e275e20af18eb310a13531b7c381cb9dead19d5c80ad51b",
     "display-adapter/sym-lib-table": "d1b87486bee3c045de8bdaf80df421f2774ccd607c46f2c0d94f7d1326091a4a",
     "giga-adapter/.history/.git/HEAD": "f6f2b945f6c411b02ba3da9c7ace88dcf71b6af65ba2e0d89aa82900042b5a10",
     "giga-adapter/.history/.git/config": "ce8dabcde6974bb73bbd4ca0f6fb2972b176eba04303d836de2fa1f3f7000465",
@@ -274,22 +278,22 @@
     "giga-adapter/.history/README.txt": "79c41e25e7633a1deff5e5a7456573c64f0061d508b7e0e5753d985456fe29e7",
     "giga-adapter/.history/giga-adapter.kicad_pcb": "090253b84661cf8233974ec5bac09f67132b5f0ccb2ee329921e405d0f76a0ac",
     "giga-adapter/Adapter.kicad_sym": "13e49775305f8c70109427b063aa0477128ec67129cbc9d2cc031b5c538059fe",
-    "giga-adapter/buffer1.kicad_sch": "3195f054139e3c48587a70a86e5d6648fc8d5968e9548cfc456d8407e480697c",
-    "giga-adapter/buffer2.kicad_sch": "c2b5545812e46044d2e92aba350eecad5752fc4b756a57e1717f1e32929bcc41",
-    "giga-adapter/buffer3.kicad_sch": "2ce183a2c0bc23be3f2758169a04b9bcd5d60b06d1d7d719eb4c1a635553f62e",
-    "giga-adapter/buffer4.kicad_sch": "09b361acdca28382394bb67731ef54c4e5f944c59ad14482f848148dab8b0446",
-    "giga-adapter/components.json": "714888833bdd18cbf10c31647f9c4a8224266380cf2bd82d848910cfaf3e4e8c",
+    "giga-adapter/buffer1.kicad_sch": "078d3256583af5d72394f20dabd3dc8978908acb986b08345b8673aeb59b81a3",
+    "giga-adapter/buffer2.kicad_sch": "f49dd3306810c4cb4cb931bf9f07315b0632c1ba017dfe726366c0274a0f2ebc",
+    "giga-adapter/buffer3.kicad_sch": "dc843bc2ac87cb753d1af7adcc855b272b5926a94b86461dd8ff2507b007accd",
+    "giga-adapter/buffer4.kicad_sch": "2ebf5d5347dab5e5946af157fe5be8c61b21bbad6bf952304d7d3cc29740c7d2",
+    "giga-adapter/components.json": "6b65e1d9ac973521487dc4bbbb72b85bc5a23cea8dc8bfa01dd046e0db0d64a4",
     "giga-adapter/fp-lib-table": "834f959bf5d24fee4684b6fff3098ea2648fba593ff2fb33f87dd7dfdceb2b58",
     "giga-adapter/giga-adapter.kicad_dru": "4b6bc4d274c5044aacca23ccec0b28f0781ceabe2c928df1f018d9fc2c48d204",
-    "giga-adapter/giga-adapter.kicad_pcb": "97c71dd418d7e7f73d9807fad624db11d28fde34bc5729d055ef29e2f61cff6c",
+    "giga-adapter/giga-adapter.kicad_pcb": "933b41c231b95ff243af8666cc8801020eef58f71ac0c4014164a6c0ec54158e",
     "giga-adapter/giga-adapter.kicad_pro": "f0083da0f6f9a6ded7255673048efcf95ed9d8bc3996675dbcf447670ff67ce7",
-    "giga-adapter/giga-adapter.kicad_sch": "135d57c753b1f21072084e766875551489027bfe3ab512e9c6dd790f0bf65325",
-    "giga-adapter/headers.kicad_sch": "aff76a10dfdd07b0bfe70f87029e93afed679d2791dbd1239ec681b4055fdacc",
-    "giga-adapter/power12.kicad_sch": "033991650fc08d12623f0b9ae3a1ac4abf87153e937cc336c3cd6cafa832bbea",
-    "giga-adapter/power_input.kicad_sch": "233a201ce9fb049d4631b4eaaa13572b7d23f83dceffd510c624cb492e4ece3b",
-    "giga-adapter/ribbon.kicad_sch": "4c96308d21c943a8c2469492371675076904510eddd8320c46d7001379ab8002",
+    "giga-adapter/giga-adapter.kicad_sch": "73596f3f750c275555461ca3eaa5b34e0dcbe95aa946e51e564b51fc155fe659",
+    "giga-adapter/headers.kicad_sch": "4599e2c896a30a75582e1bfbac7d84dfe7c07edb85bcf100023f432fa56d6c82",
+    "giga-adapter/power12.kicad_sch": "8bdeacc43a128624195946d367ab3cd8e2c684c6336b7c24d62d3a5c66d971f7",
+    "giga-adapter/power_input.kicad_sch": "c6b57aff065f56b7e21034885d33429f0e51959ebd2ae3b48f3fcb29ef43f787",
+    "giga-adapter/ribbon.kicad_sch": "681d586bfcb46efbda06105a1ac350921a6d39808194b357f14d3e206f7dd726",
     "giga-adapter/sym-lib-table": "d1b87486bee3c045de8bdaf80df421f2774ccd607c46f2c0d94f7d1326091a4a",
-    "giga-adapter/touch.kicad_sch": "745836a928ec63b63194ee08f7e3378af94c2ed8b93409bb2fe15b60add2b284",
+    "giga-adapter/touch.kicad_sch": "9236d81caad28e53ba6cb3d204907ef33f2cb7c5079b361c6392a02ec268fe03",
     "libraries/3dmodels/C_0603_1608Metric.step": "4857b3dc717675bf1fb22edda622ac3b3ae03cf44d81eefaf3fa3ba3a86d84c1",
     "libraries/3dmodels/C_0805_2012Metric.step": "9a669c1a2f1ea25b88b401acef6efeaa80a067bd7da9db6993de719a7fbe155c",
     "libraries/3dmodels/C_1206_3216Metric.step": "11e948c72c90e2b6322436b72745f40ff4e8ba0da64fb2a0df943dfa61e89c1a",
@@ -309,66 +313,74 @@
     "libraries/3dmodels/GIGA_J8_JSIDE.step": "9032fbb1ce29960c3f63eacabebe1b5a1485edf22290cd74089b731194f56fc9",
     "libraries/3dmodels/GIGA_J9_J5.step": "749213f7a48852ca606e714c61d68debeb83a33d556f46d5e141eb2f9b5fc365",
     "libraries/3dmodels/GIGA_R1_WIFI.step": "b764b5406251c5b9a31e55e8f983587a107a537fda86e4129216d02570fd4e34",
-    "libraries/3dmodels/GIGA_outer_socket_envelopes.step": "7b16550ff3a368a11bde357a4d166033697da4485e0bedff48f08c969f3c5747",
+    "libraries/3dmodels/GIGA_outer_socket_envelopes.step": "fa5958d100574b06425fbefac8129e3603f40ed6992283cf3f8b58cfcd44140e",
     "libraries/3dmodels/R_0402_1005Metric.step": "91507e5af4251cb4ef38e04889c9b98da29904432bd83786bba13ae9b605eacb",
     "libraries/3dmodels/R_0603_1608Metric.step": "1875571c326d0d9e96f36b4efeb8094068ef7619f0a449c781caf0b49c2e5861",
     "libraries/3dmodels/SOT-23-6.step": "c9fe686b4d1b56927a41fa84a9bc1efb61d8a45a123a3db43bcaa05c2891d635",
     "libraries/3dmodels/TPS26600-PWP0016A.step": "ecfd8cd3ffa1685c6c85f0f28750d18430c96dafa7b1fd9a87ef1e5bf323061b",
+    "libraries/3dmodels/TSR1-2450-trimmed.step": "7e1b6753e23d772a0c543f9d33626a846919db16765ef903f666ccc6fc61f7e4",
     "libraries/3dmodels/TSR2-2433-trimmed.step": "fd6add227440f58fad315ebbce38649ac526e90e33e3e0a0e2d0d64012f6c488",
+    "libraries/3dmodels/TSSOP-14_4.4x5mm_P0.65mm.step": "3ee5786aae56190997aa793ba3cfc003fd616782770e29719b4562f012982245",
     "libraries/3dmodels/TSSOP-24_4.4x7.8mm_P0.65mm.step": "706322f42d9793ebf28d5b80100a68bfa8769998a00b78acadf7af937fc1454f",
     "libraries/3dmodels/Terminal_2x3.5.step": "b5f148ed0f598a98e25fe88818e5765824a28769131c12d4d898e5bb6ee021fc",
     "libraries/3dmodels/VSSOP-8_3x3mm_P0.65mm.step": "0af17c38f7022ea10ff245f82773c9b00d4163a407490c6b2d91869a0861df56",
-    "libraries/DisplayAdapter.pretty/C_0603_1608Metric.kicad_mod": "a9d756f5f61249e362277cfdf55c5adb060f012de16d5ca7d5f2b0cf25113915",
-    "libraries/DisplayAdapter.pretty/C_0805_2012Metric.kicad_mod": "4b12b8a8d54e0b0ae09bc3b7581c756ae68c584a256ec2545ee217cdada940a0",
-    "libraries/DisplayAdapter.pretty/C_1206_3216Metric.kicad_mod": "882a8819f498b69b85b218dfe59eca194ebc2a3cd1cf2169d8b7a0bb7819e710",
-    "libraries/DisplayAdapter.pretty/C_1210_3225Metric.kicad_mod": "72c23f6bc414ea931d9d689436c0fa62ce6eadc7dc6dfc1fcdf0c68db7e5f1af",
-    "libraries/DisplayAdapter.pretty/Converter_DCDC_TRACO_TSR-1_THT.kicad_mod": "7eccca0fdeb53b4dc0103d463667a7b3e446b82a69c055d5fe1c954fc4495204",
-    "libraries/DisplayAdapter.pretty/Converter_DCDC_TRACO_TSR2-xxxx_THT.kicad_mod": "42ed9b5bcc41b87d2c85813768e975b76885a3dcf74c0ab377fa3ee4cfe4fbcd",
-    "libraries/DisplayAdapter.pretty/DF23C-50DP-0.5V.kicad_mod": "135b66a251598af8f4c98b3288445fa929776d3cf660136cc621c7c050bd795e",
-    "libraries/DisplayAdapter.pretty/D_SMA.kicad_mod": "b520ba72241699ad06abfd40f5cc1fc42abedb163503b495d7dca2c6bbc3158c",
-    "libraries/DisplayAdapter.pretty/D_SMB.kicad_mod": "0b075ee458229802cd0c97d077448da6f32108b866f2ead6858d417d531a9f32",
-    "libraries/DisplayAdapter.pretty/FH28H-80S-0.5SH.kicad_mod": "b28b6dcd9be5844c4f9f8bb07b3f04f8b5532125b6f8a4ec30f0278402ad6236",
-    "libraries/DisplayAdapter.pretty/Fuse_1206_3216Metric.kicad_mod": "02bfd3e89c9f2512570f70abe0f4dd9e13c640901eaabe447632eb2896e04be9",
-    "libraries/DisplayAdapter.pretty/GIGA_J2_JDIGITAL.kicad_mod": "a8cf371439d4469f0a0aace11020c47119c253840226b59c95f18cf722af6000",
-    "libraries/DisplayAdapter.pretty/GIGA_J3_JDIGITAL.kicad_mod": "92127a066fc54ee2128786193b126bf279e05a5677be24361d3d7d665943ddbc",
-    "libraries/DisplayAdapter.pretty/GIGA_J4_JDIGITAL.kicad_mod": "8418e1b6b7751efe8fcac20134d412a7adbf1ecb90cba59c18a56fe5bfb72311",
-    "libraries/DisplayAdapter.pretty/GIGA_J5_JANALOG.kicad_mod": "5afe8437771f5b132baa8313f9211b10116f04c2fc71a82249f1226bceaa703f",
-    "libraries/DisplayAdapter.pretty/GIGA_J6_JANALOG.kicad_mod": "cde1fa28f7ef4fc405f667a7cacadc52fbbc2ea7041469e468a2ea6dbf1445dd",
-    "libraries/DisplayAdapter.pretty/GIGA_J7_JANALOG.kicad_mod": "05d00ff498886b014d61a451e43786c98b200b25f2a66fc6f906b79c6a277487",
-    "libraries/DisplayAdapter.pretty/GIGA_J8_JSIDE.kicad_mod": "1d5cb820e4edf8b1353fcbecd2ad1305abfe1d03f968ab86c0911ed2d8b22e69",
-    "libraries/DisplayAdapter.pretty/GIGA_J9_J5.kicad_mod": "e6ff62fc5776998e32318ff250357eb29292a7b5a09de6c288191032b9451e7b",
-    "libraries/DisplayAdapter.pretty/HTSSOP-16_PWP0016A_EP3.3x3.3mm.kicad_mod": "b2ed1010f282afbe6f2b9999dd1a25283e7ab1153fee6fe4465416143b4f1f35",
-    "libraries/DisplayAdapter.pretty/R_0402_1005Metric.kicad_mod": "e34bd8329283ecffe98bd5e4bd38a8b3b7a3057d61e796ad27dbffc8ac266d12",
-    "libraries/DisplayAdapter.pretty/R_0603_1608Metric.kicad_mod": "927091b165052ae4c0f2dc6c29b124d58f43140f5cccf0fef090c7d1a3858e45",
-    "libraries/DisplayAdapter.pretty/SOT-23-6.kicad_mod": "fca3867dcd30e8f173545242ea1ccd5c20d64cf33c3a6b7fa845a043b9c42ac5",
-    "libraries/DisplayAdapter.pretty/TSSOP-24_4.4x7.8mm_P0.65mm.kicad_mod": "a757f1a463a86ea6af1224d7224602ffb6bd1d1006f7b3bd792f557982ca52ff",
-    "libraries/DisplayAdapter.pretty/TerminalBlock_1x02_P3.50mm.kicad_mod": "d0044f38044438552664855c417c6b8a40980e72cdf9ad56907183bccb880e27",
-    "libraries/DisplayAdapter.pretty/TestPoint_1.0mm.kicad_mod": "208aef53db384fdf149d42dc6ae871789c0adf35058900bb3ee681a147e11479",
-    "libraries/DisplayAdapter.pretty/VSSOP-8_3x3mm_P0.65mm.kicad_mod": "67678f007e5eda12ec3cf753a74e9e938cbcae0045eeb757d4c1c53c12be1962"
+    "libraries/3dmodels/WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm.step": "26b11479728c38545462bbe7bb9e39e93c46ecc441c206ecdfeae513ed7b7b44",
+    "libraries/DisplayAdapter.pretty/C_0603_1608Metric.kicad_mod": "43ed6a207888a4f2e9b09999bab607b1cc485ff197bb9d4665c7c7d2e6d00d9d",
+    "libraries/DisplayAdapter.pretty/C_0805_2012Metric.kicad_mod": "56759f1754ab49a60e3956f9996865d8aac138b9455b850e52637e2aa57ba8e5",
+    "libraries/DisplayAdapter.pretty/C_1206_3216Metric.kicad_mod": "872a92c14c81476d4943326fc21d70c1cc29443a826f31aacda52b9ad59aaa86",
+    "libraries/DisplayAdapter.pretty/C_1210_3225Metric.kicad_mod": "d19986af75af8495c4133ebaf461443b85e8382a3f0d8558a43c0d44f1c1be50",
+    "libraries/DisplayAdapter.pretty/Converter_DCDC_TRACO_TSR-1_THT.kicad_mod": "f99e4e6d999b1842dd9222a6159692fb6bae8957c780a5cff533503241df36b8",
+    "libraries/DisplayAdapter.pretty/Converter_DCDC_TRACO_TSR-1_THT_Trimmed.kicad_mod": "9b427766bdbe4d5f332fdb2956ef359196daf13cc9367ae8741e0a4c9bc0bbb1",
+    "libraries/DisplayAdapter.pretty/Converter_DCDC_TRACO_TSR2-xxxx_THT.kicad_mod": "f4ff33ba781360d4709d1f0a93d604d565d03a6b446337d33777672bc10d6d32",
+    "libraries/DisplayAdapter.pretty/DF23C-50DP-0.5V.kicad_mod": "b9104b60cd2e315336b7beb21b9cfda636e5f6aa94e5699a3cf1bffc0f500daf",
+    "libraries/DisplayAdapter.pretty/D_SMA.kicad_mod": "9147c7fb9f05d354ddc599e3dfe8bc498768b271a2cac9bfbb56ee4121513a86",
+    "libraries/DisplayAdapter.pretty/D_SMB.kicad_mod": "bb6f54a2970d9c63286e22ddb2e8a34a4e1e29d44ee8363f4e8f2c7f1e3b53f3",
+    "libraries/DisplayAdapter.pretty/FH28H-80S-0.5SH.kicad_mod": "b44bb69c43e8460125da28907c69280b5e9e5739ea83649079547a984382322e",
+    "libraries/DisplayAdapter.pretty/Fuse_1206_3216Metric.kicad_mod": "cd084bdec626c329582cd49f785932750bf7007c63140a5e903e79b58d073f7f",
+    "libraries/DisplayAdapter.pretty/GIGA_J2_JDIGITAL.kicad_mod": "e0273e34cc28389721f0c99321ad960547b826016e55bc973e542d556e3fb6b4",
+    "libraries/DisplayAdapter.pretty/GIGA_J3_JDIGITAL.kicad_mod": "89428ba92bcb099d925e2898025813b82e4e6d191783f099f63fc7f18f533977",
+    "libraries/DisplayAdapter.pretty/GIGA_J4_JDIGITAL.kicad_mod": "c9be2d0ae8557e1953e3fefdbc9bd8b1466693886e22928bb8601f56acd745f9",
+    "libraries/DisplayAdapter.pretty/GIGA_J5_JANALOG.kicad_mod": "01930e029a9375e5fe9278ad86eac2385858b00de030ca488349ddac947467f3",
+    "libraries/DisplayAdapter.pretty/GIGA_J6_JANALOG.kicad_mod": "8da7f075d058c36e7a07cf7b0336c1dee7084c9d1f32dce268d044e0aad76e9b",
+    "libraries/DisplayAdapter.pretty/GIGA_J7_JANALOG.kicad_mod": "edaaa52f386871bdb1ecfd8e47228de5954c33320e3aa911db81c17fdd6314e6",
+    "libraries/DisplayAdapter.pretty/GIGA_J8_JSIDE.kicad_mod": "48b35fdac4b28cf9fa1138b51b069c6d4aedb29fb24f6c7ab54097e34df3bd1e",
+    "libraries/DisplayAdapter.pretty/GIGA_J9_J5.kicad_mod": "1e456d367f646c532393b14c0bd1737a1fd3b6db8b77f7ed19e162bb4df98203",
+    "libraries/DisplayAdapter.pretty/HTSSOP-16_PWP0016A_EP3.3x3.3mm.kicad_mod": "bc827e52b7233afb449491bbc24fbbc782173728788bc9a53c7712e1be75a24c",
+    "libraries/DisplayAdapter.pretty/R_0402_1005Metric.kicad_mod": "2f8f33aa9dd6f6edfb5976a6a9081dd42fce330a4f8a9e46180b6ff8113321e0",
+    "libraries/DisplayAdapter.pretty/R_0603_1608Metric.kicad_mod": "7fcc3d942d4e208021d9f8f73eeb4784b9925c38e45d253eda9bbd8aaea0a86a",
+    "libraries/DisplayAdapter.pretty/SOT-23-6.kicad_mod": "2a6d51bbab77018b32271d6c842a02957c10beddb964bd78c6bdf8d61d1b52f3",
+    "libraries/DisplayAdapter.pretty/SOT-23-6_UpperPin1.kicad_mod": "49f8faa0f067a5a148841a9b4d7f2ab5cda649715c635eba267f3461c3456ad2",
+    "libraries/DisplayAdapter.pretty/TSSOP-14_4.4x5mm_P0.65mm.kicad_mod": "8796ea1941571f82deac4dde74237c5866f925d575d4ac29998b456e8a394ec6",
+    "libraries/DisplayAdapter.pretty/TSSOP-24_4.4x7.8mm_P0.65mm.kicad_mod": "5b3dcd1b92fe646ae118fd9969ea742d5e648f13e9262d17ebae873e09073b19",
+    "libraries/DisplayAdapter.pretty/TerminalBlock_1x02_P3.50mm.kicad_mod": "91525c39c5db3887d3f2dff2b1b2fad27661829a9007ddf5594de6191d6d5cb0",
+    "libraries/DisplayAdapter.pretty/TestPoint_1.0mm.kicad_mod": "b5be845aa983764c2ad176975ed86c19b848ff3e75a73503ac272a64475a743c",
+    "libraries/DisplayAdapter.pretty/VSSOP-8_3x3mm_P0.65mm.kicad_mod": "4716d27ad963f7fa5f85b0303cf75774ced20c289a1474ac7418003ad163240a",
+    "libraries/DisplayAdapter.pretty/WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm.kicad_mod": "26146fed11c0e2df1dff0ffcb9c6d2020695001b310e58fff186044895719e93"
   },
   "electrical_audit": {
     "display-adapter": {
-      "revision": "D",
-      "copper_layers": 2,
-      "schematic_pcb_pin_pairs": 175,
-      "components": 26,
-      "tracks": 1045,
-      "ground_reference": "Stitched F.Cu/B.Cu ground pours"
+      "revision": "E",
+      "copper_layers": 4,
+      "schematic_pcb_pin_pairs": 252,
+      "components": 51,
+      "tracks": 3621,
+      "ground_reference": "In1.Cu GND reference plane"
     },
     "giga-adapter": {
-      "revision": "C",
+      "revision": "D",
       "copper_layers": 4,
-      "schematic_pcb_pin_pairs": 519,
-      "components": 119,
-      "tracks": 2065,
+      "schematic_pcb_pin_pairs": 531,
+      "components": 123,
+      "tracks": 2667,
       "ground_reference": "In1.Cu GND reference plane"
     },
     "display_contacts": 50,
     "ribbon_conductors": 80,
-    "signals": 35,
+    "display_signals": 35,
+    "supply_ready_signals": 1,
     "firmware_pin_conflicts": 0,
     "firmware_assignment_source": "current repository CubeMX project",
-    "firmware_source_sha256": "d9803d8fdaa3f8a0c0e7343975a5d719a50c6b19c109c13b7c9cec0d812b5017",
+    "firmware_source_sha256": "d478eb55afc0d60b739b090cc9dfb548b0fec09169a1b33c05132a3ff3098d43",
     "physical_hardware_test": "NOT PERFORMED"
   },
   "mechanical_review": {
@@ -404,8 +416,8 @@
   "power_route_review": {
     "result": "PASS \u2014 routed power connectivity and geometry",
     "source_sha256": {
-      "display-adapter": "6f9a53af705ef9a671c1f1491bd775ebf1b80e7ed5ec1cbdea4acb563bb00c94",
-      "giga-adapter": "97c71dd418d7e7f73d9807fad624db11d28fde34bc5729d055ef29e2f61cff6c"
+      "display-adapter": "8d5bd84cab8c82618b4ad20d3db91558dce6de90636a33bc596b9b9d51ef749f",
+      "giga-adapter": "933b41c231b95ff243af8666cc8801020eef58f71ac0c4014164a6c0ec54158e"
     },
     "routes": [
       {
@@ -464,27 +476,51 @@
       },
       {
         "board": "display-adapter",
-        "start": "U1.3",
+        "start": "U1.1",
+        "end": "U2.1",
+        "hot_copper_ohm": 0.02227425504213092
+      },
+      {
+        "board": "display-adapter",
+        "start": "U2.3",
+        "end": "U3.9",
+        "hot_copper_ohm": 0.03333753486735088
+      },
+      {
+        "board": "display-adapter",
+        "start": "U3.1",
+        "end": "C13.1",
+        "hot_copper_ohm": 0.009258394770451468
+      },
+      {
+        "board": "display-adapter",
+        "start": "U3.1",
+        "end": "C14.1",
+        "hot_copper_ohm": 0.0035420539808131415
+      },
+      {
+        "board": "display-adapter",
+        "start": "U3.1",
         "end": "TP1.1",
-        "hot_copper_ohm": 0.02089395236516116
+        "hot_copper_ohm": 0.2635569122262907
       },
       {
         "board": "display-adapter",
-        "start": "U1.3",
+        "start": "U3.1",
         "end": "J2.72",
-        "hot_copper_ohm": 0.09140830660048183
+        "hot_copper_ohm": 0.2514868565437812
       },
       {
         "board": "display-adapter",
-        "start": "U1.3",
+        "start": "U3.1",
         "end": "J2.74",
-        "hot_copper_ohm": 0.0870749732671485
+        "hot_copper_ohm": 0.24773555303566788
       },
       {
         "board": "display-adapter",
-        "start": "U1.3",
+        "start": "U3.1",
         "end": "J2.76",
-        "hot_copper_ohm": 0.08274163993381517
+        "hot_copper_ohm": 0.243065010712012
       }
     ],
     "fused_input_minimum_track_width_mm": 0.6,
@@ -509,9 +545,9 @@
     "result": "PASS \u2014 local export/nominal mechanical review",
     "reviewed": [
       "Both outer sides: independent Gerber copper/mask/silk renders; connector numbering and open vias",
-      "GIGA inner copper layers, ground reference and isolated RTN thermal island",
+      "Both inner copper layers, ground references and the GIGA isolated RTN thermal island",
       "Fine-pitch paste, plated/non-plated drills and BOM/placement agreement",
-      "Schematics, fabrication/assembly drawings and revision-D cable map",
+      "Schematics, fabrication/assembly drawings and current-revision cable map",
       "GIGA mating assembly and display top/bottom models, including 1.6mm thickness and trimmed leads"
     ]
   },
@@ -529,10 +565,10 @@
       "Panel clock/data timing, colour order, touch and independent supply sequencing"
     ]
   },
-  "timing_qualification": "OPEN: conditional calculation only; sub-nanosecond margin, IO compensation and physical timing/load qualification required. See timing-budget.json.",
-  "power_qualification": "OPEN: 3.011V calculated DC minimum does not establish transient compliance or maximum panel current. See power-budget.json.",
+  "timing_qualification": "40.96MHz configured; bootstrap enables IO compensation. Calculated timing margin is conditional; first-board timing/load qualification remains pending. See timing-budget.json.",
+  "power_qualification": "Independent precision logic and backlight supplies with supervised startup. First-board transient/current/thermal tests remain pending. See power-budget.json.",
   "manufacturing_order_placed": false,
   "assembly_order_placed": false,
   "stencil_order_placed": false,
-  "firmware_changed": false
+  "firmware_changed": true
 }

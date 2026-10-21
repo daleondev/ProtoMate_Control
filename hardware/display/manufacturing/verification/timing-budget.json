@@ -1,23 +1,23 @@
 {
   "method": "Shortest physical copper path, splitting segments at intersections and pad/via anchors. Horizontal lengths; package/via internal delay excluded.",
-  "pixel_clock_MHz": 51.2,
-  "half_period_ns": 9.765625,
+  "pixel_clock_MHz": 40.96,
+  "half_period_ns": 12.20703125,
   "panel_setup_hold_ns": 5,
   "buffer_interdevice_worst_case_range_ns": 3.5,
   "adapter_trace_skew_estimate_ns_at_7ps_per_mm": 0.4073018645770442,
-  "stm32_DS12930_table105_conditions": "VDD >2.7V, OSPEED=11, IO compensation enabled, stated load and voltage-scale conditions; these are qualification conditions, not proof the present firmware meets them.",
+  "stm32_DS12930_table105_conditions": "VDD >2.7V, OSPEED=11, IO compensation enabled, stated load and voltage-scale conditions; Very-high GPIO speed and CSI-referenced IO compensation are configured in firmware; physical loading remains to be qualified.",
   "stm32_data_valid_max_ns": 0.5,
   "stm32_data_hold_min_ns": 0,
   "stm32_half_cycle_tolerance_ns": 0.5,
-  "conditional_setup_margin_ns_before_unmodelled_terms": 0.24019939565006002,
-  "conditional_hold_margin_ns_before_unmodelled_terms": 0.3583231354229558,
+  "conditional_setup_margin_ns_before_unmodelled_terms": 2.68160564565006,
+  "conditional_hold_margin_ns_before_unmodelled_terms": 2.799729385422956,
   "unmodelled_terms": [
     "Arduino PCB routes",
     "FFC conductor skew, material and connector/package effects",
     "Via discontinuities, rise/fall settling and clock jitter",
     "Actual display sampling phase and compliance with ST characterization conditions"
   ],
-  "physical_timing_verification": "NOT PERFORMED. Remaining sub-nanosecond worst-case margin is not full timing closure; qualify at the panel connector before accepting operation.",
+  "physical_timing_verification": "NOT PERFORMED. Calculated margin does not replace connector-level setup/hold measurement; qualify at the panel connector before accepting operation.",
   "timed_signals": [
     "R0",
     "R1",
@@ -49,17 +49,14 @@
   ],
   "timing_closure": "OPEN \u2014 conditional estimate is not a guaranteed interface timing result",
   "additional_qualification_requirements": [
-    "Enable and settle STM32 IO compensation before LTDC output; current firmware has no explicit enable call.",
+    "Bootstrap enables CSI and waits for IO compensation READY before starting either application.",
     "Validate total buffer load and input slew against the TI switching-characteristic test conditions.",
     "Measure PCLK high/low times and setup/hold at the panel including translator pulse-width distortion."
   ],
-  "lower_clock_candidate": {
-    "pixel_clock_MHz": 40.96,
+  "display_timing": {
     "horizontal_total": 1120,
     "vertical_total": 610,
     "frame_rate_Hz": 59.95316159250586,
-    "conditional_setup_margin_ns": 2.68160564565006,
-    "conditional_hold_margin_ns": 2.799729385422956,
-    "status": "UNIMPLEMENTED candidate within Smartwin DE-mode clock/blanking limits; not proof of operation"
+    "status": "CONFIGURED in CubeMX and bootstrap; panel testing pending"
   }
 }

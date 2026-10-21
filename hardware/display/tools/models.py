@@ -42,6 +42,11 @@ save('TPS26600-PWP0016A',[box(-2.2,-2.5,.1,4.4,5,1.1),box(-1.5,-1.5,0,3,3,.1),
 save('TSR2-2433-trimmed',[box(-3.89,-9.58,0,7.5,14,10.1),
     *[box(-.25,-y-.25,-1.8,.5,.5,1.8) for y in [0,2.54,5.08]]])
 
+# TSR 1-2450 uses the stock body/pin geometry, with display-side tails trimmed.
+stock=Part.read('/usr/share/kicad/3dmodels/Converter_DCDC.3dshapes/Converter_DCDC_TRACO_TSR-1_THT.step')
+stock=stock.common(box(-50,-50,-2.4,100,100,60))
+stock.exportStep(str(DEST/'TSR1-2450-trimmed.step'))
+
 for p in components('giga-adapter'):
     if p['kind']!='HEADER':continue
     xs=[v['x'] for v in p['pads']];ys=[-v['y'] for v in p['pads']]

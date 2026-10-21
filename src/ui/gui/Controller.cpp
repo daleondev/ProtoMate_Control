@@ -139,7 +139,7 @@ namespace ui::gui
                 owner.m_status.imageTransfers=graphics.imageTransfers();
                 owner.m_status.maximumRenderUs =
                   std::max(owner.m_status.maximumRenderUs, static_cast<std::uint32_t>(micros));
-                if (micros > 16669) {
+                if (micros > 16680) {
                     ++owner.m_status.missedDeadlines;
                 }
             }

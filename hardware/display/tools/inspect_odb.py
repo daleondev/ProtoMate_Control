@@ -49,8 +49,8 @@ def main(name):
         assert vertices[0]==vertices[-1]
         contour=Polygon(vertices);assert contour.is_valid and contour.area>1000
         x0,y0,x1,y1=contour.bounds
-        assert abs(x1-x0-(55 if BOARDS[name]['layers']==2 else 111))<1e-6
-        assert abs(y1-y0-(35 if BOARDS[name]['layers']==2 else 53.34))<1e-6
+        assert abs(x1-x0-(55 if name=='display-adapter' else 111))<1e-6
+        assert abs(y1-y0-(50 if name=='display-adapter' else 53.34))<1e-6
         nets=read('steps/pcb/netlists/cadnet/netlist')
         names={int(n):value for n,value in re.findall(r'^\$(\d+) (.+)$',nets,re.M)}
         points=set()

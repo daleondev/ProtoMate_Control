@@ -57,7 +57,7 @@ def main(name):
     if BOARDS[name]['layers']==4:expected_layers|={('inner_1','copper'),('inner_2','copper')}
     assert set(stack.graphic_layers)==expected_layers
     outline=stack.graphic_layers['mechanical','outline'];bbox=outline.bounding_box()
-    width=55 if name=='display-adapter' else 111;height=35 if name=='display-adapter' else 53.34
+    width=55 if name=='display-adapter' else 111;height=50 if name=='display-adapter' else 53.34
     assert abs(bbox[1][0]-bbox[0][0]-.05-width)<.001
     assert abs(bbox[1][1]-bbox[0][1]-.05-height)<.001
     windows=0

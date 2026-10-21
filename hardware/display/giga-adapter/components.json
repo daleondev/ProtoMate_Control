@@ -16,7 +16,7 @@
       "7": "+3V3_PANEL",
       "8": "GND",
       "9": "+3V3_PANEL",
-      "10": "GND",
+      "10": "PANEL_READY",
       "11": "LCD_SCL",
       "12": "GND",
       "13": "LCD_SDA",
@@ -2629,6 +2629,98 @@
     "sheet_uuid": "d0588a50-c8b1-5b77-839e-aaff48d47765"
   },
   {
+    "ref": "U9",
+    "kind": "AXC1",
+    "value": "SN74AXC1T45DBVR",
+    "mfr": "Texas Instruments",
+    "mpn": "SN74AXC1T45DBVR",
+    "footprint": "SOT-23-6",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "GND",
+      "3": "PANEL_READY",
+      "4": "MCU_PANEL_READY",
+      "5": "+3V3_PANEL",
+      "6": "+3V3_GIGA"
+    },
+    "pos": [
+      88.2,
+      34,
+      0,
+      "F"
+    ],
+    "page": "touch",
+    "assembly": "SMT",
+    "uuid": "be4bce7d-6c01-5a6b-bac0-be53f15e3246",
+    "sheet_uuid": "b7f2b962-0824-5171-8ace-8ac871501314"
+  },
+  {
+    "ref": "C20",
+    "kind": "C100N",
+    "value": "100n / 16V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM188R71C104KA01D",
+    "footprint": "C_0603_1608Metric",
+    "nets": {
+      "1": "+3V3_PANEL",
+      "2": "GND"
+    },
+    "pos": [
+      88,
+      30,
+      0,
+      "F"
+    ],
+    "page": "touch",
+    "assembly": "SMT",
+    "uuid": "b2c2a64a-6143-5fc7-954d-1b0902aa9c3c",
+    "sheet_uuid": "b7f2b962-0824-5171-8ace-8ac871501314"
+  },
+  {
+    "ref": "C21",
+    "kind": "C100N",
+    "value": "100n / 16V X7R",
+    "mfr": "Murata",
+    "mpn": "GRM188R71C104KA01D",
+    "footprint": "C_0603_1608Metric",
+    "nets": {
+      "1": "+3V3_GIGA",
+      "2": "GND"
+    },
+    "pos": [
+      90,
+      27.5,
+      0,
+      "F"
+    ],
+    "page": "touch",
+    "assembly": "SMT",
+    "uuid": "21b5a7b9-fd47-516a-ae44-7b0f4809c5a7",
+    "sheet_uuid": "b7f2b962-0824-5171-8ace-8ac871501314"
+  },
+  {
+    "ref": "R71",
+    "kind": "R10K",
+    "value": "10k / 1%",
+    "mfr": "Yageo",
+    "mpn": "RC0603FR-0710KL",
+    "footprint": "R_0603_1608Metric",
+    "nets": {
+      "1": "MCU_PANEL_READY",
+      "2": "GND"
+    },
+    "pos": [
+      88,
+      38,
+      0,
+      "F"
+    ],
+    "page": "touch",
+    "assembly": "SMT",
+    "uuid": "9976a2f9-9943-5614-a8b3-d67e0f37976c",
+    "sheet_uuid": "b7f2b962-0824-5171-8ace-8ac871501314"
+  },
+  {
     "ref": "J2",
     "kind": "HEADER",
     "value": "JDIGITAL 1..10",
@@ -3492,7 +3584,7 @@
       "12": "GND",
       "13": "MCU_PWM",
       "14": "MCU_STANDBY",
-      "15": null,
+      "15": "MCU_PANEL_READY",
       "16": "MCU_TFT_RESET_N",
       "17": "MCU_TOUCH_RESET_N",
       "18": null,

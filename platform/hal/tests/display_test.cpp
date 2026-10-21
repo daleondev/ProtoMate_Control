@@ -64,3 +64,75 @@ TEST(TouchDisplay, RejectsControllerErrorAndPropagatesDisconnect)
     bus->status=4; EXPECT_TRUE(touch.read()); bus->failRead=true;
     EXPECT_EQ(touch.read().error(),std::make_error_code(std::errc::io_error));
 }
+
+#include "hal/devices/impl/SmartwinDisplay.hpp"
+#include <thread>
+namespace {
+class SupplyReady final : public hal::IDigitalInput {
+public:
+    bool ready{};
+    auto read() const noexcept -> hal::gpio::Level override
+    { return ready ? hal::gpio::Level::High : hal::gpio::Level::Low; }
+    void setEdgeCallback(EdgeCallback) noexcept override {}
+};
+class DisplayOutput final : public hal::IRgbOutput {
+public:
+    unsigned brightness{};
+    bool initialized{};
+    hal::display::State current{};
+    auto initialize() -> hal::util::Result<> override { initialized=true;return {}; }
+    auto framebuffer(unsigned) -> std::span<std::uint16_t> override { return {}; }
+    auto present(unsigned) -> hal::util::Result<> override { ++current.presentations;return {}; }
+    auto requestPresent(unsigned slot) -> hal::util::Result<> override { return present(slot); }
+    auto state() const noexcept -> hal::display::State override { return current; }
+    void setCallback(hal::display::Callback) noexcept override {}
+    void shutdown() noexcept override { initialized=false;brightness=0; }
+    auto fill(unsigned,std::uint16_t) -> hal::util::Result<> override { return {}; }
+    auto backlight(unsigned percent) -> hal::util::Result<> override { brightness=percent;return {}; }
+    auto underruns() const noexcept -> std::uint32_t override { return 0; }
+    auto width() const noexcept -> unsigned override { return 1024; }
+    auto height() const noexcept -> unsigned override { return 600; }
+};
+void startPanel(hal::device::SmartwinDisplay& display)
+{
+    using namespace std::chrono_literals;
+    display.service();
+    std::this_thread::sleep_for(3ms);display.service();
+    std::this_thread::sleep_for(11ms);display.service();
+    std::this_thread::sleep_for(61ms);display.service();
+}
+}
+TEST(TouchDisplay, SupplyLossGatesBrightnessAndRecoveryRepeatsResetWithoutStoppingRendering)
+{
+    auto rgb=std::make_shared<DisplayOutput>();auto standby=std::make_shared<ResetPin>();
+    auto reset=std::make_shared<ResetPin>();auto power=std::make_shared<SupplyReady>();
+    hal::device::SmartwinDisplay display(rgb,standby,reset,power);
+    ASSERT_TRUE(display.initialize());ASSERT_TRUE(display.backlight(65));
+    EXPECT_TRUE(rgb->initialized);EXPECT_EQ(rgb->brightness,0u);
+    EXPECT_EQ(reset->value,hal::gpio::Level::Low);
+    power->ready=true;startPanel(display);
+    EXPECT_EQ(reset->value,hal::gpio::Level::High);EXPECT_EQ(standby->value,hal::gpio::Level::High);
+    EXPECT_EQ(rgb->brightness,0u); // A valid framebuffer and a scan boundary are required.
+    rgb->current.presentations=1;++rgb->current.vsyncs;display.service();
+    EXPECT_EQ(rgb->brightness,65u);
+    power->ready=false;display.service();
+    EXPECT_TRUE(rgb->initialized);EXPECT_EQ(rgb->brightness,0u);
+    EXPECT_EQ(reset->value,hal::gpio::Level::Low);EXPECT_EQ(standby->value,hal::gpio::Level::Low);
+    power->ready=true;startPanel(display);EXPECT_EQ(rgb->brightness,0u);
+    ++rgb->current.vsyncs;display.service(); // Static scene is already valid; no new submission needed.
+    EXPECT_EQ(rgb->brightness,65u);
+    display.shutdown();EXPECT_FALSE(rgb->initialized);EXPECT_EQ(rgb->brightness,0u);
+    display.service();EXPECT_EQ(reset->value,hal::gpio::Level::Low);
+}
+TEST(TouchDisplay, BrownoutDuringStartupRestartsTheSequence)
+{
+    auto rgb=std::make_shared<DisplayOutput>();auto standby=std::make_shared<ResetPin>();
+    auto reset=std::make_shared<ResetPin>();auto power=std::make_shared<SupplyReady>();power->ready=true;
+    hal::device::SmartwinDisplay display(rgb,standby,reset,power);
+    ASSERT_TRUE(display.initialize());ASSERT_TRUE(display.backlight(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds{3});display.service();
+    EXPECT_EQ(reset->value,hal::gpio::Level::High);
+    power->ready=false;display.service();EXPECT_EQ(reset->value,hal::gpio::Level::Low);
+    EXPECT_EQ(standby->value,hal::gpio::Level::Low);EXPECT_EQ(rgb->brightness,0u);
+    EXPECT_FALSE(display.backlight(101));
+}

@@ -7,7 +7,7 @@
 	(property "Reference" "REF**"
 		(at 0 48.58231 0)
 		(layer "F.SilkS")
-		(uuid "f18f477b-d9e7-4faa-9a5a-45fdc09f5403")
+		(uuid "8e39b56e-1ada-49dc-9175-c1cc79c6ebbf")
 		(effects
 			(font
 				(size 1 1)
@@ -18,7 +18,7 @@
 	(property "Value" "GIGA_J7_JANALOG"
 		(at 0 52.99231 0)
 		(layer "F.Fab")
-		(uuid "fe6ae281-0668-4fc6-b52d-74f735e58b01")
+		(uuid "5401c83d-2ca7-42a8-83e2-5c12cfc11154")
 		(effects
 			(font
 				(size 1 1)
@@ -30,7 +30,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "4856f3df-5e90-4b81-9b29-de483c19de2f")
+		(uuid "4919c8b6-41d0-4afd-b5ed-c7d29ba05446")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -41,7 +41,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "9102430b-dfce-4350-b6e0-9a81ad238562")
+		(uuid "8adf1361-6465-440c-80b6-f811a919f92c")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -59,7 +59,7 @@
 		)
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "1a836e73-cb23-42d4-aa46-dbad37c1354d")
+		(uuid "ad88fa8f-7bcc-4c1f-8a5a-edaa2de21f92")
 	)
 	(fp_rect
 		(start 72.16064 49.58231)
@@ -70,7 +70,7 @@
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "0d276239-d0da-4a6d-83b3-674b03635959")
+		(uuid "a6756dff-bed7-4de7-a1c1-55a08188ca31")
 	)
 	(pad "1" thru_hole rect
 		(at 73.68564 50.78731)
@@ -79,7 +79,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "1ebaa99a-d08b-4c09-8c7c-b204e40dd985")
+		(uuid "fc4d1e9e-52a6-41a2-ba39-eba0e564ca33")
 	)
 	(pad "2" thru_hole oval
 		(at 76.22564 50.78731)
@@ -88,7 +88,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "e8ce7441-f865-42a2-8893-65606c620366")
+		(uuid "1e18c097-9927-4cb2-a771-dd4ed6550781")
 	)
 	(pad "3" thru_hole oval
 		(at 78.76564 50.78731)
@@ -97,7 +97,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "2746e865-1dcb-409a-ac2c-01b97e0adb31")
+		(uuid "8a294154-8af1-4d66-abac-3610a77e5129")
 	)
 	(pad "4" thru_hole oval
 		(at 81.30564 50.78731)
@@ -106,7 +106,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "f83cc18e-3e10-468f-8331-de1c5cfe2837")
+		(uuid "5cc088af-0ce6-431a-9321-7d76ef771019")
 	)
 	(pad "5" thru_hole oval
 		(at 83.84564 50.78731)
@@ -115,7 +115,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "cc4c25b2-bdde-425d-b215-88e558f016dc")
+		(uuid "899cc8a4-a0fc-4e61-b1c0-800219d6124f")
 	)
 	(pad "6" thru_hole oval
 		(at 86.38564 50.78731)
@@ -124,7 +124,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "edc0c834-0431-4761-9b82-81723895630e")
+		(uuid "5d85fd72-7577-4654-ba1a-80c2137e99d4")
 	)
 	(pad "7" thru_hole oval
 		(at 88.92564 50.78731)
@@ -133,7 +133,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "d573ac3a-c53d-4b1b-b4a5-0cb01f0fe669")
+		(uuid "f22bf714-7a75-4c83-8a05-611f94ea4e7e")
 	)
 	(pad "8" thru_hole oval
 		(at 91.46564 50.78731)
@@ -142,7 +142,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(solder_mask_margin 0)
-		(uuid "53e7d1ea-a205-4063-92ac-ad3f5257f85b")
+		(uuid "5a555ad1-8609-4dad-8893-d3ecd35298c2")
 	)
 	(embedded_fonts no)
 	(model "${KIPRJMOD}/../libraries/3dmodels/GIGA_J7_JANALOG.step"

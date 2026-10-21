@@ -49,10 +49,15 @@ def fp_text(name, pads, outline, desc, model=None, attr='smd'):
 def footprints():
     for kind,(_,_,_,name) in PARTS.items():
         if kind in ['FFC','DF23','POWER','TP']:continue
-        stock='HTSSOP-16-1EP_4.4x5mm_P0.65mm_EP3x3mm' if kind=='EFUSE' else name
+        stock='HTSSOP-16-1EP_4.4x5mm_P0.65mm_EP3x3mm' if kind=='EFUSE' else 'Converter_DCDC_TRACO_TSR-1_THT' if kind=='BUCK5' else 'SOT-23-6' if kind=='SUPERVISOR' else name
         paths=list(Path('/usr/share/kicad/footprints').glob(f'*.pretty/{stock}.kicad_mod'))
         assert len(paths)==1,(kind,name,paths)
         text=paths[0].read_text()
+        if kind=='SUPERVISOR':
+            text=text.replace('(footprint "'+stock+'"','(footprint "'+name+'"',1)
+        if kind=='BUCK5':
+            text=text.replace('(footprint "'+stock+'"','(footprint "'+name+'"',1)
+            text=text.replace('${KICAD10_3DMODEL_DIR}/Converter_DCDC.3dshapes/Converter_DCDC_TRACO_TSR-1_THT.step', '${KIPRJMOD}/../libraries/3dmodels/TSR1-2450-trimmed.step')
         if kind=='BUCK33':
             text=text.replace('${KICAD10_3DMODEL_DIR}/Converter_DCDC.3dshapes/Converter_DCDC_TRACO_TSR2-xxxx_THT.step', '${KIPRJMOD}/../libraries/3dmodels/TSR2-2433-trimmed.step')
         if kind=='EFUSE':
@@ -120,6 +125,15 @@ def pin_specs(part):
         right=[('8','VCCB / GIGA','power_in'),('7','SCLB','bidirectional'),('6','SDAB','bidirectional'),('5','EN','input')]
     elif kind.startswith('BUCK'):
         left=[('1','VIN','passive'),('2','GND','passive')];right=[('3','VOUT','passive')]
+    elif kind=='LDO':
+        left=[(str(i),n,'passive') for i,n in [(3,'FB'),(4,'GND'),(6,'SS_CTRL / GND'),(7,'EN'),(8,'NR/SS')]]
+        right=[(str(i),n,'passive') for i,n in [(1,'OUT'),(2,'OUT'),(5,'PG'),(9,'IN'),(10,'IN'),(11,'EP / GND')]]
+    elif kind=='SUPERVISOR':
+        left=[(str(i),n,'passive') for i,n in [(3,'MR'),(4,'CT'),(5,'SENSE')]]
+        right=[(str(i),n,'passive') for i,n in [(1,'RESET / READY'),(2,'GND'),(6,'VDD')]]
+    elif kind=='AND4':
+        left=[(str(i),n,'input') for i,n in [(1,'1A'),(2,'1B'),(4,'2A'),(5,'2B'),(9,'3A'),(10,'3B'),(12,'4A'),(13,'4B')]]
+        right=[(str(i),n,'passive') for i,n in [(3,'1Y'),(6,'2Y'),(8,'3Y'),(11,'4Y'),(7,'GND'),(14,'VCC')]]
     elif kind=='EFUSE':
         left=[(str(i),n,'passive') for i,n in enumerate(['IN','IN','UVLO','NC','OVP','MODE','SHDN','RTN'],1)]
         right=[(str(i),n,'passive') for i,n in enumerate(['GND','IMON','ILIM','dVdT','NC','FLT','OUT','OUT','EP / RTN'],9)]
@@ -197,7 +211,7 @@ def schematic(which,parts):
         if page=='headers':
             for i,p in enumerate(major):poses[p['ref']]=(55.88+(i%4)*101.6,60.96+(i//4)*116.84)
         else:
-            for i,p in enumerate(major):poses[p['ref']]=(86.36+172.72*i,91.44)
+            for i,p in enumerate(major):poses[p['ref']]=((55.88+132.08*i if len(major)>2 else 86.36+172.72*i),91.44)
         for i,p in enumerate(minor):
             poses[p['ref']]=(45.72+(i%4)*96.52,((129.54 if page in ('power','power12') else 175.26) if major else 55.88)+(i//4)*20.32)
         for p in selected:
@@ -223,7 +237,9 @@ def schematic(which,parts):
               'touch':'TCA9517 A = panel; B = GIGA. GIGA R26/R27 already provide 5.1k pull-ups. AXC1 direction A -> B.',
               'ribbon':'80-way Type-A (same-side contacts), 0.5mm pitch, 0.30mm mating thickness. GIGA pin n <-> display socket pin 81-n.',
               'display':'Bottom-mounted DF23 plug. Pin orientation follows Smartwin mechanical drawing Detail A. All supply/GND pins used.',
-              'power':'U1: 24V from ribbon -> 3.3V / 2A. Never join panel 3.3V to GIGA 3.3V. Module is hand soldered; trim leads.',
+              'logic_power':'U2: 24V -> 5V. U3: precision 3.296V, 47nF soft start (~6ms). 0.1% feedback resistors. EP must be soldered.',
+              'sequencing':'Both supplies valid for 300ms before READY. Hardware gates reset, standby and PWM. READY returns to GIGA D70.',
+              'power':'U1: 24V from ribbon -> BACKLIGHT 3.3V / 2A. Never join panel 3.3V to GIGA 3.3V. Module is hand soldered; trim leads.',
               'power_input':'24V nominal input. UVLO ~18.2V; OVP ~28.1V; current limit ~1.49A. RTN is NOT system GND. SHDN floats (internal pull-up).',
               'power12':'U8: 24V -> 12V / 1A. D3 blocks USB-only reverse feed into U8. F2 protects the two parallel 24V ribbon conductors.'}[page]
         s+=f'(text {q(note)} (at 20.32 22.86 0) (effects (font (size 1.27 1.27)) (justify left)) (uuid "{uid(sid+"note")}"))\n'
@@ -268,7 +284,7 @@ def board(which,parts):
             text.SetPosition(point(sum(a['x'] for a in p['pads'])/len(p['pads']),sum(a['y'] for a in p['pads'])/len(p['pads'])))
         if p['kind'] in ['HEADER','FFC','DF23','POWER','TP']:b.Add(text)
     if which=='display-adapter':
-        contour=board_outline(which);holes=[(3,12),(52,12),(3,32),(52,32)]
+        contour=board_outline(which);holes=[(3,12),(52,12),(3,47),(52,47)]
     else:
         contour=board_outline(which)
         holes=[p for p in GEOMETRY['mounting_holes'] if p[0]>88 or (p[0]<17 and (p[1]<5 or p[1]>49))]
@@ -283,8 +299,8 @@ def board(which,parts):
                 if item.GetLayer()==k.F_CrtYd:f.Remove(item)
             circle=k.PCB_SHAPE(f);circle.SetShape(k.SHAPE_T_CIRCLE);circle.SetCenter(point(0,0));circle.SetEnd(point(1.65 if y<5 else 1.85,0));circle.SetWidth(mm(.05));circle.SetLayer(k.F_CrtYd);f.Add(circle)
         f.SetReference(f'H{i+1}');f.SetPosition(point(x,y));f.Reference().SetVisible(False);f.Value().SetVisible(False);f.SetAttributes(k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES);b.Add(f)
-    # The two-layer display adapter uses stitched outer pours.
-    for layer in ([k.F_Cu,k.B_Cu] if BOARDS[which]["layers"]==2 else [k.In1_Cu]):
+    # Continuous inner reference plane; display outer pours spread LDO heat.
+    for layer in ([k.F_Cu,k.In1_Cu,k.B_Cu] if which=="display-adapter" else [k.In1_Cu]):
         z=k.ZONE(b);z.SetLayer(layer);z.SetNet(nets['GND']);z.SetLocalClearance(mm(.2));z.SetPadConnection(k.ZONE_CONNECTION_FULL);z.SetMinThickness(mm(.15))
         poly=z.Outline();poly.NewOutline()
         for x,y in contour:poly.Append(mm(x),mm(y))

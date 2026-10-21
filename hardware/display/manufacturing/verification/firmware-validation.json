@@ -1,0 +1,32 @@
+{
+  "status": "PASS: builds and host regression; not flashed or hardware-tested in this revision",
+  "builds": [
+    "giga-debug (combined M4/M7)",
+    "giga-release (combined M4/M7)",
+    "debug-linux"
+  ],
+  "host_suites": [
+    "boot.giga_images",
+    "boot.giga_mpu",
+    "gui.graphics",
+    "gui.integration",
+    "gui.presentation_timeout",
+    "application.lifecycle",
+    "hal"
+  ],
+  "host_result": "7/7 passed",
+  "clock_Hz": 40960000,
+  "timing_totals": [
+    1120,
+    610
+  ],
+  "ready_pin": "PI1 / D70",
+  "source_sha256": {
+    "external/CubeMX/CubeMX.ioc": "d478eb55afc0d60b739b090cc9dfb548b0fec09169a1b33c05132a3ff3098d43",
+    "external/CubeMX/CM7/Src/ltdc.c": "ad46902ba206afb7d5d5d6f425ad603b75a9241a11068e8aef2f8e37acd5aec9",
+    "external/CubeMX/CM7/Src/gpio.c": "da0c0f31f420bf5277255f30b250146928b23283d2355884c2d26b6eb362f531",
+    "platform/boot/giga/clocks.c": "fd9c164e32f0b4cd48e602090c02185cee5d8e63828fe3468ded3ead105831c4",
+    "platform/hal/devices/impl/SmartwinDisplay.cpp": "3d2b5246b17f2960a60c8c237026e3d9b2339d7427ba1002403c4065d1d4656f",
+    "platform/hal/devices/impl/St1633i.cpp": "275ba2ced3f4d96e8307651997e58ed6951a4e1ffba562971715e895258c666c"
+  }
+}

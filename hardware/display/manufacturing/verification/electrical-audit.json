@@ -1,25 +1,26 @@
 {
   "display-adapter": {
-    "revision": "D",
-    "copper_layers": 2,
-    "schematic_pcb_pin_pairs": 175,
-    "components": 26,
-    "tracks": 1045,
-    "ground_reference": "Stitched F.Cu/B.Cu ground pours"
+    "revision": "E",
+    "copper_layers": 4,
+    "schematic_pcb_pin_pairs": 252,
+    "components": 51,
+    "tracks": 3621,
+    "ground_reference": "In1.Cu GND reference plane"
   },
   "giga-adapter": {
-    "revision": "C",
+    "revision": "D",
     "copper_layers": 4,
-    "schematic_pcb_pin_pairs": 519,
-    "components": 119,
-    "tracks": 2065,
+    "schematic_pcb_pin_pairs": 531,
+    "components": 123,
+    "tracks": 2667,
     "ground_reference": "In1.Cu GND reference plane"
   },
   "display_contacts": 50,
   "ribbon_conductors": 80,
-  "signals": 35,
+  "display_signals": 35,
+  "supply_ready_signals": 1,
   "firmware_pin_conflicts": 0,
   "firmware_assignment_source": "current repository CubeMX project",
-  "firmware_source_sha256": "d9803d8fdaa3f8a0c0e7343975a5d719a50c6b19c109c13b7c9cec0d812b5017",
+  "firmware_source_sha256": "d478eb55afc0d60b739b090cc9dfb548b0fec09169a1b33c05132a3ff3098d43",
   "physical_hardware_test": "NOT PERFORMED"
 }

@@ -46,12 +46,12 @@ void MX_LTDC_Init(void)
   hltdc.Init.PCPolarity = LTDC_PCPOLARITY_IPC;
   hltdc.Init.HorizontalSync = 0;
   hltdc.Init.VerticalSync = 0;
-  hltdc.Init.AccumulatedHBP = 159;
-  hltdc.Init.AccumulatedVBP = 22;
-  hltdc.Init.AccumulatedActiveW = 1183;
-  hltdc.Init.AccumulatedActiveH = 622;
-  hltdc.Init.TotalWidth = 1343;
-  hltdc.Init.TotalHeigh = 634;
+  hltdc.Init.AccumulatedHBP = 47;
+  hltdc.Init.AccumulatedVBP = 4;
+  hltdc.Init.AccumulatedActiveW = 1071;
+  hltdc.Init.AccumulatedActiveH = 604;
+  hltdc.Init.TotalWidth = 1119;
+  hltdc.Init.TotalHeigh = 609;
   hltdc.Init.Backcolor.Blue = 0;
   hltdc.Init.Backcolor.Green = 0;
   hltdc.Init.Backcolor.Red = 0;
@@ -99,7 +99,7 @@ void HAL_LTDC_MspInit(LTDC_HandleTypeDef* ltdcHandle)
   */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
     PeriphClkInitStruct.PLL3.PLL3M = 5;
-    PeriphClkInitStruct.PLL3.PLL3N = 160;
+    PeriphClkInitStruct.PLL3.PLL3N = 128;
     PeriphClkInitStruct.PLL3.PLL3P = 2;
     PeriphClkInitStruct.PLL3.PLL3Q = 2;
     PeriphClkInitStruct.PLL3.PLL3R = 10;

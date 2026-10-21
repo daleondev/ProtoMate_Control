@@ -1,20 +1,20 @@
 {
   "board": "display-adapter",
   "result": "PASS",
-  "exported_pad_coordinates_and_nets_checked": 178,
-  "drill_hits_checked": 155,
+  "exported_pad_coordinates_and_nets_checked": 258,
+  "drill_hits_checked": 217,
   "ffc_paste_windows_checked": 80,
   "silk_coverage_upper_bound_percent": {
-    "top": 11.11445250576203,
-    "bottom": 6.120055584850968
+    "top": 11.628209821923377,
+    "bottom": 5.3130416424493685
   },
   "layers": {
     "top-copper": {
-      "objects": 836,
+      "objects": 2187,
       "bounds_mm": [
         [
           0.3005,
-          0.3005
+          -14.6995
         ],
         [
           54.6995,
@@ -23,11 +23,11 @@
       ]
     },
     "top-mask": {
-      "objects": 276,
+      "objects": 405,
       "bounds_mm": [
         [
           1.67778,
-          1.903391
+          -13.096609
         ],
         [
           53.096609,
@@ -36,11 +36,11 @@
       ]
     },
     "top-silk": {
-      "objects": 700,
+      "objects": 829,
       "bounds_mm": [
         [
           1.67778,
-          0.432086
+          -14.767914
         ],
         [
           53.096609,
@@ -49,24 +49,24 @@
       ]
     },
     "top-paste": {
-      "objects": 116,
+      "objects": 190,
       "bounds_mm": [
         [
           4.15,
-          1.95
+          -13.049999999999999
         ],
         [
-          50.849999999999994,
+          52.225,
           34.65
         ]
       ]
     },
     "bottom-copper": {
-      "objects": 551,
+      "objects": 783,
       "bounds_mm": [
         [
           0.3005,
-          0.3005
+          -14.6995
         ],
         [
           54.6995,
@@ -75,11 +75,11 @@
       ]
     },
     "bottom-mask": {
-      "objects": 205,
+      "objects": 267,
       "bounds_mm": [
         [
           1.67778,
-          1.903391
+          -13.096609
         ],
         [
           53.096609,
@@ -88,11 +88,11 @@
       ]
     },
     "bottom-silk": {
-      "objects": 384,
+      "objects": 438,
       "bounds_mm": [
         [
           1.67778,
-          0.7627050000000001
+          -13.096609
         ],
         [
           53.096609,
@@ -113,12 +113,38 @@
         ]
       ]
     },
+    "inner_1-copper": {
+      "objects": 214,
+      "bounds_mm": [
+        [
+          0.3005,
+          -14.6995
+        ],
+        [
+          54.6995,
+          34.6995
+        ]
+      ]
+    },
+    "inner_2-copper": {
+      "objects": 1342,
+      "bounds_mm": [
+        [
+          1.675,
+          -10.425
+        ],
+        [
+          50.475,
+          34.025000000000006
+        ]
+      ]
+    },
     "mechanical-outline": {
       "objects": 4,
       "bounds_mm": [
         [
           -0.025,
-          -0.025
+          -15.025
         ],
         [
           55.025,

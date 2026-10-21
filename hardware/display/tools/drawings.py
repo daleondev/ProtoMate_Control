@@ -27,7 +27,8 @@ def cable():
         for p in range(1,81):
             net=nets[str(p)]
             display=next((str(s['panel']) for s in SIGNALS if 'LCD_'+s['name']==net),'')
-            if net=='+3V3_PANEL':display='5,6,7,8,10,49'
+            if net=='+3V3_PANEL':display='10,49; logic supply only'
+            if net=='PANEL_READY':display='Adapter supervisors -> PI1 / D70; no direct panel pin'
             if net=='GND':display='1,2,3,4,11,36,40,42,50'
             w.writerow([p,81-p,net,display])
     with PdfPages(ROOT/'cable-specification.pdf') as pdf:
@@ -47,8 +48,8 @@ def cable():
             'Mating thickness 0.30 ±0.05 mm. Stiffener thickness at least 0.188 mm. Exposed contact length at least 3.5 mm; stiffener length at least 4.5 mm. All dimensions must also meet the Hirose FH28 cable-end drawing.',
             'Dashed blue regions show the stiffeners on the opposite face. Gold regions are both on the face shown. Fit that exposed-contact face to the FH28 contact face shown in its manufacturer drawing; do not identify orientation from blue stiffener colour alone.',
             'Both PCB sockets: Hirose FH28H-80S-0.5SH(05). With the two top-mounted sockets facing each other, GIGA pin n reaches display pin 81-n. Confirm this by continuity before applying power.',
-            '24V power: GIGA 1/3 <-> display 80/78. Panel 3.3V reference return: GIGA 5/7/9 <-> display 76/74/72. 40 ground conductors. PCLK 31 <-> 50 keeps ground on both sides.',
-            'Rated at least 60V and 0.5A per conductor; copper cross-section >=0.0105 mm2 (e.g. 0.30 x 0.035 mm). Procure as custom drawing FFC-80-A-100 revision D if no catalogue cable meets every requirement. The cable is not part of either PCB SMT BOM.'
+            '24V power: GIGA 1/3 <-> display 80/78. Panel 3.3V reference return: GIGA 5/7/9 <-> display 76/74/72. READY: GIGA 10 <-> display 71. 39 grounds; PCLK 31 <-> 50 has ground on both sides.',
+            'Rated at least 60V and 0.5A per conductor; copper cross-section >=0.0105 mm2 (e.g. 0.30 x 0.035 mm). Procure as custom drawing FFC-80-A-100 revision E if no catalogue cable meets every requirement. The cable is not part of either PCB SMT BOM.'
         ],y=.43,width=132,size=9)
         pdf.savefig(fig);plt.close(fig)
 
@@ -58,7 +59,7 @@ def fabrication(name):
         fig=sheet(name+' — fabrication drawing', BOARDS[name]['revision'], BOARDS[name]['date'])
         ax=fig.add_axes([.05,.38,.62,.5]);ax.set_aspect('equal');ax.axis('off')
         if name=='display-adapter':
-            contour=[(0,0),(55,0),(55,35),(0,35)];holes=[(3,12),(52,12),(3,32),(52,32)];diam=2.2;width,height=55,35;thick=1.6
+            contour=[(0,0),(55,0),(55,50),(0,50)];holes=[(3,12),(52,12),(3,47),(52,47)];diam=2.2;width,height=55,50;thick=1.6
         else:
             contour=board_outline(name)
             holes=[p for p in GEOMETRY['mounting_holes'] if p[0]>88 or p[0]<17 and (p[1]<5 or p[1]>49)];diam=3.2;width,height=111,53.34;thick=1.6
@@ -76,13 +77,16 @@ def fabrication(name):
             ax.plot([p[0]for p in points],[p[1]for p in points],color='black',lw=1.5)
         for a,c in BRIDGES[name]:ax.plot([a[0],c[0]],[a[1],c[1]],color='red',lw=1.5)
         ax.set_xlim(min(x for x,y in contour)-8,max(x for x,y in contour)+8);ax.set_ylim(height+9,-9)
-        for x,y in holes:ax.add_patch(Circle((x,y),diam/2,fill=False));ax.text(x+2,y+2,f'({x:.2f}, {y:.2f})',fontsize=6)
+        for x,y in holes:
+            ax.add_patch(Circle((x,y),diam/2,fill=False))
+            right_side=x>(min(px for px,py in contour)+max(px for px,py in contour))/2
+            ax.text(x-2 if right_side else x+2,y+2,f'({x:.2f}, {y:.2f})',fontsize=6,ha='right' if right_side else 'left')
         left=min(x for x,y in contour);right=max(x for x,y in contour)
         ax.annotate('',(left,-5),(right,-5),arrowprops={'arrowstyle':'<->'});ax.text((left+right)/2,-6,f'{width:.2f}',ha='center')
         ax.annotate('',(right+5,0),(right+5,height),arrowprops={'arrowstyle':'<->'});ax.text(right+6,height/2,f'{height:.2f}',rotation=90,va='center')
         fig.text(.70,.90,f'Finished thickness: {thick:.1f} mm +/-10%\n{BOARDS[name]["layers"]} layers, FR-4\n35 um copper, all layers\nENIG\nGreen mask / white silk\nIPC Class 2\nElectrical test: 100%\nRed: bridge suggestions',fontsize=11,linespacing=1.8,va='top')
         notes(fig,[
-            f'Layer order: {" / ".join(copper_layers(name))}. Routed Edge.Cuts and drill files are authoritative. '+('Four-layer dielectrics: 0.14 / 1.20 / 0.14 mm, nominal finished 1.6 mm. Concave milling radii 0.9 mm.' if name=='giga-adapter' else 'Nominal core 1.53 mm; AISLER controls laminate construction at the specified finished thickness.'),
+            f'Layer order: {" / ".join(copper_layers(name))}. Routed Edge.Cuts and drill files are authoritative. '+('Four-layer dielectrics: 0.14 / 1.20 / 0.14 mm, nominal finished 1.6 mm. GIGA concave milling radii: 0.9 mm.' if BOARDS[name]['layers']==4 else 'AISLER controls laminate construction at the specified finished thickness.'),
             f'Minimum track 0.15 mm; copper clearance {0.125 if name=="display-adapter" else 0.15:.3f} mm. Through via drill {BOARDS[name]["via_drill"]:.2f} mm, diameter {BOARDS[name]["via_diameter"]:.2f} mm, annular ring >=0.15 mm. Exposed vias, no via-in-pad. Zero source mask expansion; processed fine-pitch webs >=0.10 mm. Component-hole rings >=0.30 mm.',
             'AISLER bare boards only; ENIG on both boards. Use the ODB++ upload ZIP, including the aisler-bridges document layer. Keep the closed profile unchanged. PTH and NPTH drills are separate. No assembly or stencil is ordered.',
             'Origin in Gerbers, drills and placement: X=0, Y=lower board edge; positive Y upward. Drawing coordinates above use KiCad top-left Y-down for mechanical reference.',
@@ -99,7 +103,8 @@ def fabrication(name):
             'J1 DF23C-50DP-0.5V(92) is BOTTOM mounted. Viewed from the PCB top: pin 1 is lower left of the contact array, pin 2 above it, pin 49 lower right. Cross-check Smartwin rear-view Detail A before mating.',
             'J2 FH28H is TOP mounted, mouth facing the upper board edge, pin 1 at the right end viewed from the top. Fit the cable with the specified same-side contact orientation.',
             'U1 TRACO TSR 2-2433 is HAND soldered on TOP. Pin 1 = 24V in, pin 2 = GND, pin 3 = 3.3V out. Follow the pin-1 marking; the 12V converter is NOT interchangeable.',
-            'After soldering U1, clip its leads to at most 0.8 mm below the PCB, preserving the solder joints. Untrimmed module leads protrude below the nominal display mating plane. The STEP assembly model shows trimmed leads.',
+            'After soldering U1 and U2, clip their leads to at most 0.8 mm below the PCB, preserving the solder joints. Untrimmed module leads protrude below the nominal display mating plane. The STEP assembly model shows trimmed leads.',
+            'U2 is TSR 1-2450 (5V); U3 is TPS7A91 (3.296V). Solder the WSON exposed pad with paste and controlled hot air/reflow. No via filling is required. Never swap converter types.',
             'Support the PCB on four M2 insulating mounts and clamp the FFC/the ribbon to the enclosure. The display flex and DF23 must carry no cable or PCB weight. Maintain nominal 1.5 mm mating-board spacing at DF23, independent of the 1.6 mm PCB thickness.'
         ]
         else:lines += [

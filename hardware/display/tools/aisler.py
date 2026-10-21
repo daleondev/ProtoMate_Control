@@ -22,7 +22,7 @@ SUPPORT = ROOT / 'aisler-support' if (ROOT/'aisler-support').is_dir() else ROOT.
 _detached = []
 BRIDGES = {
     'display-adapter': [((-.4,18),(-1.8,18)), ((55.4,18),(56.8,18)),
-                        ((3,-.4),(3,-1.8)), ((38,35.4),(38,36.8))],
+                        ((3,-.4),(3,-1.8)), ((38,50.4),(38,51.8))],
     'giga-adapter': [((35,-.4),(35,-1.8)), ((85,-.4),(85,-1.8)),
                     ((35,53.74),(35,55.14)), ((85,53.74),(85,55.14)),
                     ((10.6,50),(9.2,50)), ((122.4,26),(123.8,26))],
@@ -80,7 +80,7 @@ def normalize_footprint(f):
         p.SetLocalSolderMaskMargin(0)
         if 'GIGA_J8' in str(f.GetFPID().GetLibItemName()) or f.GetReference() == 'J8':
             p.SetSize(point(1.70, 1.70))
-        if 'TRACO_TSR-1_THT' in str(f.GetFPID().GetLibItemName()) or f.GetReference() == 'U8':
+        if 'TRACO_TSR-1_THT' in str(f.GetFPID().GetLibItemName()):
             size = p.GetSize()
             p.SetSize(k.VECTOR2I(max(size.x, k.FromMM(1.70)), size.y))
     for item in f.GraphicalItems():
@@ -90,9 +90,12 @@ def normalize_footprint(f):
     # Keep the full outlines on Fab and an unambiguous pin-1/cathode dot on silk.
     sparse = {
         'TSSOP-24_4.4x7.8mm_P0.65mm': (-1.7, -3.2),
-        'SOT-23-6': (-.15, -.45), 'D_SMA': (-.3, 0), 'D_SMB': (-.4, 0),
+        'SOT-23-6': (-.15, -.45), 'SOT-23-6_UpperPin1': (-.15, -.85), 'D_SMA': (-.3, 0), 'D_SMB': (-.4, 0),
         'Converter_DCDC_TRACO_TSR2-xxxx_THT': (-2.4, -3.4),
         'R_0603_1608Metric': None, 'R_0402_1005Metric': None,
+        'C_1210_3225Metric': None,
+        'TSSOP-14_4.4x5mm_P0.65mm': None,
+        'WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm': None,
     }
     key = str(f.GetFPID().GetLibItemName())
     if key in sparse:
@@ -156,6 +159,8 @@ def board_settings(b, name):
         normalize_footprint(f)
         part=parts.get(f.GetReference())
         if part:
+            if part['assembly']=='PCB':
+                f.SetAttributes(f.GetAttributes() | k.FP_EXCLUDE_FROM_BOM | k.FP_EXCLUDE_FROM_POS_FILES)
             for field,key in [('Manufacturer','mfr'),('MPN','mpn'),('Assembly','assembly')]:
                 f.SetField(field,part[key]);f.GetField(field).SetVisible(False)
             for p in f.Pads():
@@ -164,6 +169,8 @@ def board_settings(b, name):
                     if name=='giga-adapter' and f.GetReference()=='U7':
                         pinname={'4':'NC','7':'SHDN','10':'IMON','13':'NC','14':'FLT'}[p.GetNumber()]
                         netname=f'unconnected-(U7-{pinname}-Pad{p.GetNumber()})'
+                    if name=='display-adapter' and f.GetReference()=='U3' and p.GetNumber()=='5':
+                        netname='unconnected-(U3-PG-Pad5)'
                     net=b.FindNet(netname)
                     if not net:
                         net=k.NETINFO_ITEM(b,netname);b.Add(net)

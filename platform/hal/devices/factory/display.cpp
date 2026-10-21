@@ -15,7 +15,12 @@ namespace hal::device::display {
         auto standby = gpio::create_output({.pin=configuration.standby});
         auto reset = gpio::create_output({.pin=configuration.reset});
         if (!standby || !reset) { return {}; }
-        return std::make_shared<SmartwinDisplay>(std::move(output), std::move(standby), std::move(reset));
+        std::shared_ptr<IDigitalInput> powerReady;
+#if !defined(HAL_PLATFORM_LINUX)
+        powerReady = gpio::create_input({.pin=configuration.powerReady, .pull=gpio::Pull::Down});
+        if (!powerReady) { return {}; }
+#endif
+        return std::make_shared<SmartwinDisplay>(std::move(output), std::move(standby), std::move(reset), std::move(powerReady));
     }
     auto create_touch(TouchConfiguration configuration) -> std::shared_ptr<ITouch> {
 #if defined(HAL_PLATFORM_LINUX)

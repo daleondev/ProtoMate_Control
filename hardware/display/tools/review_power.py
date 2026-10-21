@@ -46,8 +46,12 @@ def main():
         ('giga-adapter', ('D3', 1), ('J9', 24)),
         ('display-adapter', ('U1', 1), ('C9', 1)),
         ('display-adapter', ('U1', 1), ('C10', 1)),
-        ('display-adapter', ('U1', 3), ('TP1', 1)),
-        *[('display-adapter', ('U1', 3), ('J2', pin)) for pin in [72, 74, 76]],
+        ('display-adapter', ('U1', 1), ('U2', 1)),
+        ('display-adapter', ('U2', 3), ('U3', 9)),
+        ('display-adapter', ('U3', 1), ('C13', 1)),
+        ('display-adapter', ('U3', 1), ('C14', 1)),
+        ('display-adapter', ('U3', 1), ('TP1', 1)),
+        *[('display-adapter', ('U3', 1), ('J2', pin)) for pin in [72, 74, 76]],
     ]:
         resistance, _ = resistance_path(boards[name], *start, *end)
         routes.append(dict(board=name, start=f'{start[0]}.{start[1]}',
