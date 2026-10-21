@@ -1,25 +1,35 @@
 # Smartwin–GIGA display adapters
 
-The **two-layer display adapter (revision C)** and **four-layer GIGA adapter
-(revision B)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
+The **two-layer display adapter (revision D)** and **four-layer GIGA adapter
+(revision C)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
 **GIGA R1 WiFi**, preserving the firmware's display pin assignments.
 Open either project in KiCad 10; both use `libraries/` and require no downloaded
 symbol or footprint library. Keep this directory structure when moving them.
 
 Release files:
 
-- [Display adapter: fabrication and assembly ZIP](releases/display-adapter-rev-C-pcbway.zip)
-- [GIGA adapter: fabrication and assembly ZIP](releases/giga-adapter-rev-B-pcbway.zip)
-- [Both KiCad projects, libraries and models](releases/smartwin-giga-rev-C-source.zip)
-- [Nominal GIGA mating assembly preview](assembly/giga-mated-rev-B.png)
+- [Display D: AISLER ODB++ upload](releases/display-adapter-rev-D-aisler-odb.zip)
+- [GIGA C: AISLER ODB++ upload](releases/giga-adapter-rev-C-aisler-odb.zip)
+- [Display D: review and soldering package](releases/display-adapter-rev-D-aisler-review.zip)
+- [GIGA C: review and soldering package](releases/giga-adapter-rev-C-aisler-review.zip)
+- [Source bundle D: projects, libraries, models and tools](releases/smartwin-giga-rev-D-source.zip)
+- [Nominal GIGA mating assembly](assembly/giga-mated-rev-C.png)
 
-Each PCBWay ZIP contains `PCBWAY_ORDER.txt`, separate SMT/full BOMs and the
-matching placement file. `releases/SHA256SUMS` identifies the final archives.
+Upload only the two ZIPs labelled **AISLER ODB++ upload**, one job per board.
+The review packages contain fabrication references, procurement BOMs, placement
+and soldering drawings. They are not assembly orders. `releases/SHA256SUMS`
+identifies the exact archives.
 
-| Project | Board | Assembly |
-|---|---|---|
-| `display-adapter/display-adapter.kicad_pro` | Rev C, **2 layers**, 55 × 35 × 1.0 mm | SMT on both sides; U1 converter hand soldered |
-| `giga-adapter/giga-adapter.kicad_pro` | Rev B, **4 layers**, 111 × 53.34 × 1.6 mm maximum, central power tab | SMT on top; J2–J10 and U8 hand soldered |
+| Project | Board | AISLER profile | Finish |
+|---|---|---|---|
+| `display-adapter/display-adapter.kicad_pro` | Rev D, 2 layers, 55 × 35 × 1.6 mm | `aisler-2-layer-hd-drc` | ENIG |
+| `giga-adapter/giga-adapter.kicad_pro` | Rev C, 4 layers, 111 × 53.34 × 1.6 mm maximum | `aisler-4-layer-hd-drc` | ENIG |
+
+Both are **bare boards**, with 35 µm copper on every layer, green solder mask
+and white silkscreen. All components are sourced and installed separately.
+**AISLER processing acceptance is pending** until the exact upload previews,
+options, bridges and netlist notes have been inspected. Physical qualification
+also remains pending; local verification does not establish either acceptance.
 
 The display adapter carries a **DF23C-50DP-0.5V(92) plug on its underside**.
 It mates with the existing display connector; do not remove the display connector
@@ -99,14 +109,17 @@ each carries approximately 0.263 A, below the DF23's 0.3 A/contact rating.
 
 The calculated panel-voltage budget uses converter accuracy, line/load
 regulation, ±0.02%/K temperature coefficient over a 0–70°C calculation range,
-a 50 mV negative ripple allowance, 40 mΩ of PCB supply/return resistance and
-30 mV of contact drop. At 1.5 A this leaves approximately **3.015 V**, above the
+a 50 mV negative ripple allowance, 33.6 mV of routed supply drop plus a 20 mΩ return allowance and
+30 mV of contact drop. At 1.5 A this leaves approximately **3.011 V**, above the
 panel's **3.0 V minimum**, with limited worst-case margin. This is a conservative
 allocation, not measured performance; verify it at CN1 under full brightness
 and the actual enclosure temperature. Module derating, ripple, current sharing
 and the panel's **1–20 ms supply rise time** remain first-board checks.
 `manufacturing/verification/power-budget.json` records the calculations and
-assumptions. Do not exceed the panel's 3.6 V absolute supply limit.
+assumptions. `power-routing.json` derives branch resistance from the final track lengths and widths,
+including the relocated touch-power branch. The 1.5 A budget is explicitly split
+between backlight (1.05 A), TFT (0.25 A), touch (0.05 A) and interface rail
+(0.15 A); this split also needs checking on the first board. Do not exceed the panel's 3.6 V absolute supply limit.
 
 ## Interfaces and startup
 
@@ -154,8 +167,7 @@ three return the panel supply reference. PCLK has ground on both sides.
 | Protected, branch-fused 24 V | 1, 3 | 80, 78 |
 | PANEL_3V3 reference return | 5, 7, 9 | 76, 74, 72 |
 
-Use the **display-C / GIGA-B pair**. Its powered cable assignment is incompatible
-with the earlier separately powered adapters: do not mix revisions. The cable
+Use the **display-D / GIGA-C pair** and its revision-D cable drawing. The cable
 must be rated at least 60 V and 0.5 A per conductor, with copper cross-section
 at least 0.0105 mm²; a mechanically fitting cable alone is insufficient.
 
@@ -190,9 +202,10 @@ Add cable clamping to that frame near each FFC socket. The ribbon, power leads
 and adapter must not hang from the display flex or its DF23 connector. Keep the
 FFC short and flat; do not sharply crease it at either stiffener.
 
-PCBWay assembles every SMT part, including the bottom-side DF23. U1 on the display
-adapter, and J2–J10 plus U8 on the GIGA adapter, are **HAND** parts in the full BOM and absent
-from the SMT BOM/centroid file. Solder stacking headers with a mechanical jig or
+Install all components yourself or through a separately arranged process. The bottom-side
+DF23 and both FFC connectors require particular care. U1 on the display adapter
+and J2–J10 plus U8 on the GIGA adapter are marked **HAND** in the full BOM; the
+SMD-only BOM and placement file are assembly aids, not an AISLER assembly order. Solder stacking headers with a mechanical jig or
 an unpowered GIGA used only as an alignment fixture; avoid heating the board's
 existing sockets unnecessarily. Fit shield J10 with its wire opening
 facing left into the central opening. Probe pads, fiducials and mounting holes are PCB
@@ -214,10 +227,10 @@ The firmware's 51.2 MHz pixel clock has a 19.53125 ns period and a 9.765625 ns
 half-period. Smartwin requires 5 ns setup and hold. With data launched on the
 opposite edge, the AXC8's 0.5–4.0 ns propagation range gives a conservative
 3.5 ns clock/data mismatch allowance across devices. The adapter's routed RGB
-length mismatch contributes up to 0.406 ns using a 7 ps/mm propagation estimate.
+length mismatch contributes up to 0.407 ns using a 7 ps/mm propagation estimate.
 ST's DS12930 Table 105 additionally allows 0.5 ns half-cycle error and 0.5 ns
 maximum data-valid delay. Under that table's characterization conditions, the
-remaining calculated setup/hold margins are only **0.238 ns / 0.360 ns**, before
+remaining calculated setup/hold margins are only **0.240 ns / 0.358 ns**, before
 Arduino PCB skew, cable/connector effects, settling and jitter. Those conditions
 include the specified output speed, load and IO compensation; this hardware
 task does not change firmware to establish them.
@@ -236,7 +249,7 @@ does not prove timing margin over temperature and supply variation.
 The display adapter routes all signals on **F.Cu and B.Cu**, with ground pours on
 both sides and 41 ground vias tying the returns together. A ground rail connects
 the FFC ground contacts. Staggered Hirose escapes use **0.55 mm copper / 0.25 mm
-drilled vias**, retaining 0.15 mm annular rings and 0.15 mm track/clearance rules.
+drilled vias**, retaining 0.15 mm annular rings, 0.15 mm tracks and 0.125 mm HD clearances.
 The larger power and ground vias remain 0.65/0.30 mm. Bulk capacitors are below
 the connector fan-out; the backlight feed uses dedicated broad traces. PCLK has
 a deliberate length adjustment to balance setup/hold against the GIGA routing.
@@ -246,41 +259,68 @@ review is in `manufacturing/verification/display-adapter-layout-review.json`.
 
 The GIGA adapter uses an **In1.Cu ground reference plane**, with signals
 on F.Cu, In2.Cu and B.Cu and minimum 0.65/0.30 mm vias. Both boards use minimum
-0.15 mm tracks and clearances. Vias are tented on both outer sides,
-including beneath the Hirose bodies. No open via is used in a solder pad.
+0.15 mm tracks; GIGA clearances remain 0.15 mm. All vias are exposed through-vias; isolation does not depend on tenting,
+plugging or filling. DF23 note-3 contact bands are via keepouts. FH28 has a
+fully molded bottom, which its datasheet explicitly permits PCB patterning beneath.
+No via is used in a solder pad.
 Global fiducials are provided on both populated sides of the display adapter
 and on the GIGA adapter's populated top side.
-Fine-pitch mask webs are at least 0.13 mm at the FFC and I2C buffer pads. The FFC
+Source mask expansion is zero. Fiducials have explicit 2 mm mask openings.
+The mask audit includes AISLER’s published 20 µm per-side enlargement and
+requires at least 0.10 mm webs between fine-pitch contacts. The FFC
 paste windows follow Hirose's 0.25 × 1.00 mm recommendation.
 
-J8 uses 1.55 mm pads with 1.05 mm holes, leaving a 0.25 mm annular ring and space
-for routing between contacts. Other stacking headers retain 1.8 mm pads.
+J8 uses 1.70 mm pads with 1.05 mm holes (0.325 mm annular rings). U8’s
+narrow pad dimension is 1.70 mm with its original 1.00 mm drill. Other stacking
+headers retain 1.8 mm pads. All component-hole rings are at least 0.30 mm.
 
-## Fabrication and assembly order
+## AISLER upload and manufacturing review
 
-Use the **display revision-C ZIP with two layers** and the **GIGA revision-B ZIP
-with four layers**. Select FR-4, 1 oz copper on every copper layer, ENIG, green
-solder mask, white silkscreen, IPC Class 2 and
-100% electrical test. Finished thickness is **1.0 mm display / 1.6 mm GIGA**.
-The routed outline is authoritative. Do not mirror bottom Gerbers. Request
-PCBWay's assembly panelization/rails; do not alter the individual board outline.
+1. Upload `display-adapter-rev-D-aisler-odb.zip` and
+   `giga-adapter-rev-C-aisler-odb.zip` as separate AISLER projects.
+2. Confirm **2/4 layers respectively, ENIG on both, 1.6 mm ±10%, 35 µm copper**,
+   green mask and white silk. Select bare boards only; no assembly or stencil.
+3. Inspect the processed copper, holes and mask. Confirm all 50 display contacts,
+   80 FFC contacts, separate plated/non-plated drills, exposed vias and fine webs.
+   Check netlist/Smart Tests processing notes against the supplied netlists.
+4. Inspect four display and six GIGA bridge markers from `aisler-bridges`.
+   The actual profile must remain closed. Keep bridges clear of the connector
+   mating edges and service cutouts. Resolve any missing or relocated marker
+   with AISLER before ordering. Trim remnants before soldering components.
+5. Compare the processed preview with the independent Gerbers and assembly
+   drawings, then record the AISLER project/revision and acceptance. No order
+   has been placed by this work.
 
-The package includes copper/mask/silk/paste/outline Gerbers, separate PTH/NPTH
-drills, electrical-test netlist, full and SMT-only BOMs, centroid CSV, schematics,
-fabrication/assembly drawings and STEP. All coordinates are millimetres; the
-drill/place origin is X=0 at the lower board edge, positive Y upward. Bottom-side
-centroid X is not negated; rotation follows KiCad's native placement convention.
-Use the assembly drawings to resolve connector orientation during CAM review.
+The four-layer stack uses the published 0.14 / 1.20 / 0.14 mm dielectric
+construction with four 35 µm copper layers. The nominal layer sum is 1.62 mm,
+within the specified 1.6 mm ±10% finished thickness. The two-layer nominal
+1.53 mm core is mechanical bookkeeping; AISLER controls its production laminate.
+Concave outline corners use 0.9 mm radii for a 1.8 mm milling tool.
 
-Hirose specifies a 0.15 mm stencil for the FH28 land pattern. Request a **stepped
-stencil: 0.15 mm at the FFC, 0.10–0.12 mm at 0402/TSSOP parts**, using the supplied
-paste apertures. PCBWay may propose an equivalent qualified paste process; do not
-silently enlarge the fine-pitch apertures or omit their mask webs. Confirm exact
-Hirose suffixes and Samtec tail options when sourcing; no connector substitutions.
+The display PCB is 1.6 mm thick. DF23 mating separation is measured between
+PCB surfaces and remains nominally 1.5 mm (minimum 1.3 mm). Converter tails
+trimmed to 0.8 mm leave 0.5 mm at that minimum separation. Check the top-side
+enclosure envelope and supports against the finished thickness tolerance.
+The GIGA adapter retains its 13 mm underside clearance and header geometry.
 
-Current capability references: [PCBWay fabrication](https://www.pcbway.com/capabilities.html)
-and [assembly requirements](https://www.pcbway.com/assembly-faq.html). Uploading
-files does not place an order; no order has been placed by this work.
+The package retains Gerbers for every copper/mask/silk/paste layer, separate
+PTH/NPTH drills, IPC-D-356 and schematic netlists, schematics, STEP models,
+fabrication drawings, full BOM, SMD placement aids and cable specification.
+Gerber/drill/place coordinates use the lower-edge auxiliary origin; ODB++ uses
+absolute KiCad X and negated Y. Each format is internally audited.
+No bottom fabrication layer is mirrored manually.
+
+Local checks pass with zero ERC/DRC/parity findings, zero unrouted connections
+and no manufacturing waivers. The processed connector-mask estimate is at
+least 0.152 mm on the display board and 0.113 mm on GIGA, including nearby
+exposed vias; pad-to-pad fine-pitch webs are at least 0.160 mm. These are
+local calculations, to be confirmed in AISLER’s processed preview.
+
+Rules are based on support revision
+`00fe215f96ce7a938946e1a176de4ca8cac291ef`. The upstream submodule remains unchanged.
+The templates are supplemented by component-hole rings, silk, processed-mask,
+exposed-via, bridge and mechanical audits; there are no manufacturing waivers.
+See [manufacturer references and locked inputs](references/AISLER.md).
 
 ## First-board acceptance
 
@@ -314,14 +354,17 @@ nets, manufacturer pin tables, all cable conductors and the CubeMX pin assignmen
 KiCad, and checks exported pad/drill coordinates and layer geometry. Release
 archives are made only after these checks and visual/mechanical review.
 
-`tools/design.py` defines each board's revision and layer/via rules separately;
-the source bundle revision is C. `tools/review_layout.py` uses Shapely to measure
-the display board's filled ground geometry. It reports geometry only, not a
-field-solver or physical timing result. To refresh the display release, run
-`export_release.py display-adapter`, `audit.py`, `routing_report.py`,
-`review_layout.py`, and `inspect_gerbers.py display-adapter`; regenerate its
-fabrication drawing with `drawings.fabrication('display-adapter')`, review the
-exports, then run `package_release.py --reviewed --boards display-adapter`.
-Use the release status to record the actual reviews before packaging.
+`tools/design.py` defines board revisions and layer/via settings;
+`tools/aisler.py` applies the pinned manufacturing profiles without replacing
+routing. The source bundle revision is D. The source bundle includes the same
+support templates and a hashed CubeMX pin snapshot for offline reproduction.
+In the full repository, the electrical audit checks the current CubeMX file;
+outside it, the report explicitly identifies the recorded release assignments.
+
+Use Python with pcbnew, NumPy, Pillow, Shapely, Matplotlib and Gerbonara, plus
+KiCad 10, FreeCAD and Inkscape. `tools/release.py` runs the local checks and
+exports; review the generated drawings and 3D assembly before packaging with
+`tools/package_release.py --reviewed`. The manufacturing status separates local
+validation from pending AISLER processing and first-board qualification.
 
 Source documents and attribution are listed in `references/SOURCES.md`.

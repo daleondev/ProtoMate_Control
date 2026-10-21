@@ -1,0 +1,11 @@
+{
+  "repository": "git@github.com:AislerHQ/aisler-support.git",
+  "revision": "00fe215f96ce7a938946e1a176de4ca8cac291ef",
+  "checked_date": "2026-10-21",
+  "template_sha256": {
+    "kicad/aisler-2-layer-hd-drc/aisler-2-layer-hd-drc.kicad_pro": "7018d09dac5a1671d20831bf38482455eedb110cbda94d7f801d4a9aed5f66eb",
+    "kicad/aisler-2-layer-hd-drc/aisler-2-layer-hd-drc.kicad_dru": "0b209f19ce1fcd28e7d23634f8d77f059e175b10bbfe24b6cb73f14fc9458bd5",
+    "kicad/aisler-4-layer-hd-drc/aisler-4-layer-hd-drc.kicad_pro": "a67e39fc8155d3d10f384a41f95d5b53be6e3aa4827f1ea4a19cf1b4730dc44b",
+    "kicad/aisler-4-layer-hd-drc/aisler-4-layer-hd-drc.kicad_dru": "0b209f19ce1fcd28e7d23634f8d77f059e175b10bbfe24b6cb73f14fc9458bd5"
+  }
+}

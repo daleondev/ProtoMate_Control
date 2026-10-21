@@ -65,6 +65,18 @@ def main(name):
         (x0,y0),(x1,y1)=o.bounding_box(MM)
         if sorted([round(x1-x0,3),round(y1-y0,3)])==[.25,1.0]:windows+=1
     assert windows==80,('Hirose paste aperture mismatch',windows)
+    # Summing object bounding boxes overestimates ink (overlaps counted twice),
+    # giving a conservative independent bound on AISLER's 25% silk coverage.
+    from shapely.geometry import Polygon
+    from design import board_outline
+    area=Polygon(board_outline(name)).area
+    silk_coverage={}
+    for side in ['top','bottom']:
+        total=0
+        for o in stack.graphic_layers[side,'silk'].objects:
+            (x0,y0),(x1,y1)=o.bounding_box(MM);total+=(x1-x0)*(y1-y0)
+        silk_coverage[side]=100*total/area
+        assert total/area<.25,(side,'silk coverage upper bound',total/area)
     for key,g in stack.graphic_layers.items():
         stem='-'.join(key);(preview/(stem+'.svg')).write_text(str(g.to_svg(margin=1)))
         layers[stem]={'objects':len(g.objects),'bounds_mm':g.bounding_box()}
@@ -73,7 +85,7 @@ def main(name):
         subprocess.run(['inkscape',str(svg),'--export-width=2000','--export-filename='+str(png)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     parser_notes=[allowed+'; KiCad emits G90 after %. Absolute coordinates verified against PCB.'] if caught else []
     parser_notes.append('The renderer reports an unused additional argument in KiCad RoundRect aperture macros; Gerbonara renders the defined macro primitives. Pad coordinates and connector paste dimensions were independently checked.')
-    result={'board':name,'result':'PASS','exported_pad_coordinates_and_nets_checked':audited,'drill_hits_checked':len(actual),'ffc_paste_windows_checked':windows,'layers':layers,'parser_notes':parser_notes,'visual_inspection':'See inspection/*.svg and top/bottom.png; recorded separately in release status.'}
+    result={'board':name,'result':'PASS','exported_pad_coordinates_and_nets_checked':audited,'drill_hits_checked':len(actual),'ffc_paste_windows_checked':windows,'silk_coverage_upper_bound_percent':silk_coverage,'layers':layers,'parser_notes':parser_notes,'visual_inspection':'See inspection/*.svg and top/bottom.png; recorded separately in release status.'}
     (report/(name+'-gerber-audit.json')).write_text(json.dumps(result,indent=2)+'\n');print(name,audited,'pads,',len(actual),'drills: PASS')
 
 if __name__=='__main__':

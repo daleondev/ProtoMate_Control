@@ -8,10 +8,12 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 GEOMETRY = json.loads((ROOT/'references/giga-geometry.json').read_text())
-REVISION = 'C'  # Source bundle; individual board revisions below.
+REVISION = 'D'  # Source bundle; individual board revisions below.
 BOARDS = {
-    'display-adapter': dict(revision='C', date='2026-10-15', layers=2, via_drill=.25, via_diameter=.55),
-    'giga-adapter': dict(revision='B', date='2026-10-15', layers=4, via_drill=.30, via_diameter=.65),
+    'display-adapter': dict(revision='D', date='2026-10-21', layers=2, via_drill=.25, via_diameter=.55,
+                            thickness=1.6, template='aisler-2-layer-hd-drc'),
+    'giga-adapter': dict(revision='C', date='2026-10-21', layers=4, via_drill=.30, via_diameter=.65,
+                         thickness=1.6, template='aisler-4-layer-hd-drc'),
 }
 
 

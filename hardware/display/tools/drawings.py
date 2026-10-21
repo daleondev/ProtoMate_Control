@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fabrication, cable and assembly instruction drawings (vector PDF)."""
-import csv,json,textwrap
+import csv,json,textwrap,math
 from pathlib import Path
 import matplotlib
 matplotlib.use('Agg')
@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle,Polygon,Circle
 from matplotlib.backends.backend_pdf import PdfPages
 from design import ROOT,REVISION,BOARDS,release_name,copper_layers,SIGNALS,ribbon_nets,GEOMETRY,board_outline
+from aisler import BRIDGES,k
 
-def sheet(title, revision=REVISION, date="2026-10-15"):
+def sheet(title, revision=REVISION, date="2026-10-21"):
     fig=plt.figure(figsize=(11.69,8.27));fig.text(.04,.95,title,fontsize=16,weight='bold')
     fig.text(.04,.025,f'ProtoMate | Revision {revision} | {date} | Dimensions in mm | Physical operation not yet verified',fontsize=8)
     return fig
@@ -47,7 +48,7 @@ def cable():
             'Dashed blue regions show the stiffeners on the opposite face. Gold regions are both on the face shown. Fit that exposed-contact face to the FH28 contact face shown in its manufacturer drawing; do not identify orientation from blue stiffener colour alone.',
             'Both PCB sockets: Hirose FH28H-80S-0.5SH(05). With the two top-mounted sockets facing each other, GIGA pin n reaches display pin 81-n. Confirm this by continuity before applying power.',
             '24V power: GIGA 1/3 <-> display 80/78. Panel 3.3V reference return: GIGA 5/7/9 <-> display 76/74/72. 40 ground conductors. PCLK 31 <-> 50 keeps ground on both sides.',
-            'Rated at least 60V and 0.5A per conductor; copper cross-section >=0.0105 mm2 (e.g. 0.30 x 0.035 mm). Procure as custom drawing FFC-80-A-100 revision C if no catalogue cable meets every requirement. The cable is not part of either PCB SMT BOM.'
+            'Rated at least 60V and 0.5A per conductor; copper cross-section >=0.0105 mm2 (e.g. 0.30 x 0.035 mm). Procure as custom drawing FFC-80-A-100 revision D if no catalogue cable meets every requirement. The cable is not part of either PCB SMT BOM.'
         ],y=.43,width=132,size=9)
         pdf.savefig(fig);plt.close(fig)
 
@@ -57,36 +58,49 @@ def fabrication(name):
         fig=sheet(name+' — fabrication drawing', BOARDS[name]['revision'], BOARDS[name]['date'])
         ax=fig.add_axes([.05,.38,.62,.5]);ax.set_aspect('equal');ax.axis('off')
         if name=='display-adapter':
-            contour=[(0,0),(55,0),(55,35),(0,35)];holes=[(3,12),(52,12),(3,32),(52,32)];diam=2.2;width,height=55,35;thick=1.0
+            contour=[(0,0),(55,0),(55,35),(0,35)];holes=[(3,12),(52,12),(3,32),(52,32)];diam=2.2;width,height=55,35;thick=1.6
         else:
             contour=board_outline(name)
             holes=[p for p in GEOMETRY['mounting_holes'] if p[0]>88 or p[0]<17 and (p[1]<5 or p[1]>49)];diam=3.2;width,height=111,53.34;thick=1.6
-        ax.add_patch(Polygon(contour,fill=False,lw=1.5));ax.set_xlim(min(x for x,y in contour)-8,max(x for x,y in contour)+8);ax.set_ylim(height+9,-9)
+        board=k.LoadBoard(str(ROOT/name/(name+'.kicad_pcb')))
+        for edge in board.GetDrawings():
+            if edge.GetLayer()!=k.Edge_Cuts:continue
+            def xy(p):return k.ToMM(p.x),k.ToMM(p.y)
+            a,c=xy(edge.GetStart()),xy(edge.GetEnd())
+            points=[a,c]
+            if edge.GetShape()==k.SHAPE_T_ARC:
+                x,y=xy(edge.GetCenter());r=math.hypot(a[0]-x,a[1]-y)
+                start=math.atan2(a[1]-y,a[0]-x);end=math.atan2(c[1]-y,c[0]-x)
+                delta=(end-start+math.pi)%(2*math.pi)-math.pi
+                points=[(x+r*math.cos(start+delta*i/24),y+r*math.sin(start+delta*i/24))for i in range(25)]
+            ax.plot([p[0]for p in points],[p[1]for p in points],color='black',lw=1.5)
+        for a,c in BRIDGES[name]:ax.plot([a[0],c[0]],[a[1],c[1]],color='red',lw=1.5)
+        ax.set_xlim(min(x for x,y in contour)-8,max(x for x,y in contour)+8);ax.set_ylim(height+9,-9)
         for x,y in holes:ax.add_patch(Circle((x,y),diam/2,fill=False));ax.text(x+2,y+2,f'({x:.2f}, {y:.2f})',fontsize=6)
         left=min(x for x,y in contour);right=max(x for x,y in contour)
         ax.annotate('',(left,-5),(right,-5),arrowprops={'arrowstyle':'<->'});ax.text((left+right)/2,-6,f'{width:.2f}',ha='center')
         ax.annotate('',(right+5,0),(right+5,height),arrowprops={'arrowstyle':'<->'});ax.text(right+6,height/2,f'{height:.2f}',rotation=90,va='center')
-        fig.text(.70,.90,f'Finished thickness: {thick:.1f} mm\n{BOARDS[name]["layers"]} layers, FR-4\n1 oz copper, all layers\nENIG\nGreen mask / white silk\nIPC Class 2\nElectrical test: 100%',fontsize=11,linespacing=1.8,va='top')
+        fig.text(.70,.90,f'Finished thickness: {thick:.1f} mm +/-10%\n{BOARDS[name]["layers"]} layers, FR-4\n35 um copper, all layers\nENIG\nGreen mask / white silk\nIPC Class 2\nElectrical test: 100%\nRed: bridge suggestions',fontsize=11,linespacing=1.8,va='top')
         notes(fig,[
-            f'Layer order: {" / ".join(copper_layers(name))}. Routed Edge.Cuts and drill files are authoritative. Nominal stackup is embedded in the KiCad board; equivalent FR-4 laminate construction is acceptable at the specified finished thickness.',
-            f'Minimum track and copper clearance 0.15 mm; through via drill {BOARDS[name]["via_drill"]:.2f} mm, diameter {BOARDS[name]["via_diameter"]:.2f} mm, annular ring 0.15 mm. Tented vias both sides, no via-in-pad. Preserve fine-pitch solder-mask webs (minimum 0.13 mm).',
-            'PCBWay to add assembly rails/panelization without changing individual outlines or mounting coordinates. Do not mirror bottom fabrication files. PTH and NPTH files are separate.',
+            f'Layer order: {" / ".join(copper_layers(name))}. Routed Edge.Cuts and drill files are authoritative. '+('Four-layer dielectrics: 0.14 / 1.20 / 0.14 mm, nominal finished 1.6 mm. Concave milling radii 0.9 mm.' if name=='giga-adapter' else 'Nominal core 1.53 mm; AISLER controls laminate construction at the specified finished thickness.'),
+            f'Minimum track 0.15 mm; copper clearance {0.125 if name=="display-adapter" else 0.15:.3f} mm. Through via drill {BOARDS[name]["via_drill"]:.2f} mm, diameter {BOARDS[name]["via_diameter"]:.2f} mm, annular ring >=0.15 mm. Exposed vias, no via-in-pad. Zero source mask expansion; processed fine-pitch webs >=0.10 mm. Component-hole rings >=0.30 mm.',
+            'AISLER bare boards only; ENIG on both boards. Use the ODB++ upload ZIP, including the aisler-bridges document layer. Keep the closed profile unchanged. PTH and NPTH drills are separate. No assembly or stencil is ordered.',
             'Origin in Gerbers, drills and placement: X=0, Y=lower board edge; positive Y upward. Drawing coordinates above use KiCad top-left Y-down for mechanical reference.',
-            'Stencil: stepped 0.15 mm at FH28 and 0.10–0.12 mm at 0402/TSSOP parts. Hirose paste apertures are already reduced in the supplied paste layers. No substitutions for connector suffixes or header tail lengths.'
+            'Optional paste reference only (no stencil ordered): 0.15 mm at FH28 and 0.10–0.12 mm at 0402/TSSOP parts. Hirose apertures are reduced in the paste layers. No substitutions for connector suffixes or header tail lengths.'
         ],y=.33,width=140,size=9)
         pdf.savefig(fig);plt.close(fig)
         fig=sheet(name+' — assembly instructions', BOARDS[name]['revision'], BOARDS[name]['date'])
         lines=[
             'Use assembly-F.pdf and assembly-B.pdf for reference designators, pin numbers and component orientation. Bottom drawing is mirrored to show the actual bottom view. Native KiCad placement rotations are retained in placement.csv.',
-            'All components in bom-pcbway-smt.csv are FIT. No DNP SMT components. Parts marked HAND in bom-all.csv are supplied/installed separately and must not appear in the SMT placement file.',
-            'Inspect every 0.5 mm connector contact for bridges, insufficient solder and coplanarity. Check soldermask webs and that no solder or un-tented via protrudes into the Hirose underside/mating keepout.',
+            'All components in bom-all.csv are FIT and installed separately by the builder. bom-smd.csv and placement.csv are placement aids only. HAND denotes through-hole installation; no assembly service is included.',
+            'Inspect every 0.5 mm connector contact for bridges, insufficient solder and coplanarity. Check soldermask webs and that no solder or exposed via intrudes into the DF23 contact-band keepout.',
         ]
         if name=='display-adapter':lines += [
             'J1 DF23C-50DP-0.5V(92) is BOTTOM mounted. Viewed from the PCB top: pin 1 is lower left of the contact array, pin 2 above it, pin 49 lower right. Cross-check Smartwin rear-view Detail A before mating.',
             'J2 FH28H is TOP mounted, mouth facing the upper board edge, pin 1 at the right end viewed from the top. Fit the cable with the specified same-side contact orientation.',
             'U1 TRACO TSR 2-2433 is HAND soldered on TOP. Pin 1 = 24V in, pin 2 = GND, pin 3 = 3.3V out. Follow the pin-1 marking; the 12V converter is NOT interchangeable.',
             'After soldering U1, clip its leads to at most 0.8 mm below the PCB, preserving the solder joints. Untrimmed module leads protrude below the nominal display mating plane. The STEP assembly model shows trimmed leads.',
-            'Support the PCB on four M2 insulating mounts and clamp the FFC/the ribbon to the enclosure. The display flex and DF23 must carry no cable or PCB weight. Maintain nominal 1.5 mm mating-board spacing at DF23.'
+            'Support the PCB on four M2 insulating mounts and clamp the FFC/the ribbon to the enclosure. The display flex and DF23 must carry no cable or PCB weight. Maintain nominal 1.5 mm mating-board spacing at DF23, independent of the 1.6 mm PCB thickness.'
         ]
         else:lines += [
             'J1 FH28H is TOP mounted, cable mouth facing the right board edge. Pin 1 is at the lower end when the board is viewed from the top. Check the silkscreen 1/80 markings.',

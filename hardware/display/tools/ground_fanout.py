@@ -63,7 +63,7 @@ def add_ground_fanout(b,which):
             t=k.PCB_TRACK(b);t.SetStart(origin);t.SetEnd(v);t.SetLayer(layer);t.SetWidth(mm(.18));t.SetNet(ground);t.SetLocked(True);b.Add(t)
             if not old:
                 t=k.PCB_VIA(b);t.SetPosition(v);t.SetWidth(mm(.65));t.SetDrill(mm(.3));t.SetViaType(k.VIATYPE_THROUGH);t.SetLayerPair(k.F_Cu,k.B_Cu);t.SetNet(ground);t.SetLocked(True)
-                t.SetFrontTentingMode(k.TENTING_MODE_TENTED);t.SetBackTentingMode(k.TENTING_MODE_TENTED);b.Add(t);holes.append(hole)
+                t.SetFrontTentingMode(k.TENTING_MODE_NOT_TENTED);t.SetBackTentingMode(k.TENTING_MODE_NOT_TENTED);b.Add(t);holes.append(hole)
             completed.add(identity);connected_points.append((layer,origin))
             break
     failed=[p.GetParentFootprint().GetReference()+'.'+p.GetNumber() for p in groundpads if (p.GetParentFootprint().GetReference(),p.GetNumber()) not in completed]

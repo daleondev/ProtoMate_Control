@@ -1,86 +1,175 @@
 {
-  "revision": "C",
-  "date": "2026-10-15",
-  "release": "PROTOTYPE FABRICATION AND SMT ASSEMBLY",
+  "revision": "D",
+  "date": "2026-10-21",
+  "release": "AISLER BARE-BOARD PROTOTYPE",
   "digital_release_checks": "PASS",
   "boards": {
     "display-adapter": {
+      "revision": "D",
+      "copper_layers": 2,
+      "thickness_mm": 1.6,
+      "copper_um": 35,
+      "finish": "ENIG",
+      "template": "aisler-2-layer-hd-drc",
       "ERC_violations": 0,
       "DRC_violations": 0,
+      "schematic_parity_violations": 0,
       "unrouted_connections": 0,
+      "excluded_findings": 0,
       "ignored_ERC_categories": 0,
       "ignored_DRC_categories": 0,
-      "excluded_findings": 0,
       "SMT_components": 19,
       "exported_pad_coordinates_checked": 178,
       "drill_hits_checked": 155,
-      "revision": "C",
-      "copper_layers": 2
+      "upload": "display-adapter-rev-D-aisler-odb.zip",
+      "odb_audit": {
+        "result": "PASS",
+        "board": "display-adapter",
+        "revision": "D",
+        "upload_zip": "display-adapter-rev-D-aisler-odb.zip",
+        "upload_sha256": "5e21f949e37b60a28778d922b018a9929524df5708d638f5dd19524115ea28fa",
+        "copper_layers": [
+          "F.CU",
+          "B.CU"
+        ],
+        "pcb_profile_area_mm2": 1925.0,
+        "bridges_checked": 4,
+        "netlist_pad_contacts_checked": 175,
+        "drill_hits_checked": 155,
+        "mask_pad_openings_checked": {
+          "f": 132,
+          "b": 60
+        },
+        "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
+        "aisler_processing_acceptance": "PENDING"
+      }
     },
     "giga-adapter": {
+      "revision": "C",
+      "copper_layers": 4,
+      "thickness_mm": 1.6,
+      "copper_um": 35,
+      "finish": "ENIG",
+      "template": "aisler-4-layer-hd-drc",
       "ERC_violations": 0,
       "DRC_violations": 0,
+      "schematic_parity_violations": 0,
       "unrouted_connections": 0,
+      "excluded_findings": 0,
       "ignored_ERC_categories": 0,
       "ignored_DRC_categories": 0,
-      "excluded_findings": 0,
       "SMT_components": 102,
       "exported_pad_coordinates_checked": 634,
       "drill_hits_checked": 335,
-      "revision": "B",
-      "copper_layers": 4
+      "upload": "giga-adapter-rev-C-aisler-odb.zip",
+      "odb_audit": {
+        "result": "PASS",
+        "board": "giga-adapter",
+        "revision": "C",
+        "upload_zip": "giga-adapter-rev-C-aisler-odb.zip",
+        "upload_sha256": "ad119aa63c88a5c8d6430c979dd24fff582362fc21e78e4f01f6a1c9ea4a67f8",
+        "copper_layers": [
+          "F.CU",
+          "IN1.CU",
+          "IN2.CU",
+          "B.CU"
+        ],
+        "pcb_profile_area_mm2": 4116.264605371729,
+        "bridges_checked": 6,
+        "netlist_pad_contacts_checked": 519,
+        "drill_hits_checked": 335,
+        "mask_pad_openings_checked": {
+          "f": 526,
+          "b": 119
+        },
+        "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
+        "aisler_processing_acceptance": "PENDING"
+      }
     }
   },
   "electrical_audit": {
-    "panel_contacts": 50,
-    "FFC_conductors": 80,
+    "display-adapter": {
+      "revision": "D",
+      "copper_layers": 2,
+      "schematic_pcb_pin_pairs": 175,
+      "components": 26,
+      "tracks": 1230,
+      "ground_reference": "Stitched F.Cu/B.Cu ground pours"
+    },
+    "giga-adapter": {
+      "revision": "C",
+      "copper_layers": 4,
+      "schematic_pcb_pin_pairs": 519,
+      "components": 119,
+      "tracks": 2726,
+      "ground_reference": "In1.Cu GND reference plane"
+    },
+    "display_contacts": 50,
+    "ribbon_conductors": 80,
     "signals": 35,
     "firmware_pin_conflicts": 0,
-    "supply_isolation_topology": "PASS — distinct GIGA/panel rails, power-off isolation parts and defined biasing",
-    "power_topology": "PASS — shield 24V input/protection, 12V-to-VIN blocking diode, two fused 24V FFC conductors, local display 3.3V converter, three separate 3.3V reference-return conductors; U7 RTN isolated from GND."
+    "firmware_assignment_source": "current repository CubeMX project",
+    "firmware_source_sha256": "d9803d8fdaa3f8a0c0e7343975a5d719a50c6b19c109c13b7c9cec0d812b5017",
+    "physical_hardware_test": "NOT PERFORMED"
   },
-  "mechanical_review": "PASS for nominal drawing/CAD geometry; 110 GIGA header centres checked. Power tab clears the lower SWD opening; 13mm standoffs clear underlying components. Display retains 55x35mm outline and mounting holes; converter fits on top with trimmed leads. Physical tolerances and connector fit remain first-board tests.",
-  "visual_review": {
-    "reviewed": [
-      "Display C: both outer copper/mask/silk sides independently rendered from Gerbers; connected ground pours and converter/output-current routing.",
-      "GIGA B: both outer sides, In1 GND reference, RTN thermal island/vias, protected power routes and input polarity.",
-      "Fine-pitch paste apertures and separate PTH/NPTH drill exports; SMT BOM/placement reference sets.",
-      "Final power schematic pages, assembly/fabrication drawings, powered cable drawing and complete conductor map.",
-      "GIGA/carrier 3D assembly, USB/SWD/controls access, display top/bottom models and trimmed converter tails."
+  "mechanical_review": {
+    "result": "PASS \u2014 nominal geometry",
+    "header_contact_centres": 110,
+    "giga_max_modelled_component_height_mm": 8.499999945360731,
+    "carrier_underside_above_giga_mm": 13,
+    "minimum_vertical_nonmating_body_clearance_mm": 4.500000054639269,
+    "outer_header_nominal_height_mm": 8.5,
+    "outer_pin_nominal_insertion_mm": 3.9,
+    "inner_header_modelled_height_mm": 3.7052,
+    "inner_pin_tip_below_giga_top_mm": 0.23,
+    "inner_entry_hole_diameter_mm": 1.1,
+    "pin_square_diagonal_mm": 0.905096679918781,
+    "display_connector_mated_plane_mm": 1.5,
+    "display_converter_max_tail_below_pcb_mm": 0.8,
+    "qualifications": [
+      "Official GIGA STEP omits outer socket bodies; added 8.5mm nominal envelopes are identified, not manufacturer models.",
+      "Hirose models are drawing-based envelopes, not production-tooling models.",
+      "Mating contact spring deflection and assembly tolerances require physical first-board fit verification.",
+      "Mounts and FFC strain relief belong to the enclosure; neither connector supports cable or PCB weight."
     ],
-    "result": "PASS — fabrication package review"
+    "board_thickness_mm": {
+      "display": 1.6,
+      "giga": 1.6
+    },
+    "finished_thickness_tolerance_mm": 0.16,
+    "display_minimum_mating_plane_mm": 1.3,
+    "display_trimmed_tail_clearance_at_minimum_mating_height_mm": 0.5,
+    "concave_milling_radius_mm": 0.9,
+    "mounting_effect": "Mating separation is between PCB surfaces; thickness does not change DF23 engagement. The top-side envelope and header insertion vary with PCB thickness; enclosure and first-board fit checks remain required."
+  },
+  "visual_review": {
+    "result": "PASS \u2014 local export/nominal mechanical review",
+    "reviewed": [
+      "Both outer sides: independent Gerber copper/mask/silk renders; connector numbering and open vias",
+      "GIGA inner copper layers, ground reference and isolated RTN thermal island",
+      "Fine-pitch paste, plated/non-plated drills and BOM/placement agreement",
+      "Schematics, fabrication/assembly drawings and revision-D cable map",
+      "GIGA mating assembly and display top/bottom models, including 1.6mm thickness and trimmed leads"
+    ]
+  },
+  "aisler_processing": {
+    "status": "PENDING",
+    "reason": "Exact upload CAM preview, layer/options detection, holes, mask, bridge positions and netlist notes require account review. No project has been uploaded by this workflow."
   },
   "intentional_ERC_DRC_warnings": [],
-  "tool_notices": [
-    {
-      "tool": "Gerbonara Excellon parser",
-      "notice": "KiCad places G90 after the header terminator.",
-      "disposition": "Accepted: absolute drill coordinates, counts, diameters and plating matched the source PCB."
-    },
-    {
-      "tool": "Gerbonara aperture renderer",
-      "notice": "KiCad RoundRect macros include an unused argument.",
-      "disposition": "Accepted: macro primitives render; exported pad coordinates and all 80 FFC paste apertures checked."
-    },
-    {
-      "tool": "KiCad pcbnew Python bindings",
-      "notice": "Debug builds emit PROPERTY_ENUM/duplicate image-handler messages.",
-      "disposition": "Tool initialization notices; CLI ERC/DRC and independent export audits completed successfully."
-    }
-  ],
+  "manufacturing_rule_waivers": [],
   "physical_qualification": {
     "status": "NOT PERFORMED",
     "pending": [
-      "Actual connector fit, standoff tolerances and strain relief",
-      "24V input protection, converter voltages/rise time, USB-only isolation and supply sequencing",
-      "Full-brightness current sharing, voltage drop and temperature",
-      "Panel-side PCLK/data timing and signal integrity over the chosen FFC",
-      "Bars, both framebuffer slots, PWM brightness and touch",
-      "Combined graphics/ICC/logging load and power-cycle reinitialization"
+      "Connector fit, 1.6mm thickness tolerance, converter lead trim, mounting and strain relief",
+      "Supply isolation, inrush, rise time, full-brightness voltage/current and thermal behaviour",
+      "Panel clock/data timing, colour order, touch and independent supply sequencing"
     ]
   },
-  "timing_qualification": "CONDITIONAL CALCULATION ONLY. Sub-nanosecond residual worst-case margin before unmodelled terms; not complete PVT timing closure. See verification/timing-budget.json and README.",
+  "timing_qualification": "CONDITIONAL CALCULATION; sub-nanosecond residual margin, not complete PVT timing closure. See timing-budget.json.",
+  "power_qualification": "CALCULATED BUDGET; measured copper geometry plus explicit current/return/ripple/contact allowances, not bench qualification.",
   "manufacturing_order_placed": false,
-  "firmware_changed": false,
-  "power_qualification": "CALCULATED ALLOWANCES ONLY; see verification/power-budget.json. Verify panel minimum 3.0V, 1..20ms rise, maximum connector current and thermal derating at full brightness."
+  "assembly_order_placed": false,
+  "stencil_order_placed": false,
+  "firmware_changed": false
 }

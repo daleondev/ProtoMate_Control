@@ -1415,8 +1415,10 @@ The [Smartwin–GIGA adapter projects](hardware/display/README.md) accept regula
 24 V on the GIGA shield, convert it to 12 V for GIGA VIN, and carry protected
 24 V through the ribbon to a local 3.3 V/2 A converter on the display adapter.
 USB-C remains available for CDC; GIGA and display 3.3 V rails stay separate.
-The projects include protected interfaces, cable specifications and manufacturing
-packages. First-board electrical and display testing remains required.
+The projects include protected interfaces, cable specifications and AISLER
+bare-board upload packages: display revision D (two layers) and GIGA revision C
+(four layers), both 1.6 mm with ENIG. Local fabrication checks pass; AISLER's
+processed-job acceptance and first-board fit/electrical/display testing remain pending.
 The GUI starts automatically. Backlight stays off until the first complete frame is presented, then starts at 10%. `display bars` selects the diagnostic pattern; `display gui` returns to the showcase. `display backlight 0..100` controls the 1 kHz PWM. `display touch` reports cached primary-contact coordinates, availability and age, without performing I²C transactions. `display status` reports rendering/presentation counters, deadlines, transfer errors and queue overflow. Missing touch does not prevent rendering, CLI or ICC operation. Device logic lives above `IRgbOutput`, `IGraphics` and `II2c`; STM32 drivers own the peripherals.
 
 USB-C uses USB_OTG_FS PA11/PA12, device-only CDC with VBUS sensing disabled and

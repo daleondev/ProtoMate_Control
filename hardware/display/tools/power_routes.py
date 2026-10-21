@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Estimate supply drops from routed copper and explicit per-load current budgets."""
+import csv,heapq,json,math
+from collections import defaultdict
+import pcbnew as k
+from design import ROOT,REVISION
+k.SwigPyIterator.next=k.SwigPyIterator.__next__
+LAYERS=[k.F_Cu,k.In1_Cu,k.In2_Cu,k.B_Cu]
+def coord(p):return round(k.ToMM(p.x),6),round(k.ToMM(p.y),6)
+def resistance_path(b,ref1,pin1,ref2,pin2):
+    fp={f.GetReference():f for f in b.GetFootprints()}
+    a=next(p for p in fp[ref1].Pads() if p.GetNumber()==str(pin1));c=next(p for p in fp[ref2].Pads() if p.GetNumber()==str(pin2));net=a.GetNetname();assert c.GetNetname()==net
+    tracks=[t for t in b.GetTracks() if t.GetNetname()==net];pads=[p for f in b.GetFootprints() for p in f.Pads() if p.GetNetname()==net]
+    nodes=set();edges=defaultdict(list);lines=[];vias=[]
+    def add(u,v,d):edges[u].append((v,d));edges[v].append((u,d))
+    for t in tracks:
+        if isinstance(t,k.PCB_VIA):
+            x,y=coord(t.GetPosition());ns=[(l,x,y) for l in LAYERS];nodes.update(ns);vias.append(ns)
+        else:
+            u=(t.GetLayer(),*coord(t.GetStart()));v=(t.GetLayer(),*coord(t.GetEnd()));nodes.update([u,v]);lines.append((u,v,k.ToMM(t.GetWidth())))
+    for p in pads:
+        for l in LAYERS:
+            if p.IsOnLayer(l):nodes.add((l,*coord(p.GetPosition())))
+    for u,v,width in lines:
+        l,x,y=u;_,xx,yy=v;dx,dy=xx-x,yy-y;dd=dx*dx+dy*dy
+        if dd<1e-12:continue
+        points=[]
+        for n in nodes:
+            if n[0]!=l:continue
+            t=((n[1]-x)*dx+(n[2]-y)*dy)/dd
+            if -.00001<=t<=1.00001 and abs((n[1]-x)*dy-(n[2]-y)*dx)/math.sqrt(dd)<.002:points.append((t,n))
+        points.sort()
+        for (_,s),(_,e) in zip(points,points[1:]):add(s,e,math.hypot(e[1]-s[1],e[2]-s[2]) * .0175 * 1.3 / (1000 * width * .035))
+    for p in pads:
+        x,y=coord(p.GetPosition());ns=[]
+        for l in LAYERS:
+            if not p.IsOnLayer(l):continue
+            centre=(l,x,y);ns.append(centre);shape=p.GetEffectiveShape(l)
+            for n in nodes:
+                if n[0]==l and shape.Collide(k.VECTOR2I(k.FromMM(n[1]),k.FromMM(n[2])),k.FromMM(.002)):add(centre,n,0)
+        if p.GetDrillSize().x:vias.append(ns)
+    for ns in vias:
+        for u in ns:
+            for v in ns:
+                if u!=v:add(u,v,.002 if not any(p.GetDrillSize().x and coord(p.GetPosition())==u[1:] for p in pads) else 0)
+    sources=[(l,*coord(a.GetPosition())) for l in LAYERS if a.IsOnLayer(l)];targets={(l,*coord(c.GetPosition())) for l in LAYERS if c.IsOnLayer(l)}
+    q=[(0,n) for n in sources];heapq.heapify(q)
+    cost={n:0 for n in sources};previous={}
+    while q:
+        d,n=heapq.heappop(q)
+        if d!=cost.get(n):continue
+        if n in targets:
+            path=[]
+            while n in previous:
+                p,w=previous[n];path.append((tuple(sorted((p,n))),w));n=p
+            return d,path
+        for v,w in edges[n]:
+            nd=d+w
+            if nd<cost.get(v,float('inf')):cost[v]=nd;previous[v]=(n,w);heapq.heappush(q,(nd,v))
+    raise RuntimeError(f'No measured route {ref1}.{pin1} -> {ref2}.{pin2} ({net})')
+
+
+def main():
+    b=k.LoadBoard(str(ROOT/'display-adapter/display-adapter.kicad_pcb'))
+    # Explicit budgeting split; these currents are NOT guaranteed panel maxima.
+    loads=[('J1',pin,1.05/4,'backlight') for pin in [6,7,8,10]]
+    loads += [('J1',5,.25,'TFT'),('J1',49,.05,'touch'),('J2',76,.15,'interface reference rail')]
+    paths=[];currents=defaultdict(float)
+    for ref,pin,amps,label in loads:
+        resistance,path=resistance_path(b,'U1',3,ref,pin)
+        paths.append((ref,pin,amps,label,resistance,path))
+        for edge,r in path:currents[edge]+=amps
+    results=[]
+    for ref,pin,amps,label,resistance,path in paths:
+        drop=sum(r*currents[edge] for edge,r in path)
+        results.append(dict(load=label,pad=f'{ref}.{pin}',budget_A=amps,selected_path_ohm=resistance,
+                            supply_drop_V=drop))
+    result=dict(revision=REVISION,method='Measured connected copper paths with length/width resistance at 35um; 1.3 hot-copper factor. Shared segments carry the sum of allocated loads. Parallel paths and copper pours are ignored. Pad interiors treated as equipotential; each via transition allocated 2mOhm. Return copper and connector losses remain separate budget allowances.',
+                total_budget_A=sum(p[2] for p in paths),loads=results,
+                maximum_panel_supply_drop_V=max(r['supply_drop_V'] for r in results if r['pad'].startswith('J1')),
+                return_allowance_ohm=.02,physical_verification='PENDING: actual current, via plating, return spreading and temperature')
+    (ROOT/'manufacturing/verification/power-routing.json').write_text(json.dumps(result,indent=2)+'\n')
+    print(json.dumps(result,indent=2))
+
+if __name__=='__main__':main()

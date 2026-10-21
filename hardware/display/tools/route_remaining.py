@@ -18,15 +18,20 @@ def mm(v):return k.FromMM(v)
 def xy(x,y):return k.VECTOR2I(mm(x),mm(y))
 
 def route(b,which,entry,width=.15):
+    via_radius = .275 if which == "display-adapter" else .325
+    via_drill = .25 if which == "display-adapter" else .3
+    clearance = .125 if which == 'display-adapter' else .15
     global LAYERS
     LAYERS=[k.F_Cu,k.B_Cu] if b.GetCopperLayerCount()==2 else [k.F_Cu,k.In2_Cu,k.B_Cu]
     items={t.m_Uuid.AsString():t for t in b.GetTracks()}
     items.update({p.m_Uuid.AsString():p for f in b.GetFootprints() for p in f.Pads()})
+    if any(i['uuid'] not in items for i in entry['items']):return False
     a,c=[items[i['uuid']] for i in entry['items']]
     net=a.GetNet();name=a.GetNetname()
     # Connector pad escapes stay no wider than their copper.
     if any(isinstance(t,k.PAD) and min(t.GetSize().x,t.GetSize().y)<mm(.3) for t in [a,c]):width=.15
-    W,H=(1101,701) if which=='display-adapter' else (2441,1068)
+    w,h=(55,35) if which=='display-adapter' else (122,53.34)
+    W,H=math.ceil(w/GRID)+1,math.ceil(h/GRID)+1
     images=[Image.new('1',(W,H)) for _ in LAYERS];vi=Image.new('1',(W,H))
     def px(p):return (k.ToMM(p.x)/GRID,k.ToMM(p.y)/GRID)
     def circle(draw,p,r):
@@ -40,29 +45,35 @@ def route(b,which,entry,width=.15):
         draw.line(pts+[pts[0]],fill=1,width=math.ceil(2*inflate/GRID),joint='curve')
         for j in range(line.PointCount()):circle(draw,line.CPoint(j),inflate)
     draws=[ImageDraw.Draw(im) for im in images];vd=ImageDraw.Draw(vi)
-    margin=.15+width/2+.01
+    # Exposed vias must stay outside the DF23 contact bands, including the
+    # automatically enlarged solder-mask aperture (20um per side).
+    if which=='display-adapter':
+        for y0,y1 in [(21.5,22.2),(23.8,24.5)]:
+            vd.rectangle(((21-via_radius-.03)/GRID,(y0-via_radius-.03)/GRID,
+                          (34+via_radius+.03)/GRID,(y1+via_radius+.03)/GRID),fill=1)
+    margin=clearance+width/2+.002
     pads=[p for f in b.GetFootprints() for p in f.Pads()]
     for p in pads:
         if p.GetNetname()!=name:
             for l,d in zip(LAYERS,draws):
                 if p.IsOnLayer(l):pad(d,p,max(margin,k.ToMM(p.GetLocalClearance() or 0)+width/2+.01))
-            pad(vd,p,.325+max(.15,k.ToMM(p.GetLocalClearance() or 0))+.01)
-        else:pad(vd,p,.325+.025) # no via-in-pad, even on same net
+            pad(vd,p,via_radius+max(.15,k.ToMM(p.GetLocalClearance() or 0))+.01)
+        else:pad(vd,p,via_radius+.025) # no via-in-pad, even on same net
         if p.GetDrillSize().x:
             r=max(p.GetDrillSize().x,p.GetDrillSize().y)/2/1e6
-            circle(vd,p.GetPosition(),r+.15+.25+.01)
+            circle(vd,p.GetPosition(),r+.15+.30+.01)
             if p.GetNetname()!=name:
                 for d in draws:circle(d,p.GetPosition(),r+margin)
     for t in b.GetTracks():
         if isinstance(t,k.PCB_VIA):
             if t.GetNetname()!=name:
                 for d in draws:circle(d,t.GetPosition(),k.ToMM(t.GetWidth(k.F_Cu))/2+margin)
-                circle(vd,t.GetPosition(),k.ToMM(t.GetWidth(k.F_Cu))/2+.325+.15+.01)
-            circle(vd,t.GetPosition(),k.ToMM(t.GetDrillValue())/2+.15+.25+.01)
+                circle(vd,t.GetPosition(),k.ToMM(t.GetWidth(k.F_Cu))/2+via_radius+.15+.01)
+            circle(vd,t.GetPosition(),k.ToMM(t.GetDrillValue())/2+.15+.30+.01)
         elif t.GetNetname()!=name:
             r=k.ToMM(t.GetWidth())/2
             if t.GetLayer() in LAYERS:segment(draws[LAYERS.index(t.GetLayer())],t.GetStart(),t.GetEnd(),r+margin)
-            segment(vd,t.GetStart(),t.GetEnd(),r+.325+.15+.01)
+            segment(vd,t.GetStart(),t.GetEnd(),r+via_radius+.15+.01)
     contour=board_outline(which)
     for im,edge in [(i,.3+width/2+.01) for i in images]+[(vi,.635)]:
         outside=Image.new('1',(W,H),1);d=ImageDraw.Draw(outside);pts=[(x/GRID,y/GRID) for x,y in contour];d.polygon(pts,fill=0);d.line(pts+[pts[0]],fill=1,width=math.ceil(2*edge/GRID),joint='curve')
@@ -135,7 +146,7 @@ def route(b,which,entry,width=.15):
         if l!=ll:
             if (x,y) in plated:
                 track(xy(x*GRID,y*GRID),plated[x,y],l);track(plated[x,y],xy(x*GRID,y*GRID),ll);j+=1;continue
-            t=k.PCB_VIA(b);t.SetPosition(xy(x*GRID,y*GRID));t.SetWidth(mm(.65));t.SetDrill(mm(.3));t.SetViaType(k.VIATYPE_THROUGH);t.SetLayerPair(k.F_Cu,k.B_Cu);t.SetNet(net);t.SetFrontTentingMode(k.TENTING_MODE_TENTED);t.SetBackTentingMode(k.TENTING_MODE_TENTED);b.Add(t);j+=1;continue
+            t=k.PCB_VIA(b);t.SetPosition(xy(x*GRID,y*GRID));t.SetWidth(mm(2*via_radius));t.SetDrill(mm(via_drill));t.SetViaType(k.VIATYPE_THROUGH);t.SetLayerPair(k.F_Cu,k.B_Cu);t.SetNet(net);t.SetFrontTentingMode(k.TENTING_MODE_NOT_TENTED);t.SetBackTentingMode(k.TENTING_MODE_NOT_TENTED);b.Add(t);j+=1;continue
         dx,dy=xx-x,yy-y;endidx=j+1
         while endidx+1<len(path):
             nn,ny,nx=path[endidx+1];pl,py,pxx=path[endidx]
@@ -157,6 +168,6 @@ def main(which):
         print('Remaining',len(missing),'violations',len(r['violations']),flush=True)
         if not missing:break
         missing.sort(key=lambda e:0 if any(s in e['items'][0]['description'] for s in ['MCU_R3','MCU_G6']) else 1)
-        if not any(route(b,which,e) for e in missing):break
+        if not any(route(b,which,e, .6 if '+24V_' in e['items'][0]['description'] else .15) for e in missing):break
 
 if __name__=='__main__':main(sys.argv[1])

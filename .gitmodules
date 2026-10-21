@@ -31,3 +31,6 @@
 [submodule "external/tgx"]
 	path = external/tgx
 	url = https://github.com/vindar/tgx.git
+[submodule "hardware/aisler-support"]
+	path = hardware/aisler-support
+	url = git@github.com:AislerHQ/aisler-support.git

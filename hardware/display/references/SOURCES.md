@@ -1,6 +1,6 @@
-# Design sources and attribution — display C / GIGA B
+# Design sources and attribution — display D / GIGA C
 
-Reviewed 2026-10-15. Local copies retain the manufacturers' copyright. They are
+Reviewed 2026-10-21. Local copies retain the manufacturers' copyright. They are
 engineering references, not project-authored specifications.
 
 | Source | Use in this design |
@@ -25,8 +25,7 @@ engineering references, not project-authored specifications.
 | [Phoenix 1751248](https://www.phoenixcontact.com/en-dk/products/pcb-terminal-block-mkds-1-2-35-1751248) | 3.5 mm terminal pitch, body and lead length |
 | [Samtec socket catalogue](https://suddendocs.samtec.com/catalog_english/ssw_th.pdf), `Samtec_SSQ.pdf` | SSQ body dimensions and distinct -03 / -04 tail lengths |
 | ST DS12930 Rev 3 Table 105, repository `docs/arduino_giga_r1_wifi/DS_stm32h747xi.pdf` | Conditional LTDC timing budget and its characterization conditions |
-| [PCBWay capabilities](https://www.pcbway.com/capabilities.html) | Layer count, materials, thickness, copper, minimum geometry and silkscreen |
-| [PCBWay assembly requirements](https://www.pcbway.com/assembly-faq.html) | Gerber, BOM, centroid and assembly deliverables |
+| [AISLER references and locked support templates](AISLER.md) | ENIG HD rules, layer stack, mask processing, exposed vias, milling and ODB++ bridge markers; bare boards only |
 
 The retained FH28 PDF is a manufacturer-authored catalogue obtained from the
 [TME mirror](https://www.tme.eu/Document/6a1361134ed9e0f8d0fab8cdb9d25f31/FH28.pdf)

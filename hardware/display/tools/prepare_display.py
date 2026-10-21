@@ -13,7 +13,7 @@ def prepare_display(b):
      for a,c in zip(points,points[1:]):
       t=k.PCB_TRACK(b);t.SetStart(xy(*a));t.SetEnd(xy(*c));t.SetWidth(k.FromMM(w));t.SetLayer(l);t.SetNet(b.FindNet(net));t.SetLocked(True);b.Add(t)
     def via(net,x,y,diameter=.65,drill=.3):
-     t=k.PCB_VIA(b);t.SetPosition(xy(x,y));t.SetWidth(k.FromMM(diameter));t.SetDrill(k.FromMM(drill));t.SetViaType(k.VIATYPE_THROUGH);t.SetLayerPair(k.F_Cu,k.B_Cu);t.SetNet(b.FindNet(net));t.SetLocked(True);t.SetFrontTentingMode(k.TENTING_MODE_TENTED);t.SetBackTentingMode(k.TENTING_MODE_TENTED);b.Add(t)
+     t=k.PCB_VIA(b);t.SetPosition(xy(x,y));t.SetWidth(k.FromMM(diameter));t.SetDrill(k.FromMM(drill));t.SetViaType(k.VIATYPE_THROUGH);t.SetLayerPair(k.F_Cu,k.B_Cu);t.SetNet(b.FindNet(net));t.SetLocked(True);t.SetFrontTentingMode(k.TENTING_MODE_NOT_TENTED);t.SetBackTentingMode(k.TENTING_MODE_NOT_TENTED);b.Add(t)
     # Full-current module output and backlight bus. VIN routing is completed
     # after connector escapes; never use a signal-width trace for this output.
     track('+3V3_PANEL',[(10,20.92),(12,20.92),(12,31.5),(12.975,32.475),(34,32.475)],1.2)

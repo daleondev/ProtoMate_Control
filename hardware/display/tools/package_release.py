@@ -14,6 +14,7 @@ import tempfile
 import zipfile
 
 from design import ROOT, REVISION, BOARDS, release_name, copper_layers
+from aisler import SUPPORT
 
 
 def digest(path):
@@ -46,53 +47,43 @@ def archive(folder, output):
 
 def order_notes(name):
     display = name == 'display-adapter'
-    return f'''ProtoMate Smartwin–GIGA / {name} / revision {BOARDS[name]['revision']}
-PROTOTYPE FABRICATION AND SMT ASSEMBLY PACKAGE
+    return f'''ProtoMate / {name} / revision {BOARDS[name]['revision']}
+AISLER BARE-BOARD REVIEW PACKAGE — NOT THE UPLOAD ZIP
 
-FABRICATION
-{BOARDS[name]['layers']}-layer FR-4, 1 oz copper on every copper layer, ENIG.
-Green solder mask, white silkscreen, IPC Class 2, 100% electrical test.
-Finished board: {'55 x 35 x 1.0 mm' if display else '111 x 53.34 x 1.6 mm maximum; outline with central power tab'}.
+UPLOAD: {release_name(name)}-aisler-odb.zip (unchanged KiCad ODB++ archive).
+Choose {BOARDS[name]['layers']} layers, 1.6 mm +/-10%, 35 um copper on every layer,
+ENIG, green solder mask and white silkscreen. Bare boards only.
+No assembly service, stencil or component purchase is included.
+
 Layer order: {' / '.join(copper_layers(name))}.
-Gerbers and separate PTH/NPTH drills in gerbers/ are authoritative.
-Minimum track/clearance 0.15 mm; minimum via drill {BOARDS[name]['via_drill']:.2f} mm,
-minimum via diameter {BOARDS[name]['via_diameter']:.2f} mm, annular ring >=0.15 mm.
-Preserve 0.13 mm fine-pitch mask webs. Tent vias on both sides; no via-in-pad.
-Panelize with assembly rails as required without changing the individual outline.
-Do not mirror bottom Gerbers. See fabrication-and-assembly-notes.pdf.
+{'55 x 35 mm display board.' if display else '111 x 53.34 mm maximum, with the drawn service cutouts and power tab.'}
+Keep the closed profile; bridge positions are on the AISLER-BRIDGES document layer.
+All vias are exposed through-vias. No tenting, filling, plugging or via-in-pad.
+Zero mask expansion in source. Check AISLER processed webs >=0.10 mm.
+Minimum component-hole ring 0.30 mm; J8 and U8 narrow pads 1.70 mm.
+{'Two-layer FR4 nominal core 1.53 mm.' if display else 'Published dielectric spacing: 0.14 / 1.20 / 0.14 mm; four 35 um copper layers.'}
 
-ASSEMBLY
-Populate exactly bom-pcbway-smt.csv using placement.csv.
-{'Both sides populated; DF23 J1 on BOTTOM.' if display else 'Top side SMT only.'}
-All SMT BOM entries FIT; no DNP SMT components.
-{'U1 3.3V converter' if display else 'J2–J9 stacking headers, J10 terminal and U8 12V converter'}: HAND installation, not part of PCBWay SMT placement.
-Full procurement BOM, including HAND parts: bom-all.csv.
-Placement units mm; origin X=0 at lower board edge; positive Y upward.
-Bottom-side X is not negated. Native KiCad rotations; use assembly drawings.
-No substitutions for Hirose connector suffixes or Samtec header tail lengths.
-Hirose FH28 paste: 0.25 x 1.00 mm windows, 0.15 mm stencil at connector.
-Use a stepped stencil, 0.10–0.12 mm at 0402/TSSOP, or an explicitly reviewed
-equivalent assembly process. Do not silently enlarge the apertures.
-{'Trim U1 leads to <=0.8 mm below PCB after hand soldering. Input power arrives on the FFC.' if display else 'Carrier underside 13.0 mm above GIGA; J2–J8 10 mm tails, J9 14.83 mm tails.'}
+BEFORE ORDERING
+Confirm detected layer count, ENIG on BOTH jobs, thickness, plated/non-plated
+holes, all mask openings, 4/6 bridge positions (display/GIGA), and electrical
+netlist/Smart Tests notes on this exact revision. Compare the processed preview
+with gerbers/ and assembly drawings. Resolve every discrepancy before ordering.
+AISLER processing acceptance is PENDING; these local exports are not proof of it.
 
-CONTENTS
-gerbers/: copper, mask, silk, paste, outline, drill files and drill maps.
-electrical-test.ipc: IPC-D-356 electrical test data.
-assembly-F/B.pdf: component references, pad numbering and orientation.
-schematic.pdf, fabrication-and-assembly-notes.pdf and {name}.step.
-source/{name}/: editable KiCad project; shared source/libraries/ alongside it.
-Cable specification and complete signal/conductor maps are included.
-verification/: ERC/DRC, independent Gerber, electrical, mechanical and timing audits.
-SHA256SUMS: exact package contents. Each ZIP has a separate archive checksum.
+SOLDERING
+All entries in bom-all.csv are FIT. Purchase/install components separately.
+bom-smd.csv, placement.csv and assembly-F/B.pdf are soldering/inspection aids.
+{'J1 DF23 is BOTTOM mounted. Clip U1 tails to <=0.8 mm below the board.' if display else 'Carrier underside 13mm above GIGA; J2-J8 10mm tails, J9 14.83mm tails. J10 wire entry faces the service opening.'}
+Use the exact Hirose suffixes and specified same-side-contact Type-A FFC.
+Disconnect power before connecting the cable. See design-guide.md and cable PDF.
+The FH28 paste windows follow Hirose's recommendation; stencil data is retained
+as reference only, with no stencil ordered.
 
-QUALIFICATION STATUS
-Digital fabrication checks passed with no ERC/DRC violations or unrouted nets.
-This is a prototype release. Physical fit, power isolation, full-brightness
-voltage/current/temperature, display/touch and timing have NOT been tested.
-The 51.2 MHz timing calculation has sub-nanosecond residual margins before
-unmodelled terms; it is not complete worst-case PVT timing closure.
-See design-guide.md and verification/timing-budget.json before first-board tests.
-No manufacturing order has been placed.
+QUALIFICATION
+Local electrical, geometry and export checks: see verification/ and release status.
+First-board fit, soldering, power, temperature, panel timing and operation remain
+UNTESTED. The timing estimate is conditional, not complete PVT qualification.
+No manufacturing order has been placed. SHA256SUMS identifies these exact files.
 '''
 
 
@@ -113,8 +104,8 @@ def main():
         drc = json.loads((verification / (name + '-drc.json')).read_text())
         assert not erc['ignored_checks'] and not drc['ignored_checks']
         assert not any(s['violations'] for s in erc['sheets'])
-        assert not drc['violations'] and not drc['unconnected_items']
-        for suffix in ['bom-placement', 'gerber-audit']:
+        assert not drc['violations'] and not drc['unconnected_items'] and not drc['schematic_parity']
+        for suffix in ['bom-placement', 'gerber-audit', 'aisler-audit', 'odb-audit']:
             assert json.loads((verification / (name + '-' + suffix + '.json')).read_text())['result'] == 'PASS'
         job = json.loads((manufacturing / release_name(name) / 'gerbers' /
                           (name + '-job.gbrjob')).read_text())
@@ -127,6 +118,15 @@ def main():
                     if p.is_file() and p.suffix not in ['.kicad_prl'] and not p.name.startswith('~')]
     (verification / 'source-sha256.json').write_text(json.dumps(
         {p.relative_to(ROOT).as_posix(): digest(p) for p in sorted(source_files)}, indent=2) + '\n')
+    # --reviewed is an explicit assertion by the person running this tool;
+    # the automated audit itself does not claim visual or manufacturer acceptance.
+    status['visual_review'] = dict(result='PASS — local export/nominal mechanical review',reviewed=[
+        'Both outer sides: independent Gerber copper/mask/silk renders; connector numbering and open vias',
+        'GIGA inner copper layers, ground reference and isolated RTN thermal island',
+        'Fine-pitch paste, plated/non-plated drills and BOM/placement agreement',
+        'Schematics, fabrication/assembly drawings and revision-D cable map',
+        'GIGA mating assembly and display top/bottom models, including 1.6mm thickness and trimmed leads'])
+    (manufacturing/'release-status.json').write_text(json.dumps(status,indent=2)+'\n')
     releases = ROOT / 'releases'
     releases.mkdir(exist_ok=True)
     # The package guide omits repository-specific archive links.
@@ -140,14 +140,16 @@ def main():
             folder = temporary / release_name(name)
             copy_tree(manufacturing / folder.name, folder)
             copy_tree(verification, folder / 'verification')
+            upload=manufacturing / folder.name / (folder.name+'-aisler-odb.zip')
+            shutil.copy2(upload, releases/upload.name)
             for part in [name, 'libraries', 'references']:
                 copy_tree(ROOT / part, folder / 'source' / part)
             for item in ['cable-specification.pdf', 'connections.csv', 'cable-conductors.csv']:
                 shutil.copy2(ROOT / item, folder / item)
             shutil.copy2(manufacturing / 'release-status.json', folder / 'release-status.json')
-            (folder / 'PCBWAY_ORDER.txt').write_text(order_notes(name))
+            (folder / 'AISLER_ORDER.txt').write_text(order_notes(name))
             (folder / 'design-guide.md').write_text(guide)
-            archive(folder, releases / (folder.name + '-pcbway.zip'))
+            archive(folder, releases / (folder.name + '-aisler-review.zip'))
 
         folder = temporary / ('smartwin-giga-rev-' + REVISION)
         for part in [*names, 'libraries', 'references', 'tools', 'assembly']:
@@ -155,6 +157,9 @@ def main():
         for item in ['README.md', 'cable-specification.pdf', 'connections.csv', 'cable-conductors.csv', '.gitignore']:
             shutil.copy2(ROOT / item, folder / item)
         copy_tree(verification, folder / 'manufacturing' / 'verification')
+        copy_tree(SUPPORT, folder/'aisler-support')
+        (folder/'aisler-support'/'.git').unlink(missing_ok=True)
+        shutil.copy2(manufacturing/'aisler-support-lock.json',folder/'manufacturing'/'aisler-support-lock.json')
         shutil.copy2(manufacturing / 'release-status.json', folder / 'manufacturing' / 'release-status.json')
         archive(folder, releases / (folder.name + '-source.zip'))
     checksums(releases)

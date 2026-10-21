@@ -46,6 +46,12 @@ def main():
     # All non-mating GIGA components are below the 13mm carrier underside.
     assert giga.BoundBox.ZMax<=8.50001
     result={'result':'PASS — nominal geometry','header_contact_centres':checked,'giga_max_modelled_component_height_mm':giga.BoundBox.ZMax,'carrier_underside_above_giga_mm':13,'minimum_vertical_nonmating_body_clearance_mm':13-giga.BoundBox.ZMax,'outer_header_nominal_height_mm':8.5,'outer_pin_nominal_insertion_mm':3.9,'inner_header_modelled_height_mm':3.7052,'inner_pin_tip_below_giga_top_mm':.23,'inner_entry_hole_diameter_mm':1.1,'pin_square_diagonal_mm':.64*2**.5,'display_connector_mated_plane_mm':1.5,'display_converter_max_tail_below_pcb_mm':.8,'qualifications':['Official GIGA STEP omits outer socket bodies; added 8.5mm nominal envelopes are identified, not manufacturer models.','Hirose models are drawing-based envelopes, not production-tooling models.','Mating contact spring deflection and assembly tolerances require physical first-board fit verification.','Mounts and FFC strain relief belong to the enclosure; neither connector supports cable or PCB weight.']}
+    result.update(board_thickness_mm={'display':1.6,'giga':1.6},
+                  finished_thickness_tolerance_mm=.16,
+                  display_minimum_mating_plane_mm=1.3,
+                  display_trimmed_tail_clearance_at_minimum_mating_height_mm=.5,
+                  concave_milling_radius_mm=.9,
+                  mounting_effect='Mating separation is between PCB surfaces; thickness does not change DF23 engagement. The top-side envelope and header insertion vary with PCB thickness; enclosure and first-board fit checks remain required.')
     (ROOT/'manufacturing/verification/mechanical-audit.json').write_text(json.dumps(result,indent=2)+'\n')
 
 if __name__=='__main__':main()

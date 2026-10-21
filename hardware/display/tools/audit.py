@@ -5,6 +5,7 @@ The reference pin table below is transcribed from Smartwin pp12-14/26 and the
 Arduino pinout, independently of the design generator's SIGNALS table.
 """
 import csv
+import hashlib
 import json
 import subprocess
 import xml.etree.ElementTree as ET
@@ -38,7 +39,7 @@ def main():
             for node in net.findall('node'):
                 value=net.attrib['name'];nets[node.attrib['ref'],node.attrib['pin']]='' if value.startswith('unconnected-') else value
         b=k.LoadBoard(str(ROOT/name/(name+'.kicad_pcb')));boards[name]=b
-        pcb={(f.GetReference(),p.GetNumber()):p.GetNetname() for f in b.GetFootprints() for p in f.Pads()}
+        pcb={(f.GetReference(),p.GetNumber()):('' if p.GetNetname().startswith('unconnected-') else p.GetNetname()) for f in b.GetFootprints() for p in f.Pads()}
         for key,net in nets.items():assert pcb.get(key)==net,(name,key,net,pcb.get(key))
         for key,net in pcb.items():
             if net:assert nets.get(key)==net,(name,'extra PCB connection',key,net)
@@ -78,12 +79,27 @@ def main():
     assert sum(g['J1',str(p)]=='GND' for p in range(1,81))==40
     rows=list(csv.DictReader((ROOT/'connections.csv').open()))
     assert len(rows)==35
-    config=dict(line.strip().split('=',1) for line in next((ROOT.parents[1]/'external/CubeMX').glob('*.ioc')).read_text().splitlines() if '=' in line)
+    ioc=next((ROOT.parents[1]/'external/CubeMX').glob('*.ioc'),None)
+    reference=ROOT/'references/firmware-pins.json'
+    if ioc:
+        config=dict(line.strip().split('=',1) for line in ioc.read_text().splitlines() if '=' in line)
+        pin_reference=dict(source=ioc.name,sha256=hashlib.sha256(ioc.read_bytes()).hexdigest(),
+                           signals={p+'.Signal':config[p+'.Signal'] for p in MCU.values()})
+        reference.write_text(json.dumps(pin_reference,indent=2)+'\n')
+        firmware_source='current repository CubeMX project'
+    else:
+        # Portable hardware source bundle: check the release's recorded assignments.
+        pin_reference=json.loads(reference.read_text());config=pin_reference['signals']
+        firmware_source='release CubeMX pin snapshot (no live firmware tree present)'
+    expected={'PCLK':'LTDC_CLK','DE':'LTDC_DE','HSYNC':'LTDC_HSYNC','VSYNC':'LTDC_VSYNC',
+              'PWM':'S_TIM8_CH1','STANDBY':'GPIO_Output','TFT_RESET_N':'GPIO_Output',
+              'TOUCH_RESET_N':'GPIO_Output','TOUCH_INT_N':'GPXTI12','SDA':'I2C4_SDA','SCL':'I2C4_SCL'}
     for row in rows:
         n=row['name'];assert MCU[n]==row['mcu'];assert row['mcu'] not in RESERVED
         assert g[row['adapter_header'],row['adapter_header_pin']]=='MCU_'+n
         assert g['J1',row['giga_ffc']]==d['J2',row['display_ffc']]==d['J1',row['panel']]=='LCD_'+n
-        if len(n)==2 and n[0] in 'RGB':assert config[row['mcu']+'.Signal']=='LTDC_'+n
+        function='LTDC_'+n if len(n)==2 and n[0] in 'RGB' else expected[n]
+        assert config[row['mcu']+'.Signal']==function,(n,config[row['mcu']+'.Signal'],function)
     clock=next(int(r['giga_ffc']) for r in rows if r['name']=='PCLK')
     assert g['J1',str(clock-1)]==g['J1',str(clock+1)]=='GND'
     # AXC8's two DIR pins have opposite required levels for all-eight A->B.
@@ -127,7 +143,9 @@ def main():
     assert gj['1'].y>gj['80'].y
     labels={t.GetText():t.GetPosition() for t in boards['giga-adapter'].GetDrawings() if isinstance(t,k.PCB_TEXT) and t.GetText() in ('1','80')}
     assert labels['1'].y>gj['1'].y and labels['80'].y<gj['80'].y
-    summary.update(display_contacts=50,ribbon_conductors=80,signals=35,firmware_pin_conflicts=0,physical_hardware_test='NOT PERFORMED')
+    summary.update(display_contacts=50,ribbon_conductors=80,signals=35,firmware_pin_conflicts=0,
+                   firmware_assignment_source=firmware_source,firmware_source_sha256=pin_reference['sha256'],
+                   physical_hardware_test='NOT PERFORMED')
     (reports/'electrical-audit.json').write_text(json.dumps(summary,indent=2)+'\n')
     print(json.dumps(summary,indent=2))
 

@@ -1,5 +1,5 @@
 {
-  "revision": "C",
+  "revision": "D",
   "status": "CALCULATED DESIGN BUDGET; PHYSICAL QUALIFICATION PENDING",
   "input": "24V nominal, recommended regulated 24V +/-10%, >=2A available for this assembly",
   "uv_start_min_typ_max_V": [
@@ -21,9 +21,11 @@
   "display_qualification_current_budget_A": 1.5,
   "regulator_min_before_ripple_and_copper_V": 3.1548,
   "ripple_negative_allowance_V": 0.05,
-  "pcb_supply_return_allowance_ohm": 0.04,
+  "measured_geometry_supply_drop_V": 0.0335706494507982,
+  "pcb_return_allowance_ohm": 0.02,
+  "pcb_supply_and_return_drop_V": 0.0635706494507982,
   "connector_drop_allowance_V": 0.03,
-  "panel_min_calculated_V": 3.0148,
+  "panel_min_calculated_V": 3.011229350549202,
   "panel_min_required_V": 3.0,
   "panel_max_absolute_V": 3.6,
   "limitations": [

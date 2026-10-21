@@ -4,6 +4,7 @@ import argparse
 import re
 import pcbnew as k
 from design import ROOT, BOARDS
+from aisler import board_settings, configure_project, write_stackup
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 def point(x,y):return k.VECTOR2I(k.FromMM(x),k.FromMM(y))
 
@@ -17,7 +18,7 @@ def finish(name,session):
             f.SetAttributes(f.GetAttributes()|k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES)
     for t in b.GetTracks():
         if isinstance(t,k.PCB_VIA):
-            t.SetFrontTentingMode(k.TENTING_MODE_TENTED);t.SetBackTentingMode(k.TENTING_MODE_TENTED)
+            t.SetFrontTentingMode(k.TENTING_MODE_NOT_TENTED);t.SetBackTentingMode(k.TENTING_MODE_NOT_TENTED)
     def text(s,x,y,size=.8,layer=k.F_SilkS):
         t=k.PCB_TEXT(b);t.SetText(s);t.SetPosition(point(x,y));t.SetTextSize(point(size,size));t.SetTextThickness(k.FromMM(.15));t.SetLayer(layer)
         if layer==k.B_SilkS:t.SetMirrored(True)
@@ -31,30 +32,10 @@ def finish(name,session):
         text('GIGA DISPLAY / '+BOARDS[name]['revision'],57,7,1,k.B_SilkS)
     b.BuildConnectivity();k.ZONE_FILLER(b).Fill(b.Zones())
     path=ROOT/name/(name+'.kicad_pcb');k.SaveBoard(str(path),b)
-    # Explicit symmetrical fabrication stack. PCBWay may use equivalent FR-4
-    # laminates while retaining finished thickness, copper and layer order.
-    thickness=1.0 if name=='display-adapter' else 1.6
-    core=thickness-.14-.36
-    stack=f'''(stackup
-      (layer "F.SilkS" (type "Top Silk Screen") (color "White"))
-      (layer "F.Paste" (type "Top Solder Paste"))
-      (layer "F.Mask" (type "Top Solder Mask") (color "Green") (thickness 0.01))
-      (layer "F.Cu" (type "copper") (thickness 0.035))
-      (layer "dielectric 1" (type "prepreg") (thickness 0.18) (material "FR4") (epsilon_r 4.3) (loss_tangent 0.02))
-      (layer "In1.Cu" (type "copper") (thickness 0.035))
-      (layer "dielectric 2" (type "core") (thickness {core:.3f}) (material "FR4") (epsilon_r 4.3) (loss_tangent 0.02))
-      (layer "In2.Cu" (type "copper") (thickness 0.035))
-      (layer "dielectric 3" (type "prepreg") (thickness 0.18) (material "FR4") (epsilon_r 4.3) (loss_tangent 0.02))
-      (layer "B.Cu" (type "copper") (thickness 0.035))
-      (layer "B.Mask" (type "Bottom Solder Mask") (color "Green") (thickness 0.01))
-      (layer "B.Paste" (type "Bottom Solder Paste"))
-      (layer "B.SilkS" (type "Bottom Silk Screen") (color "White"))
-      (copper_finish "ENIG") (dielectric_constraints no))'''
-    if BOARDS[name]['layers']==2:
-        start=stack.index('      (layer "dielectric 1"')
-        end=stack.index('      (layer "B.Cu"')
-        stack=stack[:start]+f'      (layer "dielectric 1" (type "core") (thickness {thickness-.07:.3f}) (material "FR4") (epsilon_r 4.3) (loss_tangent 0.02))\n'+stack[end:]
-    s=path.read_text();s=s.replace('(setup\n','(setup\n\t\t'+stack+'\n',1);path.write_text(s)
+    configure_project(name)
+    board_settings(b,name)
+    k.SaveBoard(str(path),b)
+    write_stackup(path,name)
     print(path)
 
 if __name__=='__main__':

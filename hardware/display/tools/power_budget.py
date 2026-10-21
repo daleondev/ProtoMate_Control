@@ -21,7 +21,8 @@ def main():
     # 0..70C is a calculation envelope; full-load thermal derating is tested.
     regulator_min=3.3*(1-.02-.005-.01-.0002*45)
     ripple_allowance=.05  # 100mVpp qualification allowance, not guaranteed spec
-    copper_drop=1.5*.04
+    routes=json.loads((ROOT/'manufacturing/verification/power-routing.json').read_text())
+    copper_drop=routes['maximum_panel_supply_drop_V']+1.5*routes['return_allowance_ohm']
     contact_drop=.03
     panel_min=regulator_min-ripple_allowance-copper_drop-contact_drop
     assert ov[2]<36 and combined_input<current*.95
@@ -38,7 +39,9 @@ def main():
         'display_qualification_current_budget_A':1.5,
         'regulator_min_before_ripple_and_copper_V':regulator_min,
         'ripple_negative_allowance_V':ripple_allowance,
-        'pcb_supply_return_allowance_ohm':.04,'connector_drop_allowance_V':contact_drop,
+        'measured_geometry_supply_drop_V':routes['maximum_panel_supply_drop_V'],
+        'pcb_return_allowance_ohm':routes['return_allowance_ohm'],
+        'pcb_supply_and_return_drop_V':copper_drop,'connector_drop_allowance_V':contact_drop,
         'panel_min_calculated_V':panel_min,
         'panel_min_required_V':3.0,'panel_max_absolute_V':3.6,
         'limitations':[

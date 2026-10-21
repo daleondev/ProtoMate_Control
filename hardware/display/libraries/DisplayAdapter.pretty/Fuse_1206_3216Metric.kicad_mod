@@ -1,12 +1,14 @@
 (footprint "Fuse_1206_3216Metric"
 	(version 20260206)
-	(generator "kicad-footprint-generator")
+	(generator "pcbnew")
+	(generator_version "10.0")
 	(layer "F.Cu")
 	(descr "Fuse SMD 1206 (3216 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf)")
 	(tags "fuse")
 	(property "Reference" "REF**"
 		(at 0 -1.83 0)
 		(layer "F.SilkS")
+		(uuid "6040040b-6756-4d5f-9558-8b93fa52e595")
 		(effects
 			(font
 				(size 1 1)
@@ -17,6 +19,7 @@
 	(property "Value" "Fuse_1206_3216Metric"
 		(at 0 1.83 0)
 		(layer "F.Fab")
+		(uuid "99b5afbc-048a-401b-85b9-f005dc53107b")
 		(effects
 			(font
 				(size 1 1)
@@ -24,10 +27,33 @@
 			)
 		)
 	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "30373999-1965-4cc1-83a6-0952e7da36d9")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "6f7c0b9f-56ae-4b11-86c0-bf6e60fb42b1")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
 	(property "KiLib_Generator" "SMD_2terminal_chip_molded"
 		(at 0 0 0)
 		(layer "F.SilkS")
 		(hide yes)
+		(uuid "738e85d8-5a7c-4440-b49e-ed7a948c1b4e")
 		(effects
 			(font
 				(size 1 1)
@@ -41,19 +67,21 @@
 		(start -0.602064 -0.91)
 		(end 0.602064 -0.91)
 		(stroke
-			(width 0.12)
+			(width 0.15)
 			(type solid)
 		)
 		(layer "F.SilkS")
+		(uuid "73e875e5-fcb1-4ea7-a6bc-d7c7c4cb203b")
 	)
 	(fp_line
 		(start -0.602064 0.91)
 		(end 0.602064 0.91)
 		(stroke
-			(width 0.12)
+			(width 0.15)
 			(type solid)
 		)
 		(layer "F.SilkS")
+		(uuid "c1a89fd6-f078-44da-86d8-e4c891f8549b")
 	)
 	(fp_rect
 		(start -2.28 -1.13)
@@ -64,6 +92,7 @@
 		)
 		(fill no)
 		(layer "F.CrtYd")
+		(uuid "e4e6c1de-ac21-4504-aebe-ee41bd411393")
 	)
 	(fp_rect
 		(start -1.6 -0.8)
@@ -74,10 +103,12 @@
 		)
 		(fill no)
 		(layer "F.Fab")
+		(uuid "3801963e-5324-4219-879e-0dddb0494829")
 	)
 	(fp_text user "${REFERENCE}"
 		(at 0 0 0)
 		(layer "F.Fab")
+		(uuid "46a48887-8742-4ac2-ba84-39e75ebf02ae")
 		(effects
 			(font
 				(size 0.8 0.8)
@@ -90,12 +121,16 @@
 		(size 1.25 1.75)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.2)
+		(solder_mask_margin 0)
+		(uuid "7ec0bc02-672c-4625-9e07-0e8db75310aa")
 	)
 	(pad "2" smd roundrect
 		(at 1.4 0)
 		(size 1.25 1.75)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.2)
+		(solder_mask_margin 0)
+		(uuid "da990346-ae59-4dd8-9105-815a39f282ec")
 	)
 	(embedded_fonts no)
 	(model "${KIPRJMOD}/../libraries/3dmodels/Fuse_1206_3216Metric.step"

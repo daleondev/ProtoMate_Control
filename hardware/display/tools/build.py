@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 import pcbnew as k
 from design import ROOT, PARTS, SIGNALS, GEOMETRY, REVISION, BOARDS, components, board_outline
+from aisler import board_settings, configure_project, normalize_footprint, write_stackup
 
 k.SwigPyIterator.next = k.SwigPyIterator.__next__
 LIB = ROOT/'libraries/DisplayAdapter.pretty'
@@ -38,7 +39,7 @@ def fp_text(name, pads, outline, desc, model=None, attr='smd'):
         else:
             ffc=name.startswith('FH28') and str(num).isdigit()
             layers='"F.Cu" "F.Mask"' if ffc else '"F.Cu" "F.Paste" "F.Mask"'
-            s+=f'(pad {q(num)} smd rect (at {x} {y}) (size {w} {h}) (layers {layers}) (solder_mask_margin 0.035))\n'
+            s+=f'(pad {q(num)} smd rect (at {x} {y}) (size {w} {h}) (layers {layers}))\n'
             if ffc:
                 s+=f'(fp_rect (start {x-.125} -.65) (end {x+.125} .35) (stroke (width 0) (type solid)) (fill solid) (layer "F.Paste"))\n'
     if model:
@@ -95,12 +96,16 @@ def footprints():
         if p['kind']!='HEADER':continue
         xs=[x['x'] for x in p['pads']];ys=[x['y'] for x in p['pads']]
         # Contact centres are copied, not snapped to a guessed Arduino grid.
-        diameter=1.55 if p['ref']=='J8' else 1.8
+        diameter=1.70 if p['ref']=='J8' else 1.8
         pads=[(v['pin'],v['x'],v['y'],diameter,diameter,1.05) for v in p['pads']]
         vertical=max(ys)-min(ys)>max(xs)-min(xs)
         ex,ey=(1.205,1.525) if vertical else (1.525,1.205)
         (LIB/(p['footprint']+'.kicad_mod')).write_text(fp_text(p['footprint'],pads,(min(xs)-ex,min(ys)-ey,max(xs)+ex,max(ys)+ey),
            f"{p['mpn']}; Arduino mating centres; socket on top; 14.83mm tails J9, 10mm others; board gap 13mm",p['footprint']+'.step','through_hole'))
+    for path in LIB.glob('*.kicad_mod'):
+        fp=k.FootprintLoad(str(LIB),path.stem)
+        normalize_footprint(fp)
+        k.FootprintSave(str(LIB),fp)
 
 def pin_specs(part):
     kind=part['kind'];nets=part['nets']
@@ -228,10 +233,10 @@ def schematic(which,parts):
 
 def board(which,parts):
     b=k.BOARD();b.SetCopperLayerCount(BOARDS[which]["layers"])
-    ds=b.GetDesignSettings();ds.SetBoardThickness(mm(1 if which=='display-adapter' else 1.6))
+    ds=b.GetDesignSettings();ds.SetBoardThickness(mm(BOARDS[which]['thickness']))
     ds.m_MinClearance=mm(.15);ds.m_TrackMinWidth=mm(.15);ds.m_MinThroughDrill=mm(BOARDS[which]['via_drill'])
     ds.m_ViasMinSize=mm(BOARDS[which]['via_diameter']);ds.m_ViasMinAnnularWidth=mm(.15)
-    ds.m_SolderMaskExpansion=mm(.035);ds.m_SolderMaskMinWidth=mm(.1)
+    ds.m_SolderMaskExpansion=0;ds.m_SolderMaskMinWidth=mm(.1)
     ds.m_MinSilkTextHeight=mm(.8);ds.m_MinSilkTextThickness=mm(.15)
     nc=ds.m_NetSettings.GetDefaultNetclass();nc.SetClearance(mm(.15));nc.SetTrackWidth(mm(.18));nc.SetViaDiameter(mm(.65));nc.SetViaDrill(mm(.3))
     names=set(n for p in parts for n in p['nets'].values() if n)
@@ -307,6 +312,11 @@ def board(which,parts):
     pro['board']['design_settings'].setdefault('drc_exclusions',[])
     (ROOT/which/(which+'.kicad_pro')).write_text(json.dumps(pro,indent=2)+'\n')
     (out/(which+'.kicad_pro')).write_text(json.dumps(pro,indent=2)+'\n')
+    configure_project(which)
+    configure_project(which,out)
+    board_settings(b,which)
+    k.SaveBoard(str(path),b)
+    write_stackup(path,which)
     for table in ['fp-lib-table','sym-lib-table']:
         (out/table).write_text((ROOT/which/table).read_text().replace('${KIPRJMOD}/../libraries','${KIPRJMOD}/../../libraries').replace('${KIPRJMOD}/Adapter.kicad_sym',f'${{KIPRJMOD}}/../../{which}/Adapter.kicad_sym'))
     return b

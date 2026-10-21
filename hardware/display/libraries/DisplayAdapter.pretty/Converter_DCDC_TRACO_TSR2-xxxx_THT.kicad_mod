@@ -1,12 +1,14 @@
 (footprint "Converter_DCDC_TRACO_TSR2-xxxx_THT"
 	(version 20260206)
-	(generator "kicad-footprint-generator")
+	(generator "pcbnew")
+	(generator_version "10.0")
 	(layer "F.Cu")
 	(descr "DCDC-Converter, TRACO, TSR2-xxxx, 2A, Rev. January 20. 2025, https://www.tracopower.com/products/tsr2.pdf")
 	(tags "DCDC-Converter SWITCHING-REGULATOR STEP-DOWN TRACO TSR2 2.54MM THT SIP-3 2A")
 	(property "Reference" "REF**"
 		(at -0.14 -5.87 0)
 		(layer "F.SilkS")
+		(uuid "7fa1e1a1-c2a8-4f44-8071-7b2d612ed7ae")
 		(effects
 			(font
 				(size 1 1)
@@ -17,6 +19,7 @@
 	(property "Value" "Converter_DCDC_TRACO_TSR2-xxxx_THT"
 		(at -0.14 11.03 0)
 		(layer "F.Fab")
+		(uuid "c6cb8366-0123-4c0d-9e69-96d2941ccf19")
 		(effects
 			(font
 				(size 1 1)
@@ -24,10 +27,33 @@
 			)
 		)
 	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "506d2af4-2e2a-4e1b-8a51-c647aeb63baf")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "63a00096-48c3-4cd6-a93f-bf613da5812d")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
 	(property "KiLib_Generator" "converter_ACDC_DCDC"
 		(at 0 0 0)
 		(layer "F.SilkS")
 		(hide yes)
+		(uuid "dfdc7de8-159f-40a7-be62-edbf8b32f0c6")
 		(effects
 			(font
 				(size 1 1)
@@ -37,63 +63,16 @@
 	)
 	(attr through_hole)
 	(duplicate_pad_numbers_are_jumpers no)
-	(fp_line
-		(start -4.5 -5.03)
-		(end 4.22 -5.03)
+	(fp_circle
+		(center -2.4 -3.4)
+		(end -2.219999 -3.4)
 		(stroke
-			(width 0.12)
-			(type solid)
+			(width 0.15)
+			(type default)
 		)
+		(fill no)
 		(layer "F.SilkS")
-	)
-	(fp_line
-		(start -4.5 -0.296)
-		(end -4.5 -5.03)
-		(stroke
-			(width 0.12)
-			(type solid)
-		)
-		(layer "F.SilkS")
-	)
-	(fp_line
-		(start -4.5 10.19)
-		(end -4.5 0.296)
-		(stroke
-			(width 0.12)
-			(type solid)
-		)
-		(layer "F.SilkS")
-	)
-	(fp_line
-		(start 4.22 -5.03)
-		(end 4.22 10.19)
-		(stroke
-			(width 0.12)
-			(type solid)
-		)
-		(layer "F.SilkS")
-	)
-	(fp_line
-		(start 4.22 10.19)
-		(end -4.5 10.19)
-		(stroke
-			(width 0.12)
-			(type solid)
-		)
-		(layer "F.SilkS")
-	)
-	(fp_poly
-		(pts
-			(xy -4.5 0)
-			(xy -4.97 0.34)
-			(xy -4.97 -0.34)
-		)
-		(stroke
-			(width 0.12)
-			(type solid)
-		)
-		(fill yes)
-		(layer "F.SilkS")
+		(uuid "950b8081-2f65-42c8-baff-ad042bd88858")
 	)
 	(fp_rect
 		(start -4.64 -5.17)
@@ -104,14 +83,73 @@
 		)
 		(fill no)
 		(layer "F.CrtYd")
+		(uuid "3863d7b0-28fd-42c9-9ef4-4eb473b95b05")
+	)
+	(fp_line
+		(start -4.5 -5.03)
+		(end 4.22 -5.03)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "3406f3ae-433e-4c65-9549-60b4d3483c72")
+	)
+	(fp_line
+		(start -4.5 -0.296)
+		(end -4.5 -5.03)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "67f850c9-92f5-4f03-904b-946c47656cee")
+	)
+	(fp_line
+		(start -4.5 10.19)
+		(end -4.5 0.296)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d56ed4b2-1cc2-41ff-b618-ab58e67db86f")
+	)
+	(fp_line
+		(start 4.22 -5.03)
+		(end 4.22 10.19)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "0e9772bf-e89c-4a7e-afa7-c347acd36c70")
+	)
+	(fp_line
+		(start 4.22 10.19)
+		(end -4.5 10.19)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "2998131b-3e39-4418-b8c8-813f51b812fe")
 	)
 	(fp_poly
 		(pts
-			(xy -2.89 -4.42)
-			(xy 3.61 -4.42)
-			(xy 3.61 9.58)
-			(xy -3.89 9.58)
-			(xy -3.89 -3.42)
+			(xy -4.5 0) (xy -4.97 0.34) (xy -4.97 -0.34)
+		)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.Fab")
+		(uuid "4824a46c-0d5b-46c9-9c15-3642f7c64eea")
+	)
+	(fp_poly
+		(pts
+			(xy -2.89 -4.42) (xy 3.61 -4.42) (xy 3.61 9.58) (xy -3.89 9.58) (xy -3.89 -3.42)
 		)
 		(stroke
 			(width 0.1)
@@ -119,10 +157,12 @@
 		)
 		(fill no)
 		(layer "F.Fab")
+		(uuid "9c371c83-207f-4af7-84a3-6db9e13aac70")
 	)
 	(fp_text user "${REFERENCE}"
 		(at -0.14 2.58 0)
 		(layer "F.Fab")
+		(uuid "bf718525-ec56-4f20-9d48-4cac12124297")
 		(effects
 			(font
 				(size 1 1)
@@ -137,6 +177,8 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(roundrect_rratio 0.147059)
+		(solder_mask_margin 0)
+		(uuid "7ca986c1-2a85-4f7f-928b-07eb4b3133ac")
 	)
 	(pad "2" thru_hole circle
 		(at 0 2.54)
@@ -144,6 +186,8 @@
 		(drill 1.1)
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
+		(solder_mask_margin 0)
+		(uuid "12eb8e05-8371-44a1-ac15-b230ee7de6a9")
 	)
 	(pad "3" thru_hole circle
 		(at 0 5.08)
@@ -151,6 +195,8 @@
 		(drill 1.1)
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
+		(solder_mask_margin 0)
+		(uuid "cd04c727-a046-4364-bc2e-179ecb235d9c")
 	)
 	(embedded_fonts no)
 	(model "${KIPRJMOD}/../libraries/3dmodels/TSR2-2433-trimmed.step"

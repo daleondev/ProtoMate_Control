@@ -4,6 +4,10 @@
   "exported_pad_coordinates_and_nets_checked": 634,
   "drill_hits_checked": 335,
   "ffc_paste_windows_checked": 80,
+  "silk_coverage_upper_bound_percent": {
+    "top": 20.086166223970146,
+    "bottom": 12.340651697655893
+  },
   "layers": {
     "top-copper": {
       "objects": 2327,
@@ -19,27 +23,27 @@
       ]
     },
     "top-mask": {
-      "objects": 526,
+      "objects": 736,
       "bounds_mm": [
         [
-          12.364208,
+          12.400532,
           0.844815
         ],
         [
-          121.685,
+          121.65,
           52.835185
         ]
       ]
     },
     "top-silk": {
-      "objects": 1116,
+      "objects": 1172,
       "bounds_mm": [
         [
-          12.364208,
+          12.400532,
           0.844815
         ],
         [
-          121.685,
+          121.65,
           52.835185
         ]
       ]
@@ -71,28 +75,28 @@
       ]
     },
     "bottom-mask": {
-      "objects": 119,
+      "objects": 335,
       "bounds_mm": [
         [
-          12.364208,
-          0.908608
+          12.400532,
+          0.944932
         ],
         [
-          98.151392,
-          52.431392
+          119.67222,
+          52.395068
         ]
       ]
     },
     "bottom-silk": {
-      "objects": 268,
+      "objects": 481,
       "bounds_mm": [
         [
-          12.364208,
-          0.908608
+          12.400532,
+          0.944932
         ],
         [
-          98.151392,
-          52.431392
+          119.67222,
+          52.395068
         ]
       ]
     },
@@ -127,7 +131,7 @@
       ]
     },
     "mechanical-outline": {
-      "objects": 10,
+      "objects": 13,
       "bounds_mm": [
         [
           10.975,
