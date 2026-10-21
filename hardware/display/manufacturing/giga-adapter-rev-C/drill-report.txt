@@ -1,5 +1,5 @@
 Drill report for giga-adapter.kicad_pcb
-Created on 2026-10-21T16:35:49
+Created on 2026-10-21T20:08:32
 
 Copper Layer Stackup:
     =============================================================

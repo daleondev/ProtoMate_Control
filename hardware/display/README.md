@@ -30,6 +30,9 @@ and white silkscreen. All components are sourced and installed separately.
 **AISLER processing acceptance is pending** until the exact upload previews,
 options, bridges and netlist notes have been inspected. Physical qualification
 also remains pending; local verification does not establish either acceptance.
+The [electrical and fabrication review](manufacturing/REVIEW.md) records the
+current release limits. These are prototype fabrication packages; full RGB
+timing and dynamic supply qualification are still open.
 
 The display adapter carries a **DF23C-50DP-0.5V(92) plug on its underside**.
 It mates with the existing display connector; do not remove the display connector
@@ -71,7 +74,9 @@ both GIGA and the display; the display adapter has no separate power terminal.
   10 µF/50 V and 100 nF/50 V input capacitors suppress cable-side switching
   current. Four 47 µF output capacitors and local 10 µF/100 nF bypass capacitors
   support the panel load; nominal external output capacitance stays below the
-  module's 900 µF limit. Do not exchange the two converter types.
+  module's 900 µF limit: 208.2 µF on this board plus 10.6 µF on the shield's
+  panel rail. The panel's unspecified internal capacitance must also fit this
+  limit. Do not exchange the two converter types.
 - **USB-C may remain connected for CDC CLI/logging.** GIGA retains its onboard
   USB/VIN power arrangement. D3 blocks reverse feed from VIN into U8 when only
   USB is present. USB alone runs GIGA, but does not power the display or the
@@ -91,8 +96,9 @@ The dividers set nominal startup at **18.2 V** and overvoltage cutoff at
 The TVS handles short transients, while the eFuse disconnects excessive input
 voltage. These component ratings are not a tested industrial surge rating.
 
-**U7 RTN and its exposed pad must not be connected to GND.** They use a separate
-thermal copper island and four thermal vias. Pin 9 alone is the system-ground
+The fused-input feed from F1 to U7 uses 0.60 mm copper throughout.
+**U7 RTN and its exposed pad must not be connected to GND.** They use separate
+top and bottom thermal copper islands joined by four vias. Pin 9 alone is the system-ground
 connection. D2 clamps negative excursions on the protected output. F2 is a
 **0.8 A/63 V time-lag fuse** for the ribbon branch. Two parallel contacts carry
 24 V; even at 2 A converter output, 18 V input and an 80% efficiency allowance,
@@ -104,12 +110,13 @@ the ribbon; these connectors are not hot-plug power connectors.
 The display qualification budget is **1.5 A at 3.3 V**: 1.05 A typical backlight,
 0.25 A maximum TFT, and 0.20 A for touch/interface current and margin. The
 backlight maximum is unspecified; 1.5 A is not a guaranteed panel maximum.
-All four backlight contacts are connected; at the documented typical current
+All four backlight contacts (J1 pins **5–8**) are connected; pin **10** supplies
+the TFT electronics and pin **49** supplies touch. At the documented typical backlight current
 each carries approximately 0.263 A, below the DF23's 0.3 A/contact rating.
 
 The calculated panel-voltage budget uses converter accuracy, line/load
 regulation, ±0.02%/K temperature coefficient over a 0–70°C calculation range,
-a 50 mV negative ripple allowance, 33.6 mV of routed supply drop plus a 20 mΩ return allowance and
+a 50 mV negative ripple allowance, 33.5 mV of routed supply drop plus a 20 mΩ return allowance and
 30 mV of contact drop. At 1.5 A this leaves approximately **3.011 V**, above the
 panel's **3.0 V minimum**, with limited worst-case margin. This is a conservative
 allocation, not measured performance; verify it at CN1 under full brightness
@@ -119,7 +126,15 @@ and the panel's **1–20 ms supply rise time** remain first-board checks.
 assumptions. `power-routing.json` derives branch resistance from the final track lengths and widths,
 including the relocated touch-power branch. The 1.5 A budget is explicitly split
 between backlight (1.05 A), TFT (0.25 A), touch (0.05 A) and interface rail
-(0.15 A); this split also needs checking on the first board. Do not exceed the panel's 3.6 V absolute supply limit.
+(0.15 A); this split also needs checking on the first board. Keep the panel's
+digital supply within its specified **3.0–3.6 V** range.
+
+This is a **steady-state** budget. TRACO specifies up to 250 mV peak deviation
+for a 50% load step on this converter family; that excursion would exceed the
+remaining worst-case DC margin. The actual panel load and added capacitors
+must be tested during brightness changes and power sequencing. The present
+calculation does not establish transient compliance or a guaranteed 1.5 A
+panel load: Smartwin specifies 1.05 A backlight current only as typical.
 
 ## Interfaces and startup
 
@@ -232,13 +247,22 @@ ST's DS12930 Table 105 additionally allows 0.5 ns half-cycle error and 0.5 ns
 maximum data-valid delay. Under that table's characterization conditions, the
 remaining calculated setup/hold margins are only **0.240 ns / 0.358 ns**, before
 Arduino PCB skew, cable/connector effects, settling and jitter. Those conditions
-include the specified output speed, load and IO compensation; this hardware
-task does not change firmware to establish them.
+include the specified output speed, load and IO compensation. LTDC pins are
+configured for very-high speed, but the current firmware has no explicit IO
+compensation enable. Enable and settle it before using this timing budget;
+this board review does not change firmware.
 
 This is **not complete worst-case timing closure**. The routed-length report
 and `timing-budget.json` expose the calculation and omitted terms. The boards
 are prepared for prototype fabrication; reliable operation across voltage and
 temperature requires the first-board timing qualification below.
+
+The budget covers RGB, DE, HSYNC and VSYNC. It does not prove buffer timing
+at the actual ribbon/panel capacitive load or bound clock pulse-width distortion.
+A possible bring-up fallback is **40.96 MHz with 1120 × 610 total timing**,
+approximately 59.95 Hz, within the panel's DE-mode clock/blanking limits. It
+adds about 2.44 ns to each half-period. This candidate is recorded in the
+timing report; it is **not implemented or physically validated**.
 
 Keep the 100 mm cable limit. At first-board qualification measure PCLK and data
 at the panel connector, confirm the configured sampling phase, and adjust series
@@ -347,7 +371,9 @@ the checked-in project boards are the authoritative layouts.
 
 `tools/audit.py` independently compares the exported schematic netlist, PCB pad
 nets, manufacturer pin tables, all cable conductors and the CubeMX pin assignment.
-`tools/export_release.py` requires clean ERC/DRC and checks BOM/placement agreement.
+`tools/export_release.py` requires clean ERC/DRC after a fresh KiCad CLI zone
+refill and checks BOM/placement agreement. `tools/review_power.py` verifies
+actual power paths, input-capacitor connections and the RTN thermal islands.
 `tools/inspect_gerbers.py` parses the exported files with Gerbonara, independent of
 KiCad, and checks exported pad/drill coordinates and layer geometry. Release
 archives are made only after these checks and visual/mechanical review.
@@ -362,7 +388,8 @@ outside it, the report explicitly identifies the recorded release assignments.
 Use Python with pcbnew, NumPy, Pillow, Shapely, Matplotlib and Gerbonara, plus
 KiCad 10, FreeCAD and Inkscape. `tools/release.py` runs the local checks and
 exports; review the generated drawings and 3D assembly before packaging with
-`tools/package_release.py --reviewed`. The manufacturing status separates local
+`tools/package_release.py --reviewed`. Packaging rejects PCB, schematic, project
+or rule changes made after verification. The manufacturing status separates local
 validation from pending AISLER processing and first-board qualification.
 
 Source documents and attribution are listed in `references/SOURCES.md`.

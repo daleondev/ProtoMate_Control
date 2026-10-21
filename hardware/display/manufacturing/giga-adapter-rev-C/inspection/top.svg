@@ -304,12 +304,9 @@
       <circle cx="0.0" cy="0.0" r="0.1" fill="white"/>
     </g>
     <g id="a36">
-      <circle cx="0.0" cy="0.0" r="0.4" fill="white"/>
-    </g>
-    <g id="a37">
       <circle cx="0.0" cy="0.0" r="0.075" fill="white"/>
     </g>
-    <g id="a38">
+    <g id="a37">
       <path d="M -0.135 -0.185 L 0.135 -0.185 L 0.135 0.185 L -0.135 0.185 L -0.135 -0.185" fill="white"/>
       <circle cx="-0.135" cy="-0.185" r="0.135" fill="white"/>
       <circle cx="0.135" cy="-0.185" r="0.135" fill="white"/>
@@ -320,7 +317,7 @@
       <rect x="-0.135" y="0.05" width="0.27" height="0.27" transform="rotate(180.0 0.0 0.185)" fill="white"/>
       <rect x="-0.32" y="-0.135" width="0.37" height="0.27" transform="rotate(-90.0 -0.135 0.0)" fill="white"/>
     </g>
-    <g id="a39">
+    <g id="a38">
       <path d="M 0.65 -1.0 L 0.65 1.0 L -0.65 1.0 L -0.65 -1.0 L 0.65 -1.0" fill="white"/>
       <circle cx="0.65" cy="-1.0" r="0.25" fill="white"/>
       <circle cx="0.65" cy="1.0" r="0.25" fill="white"/>
@@ -331,7 +328,7 @@
       <rect x="-1.65" y="-0.25" width="2.0" height="0.5" transform="rotate(-90.0 -0.65 0.0)" fill="white"/>
       <rect x="-0.65" y="-1.25" width="1.3" height="0.5" fill="white"/>
     </g>
-    <g id="a40">
+    <g id="a39">
       <path d="M 1.1 -0.325 L 1.1 0.325 L -1.1 0.325 L -1.1 -0.325 L 1.1 -0.325" fill="white"/>
       <circle cx="1.1" cy="-0.325" r="0.25" fill="white"/>
       <circle cx="1.1" cy="0.325" r="0.25" fill="white"/>
@@ -342,7 +339,7 @@
       <rect x="-1.425" y="-0.25" width="0.65" height="0.5" transform="rotate(-90.0 -1.1 0.0)" fill="white"/>
       <rect x="-1.1" y="-0.575" width="2.2" height="0.5" fill="white"/>
     </g>
-    <g id="a41">
+    <g id="a40">
       <path d="M -0.225 -0.25 L 0.225 -0.25 L 0.225 0.25 L -0.225 0.25 L -0.225 -0.25" fill="white"/>
       <circle cx="-0.225" cy="-0.25" r="0.225" fill="white"/>
       <circle cx="0.225" cy="-0.25" r="0.225" fill="white"/>
@@ -353,7 +350,7 @@
       <rect x="-0.225" y="0.025" width="0.45" height="0.45" transform="rotate(180.0 0.0 0.25)" fill="white"/>
       <rect x="-0.475" y="-0.225" width="0.5" height="0.45" transform="rotate(-90.0 -0.225 0.0)" fill="white"/>
     </g>
-    <g id="a42">
+    <g id="a41">
       <path d="M -0.6375 -0.1 L 0.6375 -0.1 L 0.6375 0.1 L -0.6375 0.1 L -0.6375 -0.1" fill="white"/>
       <circle cx="-0.6375" cy="-0.1" r="0.1" fill="white"/>
       <circle cx="0.6375" cy="-0.1" r="0.1" fill="white"/>
@@ -364,7 +361,7 @@
       <rect x="-0.6375" y="0.0" width="1.275" height="0.2" transform="rotate(180.0 0.0 0.1)" fill="white"/>
       <rect x="-0.7375" y="-0.1" width="0.2" height="0.2" transform="rotate(-90.0 -0.6375 0.0)" fill="white"/>
     </g>
-    <g id="a43">
+    <g id="a42">
       <path d="M -0.2 -0.275 L 0.2 -0.275 L 0.2 0.275 L -0.2 0.275 L -0.2 -0.275" fill="white"/>
       <circle cx="-0.2" cy="-0.275" r="0.2" fill="white"/>
       <circle cx="0.2" cy="-0.275" r="0.2" fill="white"/>
@@ -375,7 +372,7 @@
       <rect x="-0.2" y="0.075" width="0.4" height="0.4" transform="rotate(180.0 0.0 0.275)" fill="white"/>
       <rect x="-0.475" y="-0.2" width="0.55" height="0.4" transform="rotate(-90.0 -0.2 0.0)" fill="white"/>
     </g>
-    <g id="a44">
+    <g id="a43">
       <path d="M 0.475 -0.25 L 0.475 0.25 L -0.475 0.25 L -0.475 -0.25 L 0.475 -0.25" fill="white"/>
       <circle cx="0.475" cy="-0.25" r="0.25" fill="white"/>
       <circle cx="0.475" cy="0.25" r="0.25" fill="white"/>
@@ -386,7 +383,7 @@
       <rect x="-0.725" y="-0.25" width="0.5" height="0.5" transform="rotate(-90.0 -0.475 0.0)" fill="white"/>
       <rect x="-0.475" y="-0.5" width="0.95" height="0.5" fill="white"/>
     </g>
-    <g id="a45">
+    <g id="a44">
       <path d="M -0.7 -0.1125 L 0.7 -0.1125 L 0.7 0.1125 L -0.7 0.1125 L -0.7 -0.1125" fill="white"/>
       <circle cx="-0.7" cy="-0.1125" r="0.1125" fill="white"/>
       <circle cx="0.7" cy="-0.1125" r="0.1125" fill="white"/>
@@ -397,7 +394,7 @@
       <rect x="-0.7" y="0.0" width="1.4" height="0.225" transform="rotate(180.0 0.0 0.1125)" fill="white"/>
       <rect x="-0.8125" y="-0.1125" width="0.225" height="0.225" transform="rotate(-90.0 -0.7 0.0)" fill="white"/>
     </g>
-    <g id="a46">
+    <g id="a45">
       <path d="M 0.25 -0.225 L 0.25 0.225 L -0.25 0.225 L -0.25 -0.225 L 0.25 -0.225" fill="white"/>
       <circle cx="0.25" cy="-0.225" r="0.225" fill="white"/>
       <circle cx="0.25" cy="0.225" r="0.225" fill="white"/>
@@ -408,7 +405,7 @@
       <rect x="-0.475" y="-0.225" width="0.45" height="0.45" transform="rotate(-90.0 -0.25 0.0)" fill="white"/>
       <rect x="-0.25" y="-0.45" width="0.5" height="0.45" fill="white"/>
     </g>
-    <g id="a47">
+    <g id="a46">
       <path d="M -1.0 -0.9 L 1.0 -0.9 L 1.0 0.9 L -1.0 0.9 L -1.0 -0.9" fill="white"/>
       <circle cx="-1.0" cy="-0.9" r="0.25" fill="white"/>
       <circle cx="1.0" cy="-0.9" r="0.25" fill="white"/>
@@ -419,7 +416,7 @@
       <rect x="-1.0" y="0.65" width="2.0" height="0.5" transform="rotate(180.0 0.0 0.9)" fill="white"/>
       <rect x="-1.9" y="-0.25" width="1.8" height="0.5" transform="rotate(-90.0 -1.0 0.0)" fill="white"/>
     </g>
-    <g id="a48">
+    <g id="a47">
       <path d="M -0.25 -0.475 L 0.25 -0.475 L 0.25 0.475 L -0.25 0.475 L -0.25 -0.475" fill="white"/>
       <circle cx="-0.25" cy="-0.475" r="0.25" fill="white"/>
       <circle cx="0.25" cy="-0.475" r="0.25" fill="white"/>
@@ -430,7 +427,7 @@
       <rect x="-0.25" y="0.225" width="0.5" height="0.5" transform="rotate(180.0 0.0 0.475)" fill="white"/>
       <rect x="-0.725" y="-0.25" width="0.95" height="0.5" transform="rotate(-90.0 -0.25 0.0)" fill="white"/>
     </g>
-    <g id="a49">
+    <g id="a48">
       <path d="M -1.0 -0.65 L 1.0 -0.65 L 1.0 0.65 L -1.0 0.65 L -1.0 -0.65" fill="white"/>
       <circle cx="-1.0" cy="-0.65" r="0.25" fill="white"/>
       <circle cx="1.0" cy="-0.65" r="0.25" fill="white"/>
@@ -441,10 +438,10 @@
       <rect x="-1.0" y="0.4" width="2.0" height="0.5" transform="rotate(180.0 0.0 0.65)" fill="white"/>
       <rect x="-1.65" y="-0.25" width="1.3" height="0.5" transform="rotate(-90.0 -1.0 0.0)" fill="white"/>
     </g>
-    <g id="a50">
+    <g id="a49">
       <rect x="-0.9" y="-1.175" width="1.8" height="2.35" fill="white"/>
     </g>
-    <g id="a51">
+    <g id="a50">
       <path d="M 0.65 -0.325 L 0.65 0.325 L -0.65 0.325 L -0.65 -0.325 L 0.65 -0.325" fill="white"/>
       <circle cx="0.65" cy="-0.325" r="0.25" fill="white"/>
       <circle cx="0.65" cy="0.325" r="0.25" fill="white"/>
@@ -455,7 +452,7 @@
       <rect x="-0.975" y="-0.25" width="0.65" height="0.5" transform="rotate(-90.0 -0.65 0.0)" fill="white"/>
       <rect x="-0.65" y="-0.575" width="1.3" height="0.5" fill="white"/>
     </g>
-    <g id="a52">
+    <g id="a51">
       <path d="M -0.410743 -0.410743 L 0.410743 -0.410743 L 0.410743 0.410743 L -0.410743 0.410743 L -0.410743 -0.410743" fill="white"/>
       <circle cx="-0.410743" cy="-0.410743" r="0.289257" fill="white"/>
       <circle cx="0.410743" cy="-0.410743" r="0.289257" fill="white"/>
@@ -466,7 +463,7 @@
       <rect x="-0.410743" y="0.121486" width="0.821486" height="0.578514" transform="rotate(180.0 0.0 0.410743)" fill="white"/>
       <rect x="-0.821486" y="-0.289257" width="0.821486" height="0.578514" transform="rotate(-90.0 -0.410743 0.0)" fill="white"/>
     </g>
-    <g id="a53">
+    <g id="a52">
       <path d="M -0.6375 -0.1125 L 0.6375 -0.1125 L 0.6375 0.1125 L -0.6375 0.1125 L -0.6375 -0.1125" fill="white"/>
       <circle cx="-0.6375" cy="-0.1125" r="0.1125" fill="white"/>
       <circle cx="0.6375" cy="-0.1125" r="0.1125" fill="white"/>
@@ -477,7 +474,7 @@
       <rect x="-0.6375" y="0.0" width="1.275" height="0.225" transform="rotate(180.0 0.0 0.1125)" fill="white"/>
       <rect x="-0.75" y="-0.1125" width="0.225" height="0.225" transform="rotate(-90.0 -0.6375 0.0)" fill="white"/>
     </g>
-    <g id="a54">
+    <g id="a53">
       <path d="M -0.375 -0.625 L 0.375 -0.625 L 0.375 0.625 L -0.375 0.625 L -0.375 -0.625" fill="white"/>
       <circle cx="-0.375" cy="-0.625" r="0.25" fill="white"/>
       <circle cx="0.375" cy="-0.625" r="0.25" fill="white"/>
@@ -488,7 +485,7 @@
       <rect x="-0.375" y="0.375" width="0.75" height="0.5" transform="rotate(180.0 0.0 0.625)" fill="white"/>
       <rect x="-1.0" y="-0.25" width="1.25" height="0.5" transform="rotate(-90.0 -0.375 0.0)" fill="white"/>
     </g>
-    <g id="a55">
+    <g id="a54">
       <path d="M -0.5125 -0.15 L 0.5125 -0.15 L 0.5125 0.15 L -0.5125 0.15 L -0.5125 -0.15" fill="white"/>
       <circle cx="-0.5125" cy="-0.15" r="0.15" fill="white"/>
       <circle cx="0.5125" cy="-0.15" r="0.15" fill="white"/>
@@ -3559,7 +3556,7 @@
       <circle cx="100.841" cy="29.0836" r="0.325"/>
       <circle cx="100.841" cy="40.5836" r="0.325"/>
       <circle cx="119.35" cy="49.015" r="0.325"/>
-      <circle cx="61.0" cy="43.815" r="0.325"/>
+      <circle cx="61.4" cy="43.815" r="0.325"/>
       <circle cx="99.3273" cy="39.5411" r="0.325"/>
       <circle cx="116.2" cy="19.59" r="0.325"/>
       <circle cx="116.2" cy="34.59" r="0.325"/>
@@ -3794,7 +3791,6 @@
       <path d="M 102.775 50.19 L 103.775 50.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 116.15 8.94 L 119.0 8.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.15"/>
       <path d="M 115.0 26.59 L 116.2 26.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
-      <path d="M 59.5 43.815 L 61.0 43.815" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.3"/>
       <path d="M 115.0 27.59 L 116.2 27.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 115.0 39.59 L 116.2 39.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 86.95 6.34 L 87.95 6.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
@@ -3841,6 +3837,7 @@
       <path d="M 99.71 49.215 L 99.3273 50.1389" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 99.71 40.465 L 99.3273 39.5411" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 102.775 38.69 L 103.775 38.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
+      <path d="M 59.5 43.815 L 61.4 43.815" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.3"/>
       <path d="M 99.71 35.215 L 99.71 36.465" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 99.71 32.715 L 99.71 30.215" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 115.0 19.59 L 116.2 19.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
@@ -3869,186 +3866,19 @@
       <path d="M 30.5 47.915 L 31.5 47.915" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 32.8875 46.165 L 32.8875 45.365" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 120.75 4.665 L 119.35 4.665" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
-      <path d="M 66.5 40.99 L 66.45 41.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.7 36.59 L 66.75 36.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.7 39.99 L 56.65 39.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 70.85 28.54 L 70.9 28.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.9 28.04 L 64.95 27.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.95 40.09 L 56.9 40.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.3 29.54 L 73.35 29.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.35 29.09 L 64.6 28.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.0 40.94 L 66.05 40.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.45 41.09 L 66.5 41.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.8 28.34 L 64.8 28.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.6 40.34 L 57.55 40.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.6 39.94 L 56.55 39.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.8 39.99 L 56.7 39.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.1 29.49 L 73.2 29.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.0 29.44 L 73.05 29.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.0 39.69 L 55.95 39.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.95 27.99 L 64.95 27.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.7 30.39 L 64.15 29.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.55 40.34 L 57.5 40.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.6 40.69 L 66.6 40.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.35 29.59 L 73.45 29.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.7 36.54 L 66.7 36.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.25 40.19 L 57.2 40.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.25 29.69 L 64.25 29.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 58.15 40.59 L 58.1 40.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.55 41.14 L 66.6 41.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.8 29.74 L 73.85 29.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 58.1 40.54 L 58.05 40.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.95 27.94 L 65.0 27.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.2 40.99 L 66.25 41.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 59.5 40.865 L 59.5 40.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.95 33.54 L 63.9 33.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.3 39.79 L 56.25 39.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.65 33.24 L 63.65 33.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.95 41.34 L 67.0 41.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.8 40.29 L 66.75 40.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.55 29.64 L 73.6 29.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.35 41.09 L 66.45 41.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.45 29.59 L 73.5 29.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.85 40.14 L 66.8 40.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.65 29.29 L 72.7 29.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 70.65 28.44 L 70.7 28.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.9 39.64 L 55.9 39.615" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.6 29.69 L 73.65 29.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.9 39.615 L 55.9 38.965" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 71.55 29.14 L 71.6 29.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.0 33.54 L 63.95 33.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 58.8 40.59 L 58.15 40.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.75 29.34 L 72.85 29.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.1 33.59 L 64.05 33.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.7 29.29 L 72.75 29.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.7 29.74 L 73.8 29.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.1 39.74 L 56.05 39.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.95 39.64 L 55.9 39.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.7 33.34 L 63.7 33.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.75 36.69 L 66.8 36.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.8 36.79 L 66.85 36.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.35 39.84 L 56.3 39.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.6 40.74 L 66.55 40.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.75 40.34 L 66.75 40.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 67.0 36.365 L 65.0 34.365" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 63.65 29.19 L 65.0 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 55.9 39.615 L 58.25 39.615" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 63.65 33.1369 L 63.65 29.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 71.6 29.84 L 74.0 29.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 65.0 34.365 L 64.8781 34.365" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 69.6 27.84 L 71.6 29.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 55.9 39.615 L 55.9 38.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 64.8781 34.365 L 63.65 33.1369" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 67.0 41.34 L 67.0 36.365" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
       <path d="M 65.0 27.84 L 69.6 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.85 28.24 L 64.85 28.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.6 27.84 L 70.2 28.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.7 33.29 L 63.65 33.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.2 39.74 L 56.1 39.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.65 41.19 L 66.7 41.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.65 33.19 L 63.6 33.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.6 41.19 L 66.65 41.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.15 33.64 L 64.1 33.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.85 29.34 L 72.9 29.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.2 40.19 L 57.15 40.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.95 29.84 L 74.0 29.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.6 29.24 L 72.65 29.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.1 40.99 L 66.2 40.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.75 40.39 L 66.7 40.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 65.0 34.34 L 64.3 33.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.25 39.79 L 56.2 39.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 59.5 40.865 L 59.5 40.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.7 40.54 L 66.65 40.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.6 28.79 L 64.65 28.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.8 41.24 L 66.85 41.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 59.5 40.89 L 65.95 40.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.7 40.44 L 66.7 40.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 65.0 34.34 L 65.6 34.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.15 40.14 L 57.05 40.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.15 29.84 L 64.2 29.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.8 36.74 L 66.8 36.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.65 28.64 L 64.7 28.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.85 36.84 L 66.85 40.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 70.2 28.44 L 70.65 28.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 70.95 28.59 L 71.0 28.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.6 33.14 L 63.6 33.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.3 40.24 L 57.25 40.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.9 41.29 L 66.95 41.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.25 41.04 L 66.3 41.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 70.8 28.49 L 70.85 28.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.85 41.29 L 66.9 41.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.7 41.24 L 66.8 41.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.45 41.04 L 66.45 41.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.9 29.39 L 72.95 29.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.75 28.49 L 64.75 28.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 58.0 40.49 L 57.9 40.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.75 40.39 L 57.65 40.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.25 29.54 L 73.3 29.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.65 39.94 L 56.6 39.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.6 28.84 L 64.6 28.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.05 39.69 L 56.0 39.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.9 33.49 L 63.85 33.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.2 29.79 L 64.2 29.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.55 40.79 L 66.55 40.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.65 40.64 L 66.6 40.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.55 30.69 L 63.6 30.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 65.6 35.44 L 66.7 36.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 65.95 40.89 L 66.0 40.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 58.05 40.54 L 58.0 40.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.9 40.04 L 56.85 40.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.95 29.39 L 73.0 29.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.8 40.19 L 66.8 40.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.5 40.94 L 66.5 40.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.55 33.04 L 63.55 30.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 71.75 29.24 L 72.6 29.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.4 39.84 L 56.35 39.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.55 40.89 L 66.5 40.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.75 28.39 L 64.8 28.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 65.6 34.94 L 65.6 35.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.5 41.14 L 66.55 41.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.6 30.59 L 63.65 30.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.6 30.64 L 63.6 30.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.85 29.79 L 73.9 29.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.85 40.04 L 56.8 39.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 71.6 29.14 L 71.65 29.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.55 39.89 L 56.45 39.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.6 33.09 L 63.55 33.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.85 28.19 L 64.9 28.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.85 33.49 L 63.7 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.3 33.64 L 64.15 33.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.9 40.49 L 57.85 40.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 70.9 28.54 L 70.95 28.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.9 29.79 L 73.95 29.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.3 29.49 L 64.35 29.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.3 41.04 L 66.35 41.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 65.0 27.89 L 65.0 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 59.1 40.89 L 58.8 40.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 59.5 40.89 L 59.1 40.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.2 29.74 L 64.25 29.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.05 40.14 L 57.0 40.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.05 33.59 L 64.0 33.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.75 36.64 L 66.75 36.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.3 29.54 L 64.3 29.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.5 40.29 L 57.45 40.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.15 29.94 L 64.15 29.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.85 40.44 L 57.8 40.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 71.65 29.19 L 71.7 29.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.65 29.69 L 73.7 29.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.7 30.44 L 63.7 30.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.45 39.89 L 56.4 39.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.5 29.64 L 73.55 29.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.2 29.49 L 73.25 29.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.8 28.29 L 64.85 28.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 71.0 28.59 L 71.55 29.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.4 40.24 L 57.3 40.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.65 40.59 L 66.65 40.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.7 28.59 L 64.7 28.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 66.05 40.94 L 66.1 40.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 70.7 28.49 L 70.8 28.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.25 29.59 L 64.3 29.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.8 40.44 L 57.75 40.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.65 28.74 L 64.65 28.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.9 28.14 L 64.9 28.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.65 40.39 L 57.6 40.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.05 29.44 L 73.1 29.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.65 30.49 L 63.7 30.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.7 28.54 L 64.75 28.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.45 40.29 L 57.4 40.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 71.7 29.19 L 71.75 29.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 64.35 29.44 L 64.35 29.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 63.65 30.54 L 63.65 30.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 65.0 34.365 L 65.0 34.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 57.0 40.09 L 56.95 40.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 58.25 39.615 L 59.5 40.865" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 67.0 41.34 L 59.975 41.34 L 59.5 40.865" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
       <path d="M 108.686 45.9113 L 108.686 45.4798" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 108.292 45.0855 L 106.942 45.0855" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 108.686 45.4798 L 108.292 45.0855" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
@@ -4268,292 +4098,28 @@
       <path d="M 111.931 12.8707 L 112.488 12.3133" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 106.862 33.015 L 108.54 33.015 L 109.49 33.965" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 115.0 35.09 L 111.635 35.09 L 110.51 33.965" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
-      <path d="M 44.45 35.84 L 44.4 35.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 50.1 39.615 L 50.1 39.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.75 34.34 L 44.75 34.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 50.1 39.64 L 46.45 39.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 53.1 27.69 L 53.15 27.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.85 27.34 L 53.9 27.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.75 27.89 L 55.8 27.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.4 34.94 L 44.45 34.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 50.65 28.69 L 50.7 28.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 52.5 27.94 L 52.55 27.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.15 33.34 L 46.8 31.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 52.95 27.74 L 53.0 27.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.4 39.69 L 46.35 39.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.25 37.44 L 45.25 37.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.15 39.59 L 46.15 39.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.0 39.84 L 46.0 39.865" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.85 28.59 L 51.6 28.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 51.8 28.49 L 52.3 27.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.8 38.79 L 45.85 38.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.7 38.59 L 45.75 38.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.175 37.34 L 45.15 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.45 27.54 L 53.5 27.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.5 28.19 L 56.55 28.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 52.6 27.89 L 52.65 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.35 27.74 L 55.45 27.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.95 27.99 L 56.05 27.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.55 27.79 L 55.6 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.65 34.49 L 44.7 34.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.95 33.79 L 45.0 33.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.1 27.59 L 55.15 27.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 52.85 27.79 L 52.9 27.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.15 37.34 L 45.25 37.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.85 34.04 L 44.9 33.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.95 39.19 L 46.0 39.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.05 39.34 L 46.05 39.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.35 37.69 L 45.35 37.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 52.3 27.99 L 52.35 27.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.55 27.49 L 53.6 27.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 52.55 27.89 L 52.6 27.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.5 27.49 L 53.55 27.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.05 39.39 L 46.1 39.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.0 27.69 L 53.1 27.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.1 28.04 L 56.15 28.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.15 33.34 L 45.175 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.6 38.24 L 45.6 38.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.55 36.74 L 44.55 36.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 54.85 27.49 L 54.9 27.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.35 28.14 L 56.4 28.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 51.6 28.59 L 51.65 28.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.95 33.84 L 44.95 33.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 54.6 27.49 L 54.85 27.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 46.1 39.79 L 46.05 39.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 46.15 39.64 L 46.2 39.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.15 39.79 L 46.1 39.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.9 33.99 L 44.9 33.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.15 27.64 L 53.2 27.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 47.15 31.64 L 47.2 31.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.4 35.79 L 44.4 34.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.45 27.74 L 55.5 27.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 46.1 39.44 L 46.1 39.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.8 34.14 L 44.85 34.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.1 39.54 L 46.15 39.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 50.7 28.69 L 50.75 28.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.2 39.74 L 46.15 39.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.1 39.615 L 50.1 38.965" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 46.0 39.29 L 46.05 39.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.15 28.04 L 56.2 28.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 53.6 27.44 L 53.7 27.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.2 39.69 L 46.2 39.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.2 27.64 L 55.25 27.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 46.8 31.69 L 47.1 31.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.6 27.84 L 55.7 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.25 37.49 L 45.3 37.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 47.1 31.69 L 47.15 31.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.0 33.74 L 45.0 33.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.45 28.19 L 56.5 28.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 52.8 27.79 L 52.85 27.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.75 27.39 L 53.8 27.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 49.4 29.44 L 49.9 29.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 54.95 27.54 L 55.0 27.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.7 34.39 L 44.75 34.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.65 38.39 L 45.65 38.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.7 34.44 L 44.7 34.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.65 28.24 L 56.7 28.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.85 38.84 L 45.85 38.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.7 38.49 L 45.7 38.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.3 37.64 L 45.35 37.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.05 39.84 L 46.0 39.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.55 38.19 L 45.6 38.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.2 27.64 L 53.25 27.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.85 34.09 L 44.85 34.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 47.2 31.64 L 49.4 29.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.7 27.44 L 53.75 27.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.0 27.59 L 55.1 27.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.75 38.69 L 45.8 38.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.3 28.09 L 56.35 28.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.9 33.89 L 44.95 33.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.55 36.04 L 44.45 35.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.3 39.74 L 46.2 39.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.85 27.94 L 55.9 27.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 52.65 27.84 L 52.75 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.8 27.39 L 53.85 27.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.9 27.34 L 54.45 27.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.15 27.64 L 55.2 27.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.65 34.59 L 44.65 34.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.175 37.34 L 45.15 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.95 39.09 L 45.95 39.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 51.7 28.54 L 51.75 28.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.45 34.89 L 44.45 34.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.65 38.44 L 45.7 38.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.2 28.09 L 56.3 28.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.1 33.44 L 45.15 33.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.0 33.69 L 45.05 33.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.45 39.64 L 46.4 39.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 53.25 27.59 L 53.35 27.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.0 39.24 L 46.0 39.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 54.45 27.34 L 54.6 27.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.55 37.94 L 45.55 38.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 52.35 27.99 L 52.4 27.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.05 33.54 L 45.1 33.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.15 33.39 L 45.15 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 52.4 27.94 L 52.5 27.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.35 27.59 L 53.4 27.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.8 34.24 L 44.8 34.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.75 38.64 L 45.75 38.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.15 37.34 L 44.55 36.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 50.75 28.64 L 50.8 28.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.55 28.24 L 56.65 28.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 52.9 27.74 L 52.95 27.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.6 38.34 L 45.65 38.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 51.65 28.54 L 51.7 28.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 53.4 27.54 L 53.45 27.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.1 33.49 L 45.1 33.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 49.9 29.44 L 50.65 28.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.8 28.34 L 56.85 28.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.7 28.29 L 56.75 28.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.35 37.74 L 45.55 37.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 56.4 28.14 L 56.45 28.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.8 28.64 L 50.85 28.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 54.9 27.54 L 54.95 27.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.45 34.79 L 44.65 34.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.9 38.99 L 45.9 39.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.05 33.64 L 45.05 33.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.9 27.94 L 55.95 27.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.3 27.69 L 55.35 27.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.75 28.29 L 56.8 28.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.3 37.54 L 45.3 37.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.35 39.69 L 46.3 39.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 56.05 27.99 L 56.1 28.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.7 27.84 L 55.75 27.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 52.75 27.84 L 52.8 27.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.85 38.94 L 45.9 38.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 45.8 38.74 L 45.8 38.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 44.75 34.29 L 44.8 34.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.5 27.79 L 55.55 27.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 44.45 35.94 L 44.45 35.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 55.8 27.89 L 55.85 27.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 55.25 27.69 L 55.3 27.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 45.9 39.04 L 45.95 39.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 51.75 28.49 L 51.8 28.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.25"/>
-      <path d="M 46.8 37.34 L 47.2 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.6 37.74 L 48.7 37.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.15 35.39 L 45.15 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.35 35.84 L 45.35 35.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.3 35.69 L 45.25 35.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.2 35.49 L 45.2 35.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.15 35.34 L 45.175 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.2 35.44 L 45.15 35.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.9 38.24 L 49.95 38.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.25 35.64 L 45.25 35.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.4 35.89 L 45.35 35.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 47.2 37.34 L 47.5 37.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.8 37.34 L 45.4 35.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.8 37.79 L 49.25 38.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.05 38.34 L 50.1 38.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.45 37.64 L 48.5 37.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.0 38.29 L 50.05 38.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.25 35.54 L 45.2 35.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 47.5 37.64 L 48.45 37.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.35 35.79 L 45.3 35.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.25 38.24 L 49.9 38.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.825 37.34 L 46.8 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.1 38.34 L 50.1 38.315" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.75 37.79 L 48.8 37.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.3 35.74 L 45.3 35.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 45.4 35.94 L 45.4 35.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.7 37.74 L 48.75 37.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.5 37.69 L 48.55 37.69 L 48.6 37.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.95 38.29 L 50.0 38.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 73.15 38.84 L 73.1 38.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.65 37.59 L 73.65 37.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.5 40.39 L 72.45 40.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.15 41.24 L 72.1 41.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.5 40.34 L 72.5 40.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.3 38.44 L 73.3 38.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.5 37.99 L 73.45 38.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.1 36.49 L 74.1 36.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.05 36.69 L 74.0 36.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.15 36.44 L 74.1 36.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.7 37.44 L 73.7 37.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.9 36.99 L 73.9 37.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.95 35.64 L 75.0 35.69 L 75.05 35.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.2 38.64 L 73.2 38.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.75 39.79 L 72.7 39.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.2 41.14 L 72.15 41.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.05 36.59 L 74.05 36.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.6 40.09 L 72.6 40.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 75.15 35.74 L 75.2 35.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.25 38.54 L 73.25 38.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.2 36.29 L 74.2 36.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.7 39.94 L 72.65 39.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.95 39.24 L 72.95 39.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.25 40.99 L 72.2 41.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.65 39.99 L 72.65 40.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.05 39.09 L 73.0 39.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.05 39.04 L 73.05 39.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.3 40.84 L 72.3 40.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.1 41.34 L 72.08 41.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.8 39.64 L 72.8 39.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.0 39.14 L 73.0 39.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.3 38.49 L 73.25 38.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 75.05 35.69 L 75.1 35.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.75 39.74 L 72.75 39.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.8 39.69 L 72.75 39.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.95 36.89 L 73.95 36.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.3 40.89 L 72.25 40.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.9 37.04 L 73.85 37.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 75.35 35.84 L 75.4 35.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.15 36.39 L 74.15 36.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.7 37.54 L 73.65 37.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.15 41.19 L 72.15 41.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.1 38.99 L 73.05 39.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.4 40.64 L 72.35 40.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.8 37.19 L 73.8 37.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.45 40.44 L 72.45 40.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.55 40.29 L 72.5 40.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.95 36.94 L 73.9 36.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.85 35.64 L 74.2 36.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.45 38.19 L 73.35 38.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.65 40.04 L 72.6 40.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.0 36.74 L 74.0 36.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.85 37.14 L 73.8 37.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.65 37.64 L 73.6 37.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.2 36.34 L 74.15 36.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.15 38.79 L 73.15 38.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.85 39.49 L 72.85 39.59 L 72.8 39.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.1 36.54 L 74.05 36.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.8 37.29 L 73.75 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.0 36.84 L 73.95 36.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.85 35.64 L 74.95 35.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.45 38.04 L 73.45 38.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.9 39.39 L 72.9 39.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.75 37.34 L 73.75 37.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.25 38.59 L 73.2 38.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.5 37.94 L 73.5 37.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 75.3 35.79 L 75.35 35.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.7 39.84 L 72.7 39.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.2 38.74 L 73.15 38.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.45 40.54 L 72.4 40.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.6 37.74 L 73.55 37.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 75.45 35.89 L 75.5 35.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.95 39.34 L 72.9 39.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.35 38.39 L 73.3 38.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.85 37.09 L 73.85 37.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.2 41.04 L 72.2 41.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 75.2 35.79 L 75.3 35.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 75.1 35.74 L 75.15 35.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 75.4 35.84 L 75.45 35.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.6 40.19 L 72.55 40.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.35 38.29 L 73.35 38.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.55 37.79 L 73.55 37.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.75 37.39 L 73.7 37.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.6 37.69 L 73.6 37.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.9 39.44 L 72.85 39.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.55 37.89 L 73.5 37.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.25 40.94 L 72.25 40.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.1 38.89 L 73.1 38.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.1 41.29 L 72.1 41.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.75 35.59 L 74.8 35.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.4 40.59 L 72.4 40.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.55 40.24 L 72.55 40.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.35 40.79 L 72.3 40.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 72.35 40.69 L 72.35 40.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.0 33.84 L 74.75 35.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 74.8 35.59 L 74.85 35.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 73.0 39.19 L 72.95 39.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 46.0 39.865 L 49.85 39.865" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 45.175 37.34 L 45.175 39.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 53.9 27.34 L 55.85 27.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 49.12 32.12 L 53.9 27.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 50.1 39.615 L 50.1 38.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 43.61 33.86 L 43.61 35.775" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 46.395 32.12 L 48.1 32.12 L 49.12 32.12" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 45.175 39.04 L 46.0 39.865" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 43.61 35.775 L 45.175 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 49.85 39.865 L 50.1 39.615" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 45.175 33.34 L 46.395 32.12" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 44.13 33.34 L 43.61 33.86" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 55.85 27.34 L 56.85 28.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 45.175 33.34 L 44.13 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 45.175 35.69 L 46.825 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 47.8 38.315 L 46.825 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 50.1 38.315 L 47.8 38.315" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 45.175 35.34 L 45.175 35.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 75.05 35.89 L 73.0 33.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 72.08 41.34 L 72.08 39.31" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 75.5 35.89 L 75.05 35.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 72.08 39.31 L 75.5 35.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
       <path d="M 32.8875 47.465 L 32.118 47.465" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 113.552 11.9719 L 113.67 12.09 L 115.0 12.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.15"/>
       <path d="M 32.118 47.465 L 31.597 46.944" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
@@ -4600,97 +4166,14 @@
       <path d="M 102.365 31.715 L 102.936 31.1434" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 101.138 31.715 L 102.365 31.715" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 102.936 31.1434 L 102.936 30.4747" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
-      <path d="M 56.7 36.29 L 57.25 35.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.95 35.44 L 58.0 35.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.45 35.74 L 57.5 35.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 56.3 36.29 L 56.7 36.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.6 35.69 L 57.85 35.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.0 35.39 L 58.05 35.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.5 35.69 L 57.6 35.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 55.9 36.34 L 56.25 36.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.85 35.44 L 57.95 35.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.05 35.39 L 58.1 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.25 35.74 L 57.45 35.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.15 35.34 L 58.175 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 56.25 36.34 L 56.3 36.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 55.9 36.365 L 55.9 36.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.1 35.34 L 58.15 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.9 35.14 L 50.9 35.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.45 34.19 L 51.4 34.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.45 35.09 L 50.55 35.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.05 34.79 L 51.05 34.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.5 34.49 L 57.45 34.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 54.3 34.39 L 54.25 34.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 52.5 34.04 L 51.8 34.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.55 34.59 L 57.7 34.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 52.5 40.64 L 53.5 40.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 51.05 34.84 L 51.0 34.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 53.65 34.09 L 53.6 34.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 59.8 35.34 L 59.6 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.15 34.64 L 51.1 34.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.2 34.44 L 51.2 34.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.6 34.49 L 57.5 34.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.4 34.19 L 51.35 34.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 53.0 37.34 L 53.0 34.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.8"/>
-      <path d="M 54.0 34.24 L 53.85 34.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.25 35.19 L 49.9 35.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 54.15 34.29 L 54.05 34.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 53.85 34.24 L 53.75 34.14 L 53.7 34.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.2 36.29 L 50.15 36.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 59.8 37.34 L 59.775 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.7 34.64 L 58.6 34.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 54.05 34.29 L 54.0 34.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.1 35.065 L 50.1 35.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 54.25 34.34 L 54.2 34.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 59.0 34.94 L 58.7 34.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 53.0 37.34 L 53.0 40.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.8"/>
-      <path d="M 49.1 35.34 L 49.25 35.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 52.5 34.04 L 53.5 34.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 51.2 34.49 L 51.15 34.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.0 35.14 L 50.05 35.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.25 34.29 L 51.25 34.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.7 34.59 L 57.6 34.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.15 36.34 L 50.1 36.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.9 36.29 L 50.2 36.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.1 36.34 L 50.1 36.365" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.35 34.24 L 51.3 34.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.15 36.04 L 50.9 36.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.25 34.39 L 51.2 34.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.1 34.69 L 51.1 34.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 53.55 34.04 L 53.5 34.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 54.45 34.44 L 54.4 34.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 59.2 34.94 L 59.0 34.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.0 34.99 L 50.95 35.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.1 35.09 L 50.45 35.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.55 35.19 L 50.9 35.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.6 34.64 L 58.55 34.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.1 35.09 L 50.1 35.065" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 59.6 35.34 L 59.2 34.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.8 35.34 L 49.1 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.0 34.89 L 51.0 34.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.95 35.14 L 50.0 35.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.9 35.19 L 49.95 35.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.3 34.24 L 51.25 34.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.325 33.34 L 51.3 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.95 35.04 L 50.95 35.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.8 34.04 L 51.7 34.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 54.2 34.34 L 54.15 34.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.15 34.54 L 51.15 34.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 59.8 35.34 L 59.8 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.15 35.44 L 51.15 36.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.825 35.34 L 46.8 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.9 35.19 L 51.15 35.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.5 34.14 L 51.45 34.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.1 34.74 L 51.05 34.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.7 34.14 L 51.5 34.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 53.6 34.09 L 53.55 34.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 51.3 33.34 L 51.3 34.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.05 35.09 L 50.1 35.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 54.4 34.39 L 54.3 34.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.95 35.09 L 50.9 35.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 59.825 35.34 L 59.8 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.45 34.44 L 54.45 34.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 53.7 34.14 L 53.65 34.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 57.15 36.365 L 58.175 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 55.9 36.365 L 57.15 36.365" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 53.5 34.04 L 58.525 34.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 59.825 35.34 L 59.825 37.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 47.1 35.065 L 50.1 35.065" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 46.825 35.34 L 47.1 35.065" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 58.525 34.04 L 59.825 35.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 59.825 37.29 L 59.775 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
       <path d="M 96.52 43.1786 L 96.52 44.3203" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 99.0061 46.3989 L 98.7659 46.3989" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 98.7659 46.3989 L 98.7659 46.6391" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.15"/>
@@ -4981,76 +4464,9 @@
       <path d="M 108.079 45.6929 L 107.957 45.815" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 110.115 47.3401 L 110.785 47.3401 L 111.248 46.877" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 109.49 47.965 L 110.115 47.3401" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
-      <path d="M 69.45 33.64 L 69.4 33.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.35 33.69 L 69.3 33.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.1 33.79 L 69.05 33.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.55 33.59 L 69.5 33.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.15 33.79 L 69.1 33.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.05 33.84 L 69.0 33.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.3 33.74 L 69.2 33.74 L 69.15 33.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.4 33.69 L 69.35 33.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.0 37.34 L 69.0 33.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.65 33.59 L 69.55 33.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 69.5 33.64 L 69.45 33.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 70.45 32.79 L 69.65 33.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.9 27.44 L 50.95 27.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.45 28.04 L 49.5 27.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.65 27.54 L 50.7 27.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.55 28.39 L 48.6 28.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 51.0 27.39 L 51.05 27.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.4 28.44 L 48.5 28.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 47.55 28.79 L 47.65 28.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 51.05 27.34 L 51.1 27.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.6 28.39 L 48.65 28.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.3 27.69 L 50.35 27.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.55 27.59 L 50.6 27.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.1 28.19 L 49.15 28.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 47.7 28.74 L 47.75 28.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 47.9 28.69 L 47.95 28.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.25 28.54 L 48.3 28.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.9 28.24 L 48.95 28.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.5 27.99 L 49.55 27.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.05 27.79 L 50.1 27.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 47.75 28.74 L 47.8 28.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.65 28.34 L 48.75 28.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.0 28.19 L 49.1 28.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 47.8 28.69 L 47.9 28.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.75 27.89 L 49.8 27.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.95 28.24 L 49.0 28.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.0 28.64 L 48.05 28.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.4 27.64 L 50.45 27.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.1 27.74 L 50.15 27.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.6 27.54 L 50.65 27.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.95 27.84 L 50.0 27.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.75 28.34 L 48.8 28.29 L 48.85 28.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.2 27.69 L 50.3 27.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.25 28.09 L 49.35 28.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.7 27.94 L 49.75 27.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.35 28.49 L 48.4 28.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.85 28.29 L 48.9 28.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.3 28.49 L 48.35 28.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.8 27.44 L 50.9 27.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.4 28.04 L 49.45 28.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 47.65 28.79 L 47.7 28.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.05 28.59 L 48.15 28.59 L 48.2 28.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.2 28.14 L 49.25 28.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.55 27.99 L 49.6 27.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.15 27.74 L 50.2 27.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.35 27.64 L 50.4 27.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.45 27.59 L 50.55 27.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.85 27.84 L 49.95 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.2 28.54 L 48.25 28.54" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.6 27.94 L 49.7 27.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 46.0 30.34 L 47.55 28.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.35 28.09 L 49.4 28.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.7 27.49 L 50.75 27.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.15 28.14 L 49.2 28.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 47.95 28.64 L 48.0 28.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.75 27.49 L 50.8 27.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 48.5 28.44 L 48.55 28.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 49.8 27.89 L 49.85 27.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.0 27.79 L 50.05 27.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
-      <path d="M 50.95 27.39 L 51.0 27.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 69.0 37.34 L 69.0 34.24 L 70.45 32.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 49.0 27.34 L 46.0 30.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
+      <path d="M 51.1 27.34 L 49.0 27.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.6"/>
       <path d="M 112.635 42.09 L 110.51 44.215" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 115.0 42.09 L 112.635 42.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 115.0 41.09 L 112.385 41.09 L 110.51 42.965" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
@@ -5133,37 +4549,33 @@
       <path d="M 115.0 19.09 L 113.871 19.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 110.51 10.965 L 111.348 10.965" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 115.0 43.09 L 112.885 43.09 L 110.51 45.465" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
-      <path d="M 80.8 11.49 L 80.85 11.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.2 11.89 L 80.3 11.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 90.0 11.64 L 90.55 11.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 74.9 25.34 L 77.7 25.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.75 11.49 L 80.8 11.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.35 11.79 L 80.45 11.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.05 12.24 L 80.05 12.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.0 12.29 L 80.05 12.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 79.95 12.49 L 80.0 12.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.15 11.99 L 80.2 11.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 115.0 8.09 L 117.25 8.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 80.15 12.04 L 80.15 11.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 72.4 27.84 L 74.9 25.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 85.95 11.44 L 86.15 11.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 78.2 24.84 L 78.25 24.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 79.95 23.14 L 79.95 12.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 77.7 25.34 L 78.2 24.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.05 12.19 L 80.1 12.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 115.0 7.09 L 115.0 6.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 80.45 11.69 L 80.5 11.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.1 12.09 L 80.15 12.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.5 11.69 L 80.6 11.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.85 11.44 L 85.95 11.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.65 11.59 L 80.75 11.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 87.6 11.64 L 90.0 11.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.1 12.14 L 80.1 12.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 80.2 11.94 L 80.2 11.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
       <path d="M 80.0 12.44 L 80.0 12.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
-      <path d="M 78.25 24.84 L 79.95 23.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 90.0 11.64 L 90.55 11.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.8 11.49 L 80.85 11.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
       <path d="M 80.6 11.59 L 80.65 11.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.85 11.44 L 85.95 11.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 115.0 8.09 L 117.25 8.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 80.75 11.49 L 80.8 11.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 77.75 25.34 L 79.95 23.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.65 11.59 L 80.75 11.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 115.0 7.09 L 115.0 6.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 80.15 12.04 L 80.15 11.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 85.95 11.44 L 86.15 11.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
       <path d="M 80.3 11.79 L 80.35 11.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.1 12.14 L 80.1 12.09 L 80.15 12.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 79.95 23.14 L 79.95 12.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.05 12.24 L 80.05 12.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.2 11.94 L 80.2 11.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.0 12.29 L 80.05 12.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 87.6 11.64 L 90.0 11.64" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.2 11.89 L 80.3 11.79" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.35 11.79 L 80.45 11.69 L 80.5 11.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 74.9 25.34 L 77.75 25.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 79.95 12.49 L 80.0 12.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.5 11.69 L 80.6 11.59" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.05 12.19 L 80.1 12.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 80.15 11.99 L 80.2 11.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
+      <path d="M 72.4 27.84 L 74.9 25.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.4"/>
       <path d="M 115.0 14.09 L 114.108 14.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 114.108 13.8673 L 113.521 13.2803" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 114.108 14.09 L 114.108 13.8673" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
@@ -5205,57 +4617,13 @@
       <path d="M 111.697 46.8552 L 111.697 46.8552" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 115.0 45.09 L 113.462 45.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
       <path d="M 111.697 46.8552 L 111.697 46.9533" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.18"/>
-      <path d="M 46.1 35.84 L 46.15 35.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.65 33.34 L 49.675 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.15 34.84 L 46.1 34.89" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.05 37.04 L 50.1 37.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.2 33.94 L 46.2 34.69" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.15 36.24 L 48.2 36.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.4 36.14 L 47.95 36.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.25 36.94 L 49.9 36.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.8 36.49 L 49.25 36.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.75 36.49 L 48.8 36.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.15 35.89 L 46.15 35.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.9 36.94 L 49.95 36.99" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.5 36.39 L 48.55 36.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.8 33.34 L 46.2 33.94" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.7 36.44 L 48.75 36.49" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.35 36.29 L 48.4 36.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.45 36.34 L 48.5 36.39" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.2 36.24 L 48.25 36.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.825 33.34 L 46.8 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.35 36.09 L 46.4 36.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.55 36.39 L 48.6 36.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.15 35.99 L 46.25 36.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.8 33.34 L 49.65 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.1 34.89 L 46.1 35.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.825 33.34 L 46.8 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.0 36.19 L 48.1 36.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.2 34.69 L 46.15 34.74" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 49.95 36.99 L 50.0 36.99 L 50.05 37.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 50.1 37.04 L 50.1 37.015" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.6 36.44 L 48.7 36.44" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.25 36.29 L 48.35 36.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.4 36.34 L 48.45 36.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 47.95 36.14 L 48.0 36.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.25 36.09 L 46.35 36.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 48.1 36.19 L 48.15 36.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 46.15 34.74 L 46.15 34.84" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.85 37.19 L 57.9 37.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.65 37.09 L 57.7 37.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.8 37.19 L 57.85 37.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.05 37.29 L 58.1 37.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 55.9 37.04 L 57.5 37.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.15 37.34 L 58.2 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.55 37.09 L 57.65 37.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.75 37.14 L 57.8 37.19" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.5 37.04 L 57.55 37.09" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.7 37.14 L 57.75 37.14" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 57.9 37.24 L 58.0 37.24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.2 37.34 L 58.225 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.1 37.29 L 58.15 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 58.0 37.24 L 58.05 37.29" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
-      <path d="M 55.9 37.015 L 55.9 37.04" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 47.3 36.34 L 47.975 37.015" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 45.9 34.265 L 45.9 35.5319 L 46.7081 36.34 L 47.3 36.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 46.825 33.34 L 49.675 33.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 47.975 37.015 L 50.1 37.015" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 46.825 33.34 L 45.9 34.265" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 55.9 37.015 L 57.9 37.015 L 58.225 37.34" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.2"/>
+      <path d="M 54.0592 41.2211 L 54.0952 41.1716 L 54.1 41.141 L 54.1 32.739 L 54.0811 32.6808 L 54.0316 32.6448 L 54.001 32.64 L 50.999 32.64 L 50.9408 32.6589 L 50.9048 32.7084 L 50.9 32.739 L 50.9 34.84 L 50.9 34.84 L 50.9 34.84 L 49.449 34.84 L 49.3908 34.8589 L 49.3548 34.9084 L 49.35 34.939 L 49.35 35.1905 L 49.3689 35.2487 L 49.4184 35.2847 L 49.449 35.2895 L 50.7742 35.2895 L 50.7742 35.2895 L 50.7774 35.2897 L 50.7774 35.2895 L 50.7845 35.29 L 51.9 35.29 L 51.9 35.29 L 51.9 36.14 L 51.9 36.14 L 50.7845 36.14 L 50.7774 36.1405 L 50.7774 36.1403 L 50.7742 36.1405 L 50.7742 36.1405 L 49.449 36.1405 L 49.3908 36.1594 L 49.3548 36.2089 L 49.35 36.2395 L 49.35 36.4905 L 49.3689 36.5487 L 49.4184 36.5847 L 49.449 36.5895 L 50.7742 36.5895 L 50.7742 36.5895 L 50.7774 36.5897 L 50.7774 36.5895 L 50.7845 36.59 L 51.9 36.59 L 51.9 36.59 L 51.9 41.141 L 51.9189 41.1992 L 51.9684 41.2352 L 51.999 41.24 L 54.001 41.24 L 54.0592 41.2211"/>
     </g>
     <g id="l-top-mask" filter="url(#f-mask)" fill="black" stroke="none" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd" transform="translate(0 53.34) scale(1 -1)">
       <path id="outline-path" d="M 11.0 0.0 L 122.0 0.0 L 122.0 53.34 L 12.0 53.34 L 12.0 43.34 L 41.1 43.34 A 0.9 0.9 0 0 0 42.0 42.44 L 42.0 24.34 L 77.1 24.34 A 0.9 0.9 0 0 0 78.0 23.44 L 78.0 7.24 A 0.9 0.9 0 0 0 77.1 6.34 L 11.0 6.34 L 11.0 0.0 L 122.0 0.0 L 11.0 0.0 Z" fill="white"/>
@@ -5871,9 +5239,10 @@
       <path d="M 101.813 43.4074 L 101.846 43.3857 L 101.867 43.3533 L 101.875 43.315 L 101.875 43.115 L 101.867 43.0767 L 101.846 43.0443 L 101.813 43.0226 L 101.775 43.015 L 100.5 43.015 L 100.462 43.0226 L 100.429 43.0443 L 100.408 43.0767 L 100.4 43.115 L 100.4 43.315 L 100.408 43.3533 L 100.429 43.3857 L 100.462 43.4074 L 100.5 43.415 L 101.775 43.415 L 101.813 43.4074"/>
       <path d="M 107.538 43.4074 L 107.571 43.3857 L 107.592 43.3533 L 107.6 43.315 L 107.6 43.115 L 107.592 43.0767 L 107.571 43.0443 L 107.538 43.0226 L 107.5 43.015 L 106.225 43.015 L 106.187 43.0226 L 106.154 43.0443 L 106.133 43.0767 L 106.125 43.115 L 106.125 43.315 L 106.133 43.3533 L 106.154 43.3857 L 106.187 43.4074 L 106.225 43.415 L 107.5 43.415 L 107.538 43.4074"/>
       <path d="M 104.724 43.6903 L 104.798 43.6478 L 104.858 43.5878 L 104.9 43.5144 L 104.922 43.4324 L 104.922 43.3476 L 104.9 43.2656 L 104.858 43.1922 L 104.798 43.1322 L 104.724 43.0897 L 104.642 43.0678 L 104.558 43.0678 L 104.476 43.0897 L 104.402 43.1322 L 104.342 43.1922 L 104.3 43.2656 L 104.278 43.3476 L 104.278 43.4324 L 104.3 43.5144 L 104.342 43.5878 L 104.402 43.6478 L 104.476 43.6903 L 104.558 43.7122 L 104.642 43.7122 L 104.724 43.6903"/>
-      <path d="M 60.604 44.3892 L 60.6554 44.3832 L 60.673 44.3755 L 60.6957 44.371 L 60.72 44.3547 L 60.7408 44.3455 L 60.755 44.3313 L 60.7768 44.3168 L 60.7913 44.295 L 60.8055 44.2808 L 60.8147 44.26 L 60.831 44.2357 L 60.8355 44.213 L 60.8432 44.1954 L 60.8492 44.1441 L 60.8493 44.1436 L 60.8866 44.1182 L 60.9576 44.1372 L 61.0424 44.1372 L 61.1244 44.1153 L 61.1978 44.0728 L 61.2578 44.0128 L 61.3003 43.9394 L 61.3222 43.8574 L 61.3222 43.7726 L 61.3003 43.6906 L 61.2578 43.6172 L 61.1978 43.5572 L 61.1244 43.5147 L 61.0424 43.4928 L 60.9576 43.4928 L 60.8866 43.5118 L 60.8493 43.4864 L 60.8492 43.486 L 60.8432 43.4346 L 60.8355 43.4171 L 60.831 43.3943 L 60.8147 43.37 L 60.8055 43.3492 L 60.7913 43.335 L 60.7768 43.3132 L 60.755 43.2987 L 60.7408 43.2845 L 60.72 43.2753 L 60.6957 43.259 L 60.673 43.2545 L 60.6554 43.2468 L 60.6041 43.2408 L 60.6 43.24 L 58.4 43.24 L 58.3959 43.2408 L 58.3446 43.2468 L 58.327 43.2545 L 58.3043 43.259 L 58.28 43.2753 L 58.2592 43.2845 L 58.245 43.2987 L 58.2232 43.3132 L 58.2087 43.335 L 58.1945 43.3492 L 58.1853 43.37 L 58.169 43.3943 L 58.1645 43.417 L 58.1568 43.4346 L 58.1508 43.486 L 58.15 43.49 L 58.15 44.14 L 58.1508 44.144 L 58.1568 44.1954 L 58.1645 44.213 L 58.169 44.2357 L 58.1853 44.26 L 58.1945 44.2808 L 58.2087 44.295 L 58.2232 44.3168 L 58.245 44.3313 L 58.2592 44.3455 L 58.28 44.3547 L 58.3043 44.371 L 58.327 44.3755 L 58.3446 44.3832 L 58.396 44.3892 L 58.4 44.39 L 60.6 44.39 L 60.604 44.3892"/>
+      <path d="M 60.604 44.3892 L 60.6554 44.3832 L 60.673 44.3755 L 60.6957 44.371 L 60.72 44.3547 L 60.7408 44.3455 L 60.755 44.3313 L 60.7768 44.3168 L 60.7913 44.295 L 60.8055 44.2808 L 60.8147 44.26 L 60.831 44.2357 L 60.8355 44.213 L 60.8432 44.1954 L 60.8492 44.1441 L 60.85 44.14 L 60.85 43.49 L 60.8492 43.4859 L 60.8432 43.4346 L 60.8355 43.4171 L 60.831 43.3943 L 60.8147 43.37 L 60.8055 43.3492 L 60.7913 43.335 L 60.7768 43.3132 L 60.755 43.2987 L 60.7408 43.2845 L 60.72 43.2753 L 60.6957 43.259 L 60.673 43.2545 L 60.6554 43.2468 L 60.6041 43.2408 L 60.6 43.24 L 58.4 43.24 L 58.3959 43.2408 L 58.3446 43.2468 L 58.327 43.2545 L 58.3043 43.259 L 58.28 43.2753 L 58.2592 43.2845 L 58.245 43.2987 L 58.2232 43.3132 L 58.2087 43.335 L 58.1945 43.3492 L 58.1853 43.37 L 58.169 43.3943 L 58.1645 43.417 L 58.1568 43.4346 L 58.1508 43.486 L 58.15 43.49 L 58.15 44.14 L 58.1508 44.144 L 58.1568 44.1954 L 58.1645 44.213 L 58.169 44.2357 L 58.1853 44.26 L 58.1945 44.2808 L 58.2087 44.295 L 58.2232 44.3168 L 58.245 44.3313 L 58.2592 44.3455 L 58.28 44.3547 L 58.3043 44.371 L 58.327 44.3755 L 58.3446 44.3832 L 58.396 44.3892 L 58.4 44.39 L 60.6 44.39 L 60.604 44.3892"/>
       <path d="M 116.324 43.8903 L 116.398 43.8478 L 116.458 43.7878 L 116.5 43.7144 L 116.522 43.6324 L 116.522 43.5476 L 116.5 43.4656 L 116.458 43.3922 L 116.398 43.3322 L 116.324 43.2897 L 116.242 43.2678 L 116.158 43.2678 L 116.076 43.2897 L 116.002 43.3322 L 115.942 43.3922 L 115.9 43.4656 L 115.878 43.5476 L 115.878 43.6324 L 115.9 43.7144 L 115.942 43.7878 L 116.002 43.8478 L 116.076 43.8903 L 116.158 43.9122 L 116.242 43.9122 L 116.324 43.8903"/>
       <path d="M 115.65 43.44 L 114.35 43.44 L 114.35 43.74 L 115.65 43.74 L 115.65 43.44"/>
+      <path d="M 61.5244 44.1153 L 61.5978 44.0728 L 61.6578 44.0128 L 61.7003 43.9394 L 61.7222 43.8574 L 61.7222 43.7726 L 61.7003 43.6906 L 61.6578 43.6172 L 61.5978 43.5572 L 61.5244 43.5147 L 61.4424 43.4928 L 61.3576 43.4928 L 61.2756 43.5147 L 61.2022 43.5572 L 61.1422 43.6172 L 61.0997 43.6906 L 61.0778 43.7726 L 61.0778 43.8574 L 61.0997 43.9394 L 61.1422 44.0128 L 61.2022 44.0728 L 61.2756 44.1153 L 61.3576 44.1372 L 61.4424 44.1372 L 61.5244 44.1153"/>
       <path d="M 95.4244 44.2403 L 95.4978 44.1978 L 95.5578 44.1378 L 95.6003 44.0644 L 95.6222 43.9824 L 95.6222 43.8976 L 95.6003 43.8156 L 95.5578 43.7422 L 95.4978 43.6822 L 95.4244 43.6397 L 95.3424 43.6178 L 95.2576 43.6178 L 95.1756 43.6397 L 95.1022 43.6822 L 95.0422 43.7422 L 94.9997 43.8156 L 94.9778 43.8976 L 94.9778 43.9824 L 94.9997 44.0644 L 95.0422 44.1378 L 95.1022 44.1978 L 95.1756 44.2403 L 95.2576 44.2622 L 95.3424 44.2622 L 95.4244 44.2403"/>
       <path d="M 101.813 44.0574 L 101.846 44.0357 L 101.867 44.0033 L 101.875 43.965 L 101.875 43.765 L 101.867 43.7267 L 101.846 43.6943 L 101.813 43.6726 L 101.775 43.665 L 100.5 43.665 L 100.462 43.6726 L 100.429 43.6943 L 100.408 43.7267 L 100.4 43.765 L 100.4 43.965 L 100.408 44.0033 L 100.429 44.0357 L 100.462 44.0574 L 100.5 44.065 L 101.775 44.065 L 101.813 44.0574"/>
       <path d="M 107.538 44.0574 L 107.571 44.0357 L 107.592 44.0033 L 107.6 43.965 L 107.6 43.765 L 107.592 43.7267 L 107.571 43.6943 L 107.538 43.6726 L 107.5 43.665 L 106.225 43.665 L 106.187 43.6726 L 106.154 43.6943 L 106.133 43.7267 L 106.125 43.765 L 106.125 43.965 L 106.133 44.0033 L 106.154 44.0357 L 106.187 44.0574 L 106.225 44.065 L 107.5 44.065 L 107.538 44.0574"/>
@@ -6734,9 +6103,10 @@
       <path d="M 101.813 43.4074 L 101.846 43.3857 L 101.867 43.3533 L 101.875 43.315 L 101.875 43.115 L 101.867 43.0767 L 101.846 43.0443 L 101.813 43.0226 L 101.775 43.015 L 100.5 43.015 L 100.462 43.0226 L 100.429 43.0443 L 100.408 43.0767 L 100.4 43.115 L 100.4 43.315 L 100.408 43.3533 L 100.429 43.3857 L 100.462 43.4074 L 100.5 43.415 L 101.775 43.415 L 101.813 43.4074" fill="black" stroke="none"/>
       <path d="M 107.538 43.4074 L 107.571 43.3857 L 107.592 43.3533 L 107.6 43.315 L 107.6 43.115 L 107.592 43.0767 L 107.571 43.0443 L 107.538 43.0226 L 107.5 43.015 L 106.225 43.015 L 106.187 43.0226 L 106.154 43.0443 L 106.133 43.0767 L 106.125 43.115 L 106.125 43.315 L 106.133 43.3533 L 106.154 43.3857 L 106.187 43.4074 L 106.225 43.415 L 107.5 43.415 L 107.538 43.4074" fill="black" stroke="none"/>
       <path d="M 104.724 43.6903 L 104.798 43.6478 L 104.858 43.5878 L 104.9 43.5144 L 104.922 43.4324 L 104.922 43.3476 L 104.9 43.2656 L 104.858 43.1922 L 104.798 43.1322 L 104.724 43.0897 L 104.642 43.0678 L 104.558 43.0678 L 104.476 43.0897 L 104.402 43.1322 L 104.342 43.1922 L 104.3 43.2656 L 104.278 43.3476 L 104.278 43.4324 L 104.3 43.5144 L 104.342 43.5878 L 104.402 43.6478 L 104.476 43.6903 L 104.558 43.7122 L 104.642 43.7122 L 104.724 43.6903" fill="black" stroke="none"/>
-      <path d="M 60.604 44.3892 L 60.6554 44.3832 L 60.673 44.3755 L 60.6957 44.371 L 60.72 44.3547 L 60.7408 44.3455 L 60.755 44.3313 L 60.7768 44.3168 L 60.7913 44.295 L 60.8055 44.2808 L 60.8147 44.26 L 60.831 44.2357 L 60.8355 44.213 L 60.8432 44.1954 L 60.8492 44.1441 L 60.8493 44.1436 L 60.8866 44.1182 L 60.9576 44.1372 L 61.0424 44.1372 L 61.1244 44.1153 L 61.1978 44.0728 L 61.2578 44.0128 L 61.3003 43.9394 L 61.3222 43.8574 L 61.3222 43.7726 L 61.3003 43.6906 L 61.2578 43.6172 L 61.1978 43.5572 L 61.1244 43.5147 L 61.0424 43.4928 L 60.9576 43.4928 L 60.8866 43.5118 L 60.8493 43.4864 L 60.8492 43.486 L 60.8432 43.4346 L 60.8355 43.4171 L 60.831 43.3943 L 60.8147 43.37 L 60.8055 43.3492 L 60.7913 43.335 L 60.7768 43.3132 L 60.755 43.2987 L 60.7408 43.2845 L 60.72 43.2753 L 60.6957 43.259 L 60.673 43.2545 L 60.6554 43.2468 L 60.6041 43.2408 L 60.6 43.24 L 58.4 43.24 L 58.3959 43.2408 L 58.3446 43.2468 L 58.327 43.2545 L 58.3043 43.259 L 58.28 43.2753 L 58.2592 43.2845 L 58.245 43.2987 L 58.2232 43.3132 L 58.2087 43.335 L 58.1945 43.3492 L 58.1853 43.37 L 58.169 43.3943 L 58.1645 43.417 L 58.1568 43.4346 L 58.1508 43.486 L 58.15 43.49 L 58.15 44.14 L 58.1508 44.144 L 58.1568 44.1954 L 58.1645 44.213 L 58.169 44.2357 L 58.1853 44.26 L 58.1945 44.2808 L 58.2087 44.295 L 58.2232 44.3168 L 58.245 44.3313 L 58.2592 44.3455 L 58.28 44.3547 L 58.3043 44.371 L 58.327 44.3755 L 58.3446 44.3832 L 58.396 44.3892 L 58.4 44.39 L 60.6 44.39 L 60.604 44.3892" fill="black" stroke="none"/>
+      <path d="M 60.604 44.3892 L 60.6554 44.3832 L 60.673 44.3755 L 60.6957 44.371 L 60.72 44.3547 L 60.7408 44.3455 L 60.755 44.3313 L 60.7768 44.3168 L 60.7913 44.295 L 60.8055 44.2808 L 60.8147 44.26 L 60.831 44.2357 L 60.8355 44.213 L 60.8432 44.1954 L 60.8492 44.1441 L 60.85 44.14 L 60.85 43.49 L 60.8492 43.4859 L 60.8432 43.4346 L 60.8355 43.4171 L 60.831 43.3943 L 60.8147 43.37 L 60.8055 43.3492 L 60.7913 43.335 L 60.7768 43.3132 L 60.755 43.2987 L 60.7408 43.2845 L 60.72 43.2753 L 60.6957 43.259 L 60.673 43.2545 L 60.6554 43.2468 L 60.6041 43.2408 L 60.6 43.24 L 58.4 43.24 L 58.3959 43.2408 L 58.3446 43.2468 L 58.327 43.2545 L 58.3043 43.259 L 58.28 43.2753 L 58.2592 43.2845 L 58.245 43.2987 L 58.2232 43.3132 L 58.2087 43.335 L 58.1945 43.3492 L 58.1853 43.37 L 58.169 43.3943 L 58.1645 43.417 L 58.1568 43.4346 L 58.1508 43.486 L 58.15 43.49 L 58.15 44.14 L 58.1508 44.144 L 58.1568 44.1954 L 58.1645 44.213 L 58.169 44.2357 L 58.1853 44.26 L 58.1945 44.2808 L 58.2087 44.295 L 58.2232 44.3168 L 58.245 44.3313 L 58.2592 44.3455 L 58.28 44.3547 L 58.3043 44.371 L 58.327 44.3755 L 58.3446 44.3832 L 58.396 44.3892 L 58.4 44.39 L 60.6 44.39 L 60.604 44.3892" fill="black" stroke="none"/>
       <path d="M 116.324 43.8903 L 116.398 43.8478 L 116.458 43.7878 L 116.5 43.7144 L 116.522 43.6324 L 116.522 43.5476 L 116.5 43.4656 L 116.458 43.3922 L 116.398 43.3322 L 116.324 43.2897 L 116.242 43.2678 L 116.158 43.2678 L 116.076 43.2897 L 116.002 43.3322 L 115.942 43.3922 L 115.9 43.4656 L 115.878 43.5476 L 115.878 43.6324 L 115.9 43.7144 L 115.942 43.7878 L 116.002 43.8478 L 116.076 43.8903 L 116.158 43.9122 L 116.242 43.9122 L 116.324 43.8903" fill="black" stroke="none"/>
       <path d="M 115.65 43.44 L 114.35 43.44 L 114.35 43.74 L 115.65 43.74 L 115.65 43.44" fill="black" stroke="none"/>
+      <path d="M 61.5244 44.1153 L 61.5978 44.0728 L 61.6578 44.0128 L 61.7003 43.9394 L 61.7222 43.8574 L 61.7222 43.7726 L 61.7003 43.6906 L 61.6578 43.6172 L 61.5978 43.5572 L 61.5244 43.5147 L 61.4424 43.4928 L 61.3576 43.4928 L 61.2756 43.5147 L 61.2022 43.5572 L 61.1422 43.6172 L 61.0997 43.6906 L 61.0778 43.7726 L 61.0778 43.8574 L 61.0997 43.9394 L 61.1422 44.0128 L 61.2022 44.0728 L 61.2756 44.1153 L 61.3576 44.1372 L 61.4424 44.1372 L 61.5244 44.1153" fill="black" stroke="none"/>
       <path d="M 95.4244 44.2403 L 95.4978 44.1978 L 95.5578 44.1378 L 95.6003 44.0644 L 95.6222 43.9824 L 95.6222 43.8976 L 95.6003 43.8156 L 95.5578 43.7422 L 95.4978 43.6822 L 95.4244 43.6397 L 95.3424 43.6178 L 95.2576 43.6178 L 95.1756 43.6397 L 95.1022 43.6822 L 95.0422 43.7422 L 94.9997 43.8156 L 94.9778 43.8976 L 94.9778 43.9824 L 94.9997 44.0644 L 95.0422 44.1378 L 95.1022 44.1978 L 95.1756 44.2403 L 95.2576 44.2622 L 95.3424 44.2622 L 95.4244 44.2403" fill="black" stroke="none"/>
       <path d="M 101.813 44.0574 L 101.846 44.0357 L 101.867 44.0033 L 101.875 43.965 L 101.875 43.765 L 101.867 43.7267 L 101.846 43.6943 L 101.813 43.6726 L 101.775 43.665 L 100.5 43.665 L 100.462 43.6726 L 100.429 43.6943 L 100.408 43.7267 L 100.4 43.765 L 100.4 43.965 L 100.408 44.0033 L 100.429 44.0357 L 100.462 44.0574 L 100.5 44.065 L 101.775 44.065 L 101.813 44.0574" fill="black" stroke="none"/>
       <path d="M 107.538 44.0574 L 107.571 44.0357 L 107.592 44.0033 L 107.6 43.965 L 107.6 43.765 L 107.592 43.7267 L 107.571 43.6943 L 107.538 43.6726 L 107.5 43.665 L 106.225 43.665 L 106.187 43.6726 L 106.154 43.6943 L 106.133 43.7267 L 106.125 43.765 L 106.125 43.965 L 106.133 44.0033 L 106.154 44.0357 L 106.187 44.0574 L 106.225 44.065 L 107.5 44.065 L 107.538 44.0574" fill="black" stroke="none"/>
@@ -9816,8 +9186,8 @@
       <circle cx="53.5" cy="40.64" r="0.15" fill="white"/>
       <circle cx="53.5" cy="34.04" r="0.15" fill="white"/>
       <circle cx="57.3" cy="35.065" r="0.15" fill="white"/>
-      <circle cx="61.0" cy="43.815" r="0.15" fill="white"/>
       <circle cx="61.3" cy="26.24" r="0.15" fill="white"/>
+      <circle cx="61.4" cy="43.815" r="0.15" fill="white"/>
       <circle cx="63.2" cy="37.315" r="0.15" fill="white"/>
       <circle cx="66.9" cy="31.84" r="0.15" fill="white"/>
       <circle cx="70.45" cy="32.79" r="0.15" fill="white"/>

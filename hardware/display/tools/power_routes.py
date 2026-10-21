@@ -21,6 +21,23 @@ def resistance_path(b,ref1,pin1,ref2,pin2):
     for p in pads:
         for l in LAYERS:
             if p.IsOnLayer(l):nodes.add((l,*coord(p.GetPosition())))
+    # A branch may end inside a wide trace without reaching its centreline.
+    # KiCad correctly connects such copper; include the projected junction in
+    # the resistance graph rather than falsely reporting an open circuit.
+    # Lateral travel is charged at the narrower conductor's width.
+    for u,v,width in lines:
+        layer,x,y=u;_,xx,yy=v;dx,dy=xx-x,yy-y;dd=dx*dx+dy*dy
+        if dd<1e-12:continue
+        for start,end,other_width in lines:
+            if start[0]!=layer:continue
+            for n in [start,end]:
+                t=((n[1]-x)*dx+(n[2]-y)*dy)/dd
+                if not 0<=t<=1:continue
+                projection=(layer,round(x+t*dx,6),round(y+t*dy,6))
+                distance=math.hypot(n[1]-projection[1],n[2]-projection[2])
+                if .002<distance<=width/2:
+                    nodes.add(projection)
+                    add(n,projection,distance*.0175*1.3/(1000*min(width,other_width)*.035))
     for u,v,width in lines:
         l,x,y=u;_,xx,yy=v;dx,dy=xx-x,yy-y;dd=dx*dx+dy*dy
         if dd<1e-12:continue
@@ -63,8 +80,9 @@ def resistance_path(b,ref1,pin1,ref2,pin2):
 def main():
     b=k.LoadBoard(str(ROOT/'display-adapter/display-adapter.kicad_pcb'))
     # Explicit budgeting split; these currents are NOT guaranteed panel maxima.
-    loads=[('J1',pin,1.05/4,'backlight') for pin in [6,7,8,10]]
-    loads += [('J1',5,.25,'TFT'),('J1',49,.05,'touch'),('J2',76,.15,'interface reference rail')]
+    # Smartwin interface table, p12: BKL = pins 5..8; TFT = pin 10.
+    loads=[('J1',pin,1.05/4,'backlight') for pin in [5,6,7,8]]
+    loads += [('J1',10,.25,'TFT'),('J1',49,.05,'touch'),('J2',76,.15,'interface reference rail')]
     paths=[];currents=defaultdict(float)
     for ref,pin,amps,label in loads:
         resistance,path=resistance_path(b,'U1',3,ref,pin)

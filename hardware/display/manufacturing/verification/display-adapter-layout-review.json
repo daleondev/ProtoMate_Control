@@ -3,8 +3,8 @@
   "revision": "D",
   "copper_layers": 2,
   "ground_pour_area_mm2": {
-    "F.Cu": 1180.84,
-    "B.Cu": 1205.48
+    "F.Cu": 1180.81,
+    "B.Cu": 1205.3
   },
   "total_ground_vias": 41,
   "clock_signal_vias": [

@@ -21,17 +21,37 @@
   "display_qualification_current_budget_A": 1.5,
   "regulator_min_before_ripple_and_copper_V": 3.1548,
   "ripple_negative_allowance_V": 0.05,
-  "measured_geometry_supply_drop_V": 0.0335706494507982,
+  "measured_geometry_supply_drop_V": 0.033509711950798195,
   "pcb_return_allowance_ohm": 0.02,
-  "pcb_supply_and_return_drop_V": 0.0635706494507982,
+  "pcb_supply_and_return_drop_V": 0.06350971195079819,
   "connector_drop_allowance_V": 0.03,
-  "panel_min_calculated_V": 3.011229350549202,
+  "panel_min_calculated_V": 3.011290288049202,
   "panel_min_required_V": 3.0,
-  "panel_max_absolute_V": 3.6,
+  "panel_max_specified_V": 3.6,
+  "backlight_supply_contacts": [
+    5,
+    6,
+    7,
+    8
+  ],
+  "TFT_supply_contact": 10,
+  "DF23_contact_rating_A": 0.3,
+  "backlight_equal_share_contact_ceiling_A": 1.2,
+  "nominal_display_board_output_capacitance_uF": 208.2,
+  "nominal_shield_panel_rail_capacitance_uF": 10.6,
+  "nominal_external_converter_output_capacitance_uF": 218.8,
+  "panel_internal_capacitance": "Not specified; must also fit within the converter capacitive-load limit.",
+  "converter_output_capacitance_limit_uF": 900,
+  "load_step_qualification": {
+    "status": "OPEN \u2014 steady-state budget does not bound startup/load-step transients",
+    "TSR2_datasheet_50percent_load_step_peak_max_V": 0.25,
+    "qualification": "Measure panel rails during backlight transitions and power sequencing; 3.0..3.6V and 1..20ms rise must hold. Additional capacitors and actual load may alter the datasheet response."
+  },
   "limitations": [
     "Efficiency is a budgeting allowance; verify both modules at the actual 24V input, load and enclosure temperature.",
     "The panel backlight maximum is unspecified. Its four 0.3A contacts limit permissible backlight current; measure it.",
     "3.3V rise time must be measured at CN1 and satisfy the panel 1..20ms requirement.",
+    "The converter specifies up to 250mV excursions for a 50% load step; the DC margin does not prove transient compliance.",
     "Converter ripple, hot copper/contact losses, current sharing and supply sequencing remain first-board tests.",
     "TVS/eFuse ratings do not establish a tested surge-immunity level."
   ]

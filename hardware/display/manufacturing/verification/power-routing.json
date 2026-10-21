@@ -5,55 +5,55 @@
   "loads": [
     {
       "load": "backlight",
+      "pad": "J1.5",
+      "budget_A": 0.2625,
+      "selected_path_ohm": 0.026860527370961625,
+      "supply_drop_V": 0.032666336950798194
+    },
+    {
+      "load": "backlight",
       "pad": "J1.6",
       "budget_A": 0.2625,
       "selected_path_ohm": 0.026860527370961625,
-      "supply_drop_V": 0.033058774450798196
+      "supply_drop_V": 0.03304008695079819
     },
     {
       "load": "backlight",
       "pad": "J1.7",
       "budget_A": 0.2625,
       "selected_path_ohm": 0.027510527370961626,
-      "supply_drop_V": 0.0328182744507982
+      "supply_drop_V": 0.032836961950798195
     },
     {
       "load": "backlight",
       "pad": "J1.8",
       "budget_A": 0.2625,
       "selected_path_ohm": 0.027510527370961626,
-      "supply_drop_V": 0.0334000244507982
-    },
-    {
-      "load": "backlight",
-      "pad": "J1.10",
-      "budget_A": 0.2625,
-      "selected_path_ohm": 0.028160527370961627,
-      "supply_drop_V": 0.0335706494507982
+      "supply_drop_V": 0.0333732119507982
     },
     {
       "load": "TFT",
-      "pad": "J1.5",
+      "pad": "J1.10",
       "budget_A": 0.25,
-      "selected_path_ohm": 0.026860527370961625,
-      "supply_drop_V": 0.0326216494507982
+      "selected_path_ohm": 0.028160527370961627,
+      "supply_drop_V": 0.033509711950798195
     },
     {
       "load": "touch",
       "pad": "J1.49",
       "budget_A": 0.05,
-      "selected_path_ohm": 0.08626264193702092,
-      "supply_drop_V": 0.03198431767910116
+      "selected_path_ohm": 0.08626264193703735,
+      "supply_drop_V": 0.03198431767910198
     },
     {
       "load": "interface reference rail",
       "pad": "J2.76",
       "budget_A": 0.15,
-      "selected_path_ohm": 0.08278529217070667,
-      "supply_drop_V": 0.012417793825606012
+      "selected_path_ohm": 0.08274163993381517,
+      "supply_drop_V": 0.012411245990072288
     }
   ],
-  "maximum_panel_supply_drop_V": 0.0335706494507982,
+  "maximum_panel_supply_drop_V": 0.033509711950798195,
   "return_allowance_ohm": 0.02,
   "physical_verification": "PENDING: actual current, via plating, return spreading and temperature"
 }

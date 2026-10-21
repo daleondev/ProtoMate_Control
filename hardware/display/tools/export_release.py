@@ -21,7 +21,10 @@ def main():
         b=k.LoadBoard(str(pcb));b.BuildConnectivity();k.ZONE_FILLER(b).Fill(b.Zones())
         k.SaveBoard(str(pcb),b);write_stackup(pcb,name)
         run(['sch','erc','--format','json','--exit-code-violations','-o',verify/(name+'-erc.json'),sch])
-        run(['pcb','drc','--format','json','--schematic-parity','--all-track-errors','--exit-code-violations','-o',verify/(name+'-drc.json'),pcb])
+        # Check a fresh fill in the CLI itself. Cached/editor Python fills are
+        # not authoritative for connectivity. Save exactly the checked board.
+        run(['pcb','drc','--refill-zones','--save-board','--format','json','--schematic-parity','--all-track-errors','--exit-code-violations','-o',verify/(name+'-drc.json'),pcb])
+        write_stackup(pcb,name)
         run(['pcb','export','odb','--compression','zip','--units','mm','--precision','6',
              '--check-zones','-o',out/(release_name(name)+'-aisler-odb.zip'),pcb])
         gerbers=out/'gerbers';gerbers.mkdir(exist_ok=True)

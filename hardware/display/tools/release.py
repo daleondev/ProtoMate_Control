@@ -6,6 +6,7 @@ Gerbonara and Matplotlib. KiCad, FreeCAD and Inkscape must also be installed.
 Review the outputs, then run package_release.py --reviewed separately.
 """
 import json
+import hashlib
 import subprocess
 import sys
 from datetime import date
@@ -33,6 +34,16 @@ def render():
         '/tmp/giga-mated-review.kicad_pcb'],check=True)
 
 
+def design_hashes():
+    """Include child sheets and shared libraries, not only the top-level files."""
+    files = [p for folder in [*BOARDS, 'libraries']
+             for p in (ROOT/folder).rglob('*')
+             if p.is_file() and p.suffix not in ['.kicad_prl', '.pyc']
+             and not p.name.startswith('~') and '__pycache__' not in p.parts]
+    return {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(files)}
+
+
 def status():
     verification=ROOT/'manufacturing/verification'
     def read(name):return json.loads((verification/name).read_text())
@@ -53,9 +64,17 @@ def status():
             exported_pad_coordinates_checked=gerber['exported_pad_coordinates_and_nets_checked'],
             drill_hits_checked=gerber['drill_hits_checked'],upload=release_name(name)+'-aisler-odb.zip',
             odb_audit=odb)
+        boards[name]['checked_source_sha256']={suffix:hashlib.sha256(
+            (ROOT/name/(name+suffix)).read_bytes()).hexdigest()
+            for suffix in ['.kicad_pcb','.kicad_pro','.kicad_sch','.kicad_dru']}
+        assert read(name+'-aisler-audit.json')['source_sha256']==boards[name]['checked_source_sha256']['.kicad_pcb']
+    power=read('power-review.json')
+    assert power['result'].startswith('PASS')
+    assert all(power['source_sha256'][name]==boards[name]['checked_source_sha256']['.kicad_pcb'] for name in BOARDS)
     result=dict(revision=REVISION,date=date.today().isoformat(),release='AISLER BARE-BOARD PROTOTYPE',
-        digital_release_checks='PASS',boards=boards,electrical_audit=read('electrical-audit.json'),
-        mechanical_review=read('mechanical-audit.json'),
+        digital_release_checks='PASS',boards=boards,checked_design_sha256=design_hashes(),
+        electrical_audit=read('electrical-audit.json'),
+        mechanical_review=read('mechanical-audit.json'),power_route_review=power,
         visual_review=dict(result='PENDING',reviewed=[]),
         aisler_processing=dict(status='PENDING',reason='Exact upload CAM preview, layer/options detection, holes, mask, bridge positions and netlist notes require account review. No project has been uploaded by this workflow.'),
         intentional_ERC_DRC_warnings=[],manufacturing_rule_waivers=[],
@@ -63,8 +82,8 @@ def status():
             'Connector fit, 1.6mm thickness tolerance, converter lead trim, mounting and strain relief',
             'Supply isolation, inrush, rise time, full-brightness voltage/current and thermal behaviour',
             'Panel clock/data timing, colour order, touch and independent supply sequencing']),
-        timing_qualification='CONDITIONAL CALCULATION; sub-nanosecond residual margin, not complete PVT timing closure. See timing-budget.json.',
-        power_qualification='CALCULATED BUDGET; measured copper geometry plus explicit current/return/ripple/contact allowances, not bench qualification.',
+        timing_qualification='OPEN: conditional calculation only; sub-nanosecond margin, IO compensation and physical timing/load qualification required. See timing-budget.json.',
+        power_qualification='OPEN: 3.011V calculated DC minimum does not establish transient compliance or maximum panel current. See power-budget.json.',
         manufacturing_order_placed=False,assembly_order_placed=False,stencil_order_placed=False,firmware_changed=False)
     (ROOT/'manufacturing/release-status.json').write_text(json.dumps(result,indent=2)+'\n')
 
@@ -78,7 +97,7 @@ def main():
         run('inspect_odb.py',name)
         run('inspect_gerbers.py',name)
     for script in ['audit.py','routing_report.py','review_layout.py','power_routes.py',
-                   'power_budget.py','mechanical.py','drawings.py']:
+                   'power_budget.py','review_power.py','mechanical.py','drawings.py']:
         run(script)
     render()
     status()

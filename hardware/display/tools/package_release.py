@@ -15,6 +15,7 @@ import zipfile
 
 from design import ROOT, REVISION, BOARDS, release_name, copper_layers
 from aisler import SUPPORT
+from release import design_hashes
 
 
 def digest(path):
@@ -83,6 +84,7 @@ QUALIFICATION
 Local electrical, geometry and export checks: see verification/ and release status.
 First-board fit, soldering, power, temperature, panel timing and operation remain
 UNTESTED. The timing estimate is conditional, not complete PVT qualification.
+See REVIEW.md for the open RGB timing and supply-transient items.
 No manufacturing order has been placed. SHA256SUMS identifies these exact files.
 '''
 
@@ -96,8 +98,11 @@ def main():
     verification = manufacturing / 'verification'
     status = json.loads((manufacturing / 'release-status.json').read_text())
     assert status['digital_release_checks'] == 'PASS' and status['revision'] == REVISION
+    assert design_hashes() == status['checked_design_sha256'], 'Design changed since verification; rerun release.py'
     names = ['display-adapter', 'giga-adapter']
     for name in names:
+        for suffix,expected in status['boards'][name]['checked_source_sha256'].items():
+            assert digest(ROOT/name/(name+suffix))==expected,(name,'Source changed since verification',suffix)
         assert status['boards'][name]['revision'] == BOARDS[name]['revision']
         assert status['boards'][name]['copper_layers'] == BOARDS[name]['layers']
         erc = json.loads((verification / (name + '-erc.json')).read_text())
@@ -134,6 +139,7 @@ def main():
     start = guide.index('Release files:')
     end = guide.index('| Project |')
     guide = guide[:start] + guide[end:]
+    guide = guide.replace('(manufacturing/REVIEW.md)', '(REVIEW.md)')
     with tempfile.TemporaryDirectory(prefix='display-release-') as scratch:
         temporary = Path(scratch)
         for name in args.boards:
@@ -147,6 +153,8 @@ def main():
             for item in ['cable-specification.pdf', 'connections.csv', 'cable-conductors.csv']:
                 shutil.copy2(ROOT / item, folder / item)
             shutil.copy2(manufacturing / 'release-status.json', folder / 'release-status.json')
+            (folder/'REVIEW.md').write_text((manufacturing/'REVIEW.md').read_text().replace(
+                '`../references/`', '`source/references/`'))
             (folder / 'AISLER_ORDER.txt').write_text(order_notes(name))
             (folder / 'design-guide.md').write_text(guide)
             archive(folder, releases / (folder.name + '-aisler-review.zip'))
@@ -161,6 +169,7 @@ def main():
         (folder/'aisler-support'/'.git').unlink(missing_ok=True)
         shutil.copy2(manufacturing/'aisler-support-lock.json',folder/'manufacturing'/'aisler-support-lock.json')
         shutil.copy2(manufacturing / 'release-status.json', folder / 'manufacturing' / 'release-status.json')
+        shutil.copy2(manufacturing/'REVIEW.md', folder/'manufacturing'/'REVIEW.md')
         archive(folder, releases / (folder.name + '-source.zip'))
     checksums(releases)
     print('Verified archives:')
