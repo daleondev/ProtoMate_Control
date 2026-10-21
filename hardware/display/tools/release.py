@@ -39,7 +39,9 @@ def design_hashes():
     files = [p for folder in [*BOARDS, 'libraries']
              for p in (ROOT/folder).rglob('*')
              if p.is_file() and p.suffix not in ['.kicad_prl', '.pyc']
-             and not p.name.startswith('~') and '__pycache__' not in p.parts]
+             and not p.name.startswith('~') and '__pycache__' not in p.parts
+             and not any(part.startswith('_restore_backup_') or part.endswith('-backups')
+                         for part in p.parts)]
     return {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in sorted(files)}
 

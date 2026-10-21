@@ -10,7 +10,7 @@
   },
   "layers": {
     "top-copper": {
-      "objects": 2074,
+      "objects": 1493,
       "bounds_mm": [
         [
           17.921590000000002,
@@ -62,7 +62,7 @@
       ]
     },
     "bottom-copper": {
-      "objects": 838,
+      "objects": 561,
       "bounds_mm": [
         [
           17.921590000000002,
@@ -118,7 +118,7 @@
       ]
     },
     "inner_2-copper": {
-      "objects": 974,
+      "objects": 770,
       "bounds_mm": [
         [
           17.921590000000002,

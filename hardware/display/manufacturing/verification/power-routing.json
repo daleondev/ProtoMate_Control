@@ -7,55 +7,55 @@
       "load": "backlight",
       "pad": "J1.5",
       "budget_A": 0.2625,
-      "selected_path_ohm": 0.02951212385228035,
-      "supply_drop_V": 0.02718523004489437
+      "selected_path_ohm": 0.021556860257857115,
+      "supply_drop_V": 0.018832203270749973
     },
     {
       "load": "backlight",
       "pad": "J1.6",
       "budget_A": 0.2625,
-      "selected_path_ohm": 0.02226926670942321,
-      "supply_drop_V": 0.023382730044894374
+      "selected_path_ohm": 0.014314003114999975,
+      "supply_drop_V": 0.015029703270749976
     },
     {
       "load": "backlight",
       "pad": "J1.7",
       "budget_A": 0.2625,
-      "selected_path_ohm": 0.031245457185613678,
-      "supply_drop_V": 0.02764023004489437
+      "selected_path_ohm": 0.022485431686428543,
+      "supply_drop_V": 0.019075953270749974
     },
     {
       "load": "backlight",
       "pad": "J1.8",
       "budget_A": 0.2625,
-      "selected_path_ohm": 0.024435933376089878,
-      "supply_drop_V": 0.023951480044894374
+      "selected_path_ohm": 0.015242574543571403,
+      "supply_drop_V": 0.015273453270749976
     },
     {
       "load": "TFT",
       "pad": "J1.10",
       "budget_A": 0.25,
-      "selected_path_ohm": 0.17597849990696093,
-      "supply_drop_V": 0.07656140678951563
+      "selected_path_ohm": 0.08639996280642459,
+      "supply_drop_V": 0.03764051809829194
     },
     {
       "load": "touch",
       "pad": "J1.49",
       "budget_A": 0.05,
-      "selected_path_ohm": 0.13290912162201504,
-      "supply_drop_V": 0.05600551069495071
+      "selected_path_ohm": 0.0721658038121939,
+      "supply_drop_V": 0.028252553996386584
     },
     {
       "load": "interface reference rail",
       "pad": "J2.76",
       "budget_A": 0.15,
-      "selected_path_ohm": 0.243065010712012,
-      "supply_drop_V": 0.08662438341027329
+      "selected_path_ohm": 0.14103552162389735,
+      "supply_drop_V": 0.04583585192091285
     }
   ],
-  "maximum_logic_supply_drop_V": 0.08662438341027329,
-  "maximum_backlight_supply_drop_V": 0.02764023004489437,
-  "maximum_panel_supply_drop_V": 0.07656140678951563,
+  "maximum_logic_supply_drop_V": 0.04583585192091285,
+  "maximum_backlight_supply_drop_V": 0.019075953270749974,
+  "maximum_panel_supply_drop_V": 0.03764051809829194,
   "return_allowance_ohm": 0.02,
   "physical_verification": "PENDING: actual current, via plating, return spreading and temperature"
 }

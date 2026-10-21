@@ -11,16 +11,29 @@ def resistance_path(b,ref1,pin1,ref2,pin2):
     fp={f.GetReference():f for f in b.GetFootprints()}
     a=next(p for p in fp[ref1].Pads() if p.GetNumber()==str(pin1));c=next(p for p in fp[ref2].Pads() if p.GetNumber()==str(pin2));net=a.GetNetname();assert c.GetNetname()==net
     tracks=[t for t in b.GetTracks() if t.GetNetname()==net];pads=[p for f in b.GetFootprints() for p in f.Pads() if p.GetNetname()==net]
-    nodes=set();edges=defaultdict(list);lines=[];vias=[]
+    nodes=set();edges=defaultdict(list);lines=[];vias=[];ends=[]
     def add(u,v,d):edges[u].append((v,d));edges[v].append((u,d))
     for t in tracks:
         if isinstance(t,k.PCB_VIA):
             x,y=coord(t.GetPosition());ns=[(l,x,y) for l in LAYERS];nodes.update(ns);vias.append(ns)
         else:
             u=(t.GetLayer(),*coord(t.GetStart()));v=(t.GetLayer(),*coord(t.GetEnd()));nodes.update([u,v]);lines.append((u,v,k.ToMM(t.GetWidth())))
+            ends.extend([(u,k.ToMM(t.GetWidth())/2),(v,k.ToMM(t.GetWidth())/2)])
     for p in pads:
         for l in LAYERS:
             if p.IsOnLayer(l):nodes.add((l,*coord(p.GetPosition())))
+    # Include physical contact between round trace ends. Use the overlap's
+    # narrowest chord (or the narrower track), rather than a zero-cost join.
+    for i,(u,radius) in enumerate(ends):
+        for v,other_radius in ends[i+1:]:
+            if u[0]!=v[0] or u==v:continue
+            distance=math.hypot(u[1]-v[1],u[2]-v[2])
+            if distance>=radius+other_radius:continue
+            width=2*min(radius,other_radius)
+            if distance>abs(radius-other_radius):
+                chord_offset=(distance**2+radius**2-other_radius**2)/(2*distance)
+                width=min(width,2*math.sqrt(max(0,radius**2-chord_offset**2)))
+            if width>1e-6:add(u,v,distance*.0175*1.3/(1000*width*.035))
     # A branch may end inside a wide trace without reaching its centreline.
     # KiCad correctly connects such copper; include the projected junction in
     # the resistance graph rather than falsely reporting an open circuit.

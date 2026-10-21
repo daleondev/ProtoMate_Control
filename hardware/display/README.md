@@ -135,7 +135,7 @@ The backlight converter is independent. Its specified load-step excursion can
 reach 250 mV. The added bulk capacitance and actual PWM load therefore need a
 first-board test for rail dips and supervisor retriggering. The supervisors inhibit
 the panel on undervoltage; they do not make an undersized supply acceptable.
-The calculated static minimum at the backlight contacts is 3.019 V at the
+The calculated static minimum at the backlight contacts is 3.029 V at the
 1.2 A allocation. Its 50 mV downward ripple allowance is a design assumption:
 TRACO specifies 50 mV peak-to-peak **typical**, not a guaranteed maximum. This
 small remaining margin does not establish operation under every load transient.
@@ -279,8 +279,13 @@ resistors are fitted starting values, to be qualified with the actual panel.
 
 **Both boards are four-layer**, with an uninterrupted In1 ground reference.
 Display signal routing uses F.Cu, In2.Cu and B.Cu, supplemented by stitched outer
-ground copper. The dedicated backlight supply uses wide traces. The source
+ground copper. Routes use straight runs and deliberate corners; retain this
+geometry instead of regenerating staircase paths with the grid router.
+The dedicated backlight supply uses wide traces. The source
 retains the GIGA power-route geometry; its fused input remains at least 0.60 mm.
+The display's ground connections use the filled planes and local stitching vias,
+without separate ground tracks. The GIGA retains the short component-to-plane
+connections and isolated eFuse RTN connections it needs.
 
 Vias are exposed through-vias, with no dependence on tenting, plugging or filling.
 DF23 exposed-contact bands are via keepouts. Ordinary molded IC bodies may have

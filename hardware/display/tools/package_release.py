@@ -24,7 +24,7 @@ def digest(path):
 
 def copy_tree(source, destination):
     shutil.copytree(source, destination, ignore=shutil.ignore_patterns(
-        '__pycache__', '*.pyc', '*.kicad_prl', '~*.lck', '*-backups'), dirs_exist_ok=True)
+        '__pycache__', '*.pyc', '*.kicad_prl', '~*.lck', '*-backups', '_restore_backup_*'), dirs_exist_ok=True)
 
 
 def checksums(folder):
@@ -119,10 +119,8 @@ def main():
         assert not project['board']['design_settings']['drc_exclusions']
         assert not project['erc']['erc_exclusions']
 
-    source_files = [p for folder in [*names, 'libraries'] for p in (ROOT / folder).rglob('*')
-                    if p.is_file() and p.suffix not in ['.kicad_prl'] and not p.name.startswith('~')]
     (verification / 'source-sha256.json').write_text(json.dumps(
-        {p.relative_to(ROOT).as_posix(): digest(p) for p in sorted(source_files)}, indent=2) + '\n')
+        design_hashes(), indent=2) + '\n')
     # --reviewed is an explicit assertion by the person running this tool;
     # the automated audit itself does not claim visual or manufacturer acceptance.
     status['visual_review'] = dict(result='PASS — local export/nominal mechanical review',reviewed=[

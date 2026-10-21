@@ -29,9 +29,9 @@
       3.2426721293273544,
       3.3497996204515803
     ],
-    "routed_supply_return_contact_drop_V": 0.1256243834102733,
+    "routed_supply_return_contact_drop_V": 0.08483585192091285,
     "dynamic_drop_allowance_V": 0.1,
-    "panel_min_with_allowance_V": 3.017047745917081,
+    "panel_min_with_allowance_V": 3.0578362774064414,
     "panel_requirement_V": [
       3.0,
       3.6
@@ -72,10 +72,10 @@
     "nominal_V": 3.3,
     "static_min_before_ripple_and_copper_V": 3.1548,
     "ripple_negative_allowance_V": 0.05,
-    "routed_return_contact_drop_V": 0.08558883433702213,
+    "routed_return_contact_drop_V": 0.07580108945228568,
     "datasheet_ripple_Vpp_typical": 0.05,
     "ripple_limit_status": "The retained TSR2 datasheet gives a typical value, not a guaranteed maximum. The negative ripple allowance is a design assumption to qualify.",
-    "static_min_with_allowances_V": 3.019211165662978,
+    "static_min_with_allowances_V": 3.028998910547714,
     "nominal_external_capacitance_uF": 188,
     "converter_capacitive_load_limit_uF": 900,
     "unknown_panel_capacitance": "Included in the 900uF limit; first-board check.",

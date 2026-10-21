@@ -11,16 +11,25 @@ def length(b,ref1,pin1,ref2,pin2):
     fp={f.GetReference():f for f in b.GetFootprints()}
     a=next(p for p in fp[ref1].Pads() if p.GetNumber()==str(pin1));c=next(p for p in fp[ref2].Pads() if p.GetNumber()==str(pin2));net=a.GetNetname();assert c.GetNetname()==net
     tracks=[t for t in b.GetTracks() if t.GetNetname()==net];pads=[p for f in b.GetFootprints() for p in f.Pads() if p.GetNetname()==net]
-    nodes=set();edges=defaultdict(list);lines=[];vias=[]
+    nodes=set();edges=defaultdict(list);lines=[];vias=[];ends=[]
     def add(u,v,d):edges[u].append((v,d));edges[v].append((u,d))
     for t in tracks:
         if isinstance(t,k.PCB_VIA):
             x,y=coord(t.GetPosition());ns=[(l,x,y) for l in LAYERS];nodes.update(ns);vias.append(ns)
         else:
             u=(t.GetLayer(),*coord(t.GetStart()));v=(t.GetLayer(),*coord(t.GetEnd()));nodes.update([u,v]);lines.append((u,v))
+            ends.extend([(u,k.ToMM(t.GetWidth())/2),(v,k.ToMM(t.GetWidth())/2)])
     for p in pads:
         for l in LAYERS:
             if p.IsOnLayer(l):nodes.add((l,*coord(p.GetPosition())))
+    # Round trace ends can overlap without coincident centreline vertices.
+    # Removing copper-covered helper segments must not make the measurement
+    # graph report a false open. Charge the actual distance across the overlap.
+    for i,(u,radius) in enumerate(ends):
+        for v,other_radius in ends[i+1:]:
+            if u[0]!=v[0] or u==v:continue
+            distance=math.hypot(u[1]-v[1],u[2]-v[2])
+            if distance<radius+other_radius:add(u,v,distance)
     for u,v in lines:
         l,x,y=u;_,xx,yy=v;dx,dy=xx-x,yy-y;dd=dx*dx+dy*dy
         if dd<1e-12:continue

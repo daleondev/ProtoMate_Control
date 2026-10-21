@@ -74,6 +74,9 @@ The release pipeline requires all of the following, without waived findings:
 There are no fiducials, blind/buried vias, tenting requirements, manufacturing
 rule exclusions or accepted ERC/DRC warnings. The display retains its outer
 thermal/ground pours; the added inner plane supplies a continuous reference.
+The display has no separate GND tracks: the filled copper and stitching vias
+connect every ground pad. GIGA component-to-plane escapes and the isolated
+eFuse RTN thermal connections remain in place.
 
 Evidence is retained in [`verification/`](verification/). Current component-limit
 budgets are in [`power-budget.json`](verification/power-budget.json); routed
@@ -134,9 +137,9 @@ supervision to conceal an inadequate supply. Smartwin gives typical backlight
 current, not a guaranteed maximum. All four contacts must stay within their
 individual 0.3 A ratings. Keep total converter output capacitance, including the
 panel, within 900 µF. These are first-board acceptance requirements.
-The calculated static contact voltage is **3.019 V** at the 1.2 A allocation.
+The calculated static contact voltage is **3.029 V** at the 1.2 A allocation.
 The 50 mV downward ripple allowance exceeds the quoted 50 mV peak-to-peak
-typical value but is not a manufacturer-guaranteed bound. Therefore the 19 mV
+typical value but is not a manufacturer-guaranteed bound. Therefore the 29 mV
 static margin cannot be presented as a worst-case transient guarantee.
 
 Use the revision-E Type-A cable drawing: 80 ways, 0.50 mm pitch, 0.30 mm mating

@@ -4,7 +4,7 @@
     "copper_layers": 4,
     "schematic_pcb_pin_pairs": 252,
     "components": 51,
-    "tracks": 3621,
+    "tracks": 924,
     "ground_reference": "In1.Cu GND reference plane"
   },
   "giga-adapter": {
@@ -12,7 +12,7 @@
     "copper_layers": 4,
     "schematic_pcb_pin_pairs": 531,
     "components": 123,
-    "tracks": 2667,
+    "tracks": 1605,
     "ground_reference": "In1.Cu GND reference plane"
   },
   "display_contacts": 50,

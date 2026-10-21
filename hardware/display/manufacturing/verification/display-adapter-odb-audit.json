@@ -3,7 +3,7 @@
   "board": "display-adapter",
   "revision": "E",
   "upload_zip": "display-adapter-rev-E-aisler-odb.zip",
-  "upload_sha256": "390106aad778d67d5a6657d60995218c61862b7ee895e392d16714ea6c582475",
+  "upload_sha256": "5a7ae97b6c9ec41cfd85c93c3d55539efec635eef0a50293f10139084f2be8d5",
   "copper_layers": [
     "F.CU",
     "IN1.CU",
@@ -13,7 +13,7 @@
   "pcb_profile_area_mm2": 2750.0,
   "bridges_checked": 4,
   "netlist_pad_contacts_checked": 252,
-  "drill_hits_checked": 217,
+  "drill_hits_checked": 219,
   "mask_pad_openings_checked": {
     "f": 206,
     "b": 60
