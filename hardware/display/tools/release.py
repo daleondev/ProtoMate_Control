@@ -39,7 +39,8 @@ def design_hashes():
     files = [p for folder in [*BOARDS, 'libraries']
              for p in (ROOT/folder).rglob('*')
              if p.is_file() and p.suffix not in ['.kicad_prl', '.pyc']
-             and not p.name.startswith('~') and '__pycache__' not in p.parts
+             and not p.name.startswith('~')
+             and not any(part in {'.history', '.git', '__pycache__'} for part in p.parts)
              and not any(part.startswith('_restore_backup_') or part.endswith('-backups')
                          for part in p.parts)]
     return {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
@@ -93,7 +94,9 @@ def status():
 def main():
     for name in BOARDS:
         # Separate processes avoid persistent pcbnew editor state across boards.
-        run('aisler.py','--apply','--board',name)
+        # Review the authoritative layout without resetting hand-edited silk,
+        # outlines or footprint settings. Apply manufacturing profiles explicitly
+        # when changing a design; the audits below enforce their requirements.
         run('export_release.py',name)
         run('audit_aisler.py',name)
         run('inspect_odb.py',name)

@@ -1,6 +1,6 @@
 # AISLER manufacturing inputs
 
-Checked 2026-10-21. Both boards use ENIG, 1.6 mm nominal thickness, 35 µm copper,
+Checked 2026-10-22. Both boards use ENIG, 1.6 mm nominal thickness, 35 µm copper,
 green mask and white silk. The order scope is bare boards only.
 
 Support package revision: `00fe215f96ce7a938946e1a176de4ca8cac291ef`.

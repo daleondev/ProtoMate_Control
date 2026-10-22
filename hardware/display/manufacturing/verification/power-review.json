@@ -1,8 +1,8 @@
 {
   "result": "PASS \u2014 routed power connectivity and geometry",
   "source_sha256": {
-    "display-adapter": "3d48d790889b9b6d0b48618270c2a6e78ee82564ad5eaf6561dbc422cdc66094",
-    "giga-adapter": "9da8fde2ef3f8ccbd85e86a4b3c4b8c44fc8bf6d18fe550c4c13aa52b65e658c"
+    "display-adapter": "9667c2a3c9b4c2ad439f0402d83941e1ae2f341aa28d137a33855e11bea47b81",
+    "giga-adapter": "ffbc4e501856cece6e01788e55b4292d1fd85e1db16bdae1314882673760d53e"
   },
   "routes": [
     {
@@ -15,25 +15,25 @@
       "board": "giga-adapter",
       "start": "F1.2",
       "end": "U7.1",
-      "hot_copper_ohm": 0.041929872322934596
+      "hot_copper_ohm": 0.04113276438923501
     },
     {
       "board": "giga-adapter",
       "start": "U7.16",
       "end": "U8.1",
-      "hot_copper_ohm": 0.012214805709629954
+      "hot_copper_ohm": 0.011022916666666664
     },
     {
       "board": "giga-adapter",
       "start": "U7.16",
       "end": "F2.1",
-      "hot_copper_ohm": 0.033877485950778476
+      "hot_copper_ohm": 0.03268559690781519
     },
     {
       "board": "giga-adapter",
       "start": "U8.3",
       "end": "D3.2",
-      "hot_copper_ohm": 0.010579560535029231
+      "hot_copper_ohm": 0.010332758287448597
     },
     {
       "board": "giga-adapter",
@@ -87,25 +87,25 @@
       "board": "display-adapter",
       "start": "U3.1",
       "end": "TP1.1",
-      "hot_copper_ohm": 0.14362727545894124
+      "hot_copper_ohm": 0.13605510375014368
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.72",
-      "hot_copper_ohm": 0.1494573674556666
+      "hot_copper_ohm": 0.141885195746869
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.74",
-      "hot_copper_ohm": 0.14440606394755323
+      "hot_copper_ohm": 0.13683389223875564
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.76",
-      "hot_copper_ohm": 0.14103552162389735
+      "hot_copper_ohm": 0.13346334991509975
     }
   ],
   "fused_input_minimum_track_width_mm": 0.6,

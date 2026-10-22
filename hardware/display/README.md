@@ -399,7 +399,10 @@ outside it, the report explicitly identifies the recorded release assignments.
 
 Use Python with pcbnew, NumPy, Pillow, Shapely, Matplotlib and Gerbonara, plus
 KiCad 10, FreeCAD and Inkscape. `tools/release.py` runs the local checks and
-exports; review the generated drawings and 3D assembly before packaging with
+exports without reapplying placement, silkscreen or manufacturing-profile edits.
+Apply `tools/aisler.py --apply` explicitly only when changing the manufacturing
+configuration; the release audits verify the existing configuration.
+Review the generated drawings and 3D assembly before packaging with
 `tools/package_release.py --reviewed`. Packaging rejects PCB, schematic, project
 or rule changes made after verification. The manufacturing status separates local
 validation from pending AISLER processing and first-board qualification.

@@ -170,7 +170,11 @@ def main():
     gj={p.GetNumber():p.GetPosition() for p in gf['J1'].Pads()}
     assert gj['1'].y>gj['80'].y
     labels={t.GetText():t.GetPosition() for t in boards['giga-adapter'].GetDrawings() if isinstance(t,k.PCB_TEXT) and t.GetText() in ('1','80')}
-    assert labels['1'].y>gj['1'].y and labels['80'].y<gj['80'].y
+    # Pin 1 identifies cable orientation. A label at the far end is optional;
+    # if present, it must identify the correct end of the connector.
+    assert labels['1'].y>gj['1'].y
+    if '80' in labels:
+        assert labels['80'].y<gj['80'].y
     summary.update(display_contacts=50,ribbon_conductors=80,display_signals=35,supply_ready_signals=1,firmware_pin_conflicts=0,
                    firmware_assignment_source=firmware_source,firmware_source_sha256=pin_reference['sha256'],
                    physical_hardware_test='NOT PERFORMED')

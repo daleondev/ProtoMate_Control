@@ -24,7 +24,8 @@ def digest(path):
 
 def copy_tree(source, destination):
     shutil.copytree(source, destination, ignore=shutil.ignore_patterns(
-        '__pycache__', '*.pyc', '*.kicad_prl', '~*.lck', '*-backups', '_restore_backup_*'), dirs_exist_ok=True)
+        '.history', '.git', '__pycache__', '*.pyc', '*.kicad_prl', '~*.lck',
+        '*-backups', '_restore_backup_*'), dirs_exist_ok=True)
 
 
 def checksums(folder):

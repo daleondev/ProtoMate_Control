@@ -4,7 +4,7 @@
   "revision": "E",
   "support_revision": "00fe215f96ce7a938946e1a176de4ca8cac291ef",
   "template": "aisler-4-layer-hd-drc",
-  "source_sha256": "3d48d790889b9b6d0b48618270c2a6e78ee82564ad5eaf6561dbc422cdc66094",
+  "source_sha256": "9667c2a3c9b4c2ad439f0402d83941e1ae2f341aa28d137a33855e11bea47b81",
   "finished_thickness_mm": 1.6,
   "finished_thickness_tolerance_percent": 10,
   "copper_um": 35,
@@ -17,7 +17,7 @@
   "through_vias": 209,
   "plated_slots": [],
   "tenting": "NONE",
-  "silk_items_checked": 41,
+  "silk_items_checked": 40,
   "bridge_markers": 4,
   "stackup_mm": {
     "F.Cu": 0.035,

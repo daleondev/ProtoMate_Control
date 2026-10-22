@@ -4,7 +4,7 @@
   "revision": "D",
   "support_revision": "00fe215f96ce7a938946e1a176de4ca8cac291ef",
   "template": "aisler-4-layer-hd-drc",
-  "source_sha256": "9da8fde2ef3f8ccbd85e86a4b3c4b8c44fc8bf6d18fe550c4c13aa52b65e658c",
+  "source_sha256": "ffbc4e501856cece6e01788e55b4292d1fd85e1db16bdae1314882673760d53e",
   "finished_thickness_mm": 1.6,
   "finished_thickness_tolerance_percent": 10,
   "copper_um": 35,
@@ -33,7 +33,7 @@
     }
   ],
   "tenting": "NONE",
-  "silk_items_checked": 79,
+  "silk_items_checked": 80,
   "bridge_markers": 6,
   "stackup_mm": {
     "F.Cu": 0.035,

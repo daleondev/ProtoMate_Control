@@ -3,7 +3,7 @@
   "board": "display-adapter",
   "revision": "E",
   "upload_zip": "display-adapter-rev-E-aisler-odb.zip",
-  "upload_sha256": "5a7ae97b6c9ec41cfd85c93c3d55539efec635eef0a50293f10139084f2be8d5",
+  "upload_sha256": "31193d4c8f7ac6439f10c199ef50cc63bb2e86912190ad5c8453f0f926694c28",
   "copper_layers": [
     "F.CU",
     "IN1.CU",
