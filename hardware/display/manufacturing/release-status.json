@@ -2,7 +2,7 @@
   "revision": "F",
   "date": "2026-10-22",
   "release": "AISLER BARE-BOARD PROTOTYPE",
-  "digital_release_checks": "PASS",
+  "digital_release_checks": "NOT VALIDATED AGAINST CURRENT LAYOUT POLICY",
   "boards": {
     "display-adapter": {
       "revision": "F",
@@ -2711,15 +2711,8 @@
     "physical_qualification": "PENDING \u2014 load steps, startup, current sharing, thermal and fault tests"
   },
   "visual_review": {
-    "result": "PASS \u2014 local export/nominal mechanical review",
-    "reviewed": [
-      "Both outer sides: independent Gerber copper/mask/silk renders; connector numbering and open vias",
-      "Both inner copper layers, ground references and the GIGA isolated RTN thermal island",
-      "Layer close-ups: RGB/FFC/DF23 fanouts, pad and via entries, angular routing and power paths",
-      "Fine-pitch paste, plated/non-plated drills and BOM/placement agreement",
-      "Schematics, fabrication/assembly drawings and current-revision cable map",
-      "GIGA mating assembly and display top/bottom models, including 1.6mm thickness and trimmed leads"
-    ]
+    "result": "PENDING",
+    "reason": "Complete hash-bound regional inspection is required."
   },
   "aisler_processing": {
     "status": "PENDING",
@@ -2740,5 +2733,7 @@
   "manufacturing_order_placed": false,
   "assembly_order_placed": false,
   "stencil_order_placed": false,
-  "firmware_changed": false
+  "firmware_changed": false,
+  "manufacturing_release": "HOLD \u2014 copper architecture feasibility not established",
+  "layout_unification_status": "layout-unification-status.json"
 }

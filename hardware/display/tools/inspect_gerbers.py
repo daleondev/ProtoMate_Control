@@ -5,6 +5,8 @@ Requires gerbonara, pcbnew and Inkscape. No KiCad plotting code is used to read 
 render the exported copper. This checks exports, not only their source PCB.
 """
 import json,math,subprocess,sys,warnings
+import hashlib
+import xml.etree.ElementTree as ET
 from pathlib import Path
 import pcbnew as k
 from gerbonara import LayerStack
@@ -12,7 +14,20 @@ from gerbonara.graphic_objects import Flash, Line
 from gerbonara.utils import MM
 from drill_geometry import pad_drill, canonical_drill
 from design import ROOT, BOARDS, release_name
+from layout_policy import PIXELS_PER_MM
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
+
+def rasterize(svg):
+    root=ET.fromstring(svg.read_text())
+    width_mm=float(root.attrib['width'].removesuffix('mm'))
+    pixels=math.ceil(width_mm*PIXELS_PER_MM)
+    png=svg.with_suffix('.png')
+    subprocess.run(['inkscape',str(svg),'--export-width='+str(pixels),
+        '--export-filename='+str(png)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    png.with_suffix('.json').write_text(json.dumps(dict(pixels_per_mm=pixels/width_mm,
+        svg_sha256=hashlib.sha256(svg.read_bytes()).hexdigest(),
+        image_sha256=hashlib.sha256(png.read_bytes()).hexdigest(),
+        viewBox=root.attrib['viewBox']),indent=2)+'\n')
 
 def main(name):
     out=ROOT/'manufacturing'/release_name(name);report=ROOT/'manufacturing/verification';preview=out/'inspection';preview.mkdir(exist_ok=True)
@@ -87,9 +102,10 @@ def main(name):
     for key,g in stack.graphic_layers.items():
         stem='-'.join(key);(preview/(stem+'.svg')).write_text(str(g.to_svg(margin=1)))
         layers[stem]={'objects':len(g.objects),'bounds_mm':g.bounding_box()}
+        if key[1]=='copper':rasterize(preview/(stem+'.svg'))
     for side in ['top','bottom']:
         svg=preview/(side+'.svg');png=preview/(side+'.png');svg.write_text(str(stack.to_pretty_svg(side=side,margin=1)))
-        subprocess.run(['inkscape',str(svg),'--export-width=2000','--export-filename='+str(png)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        rasterize(svg)
     parser_notes=[allowed+'; KiCad emits G90 after %. Absolute coordinates verified against PCB.'] if caught else []
     parser_notes.append('The renderer reports an unused additional argument in KiCad RoundRect aperture macros; Gerbonara renders the defined macro primitives. Pad coordinates and connector paste dimensions were independently checked.')
     result={'board':name,'result':'PASS','exported_pad_coordinates_and_nets_checked':audited,'drill_hits_checked':len(actual),'ffc_paste_windows_checked':windows,'silk_coverage_upper_bound_percent':silk_coverage,'layers':layers,'parser_notes':parser_notes,'visual_inspection':'See inspection/*.svg and top/bottom.png; recorded separately in release status.'}

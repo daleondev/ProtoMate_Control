@@ -1,0 +1,1 @@
+(sym_lib_table (lib (name "DisplayAdapter") (type "KiCad") (uri "${KIPRJMOD}/Adapter.kicad_sym") (options "") (descr "Verified local adapter symbols")))

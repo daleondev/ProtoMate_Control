@@ -1,9 +1,9 @@
 {
   "result": "PASS",
   "board": "display-adapter",
-  "revision": "F",
-  "upload_zip": "display-adapter-rev-F-aisler-odb.zip",
-  "upload_sha256": "50c2719692847661c98ac32ff6bb62dce18ff7a25faa676c4180bd5eabaac66a",
+  "revision": "G",
+  "upload_zip": "display-adapter-rev-G-aisler-odb.zip",
+  "upload_sha256": "4907bb3db82ef1d7e1ddfa065b1feafd3dfa0834a8a9b0391fa49828a0cfcf8b",
   "copper_layers": [
     "F.CU",
     "IN1.CU",
@@ -13,7 +13,7 @@
   "pcb_profile_area_mm2": 2750.0,
   "bridges_checked": 4,
   "netlist_pad_contacts_checked": 232,
-  "drill_hits_checked": 203,
+  "drill_hits_checked": 227,
   "mask_pad_openings_checked": {
     "f": 186,
     "b": 60

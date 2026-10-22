@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 import pcbnew as k
 from design import ROOT, BOARDS
+from layout_policy import MIN_VIA_DRILL_MM, MIN_VIA_DIAMETER_MM
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 
 PANEL={**{n:'GND' for n in [1,2,3,4,11,36,40,42,50]},
@@ -57,19 +58,20 @@ def main():
                 assert '${' not in path and Path(path).is_file(),(name,f.GetReference(),'missing local 3D model',path)
         for t in b.GetTracks():
             if isinstance(t,k.PCB_VIA):
-                assert t.GetDrillValue()>=k.FromMM(BOARDS[name]['via_drill'])
-                assert t.GetWidth(k.F_Cu)>=k.FromMM(BOARDS[name]['via_diameter'])
+                assert t.GetDrillValue()>=k.FromMM(MIN_VIA_DRILL_MM)
+                assert t.GetWidth(k.F_Cu)>=k.FromMM(MIN_VIA_DIAMETER_MM)
                 assert (t.GetWidth(k.F_Cu)-t.GetDrillValue())/2>=k.FromMM(.15)
             else:
                 assert not isinstance(t,k.PCB_ARC),(name,'Curved track',t.GetNetname())
-                allowed=[k.F_Cu,k.B_Cu] if BOARDS[name]['layers']==2 else [k.F_Cu,k.In2_Cu,k.B_Cu]
+                allowed=[k.F_Cu,k.B_Cu]
                 assert t.GetLayer() in allowed,('Unexpected routing layer',name,t.GetNetname())
                 assert t.GetWidth()>=k.FromMM(.15),(name,t.GetNetname(),t.GetWidth())
         assert b.GetCopperLayerCount()==BOARDS[name]['layers']
         assert b.GetTitleBlock().GetRevision()==BOARDS[name]['revision']
         ground_layers={z.GetLayer() for z in b.Zones() if z.GetNetname()=='GND'}
-        assert k.In1_Cu in ground_layers and all(z.GetNetname()=='GND' for z in b.Zones() if z.GetLayer()==k.In1_Cu and not z.GetIsRuleArea())
-        summary[name]={'revision':BOARDS[name]['revision'],'copper_layers':b.GetCopperLayerCount(),'schematic_pcb_pin_pairs':len(nets),'components':len(source_parts),'tracks':len(b.GetTracks()),'ground_reference':'Stitched F.Cu/B.Cu ground pours' if BOARDS[name]['layers']==2 else 'In1.Cu GND reference plane'}
+        assert {k.F_Cu,k.In1_Cu,k.In2_Cu,k.B_Cu} <= ground_layers
+        assert all(z.GetNetname()=='GND' for z in b.Zones() if z.GetLayer() in (k.In1_Cu,k.In2_Cu) and not z.GetIsRuleArea())
+        summary[name]={'revision':BOARDS[name]['revision'],'copper_layers':b.GetCopperLayerCount(),'schematic_pcb_pin_pairs':len(nets),'components':len(source_parts),'tracks':len(b.GetTracks()),'ground_reference':'F.Cu -> continuous In1 GND; B.Cu -> continuous In2 GND; stitched outer fills'}
         summary[name]['routing_inventory']={
             'straight_segments':sum(not isinstance(t,k.PCB_VIA) for t in b.GetTracks()),
             'curved_segments':0,

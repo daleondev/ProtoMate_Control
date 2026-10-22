@@ -1,20 +1,20 @@
 {
   "result": "PASS",
   "board": "giga-adapter",
-  "revision": "E",
+  "revision": "F",
   "support_revision": "00fe215f96ce7a938946e1a176de4ca8cac291ef",
   "template": "aisler-4-layer-hd-drc",
-  "source_sha256": "d18a243556bc5fe6faea82ea60e7ca0f8f2dabe219511b39c0a1ce81b85181c7",
+  "source_sha256": "acb4e3fda600f4f08727449ea9f086083c6f7a5792d814ca6c63d58170783f53",
   "finished_thickness_mm": 1.6,
   "finished_thickness_tolerance_percent": 10,
   "copper_um": 35,
   "finish": "ENIG",
   "minimum_component_annular_ring_mm": 0.29999999999999716,
   "minimum_smd_dimension_mm": 0.3,
-  "minimum_hole_spacing_mm": 0.4918539553939098,
+  "minimum_hole_spacing_mm": 0.37100973412422655,
   "minimum_processed_fine_pitch_mask_web_mm": 0.15999999999999928,
-  "minimum_processed_connector_to_via_mask_web_mm": 0.11909999999999513,
-  "through_vias": 229,
+  "minimum_processed_connector_to_via_mask_web_mm": 0.1849999999999943,
+  "through_vias": 234,
   "plated_slots": [
     {
       "pad": "J10.1",
@@ -33,7 +33,7 @@
     }
   ],
   "tenting": "NONE",
-  "silk_items_checked": 80,
+  "silk_items_checked": 78,
   "bridge_markers": 6,
   "stackup_mm": {
     "F.Cu": 0.035,

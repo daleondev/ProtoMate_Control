@@ -3,7 +3,7 @@
 
 Run with a Python environment containing pcbnew, NumPy, Pillow, Shapely,
 Gerbonara and Matplotlib. KiCad, FreeCAD and Inkscape must also be installed.
-Review the outputs, then run package_release.py --reviewed separately.
+Inspect and record the complete per-region visual atlas before packaging.
 """
 import json
 import hashlib
@@ -11,6 +11,8 @@ import subprocess
 import sys
 from datetime import date
 from design import ROOT, BOARDS, REVISION, release_name
+from layout_policy import validate_policy
+from audit_workmanship import scan
 
 
 def run(script, *args):
@@ -20,7 +22,7 @@ def run(script, *args):
 def render():
     assembly=ROOT/'assembly';assembly.mkdir(exist_ok=True)
     views=[('display-adapter','top','320,0,25'),('display-adapter','bottom','25,0,25'),
-           ('giga-adapter','top','320,0,25')]
+           ('giga-adapter','top','320,0,25'),('giga-adapter','bottom','25,0,25')]
     for name,side,rotation in views:
         label='display' if name=='display-adapter' else 'giga'
         output=assembly/f"{label}-{side}-rev-{BOARDS[name]['revision']}.png"
@@ -73,6 +75,11 @@ def status():
         assert read(name+'-aisler-audit.json')['source_sha256']==boards[name]['checked_source_sha256']['.kicad_pcb']
         assert read(name+'-copper-audit.json')['source_sha256']==boards[name]['checked_source_sha256']['.kicad_pcb']
         boards[name]['copper_topology_audit']=read(name+'-copper-audit.json')
+        boards[name]['layout_policy']=read(name+'-layout-policy.json')
+        assert boards[name]['layout_policy']['result']=='PASS'
+        assert boards[name]['layout_policy']['source_sha256']==boards[name]['checked_source_sha256']['.kicad_pcb']
+        boards[name]['workmanship_screening']=read(name+'-workmanship.json')
+        assert not boards[name]['workmanship_screening']['counts']['errors']
     power=read('power-review.json')
     procurement=read('procurement-audit.json')
     assert procurement['result']=='PASS'
@@ -105,7 +112,7 @@ def status():
                    mapping='GIGA J1.n -> display J2.(61-n)',
                    type='Type A, same-side gold contacts, retention ears, bottom-contact sockets',
                    nominal_length_mm=102,budget_length_mm=106),
-        routing='Straight segments with angular corners; no curved tracks. Duplicate/covered copper and unused signal branches/vias audited separately from DRC. Centred pad entries individually reviewed and trial-removed; ground/thermal stitching retained.',
+        routing='Automated layout and copper checks are recorded per board. Visual workmanship is PENDING until complete hash-bound regional inspection; no automatic professional-quality certification is implied.',
         documentation='manufacturing/REVIEW.md and references/SOURCES.md',
         conditions_before_order=['Review exact AISLER processed jobs: layers, ENIG, holes, masks, bridges and netlist notes.',
             'Use the exact listed cable/connectors and current Mouser procurement list; DC jack is already owned.'],
@@ -127,12 +134,35 @@ def status():
 
 
 def main():
+    verification=ROOT/'manufacturing/verification'
+    verification.mkdir(parents=True,exist_ok=True)
+    # Fail before exporting a misleading release when the architecture or
+    # protected placement has not passed its independent feasibility gate.
+    for name in BOARDS:
+        path=ROOT/name/(name+'.kicad_pcb')
+        policy=validate_policy(path,ROOT/'references/layout-baselines'/(name+'.json'))
+        (verification/(name+'-layout-policy.json')).write_text(json.dumps(policy,indent=2)+'\n')
+        if policy['result']!='PASS':
+            raise RuntimeError(name+': '+ '; '.join(policy['errors']))
+        geometry=scan(path)
+        (verification/(name+'-workmanship.json')).write_text(json.dumps(geometry,indent=2)+'\n')
+        if geometry['counts']['errors']:
+            raise RuntimeError(name+': unresolved routing geometry errors')
     for name in BOARDS:
         # Separate processes avoid persistent pcbnew editor state across boards.
         # Review the authoritative layout without resetting hand-edited silk,
         # outlines or footprint settings. Apply manufacturing profiles explicitly
         # when changing a design; the audits below enforce their requirements.
         run('export_release.py',name)
+        # Export refills and saves the checked board. Bind the release reports
+        # to that exact file, including the canonical stackup serialization.
+        path=ROOT/name/(name+'.kicad_pcb')
+        policy=validate_policy(path,ROOT/'references/layout-baselines'/(name+'.json'))
+        geometry=scan(path)
+        (verification/(name+'-layout-policy.json')).write_text(json.dumps(policy,indent=2)+'\n')
+        (verification/(name+'-workmanship.json')).write_text(json.dumps(geometry,indent=2)+'\n')
+        if policy['result']!='PASS' or geometry['counts']['errors']:
+            raise RuntimeError(name+': checked export source failed layout policy')
         run('audit_aisler.py',name)
         run('inspect_odb.py',name)
         run('inspect_gerbers.py',name)
@@ -142,7 +172,7 @@ def main():
         run(script)
     render()
     status()
-    print('Local checks PASS. Review exported drawings/3D before packaging; AISLER processing remains pending.')
+    print('Local checks PASS. Complete the hash-bound visual atlas before packaging; AISLER processing remains pending.')
 
 
 if __name__=='__main__':main()

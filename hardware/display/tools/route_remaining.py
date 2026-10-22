@@ -2,18 +2,21 @@
 """Finish short residual connections on a conservative grid; KiCad DRC is final.
 
 This is a layout-generation aid, not a substitute for the release ERC/DRC audit.
-Uses only enabled signal layers; In1 remains reserved on four-layer boards.
+Uses only F.Cu and B.Cu; both inner layers remain reference planes.
+Writes a new, unapproved proposal. Never modifies the authoritative projects.
 Via-in-pad is prohibited.
 """
-import heapq,math,json,subprocess,sys
+import argparse,heapq,math,json,subprocess,sys
 from pathlib import Path
 import numpy as np
 from PIL import Image,ImageDraw
 import pcbnew as k
 from design import ROOT, board_outline
+from layout_policy import SIGNAL_LAYERS
+from finish_board import finish
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 GRID=.05
-LAYERS=[k.F_Cu,k.In2_Cu,k.B_Cu]
+LAYERS=list(SIGNAL_LAYERS)
 def mm(v):return k.FromMM(v)
 def xy(x,y):return k.VECTOR2I(mm(x),mm(y))
 
@@ -22,7 +25,7 @@ def route(b,which,entry,width=.15):
     via_drill = .25 if which == "display-adapter" else .3
     clearance = .125 if which == 'display-adapter' else .15
     global LAYERS
-    LAYERS=[k.F_Cu,k.B_Cu] if b.GetCopperLayerCount()==2 else [k.F_Cu,k.In2_Cu,k.B_Cu]
+    LAYERS=list(SIGNAL_LAYERS)
     items={t.m_Uuid.AsString():t for t in b.GetTracks()}
     items.update({p.m_Uuid.AsString():p for f in b.GetFootprints() for p in f.Pads()})
     if any(i['uuid'] not in items for i in entry['items']):return False
@@ -185,8 +188,10 @@ def route(b,which,entry,width=.15):
     track(xy(path[-1][2]*GRID,path[-1][1]*GRID),target_points[path[-1]],path[-1][0])
     print('Routed',name,'length grid',len(path),'expanded',expanded,flush=True);return True
 
-def main(which):
-    path=ROOT/which/(which+'.kicad_pcb');report=Path('/tmp')/(which+'-finish-drc.json')
+def main(source, path):
+    finish(source,path)
+    which=path.stem
+    report=path.parent/(which+'-proposal-drc.json')
     b=k.LoadBoard(str(path))
     for attempt in range(140):
         b.BuildConnectivity();k.ZONE_FILLER(b).Fill(b.Zones());k.SaveBoard(str(path),b)
@@ -196,5 +201,11 @@ def main(which):
         if not missing:break
         missing.sort(key=lambda e:0 if any(s in e['items'][0]['description'] for s in ['MCU_R3','MCU_G6']) else 1)
         if not any(route(b,which,e, .6 if '+24V_' in e['items'][0]['description'] else .15) for e in missing):break
+    print('Unapproved proposal only. Review every route and run all release checks:',path)
 
-if __name__=='__main__':main(sys.argv[1])
+if __name__=='__main__':
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('source',type=Path)
+    parser.add_argument('--output',required=True,type=Path)
+    args=parser.parse_args()
+    main(args.source,args.output)

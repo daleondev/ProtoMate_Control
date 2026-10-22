@@ -1,7 +1,16 @@
 # Smartwin–GIGA display adapters
 
-The **four-layer display adapter (revision F)** and **four-layer GIGA adapter
-(revision E)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
+**Manufacturing hold: the unified layouts are implemented in the main projects;
+visual inspection and revision-matched release validation are in progress.**
+Both use complete outer-layer routing, two continuous inner GND planes and
+stitched outer fills. Authorized placement changes put GIGA R33–R48 beside J8
+and reposition display C9/TP8 for a straight supply route and component clearance.
+Connector positions and board mechanics remain fixed.
+See [current validation status](manufacturing/layout-unification-status.json).
+Do not order an earlier archive as the current design.
+
+The **four-layer display adapter (revision G)** and **four-layer GIGA adapter
+(revision F)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
 **GIGA R1 WiFi**, preserving the firmware's display pin assignments.
 Open either project in KiCad 10; both use `libraries/` and require no downloaded
 symbol or footprint library. Keep this directory structure when moving them.
@@ -18,15 +27,16 @@ Release files:
   board pair, explicit substitutes, stock evidence and remaining sourcing gaps;
   the DC jack is already owned.
 
-Upload only the two ZIPs labelled **AISLER ODB++ upload**, one job per board.
+After the manufacturing hold is cleared, upload only the two ZIPs labelled
+**AISLER ODB++ upload**, one job per board.
 The review packages contain fabrication references, procurement BOMs, placement
 and soldering drawings. They are not assembly orders. `releases/SHA256SUMS`
 identifies the exact archives.
 
 | Project | Board | AISLER profile | Finish |
 |---|---|---|---|
-| `display-adapter/display-adapter.kicad_pro` | Rev F, 4 layers, 55 × 50 × 1.6 mm | `aisler-4-layer-hd-drc` | ENIG |
-| `giga-adapter/giga-adapter.kicad_pro` | Rev E, 4 layers, 111 × 53.34 × 1.6 mm maximum | `aisler-4-layer-hd-drc` | ENIG |
+| `display-adapter/display-adapter.kicad_pro` | Rev G, 4 layers, 55 × 50 × 1.6 mm | `aisler-4-layer-hd-drc` | ENIG |
+| `giga-adapter/giga-adapter.kicad_pro` | Rev F, 4 layers, 111 × 53.34 × 1.6 mm maximum | `aisler-4-layer-hd-drc` | ENIG |
 
 Both are **bare boards**, with 35 µm copper on every layer, green solder mask
 and white silkscreen. All components are sourced and installed separately.
@@ -303,15 +313,30 @@ cycle still require connector-level measurement. The cable is **102 mm nominal**
 Do not extend the cable without requalifying timing and signal quality. The 33 Ω series
 resistors are fitted starting values, to be qualified with the actual panel.
 
-**Both boards are four-layer**, with an uninterrupted In1 ground reference.
-Display signal routing uses F.Cu, In2.Cu and B.Cu, supplemented by stitched outer
-ground copper. Routes use straight runs and deliberate corners; retain this
-geometry instead of regenerating staircase paths with the grid router.
-The dedicated backlight supply uses wide traces. The source
-retains the GIGA power-route geometry; its fused input remains at least 0.60 mm.
-Ground connections use filled planes and local stitching vias. Short pad escapes
-remain where needed to reach a plane; redundant ground tracks are removed.
-The GIGA retains the short component-to-plane connections and isolated eFuse RTN connections it needs.
+**Both boards use the same four-layer architecture:**
+
+| Layer | Purpose |
+|---|---|
+| F.Cu | Signals/power and stitched GND fill |
+| In1.Cu | Continuous GND reference for F.Cu |
+| In2.Cu | Continuous GND reference for B.Cu |
+| B.Cu | Signals/power and stitched GND fill |
+
+AISLER's 0.14 mm outer dielectrics put each routing layer close to its reference.
+No signal or power traces occupy the inner planes. The TPS26600 RTN island
+remains separate from GND; its four thermal vias and heat-spreading copper are
+circuit requirements. The TPS7A91 retains local decoupling and thermal copper.
+All nets receive the same angle, overlap, branch and pad-entry inspection.
+Fine-pitch escapes use through-vias of at least 0.55/0.25 mm with 0.15 mm rings;
+larger 0.65/0.30 mm vias are retained where space permits. These meet the same
+AISLER HD limits on both boards; no board-specific manufacturing waiver is used.
+
+The shared rules, measured return distances, route-length/skew estimates and
+power-loss calculations are in `manufacturing/verification/`. The 2 mm return-via
+distance is a project screening target, not a claimed IPC or AISLER requirement.
+Dense fanouts require recorded review. The first-order impedance estimate is
+explicitly conditional on laminate properties and omits coplanar-fill effects;
+33 Ω source termination remains subject to measurement on the first assembly.
 
 Vias are exposed through-vias, with no dependence on tenting, plugging or filling.
 DF23 exposed-contact bands are via keepouts. Ordinary molded IC bodies may have
@@ -331,7 +356,7 @@ headers retain 1.8 mm pads. All component-hole rings are at least 0.30 mm.
 2. Confirm **4 layers on both, ENIG on both, 1.6 mm ±10%, 35 µm copper**,
    green mask and white silk. Select bare boards only; no assembly or stencil.
 3. Inspect the processed copper, holes and mask. Confirm all 50 display contacts,
-   80 FFC contacts, separate plated/non-plated drills, exposed vias and fine webs.
+   60 FFC contacts, separate plated/non-plated drills, exposed vias and fine webs.
    Check netlist/Smart Tests processing notes against the supplied netlists.
 4. Inspect four display and six GIGA bridge markers from `aisler-bridges`.
    The actual profile must remain closed. Keep bridges clear of the connector
@@ -374,7 +399,7 @@ See [manufacturer references and locked inputs](references/AISLER.md).
 ## First-board acceptance
 
 1. With 24 V and USB disconnected and no panel fitted, check for shorts, all connector
-   contacts and all 80 cable conductors. Confirm that GIGA_3V3 and PANEL_3V3 are
+   contacts and all 60 cable conductors. Confirm that GIGA_3V3 and PANEL_3V3 are
    separate, and all specified grounds are connected. Verify cable orientation.
 2. Apply current-limited 24 V with GIGA/panel initially unplugged. Check U8's
    12 V, VIN after D3, 5 V preregulator and both display 3.3 V rails before attaching loads.
@@ -391,10 +416,50 @@ See [manufacturer references and locked inputs](references/AISLER.md).
 
 ## Reproducibility
 
-`tools/build.py` regenerates libraries/schematics and **placement-only boards in
-`build/`**. It does not overwrite reviewed project routing. `prepare_routes.py`
-adds the initial power and ground escapes. Routing tools are generation aids;
-the checked-in project boards are the authoritative layouts.
+`tools/build.py --scratch-root /tmp/new-adapter-experiment` generates only into
+a new scratch directory. It refuses the authoritative tree. The deleted
+annotation-cleanup helper must not be used to replace user silkscreen.
+`prepare_routes.py SOURCE --output NEW.dsn` exports an outer-layer experiment;
+`finish_board.py SOURCE --session RESULT.ses --output NEW_DIRECTORY/BOARD.kicad_pcb`
+imports a proposal, preserves fixed power/ground and checks protected content.
+Both refuse to overwrite authoritative PCBs. `route_remaining.py` likewise
+requires a new `--output` proposal. A router result is never a release approval.
+
+The shared contract in `tools/layout_policy.py` requires F.Cu/B.Cu signal and
+power routing with stitched GND fills, and two unrouted inner GND reference
+planes. Both inner layers are typed as power planes; imported inner tracks are
+rejected. Isolated TPS26600 RTN copper remains separate. Complete footprints,
+mechanics and user graphics are locked by the fingerprints in
+`references/layout-baselines/`. The user's permission to remove obstructing
+silkscreen is handled as individual, recorded graphic deletions with a reason.
+Authorized component moves are reproduced independently through KiCad before
+recording the exact footprint transforms. Ground-relief angle changes are
+similarly restricted to the recorded pads; pad dimensions, hole sizes, relief
+gaps and required spoke counts remain protected. The original fingerprints
+remain intact, so these exceptions cannot conceal unrelated footprint or
+mechanical edits. Published AISLER limits take precedence over
+templates. These architectural requirements are **not yet met by the
+authoritative PCBs**.
+
+`tools/audit_workmanship.py BOARD --output REPORT.json` screens every net,
+including ground and power, for angles, short zigzags, overlaps, hairpins,
+detours, edge-only pad entries and vias without an interlayer role. Short
+escapes and similar candidates require inspection, not automatic rejection.
+The screening thresholds are project workmanship rules, not IPC certification.
+Run the fixture suite with `python -m unittest discover -s tools/tests -v`
+from this directory using the KiCad Python environment.
+
+After electrical/routing corrections, `tools/review_atlas.py generate BOARD
+NEW_DIRECTORY --export-source GERBER_DIRECTORY --export-source ODB_ARCHIVE
+--evidence ROLE=IMAGE ...` creates hash-bound 20 × 20 mm copper tiles with
+2 mm overlap at 80 pixels/mm, bare outer routing, all filled layers, overviews,
+component-area views and detailed independent Gerber tiles. Supply all eight
+roles listed by `generate --help`; the independent Gerber renderer emits their
+resolution sidecars. Top and bottom 3D views are separate evidence. Record each
+region with `record MANIFEST REGION --inspector NAME --observations TEXT`.
+Every geometry candidate needs a specific retained-feature justification and
+region association. Corrections invalidate the atlas; regenerate it and inspect
+the affected and neighbouring regions, then perform the full-board pass.
 
 `tools/audit.py` independently compares the exported schematic netlist, PCB pad
 nets, manufacturer pin tables, all cable conductors and the CubeMX pin assignment.
@@ -407,7 +472,7 @@ archives are made only after these checks and visual/mechanical review.
 
 `tools/design.py` defines board revisions and layer/via settings;
 `tools/aisler.py` applies the pinned manufacturing profiles without replacing
-routing. The source bundle revision is E. The source bundle includes the same
+routing. The source bundle revision is F. The source bundle includes the same
 support templates and a hashed CubeMX pin snapshot for offline reproduction.
 In the full repository, the electrical audit checks the current CubeMX file;
 outside it, the report explicitly identifies the recorded release assignments.
@@ -417,9 +482,13 @@ KiCad 10, FreeCAD and Inkscape. `tools/release.py` runs the local checks and
 exports without reapplying placement, silkscreen or manufacturing-profile edits.
 Apply `tools/aisler.py --apply` explicitly only when changing the manufacturing
 configuration; the release audits verify the existing configuration.
-Review the generated drawings and 3D assembly before packaging with
-`tools/package_release.py --reviewed`. Packaging rejects PCB, schematic, project
-or rule changes made after verification. The manufacturing status separates local
-validation from pending AISLER processing and first-board qualification.
+Packaging uses `tools/package_release.py` with no blanket review flag. It
+requires the live layout policy, matching source/export hashes and a complete
+regional inspection record at
+`manufacturing/verification/BOARD-visual/review.json` for both boards. Missing
+regions, unresolved geometry, changed images/exports or changed inspection
+tools reject packaging. DRC does not establish visual quality. Local electrical
+checks, completed visual inspection, AISLER processing acceptance and physical
+qualification remain separate statuses; none substitutes for another.
 
 Source documents and attribution are listed in `references/SOURCES.md`.

@@ -1,6 +1,6 @@
 # Component purchasing list — display F / GIGA E
 
-Quantities are for **one display adapter revision F and one GIGA adapter revision E**:
+Quantities are for **one display adapter revision G and one GIGA adapter revision F**:
 158 fitted components, 39 original BOM part numbers. The DC jack is already owned.
 After the substitutions below and consolidating the 100 nF capacitors, Mouser
 procurement needs **38 distinct parts with indexed stock evidence (158 pieces, including the cable)**.
@@ -32,7 +32,7 @@ proposals for the existing footprints. This list does not supersede the release'
 pending electrical/physical tests.
 The original BOM MPN remains in every CSV row so assembly substitutions are traceable.
 
-## Display adapter — revision F
+## Display adapter — revision G
 
 42 fitted components.
 
@@ -58,7 +58,7 @@ The original BOM MPN remains in every CSV row so assembly substitutions are trac
 | R16–R17 | 2 | `RC0402FR-07100KL` | [603-RC0402FR-07100KL](https://www.mouser.com/en/ProductDetail/YAGEO/RC0402FR-07100KL?qs=mnq%2FyloZIXzTlUn7JAHSWg%3D%3D) | Stock indexed; 6,394,487 (last month) |
 | U5 | 1 | `SN74LVC08APW` † | [595-SN74LVC08APW](https://www.mouser.com/en/ProductDetail/Texas-Instruments/SN74LVC08APW?qs=RZS%252BpEsUn7pxqABTZcJnVg%3D%3D) | Stock indexed; 252 (last month) |
 
-## GIGA adapter — revision E
+## GIGA adapter — revision F
 
 116 fitted components. `Qty` is the fitted quantity; J10 is already owned.
 

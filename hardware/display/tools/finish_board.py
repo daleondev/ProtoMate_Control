@@ -1,42 +1,96 @@
 #!/usr/bin/env python3
-"""Import reviewed routing and apply manufacturing settings to the project PCB."""
+"""Import a routing proposal without overwriting authoritative placement or silk.
+
+The result remains a proposal: fresh DRC, connectivity, geometry, return-path and
+visual review are required before it may replace a project PCB.
+"""
 import argparse
 import re
+import shutil
+from pathlib import Path
 import pcbnew as k
 from design import ROOT, BOARDS
-from aisler import board_settings, configure_project, write_stackup
-k.SwigPyIterator.next=k.SwigPyIterator.__next__
-def point(x,y):return k.VECTOR2I(k.FromMM(x),k.FromMM(y))
+from layout_policy import apply_ground_planes, protected_content
 
-def finish(name,session):
-    b=k.LoadBoard(str(ROOT/'build'/name/(name+'.kicad_pcb')))
-    if session:assert k.ImportSpecctraSES(b,session)
-    height=50 if name=='display-adapter' else 53.34
-    b.GetDesignSettings().SetAuxOrigin(point(0,height))
-    for f in b.GetFootprints():
-        if f.GetReference().startswith(('TP','H')):
-            f.SetAttributes(f.GetAttributes()|k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES)
-    for t in b.GetTracks():
-        if isinstance(t,k.PCB_VIA):
-            t.SetFrontTentingMode(k.TENTING_MODE_NOT_TENTED);t.SetBackTentingMode(k.TENTING_MODE_NOT_TENTED)
-    def text(s,x,y,size=.8,layer=k.F_SilkS):
-        t=k.PCB_TEXT(b);t.SetText(s);t.SetPosition(point(x,y));t.SetTextSize(point(size,size));t.SetTextThickness(k.FromMM(.15));t.SetLayer(layer)
-        if layer==k.B_SilkS:t.SetMirrored(True)
-        b.Add(t)
-    if name=='display-adapter':
-        for s,x,y in [('1',43.5,8.7),('60',11.2,8.7),('3V3',5,16.7),('G',4.5,21.3),('CLK',38,16.5),('G',40,16.5),('SDA',47,16.5),('SCL',50,19.5)]:text(s,x,y)
-        text('J1 PIN 1',22,28,1,k.B_SilkS)
-        text('SMARTWIN / '+BOARDS[name]['revision'],27.5,15,1,k.B_SilkS)
-    else:
-        for s,x,y in [('60',114,10.2),('1',114,44.8),('3V3',101,51),('PWR',104,51),('G',107,51)]:text(s,x,y)
-        text('GIGA DISPLAY / '+BOARDS[name]['revision'],57,7,1,k.B_SilkS)
-    b.BuildConnectivity();k.ZONE_FILLER(b).Fill(b.Zones())
-    path=ROOT/name/(name+'.kicad_pcb');k.SaveBoard(str(path),b)
-    configure_project(name)
-    board_settings(b,name)
-    k.SaveBoard(str(path),b)
-    write_stackup(path,name)
-    print(path)
+k.SwigPyIterator.next = k.SwigPyIterator.__next__
 
-if __name__=='__main__':
-    ap=argparse.ArgumentParser();ap.add_argument('board',choices=['display-adapter','giga-adapter']);ap.add_argument('--session');a=ap.parse_args();finish(a.board,a.session)
+
+def finish(source, output, session=None, preserve_nets=()):
+    source, output = Path(source).resolve(), Path(output).resolve()
+    authoritative = {ROOT/name/(name+'.kicad_pcb') for name in BOARDS}
+    if output in authoritative or output == source or output.exists():
+        raise ValueError('Output must be a new proposal, never an existing or authoritative PCB')
+    if source.stem != output.stem:
+        raise ValueError('Keep the board basename; use a separate proposal directory')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    expected = protected_content(source)
+    for suffix in ('.kicad_pro', '.kicad_dru'):
+        if source.with_suffix(suffix).exists():
+            shutil.copy2(source.with_suffix(suffix), output.with_suffix(suffix))
+    for name in ('fp-lib-table', 'sym-lib-table'):
+        if (source.parent/name).exists():
+            shutil.copy2(source.parent/name, output.parent/name)
+    board = k.LoadBoard(str(source))
+    if session:
+        data = Path(session).read_text()
+        if re.search(r'\(path\s+"?In[12]\.Cu"?\s', data):
+            raise RuntimeError('Router used a reserved reference plane; reject the whole proposal')
+        # A SES can omit fixed wires. Preserve them explicitly; do not trust an
+        # importer's lock handling or let it silently discard supply wiring.
+        def fixed(item):
+            return (item.GetNetname() in ('GND', 'PWR_RTN', *preserve_nets)
+                    or item.GetNetname().startswith('+'))
+        retained = []
+        for item in board.GetTracks():
+            if not fixed(item):
+                continue
+            via = isinstance(item, k.PCB_VIA)
+            retained.append(dict(net=item.GetNetname(), via=via,
+                start=(item.GetStart().x, item.GetStart().y),
+                end=(item.GetEnd().x, item.GetEnd().y), layer=item.GetLayer(),
+                width=item.GetWidth(k.F_Cu) if via else item.GetWidth(),
+                drill=item.GetDrillValue() if via else None))
+        if not k.ImportSpecctraSES(board, str(session)):
+            raise RuntimeError('KiCad rejected the routing session')
+        detached = []
+        for item in list(board.GetTracks()):
+            if fixed(item):
+                board.Remove(item)
+                detached.append(item)
+        for original in retained:
+            if original['via']:
+                item = k.PCB_VIA(board)
+                item.SetPosition(k.VECTOR2I(*original['start']))
+                item.SetDrill(original['drill'])
+                item.SetViaType(k.VIATYPE_THROUGH)
+                item.SetLayerPair(k.F_Cu, k.B_Cu)
+            else:
+                item = k.PCB_TRACK(board)
+                item.SetStart(k.VECTOR2I(*original['start']))
+                item.SetEnd(k.VECTOR2I(*original['end']))
+                item.SetLayer(original['layer'])
+            item.SetWidth(original['width'])
+            item.SetNet(board.FindNet(original['net']))
+            board.Add(item)
+    apply_ground_planes(board)
+    for item in board.GetTracks():
+        if isinstance(item, k.PCB_VIA):
+            item.SetFrontTentingMode(k.TENTING_MODE_NOT_TENTED)
+            item.SetBackTentingMode(k.TENTING_MODE_NOT_TENTED)
+    board.BuildConnectivity()
+    k.ZONE_FILLER(board).Fill(board.Zones())
+    k.SaveBoard(str(output), board)
+    if protected_content(output) != expected:
+        raise RuntimeError('Proposal changed protected placement, footprints, mechanics or graphics')
+    print(f'Unapproved routing proposal: {output}')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('source', type=Path)
+    parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--session', type=Path)
+    parser.add_argument('--preserve-net', action='append', default=[],
+        help='Additional fixed source net omitted by the routing session')
+    args = parser.parse_args()
+    finish(args.source, args.output, args.session, args.preserve_net)

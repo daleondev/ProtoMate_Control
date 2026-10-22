@@ -1,0 +1,21 @@
+{
+  "result": "PASS",
+  "source_sha256": "004d48571fd8ddeb70ccbedfcc3822c7348db5f24311ff82dde3e687296a69e4",
+  "protected_baseline_sha256": "478fdc25ab89308b3b230a1353941c165c5156ad24359d3195783a046bf33d1a",
+  "ground_zones": {
+    "F.Cu": 1,
+    "In1.Cu": 1,
+    "In2.Cu": 1,
+    "B.Cu": 1
+  },
+  "inner_track_uuids": [],
+  "errors": [],
+  "sources": {
+    "fabrication": "https://community.aisler.net/t/4-layer-35-m-enig-design-rules/3733",
+    "stackup": "https://community.aisler.net/t/4-layers-1-6mm-35-m-stackup/5457",
+    "return_paths": "https://www.ti.com/lit/an/spraar7j/spraar7j.pdf#page=6",
+    "efuse": "https://www.ti.com/lit/ds/symlink/tps2660.pdf",
+    "ldo": "https://www.ti.com/lit/ds/symlink/tps7a91.pdf"
+  },
+  "scope": "Architecture and protected-content checks; not electrical, visual or physical sign-off."
+}

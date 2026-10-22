@@ -1,0 +1,1 @@
+(fp_lib_table (lib (name "DisplayAdapter") (type "KiCad") (uri "${KIPRJMOD}/../libraries/DisplayAdapter.pretty") (options "") (descr "Project-local footprints")))

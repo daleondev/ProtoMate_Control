@@ -4,13 +4,12 @@
     {
       "net": "+3V3_PANEL",
       "at": [
-        41.55,
-        27.8
+        29.4,
+        40.2
       ],
       "layers": [
         "F.Cu",
-        "B.Cu",
-        "In2.Cu"
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -22,54 +21,6 @@
       ],
       "layers": [
         "F.Cu",
-        "In2.Cu"
-      ],
-      "purpose": "power/thermal interlayer connection"
-    },
-    {
-      "net": "+3V3_PANEL",
-      "at": [
-        24.45,
-        22.9
-      ],
-      "layers": [
-        "B.Cu",
-        "In2.Cu"
-      ],
-      "purpose": "power/thermal interlayer connection"
-    },
-    {
-      "net": "+3V3_PANEL",
-      "at": [
-        46.9,
-        27.4
-      ],
-      "layers": [
-        "F.Cu",
-        "In2.Cu"
-      ],
-      "purpose": "power/thermal interlayer connection"
-    },
-    {
-      "net": "+3V3_PANEL",
-      "at": [
-        4.75,
-        17.15
-      ],
-      "layers": [
-        "F.Cu",
-        "In2.Cu"
-      ],
-      "purpose": "power/thermal interlayer connection"
-    },
-    {
-      "net": "+3V3_PANEL",
-      "at": [
-        46.05,
-        36.65
-      ],
-      "layers": [
-        "F.Cu",
         "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
@@ -77,37 +28,12 @@
     {
       "net": "+3V3_PANEL",
       "at": [
-        28.95,
-        41.65
+        34.65,
+        23.2
       ],
       "layers": [
         "F.Cu",
-        "In2.Cu"
-      ],
-      "purpose": "power/thermal interlayer connection"
-    },
-    {
-      "net": "+3V3_PANEL",
-      "at": [
-        33.2,
-        23.1
-      ],
-      "layers": [
-        "F.Cu",
-        "B.Cu",
-        "In2.Cu"
-      ],
-      "purpose": "power/thermal interlayer connection"
-    },
-    {
-      "net": "+3V3_PANEL",
-      "at": [
-        29.4,
-        40.2
-      ],
-      "layers": [
-        "F.Cu",
-        "In2.Cu"
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -119,19 +45,7 @@
       ],
       "layers": [
         "F.Cu",
-        "In2.Cu"
-      ],
-      "purpose": "power/thermal interlayer connection"
-    },
-    {
-      "net": "+3V3_PANEL",
-      "at": [
-        39.1,
-        27.65
-      ],
-      "layers": [
-        "B.Cu",
-        "In2.Cu"
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -150,25 +64,36 @@
     {
       "net": "+3V3_PANEL",
       "at": [
-        34.65,
-        23.2
+        20.2,
+        18.3
       ],
       "layers": [
         "F.Cu",
-        "B.Cu",
-        "In2.Cu"
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
     {
       "net": "+3V3_PANEL",
       "at": [
-        20.15,
-        18.15
+        17.95,
+        20.2
       ],
       "layers": [
-        "B.Cu",
-        "In2.Cu"
+        "F.Cu",
+        "B.Cu"
+      ],
+      "purpose": "power/thermal interlayer connection"
+    },
+    {
+      "net": "+3V3_PANEL",
+      "at": [
+        33.2,
+        23.1
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -180,16 +105,75 @@
       ],
       "layers": [
         "F.Cu",
-        "B.Cu",
-        "In2.Cu"
+        "B.Cu"
+      ],
+      "purpose": "power/thermal interlayer connection"
+    },
+    {
+      "net": "+3V3_PANEL",
+      "at": [
+        46.05,
+        36.65
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu"
+      ],
+      "purpose": "power/thermal interlayer connection"
+    },
+    {
+      "net": "+3V3_PANEL",
+      "at": [
+        46.9,
+        27.4
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu"
+      ],
+      "purpose": "power/thermal interlayer connection"
+    },
+    {
+      "net": "+3V3_PANEL",
+      "at": [
+        28.95,
+        41.65
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu"
+      ],
+      "purpose": "power/thermal interlayer connection"
+    },
+    {
+      "net": "+3V3_PANEL",
+      "at": [
+        41.55,
+        27.8
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu"
+      ],
+      "purpose": "power/thermal interlayer connection"
+    },
+    {
+      "net": "+3V3_PANEL",
+      "at": [
+        4.75,
+        17.15
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
     {
       "net": "+24V_DISPLAY",
       "at": [
-        15.05,
-        25.5
+        15.0,
+        25.55
       ],
       "layers": [
         "F.Cu",
@@ -206,7 +190,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -219,7 +204,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        24.25,
+        11.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -232,7 +232,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -245,7 +246,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        30.25,
+        16.25
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -258,7 +274,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -271,7 +288,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -284,7 +302,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -297,7 +316,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -310,7 +330,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -323,7 +344,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        32.5,
+        11.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -336,7 +372,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -349,7 +386,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        41.5,
+        22.25
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -362,7 +414,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -375,7 +428,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        25.75,
+        26.75
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -383,12 +451,13 @@
       "net": "GND",
       "at": [
         22.0,
-        28.5
+        28.7
       ],
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -401,7 +470,50 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        24.5,
+        22.95
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        38.2,
+        34.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        34.25,
+        0.75
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -414,7 +526,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        35.0,
+        29.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -427,7 +554,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        16.0,
+        18.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -440,7 +582,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -453,7 +596,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -466,7 +610,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -479,7 +624,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -492,7 +638,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -505,7 +652,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -518,7 +666,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        24.5,
+        13.25
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -531,7 +694,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -544,7 +708,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        16.75,
+        22.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -557,7 +736,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        36.25,
+        18.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -570,7 +764,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -583,7 +778,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -596,7 +792,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -609,7 +806,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -622,7 +820,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -635,7 +834,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -648,7 +848,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        47.5,
+        34.75
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -661,7 +876,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -674,7 +890,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -687,7 +904,36 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        47.5,
+        27.0
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        21.25,
+        19.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -700,7 +946,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -713,7 +960,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -726,7 +974,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -739,7 +988,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -752,7 +1002,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -765,7 +1016,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -778,7 +1030,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        33.25,
+        13.5
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -791,7 +1058,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -804,7 +1072,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -817,7 +1086,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -830,7 +1100,36 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        23.0,
+        12.25
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        18.0,
+        1.0
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -843,7 +1142,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -856,7 +1156,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -869,7 +1170,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -882,7 +1184,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -895,7 +1198,22 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
+      ],
+      "purpose": "ground stitching"
+    },
+    {
+      "net": "GND",
+      "at": [
+        37.5,
+        25.25
+      ],
+      "layers": [
+        "F.Cu",
+        "B.Cu",
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -908,7 +1226,8 @@
       "layers": [
         "F.Cu",
         "B.Cu",
-        "In1.Cu"
+        "In1.Cu",
+        "In2.Cu"
       ],
       "purpose": "ground stitching"
     },
@@ -920,7 +1239,7 @@
       ],
       "layers": [
         "F.Cu",
-        "In2.Cu"
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -932,7 +1251,7 @@
       ],
       "layers": [
         "F.Cu",
-        "In2.Cu"
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -944,7 +1263,7 @@
       ],
       "layers": [
         "F.Cu",
-        "In2.Cu"
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -955,8 +1274,8 @@
         20.4
       ],
       "layers": [
-        "B.Cu",
-        "In2.Cu"
+        "F.Cu",
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -968,7 +1287,7 @@
       ],
       "layers": [
         "F.Cu",
-        "In2.Cu"
+        "B.Cu"
       ],
       "purpose": "power/thermal interlayer connection"
     },
@@ -1000,49 +1319,119 @@
   "checked_net_count": 50,
   "checked_pad_count": 232,
   "result": "PASS",
-  "source_sha256": "6b6dbfbf39db216e7d1de27b07834458546e884ac1974367f665c4e57625b4b0",
+  "source_sha256": "3557f7892423f7d0930ad70bc2d2229401163fc19af54af7babff5f4fe9d7875",
   "unnecessary_signal_vias": 0,
   "redundant_signal_paths": 0,
   "duplicate_or_covered_tracks": 0,
   "necessary_pad_entries": [
     {
-      "uuid": "f3bfc390-09dc-4b01-bc93-dd1fc39f9e13",
-      "net": "PANEL_PWM",
+      "uuid": "8cc2d365-30b3-4c44-9d68-be010bae340a",
+      "net": "U6_DELAY",
       "start": [
-        41.1375,
-        31.35
+        48.1375,
+        41.95
       ],
       "end": [
-        40.9375,
-        31.15
+        48.2247,
+        42.0372
       ],
       "reason": "Short centred pad termination; avoids relying on trace-cap/pad-edge overlap",
       "removal_failures": []
     },
     {
-      "uuid": "77351241-ac2c-4ba6-a4dc-5f0fb4ab7978",
+      "uuid": "bfcd7820-a065-4fdd-bff3-4959c7531bd0",
+      "net": "PANEL_READY",
+      "start": [
+        37.4453,
+        40.05
+      ],
+      "end": [
+        36.8625,
+        40.05
+      ],
+      "reason": "Short centred pad termination; avoids relying on trace-cap/pad-edge overlap",
+      "removal_failures": []
+    },
+    {
+      "uuid": "51163816-9108-433d-a773-e6a24aa237be",
+      "net": "PANEL_READY",
+      "start": [
+        41.1375,
+        30.7
+      ],
+      "end": [
+        41.713,
+        30.7
+      ],
+      "reason": "Short centred pad termination; avoids relying on trace-cap/pad-edge overlap",
+      "removal_failures": []
+    },
+    {
+      "uuid": "1b47ecc6-d0e8-44c0-aee8-5e2eaeab4200",
+      "net": "LCD_PCLK",
+      "start": [
+        31.5,
+        24.95
+      ],
+      "end": [
+        31.4472,
+        25.0028
+      ],
+      "reason": "Short centred pad termination; avoids relying on trace-cap/pad-edge overlap",
+      "removal_failures": []
+    },
+    {
+      "uuid": "ceb4cadb-76f1-4b92-bbd7-95969cdba257",
+      "net": "LCD_B5",
+      "start": [
+        29.5,
+        24.95
+      ],
+      "end": [
+        29.5,
+        25.362099
+      ],
+      "reason": "Short centred pad termination; avoids relying on trace-cap/pad-edge overlap",
+      "removal_failures": []
+    },
+    {
+      "uuid": "c5952f58-290d-4ec9-a0c0-a57ec1c7ef12",
+      "net": "LCD_G7",
+      "start": [
+        24.75,
+        7.0
+      ],
+      "end": [
+        24.7241,
+        7.0259
+      ],
+      "reason": "Short centred pad termination; avoids relying on trace-cap/pad-edge overlap",
+      "removal_failures": []
+    },
+    {
+      "uuid": "ef2960a4-a181-4415-a67a-66c901082096",
       "net": "LCD_TFT_RESET_N",
       "start": [
         37.49,
         33.0
       ],
       "end": [
-        37.24,
-        32.75
+        37.4329,
+        33.0
       ],
       "reason": "Short centred pad termination; avoids relying on trace-cap/pad-edge overlap",
       "removal_failures": []
     },
     {
-      "uuid": "c7129304-5983-4eec-8c1e-b60f9cf17092",
-      "net": "LCD_TOUCH_RESET_N",
+      "uuid": "157258e5-ad49-4392-bea7-68f791c66d11",
+      "net": "PANEL_STANDBY",
       "start": [
-        37.49,
-        35.0
+        41.2469,
+        33.1906
       ],
       "end": [
-        37.24,
-        34.75
+        41.1375,
+        33.3
       ],
       "reason": "Short centred pad termination; avoids relying on trace-cap/pad-edge overlap",
       "removal_failures": []

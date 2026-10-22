@@ -1,9 +1,9 @@
 {
   "result": "PASS",
   "board": "giga-adapter",
-  "revision": "E",
-  "upload_zip": "giga-adapter-rev-E-aisler-odb.zip",
-  "upload_sha256": "639d13b4ece83b4ff5595d8e3462055a225f08234602d2b90d1632ccef9bc9fe",
+  "revision": "F",
+  "upload_zip": "giga-adapter-rev-F-aisler-odb.zip",
+  "upload_sha256": "6acee24fdcf649c7b0e7faf0d5add72c7bc714dff652fdc16ee16086c5b7efb4",
   "copper_layers": [
     "F.CU",
     "IN1.CU",
@@ -13,7 +13,7 @@
   "pcb_profile_area_mm2": 4116.264605371729,
   "bridges_checked": 6,
   "netlist_pad_contacts_checked": 512,
-  "drill_hits_checked": 349,
+  "drill_hits_checked": 354,
   "mask_pad_openings_checked": {
     "f": 516,
     "b": 120

@@ -106,6 +106,23 @@ def main():
         'Measure PCLK high/low times and setup/hold at the panel including translator pulse-width distortion.',
     ]
     result['display_timing']={'horizontal_total':1120,'vertical_total':610,'frame_rate_Hz':40.96e6/(1120*610),'status':'CONFIGURED in CubeMX and bootstrap; panel testing pending'}
+    # First-order outer-layer estimate, not a controlled-impedance guarantee.
+    # F/B are each 0.14 mm from their adjacent, continuous ground plane.
+    # Nearby coplanar fill, mask and fabrication tolerances need a field solver
+    # or actual measurement; do not hide them in a precise-looking single value.
+    widths=sorted({round(t.GetWidth()/1e6,5) for board in (g,d)
+                   for t in board.GetTracks() if not isinstance(t,k.PCB_VIA)
+                   and t.GetNetname().startswith(('LCD_','MCU_','BUF_'))})
+    def impedance(width,er):
+        return 87/math.sqrt(er+1.41)*math.log(5.98*.14/(.8*width+.035))
+    result['outer_layer_impedance_estimate']={
+        'source':'https://www.ti.com/lit/an/sprabi2d/sprabi2d.pdf',
+        'formula':'87/sqrt(er+1.41) * ln(5.98*h/(0.8*w+t))',
+        'h_mm':.14,'copper_mm':.035,'assumed_er_range':[4.0,4.6],
+        'widths':[dict(width_mm=w,estimate_ohm=[round(impedance(w,4.6),1),round(impedance(w,4.0),1)])
+                  for w in widths if .1<=w<=.3],
+        'limitations':'Microstrip approximation; outer GND fill changes this to locally coplanar geometry. Mask, actual laminate Dk, etching, vias, cable and headers are not modeled. No impedance-controlled fabrication claim.',
+        'termination':'Keep the existing 33-ohm source resistors beside the buffers. Driver output resistance contributes to source impedance; qualify/tune the populated value from panel-end ringing and setup/hold measurements. No decorative delay meanders.'}
     (report/'timing-budget.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
 
 if __name__=='__main__':main()

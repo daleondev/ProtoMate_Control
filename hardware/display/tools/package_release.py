@@ -2,8 +2,8 @@
 """Package reviewed fabrication data and portable KiCad sources.
 
 Run the export, electrical, mechanical, routing and independent Gerber audits
-first. --reviewed records that the exported drawings and 3D assembly were viewed.
-It does not claim physical testing or close the conditional timing budget.
+first. Packaging requires a complete, current per-region visual review for each
+board. There is no blanket flag that can substitute for recorded inspection.
 """
 import argparse
 import hashlib
@@ -16,6 +16,8 @@ import zipfile
 from design import ROOT, REVISION, BOARDS, release_name, copper_layers
 from aisler import SUPPORT
 from release import design_hashes
+from review_atlas import validate as validate_visual_review
+from layout_policy import validate_policy
 
 
 def digest(path):
@@ -93,11 +95,18 @@ No manufacturing order has been placed. SHA256SUMS identifies these exact files.
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--reviewed', action='store_true', required=True)
     parser.add_argument('--boards', nargs='+', choices=list(BOARDS), default=list(BOARDS))
     args=parser.parse_args()
     manufacturing = ROOT / 'manufacturing'
     verification = manufacturing / 'verification'
+    for name in BOARDS:
+        policy=validate_policy(ROOT/name/(name+'.kicad_pcb'),
+                               ROOT/'references/layout-baselines'/(name+'.json'))
+        if policy['result']!='PASS':
+            raise RuntimeError(name+': layout feasibility/policy gate has not passed: '+
+                               '; '.join(policy['errors']))
+    visual = {name: validate_visual_review(verification / (name+'-visual') / 'review.json')
+              for name in BOARDS}
     status = json.loads((manufacturing / 'release-status.json').read_text())
     assert status['digital_release_checks'] == 'PASS' and status['revision'] == REVISION
     assert design_hashes() == status['checked_design_sha256'], 'Design changed since verification; rerun release.py'
@@ -123,15 +132,7 @@ def main():
 
     (verification / 'source-sha256.json').write_text(json.dumps(
         design_hashes(), indent=2) + '\n')
-    # --reviewed is an explicit assertion by the person running this tool;
-    # the automated audit itself does not claim visual or manufacturer acceptance.
-    status['visual_review'] = dict(result='PASS — local export/nominal mechanical review',reviewed=[
-        'Both outer sides: independent Gerber copper/mask/silk renders; connector numbering and open vias',
-        'Both inner copper layers, ground references and the GIGA isolated RTN thermal island',
-        'Layer close-ups: RGB/FFC/DF23 fanouts, pad and via entries, angular routing and power paths',
-        'Fine-pitch paste, plated/non-plated drills and BOM/placement agreement',
-        'Schematics, fabrication/assembly drawings and current-revision cable map',
-        'GIGA mating assembly and display top/bottom models, including 1.6mm thickness and trimmed leads'])
+    status['visual_review'] = dict(result='PASS — recorded local inspection', boards=visual)
     (manufacturing/'release-status.json').write_text(json.dumps(status,indent=2)+'\n')
     releases = ROOT / 'releases'
     releases.mkdir(exist_ok=True)

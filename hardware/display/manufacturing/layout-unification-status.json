@@ -1,0 +1,58 @@
+{
+  "status": "IN PROGRESS — MANUFACTURING HOLD",
+  "architecture": "F signals/power + GND; In1 GND; In2 GND; B signals/power + GND",
+  "authoritative_boards_modified": false,
+  "placement_feasibility": "PASS with authorized component relocation",
+  "local_visual_inspection": "IN PROGRESS — no final sign-off",
+  "aisler_processing": "NOT PERFORMED",
+  "physical_qualification": "NOT PERFORMED",
+  "new_revision_issued": false,
+  "boards": {
+    "display-adapter": {
+      "proposal": "proposals/outer-ground/display-adapter/display-adapter.kicad_pcb",
+      "proposal_sha256": "ba9e93f6e2fe299dad3514ad61c6d827faf4bab5ab35f27c29189d52cd573fd7",
+      "DRC_violations": 0,
+      "unrouted": 0,
+      "parity_errors": 0,
+      "architecture_policy": "PASS",
+      "workmanship": {
+        "tracks": 904,
+        "vias": 198,
+        "errors": 0,
+        "review": 266
+      },
+      "release_eligible": false
+    },
+    "giga-adapter": {
+      "proposal": "proposals/outer-ground/giga-adapter/giga-adapter.kicad_pcb",
+      "proposal_sha256": "58b4944c556fee8aaf629dbd11d7f9479f313fc7d44b1fac652bcf832d25c979",
+      "DRC_violations": 0,
+      "unrouted": 0,
+      "parity_errors": 0,
+      "architecture_policy": "PASS",
+      "workmanship": {
+        "tracks": 1041,
+        "vias": 205,
+        "errors": 0,
+        "review": 188
+      },
+      "release_eligible": false
+    }
+  },
+  "placement_changes": {
+    "giga-adapter": "R33–R48 moved into an alternating bank beside J8; connector and buffer positions preserved.",
+    "display-adapter": "C9 rotated/repositioned onto the straight 24 V input route; TP8 moved clear of both capacitor and converter courtyards."
+  },
+  "tests": {
+    "fixtures_passed": 22,
+    "atlas_generation": "PASS on synthetic fixture",
+    "unsigned_atlas_rejected": true,
+    "changed_exports_rejected": true
+  },
+  "remaining_work": [
+    "Complete visual routing cleanup and disposition of all geometry-review candidates.",
+    "Complete exhaustive source/export/3D inspection with region-specific records.",
+    "Refresh return-path, timing, power and thermal calculations and all release exports.",
+    "Promote only the accepted layout and issue matching new revisions/packages after all local gates."
+  ]
+}

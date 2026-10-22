@@ -1,0 +1,30 @@
+Drill report for giga-adapter.kicad_pcb
+Created on 2026-10-22T23:52:51
+
+Copper Layer Stackup:
+    =============================================================
+    L1 :  F.Cu                      front
+    L2 :  In1.Cu                    in1
+    L3 :  In2.Cu                    in2
+    L4 :  B.Cu                      back
+
+
+Drill file 'giga-adapter-PTH.drl' contains
+    plated through holes:
+    =============================================================
+    T1  0.250mm  0.0098"  (24 holes))
+    T2  0.300mm  0.0118"  (209 holes))
+    T3  0.400mm  0.0157"  (1 hole)
+    T4  1.000mm  0.0394"  (3 holes))
+    T5  1.050mm  0.0413"  (110 holes))
+    T6  1.200mm  0.0472"  (3 holes)  (with 3 slots)
+
+    Total plated holes count 350
+
+
+Drill file 'giga-adapter-NPTH.drl' contains
+    unplated through holes:
+    =============================================================
+    T1  3.200mm  0.1260"  (4 holes))
+
+    Total unplated holes count 4

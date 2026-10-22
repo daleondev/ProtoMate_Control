@@ -2,15 +2,15 @@
   "board": "display-adapter",
   "result": "PASS",
   "exported_pad_coordinates_and_nets_checked": 238,
-  "drill_hits_checked": 203,
+  "drill_hits_checked": 227,
   "ffc_paste_windows_checked": 60,
   "silk_coverage_upper_bound_percent": {
-    "top": 10.661465238962181,
-    "bottom": 4.535439519549549
+    "top": 10.68223621150788,
+    "bottom": 4.746573698691367
   },
   "layers": {
     "top-copper": {
-      "objects": 763,
+      "objects": 908,
       "bounds_mm": [
         [
           0.3005,
@@ -23,7 +23,7 @@
       ]
     },
     "top-mask": {
-      "objects": 370,
+      "objects": 392,
       "bounds_mm": [
         [
           1.67778,
@@ -31,12 +31,12 @@
         ],
         [
           53.096609,
-          34.32442
+          34.52222
         ]
       ]
     },
     "top-silk": {
-      "objects": 828,
+      "objects": 779,
       "bounds_mm": [
         [
           1.67778,
@@ -62,7 +62,7 @@
       ]
     },
     "bottom-copper": {
-      "objects": 469,
+      "objects": 680,
       "bounds_mm": [
         [
           0.3005,
@@ -75,7 +75,7 @@
       ]
     },
     "bottom-mask": {
-      "objects": 253,
+      "objects": 277,
       "bounds_mm": [
         [
           1.67778,
@@ -83,12 +83,12 @@
         ],
         [
           53.096609,
-          34.32442
+          34.52222
         ]
       ]
     },
     "bottom-silk": {
-      "objects": 348,
+      "objects": 372,
       "bounds_mm": [
         [
           1.67778,
@@ -96,7 +96,7 @@
         ],
         [
           53.096609,
-          34.32442
+          34.52222
         ]
       ]
     },
@@ -114,7 +114,7 @@
       ]
     },
     "inner_1-copper": {
-      "objects": 200,
+      "objects": 224,
       "bounds_mm": [
         [
           0.3005,
@@ -127,15 +127,15 @@
       ]
     },
     "inner_2-copper": {
-      "objects": 411,
+      "objects": 224,
       "bounds_mm": [
         [
-          1.675,
-          -10.425
+          0.3005,
+          -14.6995
         ],
         [
-          50.475,
-          34.3272
+          54.6995,
+          34.6995
         ]
       ]
     },

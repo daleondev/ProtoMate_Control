@@ -1,37 +1,94 @@
 #!/usr/bin/env python3
-"""Report ground-return geometry from the filled four-layer board (requires Shapely).
+"""Measure both boards' reference planes and high-speed return connections.
 
-A geometric audit complements KiCad DRC; it does not replace SI measurements.
+The 2 mm stitch distance is a project review target, not an IPC/AISLER limit.
+Dense fanouts require individual inspection. This is geometry, not SI sign-off.
 """
-import math,json
+import hashlib
+import json
+import math
 from pathlib import Path
+
 import pcbnew as k
-from shapely.geometry import Polygon,Point,LineString
+from shapely.geometry import Point, LineString
 from shapely.ops import unary_union
-k.SwigPyIterator.next=k.SwigPyIterator.__next__
-from design import ROOT,BOARDS
-p=ROOT/'display-adapter/display-adapter.kicad_pcb';b=k.LoadBoard(str(p))
-def point(v):return (k.ToMM(v.x),k.ToMM(v.y))
-def loop(line):return [point(line.CPoint(i)) for i in range(line.PointCount())]
-def ground(layer):
- polys=[]
- for z in b.Zones():
-  if z.GetNetname()!='GND' or z.GetLayer()!=layer:continue
-  ps=z.GetFilledPolysList(layer)
-  for i in range(ps.OutlineCount()):
-   polys.append(Polygon(loop(ps.COutline(i)),[loop(ps.CHole(i,j)) for j in range(ps.HoleCount(i))]).buffer(0))
- return unary_union(polys)
-g={l:ground(l) for l in [k.F_Cu,k.In1_Cu,k.B_Cu]}
-vias=[v for v in b.GetTracks() if isinstance(v,k.PCB_VIA)]
-existing=[point(v.GetPosition()) for v in vias if v.GetNetname()=='GND']
-clockvias=[point(v.GetPosition()) for v in vias if v.GetNetname()=='LCD_PCLK']
-distances=[]; reference_distances=[]; layers_without_pour=set()
-for t in b.GetTracks():
- if isinstance(t,k.PCB_VIA) or t.GetNetname()!='LCD_PCLK':continue
- line=LineString([point(t.GetStart()),point(t.GetEnd())]);length=line.length
- samples=[line.interpolate(i/max(1,math.ceil(length/.1)),normalized=True) for i in range(math.ceil(length/.1)+1)]
- reference_distances += [p.distance(g[k.In1_Cu]) for p in samples]
- if t.GetLayer() in g and not g[t.GetLayer()].is_empty:distances += [p.distance(g[t.GetLayer()]) for p in samples]
- else:layers_without_pour.add(b.GetLayerName(t.GetLayer()))
-report={'board':'display-adapter','revision':BOARDS['display-adapter']['revision'],'copper_layers':b.GetCopperLayerCount(),'ground_pour_area_mm2':{b.GetLayerName(l):round(shape.area,2) for l,shape in g.items()},'total_ground_vias':len(existing),'clock_signal_vias':clockvias,'clock_via_nearest_ground_via_mm':[round(min(math.hypot(x-a,y-c) for a,c in existing),3) for x,y in clockvias],'maximum_clock_centre_to_same_layer_ground_pour_mm':round(max(distances),3),'maximum_clock_centre_to_In1_reference_mm':round(max(reference_distances),3),'clock_layers_without_same_layer_pour':sorted(layers_without_pour),'sample_spacing_mm':.1,'interpretation':'Geometric return-path review; In1 is the uninterrupted ground reference; outer ground pours are also stitched. This is not field-solver impedance or signal-integrity validation. Confirm panel-side timing and ringing on the first board.'}
-(ROOT/'manufacturing/verification/display-adapter-layout-review.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+
+from audit_copper import polygon_set, xy
+from design import ROOT, BOARDS
+
+k.SwigPyIterator.next = k.SwigPyIterator.__next__
+REFERENCE = {k.F_Cu: k.In1_Cu, k.B_Cu: k.In2_Cu}
+
+
+def fast_signal(net):
+    stem = net.removeprefix('LCD_').removeprefix('MCU_').removeprefix('BUF_')
+    return stem in {'PCLK', 'DE', 'HSYNC', 'VSYNC'} or (
+        len(stem) == 2 and stem[0] in 'RGB' and stem[1] in '01234567')
+
+
+def review(path):
+    b = k.LoadBoard(str(path))
+    planes = {l: unary_union([p for z in b.Zones()
+              if not z.GetIsRuleArea() and z.GetNetname() == 'GND' and z.IsOnLayer(l)
+              for p in polygon_set(z.GetFilledPolysList(l))])
+              for l in (k.F_Cu, k.In1_Cu, k.In2_Cu, k.B_Cu)}
+    assert all(planes[l].geom_type == 'Polygon' for l in REFERENCE.values()), 'Split reference plane'
+    vias = [v for v in b.GetTracks() if isinstance(v, k.PCB_VIA)]
+    pads = [p for f in b.GetFootprints() for p in f.Pads()]
+    grounds = [xy(v.GetPosition()) for v in vias if v.GetNetname() == 'GND']
+    grounds += [xy(p.GetPosition()) for p in pads if p.GetNetname() == 'GND' and p.GetDrillSize().x]
+    assert grounds
+    transitions = []
+    for v in vias:
+        if not fast_signal(v.GetNetname()):
+            continue
+        q = xy(v.GetPosition())
+        nearest = min(grounds, key=lambda p: math.dist(q, p))
+        transitions.append(dict(uuid=v.m_Uuid.AsString(), net=v.GetNetname(), at_mm=q, return_at_mm=nearest,
+                                distance_mm=round(math.dist(q, nearest), 4)))
+    gaps = []
+    coverage = []
+    for t in b.GetTracks():
+        if isinstance(t, k.PCB_VIA) or not fast_signal(t.GetNetname()):
+            continue
+        reference = REFERENCE[t.GetLayer()]
+        line = LineString([xy(t.GetStart()), xy(t.GetEnd())])
+        # A signal's own plated pad/via necessarily has a ground antipad.
+        # Exclude that local launch only; foreign voids remain visible.
+        launches = [Point(xy(p.GetPosition())).buffer(max(xy(p.GetSize()))/2 + .16)
+                    for p in pads if p.GetNetname() == t.GetNetname() and p.GetDrillSize().x]
+        launches += [Point(xy(v.GetPosition())).buffer(v.GetWidth(reference)/2e6 + .16)
+                     for v in vias if v.GetNetname() == t.GetNetname()]
+        permitted = unary_union(launches)
+        n = max(1, math.ceil(line.length/.05))
+        samples = [line.interpolate(i/n, normalized=True) for i in range(n+1)]
+        outside = [q.distance(planes[reference]) for q in samples if not permitted.covers(q)]
+        maximum = max(outside, default=0)
+        coverage.append(maximum)
+        if maximum > .05:
+            gaps.append(dict(uuid=t.m_Uuid.AsString(), net=t.GetNetname(), layer=b.GetLayerName(t.GetLayer()),
+                             start_mm=xy(t.GetStart()), end_mm=xy(t.GetEnd()),
+                             max_distance_to_reference_mm=round(maximum, 4)))
+    return dict(source_sha256=hashlib.sha256(Path(path).read_bytes()).hexdigest(),
+        plane_area_mm2={b.GetLayerName(l):round(p.area,2) for l,p in planes.items()},
+        reference_layers={b.GetLayerName(a):b.GetLayerName(c) for a,c in REFERENCE.items()},
+        continuous_inner_planes=True, ground_connections=len(grounds),
+        transitions=transitions,
+        maximum_transition_return_distance_mm=max(t['distance_mm'] for t in transitions),
+        transition_review_target_mm=2,
+        transitions_requiring_dense_fanout_review=[t for t in transitions if t['distance_mm']>2],
+        maximum_nonlaunch_reference_gap_mm=round(max(coverage, default=0),4),
+        reference_gap_candidates=gaps, sample_spacing_mm=.05,
+        qualification='Geometry only. Distance targets identify inspection candidates; they are not manufacturing waivers or a measured signal-integrity guarantee.')
+
+
+def main():
+    for name in BOARDS:
+        result=review(ROOT/name/(name+'.kicad_pcb'))
+        (ROOT/'manufacturing/verification'/(name+'-layout-review.json')).write_text(json.dumps(result,indent=2)+'\n')
+        print(name, 'continuous inner planes;', result['maximum_transition_return_distance_mm'],
+              'mm maximum return distance;', len(result['reference_gap_candidates']), 'reference-gap candidates')
+
+
+if __name__ == '__main__':
+    main()

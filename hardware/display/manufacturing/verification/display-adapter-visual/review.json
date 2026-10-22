@@ -1,0 +1,3442 @@
+{
+  "schema": 2,
+  "source": {
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/Adapter.kicad_sym": "00c1a2cface864b21b5ba8837149f5e92de342bcfc70603321fb292b00a4cb50",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display-adapter.kicad_dru": "4b6bc4d274c5044aacca23ccec0b28f0781ceabe2c928df1f018d9fc2c48d204",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display-adapter.kicad_pcb": "3557f7892423f7d0930ad70bc2d2229401163fc19af54af7babff5f4fe9d7875",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display-adapter.kicad_pro": "567f307faa5822e85f797e7915fc195d1517961d7f177022b00edd25f3f0e095",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display-adapter.kicad_sch": "002d08ad6363ffe5f33be7e978e5d5e4ecc5cc93c96449b8f0cd0e8b4315ea98",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display.kicad_sch": "c05e10f75b9a33fe09a32007eb02ed0e027b0d07742dc9b1261d74b29d9e6ac8",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/logic_power.kicad_sch": "1b9034f3e08f9080fe57e69529e327d3a129815c4f1286e3988c3b8fc28eaaa2",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/power.kicad_sch": "e1cbda35a8854566f998f02e3ab63565734eaeabab8944d38c690d502d45fdf9",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/ribbon.kicad_sch": "6b47e3d8eab3f7cbcffc6b0761f8be8c4e5605c7f6c80347347b3cdd6e3469b3",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/sequencing.kicad_sch": "08a9d576ae3d81820d3e1575ccdc69f5e40856a703081766f7830b66406da6c6",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/BarrelJack_Horizontal.step": "53f1b2714ed169b5e314b9b42cc9943303769e29e0debdfb4ef7a0e2c4f369dd",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/C_0603_1608Metric.step": "4857b3dc717675bf1fb22edda622ac3b3ae03cf44d81eefaf3fa3ba3a86d84c1",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/C_0805_2012Metric.step": "9a669c1a2f1ea25b88b401acef6efeaa80a067bd7da9db6993de719a7fbe155c",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/C_1206_3216Metric.step": "11e948c72c90e2b6322436b72745f40ff4e8ba0da64fb2a0df943dfa61e89c1a",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/C_1210_3225Metric.step": "f8510481c5044113cf49b0fa6dd54ddab9224508bd6808e1afab8ef0cefdefc9",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/Converter_DCDC_TRACO_TSR-1_THT.step": "88dfa6eead6d37e9a6bddd59bce1df6c42d11d96e1e2909ad1e3fc0c4f0b1d49",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/DF23C-50DP.step": "f6dbfafd6ef08ae578a748fc81f885b4aa3d06a6c0b526a100cd2c74ca391495",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/D_SMA.step": "1cfddd4e3b1bf22b8fc6ee3258c2aade882ed7b85b528e23b9db42437775a1db",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/D_SMB.step": "029466277d91e9f5492556be93e46611049e07115c7913880c547afa96058ed4",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/Fuse_1206_3216Metric.step": "5e6dcbe286696143d35a8ea37d91eef4b54ff3d1bd7c2c2b4dedda83d3f8e203",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/Fuse_Bourns_SF-1206SA-M.step": "f7e04d64b6488f1f918430e263955fa9837f4d305ef9f40a24ed0ab7ac6f4609",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_J2_JDIGITAL.step": "71c905de42e781d8606219ff0225f0b888a082d31657f9f44ca3662691a66a44",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_J3_JDIGITAL.step": "1b5ce60918abb614c56a567f79c7ebc40e839e9b4d94f164be52e5c0adbd4211",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_J4_JDIGITAL.step": "c34863653e76df8bb311cd878d203d83b22d9393648adbc46f95915deb0b1fbf",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_J5_JANALOG.step": "3cb5f3c5904635c87888d9a4befe388c99a91c5c5b3ed1566ab70bd3215833d6",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_J6_JANALOG.step": "b7dd94c72eee5790f29eb67bf14d9378f0ae5c16a09725fdb2845a56671b53d8",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_J7_JANALOG.step": "749cb23d85c52fd536131973d7ec5b3fee792128f68a9acb087e9d67d68a20f5",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_J8_JSIDE.step": "9032fbb1ce29960c3f63eacabebe1b5a1485edf22290cd74089b731194f56fc9",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_J9_J5.step": "749213f7a48852ca606e714c61d68debeb83a33d556f46d5e141eb2f9b5fc365",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_R1_WIFI.step": "b764b5406251c5b9a31e55e8f983587a107a537fda86e4129216d02570fd4e34",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/GIGA_outer_socket_envelopes.step": "b37c746bef575d095d306e2fdca401c4dc712af15b4fe4de0ad573c71c84e06d",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/Molex_505110-6091.step": "b2c3d3daae8eec8eea7a167ae223f138ceb4328ec40201c10c993f87c5ee6cb4",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/R_0402_1005Metric.step": "91507e5af4251cb4ef38e04889c9b98da29904432bd83786bba13ae9b605eacb",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/R_0603_1608Metric.step": "1875571c326d0d9e96f36b4efeb8094068ef7619f0a449c781caf0b49c2e5861",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/SOT-23-6.step": "c9fe686b4d1b56927a41fa84a9bc1efb61d8a45a123a3db43bcaa05c2891d635",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/TPS26600-PWP0016A.step": "ecfd8cd3ffa1685c6c85f0f28750d18430c96dafa7b1fd9a87ef1e5bf323061b",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/TSR1-2450-trimmed.step": "7e1b6753e23d772a0c543f9d33626a846919db16765ef903f666ccc6fc61f7e4",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/TSR2-2433-trimmed.step": "fd6add227440f58fad315ebbce38649ac526e90e33e3e0a0e2d0d64012f6c488",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/TSSOP-14_4.4x5mm_P0.65mm.step": "3ee5786aae56190997aa793ba3cfc003fd616782770e29719b4562f012982245",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/TSSOP-24_4.4x7.8mm_P0.65mm.step": "706322f42d9793ebf28d5b80100a68bfa8769998a00b78acadf7af937fc1454f",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/VSSOP-8_3x3mm_P0.65mm.step": "0af17c38f7022ea10ff245f82773c9b00d4163a407490c6b2d91869a0861df56",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/3dmodels/WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm.step": "26b11479728c38545462bbe7bb9e39e93c46ecc441c206ecdfeae513ed7b7b44",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/BarrelJack_Horizontal_AISLER.kicad_mod": "4ef4ce900192ac336a4fc3303cbdcc1d42f3831865f2182cebba26e9c5d3cf73",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/C_0603_1608Metric.kicad_mod": "43ed6a207888a4f2e9b09999bab607b1cc485ff197bb9d4665c7c7d2e6d00d9d",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/C_0805_2012Metric.kicad_mod": "56759f1754ab49a60e3956f9996865d8aac138b9455b850e52637e2aa57ba8e5",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/C_1206_3216Metric.kicad_mod": "872a92c14c81476d4943326fc21d70c1cc29443a826f31aacda52b9ad59aaa86",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/C_1210_3225Metric.kicad_mod": "d19986af75af8495c4133ebaf461443b85e8382a3f0d8558a43c0d44f1c1be50",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/Converter_DCDC_TRACO_TSR-1_THT.kicad_mod": "f99e4e6d999b1842dd9222a6159692fb6bae8957c780a5cff533503241df36b8",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/Converter_DCDC_TRACO_TSR-1_THT_Trimmed.kicad_mod": "9b427766bdbe4d5f332fdb2956ef359196daf13cc9367ae8741e0a4c9bc0bbb1",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/Converter_DCDC_TRACO_TSR2-xxxx_THT.kicad_mod": "f4ff33ba781360d4709d1f0a93d604d565d03a6b446337d33777672bc10d6d32",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/DF23C-50DP-0.5V.kicad_mod": "b9104b60cd2e315336b7beb21b9cfda636e5f6aa94e5699a3cf1bffc0f500daf",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/D_SMA.kicad_mod": "9147c7fb9f05d354ddc599e3dfe8bc498768b271a2cac9bfbb56ee4121513a86",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/D_SMB.kicad_mod": "bb6f54a2970d9c63286e22ddb2e8a34a4e1e29d44ee8363f4e8f2c7f1e3b53f3",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/Fuse_1206_3216Metric.kicad_mod": "cd084bdec626c329582cd49f785932750bf7007c63140a5e903e79b58d073f7f",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/Fuse_Bourns_SF-1206SA-M.kicad_mod": "b17c2048ec0927b23cc6c37ef7cb5b7c43c0cc33ce35c4a8bf884903e1696dff",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/GIGA_J2_JDIGITAL.kicad_mod": "e0273e34cc28389721f0c99321ad960547b826016e55bc973e542d556e3fb6b4",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/GIGA_J3_JDIGITAL.kicad_mod": "89428ba92bcb099d925e2898025813b82e4e6d191783f099f63fc7f18f533977",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/GIGA_J4_JDIGITAL.kicad_mod": "c9be2d0ae8557e1953e3fefdbc9bd8b1466693886e22928bb8601f56acd745f9",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/GIGA_J5_JANALOG.kicad_mod": "01930e029a9375e5fe9278ad86eac2385858b00de030ca488349ddac947467f3",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/GIGA_J6_JANALOG.kicad_mod": "8da7f075d058c36e7a07cf7b0336c1dee7084c9d1f32dce268d044e0aad76e9b",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/GIGA_J7_JANALOG.kicad_mod": "edaaa52f386871bdb1ecfd8e47228de5954c33320e3aa911db81c17fdd6314e6",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/GIGA_J8_JSIDE.kicad_mod": "48b35fdac4b28cf9fa1138b51b069c6d4aedb29fb24f6c7ab54097e34df3bd1e",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/GIGA_J9_J5.kicad_mod": "1e456d367f646c532393b14c0bd1737a1fd3b6db8b77f7ed19e162bb4df98203",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/HTSSOP-16_PWP0016A_EP3.3x3.3mm.kicad_mod": "bc827e52b7233afb449491bbc24fbbc782173728788bc9a53c7712e1be75a24c",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/Molex_505110-6091_1x60_P0.50mm.kicad_mod": "de7b196db8440e38738951b279b91d4cdfb73465b7543076cd5aa9aae2c73f76",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/R_0402_1005Metric.kicad_mod": "2f8f33aa9dd6f6edfb5976a6a9081dd42fce330a4f8a9e46180b6ff8113321e0",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/R_0603_1608Metric.kicad_mod": "7fcc3d942d4e208021d9f8f73eeb4784b9925c38e45d253eda9bbd8aaea0a86a",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/SOT-23-6.kicad_mod": "2a6d51bbab77018b32271d6c842a02957c10beddb964bd78c6bdf8d61d1b52f3",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/SOT-23-6_UpperPin1.kicad_mod": "49f8faa0f067a5a148841a9b4d7f2ab5cda649715c635eba267f3461c3456ad2",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/TSSOP-14_4.4x5mm_P0.65mm.kicad_mod": "8796ea1941571f82deac4dde74237c5866f925d575d4ac29998b456e8a394ec6",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/TSSOP-24_4.4x7.8mm_P0.65mm.kicad_mod": "5b3dcd1b92fe646ae118fd9969ea742d5e648f13e9262d17ebae873e09073b19",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/TestPoint_1.0mm.kicad_mod": "b5be845aa983764c2ad176975ed86c19b848ff3e75a73503ac272a64475a743c",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/VSSOP-8_3x3mm_P0.65mm.kicad_mod": "4716d27ad963f7fa5f85b0303cf75774ced20c289a1474ac7418003ad163240a",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/libraries/DisplayAdapter.pretty/WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm.kicad_mod": "26146fed11c0e2df1dff0ffcb9c6d2020695001b310e58fff186044895719e93"
+  },
+  "exports": {
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-B_Cu.gbl": "8b4b46d587bd30907359f9f55b8da0232900e25270cce4d0d43924e557bf6a67",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-B_Mask.gbs": "458d2b7f646bb07f52843401696d4c50cc614f6e495dfab5d1647101dc63f53e",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-B_Paste.gbp": "aebce92a6061f622fa08fc6f31cf80481e7014a33566535beb3bb83e31eadeca",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-B_Silkscreen.gbo": "9b7d5bcde887739a1b96c710ecca66f2a712cc8e94aa26c05242ffdf66908937",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-Edge_Cuts.gm1": "625030d5c1adfa97c2fba5f35c993a33f1c74fb9d3bf77656b5154edba44afd6",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-F_Cu.gtl": "b9ffb85e8a270deab7f0348543cde86a803de82ccab2fb4fa5e6ca4b4742ec78",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-F_Mask.gts": "40d57993dacdb9ed81d5ed1db1cb94c7a92b12fcde5cd5684de84312c0986d5e",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-F_Paste.gtp": "6bc85766403545770cda7c7dcfebf9b319bc7954f35cdc9da4a9073ab37db1da",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-F_Silkscreen.gto": "5611622e677a2ae71f232389b1d9d616aa4cf511dea3ed4fe70d41459ceba662",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-In1_Cu.g1": "7d71dfd36b090dd6ced6718c93517614ba9199bcbe2f2631380cbf3b33bd9e7d",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-In2_Cu.g2": "0905b5df70c4a0d09222501b6d2ffdca9f7f48ae02aa1a6fe9a6a2be26113c47",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-NPTH-drl_map.pdf": "9838f454296a6c68a9fca5f3cf8a8cc7b98409ff0780848b163c876dfcbff4ac",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-NPTH.drl": "da7d941b54d733135ddf0f258640dc53a44c9f87e528334304ac365812fca59f",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-PTH-drl_map.pdf": "89aa0b9abecb6925adbf8b1accc819cbb615cd92a274e7a38af54d5db4f75d95",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-PTH.drl": "44117806649377d671f10ebdebc175a413bd0202225c7e947d2546c8e825b587",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers/display-adapter-job.gbrjob": "9a2e4f187489412fbdd543c2f44a81f36737bb186abf381aae6a6b900156f228",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/display-adapter-rev-G-aisler-odb.zip": "4907bb3db82ef1d7e1ddfa065b1feafd3dfa0834a8a9b0391fa49828a0cfcf8b"
+  },
+  "export_roots": [
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/gerbers",
+    "/home/david/Dokumente/ProtoMate_Control/hardware/display/manufacturing/display-adapter-rev-G/display-adapter-rev-G-aisler-odb.zip"
+  ],
+  "tools": {
+    "review_atlas.py": "229ff2bfbb8f175d73cf441cb22a2515a9467a43109c00f31155b89f007a4b82",
+    "audit_workmanship.py": "44ced28eaa5b6b3ed217810d43a858647f05b4499b7c006d316f18968f15cb4d",
+    "layout_policy.py": "82b7f9a7e9f2528833e94eb05cc3803acb6a6f61162555754d5b6d744844a642",
+    "inspect_gerbers.py": "4b607f278a552d88be6b2a1508fe43dcf86e8d2afb4093bd1662a491c6bd1bd0",
+    "review_layout.py": "04af3efd4153c3baed5c833b45c9c8928826d5ff3c122ba4ebc738412de02d37"
+  },
+  "board": "/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display-adapter.kicad_pcb",
+  "tile_mm": 20,
+  "overlap_mm": 2,
+  "pixels_per_mm": 80,
+  "geometry_sha256": "e9dce62f78b67b7e63bc11a3a519bf75ad0c034478f294ef68e21e5b621cda7f",
+  "regions": [
+    {
+      "id": "F-routes-overview",
+      "image": "F-routes-overview.png",
+      "image_sha256": "47f5b676d8f138bf90346649dcf114e6520fdd8189e722fe370e52f512f38a63",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        55.025,
+        50.025
+      ],
+      "kind": "overview",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "organisation",
+        "whole_board_return_paths",
+        "final_frozen_pass"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r01-c01",
+      "image": "F-routes-r01-c01.png",
+      "image_sha256": "9f7f461f6a8f7c3ef33ce109f455e4cd31bf3ee46bde43fd54a21fd8a4a307ed",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        19.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r01-c02",
+      "image": "F-routes-r01-c02.png",
+      "image_sha256": "1d87b362d14516e5f07586f908d6c00db2a09e462672c7e8eca449ea2d202e5b",
+      "bounds_mm": [
+        17.975,
+        -0.025,
+        37.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r01-c03",
+      "image": "F-routes-r01-c03.png",
+      "image_sha256": "c9373d9679a69650f291b87dcc72e5eae8c09631e11206b9b6e2487e9910768c",
+      "bounds_mm": [
+        35.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r02-c01",
+      "image": "F-routes-r02-c01.png",
+      "image_sha256": "0831eaf91dd91147bf71ae3edcba0ffd162d061676a5b0a08d92d21fd6d6d7ce",
+      "bounds_mm": [
+        -0.025,
+        17.975,
+        19.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r02-c02",
+      "image": "F-routes-r02-c02.png",
+      "image_sha256": "81e6a82fb774df7fdf27be6c7d1ad337a34c4af830a303350e0ce9f3cd6526b5",
+      "bounds_mm": [
+        17.975,
+        17.975,
+        37.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r02-c03",
+      "image": "F-routes-r02-c03.png",
+      "image_sha256": "a04f9e1e416d35050b0f75e8808bb7a05061db2fc9bb6343c354b77c2e169e08",
+      "bounds_mm": [
+        35.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r03-c01",
+      "image": "F-routes-r03-c01.png",
+      "image_sha256": "0ed33d5656e695b41be641799bce7c0e16134dcfb52dcc381e4b228e920c95e5",
+      "bounds_mm": [
+        -0.025,
+        35.975,
+        19.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r03-c02",
+      "image": "F-routes-r03-c02.png",
+      "image_sha256": "e9bbffcad90d534aa1d08387e039193b97f2be98dc738745faccd3be42337910",
+      "bounds_mm": [
+        17.975,
+        35.975,
+        37.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-routes-r03-c03",
+      "image": "F-routes-r03-c03.png",
+      "image_sha256": "eece8ac56ee07c28ea99d3ca4a7b8a73914217f58a8f012daa839ba433fe8991",
+      "bounds_mm": [
+        35.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-overview",
+      "image": "F-filled-overview.png",
+      "image_sha256": "f07b9aa6624862183463a6d04b6f82a9e1eaff7f3b33f0658329a17e32a0a798",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        55.025,
+        50.025
+      ],
+      "kind": "overview",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "organisation",
+        "whole_board_return_paths",
+        "final_frozen_pass"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r01-c01",
+      "image": "F-filled-r01-c01.png",
+      "image_sha256": "742c6e6c909400135e37c182aadb42207686029da33dc9c921dac471636d9aec",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        19.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r01-c02",
+      "image": "F-filled-r01-c02.png",
+      "image_sha256": "9ee339f2fe0c05e47d0b8a72bc6618e629a1c99866f6a67b3bc295de948d9455",
+      "bounds_mm": [
+        17.975,
+        -0.025,
+        37.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r01-c03",
+      "image": "F-filled-r01-c03.png",
+      "image_sha256": "4c5771d0430d30e77e6170cfbe6914cf8a6f9b5e8686dd6cfd376091f2b3779e",
+      "bounds_mm": [
+        35.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r01-c04",
+      "image": "F-filled-r01-c04.png",
+      "image_sha256": "e40995cba0b73d45f671e9531115a31bfd9d0421f5a29390f13e165477c0715a",
+      "bounds_mm": [
+        53.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r02-c01",
+      "image": "F-filled-r02-c01.png",
+      "image_sha256": "280ea6cb3a74e068d87880ce33405af7ae83ee8309a7c85efea4d9a456fc0ef0",
+      "bounds_mm": [
+        -0.025,
+        17.975,
+        19.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r02-c02",
+      "image": "F-filled-r02-c02.png",
+      "image_sha256": "13cf08ba3c1455de4f2489b6c16a6be638264058d3df6368ddd137cda7905347",
+      "bounds_mm": [
+        17.975,
+        17.975,
+        37.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r02-c03",
+      "image": "F-filled-r02-c03.png",
+      "image_sha256": "9b897be7cbe26543d2f4e594a9c01a86c2d565b7ce90b0b40b86c5a0f41edab6",
+      "bounds_mm": [
+        35.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r02-c04",
+      "image": "F-filled-r02-c04.png",
+      "image_sha256": "1078ac0863aa4260a4e125fa69d00de031767955abeee4fd8825faec43684f53",
+      "bounds_mm": [
+        53.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r03-c01",
+      "image": "F-filled-r03-c01.png",
+      "image_sha256": "7e393cae8ffc0f20e76dbca5dc2a3805214acb0759d19b116dcd463637141bba",
+      "bounds_mm": [
+        -0.025,
+        35.975,
+        19.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r03-c02",
+      "image": "F-filled-r03-c02.png",
+      "image_sha256": "d60f62143cc1dd0898bca9e3e423068cec04dba3f860d1af3bc49929d9d0d323",
+      "bounds_mm": [
+        17.975,
+        35.975,
+        37.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r03-c03",
+      "image": "F-filled-r03-c03.png",
+      "image_sha256": "1717a47b40168521c9ff60b85d9ec7c529efa87b08d2f108226828525e6456b9",
+      "bounds_mm": [
+        35.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "F-filled-r03-c04",
+      "image": "F-filled-r03-c04.png",
+      "image_sha256": "22c98a38c91d1fcd999739dc8951804484b455300292174e75cd1375fb9c57b1",
+      "bounds_mm": [
+        53.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "F.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-overview",
+      "image": "In1-filled-overview.png",
+      "image_sha256": "457734aad301db2677535159c10b0911cbac98457f02f4e23309bfc96cbea86f",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        55.025,
+        50.025
+      ],
+      "kind": "overview",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "organisation",
+        "whole_board_return_paths",
+        "final_frozen_pass"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r01-c01",
+      "image": "In1-filled-r01-c01.png",
+      "image_sha256": "ea9b1cfe8491d841d146598ab057fcaf950ea312cd0af92cf67822c56cec032d",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        19.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r01-c02",
+      "image": "In1-filled-r01-c02.png",
+      "image_sha256": "dfc407d5050f10ec86139747606c7ad6aed19b1bf550239fcca4cf6ce45822b1",
+      "bounds_mm": [
+        17.975,
+        -0.025,
+        37.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r01-c03",
+      "image": "In1-filled-r01-c03.png",
+      "image_sha256": "385fc18272c5636e635ebdaf44d736fff0b7c049afe2637c4dec05ba576bb8ff",
+      "bounds_mm": [
+        35.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r01-c04",
+      "image": "In1-filled-r01-c04.png",
+      "image_sha256": "e40995cba0b73d45f671e9531115a31bfd9d0421f5a29390f13e165477c0715a",
+      "bounds_mm": [
+        53.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r02-c01",
+      "image": "In1-filled-r02-c01.png",
+      "image_sha256": "d5f7e682265c82aacaff1fbd6d5a4a16b378cec1d2e80b80e7ee425c54b3942d",
+      "bounds_mm": [
+        -0.025,
+        17.975,
+        19.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r02-c02",
+      "image": "In1-filled-r02-c02.png",
+      "image_sha256": "d6ddc963444abfdd25805ad21a6f3da9db8555404f2440be4bffca1adeb68a54",
+      "bounds_mm": [
+        17.975,
+        17.975,
+        37.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r02-c03",
+      "image": "In1-filled-r02-c03.png",
+      "image_sha256": "dbc36423e9abe2810c0e15cd1c13a7aaef335621a81caacb922c2298fc2224a5",
+      "bounds_mm": [
+        35.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r02-c04",
+      "image": "In1-filled-r02-c04.png",
+      "image_sha256": "1078ac0863aa4260a4e125fa69d00de031767955abeee4fd8825faec43684f53",
+      "bounds_mm": [
+        53.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r03-c01",
+      "image": "In1-filled-r03-c01.png",
+      "image_sha256": "5fbd7733032c3e0f92d0f285abc5c50c4c4b4f650a878d2b03cf8ad61310e9a1",
+      "bounds_mm": [
+        -0.025,
+        35.975,
+        19.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r03-c02",
+      "image": "In1-filled-r03-c02.png",
+      "image_sha256": "f0d79a36df67144bc05f0b336479d8f34fafd17c2821cd37f522dae86582896d",
+      "bounds_mm": [
+        17.975,
+        35.975,
+        37.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r03-c03",
+      "image": "In1-filled-r03-c03.png",
+      "image_sha256": "f505947ef18208e748fd940bfbf91e7de915de55aa55c6a96b6e1c790809c584",
+      "bounds_mm": [
+        35.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In1-filled-r03-c04",
+      "image": "In1-filled-r03-c04.png",
+      "image_sha256": "22c98a38c91d1fcd999739dc8951804484b455300292174e75cd1375fb9c57b1",
+      "bounds_mm": [
+        53.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "In1.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-overview",
+      "image": "In2-filled-overview.png",
+      "image_sha256": "457734aad301db2677535159c10b0911cbac98457f02f4e23309bfc96cbea86f",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        55.025,
+        50.025
+      ],
+      "kind": "overview",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "organisation",
+        "whole_board_return_paths",
+        "final_frozen_pass"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r01-c01",
+      "image": "In2-filled-r01-c01.png",
+      "image_sha256": "ea9b1cfe8491d841d146598ab057fcaf950ea312cd0af92cf67822c56cec032d",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        19.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r01-c02",
+      "image": "In2-filled-r01-c02.png",
+      "image_sha256": "dfc407d5050f10ec86139747606c7ad6aed19b1bf550239fcca4cf6ce45822b1",
+      "bounds_mm": [
+        17.975,
+        -0.025,
+        37.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r01-c03",
+      "image": "In2-filled-r01-c03.png",
+      "image_sha256": "385fc18272c5636e635ebdaf44d736fff0b7c049afe2637c4dec05ba576bb8ff",
+      "bounds_mm": [
+        35.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r01-c04",
+      "image": "In2-filled-r01-c04.png",
+      "image_sha256": "e40995cba0b73d45f671e9531115a31bfd9d0421f5a29390f13e165477c0715a",
+      "bounds_mm": [
+        53.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r02-c01",
+      "image": "In2-filled-r02-c01.png",
+      "image_sha256": "d5f7e682265c82aacaff1fbd6d5a4a16b378cec1d2e80b80e7ee425c54b3942d",
+      "bounds_mm": [
+        -0.025,
+        17.975,
+        19.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r02-c02",
+      "image": "In2-filled-r02-c02.png",
+      "image_sha256": "d6ddc963444abfdd25805ad21a6f3da9db8555404f2440be4bffca1adeb68a54",
+      "bounds_mm": [
+        17.975,
+        17.975,
+        37.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r02-c03",
+      "image": "In2-filled-r02-c03.png",
+      "image_sha256": "dbc36423e9abe2810c0e15cd1c13a7aaef335621a81caacb922c2298fc2224a5",
+      "bounds_mm": [
+        35.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r02-c04",
+      "image": "In2-filled-r02-c04.png",
+      "image_sha256": "1078ac0863aa4260a4e125fa69d00de031767955abeee4fd8825faec43684f53",
+      "bounds_mm": [
+        53.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r03-c01",
+      "image": "In2-filled-r03-c01.png",
+      "image_sha256": "5fbd7733032c3e0f92d0f285abc5c50c4c4b4f650a878d2b03cf8ad61310e9a1",
+      "bounds_mm": [
+        -0.025,
+        35.975,
+        19.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r03-c02",
+      "image": "In2-filled-r03-c02.png",
+      "image_sha256": "f0d79a36df67144bc05f0b336479d8f34fafd17c2821cd37f522dae86582896d",
+      "bounds_mm": [
+        17.975,
+        35.975,
+        37.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r03-c03",
+      "image": "In2-filled-r03-c03.png",
+      "image_sha256": "f505947ef18208e748fd940bfbf91e7de915de55aa55c6a96b6e1c790809c584",
+      "bounds_mm": [
+        35.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "In2-filled-r03-c04",
+      "image": "In2-filled-r03-c04.png",
+      "image_sha256": "22c98a38c91d1fcd999739dc8951804484b455300292174e75cd1375fb9c57b1",
+      "bounds_mm": [
+        53.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "In2.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-overview",
+      "image": "B-routes-overview.png",
+      "image_sha256": "b1b4854457c85b32b5c59bae6d396e611940da5263dd3d9788ff38af7d25d2f1",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        55.025,
+        50.025
+      ],
+      "kind": "overview",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "organisation",
+        "whole_board_return_paths",
+        "final_frozen_pass"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r01-c01",
+      "image": "B-routes-r01-c01.png",
+      "image_sha256": "2c83e3566a5bf0f1b5f5fd83478ede14783d33da80f3743d7a1d5563b561a613",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        19.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r01-c02",
+      "image": "B-routes-r01-c02.png",
+      "image_sha256": "2b0d54f94bef19b5977d659f2f984e60a3da76690800a914b6b797122302ffea",
+      "bounds_mm": [
+        17.975,
+        -0.025,
+        37.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r01-c03",
+      "image": "B-routes-r01-c03.png",
+      "image_sha256": "6c073b0bff8892a158375e009ebeab37e46af931701d34ef7432d679c4fac61f",
+      "bounds_mm": [
+        35.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r02-c01",
+      "image": "B-routes-r02-c01.png",
+      "image_sha256": "5f8f4bbea3a8631caed0fe9baf93e9fea7dc06b63001797ffebeb55f349a2e15",
+      "bounds_mm": [
+        -0.025,
+        17.975,
+        19.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r02-c02",
+      "image": "B-routes-r02-c02.png",
+      "image_sha256": "1a4b7aebecdbe3a5929ab88ae13a1492b46af0f9f9bf4b17d71095a8f090b9f1",
+      "bounds_mm": [
+        17.975,
+        17.975,
+        37.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r02-c03",
+      "image": "B-routes-r02-c03.png",
+      "image_sha256": "ae9b561375291ca03a23f8a2944346bc66ffb60b9e9be4220234cfa517e2814e",
+      "bounds_mm": [
+        35.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r03-c01",
+      "image": "B-routes-r03-c01.png",
+      "image_sha256": "6d5fa10ceca29c419f45bca7caa8eb9d2a5086b7fa63238ea13a19e96258f181",
+      "bounds_mm": [
+        -0.025,
+        35.975,
+        19.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r03-c02",
+      "image": "B-routes-r03-c02.png",
+      "image_sha256": "4a39b268e0efa194a0d207ae55010866dde87afdc0fb5e149c8ae781a137e92b",
+      "bounds_mm": [
+        17.975,
+        35.975,
+        37.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-routes-r03-c03",
+      "image": "B-routes-r03-c03.png",
+      "image_sha256": "0b066e2c60a5a9a481d2ff93ba94a8d05e7f06cc67833a7e1c10bd3f9f6adc91",
+      "bounds_mm": [
+        35.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": false,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-overview",
+      "image": "B-filled-overview.png",
+      "image_sha256": "64e02209adbb200ff38ad3669e6cb8b4caea6a5f19c6a7fe41ec6f73d90e53df",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        55.025,
+        50.025
+      ],
+      "kind": "overview",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "organisation",
+        "whole_board_return_paths",
+        "final_frozen_pass"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r01-c01",
+      "image": "B-filled-r01-c01.png",
+      "image_sha256": "11754294348a540cb2ca7b6f7567cac2e4c4a1d6f16d5d2f904c26d433f0824a",
+      "bounds_mm": [
+        -0.025,
+        -0.025,
+        19.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r01-c02",
+      "image": "B-filled-r01-c02.png",
+      "image_sha256": "8307f27fb5616ac353b1026e48c149fac9757bf439a9a1c5a2f4bed8ece005ef",
+      "bounds_mm": [
+        17.975,
+        -0.025,
+        37.975,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r01-c03",
+      "image": "B-filled-r01-c03.png",
+      "image_sha256": "0d86a98cf4cc81424c43707ffa5ecc9f27b9a0ef160db2052b0395ab7a6cdfa8",
+      "bounds_mm": [
+        35.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r01-c04",
+      "image": "B-filled-r01-c04.png",
+      "image_sha256": "e40995cba0b73d45f671e9531115a31bfd9d0421f5a29390f13e165477c0715a",
+      "bounds_mm": [
+        53.975,
+        -0.025,
+        55.025,
+        19.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r02-c01",
+      "image": "B-filled-r02-c01.png",
+      "image_sha256": "3a72d01f5e44bf33b72578186bb0867663400442937975d8c44da69f055aab35",
+      "bounds_mm": [
+        -0.025,
+        17.975,
+        19.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r02-c02",
+      "image": "B-filled-r02-c02.png",
+      "image_sha256": "1cc03a0058336b0cf53e9d8a0212ab2e459c7d2bd37222c9998bbe6df64fcb0a",
+      "bounds_mm": [
+        17.975,
+        17.975,
+        37.975,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r02-c03",
+      "image": "B-filled-r02-c03.png",
+      "image_sha256": "972e341c1987d7896aa7201453a47b98edb5f1aba66e759a7b3627cc1eaabeba",
+      "bounds_mm": [
+        35.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r02-c04",
+      "image": "B-filled-r02-c04.png",
+      "image_sha256": "1078ac0863aa4260a4e125fa69d00de031767955abeee4fd8825faec43684f53",
+      "bounds_mm": [
+        53.975,
+        17.975,
+        55.025,
+        37.975
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r03-c01",
+      "image": "B-filled-r03-c01.png",
+      "image_sha256": "bbbbab9e6ee3fc06e18fad0b421e8f3764baf0fe355a81f80a8970cb0016efcb",
+      "bounds_mm": [
+        -0.025,
+        35.975,
+        19.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r03-c02",
+      "image": "B-filled-r03-c02.png",
+      "image_sha256": "bcf720548e068fa3d29178daaabbb490591337f9e5583a2ff3b1545837658304",
+      "bounds_mm": [
+        17.975,
+        35.975,
+        37.975,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r03-c03",
+      "image": "B-filled-r03-c03.png",
+      "image_sha256": "c2aaaf3ac89a4cc04809c8801effe5104f811c62beb2632ed27ae66737886f34",
+      "bounds_mm": [
+        35.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "B-filled-r03-c04",
+      "image": "B-filled-r03-c04.png",
+      "image_sha256": "22c98a38c91d1fcd999739dc8951804484b455300292174e75cd1375fb9c57b1",
+      "bounds_mm": [
+        53.975,
+        35.975,
+        55.025,
+        50.025
+      ],
+      "kind": "copper",
+      "layer": "B.Cu",
+      "filled": true,
+      "checks": [
+        "route_geometry",
+        "pad_via_entries",
+        "redundancy",
+        "return_paths"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-J1-F",
+      "image": "component-J1-F.png",
+      "image_sha256": "377f974a4c9f1ec7a7930c9ed3053ebe74e41638234e80c91a0788ab300076ab",
+      "bounds_mm": [
+        19.225,
+        19.275,
+        35.775,
+        26.725
+      ],
+      "kind": "component",
+      "reference": "J1",
+      "layer": "F.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-J1-B",
+      "image": "component-J1-B.png",
+      "image_sha256": "c19d2da1070a1e45ad3fb7c95cebdb6c3ad8a940cc86a2663480ec17ac9534d8",
+      "bounds_mm": [
+        19.225,
+        19.275,
+        35.775,
+        26.725
+      ],
+      "kind": "component",
+      "reference": "J1",
+      "layer": "B.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-J2-F",
+      "image": "component-J2-F.png",
+      "image_sha256": "583925e702bcdeeb8de529d99534ca36f1325121abe30123625af989504ee7c6",
+      "bounds_mm": [
+        8.175,
+        0.2749999999999999,
+        46.825,
+        8.775
+      ],
+      "kind": "component",
+      "reference": "J2",
+      "layer": "F.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-J2-B",
+      "image": "component-J2-B.png",
+      "image_sha256": "0dc175e324d435d283cd0e01a3ebe81ef2842d83b3f77eeaf723b3c9791b5f2d",
+      "bounds_mm": [
+        8.175,
+        0.2749999999999999,
+        46.825,
+        8.775
+      ],
+      "kind": "component",
+      "reference": "J2",
+      "layer": "B.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U1-F",
+      "image": "component-U1-F.png",
+      "image_sha256": "a397ffd80885497c8070dfbdcbe426877e0ec6170cd4f2c19ae16c721f48ed38",
+      "bounds_mm": [
+        1.6150000000000002,
+        11.645,
+        19.045,
+        35.195
+      ],
+      "kind": "component",
+      "reference": "U1",
+      "layer": "F.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U1-B",
+      "image": "component-U1-B.png",
+      "image_sha256": "c16dd7756939278201a14a56b0805786cb7aa9278124cddc2782aaeb17975d76",
+      "bounds_mm": [
+        1.6150000000000002,
+        11.645,
+        19.045,
+        35.195
+      ],
+      "kind": "component",
+      "reference": "U1",
+      "layer": "B.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U2-F",
+      "image": "component-U2-F.png",
+      "image_sha256": "d3d034dafb030ef82698ff2a4e236bf013c4168f9d3f134320db077add8ff648",
+      "bounds_mm": [
+        2.325,
+        31.475,
+        22.825,
+        47.875
+      ],
+      "kind": "component",
+      "reference": "U2",
+      "layer": "F.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U2-B",
+      "image": "component-U2-B.png",
+      "image_sha256": "cac39729c1001e69d28e7d6f62457215e4783de01ab0379c31516fa38e9bcb97",
+      "bounds_mm": [
+        2.325,
+        31.475,
+        22.825,
+        47.875
+      ],
+      "kind": "component",
+      "reference": "U2",
+      "layer": "B.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U3-F",
+      "image": "component-U3-F.png",
+      "image_sha256": "975d401baf4bf02689e7a8ad5ac56c7f9e24ca25b5427bbb81ee09d220fa9daf",
+      "bounds_mm": [
+        21.095,
+        35.475,
+        33.295,
+        46.525
+      ],
+      "kind": "component",
+      "reference": "U3",
+      "layer": "F.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U3-B",
+      "image": "component-U3-B.png",
+      "image_sha256": "6f6caa6b18b759d82e5b469dd65ff12955c018971a58019ed42aa3226ee8c921",
+      "bounds_mm": [
+        21.095,
+        35.475,
+        33.295,
+        46.525
+      ],
+      "kind": "component",
+      "reference": "U3",
+      "layer": "B.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U4-F",
+      "image": "component-U4-F.png",
+      "image_sha256": "56334931406a284fcee5644b24ffd1d867494b0335bf6abf02e9151f2f3a0224",
+      "bounds_mm": [
+        31.924999999999997,
+        35.085,
+        44.075,
+        46.725
+      ],
+      "kind": "component",
+      "reference": "U4",
+      "layer": "F.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U4-B",
+      "image": "component-U4-B.png",
+      "image_sha256": "691ebd9bed2db1c8223fb5ed44420c4f16c18af949d72f6272da6898869b8b6e",
+      "bounds_mm": [
+        31.924999999999997,
+        35.085,
+        44.075,
+        46.725
+      ],
+      "kind": "component",
+      "reference": "U4",
+      "layer": "B.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U5-F",
+      "image": "component-U5-F.png",
+      "image_sha256": "0e77609bc8ef62bb98f3335f5002a1ae3a3c9ad79fd13a611ac6fbcd8d63ef7d",
+      "bounds_mm": [
+        36.125,
+        25.045,
+        51.875,
+        38.775
+      ],
+      "kind": "component",
+      "reference": "U5",
+      "layer": "F.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U5-B",
+      "image": "component-U5-B.png",
+      "image_sha256": "03ee366f6b4f68267927e8ccf9a3a4cfdbdc77ce110ab9197b3a771767c0acc8",
+      "bounds_mm": [
+        36.125,
+        25.045,
+        51.875,
+        38.775
+      ],
+      "kind": "component",
+      "reference": "U5",
+      "layer": "B.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U6-F",
+      "image": "component-U6-F.png",
+      "image_sha256": "78b2bda92febd699e2f7f1a0386f3a2dee1cb372ae0d1f4c94d219984afb2542",
+      "bounds_mm": [
+        40.925,
+        35.085,
+        53.075,
+        46.725
+      ],
+      "kind": "component",
+      "reference": "U6",
+      "layer": "F.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "component-U6-B",
+      "image": "component-U6-B.png",
+      "image_sha256": "049f389c10c01b1f51aa80d73821e25197fe59eeecadb3bc73691eb50be4dd61",
+      "bounds_mm": [
+        40.925,
+        35.085,
+        53.075,
+        46.725
+      ],
+      "kind": "component",
+      "reference": "U6",
+      "layer": "B.Cu",
+      "checks": [
+        "fanout",
+        "entries_and_vias",
+        "soldering_access",
+        "local_return_and_power"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F",
+      "image": "export-gerber-F.png",
+      "image_sha256": "fd826e6b6eb31bacf693460a69b6e1d81b77ac3b1159b6c3f6bc7902ca0afb64",
+      "kind": "export",
+      "role": "gerber-F",
+      "checks": [
+        "copper",
+        "mask",
+        "silkscreen",
+        "mechanical"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r01-c01",
+      "image": "export-gerber-F-r01-c01.png",
+      "image_sha256": "f8cfb6a1847b466a1353e0d5d689d3b658206d570ed7f6d2c8276cf24c197b25",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        0,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r01-c02",
+      "image": "export-gerber-F-r01-c02.png",
+      "image_sha256": "ca7b8984788d384179209b31bfd38e48a8e0aa3ac2a05a43a9813cb237a7b9d1",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        1440,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r01-c03",
+      "image": "export-gerber-F-r01-c03.png",
+      "image_sha256": "e49b0bb4c1522d87594ffcde021ce8ce5f91a1760aa3a0dfcad6c349353991b4",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        2880,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r01-c04",
+      "image": "export-gerber-F-r01-c04.png",
+      "image_sha256": "b8fd84f9fc20faa084552c8dfe30fccf23584d5c48acba76f3c94cc3c4f27261",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        4320,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r02-c01",
+      "image": "export-gerber-F-r02-c01.png",
+      "image_sha256": "b650d54e652be530c1c29c8dd6dc72a54dc9f616d4c964014cf254343c6dfce1",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        0,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r02-c02",
+      "image": "export-gerber-F-r02-c02.png",
+      "image_sha256": "a378f0277555ecf705b78b2abcc4f4caf9f7c7555a386a9cda72748ad516332d",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        1440,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r02-c03",
+      "image": "export-gerber-F-r02-c03.png",
+      "image_sha256": "50b57c77855efdde930891e0b3005230e24be733c65a27896ccf406b85fc0a86",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        2880,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r02-c04",
+      "image": "export-gerber-F-r02-c04.png",
+      "image_sha256": "c05ed2662f586f5f83195dcf01d6f522e8a11da0941ce493e4d1c53118be6f56",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        4320,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r03-c01",
+      "image": "export-gerber-F-r03-c01.png",
+      "image_sha256": "0828a91819a8b6dac03053652db0bd70b80c63991de4368cf7a05bf0086eaa53",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        0,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r03-c02",
+      "image": "export-gerber-F-r03-c02.png",
+      "image_sha256": "75a34c86e78f81a04c572cff9d0b773170b667c7f9517dd2ee3f6065e4405bfe",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        1440,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r03-c03",
+      "image": "export-gerber-F-r03-c03.png",
+      "image_sha256": "964daee7f60d575f7436737df4fdd983c81a6172315e5a0ed0ba7a5932ec7f39",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        2880,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-F-r03-c04",
+      "image": "export-gerber-F-r03-c04.png",
+      "image_sha256": "e8f0deada0837c50f1fa3e0255126d2bbcb61db9ce9d25da8de9b8fde9738480",
+      "kind": "export-detail",
+      "role": "gerber-F",
+      "pixel_origin": [
+        4320,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1",
+      "image": "export-gerber-In1.png",
+      "image_sha256": "8530150c508f71f03252b0defad4be4f9219420e1b310af75fbf9d8887ef23f4",
+      "kind": "export",
+      "role": "gerber-In1",
+      "checks": [
+        "copper",
+        "mask",
+        "silkscreen",
+        "mechanical"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r01-c01",
+      "image": "export-gerber-In1-r01-c01.png",
+      "image_sha256": "c167a0b5a4f5b4a9170d123cf331f69853f7eff3e326c75013d5b0fae1d068df",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        0,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r01-c02",
+      "image": "export-gerber-In1-r01-c02.png",
+      "image_sha256": "398a23cea2fe9cd2fe867ab928cf7a70bead440bee9536dfa2a94ce4d3831b06",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        1440,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r01-c03",
+      "image": "export-gerber-In1-r01-c03.png",
+      "image_sha256": "d5b82b7488b30dfa5ebf258d0b40851f6204af1d11e39177fd794e3542afc3b8",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        2880,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r01-c04",
+      "image": "export-gerber-In1-r01-c04.png",
+      "image_sha256": "d7cb172019294626c7b024bd21377c95853ecf634ce2bedb6ce47ab82a128a4a",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        4320,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r02-c01",
+      "image": "export-gerber-In1-r02-c01.png",
+      "image_sha256": "023e8c010d86bf53357b12a874ff986bfc18bd598ef3f786098475367c1fb1c4",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        0,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r02-c02",
+      "image": "export-gerber-In1-r02-c02.png",
+      "image_sha256": "377e14fb467ed44dc54b4fca032a8999ae9b018f264cc72c0b466b7b8ed4abe6",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        1440,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r02-c03",
+      "image": "export-gerber-In1-r02-c03.png",
+      "image_sha256": "03204410bbb29288e16149481b30f989d2b41f9ed1deb1b1b43d97d7fa3eeb94",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        2880,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r02-c04",
+      "image": "export-gerber-In1-r02-c04.png",
+      "image_sha256": "c05ed2662f586f5f83195dcf01d6f522e8a11da0941ce493e4d1c53118be6f56",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        4320,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r03-c01",
+      "image": "export-gerber-In1-r03-c01.png",
+      "image_sha256": "56f52010e143af341635fd132496fe38b1862811db41da8e5c9be4d00d870b3d",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        0,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r03-c02",
+      "image": "export-gerber-In1-r03-c02.png",
+      "image_sha256": "0375b1a70c365bd90796d19586533d38efc0ce0f9c0d555af927a9319dd0eca8",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        1440,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r03-c03",
+      "image": "export-gerber-In1-r03-c03.png",
+      "image_sha256": "c0b6497d447e111399f187cf7328a96d662ff96761bcba743ef3eed4dae2b1cb",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        2880,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In1-r03-c04",
+      "image": "export-gerber-In1-r03-c04.png",
+      "image_sha256": "6fa64de1ce068495a3dc5f156090478d74b810bc05b45385f296238db46c50d7",
+      "kind": "export-detail",
+      "role": "gerber-In1",
+      "pixel_origin": [
+        4320,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2",
+      "image": "export-gerber-In2.png",
+      "image_sha256": "8530150c508f71f03252b0defad4be4f9219420e1b310af75fbf9d8887ef23f4",
+      "kind": "export",
+      "role": "gerber-In2",
+      "checks": [
+        "copper",
+        "mask",
+        "silkscreen",
+        "mechanical"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r01-c01",
+      "image": "export-gerber-In2-r01-c01.png",
+      "image_sha256": "c167a0b5a4f5b4a9170d123cf331f69853f7eff3e326c75013d5b0fae1d068df",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        0,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r01-c02",
+      "image": "export-gerber-In2-r01-c02.png",
+      "image_sha256": "398a23cea2fe9cd2fe867ab928cf7a70bead440bee9536dfa2a94ce4d3831b06",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        1440,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r01-c03",
+      "image": "export-gerber-In2-r01-c03.png",
+      "image_sha256": "d5b82b7488b30dfa5ebf258d0b40851f6204af1d11e39177fd794e3542afc3b8",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        2880,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r01-c04",
+      "image": "export-gerber-In2-r01-c04.png",
+      "image_sha256": "d7cb172019294626c7b024bd21377c95853ecf634ce2bedb6ce47ab82a128a4a",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        4320,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r02-c01",
+      "image": "export-gerber-In2-r02-c01.png",
+      "image_sha256": "023e8c010d86bf53357b12a874ff986bfc18bd598ef3f786098475367c1fb1c4",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        0,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r02-c02",
+      "image": "export-gerber-In2-r02-c02.png",
+      "image_sha256": "377e14fb467ed44dc54b4fca032a8999ae9b018f264cc72c0b466b7b8ed4abe6",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        1440,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r02-c03",
+      "image": "export-gerber-In2-r02-c03.png",
+      "image_sha256": "03204410bbb29288e16149481b30f989d2b41f9ed1deb1b1b43d97d7fa3eeb94",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        2880,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r02-c04",
+      "image": "export-gerber-In2-r02-c04.png",
+      "image_sha256": "c05ed2662f586f5f83195dcf01d6f522e8a11da0941ce493e4d1c53118be6f56",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        4320,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r03-c01",
+      "image": "export-gerber-In2-r03-c01.png",
+      "image_sha256": "56f52010e143af341635fd132496fe38b1862811db41da8e5c9be4d00d870b3d",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        0,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r03-c02",
+      "image": "export-gerber-In2-r03-c02.png",
+      "image_sha256": "0375b1a70c365bd90796d19586533d38efc0ce0f9c0d555af927a9319dd0eca8",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        1440,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r03-c03",
+      "image": "export-gerber-In2-r03-c03.png",
+      "image_sha256": "c0b6497d447e111399f187cf7328a96d662ff96761bcba743ef3eed4dae2b1cb",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        2880,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-In2-r03-c04",
+      "image": "export-gerber-In2-r03-c04.png",
+      "image_sha256": "6fa64de1ce068495a3dc5f156090478d74b810bc05b45385f296238db46c50d7",
+      "kind": "export-detail",
+      "role": "gerber-In2",
+      "pixel_origin": [
+        4320,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B",
+      "image": "export-gerber-B.png",
+      "image_sha256": "a3307aafbe148163fe3b8493caa9bffde2dd1a0e8982d684463964c53b8deb4f",
+      "kind": "export",
+      "role": "gerber-B",
+      "checks": [
+        "copper",
+        "mask",
+        "silkscreen",
+        "mechanical"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r01-c01",
+      "image": "export-gerber-B-r01-c01.png",
+      "image_sha256": "cb1a7b059a67f81c24cc4d8ba14619890dd3fab122ac3b0f8cfe56224d076a19",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        0,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r01-c02",
+      "image": "export-gerber-B-r01-c02.png",
+      "image_sha256": "1a31f0f220cb21a36956f5a908919c5007a7eb57065ba576d2f762337db4affc",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        1440,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r01-c03",
+      "image": "export-gerber-B-r01-c03.png",
+      "image_sha256": "36f85409ab4c4a9ce85d1eeb239d7610fa3c946bc5859a541fcf97b09d8f0912",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        2880,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r01-c04",
+      "image": "export-gerber-B-r01-c04.png",
+      "image_sha256": "a5a7636260fdb88f6559f2dba8597fa897e163d0d891948c5dca74e9f5cd5f80",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        4320,
+        0
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r02-c01",
+      "image": "export-gerber-B-r02-c01.png",
+      "image_sha256": "dc08dfdc9b8f9a892461ff9357e983c1331fad93960b90a4fb7e3181f26b5ac9",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        0,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r02-c02",
+      "image": "export-gerber-B-r02-c02.png",
+      "image_sha256": "2499e020c4c9363113828f5fc2108a0d8669a1960774e31fb609e5432864693e",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        1440,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r02-c03",
+      "image": "export-gerber-B-r02-c03.png",
+      "image_sha256": "138cfc20aa99cb7fd08f7dcaa2cdc968e83fbbe1c01edfd17da453d7af50b1f0",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        2880,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r02-c04",
+      "image": "export-gerber-B-r02-c04.png",
+      "image_sha256": "c05ed2662f586f5f83195dcf01d6f522e8a11da0941ce493e4d1c53118be6f56",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        4320,
+        1440
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r03-c01",
+      "image": "export-gerber-B-r03-c01.png",
+      "image_sha256": "6ba942eb7dcb3ede229f9a7860396faa5914a776ffcfbf11059ebe75819ee9ab",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        0,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r03-c02",
+      "image": "export-gerber-B-r03-c02.png",
+      "image_sha256": "488df622b986a2b47144bc2819d68bd83764bd4d5323e0c3a7b969d8f208d81d",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        1440,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r03-c03",
+      "image": "export-gerber-B-r03-c03.png",
+      "image_sha256": "a048aade59bdc8ef443262786819690d28fbde426de9aa37dc5062368b3f2554",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        2880,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-B-r03-c04",
+      "image": "export-gerber-B-r03-c04.png",
+      "image_sha256": "6fa64de1ce068495a3dc5f156090478d74b810bc05b45385f296238db46c50d7",
+      "kind": "export-detail",
+      "role": "gerber-B",
+      "pixel_origin": [
+        4320,
+        2880
+      ],
+      "pixels_per_mm": 80.00141846486639,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk",
+      "image": "export-gerber-top-mask-silk.png",
+      "image_sha256": "507dfa7063746cedc1183a11a0a1e49156778005062430661dba8ddae6bd0d3a",
+      "kind": "export",
+      "role": "gerber-top-mask-silk",
+      "checks": [
+        "copper",
+        "mask",
+        "silkscreen",
+        "mechanical"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r01-c01",
+      "image": "export-gerber-top-mask-silk-r01-c01.png",
+      "image_sha256": "db9dbbc2d5d8a3ad0c2f74c5f507d16657cadd96f354875f04b493e6236d8b34",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        0,
+        0
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r01-c02",
+      "image": "export-gerber-top-mask-silk-r01-c02.png",
+      "image_sha256": "99513f8ad3ef91c863c7bdd8406a66e677c4dabf0c1683458703d95117920791",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        1440,
+        0
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r01-c03",
+      "image": "export-gerber-top-mask-silk-r01-c03.png",
+      "image_sha256": "addf3074821fc6fe8a17dc0195d8e8db7ce8c71ac56f4370110cf96844769849",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        2880,
+        0
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r01-c04",
+      "image": "export-gerber-top-mask-silk-r01-c04.png",
+      "image_sha256": "be79224d59a753f326646964ef06a44d88b9fd34e41f1b6989d4e49f22590efc",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        4320,
+        0
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r02-c01",
+      "image": "export-gerber-top-mask-silk-r02-c01.png",
+      "image_sha256": "c7a215e2ef1cdcb90bb97ee56c8b02f9f9ee13ea5b04384b72dc2038e55bfad9",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        0,
+        1440
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r02-c02",
+      "image": "export-gerber-top-mask-silk-r02-c02.png",
+      "image_sha256": "300987398af060ca23b4af8b479f89f433687cb9e0c014438556c207b1006c0c",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        1440,
+        1440
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r02-c03",
+      "image": "export-gerber-top-mask-silk-r02-c03.png",
+      "image_sha256": "73a44e90f47af41378c05c07aa3d1ac22f1f687f721106a52c71cb857b981712",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        2880,
+        1440
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r02-c04",
+      "image": "export-gerber-top-mask-silk-r02-c04.png",
+      "image_sha256": "545342aea5b2635520c9f26ee70771eac3456568b034b2cd7f562a8f2894657a",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        4320,
+        1440
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r03-c01",
+      "image": "export-gerber-top-mask-silk-r03-c01.png",
+      "image_sha256": "0f82e9f028c01c2f3a8db72d6ffae9f59546b7ceda38d3fd8bbbadcc21057a9f",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        0,
+        2880
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r03-c02",
+      "image": "export-gerber-top-mask-silk-r03-c02.png",
+      "image_sha256": "7870104a630808dccb0d2a2d4ce896731cadeb9710041180938ca2b3ccf88ca8",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        1440,
+        2880
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r03-c03",
+      "image": "export-gerber-top-mask-silk-r03-c03.png",
+      "image_sha256": "4ff2d7103c40412b11a11ac108f4ec15853266b309031eec0dfb3dbd69f12cee",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        2880,
+        2880
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-top-mask-silk-r03-c04",
+      "image": "export-gerber-top-mask-silk-r03-c04.png",
+      "image_sha256": "fcd9d36603939c189bbafb68fff8e695150954fcaf78d797ab1200552e8b0374",
+      "kind": "export-detail",
+      "role": "gerber-top-mask-silk",
+      "pixel_origin": [
+        4320,
+        2880
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk",
+      "image": "export-gerber-bottom-mask-silk.png",
+      "image_sha256": "2a0eb31fed721e376777073ae22b3747dae6c6eb087d60c04ef03c81eb31b5ab",
+      "kind": "export",
+      "role": "gerber-bottom-mask-silk",
+      "checks": [
+        "copper",
+        "mask",
+        "silkscreen",
+        "mechanical"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r01-c01",
+      "image": "export-gerber-bottom-mask-silk-r01-c01.png",
+      "image_sha256": "9a6c464e9877fc83cfd778085e0e73e8055e3c35ca1b0f7546e0bd9e06b12181",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        0,
+        0
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r01-c02",
+      "image": "export-gerber-bottom-mask-silk-r01-c02.png",
+      "image_sha256": "ac416485f09366022d9a8a8d247fe4bd3db952cf34ae3477934614a0855bb5ea",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        1440,
+        0
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r01-c03",
+      "image": "export-gerber-bottom-mask-silk-r01-c03.png",
+      "image_sha256": "c48da21ffe44f14be18f0f86b97f213c32840167d901a01d3feacedb5ecec650",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        2880,
+        0
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r01-c04",
+      "image": "export-gerber-bottom-mask-silk-r01-c04.png",
+      "image_sha256": "1969d114a6c4e47b34efe53178eb9218151ba7239f8d2e445034f6f472203487",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        4320,
+        0
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r02-c01",
+      "image": "export-gerber-bottom-mask-silk-r02-c01.png",
+      "image_sha256": "302fd1a9954f0dda489866be023dfe765c9abea7bf6a2c4fac2110328686339b",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        0,
+        1440
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r02-c02",
+      "image": "export-gerber-bottom-mask-silk-r02-c02.png",
+      "image_sha256": "417d5424521d21f127bdb22ceb86f160cea2ef20cd66f130e7e1764bca0ece52",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        1440,
+        1440
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r02-c03",
+      "image": "export-gerber-bottom-mask-silk-r02-c03.png",
+      "image_sha256": "b8a613b560cc90d999a1bd8334bd0db480d763d999f03dc7ea2db6287aad465d",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        2880,
+        1440
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r02-c04",
+      "image": "export-gerber-bottom-mask-silk-r02-c04.png",
+      "image_sha256": "37eabfc2ca506370e4f4026a4f125fa0c8cf9195bd7cca920e8548370cc645bc",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        4320,
+        1440
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r03-c01",
+      "image": "export-gerber-bottom-mask-silk-r03-c01.png",
+      "image_sha256": "3c8a2ebf99f38008a2ea32f43851336460eafe170020b7f2e72009d3606149a1",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        0,
+        2880
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r03-c02",
+      "image": "export-gerber-bottom-mask-silk-r03-c02.png",
+      "image_sha256": "b46c0e456582c0152483784aecdebe791c439ae64529e5f100abedf4884f949c",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        1440,
+        2880
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r03-c03",
+      "image": "export-gerber-bottom-mask-silk-r03-c03.png",
+      "image_sha256": "2747cc1d7dd4682dc1ecbde3afb48cf9d9ef5a1f0ca293d53b83b4c8865a24b9",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        2880,
+        2880
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-gerber-bottom-mask-silk-r03-c04",
+      "image": "export-gerber-bottom-mask-silk-r03-c04.png",
+      "image_sha256": "26e508efa017ef282b7e8330de0dae7baded21d25a7a98d09c1e3a4a1c1b2a75",
+      "kind": "export-detail",
+      "role": "gerber-bottom-mask-silk",
+      "pixel_origin": [
+        4320,
+        2880
+      ],
+      "pixels_per_mm": 80.0,
+      "checks": [
+        "export_copper",
+        "mask_openings",
+        "silkscreen_clearance",
+        "connector_orientation"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-mechanical-top",
+      "image": "export-mechanical-top.png",
+      "image_sha256": "7bde16eb24e7eba7502c9a76d5441978f0d9b26b2940a2f28fe1438df73824e4",
+      "kind": "export",
+      "role": "mechanical-top",
+      "checks": [
+        "copper",
+        "mask",
+        "silkscreen",
+        "mechanical"
+      ],
+      "review": null
+    },
+    {
+      "id": "export-mechanical-bottom",
+      "image": "export-mechanical-bottom.png",
+      "image_sha256": "e65aff205257ecbbd587e8ae0924ebec26f3de600ecdf45ec4da0d7adc851322",
+      "kind": "export",
+      "role": "mechanical-bottom",
+      "checks": [
+        "copper",
+        "mask",
+        "silkscreen",
+        "mechanical"
+      ],
+      "review": null
+    }
+  ],
+  "dispositions": {},
+  "review_result": "PENDING",
+  "limitations": "Local visual inspection, not physical qualification or AISLER CAM acceptance.",
+  "coverage_sha256": "5f8acb58565cd80a9c5dc090002352729b5950d345eededa1c29dee8a36ea23d"
+}

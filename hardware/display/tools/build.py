@@ -4,6 +4,7 @@
 Routing is maintained in the checked-in PCBs. This command deliberately writes
 placement boards to build/ so it cannot accidentally discard reviewed routing.
 """
+import argparse
 import csv
 import json
 import math
@@ -14,6 +15,7 @@ from pathlib import Path
 import pcbnew as k
 from design import ROOT, PARTS, SIGNALS, GEOMETRY, REVISION, BOARDS, components, board_outline
 from aisler import board_settings, configure_project, normalize_footprint, write_stackup
+from layout_policy import apply_ground_planes
 
 k.SwigPyIterator.next = k.SwigPyIterator.__next__
 LIB = ROOT/'libraries/DisplayAdapter.pretty'
@@ -335,12 +337,13 @@ def board(which,parts):
                 if item.GetLayer()==k.F_CrtYd:f.Remove(item)
             circle=k.PCB_SHAPE(f);circle.SetShape(k.SHAPE_T_CIRCLE);circle.SetCenter(point(0,0));circle.SetEnd(point(1.65 if y<5 else 1.85,0));circle.SetWidth(mm(.05));circle.SetLayer(k.F_CrtYd);f.Add(circle)
         f.SetReference(f'H{i+1}');f.SetPosition(point(x,y));f.Reference().SetVisible(False);f.Value().SetVisible(False);f.SetAttributes(k.FP_EXCLUDE_FROM_BOM|k.FP_EXCLUDE_FROM_POS_FILES);b.Add(f)
-    # Continuous inner reference plane; display outer pours spread LDO heat.
-    for layer in ([k.F_Cu,k.In1_Cu,k.B_Cu] if which=="display-adapter" else [k.In1_Cu]):
+    # Both boards use the same reference-plane and stitched-fill architecture.
+    for layer in [k.In1_Cu]:
         z=k.ZONE(b);z.SetLayer(layer);z.SetNet(nets['GND']);z.SetLocalClearance(mm(.2));z.SetPadConnection(k.ZONE_CONNECTION_FULL);z.SetMinThickness(mm(.15))
         poly=z.Outline();poly.NewOutline()
         for x,y in contour:poly.Append(mm(x),mm(y))
         b.Add(z)
+    apply_ground_planes(b)
     for text,x,y,size in ([('SMARTWIN / '+BOARDS[which]['revision'],27.5,15,1),('24V VIA FFC',12,33,.8),('102mm TYPE-A',27.5,11,.8)] if which=='display-adapter' else [('GIGA DISPLAY / '+BOARDS[which]['revision'],51,7,1),('FFC TO DISPLAY',115,50, .8)]):
         t=k.PCB_TEXT(b);t.SetText(text);t.SetPosition(point(x,y));t.SetTextSize(point(size,size));t.SetTextThickness(mm(.15));t.SetLayer(k.F_SilkS);b.Add(t)
     out=ROOT/'build'/which;out.mkdir(parents=True,exist_ok=True)
@@ -372,6 +375,23 @@ def board(which,parts):
     return b
 
 def main():
+    # The historical placement recipe is useful for experiments, but is not the
+    # authority for hand-edited footprints, mechanics, silkscreen or routing.
+    global ROOT, LIB, MODELS
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--scratch-root', type=Path, required=True,
+                        help='New empty directory for a disposable generated project')
+    args = parser.parse_args()
+    scratch = args.scratch_root.resolve()
+    if scratch.exists() or scratch == ROOT or ROOT in scratch.parents:
+        parser.error('Use a new directory outside the authoritative display project')
+    import aisler
+    shutil.copytree(ROOT, scratch, ignore=shutil.ignore_patterns(
+        'build', 'manufacturing', 'releases', '__pycache__', '*-backups', '.history'))
+    ROOT = scratch
+    LIB = ROOT/'libraries/DisplayAdapter.pretty'
+    MODELS = ROOT/'libraries/3dmodels'
+    aisler.ROOT = scratch  # retain the pinned, original AISLER SUPPORT location
     footprints()
     for which in ['display-adapter','giga-adapter']:
         parts=components(which);schematic(which,parts);board(which,parts)

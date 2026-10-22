@@ -1,6 +1,6 @@
 # Electrical and manufacturing review
 
-Reviewed design: **display adapter F, GIGA adapter E, source bundle F**.
+Reviewed design: **display adapter G, GIGA adapter F, source bundle G**.
 Exact source hashes and completed local checks are recorded in
 [`release-status.json`](release-status.json); archive hashes are in
 [`../releases/SHA256SUMS`](../releases/SHA256SUMS).
@@ -12,8 +12,8 @@ No order or upload has been performed by this workflow.
 ## Implemented design
 
 Both boards use the AISLER **four-layer HD / ENIG** profile: 1.6 mm finished
-thickness, 35 µm copper, green mask, white silk, and an uninterrupted In1 ground
-reference. The display board is **55 × 50 mm**; its two connector positions are
+thickness, 35 µm copper, green mask, white silk, and continuous In1/In2 ground
+references, with all signals/power routed on F/B and stitched outer GND fills. The display board is **55 × 50 mm**; its two connector positions are
 unchanged, and its lower mounting holes are at y = 47 mm. The GIGA outline,
 headers and service access are retained. J10 is a through-hole DC-005 barrel
 jack using the supplied AISLER footprint, facing the service opening. It accepts
@@ -89,12 +89,12 @@ The release pipeline requires all of the following, without waived findings:
   currents are explicit; they are not measurements.
 
 There are no fiducials, blind/buried vias, tenting requirements, manufacturing
-rule exclusions or accepted ERC/DRC warnings. The display retains its outer
-thermal/ground pours; the added inner plane supplies a continuous reference.
+rule exclusions or accepted ERC/DRC warnings. Both boards retain stitched outer ground pours and two continuous inner
+reference planes.
 Ground tracks are retained only where needed for pad-to-plane escapes; filled
 copper and stitching vias provide the common return. GIGA component-to-plane escapes and the isolated
 eFuse RTN thermal connections remain in place.
-The layer-by-layer visual review covers connector fanouts, power routing,
+The required hash-bound, region-by-region visual review covers connector fanouts, power routing,
 centred via entries, angular corners, silkscreen and the exported board views.
 The machine-readable copper audits record each intentionally retained pad-entry
 segment and its geometric or connection-width purpose; these are intentional
@@ -123,9 +123,9 @@ frames during the early startup interval cannot turn the backlight on.
 The final independent order review is recorded in
 [`order-review.json`](verification/order-review.json). It binds the checks to the
 two exact ODB++ archives and lists the remaining physical/procurement conditions.
-No PCB connectivity or local manufacturing-rule defect remains identified.
-This is approval for prototype fabrication, not certification of a functioning
-assembled system or a substitute for AISLER's processed preview.
+Release remains on hold until the current digital checks and complete visual
+atlas pass. Local acceptance does not certify an assembled system or replace
+AISLER's processed preview.
 
 ## Assembly and first-board acceptance
 
