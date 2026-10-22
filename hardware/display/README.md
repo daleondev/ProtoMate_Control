@@ -14,6 +14,9 @@ Release files:
 - [GIGA D: review and soldering package](releases/giga-adapter-rev-D-aisler-review.zip)
 - [Source bundle E: projects, libraries, models and tools](releases/smartwin-giga-rev-E-source.zip)
 - [Nominal GIGA mating assembly](assembly/giga-mated-rev-D.png)
+- [Component lists and Mouser procurement](procurement/README.md): quantities for one
+  board pair, explicit substitutes, stock evidence and remaining sourcing gaps;
+  the DC jack is already owned.
 
 Upload only the two ZIPs labelled **AISLER ODB++ upload**, one job per board.
 The review packages contain fabrication references, procurement BOMs, placement
