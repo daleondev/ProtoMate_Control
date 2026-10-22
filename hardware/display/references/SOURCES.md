@@ -23,7 +23,8 @@ engineering references, not project-authored specifications.
 | [Yageo RT series](https://yageogroup.com/content/datasheet/asset/file/PYU-RT_1-TO-0-01_ROHS_L) | RT0603BRD feedback resistors: 0.1% initial tolerance, 25 ppm/K temperature coefficient |
 | [TRACO TSR 1](https://www.tracopower.com/products/tsr1.pdf), `TRACO_TSR1.pdf` | TSR 1-24120 and TSR 1-2450 input/output limits and mechanical pinout |
 | [TRACO TSR 2](https://www.tracopower.com/products/tsr2.pdf), `TRACO_TSR2.pdf` | TSR 2-2433 regulation, thermal coefficient, load limits and mechanical pinout |
-| [Bourns SF-1206S](https://www.bourns.com/docs/product-datasheets/sf-1206s.pdf), `Bourns_SF1206S.pdf` | 2 A and 0.8 A 63 V time-lag fuses and pad dimensions |
+| [Bourns SF-1206SA-M](https://www.bourns.com/docs/product-datasheets/sf-1206sa-m.pdf), `Bourns_SF1206SA-M.pdf` | F1 SF-1206SA200M-2: 2 A, 65 VDC, 50 A interrupt rating, clearing characteristic, cold resistance, temperature derating, land pattern and nominal 3D envelope; reviewed 2026-10-22 |
+| [Bourns SF-1206S](https://www.bourns.com/docs/product-datasheets/sf-1206s.pdf), `Bourns_SF1206S.pdf` | F2 0.8 A / 63 V time-lag fuse and pad dimensions |
 | [Littelfuse SMBJ](https://m.littelfuse.com/~/media/electronics/datasheets/tvs_diodes/littelfuse_tvs_diode_smbj_datasheet.pdf.pdf) | SMBJ33CA bidirectional TVS, 33 V standoff / 53.3 V rated clamp |
 | [Diodes B360A](https://www.diodes.com/datasheet/download/B360A.pdf) | 60 V Schottky polarity, SMA package and forward drop |
 | User-supplied `BarrelJack_Horizontal_AISLER.kicad_mod`; [Sourcing Map B07J4Z8B2T](https://www.amazon.de/dp/B07J4Z8B2T) | Selected DC-005 5.5/2.1 mm jack, terminal locations and plated-slot geometry; supplier listing is procurement provenance, not a manufacturer qualification report |

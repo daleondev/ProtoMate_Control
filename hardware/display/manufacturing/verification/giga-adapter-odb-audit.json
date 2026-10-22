@@ -3,7 +3,7 @@
   "board": "giga-adapter",
   "revision": "D",
   "upload_zip": "giga-adapter-rev-D-aisler-odb.zip",
-  "upload_sha256": "c6290d51733191d2e2867a69d4f92ed3b4051c0da3e1297781a8ba1149cc92ae",
+  "upload_sha256": "e1d4f69ad20344fb34fbe990c1b2986596a3f10435ddb2b2f96cced40267b9e5",
   "copper_layers": [
     "F.CU",
     "IN1.CU",

@@ -3,11 +3,11 @@
 Quantities are for **one display adapter revision E and one GIGA adapter revision D**:
 158 fitted components, 39 original BOM part numbers. The DC jack is already owned.
 After the substitutions below and consolidating the 100 nF capacitors, Mouser
-procurement needs 37 distinct parts: **36 with indexed stock evidence (156 pieces)**
-and **one backordered fuse (1 piece)**. The FFC cable is an additional assembly item.
+procurement needs **37 distinct parts with indexed stock evidence (157 pieces)**.
+The FFC cable is an additional assembly item.
 
-**This is not yet a fully in-stock order.** GIGA F1 is backordered, and no exact
-Mouser cable satisfying our specification was verified. Stock evidence was checked
+**Live order availability still requires confirmation.** No exact Mouser cable
+satisfying our specification was verified. Stock evidence was checked
 on **2026-10-22**, using indexed Mouser pages; their crawl ages range from days to
 months. Direct live inventory confirmation was unavailable. Quantities below are
 historical page observations, not reserved stock. In particular, the AXC8T245
@@ -16,8 +16,7 @@ product/category pages disagree; check it in the German delivery basket before p
 - [Complete component list](components.csv), including references, original and purchase MPNs, packages, quantities and source URLs.
 - [Display-only list](display-adapter-components.csv).
 - [GIGA-only list](giga-adapter-components.csv).
-- [Mouser bulk-import CSV](mouser-order.csv): 36 consolidated lines with indexed stock; **excludes F1, the owned jack and accessories**.
-- [Separate backorder CSV](mouser-backorder.csv): GIGA F1, `652-SF-1206S200-2`, quantity 1.
+- [Mouser bulk-import CSV](mouser-order.csv): 37 consolidated lines with indexed stock; **includes F1**, excludes the owned jack and accessories.
 - [Dated sourcing evidence](sourcing.json), including stock-page ages and substitution notes.
 
 Import the desired CSV using Mouser's BOM upload/bulk-entry facility and map its
@@ -28,9 +27,10 @@ unnecessary. The quantities are exact fitted quantities, without soldering spare
 For hand soldering, spare small passives and one spare of each fine-pitch IC/connector
 are sensible additions. Do not substitute the precision 0.1% resistors with 1% parts.
 
-The source KiCad projects and released manufacturing BOMs have **not** been changed.
-This procurement list explicitly proposes the alternatives below for the same PCB
-footprints. It does not supersede the release's pending electrical/physical tests.
+F1's **SF-1206SA200M-2** is incorporated into the schematic, dedicated footprint,
+routed PCB and manufacturing BOMs. The other substitutions below remain procurement
+proposals for the existing footprints. This list does not supersede the release's
+pending electrical/physical tests.
 The original BOM MPN remains in every CSV row so assembly substitutions are traceable.
 
 ## Display adapter — revision E
@@ -74,7 +74,7 @@ The original BOM MPN remains in every CSV row so assembly substitutions are trac
 | U6 | 1 | `TCA9517ADGKR` | [595-TCA9517ADGKR](https://eu.mouser.com/en/ProductDetail/Texas-Instruments/TCA9517ADGKR?qs=%252BrH4t%252BeVZ2M4pVnwXR4oNA%3D%3D) | Stock indexed; 254 (3 weeks ago) |
 | C13–C14 | 2 | `C0805C106K8PACTU` † | [80-C0805C106K8P](https://eu.mouser.com/en/ProductDetail/KEMET/C0805C106K8PACTU?qs=Zpyg6gQUYs39C21BeavaKA%3D%3D) | Stock indexed; 235,800 (last week) |
 | J10 | 1 | `DC-005 / B07J4Z8B2T` | — | Already owned |
-| F1 | 1 | `SF-1206S200-2` | [652-SF-1206S200-2](https://www.mouser.com/en/ProductDetail/Bourns/SF-1206S200-2?qs=GIQXYiEeHGCJory%252B0WHOSw%3D%3D) | Backorder; 0 (6 days ago) |
+| F1 | 1 | `SF-1206SA200M-2` | [652-SF-1206SA200M-2](https://hu.mouser.com/en/ProductDetail/Bourns/SF-1206SA200M-2?qs=ljCeji4nMDm8iHTYJACKFQ%3D%3D) | Stock indexed; 15,000 (last month) |
 | D1 | 1 | `SMBJ33CA-13-F` † | [621-SMBJ33CA-13-F](https://www.mouser.com/en/ProductDetail/Diodes-Incorporated/SMBJ33CA-13-F?qs=gaDBXWSqsDCWsx7MwPOf0g%3D%3D) | Stock indexed; 64,961 (last month) |
 | C15 | 1 | `C1206C105K1RACTU` † | [80-C1206C105K1R](https://www.mouser.se/en/ProductDetail/KEMET/C1206C105K1RACTU?qs=sGAEpiMZZMvsSlwiRhF8qoXfCmt4ymbCzzXhwOByAo0F9nx%252Bkx%252B2ag%3D%3D) | Stock indexed; 41,000 (last month) |
 | U7 | 1 | `TPS26600PWPR` | [595-TPS26600PWPR](https://www.mouser.com/en/ProductDetail/Texas-Instruments/TPS26600PWPR?qs=Bho%2FbeBaDExFVQBFO8fB%2FQ%3D%3D) | Stock indexed; 69 (last month) |
@@ -130,17 +130,18 @@ The following manufacturer information supports these choices:
 
 ## Items requiring attention before a complete order
 
-1. **GIGA F1:** `SF-1206S200-2`, Mouser `652-SF-1206S200-2`, has zero stock in the most recent indexed product page. An incoming shipment is listed for **2026-11-30**; this is not a confirmed delivery date. It is separated into the backorder CSV. Do not use F2's 0.8 A fuse or a resettable PTC here.
-2. **GIGA U1–U4:** the newer Mouser category page lists 4,862 `SN74AXC8T245PWR`, while the older product page lists zero. This is conflicting cached evidence, so availability remains provisional until basket validation. The alternate `SN74AXCH8T245` is not the selected device.
-3. **Display bulk capacitors:** seven `GRM32ER61A476KE20L` remain listed in stock but are EOL. The list retains the electrically reviewed part for this prototype instead of silently changing its load-step behavior.
-4. **FFC cable:** one required, outside the PCB BOM. No exact Mouser MPN was verified. Use the [cable specification](../cable-specification.pdf): 80 conductors, 0.5 mm pitch, ≤100 mm, 0.30 ±0.05 mm mating thickness, same-side exposed contacts (Type A), straight sides, gold contacts, ≥60 V and ≥0.5 A per conductor, copper cross-section ≥0.0105 mm². The FH28 termination/stiffener drawing must also match. The surfaced 102 mm / 0.3 A Molex cable is **not** an approved replacement.
+1. **GIGA U1–U4:** the newer Mouser category page lists 4,862 `SN74AXC8T245PWR`, while the older product page lists zero. This is conflicting cached evidence, so availability remains provisional until basket validation. The alternate `SN74AXCH8T245` is not the selected device.
+2. **Display bulk capacitors:** seven `GRM32ER61A476KE20L` remain listed in stock but are EOL. The list retains the electrically reviewed part for this prototype instead of silently changing its load-step behavior.
+3. **FFC cable:** one required, outside the PCB BOM. No exact Mouser MPN was verified. Use the [cable specification](../cable-specification.pdf): 80 conductors, 0.5 mm pitch, ≤100 mm, 0.30 ±0.05 mm mating thickness, same-side exposed contacts (Type A), straight sides, gold contacts, ≥60 V and ≥0.5 A per conductor, copper cross-section ≥0.0105 mm². The FH28 termination/stiffener drawing must also match. The surfaced 102 mm / 0.3 A Molex cable is **not** an approved replacement.
 
-An in-stock Littelfuse `0468002.NR` was investigated for F1 but intentionally not
-added to the order: it has a different clearing-time specification and nominal
-melting I²t (0.506 A²s versus 0.339 A²s). Matching 2 A/63 V/1206 alone does not make
-fuses equivalent. A change would need a protection-coordination review. Sources:
-[Bourns SF-1206S](https://www.bourns.com/docs/product-datasheets/sf-1206s.pdf),
-[Littelfuse 468](https://www.littelfuse.com/assetdocs/fuse-468-datasheet?assetguid=6b7857dc-f79c-4aae-8bcc-a9ef11ddef09).
+F1 is the [Bourns SF-1206SA200M-2](https://www.bourns.com/docs/product-datasheets/sf-1206sa-m.pdf):
+2 A slow-blow, 65 VDC, 50 A interrupt rating, maximum 5 s clearing at 5 A and 25°C.
+Mouser's short description says 35 V; use the manufacturer's 65 VDC specification.
+The dedicated footprint uses 1.45 × 1.80 mm pads and a 1.50 mm gap. Typical
+cold-resistance loss at the 1.056 A design load is 0.148 V / 0.156 W; thermal
+derating and first-board qualification are in the
+[power budget](../manufacturing/verification/power-budget.json).
+Do not replace it with F2's 0.8 A fuse or a resettable PTC.
 
 ## Assembly items outside the soldered component BOM
 
@@ -166,4 +167,4 @@ source hashes are recorded below; if the PCB/BOM changes, regenerate/reconcile t
 purchase list before reuse. Stock pages should be rechecked at order time.
 
 - `manufacturing/display-adapter-rev-E/bom-all.csv`: `d5a7767cd17b775a20798eca16c5544435ac585152db53b07fc0ae5ac9c478a6`
-- `manufacturing/giga-adapter-rev-D/bom-all.csv`: `45707a749848babcfde0896e527d6be066bae138784e494b6d7b8103ac199821`
+- `manufacturing/giga-adapter-rev-D/bom-all.csv`: `a5f20000eadd1f6c4a79689be702ca5a58a54c74aebfe44b8f2f2f918540cd5f`

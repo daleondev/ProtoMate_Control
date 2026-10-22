@@ -34,6 +34,15 @@ def main():
              for name in ['display-adapter', 'giga-adapter']}
     boards = {name: k.LoadBoard(str(path)) for name, path in paths.items()}
     g = boards['giga-adapter']
+    # F1's manufacturer land pattern must not be conflated with F2's stock 1206.
+    f1 = next(f for f in g.GetFootprints() if f.GetReference() == 'F1')
+    assert f1.GetField('MPN').GetText() == 'SF-1206SA200M-2'
+    assert str(f1.GetFPID().GetLibItemName()) == 'Fuse_Bourns_SF-1206SA-M'
+    fuse_pads = sorted(f1.Pads(), key=lambda p: p.GetNumber())
+    assert len(fuse_pads) == 2
+    assert all(xy(p.GetSize()) == (1.45, 1.8) for p in fuse_pads)
+    spacing = abs(k.ToMM(fuse_pads[1].GetPosition().x-fuse_pads[0].GetPosition().x))
+    assert abs(spacing-2.95) < .000001
     routes = []
     # Actual copper paths, independently of the pad net labels.
     for name, start, end in [
@@ -80,6 +89,8 @@ def main():
     report = dict(result='PASS — routed power connectivity and geometry',
         source_sha256={name: hashlib.sha256(p.read_bytes()).hexdigest() for name,p in paths.items()},
         routes=routes, fused_input_minimum_track_width_mm=.6,
+        input_fuse=dict(mpn='SF-1206SA200M-2',pad_size_mm=[1.45,1.8],
+                        pad_centre_spacing_mm=spacing,gap_mm=1.5),
         RTN_thermal_vias=len(thermal), RTN_zone_area_mm2=thermal_area,
         backlight_contacts=[5,6,7,8], TFT_contact=10, touch_contact=49,
         ground_isolation='RTN is separate from GND; verified by fresh-fill DRC and schematic parity.',

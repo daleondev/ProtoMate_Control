@@ -161,7 +161,7 @@ def main():
             archive(folder, releases / (folder.name + '-aisler-review.zip'))
 
         folder = temporary / ('smartwin-giga-rev-' + REVISION)
-        for part in [*names, 'libraries', 'references', 'tools', 'assembly']:
+        for part in [*names, 'libraries', 'references', 'tools', 'assembly', 'procurement']:
             copy_tree(ROOT / part, folder / part)
         for item in ['README.md', 'cable-specification.pdf', 'connections.csv', 'cable-conductors.csv', '.gitignore']:
             shutil.copy2(ROOT / item, folder / item)

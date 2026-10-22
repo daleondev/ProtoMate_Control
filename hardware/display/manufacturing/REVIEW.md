@@ -21,6 +21,13 @@ a 5.5 × 2.1 mm centre-positive 24 V plug; both sleeve-related pins are grounded
 The local input-protection placement and power routing clear the jack body and
 its three plated slots. The electrical protection circuit is unchanged.
 
+F1 is **SF-1206SA200M-2**, 2 A / 65 VDC slow-blow with a 50 A interrupt rating.
+Its dedicated 1206 footprint follows Bourns' 1.45 × 1.80 mm land pattern with a
+1.50 mm gap; F2 retains its separate footprint and rating. The input-fuse budget
+includes 0.140 Ω typical cold resistance (±25%) and approximate 55°C derating,
+with an additional 25% continuous-load margin. Startup and fault-clearing tests
+remain first-board checks; cold resistance does not bound hot-state dissipation.
+
 The display's power domains are separated:
 
 - **TSR 2-2433** supplies only the four backlight contacts, with 188 µF nominal

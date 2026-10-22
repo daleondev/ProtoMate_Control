@@ -1,0 +1,147 @@
+(footprint "Fuse_Bourns_SF-1206SA-M"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "Bourns SF-1206SA-M datasheet p3 recommended land pattern; nominal body 3.2x1.6x0.85mm")
+	(tags "fuse")
+	(property "Reference" "REF**"
+		(at 0 -1.83 0)
+		(layer "F.SilkS")
+		(uuid "34cb31e2-da22-425a-a012-55353439c82a")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "Fuse_Bourns_SF-1206SA-M"
+		(at 0 1.83 0)
+		(layer "F.Fab")
+		(uuid "d86c9dbf-09b0-4532-be37-152540926abc")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "fce1fd96-7183-4820-89e3-95404257f226")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "5662726f-e9a0-49ce-b4cd-204097c56cf9")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "KiLib_Generator" "SMD_2terminal_chip_molded"
+		(at 0 0 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "5d4483a3-b679-407c-b3ea-23669afb6bb5")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -0.5 -0.91)
+		(end 0.5 -0.91)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "0b3969aa-2f1b-4c2c-aae2-38576820aca9")
+	)
+	(fp_line
+		(start -0.5 0.91)
+		(end 0.5 0.91)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "38c8ad32-6e5c-4dca-9a4e-a176bda198d5")
+	)
+	(fp_rect
+		(start -2.45 -1.15)
+		(end 2.45 1.15)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "8be5ace8-63b7-4d47-a7d6-2dd7268e1bab")
+	)
+	(fp_rect
+		(start -1.6 -0.8)
+		(end 1.6 0.8)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "ae52a81e-c1e8-4689-b414-0aabc8aa5771")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "41a16688-ac88-46e2-a79a-fc9eb8a9ef03")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.12)
+			)
+		)
+	)
+	(pad "1" smd roundrect
+		(at -1.475 0)
+		(size 1.45 1.8)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(solder_mask_margin 0)
+		(uuid "66f704c3-ac04-47e6-abbe-7ce62a1d708e")
+	)
+	(pad "2" smd roundrect
+		(at 1.475 0)
+		(size 1.45 1.8)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(solder_mask_margin 0)
+		(uuid "98784532-c4be-4a38-a28a-4bce0dedfb03")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/../libraries/3dmodels/Fuse_Bourns_SF-1206SA-M.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

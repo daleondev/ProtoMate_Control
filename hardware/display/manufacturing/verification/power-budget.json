@@ -19,6 +19,33 @@
     "GIGA_VIN_A_at_12V": 0.75
   },
   "combined_input_A_at_18V_80percent_efficiency": 1.05625,
+  "input_fuse": {
+    "reference": "F1",
+    "mpn": "SF-1206SA200M-2",
+    "rated_current_A": 2,
+    "rated_voltage_VDC": 65,
+    "interrupting_capacity_A_at_rated_voltage": 50,
+    "clearing_time_max_s_at_5A_25C": 5,
+    "cold_resistance_typical_ohm": 0.14,
+    "cold_resistance_tolerance_percent": 25,
+    "drop_at_budget_load_typical_V": 0.147875,
+    "dissipation_at_budget_load_typical_W": 0.15619296875,
+    "drop_at_budget_load_upper_cold_resistance_V": 0.18484375,
+    "dissipation_at_budget_load_upper_cold_resistance_W": 0.1952412109375,
+    "ambient_budget_C": 55,
+    "thermal_derating_factor_approx": 0.925,
+    "additional_continuous_load_factor": 0.75,
+    "continuous_load_budget_A": 1.3875000000000002,
+    "land_pattern_mm": {
+      "pad_size": [
+        1.45,
+        1.8
+      ],
+      "pad_centre_spacing": 2.95,
+      "gap": 1.5
+    },
+    "qualification": "Cold-resistance estimates, not hot-state guarantees. Verify temperature, startup and fault clearing on first hardware. Source prospective short-circuit current must not exceed the fuse interrupt rating."
+  },
   "display_input_A_at_18V_80percent_efficiency": 0.4312499999999999,
   "FFC_power_current_per_contact_A": 0.21562499999999996,
   "FFC_24V_drop_allowance_V": 0.08984375,

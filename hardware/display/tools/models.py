@@ -13,6 +13,10 @@ DEST=ROOT/'libraries/3dmodels'
 def box(x,y,z,w,d,h):return Part.makeBox(w,d,h,A.Vector(x,y,z))
 def save(name,shapes):Part.makeCompound(shapes).exportStep(str(DEST/(name+'.step')))
 
+# Bourns SF-1206SA-M p3 nominal body and 0.51mm end caps; drawing-based envelope.
+save('Fuse_Bourns_SF-1206SA-M',[box(-1.6,-.8,0,.51,1.6,.85),
+    box(-1.09,-.8,0,2.18,1.6,.85),box(1.09,-.8,0,.51,1.6,.85)])
+
 # KiCad STEP coordinates have +Y up, opposite the footprint editor.
 # FH28H: rear solder tails at y=0, insertion toward +Y, contact 1 on +X.
 shell=box(-22.45,.55,0,44.9,6,2.55)

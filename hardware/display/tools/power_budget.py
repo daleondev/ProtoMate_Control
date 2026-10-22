@@ -15,6 +15,11 @@ def main():
     bkl,logic,giga=1.2,.45,.75
     display_input=(3.3*bkl+5*logic)/(18*.8)
     total_input=display_input+12*giga/(18*.8)
+    # SF-1206SA200M-2: 0.140 ohm typical cold resistance, +/-25%.
+    # Approximate p3 derating at 55C: 92.5%; retain a further 25% load margin.
+    fuse_resistance=.140
+    fuse_continuous_budget=2*.925*.75
+    assert total_input<fuse_continuous_budget
     cable_feed_ohm=.0175*.1/.0105/2*1.3
     # TPS7A91 1% over line/load/temperature; divider initial tolerance,
     # independent 25ppm/K drift over 100K from 25C, and FB leakage.
@@ -45,6 +50,18 @@ def main():
       'efuse_typical_current_limit_A':12000/8060,
       'allocated_loads':{'backlight_A_max_contact_ceiling':bkl,'logic_A':logic,'GIGA_VIN_A_at_12V':giga},
       'combined_input_A_at_18V_80percent_efficiency':total_input,
+      'input_fuse':{'reference':'F1','mpn':'SF-1206SA200M-2',
+        'rated_current_A':2,'rated_voltage_VDC':65,'interrupting_capacity_A_at_rated_voltage':50,
+        'clearing_time_max_s_at_5A_25C':5,
+        'cold_resistance_typical_ohm':fuse_resistance,'cold_resistance_tolerance_percent':25,
+        'drop_at_budget_load_typical_V':total_input*fuse_resistance,
+        'dissipation_at_budget_load_typical_W':total_input**2*fuse_resistance,
+        'drop_at_budget_load_upper_cold_resistance_V':total_input*fuse_resistance*1.25,
+        'dissipation_at_budget_load_upper_cold_resistance_W':total_input**2*fuse_resistance*1.25,
+        'ambient_budget_C':55,'thermal_derating_factor_approx':.925,
+        'additional_continuous_load_factor':.75,'continuous_load_budget_A':fuse_continuous_budget,
+        'land_pattern_mm':{'pad_size':[1.45,1.8],'pad_centre_spacing':2.95,'gap':1.5},
+        'qualification':'Cold-resistance estimates, not hot-state guarantees. Verify temperature, startup and fault clearing on first hardware. Source prospective short-circuit current must not exceed the fuse interrupt rating.'},
       'display_input_A_at_18V_80percent_efficiency':display_input,
       'FFC_power_current_per_contact_A':display_input/2,
       'FFC_24V_drop_allowance_V':display_input*(cable_feed_ohm+.1),

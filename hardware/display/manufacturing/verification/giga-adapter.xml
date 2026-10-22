@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>/home/david/Dokumente/ProtoMate_Control/hardware/display/giga-adapter/giga-adapter.kicad_sch</source>
-    <date>2026-10-22T13:15:30</date>
+    <date>2026-10-22T14:54:05</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -3169,19 +3169,20 @@
       </units>
     </comp>
     <comp ref="F1">
-      <value>2A / 63V time-lag</value>
-      <footprint>DisplayAdapter:Fuse_1206_3216Metric</footprint>
+      <value>2A / 65V time-lag</value>
+      <footprint>DisplayAdapter:Fuse_Bourns_SF-1206SA-M</footprint>
+      <datasheet>https://www.bourns.com/docs/product-datasheets/sf-1206sa-m.pdf</datasheet>
       <fields>
         <field name="Manufacturer">Bourns</field>
-        <field name="MPN">SF-1206S200-2</field>
+        <field name="MPN">SF-1206SA200M-2</field>
         <field name="Assembly">SMT</field>
-        <field name="Footprint">DisplayAdapter:Fuse_1206_3216Metric</field>
-        <field name="Datasheet"/>
+        <field name="Footprint">DisplayAdapter:Fuse_Bourns_SF-1206SA-M</field>
+        <field name="Datasheet">https://www.bourns.com/docs/product-datasheets/sf-1206sa-m.pdf</field>
         <field name="Description"/>
       </fields>
       <libsource lib="DisplayAdapter" part="FUSE2A" description=""/>
       <property name="Manufacturer" value="Bourns"/>
-      <property name="MPN" value="SF-1206S200-2"/>
+      <property name="MPN" value="SF-1206SA200M-2"/>
       <property name="Assembly" value="SMT"/>
       <property name="Sheetname" value="power_input"/>
       <property name="Sheetfile" value="power_input.kicad_sch"/>
@@ -4195,7 +4196,7 @@
     <libpart lib="DisplayAdapter" part="FUSE2A">
       <fields>
         <field name="Reference">F</field>
-        <field name="Value">2A / 63V time-lag</field>
+        <field name="Value">2A / 65V time-lag</field>
         <field name="Footprint"/>
         <field name="Datasheet"/>
         <field name="Description"/>

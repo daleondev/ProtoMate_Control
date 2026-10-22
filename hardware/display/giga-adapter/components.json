@@ -2200,10 +2200,10 @@
   {
     "ref": "F1",
     "kind": "FUSE2A",
-    "value": "2A / 63V time-lag",
+    "value": "2A / 65V time-lag",
     "mfr": "Bourns",
-    "mpn": "SF-1206S200-2",
-    "footprint": "Fuse_1206_3216Metric",
+    "mpn": "SF-1206SA200M-2",
+    "footprint": "Fuse_Bourns_SF-1206SA-M",
     "nets": {
       "1": "+24V_INPUT",
       "2": "+24V_FUSED"

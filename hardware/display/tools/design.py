@@ -112,7 +112,7 @@ PARTS = {
  'EFUSE': ('TPS26600PWPR','Texas Instruments','TPS26600PWPR','HTSSOP-16_PWP0016A_EP3.3x3.3mm'),
  'TVS': ('33V bidirectional TVS','Littelfuse','SMBJ33CA','D_SMB'),
  'SCHOTTKY': ('60V / 3A Schottky','Diodes Incorporated','B360A-13-F','D_SMA'),
- 'FUSE2A': ('2A / 63V time-lag','Bourns','SF-1206S200-2','Fuse_1206_3216Metric'),
+ 'FUSE2A': ('2A / 65V time-lag','Bourns','SF-1206SA200M-2','Fuse_Bourns_SF-1206SA-M'),
  'FUSE800M': ('0.8A / 63V time-lag','Bourns','SF-1206S080-2','Fuse_1206_3216Metric'),
  'POWER': ('DC-005 / 24V centre+','Sourcing Map','DC-005 / B07J4Z8B2T','BarrelJack_Horizontal_AISLER'),
  'C100N50': ('100n / 50V X7R','Murata','GRM188R71H104KA93D','C_0603_1608Metric'),

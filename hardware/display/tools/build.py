@@ -24,6 +24,20 @@ def q(s): return json.dumps(str(s))
 def mm(v): return k.FromMM(float(v))
 def point(x,y): return k.VECTOR2I(mm(x),mm(y))
 
+def fuse_2a_pattern(text):
+    """Bourns SF-1206SA-M p3: 1.45 x 1.80 pads, 1.50 gap; F2 is separate."""
+    text=text.replace('Fuse_1206_3216Metric','Fuse_Bourns_SF-1206SA-M')
+    text=re.sub(r'\(descr "[^"]*"\)',
+        '(descr "Bourns SF-1206SA-M datasheet p3 recommended land pattern; nominal body 3.2x1.6x0.85mm")',text,count=1)
+    text=text.replace('(at -1.4 0)','(at -1.475 0)').replace('(at 1.4 0)','(at 1.475 0)')
+    text=text.replace('(size 1.25 1.75)','(size 1.45 1.8)')
+    text=text.replace('(start -2.28 -1.13)','(start -2.45 -1.15)').replace('(end 2.28 1.13)','(end 2.45 1.15)')
+    # Leave enough silk-to-pad clearance after increasing the pad width.
+    text=text.replace('-0.602064 ', '-0.5 ').replace('0.602064 ', '0.5 ')
+    text=re.sub(r'\(model "[^"]*"',
+        '(model "${KIPRJMOD}/../libraries/3dmodels/Fuse_Bourns_SF-1206SA-M.step"',text)
+    return text
+
 def fp_text(name, pads, outline, desc, model=None, attr='smd'):
     x0,y0,x1,y1=outline
     s=f'''(footprint {q(name)} (version 20260206) (generator pcbnew) (layer "F.Cu")
@@ -49,10 +63,12 @@ def fp_text(name, pads, outline, desc, model=None, attr='smd'):
 def footprints():
     for kind,(_,_,_,name) in PARTS.items():
         if kind in ['FFC','DF23','POWER','TP']:continue
-        stock='HTSSOP-16-1EP_4.4x5mm_P0.65mm_EP3x3mm' if kind=='EFUSE' else 'Converter_DCDC_TRACO_TSR-1_THT' if kind=='BUCK5' else 'SOT-23-6' if kind=='SUPERVISOR' else name
+        stock='Fuse_1206_3216Metric' if kind=='FUSE2A' else 'HTSSOP-16-1EP_4.4x5mm_P0.65mm_EP3x3mm' if kind=='EFUSE' else 'Converter_DCDC_TRACO_TSR-1_THT' if kind=='BUCK5' else 'SOT-23-6' if kind=='SUPERVISOR' else name
         paths=list(Path('/usr/share/kicad/footprints').glob(f'*.pretty/{stock}.kicad_mod'))
         assert len(paths)==1,(kind,name,paths)
         text=paths[0].read_text()
+        if kind=='FUSE2A':
+            text=fuse_2a_pattern(text)
         if kind=='SUPERVISOR':
             text=text.replace('(footprint "'+stock+'"','(footprint "'+name+'"',1)
         if kind=='BUCK5':
@@ -222,6 +238,8 @@ def schematic(which,parts):
             bom='no' if p['assembly']=='PCB' else 'yes'
             s+=f'(symbol (lib_id "DisplayAdapter:{name}") (at {x} {y} 0) (unit 1) (in_bom {bom}) (on_board yes) (dnp no) (uuid "{pid}")'
             properties=[('Reference',p['ref'],-h-4,False),('Value',p['value'],-h-2,False),('Footprint','DisplayAdapter:'+p['footprint'],0,True),('Manufacturer',p['mfr'],0,True),('MPN',p['mpn'],0,True),('Assembly',p['assembly'],0,True)]
+            if p['kind']=='FUSE2A':
+                properties.append(('Datasheet','https://www.bourns.com/docs/product-datasheets/sf-1206sa-m.pdf',0,True))
             if p['kind']=='POWER':
                 properties.extend([('Datasheet','https://www.amazon.de/dp/B07J4Z8B2T',0,True),
                     ('Description','Sourcing Map right-angle PCB DC barrel jack, 5.5 mm outer / 2.1 mm inner, three terminals',0,True)])
@@ -271,6 +289,8 @@ def board(which,parts):
         f=k.FootprintLoad(str(LIB),p['footprint']);assert f,p['footprint']
         b.Add(f)
         f.SetReference(p['ref']);f.SetValue(p['value']);f.SetFPID(k.LIB_ID('DisplayAdapter',p['footprint']))
+        if p['kind']=='FUSE2A':
+            f.GetField('Datasheet').SetText('https://www.bourns.com/docs/product-datasheets/sf-1206sa-m.pdf')
         f.SetPath(k.KIID_PATH('/'+uid(which)+'/'+p['sheet_uuid']+'/'+p['uuid']))
         x,y,rot,side=p['pos'];f.SetPosition(point(x,y));f.SetOrientationDegrees(rot)
         if side=='B':f.Flip(point(x,y),False)

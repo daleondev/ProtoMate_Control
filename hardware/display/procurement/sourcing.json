@@ -292,16 +292,16 @@
       "notes": "User already has the jack. Required on GIGA J10; purchase quantity zero."
     },
     {
-      "original_mpn": "SF-1206S200-2",
-      "purchase_mpn": "SF-1206S200-2",
+      "original_mpn": "SF-1206SA200M-2",
+      "purchase_mpn": "SF-1206SA200M-2",
       "purchase_manufacturer": "Bourns",
-      "mouser_sku": "652-SF-1206S200-2",
-      "observed_stock": 0,
-      "status": "backorder",
-      "source_age": "6 days ago",
-      "source_url": "https://www.mouser.com/en/ProductDetail/Bourns/SF-1206S200-2?qs=GIQXYiEeHGCJory%252B0WHOSw%3D%3D",
+      "mouser_sku": "652-SF-1206SA200M-2",
+      "observed_stock": 15000,
+      "status": "stock-indexed",
+      "source_age": "last month",
+      "source_url": "https://hu.mouser.com/en/ProductDetail/Bourns/SF-1206SA200M-2?qs=ljCeji4nMDm8iHTYJACKFQ%3D%3D",
       "checked_on": "2026-10-22",
-      "notes": "2 A / 63 V time-lag 1206. Indexed incoming shipment 2026-11-30; not guaranteed. Retain exact fuse; alternative time-lag curves differ."
+      "notes": "2 A / 65 VDC slow-blow; 50 A interrupt rating. Dedicated Bourns 1206 land pattern. Manufacturer datasheet overrides Mouser short description of 35 V. See input-fuse power budget; stock is indexed, not live confirmed."
     },
     {
       "original_mpn": "SMBJ33CA",

@@ -101,7 +101,11 @@ both GIGA and the display; the display adapter has no separate power terminal.
   interface current, while the backlight's 3.3 V current stays on the display
   board. All grounds are common.
 
-Shield F1 is a **2 A/63 V time-lag fuse** and D1 a bidirectional **SMBJ33CA** TVS.
+Shield F1 is a **Bourns SF-1206SA200M-2, 2 A/65 V time-lag fuse** and D1 a
+bidirectional **SMBJ33CA** TVS. F1 uses Bourns' 1.45 × 1.80 mm pads with a
+1.50 mm gap. At the 1.056 A input-load budget its typical cold resistance gives
+0.148 V drop and 0.156 W dissipation; see the temperature/loading allowance in
+[`power-budget.json`](manufacturing/verification/power-budget.json).
 U7 **TPS26600PWPR** provides reverse-polarity/reverse-current protection,
 undervoltage and overvoltage cutoff, controlled inrush and current limiting.
 The dividers set nominal startup at **18.2 V** and overvoltage cutoff at
