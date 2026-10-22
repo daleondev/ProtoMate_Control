@@ -1,7 +1,7 @@
 {
-  "reviewed_utc": "2026-10-21T22:09:39+00:00",
+  "reviewed_utc": "2026-10-22T10:00:51+00:00",
   "decision": "LOCAL PROTOTYPE FABRICATION CHECKS PASS; AISLER CAM review required before order; assembled-system operation is unverified.",
-  "scope": "Current display-E/GIGA-D copper, connectivity and manufacturing exports. Component identities, pad nets, placement and connector locations match the schematics. The retained component/datasheet review remains applicable. Routing, ground returns, geometry, power losses, timing estimates and exports are checked against the exact source hashes below.",
+  "scope": "Current display-E/GIGA-D sources and exports, including the supplied DC-005 barrel jack, centre-positive wiring, local input-protection placement, plated slots and polarity markings. Other component and interface reviews remain applicable. No physical or supplier-lot qualification is implied.",
   "boards": {
     "display-adapter": {
       "revision": "E",
@@ -20,7 +20,7 @@
       "evidence_sha256": {
         "display-adapter-erc.json": "0c8d93f429ef1bbb6be6fd967001533b16f4bc206e5733c031250cd26a9658aa",
         "display-adapter-drc.json": "bd3b77fbadd6f0cdb2db39ee18ae87b29e6351d2cfff810146e5a0265fd6f748",
-        "display-adapter-aisler-audit.json": "b3352281b9b8e51a4be4bb607dd69e791ca82e2b480644d3be4cab8b4300b6be",
+        "display-adapter-aisler-audit.json": "0364a86172806d244e986562c8251857d02311b663984e0a1a8f83fce874b1ca",
         "display-adapter-odb-audit.json": "3115c62c1fadcc62207e3eb4b7466466210f07c0ed89dcfec3683fe39bf2e66f",
         "display-adapter-gerber-audit.json": "e99670e4ff9ed483cac2668aba412a47bfe4a8c239c36244d7f224f056000568",
         "display-adapter-bom-placement.json": "4d256c92e830feb3694688ebaa5279f9903aa9db733c543f009cce4390899495"
@@ -30,36 +30,54 @@
         "ground_track_segments": 0,
         "isolated_RTN_track_segments": 0,
         "through_vias": 209
-      }
+      },
+      "plated_slots_checked": []
     },
     "giga-adapter": {
       "revision": "D",
       "upload": "giga-adapter-rev-D-aisler-odb.zip",
-      "upload_sha256": "8ba8d9ee6fe90175a6b783049f2d50d06aaaadc3b3bbb1a7930454312e41c532",
-      "PCB_sha256": "aee58e90adab326538b00a1533a128f76991e4975965f6053c4a3a276963eba6",
+      "upload_sha256": "05763214bd025e7f7d217d6539cfb840daae06f6a7eea9978d7f73271a7e51f4",
+      "PCB_sha256": "9da8fde2ef3f8ccbd85e86a4b3c4b8c44fc8bf6d18fe550c4c13aa52b65e658c",
       "ERC_violations": 0,
       "DRC_violations": 0,
       "unrouted_connections": 0,
       "schematic_parity_violations": 0,
       "waivers": [],
-      "exported_pad_coordinates_and_nets_checked": 646,
-      "drill_hits_checked": 347,
+      "exported_pad_coordinates_and_nets_checked": 648,
+      "drill_hits_checked": 352,
       "minimum_processed_fine_pitch_pad_mask_web_mm": 0.15999999999999928,
       "minimum_processed_connector_to_via_mask_web_mm": 0.1136999999999864,
       "evidence_sha256": {
-        "giga-adapter-erc.json": "8a529417ba7b8136d9fc982e3b6e373047891623860eee7dbd9291c81b006f1e",
-        "giga-adapter-drc.json": "a0c5cced53af97255e8e7ffac300863ce955731427225c5d243cf1d1ab664f97",
-        "giga-adapter-aisler-audit.json": "a794a13236984642e571d1da85934455b1dd7b3e44da036c03e2cd84305c0645",
-        "giga-adapter-odb-audit.json": "688dab5311a6bc19e3bebaa7f0cfcc086af58c99a576088ffecdb657957320a2",
-        "giga-adapter-gerber-audit.json": "411df130225284c26ca0667de415bb7038074fadc9fd74f49c0a1791e2d6585b",
+        "giga-adapter-erc.json": "d6a036c3c8e3685a5b5fdad7145f58a6d29d65c5c56a633b71fa76887e1e725a",
+        "giga-adapter-drc.json": "07de88684e24693b3916928fd5a98b7c4ab2358e4ef2b54bec354a0357c23c42",
+        "giga-adapter-aisler-audit.json": "01c8d040cb70aadaca35caadedda52e8492d375e6cf0982dd5c876b4c4e21313",
+        "giga-adapter-odb-audit.json": "3cdc75da80c3682ce1f1b29bf8766c3c17273fd2eef136e24d4c79fada2ca676",
+        "giga-adapter-gerber-audit.json": "396a5d800551c75b42486432a0e5c679dae28d92b73df8091d018b8642c5a8cc",
         "giga-adapter-bom-placement.json": "2e6fbb07eb20f130e4de02e5f669041feaced99e591249384f69e57f09ed5680"
       },
       "routing_inventory": {
-        "track_segments": 1377,
+        "track_segments": 1387,
         "ground_track_segments": 110,
-        "isolated_RTN_track_segments": 4,
-        "through_vias": 228
-      }
+        "isolated_RTN_track_segments": 7,
+        "through_vias": 232
+      },
+      "plated_slots_checked": [
+        {
+          "pad": "J10.1",
+          "width_mm": 1.2,
+          "length_mm": 3.9999999999999973
+        },
+        {
+          "pad": "J10.2",
+          "width_mm": 1.2,
+          "length_mm": 3.5999999999999988
+        },
+        {
+          "pad": "J10.3",
+          "width_mm": 1.2,
+          "length_mm": 3.9999999999999973
+        }
+      ]
     }
   },
   "manual_electrical_checks": [
@@ -107,6 +125,11 @@
       "circuit": "Display control timing",
       "result": "PASS for configuration; analog timing pending",
       "evidence": "Smartwin p18 samples falling PCLK; STM32 DS12930 Fig49 with PCPOL=1 changes data on rising edge. DEPOL=0 produces active-high external DE (AN4861/RM0399). 40.96MHz/1120/610 complies with supplied DE timing range. Backlight waits 200ms after standby plus a valid scan boundary."
+    },
+    {
+      "circuit": "24V barrel input",
+      "result": "PASS \u2014 circuit/geometry/export checks",
+      "evidence": "J10 supplied DC-005 footprint: centre/pin1 = +24V_INPUT through F1; sleeve and sleeve switch/pins2/3 = GND. Original fuse, eFuse and protection circuit retained. Three 1.2mm plated slots independently compared in source, Excellon and ODB++; footprint pad dimensions preserved. Exact jack/plug rating must meet 30VDC/2A; supplier-lot rating and fit are not established by the footprint."
     }
   ],
   "manual_mechanical_export_checks": [
@@ -121,11 +144,11 @@
   "remaining_conditions": [
     {
       "stage": "Before ordering",
-      "condition": "Inspect AISLER CAM preview for these exact ODB archives: 4 layers, ENIG, 1.6mm, outline, drills, bridges and fine-pitch mask. No AISLER job has been uploaded here."
+      "condition": "Inspect AISLER CAM preview for these exact ODB archives: 4 layers, ENIG, 1.6mm, outline, drills including three J10 plated slots, bridges and fine-pitch mask. No AISLER job has been uploaded here."
     },
     {
       "stage": "Procurement",
-      "condition": "Confirm a supplier can make or supply the revision-E 80-way gold-contact Type-A FFC and the exact connectors/stacking headers. No exact cable MPN is qualified."
+      "condition": "Source the specified 80-way gold-contact Type-A FFC and exact connectors/stacking headers. For J10 use the supplied DC-005 geometry and centre-positive 5.5/2.1mm plug with a documented rating of at least 30VDC/2A. The footprint does not qualify a supplier lot or contact rating."
     },
     {
       "stage": "Assembly",
@@ -147,12 +170,12 @@
   "order_placed": false,
   "physical_testing_performed": false,
   "evidence_sha256": {
-    "electrical-audit.json": "7de71ebcabffbf645e820466e1e5e391e066454e9019ef91da8a998ba1ccd78c",
+    "electrical-audit.json": "aa649529dc9e40da0c28c798f4a8abc775b46b259b36b4a6daaabfe272d8bfad",
     "power-routing.json": "8177c0d582f0b04d3694785f52f0a4a0c473d0478a2d97f75a26f4f2db2fcfae",
     "power-budget.json": "833e061d9c1780a4ea34b78ca1eb3799ba15f3812e70a40777c20dc4a8fe9c9b",
-    "power-review.json": "31de18c63b002b82c73738093732f092affe66c08c0dcfc7d4a14fa47631ad60",
+    "power-review.json": "2c3e90b75736823bd079aaf5163b73485b6a13c559b25421d6ad161ea8a67c93",
     "timing-budget.json": "ac66912afc24c3b2d2c184dda5b9d99f86904f14cd6af4ad970ae452293a69a3",
-    "mechanical-audit.json": "67c390763095eb7a41d886250ff675c7ebc1b6c519c5f97ba04ff5e906e01c21"
+    "mechanical-audit.json": "befee2bbe3c55ec857a1f9bb755bd27f1dbefbd8fb912af0d42cf8a7be6cdcc3"
   },
-  "routing": "Straight trace runs with deliberate corners. Display GND uses filled copper planes and stitching vias, with no GND tracks. GIGA retains required component-to-plane escapes and the isolated eFuse RTN connections. Copper-covered and duplicate traces are omitted. Local display ground pours at C16 and U6 have direct through-via connections to the ground plane."
+  "routing": "Straight power input routes from J10 through F1 and the eFuse. Display GND uses filled planes and stitching vias without separate GND tracks. GIGA retains required component-to-plane escapes and the isolated eFuse RTN thermal connections. Display signals and GIGA header assignments are unchanged."
 }

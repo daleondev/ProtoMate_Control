@@ -147,7 +147,8 @@ def main():
     assert 'PI1' not in RESERVED
     assert config['RCC.LTDCFreq_Value']=='40960000'
     assert config['LTDC.TotalWidth']=='1119' and config['LTDC.TotalHeigh']=='609'
-    assert g['J10','1']==g['F1','1']=='+24V_INPUT' and g['J10','2']=='GND'
+    assert g['J10','1']==g['F1','1']=='+24V_INPUT'
+    assert g['J10','2']==g['J10','3']=='GND'
     assert g['F1','2']==g['D1','1']==g['U7','1']==g['U7','2']=='+24V_FUSED'
     assert g['U7','15']==g['U7','16']==g['U8','1']==g['F2','1']=='+24V_PROTECTED'
     assert g['F2','2']=='+24V_DISPLAY'

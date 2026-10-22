@@ -65,8 +65,10 @@ Do not manufacture a working-directory draft without its matching release ZIP.
 Both panel rails -> supervisors -> READY -> reset/standby/PWM gates + GIGA D70
 ```
 
-Connect the existing **regulated 24 V supply to shield J10: pin 1 = +24 V,
-pin 2 = GND**. Allow at least 2 A supply capacity for this assembly; the input
+Connect the existing **regulated 24 V supply to shield J10 with a centre-positive
+5.5 × 2.1 mm barrel plug**. J10 uses the supplied `BarrelJack_Horizontal_AISLER`
+DC-005 footprint: pin 1 = +24 V; pins 2 and 3 = GND (sleeve and sleeve switch;
+plug detection is unused). Allow at least 2 A supply capacity for this assembly; the input
 protection limits combined current to approximately 1.49 A. The recommended
 supply range is 24 V ±10%. Keep grounds common with the robot. This input powers
 both GIGA and the display; the display adapter has no separate power terminal.
@@ -242,9 +244,17 @@ DF23 and both FFC connectors require particular care. U1/U2 on the display adapt
 and J2–J10 plus U8 on the GIGA adapter are marked **HAND** in the full BOM; the
 SMD-only BOM and placement file are assembly aids, not an AISLER assembly order. Solder stacking headers with a mechanical jig or
 an unpowered GIGA used only as an alignment fixture; avoid heating the board's
-existing sockets unnecessarily. Fit shield J10 with its wire opening
+existing sockets unnecessarily. Fit shield J10 with its barrel opening
 facing left into the central opening. Probe pads and mounting holes are PCB
 features, not purchased parts.
+
+J10 has three **plated slots**, 1.2 mm wide and 4.0 / 3.6 / 4.0 mm long.
+Its pad sizes preserve at least 0.30 mm annular copper. Check the three slots in
+AISLER's processed preview. The connector nose overhangs the service-cutout edge;
+all solder pads remain on the PCB. The BOM identifies the supplied Sourcing Map
+DC-005 variant by product reference B07J4Z8B2T.
+Use a jack and mating plug rated for at least 30 V DC and 2 A continuous;
+the supplied footprint establishes geometry, not a contact-current rating.
 
 After soldering display U1/U2, **clip their leads to at most 0.8 mm below the PCB**, without
 cutting into the solder joints. The local assembly model includes this trim.
@@ -254,11 +264,12 @@ This keeps the leads above the display flex's nominal 1.5 mm mating plane.
 and solder paste; edge-only iron soldering cannot solder its thermal pad.
 Inspect the joints before applying power. No filled or tented vias are needed.
 
-The local STEP models for Hirose connectors, terminal, converter/eFuse envelopes and stacking sockets are
+The local STEP models for Hirose connectors, converter/eFuse envelopes and stacking sockets are
 dimensioned mechanical envelopes derived from manufacturer drawings. They
 simplify latch/contact details and are labelled accordingly; they are not
 manufacturer production-tooling models. Standard IC/passive models and the
-official Arduino assembly are retained locally as well.
+official Arduino assembly are retained locally as well. The barrel jack uses the
+KiCad DC-005 envelope model; its terminal slots come from the supplied footprint.
 
 ## Timing and layout
 

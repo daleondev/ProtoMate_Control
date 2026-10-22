@@ -24,7 +24,10 @@ def main():
     Part.makeCompound(bodies).exportStep(str(models/'GIGA_outer_socket_envelopes.step'))
     giga=Part.read(str(models/'GIGA_R1_WIFI.step'))
     carrier=Part.read(str(ROOT/'manufacturing'/release_name('giga-adapter')/'giga-adapter.step'));carrier.translate(A.Vector(0,0,13))
-    combined=Part.makeCompound([giga,carrier,*bodies]);combined.exportStep(str(assembly/('giga-mated-rev-'+BOARDS['giga-adapter']['revision']+'.step')))
+    combined=Part.makeCompound([giga,carrier,*bodies])
+    mated=assembly/('giga-mated-rev-'+BOARDS['giga-adapter']['revision']+'.step')
+    combined.exportStep(str(mated))
+    mated.write_text('\n'.join(line.rstrip() for line in mated.read_text().splitlines())+'\n')
     # PCB copy for KiCad's renderer. Absolute model paths are only used in /tmp.
     b=k.LoadBoard(str(ROOT/'giga-adapter/giga-adapter.kicad_pcb'))
     for i,model in enumerate(['GIGA_R1_WIFI.step','GIGA_outer_socket_envelopes.step']):
@@ -52,6 +55,15 @@ def main():
                   display_trimmed_tail_clearance_at_minimum_mating_height_mm=.5,
                   concave_milling_radius_mm=.9,
                   mounting_effect='Mating separation is between PCB surfaces; thickness does not change DF23 engagement. The top-side envelope and header insertion vary with PCB thickness; enclosure and first-board fit checks remain required.')
+    jack=fps['J10']
+    assert str(jack.GetFPID().GetLibItemName())=='BarrelJack_Horizontal_AISLER'
+    assert abs(jack.GetOrientationDegrees())<.00001
+    assert (k.ToMM(jack.GetPosition().x),k.ToMM(jack.GetPosition().y))==(53,23)
+    result['input_jack']=dict(footprint='BarrelJack_Horizontal_AISLER',
+        plug='5.5 x 2.1mm, centre positive 24V',opening='left into service cutout',
+        nominal_body_mm=[14.5,9,11],nose_overhang_mm=2.7,
+        lead_clearance='THT leads remain within the 13mm carrier gap; support the carrier during plug insertion.',
+        qualification='User-supplied terminal geometry; retained KiCad envelope is not a supplier-lot fit or contact-rating qualification.')
     (ROOT/'manufacturing/verification/mechanical-audit.json').write_text(json.dumps(result,indent=2)+'\n')
 
 if __name__=='__main__':main()

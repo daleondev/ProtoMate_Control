@@ -2177,18 +2177,19 @@
   {
     "ref": "J10",
     "kind": "POWER",
-    "value": "24V INPUT",
-    "mfr": "Phoenix Contact",
-    "mpn": "1751248",
-    "footprint": "TerminalBlock_1x02_P3.50mm",
+    "value": "DC-005 / 24V centre+",
+    "mfr": "Sourcing Map",
+    "mpn": "DC-005 / B07J4Z8B2T",
+    "footprint": "BarrelJack_Horizontal_AISLER",
     "nets": {
       "1": "+24V_INPUT",
-      "2": "GND"
+      "2": "GND",
+      "3": "GND"
     },
     "pos": [
-      46,
+      53,
       23,
-      270,
+      0,
       "F"
     ],
     "page": "power_input",
@@ -2208,8 +2209,8 @@
       "2": "+24V_FUSED"
     },
     "pos": [
-      52.5,
-      26,
+      59,
+      21.1,
       0,
       "F"
     ],
@@ -2290,7 +2291,7 @@
     },
     "pos": [
       53,
-      16,
+      15.2,
       0,
       "F"
     ],
@@ -2312,7 +2313,7 @@
     },
     "pos": [
       46,
-      16,
+      15.4,
       0,
       "F"
     ],
@@ -2334,7 +2335,7 @@
     },
     "pos": [
       46,
-      18,
+      17.2,
       0,
       "F"
     ],
@@ -2355,8 +2356,8 @@
       "2": "PWR_OVP"
     },
     "pos": [
-      46,
-      20,
+      49,
+      10,
       0,
       "F"
     ],
@@ -2377,8 +2378,8 @@
       "2": "PWR_RTN"
     },
     "pos": [
-      50.5,
-      20,
+      53,
+      10,
       0,
       "F"
     ],

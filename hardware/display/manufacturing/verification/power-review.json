@@ -2,32 +2,32 @@
   "result": "PASS \u2014 routed power connectivity and geometry",
   "source_sha256": {
     "display-adapter": "3d48d790889b9b6d0b48618270c2a6e78ee82564ad5eaf6561dbc422cdc66094",
-    "giga-adapter": "aee58e90adab326538b00a1533a128f76991e4975965f6053c4a3a276963eba6"
+    "giga-adapter": "9da8fde2ef3f8ccbd85e86a4b3c4b8c44fc8bf6d18fe550c4c13aa52b65e658c"
   },
   "routes": [
     {
       "board": "giga-adapter",
       "start": "J10.1",
       "end": "F1.1",
-      "hot_copper_ohm": 0.006871194077712559
+      "hot_copper_ohm": 0.005835922915884621
     },
     {
       "board": "giga-adapter",
       "start": "F1.2",
       "end": "U7.1",
-      "hot_copper_ohm": 0.02620496258394901
+      "hot_copper_ohm": 0.041929872322934596
     },
     {
       "board": "giga-adapter",
       "start": "U7.16",
       "end": "U8.1",
-      "hot_copper_ohm": 0.012071330865713565
+      "hot_copper_ohm": 0.012214805709629954
     },
     {
       "board": "giga-adapter",
       "start": "U7.16",
       "end": "F2.1",
-      "hot_copper_ohm": 0.03373401110686209
+      "hot_copper_ohm": 0.033877485950778476
     },
     {
       "board": "giga-adapter",
@@ -111,8 +111,8 @@
   "fused_input_minimum_track_width_mm": 0.6,
   "RTN_thermal_vias": 4,
   "RTN_zone_area_mm2": {
-    "F.Cu": 23.392652069999023,
-    "B.Cu": 59.993584496
+    "F.Cu": 23.39265206999902,
+    "B.Cu": 58.202202374024
   },
   "backlight_contacts": [
     5,

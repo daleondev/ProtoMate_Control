@@ -39,6 +39,8 @@ def main():
             run([*args,pcb])
         run(['pcb','export','pos','--format','csv','--units','mm','--use-drill-file-origin','--smd-only','--exclude-dnp','-o',out/'placement.csv',pcb])
         run(['pcb','export','step','--force','--drill-origin','-o',out/(name+'.step'),pcb])
+        step=out/(name+'.step')
+        step.write_text('\n'.join(line.rstrip() for line in step.read_text().splitlines())+'\n')
         parts=json.loads((source/'components.json').read_text())
         grouped={}
         for p in parts:

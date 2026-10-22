@@ -74,7 +74,7 @@ AISLER processing acceptance is PENDING; these local exports are not proof of it
 SOLDERING
 All entries in bom-all.csv are FIT. Purchase/install components separately.
 bom-smd.csv, placement.csv and assembly-F/B.pdf are soldering/inspection aids.
-{'J1 DF23 is BOTTOM mounted. Clip U1/U2 tails to <=0.8 mm below the board. U3 WSON requires soldered exposed pad, using hot air/reflow.' if display else 'Carrier underside 13mm above GIGA; J2-J8 10mm tails, J9 14.83mm tails. J10 wire entry faces the service opening.'}
+{'J1 DF23 is BOTTOM mounted. Clip U1/U2 tails to <=0.8 mm below the board. U3 WSON requires soldered exposed pad, using hot air/reflow.' if display else 'Carrier underside 13mm above GIGA; J2-J8 10mm tails, J9 14.83mm tails. J10 DC-005 barrel jack faces the service opening: 24V centre positive, 5.5/2.1mm. Check three 1.2mm-wide plated slots, lengths 4.0/3.6/4.0mm.'}
 Use the exact Hirose suffixes and specified same-side-contact Type-A FFC.
 Disconnect power before connecting the cable. See design-guide.md and cable PDF.
 The FH28 paste windows follow Hirose's recommendation; stencil data is retained

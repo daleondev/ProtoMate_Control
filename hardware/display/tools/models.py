@@ -27,11 +27,8 @@ shell=box(-7,-1.55,0,14,3.1,1.2).cut(box(-6.35,-.85,.35,12.7,1.7,1.0))
 contacts=[box(-6+i*.5-.095,y,0,.19,.9,.15) for i in range(25) for y in [-2.15,1.25]]
 save('DF23C-50DP',[shell,*contacts])
 
-# Phoenix 1751248: 7.5 x 7.3 x 8.5 above PCB. Supplied tails are
-# 3.5mm; shown at their supplied length for the 1.6mm GIGA shield.
-body=box(-2,-3.9,0,7.5,7.3,8.5)
-for x in [0,3.5]:body=body.cut(box(x-1.2,-4,1,2.4,3,2.5))
-save('Terminal_2x3.5',[body,*[box(x-.25,-.45,-3.5,.5,.9,3.5) for x in [0,3.5]]])
+# J10 uses the retained KiCad BarrelJack_Horizontal STEP model and the
+# user-supplied DC-005 footprint; do not regenerate its terminal geometry.
 
 # TI PWP0016A: nominal HTSSOP body/lead envelope and exposed thermal pad.
 save('TPS26600-PWP0016A',[box(-2.2,-2.5,.1,4.4,5,1.1),box(-1.5,-1.5,0,3,3,.1),

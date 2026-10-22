@@ -3,7 +3,7 @@
   "board": "giga-adapter",
   "revision": "D",
   "upload_zip": "giga-adapter-rev-D-aisler-odb.zip",
-  "upload_sha256": "8ba8d9ee6fe90175a6b783049f2d50d06aaaadc3b3bbb1a7930454312e41c532",
+  "upload_sha256": "05763214bd025e7f7d217d6539cfb840daae06f6a7eea9978d7f73271a7e51f4",
   "copper_layers": [
     "F.CU",
     "IN1.CU",
@@ -12,11 +12,11 @@
   ],
   "pcb_profile_area_mm2": 4116.264605371729,
   "bridges_checked": 6,
-  "netlist_pad_contacts_checked": 531,
-  "drill_hits_checked": 347,
+  "netlist_pad_contacts_checked": 532,
+  "drill_hits_checked": 352,
   "mask_pad_openings_checked": {
-    "f": 535,
-    "b": 119
+    "f": 536,
+    "b": 120
   },
   "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
   "aisler_processing_acceptance": "PENDING"

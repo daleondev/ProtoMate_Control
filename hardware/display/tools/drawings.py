@@ -109,7 +109,7 @@ def fabrication(name):
         ]
         else:lines += [
             'J1 FH28H is TOP mounted, cable mouth facing the right board edge. Pin 1 is at the lower end when the board is viewed from the top. Check the silkscreen 1/80 markings.',
-            'J10 Phoenix 1751248: HAND solder, wire entry faces left into the central opening. Pin 1 = 24V INPUT, pin 2 = GND. U8 TSR 1-24120 is also HAND soldered; pin 1 = protected 24V, pin 2 = GND, pin 3 = 12V.',
+            'J10 DC-005: HAND solder, 5.5/2.1mm barrel opening faces left into the service cutout. CENTRE POSITIVE 24V: pin 1 = +24V, pins 2/3 = GND. Three plated slots: width 1.2mm, lengths 4.0/3.6/4.0mm. U8 TSR 1-24120 is also HAND soldered.',
             'U7 thermal pad and RTN belong to their own copper island; never solder-bridge them to GND. D1 is bidirectional; D2/D3 cathodes follow their band and pad 1.',
             'J2–J9 stacking headers are HAND soldered, sockets above the PCB and tails below. J2–J8: Samtec SSQ -03, 10 mm tails. J9: SSQ-112-04-G-D, 14.83 mm tails. Verify exact suffixes in the full BOM.',
             'GIGA top to carrier underside: 13.0 mm. Lower two mounting positions use M2 insulating support hardware; upper holes are alignment clearances without screw heads. Support the cable end independently.',

@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>/home/david/Dokumente/ProtoMate_Control/hardware/display/giga-adapter/giga-adapter.kicad_sch</source>
-    <date>2026-10-22T00:05:28</date>
+    <date>2026-10-22T11:58:05</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -3197,19 +3197,21 @@
       </units>
     </comp>
     <comp ref="J10">
-      <value>24V INPUT</value>
-      <footprint>DisplayAdapter:TerminalBlock_1x02_P3.50mm</footprint>
+      <value>DC-005 / 24V centre+</value>
+      <footprint>DisplayAdapter:BarrelJack_Horizontal_AISLER</footprint>
+      <datasheet>https://www.amazon.de/dp/B07J4Z8B2T</datasheet>
+      <description>Sourcing Map right-angle PCB DC barrel jack, 5.5 mm outer / 2.1 mm inner, three terminals</description>
       <fields>
-        <field name="Manufacturer">Phoenix Contact</field>
-        <field name="MPN">1751248</field>
+        <field name="Manufacturer">Sourcing Map</field>
+        <field name="MPN">DC-005 / B07J4Z8B2T</field>
         <field name="Assembly">HAND</field>
-        <field name="Footprint">DisplayAdapter:TerminalBlock_1x02_P3.50mm</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
+        <field name="Footprint">DisplayAdapter:BarrelJack_Horizontal_AISLER</field>
+        <field name="Datasheet">https://www.amazon.de/dp/B07J4Z8B2T</field>
+        <field name="Description">Sourcing Map right-angle PCB DC barrel jack, 5.5 mm outer / 2.1 mm inner, three terminals</field>
       </fields>
       <libsource lib="DisplayAdapter" part="POWER" description=""/>
-      <property name="Manufacturer" value="Phoenix Contact"/>
-      <property name="MPN" value="1751248"/>
+      <property name="Manufacturer" value="Sourcing Map"/>
+      <property name="MPN" value="DC-005 / B07J4Z8B2T"/>
       <property name="Assembly" value="HAND"/>
       <property name="Sheetname" value="power_input"/>
       <property name="Sheetfile" value="power_input.kicad_sch"/>
@@ -3220,6 +3222,7 @@
           <pins>
             <pin num="1"/>
             <pin num="2"/>
+            <pin num="3"/>
           </pins>
         </unit>
       </units>
@@ -4435,14 +4438,15 @@
     <libpart lib="DisplayAdapter" part="POWER">
       <fields>
         <field name="Reference">J</field>
-        <field name="Value">24V INPUT</field>
+        <field name="Value">DC-005 / 24V centre+</field>
         <field name="Footprint"/>
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
       <pins>
-        <pin num="1" name="1" type="passive"/>
-        <pin num="2" name="2" type="passive"/>
+        <pin num="1" name="CENTRE_/_+24V" type="passive"/>
+        <pin num="2" name="SLEEVE_/_GND" type="passive"/>
+        <pin num="3" name="SLEEVE_SWITCH_/_GND" type="passive"/>
       </pins>
     </libpart>
     <libpart lib="DisplayAdapter" part="R10K">
@@ -4649,7 +4653,7 @@
     </net>
     <net code="7" name="+24V_INPUT" class="Default">
       <node ref="F1" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="J10" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J10" pin="1" pinfunction="CENTRE_/_+24V_1" pintype="passive"/>
     </net>
     <net code="8" name="+24V_PROTECTED" class="Default">
       <node ref="C17" pin="1" pinfunction="1_1" pintype="passive"/>
@@ -4853,7 +4857,8 @@
       <node ref="J1" pin="80" pinfunction="80_80" pintype="passive"/>
       <node ref="J1" pin="MP1" pinfunction="MP1_MP1" pintype="passive"/>
       <node ref="J1" pin="MP2" pinfunction="MP2_MP2" pintype="passive"/>
-      <node ref="J10" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="J10" pin="2" pinfunction="SLEEVE_/_GND_2" pintype="passive"/>
+      <node ref="J10" pin="3" pinfunction="SLEEVE_SWITCH_/_GND_3" pintype="passive"/>
       <node ref="J2" pin="4" pinfunction="4_4" pintype="passive"/>
       <node ref="J5" pin="6" pinfunction="6_6" pintype="passive"/>
       <node ref="J5" pin="7" pinfunction="7_7" pintype="passive"/>

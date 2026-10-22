@@ -114,7 +114,7 @@ PARTS = {
  'SCHOTTKY': ('60V / 3A Schottky','Diodes Incorporated','B360A-13-F','D_SMA'),
  'FUSE2A': ('2A / 63V time-lag','Bourns','SF-1206S200-2','Fuse_1206_3216Metric'),
  'FUSE800M': ('0.8A / 63V time-lag','Bourns','SF-1206S080-2','Fuse_1206_3216Metric'),
- 'POWER': ('24V INPUT','Phoenix Contact','1751248','TerminalBlock_1x02_P3.50mm'),
+ 'POWER': ('DC-005 / 24V centre+','Sourcing Map','DC-005 / B07J4Z8B2T','BarrelJack_Horizontal_AISLER'),
  'C100N50': ('100n / 50V X7R','Murata','GRM188R71H104KA93D','C_0603_1608Metric'),
  'C1U100': ('1u / 100V X7R','Murata','GRM31CR72A105KA01L','C_1206_3216Metric'),
  'C10U50': ('10u / 50V X7R','Murata','GRM32ER71H106KA12L','C_1210_3225Metric'),
@@ -226,20 +226,22 @@ def components(which):
         for i,(net,x,y) in enumerate([('+3V3_GIGA',101,49),('+3V3_PANEL',104,49),('GND',107,49),('LCD_PCLK',112,37),('GND',112,39)],1):
             add(f'TP{i}','TP',{1:net},(x,y,0,'F'),'touch')
             out[-1]['assembly']='PCB'
-        add('J10','POWER',{1:'+24V_INPUT',2:'GND'},(46,23,270,'F'),'power_input')
+        # Centre positive; sleeve and its normally closed switch are both GND.
+        # Plug detection is unused. Mouth faces left into the service opening.
+        add('J10','POWER',{1:'+24V_INPUT',2:'GND',3:'GND'},(53,23,0,'F'),'power_input')
         out[-1]['assembly']='HAND'
-        add('F1','FUSE2A',{1:'+24V_INPUT',2:'+24V_FUSED'},(52.5,26,0,'F'),'power_input')
+        add('F1','FUSE2A',{1:'+24V_INPUT',2:'+24V_FUSED'},(59,21.1,0,'F'),'power_input')
         add('D1','TVS',{1:'+24V_FUSED',2:'GND'},(59,25,0,'F'),'power_input')
         add('C15','C1U100',{1:'+24V_FUSED',2:'GND'},(46,12,90,'F'),'power_input')
         add('U7','EFUSE',{1:'+24V_FUSED',2:'+24V_FUSED',3:'PWR_UVLO',4:None,5:'PWR_OVP',
             6:'PWR_RTN',7:None,8:'PWR_RTN',9:'GND',10:None,11:'PWR_ILIM',12:'PWR_DVDT',
             13:None,14:None,15:'+24V_PROTECTED',16:'+24V_PROTECTED',17:'PWR_RTN'},
-            (53,16,0,'F'),'power_input')
+            (53,15.2,0,'F'),'power_input')
         for ref,kind,nets,pos in [
-            ('R66','R143K',{1:'+24V_FUSED',2:'PWR_UVLO'},(46,16,0,'F')),
-            ('R67','R10K',{1:'PWR_UVLO',2:'PWR_RTN'},(46,18,0,'F')),
-            ('R68','R226K',{1:'+24V_FUSED',2:'PWR_OVP'},(46,20,0,'F')),
-            ('R69','R10K',{1:'PWR_OVP',2:'PWR_RTN'},(50.5,20,0,'F')),
+            ('R66','R143K',{1:'+24V_FUSED',2:'PWR_UVLO'},(46,15.4,0,'F')),
+            ('R67','R10K',{1:'PWR_UVLO',2:'PWR_RTN'},(46,17.2,0,'F')),
+            ('R68','R226K',{1:'+24V_FUSED',2:'PWR_OVP'},(49,10,0,'F')),
+            ('R69','R10K',{1:'PWR_OVP',2:'PWR_RTN'},(53,10,0,'F')),
             ('R70','R8K06',{1:'PWR_ILIM',2:'PWR_RTN'},(59,18,0,'F')),
         ]: add(ref,kind,nets,pos,'power_input')
         add('C16','C47N',{1:'PWR_DVDT',2:'PWR_RTN'},(59,16,0,'F'),'power_input')

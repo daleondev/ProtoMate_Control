@@ -4,17 +4,34 @@
   "revision": "D",
   "support_revision": "00fe215f96ce7a938946e1a176de4ca8cac291ef",
   "template": "aisler-4-layer-hd-drc",
-  "source_sha256": "aee58e90adab326538b00a1533a128f76991e4975965f6053c4a3a276963eba6",
+  "source_sha256": "9da8fde2ef3f8ccbd85e86a4b3c4b8c44fc8bf6d18fe550c4c13aa52b65e658c",
   "finished_thickness_mm": 1.6,
   "finished_thickness_tolerance_percent": 10,
   "copper_um": 35,
   "finish": "ENIG",
-  "minimum_component_annular_ring_mm": 0.32499999999999996,
+  "minimum_component_annular_ring_mm": 0.29999999999999716,
   "minimum_smd_dimension_mm": 0.3,
-  "minimum_hole_spacing_mm": 0.49185304823559023,
+  "minimum_hole_spacing_mm": 0.4918539553939098,
   "minimum_processed_fine_pitch_mask_web_mm": 0.15999999999999928,
   "minimum_processed_connector_to_via_mask_web_mm": 0.1136999999999864,
-  "through_vias": 228,
+  "through_vias": 232,
+  "plated_slots": [
+    {
+      "pad": "J10.1",
+      "width_mm": 1.2,
+      "length_mm": 3.9999999999999973
+    },
+    {
+      "pad": "J10.2",
+      "width_mm": 1.2,
+      "length_mm": 3.5999999999999988
+    },
+    {
+      "pad": "J10.3",
+      "width_mm": 1.2,
+      "length_mm": 3.9999999999999973
+    }
+  ],
   "tenting": "NONE",
   "silk_items_checked": 79,
   "bridge_markers": 6,

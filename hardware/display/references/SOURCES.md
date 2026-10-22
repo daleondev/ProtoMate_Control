@@ -26,7 +26,8 @@ engineering references, not project-authored specifications.
 | [Bourns SF-1206S](https://www.bourns.com/docs/product-datasheets/sf-1206s.pdf), `Bourns_SF1206S.pdf` | 2 A and 0.8 A 63 V time-lag fuses and pad dimensions |
 | [Littelfuse SMBJ](https://m.littelfuse.com/~/media/electronics/datasheets/tvs_diodes/littelfuse_tvs_diode_smbj_datasheet.pdf.pdf) | SMBJ33CA bidirectional TVS, 33 V standoff / 53.3 V rated clamp |
 | [Diodes B360A](https://www.diodes.com/datasheet/download/B360A.pdf) | 60 V Schottky polarity, SMA package and forward drop |
-| [Phoenix 1751248](https://www.phoenixcontact.com/en-dk/products/pcb-terminal-block-mkds-1-2-35-1751248) | 3.5 mm terminal pitch, body and lead length |
+| User-supplied `BarrelJack_Horizontal_AISLER.kicad_mod`; [Sourcing Map B07J4Z8B2T](https://www.amazon.de/dp/B07J4Z8B2T) | Selected DC-005 5.5/2.1 mm jack, terminal locations and plated-slot geometry; supplier listing is procurement provenance, not a manufacturer qualification report |
+| [AISLER plated slots](https://community.aisler.net/t/plated-and-non-plated-slots/46) | 0.7–2.7 mm plated-slot width, length greater than 1.5× width; three J10 slots explicitly audited in Excellon and ODB++ |
 | [Samtec socket catalogue](https://suddendocs.samtec.com/catalog_english/ssw_th.pdf), `Samtec_SSQ.pdf` | SSQ body dimensions and distinct -03 / -04 tail lengths |
 | ST DS12930 Rev 3 Table 105, repository `docs/arduino_giga_r1_wifi/DS_stm32h747xi.pdf` | Conditional LTDC timing budget and its characterization conditions |
 | [ST AN4861, LTDC polarity configuration](https://www.st.com/resource/en/application_note/an4861-lcdtft-display-controller-ltdc-on-stm32-mcus-stmicroelectronics.pdf) | DE must use the inverted LTDC setting; cross-checked against RM0399 `DEPOL` (not-data-enable polarity) |
@@ -46,17 +47,23 @@ The official STEP is unmodified. `GIGA_outer_socket_envelopes.step` adds nominal
 8.5 mm socket bodies absent from that model; those bodies are explicitly not
 manufacturer production models.
 
-Standard resistor, capacitor, fuse, SOT-23, TSSOP and VSSOP footprints and STEP
+Standard resistor, capacitor, fuse, SOT-23, TSSOP, VSSOP and barrel-jack STEP
 models originate from the KiCad library contributors, installed KiCad libraries
 on this workstation. Their license is CC-BY-SA 4.0 with KiCad's electronic-design
 exception; see `KiCad-LIBRARY-LICENSE.txt` and the full CC license. Local changes
 replace model paths, suppress crowded reference silkscreen and set project
 manufacturing clearances. The TPS26600 land pattern uses TI’s PWP0016A recommended 3.3 mm exposed pad and 1.5 × 0.45 mm leads. Its 3D envelope and the display converter envelope follow the retained drawings; they are not production-tooling models.
 
-Hirose, terminal and GIGA stacking-header footprints and simplified mechanical
+Hirose and GIGA stacking-header footprints and simplified mechanical
 envelopes were constructed for this project from the cited drawings. They are
 not manufacturer-certified footprints or models. First-board fit and electrical
 qualification are recorded separately from the digital release checks.
+
+The supplied barrel-jack footprint retains its terminal positions and pad/slot
+dimensions. Its body outline is shown on Fab rather than silk where the nose
+overhangs the PCB. The installed KiCad barrel-jack STEP is retained locally under
+the same KiCad library license; it illustrates the nominal envelope, not a verified
+model of the purchased supplier lot. Both sleeve-related terminals are grounded.
 
 ## Tools
 

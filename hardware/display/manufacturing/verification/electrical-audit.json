@@ -10,9 +10,9 @@
   "giga-adapter": {
     "revision": "D",
     "copper_layers": 4,
-    "schematic_pcb_pin_pairs": 531,
+    "schematic_pcb_pin_pairs": 532,
     "components": 123,
-    "tracks": 1605,
+    "tracks": 1619,
     "ground_reference": "In1.Cu GND reference plane"
   },
   "display_contacts": 50,

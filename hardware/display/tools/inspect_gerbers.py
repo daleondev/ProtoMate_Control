@@ -8,8 +8,9 @@ import json,math,subprocess,sys,warnings
 from pathlib import Path
 import pcbnew as k
 from gerbonara import LayerStack
-from gerbonara.graphic_objects import Flash
+from gerbonara.graphic_objects import Flash, Line
 from gerbonara.utils import MM
+from drill_geometry import pad_drill, canonical_drill
 from design import ROOT, BOARDS, release_name
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 
@@ -36,22 +37,28 @@ def main(name):
     actual=[]
     for file,plated in [(stack.drill_pth,True),(stack.drill_npth,False)]:
         for obj in file.objects:
-            assert isinstance(obj,Flash),'Unexpected slot; inspect before release'
-            obj=obj.converted(MM);actual.append((round(obj.x,4),round(obj.y,4),round(obj.tool.diameter,4),plated))
+            obj=obj.converted(MM)
+            if isinstance(obj,Flash):a=c=(obj.x,obj.y)
+            else:
+                assert isinstance(obj,Line),'Only round holes and straight slots supported'
+                a,c=(obj.x1,obj.y1),(obj.x2,obj.y2)
+            actual.append(canonical_drill(a,c,obj.tool.diameter,plated,4))
     expected=[]
     for f in b.GetFootprints():
         for p in f.Pads():
             if p.GetDrillSize().x:
-                assert p.GetDrillSize().x==p.GetDrillSize().y
-                x,y=coord(p.GetPosition());expected.append((round(x,4),round(y,4),round(k.ToMM(p.GetDrillSize().x),4),p.GetAttribute()!=k.PAD_ATTRIB_NPTH))
+                a,c,d=pad_drill(p)
+                def convert(v):return v[0]-k.ToMM(origin.x),k.ToMM(origin.y)-v[1]
+                expected.append(canonical_drill(convert(a),convert(c),d,p.GetAttribute()!=k.PAD_ATTRIB_NPTH,4))
     for v in b.GetTracks():
         if isinstance(v,k.PCB_VIA):
-            x,y=coord(v.GetPosition());expected.append((round(x,4),round(y,4),round(k.ToMM(v.GetDrillValue()),4),True))
+            a=coord(v.GetPosition());expected.append(canonical_drill(a,a,k.ToMM(v.GetDrillValue()),True,4))
     assert len(actual)==len(expected),'Drill count mismatch'
     remaining=list(expected)
-    for x,y,diameter,plated in actual:
-        index=next((i for i,(xx,yy,dd,pp) in enumerate(remaining) if pp==plated and dd==diameter and math.hypot(x-xx,y-yy)<=.0008),None)
-        assert index is not None,('Drill coordinate/tool/plating mismatch',x,y,diameter,plated)
+    for drill in actual:
+        index=next((i for i,other in enumerate(remaining) if other[4:]==drill[4:]
+                    and math.dist(other[:2],drill[:2])<=.0008 and math.dist(other[2:4],drill[2:4])<=.0008),None)
+        assert index is not None,('Drill/slot coordinate/tool/plating mismatch',drill)
         remaining.pop(index)
     expected_layers={('top',v) for v in ['copper','mask','paste','silk']}|{('bottom',v) for v in ['copper','mask','paste','silk']}|{('mechanical','outline')}
     if BOARDS[name]['layers']==4:expected_layers|={('inner_1','copper'),('inner_2','copper')}

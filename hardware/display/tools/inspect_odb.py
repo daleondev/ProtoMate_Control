@@ -13,6 +13,7 @@ import pcbnew as k
 from shapely.geometry import Polygon
 from design import ROOT, BOARDS, release_name
 from aisler import BRIDGES
+from drill_geometry import pad_drill, canonical_drill
 k.SwigPyIterator.next=k.SwigPyIterator.__next__
 
 
@@ -71,17 +72,32 @@ def main(name):
             tools=read(layer+'tools')
             assert ('TYPE=PLATED' if plated else 'TYPE=NON_PLATED') in tools
             for f in ff:
-                assert f[0]=='P'
-                symbol=symbols[int(f[3])];assert symbol.startswith('r')
-                drills.append((round(float(f[1]),6),round(float(f[2]),6),round(float(symbol[1:])/1000,6),plated))
+                if f[0]=='P':
+                    a=c=tuple(map(float,f[1:3]));symbol=symbols[int(f[3])]
+                else:
+                    assert f[0]=='L','Only round holes and straight slots supported'
+                    a,c=tuple(map(float,f[1:3])),tuple(map(float,f[3:5]));symbol=symbols[int(f[5])]
+                if symbol.startswith('oval'):
+                    assert f[0]=='P' and f[6]=='8','Expected non-mirrored, explicit-angle slot'
+                    dx,dy=(float(v)/1000 for v in symbol[4:].split('x'))
+                    angle=math.radians(float(f[7])+(90 if dy>dx else 0))
+                    radius=abs(dx-dy)/2;vx,vy=radius*math.cos(angle),radius*math.sin(angle)
+                    a,c=(a[0]-vx,a[1]-vy),(c[0]+vx,c[1]+vy)
+                    diameter=min(dx,dy)
+                else:
+                    assert symbol.startswith('r')
+                    diameter=float(symbol[1:])/1000
+                drills.append(canonical_drill(a,c,diameter,plated))
         expected=[]
         for f in b.GetFootprints():
             for pad in f.Pads():
                 if pad.GetDrillSize().x:
-                    p=pad.GetPosition();expected.append((round(k.ToMM(p.x),6),round(-k.ToMM(p.y),6),round(k.ToMM(pad.GetDrillSize().x),6),pad.GetAttribute()!=k.PAD_ATTRIB_NPTH))
+                    a,c,d=pad_drill(pad)
+                    expected.append(canonical_drill((a[0],-a[1]),(c[0],-c[1]),d,pad.GetAttribute()!=k.PAD_ATTRIB_NPTH))
         for v in b.GetTracks():
             if isinstance(v,k.PCB_VIA):
-                p=v.GetPosition();expected.append((round(k.ToMM(p.x),6),round(-k.ToMM(p.y),6),round(k.ToMM(v.GetDrillValue()),6),True))
+                p=v.GetPosition();a=k.ToMM(p.x),-k.ToMM(p.y)
+                expected.append(canonical_drill(a,a,k.ToMM(v.GetDrillValue()),True))
         assert sorted(drills)==sorted(expected),'ODB drill coordinate/diameter/plating mismatch'
         # All exposed copper contacts must have their own mask aperture.
         mask_counts={}

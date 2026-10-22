@@ -15,7 +15,11 @@ Both boards use the AISLER **four-layer HD / ENIG** profile: 1.6 mm finished
 thickness, 35 µm copper, green mask, white silk, and an uninterrupted In1 ground
 reference. The display board is **55 × 50 mm**; its two connector positions are
 unchanged, and its lower mounting holes are at y = 47 mm. The GIGA outline,
-headers, service access and existing power routing are retained.
+headers and service access are retained. J10 is a through-hole DC-005 barrel
+jack using the supplied AISLER footprint, facing the service opening. It accepts
+a 5.5 × 2.1 mm centre-positive 24 V plug; both sleeve-related pins are grounded.
+The local input-protection placement and power routing clear the jack body and
+its three plated slots. The electrical protection circuit is unchanged.
 
 The display's power domains are separated:
 

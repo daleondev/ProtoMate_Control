@@ -92,8 +92,8 @@ def footprints():
         pads += [(2*i+1,-6+i*.5,-1.95,.25,1,0),(2*i+2,-6+i*.5,1.95,.25,1,0)]
     (LIB/'DF23C-50DP-0.5V.kicad_mod').write_text(fp_text('DF23C-50DP-0.5V',pads,(-7,-2.45,7,2.45),
        'Hirose EDC3-164006-03: 0.25x1.0 pads, pitch0.5, row centres3.9; Smartwin CN1 odd/even numbering mirrored for plug', 'DF23C-50DP.step'))
-    (LIB/'TerminalBlock_1x02_P3.50mm.kicad_mod').write_text(fp_text('TerminalBlock_1x02_P3.50mm',[(1,0,0,2,2,1.2),(2,3.5,0,2,2,1.2)],
-        (-2,-3.4,5.5,3.9),'Phoenix 1751248 MKDS 1/2-3.5; cable entry toward +Y', 'Terminal_2x3.5.step','through_hole'))
+    # J10 uses the user-supplied, project-local DC-005 plated-slot footprint.
+    # Preserve its terminal geometry; do not regenerate it from a generic jack.
     tp=fp_text('TestPoint_1.0mm',[(1,0,0,1,1,0)],(-.5,-.5,.5,.5),'Exposed ENIG probe pad, no component',None)
     tp=tp.replace('"F.Cu" "F.Paste" "F.Mask"','"F.Cu" "F.Mask"')
     (LIB/'TestPoint_1.0mm.kicad_mod').write_text(tp)
@@ -139,6 +139,9 @@ def pin_specs(part):
         right=[(str(i),n,'passive') for i,n in enumerate(['GND','IMON','ILIM','dVdT','NC','FLT','OUT','OUT','EP / RTN'],9)]
     elif kind=='SCHOTTKY':
         left=[('1','K','passive')];right=[('2','A','passive')]
+    elif kind=='POWER':
+        left=[('1','CENTRE / +24V','passive')]
+        right=[('2','SLEEVE / GND','passive'),('3','SLEEVE SWITCH / GND','passive')]
     elif kind=='TP':
         left=[('1','PROBE','passive')];right=[]
     else:
@@ -218,7 +221,11 @@ def schematic(which,parts):
             name,_,pins,h=symbol(p);x,y=poses[p['ref']];pid=uid(which+'/'+p['ref']);p['uuid']=pid;p['sheet_uuid']=sid
             bom='no' if p['assembly']=='PCB' else 'yes'
             s+=f'(symbol (lib_id "DisplayAdapter:{name}") (at {x} {y} 0) (unit 1) (in_bom {bom}) (on_board yes) (dnp no) (uuid "{pid}")'
-            for key,val,dy,hide in [('Reference',p['ref'],-h-4,False),('Value',p['value'],-h-2,False),('Footprint','DisplayAdapter:'+p['footprint'],0,True),('Manufacturer',p['mfr'],0,True),('MPN',p['mpn'],0,True),('Assembly',p['assembly'],0,True)]:
+            properties=[('Reference',p['ref'],-h-4,False),('Value',p['value'],-h-2,False),('Footprint','DisplayAdapter:'+p['footprint'],0,True),('Manufacturer',p['mfr'],0,True),('MPN',p['mpn'],0,True),('Assembly',p['assembly'],0,True)]
+            if p['kind']=='POWER':
+                properties.extend([('Datasheet','https://www.amazon.de/dp/B07J4Z8B2T',0,True),
+                    ('Description','Sourcing Map right-angle PCB DC barrel jack, 5.5 mm outer / 2.1 mm inner, three terminals',0,True)])
+            for key,val,dy,hide in properties:
                 size=1.016 if key=='Value' else 1.27
                 s+=f'(property {q(key)} {q(val)} (at {x} {y+dy} 0) (effects (font (size {size} {size}))'+(' (hide yes)' if hide else '')+'))'
             s+=f'(instances (project {q(which)} (path "/{rootid}/{sid}" (reference {q(p["ref"])}) (unit 1)))))\n'
@@ -240,7 +247,7 @@ def schematic(which,parts):
               'logic_power':'U2: 24V -> 5V. U3: precision 3.296V, 47nF soft start (~6ms). 0.1% feedback resistors. EP must be soldered.',
               'sequencing':'Both supplies valid for 300ms before READY. Hardware gates reset, standby and PWM. READY returns to GIGA D70.',
               'power':'U1: 24V from ribbon -> BACKLIGHT 3.3V / 2A. Never join panel 3.3V to GIGA 3.3V. Module is hand soldered; trim leads.',
-              'power_input':'24V nominal input. UVLO ~18.2V; OVP ~28.1V; current limit ~1.49A. RTN is NOT system GND. SHDN floats (internal pull-up).',
+              'power_input':'J10: 5.5/2.1mm DC-005, centre +24V; sleeve and switch GND. UVLO ~18.2V; OVP ~28.1V; limit ~1.49A. RTN is NOT GND.',
               'power12':'U8: 24V -> 12V / 1A. D3 blocks USB-only reverse feed into U8. F2 protects the two parallel 24V ribbon conductors.'}[page]
         s+=f'(text {q(note)} (at 20.32 22.86 0) (effects (font (size 1.27 1.27)) (justify left)) (uuid "{uid(sid+"note")}"))\n'
         (dest/filename).write_text(s+')\n')

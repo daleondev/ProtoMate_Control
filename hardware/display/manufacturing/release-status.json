@@ -67,15 +67,15 @@
       "ignored_ERC_categories": 0,
       "ignored_DRC_categories": 0,
       "SMT_components": 106,
-      "exported_pad_coordinates_checked": 646,
-      "drill_hits_checked": 347,
+      "exported_pad_coordinates_checked": 648,
+      "drill_hits_checked": 352,
       "upload": "giga-adapter-rev-D-aisler-odb.zip",
       "odb_audit": {
         "result": "PASS",
         "board": "giga-adapter",
         "revision": "D",
         "upload_zip": "giga-adapter-rev-D-aisler-odb.zip",
-        "upload_sha256": "8ba8d9ee6fe90175a6b783049f2d50d06aaaadc3b3bbb1a7930454312e41c532",
+        "upload_sha256": "05763214bd025e7f7d217d6539cfb840daae06f6a7eea9978d7f73271a7e51f4",
         "copper_layers": [
           "F.CU",
           "IN1.CU",
@@ -84,17 +84,17 @@
         ],
         "pcb_profile_area_mm2": 4116.264605371729,
         "bridges_checked": 6,
-        "netlist_pad_contacts_checked": 531,
-        "drill_hits_checked": 347,
+        "netlist_pad_contacts_checked": 532,
+        "drill_hits_checked": 352,
         "mask_pad_openings_checked": {
-          "f": 535,
-          "b": 119
+          "f": 536,
+          "b": 120
         },
         "coordinates": "mm; KiCad absolute X, negated Y; 6 decimal export precision",
         "aisler_processing_acceptance": "PENDING"
       },
       "checked_source_sha256": {
-        ".kicad_pcb": "aee58e90adab326538b00a1533a128f76991e4975965f6053c4a3a276963eba6",
+        ".kicad_pcb": "9da8fde2ef3f8ccbd85e86a4b3c4b8c44fc8bf6d18fe550c4c13aa52b65e658c",
         ".kicad_pro": "be8cd2b014031835a34fc360872a6602d75d7dac277411a1a3f6af4bca8f229d",
         ".kicad_sch": "73596f3f750c275555461ca3eaa5b34e0dcbe95aa946e51e564b51fc155fe659",
         ".kicad_dru": "4b6bc4d274c5044aacca23ccec0b28f0781ceabe2c928df1f018d9fc2c48d204"
@@ -318,10 +318,10 @@
     "giga-adapter/.history/.git/config": "ce8dabcde6974bb73bbd4ca0f6fb2972b176eba04303d836de2fa1f3f7000465",
     "giga-adapter/.history/.git/description": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee",
     "giga-adapter/.history/.git/hooks/README.sample": "7319d7f1803fda2b3416143e426b9ec4c3c3c817c75188b2b82cb3e68ff293ab",
-    "giga-adapter/.history/.git/index": "515e01bae5f8533c7fa35356dba6337c2957340084982efd3a2bf7ee18fe0155",
+    "giga-adapter/.history/.git/index": "7e13f3721c0900bfdb2018172d296f86e6e6a68b5d47faf58e8c80c67c5ad5ab",
     "giga-adapter/.history/.git/info/exclude": "fdb7dc7be17051c3c5067cdf2b8fdf2ca3a8daf2b5e91f34c6ce1ff3a94c5f6a",
-    "giga-adapter/.history/.git/logs/HEAD": "87121f309f1301fffb74a9879b3fb78d3d6ef69bda7eb4104acfceed81027f19",
-    "giga-adapter/.history/.git/logs/refs/heads/master": "87121f309f1301fffb74a9879b3fb78d3d6ef69bda7eb4104acfceed81027f19",
+    "giga-adapter/.history/.git/logs/HEAD": "27091b45470f4ff6ea71a3d561bf90998b2594f2e3785cbf583016f5c04d7ba3",
+    "giga-adapter/.history/.git/logs/refs/heads/master": "27091b45470f4ff6ea71a3d561bf90998b2594f2e3785cbf583016f5c04d7ba3",
     "giga-adapter/.history/.git/objects/01/368e13d773ae9511b3f10525c3bb108a69f927": "d5dcd04fc28266407ad3dcd94651189f29df0089bed57dc3507fa65508f2d239",
     "giga-adapter/.history/.git/objects/01/e0e43fccc4e91bb892b6bab11fe3eec031634f": "0085e835adbda31191c4535ac9e752e1bf13b9bf7d128e2bcbc81ff6d117037b",
     "giga-adapter/.history/.git/objects/02/50f58ce7f52a51d04eae05201f4a1800892592": "951034619e9164b6185f6020aa360f8507c1726fba7c1a8439aa4c3f2142b33e",
@@ -343,6 +343,7 @@
     "giga-adapter/.history/.git/objects/0c/a6f0a07d30c718be7ee01682f5848e45136c7b": "b2af438d01f07e1f0a3e72e573f486e0902e49533297dfc58496528c8c70f2b4",
     "giga-adapter/.history/.git/objects/0d/6cbd055e9907be566eca5c29b77d5ae2d13089": "ffd79a9b9879f6a52a42f29d5e9c88198df0c280689f29a04fb6d63d7de43b5f",
     "giga-adapter/.history/.git/objects/0d/77514bca5ddc003c378f8d742cb86c8665b672": "8d862b07a11e8cdbcbb04e29cd83477833632eb732213dedb1e50a1d7eb0a9a6",
+    "giga-adapter/.history/.git/objects/0d/d240100c888e53539e9f2f6039e5f1989ac4b3": "1c6bac5f75b0263c53ccd2d7f74aff00513f9fd4a5f4e61afb274be095157440",
     "giga-adapter/.history/.git/objects/0e/66eae4cfd211906624542a82c891ba3c4d9c3a": "63bd8b59658b71891d2aea337dc64c72fc93703ad90891f6d1bb93be6d895d6b",
     "giga-adapter/.history/.git/objects/0f/c70e102b2b8fe6184cb0219e7d83386a35f612": "912ae7647ff1e76d7eeca6ba893b5b1005a6869bc4f9e70077898d4bc184d1eb",
     "giga-adapter/.history/.git/objects/10/ab6e000953dfe09d559c99e6665a00c529cf56": "5238feb6903fce252c025e210bd43f789b19613d00cfab87efbc90bf416d36b4",
@@ -467,6 +468,7 @@
     "giga-adapter/.history/.git/objects/60/0304ab3fb98d52f39ce2b5f4cb757414249bb2": "b98860740555938ae621ec5c9766a948d7b8895f7157e3491e7ff3820019bed4",
     "giga-adapter/.history/.git/objects/60/26c5caca5523cb769c2844a82821d9333fdb3e": "71ab9b7dc2dbcc8fde1247a4ef3fb03d16ae30cddf4ea870a117597681f509c8",
     "giga-adapter/.history/.git/objects/60/4515a274fffd229a3c1baf1c2b482ce849e8b9": "41bb01d66028cd6d494d05365a1039bbfaef9d111d684368760fff716f69365f",
+    "giga-adapter/.history/.git/objects/60/8eb5c0dbbef6957a7984e9ca18cbb1a9e40763": "d9bb79df178bca2c137a0b572f790a966aac55cab84c14769710ee2069704dce",
     "giga-adapter/.history/.git/objects/60/c67382c952d732a977c184d2023a65459d6a74": "913ec03f46033ea11d9a636d10e7a29fd0a93161c88d3f02c81d546236741de8",
     "giga-adapter/.history/.git/objects/61/c663425276293297f9b116da2a137a2d774268": "53fa989356dabfd6a98ec6d4c1c0de218a07ae158c1305769ba1fdb32560b240",
     "giga-adapter/.history/.git/objects/62/6944a065aea44558ae8469f2520f72d2a085b6": "8e8cc8cf1cbd429cbf103390cf6ef4834eb7b6c6cc1d2c16205e0b703d933b01",
@@ -485,6 +487,7 @@
     "giga-adapter/.history/.git/objects/6c/4e05a0655cb47c2fd9765d9a83c9ebe39c365e": "53908f6a4281858d350f827ef8d69b9b038a7541a00a8067033c51476f002165",
     "giga-adapter/.history/.git/objects/6d/504c32b78e6acf3393906331a043d9485a90a7": "fd097bef57cabaeeddf84cac3cbf81c86196798d25546ea508bebe92cfe4f71b",
     "giga-adapter/.history/.git/objects/6d/5513511230dd362681ca9776c98958e267e0a2": "de8b00f1476ca033eddc44645b415be02d59cd73e851bea823a778117a2929f4",
+    "giga-adapter/.history/.git/objects/6d/77985c593b193b334e5b4c00adbe792587eb8d": "5bea72650ca18043e353cbbbc4b84f198c572584410a18c55ecbd12839cd1ecf",
     "giga-adapter/.history/.git/objects/6d/80967cc771aaf0f023aebaa94f1c8e83e39e6b": "d08bc252a4a8ab752f393aa0f3c7277229ee3ab88e9c475aab7c705b2c779ae0",
     "giga-adapter/.history/.git/objects/6e/69cda9ba460d0cd7671c69d7d31456783663b3": "36ee99eef59a2dd37a3d9a590c7c224c4050d331e9fe8c69b2f939590b2fbc5f",
     "giga-adapter/.history/.git/objects/6e/c3f4a91818f3ef11ae5b8e4dff515dfd12feec": "b694d28108d2b88dce3c75bef1ed7980bcd331b3e251ad5f4b6b5ae6ed88a33e",
@@ -621,6 +624,7 @@
     "giga-adapter/.history/.git/objects/bd/559c9ce186ede78f311eef8e58792aec49f942": "de36a50ef86c53d1ff0df827ff4d152ca21483f9134f95bed012d71526a1e3ec",
     "giga-adapter/.history/.git/objects/bd/a71e585d2a0232d8d7f4b3d9541feba20f202c": "951214a26b313d6ff22130926a002b8a29729d9002d0f30d0b60eb33d2917eb9",
     "giga-adapter/.history/.git/objects/bd/dd112e07b20501f6314bdea9e2a42cacd313a4": "4c14e4b59ce123ebb2079ee63a30c0d9918f03d4d1adab93782a1098b60ae30d",
+    "giga-adapter/.history/.git/objects/be/265616efa2146d01a3a7f30bc3343b4a990177": "295ebf8ef3d9782095237b3819e8ab36d33d16c29db31916ee34c83e1db0be1c",
     "giga-adapter/.history/.git/objects/be/870ed6eb879c9d695b0a3806cf406378b35c40": "8aee12d757ae87094f082719ec62125b4dc973a1d38aa9c9e4b6256ad976e96e",
     "giga-adapter/.history/.git/objects/be/dc08c8a840bfcc948539f62f13b9dacbad6c9a": "933a0ed96ad2767915ed2d1ef450401421a3cb4e5e56fb1ff2ffe0ca87c15b14",
     "giga-adapter/.history/.git/objects/be/f8d0138e03fcf4bbc5bbac146ac081cd70b585": "b21d72e4000df5e1f14781c0671d1834196984df80cd9148157dde80bb9e0be8",
@@ -727,8 +731,8 @@
     "giga-adapter/.history/.git/objects/fe/495ede849657720be6e1879e8f6390959d7d8b": "ca6879344309496efbd704b176621d10d22d4b65f1e2b83dc41f5e5040bf4e0c",
     "giga-adapter/.history/.git/objects/ff/0c96a3063849e3937015ad4b3f0aea7da3d910": "f3881481f6b97066920d3b194dc3411c7dea4db5b471e2281cb5d402216cf24e",
     "giga-adapter/.history/.git/objects/ff/1d47fb018c72f40d7c044449396afe5df0f331": "435839dbabac041e750d0f064715433a54d4f4c1f2f2eb54bbdcdbd07cd386e0",
-    "giga-adapter/.history/.git/refs/heads/master": "93b6899bfdde3d0ab2fb872d90526bd0aad34796b0c2cfc4cbc6c7259e4ea95f",
-    "giga-adapter/.history/.git/refs/tags/Last_Save_pcb": "93b6899bfdde3d0ab2fb872d90526bd0aad34796b0c2cfc4cbc6c7259e4ea95f",
+    "giga-adapter/.history/.git/refs/heads/master": "2e6f93a5e2167340d266e91175a6374cecc4db8260d2af26cb45df24f3490efa",
+    "giga-adapter/.history/.git/refs/tags/Last_Save_pcb": "2e6f93a5e2167340d266e91175a6374cecc4db8260d2af26cb45df24f3490efa",
     "giga-adapter/.history/.git/refs/tags/Last_Save_project": "731ffd1a82498f0eb63cc16c1c1342f095c6c702dd5abdd1beea269bca9bcb45",
     "giga-adapter/.history/.git/refs/tags/Save_pcb_1": "ff9b2fb2c77e35b99d069b1c95b5b6af195a4d1d7f1d356ca944efe833eb13ba",
     "giga-adapter/.history/.git/refs/tags/Save_pcb_10": "fefd9f4ac52b8073fd4be166fd88e28e70208f775ee4ffd277c978cfba62fed2",
@@ -744,24 +748,25 @@
     "giga-adapter/.history/.git/refs/tags/Save_project_1": "731ffd1a82498f0eb63cc16c1c1342f095c6c702dd5abdd1beea269bca9bcb45",
     "giga-adapter/.history/.gitignore": "1e18182125437ce3d2ec460b357a9ea06f059d795052de04a9a9f1044b8e20ba",
     "giga-adapter/.history/README.txt": "79c41e25e7633a1deff5e5a7456573c64f0061d508b7e0e5753d985456fe29e7",
-    "giga-adapter/.history/giga-adapter.kicad_pcb": "ac4721ac206a12d84a65bc30812a939ee1189c3a8c31ba10a9c0a6dab0cdf717",
-    "giga-adapter/Adapter.kicad_sym": "13e49775305f8c70109427b063aa0477128ec67129cbc9d2cc031b5c538059fe",
+    "giga-adapter/.history/giga-adapter.kicad_pcb": "22b213fd6e6a84f1e9b97542b44372d42d90d50d3362aa63dfb2b59f13638939",
+    "giga-adapter/Adapter.kicad_sym": "a4b8f83d419ba003d59e00d02ee9cf3ee7f38f30abb2cde0debd2bb06ef21da1",
     "giga-adapter/buffer1.kicad_sch": "078d3256583af5d72394f20dabd3dc8978908acb986b08345b8673aeb59b81a3",
     "giga-adapter/buffer2.kicad_sch": "f49dd3306810c4cb4cb931bf9f07315b0632c1ba017dfe726366c0274a0f2ebc",
     "giga-adapter/buffer3.kicad_sch": "dc843bc2ac87cb753d1af7adcc855b272b5926a94b86461dd8ff2507b007accd",
     "giga-adapter/buffer4.kicad_sch": "2ebf5d5347dab5e5946af157fe5be8c61b21bbad6bf952304d7d3cc29740c7d2",
-    "giga-adapter/components.json": "6b65e1d9ac973521487dc4bbbb72b85bc5a23cea8dc8bfa01dd046e0db0d64a4",
+    "giga-adapter/components.json": "6432e6b7459263d3421f661d2f1fcc5113468b2800ba0a6954c94f916a038939",
     "giga-adapter/fp-lib-table": "834f959bf5d24fee4684b6fff3098ea2648fba593ff2fb33f87dd7dfdceb2b58",
     "giga-adapter/giga-adapter.kicad_dru": "4b6bc4d274c5044aacca23ccec0b28f0781ceabe2c928df1f018d9fc2c48d204",
-    "giga-adapter/giga-adapter.kicad_pcb": "aee58e90adab326538b00a1533a128f76991e4975965f6053c4a3a276963eba6",
+    "giga-adapter/giga-adapter.kicad_pcb": "9da8fde2ef3f8ccbd85e86a4b3c4b8c44fc8bf6d18fe550c4c13aa52b65e658c",
     "giga-adapter/giga-adapter.kicad_pro": "be8cd2b014031835a34fc360872a6602d75d7dac277411a1a3f6af4bca8f229d",
     "giga-adapter/giga-adapter.kicad_sch": "73596f3f750c275555461ca3eaa5b34e0dcbe95aa946e51e564b51fc155fe659",
     "giga-adapter/headers.kicad_sch": "4599e2c896a30a75582e1bfbac7d84dfe7c07edb85bcf100023f432fa56d6c82",
     "giga-adapter/power12.kicad_sch": "8bdeacc43a128624195946d367ab3cd8e2c684c6336b7c24d62d3a5c66d971f7",
-    "giga-adapter/power_input.kicad_sch": "c6b57aff065f56b7e21034885d33429f0e51959ebd2ae3b48f3fcb29ef43f787",
+    "giga-adapter/power_input.kicad_sch": "942254cb4854cf32188d5cf7ffafcd4ccb042e9244ee7524d2fdb6b96debc130",
     "giga-adapter/ribbon.kicad_sch": "681d586bfcb46efbda06105a1ac350921a6d39808194b357f14d3e206f7dd726",
     "giga-adapter/sym-lib-table": "d1b87486bee3c045de8bdaf80df421f2774ccd607c46f2c0d94f7d1326091a4a",
     "giga-adapter/touch.kicad_sch": "9236d81caad28e53ba6cb3d204907ef33f2cb7c5079b361c6392a02ec268fe03",
+    "libraries/3dmodels/BarrelJack_Horizontal.step": "53f1b2714ed169b5e314b9b42cc9943303769e29e0debdfb4ef7a0e2c4f369dd",
     "libraries/3dmodels/C_0603_1608Metric.step": "4857b3dc717675bf1fb22edda622ac3b3ae03cf44d81eefaf3fa3ba3a86d84c1",
     "libraries/3dmodels/C_0805_2012Metric.step": "9a669c1a2f1ea25b88b401acef6efeaa80a067bd7da9db6993de719a7fbe155c",
     "libraries/3dmodels/C_1206_3216Metric.step": "11e948c72c90e2b6322436b72745f40ff4e8ba0da64fb2a0df943dfa61e89c1a",
@@ -781,7 +786,7 @@
     "libraries/3dmodels/GIGA_J8_JSIDE.step": "9032fbb1ce29960c3f63eacabebe1b5a1485edf22290cd74089b731194f56fc9",
     "libraries/3dmodels/GIGA_J9_J5.step": "749213f7a48852ca606e714c61d68debeb83a33d556f46d5e141eb2f9b5fc365",
     "libraries/3dmodels/GIGA_R1_WIFI.step": "b764b5406251c5b9a31e55e8f983587a107a537fda86e4129216d02570fd4e34",
-    "libraries/3dmodels/GIGA_outer_socket_envelopes.step": "b330b4e8237beaee6232b087096aab5ccfd62fdf3a217217806dbe694ded7b45",
+    "libraries/3dmodels/GIGA_outer_socket_envelopes.step": "a31fd5f799a310f0663f31b5825fd6132d5bbb0252f55bc9888cfdbdbeffe37c",
     "libraries/3dmodels/R_0402_1005Metric.step": "91507e5af4251cb4ef38e04889c9b98da29904432bd83786bba13ae9b605eacb",
     "libraries/3dmodels/R_0603_1608Metric.step": "1875571c326d0d9e96f36b4efeb8094068ef7619f0a449c781caf0b49c2e5861",
     "libraries/3dmodels/SOT-23-6.step": "c9fe686b4d1b56927a41fa84a9bc1efb61d8a45a123a3db43bcaa05c2891d635",
@@ -790,9 +795,9 @@
     "libraries/3dmodels/TSR2-2433-trimmed.step": "fd6add227440f58fad315ebbce38649ac526e90e33e3e0a0e2d0d64012f6c488",
     "libraries/3dmodels/TSSOP-14_4.4x5mm_P0.65mm.step": "3ee5786aae56190997aa793ba3cfc003fd616782770e29719b4562f012982245",
     "libraries/3dmodels/TSSOP-24_4.4x7.8mm_P0.65mm.step": "706322f42d9793ebf28d5b80100a68bfa8769998a00b78acadf7af937fc1454f",
-    "libraries/3dmodels/Terminal_2x3.5.step": "b5f148ed0f598a98e25fe88818e5765824a28769131c12d4d898e5bb6ee021fc",
     "libraries/3dmodels/VSSOP-8_3x3mm_P0.65mm.step": "0af17c38f7022ea10ff245f82773c9b00d4163a407490c6b2d91869a0861df56",
     "libraries/3dmodels/WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm.step": "26b11479728c38545462bbe7bb9e39e93c46ecc441c206ecdfeae513ed7b7b44",
+    "libraries/DisplayAdapter.pretty/BarrelJack_Horizontal_AISLER.kicad_mod": "4ef4ce900192ac336a4fc3303cbdcc1d42f3831865f2182cebba26e9c5d3cf73",
     "libraries/DisplayAdapter.pretty/C_0603_1608Metric.kicad_mod": "43ed6a207888a4f2e9b09999bab607b1cc485ff197bb9d4665c7c7d2e6d00d9d",
     "libraries/DisplayAdapter.pretty/C_0805_2012Metric.kicad_mod": "56759f1754ab49a60e3956f9996865d8aac138b9455b850e52637e2aa57ba8e5",
     "libraries/DisplayAdapter.pretty/C_1206_3216Metric.kicad_mod": "872a92c14c81476d4943326fc21d70c1cc29443a826f31aacda52b9ad59aaa86",
@@ -820,7 +825,6 @@
     "libraries/DisplayAdapter.pretty/SOT-23-6_UpperPin1.kicad_mod": "49f8faa0f067a5a148841a9b4d7f2ab5cda649715c635eba267f3461c3456ad2",
     "libraries/DisplayAdapter.pretty/TSSOP-14_4.4x5mm_P0.65mm.kicad_mod": "8796ea1941571f82deac4dde74237c5866f925d575d4ac29998b456e8a394ec6",
     "libraries/DisplayAdapter.pretty/TSSOP-24_4.4x7.8mm_P0.65mm.kicad_mod": "5b3dcd1b92fe646ae118fd9969ea742d5e648f13e9262d17ebae873e09073b19",
-    "libraries/DisplayAdapter.pretty/TerminalBlock_1x02_P3.50mm.kicad_mod": "91525c39c5db3887d3f2dff2b1b2fad27661829a9007ddf5594de6191d6d5cb0",
     "libraries/DisplayAdapter.pretty/TestPoint_1.0mm.kicad_mod": "b5be845aa983764c2ad176975ed86c19b848ff3e75a73503ac272a64475a743c",
     "libraries/DisplayAdapter.pretty/VSSOP-8_3x3mm_P0.65mm.kicad_mod": "4716d27ad963f7fa5f85b0303cf75774ced20c289a1474ac7418003ad163240a",
     "libraries/DisplayAdapter.pretty/WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm.kicad_mod": "26146fed11c0e2df1dff0ffcb9c6d2020695001b310e58fff186044895719e93"
@@ -837,9 +841,9 @@
     "giga-adapter": {
       "revision": "D",
       "copper_layers": 4,
-      "schematic_pcb_pin_pairs": 531,
+      "schematic_pcb_pin_pairs": 532,
       "components": 123,
-      "tracks": 1605,
+      "tracks": 1619,
       "ground_reference": "In1.Cu GND reference plane"
     },
     "display_contacts": 50,
@@ -879,38 +883,51 @@
     "display_minimum_mating_plane_mm": 1.3,
     "display_trimmed_tail_clearance_at_minimum_mating_height_mm": 0.5,
     "concave_milling_radius_mm": 0.9,
-    "mounting_effect": "Mating separation is between PCB surfaces; thickness does not change DF23 engagement. The top-side envelope and header insertion vary with PCB thickness; enclosure and first-board fit checks remain required."
+    "mounting_effect": "Mating separation is between PCB surfaces; thickness does not change DF23 engagement. The top-side envelope and header insertion vary with PCB thickness; enclosure and first-board fit checks remain required.",
+    "input_jack": {
+      "footprint": "BarrelJack_Horizontal_AISLER",
+      "plug": "5.5 x 2.1mm, centre positive 24V",
+      "opening": "left into service cutout",
+      "nominal_body_mm": [
+        14.5,
+        9,
+        11
+      ],
+      "nose_overhang_mm": 2.7,
+      "lead_clearance": "THT leads remain within the 13mm carrier gap; support the carrier during plug insertion.",
+      "qualification": "User-supplied terminal geometry; retained KiCad envelope is not a supplier-lot fit or contact-rating qualification."
+    }
   },
   "power_route_review": {
     "result": "PASS \u2014 routed power connectivity and geometry",
     "source_sha256": {
       "display-adapter": "3d48d790889b9b6d0b48618270c2a6e78ee82564ad5eaf6561dbc422cdc66094",
-      "giga-adapter": "aee58e90adab326538b00a1533a128f76991e4975965f6053c4a3a276963eba6"
+      "giga-adapter": "9da8fde2ef3f8ccbd85e86a4b3c4b8c44fc8bf6d18fe550c4c13aa52b65e658c"
     },
     "routes": [
       {
         "board": "giga-adapter",
         "start": "J10.1",
         "end": "F1.1",
-        "hot_copper_ohm": 0.006871194077712559
+        "hot_copper_ohm": 0.005835922915884621
       },
       {
         "board": "giga-adapter",
         "start": "F1.2",
         "end": "U7.1",
-        "hot_copper_ohm": 0.02620496258394901
+        "hot_copper_ohm": 0.041929872322934596
       },
       {
         "board": "giga-adapter",
         "start": "U7.16",
         "end": "U8.1",
-        "hot_copper_ohm": 0.012071330865713565
+        "hot_copper_ohm": 0.012214805709629954
       },
       {
         "board": "giga-adapter",
         "start": "U7.16",
         "end": "F2.1",
-        "hot_copper_ohm": 0.03373401110686209
+        "hot_copper_ohm": 0.033877485950778476
       },
       {
         "board": "giga-adapter",
@@ -994,8 +1011,8 @@
     "fused_input_minimum_track_width_mm": 0.6,
     "RTN_thermal_vias": 4,
     "RTN_zone_area_mm2": {
-      "F.Cu": 23.392652069999023,
-      "B.Cu": 59.993584496
+      "F.Cu": 23.39265206999902,
+      "B.Cu": 58.202202374024
     },
     "backlight_contacts": [
       5,
@@ -1042,6 +1059,6 @@
   "final_order_review": {
     "result": "LOCAL PROTOTYPE FABRICATION CHECKS PASS; AISLER CAM review required before order; assembled-system operation is unverified.",
     "report": "verification/order-review.json",
-    "sha256": "84a9e94b049cdc7eca709db64f7f855ec5f4a1e805d30f7fdf94b5e8a3d8b486"
+    "sha256": "3e01a6135908677df42fa22e008483ee979a02fca90da8bcff00ce78d9a4b469"
   }
 }
