@@ -95,7 +95,7 @@ def main():
     # Explicit budgeting split; these currents are NOT guaranteed panel maxima.
     # Smartwin interface table, p12: BKL = pins 5..8; TFT = pin 10.
     loads=[('J1',pin,1.05/4,'backlight') for pin in [5,6,7,8]]
-    loads += [('J1',10,.25,'TFT'),('J1',49,.05,'touch'),('J2',76,.15,'interface reference rail')]
+    loads += [('J1',10,.25,'TFT'),('J1',49,.05,'touch'),('J2',56,.15,'interface reference rail')]
     paths=[];currents=defaultdict(float)
     for ref,pin,amps,label in loads:
         resistance,path=resistance_path(b,'U1' if label=='backlight' else 'U3',3 if label=='backlight' else 1,ref,pin)

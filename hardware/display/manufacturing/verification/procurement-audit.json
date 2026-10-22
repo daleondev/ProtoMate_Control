@@ -1,0 +1,11 @@
+{
+  "result": "PASS",
+  "fitted_components": 158,
+  "purchased_pieces": 158,
+  "distinct_order_lines": 38,
+  "source_bom_sha256": {
+    "manufacturing/display-adapter-rev-F/bom-all.csv": "781a554b703e55f79a895c4102f0c1e8b55d6b44abffa4360bba0ca3ea802dc6",
+    "manufacturing/giga-adapter-rev-E/bom-all.csv": "c850eec1a70a868a8df85805c96135c21bac273ab029790c2074d5014bd9b849"
+  },
+  "stock": "Indexed evidence only; confirm live basket availability."
+}

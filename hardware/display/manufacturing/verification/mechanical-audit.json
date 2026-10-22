@@ -14,7 +14,7 @@
   "display_converter_max_tail_below_pcb_mm": 0.8,
   "qualifications": [
     "Official GIGA STEP omits outer socket bodies; added 8.5mm nominal envelopes are identified, not manufacturer models.",
-    "Hirose models are drawing-based envelopes, not production-tooling models.",
+    "Hirose DF23 and Molex FFC models are drawing-based envelopes, not production-tooling models.",
     "Mating contact spring deflection and assembly tolerances require physical first-board fit verification.",
     "Mounts and FFC strain relief belong to the enclosure; neither connector supports cable or PCB weight."
   ],

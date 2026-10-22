@@ -1,5 +1,5 @@
 {
-  "revision": "E",
+  "revision": "F",
   "status": "CALCULATED DESIGN BUDGET; FIRST-BOARD QUALIFICATION PENDING",
   "input": "24V nominal, regulated +/-10%, >=2A source available; common ground",
   "uv_start_min_typ_max_V": [
@@ -47,8 +47,17 @@
     "qualification": "Cold-resistance estimates, not hot-state guarantees. Verify temperature, startup and fault clearing on first hardware. Source prospective short-circuit current must not exceed the fuse interrupt rating."
   },
   "display_input_A_at_18V_80percent_efficiency": 0.4312499999999999,
+  "FFC": {
+    "cable": "15018-0563",
+    "sockets": "505110-6091",
+    "length_budget_mm": 106,
+    "copper_mm2": 0.03,
+    "rated_contact_current_A": 0.5,
+    "ground_conductors": 19,
+    "loop_estimate": "Two feed / two return conductors, 55C copper and 60mOhm per contact per end; PCB copper excluded."
+  },
   "FFC_power_current_per_contact_A": 0.21562499999999996,
-  "FFC_24V_drop_allowance_V": 0.08984375,
+  "FFC_24V_drop_allowance_V": 0.08971018569374997,
   "precision_logic_rail": {
     "regulator": "TPS7A9101DSKR fed by TSR 1-2450",
     "nominal_V": 3.2960000000000003,
@@ -56,9 +65,9 @@
       3.2426721293273544,
       3.3497996204515803
     ],
-    "routed_supply_return_contact_drop_V": 0.08370002616459321,
+    "routed_supply_return_contact_drop_V": 0.08887907405076989,
     "dynamic_drop_allowance_V": 0.1,
-    "panel_min_with_allowance_V": 3.0589721031627612,
+    "panel_min_with_allowance_V": 3.0537930552765844,
     "panel_requirement_V": [
       3.0,
       3.6
@@ -123,7 +132,7 @@
     "release_delay_nominal_ms": 300,
     "delay_configuration": "100k from CT to +3V3_PANEL; VDD and MR tied to +3V3_PANEL, ensuring supervision remains valid whenever the gates are powered",
     "gating": "SN74LVC08A AND gates PWM, STANDBY, TFT_RESET_N and TOUCH_RESET_N with READY; 10k output pull-downs.",
-    "host_ready": "FFC GIGA.10 -> display.71; AXC1 isolation -> PI1 / D70, pull-down when absent.",
+    "host_ready": "FFC GIGA.9 -> display.52; AXC1 isolation -> PI1 / D70, pull-down when absent.",
     "firmware": "Rendering continues without panel power. Return of READY repeats reset/standby delays; backlight waits 200ms after standby release and then for a valid scan boundary."
   },
   "limitations": [

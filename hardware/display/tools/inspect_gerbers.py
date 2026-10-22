@@ -70,8 +70,8 @@ def main(name):
     windows=0
     for o in stack.graphic_layers['top','paste'].objects:
         (x0,y0),(x1,y1)=o.bounding_box(MM)
-        if sorted([round(x1-x0,3),round(y1-y0,3)])==[.25,1.0]:windows+=1
-    assert windows==80,('Hirose paste aperture mismatch',windows)
+        if sorted([round(x1-x0,3),round(y1-y0,3)])==[.30,1.0]:windows+=1
+    assert windows==60,('Molex paste aperture mismatch',windows)
     # Summing object bounding boxes overestimates ink (overlaps counted twice),
     # giving a conservative independent bound on AISLER's 25% silk coverage.
     from shapely.geometry import Polygon

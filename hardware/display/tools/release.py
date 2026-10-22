@@ -72,11 +72,16 @@ def status():
             for suffix in ['.kicad_pcb','.kicad_pro','.kicad_sch','.kicad_dru']}
         assert read(name+'-aisler-audit.json')['source_sha256']==boards[name]['checked_source_sha256']['.kicad_pcb']
     power=read('power-review.json')
+    procurement=read('procurement-audit.json')
+    assert procurement['result']=='PASS'
+    assert all(hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==expected
+               for path,expected in procurement['source_bom_sha256'].items())
     assert power['result'].startswith('PASS')
     assert all(power['source_sha256'][name]==boards[name]['checked_source_sha256']['.kicad_pcb'] for name in BOARDS)
     result=dict(revision=REVISION,date=date.today().isoformat(),release='AISLER BARE-BOARD PROTOTYPE',
         digital_release_checks='PASS',boards=boards,checked_design_sha256=design_hashes(),
         electrical_audit=read('electrical-audit.json'),
+        procurement_audit=procurement,
         mechanical_review=read('mechanical-audit.json'),power_route_review=power,
         visual_review=dict(result='PENDING',reviewed=[]),
         aisler_processing=dict(status='PENDING',reason='Exact upload CAM preview, layer/options detection, holes, mask, bridge positions and netlist notes require account review. No project has been uploaded by this workflow.'),
@@ -87,8 +92,36 @@ def status():
             'Panel clock/data timing, colour order, touch and independent supply sequencing']),
         timing_qualification='40.96MHz configured; bootstrap enables IO compensation. Calculated timing margin is conditional; first-board timing/load qualification remains pending. See timing-budget.json.',
         power_qualification='Independent precision logic and backlight supplies with supervised startup. First-board transient/current/thermal tests remain pending. See power-budget.json.',
-        manufacturing_order_placed=False,assembly_order_placed=False,stencil_order_placed=False,firmware_changed=True)
+        manufacturing_order_placed=False,assembly_order_placed=False,stencil_order_placed=False,firmware_changed=False)
     (ROOT/'manufacturing/release-status.json').write_text(json.dumps(result,indent=2)+'\n')
+    # Bind the order review to the current exported jobs, not an earlier revision.
+    review=dict(date=date.today().isoformat(),
+        decision='LOCAL PROTOTYPE FABRICATION CHECKS PASS; AISLER CAM review and first-board qualification remain pending.',
+        boards={},
+        electrical_audit=result['electrical_audit'],
+        cable=dict(mpn='15018-0563',socket='505110-6091',conductors=60,
+                   mapping='GIGA J1.n -> display J2.(61-n)',
+                   type='Type A, same-side gold contacts, retention ears, bottom-contact sockets',
+                   nominal_length_mm=102,budget_length_mm=106),
+        routing='Straight segments with angular corners; no curved tracks. Existing power routing retained. Connector fanouts and necessary silkscreen labels updated.',
+        documentation='manufacturing/REVIEW.md and references/SOURCES.md',
+        conditions_before_order=['Review exact AISLER processed jobs: layers, ENIG, holes, masks, bridges and netlist notes.',
+            'Use the exact listed cable/connectors and current Mouser procurement list; DC jack is already owned.'],
+        physical_qualification=result['physical_qualification'],
+        timing_qualification=result['timing_qualification'],
+        power_qualification=result['power_qualification'],
+        order_placed=False,physical_testing_performed=False,
+        evidence_sha256={p.name:hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(verification.glob('*.json'))
+            if p.name not in {'order-review.json','source-sha256.json'}})
+    for name,config in boards.items():
+        upload=ROOT/'manufacturing'/release_name(name)/config['upload']
+        review['boards'][name]=dict(revision=config['revision'],upload=config['upload'],
+            upload_sha256=hashlib.sha256(upload.read_bytes()).hexdigest(),
+            PCB_sha256=config['checked_source_sha256']['.kicad_pcb'],
+            ERC_violations=0,DRC_violations=0,unrouted_connections=0,schematic_parity_violations=0,
+            waivers=[],routing_inventory=result['electrical_audit'][name]['routing_inventory'])
+    (verification/'order-review.json').write_text(json.dumps(review,indent=2)+'\n')
 
 
 def main():
@@ -102,7 +135,7 @@ def main():
         run('inspect_odb.py',name)
         run('inspect_gerbers.py',name)
     for script in ['audit.py','routing_report.py','review_layout.py','power_routes.py',
-                   'power_budget.py','review_power.py','mechanical.py','drawings.py']:
+                   'power_budget.py','review_power.py','mechanical.py','drawings.py','audit_procurement.py']:
         run(script)
     render()
     status()

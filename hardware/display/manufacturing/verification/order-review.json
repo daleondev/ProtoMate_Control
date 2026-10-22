@@ -1,197 +1,128 @@
 {
-  "reviewed_utc": "2026-10-22T11:20:33+00:00",
-  "decision": "LOCAL PROTOTYPE FABRICATION CHECKS PASS; AISLER CAM review required before order; assembled-system operation is unverified.",
-  "scope": "Current display-E/GIGA-D routing and silkscreen, including fresh zone fills, exact source/exports, schematic and firmware pin assignments, geometry, power paths, timing estimates and nominal mating review. No AISLER CAM, physical or supplier-lot qualification is implied.",
+  "date": "2026-10-22",
+  "decision": "LOCAL PROTOTYPE FABRICATION CHECKS PASS; AISLER CAM review and first-board qualification remain pending.",
   "boards": {
     "display-adapter": {
-      "revision": "E",
-      "upload": "display-adapter-rev-E-aisler-odb.zip",
-      "upload_sha256": "31193d4c8f7ac6439f10c199ef50cc63bb2e86912190ad5c8453f0f926694c28",
-      "PCB_sha256": "9667c2a3c9b4c2ad439f0402d83941e1ae2f341aa28d137a33855e11bea47b81",
+      "revision": "F",
+      "upload": "display-adapter-rev-F-aisler-odb.zip",
+      "upload_sha256": "acf6fb5aee09cf6eeaa4dba8664de59ba3415653eccd6e989858d5957b3163c8",
+      "PCB_sha256": "23fa0b18e9279faaf13c2384043cfcb0c68f5b67ebf549d2da2dcb7c2a9a2b12",
       "ERC_violations": 0,
       "DRC_violations": 0,
       "unrouted_connections": 0,
       "schematic_parity_violations": 0,
       "waivers": [],
-      "exported_pad_coordinates_and_nets_checked": 258,
-      "drill_hits_checked": 219,
-      "minimum_processed_fine_pitch_pad_mask_web_mm": 0.15999999999999928,
-      "minimum_processed_connector_to_via_mask_web_mm": 0.13499999999999893,
-      "evidence_sha256": {
-        "display-adapter-erc.json": "3cec01602201d260c00ece8012c6317cb3b44d92395abe85a818a1e404d54f1a",
-        "display-adapter-drc.json": "15df380670d3aa9003742f6b537060593f27d16f5da17621aba116e4fa6d3dec",
-        "display-adapter-aisler-audit.json": "a97e3ed83cc9eba937ed1d2acc2e58e7588d19381c4f14faa0a0383bd23b11d8",
-        "display-adapter-odb-audit.json": "bdd945c497f30ebe53643219892fd24fee7f5611238c066e4bb37c64ef71bb03",
-        "display-adapter-gerber-audit.json": "8b03cf1981fba042f2b13e27b894f8bbeaae70a6a06fd8ad91b6883e16e72d6d",
-        "display-adapter-bom-placement.json": "4d256c92e830feb3694688ebaa5279f9903aa9db733c543f009cce4390899495"
-      },
       "routing_inventory": {
-        "track_segments": 719,
-        "ground_track_segments": 0,
-        "isolated_RTN_track_segments": 0,
-        "through_vias": 209
-      },
-      "plated_slots_checked": [],
-      "silk_coverage_upper_bound_percent": {
-        "top": 11.712095921881998,
-        "bottom": 4.9845839056441
-      },
-      "silkscreen_and_component_placement": "Preserved exactly from the user-reviewed board; pin-1 orientation, label nets, minimum strokes/heights and pad/edge clearances checked."
+        "straight_segments": 901,
+        "curved_segments": 0,
+        "through_vias": 195,
+        "ground_segments": 0
+      }
     },
     "giga-adapter": {
-      "revision": "D",
-      "upload": "giga-adapter-rev-D-aisler-odb.zip",
-      "upload_sha256": "c6290d51733191d2e2867a69d4f92ed3b4051c0da3e1297781a8ba1149cc92ae",
-      "PCB_sha256": "ffbc4e501856cece6e01788e55b4292d1fd85e1db16bdae1314882673760d53e",
+      "revision": "E",
+      "upload": "giga-adapter-rev-E-aisler-odb.zip",
+      "upload_sha256": "4b9c216f68bcddf20eb3a7e411d233a78685946446a12f5dbb8d3cdf861288fc",
+      "PCB_sha256": "6ab3b511c9e2a0f6976b663d87d049a44227f3e5b3aa4ff5615e240d6dbcd674",
       "ERC_violations": 0,
       "DRC_violations": 0,
       "unrouted_connections": 0,
       "schematic_parity_violations": 0,
       "waivers": [],
-      "exported_pad_coordinates_and_nets_checked": 648,
-      "drill_hits_checked": 352,
-      "minimum_processed_fine_pitch_pad_mask_web_mm": 0.15999999999999928,
-      "minimum_processed_connector_to_via_mask_web_mm": 0.1136999999999864,
-      "evidence_sha256": {
-        "giga-adapter-erc.json": "671bab6667a47d9f200ac364b4bfd7661188439ef53be3bfd1d02db836369916",
-        "giga-adapter-drc.json": "725a0b168728121a4d467f8d5382582eda1d09009ea32c7e19472e7fccf8144c",
-        "giga-adapter-aisler-audit.json": "d24a6b79b42ab9294e2ea112ccf6b9691ec6bfc1a13cc6e586e351d4944793af",
-        "giga-adapter-odb-audit.json": "2912576251705951afba9fd2bfce871d1a4af8c592aace956d5ed2efd9b1ab37",
-        "giga-adapter-gerber-audit.json": "4af2888ed2a496189d03e3913df971dc52038a689d25e878db757a9dbe5ad6a9",
-        "giga-adapter-bom-placement.json": "2e6fbb07eb20f130e4de02e5f669041feaced99e591249384f69e57f09ed5680"
-      },
       "routing_inventory": {
-        "track_segments": 1340,
-        "ground_track_segments": 110,
-        "isolated_RTN_track_segments": 9,
-        "through_vias": 232
-      },
-      "plated_slots_checked": [
-        {
-          "pad": "J10.1",
-          "width_mm": 1.2,
-          "length_mm": 3.9999999999999973
-        },
-        {
-          "pad": "J10.2",
-          "width_mm": 1.2,
-          "length_mm": 3.5999999999999988
-        },
-        {
-          "pad": "J10.3",
-          "width_mm": 1.2,
-          "length_mm": 3.9999999999999973
-        }
-      ],
-      "silk_coverage_upper_bound_percent": {
-        "top": 20.98759422519011,
-        "bottom": 13.12717039771972
-      },
-      "silkscreen_and_component_placement": "Preserved exactly from the user-reviewed board; pin-1 orientation, label nets, minimum strokes/heights and pad/edge clearances checked."
+        "straight_segments": 1495,
+        "curved_segments": 0,
+        "through_vias": 229,
+        "ground_segments": 93
+      }
     }
   },
-  "manual_electrical_checks": [
-    {
-      "circuit": "Display pin assignment and mating connector",
-      "result": "PASS against supplied drawings",
-      "evidence": "Smartwin pp12-14 and rear-view Detail A p26; Hirose EDC3-164006-03 Fig1/Fig4. All 50 contacts checked. Display plug is bottom mounted; numbering and mirrored assembly view agree."
+  "electrical_audit": {
+    "display-adapter": {
+      "revision": "F",
+      "copper_layers": 4,
+      "schematic_pcb_pin_pairs": 232,
+      "components": 51,
+      "tracks": 1096,
+      "ground_reference": "In1.Cu GND reference plane",
+      "routing_inventory": {
+        "straight_segments": 901,
+        "curved_segments": 0,
+        "through_vias": 195,
+        "ground_segments": 0
+      }
     },
-    {
-      "circuit": "FFC orientation",
-      "result": "PASS at drawing/netlist level",
-      "evidence": "FH28H bottom-contact sockets; same-contact-face Type-A cable gives J1.n to J2.(81-n). All 80 mappings checked, PCLK retains adjacent grounds. Exact cable purchase and continuity remain outstanding."
+    "giga-adapter": {
+      "revision": "E",
+      "copper_layers": 4,
+      "schematic_pcb_pin_pairs": 512,
+      "components": 123,
+      "tracks": 1724,
+      "ground_reference": "In1.Cu GND reference plane",
+      "routing_inventory": {
+        "straight_segments": 1495,
+        "curved_segments": 0,
+        "through_vias": 229,
+        "ground_segments": 93
+      }
     },
-    {
-      "circuit": "AXC8 direction, supplies and power-off behavior",
-      "result": "PASS",
-      "evidence": "SCES875C PW pin table and truth table: DIR1 high, DIR2 low for all-eight A-to-B. VCCA=GIGA, VCCB=panel. No 3.3V supply tie. Ioff/VCC isolation and input/output startup pull-downs checked."
-    },
-    {
-      "circuit": "Returning INT and READY",
-      "result": "PASS",
-      "evidence": "AXC1 DBV pinout: A/VCCA/DIR on panel side; B/VCCB on GIGA side. INT has pull-ups, READY has MCU pull-down. No motor/EtherCAT pin conflict; READY is PI1/D70."
-    },
-    {
-      "circuit": "Touch I2C",
-      "result": "PASS",
-      "evidence": "TCA9517A: A side=panel, B side=STM32; GIGA 5.1k pull-ups and display 4.7k pull-ups, 100kHz. VCCB/EN=GIGA, VCCA=panel. Either supply order supported per section 9; B-side low-level contention requirement checked against STM32 drive."
-    },
-    {
-      "circuit": "Protected 24V, GIGA VIN and USB",
-      "result": "PASS for specified regulated supply; surge/EMC not qualified",
-      "evidence": "TPS26600 PWP pinout, isolated RTN/EP, open SHDN, retry mode, fuse/TVS/clamp polarity and reverse VIN blocking checked. Worst calculated OVP threshold remains below converter 36V operating limit. USB/GIGA3.3 never feed display3.3."
-    },
-    {
-      "circuit": "Precision logic regulator",
-      "result": "PASS for stated allocation and thermal assumptions",
-      "evidence": "TPS7A9101 DSK pinout/EP, 31.2k/10k 0.1% divider, SS_CTRL ground and 47nF NR/SS; input/output capacitance and 5V headroom checked. WSON underside must be soldered. Actual DC-bias capacitance, rise time, transients and junction temperature remain first-board measurements."
-    },
-    {
-      "circuit": "Dual rail supervision and hardware gates",
-      "result": "PASS for circuit connectivity and component ratings",
-      "evidence": "TPS3808 DBV SENSE input accepts 0..6.5V independently of VDD (absolute maximum 7V), so a live 3.3V backlight sense with logic supply off is within the input rating. CT=100k to VDD; nominal release 300ms (180..420ms). Both open-drain outputs share READY. SN74LVC08A gates four controls, with output pull-downs."
-    },
-    {
-      "circuit": "Display control timing",
-      "result": "PASS for configuration; analog timing pending",
-      "evidence": "Smartwin p18 samples falling PCLK; STM32 DS12930 Fig49 with PCPOL=1 changes data on rising edge. DEPOL=0 produces active-high external DE (AN4861/RM0399). 40.96MHz/1120/610 complies with supplied DE timing range. Backlight waits 200ms after standby plus a valid scan boundary."
-    },
-    {
-      "circuit": "24V barrel input",
-      "result": "PASS \u2014 circuit/geometry/export checks",
-      "evidence": "J10 supplied DC-005 footprint: centre/pin1 = +24V_INPUT through F1; sleeve and sleeve switch/pins2/3 = GND. Original fuse, eFuse and protection circuit retained. Three 1.2mm plated slots independently compared in source, Excellon and ODB++; footprint pad dimensions preserved. Exact jack/plug rating must meet 30VDC/2A; supplier-lot rating and fit are not established by the footprint."
-    }
+    "display_contacts": 50,
+    "ribbon_conductors": 60,
+    "display_signals": 35,
+    "supply_ready_signals": 1,
+    "firmware_pin_conflicts": 0,
+    "firmware_assignment_source": "current repository CubeMX project",
+    "firmware_source_sha256": "d478eb55afc0d60b739b090cc9dfb548b0fec09169a1b33c05132a3ff3098d43",
+    "physical_hardware_test": "NOT PERFORMED"
+  },
+  "cable": {
+    "mpn": "15018-0563",
+    "socket": "505110-6091",
+    "conductors": 60,
+    "mapping": "GIGA J1.n -> display J2.(61-n)",
+    "type": "Type A, same-side gold contacts, retention ears, bottom-contact sockets",
+    "nominal_length_mm": 102,
+    "budget_length_mm": 106
+  },
+  "routing": "Straight segments with angular corners; no curved tracks. Existing power routing retained. Connector fanouts and necessary silkscreen labels updated.",
+  "documentation": "manufacturing/REVIEW.md and references/SOURCES.md",
+  "conditions_before_order": [
+    "Review exact AISLER processed jobs: layers, ENIG, holes, masks, bridges and netlist notes.",
+    "Use the exact listed cable/connectors and current Mouser procurement list; DC jack is already owned."
   ],
-  "manual_mechanical_export_checks": [
-    "Both outside copper/mask/silk exports and both inner layers inspected independently of the KiCad renderer; continuous In1 ground and isolated RTN verified.",
-    "Hirose DF23 0.25x1.0mm pads, 0.5mm pitch, 3.9mm row centres and forbidden exposed-copper bands checked against drawing. FH28H 0.30x1.30mm lands and retention pads checked against catalogue.",
-    "GIGA official CAD contact centres, distinct SSQ -03/-04 tails, 13mm spacing, service cutouts, display connector orientation and <=0.8mm trimmed converter tails reviewed. Simplified models are not a physical fit test.",
-    "AISLER 4-layer ENIG rules checked online; 1.6mm +/-10%, 35um copper, layer order, mask processing, rings, hole spacing, edges, exposed vias and bridge document layers checked. No fiducials or rule waivers.",
-    "Release ZIP CRCs and nested checksum manifests verified; exported ODB matches the intended upload byte-for-byte. BOM/placement identities and orientations agree with source."
-  ],
-  "firmware_validation": "firmware-validation.json",
-  "firmware_validation_sha256": "e35c545a1dfe9575c2dae814e9b969ca98a79c7df8da8289dc79aeb41a3d525c",
-  "remaining_conditions": [
-    {
-      "stage": "Before ordering",
-      "condition": "Inspect AISLER CAM preview for these exact ODB archives: 4 layers, ENIG, 1.6mm, outline, drills including three J10 plated slots, bridges and fine-pitch mask. No AISLER job has been uploaded here."
-    },
-    {
-      "stage": "Procurement",
-      "condition": "Source the specified 80-way gold-contact Type-A FFC and exact connectors/stacking headers. For J10 use the supplied DC-005 geometry and centre-positive 5.5/2.1mm plug with a documented rating of at least 30VDC/2A. The footprint does not qualify a supplier lot or contact rating."
-    },
-    {
-      "stage": "Assembly",
-      "condition": "Provide controlled reflow/hot-air capability for the WSON exposed pad and fine-pitch connectors; preserve lead trim and insulating supports."
-    },
-    {
-      "stage": "First board",
-      "condition": "Backlight typical current is 1.05A, not a guaranteed maximum; equal-sharing contact ceiling is 1.2A. Static budget is 3.029V with assumed ripple allowance. 250mV specified load-step excursion can retrigger the supervisor. Actual PWM/full-brightness operation and current sharing are not certified."
-    },
-    {
-      "stage": "First board",
-      "condition": "Measure connector-level PCLK setup/hold and duty cycle with the actual cable and panel; TI propagation limits assume 15pF and 1ns/V input slew, and use 50% thresholds. Conditional calculated margins are not measured timing closure."
-    },
-    {
-      "stage": "First board",
-      "condition": "Verify mating fit, rails, isolation, ramp/recovery, temperature, touch and visible operation before accepting the assembled system."
-    }
-  ],
+  "physical_qualification": {
+    "status": "NOT PERFORMED",
+    "pending": [
+      "Connector fit, 1.6mm thickness tolerance, converter lead trim, mounting and strain relief",
+      "Supply isolation, inrush, rise time, full-brightness voltage/current and thermal behaviour",
+      "Panel clock/data timing, colour order, touch and independent supply sequencing"
+    ]
+  },
+  "timing_qualification": "40.96MHz configured; bootstrap enables IO compensation. Calculated timing margin is conditional; first-board timing/load qualification remains pending. See timing-budget.json.",
+  "power_qualification": "Independent precision logic and backlight supplies with supervised startup. First-board transient/current/thermal tests remain pending. See power-budget.json.",
   "order_placed": false,
   "physical_testing_performed": false,
   "evidence_sha256": {
-    "electrical-audit.json": "9ce3c2899be07cab2ee24386c4f9d7da8b4c3f485b0e2a74df85c53a96ce6b2d",
-    "power-routing.json": "d79d116531cbecba6d383a689abaec225c2ed334fe0f9dfa31320ad7d9f25940",
-    "power-budget.json": "a0d00138a94038f1de4161bcc4c7e232faefdd7f952b3f8e68e67afc78b0d57f",
-    "power-review.json": "ab1490737b9f0052b615a5df653a04d0ae6fa18f4d8fa4d9ce05d953a5e2567a",
-    "timing-budget.json": "ac66912afc24c3b2d2c184dda5b9d99f86904f14cd6af4ad970ae452293a69a3",
-    "mechanical-audit.json": "befee2bbe3c55ec857a1f9bb755bd27f1dbefbd8fb912af0d42cf8a7be6cdcc3"
-  },
-  "routing": "Straight/45-degree edited routes, unchanged net assignments and track widths. Display backlight via entries are centred. Display GND uses filled planes and stitching vias without separate GND tracks. GIGA component-to-plane escapes and isolated eFuse RTN thermal connections are retained. All checks have zero waived findings.",
-  "current_calculated_budgets": {
-    "logic_contact_min_V_with_dynamic_allowance": 3.0589721031627612,
-    "backlight_contact_min_V_with_assumed_ripple_allowance": 3.029335340015732,
-    "adapter_route_skew_ns": 0.24154343633632241,
-    "qualification": "Conditional component/layout calculations; measured transient behaviour, contact current sharing and connector-level RGB timing remain first-board tests."
+    "display-adapter-aisler-audit.json": "6d74c9deec69c32f8e30715caf4e359b4e2fe068222f02681400cf61586085d7",
+    "display-adapter-bom-placement.json": "d48f886a0795536645608bf4b7f2311366d4f28a9afea9fe8379e556abe04a8c",
+    "display-adapter-drc.json": "da0ef837c2aa037f513ae3ac3be93717f6d0caec3b85934debb873af979e169f",
+    "display-adapter-erc.json": "4a169bffb9bf993daf7f1d321eda38daee9008379a3a409511ed217287bf068e",
+    "display-adapter-gerber-audit.json": "630b15a7abea59aebe08feb5608dc4fcc0dab88001bbf7a72807da09064a9ecc",
+    "display-adapter-layout-review.json": "53ddd8155a1f72b33cbc83bd8542238ed65e34bda109710322050ca7928892e1",
+    "display-adapter-odb-audit.json": "d29a3b4312a082d9954100cb49847704303abe10ce3c3813ea095ea5485889d7",
+    "electrical-audit.json": "e68d7f76ee14cbf583a87a50530510f21af03f51207262a5b132e71d7758dbca",
+    "firmware-validation.json": "e35c545a1dfe9575c2dae814e9b969ca98a79c7df8da8289dc79aeb41a3d525c",
+    "giga-adapter-aisler-audit.json": "4dfc842a0bf5cbd681058c01c58d33b7087adcc02f0f337c0adf49324f559e59",
+    "giga-adapter-bom-placement.json": "e219f7722f0b6e5071e261afd16516cdb719af2a15bb2c76e523b3a817591bb2",
+    "giga-adapter-drc.json": "2095675b1af0670e82bbbdc00bbe76828b13b43d9c2dfbdf4ab99c0bebb2ede4",
+    "giga-adapter-erc.json": "2b5bc4d20587e0354229c8a479111f851c80dc93cb04df3294524257c15086b7",
+    "giga-adapter-gerber-audit.json": "8277509dc35eeb4b8220db253a76759f9b354387034a695d9cdf2d3e7792f452",
+    "giga-adapter-odb-audit.json": "8d62f0ebfe35910f698937d6eba00eb5f519b834dbc3143d205b40a3adf22bf7",
+    "mechanical-audit.json": "8d4a5798e99596ecdef5af0985cf628da6a10e5eb4f59e3b8e125c1837f4f0c6",
+    "power-budget.json": "d479131453fecedca1894ac488a14fe56389d9becc19dea6accff5912644851e",
+    "power-review.json": "84fcfee505996c129b0fdf933980928f92b23830a25e1e9701ea1bb4266062cc",
+    "power-routing.json": "b2ba4220a35d657f96b4dd0a7c5ad1f65b3ce62561b9464c385b4ec7f829af19",
+    "procurement-audit.json": "8b0f06072c8c690eb261a2907cb823ae95309a084fe8394176f4c8e5d658a637",
+    "timing-budget.json": "b1495ef6edd77f93f1df9c7440358a5d943df31e9d4812cd17d14c6f29766520"
   }
 }

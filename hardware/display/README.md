@@ -1,19 +1,19 @@
 # Smartwin–GIGA display adapters
 
-The **four-layer display adapter (revision E)** and **four-layer GIGA adapter
-(revision D)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
+The **four-layer display adapter (revision F)** and **four-layer GIGA adapter
+(revision E)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
 **GIGA R1 WiFi**, preserving the firmware's display pin assignments.
 Open either project in KiCad 10; both use `libraries/` and require no downloaded
 symbol or footprint library. Keep this directory structure when moving them.
 
 Release files:
 
-- [Display E: AISLER ODB++ upload](releases/display-adapter-rev-E-aisler-odb.zip)
-- [GIGA D: AISLER ODB++ upload](releases/giga-adapter-rev-D-aisler-odb.zip)
-- [Display E: review and soldering package](releases/display-adapter-rev-E-aisler-review.zip)
-- [GIGA D: review and soldering package](releases/giga-adapter-rev-D-aisler-review.zip)
-- [Source bundle E: projects, libraries, models and tools](releases/smartwin-giga-rev-E-source.zip)
-- [Nominal GIGA mating assembly](assembly/giga-mated-rev-D.png)
+- [Display F: AISLER ODB++ upload](releases/display-adapter-rev-F-aisler-odb.zip)
+- [GIGA E: AISLER ODB++ upload](releases/giga-adapter-rev-E-aisler-odb.zip)
+- [Display F: review and soldering package](releases/display-adapter-rev-F-aisler-review.zip)
+- [GIGA E: review and soldering package](releases/giga-adapter-rev-E-aisler-review.zip)
+- [Source bundle F: projects, libraries, models and tools](releases/smartwin-giga-rev-F-source.zip)
+- [Nominal GIGA mating assembly](assembly/giga-mated-rev-E.png)
 - [Component lists and Mouser procurement](procurement/README.md): quantities for one
   board pair, explicit substitutes, stock evidence and remaining sourcing gaps;
   the DC jack is already owned.
@@ -25,8 +25,8 @@ identifies the exact archives.
 
 | Project | Board | AISLER profile | Finish |
 |---|---|---|---|
-| `display-adapter/display-adapter.kicad_pro` | Rev E, 4 layers, 55 × 50 × 1.6 mm | `aisler-4-layer-hd-drc` | ENIG |
-| `giga-adapter/giga-adapter.kicad_pro` | Rev D, 4 layers, 111 × 53.34 × 1.6 mm maximum | `aisler-4-layer-hd-drc` | ENIG |
+| `display-adapter/display-adapter.kicad_pro` | Rev F, 4 layers, 55 × 50 × 1.6 mm | `aisler-4-layer-hd-drc` | ENIG |
+| `giga-adapter/giga-adapter.kicad_pro` | Rev E, 4 layers, 111 × 53.34 × 1.6 mm maximum | `aisler-4-layer-hd-drc` | ENIG |
 
 Both are **bare boards**, with 35 µm copper on every layer, green solder mask
 and white silkscreen. All components are sourced and installed separately.
@@ -55,7 +55,7 @@ Do not manufacture a working-directory draft without its matching release ZIP.
                         |                  |
                    TSR 1-24120       0.8 A ribbon fuse
                       12 V                 |
-                   blocking D3          80-way FFC
+                   blocking D3          60-way FFC
                         |                  |
                      GIGA VIN       +------+------+
                                     |             |
@@ -177,7 +177,7 @@ small remaining margin does not establish operation under every load transient.
   A brownout clamps them without depending on the GUI, USB or polling.
 - Shield **U9 SN74AXC1T45** translates READY back to **PI1 / D70 / J9.15**,
   with a 10 kΩ pull-down on the MCU side. This also handles a disconnected or
-  unpowered adapter. READY uses shield FFC contact **10**, display FFC **71**.
+  unpowered adapter. READY uses shield FFC contact **9**, display FFC **52**.
 - Firmware continues rendering when the panel is absent. After READY returns,
   it holds reset LOW for 2 ms, releases reset, waits 10 ms, releases standby,
   waits 200 ms for the panel's multi-frame startup, then waits for a valid
@@ -188,32 +188,40 @@ small remaining margin does not establish operation under every load transient.
 ## Cable and numbering
 
 The exact procurement specification is `cable-specification.pdf`; the complete
-80-conductor map is `cable-conductors.csv`. `connections.csv` adds the MCU pin,
+60-conductor map is `cable-conductors.csv`. `connections.csv` adds the MCU pin,
 Arduino label, GIGA header, adapter header, both FFC contacts and display contact
 for each of the 35 signals.
 
-Use **80 conductors, 0.50 mm pitch, 0.30 mm mating thickness, straight-sided FFC,
-Type A (exposed contacts on the same side), at most 100 mm long**. Both sockets are
-Hirose FH28H-80S-0.5SH(05). Follow the drawing's contact-face orientation, not the
-colour of an arbitrary cable stiffener. A Type B/opposite-contact cable is not
-an interchangeable substitute.
+Use **Molex 15018-0563**, a catalogue **60-conductor, 0.50 mm pitch,
+102 mm nominal Type-A cable** with same-side gold contacts and retention ears.
+Its mating thickness is **0.30 ±0.05 mm**. Both sockets are **Molex 505110-6091**,
+bottom-contact flip-latch connectors matched to this cable series. The end width
+is 30.5 mm; the tabbed body reaches 32.5 mm. Follow the cable drawing, with exposed
+contacts facing the PCB at both ends. Type B and straight-ended cables are not
+interchangeable substitutes. Mouser order numbers are **538-15018-0563** (one cable)
+and **538-505110-6091** (two sockets).
 
-The facing connectors reverse numbering: **GIGA J1 pin n connects to display J2
-pin 81−n**. Thirty-nine conductors are ground, 35 carry display signals, one returns READY,
-two carry protected 24 V, and
-three return the panel supply reference. PCLK has ground on both sides.
+The facing connectors reverse project numbering: **GIGA J1 pin n connects to
+display J2 pin 61−n**. Nineteen conductors are ground, 35 carry display signals,
+one returns READY, two carry protected 24 V, and three return the panel supply
+reference. RGB signals share one ground per pair; PCLK retains a ground on each
+side. This reduces conductor count while preserving a short parallel interface;
+crosstalk and timing still require the first-board measurements below.
 
 | Rail | GIGA J1 contacts | Display J2 contacts |
 |---|---|---|
-| Protected, branch-fused 24 V | 1, 3 | 80, 78 |
-| PANEL_3V3 reference return | 5, 7, 9 | 76, 74, 72 |
-| PANEL_READY return → GIGA D70 | 10 | 71 |
+| Protected, branch-fused 24 V | 1, 2 | 60, 59 |
+| PANEL_3V3 reference return | 5, 6, 7 | 56, 55, 54 |
+| PANEL_READY return → GIGA D70 | 9 | 52 |
 
-Use the **display-E / GIGA-D pair** and its revision-E cable drawing.
-Flash the updated bootstrap and UI firmware together using the repository’s
-combined GIGA flash workflow; both the pixel clock and READY sequencing changed. The cable
-must be rated at least 60 V and 0.5 A per conductor, with copper cross-section
-at least 0.0105 mm²; a mechanically fitting cable alone is insufficient.
+Use the **display-F / GIGA-E pair** and revision-F cable drawing. The cable is
+rated 60 V / 0.5 A per conductor; the sockets are rated 50 V / 0.5 A per contact.
+The complete link is therefore limited by the socket's voltage rating. Cable
+copper is **0.30 × 0.10 mm**. Electrical budgets conservatively use **106 mm**,
+allowing the series' length tolerance. Connect only with power removed.
+
+This connector change does not change MCU assignments or require firmware changes.
+Use the existing 40.96 MHz pixel-clock and READY-aware bootstrap/UI configuration.
 
 Viewed from the display adapter's top, J1 pin 1 is at the lower left of its pad
 array, pin 2 above it, and pin 49 at the lower right. J1 itself is mounted on the
@@ -271,7 +279,7 @@ This keeps the leads above the display flex's nominal 1.5 mm mating plane.
 and solder paste; edge-only iron soldering cannot solder its thermal pad.
 Inspect the joints before applying power. No filled or tented vias are needed.
 
-The local STEP models for Hirose connectors, converter/eFuse envelopes and stacking sockets are
+The local STEP models for Hirose DF23 and Molex FFC connectors, converter/eFuse envelopes and stacking sockets are
 dimensioned mechanical envelopes derived from manufacturer drawings. They
 simplify latch/contact details and are labelled accordingly; they are not
 manufacturer production-tooling models. Standard IC/passive models and the
@@ -291,8 +299,8 @@ The 12.207 ns half-period is budgeted against Smartwin's 5 ns setup/hold,
 the AXC8 inter-device propagation spread, STM32 output timing and measured
 adapter routing. See `timing-budget.json` for the resulting conditional margins.
 Arduino traces, cable skew, actual capacitive loading, settling and clock duty
-cycle still require connector-level measurement. The cable limit is **100 mm**;
-use a shorter specified cable when the enclosure permits. The 33 Ω series
+cycle still require connector-level measurement. The cable is **102 mm nominal**; the electrical budget allows **106 mm**.
+Do not extend the cable without requalifying timing and signal quality. The 33 Ω series
 resistors are fitted starting values, to be qualified with the actual panel.
 
 **Both boards are four-layer**, with an uninterrupted In1 ground reference.
@@ -301,16 +309,16 @@ ground copper. Routes use straight runs and deliberate corners; retain this
 geometry instead of regenerating staircase paths with the grid router.
 The dedicated backlight supply uses wide traces. The source
 retains the GIGA power-route geometry; its fused input remains at least 0.60 mm.
-The display's ground connections use the filled planes and local stitching vias,
-without separate ground tracks. The GIGA retains the short component-to-plane
-connections and isolated eFuse RTN connections it needs.
+Ground connections use filled planes and local stitching vias. Short pad escapes
+remain where needed to reach a plane; redundant ground tracks are removed.
+The GIGA retains the short component-to-plane connections and isolated eFuse RTN connections it needs.
 
 Vias are exposed through-vias, with no dependence on tenting, plugging or filling.
 DF23 exposed-contact bands are via keepouts. Ordinary molded IC bodies may have
 vias underneath; no via is in a solder pad. There are no fiducials.
 Source mask expansion is zero. The independent mask audit applies AISLER's
 20 µm per-side processing enlargement and requires at least 0.10 mm webs around
-fine-pitch contacts. FH28 paste windows follow Hirose's 0.25 × 1.00 mm drawing.
+fine-pitch contacts. Molex paste windows follow its 0.30 × 1.00 mm lands at 100% area.
 
 J8 uses 1.70 mm pads with 1.05 mm holes (0.325 mm annular rings). U8’s
 narrow pad dimension is 1.70 mm with its original 1.00 mm drill. Other stacking
@@ -318,8 +326,8 @@ headers retain 1.8 mm pads. All component-hole rings are at least 0.30 mm.
 
 ## AISLER upload and manufacturing review
 
-1. Upload `display-adapter-rev-E-aisler-odb.zip` and
-   `giga-adapter-rev-D-aisler-odb.zip` as separate AISLER projects.
+1. Upload `display-adapter-rev-F-aisler-odb.zip` and
+   `giga-adapter-rev-E-aisler-odb.zip` as separate AISLER projects.
 2. Confirm **4 layers on both, ENIG on both, 1.6 mm ±10%, 35 µm copper**,
    green mask and white silk. Select bare boards only; no assembly or stencil.
 3. Inspect the processed copper, holes and mask. Confirm all 50 display contacts,
@@ -377,7 +385,7 @@ See [manufacturer references and locked inputs](references/AISLER.md).
    zero to full and `display touch`, including touch reset and interrupt.
 4. Measure panel supply at full brightness, input/backlight current, connector
    and protection-component temperatures, PCLK frequency/duty/phase and data
-   setup/hold at the panel. Qualify the 33 Ω values and the full 100 mm cable.
+   setup/hold at the panel. Qualify the 33 Ω values and the specified 102 mm cable.
 5. Test 24 V first, USB first, removal of either supply and automatic display
    reinitialization after power recovery. Verify READY timing and hardware gating. Repeat under graphics/ICC/logging load.
 

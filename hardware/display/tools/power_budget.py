@@ -20,7 +20,11 @@ def main():
     fuse_resistance=.140
     fuse_continuous_budget=2*.925*.75
     assert total_input<fuse_continuous_budget
-    cable_feed_ohm=.0175*.1/.0105/2*1.3
+    # Molex 15018: max 0.73 ohm/m at 20C; allow 106mm and 55C copper.
+    # Two feeds and conservatively only two ground returns, with 60mOhm
+    # per mated contact after environmental/durability tests (two ends).
+    cable_wire_ohm=.73*.106*(1+.00393*35)
+    cable_loop_ohm=cable_wire_ohm+2*.060
     # TPS7A91 1% over line/load/temperature; divider initial tolerance,
     # independent 25ppm/K drift over 100K from 25C, and FB leakage.
     nominal=.8*(1+31.2/10)
@@ -63,8 +67,11 @@ def main():
         'land_pattern_mm':{'pad_size':[1.45,1.8],'pad_centre_spacing':2.95,'gap':1.5},
         'qualification':'Cold-resistance estimates, not hot-state guarantees. Verify temperature, startup and fault clearing on first hardware. Source prospective short-circuit current must not exceed the fuse interrupt rating.'},
       'display_input_A_at_18V_80percent_efficiency':display_input,
+      'FFC':{'cable':'15018-0563','sockets':'505110-6091','length_budget_mm':106,
+        'copper_mm2':.03,'rated_contact_current_A':.5,'ground_conductors':19,
+        'loop_estimate':'Two feed / two return conductors, 55C copper and 60mOhm per contact per end; PCB copper excluded.'},
       'FFC_power_current_per_contact_A':display_input/2,
-      'FFC_24V_drop_allowance_V':display_input*(cable_feed_ohm+.1),
+      'FFC_24V_drop_allowance_V':display_input*cable_loop_ohm,
       'precision_logic_rail':{'regulator':'TPS7A9101DSKR fed by TSR 1-2450',
         'nominal_V':nominal,'static_min_max_V':[low,high],'routed_supply_return_contact_drop_V':logic_drop,
         'dynamic_drop_allowance_V':.1,'panel_min_with_allowance_V':minimum,
@@ -96,7 +103,7 @@ def main():
         'falling_threshold_nominal_V':3.07,'release_delay_nominal_ms':300,
         'delay_configuration':'100k from CT to +3V3_PANEL; VDD and MR tied to +3V3_PANEL, ensuring supervision remains valid whenever the gates are powered',
         'gating':'SN74LVC08A AND gates PWM, STANDBY, TFT_RESET_N and TOUCH_RESET_N with READY; 10k output pull-downs.',
-        'host_ready':'FFC GIGA.10 -> display.71; AXC1 isolation -> PI1 / D70, pull-down when absent.',
+        'host_ready':'FFC GIGA.9 -> display.52; AXC1 isolation -> PI1 / D70, pull-down when absent.',
         'firmware':'Rendering continues without panel power. Return of READY repeats reset/standby delays; backlight waits 200ms after standby release and then for a valid scan boundary.'},
       'limitations':['No physical panel is connected. Static arithmetic and component specifications do not establish transient or thermal qualification.',
         'Backlight maximum current and contact sharing are unspecified by Smartwin; measure full brightness and remain within every 0.3A contact rating.',

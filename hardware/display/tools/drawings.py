@@ -10,7 +10,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from design import ROOT,REVISION,BOARDS,release_name,copper_layers,SIGNALS,ribbon_nets,GEOMETRY,board_outline
 from aisler import BRIDGES,k
 
-def sheet(title, revision=REVISION, date="2026-10-21"):
+def sheet(title, revision=REVISION, date="2026-10-22"):
     fig=plt.figure(figsize=(11.69,8.27));fig.text(.04,.95,title,fontsize=16,weight='bold')
     fig.text(.04,.025,f'ProtoMate | Revision {revision} | {date} | Dimensions in mm | Physical operation not yet verified',fontsize=8)
     return fig
@@ -24,32 +24,35 @@ def cable():
     with (ROOT/'cable-conductors.csv').open('w') as f:
         w=csv.writer(f,lineterminator="\n");w.writerow(['GIGA_J1','Display_J2','Net','Display_J1_contacts'])
         nets=ribbon_nets()
-        for p in range(1,81):
+        for p in range(1,61):
             net=nets[str(p)]
             display=next((str(s['panel']) for s in SIGNALS if 'LCD_'+s['name']==net),'')
             if net=='+3V3_PANEL':display='10,49; logic supply only'
             if net=='PANEL_READY':display='Adapter supervisors -> PI1 / D70; no direct panel pin'
             if net=='GND':display='1,2,3,4,11,36,40,42,50'
-            w.writerow([p,81-p,net,display])
+            w.writerow([p,61-p,net,display])
     with PdfPages(ROOT/'cable-specification.pdf') as pdf:
-        fig=sheet('FFC-80-A-100 — cable procurement and orientation')
-        ax=fig.add_axes([.08,.47,.84,.39]);ax.set_xlim(-10,110);ax.set_ylim(-5,49);ax.set_aspect('equal');ax.axis('off')
-        ax.add_patch(Rectangle((0,0),100,40.5,facecolor='#e5e9ed',edgecolor='black'))
-        for i in range(80):
-            y=.5+i*.5;ax.plot([3.5,96.5],[y,y],color='#b7bec5',lw=.3)
-            for x in [0,96.5]:ax.add_patch(Rectangle((x,y-.15),3.5,.3,color='#ba9239'))
-        for x in [0,95.5]:ax.add_patch(Rectangle((x,0),4.5,40.5,fill=False,edgecolor='#2876b8',ls='--'))
-        ax.annotate('',(0,44),(100,44),arrowprops={'arrowstyle':'<->'});ax.text(50,45,'100 maximum overall length',ha='center')
-        ax.text(-2,20.25,'40.50 ±0.07',rotation=90,ha='right',va='center')
-        ax.text(0,-3,'GIGA end: 1 at this lower edge',ha='left',fontsize=9)
-        ax.text(100,-3,'Display end: 80 at the same edge',ha='right',fontsize=9)
+        fig=sheet('Molex 15018-0563 — 60-way cable and orientation')
+        ax=fig.add_axes([.08,.48,.84,.38]);ax.set_xlim(-10,112);ax.set_ylim(-5,40);ax.set_aspect('equal');ax.axis('off')
+        # Orientation diagram, not a replacement for the manufacturer's cutting drawing.
+        ax.add_patch(Rectangle((0,0),102,30.5,facecolor='#e5e9ed',edgecolor='black'))
+        for x in [4,96]:
+            ax.add_patch(Rectangle((x,-1),2,32.5,facecolor='#e5e9ed',edgecolor='black'))
+        for i in range(60):
+            y=.5+i*.5;ax.plot([3.5,98.5],[y,y],color='#b7bec5',lw=.3)
+            for x in [0,98.5]:ax.add_patch(Rectangle((x,y-.15),3.5,.3,color='#ba9239'))
+        for x in [0,97.5]:ax.add_patch(Rectangle((x,0),4.5,30.5,fill=False,edgecolor='#2876b8',ls='--'))
+        ax.annotate('',(0,35),(102,35),arrowprops={'arrowstyle':'<->'});ax.text(51,36,'102 nominal; 106 maximum design budget',ha='center')
+        ax.text(-2,15.25,'30.5 end width',rotation=90,ha='right',va='center')
+        ax.text(0,-3,'GIGA end: project pin 1 at this edge',ha='left',fontsize=8)
+        ax.text(102,-3,'Display end: project pin 60 at same edge',ha='right',fontsize=8)
         notes(fig,[
-            '80 parallel conductors; pitch 0.50 mm; same-side exposed contacts (Type A). Gold-plated mating finish. Straight-sided ends; no latch ears or custom side notches.',
-            'Mating thickness 0.30 ±0.05 mm. Stiffener thickness at least 0.188 mm. Exposed contact length at least 3.5 mm; stiffener length at least 4.5 mm. All dimensions must also meet the Hirose FH28 cable-end drawing.',
-            'Dashed blue regions show the stiffeners on the opposite face. Gold regions are both on the face shown. Fit that exposed-contact face to the FH28 contact face shown in its manufacturer drawing; do not identify orientation from blue stiffener colour alone.',
-            'Both PCB sockets: Hirose FH28H-80S-0.5SH(05). With the two top-mounted sockets facing each other, GIGA pin n reaches display pin 81-n. Confirm this by continuity before applying power.',
-            '24V power: GIGA 1/3 <-> display 80/78. Panel 3.3V reference return: GIGA 5/7/9 <-> display 76/74/72. READY: GIGA 10 <-> display 71. 39 grounds; PCLK 31 <-> 50 has ground on both sides.',
-            'Rated at least 60V and 0.5A per conductor; copper cross-section >=0.0105 mm2 (e.g. 0.30 x 0.035 mm). Procure as custom drawing FFC-80-A-100 revision E if no catalogue cable meets every requirement. The cable is not part of either PCB SMT BOM.'
+            'Order Molex 15018-0563 (Mouser 538-15018-0563), quantity 1: 60 parallel conductors, 0.50 mm pitch, same-side gold contacts (Type A), 102 mm nominal length. Ear tabs are required by the matched connector.',
+            'Both sockets: Molex 505110-6091 (Mouser 538-505110-6091), quantity 2. Bottom contacts, flip latch. Cable mating thickness 0.30 +/-0.05 mm. Manufacturer end/tab geometry is authoritative; this view only explains orientation.',
+            'Gold contacts are on the face shown; dashed blue regions indicate opposite-face stiffeners. In both top-mounted sockets the exposed contacts face the PCB. Do not identify contact orientation from stiffener colour alone.',
+            'With facing sockets, project GIGA pin n reaches display pin 61-n. Project numbering follows the PCB drawings. Before power, check end-to-end continuity and latch both ends without twisting or stressing the cable.',
+            '24V: GIGA 1/2 <-> display 60/59. Panel 3.3V reference: GIGA 5/6/7 <-> display 56/55/54. READY: 9 <-> 52. 19 ground conductors; PCLK 23 <-> 38 is guarded by grounds 22/24 <-> 39/37.',
+            'Cable: 60V, 0.5A/contact; connector: 50VAC/DC, 0.5A/contact. Copper 0.30 x 0.10 mm. Power budget uses 106 mm and two return conductors conservatively. No live mating. Cable is included separately in the procurement order list.'
         ],y=.43,width=132,size=9)
         pdf.savefig(fig);plt.close(fig)
 
@@ -90,7 +93,7 @@ def fabrication(name):
             f'Minimum track 0.15 mm; copper clearance {0.125 if name=="display-adapter" else 0.15:.3f} mm. Through via drill {BOARDS[name]["via_drill"]:.2f} mm, diameter {BOARDS[name]["via_diameter"]:.2f} mm, annular ring >=0.15 mm. Exposed vias, no via-in-pad. Zero source mask expansion; processed fine-pitch webs >=0.10 mm. Component-hole rings >=0.30 mm.',
             'AISLER bare boards only; ENIG on both boards. Use the ODB++ upload ZIP, including the aisler-bridges document layer. Keep the closed profile unchanged. PTH and NPTH drills are separate. No assembly or stencil is ordered.',
             'Origin in Gerbers, drills and placement: X=0, Y=lower board edge; positive Y upward. Drawing coordinates above use KiCad top-left Y-down for mechanical reference.',
-            'Optional paste reference only (no stencil ordered): 0.15 mm at FH28 and 0.10–0.12 mm at 0402/TSSOP parts. Hirose apertures are reduced in the paste layers. No substitutions for connector suffixes or header tail lengths.'
+            'Optional paste reference only (no stencil ordered): 0.10 mm at Molex 505110, with 100% land-area openings; 0.10–0.12 mm at 0402/TSSOP parts. DF23 paste follows its separate manufacturer drawing. No substitutions for connector suffixes or header tail lengths.'
         ],y=.33,width=140,size=9)
         pdf.savefig(fig);plt.close(fig)
         fig=sheet(name+' — assembly instructions', BOARDS[name]['revision'], BOARDS[name]['date'])
@@ -101,14 +104,14 @@ def fabrication(name):
         ]
         if name=='display-adapter':lines += [
             'J1 DF23C-50DP-0.5V(92) is BOTTOM mounted. Viewed from the PCB top: pin 1 is lower left of the contact array, pin 2 above it, pin 49 lower right. Cross-check Smartwin rear-view Detail A before mating.',
-            'J2 FH28H is TOP mounted, mouth facing the upper board edge, pin 1 at the right end viewed from the top. Fit the cable with the specified same-side contact orientation.',
+            'J2 Molex 505110 is TOP mounted, mouth facing the upper board edge, pin 1 at the right end viewed from the top. Fit the cable with the specified same-side contact orientation.',
             'U1 TRACO TSR 2-2433 is HAND soldered on TOP. Pin 1 = 24V in, pin 2 = GND, pin 3 = 3.3V out. Follow the pin-1 marking; the 12V converter is NOT interchangeable.',
             'After soldering U1 and U2, clip their leads to at most 0.8 mm below the PCB, preserving the solder joints. Untrimmed module leads protrude below the nominal display mating plane. The STEP assembly model shows trimmed leads.',
             'U2 is TSR 1-2450 (5V); U3 is TPS7A91 (3.296V). Solder the WSON exposed pad with paste and controlled hot air/reflow. No via filling is required. Never swap converter types.',
             'Support the PCB on four M2 insulating mounts and clamp the FFC/the ribbon to the enclosure. The display flex and DF23 must carry no cable or PCB weight. Maintain nominal 1.5 mm mating-board spacing at DF23, independent of the 1.6 mm PCB thickness.'
         ]
         else:lines += [
-            'J1 FH28H is TOP mounted, cable mouth facing the right board edge. Pin 1 is at the lower end when the board is viewed from the top. Check the silkscreen 1 marking and the numbered assembly drawing.',
+            'J1 Molex 505110 is TOP mounted, cable mouth facing the right board edge. Pin 1 is at the lower end when the board is viewed from the top. Check the silkscreen 1 marking and the numbered assembly drawing.',
             'J10 DC-005: HAND solder, 5.5/2.1mm barrel opening faces left into the service cutout. CENTRE POSITIVE 24V: pin 1 = +24V, pins 2/3 = GND. Three plated slots: width 1.2mm, lengths 4.0/3.6/4.0mm. U8 TSR 1-24120 is also HAND soldered.',
             'U7 thermal pad and RTN belong to their own copper island; never solder-bridge them to GND. D1 is bidirectional; D2/D3 cathodes follow their band and pad 1.',
             'J2–J9 stacking headers are HAND soldered, sockets above the PCB and tails below. J2–J8: Samtec SSQ -03, 10 mm tails. J9: SSQ-112-04-G-D, 14.83 mm tails. Verify exact suffixes in the full BOM.',

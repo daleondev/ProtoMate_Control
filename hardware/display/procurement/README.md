@@ -1,13 +1,12 @@
-# Component purchasing list — display E / GIGA D
+# Component purchasing list — display F / GIGA E
 
-Quantities are for **one display adapter revision E and one GIGA adapter revision D**:
+Quantities are for **one display adapter revision F and one GIGA adapter revision E**:
 158 fitted components, 39 original BOM part numbers. The DC jack is already owned.
 After the substitutions below and consolidating the 100 nF capacitors, Mouser
-procurement needs **37 distinct parts with indexed stock evidence (157 pieces)**.
-The FFC cable is an additional assembly item.
+procurement needs **38 distinct parts with indexed stock evidence (158 pieces, including the cable)**.
+The FFC cable is an additional assembly item included in the bulk order list.
 
-**Live order availability still requires confirmation.** No exact Mouser cable
-satisfying our specification was verified. Stock evidence was checked
+**Live order availability still requires confirmation.** The selected cable is Molex **15018-0563**, matched to **505110-6091** sockets. Stock evidence was checked
 on **2026-10-22**, using indexed Mouser pages; their crawl ages range from days to
 months. Direct live inventory confirmation was unavailable. Quantities below are
 historical page observations, not reserved stock. In particular, the AXC8T245
@@ -16,7 +15,7 @@ product/category pages disagree; check it in the German delivery basket before p
 - [Complete component list](components.csv), including references, original and purchase MPNs, packages, quantities and source URLs.
 - [Display-only list](display-adapter-components.csv).
 - [GIGA-only list](giga-adapter-components.csv).
-- [Mouser bulk-import CSV](mouser-order.csv): 37 consolidated lines with indexed stock; **includes F1**, excludes the owned jack and accessories.
+- [Mouser bulk-import CSV](mouser-order.csv): 38 consolidated lines with indexed stock; **includes F1 and the cable**, excludes the owned jack and mechanical accessories.
 - [Dated sourcing evidence](sourcing.json), including stock-page ages and substitution notes.
 
 Import the desired CSV using Mouser's BOM upload/bulk-entry facility and map its
@@ -33,14 +32,14 @@ proposals for the existing footprints. This list does not supersede the release'
 pending electrical/physical tests.
 The original BOM MPN remains in every CSV row so assembly substitutions are traceable.
 
-## Display adapter — revision E
+## Display adapter — revision F
 
 42 fitted components.
 
 | References | Qty | Purchase MPN | Mouser order number | Observed availability |
 |---|---:|---|---|---|
 | J1 | 1 | `DF23C-50DP-0.5V(92)` | [798-DF23C50DP05V92](https://www.mouser.com/en/ProductDetail/Hirose-Connector/DF23C-50DP-0.5V92?qs=nSryOFbzj8IvGUDyjNwvaw%3D%3D) | Stock indexed; 1,575 (2 weeks ago) |
-| J2 | 1 | `FH28H-80S-0.5SH(05)` | [798-FH28H80S05SH05](https://www.mouser.ca/ProductDetail/Hirose-Connector/FH28H-80S-0.5SH05?qs=nSryOFbzj8LLNK%252BjXgUxmQ%3D%3D) | Stock indexed; 822 (3 months ago) |
+| J2 | 1 | `505110-6091` | [538-505110-6091](https://eu.mouser.com/en/ProductDetail/Molex/505110-6091?qs=fSIr1QPo%2F%2FQRD6rm5ZTYDw%3D%3D) | Stock indexed; 11,530 (last week) |
 | U1 | 1 | `TSR 2-2433` | [495-TSR2-2433](https://eu.mouser.com/en/ProductDetail/TRACO-Power/TSR-2-2433?qs=NtE2QagKf6Qer8edccxn%2FA%3D%3D) | Stock indexed; 6,134 (3 weeks ago) |
 | C9, C11 | 2 | `MCJCU32MLB7106KPPDTJ` † | [963-U32MLB7106KPPDTJ](https://my.mouser.com/en/ProductDetail/TAIYO-YUDEN/MCJCU32MLB7106KPPDTJ?qs=sGAEpiMZZMuMW9TJLBQkXugdD5SwFUVxUr871sYQlbI%3D) | Stock indexed; 1,535 (2 months ago) |
 | C10 | 1 | `C0603C104K5RACTU` † | [80-C0603C104K5R](https://cz.mouser.com/en/ProductDetail/KEMET/C0603C104K5RACTU?qs=l5k%252BbMnNDkkVcnZPSAaaiQ%3D%3D) | Stock indexed; 3,941,024 (last week) |
@@ -59,13 +58,13 @@ The original BOM MPN remains in every CSV row so assembly substitutions are trac
 | R16–R17 | 2 | `RC0402FR-07100KL` | [603-RC0402FR-07100KL](https://www.mouser.com/en/ProductDetail/YAGEO/RC0402FR-07100KL?qs=mnq%2FyloZIXzTlUn7JAHSWg%3D%3D) | Stock indexed; 6,394,487 (last month) |
 | U5 | 1 | `SN74LVC08APW` † | [595-SN74LVC08APW](https://www.mouser.com/en/ProductDetail/Texas-Instruments/SN74LVC08APW?qs=RZS%252BpEsUn7pxqABTZcJnVg%3D%3D) | Stock indexed; 252 (last month) |
 
-## GIGA adapter — revision D
+## GIGA adapter — revision E
 
 116 fitted components. `Qty` is the fitted quantity; J10 is already owned.
 
 | References | Qty | Purchase MPN | Mouser order number | Observed availability |
 |---|---:|---|---|---|
-| J1 | 1 | `FH28H-80S-0.5SH(05)` | [798-FH28H80S05SH05](https://www.mouser.ca/ProductDetail/Hirose-Connector/FH28H-80S-0.5SH05?qs=nSryOFbzj8LLNK%252BjXgUxmQ%3D%3D) | Stock indexed; 822 (3 months ago) |
+| J1 | 1 | `505110-6091` | [538-505110-6091](https://eu.mouser.com/en/ProductDetail/Molex/505110-6091?qs=fSIr1QPo%2F%2FQRD6rm5ZTYDw%3D%3D) | Stock indexed; 11,530 (last week) |
 | U1–U4 | 4 | `SN74AXC8T245PWR` | [595-SN74AXC8T245PWR](https://gr.mouser.com/en/c/semiconductors/logic-ics/?mounting+style=SMD%2FSMT&number+of+channels=8+Channel&package+%2F+case=TSSOP-24) | Conflicting stock snapshots; 4,862 (last week) |
 | R1–R32 | 32 | `RC0402FR-0733RL` | [603-RC0402FR-0733RL](https://eu.mouser.com/en/ProductDetail/YAGEO/RC0402FR-0733RL?qs=V1yeUXFNrkk7PcMc%252BKdghg%3D%3D) | Stock indexed; 1,477,025 (last month) |
 | R33–R65 | 33 | `RC0402FR-0747KL` | [603-RC0402FR-0747KL](https://eu.mouser.com/en/ProductDetail/YAGEO/RC0402FR-0747KL?qs=V1yeUXFNrklslMUO6Zhx5g%3D%3D) | Stock indexed; 986,351 (last month) |
@@ -132,7 +131,7 @@ The following manufacturer information supports these choices:
 
 1. **GIGA U1–U4:** the newer Mouser category page lists 4,862 `SN74AXC8T245PWR`, while the older product page lists zero. This is conflicting cached evidence, so availability remains provisional until basket validation. The alternate `SN74AXCH8T245` is not the selected device.
 2. **Display bulk capacitors:** seven `GRM32ER61A476KE20L` remain listed in stock but are EOL. The list retains the electrically reviewed part for this prototype instead of silently changing its load-step behavior.
-3. **FFC cable:** one required, outside the PCB BOM. No exact Mouser MPN was verified. Use the [cable specification](../cable-specification.pdf): 80 conductors, 0.5 mm pitch, ≤100 mm, 0.30 ±0.05 mm mating thickness, same-side exposed contacts (Type A), straight sides, gold contacts, ≥60 V and ≥0.5 A per conductor, copper cross-section ≥0.0105 mm². The FH28 termination/stiffener drawing must also match. The surfaced 102 mm / 0.3 A Molex cable is **not** an approved replacement.
+3. **FFC cable:** order **one Molex 15018-0563**, [Mouser 538-15018-0563](https://www.mouser.com/en/ProductDetail/Molex/15018-0563?qs=GedFDFLaBXHNFRUVQF%2FsGw%3D%3D); indexed stock 404 (last week). The release uses two **505110-6091** bottom-contact sockets. Cable: 60 conductors, 0.5 mm pitch, 102 mm nominal, Type A, gold contacts and retention ears. Do not substitute opposite-side contacts or plain straight-ended FFC. See the [cable specification](../cable-specification.pdf) for the n ↔ 61−n orientation and power map.
 
 F1 is the [Bourns SF-1206SA200M-2](https://www.bourns.com/docs/product-datasheets/sf-1206sa-m.pdf):
 2 A slow-blow, 65 VDC, 50 A interrupt rating, maximum 5 s clearing at 5 A and 25°C.
@@ -148,7 +147,7 @@ Do not replace it with F2's 0.8 A fuse or a resettable PTC.
 | Item | Quantity | Sourcing / dimensions |
 |---|---:|---|
 | DC-005 input jack | 1 | **Already owned**; included at GIGA J10 above, buy quantity zero. |
-| Specified 80-way FFC cable | 1 | Unresolved Mouser source; see cable requirements above. |
+| Molex 15018-0563 60-way FFC | 1 | Mouser 538-15018-0563; included in bulk-import CSV. |
 | Arduino GIGA R1 WiFi and Smartwin SMMH0701024600S-C20 | 1 each | Existing system hardware; not included in the board-parts order. |
 | Regulated 24 V supply and centre-positive 5.5 × 2.1 mm plug | 1 set | Existing system supply, ≥2 A capacity; no new supply assumed. |
 | GIGA insulating supports / fasteners | 1 set | 13 mm shield-underside clearance; use the assembly drawing, including the two lower M2 mounts. Upper alignment holes are not ordinary clamped mounts. |
@@ -162,9 +161,6 @@ identified by the manufacturing release.
 
 ## Traceability
 
-The lists were reconciled to every fitted reference in the release BOMs. Exact
-source hashes are recorded below; if the PCB/BOM changes, regenerate/reconcile the
-purchase list before reuse. Stock pages should be rechecked at order time.
-
-- `manufacturing/display-adapter-rev-E/bom-all.csv`: `d5a7767cd17b775a20798eca16c5544435ac585152db53b07fc0ae5ac9c478a6`
-- `manufacturing/giga-adapter-rev-D/bom-all.csv`: `a5f20000eadd1f6c4a79689be702ca5a58a54c74aebfe44b8f2f2f918540cd5f`
+The lists are reconciled to every fitted reference in the release BOMs. The
+source BOM hashes are recorded in `sourcing.json`; update them after a release
+change. Stock pages must be rechecked at order time.

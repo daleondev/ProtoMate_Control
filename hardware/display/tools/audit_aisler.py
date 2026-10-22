@@ -112,6 +112,12 @@ def main(name):
         for v in vias:
             aperture=Point(xy(v.GetPosition())).buffer(k.ToMM(v.GetWidth(k.B_Cu))/2+.02)
             assert all(not aperture.intersects(z) for z in bands),('exposed DF23 via',xy(v.GetPosition()))
+    connector=next(f for f in fps if f.GetReference()==('J2' if name=='display-adapter' else 'J1'))
+    cx,cy=xy(connector.GetPosition())
+    envelope=box(cx-17.55,cy-5.65,cx+17.55,cy) if name=='display-adapter' else box(cx,cy-17.55,cx+5.65,cy+17.55)
+    for v in vias:
+        aperture=Point(xy(v.GetPosition())).buffer(k.ToMM(v.GetWidth(k.F_Cu))/2+.02)
+        assert not aperture.intersects(envelope),('exposed Molex body via',xy(v.GetPosition()))
     silk=[]
     for item in [*b.GetDrawings(),*[i for f in fps for i in f.GraphicalItems()],
                  *[i for f in fps for i in f.GetFields()]]:
@@ -147,7 +153,7 @@ def main(name):
                 minimum_processed_connector_to_via_mask_web_mm=min(contact_via_webs),
                 through_vias=len(vias),plated_slots=slots,tenting='NONE',silk_items_checked=len(silk),bridge_markers=len(markers),
                 stackup_mm=thickness,manufacturing_waivers=[],
-                connector_review='DF23 note-3 bands exclude exposed via apertures. FH28 fully molded bottom permits PCB patterning; solder pads remain clear.',
+                connector_review='DF23 note-3 bands exclude exposed via apertures. Molex 505110: no exposed vias inside the connector body or mounting lands; fine-pitch mask webs checked.',
                 aisler_processed_job='PENDING — actual CAM geometry/options/bridges/netlist must be reviewed after upload',
                 physical_qualification='NOT PERFORMED')
     (ROOT/'manufacturing/verification'/(name+'-aisler-audit.json')).write_text(json.dumps(report,indent=2)+'\n')

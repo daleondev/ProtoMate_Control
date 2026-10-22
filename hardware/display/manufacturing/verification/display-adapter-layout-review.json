@@ -1,17 +1,21 @@
 {
   "board": "display-adapter",
-  "revision": "E",
+  "revision": "F",
   "copper_layers": 4,
   "ground_pour_area_mm2": {
-    "F.Cu": 1956.17,
-    "In1.Cu": 2546.73,
-    "B.Cu": 2111.44
+    "F.Cu": 2117.27,
+    "In1.Cu": 2565.03,
+    "B.Cu": 2260.73
   },
-  "total_ground_vias": 50,
+  "total_ground_vias": 55,
   "clock_signal_vias": [
     [
-      23.75,
-      3.3
+      20.0806,
+      0.9478
+    ],
+    [
+      27.2932,
+      10.5493
     ],
     [
       34.15,
@@ -19,10 +23,15 @@
     ]
   ],
   "clock_via_nearest_ground_via_mm": [
-    2.0,
+    0.9,
+    1.6,
     2.46
   ],
-  "maximum_clock_centre_to_same_layer_ground_pour_mm": 2.045,
+  "maximum_clock_centre_to_same_layer_ground_pour_mm": 2.077,
+  "maximum_clock_centre_to_In1_reference_mm": 0.425,
+  "clock_layers_without_same_layer_pour": [
+    "In2.Cu"
+  ],
   "sample_spacing_mm": 0.1,
   "interpretation": "Geometric return-path review; In1 is the uninterrupted ground reference; outer ground pours are also stitched. This is not field-solver impedance or signal-integrity validation. Confirm panel-side timing and ringing on the first board."
 }

@@ -1,5 +1,5 @@
 {
-  "revision": "E",
+  "revision": "F",
   "method": "Measured connected copper paths with length/width resistance at 35um; 1.3 hot-copper factor. Shared segments carry the sum of allocated loads. Parallel paths and copper pours are ignored. Pad interiors treated as equipotential; each via transition allocated 2mOhm. Return copper and connector losses remain separate budget allowances.",
   "total_budget_A": 1.5,
   "loads": [
@@ -47,13 +47,13 @@
     },
     {
       "load": "interface reference rail",
-      "pad": "J2.76",
+      "pad": "J2.56",
       "budget_A": 0.15,
-      "selected_path_ohm": 0.13346334991509975,
-      "supply_drop_V": 0.04470002616459322
+      "selected_path_ohm": 0.16799033582294426,
+      "supply_drop_V": 0.04987907405076989
     }
   ],
-  "maximum_logic_supply_drop_V": 0.04470002616459322,
+  "maximum_logic_supply_drop_V": 0.04987907405076989,
   "maximum_backlight_supply_drop_V": 0.018781577486234578,
   "maximum_panel_supply_drop_V": 0.03764051809829194,
   "return_allowance_ohm": 0.02,

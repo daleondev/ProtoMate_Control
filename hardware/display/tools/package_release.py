@@ -76,10 +76,11 @@ SOLDERING
 All entries in bom-all.csv are FIT. Purchase/install components separately.
 bom-smd.csv, placement.csv and assembly-F/B.pdf are soldering/inspection aids.
 {'J1 DF23 is BOTTOM mounted. Clip U1/U2 tails to <=0.8 mm below the board. U3 WSON requires soldered exposed pad, using hot air/reflow.' if display else 'Carrier underside 13mm above GIGA; J2-J8 10mm tails, J9 14.83mm tails. J10 DC-005 barrel jack faces the service opening: 24V centre positive, 5.5/2.1mm. Check three 1.2mm-wide plated slots, lengths 4.0/3.6/4.0mm.'}
-Use the exact Hirose suffixes and specified same-side-contact Type-A FFC.
+Use Molex 15018-0563 Type-A cable and 505110-6091 sockets. Keep the exact
+Hirose DF23 suffix at the display connector.
 Disconnect power before connecting the cable. See design-guide.md and cable PDF.
-The FH28 paste windows follow Hirose's recommendation; stencil data is retained
-as reference only, with no stencil ordered.
+The Molex paste windows are 100% land area for a 0.10mm stencil reference.
+DF23 paste follows its own drawing. No stencil is ordered.
 
 QUALIFICATION
 Local electrical, geometry and export checks: see verification/ and release status.

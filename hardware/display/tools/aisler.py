@@ -202,7 +202,7 @@ def board_settings(b, name):
             if t.startswith(('SMARTWIN / ', 'GIGA DISPLAY / ')):
                 item.SetText(t.rsplit(' / ',1)[0] + ' / ' + BOARDS[name]['revision'])
             if name == 'display-adapter':
-                locations = {('100mm TYPE-A', k.F_SilkS): (24.75,12.15),
+                locations = {('102mm TYPE-A', k.F_SilkS): (28,.75),
                              ('J1 PIN 1', k.B_SilkS): (19.75,30),
                              ('SMARTWIN / '+BOARDS[name]['revision'], k.B_SilkS): (27.5,6.75)}
                 location = locations.get((item.GetText(),item.GetLayer()))

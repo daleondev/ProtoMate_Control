@@ -8,11 +8,11 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 GEOMETRY = json.loads((ROOT/'references/giga-geometry.json').read_text())
-REVISION = 'E'  # Source bundle; individual board revisions below.
+REVISION = 'F'  # Source bundle; individual board revisions below.
 BOARDS = {
-    'display-adapter': dict(revision='E', date='2026-10-21', layers=4, via_drill=.25, via_diameter=.55,
+    'display-adapter': dict(revision='F', date='2026-10-22', layers=4, via_drill=.25, via_diameter=.55,
                             thickness=1.6, template='aisler-4-layer-hd-drc'),
-    'giga-adapter': dict(revision='D', date='2026-10-21', layers=4, via_drill=.30, via_diameter=.65,
+    'giga-adapter': dict(revision='E', date='2026-10-22', layers=4, via_drill=.30, via_diameter=.65,
                          thickness=1.6, template='aisler-4-layer-hd-drc'),
 }
 
@@ -32,8 +32,8 @@ def release_name(board):
 def copper_layers(board):
     return ['F.Cu', 'B.Cu'] if BOARDS[board]['layers'] == 2 else ['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu']
 
-# Order follows the ribbon, not the display connector. Every signal has adjacent
-# grounds. A same-contact-side FFC between facing sockets reverses socket numbering.
+# Order follows the ribbon, not the display connector. Every RGB pair has adjacent
+# ground returns; the clock has grounds on both sides. A same-contact-side FFC between facing sockets reverses socket numbering.
 SIGNALS = []
 for color, pins, labels, first in [
     ('R', ['PG13','PJ0','PJ1','PJ2','PJ3','PJ4','PJ5','PJ6'], list(range(23,39,2)), 12),
@@ -49,11 +49,20 @@ SIGNALS += [dict(name=n,mcu=p,arduino=d,panel=c) for n,p,d,c in [
     ('TFT_RESET_N','PI2','D71',44), ('TOUCH_RESET_N','PI3','D72',45),
     ('TOUCH_INT_N','PB12','D74',46), ('SDA','PH12','D102',47), ('SCL','PB6','D101',48),
 ]]
-for i,s in enumerate(SIGNALS):
-    # FH28H pin 1 is on the right when the cable mouth faces up on the page.
-    # Number from the far end so the RGB banks remain adjacent to their pins.
-    s['giga_ffc'] = 79-2*i
-    s['display_ffc'] = 81-s['giga_ffc']
+# Molex 15018-0563 / 505110-6091, project pin 1 at +X with mouth -Y.
+# Type A between facing, top-mounted sockets maps n to 61-n.
+RIBBON = ['+24V_DISPLAY']*2 + ['GND']*2 + ['+3V3_PANEL']*3 + [
+    'GND', 'PANEL_READY', 'LCD_SCL', 'LCD_SDA', 'GND',
+    'LCD_TOUCH_INT_N', 'LCD_TOUCH_RESET_N', 'LCD_TFT_RESET_N',
+    'LCD_STANDBY', 'LCD_PWM', 'GND', 'LCD_VSYNC', 'LCD_HSYNC',
+    'LCD_DE', 'GND', 'LCD_PCLK', 'GND']
+for colour in 'GBR':
+    for high in (7,5,3,1):
+        RIBBON += [f'LCD_{colour}{high}', f'LCD_{colour}{high-1}', 'GND']
+assert len(RIBBON) == 60 and RIBBON.count('GND') == 19
+for s in SIGNALS:
+    s['giga_ffc'] = RIBBON.index('LCD_'+s['name'])+1
+    s['display_ffc'] = 61-s['giga_ffc']
     for header in ['JSIDE','J5','JDIGITAL']:
         key = {'SDA':'I2C4.SDA', 'SCL':'I2C4.SCL'}.get(s['name'],s['mcu'])
         match = next((p for p in GEOMETRY['headers'][header] if p['net']==key),None)
@@ -65,16 +74,9 @@ for i,s in enumerate(SIGNALS):
             break
 
 def ribbon_nets(reverse=False):
-    nets = {str(i):'GND' for i in range(1,81)}
-    for s in SIGNALS:
-        nets[str(s['giga_ffc'])] = 'LCD_'+s['name']
-    for pin in (1,3):
-        nets[str(pin)] = '+24V_DISPLAY'
-    for pin in (5,7,9):
-        nets[str(pin)] = '+3V3_PANEL'
-    nets['10'] = 'PANEL_READY'  # Return signal; replaces a ground, not any display signal.
+    nets = {str(i):net for i,net in enumerate(RIBBON,1)}
     if reverse:
-        nets = {str(81-int(p)):n for p,n in nets.items()}
+        nets = {str(61-int(p)):n for p,n in nets.items()}
     nets.update(MP1='GND', MP2='GND')
     return nets
 
@@ -124,7 +126,7 @@ PARTS = {
  'R226K': ('226k / 1%','Yageo','RC0603FR-07226KL','R_0603_1608Metric'),
  'R10K': ('10k / 1%','Yageo','RC0603FR-0710KL','R_0603_1608Metric'),
  'R8K06': ('8.06k / 1%','Yageo','RC0603FR-078K06L','R_0603_1608Metric'),
- 'FFC': ('FH28H-80S-0.5SH(05)','Hirose','FH28H-80S-0.5SH(05)','FH28H-80S-0.5SH'),
+ 'FFC': ('505110-6091','Molex','505110-6091','Molex_505110-6091_1x60_P0.50mm'),
  'DF23': ('DF23C-50DP-0.5V(92)','Hirose','DF23C-50DP-0.5V(92)','DF23C-50DP-0.5V'),
  'TP': ('Probe pad','PCB','PCB copper feature','TestPoint_1.0mm'),
 }

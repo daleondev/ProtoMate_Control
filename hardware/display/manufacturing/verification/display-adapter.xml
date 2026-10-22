@@ -2,14 +2,14 @@
 <export version="E">
   <design>
     <source>/home/david/Dokumente/ProtoMate_Control/hardware/display/display-adapter/display-adapter.kicad_sch</source>
-    <date>2026-10-22T14:54:04</date>
+    <date>2026-10-22T16:43:16</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>display-adapter / Smartwin display interface</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
-        <date>2026-10-21</date>
+        <rev>F</rev>
+        <date>2026-10-22</date>
         <source>display-adapter.kicad_sch</source>
         <comment number="1" value=""/>
         <comment number="2" value=""/>
@@ -26,8 +26,8 @@
       <title_block>
         <title>display-adapter / display</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
-        <date>2026-10-21</date>
+        <rev>F</rev>
+        <date>2026-10-22</date>
         <source>display.kicad_sch</source>
         <comment number="1" value=""/>
         <comment number="2" value=""/>
@@ -44,8 +44,8 @@
       <title_block>
         <title>display-adapter / ribbon</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
-        <date>2026-10-21</date>
+        <rev>F</rev>
+        <date>2026-10-22</date>
         <source>ribbon.kicad_sch</source>
         <comment number="1" value=""/>
         <comment number="2" value=""/>
@@ -62,8 +62,8 @@
       <title_block>
         <title>display-adapter / power</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
-        <date>2026-10-21</date>
+        <rev>F</rev>
+        <date>2026-10-22</date>
         <source>power.kicad_sch</source>
         <comment number="1" value=""/>
         <comment number="2" value=""/>
@@ -80,8 +80,8 @@
       <title_block>
         <title>display-adapter / logic_power</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
-        <date>2026-10-21</date>
+        <rev>F</rev>
+        <date>2026-10-22</date>
         <source>logic_power.kicad_sch</source>
         <comment number="1" value=""/>
         <comment number="2" value=""/>
@@ -98,8 +98,8 @@
       <title_block>
         <title>display-adapter / sequencing</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
-        <date>2026-10-21</date>
+        <rev>F</rev>
+        <date>2026-10-22</date>
         <source>sequencing.kicad_sch</source>
         <comment number="1" value=""/>
         <comment number="2" value=""/>
@@ -191,19 +191,19 @@
       </units>
     </comp>
     <comp ref="J2">
-      <value>FH28H-80S-0.5SH(05)</value>
-      <footprint>DisplayAdapter:FH28H-80S-0.5SH</footprint>
+      <value>505110-6091</value>
+      <footprint>DisplayAdapter:Molex_505110-6091_1x60_P0.50mm</footprint>
       <fields>
-        <field name="Manufacturer">Hirose</field>
-        <field name="MPN">FH28H-80S-0.5SH(05)</field>
+        <field name="Manufacturer">Molex</field>
+        <field name="MPN">505110-6091</field>
         <field name="Assembly">SMT</field>
-        <field name="Footprint">DisplayAdapter:FH28H-80S-0.5SH</field>
+        <field name="Footprint">DisplayAdapter:Molex_505110-6091_1x60_P0.50mm</field>
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
       <libsource lib="DisplayAdapter" part="FFC" description=""/>
-      <property name="Manufacturer" value="Hirose"/>
-      <property name="MPN" value="FH28H-80S-0.5SH(05)"/>
+      <property name="Manufacturer" value="Molex"/>
+      <property name="MPN" value="505110-6091"/>
       <property name="Assembly" value="SMT"/>
       <property name="Sheetname" value="ribbon"/>
       <property name="Sheetfile" value="ribbon.kicad_sch"/>
@@ -212,16 +212,6 @@
       <units>
         <unit name="A">
           <pins>
-            <pin num="80"/>
-            <pin num="78"/>
-            <pin num="76"/>
-            <pin num="74"/>
-            <pin num="72"/>
-            <pin num="70"/>
-            <pin num="68"/>
-            <pin num="66"/>
-            <pin num="64"/>
-            <pin num="62"/>
             <pin num="60"/>
             <pin num="58"/>
             <pin num="56"/>
@@ -253,16 +243,6 @@
             <pin num="4"/>
             <pin num="2"/>
             <pin num="MP1"/>
-            <pin num="79"/>
-            <pin num="77"/>
-            <pin num="75"/>
-            <pin num="73"/>
-            <pin num="71"/>
-            <pin num="69"/>
-            <pin num="67"/>
-            <pin num="65"/>
-            <pin num="63"/>
-            <pin num="61"/>
             <pin num="59"/>
             <pin num="57"/>
             <pin num="55"/>
@@ -1898,7 +1878,7 @@
     <libpart lib="DisplayAdapter" part="FFC">
       <fields>
         <field name="Reference">J</field>
-        <field name="Value">FH28H-80S-0.5SH(05)</field>
+        <field name="Value">505110-6091</field>
         <field name="Footprint"/>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1964,26 +1944,6 @@
         <pin num="58" name="58" type="passive"/>
         <pin num="59" name="59" type="passive"/>
         <pin num="60" name="60" type="passive"/>
-        <pin num="61" name="61" type="passive"/>
-        <pin num="62" name="62" type="passive"/>
-        <pin num="63" name="63" type="passive"/>
-        <pin num="64" name="64" type="passive"/>
-        <pin num="65" name="65" type="passive"/>
-        <pin num="66" name="66" type="passive"/>
-        <pin num="67" name="67" type="passive"/>
-        <pin num="68" name="68" type="passive"/>
-        <pin num="69" name="69" type="passive"/>
-        <pin num="70" name="70" type="passive"/>
-        <pin num="71" name="71" type="passive"/>
-        <pin num="72" name="72" type="passive"/>
-        <pin num="73" name="73" type="passive"/>
-        <pin num="74" name="74" type="passive"/>
-        <pin num="75" name="75" type="passive"/>
-        <pin num="76" name="76" type="passive"/>
-        <pin num="77" name="77" type="passive"/>
-        <pin num="78" name="78" type="passive"/>
-        <pin num="79" name="79" type="passive"/>
-        <pin num="80" name="80" type="passive"/>
         <pin num="MP1" name="MP1" type="passive"/>
         <pin num="MP2" name="MP2" type="passive"/>
       </pins>
@@ -2149,9 +2109,9 @@
       <node ref="C8" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="J1" pin="10" pinfunction="10_10" pintype="passive"/>
       <node ref="J1" pin="49" pinfunction="49_49" pintype="passive"/>
-      <node ref="J2" pin="72" pinfunction="72_72" pintype="passive"/>
-      <node ref="J2" pin="74" pinfunction="74_74" pintype="passive"/>
-      <node ref="J2" pin="76" pinfunction="76_76" pintype="passive"/>
+      <node ref="J2" pin="54" pinfunction="54_54" pintype="passive"/>
+      <node ref="J2" pin="55" pinfunction="55_55" pintype="passive"/>
+      <node ref="J2" pin="56" pinfunction="56_56" pintype="passive"/>
       <node ref="R11" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="R16" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R17" pin="2" pinfunction="2_2" pintype="passive"/>
@@ -2181,8 +2141,8 @@
       <node ref="C10" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C11" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C9" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="J2" pin="78" pinfunction="78_78" pintype="passive"/>
-      <node ref="J2" pin="80" pinfunction="80_80" pintype="passive"/>
+      <node ref="J2" pin="59" pinfunction="59_59" pintype="passive"/>
+      <node ref="J2" pin="60" pinfunction="60_60" pintype="passive"/>
       <node ref="U1" pin="1" pinfunction="VIN_1" pintype="passive"/>
       <node ref="U2" pin="1" pinfunction="VIN_1" pintype="passive"/>
     </net>
@@ -2215,44 +2175,24 @@
       <node ref="J1" pin="42" pinfunction="42_42" pintype="passive"/>
       <node ref="J1" pin="50" pinfunction="50_50" pintype="passive"/>
       <node ref="J2" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="J2" pin="11" pinfunction="11_11" pintype="passive"/>
+      <node ref="J2" pin="10" pinfunction="10_10" pintype="passive"/>
       <node ref="J2" pin="13" pinfunction="13_13" pintype="passive"/>
-      <node ref="J2" pin="15" pinfunction="15_15" pintype="passive"/>
-      <node ref="J2" pin="17" pinfunction="17_17" pintype="passive"/>
+      <node ref="J2" pin="16" pinfunction="16_16" pintype="passive"/>
       <node ref="J2" pin="19" pinfunction="19_19" pintype="passive"/>
-      <node ref="J2" pin="21" pinfunction="21_21" pintype="passive"/>
-      <node ref="J2" pin="23" pinfunction="23_23" pintype="passive"/>
+      <node ref="J2" pin="22" pinfunction="22_22" pintype="passive"/>
       <node ref="J2" pin="25" pinfunction="25_25" pintype="passive"/>
-      <node ref="J2" pin="27" pinfunction="27_27" pintype="passive"/>
-      <node ref="J2" pin="29" pinfunction="29_29" pintype="passive"/>
-      <node ref="J2" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="J2" pin="28" pinfunction="28_28" pintype="passive"/>
       <node ref="J2" pin="31" pinfunction="31_31" pintype="passive"/>
-      <node ref="J2" pin="33" pinfunction="33_33" pintype="passive"/>
-      <node ref="J2" pin="35" pinfunction="35_35" pintype="passive"/>
+      <node ref="J2" pin="34" pinfunction="34_34" pintype="passive"/>
       <node ref="J2" pin="37" pinfunction="37_37" pintype="passive"/>
       <node ref="J2" pin="39" pinfunction="39_39" pintype="passive"/>
-      <node ref="J2" pin="41" pinfunction="41_41" pintype="passive"/>
+      <node ref="J2" pin="4" pinfunction="4_4" pintype="passive"/>
       <node ref="J2" pin="43" pinfunction="43_43" pintype="passive"/>
-      <node ref="J2" pin="45" pinfunction="45_45" pintype="passive"/>
-      <node ref="J2" pin="47" pinfunction="47_47" pintype="passive"/>
       <node ref="J2" pin="49" pinfunction="49_49" pintype="passive"/>
-      <node ref="J2" pin="5" pinfunction="5_5" pintype="passive"/>
-      <node ref="J2" pin="51" pinfunction="51_51" pintype="passive"/>
       <node ref="J2" pin="53" pinfunction="53_53" pintype="passive"/>
-      <node ref="J2" pin="55" pinfunction="55_55" pintype="passive"/>
       <node ref="J2" pin="57" pinfunction="57_57" pintype="passive"/>
-      <node ref="J2" pin="59" pinfunction="59_59" pintype="passive"/>
-      <node ref="J2" pin="61" pinfunction="61_61" pintype="passive"/>
-      <node ref="J2" pin="63" pinfunction="63_63" pintype="passive"/>
-      <node ref="J2" pin="65" pinfunction="65_65" pintype="passive"/>
-      <node ref="J2" pin="67" pinfunction="67_67" pintype="passive"/>
-      <node ref="J2" pin="69" pinfunction="69_69" pintype="passive"/>
+      <node ref="J2" pin="58" pinfunction="58_58" pintype="passive"/>
       <node ref="J2" pin="7" pinfunction="7_7" pintype="passive"/>
-      <node ref="J2" pin="73" pinfunction="73_73" pintype="passive"/>
-      <node ref="J2" pin="75" pinfunction="75_75" pintype="passive"/>
-      <node ref="J2" pin="77" pinfunction="77_77" pintype="passive"/>
-      <node ref="J2" pin="79" pinfunction="79_79" pintype="passive"/>
-      <node ref="J2" pin="9" pinfunction="9_9" pintype="passive"/>
       <node ref="J2" pin="MP1" pinfunction="MP1_MP1" pintype="passive"/>
       <node ref="J2" pin="MP2" pinfunction="MP2_MP2" pintype="passive"/>
       <node ref="R10" pin="2" pinfunction="2_2" pintype="passive"/>
@@ -2277,83 +2217,83 @@
     </net>
     <net code="6" name="LCD_B0" class="Default">
       <node ref="J1" pin="28" pinfunction="28_28" pintype="passive"/>
-      <node ref="J2" pin="18" pinfunction="18_18" pintype="passive"/>
+      <node ref="J2" pin="14" pinfunction="14_14" pintype="passive"/>
     </net>
     <net code="7" name="LCD_B1" class="Default">
       <node ref="J1" pin="29" pinfunction="29_29" pintype="passive"/>
-      <node ref="J2" pin="20" pinfunction="20_20" pintype="passive"/>
+      <node ref="J2" pin="15" pinfunction="15_15" pintype="passive"/>
     </net>
     <net code="8" name="LCD_B2" class="Default">
       <node ref="J1" pin="30" pinfunction="30_30" pintype="passive"/>
-      <node ref="J2" pin="22" pinfunction="22_22" pintype="passive"/>
+      <node ref="J2" pin="17" pinfunction="17_17" pintype="passive"/>
     </net>
     <net code="9" name="LCD_B3" class="Default">
       <node ref="J1" pin="31" pinfunction="31_31" pintype="passive"/>
-      <node ref="J2" pin="24" pinfunction="24_24" pintype="passive"/>
+      <node ref="J2" pin="18" pinfunction="18_18" pintype="passive"/>
     </net>
     <net code="10" name="LCD_B4" class="Default">
       <node ref="J1" pin="32" pinfunction="32_32" pintype="passive"/>
-      <node ref="J2" pin="26" pinfunction="26_26" pintype="passive"/>
+      <node ref="J2" pin="20" pinfunction="20_20" pintype="passive"/>
     </net>
     <net code="11" name="LCD_B5" class="Default">
       <node ref="J1" pin="33" pinfunction="33_33" pintype="passive"/>
-      <node ref="J2" pin="28" pinfunction="28_28" pintype="passive"/>
+      <node ref="J2" pin="21" pinfunction="21_21" pintype="passive"/>
     </net>
     <net code="12" name="LCD_B6" class="Default">
       <node ref="J1" pin="34" pinfunction="34_34" pintype="passive"/>
-      <node ref="J2" pin="30" pinfunction="30_30" pintype="passive"/>
+      <node ref="J2" pin="23" pinfunction="23_23" pintype="passive"/>
     </net>
     <net code="13" name="LCD_B7" class="Default">
       <node ref="J1" pin="35" pinfunction="35_35" pintype="passive"/>
-      <node ref="J2" pin="32" pinfunction="32_32" pintype="passive"/>
+      <node ref="J2" pin="24" pinfunction="24_24" pintype="passive"/>
     </net>
     <net code="14" name="LCD_DE" class="Default">
       <node ref="J1" pin="39" pinfunction="39_39" pintype="passive"/>
-      <node ref="J2" pin="52" pinfunction="52_52" pintype="passive"/>
+      <node ref="J2" pin="40" pinfunction="40_40" pintype="passive"/>
     </net>
     <net code="15" name="LCD_G0" class="Default">
       <node ref="J1" pin="20" pinfunction="20_20" pintype="passive"/>
-      <node ref="J2" pin="34" pinfunction="34_34" pintype="passive"/>
+      <node ref="J2" pin="26" pinfunction="26_26" pintype="passive"/>
     </net>
     <net code="16" name="LCD_G1" class="Default">
       <node ref="J1" pin="21" pinfunction="21_21" pintype="passive"/>
-      <node ref="J2" pin="36" pinfunction="36_36" pintype="passive"/>
+      <node ref="J2" pin="27" pinfunction="27_27" pintype="passive"/>
     </net>
     <net code="17" name="LCD_G2" class="Default">
       <node ref="J1" pin="22" pinfunction="22_22" pintype="passive"/>
-      <node ref="J2" pin="38" pinfunction="38_38" pintype="passive"/>
+      <node ref="J2" pin="29" pinfunction="29_29" pintype="passive"/>
     </net>
     <net code="18" name="LCD_G3" class="Default">
       <node ref="J1" pin="23" pinfunction="23_23" pintype="passive"/>
-      <node ref="J2" pin="40" pinfunction="40_40" pintype="passive"/>
+      <node ref="J2" pin="30" pinfunction="30_30" pintype="passive"/>
     </net>
     <net code="19" name="LCD_G4" class="Default">
       <node ref="J1" pin="24" pinfunction="24_24" pintype="passive"/>
-      <node ref="J2" pin="42" pinfunction="42_42" pintype="passive"/>
+      <node ref="J2" pin="32" pinfunction="32_32" pintype="passive"/>
     </net>
     <net code="20" name="LCD_G5" class="Default">
       <node ref="J1" pin="25" pinfunction="25_25" pintype="passive"/>
-      <node ref="J2" pin="44" pinfunction="44_44" pintype="passive"/>
+      <node ref="J2" pin="33" pinfunction="33_33" pintype="passive"/>
     </net>
     <net code="21" name="LCD_G6" class="Default">
       <node ref="J1" pin="26" pinfunction="26_26" pintype="passive"/>
-      <node ref="J2" pin="46" pinfunction="46_46" pintype="passive"/>
+      <node ref="J2" pin="35" pinfunction="35_35" pintype="passive"/>
     </net>
     <net code="22" name="LCD_G7" class="Default">
       <node ref="J1" pin="27" pinfunction="27_27" pintype="passive"/>
-      <node ref="J2" pin="48" pinfunction="48_48" pintype="passive"/>
+      <node ref="J2" pin="36" pinfunction="36_36" pintype="passive"/>
     </net>
     <net code="23" name="LCD_HSYNC" class="Default">
       <node ref="J1" pin="38" pinfunction="38_38" pintype="passive"/>
-      <node ref="J2" pin="54" pinfunction="54_54" pintype="passive"/>
+      <node ref="J2" pin="41" pinfunction="41_41" pintype="passive"/>
     </net>
     <net code="24" name="LCD_PCLK" class="Default">
       <node ref="J1" pin="41" pinfunction="41_41" pintype="passive"/>
-      <node ref="J2" pin="50" pinfunction="50_50" pintype="passive"/>
+      <node ref="J2" pin="38" pinfunction="38_38" pintype="passive"/>
       <node ref="TP3" pin="1" pinfunction="PROBE_1" pintype="passive"/>
     </net>
     <net code="25" name="LCD_PWM" class="Default">
-      <node ref="J2" pin="58" pinfunction="58_58" pintype="passive"/>
+      <node ref="J2" pin="44" pinfunction="44_44" pintype="passive"/>
       <node ref="R2" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="1" pinfunction="1A_1" pintype="input"/>
     </net>
@@ -2363,67 +2303,67 @@
     </net>
     <net code="27" name="LCD_R1" class="Default">
       <node ref="J1" pin="13" pinfunction="13_13" pintype="passive"/>
-      <node ref="J2" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="J2" pin="3" pinfunction="3_3" pintype="passive"/>
     </net>
     <net code="28" name="LCD_R2" class="Default">
       <node ref="J1" pin="14" pinfunction="14_14" pintype="passive"/>
-      <node ref="J2" pin="6" pinfunction="6_6" pintype="passive"/>
+      <node ref="J2" pin="5" pinfunction="5_5" pintype="passive"/>
     </net>
     <net code="29" name="LCD_R3" class="Default">
       <node ref="J1" pin="15" pinfunction="15_15" pintype="passive"/>
-      <node ref="J2" pin="8" pinfunction="8_8" pintype="passive"/>
+      <node ref="J2" pin="6" pinfunction="6_6" pintype="passive"/>
     </net>
     <net code="30" name="LCD_R4" class="Default">
       <node ref="J1" pin="16" pinfunction="16_16" pintype="passive"/>
-      <node ref="J2" pin="10" pinfunction="10_10" pintype="passive"/>
+      <node ref="J2" pin="8" pinfunction="8_8" pintype="passive"/>
     </net>
     <net code="31" name="LCD_R5" class="Default">
       <node ref="J1" pin="17" pinfunction="17_17" pintype="passive"/>
-      <node ref="J2" pin="12" pinfunction="12_12" pintype="passive"/>
+      <node ref="J2" pin="9" pinfunction="9_9" pintype="passive"/>
     </net>
     <net code="32" name="LCD_R6" class="Default">
       <node ref="J1" pin="18" pinfunction="18_18" pintype="passive"/>
-      <node ref="J2" pin="14" pinfunction="14_14" pintype="passive"/>
+      <node ref="J2" pin="11" pinfunction="11_11" pintype="passive"/>
     </net>
     <net code="33" name="LCD_R7" class="Default">
       <node ref="J1" pin="19" pinfunction="19_19" pintype="passive"/>
-      <node ref="J2" pin="16" pinfunction="16_16" pintype="passive"/>
+      <node ref="J2" pin="12" pinfunction="12_12" pintype="passive"/>
     </net>
     <net code="34" name="LCD_SCL" class="Default">
       <node ref="J1" pin="48" pinfunction="48_48" pintype="passive"/>
-      <node ref="J2" pin="70" pinfunction="70_70" pintype="passive"/>
+      <node ref="J2" pin="51" pinfunction="51_51" pintype="passive"/>
       <node ref="R7" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP6" pin="1" pinfunction="PROBE_1" pintype="passive"/>
     </net>
     <net code="35" name="LCD_SDA" class="Default">
       <node ref="J1" pin="47" pinfunction="47_47" pintype="passive"/>
-      <node ref="J2" pin="68" pinfunction="68_68" pintype="passive"/>
+      <node ref="J2" pin="50" pinfunction="50_50" pintype="passive"/>
       <node ref="R6" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP5" pin="1" pinfunction="PROBE_1" pintype="passive"/>
     </net>
     <net code="36" name="LCD_STANDBY" class="Default">
-      <node ref="J2" pin="60" pinfunction="60_60" pintype="passive"/>
+      <node ref="J2" pin="45" pinfunction="45_45" pintype="passive"/>
       <node ref="R3" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="4" pinfunction="2A_4" pintype="input"/>
     </net>
     <net code="37" name="LCD_TFT_RESET_N" class="Default">
-      <node ref="J2" pin="62" pinfunction="62_62" pintype="passive"/>
+      <node ref="J2" pin="46" pinfunction="46_46" pintype="passive"/>
       <node ref="R4" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="9" pinfunction="3A_9" pintype="input"/>
     </net>
     <net code="38" name="LCD_TOUCH_INT_N" class="Default">
       <node ref="J1" pin="46" pinfunction="46_46" pintype="passive"/>
-      <node ref="J2" pin="66" pinfunction="66_66" pintype="passive"/>
+      <node ref="J2" pin="48" pinfunction="48_48" pintype="passive"/>
       <node ref="R8" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
     <net code="39" name="LCD_TOUCH_RESET_N" class="Default">
-      <node ref="J2" pin="64" pinfunction="64_64" pintype="passive"/>
+      <node ref="J2" pin="47" pinfunction="47_47" pintype="passive"/>
       <node ref="R5" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="12" pinfunction="4A_12" pintype="input"/>
     </net>
     <net code="40" name="LCD_VSYNC" class="Default">
       <node ref="J1" pin="37" pinfunction="37_37" pintype="passive"/>
-      <node ref="J2" pin="56" pinfunction="56_56" pintype="passive"/>
+      <node ref="J2" pin="42" pinfunction="42_42" pintype="passive"/>
     </net>
     <net code="41" name="LOGIC_FB" class="Default">
       <node ref="R10" pin="1" pinfunction="1_1" pintype="passive"/>
@@ -2440,7 +2380,7 @@
       <node ref="U5" pin="3" pinfunction="1Y_3" pintype="passive"/>
     </net>
     <net code="44" name="PANEL_READY" class="Default">
-      <node ref="J2" pin="71" pinfunction="71_71" pintype="passive"/>
+      <node ref="J2" pin="52" pinfunction="52_52" pintype="passive"/>
       <node ref="R11" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="TP7" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U4" pin="1" pinfunction="RESET_/_READY_1" pintype="passive"/>

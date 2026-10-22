@@ -1,6 +1,6 @@
 # Electrical and manufacturing review
 
-Reviewed design: **display adapter E, GIGA adapter D, source bundle E**.
+Reviewed design: **display adapter F, GIGA adapter E, source bundle F**.
 Exact source hashes and completed local checks are recorded in
 [`release-status.json`](release-status.json); archive hashes are in
 [`../releases/SHA256SUMS`](../releases/SHA256SUMS).
@@ -41,7 +41,7 @@ The display's power domains are separated:
 - **Two TPS3808G33 supervisors** require both rails to settle for 300 ms.
   Their wired-AND READY signal gates PWM, standby and both resets through a
   SN74LVC08A. Defined pull-downs retain the inactive state with missing power.
-- READY returns over **GIGA J1.10 ↔ display J2.71**, through an AXC1 isolator
+- READY returns over **GIGA J1.9 ↔ display J2.52**, through an AXC1 isolator
   to **PI1 / D70**. Firmware repeats the panel sequence after power recovery,
   including when USB has kept GIGA running. Rendering remains available with
   the panel absent; brightness waits for a valid framebuffer scan boundary.
@@ -49,7 +49,7 @@ The display's power domains are separated:
 The GIGA eFuse, branch fuse, 12 V converter, VIN blocking diode, isolated RTN
 thermal islands and four RTN vias retain their established circuit. The new
 READY connection does not change the 35 original display signals or interfere
-with motor/EtherCAT pins. The cable now contains 39 ground conductors, 35 display
+with motor/EtherCAT pins. The cable now contains 19 ground conductors, 35 display
 signals, READY, two protected 24 V conductors and three logic-reference returns.
 PCLK still has ground on both sides.
 
@@ -71,7 +71,7 @@ connector-level measurement on the assembled boards.
 The release pipeline requires all of the following, without waived findings:
 
 - Fresh zone fill, ERC, DRC, schematic/PCB parity and zero unrouted connections.
-- Independent comparison of all 50 panel contacts, 80 ribbon conductors,
+- Independent comparison of all 50 panel contacts, 60 ribbon conductors,
   original 35 display signals, READY, device pinouts and firmware assignments.
 - Exact component MPN, placement and local 3D-model consistency.
 - AISLER geometry checks for holes, annular rings, edge clearance, SMD sizes,
@@ -85,8 +85,8 @@ The release pipeline requires all of the following, without waived findings:
 There are no fiducials, blind/buried vias, tenting requirements, manufacturing
 rule exclusions or accepted ERC/DRC warnings. The display retains its outer
 thermal/ground pours; the added inner plane supplies a continuous reference.
-The display has no separate GND tracks: the filled copper and stitching vias
-connect every ground pad. GIGA component-to-plane escapes and the isolated
+Ground tracks are retained only where needed for pad-to-plane escapes; filled
+copper and stitching vias provide the common return. GIGA component-to-plane escapes and the isolated
 eFuse RTN thermal connections remain in place.
 
 Evidence is retained in [`verification/`](verification/). Current component-limit
@@ -120,7 +120,7 @@ assembled system or a substitute for AISLER's processed preview.
 
 The **TPS7A91 WSON exposed pad requires reflow or hot-air assembly**, including
 solder beneath the package. Edge-lead hand soldering alone is insufficient.
-The small 0.5 mm Hirose connectors also need suitable magnification and process
+The small 0.5 mm Hirose/Molex connectors also need suitable magnification and process
 control. Use the procurement BOM and assembly drawings, not silkscreen alone,
 to establish pin 1 and bottom-side connector orientation.
 
@@ -153,10 +153,19 @@ The 50 mV downward ripple allowance exceeds the quoted 50 mV peak-to-peak
 typical value but is not a manufacturer-guaranteed bound. Therefore the 29 mV
 static margin cannot be presented as a worst-case transient guarantee.
 
-Use the revision-E Type-A cable drawing: 80 ways, 0.50 mm pitch, 0.30 mm mating
-thickness, same-side contacts, ≤100 mm, ≥60 V / 0.5 A per conductor and copper
-cross-section ≥0.0105 mm². No exact off-the-shelf cable MPN has been qualified;
-procure to the drawing if necessary. Check continuity/orientation before power.
+Use **Molex 15018-0563** with two **505110-6091** bottom-contact sockets:
+60 ways, 0.50 mm pitch, 0.30 ±0.05 mm mating thickness, same-side gold contacts
+and retention ears. The nominal cable length is 102 mm; budgets use 106 mm.
+The cable has 0.30 × 0.10 mm copper and a 60 V / 0.5 A rating; the sockets limit
+the assembled link to 50 V / 0.5 A per contact. Nineteen shared grounds include
+both PCLK neighbours. The new pin map is **n ↔ 61−n**. Both board revisions must
+be used together; check continuity and orientation before power. Procurement
+includes Mouser SKUs for this exact cable and both sockets.
+
+The Molex land pattern uses 0.30 × 1.00 mm signal pads and 2.00 × 1.30 mm
+mounting pads. Paste is 100% land area for the manufacturer's 0.10 mm stencil
+reference. Exposed vias are excluded from the connector's contact mechanism.
+Firmware assignments and power architecture are unchanged by this cable update.
 
 ## AISLER acceptance
 

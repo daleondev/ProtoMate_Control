@@ -33,9 +33,9 @@ there are no manufacturing exclusions or accepted manufacturing warnings.
 The DF23 drawing **EDC3-164006-03, Fig. 1 note 3** identifies unmasked-contact
 bands beneath the connector. Conservative B.Cu rule areas forbid vias there;
 the geometric audit also includes the enlarged mask aperture. The retained
-Hirose FH28 datasheet describes its fully molded bottom and explicitly permits
-PCB patterning beneath the insulated body. Solder pads and mating space remain
-clear. The local models are drawing-based envelopes; physical fit is untested.
+Molex 505110 connector's body envelope is audited to exclude exposed via
+apertures; no solder-mask coating is relied on to insulate its contact mechanism.
+Solder pads and mating space remain clear. The local models are drawing-based envelopes; physical fit is untested.
 The retained TRACO TSR1 and TSR2 specifications identify non-conductive plastic housing;
 each converter's three conductive leads are confined to their plated pads and
 must be trimmed to the documented 0.8 mm protrusion. The GIGA carrier's underside

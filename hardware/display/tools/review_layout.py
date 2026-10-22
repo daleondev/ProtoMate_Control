@@ -25,10 +25,13 @@ g={l:ground(l) for l in [k.F_Cu,k.In1_Cu,k.B_Cu]}
 vias=[v for v in b.GetTracks() if isinstance(v,k.PCB_VIA)]
 existing=[point(v.GetPosition()) for v in vias if v.GetNetname()=='GND']
 clockvias=[point(v.GetPosition()) for v in vias if v.GetNetname()=='LCD_PCLK']
-distances=[]
+distances=[]; reference_distances=[]; layers_without_pour=set()
 for t in b.GetTracks():
  if isinstance(t,k.PCB_VIA) or t.GetNetname()!='LCD_PCLK':continue
  line=LineString([point(t.GetStart()),point(t.GetEnd())]);length=line.length
- distances += [line.interpolate(i/max(1,math.ceil(length/.1)),normalized=True).distance(g[t.GetLayer()]) for i in range(math.ceil(length/.1)+1)]
-report={'board':'display-adapter','revision':BOARDS['display-adapter']['revision'],'copper_layers':b.GetCopperLayerCount(),'ground_pour_area_mm2':{b.GetLayerName(l):round(shape.area,2) for l,shape in g.items()},'total_ground_vias':len(existing),'clock_signal_vias':clockvias,'clock_via_nearest_ground_via_mm':[round(min(math.hypot(x-a,y-c) for a,c in existing),3) for x,y in clockvias],'maximum_clock_centre_to_same_layer_ground_pour_mm':round(max(distances),3),'sample_spacing_mm':.1,'interpretation':'Geometric return-path review; In1 is the uninterrupted ground reference; outer ground pours are also stitched. This is not field-solver impedance or signal-integrity validation. Confirm panel-side timing and ringing on the first board.'}
+ samples=[line.interpolate(i/max(1,math.ceil(length/.1)),normalized=True) for i in range(math.ceil(length/.1)+1)]
+ reference_distances += [p.distance(g[k.In1_Cu]) for p in samples]
+ if t.GetLayer() in g and not g[t.GetLayer()].is_empty:distances += [p.distance(g[t.GetLayer()]) for p in samples]
+ else:layers_without_pour.add(b.GetLayerName(t.GetLayer()))
+report={'board':'display-adapter','revision':BOARDS['display-adapter']['revision'],'copper_layers':b.GetCopperLayerCount(),'ground_pour_area_mm2':{b.GetLayerName(l):round(shape.area,2) for l,shape in g.items()},'total_ground_vias':len(existing),'clock_signal_vias':clockvias,'clock_via_nearest_ground_via_mm':[round(min(math.hypot(x-a,y-c) for a,c in existing),3) for x,y in clockvias],'maximum_clock_centre_to_same_layer_ground_pour_mm':round(max(distances),3),'maximum_clock_centre_to_In1_reference_mm':round(max(reference_distances),3),'clock_layers_without_same_layer_pour':sorted(layers_without_pour),'sample_spacing_mm':.1,'interpretation':'Geometric return-path review; In1 is the uninterrupted ground reference; outer ground pours are also stitched. This is not field-solver impedance or signal-integrity validation. Confirm panel-side timing and ringing on the first board.'}
 (ROOT/'manufacturing/verification/display-adapter-layout-review.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

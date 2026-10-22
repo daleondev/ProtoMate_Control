@@ -1,22 +1,34 @@
 {
   "display-adapter": {
-    "revision": "E",
+    "revision": "F",
     "copper_layers": 4,
-    "schematic_pcb_pin_pairs": 252,
+    "schematic_pcb_pin_pairs": 232,
     "components": 51,
-    "tracks": 928,
-    "ground_reference": "In1.Cu GND reference plane"
+    "tracks": 1096,
+    "ground_reference": "In1.Cu GND reference plane",
+    "routing_inventory": {
+      "straight_segments": 901,
+      "curved_segments": 0,
+      "through_vias": 195,
+      "ground_segments": 0
+    }
   },
   "giga-adapter": {
-    "revision": "D",
+    "revision": "E",
     "copper_layers": 4,
-    "schematic_pcb_pin_pairs": 532,
+    "schematic_pcb_pin_pairs": 512,
     "components": 123,
-    "tracks": 1572,
-    "ground_reference": "In1.Cu GND reference plane"
+    "tracks": 1724,
+    "ground_reference": "In1.Cu GND reference plane",
+    "routing_inventory": {
+      "straight_segments": 1495,
+      "curved_segments": 0,
+      "through_vias": 229,
+      "ground_segments": 93
+    }
   },
   "display_contacts": 50,
-  "ribbon_conductors": 80,
+  "ribbon_conductors": 60,
   "display_signals": 35,
   "supply_ready_signals": 1,
   "firmware_pin_conflicts": 0,

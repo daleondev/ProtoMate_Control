@@ -61,6 +61,7 @@ def main():
                 assert t.GetWidth(k.F_Cu)>=k.FromMM(BOARDS[name]['via_diameter'])
                 assert (t.GetWidth(k.F_Cu)-t.GetDrillValue())/2>=k.FromMM(.15)
             else:
+                assert not isinstance(t,k.PCB_ARC),(name,'Curved track',t.GetNetname())
                 allowed=[k.F_Cu,k.B_Cu] if BOARDS[name]['layers']==2 else [k.F_Cu,k.In2_Cu,k.B_Cu]
                 assert t.GetLayer() in allowed,('Unexpected routing layer',name,t.GetNetname())
                 assert t.GetWidth()>=k.FromMM(.15),(name,t.GetNetname(),t.GetWidth())
@@ -69,14 +70,23 @@ def main():
         ground_layers={z.GetLayer() for z in b.Zones() if z.GetNetname()=='GND'}
         assert k.In1_Cu in ground_layers and all(z.GetNetname()=='GND' for z in b.Zones() if z.GetLayer()==k.In1_Cu and not z.GetIsRuleArea())
         summary[name]={'revision':BOARDS[name]['revision'],'copper_layers':b.GetCopperLayerCount(),'schematic_pcb_pin_pairs':len(nets),'components':len(source_parts),'tracks':len(b.GetTracks()),'ground_reference':'Stitched F.Cu/B.Cu ground pours' if BOARDS[name]['layers']==2 else 'In1.Cu GND reference plane'}
+        summary[name]['routing_inventory']={
+            'straight_segments':sum(not isinstance(t,k.PCB_VIA) for t in b.GetTracks()),
+            'curved_segments':0,
+            'through_vias':sum(isinstance(t,k.PCB_VIA) for t in b.GetTracks()),
+            'ground_segments':sum(not isinstance(t,k.PCB_VIA) and t.GetNetname()=='GND' for t in b.GetTracks())}
         pins[name]=nets
     d,g=pins['display-adapter'],pins['giga-adapter']
     for p,net in PANEL.items():assert d['J1',str(p)]==net,(p,net)
     assert len(PANEL)==50
     # Every FFC conductor, including 24V feeds and the separate 3.3V reference return.
-    for p in range(1,81):assert g['J1',str(p)]==d['J2',str(81-p)],p
-    assert {p for p in range(1,81) if g['J1',str(p)]=='+3V3_PANEL'}=={5,7,9}
-    assert sum(g['J1',str(p)]=='GND' for p in range(1,81))==39
+    for p in range(1,61):assert g['J1',str(p)]==d['J2',str(61-p)],p
+    assert {p for p in range(1,61) if g['J1',str(p)]=='+3V3_PANEL'}=={5,6,7}
+    assert sum(g['J1',str(p)]=='GND' for p in range(1,61))==19
+    for pin in range(1,61):
+        net=g['J1',str(pin)]
+        if net.startswith(('LCD_R','LCD_G','LCD_B')):
+            assert any(g.get(('J1',str(n)))=='GND' for n in (pin-1,pin+1)),(pin,net)
     rows=list(csv.DictReader((ROOT/'connections.csv').open()))
     assert len(rows)==35
     ioc=next((ROOT.parents[1]/'external/CubeMX').glob('*.ioc'),None)
@@ -120,7 +130,7 @@ def main():
     assert g['U6','1']=='+3V3_PANEL' and g['U6','8']==g['U6','5']=='+3V3_GIGA'
     assert g['U6','2']=='LCD_SCL' and g['U6','3']=='LCD_SDA'
     assert g['U6','7']=='MCU_SCL' and g['U6','6']=='MCU_SDA'
-    assert {p for p in range(1,81) if g['J1',str(p)]=='+24V_DISPLAY'}=={1,3}
+    assert {p for p in range(1,61) if g['J1',str(p)]=='+24V_DISPLAY'}=={1,2}
     assert d['U1','1']==d['C9','1']=='+24V_DISPLAY'
     assert d['U1','2']=='GND' and d['U1','3']=='+3V3_BKL'
     # Supply supervision and independent rail domains, checked pin by pin.
@@ -139,7 +149,7 @@ def main():
         assert d['U5',str(a)]=='LCD_'+signal and d['U5',str(b)]=='PANEL_READY'
         assert d['U5',str(y)]=='PANEL_'+signal
     assert d['U5','7']=='GND' and d['U5','14']=='+3V3_PANEL'
-    assert d['J2','71']==g['J1','10']==g['U9','3']=='PANEL_READY'
+    assert d['J2','52']==g['J1','9']==g['U9','3']=='PANEL_READY'
     assert g['U9','1']==g['U9','5']=='+3V3_PANEL' and g['U9','6']=='+3V3_GIGA'
     assert g['U9','4']==g['R71','1']==g['J9','15']=='MCU_PANEL_READY'
     assert g['R71','2']=='GND'
@@ -165,17 +175,17 @@ def main():
     assert j['1'].x<j['49'].x and j['1'].y>j['2'].y
     assert not fp['J1'].IsOnLayer(k.F_Cu)
     j={p.GetNumber():p.GetPosition() for p in fp['J2'].Pads()}
-    assert j['1'].x>j['80'].x
+    assert j['1'].x>j['60'].x
     gf={f.GetReference():f for f in boards['giga-adapter'].GetFootprints()}
     gj={p.GetNumber():p.GetPosition() for p in gf['J1'].Pads()}
-    assert gj['1'].y>gj['80'].y
-    labels={t.GetText():t.GetPosition() for t in boards['giga-adapter'].GetDrawings() if isinstance(t,k.PCB_TEXT) and t.GetText() in ('1','80')}
+    assert gj['1'].y>gj['60'].y
+    labels={t.GetText():t.GetPosition() for t in boards['giga-adapter'].GetDrawings() if isinstance(t,k.PCB_TEXT) and t.GetText() in ('1','60')}
     # Pin 1 identifies cable orientation. A label at the far end is optional;
     # if present, it must identify the correct end of the connector.
     assert labels['1'].y>gj['1'].y
-    if '80' in labels:
-        assert labels['80'].y<gj['80'].y
-    summary.update(display_contacts=50,ribbon_conductors=80,display_signals=35,supply_ready_signals=1,firmware_pin_conflicts=0,
+    if '60' in labels:
+        assert labels['60'].y<gj['60'].y
+    summary.update(display_contacts=50,ribbon_conductors=60,display_signals=35,supply_ready_signals=1,firmware_pin_conflicts=0,
                    firmware_assignment_source=firmware_source,firmware_source_sha256=pin_reference['sha256'],
                    physical_hardware_test='NOT PERFORMED')
     (reports/'electrical-audit.json').write_text(json.dumps(summary,indent=2)+'\n')

@@ -60,7 +60,7 @@ def main():
         ('display-adapter', ('U3', 1), ('C13', 1)),
         ('display-adapter', ('U3', 1), ('C14', 1)),
         ('display-adapter', ('U3', 1), ('TP1', 1)),
-        *[('display-adapter', ('U3', 1), ('J2', pin)) for pin in [72, 74, 76]],
+        *[('display-adapter', ('U3', 1), ('J2', pin)) for pin in [54, 55, 56]],
     ]:
         resistance, _ = resistance_path(boards[name], *start, *end)
         routes.append(dict(board=name, start=f'{start[0]}.{start[1]}',

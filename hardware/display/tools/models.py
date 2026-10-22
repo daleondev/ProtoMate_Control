@@ -18,13 +18,14 @@ save('Fuse_Bourns_SF-1206SA-M',[box(-1.6,-.8,0,.51,1.6,.85),
     box(-1.09,-.8,0,2.18,1.6,.85),box(1.09,-.8,0,.51,1.6,.85)])
 
 # KiCad STEP coordinates have +Y up, opposite the footprint editor.
-# FH28H: rear solder tails at y=0, insertion toward +Y, contact 1 on +X.
-shell=box(-22.45,.55,0,44.9,6,2.55)
-slot=box(-20.285,3.1,.55,40.57,3.6,.45)
+# Molex 505110-6091: nominal 34.7 x 5.25 x 1.9mm body; 36.1mm mounting lands.
+# Pin numbering is the project's +X-first convention; mouth toward +Y in STEP.
+shell=box(-17.35,.2,0,34.7,5.25,1.9)
+slot=box(-15.25,1.45,.4,30.5,4.05,.35)
 shell=shell.cut(slot)
-contacts=[box(19.75-i*.5-.1,-.5,0,.2,1.3,.15) for i in range(80)]
-tabs=[box(x-1.1,4.95,0,2.2,1.6,.15) for x in [-22.175,22.175]]
-save('FH28H-80S',[shell,*contacts,*tabs])
+contacts=[box(14.75-i*.5-.125,-.25,0,.25,.65,.15) for i in range(60)]
+tabs=[box(x-.85,2.05,0,1.7,1.3,.15) for x in [-17.05,17.05]]
+save('Molex_505110-6091',[shell,*contacts,*tabs])
 
 # DF23 plug: 14 x 3.1 x 1.2; mated board spacing is 1.5mm.
 shell=box(-7,-1.55,0,14,3.1,1.2).cut(box(-6.35,-.85,.35,12.7,1.7,1.0))

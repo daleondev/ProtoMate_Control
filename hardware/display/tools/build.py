@@ -51,14 +51,26 @@ def fp_text(name, pads, outline, desc, model=None, attr='smd'):
         if drill:
             s+=f'(pad {q(num)} thru_hole {"rect" if str(num)=="1" else "oval"} (at {x} {y}) (size {w} {h}) (drill {drill}) (layers "*.Cu" "*.Mask"))\n'
         else:
-            ffc=name.startswith('FH28') and str(num).isdigit()
-            layers='"F.Cu" "F.Mask"' if ffc else '"F.Cu" "F.Paste" "F.Mask"'
-            s+=f'(pad {q(num)} smd rect (at {x} {y}) (size {w} {h}) (layers {layers}))\n'
-            if ffc:
-                s+=f'(fp_rect (start {x-.125} -.65) (end {x+.125} .35) (stroke (width 0) (type solid)) (fill solid) (layer "F.Paste"))\n'
+            s+=f'(pad {q(num)} smd rect (at {x} {y}) (size {w} {h}) (layers "F.Cu" "F.Paste" "F.Mask"))\n'
     if model:
         s+=f'(model "${{KIPRJMOD}}/../libraries/3dmodels/{model}" (offset (xyz 0 0 0)) (scale (xyz 1 1 1)) (rotate (xyz 0 0 0)))\n'
     return s+')\n'
+
+def ffc_footprint():
+    # Molex SD-505110-001 sheet 3 / 5051101000-SD sheet 4.
+    # Signal pads 0.30 x 1.00; mounting pads 2.00 x 1.30.
+    # Mounting pad outer edge is 3.30 beyond the end signal centre;
+    # 1.55 gap from signal-pad inner edge to mounting-pad nearest edge.
+    name = 'Molex_505110-6091_1x60_P0.50mm'
+    pads=[(i+1,14.75-i*.5,0,.3,1.0,0) for i in range(60)]
+    pads += [('MP1',-17.05,-2.7,2,1.3,0),('MP2',17.05,-2.7,2,1.3,0)]
+    text=fp_text(name,pads,(-17.35,-5.45,17.35,-.2),
+        'Molex 505110-6091 FD19 bottom-contact; SD-505110-001 sheet3; 0.30x1.00 pads; 2.00x1.30 nails at +/-17.05,-2.70; project pin1 +X, cable mouth -Y; 100um stencil 100% apertures',
+        'Molex_505110-6091.step')
+    # Courtyard includes the wide mounting lands, tails and open-latch area.
+    text=text.replace('(start -17.6 -5.7) (end 17.6 0.04999999999999999)',
+                      '(start -18.3 -5.7) (end 18.3 .75)')
+    (LIB/(name+'.kicad_mod')).write_text(text)
 
 def footprints():
     for kind,(_,_,_,name) in PARTS.items():
@@ -99,10 +111,7 @@ def footprints():
                 shutil.copyfile(src,MODELS/src.name)
                 text=text.replace(model,'${KIPRJMOD}/../libraries/3dmodels/'+src.name)
         (LIB/(name+'.kicad_mod')).write_text(text)
-    pads=[(i+1,19.75-i*.5,0,.3,1.3,0) for i in range(80)]
-    pads += [('MP1',-22.175,-5.75,2.35,1.8,0),('MP2',22.175,-5.75,2.35,1.8,0)]
-    (LIB/'FH28H-80S-0.5SH.kicad_mod').write_text(fp_text('FH28H-80S-0.5SH',pads,(-23.35,-6.65,23.35,.65),
-       'Hirose FH28 catalog p5-6: A39.5 H46.7 J42.0; 0.30x1.30 pads; mouth -Y; PIN1 at +X (contact mark viewed from top)', 'FH28H-80S.step'))
+    ffc_footprint()
     pads=[]
     for i in range(25):
         pads += [(2*i+1,-6+i*.5,-1.95,.25,1,0),(2*i+2,-6+i*.5,1.95,.25,1,0)]
@@ -217,7 +226,7 @@ def schematic(which,parts):
         x=30.48+idx*76.2;y=246.38;pid=uid(which+net+'flag')
         root+=f'(symbol (lib_id "DisplayAdapter:SupplyPresent") (at {x} {y} 0) (unit 1) (in_bom no) (on_board no) (dnp no) (uuid "{pid}") (property "Reference" "#FLG0{idx+1}" (at {x} {y-5} 0) (effects (font (size 1 1)) (hide yes))) (property "Value" "SupplyPresent" (at {x} {y-4} 0) (effects (font (size 1 1)))) (instances (project {q(which)} (path "/{rootid}" (reference "#FLG0{idx+1}") (unit 1)))))'
         root+=f'(global_label {q(net)} (shape input) (at {x} {y} 90) (effects (font (size 1 1)) (justify left)) (uuid "{uid(pid+"net")}") (property "Intersheetrefs" "${{INTERSHEET_REFS}}" (at {x} {y} 0) (effects (font (size 1 1)) (hide yes))))'
-    root+='(text "24V input on GIGA shield | Local 3.3V display conversion | <=100 mm Type-A 80-way FFC" (at 20.32 25.4 0) (effects (font (size 1.524 1.524)) (justify left)) (uuid "'+uid(which+'note')+'"))\n'
+    root+='(text "24V input on GIGA shield | Local 3.3V display conversion | Molex 15018-0563 Type-A 60-way FFC, 102mm nominal" (at 20.32 25.4 0) (effects (font (size 1.524 1.524)) (justify left)) (uuid "'+uid(which+'note')+'"))\n'
     for idx,page in enumerate(pages):
         sid=uid(which+'/'+page);filename=page+'.kicad_sch';px=20.32+(idx%3)*121.92;py=45.72+(idx//3)*60.96
         root+=f'(sheet (at {px} {py}) (size 101.6 35.56) (stroke (width .254) (type default)) (fill (color 0 0 0 0)) (uuid "{sid}") (property "Sheetname" {q(page)} (at {px} {py-1.27} 0) (effects (font (size 1.524 1.524)) (justify left))) (property "Sheetfile" {q(filename)} (at {px} {py+36.83} 0) (effects (font (size 1.27 1.27)) (justify left))) (instances (project {q(which)} (path "/{rootid}" (page "{idx+2}")))))\n'
@@ -260,7 +269,7 @@ def schematic(which,parts):
               'buffer4':'PCLK, DE, HSYNC, VSYNC, PWM, STANDBY and active-low resets. PCLK buffered by the same family as RGB.',
               'headers':'NC means no adapter trace. Socket still passes that GIGA contact straight through. Do not populate other header variants.',
               'touch':'TCA9517 A = panel; B = GIGA. GIGA R26/R27 already provide 5.1k pull-ups. AXC1 direction A -> B.',
-              'ribbon':'80-way Type-A (same-side contacts), 0.5mm pitch, 0.30mm mating thickness. GIGA pin n <-> display socket pin 81-n.',
+              'ribbon':'60-way Molex 15018-0563 Type-A / 505110-6091 sockets; 0.5mm pitch, 0.30mm mating thickness; GIGA n <-> display 61-n.',
               'display':'Bottom-mounted DF23 plug. Pin orientation follows Smartwin mechanical drawing Detail A. All supply/GND pins used.',
               'logic_power':'U2: 24V -> 5V. U3: precision 3.296V, 47nF soft start (~6ms). 0.1% feedback resistors. EP must be soldered.',
               'sequencing':'Both supplies valid for 300ms before READY. Hardware gates reset, standby and PWM. READY returns to GIGA D70.',
@@ -332,7 +341,7 @@ def board(which,parts):
         poly=z.Outline();poly.NewOutline()
         for x,y in contour:poly.Append(mm(x),mm(y))
         b.Add(z)
-    for text,x,y,size in ([('SMARTWIN / '+BOARDS[which]['revision'],27.5,15,1),('24V VIA FFC',12,33,.8),('100mm TYPE-A',27.5,11,.8)] if which=='display-adapter' else [('GIGA DISPLAY / '+BOARDS[which]['revision'],51,7,1),('FFC TO DISPLAY',115,50, .8)]):
+    for text,x,y,size in ([('SMARTWIN / '+BOARDS[which]['revision'],27.5,15,1),('24V VIA FFC',12,33,.8),('102mm TYPE-A',27.5,11,.8)] if which=='display-adapter' else [('GIGA DISPLAY / '+BOARDS[which]['revision'],51,7,1),('FFC TO DISPLAY',115,50, .8)]):
         t=k.PCB_TEXT(b);t.SetText(text);t.SetPosition(point(x,y));t.SetTextSize(point(size,size));t.SetTextThickness(mm(.15));t.SetLayer(k.F_SilkS);b.Add(t)
     out=ROOT/'build'/which;out.mkdir(parents=True,exist_ok=True)
     path=out/(which+'.kicad_pcb');k.SaveBoard(str(path),b)

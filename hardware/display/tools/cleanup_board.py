@@ -24,8 +24,8 @@ def main(name):
         if isinstance(t,k.PCB_TEXT) and t.GetText()=='CN1 PIN 1':t.SetText('J1 PIN 1')
         if isinstance(t,k.PCB_TEXT) and t.GetLayer() in (k.F_SilkS,k.B_SilkS):
             t.SetTextThickness(max(t.GetTextThickness(),k.FromMM(.15)))
-        if isinstance(t,k.PCB_TEXT) and name=='giga-adapter' and t.GetText() in ('1','80'):
-            t.SetPosition(k.VECTOR2I(k.FromMM(112.5),k.FromMM(47.2 if t.GetText()=='1' else 5.8)))
+        if isinstance(t,k.PCB_TEXT) and name=='giga-adapter' and t.GetText() in ('1','60'):
+            t.SetPosition(k.VECTOR2I(k.FromMM(114),k.FromMM(44.8 if t.GetText()=='1' else 10.2)))
         if isinstance(t,k.PCB_TEXT) and name=='display-adapter' and t.GetText()=='SCL':t.SetPosition(k.VECTOR2I(k.FromMM(50),k.FromMM(19.5)))
         if isinstance(t,k.PCB_TEXT) and name=='display-adapter' and t.GetText()=='3V3 ONLY':t.SetPosition(k.VECTOR2I(k.FromMM(7),k.FromMM(19.2)))
     b.BuildConnectivity();k.ZONE_FILLER(b).Fill(b.Zones());k.SaveBoard(str(path),b)

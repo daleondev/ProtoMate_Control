@@ -1,7 +1,7 @@
 {
   "checked_on": "2026-10-22",
   "basis": "Mouser indexed catalogue evidence; not live stock confirmation or reservation. Older stock snapshots are identified by source_age.",
-  "scope": "One display adapter rev E and one GIGA adapter rev D; DC jack already owned.",
+  "scope": "One display adapter rev F and one GIGA adapter rev E, plus one 60-way cable; DC jack already owned.",
   "parts": [
     {
       "original_mpn": "DF23C-50DP-0.5V(92)",
@@ -16,16 +16,16 @@
       "notes": "Exact 50-pin mating plug; fit on display PCB underside."
     },
     {
-      "original_mpn": "FH28H-80S-0.5SH(05)",
-      "purchase_mpn": "FH28H-80S-0.5SH(05)",
-      "purchase_manufacturer": "Hirose",
-      "mouser_sku": "798-FH28H80S05SH05",
-      "observed_stock": 822,
+      "original_mpn": "505110-6091",
+      "purchase_mpn": "505110-6091",
+      "purchase_manufacturer": "Molex",
+      "mouser_sku": "538-505110-6091",
+      "observed_stock": 11530,
       "status": "stock-indexed",
-      "source_age": "3 months ago",
-      "source_url": "https://www.mouser.ca/ProductDetail/Hirose-Connector/FH28H-80S-0.5SH05?qs=nSryOFbzj8LLNK%252BjXgUxmQ%3D%3D",
+      "source_age": "last week",
+      "source_url": "https://eu.mouser.com/en/ProductDetail/Molex/505110-6091?qs=fSIr1QPo%2F%2FQRD6rm5ZTYDw%3D%3D",
       "checked_on": "2026-10-22",
-      "notes": "Two sockets per board pair; keep exact (05) variant."
+      "notes": "Two bottom-contact sockets; match Molex 15018-0563 Type-A ear-tab cable."
     },
     {
       "original_mpn": "TSR 2-2433",
@@ -471,5 +471,23 @@
       "checked_on": "2026-10-22",
       "notes": "2x12 socket; -04 = 14.83 mm tails. Do not replace with -03."
     }
-  ]
+  ],
+  "accessories": [
+    {
+      "purchase_mpn": "15018-0563",
+      "purchase_manufacturer": "Molex",
+      "mouser_sku": "538-15018-0563",
+      "quantity": 1,
+      "observed_stock": 404,
+      "source_age": "last week",
+      "source_url": "https://www.mouser.com/en/ProductDetail/Molex/15018-0563?qs=GedFDFLaBXHNFRUVQF%2FsGw%3D%3D",
+      "checked_on": "2026-10-22",
+      "status": "stock-indexed",
+      "notes": "60-way, 0.50mm, Type A, gold contacts, ear tabs, 102mm nominal, matched to 505110."
+    }
+  ],
+  "source_bom_sha256": {
+    "manufacturing/display-adapter-rev-F/bom-all.csv": "781a554b703e55f79a895c4102f0c1e8b55d6b44abffa4360bba0ca3ea802dc6",
+    "manufacturing/giga-adapter-rev-E/bom-all.csv": "c850eec1a70a868a8df85805c96135c21bac273ab029790c2074d5014bd9b849"
+  }
 }

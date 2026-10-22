@@ -51,6 +51,12 @@ def route(b,which,entry,width=.15):
         for y0,y1 in [(21.5,22.2),(23.8,24.5)]:
             vd.rectangle(((21-via_radius-.03)/GRID,(y0-via_radius-.03)/GRID,
                           (34+via_radius+.03)/GRID,(y1+via_radius+.03)/GRID),fill=1)
+    # The 505110 contact mechanism is close to the PCB. Do not rely on
+    # solder mask to insulate exposed vias anywhere under its body.
+    envelope=(9.95,1.35,45.05,7.0) if which=='display-adapter' else (115.0,8.95,120.65,44.05)
+    x0,y0,x1,y1=envelope
+    vd.rectangle(((x0-via_radius-.03)/GRID,(y0-via_radius-.03)/GRID,
+                  (x1+via_radius+.03)/GRID,(y1+via_radius+.03)/GRID),fill=1)
     margin=clearance+width/2+.04
     pads=[p for f in b.GetFootprints() for p in f.Pads()]
     for p in pads:
@@ -136,6 +142,29 @@ def route(b,which,entry,width=.15):
     path=[end]
     while path[-1] in previous:path.append(previous[path[-1]])
     path.reverse()
+    # Remove grid staircases while retaining true 45/90 degree segments.
+    # Test every traversed cell and its diagonal neighbours against the same
+    # clearance-inflated raster used by the search.
+    def visible(a,c):
+        l,y,x=a;ll,yy,xx=c
+        if l!=ll:return False
+        dx,dy=xx-x,yy-y
+        if dx and dy and abs(dx)!=abs(dy):return False
+        steps=max(abs(dx),abs(dy));sx=(dx>0)-(dx<0);sy=(dy>0)-(dy<0)
+        for n in range(1,steps+1):
+            nx,ny=x+n*sx,y+n*sy
+            if blocked[l,ny,nx]:return False
+            if sx and sy and (blocked[l,ny-sy,nx] or blocked[l,ny,nx-sx]):return False
+        return True
+    simple=[path[0]];index=0
+    while index<len(path)-1:
+        limit=index+1
+        while limit<len(path)-1 and path[limit+1][0]==path[index][0]:limit+=1
+        chosen=index+1
+        for candidate in range(limit,index+1,-1):
+            if visible(path[index],path[candidate]):chosen=candidate;break
+        simple.append(path[chosen]);index=chosen
+    path=simple
     def track(p,q,l):
         if p==q:return
         t=k.PCB_TRACK(b);t.SetStart(p);t.SetEnd(q);t.SetWidth(mm(width));t.SetLayer(LAYERS[l]);t.SetNet(net);b.Add(t)
@@ -159,7 +188,7 @@ def route(b,which,entry,width=.15):
 def main(which):
     path=ROOT/which/(which+'.kicad_pcb');report=Path('/tmp')/(which+'-finish-drc.json')
     b=k.LoadBoard(str(path))
-    for attempt in range(40):
+    for attempt in range(140):
         b.BuildConnectivity();k.ZONE_FILLER(b).Fill(b.Zones());k.SaveBoard(str(path),b)
         subprocess.run(['kicad-cli','pcb','drc','--format','json','-o',str(report),str(path)],check=True,stdout=subprocess.DEVNULL)
         r=json.loads(report.read_text());missing=r['unconnected_items']
