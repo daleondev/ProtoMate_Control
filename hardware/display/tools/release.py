@@ -56,7 +56,7 @@ def status():
         assert not drc['violations'] and not drc['unconnected_items'] and not drc['schematic_parity']
         assert not any(s['violations'] for s in erc['sheets'])
         assert not drc['ignored_checks'] and not erc['ignored_checks']
-        for suffix in ['aisler-audit','odb-audit','gerber-audit','bom-placement']:
+        for suffix in ['aisler-audit','odb-audit','gerber-audit','bom-placement','copper-audit']:
             assert read(name+'-'+suffix+'.json')['result']=='PASS'
         gerber=read(name+'-gerber-audit.json');odb=read(name+'-odb-audit.json')
         boards[name]=dict(revision=config['revision'],copper_layers=config['layers'],
@@ -71,6 +71,8 @@ def status():
             (ROOT/name/(name+suffix)).read_bytes()).hexdigest()
             for suffix in ['.kicad_pcb','.kicad_pro','.kicad_sch','.kicad_dru']}
         assert read(name+'-aisler-audit.json')['source_sha256']==boards[name]['checked_source_sha256']['.kicad_pcb']
+        assert read(name+'-copper-audit.json')['source_sha256']==boards[name]['checked_source_sha256']['.kicad_pcb']
+        boards[name]['copper_topology_audit']=read(name+'-copper-audit.json')
     power=read('power-review.json')
     procurement=read('procurement-audit.json')
     assert procurement['result']=='PASS'
@@ -103,7 +105,7 @@ def status():
                    mapping='GIGA J1.n -> display J2.(61-n)',
                    type='Type A, same-side gold contacts, retention ears, bottom-contact sockets',
                    nominal_length_mm=102,budget_length_mm=106),
-        routing='Straight segments with angular corners; no curved tracks. Existing power routing retained. Connector fanouts and necessary silkscreen labels updated.',
+        routing='Straight segments with angular corners; no curved tracks. Duplicate/covered copper and unused signal branches/vias audited separately from DRC. Centred pad entries individually reviewed and trial-removed; ground/thermal stitching retained.',
         documentation='manufacturing/REVIEW.md and references/SOURCES.md',
         conditions_before_order=['Review exact AISLER processed jobs: layers, ENIG, holes, masks, bridges and netlist notes.',
             'Use the exact listed cable/connectors and current Mouser procurement list; DC jack is already owned.'],
@@ -134,6 +136,7 @@ def main():
         run('audit_aisler.py',name)
         run('inspect_odb.py',name)
         run('inspect_gerbers.py',name)
+        run('audit_copper.py',name)
     for script in ['audit.py','routing_report.py','review_layout.py','power_routes.py',
                    'power_budget.py','review_power.py','mechanical.py','drawings.py','audit_procurement.py']:
         run(script)

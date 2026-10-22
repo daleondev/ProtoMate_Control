@@ -3,9 +3,9 @@
   "revision": "F",
   "copper_layers": 4,
   "ground_pour_area_mm2": {
-    "F.Cu": 2117.27,
-    "In1.Cu": 2565.03,
-    "B.Cu": 2260.73
+    "F.Cu": 2120.35,
+    "In1.Cu": 2566.31,
+    "B.Cu": 2263.42
   },
   "total_ground_vias": 55,
   "clock_signal_vias": [
@@ -27,7 +27,7 @@
     1.6,
     2.46
   ],
-  "maximum_clock_centre_to_same_layer_ground_pour_mm": 2.077,
+  "maximum_clock_centre_to_same_layer_ground_pour_mm": 2.045,
   "maximum_clock_centre_to_In1_reference_mm": 0.425,
   "clock_layers_without_same_layer_pour": [
     "In2.Cu"

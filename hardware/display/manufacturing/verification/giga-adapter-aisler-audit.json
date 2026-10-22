@@ -4,7 +4,7 @@
   "revision": "E",
   "support_revision": "00fe215f96ce7a938946e1a176de4ca8cac291ef",
   "template": "aisler-4-layer-hd-drc",
-  "source_sha256": "6ab3b511c9e2a0f6976b663d87d049a44227f3e5b3aa4ff5615e240d6dbcd674",
+  "source_sha256": "d18a243556bc5fe6faea82ea60e7ca0f8f2dabe219511b39c0a1ce81b85181c7",
   "finished_thickness_mm": 1.6,
   "finished_thickness_tolerance_percent": 10,
   "copper_um": 35,

@@ -22,6 +22,18 @@ def length(b,ref1,pin1,ref2,pin2):
     for p in pads:
         for l in LAYERS:
             if p.IsOnLayer(l):nodes.add((l,*coord(p.GetPosition())))
+    # A merged track can cross a pad without ending inside it. Project the
+    # pad centre onto the track and split there, rather than requiring a
+    # redundant segment beneath the pad merely to satisfy this measurement.
+    for p in pads:
+        px,py=coord(p.GetPosition())
+        for u,v in lines:
+            l,x,y=u;_,xx,yy=v;dx,dy=xx-x,yy-y;dd=dx*dx+dy*dy
+            if not dd or not p.IsOnLayer(l):continue
+            fraction=max(0,min(1,((px-x)*dx+(py-y)*dy)/dd))
+            q=(l,round(x+fraction*dx,6),round(y+fraction*dy,6))
+            if p.GetEffectiveShape(l).Collide(k.VECTOR2I(k.FromMM(q[1]),k.FromMM(q[2])),k.FromMM(.002)):
+                nodes.add(q)
     # Round trace ends can overlap without coincident centreline vertices.
     # Removing copper-covered helper segments must not make the measurement
     # graph report a false open. Charge the actual distance across the overlap.

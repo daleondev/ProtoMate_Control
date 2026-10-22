@@ -22,6 +22,17 @@ def resistance_path(b,ref1,pin1,ref2,pin2):
     for p in pads:
         for l in LAYERS:
             if p.IsOnLayer(l):nodes.add((l,*coord(p.GetPosition())))
+    # Include pad contacts in the middle of a merged track. Copper beneath a
+    # pad does not need a separate segment/vertex to form an electrical joint.
+    for p in pads:
+        px,py=coord(p.GetPosition())
+        for u,v,width in lines:
+            l,x,y=u;_,xx,yy=v;dx,dy=xx-x,yy-y;dd=dx*dx+dy*dy
+            if not dd or not p.IsOnLayer(l):continue
+            fraction=max(0,min(1,((px-x)*dx+(py-y)*dy)/dd))
+            q=(l,round(x+fraction*dx,6),round(y+fraction*dy,6))
+            if p.GetEffectiveShape(l).Collide(k.VECTOR2I(k.FromMM(q[1]),k.FromMM(q[2])),k.FromMM(.002)):
+                nodes.add(q)
     # Include physical contact between round trace ends. Use the overlap's
     # narrowest chord (or the narrower track), rather than a zero-cost join.
     for i,(u,radius) in enumerate(ends):

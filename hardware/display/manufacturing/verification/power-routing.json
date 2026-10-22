@@ -35,27 +35,27 @@
       "load": "TFT",
       "pad": "J1.10",
       "budget_A": 0.25,
-      "selected_path_ohm": 0.08639996280642459,
-      "supply_drop_V": 0.03764051809829194
+      "selected_path_ohm": 0.08612912947309123,
+      "supply_drop_V": 0.03751864309829194
     },
     {
       "load": "touch",
       "pad": "J1.49",
       "budget_A": 0.05,
-      "selected_path_ohm": 0.0721658038121939,
-      "supply_drop_V": 0.028252553996386584
+      "selected_path_ohm": 0.07189497047886056,
+      "supply_drop_V": 0.028130678996386584
     },
     {
       "load": "interface reference rail",
       "pad": "J2.56",
       "budget_A": 0.15,
-      "selected_path_ohm": 0.16799033582294426,
-      "supply_drop_V": 0.04987907405076989
+      "selected_path_ohm": 0.1677195024896109,
+      "supply_drop_V": 0.04975719905076989
     }
   ],
-  "maximum_logic_supply_drop_V": 0.04987907405076989,
+  "maximum_logic_supply_drop_V": 0.04975719905076989,
   "maximum_backlight_supply_drop_V": 0.018781577486234578,
-  "maximum_panel_supply_drop_V": 0.03764051809829194,
+  "maximum_panel_supply_drop_V": 0.03751864309829194,
   "return_allowance_ohm": 0.02,
   "physical_verification": "PENDING: actual current, via plating, return spreading and temperature"
 }

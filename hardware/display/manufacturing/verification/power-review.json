@@ -1,15 +1,15 @@
 {
   "result": "PASS \u2014 routed power connectivity and geometry",
   "source_sha256": {
-    "display-adapter": "23fa0b18e9279faaf13c2384043cfcb0c68f5b67ebf549d2da2dcb7c2a9a2b12",
-    "giga-adapter": "6ab3b511c9e2a0f6976b663d87d049a44227f3e5b3aa4ff5615e240d6dbcd674"
+    "display-adapter": "6b6dbfbf39db216e7d1de27b07834458546e884ac1974367f665c4e57625b4b0",
+    "giga-adapter": "d18a243556bc5fe6faea82ea60e7ca0f8f2dabe219511b39c0a1ce81b85181c7"
   },
   "routes": [
     {
       "board": "giga-adapter",
       "start": "J10.1",
       "end": "F1.1",
-      "hot_copper_ohm": 0.005835922915884621
+      "hot_copper_ohm": 0.005778470489913215
     },
     {
       "board": "giga-adapter",
@@ -39,13 +39,13 @@
       "board": "giga-adapter",
       "start": "D3.1",
       "end": "J5.8",
-      "hot_copper_ohm": 0.0743180880464596
+      "hot_copper_ohm": 0.07394517532055993
     },
     {
       "board": "giga-adapter",
       "start": "D3.1",
       "end": "J9.24",
-      "hot_copper_ohm": 0.046289554617635856
+      "hot_copper_ohm": 0.04598314167912168
     },
     {
       "board": "display-adapter",
@@ -69,7 +69,7 @@
       "board": "display-adapter",
       "start": "U2.3",
       "end": "U3.9",
-      "hot_copper_ohm": 0.03603030602917881
+      "hot_copper_ohm": 0.03601115522052167
     },
     {
       "board": "display-adapter",
@@ -87,25 +87,25 @@
       "board": "display-adapter",
       "start": "U3.1",
       "end": "TP1.1",
-      "hot_copper_ohm": 0.1707908348955984
+      "hot_copper_ohm": 0.13022000156226507
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.54",
-      "hot_copper_ohm": 0.16799033582294426
+      "hot_copper_ohm": 0.1677195024896109
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.55",
-      "hot_copper_ohm": 0.15974226915627757
+      "hot_copper_ohm": 0.1594714358229442
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.56",
-      "hot_copper_ohm": 0.16799033582294426
+      "hot_copper_ohm": 0.1677195024896109
     }
   ],
   "fused_input_minimum_track_width_mm": 0.6,

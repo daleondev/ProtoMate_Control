@@ -65,9 +65,9 @@
       3.2426721293273544,
       3.3497996204515803
     ],
-    "routed_supply_return_contact_drop_V": 0.08887907405076989,
+    "routed_supply_return_contact_drop_V": 0.0887571990507699,
     "dynamic_drop_allowance_V": 0.1,
-    "panel_min_with_allowance_V": 3.0537930552765844,
+    "panel_min_with_allowance_V": 3.0539149302765844,
     "panel_requirement_V": [
       3.0,
       3.6

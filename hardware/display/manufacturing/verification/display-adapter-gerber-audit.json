@@ -2,15 +2,15 @@
   "board": "display-adapter",
   "result": "PASS",
   "exported_pad_coordinates_and_nets_checked": 238,
-  "drill_hits_checked": 205,
+  "drill_hits_checked": 203,
   "ffc_paste_windows_checked": 60,
   "silk_coverage_upper_bound_percent": {
-    "top": 10.687345887224001,
-    "bottom": 4.561320167811368
+    "top": 10.661465238962181,
+    "bottom": 4.535439519549549
   },
   "layers": {
     "top-copper": {
-      "objects": 806,
+      "objects": 763,
       "bounds_mm": [
         [
           0.3005,
@@ -23,7 +23,7 @@
       ]
     },
     "top-mask": {
-      "objects": 372,
+      "objects": 370,
       "bounds_mm": [
         [
           1.67778,
@@ -36,7 +36,7 @@
       ]
     },
     "top-silk": {
-      "objects": 830,
+      "objects": 828,
       "bounds_mm": [
         [
           1.67778,
@@ -62,7 +62,7 @@
       ]
     },
     "bottom-copper": {
-      "objects": 502,
+      "objects": 469,
       "bounds_mm": [
         [
           0.3005,
@@ -75,7 +75,7 @@
       ]
     },
     "bottom-mask": {
-      "objects": 255,
+      "objects": 253,
       "bounds_mm": [
         [
           1.67778,
@@ -88,7 +88,7 @@
       ]
     },
     "bottom-silk": {
-      "objects": 350,
+      "objects": 348,
       "bounds_mm": [
         [
           1.67778,
@@ -114,7 +114,7 @@
       ]
     },
     "inner_1-copper": {
-      "objects": 202,
+      "objects": 200,
       "bounds_mm": [
         [
           0.3005,
@@ -127,7 +127,7 @@
       ]
     },
     "inner_2-copper": {
-      "objects": 435,
+      "objects": 411,
       "bounds_mm": [
         [
           1.675,

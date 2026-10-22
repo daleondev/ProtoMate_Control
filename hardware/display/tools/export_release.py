@@ -34,7 +34,7 @@ def main():
         run(['pcb','export','ipcd356','-o',out/'electrical-test.ipc',pcb])
         run(['sch','export','pdf','-o',out/'schematic.pdf',sch])
         for side in ['F','B']:
-            args=['pcb','export','pdf','--layers',f'{side}.Fab,{side}.Courtyard,Edge.Cuts','--sketch-pads-on-fab-layers','--mode-single','--black-and-white','--scale','2' if name=='display-adapter' else '1.5','-o',out/('assembly-'+side+'.pdf')]
+            args=['pcb','export','pdf','--layers',f'{side}.Fab,{side}.Courtyard,Edge.Cuts','--mode-single','--black-and-white','--drill-shape-opt','0','--scale','2' if name=='display-adapter' else '1.5','-o',out/('assembly-'+side+'.pdf')]
             if side=='B':args+=['--mirror']
             run([*args,pcb])
         run(['pcb','export','pos','--format','csv','--units','mm','--use-drill-file-origin','--smd-only','--exclude-dnp','-o',out/'placement.csv',pcb])

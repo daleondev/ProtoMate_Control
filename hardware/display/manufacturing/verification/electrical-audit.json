@@ -4,12 +4,12 @@
     "copper_layers": 4,
     "schematic_pcb_pin_pairs": 232,
     "components": 51,
-    "tracks": 1096,
+    "tracks": 1000,
     "ground_reference": "In1.Cu GND reference plane",
     "routing_inventory": {
-      "straight_segments": 901,
+      "straight_segments": 807,
       "curved_segments": 0,
-      "through_vias": 195,
+      "through_vias": 193,
       "ground_segments": 0
     }
   },
@@ -18,13 +18,13 @@
     "copper_layers": 4,
     "schematic_pcb_pin_pairs": 512,
     "components": 123,
-    "tracks": 1724,
+    "tracks": 1510,
     "ground_reference": "In1.Cu GND reference plane",
     "routing_inventory": {
-      "straight_segments": 1495,
+      "straight_segments": 1281,
       "curved_segments": 0,
       "through_vias": 229,
-      "ground_segments": 93
+      "ground_segments": 95
     }
   },
   "display_contacts": 50,

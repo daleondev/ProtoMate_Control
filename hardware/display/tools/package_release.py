@@ -112,7 +112,7 @@ def main():
         assert not erc['ignored_checks'] and not drc['ignored_checks']
         assert not any(s['violations'] for s in erc['sheets'])
         assert not drc['violations'] and not drc['unconnected_items'] and not drc['schematic_parity']
-        for suffix in ['bom-placement', 'gerber-audit', 'aisler-audit', 'odb-audit']:
+        for suffix in ['bom-placement', 'gerber-audit', 'aisler-audit', 'odb-audit', 'copper-audit']:
             assert json.loads((verification / (name + '-' + suffix + '.json')).read_text())['result'] == 'PASS'
         job = json.loads((manufacturing / release_name(name) / 'gerbers' /
                           (name + '-job.gbrjob')).read_text())
@@ -128,6 +128,7 @@ def main():
     status['visual_review'] = dict(result='PASS — local export/nominal mechanical review',reviewed=[
         'Both outer sides: independent Gerber copper/mask/silk renders; connector numbering and open vias',
         'Both inner copper layers, ground references and the GIGA isolated RTN thermal island',
+        'Layer close-ups: RGB/FFC/DF23 fanouts, pad and via entries, angular routing and power paths',
         'Fine-pitch paste, plated/non-plated drills and BOM/placement agreement',
         'Schematics, fabrication/assembly drawings and current-revision cable map',
         'GIGA mating assembly and display top/bottom models, including 1.6mm thickness and trimmed leads'])

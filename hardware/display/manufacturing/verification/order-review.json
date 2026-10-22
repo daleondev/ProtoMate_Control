@@ -5,35 +5,35 @@
     "display-adapter": {
       "revision": "F",
       "upload": "display-adapter-rev-F-aisler-odb.zip",
-      "upload_sha256": "acf6fb5aee09cf6eeaa4dba8664de59ba3415653eccd6e989858d5957b3163c8",
-      "PCB_sha256": "23fa0b18e9279faaf13c2384043cfcb0c68f5b67ebf549d2da2dcb7c2a9a2b12",
+      "upload_sha256": "50c2719692847661c98ac32ff6bb62dce18ff7a25faa676c4180bd5eabaac66a",
+      "PCB_sha256": "6b6dbfbf39db216e7d1de27b07834458546e884ac1974367f665c4e57625b4b0",
       "ERC_violations": 0,
       "DRC_violations": 0,
       "unrouted_connections": 0,
       "schematic_parity_violations": 0,
       "waivers": [],
       "routing_inventory": {
-        "straight_segments": 901,
+        "straight_segments": 807,
         "curved_segments": 0,
-        "through_vias": 195,
+        "through_vias": 193,
         "ground_segments": 0
       }
     },
     "giga-adapter": {
       "revision": "E",
       "upload": "giga-adapter-rev-E-aisler-odb.zip",
-      "upload_sha256": "4b9c216f68bcddf20eb3a7e411d233a78685946446a12f5dbb8d3cdf861288fc",
-      "PCB_sha256": "6ab3b511c9e2a0f6976b663d87d049a44227f3e5b3aa4ff5615e240d6dbcd674",
+      "upload_sha256": "639d13b4ece83b4ff5595d8e3462055a225f08234602d2b90d1632ccef9bc9fe",
+      "PCB_sha256": "d18a243556bc5fe6faea82ea60e7ca0f8f2dabe219511b39c0a1ce81b85181c7",
       "ERC_violations": 0,
       "DRC_violations": 0,
       "unrouted_connections": 0,
       "schematic_parity_violations": 0,
       "waivers": [],
       "routing_inventory": {
-        "straight_segments": 1495,
+        "straight_segments": 1281,
         "curved_segments": 0,
         "through_vias": 229,
-        "ground_segments": 93
+        "ground_segments": 95
       }
     }
   },
@@ -43,12 +43,12 @@
       "copper_layers": 4,
       "schematic_pcb_pin_pairs": 232,
       "components": 51,
-      "tracks": 1096,
+      "tracks": 1000,
       "ground_reference": "In1.Cu GND reference plane",
       "routing_inventory": {
-        "straight_segments": 901,
+        "straight_segments": 807,
         "curved_segments": 0,
-        "through_vias": 195,
+        "through_vias": 193,
         "ground_segments": 0
       }
     },
@@ -57,13 +57,13 @@
       "copper_layers": 4,
       "schematic_pcb_pin_pairs": 512,
       "components": 123,
-      "tracks": 1724,
+      "tracks": 1510,
       "ground_reference": "In1.Cu GND reference plane",
       "routing_inventory": {
-        "straight_segments": 1495,
+        "straight_segments": 1281,
         "curved_segments": 0,
         "through_vias": 229,
-        "ground_segments": 93
+        "ground_segments": 95
       }
     },
     "display_contacts": 50,
@@ -84,7 +84,7 @@
     "nominal_length_mm": 102,
     "budget_length_mm": 106
   },
-  "routing": "Straight segments with angular corners; no curved tracks. Existing power routing retained. Connector fanouts and necessary silkscreen labels updated.",
+  "routing": "Straight segments with angular corners; no curved tracks. Duplicate/covered copper and unused signal branches/vias audited separately from DRC. Centred pad entries individually reviewed and trial-removed; ground/thermal stitching retained.",
   "documentation": "manufacturing/REVIEW.md and references/SOURCES.md",
   "conditions_before_order": [
     "Review exact AISLER processed jobs: layers, ENIG, holes, masks, bridges and netlist notes.",
@@ -103,26 +103,28 @@
   "order_placed": false,
   "physical_testing_performed": false,
   "evidence_sha256": {
-    "display-adapter-aisler-audit.json": "6d74c9deec69c32f8e30715caf4e359b4e2fe068222f02681400cf61586085d7",
+    "display-adapter-aisler-audit.json": "73ba28a43df1ccb0c4a096324985486c1a44161565acf95954338b08edba7284",
     "display-adapter-bom-placement.json": "d48f886a0795536645608bf4b7f2311366d4f28a9afea9fe8379e556abe04a8c",
-    "display-adapter-drc.json": "da0ef837c2aa037f513ae3ac3be93717f6d0caec3b85934debb873af979e169f",
-    "display-adapter-erc.json": "4a169bffb9bf993daf7f1d321eda38daee9008379a3a409511ed217287bf068e",
-    "display-adapter-gerber-audit.json": "630b15a7abea59aebe08feb5608dc4fcc0dab88001bbf7a72807da09064a9ecc",
-    "display-adapter-layout-review.json": "53ddd8155a1f72b33cbc83bd8542238ed65e34bda109710322050ca7928892e1",
-    "display-adapter-odb-audit.json": "d29a3b4312a082d9954100cb49847704303abe10ce3c3813ea095ea5485889d7",
-    "electrical-audit.json": "e68d7f76ee14cbf583a87a50530510f21af03f51207262a5b132e71d7758dbca",
+    "display-adapter-copper-audit.json": "f82152ea1b1869c719314049b8c397ac61decb0bba5366e07104f2d2f0aeb1c8",
+    "display-adapter-drc.json": "6950f5bcc25243a67aa16ef385cbf3524ec7b52ee66b63bee30215f9b2535c5d",
+    "display-adapter-erc.json": "6ff5bb93cd361a14ee98fdfa2f0e90675ea4084d862135236fd950ba232c6a20",
+    "display-adapter-gerber-audit.json": "f5810abb426a4c99680481a466bb86640e674d75f84960573bcda4e9edff4123",
+    "display-adapter-layout-review.json": "27a8c116f4e17378dc160b4450f9cc0bbe85da87572f2e06464dc41f99ba6deb",
+    "display-adapter-odb-audit.json": "e14388160c797ffd91e58fd2c54f5d035d45f1f29fc94c7b04b7d4f276624907",
+    "electrical-audit.json": "9a9c73d4585733bbb5feddd42e6c4916e97dacc22a6ef05ff07cbc5fd1eb06e5",
     "firmware-validation.json": "e35c545a1dfe9575c2dae814e9b969ca98a79c7df8da8289dc79aeb41a3d525c",
-    "giga-adapter-aisler-audit.json": "4dfc842a0bf5cbd681058c01c58d33b7087adcc02f0f337c0adf49324f559e59",
+    "giga-adapter-aisler-audit.json": "6d5d286194c138a4b1d6a580d2d9f9da76b8481e99370bcacac16338f6c267f9",
     "giga-adapter-bom-placement.json": "e219f7722f0b6e5071e261afd16516cdb719af2a15bb2c76e523b3a817591bb2",
-    "giga-adapter-drc.json": "2095675b1af0670e82bbbdc00bbe76828b13b43d9c2dfbdf4ab99c0bebb2ede4",
-    "giga-adapter-erc.json": "2b5bc4d20587e0354229c8a479111f851c80dc93cb04df3294524257c15086b7",
-    "giga-adapter-gerber-audit.json": "8277509dc35eeb4b8220db253a76759f9b354387034a695d9cdf2d3e7792f452",
-    "giga-adapter-odb-audit.json": "8d62f0ebfe35910f698937d6eba00eb5f519b834dbc3143d205b40a3adf22bf7",
+    "giga-adapter-copper-audit.json": "ff7ed33da6d88fa2373c9185e76ff7d148d02f978957f2cb505214682b5ec061",
+    "giga-adapter-drc.json": "cf75d4749e15d57cf962d9a98b2fc3717567a59b86757c352b53e8b96c4b0f6f",
+    "giga-adapter-erc.json": "df52deff69df5e9b51e3b1825668137b3749498b161e8a196b19ece9e420312f",
+    "giga-adapter-gerber-audit.json": "4c84cbc152a2f86e77c1c34425e64ff13a94b352c53019f0a6927037d4662064",
+    "giga-adapter-odb-audit.json": "3988b222c13019b0efd816d61daaa50c40daba7236e4d5f6be27aa888dd26ab4",
     "mechanical-audit.json": "8d4a5798e99596ecdef5af0985cf628da6a10e5eb4f59e3b8e125c1837f4f0c6",
-    "power-budget.json": "d479131453fecedca1894ac488a14fe56389d9becc19dea6accff5912644851e",
-    "power-review.json": "84fcfee505996c129b0fdf933980928f92b23830a25e1e9701ea1bb4266062cc",
-    "power-routing.json": "b2ba4220a35d657f96b4dd0a7c5ad1f65b3ce62561b9464c385b4ec7f829af19",
+    "power-budget.json": "7a70dec928637c7c6b2b3c70fab97f69edaf2a8b828bd65f8341a5c53dbfb27c",
+    "power-review.json": "729f657d487902340ac6a82d40a3af4061f731cbaaa0eac47e47acb344551869",
+    "power-routing.json": "19b7c3b2c0c6306d4bf0590641d8988378f5877835108f14cbb7c75aa895fbd0",
     "procurement-audit.json": "8b0f06072c8c690eb261a2907cb823ae95309a084fe8394176f4c8e5d658a637",
-    "timing-budget.json": "b1495ef6edd77f93f1df9c7440358a5d943df31e9d4812cd17d14c6f29766520"
+    "timing-budget.json": "b305a7ed1ed9379e37b946ff5282e1d026e42084d0e47cd3d49dd81059930987"
   }
 }

@@ -71,6 +71,12 @@ connector-level measurement on the assembled boards.
 The release pipeline requires all of the following, without waived findings:
 
 - Fresh zone fill, ERC, DRC, schematic/PCB parity and zero unrouted connections.
+- Copper connectivity checked independently of DRC: no duplicate/covered
+  tracks or unused signal branches/vias. Short full-width pad entries are
+  individually reviewed and trial-removed in a scratch project: some preserve
+  minimum connection width, while others provide a centred pad termination
+  instead of relying on a trace cap touching the pad edge. Ground/thermal stitching is reviewed
+  for its interlayer function rather than treated as redundant signal routing.
 - Independent comparison of all 50 panel contacts, 60 ribbon conductors,
   original 35 display signals, READY, device pinouts and firmware assignments.
 - Exact component MPN, placement and local 3D-model consistency.
@@ -88,6 +94,11 @@ thermal/ground pours; the added inner plane supplies a continuous reference.
 Ground tracks are retained only where needed for pad-to-plane escapes; filled
 copper and stitching vias provide the common return. GIGA component-to-plane escapes and the isolated
 eFuse RTN thermal connections remain in place.
+The layer-by-layer visual review covers connector fanouts, power routing,
+centred via entries, angular corners, silkscreen and the exported board views.
+The machine-readable copper audits record each intentionally retained pad-entry
+segment and its geometric or connection-width purpose; these are intentional
+pad terminations, not waived manufacturing findings.
 
 Evidence is retained in [`verification/`](verification/). Current component-limit
 budgets are in [`power-budget.json`](verification/power-budget.json); routed
