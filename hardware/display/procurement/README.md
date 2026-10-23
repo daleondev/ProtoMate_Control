@@ -1,4 +1,4 @@
-# Component purchasing list — display F / GIGA E
+# Component purchasing list — display G / GIGA F
 
 Quantities are for **one display adapter revision G and one GIGA adapter revision F**:
 158 fitted components, 39 original BOM part numbers. The DC jack is already owned.
@@ -7,9 +7,13 @@ procurement needs **38 distinct parts with indexed stock evidence (158 pieces, i
 The FFC cable is an additional assembly item included in the bulk order list.
 
 **Live order availability still requires confirmation.** The selected cable is Molex **15018-0563**, matched to **505110-6091** sockets. Stock evidence was checked
-on **2026-10-22**, using indexed Mouser pages; their crawl ages range from days to
-months. Direct live inventory confirmation was unavailable. Quantities below are
-historical page observations, not reserved stock. In particular, the AXC8T245
+on **2026-10-22**, with the four approved replacement selections refreshed on
+**2026-10-23**, using indexed Mouser pages; their crawl ages range from days to
+months. Per-part lookup dates are recorded in the CSVs and `sourcing.json`.
+Direct live inventory confirmation was unavailable. Quantities below are
+historical page observations, not reserved stock. The user separately confirmed
+regional purchase availability for two `TPS3808EG33DBVR` on **2026-10-23**.
+In particular, the AXC8T245
 product/category pages disagree; check it in the German delivery basket before paying.
 
 - [Complete component list](components.csv), including references, original and purchase MPNs, packages, quantities and source URLs.
@@ -26,11 +30,17 @@ unnecessary. The quantities are exact fitted quantities, without soldering spare
 For hand soldering, spare small passives and one spare of each fine-pitch IC/connector
 are sensible additions. Do not substitute the precision 0.1% resistors with 1% parts.
 
-F1's **SF-1206SA200M-2** is incorporated into the schematic, dedicated footprint,
-routed PCB and manufacturing BOMs. The other substitutions below remain procurement
-proposals for the existing footprints. This list does not supersede the release's
-pending electrical/physical tests.
-The original BOM MPN remains in every CSV row so assembly substitutions are traceable.
+All selected parts are incorporated into both working KiCad projects: schematic
+and PCB **Value**, **Manufacturer** and **MPN** fields, local symbol values and
+the generator's component data match this list. Capacitor values include the
+selected voltage ratings. `tools/audit_procurement.py` checks these fields against
+the purchase list, including every fitted reference and quantity.
+The [KiCad update verification](kicad-verification.json) records zero ERC/DRC,
+unrouted and schematic-parity findings, plus unchanged PCB geometry fingerprints.
+The original BOM MPN remains in every CSV row for traceability; **Purchase MPN**
+is the fitted component. Use this list for soldering. The frozen release ZIPs and
+their BOMs retain their original component metadata; their bare-board geometry is
+unchanged by these substitutions. Pending electrical/physical tests still apply.
 
 ## Display adapter — revision G
 
@@ -43,18 +53,18 @@ The original BOM MPN remains in every CSV row so assembly substitutions are trac
 | U1 | 1 | `TSR 2-2433` | [495-TSR2-2433](https://eu.mouser.com/en/ProductDetail/TRACO-Power/TSR-2-2433?qs=NtE2QagKf6Qer8edccxn%2FA%3D%3D) | Stock indexed; 6,134 (3 weeks ago) |
 | C9, C11 | 2 | `MCJCU32MLB7106KPPDTJ` † | [963-U32MLB7106KPPDTJ](https://my.mouser.com/en/ProductDetail/TAIYO-YUDEN/MCJCU32MLB7106KPPDTJ?qs=sGAEpiMZZMuMW9TJLBQkXugdD5SwFUVxUr871sYQlbI%3D) | Stock indexed; 1,535 (2 months ago) |
 | C10 | 1 | `C0603C104K5RACTU` † | [80-C0603C104K5R](https://cz.mouser.com/en/ProductDetail/KEMET/C0603C104K5RACTU?qs=l5k%252BbMnNDkkVcnZPSAaaiQ%3D%3D) | Stock indexed; 3,941,024 (last week) |
-| C1–C4, C12–C14 | 7 | `GRM32ER61A476KE20L` | [81-GRM32ER61A476KE20](https://my.mouser.com/en/ProductDetail/Murata-Electronics/GRM32ER61A476KE20L?qs=sGAEpiMZZMt7gvpyg0xT8kkEs7CruhcJf4%252BbaFr4BQM%3D) | Stock; EOL; 6,202 (last month) |
+| C1–C4, C12–C14 | 7 | `MBASL32MSB5476KPNA01` † | [963-BASL32MSB5476KP](https://lv.mouser.com/en/ProductDetail/TAIYO-YUDEN/MBASL32MSB5476KPNA01?qs=sGAEpiMZZMt7gvpyg0xT8jBHDtGZvLzXIiDO22ZXWu3G1vGRRd2RVw%3D%3D) | Stock indexed; 1,608 (2 weeks ago) |
 | C5–C6 | 2 | `C0805C106K8PACTU` † | [80-C0805C106K8P](https://eu.mouser.com/en/ProductDetail/KEMET/C0805C106K8PACTU?qs=Zpyg6gQUYs39C21BeavaKA%3D%3D) | Stock indexed; 235,800 (last week) |
 | C7–C8, C16–C18 | 5 | `C0603C104K5RACTU` † | [80-C0603C104K5R](https://cz.mouser.com/en/ProductDetail/KEMET/C0603C104K5RACTU?qs=l5k%252BbMnNDkkVcnZPSAaaiQ%3D%3D) | Stock indexed; 3,941,024 (last week) |
 | R2–R5, R8 | 5 | `RC0402FR-0747KL` | [603-RC0402FR-0747KL](https://eu.mouser.com/en/ProductDetail/YAGEO/RC0402FR-0747KL?qs=V1yeUXFNrklslMUO6Zhx5g%3D%3D) | Stock indexed; 986,351 (last month) |
 | R6–R7 | 2 | `RC0402FR-074K7L` | [603-RC0402FR-074K7L](https://www.mouser.com/en/ProductDetail/YAGEO/RC0402FR-074K7L?qs=V1yeUXFNrkn%2FmCXC8N8TTA%3D%3D) | Stock indexed; 5,902,658 (last week) |
 | U2 | 1 | `TSR 1-2450` | [495-TSR-1-2450](https://eu.mouser.com/en/ProductDetail/TRACO-Power/TSR-1-2450?qs=ckJk83FOD0XFKqda0Mzkgw%3D%3D) | Stock indexed; 13,356 (3 weeks ago) |
 | U3 | 1 | `TPS7A9101DSKT` † | [595-TPS7A9101DSKT](https://eu.mouser.com/en/ProductDetail/Texas-Instruments/TPS7A9101DSKT?qs=34RfhUjJmKdmPKJyeIMDWg%3D%3D) | Stock indexed; 105 (3 weeks ago) |
-| C15 | 1 | `C0603C473K5RACTU` † | [80-C0603C473K5R](https://www.mouser.com/en/ProductDetail/KEMET/C0603C473K5RACTU?qs=CDC5R06TEgYvy7Nwr10FTA%3D%3D) | Stock indexed; 17,294 (last month) |
+| C15 | 1 | `C1608X7R1H473K080AA` † | [810-C1608X7R1H473K](https://www.mouser.com/en/ProductDetail/TDK/C1608X7R1H473K080AA?qs=NRhsANhppD9%252BEs9R%2FCqqmw%3D%3D) | Stock indexed; 69,961 (3 weeks ago) |
 | R9 | 1 | `TNPW060331K2BEEN` † | [71-TNPW060331K2BEEN](https://www.mouser.tw/en/ProductDetail/Vishay/TNPW060331K2BEEN?qs=sGAEpiMZZMvdGkrng054twbPyJJnNTBKZ%252B4sXEeYlOM%3D) | Stock indexed; 280 (last month) |
 | R10 | 1 | `RT0603BRD0710KL` | [603-RT0603BRD0710KL](https://eu.mouser.com/en/ProductDetail/YAGEO/RT0603BRD0710KL?qs=Br90QIIERxSXuxEMyECqGA%3D%3D) | Stock indexed; 69,151 (last week) |
 | R11–R15 | 5 | `RC0603FR-0710KL` | [603-RC0603FR-0710KL](https://www.mouser.com/en/ProductDetail/YAGEO/RC0603FR-0710KL?qs=grNVn54RoB%252B3GtjbJj3wJQ%3D%3D) | Stock indexed; 1,640,807 (last week) |
-| U4, U6 | 2 | `TPS3808G33DBVR` | [595-TPS3808G33DBVR](https://www.mouser.com/en/ProductDetail/Texas-Instruments/TPS3808G33DBVR?qs=zwk82MlA57YGs7Rey7Yv1A%3D%3D) | Stock indexed; 18,673 (last month) |
+| U4, U6 | 2 | `TPS3808EG33DBVR` † | [595-TPS3808EG33DBVR](https://www.mouser.de/ProductDetail/Texas-Instruments/TPS3808EG33DBVR?qs=Z%252BL2brAPG1L6qXfVXxts%2FQ%3D%3D) | User confirmed orderable on 2026-10-23; indexed stock 4,336 (last week) |
 | R16–R17 | 2 | `RC0402FR-07100KL` | [603-RC0402FR-07100KL](https://www.mouser.com/en/ProductDetail/YAGEO/RC0402FR-07100KL?qs=mnq%2FyloZIXzTlUn7JAHSWg%3D%3D) | Stock indexed; 6,394,487 (last month) |
 | U5 | 1 | `SN74LVC08APW` † | [595-SN74LVC08APW](https://www.mouser.com/en/ProductDetail/Texas-Instruments/SN74LVC08APW?qs=RZS%252BpEsUn7pxqABTZcJnVg%3D%3D) | Stock indexed; 252 (last month) |
 
@@ -76,12 +86,12 @@ The original BOM MPN remains in every CSV row so assembly substitutions are trac
 | F1 | 1 | `SF-1206SA200M-2` | [652-SF-1206SA200M-2](https://hu.mouser.com/en/ProductDetail/Bourns/SF-1206SA200M-2?qs=ljCeji4nMDm8iHTYJACKFQ%3D%3D) | Stock indexed; 15,000 (last month) |
 | D1 | 1 | `SMBJ33CA-13-F` † | [621-SMBJ33CA-13-F](https://www.mouser.com/en/ProductDetail/Diodes-Incorporated/SMBJ33CA-13-F?qs=gaDBXWSqsDCWsx7MwPOf0g%3D%3D) | Stock indexed; 64,961 (last month) |
 | C15 | 1 | `C1206C105K1RACTU` † | [80-C1206C105K1R](https://www.mouser.se/en/ProductDetail/KEMET/C1206C105K1RACTU?qs=sGAEpiMZZMvsSlwiRhF8qoXfCmt4ymbCzzXhwOByAo0F9nx%252Bkx%252B2ag%3D%3D) | Stock indexed; 41,000 (last month) |
-| U7 | 1 | `TPS26600PWPR` | [595-TPS26600PWPR](https://www.mouser.com/en/ProductDetail/Texas-Instruments/TPS26600PWPR?qs=Bho%2FbeBaDExFVQBFO8fB%2FQ%3D%3D) | Stock indexed; 69 (last month) |
+| U7 | 1 | `TPS26600PWPT` † | [595-TPS26600PWPT](https://www.mouser.com/en/ProductDetail/Texas-Instruments/TPS26600PWPT?qs=Bho%2FbeBaDEx8u36zNhDCVA%3D%3D) | Stock indexed; 3,539 (3 weeks ago) |
 | R66 | 1 | `RC0603FR-07143KL` | [603-RC0603FR-07143KL](https://www.mouser.tw/en/ProductDetail/YAGEO/RC0603FR-07143KL?qs=IuGqVx9wL0I9yevS9IvNIg%3D%3D) | Stock indexed; 21,769 (last week) |
 | R67, R69, R71 | 3 | `RC0603FR-0710KL` | [603-RC0603FR-0710KL](https://www.mouser.com/en/ProductDetail/YAGEO/RC0603FR-0710KL?qs=grNVn54RoB%252B3GtjbJj3wJQ%3D%3D) | Stock indexed; 1,640,807 (last week) |
 | R68 | 1 | `RC0603FR-07226KL` | [603-RC0603FR-07226KL](https://www.mouser.com/en/ProductDetail/YAGEO/RC0603FR-07226KL?qs=0yPvnVz5%2Fmr%2FHz6oBKp3LQ%3D%3D) | Stock indexed; 141,223 (last month) |
 | R70 | 1 | `RC0603FR-078K06L` | [603-RC0603FR-078K06L](https://eu.mouser.com/en/ProductDetail/YAGEO/RC0603FR-078K06L?qs=2cAdsCoAWREXE%2FuVdbo5eQ%3D%3D) | Stock indexed; 47,045 (last week) |
-| C16 | 1 | `C0603C473K5RACTU` † | [80-C0603C473K5R](https://www.mouser.com/en/ProductDetail/KEMET/C0603C473K5RACTU?qs=CDC5R06TEgYvy7Nwr10FTA%3D%3D) | Stock indexed; 17,294 (last month) |
+| C16 | 1 | `C1608X7R1H473K080AA` † | [810-C1608X7R1H473K](https://www.mouser.com/en/ProductDetail/TDK/C1608X7R1H473K080AA?qs=NRhsANhppD9%252BEs9R%2FCqqmw%3D%3D) | Stock indexed; 69,961 (3 weeks ago) |
 | C17–C18 | 2 | `MCJCU32MLB7106KPPDTJ` † | [963-U32MLB7106KPPDTJ](https://my.mouser.com/en/ProductDetail/TAIYO-YUDEN/MCJCU32MLB7106KPPDTJ?qs=sGAEpiMZZMuMW9TJLBQkXugdD5SwFUVxUr871sYQlbI%3D) | Stock indexed; 1,535 (2 months ago) |
 | D2–D3 | 2 | `B360A-13-F` | [621-B360A-F](https://au.mouser.com/ProductDetail/Diodes-Incorporated/B360A-13-F?qs=sVoUGXYOGv3xoCWNHVb4bA%3D%3D) | Stock indexed; 112,297 (3 months ago) |
 | F2 | 1 | `SF-1206S080-2` | [652-SF-1206S080-2](https://www.mouser.com/pdfdocs/bourns_singlfuse_short_form-2.pdf?srsltid=AfmBOoqnInMhj144LjRkX9XTdRx5xJ6Ayb6MES2Zdy1csFnhwGkjeilB) | Stock indexed; 3,718 (unspecified) |
@@ -98,21 +108,43 @@ The original BOM MPN remains in every CSV row so assembly substitutions are trac
 
 ## Purchasing substitutions (†)
 
-The IC changes are carrier/packaging changes only. The other replacements preserve
+The IC selections preserve the required function and package. Most change only
+the carrier or ordering code; the TPS3808E supervisor is a newer functional variant.
+The other replacements preserve
 the nominal value, tolerance, dielectric/function and PCB package, with equal or
-higher voltage rating. They are procurement proposals, not measured first-board
+higher voltage rating. They are purchasing selections, not measured first-board
 qualification. In particular, equal nominal MLCC values do not establish identical
 DC-bias capacitance or transient response; retain the release's supply/ramp/load-step
-tests. No bulk 47 µF capacitor substitution is proposed.
+tests. The selected 47 µF replacement's typical DC-bias curve indicates approximately
+42 µF at 3.3 V and 36 µF at 5 V. These are estimates, not guaranteed minima; the
+two local LDO output capacitors retain ample typical margin above the combined
+10 µF minimum requirement.
+
+For display U4/U6, `TPS3808EG33DBVR` preserves pins 1–6 as RESET, GND, MR, CT,
+SENSE and VDD. Existing R16/R17 (100 kΩ from CT to VDD) select a nominal 300 ms
+delay, with a specified 180–420 ms range. The 3.07 V nominal falling threshold
+has ±1.5% full-temperature limits and 1% typical / 2.5% maximum hysteresis.
+The 3.3 V supply/sense rails fit its 1.7–6 V supply range, and R11's 10 kΩ
+RESET pull-up draws about 0.34 mA, below the 1 mA low-level output test current.
+Both open-drain outputs can retain the existing shared READY connection.
+Typical supply current is 0.6 µA; controlled power-on RESET is specified from
+1 V rather than the original's 0.8 V. Undervoltage detect delay is 30 µs typical /
+50 µs maximum at 5% overdrive; the original specified 20 µs typical. This is a
+compatible purchasing substitution, not a claim of identical transient behaviour.
+Retain the release's first-board startup and brownout tests. No footprint, resistor
+or routing changes are required. [TI TPS3808E datasheet](https://www.ti.com/lit/gpn/TPS3808E)
 
 | Released BOM MPN | Purchase MPN | Reason and compatibility |
 |---|---|---|
 | `GRM32ER71H106KA12L` | `MCJCU32MLB7106KPPDTJ` | Replacement: 10 uF +/-10%, 50 V, X7R, 1210, soft termination; 2.5 +/-0.3 mm height. Original unavailable/region-restricted. |
 | `GRM188R71H104KA93D` | `C0603C104K5RACTU` | Replacement for obsolete original: 100 nF +/-10%, 50 V, X7R, 0603. |
+| `GRM32ER61A476KE20L` | `MBASL32MSB5476KPNA01` | Approved replacement: 47 µF ±10%, 10 V, X5R, 1210; 2.5 ±0.2 mm body height. Typical DC-bias behaviour checked at 3.3 V and 5 V; retain first-board supply tests. |
 | `GRM21BR61A106KE19L` | `C0805C106K8PACTU` | Replacement for obsolete original: 10 uF +/-10%, 10 V, X5R, 0805; 1.25 +/-0.15 mm height. |
 | `GRM188R71C104KA01D` | `C0603C104K5RACTU` | Replacement for EOL original: 100 nF +/-10%, X7R, 0603; voltage rating increased from 16 V to 50 V. Consolidated with display C10. |
 | `TPS7A9101DSKR` | `TPS7A9101DSKT` | Packaging-only replacement: same DSK-10 chip/pinout; small-reel suffix T instead of R. Exposed pad must be soldered. |
-| `GRM188R71C473KA01D` | `C0603C473K5RACTU` | Replacement: 47 nF +/-10%, X7R, 0603; 50 V rating exceeds original 16 V. |
+| `GRM188R71C473KA01D` | `C1608X7R1H473K080AA` | Approved replacement: 47 nF ±10%, X7R, 0603; 50 V rating exceeds released BOM 16 V. |
+| `TPS3808G33DBVR` | `TPS3808EG33DBVR` | Newer functional replacement: same 3.07 V nominal threshold, active-low open-drain reset and DBV SOT-23-6 pinout; existing 100 kΩ CT resistors retain 300 ms nominal delay. Not a packaging-only change; see compatibility details above. User confirmed orderability. |
+| `TPS26600PWPR` | `TPS26600PWPT` | Approved packaging-only replacement: same TPS26600 and PWP HTSSOP-16 exposed-pad package; 250-piece reel instead of 2000-piece reel. Buy cut tape; exposed pad remains RTN, not GND. |
 | `RT0603BRD0731K2L` | `TNPW060331K2BEEN` | Replacement: 31.2 kohm, 0.1%, 25 ppm/K, 0603. Preserve precision LDO ratio; original backordered. |
 | `SN74LVC08APWR` | `SN74LVC08APW` | Packaging-only replacement: same TSSOP-14 PW chip, supplied in tube; original reel variant backordered. |
 | `SMBJ33CA` | `SMBJ33CA-13-F` | Replacement for backordered Littelfuse: bidirectional 33 V, 600 W TVS in SMB; 53.3 V maximum specified clamp. Do not use unidirectional A. |
@@ -123,6 +155,10 @@ The following manufacturer information supports these choices:
 
 - [TI SN74LVC08A package options](https://www.ti.com/ods/sysadd/oa/symlink/sn54lvc08a_oa.pdf): PW and PWR use the same 14-pin PW package, supplied in tubes versus reels.
 - [TI TPS7A91 datasheet](https://www.ti.com/lit/ds/symlink/tps7a91.pdf): DSKT and DSKR use the same DSK-10 device/package; only reel quantity differs.
+- [TI TPS3808E datasheet](https://www.ti.com/lit/gpn/TPS3808E): pinout, G33 threshold, reset timing and electrical limits for the purchased supervisor.
+- [TI TPS2660 datasheet](https://www.ti.com/lit/ds/symlink/tps2660.pdf): PWPT and PWPR package options differ in reel quantity.
+- [TAIYO YUDEN 47 µF specification](https://ds.yuden.co.jp/TYCOMPAS/ut/detail?pn=MBASL32MSB5476KPNA01&u=M) and [manufacturer characteristic curves](https://datasheet.octopart.com/LMK325BJ476KMHP-Taiyo-Yuden-datasheet-182109709.pdf): 10 V, ±10%, X5R, 1210; maximum height 2.7 mm and typical DC-bias capacitance. The indexed stock observation is from [Mouser's catalogue](https://www.mouser.com/en/c/passive-components/capacitors/ceramic-capacitors/mlccs-multilayer-ceramic-capacitors/multilayer-ceramic-capacitors-mlcc-smd-smt/?case+code+-+in=1210&maximum+operating+temperature=%2B+85+C&minimum+operating+temperature=-+55+C).
+- [TDK 47 nF specification](https://product.tdk.com/en/search/capacitor/ceramic/mlcc/info?part_no=C1608X7R1H473K080AA): 50 V, ±10%, X7R, 0603; nominal body height 0.8 mm.
 - [TAIYO YUDEN 10 µF capacitor](https://ds.yuden.co.jp/TYCOMPAS/ap/sm/detail?pn=MCJCU32MLB7106KPPDTJ&u=M): 50 V, ±10%, X7R, 1210; maximum body height 2.8 mm. All affected capacitors are on the component side, away from the underside display mating gap.
 - [KEMET 100 nF](https://search.kemet.com/component-documentation/download/specsheet/C0603C104K5RACTU), [10 µF / 10 V](https://search.kemet.com/download/specsheet/C0805C106K8PACTU) and [1 µF / 100 V](https://search.kemet.com/component-documentation/download/specsheet/C1206C105K1RACTU): values, dielectric, voltage and body sizes.
 - [Diodes SMBJ33CA](https://www.diodes.com/part/view/SMBJ33CA): bidirectional 33 V standoff, 600 W, SMB, 53.3 V specified maximum clamp; retain the existing surge-qualification limitation.
@@ -130,7 +166,7 @@ The following manufacturer information supports these choices:
 ## Items requiring attention before a complete order
 
 1. **GIGA U1–U4:** the newer Mouser category page lists 4,862 `SN74AXC8T245PWR`, while the older product page lists zero. This is conflicting cached evidence, so availability remains provisional until basket validation. The alternate `SN74AXCH8T245` is not the selected device.
-2. **Display bulk capacitors:** seven `GRM32ER61A476KE20L` remain listed in stock but are EOL. The list retains the electrically reviewed part for this prototype instead of silently changing its load-step behavior.
+2. **Display supervisors:** two `TPS3808EG33DBVR` are selected. Regional purchase availability was confirmed by the user on 2026-10-23; the listed stock count remains an indexed observation, not a reserved quantity.
 3. **FFC cable:** order **one Molex 15018-0563**, [Mouser 538-15018-0563](https://www.mouser.com/en/ProductDetail/Molex/15018-0563?qs=GedFDFLaBXHNFRUVQF%2FsGw%3D%3D); indexed stock 404 (last week). The release uses two **505110-6091** bottom-contact sockets. Cable: 60 conductors, 0.5 mm pitch, 102 mm nominal, Type A, gold contacts and retention ears. Do not substitute opposite-side contacts or plain straight-ended FFC. See the [cable specification](../cable-specification.pdf) for the n ↔ 61−n orientation and power map.
 
 F1 is the [Bourns SF-1206SA200M-2](https://www.bourns.com/docs/product-datasheets/sf-1206sa-m.pdf):

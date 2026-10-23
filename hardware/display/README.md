@@ -8,6 +8,14 @@ Connector positions and board mechanics remain fixed.
 See [current validation status](manufacturing/layout-unification-status.json).
 The matching releases below are ready for upload and AISLER processing review.
 
+**Component selection:** the working KiCad schematics and PCBs now contain the
+approved [purchasing selections](procurement/README.md), including their actual
+manufacturer, MPN and voltage ratings. This is a component-metadata update;
+copper, footprints, placement and silkscreen are unchanged. The frozen release
+archives below retain their original component metadata. Use the working projects
+and current procurement list for assembly; this update does not constitute a new
+fabrication release or renew the archives' source-hash inspection records.
+
 The **four-layer display adapter (revision G)** and **four-layer GIGA adapter
 (revision F)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
 **GIGA R1 WiFi**, preserving the firmware's display pin assignments.
@@ -90,7 +98,7 @@ both GIGA and the display; the display adapter has no separate power terminal.
 - **Display U1: TRACO TSR 2-2433**, 3.3 V / 2 A, supplies only the backlight
   contacts 5–8. Four local 47 µF capacitors support its load. Keep total output
   capacitance, including the panel, below the module's 900 µF limit.
-- **Display U2: TRACO TSR 1-2450**, 5 V / 1 A, feeds **U3 TPS7A9101DSKR**.
+- **Display U2: TRACO TSR 1-2450**, 5 V / 1 A, feeds **U3 TPS7A9101DSKT**.
   The precision LDO supplies TFT pin 10, touch pin 49 and the interface-reference
   return. Its 31.2 kΩ / 10 kΩ, 0.1% divider sets **3.296 V**. The regulator's
   1% line/load/temperature accuracy gives much more room inside the panel's
@@ -114,7 +122,7 @@ bidirectional **SMBJ33CA** TVS. F1 uses Bourns' 1.45 × 1.80 mm pads with a
 1.50 mm gap. At the 1.056 A input-load budget its typical cold resistance gives
 0.148 V drop and 0.156 W dissipation; see the temperature/loading allowance in
 [`power-budget.json`](manufacturing/verification/power-budget.json).
-U7 **TPS26600PWPR** provides reverse-polarity/reverse-current protection,
+U7 **TPS26600PWPT** provides reverse-polarity/reverse-current protection,
 undervoltage and overvoltage cutoff, controlled inrush and current limiting.
 The dividers set nominal startup at **18.2 V** and overvoltage cutoff at
 **28.1 V**. Including comparator and resistor tolerances, the upper cutoff is
@@ -176,7 +184,7 @@ small remaining margin does not establish operation under every load transient.
   accessible for probing individual RGB/control channels.
 - The existing panel backlight driver is retained: 1 kHz PWM, including steady
   HIGH for full brightness. No external LED-current driver is required.
-- Display **U4/U6 TPS3808G33** supervise the logic and backlight rails. Their
+- Display **U4/U6 TPS3808EG33DBVR** supervise the logic and backlight rails. Their
   open-drain RESET outputs are wired together as **PANEL_READY**, pulled up to
   the logic rail. Both supplies must remain above the nominal 3.07 V thresholds
   for **300 ms** before release. VDD and MR use the logic rail, so the supervisors

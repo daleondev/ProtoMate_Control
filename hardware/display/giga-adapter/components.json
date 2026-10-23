@@ -480,9 +480,9 @@
   {
     "ref": "C1",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_GIGA",
@@ -502,9 +502,9 @@
   {
     "ref": "C2",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -920,9 +920,9 @@
   {
     "ref": "C3",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_GIGA",
@@ -942,9 +942,9 @@
   {
     "ref": "C4",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -1360,9 +1360,9 @@
   {
     "ref": "C5",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_GIGA",
@@ -1382,9 +1382,9 @@
   {
     "ref": "C6",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -1800,9 +1800,9 @@
   {
     "ref": "C7",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_GIGA",
@@ -1822,9 +1822,9 @@
   {
     "ref": "C8",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -1898,9 +1898,9 @@
   {
     "ref": "C9",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -1920,9 +1920,9 @@
   {
     "ref": "C10",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_GIGA",
@@ -1942,9 +1942,9 @@
   {
     "ref": "C11",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -1964,9 +1964,9 @@
   {
     "ref": "C12",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_GIGA",
@@ -1987,8 +1987,8 @@
     "ref": "C13",
     "kind": "C10U",
     "value": "10u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM21BR61A106KE19L",
+    "mfr": "KEMET",
+    "mpn": "C0805C106K8PACTU",
     "footprint": "C_0805_2012Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -2009,8 +2009,8 @@
     "ref": "C14",
     "kind": "C10U",
     "value": "10u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM21BR61A106KE19L",
+    "mfr": "KEMET",
+    "mpn": "C0805C106K8PACTU",
     "footprint": "C_0805_2012Metric",
     "nets": {
       "1": "+3V3_GIGA",
@@ -2203,8 +2203,8 @@
     "ref": "D1",
     "kind": "TVS",
     "value": "33V bidirectional TVS",
-    "mfr": "Littelfuse",
-    "mpn": "SMBJ33CA",
+    "mfr": "Diodes Incorporated",
+    "mpn": "SMBJ33CA-13-F",
     "footprint": "D_SMB",
     "nets": {
       "1": "+24V_FUSED",
@@ -2225,8 +2225,8 @@
     "ref": "C15",
     "kind": "C1U100",
     "value": "1u / 100V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM31CR72A105KA01L",
+    "mfr": "KEMET",
+    "mpn": "C1206C105K1RACTU",
     "footprint": "C_1206_3216Metric",
     "nets": {
       "1": "+24V_FUSED",
@@ -2246,9 +2246,9 @@
   {
     "ref": "U7",
     "kind": "EFUSE",
-    "value": "TPS26600PWPR",
+    "value": "TPS26600PWPT",
     "mfr": "Texas Instruments",
-    "mpn": "TPS26600PWPR",
+    "mpn": "TPS26600PWPT",
     "footprint": "HTSSOP-16_PWP0016A_EP3.3x3.3mm",
     "nets": {
       "1": "+24V_FUSED",
@@ -2393,9 +2393,9 @@
   {
     "ref": "C16",
     "kind": "C47N",
-    "value": "47n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C473KA01D",
+    "value": "47n / 50V X7R",
+    "mfr": "TDK",
+    "mpn": "C1608X7R1H473K080AA",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "PWR_DVDT",
@@ -2416,8 +2416,8 @@
     "ref": "C17",
     "kind": "C10U50",
     "value": "10u / 50V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER71H106KA12L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MCJCU32MLB7106KPPDTJ",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+24V_PROTECTED",
@@ -2505,8 +2505,8 @@
     "ref": "C18",
     "kind": "C10U50",
     "value": "10u / 50V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER71H106KA12L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MCJCU32MLB7106KPPDTJ",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+24V_PROTECTED",
@@ -2527,8 +2527,8 @@
     "ref": "C19",
     "kind": "C10U25",
     "value": "10u / 25V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM21BR61E106KA73L",
+    "mfr": "KYOCERA AVX",
+    "mpn": "08053D106KAT2A",
     "footprint": "C_0805_2012Metric",
     "nets": {
       "1": "+12V_CONVERTER",
@@ -2638,9 +2638,9 @@
   {
     "ref": "C20",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -2660,9 +2660,9 @@
   {
     "ref": "C21",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_GIGA",

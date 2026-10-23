@@ -7,5 +7,30 @@
     "manufacturing/display-adapter-rev-G/bom-all.csv": "781a554b703e55f79a895c4102f0c1e8b55d6b44abffa4360bba0ca3ea802dc6",
     "manufacturing/giga-adapter-rev-F/bom-all.csv": "c850eec1a70a868a8df85805c96135c21bac273ab029790c2074d5014bd9b849"
   },
-  "stock": "Indexed evidence only; confirm live basket availability."
+  "stock": "Indexed evidence only; confirm live basket availability.",
+  "current_kicad_sha256": {
+    "display-adapter/display-adapter.kicad_pcb": "1d9af0a6b2d0f72c5f17d335ab66a97ebd6c9a63ee9fc2494ab25d002d3fd039",
+    "display-adapter/components.json": "c62a395dfded81fab6c6ae883a742d1f07089bde314c958c3b50eb8331cfc704",
+    "display-adapter/Adapter.kicad_sym": "b81b7ba9fcc44adf979cbc22d0dc04d001c5fb5696b5219e25cd78ddaccf0168",
+    "display-adapter/display-adapter.kicad_sch": "002d08ad6363ffe5f33be7e978e5d5e4ecc5cc93c96449b8f0cd0e8b4315ea98",
+    "display-adapter/display.kicad_sch": "c05e10f75b9a33fe09a32007eb02ed0e027b0d07742dc9b1261d74b29d9e6ac8",
+    "display-adapter/logic_power.kicad_sch": "3323c62d95ee56a23f5c2d5a0c52a56d83440e9a30ea8c5f0a9ba4368b68bed0",
+    "display-adapter/power.kicad_sch": "987f80d224b20db08676af580b7f95ef3d6c82874ee01bacf30c43b33ef7c094",
+    "display-adapter/ribbon.kicad_sch": "6b47e3d8eab3f7cbcffc6b0761f8be8c4e5605c7f6c80347347b3cdd6e3469b3",
+    "display-adapter/sequencing.kicad_sch": "1858e68d061a9abbc2371d495b093e44ec77962ae4d9700bbc15de2f20f275f1",
+    "giga-adapter/giga-adapter.kicad_pcb": "1e3531c0bdc5130fc3ce0c4b2ac72b550a222a6efd35d1bbfa469ea8ecd51402",
+    "giga-adapter/components.json": "a09d425652cfb9b013832e24ee73d4f6f2c1f62e36520ab1c206148077bc623e",
+    "giga-adapter/Adapter.kicad_sym": "a4ed46d5debee4752c1e58fd28b8c23240eef08402a3f5bf547ebe7dd4d54d18",
+    "giga-adapter/buffer1.kicad_sch": "f1d29e959944a6d1381c072fe73b22ab8929b00a3eddc73f4220e934f8f5dffd",
+    "giga-adapter/buffer2.kicad_sch": "797fc1d5605bb09cc1c7a5289af9baebcf53d690761983736ccd925b35a520d1",
+    "giga-adapter/buffer3.kicad_sch": "7745753892165c4e3093bd0606d1135afaacbf8d3e805ceb7a8d2559a810bde3",
+    "giga-adapter/buffer4.kicad_sch": "52578b3a3d04525157975db0d1d6b9d558df5948d618db605fb4c6b2d042742d",
+    "giga-adapter/giga-adapter.kicad_sch": "ad104ca0187e9bb6fac9b27c3203aad5f053693b8e856d22669c30248ac60407",
+    "giga-adapter/headers.kicad_sch": "d7ae71d44fd2cb90b58af1fffc7e56aa2640f80aacc4b39855632c82cb44e5e1",
+    "giga-adapter/power12.kicad_sch": "5f931cd91ac21b5f312f26017d9f44fbc06d4aed859e65fe61a7150b9848f49a",
+    "giga-adapter/power_input.kicad_sch": "ed7fc93e2f3f2653caf14c9c9777e457a2d4e87722c62d4d44cd2be1ba36d346",
+    "giga-adapter/ribbon.kicad_sch": "5bdfb1d173257c2b87e2320bc2613760dab139d92e4fd78093ac763442106c64",
+    "giga-adapter/touch.kicad_sch": "5b30e8dee4a6421716c97a554e47603eece76fc99a42b6fa40f85269857b4dd4",
+    "tools/design.py": "c641bb91d62a58251aa73d6a34e9440989840308772346267d6dfdad2c651755"
+  }
 }

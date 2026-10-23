@@ -666,7 +666,7 @@
 				)
 			)
 		)
-		(property "Value" "100n / 16V X7R"
+		(property "Value" "100n / 50V X7R"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -712,7 +712,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "KEMET"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -724,7 +724,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM188R71C104KA01D"
+		(property "MPN" "C0603C104K5RACTU"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -1865,7 +1865,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -1877,7 +1877,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER61A476KE20L"
+		(property "MPN" "MBASL32MSB5476KPNA01"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -2006,7 +2006,7 @@
 				)
 			)
 		)
-		(property "Value" "TPS3808G33DBVR"
+		(property "Value" "TPS3808EG33DBVR"
 			(at 0 2.4 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -2064,7 +2064,7 @@
 				)
 			)
 		)
-		(property "MPN" "TPS3808G33DBVR"
+		(property "MPN" "TPS3808EG33DBVR"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -2448,7 +2448,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -2460,7 +2460,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER61A476KE20L"
+		(property "MPN" "MBASL32MSB5476KPNA01"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -2589,7 +2589,7 @@
 				)
 			)
 		)
-		(property "Value" "100n / 16V X7R"
+		(property "Value" "100n / 50V X7R"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -2635,7 +2635,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "KEMET"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -2647,7 +2647,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM188R71C104KA01D"
+		(property "MPN" "C0603C104K5RACTU"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -3385,7 +3385,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Yageo"
+		(property "Manufacturer" "Vishay"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -3397,7 +3397,7 @@
 				)
 			)
 		)
-		(property "MPN" "RT0603BRD0731K2L"
+		(property "MPN" "TNPW060331K2BEEN"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -3572,7 +3572,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -3584,7 +3584,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER61A476KE20L"
+		(property "MPN" "MBASL32MSB5476KPNA01"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -3835,7 +3835,7 @@
 				)
 			)
 		)
-		(property "Value" "TPS7A9101DSKR"
+		(property "Value" "TPS7A9101DSKT"
 			(at 0 2.2 180)
 			(layer "F.Fab")
 			(hide yes)
@@ -3893,7 +3893,7 @@
 				)
 			)
 		)
-		(property "MPN" "TPS7A9101DSKR"
+		(property "MPN" "TPS7A9101DSKT"
 			(at 0 0 180)
 			(layer "F.SilkS")
 			(hide yes)
@@ -4304,7 +4304,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -4316,7 +4316,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER61A476KE20L"
+		(property "MPN" "MBASL32MSB5476KPNA01"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -4491,7 +4491,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -4503,7 +4503,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER61A476KE20L"
+		(property "MPN" "MBASL32MSB5476KPNA01"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -5296,7 +5296,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 270)
 			(layer "F.SilkS")
 			(hide yes)
@@ -5308,7 +5308,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER71H106KA12L"
+		(property "MPN" "MCJCU32MLB7106KPPDTJ"
 			(at 0 0 270)
 			(layer "F.SilkS")
 			(hide yes)
@@ -5624,7 +5624,7 @@
 				)
 			)
 		)
-		(property "Value" "TPS3808G33DBVR"
+		(property "Value" "TPS3808EG33DBVR"
 			(at 0 2.4 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -5682,7 +5682,7 @@
 				)
 			)
 		)
-		(property "MPN" "TPS3808G33DBVR"
+		(property "MPN" "TPS3808EG33DBVR"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -6207,7 +6207,7 @@
 				)
 			)
 		)
-		(property "Value" "100n / 16V X7R"
+		(property "Value" "100n / 50V X7R"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -6253,7 +6253,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "KEMET"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -6265,7 +6265,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM188R71C104KA01D"
+		(property "MPN" "C0603C104K5RACTU"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -6684,7 +6684,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -6696,7 +6696,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER71H106KA12L"
+		(property "MPN" "MCJCU32MLB7106KPPDTJ"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -6871,7 +6871,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 180)
 			(layer "F.SilkS")
 			(hide yes)
@@ -6883,7 +6883,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER61A476KE20L"
+		(property "MPN" "MBASL32MSB5476KPNA01"
 			(at 0 0 180)
 			(layer "F.SilkS")
 			(hide yes)
@@ -8827,7 +8827,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "KEMET"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -8839,7 +8839,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM21BR61A106KE19L"
+		(property "MPN" "C0805C106K8PACTU"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -9155,7 +9155,7 @@
 				)
 			)
 		)
-		(property "Value" "SN74LVC08APWR"
+		(property "Value" "SN74LVC08APW"
 			(at 0 3.45 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -9213,7 +9213,7 @@
 				)
 			)
 		)
-		(property "MPN" "SN74LVC08APWR"
+		(property "MPN" "SN74LVC08APW"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -9658,7 +9658,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TAIYO YUDEN"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -9670,7 +9670,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM32ER61A476KE20L"
+		(property "MPN" "MBASL32MSB5476KPNA01"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -9799,7 +9799,7 @@
 				)
 			)
 		)
-		(property "Value" "100n / 16V X7R"
+		(property "Value" "100n / 50V X7R"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -9845,7 +9845,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "KEMET"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -9857,7 +9857,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM188R71C104KA01D"
+		(property "MPN" "C0603C104K5RACTU"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -9986,7 +9986,7 @@
 				)
 			)
 		)
-		(property "Value" "47n / 16V X7R"
+		(property "Value" "47n / 50V X7R"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -10032,7 +10032,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "TDK"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -10044,7 +10044,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM188R71C473KA01D"
+		(property "MPN" "C1608X7R1H473K080AA"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -10219,7 +10219,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "KEMET"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -10231,7 +10231,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM21BR61A106KE19L"
+		(property "MPN" "C0805C106K8PACTU"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -10406,7 +10406,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "KEMET"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -10418,7 +10418,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM188R71H104KA93D"
+		(property "MPN" "C0603C104K5RACTU"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -10669,7 +10669,7 @@
 				)
 			)
 		)
-		(property "Value" "100n / 16V X7R"
+		(property "Value" "100n / 50V X7R"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -10715,7 +10715,7 @@
 				)
 			)
 		)
-		(property "Manufacturer" "Murata"
+		(property "Manufacturer" "KEMET"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
@@ -10727,7 +10727,7 @@
 				)
 			)
 		)
-		(property "MPN" "GRM188R71C104KA01D"
+		(property "MPN" "C0603C104K5RACTU"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)

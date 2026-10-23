@@ -4618,5 +4618,399 @@
       "reason": "Place each delay resistor beside its supervisor for a direct local connection and a straight lower supply bus; remove four delay-signal vias and the former doubled-back supply route.",
       "authorization": "User: if needed, you can change placement"
     }
+  ],
+  "allowed_component_metadata_changes": [
+    {
+      "uuid": "070104c2-114c-419c-9382-7ded1d9221fd",
+      "reference": "C7",
+      "fields": {
+        "Value": {
+          "before": "100n / 16V X7R",
+          "after": "100n / 50V X7R"
+        },
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "KEMET"
+        },
+        "MPN": {
+          "before": "GRM188R71C104KA01D",
+          "after": "C0603C104K5RACTU"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "2fc9e51f-fb74-433a-a8b6-68da49475534",
+      "reference": "C3",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER61A476KE20L",
+          "after": "MBASL32MSB5476KPNA01"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "37f32ac5-5611-4a5f-aa2a-1c57128d4a3b",
+      "reference": "U6",
+      "fields": {
+        "Value": {
+          "before": "TPS3808G33DBVR",
+          "after": "TPS3808EG33DBVR"
+        },
+        "MPN": {
+          "before": "TPS3808G33DBVR",
+          "after": "TPS3808EG33DBVR"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "3f9d0c35-3e89-40a5-b7bd-a3d6bde397ed",
+      "reference": "C1",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER61A476KE20L",
+          "after": "MBASL32MSB5476KPNA01"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "4ee7f545-870e-49a6-9193-04a1a19ef212",
+      "reference": "C8",
+      "fields": {
+        "Value": {
+          "before": "100n / 16V X7R",
+          "after": "100n / 50V X7R"
+        },
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "KEMET"
+        },
+        "MPN": {
+          "before": "GRM188R71C104KA01D",
+          "after": "C0603C104K5RACTU"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "5c52a303-245a-491a-83b6-5dde87f11c95",
+      "reference": "R9",
+      "fields": {
+        "Manufacturer": {
+          "before": "Yageo",
+          "after": "Vishay"
+        },
+        "MPN": {
+          "before": "RT0603BRD0731K2L",
+          "after": "TNPW060331K2BEEN"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "5e553c4f-b020-453a-a04f-e2d0f2f1bb8e",
+      "reference": "C2",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER61A476KE20L",
+          "after": "MBASL32MSB5476KPNA01"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "69ed33da-79cd-4bfb-ae10-879b4443365b",
+      "reference": "U3",
+      "fields": {
+        "Value": {
+          "before": "TPS7A9101DSKR",
+          "after": "TPS7A9101DSKT"
+        },
+        "MPN": {
+          "before": "TPS7A9101DSKR",
+          "after": "TPS7A9101DSKT"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "6ba46c34-c962-4349-8c0e-f52b58228706",
+      "reference": "C13",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER61A476KE20L",
+          "after": "MBASL32MSB5476KPNA01"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "6f71dd1e-9bb1-4c46-b435-06d744dd29bf",
+      "reference": "C4",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER61A476KE20L",
+          "after": "MBASL32MSB5476KPNA01"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "8d486904-adc3-4f79-82d9-444c536ba7fa",
+      "reference": "C9",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER71H106KA12L",
+          "after": "MCJCU32MLB7106KPPDTJ"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "8e64344e-6eeb-4ac4-a871-e50005fadaa9",
+      "reference": "U4",
+      "fields": {
+        "Value": {
+          "before": "TPS3808G33DBVR",
+          "after": "TPS3808EG33DBVR"
+        },
+        "MPN": {
+          "before": "TPS3808G33DBVR",
+          "after": "TPS3808EG33DBVR"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "98e06369-ab60-4736-938f-c8ab3e36a010",
+      "reference": "C18",
+      "fields": {
+        "Value": {
+          "before": "100n / 16V X7R",
+          "after": "100n / 50V X7R"
+        },
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "KEMET"
+        },
+        "MPN": {
+          "before": "GRM188R71C104KA01D",
+          "after": "C0603C104K5RACTU"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "ac3d980a-9897-4f0e-a6aa-e150e9afef21",
+      "reference": "C11",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER71H106KA12L",
+          "after": "MCJCU32MLB7106KPPDTJ"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "aca86381-225f-4b25-aeb6-9997d22be4b1",
+      "reference": "C14",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER61A476KE20L",
+          "after": "MBASL32MSB5476KPNA01"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "cb15556f-c0c0-4fd9-b7a5-20c29f935bee",
+      "reference": "C5",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "KEMET"
+        },
+        "MPN": {
+          "before": "GRM21BR61A106KE19L",
+          "after": "C0805C106K8PACTU"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "ce2e25e2-994b-409c-b20a-b968dc7b8dec",
+      "reference": "U5",
+      "fields": {
+        "Value": {
+          "before": "SN74LVC08APWR",
+          "after": "SN74LVC08APW"
+        },
+        "MPN": {
+          "before": "SN74LVC08APWR",
+          "after": "SN74LVC08APW"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "d0dfb32d-0987-4c46-9a73-96664d45c86a",
+      "reference": "C12",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TAIYO YUDEN"
+        },
+        "MPN": {
+          "before": "GRM32ER61A476KE20L",
+          "after": "MBASL32MSB5476KPNA01"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "d42d921a-8c1e-4eb4-a1d6-f65c01ccdbd6",
+      "reference": "C17",
+      "fields": {
+        "Value": {
+          "before": "100n / 16V X7R",
+          "after": "100n / 50V X7R"
+        },
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "KEMET"
+        },
+        "MPN": {
+          "before": "GRM188R71C104KA01D",
+          "after": "C0603C104K5RACTU"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "e96ab9e4-dec4-4969-8e71-9d01e55d5adf",
+      "reference": "C15",
+      "fields": {
+        "Value": {
+          "before": "47n / 16V X7R",
+          "after": "47n / 50V X7R"
+        },
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "TDK"
+        },
+        "MPN": {
+          "before": "GRM188R71C473KA01D",
+          "after": "C1608X7R1H473K080AA"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "f02762ec-aa41-445a-b738-5f7486afcf23",
+      "reference": "C6",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "KEMET"
+        },
+        "MPN": {
+          "before": "GRM21BR61A106KE19L",
+          "after": "C0805C106K8PACTU"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "f21d4feb-abc0-4ca6-b2d8-164f063b3ef2",
+      "reference": "C10",
+      "fields": {
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "KEMET"
+        },
+        "MPN": {
+          "before": "GRM188R71H104KA93D",
+          "after": "C0603C104K5RACTU"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    },
+    {
+      "uuid": "fceee13b-6813-439c-88e0-517d220a46fa",
+      "reference": "C16",
+      "fields": {
+        "Value": {
+          "before": "100n / 16V X7R",
+          "after": "100n / 50V X7R"
+        },
+        "Manufacturer": {
+          "before": "Murata",
+          "after": "KEMET"
+        },
+        "MPN": {
+          "before": "GRM188R71C104KA01D",
+          "after": "C0603C104K5RACTU"
+        }
+      },
+      "authorization": "User: this time also add the correct information to the pcbs",
+      "reason": "Synchronize approved procurement selections; geometry and other footprint fields unchanged."
+    }
   ]
 }

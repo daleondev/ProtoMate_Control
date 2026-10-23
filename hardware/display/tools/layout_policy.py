@@ -77,6 +77,21 @@ def capture(path, output):
 def check_protected(path, baseline):
     expected = json.loads(Path(baseline).read_text())
     actual = protected_content(path)
+    # Purchasing updates may change these values only. Restore each explicitly
+    # recorded value before checking the original footprint/graphics fingerprint;
+    # positions, visibility, pads, nets and models remain fully protected.
+    for change in reversed(expected.get('allowed_component_metadata_changes', [])):
+        footprint = next((n for n in actual if n[0] == 'footprint'
+                          and child(n, 'uuid') == ['uuid', change['uuid']]), None)
+        if footprint is None or property_value(footprint, 'Reference') != change['reference']:
+            raise RuntimeError('Component metadata update references a missing footprint')
+        for name, values in change['fields'].items():
+            if name not in ('Value', 'Manufacturer', 'MPN'):
+                raise RuntimeError('Unauthorized field in component metadata update')
+            prop = next((n for n in children(footprint, 'property') if n[1] == name), None)
+            if prop is None or prop[2] != values['after']:
+                raise RuntimeError('Component metadata differs from the recorded selection')
+            prop[2] = values['before']
     for change in expected.get('allowed_thermal_angles', []):
         index = next((i for i,n in enumerate(actual) if n[0] == 'footprint'
                       and child(n, 'uuid') == ['uuid', change['uuid']]), None)

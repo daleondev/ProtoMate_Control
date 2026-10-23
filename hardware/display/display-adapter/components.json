@@ -178,8 +178,8 @@
     "ref": "C9",
     "kind": "C10U50",
     "value": "10u / 50V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER71H106KA12L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MCJCU32MLB7106KPPDTJ",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+24V_DISPLAY",
@@ -200,8 +200,8 @@
     "ref": "C10",
     "kind": "C100N50",
     "value": "100n / 50V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71H104KA93D",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+24V_DISPLAY",
@@ -222,8 +222,8 @@
     "ref": "C1",
     "kind": "C47U",
     "value": "47u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER61A476KE20L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MBASL32MSB5476KPNA01",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+3V3_BKL",
@@ -244,8 +244,8 @@
     "ref": "C2",
     "kind": "C47U",
     "value": "47u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER61A476KE20L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MBASL32MSB5476KPNA01",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+3V3_BKL",
@@ -266,8 +266,8 @@
     "ref": "C3",
     "kind": "C47U",
     "value": "47u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER61A476KE20L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MBASL32MSB5476KPNA01",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+3V3_BKL",
@@ -288,8 +288,8 @@
     "ref": "C4",
     "kind": "C47U",
     "value": "47u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER61A476KE20L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MBASL32MSB5476KPNA01",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+3V3_BKL",
@@ -310,8 +310,8 @@
     "ref": "C5",
     "kind": "C10U",
     "value": "10u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM21BR61A106KE19L",
+    "mfr": "KEMET",
+    "mpn": "C0805C106K8PACTU",
     "footprint": "C_0805_2012Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -332,8 +332,8 @@
     "ref": "C6",
     "kind": "C10U",
     "value": "10u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM21BR61A106KE19L",
+    "mfr": "KEMET",
+    "mpn": "C0805C106K8PACTU",
     "footprint": "C_0805_2012Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -353,9 +353,9 @@
   {
     "ref": "C7",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -375,9 +375,9 @@
   {
     "ref": "C8",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -700,9 +700,9 @@
   {
     "ref": "U3",
     "kind": "LDO",
-    "value": "TPS7A9101DSKR",
+    "value": "TPS7A9101DSKT",
     "mfr": "Texas Instruments",
-    "mpn": "TPS7A9101DSKR",
+    "mpn": "TPS7A9101DSKT",
     "footprint": "WSON-10-1EP_2.5x2.5mm_P0.5mm_EP1.2x2mm",
     "nets": {
       "1": "+3V3_PANEL",
@@ -732,8 +732,8 @@
     "ref": "C11",
     "kind": "C10U50",
     "value": "10u / 50V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER71H106KA12L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MCJCU32MLB7106KPPDTJ",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+24V_DISPLAY",
@@ -754,8 +754,8 @@
     "ref": "C12",
     "kind": "C47U",
     "value": "47u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER61A476KE20L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MBASL32MSB5476KPNA01",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+5V_LOGIC",
@@ -776,8 +776,8 @@
     "ref": "C13",
     "kind": "C47U",
     "value": "47u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER61A476KE20L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MBASL32MSB5476KPNA01",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -798,8 +798,8 @@
     "ref": "C14",
     "kind": "C47U",
     "value": "47u / 10V X5R",
-    "mfr": "Murata",
-    "mpn": "GRM32ER61A476KE20L",
+    "mfr": "TAIYO YUDEN",
+    "mpn": "MBASL32MSB5476KPNA01",
     "footprint": "C_1210_3225Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -819,9 +819,9 @@
   {
     "ref": "C15",
     "kind": "C47N",
-    "value": "47n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C473KA01D",
+    "value": "47n / 50V X7R",
+    "mfr": "TDK",
+    "mpn": "C1608X7R1H473K080AA",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "LOGIC_SS",
@@ -842,8 +842,8 @@
     "ref": "R9",
     "kind": "R31K2",
     "value": "31.2k / 0.1%",
-    "mfr": "Yageo",
-    "mpn": "RT0603BRD0731K2L",
+    "mfr": "Vishay",
+    "mpn": "TNPW060331K2BEEN",
     "footprint": "R_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -907,9 +907,9 @@
   {
     "ref": "U4",
     "kind": "SUPERVISOR",
-    "value": "TPS3808G33DBVR",
+    "value": "TPS3808EG33DBVR",
     "mfr": "Texas Instruments",
-    "mpn": "TPS3808G33DBVR",
+    "mpn": "TPS3808EG33DBVR",
     "footprint": "SOT-23-6_UpperPin1",
     "nets": {
       "1": "PANEL_READY",
@@ -933,9 +933,9 @@
   {
     "ref": "C16",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -977,9 +977,9 @@
   {
     "ref": "U6",
     "kind": "SUPERVISOR",
-    "value": "TPS3808G33DBVR",
+    "value": "TPS3808EG33DBVR",
     "mfr": "Texas Instruments",
-    "mpn": "TPS3808G33DBVR",
+    "mpn": "TPS3808EG33DBVR",
     "footprint": "SOT-23-6_UpperPin1",
     "nets": {
       "1": "PANEL_READY",
@@ -1003,9 +1003,9 @@
   {
     "ref": "C18",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
@@ -1047,9 +1047,9 @@
   {
     "ref": "U5",
     "kind": "AND4",
-    "value": "SN74LVC08APWR",
+    "value": "SN74LVC08APW",
     "mfr": "Texas Instruments",
-    "mpn": "SN74LVC08APWR",
+    "mpn": "SN74LVC08APW",
     "footprint": "TSSOP-14_4.4x5mm_P0.65mm",
     "nets": {
       "1": "LCD_PWM",
@@ -1081,9 +1081,9 @@
   {
     "ref": "C17",
     "kind": "C100N",
-    "value": "100n / 16V X7R",
-    "mfr": "Murata",
-    "mpn": "GRM188R71C104KA01D",
+    "value": "100n / 50V X7R",
+    "mfr": "KEMET",
+    "mpn": "C0603C104K5RACTU",
     "footprint": "C_0603_1608Metric",
     "nets": {
       "1": "+3V3_PANEL",
