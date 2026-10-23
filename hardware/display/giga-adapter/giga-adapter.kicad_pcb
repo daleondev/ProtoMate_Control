@@ -12,6 +12,7 @@
 		(date "2026-10-22")
 		(rev "F")
 		(company "ProtoMate")
+		(comment 4 "AISLER Project ID: KIRIOWPX")
 	)
 	(layers
 		(0 "F.Cu" signal)
@@ -46,6 +47,9 @@
 			(layer "F.SilkS"
 				(type "Top Silk Screen")
 				(color "White")
+			)
+			(layer "F.Paste"
+				(type "Top Solder Paste")
 			)
 			(layer "F.Mask"
 				(type "Top Solder Mask")
@@ -94,6 +98,9 @@
 				(color "Green")
 				(thickness 0.01)
 			)
+			(layer "B.Paste"
+				(type "Bottom Solder Paste")
+			)
 			(layer "B.SilkS"
 				(type "Bottom Silk Screen")
 				(color "White")
@@ -102,7 +109,6 @@
 			(dielectric_constraints no)
 		)
 		(pad_to_mask_clearance 0)
-		(solder_mask_min_width 0.1)
 		(allow_soldermask_bridges_in_footprints no)
 		(tenting
 			(front yes)
@@ -27169,7 +27175,7 @@
 		)
 	)
 	(gr_text "3V3"
-		(at 101 51 0)
+		(at 101 50.75 0)
 		(layer "F.SilkS")
 		(uuid "db14c2fa-1bf8-47c8-ac5e-33255da430b2")
 		(effects
@@ -27180,7 +27186,7 @@
 		)
 	)
 	(gr_text "PWR"
-		(at 104 51 0)
+		(at 104 50.75 0)
 		(layer "F.SilkS")
 		(uuid "43c55256-a83b-463c-94d2-85b9c620e722")
 		(effects
@@ -27191,9 +27197,20 @@
 		)
 	)
 	(gr_text "G"
-		(at 107 51 0)
+		(at 107 50.75 0)
 		(layer "F.SilkS")
 		(uuid "95b0573e-114f-47eb-b830-018c2f3d7144")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.15)
+			)
+		)
+	)
+	(gr_text "G"
+		(at 113.25 39 0)
+		(layer "F.SilkS")
+		(uuid "a70d18c1-4512-40c7-b58f-38bfcbe80f54")
 		(effects
 			(font
 				(size 0.8 0.8)
@@ -27235,7 +27252,7 @@
 		)
 	)
 	(gr_text "GIGA DISPLAY"
-		(at 82.9 7.45 0)
+		(at 81.5 6 0)
 		(layer "F.SilkS")
 		(uuid "2b891a93-5298-43fe-bc88-cd7a5cd3338d")
 		(effects
@@ -27246,7 +27263,7 @@
 		)
 	)
 	(gr_text "12V -> VIN"
-		(at 70 9 0)
+		(at 70 9.5 0)
 		(layer "B.SilkS")
 		(uuid "125a5113-538d-40ae-ae17-9b890e7b2225")
 		(effects
@@ -27258,7 +27275,7 @@
 		)
 	)
 	(gr_text "GIGA DISPLAY"
-		(at 83.2 7.4 0)
+		(at 81.5 6 0)
 		(layer "B.SilkS")
 		(uuid "c699f3a8-6116-4a91-9946-6307138e6dc5")
 		(effects
