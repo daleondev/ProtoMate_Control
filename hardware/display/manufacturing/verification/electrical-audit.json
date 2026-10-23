@@ -1,30 +1,30 @@
 {
   "display-adapter": {
-    "revision": "F",
+    "revision": "G",
     "copper_layers": 4,
     "schematic_pcb_pin_pairs": 232,
     "components": 51,
-    "tracks": 1000,
-    "ground_reference": "In1.Cu GND reference plane",
+    "tracks": 1021,
+    "ground_reference": "F.Cu -> continuous In1 GND; B.Cu -> continuous In2 GND; stitched outer fills",
     "routing_inventory": {
-      "straight_segments": 807,
+      "straight_segments": 808,
       "curved_segments": 0,
-      "through_vias": 193,
-      "ground_segments": 0
+      "through_vias": 213,
+      "ground_segments": 8
     }
   },
   "giga-adapter": {
-    "revision": "E",
+    "revision": "F",
     "copper_layers": 4,
     "schematic_pcb_pin_pairs": 512,
     "components": 123,
-    "tracks": 1510,
-    "ground_reference": "In1.Cu GND reference plane",
+    "tracks": 1204,
+    "ground_reference": "F.Cu -> continuous In1 GND; B.Cu -> continuous In2 GND; stitched outer fills",
     "routing_inventory": {
-      "straight_segments": 1281,
+      "straight_segments": 967,
       "curved_segments": 0,
-      "through_vias": 229,
-      "ground_segments": 95
+      "through_vias": 237,
+      "ground_segments": 0
     }
   },
   "display_contacts": 50,

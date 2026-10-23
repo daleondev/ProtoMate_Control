@@ -1,0 +1,3302 @@
+{
+  "source_sha256": "63f1451935c82d4ebbecc30402c32a7b9d686e32794771acce56aeda02ed0d1e",
+  "result": "REVIEW REQUIRED",
+  "counts": {
+    "tracks": 967,
+    "vias": 237,
+    "errors": 0,
+    "review": 141
+  },
+  "findings": [
+    {
+      "id": "4a67bdc88f523ce7",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+12V_CONVERTER",
+      "layer": "F.Cu",
+      "at_mm": [
+        75.5,
+        18.0
+      ],
+      "items": [
+        "48cf06c6-3e57-472c-81be-3b8a6cc55a31",
+        "cb2fe3c3-8d3b-4271-be25-3b4bb01d5c9a"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "C19.1"
+    },
+    {
+      "id": "c65b7442da92228a",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+12V_CONVERTER",
+      "layer": "F.Cu",
+      "at_mm": [
+        74.0,
+        19.5
+      ],
+      "items": [
+        "eb6f5c17-d9ac-4420-a242-ddc81d51675d"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 1.0,
+      "width_mm": 0.6,
+      "start_mm": [
+        74.0,
+        19.5
+      ],
+      "end_mm": [
+        73.0,
+        19.5
+      ]
+    },
+    {
+      "id": "dcfd684fd8739b32",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+12V_CONVERTER",
+      "layer": "F.Cu",
+      "at_mm": [
+        75.5,
+        17.45
+      ],
+      "items": [
+        "de848293-82bb-459c-98cf-e30b9d7cafcd"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.55,
+      "width_mm": 0.6,
+      "start_mm": [
+        75.5,
+        17.45
+      ],
+      "end_mm": [
+        75.5,
+        18.0
+      ]
+    },
+    {
+      "id": "6cda2f5578d4af56",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+12V_GIGA",
+      "layer": "B.Cu",
+      "at_mm": [
+        78.4,
+        47.75
+      ],
+      "items": [
+        "c5b5e27e-0993-40f1-b4d0-92f5d9a0d878"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.56569,
+      "width_mm": 0.6,
+      "start_mm": [
+        78.4,
+        47.75
+      ],
+      "end_mm": [
+        78.8,
+        47.35
+      ]
+    },
+    {
+      "id": "28f5c288c03c60ae",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_DISPLAY",
+      "layer": "B.Cu",
+      "at_mm": [
+        86.55,
+        41.7
+      ],
+      "items": [
+        "55edf020-19bf-458f-81c8-3634c92d9e3b"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.56569,
+      "width_mm": 0.6,
+      "start_mm": [
+        86.55,
+        41.7
+      ],
+      "end_mm": [
+        86.15,
+        42.1
+      ]
+    },
+    {
+      "id": "42d1ae0618cb8a99",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_DISPLAY",
+      "layer": "B.Cu",
+      "at_mm": [
+        87.6,
+        41.7
+      ],
+      "items": [
+        "41548d42-94ba-48a7-bf1d-6f9d3cac997c"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 1.05,
+      "width_mm": 0.6,
+      "start_mm": [
+        87.6,
+        41.7
+      ],
+      "end_mm": [
+        86.55,
+        41.7
+      ]
+    },
+    {
+      "id": "4bb8850b6caa2fb3",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_DISPLAY",
+      "layer": "F.Cu",
+      "at_mm": [
+        85.95,
+        41.9
+      ],
+      "items": [
+        "b7a44f97-f82e-4a5c-ad76-5505b7405bee"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.28284,
+      "width_mm": 0.4,
+      "start_mm": [
+        85.95,
+        41.9
+      ],
+      "end_mm": [
+        86.15,
+        42.1
+      ]
+    },
+    {
+      "id": "b183ce973042bfe8",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+24V_FUSED",
+      "layer": "F.Cu",
+      "at_mm": [
+        45.175,
+        14.3
+      ],
+      "items": [
+        "1b771fc4-7aba-4531-8a72-9b7ed06d96ac",
+        "a0ab7c97-993a-4058-924a-ceb2bc83c745"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "C15.1"
+    },
+    {
+      "id": "f04afbd32253f3a0",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+24V_FUSED",
+      "layer": "F.Cu",
+      "at_mm": [
+        45.175,
+        15.4
+      ],
+      "items": [
+        "1b771fc4-7aba-4531-8a72-9b7ed06d96ac",
+        "2fb9f9cb-1b9e-4061-b3db-e93c9524f2e9"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "C15.1"
+    },
+    {
+      "id": "0a4197ff22d8652d",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_FUSED",
+      "layer": "F.Cu",
+      "at_mm": [
+        50.1,
+        12.925
+      ],
+      "items": [
+        "d92e2c44-e46e-4408-b194-b39b79ec54c3"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.625,
+      "width_mm": 0.6,
+      "start_mm": [
+        50.1,
+        12.925
+      ],
+      "end_mm": [
+        50.1,
+        13.55
+      ]
+    },
+    {
+      "id": "510c14b6da63ad9e",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_FUSED",
+      "layer": "F.Cu",
+      "at_mm": [
+        45.175,
+        14.3
+      ],
+      "items": [
+        "a0ab7c97-993a-4058-924a-ceb2bc83c745"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.28284,
+      "width_mm": 0.6,
+      "start_mm": [
+        45.175,
+        14.3
+      ],
+      "end_mm": [
+        45.375,
+        14.5
+      ]
+    },
+    {
+      "id": "5c915b9a7e9b0a7d",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_FUSED",
+      "layer": "F.Cu",
+      "at_mm": [
+        57.8,
+        24.5
+      ],
+      "items": [
+        "25ca8f93-ac17-4d1d-80bd-1bcf331745a7"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.5,
+      "width_mm": 0.6,
+      "start_mm": [
+        57.8,
+        24.5
+      ],
+      "end_mm": [
+        57.8,
+        25.0
+      ]
+    },
+    {
+      "id": "790075fab140baba",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_FUSED",
+      "layer": "F.Cu",
+      "at_mm": [
+        45.175,
+        15.4
+      ],
+      "items": [
+        "2fb9f9cb-1b9e-4061-b3db-e93c9524f2e9"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 1.1,
+      "width_mm": 0.6,
+      "start_mm": [
+        45.175,
+        15.4
+      ],
+      "end_mm": [
+        45.175,
+        14.3
+      ]
+    },
+    {
+      "id": "da99d5713a1dbcd3",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_FUSED",
+      "layer": "F.Cu",
+      "at_mm": [
+        60.4,
+        21.1
+      ],
+      "items": [
+        "d2d9391a-c495-4071-b726-d1ac8c804186"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.8,
+      "width_mm": 0.6,
+      "start_mm": [
+        60.4,
+        21.1
+      ],
+      "end_mm": [
+        60.4,
+        21.9
+      ]
+    },
+    {
+      "id": "efa7f0d4ae7a88a6",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_FUSED",
+      "layer": "F.Cu",
+      "at_mm": [
+        60.475,
+        21.1
+      ],
+      "items": [
+        "35c0b700-cbcc-4aa8-aa88-f7ae19e8d87a"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.075,
+      "width_mm": 0.6,
+      "start_mm": [
+        60.475,
+        21.1
+      ],
+      "end_mm": [
+        60.4,
+        21.1
+      ]
+    },
+    {
+      "id": "2826e586cecf9b2f",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+24V_PROTECTED",
+      "layer": "F.Cu",
+      "at_mm": [
+        55.9,
+        12.925
+      ],
+      "items": [
+        "c8e603f7-e61d-424a-bfc9-db4f1bc7a503"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.625,
+      "width_mm": 0.6,
+      "start_mm": [
+        55.9,
+        12.925
+      ],
+      "end_mm": [
+        55.9,
+        13.55
+      ]
+    },
+    {
+      "id": "c3c261c31c0b6d4e",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "+24V_PROTECTED",
+      "layer": "F.Cu",
+      "at_mm": [
+        59.975,
+        12.0
+      ],
+      "items": [
+        "0d914624-98b2-4edc-9f59-78ce55331889",
+        "7fc5226a-a50e-4dfa-830b-3cd73267e184",
+        "e3ab2452-f4b9-4034-b70f-db7aa6f6b24f"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "358cd54847863862",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        101.0,
+        26.707
+      ],
+      "items": [
+        "7b2a2a2a-6b54-4c9d-abdd-b262a47b2015",
+        "d361c696-4dfa-41f9-8d5e-b823981f27f7"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "C5.1"
+    },
+    {
+      "id": "5096fce2b3059723",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        89.05,
+        46.225
+      ],
+      "items": [
+        "e3aa7dcb-3b18-4b3f-8562-81bc1dec0034",
+        "eba27b31-4bd2-483c-a734-ace5d77cf2e7"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "C14.1"
+    },
+    {
+      "id": "95f63148465487a8",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        83.3723,
+        39.4996
+      ],
+      "items": [
+        "28380eef-8b80-40de-8be6-e690165d28ce",
+        "c61cba24-2f08-47af-9f20-2d563fff4ffc"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "J9.23"
+    },
+    {
+      "id": "c46522a628e175dd",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        89.65,
+        29.35
+      ],
+      "items": [
+        "b70696a5-580e-423e-b9c5-25b9280a9dbe",
+        "bbabe283-d7f6-42b8-9619-e853b680fa00"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "C21.1"
+    },
+    {
+      "id": "2b45f150d4c08e80",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        101.0,
+        26.707
+      ],
+      "items": [
+        "7b2a2a2a-6b54-4c9d-abdd-b262a47b2015"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.19445,
+      "width_mm": 0.3,
+      "start_mm": [
+        101.0,
+        26.707
+      ],
+      "end_mm": [
+        101.1375,
+        26.8445
+      ]
+    },
+    {
+      "id": "61bd599019def55d",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        100.931,
+        49.069
+      ],
+      "items": [
+        "aa4602e2-3b80-46db-8c98-2ad6e3ce24c3"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.09758,
+      "width_mm": 0.3,
+      "start_mm": [
+        100.931,
+        49.069
+      ],
+      "end_mm": [
+        101.0,
+        49.0
+      ]
+    },
+    {
+      "id": "7109cb3f0bfe050d",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        79.96,
+        45.2028
+      ],
+      "items": [
+        "94854461-f985-4c1a-96f8-1408434cb8fb"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1418,
+      "width_mm": 0.3,
+      "start_mm": [
+        79.96,
+        45.2028
+      ],
+      "end_mm": [
+        79.96,
+        45.061
+      ]
+    },
+    {
+      "id": "7c2d6145df227c0c",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        101.175,
+        3.15
+      ],
+      "items": [
+        "4762c824-035b-4985-a5ab-228eb76054a6"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.575,
+      "width_mm": 0.3,
+      "start_mm": [
+        101.175,
+        3.15
+      ],
+      "end_mm": [
+        100.6,
+        3.15
+      ]
+    },
+    {
+      "id": "ba1a66fabb82235f",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        101.225,
+        26.482
+      ],
+      "items": [
+        "4884a08f-836d-4fa8-8a45-24e6a93ad558"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.3182,
+      "width_mm": 0.3,
+      "start_mm": [
+        101.225,
+        26.482
+      ],
+      "end_mm": [
+        101.0,
+        26.707
+      ]
+    },
+    {
+      "id": "bfb85b97572c50d0",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "B.Cu",
+      "at_mm": [
+        89.65,
+        29.35
+      ],
+      "items": [
+        "25a1ee31-abb7-48cb-9f71-148afbdf3023"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.5197,
+      "width_mm": 0.3,
+      "start_mm": [
+        89.65,
+        29.35
+      ],
+      "end_mm": [
+        90.1697,
+        29.35
+      ]
+    },
+    {
+      "id": "ccc59de12739c0ea",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        36.7873,
+        50.7873
+      ],
+      "items": [
+        "d5f8df85-4605-4e00-ae4f-424154635739"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.3756,
+      "width_mm": 0.3,
+      "start_mm": [
+        36.7873,
+        50.7873
+      ],
+      "end_mm": [
+        36.7873,
+        50.4117
+      ]
+    },
+    {
+      "id": "df114fb9352781d0",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        39.5,
+        6.8396
+      ],
+      "items": [
+        "351e9f1c-6191-47d8-a4bf-d57649fe6982"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1354,
+      "width_mm": 0.3,
+      "start_mm": [
+        39.5,
+        6.8396
+      ],
+      "end_mm": [
+        39.5,
+        6.975
+      ]
+    },
+    {
+      "id": "f87674eec9287a20",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "F.Cu",
+      "at_mm": [
+        101.175,
+        14.65
+      ],
+      "items": [
+        "9bf28e8c-e651-4089-bf25-be0d7160acb7"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.3182,
+      "width_mm": 0.3,
+      "start_mm": [
+        101.175,
+        14.65
+      ],
+      "end_mm": [
+        101.4,
+        14.425
+      ]
+    },
+    {
+      "id": "c4ee4cbd1083b5b8",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "+3V3_GIGA",
+      "layer": "B.Cu",
+      "at_mm": [
+        98.1,
+        2.7
+      ],
+      "items": [
+        "638f1555-1bdb-4fd4-8cfb-f7931b472a77",
+        "a6edf624-513f-4b2e-ac6b-d4f05a8c4a00",
+        "d9f1438c-73d9-4318-9be7-326824b192c0"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "0058a96f38d87398",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        86.5496,
+        43.05
+      ],
+      "items": [
+        "4b1370ff-4696-4b0e-a2f6-3dad9478bd21",
+        "8a287af8-f95d-4003-9e44-9d8cffd91945"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "U5.1"
+    },
+    {
+      "id": "162d8cbf0b81fadd",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        33.7404,
+        5.225
+      ],
+      "items": [
+        "09052de1-1e64-44ce-a291-5e05a84d3267",
+        "452ecfdf-0b94-4b6f-90c3-229ae7af05e3"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "U6.1"
+    },
+    {
+      "id": "668efc50814a8388",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        88.0,
+        33.05
+      ],
+      "items": [
+        "361d763a-0730-467d-bcd0-cb75456eeffc",
+        "9aa4ffb4-2bbe-4c28-86cc-8e94312b7ba2"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "U9.1"
+    },
+    {
+      "id": "ada8938aab54f707",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        106.1,
+        40.1
+      ],
+      "items": [
+        "0abf3ec4-a5b4-4132-b458-7fe54ab1b5ef",
+        "a53177a7-f96e-4c9f-a1e7-e20597643e28"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "U4.23"
+    },
+    {
+      "id": "d2042e4b7da31237",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        87.225,
+        32.075
+      ],
+      "items": [
+        "9aa4ffb4-2bbe-4c28-86cc-8e94312b7ba2",
+        "c14b5499-11ea-4695-a8ab-40290af4881d"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "U9.1"
+    },
+    {
+      "id": "0c82a75652803e60",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        106.8625,
+        40.075
+      ],
+      "items": [
+        "e8f88c44-5743-466a-8b20-b2f3dbd7046f"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.01768,
+      "width_mm": 0.3,
+      "start_mm": [
+        106.8625,
+        40.075
+      ],
+      "end_mm": [
+        106.85,
+        40.0875
+      ]
+    },
+    {
+      "id": "178183a5c32e99f2",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        88.675,
+        34.0
+      ],
+      "items": [
+        "ebbf994f-4a81-4ec2-ac5c-192b08f58fde"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.6625,
+      "width_mm": 0.6,
+      "start_mm": [
+        88.675,
+        34.0
+      ],
+      "end_mm": [
+        89.3375,
+        34.0
+      ]
+    },
+    {
+      "id": "2a49619d463a9b47",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        105.004,
+        25.9288
+      ],
+      "items": [
+        "a0671033-11c9-40cb-9085-312621847171"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.31254,
+      "width_mm": 0.3,
+      "start_mm": [
+        105.004,
+        25.9288
+      ],
+      "end_mm": [
+        105.225,
+        26.1498
+      ]
+    },
+    {
+      "id": "2cafa700cfcd27c6",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        88.1,
+        32.95
+      ],
+      "items": [
+        "a22ba40a-53ef-481d-af66-34a8cfba4e02"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.475,
+      "width_mm": 0.6,
+      "start_mm": [
+        88.1,
+        32.95
+      ],
+      "end_mm": [
+        88.1,
+        33.425
+      ]
+    },
+    {
+      "id": "31443de6e3cac22b",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        87.0625,
+        33.05
+      ],
+      "items": [
+        "35dee374-6a30-42c4-a4c6-e4a39edb173d"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.9375,
+      "width_mm": 0.6,
+      "start_mm": [
+        87.0625,
+        33.05
+      ],
+      "end_mm": [
+        88.0,
+        33.05
+      ]
+    },
+    {
+      "id": "3a6410b32c4159a9",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        105.225,
+        14.7875
+      ],
+      "items": [
+        "ef451d34-3650-4c3f-a228-714a35c3a55b"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1375,
+      "width_mm": 0.3,
+      "start_mm": [
+        105.225,
+        14.7875
+      ],
+      "end_mm": [
+        105.225,
+        14.65
+      ]
+    },
+    {
+      "id": "73db3d0f06327a66",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        88.1,
+        33.425
+      ],
+      "items": [
+        "52f6cdce-731b-4431-9275-7c5cc17ed2b0"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.81317,
+      "width_mm": 0.6,
+      "start_mm": [
+        88.1,
+        33.425
+      ],
+      "end_mm": [
+        88.675,
+        34.0
+      ]
+    },
+    {
+      "id": "8ba2b12f85004807",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        88.0,
+        33.05
+      ],
+      "items": [
+        "361d763a-0730-467d-bcd0-cb75456eeffc"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.14142,
+      "width_mm": 0.6,
+      "start_mm": [
+        88.0,
+        33.05
+      ],
+      "end_mm": [
+        88.1,
+        32.95
+      ]
+    },
+    {
+      "id": "8ca397d404c8f4e9",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "B.Cu",
+      "at_mm": [
+        82.5189,
+        42.4311
+      ],
+      "items": [
+        "0dd2c2c6-aaf3-4901-b158-52cc4af21c57"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.23886,
+      "width_mm": 0.3,
+      "start_mm": [
+        82.5189,
+        42.4311
+      ],
+      "end_mm": [
+        82.35,
+        42.6
+      ]
+    },
+    {
+      "id": "9a5d069c92ab1eb4",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        105.225,
+        37.65
+      ],
+      "items": [
+        "faf6821c-100f-4fcd-a8bc-64b47c8808c2"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1375,
+      "width_mm": 0.3,
+      "start_mm": [
+        105.225,
+        37.65
+      ],
+      "end_mm": [
+        105.225,
+        37.7875
+      ]
+    },
+    {
+      "id": "bb52fa6de44e9a0c",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        82.45,
+        42.6
+      ],
+      "items": [
+        "7c948289-15ad-48bc-a447-a88bc037df24"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1,
+      "width_mm": 0.15,
+      "start_mm": [
+        82.45,
+        42.6
+      ],
+      "end_mm": [
+        82.35,
+        42.6
+      ]
+    },
+    {
+      "id": "be6c7178681ab5fb",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "B.Cu",
+      "at_mm": [
+        78.8809,
+        28.0637
+      ],
+      "items": [
+        "8e453bec-136d-4f63-a72f-b85d93cee4e5"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.5891,
+      "width_mm": 0.3,
+      "start_mm": [
+        78.8809,
+        28.0637
+      ],
+      "end_mm": [
+        79.47,
+        28.0637
+      ]
+    },
+    {
+      "id": "e93d99bda6f2d7d3",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        106.85,
+        40.0875
+      ],
+      "items": [
+        "7ddeb8e5-7617-40ad-8426-278da7bda3e8"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0125,
+      "width_mm": 0.3,
+      "start_mm": [
+        106.85,
+        40.0875
+      ],
+      "end_mm": [
+        106.85,
+        40.1
+      ]
+    },
+    {
+      "id": "ea61b8259661069a",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "+3V3_PANEL",
+      "layer": "F.Cu",
+      "at_mm": [
+        106.8625,
+        27.7873
+      ],
+      "items": [
+        "8ac4d3f6-84c6-4e9d-b740-a351ff06aac2"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1377,
+      "width_mm": 0.18,
+      "start_mm": [
+        106.8625,
+        27.7873
+      ],
+      "end_mm": [
+        106.8625,
+        27.925
+      ]
+    },
+    {
+      "id": "5355167d9ee3ea17",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_B5",
+      "layer": "F.Cu",
+      "at_mm": [
+        109.24,
+        21.625
+      ],
+      "items": [
+        "821c67c5-c60d-40f6-b08d-9de39902f3dc"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.35355,
+      "width_mm": 0.18,
+      "start_mm": [
+        109.24,
+        21.625
+      ],
+      "end_mm": [
+        109.49,
+        21.875
+      ]
+    },
+    {
+      "id": "4e4c862c513bf05e",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_G0",
+      "layer": "B.Cu",
+      "at_mm": [
+        108.475,
+        27.175
+      ],
+      "items": [
+        "2f6113e9-5bad-4cd8-9ec9-464b7635fec3"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.05,
+      "width_mm": 0.15,
+      "start_mm": [
+        108.475,
+        27.175
+      ],
+      "end_mm": [
+        108.475,
+        27.125
+      ]
+    },
+    {
+      "id": "9098c47e60388ff2",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_G0",
+      "layer": "F.Cu",
+      "at_mm": [
+        105.75,
+        29.9
+      ],
+      "items": [
+        "00b1d280-5eed-458a-9f5e-1fd26b20b91b"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.03536,
+      "width_mm": 0.15,
+      "start_mm": [
+        105.75,
+        29.9
+      ],
+      "end_mm": [
+        105.775,
+        29.875
+      ]
+    },
+    {
+      "id": "2e56b1209b736388",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_G1",
+      "layer": "F.Cu",
+      "at_mm": [
+        108.977,
+        29.32
+      ],
+      "items": [
+        "b3b44020-b4d5-4a7e-aa8d-10f682065443"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1694,
+      "width_mm": 0.15,
+      "start_mm": [
+        108.977,
+        29.32
+      ],
+      "end_mm": [
+        108.977,
+        29.1506
+      ]
+    },
+    {
+      "id": "af3f85fac20ded99",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_G1",
+      "layer": "F.Cu",
+      "at_mm": [
+        108.977,
+        28.888
+      ],
+      "items": [
+        "64754310-8030-46bd-990a-89292490526d"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.2626,
+      "width_mm": 0.18,
+      "start_mm": [
+        108.977,
+        28.888
+      ],
+      "end_mm": [
+        108.977,
+        29.1506
+      ]
+    },
+    {
+      "id": "36c4042517d671ad",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_G5",
+      "layer": "F.Cu",
+      "at_mm": [
+        109.24,
+        33.125
+      ],
+      "items": [
+        "2193b2af-494b-4782-91e6-33a143f69f1b"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.35355,
+      "width_mm": 0.18,
+      "start_mm": [
+        109.24,
+        33.125
+      ],
+      "end_mm": [
+        109.49,
+        33.375
+      ]
+    },
+    {
+      "id": "7f7965bf095cadba",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_G7",
+      "layer": "B.Cu",
+      "at_mm": [
+        108.12,
+        36.0895
+      ],
+      "items": [
+        "d0f567a8-466f-473c-aa49-cbf1befd5049"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.34365,
+      "width_mm": 0.18,
+      "start_mm": [
+        108.12,
+        36.0895
+      ],
+      "end_mm": [
+        108.363,
+        36.3325
+      ]
+    },
+    {
+      "id": "160c1070fa6b30bb",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_PCLK",
+      "layer": "F.Cu",
+      "at_mm": [
+        106.8624,
+        41.375
+      ],
+      "items": [
+        "90616116-4815-4f0d-a60d-e67e7379729d"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.23391,
+      "width_mm": 0.15,
+      "start_mm": [
+        106.8624,
+        41.375
+      ],
+      "end_mm": [
+        106.697,
+        41.5404
+      ]
+    },
+    {
+      "id": "c10ddecf1029d607",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_R1",
+      "layer": "F.Cu",
+      "at_mm": [
+        106.8763,
+        7.5112
+      ],
+      "items": [
+        "0fd67374-4089-4c68-9e1b-2ed93b93b955"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.01952,
+      "width_mm": 0.15,
+      "start_mm": [
+        106.8763,
+        7.5112
+      ],
+      "end_mm": [
+        106.8625,
+        7.525
+      ]
+    },
+    {
+      "id": "b53ec89da7d84c16",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_R5",
+      "layer": "F.Cu",
+      "at_mm": [
+        109.24,
+        10.125
+      ],
+      "items": [
+        "0ea9205c-2b86-41d6-8504-0c5d725244a6"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.35355,
+      "width_mm": 0.18,
+      "start_mm": [
+        109.24,
+        10.125
+      ],
+      "end_mm": [
+        109.49,
+        10.375
+      ]
+    },
+    {
+      "id": "bf88e9aac6b1c9be",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "BUF_STANDBY",
+      "layer": "F.Cu",
+      "at_mm": [
+        109.24,
+        44.625
+      ],
+      "items": [
+        "c7ff8790-783b-4f0e-a61c-135b998eadf8"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.35355,
+      "width_mm": 0.18,
+      "start_mm": [
+        109.24,
+        44.625
+      ],
+      "end_mm": [
+        109.49,
+        44.875
+      ]
+    },
+    {
+      "id": "99d89455202d9cab",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_B0",
+      "layer": "F.Cu",
+      "at_mm": [
+        114.9334,
+        18.3166
+      ],
+      "items": [
+        "ab2234b6-4797-4973-8fba-17325b6f8198"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.09419,
+      "width_mm": 0.15,
+      "start_mm": [
+        114.9334,
+        18.3166
+      ],
+      "end_mm": [
+        115.0,
+        18.25
+      ]
+    },
+    {
+      "id": "b155ec7090d21010",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_B1",
+      "layer": "F.Cu",
+      "at_mm": [
+        114.9125,
+        18.6625
+      ],
+      "items": [
+        "a4327980-7644-4b42-ba22-0c95ca1cdd8a"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.12374,
+      "width_mm": 0.18,
+      "start_mm": [
+        114.9125,
+        18.6625
+      ],
+      "end_mm": [
+        115.0,
+        18.75
+      ]
+    },
+    {
+      "id": "f76fd7d235237229",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "LCD_B3",
+      "layer": "F.Cu",
+      "at_mm": [
+        110.77,
+        19.6349
+      ],
+      "items": [
+        "71be1592-f9ad-4779-bf72-e97f7bf06c1e",
+        "d6fd77c5-3f9c-4d35-a127-e310ba3bcdb6"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "R12.2"
+    },
+    {
+      "id": "5fea9f6c73f4bd79",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_B3",
+      "layer": "B.Cu",
+      "at_mm": [
+        111.266,
+        19.9019
+      ],
+      "items": [
+        "580faa18-6103-4847-b7f4-28593e5dc4ec"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.267,
+      "width_mm": 0.18,
+      "start_mm": [
+        111.266,
+        19.9019
+      ],
+      "end_mm": [
+        111.266,
+        19.6349
+      ]
+    },
+    {
+      "id": "d2ce67569affc59a",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_B3",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        20.25
+      ],
+      "items": [
+        "8f8d8ad8-d66b-461d-bfb0-de1e9edc558b"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.07368,
+      "width_mm": 0.18,
+      "start_mm": [
+        115.0,
+        20.25
+      ],
+      "end_mm": [
+        115.0521,
+        20.1979
+      ]
+    },
+    {
+      "id": "6b297cca3eaca845",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_B4",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        21.25
+      ],
+      "items": [
+        "fa3700d1-5786-4ae1-9574-8c0872c04ded"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.12954,
+      "width_mm": 0.18,
+      "start_mm": [
+        115.0,
+        21.25
+      ],
+      "end_mm": [
+        114.9084,
+        21.3416
+      ]
+    },
+    {
+      "id": "01dbaece20fd9ce2",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_B5",
+      "layer": "F.Cu",
+      "at_mm": [
+        114.9283,
+        21.6783
+      ],
+      "items": [
+        "22ef0032-8d0c-4907-b701-d0afc1ca73ca"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1014,
+      "width_mm": 0.18,
+      "start_mm": [
+        114.9283,
+        21.6783
+      ],
+      "end_mm": [
+        115.0,
+        21.75
+      ]
+    },
+    {
+      "id": "18f1b318e8fd926d",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_B5",
+      "layer": "F.Cu",
+      "at_mm": [
+        110.51,
+        21.875
+      ],
+      "items": [
+        "6935ac75-9f51-4ee4-844a-99b523857ea2"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.27839,
+      "width_mm": 0.18,
+      "start_mm": [
+        110.51,
+        21.875
+      ],
+      "end_mm": [
+        110.707,
+        21.6783
+      ]
+    },
+    {
+      "id": "d861b254136a29d4",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "LCD_B6",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        22.75
+      ],
+      "items": [
+        "a3b3f67d-6119-4bde-a46b-379577900e15",
+        "d0d1578b-2209-411c-b4c4-edf26e25dd57",
+        "f5799b71-8531-4843-868b-2dfb5238d715"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "3b5627bdb4f28190",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_B7",
+      "layer": "F.Cu",
+      "at_mm": [
+        114.2515,
+        23.25
+      ],
+      "items": [
+        "213d07cf-8f9d-4d05-b9de-95a96086cfa7"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.16617,
+      "width_mm": 0.18,
+      "start_mm": [
+        114.2515,
+        23.25
+      ],
+      "end_mm": [
+        114.134,
+        23.1325
+      ]
+    },
+    {
+      "id": "debf63242388a38b",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "LCD_B7",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        23.25
+      ],
+      "items": [
+        "16fc9b00-d33f-46c5-9f39-e772c5c2498b",
+        "213d07cf-8f9d-4d05-b9de-95a96086cfa7",
+        "218e9c8a-f5df-4384-b9e6-86d2eed58904"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "00cf3ed1e0d9daee",
+      "kind": "return_stitch_distance",
+      "severity": "review",
+      "net": "LCD_DE",
+      "layer": "F.Cu",
+      "at_mm": [
+        111.4863,
+        31.2816
+      ],
+      "items": [
+        "39d19de4-0603-4fbd-95fa-2eb3b63f29d6"
+      ],
+      "explanation": "Return connection exceeds the 2 mm project review target; inspect fanout and plane continuity.",
+      "distance_mm": 2.5204,
+      "return_at_mm": [
+        113.95,
+        30.75
+      ]
+    },
+    {
+      "id": "4026cd34a7ad94e2",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G0",
+      "layer": "F.Cu",
+      "at_mm": [
+        114.9452,
+        24.3048
+      ],
+      "items": [
+        "527ce3e2-5a8a-44aa-a8bd-0957347bdbdf"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0775,
+      "width_mm": 0.15,
+      "start_mm": [
+        114.9452,
+        24.3048
+      ],
+      "end_mm": [
+        115.0,
+        24.25
+      ]
+    },
+    {
+      "id": "bb8d8fd24208b7f9",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G2",
+      "layer": "F.Cu",
+      "at_mm": [
+        113.615,
+        25.75
+      ],
+      "items": [
+        "3381e5fa-84f2-4c31-8952-be100d36c6e6"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.33559,
+      "width_mm": 0.18,
+      "start_mm": [
+        113.615,
+        25.75
+      ],
+      "end_mm": [
+        113.378,
+        25.9876
+      ]
+    },
+    {
+      "id": "c537ef76d78d52c7",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G2",
+      "layer": "B.Cu",
+      "at_mm": [
+        111.924,
+        26.1793
+      ],
+      "items": [
+        "0a8cf5df-d1c4-4b8d-92da-8bcc28e1eb38"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.30137,
+      "width_mm": 0.18,
+      "start_mm": [
+        111.924,
+        26.1793
+      ],
+      "end_mm": [
+        111.711,
+        26.3925
+      ]
+    },
+    {
+      "id": "df472f143c116264",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G2",
+      "layer": "F.Cu",
+      "at_mm": [
+        112.116,
+        25.9876
+      ],
+      "items": [
+        "b13b15fe-4784-47d0-ae94-bdf098720b18"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.27132,
+      "width_mm": 0.18,
+      "start_mm": [
+        112.116,
+        25.9876
+      ],
+      "end_mm": [
+        111.924,
+        26.1793
+      ]
+    },
+    {
+      "id": "66309ce259498c90",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "LCD_G2",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        25.75
+      ],
+      "items": [
+        "3381e5fa-84f2-4c31-8952-be100d36c6e6",
+        "3bd49f3b-d90c-4e1d-b51d-bae69dab8b0b",
+        "81b248dd-70b8-4082-8ea7-d1646cbd7cfb"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "3b01e9430c688143",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G3",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        26.25
+      ],
+      "items": [
+        "d937b1a3-9330-4c2b-b991-81e93c125b79"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0775,
+      "width_mm": 0.15,
+      "start_mm": [
+        115.0,
+        26.25
+      ],
+      "end_mm": [
+        114.9452,
+        26.1952
+      ]
+    },
+    {
+      "id": "417f4c3242df8da4",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G3",
+      "layer": "F.Cu",
+      "at_mm": [
+        113.3159,
+        26.5543
+      ],
+      "items": [
+        "79ac8d59-6886-4415-bb60-b176c16f6e14"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.2909,
+      "width_mm": 0.15,
+      "start_mm": [
+        113.3159,
+        26.5543
+      ],
+      "end_mm": [
+        113.025,
+        26.5543
+      ]
+    },
+    {
+      "id": "db1365b54cb34cf5",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G3",
+      "layer": "B.Cu",
+      "at_mm": [
+        113.025,
+        26.462
+      ],
+      "items": [
+        "802467e4-0ead-4652-983d-1e50605f4490"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0923,
+      "width_mm": 0.18,
+      "start_mm": [
+        113.025,
+        26.462
+      ],
+      "end_mm": [
+        113.025,
+        26.5543
+      ]
+    },
+    {
+      "id": "ae4223965921279e",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G4",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        27.25
+      ],
+      "items": [
+        "b797cec6-36f1-4c7c-8d0a-cf8eeb8851b5"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0775,
+      "width_mm": 0.15,
+      "start_mm": [
+        115.0,
+        27.25
+      ],
+      "end_mm": [
+        114.9452,
+        27.3048
+      ]
+    },
+    {
+      "id": "c23abd99bdca60a8",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G4",
+      "layer": "B.Cu",
+      "at_mm": [
+        112.487,
+        27.3048
+      ],
+      "items": [
+        "a0b763d4-e087-4959-a379-b5923db30298"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0297,
+      "width_mm": 0.18,
+      "start_mm": [
+        112.487,
+        27.3048
+      ],
+      "end_mm": [
+        112.466,
+        27.3258
+      ]
+    },
+    {
+      "id": "dd4383609e6d1e33",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G4",
+      "layer": "B.Cu",
+      "at_mm": [
+        112.1642,
+        31.9998
+      ],
+      "items": [
+        "1ce1e5b3-db19-4806-9698-784a86b6be0f"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.17706,
+      "width_mm": 0.18,
+      "start_mm": [
+        112.1642,
+        31.9998
+      ],
+      "end_mm": [
+        112.039,
+        32.125
+      ]
+    },
+    {
+      "id": "2b31fddf3f9452ce",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "LCD_G4",
+      "layer": "B.Cu",
+      "at_mm": [
+        112.466,
+        27.3258
+      ],
+      "items": [
+        "4c34a8a8-a6e6-4ffd-a1ac-b7c15a695c07",
+        "a76e3ef7-c45c-4ee8-9bc6-8bcd0fa6f0d6",
+        "e4a2b708-73ef-4bfb-8b24-0c81927b5b34"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "0fdf147799cc7e34",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G7",
+      "layer": "B.Cu",
+      "at_mm": [
+        111.3805,
+        35.5137
+      ],
+      "items": [
+        "d3e8b5e2-d090-4234-8254-56721f468242"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1631,
+      "width_mm": 0.15,
+      "start_mm": [
+        111.3805,
+        35.5137
+      ],
+      "end_mm": [
+        111.3805,
+        35.6768
+      ]
+    },
+    {
+      "id": "c5717aa236f455f1",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_G7",
+      "layer": "F.Cu",
+      "at_mm": [
+        110.51,
+        35.875
+      ],
+      "items": [
+        "f37c250b-7b64-4fad-8ba6-3787ee524573"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.2803,
+      "width_mm": 0.15,
+      "start_mm": [
+        110.51,
+        35.875
+      ],
+      "end_mm": [
+        110.7082,
+        35.6768
+      ]
+    },
+    {
+      "id": "403ef41c1ec1c76e",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_PCLK",
+      "layer": "F.Cu",
+      "at_mm": [
+        112.6523,
+        37.7417
+      ],
+      "items": [
+        "71c7077c-572d-450a-8e70-9e1c9bc85e63"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.21256,
+      "width_mm": 0.15,
+      "start_mm": [
+        112.6523,
+        37.7417
+      ],
+      "end_mm": [
+        112.8026,
+        37.892
+      ]
+    },
+    {
+      "id": "68402a64e6db593e",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_PCLK",
+      "layer": "B.Cu",
+      "at_mm": [
+        112.8026,
+        37.892
+      ],
+      "items": [
+        "ff9e2ac6-3937-43b1-8b49-af36163fec8d"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.2143,
+      "width_mm": 0.15,
+      "start_mm": [
+        112.8026,
+        37.892
+      ],
+      "end_mm": [
+        112.8026,
+        37.6777
+      ]
+    },
+    {
+      "id": "e178ff678e1d9560",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_PCLK",
+      "layer": "F.Cu",
+      "at_mm": [
+        111.6967,
+        37.7417
+      ],
+      "items": [
+        "41077697-abe6-4f44-9409-07b6366af9ea"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.3034,
+      "width_mm": 0.18,
+      "start_mm": [
+        111.6967,
+        37.7417
+      ],
+      "end_mm": [
+        111.3933,
+        37.7417
+      ]
+    },
+    {
+      "id": "be2d5c56c1591b43",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "LCD_PCLK",
+      "layer": "B.Cu",
+      "at_mm": [
+        120.2277,
+        29.8854
+      ],
+      "items": [
+        "268bfa79-ac19-471c-bf50-8ed610587ef6",
+        "ca68b7b9-51a8-4aa3-9929-62d9e9596d96",
+        "dcb4f863-1b8c-4b41-915c-ca99291cc493"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "363c0f82dae1ecc9",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_PWM",
+      "layer": "B.Cu",
+      "at_mm": [
+        121.2082,
+        34.3287
+      ],
+      "items": [
+        "33ec31f7-e232-4b42-8a3a-78fc0d7d2232"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1959,
+      "width_mm": 0.18,
+      "start_mm": [
+        121.2082,
+        34.3287
+      ],
+      "end_mm": [
+        121.2082,
+        34.1328
+      ]
+    },
+    {
+      "id": "df9e00f0131d0ab4",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_R0",
+      "layer": "F.Cu",
+      "at_mm": [
+        113.896,
+        12.6125
+      ],
+      "items": [
+        "e7f19e3e-c92e-4ce8-8c74-3a4475f918de"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.16,
+      "width_mm": 0.18,
+      "start_mm": [
+        113.896,
+        12.6125
+      ],
+      "end_mm": [
+        113.736,
+        12.6125
+      ]
+    },
+    {
+      "id": "017256fddfdcef76",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "LCD_R0",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        12.25
+      ],
+      "items": [
+        "d0d6579c-4500-4112-8f2b-5069137a56fd",
+        "e7f19e3e-c92e-4ce8-8c74-3a4475f918de",
+        "f9a48420-1497-4040-9eac-a2a809842d24"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "f280cad174c7000a",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_R2",
+      "layer": "F.Cu",
+      "at_mm": [
+        114.0407,
+        13.75
+      ],
+      "items": [
+        "c6e40fb5-a82f-4f67-ba08-b1ef73630725"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.15556,
+      "width_mm": 0.18,
+      "start_mm": [
+        114.0407,
+        13.75
+      ],
+      "end_mm": [
+        113.9307,
+        13.86
+      ]
+    },
+    {
+      "id": "767dbcce47ce21ee",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_R3",
+      "layer": "B.Cu",
+      "at_mm": [
+        120.9193,
+        14.7328
+      ],
+      "items": [
+        "d88af2d2-2050-49d3-b0d1-fea3f045f51c"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.2107,
+      "width_mm": 0.18,
+      "start_mm": [
+        120.9193,
+        14.7328
+      ],
+      "end_mm": [
+        121.13,
+        14.7328
+      ]
+    },
+    {
+      "id": "5f750c9271ad5866",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_R4",
+      "layer": "B.Cu",
+      "at_mm": [
+        114.5185,
+        9.961
+      ],
+      "items": [
+        "b866bdc5-c435-4159-8d97-950749dc60fc"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1715,
+      "width_mm": 0.18,
+      "start_mm": [
+        114.5185,
+        9.961
+      ],
+      "end_mm": [
+        114.69,
+        9.961
+      ]
+    },
+    {
+      "id": "29f767fea636e1a4",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_R5",
+      "layer": "F.Cu",
+      "at_mm": [
+        111.65,
+        11.5147
+      ],
+      "items": [
+        "ae50d00e-1ca5-4a66-ab1c-96e979dbd943"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.3,
+      "width_mm": 0.18,
+      "start_mm": [
+        111.65,
+        11.5147
+      ],
+      "end_mm": [
+        111.95,
+        11.5147
+      ]
+    },
+    {
+      "id": "befdff4da5ded146",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_R5",
+      "layer": "F.Cu",
+      "at_mm": [
+        110.51,
+        10.375
+      ],
+      "items": [
+        "f05891ba-10b9-468b-84c1-1aa60ee1b3c3"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.246,
+      "width_mm": 0.18,
+      "start_mm": [
+        110.51,
+        10.375
+      ],
+      "end_mm": [
+        110.684,
+        10.5489
+      ]
+    },
+    {
+      "id": "148854212b9f5447",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_R6",
+      "layer": "B.Cu",
+      "at_mm": [
+        113.3567,
+        17.0623
+      ],
+      "items": [
+        "138db244-b23a-468b-97e2-24231c0fbbc0"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.25739,
+      "width_mm": 0.18,
+      "start_mm": [
+        113.3567,
+        17.0623
+      ],
+      "end_mm": [
+        113.1747,
+        17.2443
+      ]
+    },
+    {
+      "id": "5c3b6610586d0b10",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_SCL",
+      "layer": "B.Cu",
+      "at_mm": [
+        108.3403,
+        1.132
+      ],
+      "items": [
+        "2833787a-43d8-4014-8f28-7da834cee934"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0152,
+      "width_mm": 0.18,
+      "start_mm": [
+        108.3403,
+        1.132
+      ],
+      "end_mm": [
+        108.3555,
+        1.132
+      ]
+    },
+    {
+      "id": "19fdb98d0e5ce1db",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_SDA",
+      "layer": "F.Cu",
+      "at_mm": [
+        111.0926,
+        35.1845
+      ],
+      "items": [
+        "e8c215f2-6126-4d56-aa01-cd30ad8f7f36"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.084,
+      "width_mm": 0.15,
+      "start_mm": [
+        111.0926,
+        35.1845
+      ],
+      "end_mm": [
+        111.152,
+        35.1251
+      ]
+    },
+    {
+      "id": "3c2746225fac10fd",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_SDA",
+      "layer": "B.Cu",
+      "at_mm": [
+        108.8453,
+        35.1845
+      ],
+      "items": [
+        "82ced8b8-3735-4de5-8bb2-9f59445e63b5"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.25668,
+      "width_mm": 0.15,
+      "start_mm": [
+        108.8453,
+        35.1845
+      ],
+      "end_mm": [
+        109.0268,
+        35.003
+      ]
+    },
+    {
+      "id": "c90ec64e7ef076b1",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_SDA",
+      "layer": "F.Cu",
+      "at_mm": [
+        114.9452,
+        36.3048
+      ],
+      "items": [
+        "5516a407-6b2e-47dd-ac47-559abbf78676"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0775,
+      "width_mm": 0.15,
+      "start_mm": [
+        114.9452,
+        36.3048
+      ],
+      "end_mm": [
+        115.0,
+        36.25
+      ]
+    },
+    {
+      "id": "23d7427a249edf29",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "LCD_SDA",
+      "layer": "F.Cu",
+      "at_mm": [
+        111.152,
+        35.1251
+      ],
+      "items": [
+        "4c4d2ae5-fd3d-4613-95ec-816dbc653a1a",
+        "e8c215f2-6126-4d56-aa01-cd30ad8f7f36",
+        "f017f6c0-9e08-4ffc-8437-873f3510e9f9"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "d698592e3a8af495",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_STANDBY",
+      "layer": "B.Cu",
+      "at_mm": [
+        112.1869,
+        44.1584
+      ],
+      "items": [
+        "83cde4b4-86ad-42d0-a9a8-1f226f63631a"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0444,
+      "width_mm": 0.18,
+      "start_mm": [
+        112.1869,
+        44.1584
+      ],
+      "end_mm": [
+        112.1425,
+        44.1584
+      ]
+    },
+    {
+      "id": "42c06c5c974ded18",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_TFT_RESET_N",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        34.25
+      ],
+      "items": [
+        "18c5bd25-8fe3-4c02-a844-a64689bab690"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.07608,
+      "width_mm": 0.15,
+      "start_mm": [
+        115.0,
+        34.25
+      ],
+      "end_mm": [
+        114.9462,
+        34.1962
+      ]
+    },
+    {
+      "id": "9538fb5cab03648c",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "LCD_TOUCH_INT_N",
+      "layer": "F.Cu",
+      "at_mm": [
+        85.8625,
+        45.2558
+      ],
+      "items": [
+        "110660b8-89af-4cdd-92b3-c4ea56f92f19",
+        "3162e0a5-2f5c-4e02-9e7d-a36b2e3746fa"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "U5.3"
+    },
+    {
+      "id": "316c48b64066435a",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "LCD_TOUCH_INT_N",
+      "layer": "F.Cu",
+      "at_mm": [
+        114.2733,
+        35.25
+      ],
+      "items": [
+        "ea9312e4-b455-48bb-845a-cde930a251de"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.26389,
+      "width_mm": 0.15,
+      "start_mm": [
+        114.2733,
+        35.25
+      ],
+      "end_mm": [
+        114.0867,
+        35.0634
+      ]
+    },
+    {
+      "id": "42fae29330bbcd3a",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "LCD_TOUCH_INT_N",
+      "layer": "F.Cu",
+      "at_mm": [
+        115.0,
+        35.25
+      ],
+      "items": [
+        "5f4be440-9209-4013-95a1-02982f065035",
+        "a5fadd3b-41f6-4a64-9322-27a32e6241b9",
+        "ea9312e4-b455-48bb-845a-cde930a251de"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "8b1ac531323f0966",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "LCD_TOUCH_RESET_N",
+      "layer": "F.Cu",
+      "at_mm": [
+        110.8224,
+        47.0626
+      ],
+      "items": [
+        "290c86f1-d3d3-4ede-aa6d-0d5506cd7692",
+        "fbe1142b-1eb4-4178-904f-8c251a7d8e60"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "R32.2"
+    },
+    {
+      "id": "20db5937f9cd9b1f",
+      "kind": "return_stitch_distance",
+      "severity": "review",
+      "net": "MCU_G2",
+      "layer": "F.Cu",
+      "at_mm": [
+        98.0,
+        29.625
+      ],
+      "items": [
+        "f99940de-9aa9-42b1-afa8-244d9ac7b874"
+      ],
+      "explanation": "Return connection exceeds the 2 mm project review target; inspect fanout and plane continuity.",
+      "distance_mm": 2.4012,
+      "return_at_mm": [
+        99.5,
+        27.75
+      ]
+    },
+    {
+      "id": "b3c73d8a78fde1cd",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_G2",
+      "layer": "F.Cu",
+      "at_mm": [
+        97.7646,
+        29.3896
+      ],
+      "items": [
+        "ba59a4d7-7847-41ae-9d4f-de6e961b8837"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.33291,
+      "width_mm": 0.18,
+      "start_mm": [
+        97.7646,
+        29.3896
+      ],
+      "end_mm": [
+        98.0,
+        29.625
+      ]
+    },
+    {
+      "id": "f548edd396617144",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "MCU_G2",
+      "layer": "F.Cu",
+      "at_mm": [
+        95.0717,
+        29.3896
+      ],
+      "items": [
+        "70a6b551-667a-44de-aa53-029ec67cc190",
+        "ba59a4d7-7847-41ae-9d4f-de6e961b8837",
+        "ec71eb54-e8c7-46cd-b262-4144444f5a52"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "aa2756d2c49edaa9",
+      "kind": "return_stitch_distance",
+      "severity": "review",
+      "net": "MCU_G3",
+      "layer": "F.Cu",
+      "at_mm": [
+        98.0,
+        30.875
+      ],
+      "items": [
+        "1a4d661d-2672-42f5-aa83-bc7c5ca2befa"
+      ],
+      "explanation": "Return connection exceeds the 2 mm project review target; inspect fanout and plane continuity.",
+      "distance_mm": 2.2535,
+      "return_at_mm": [
+        98.75,
+        33.0
+      ]
+    },
+    {
+      "id": "9a1a00f02b0089c0",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_G5",
+      "layer": "F.Cu",
+      "at_mm": [
+        107.4018,
+        36.8734
+      ],
+      "items": [
+        "1e8ffa72-537b-466a-8853-882c65752910"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.09185,
+      "width_mm": 0.18,
+      "start_mm": [
+        107.4018,
+        36.8734
+      ],
+      "end_mm": [
+        107.4668,
+        36.8085
+      ]
+    },
+    {
+      "id": "b0a4b48168af9bce",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_G5",
+      "layer": "B.Cu",
+      "at_mm": [
+        99.5831,
+        36.9435
+      ],
+      "items": [
+        "109ef077-2afc-452b-a922-1e02760d6957"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0614,
+      "width_mm": 0.18,
+      "start_mm": [
+        99.5831,
+        36.9435
+      ],
+      "end_mm": [
+        99.5831,
+        37.0049
+      ]
+    },
+    {
+      "id": "d089a47d53aa669c",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_G5",
+      "layer": "B.Cu",
+      "at_mm": [
+        107.2127,
+        37.0625
+      ],
+      "items": [
+        "f90dd9fa-60c6-4431-bad3-f44ae46f8beb"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.35928,
+      "width_mm": 0.18,
+      "start_mm": [
+        107.2127,
+        37.0625
+      ],
+      "end_mm": [
+        107.4668,
+        36.8085
+      ]
+    },
+    {
+      "id": "bef651ebe5edbf0f",
+      "kind": "return_stitch_distance",
+      "severity": "review",
+      "net": "MCU_G6",
+      "layer": "F.Cu",
+      "at_mm": [
+        93.2943,
+        36.8823
+      ],
+      "items": [
+        "1cf0df95-195b-41d0-9d44-82a66e1a7635"
+      ],
+      "explanation": "Return connection exceeds the 2 mm project review target; inspect fanout and plane continuity.",
+      "distance_mm": 4.087,
+      "return_at_mm": [
+        91.0,
+        33.5
+      ]
+    },
+    {
+      "id": "6b6d8196e64a2aa1",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_G6",
+      "layer": "B.Cu",
+      "at_mm": [
+        98.0,
+        34.625
+      ],
+      "items": [
+        "dbb615fa-7543-4f8a-a7e5-de905bb4172e"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.23603,
+      "width_mm": 0.18,
+      "start_mm": [
+        98.0,
+        34.625
+      ],
+      "end_mm": [
+        97.8331,
+        34.4581
+      ]
+    },
+    {
+      "id": "0a07f43bf70bc292",
+      "kind": "return_stitch_distance",
+      "severity": "review",
+      "net": "MCU_HSYNC",
+      "layer": "F.Cu",
+      "at_mm": [
+        98.0,
+        41.125
+      ],
+      "items": [
+        "ffa38a00-ac36-4fda-93f6-31606c194bb0"
+      ],
+      "explanation": "Return connection exceeds the 2 mm project review target; inspect fanout and plane continuity.",
+      "distance_mm": 2.4012,
+      "return_at_mm": [
+        99.5,
+        39.25
+      ]
+    },
+    {
+      "id": "517d066fedc3216e",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_PANEL_READY",
+      "layer": "F.Cu",
+      "at_mm": [
+        87.0931,
+        37.1944
+      ],
+      "items": [
+        "c40b0206-9df6-45f7-b9eb-da40c236106b"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.11589,
+      "width_mm": 0.18,
+      "start_mm": [
+        87.0931,
+        37.1944
+      ],
+      "end_mm": [
+        87.175,
+        37.2764
+      ]
+    },
+    {
+      "id": "9833a052b14445d3",
+      "kind": "avoidable_detour",
+      "severity": "review",
+      "net": "MCU_R0",
+      "layer": "F.Cu",
+      "at_mm": [
+        96.51999,
+        5.08135
+      ],
+      "items": [
+        "9a49f273-25c7-4602-9f58-5d0fe43f4347",
+        "dcc12d61-92d6-492e-b188-8429c0ba0036"
+      ],
+      "explanation": "A shorter octilinear alternative clears foreign pads/tracks/vias; check edge/zones and return path.",
+      "alternative_mm": [
+        [
+          97.66364,
+          6.225
+        ],
+        [
+          97.53729,
+          6.35135
+        ],
+        [
+          95.24999,
+          6.35135
+        ]
+      ],
+      "saving_mm": 0.9474
+    },
+    {
+      "id": "732834f60a95f63c",
+      "kind": "avoidable_detour",
+      "severity": "review",
+      "net": "MCU_R3",
+      "layer": "F.Cu",
+      "at_mm": [
+        96.51999,
+        12.70135
+      ],
+      "items": [
+        "2f1fc10c-8160-472e-a227-9f7c39833466",
+        "6d5350ba-5291-4b06-9b4b-9a4fc55814e3"
+      ],
+      "explanation": "A shorter octilinear alternative clears foreign pads/tracks/vias; check edge/zones and return path.",
+      "alternative_mm": [
+        [
+          96.51999,
+          12.70135
+        ],
+        [
+          98.325,
+          10.896340000000004
+        ],
+        [
+          98.325,
+          8.775
+        ]
+      ],
+      "saving_mm": 1.0574
+    },
+    {
+      "id": "8e66be446dc766a9",
+      "kind": "avoidable_detour",
+      "severity": "review",
+      "net": "MCU_R4",
+      "layer": "F.Cu",
+      "at_mm": [
+        96.51999,
+        15.24135
+      ],
+      "items": [
+        "08566eff-f9f5-4cfb-a8d3-b634c198abb1",
+        "7980e4d3-1c3e-42b8-ab2c-75114138d961"
+      ],
+      "explanation": "A shorter octilinear alternative clears foreign pads/tracks/vias; check edge/zones and return path.",
+      "alternative_mm": [
+        [
+          96.51999,
+          15.24135
+        ],
+        [
+          98.65,
+          13.111340000000002
+        ],
+        [
+          98.65,
+          9.424999
+        ]
+      ],
+      "saving_mm": 1.2477
+    },
+    {
+      "id": "75dc1c6ec569d3b3",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_SDA",
+      "layer": "F.Cu",
+      "at_mm": [
+        34.968,
+        5.1126
+      ],
+      "items": [
+        "9a5977dc-b472-4d38-add1-c44511f3e8af"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.23688,
+      "width_mm": 0.15,
+      "start_mm": [
+        34.968,
+        5.1126
+      ],
+      "end_mm": [
+        34.8005,
+        4.9451
+      ]
+    },
+    {
+      "id": "8f83593cdd4d9638",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_SDA",
+      "layer": "F.Cu",
+      "at_mm": [
+        34.8005,
+        4.7473
+      ],
+      "items": [
+        "0dd36ed9-6763-47ff-94e6-947aa86c6b12"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.015,
+      "width_mm": 0.18,
+      "start_mm": [
+        34.8005,
+        4.7473
+      ],
+      "end_mm": [
+        34.8005,
+        4.7323
+      ]
+    },
+    {
+      "id": "c549c900f70a7a0c",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_SDA",
+      "layer": "F.Cu",
+      "at_mm": [
+        34.8005,
+        4.9451
+      ],
+      "items": [
+        "bf6ce14a-21f6-4dd8-9865-c1953aa8fe35"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.1978,
+      "width_mm": 0.15,
+      "start_mm": [
+        34.8005,
+        4.9451
+      ],
+      "end_mm": [
+        34.8005,
+        4.7473
+      ]
+    },
+    {
+      "id": "9d0131d3c0097840",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_TOUCH_RESET_N",
+      "layer": "F.Cu",
+      "at_mm": [
+        98.0,
+        47.375
+      ],
+      "items": [
+        "8a61620e-4064-4b20-81f5-e137c7e8b6f0"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.12049,
+      "width_mm": 0.18,
+      "start_mm": [
+        98.0,
+        47.375
+      ],
+      "end_mm": [
+        97.9148,
+        47.2898
+      ]
+    },
+    {
+      "id": "afd928afe90c3a0d",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "MCU_TOUCH_RESET_N",
+      "layer": "B.Cu",
+      "at_mm": [
+        97.7682,
+        47.1432
+      ],
+      "items": [
+        "28f5986c-69bf-4da6-839f-f3feada65684"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.20732,
+      "width_mm": 0.15,
+      "start_mm": [
+        97.7682,
+        47.1432
+      ],
+      "end_mm": [
+        97.9148,
+        47.2898
+      ]
+    },
+    {
+      "id": "66da3ee7d2e617ed",
+      "kind": "return_stitch_distance",
+      "severity": "review",
+      "net": "MCU_VSYNC",
+      "layer": "F.Cu",
+      "at_mm": [
+        98.0,
+        42.375
+      ],
+      "items": [
+        "899f9953-86a9-433d-baaa-70da04958646"
+      ],
+      "explanation": "Return connection exceeds the 2 mm project review target; inspect fanout and plane continuity.",
+      "distance_mm": 3.4664,
+      "return_at_mm": [
+        99.5,
+        39.25
+      ]
+    },
+    {
+      "id": "84dc195b6689bb4a",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "PANEL_READY",
+      "layer": "F.Cu",
+      "at_mm": [
+        87.0625,
+        34.95
+      ],
+      "items": [
+        "a41df118-cb46-49e7-a3c8-50412db85a77"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.26615,
+      "width_mm": 0.15,
+      "start_mm": [
+        87.0625,
+        34.95
+      ],
+      "end_mm": [
+        87.2507,
+        35.1382
+      ]
+    },
+    {
+      "id": "8a6eb5fd7359e61f",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "PANEL_READY",
+      "layer": "F.Cu",
+      "at_mm": [
+        97.6863,
+        46.7381
+      ],
+      "items": [
+        "4afc9723-b464-45c2-8298-b3043abf9c2c"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.10493,
+      "width_mm": 0.15,
+      "start_mm": [
+        97.6863,
+        46.7381
+      ],
+      "end_mm": [
+        97.6121,
+        46.8123
+      ]
+    },
+    {
+      "id": "963736e7e7a5f164",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "PANEL_READY",
+      "layer": "F.Cu",
+      "at_mm": [
+        99.1895,
+        46.9493
+      ],
+      "items": [
+        "e19ce424-3585-405a-a823-d915db124212"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.29868,
+      "width_mm": 0.15,
+      "start_mm": [
+        99.1895,
+        46.9493
+      ],
+      "end_mm": [
+        98.9783,
+        46.7381
+      ]
+    },
+    {
+      "id": "cb78a8ae98a015a7",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "PANEL_READY",
+      "layer": "F.Cu",
+      "at_mm": [
+        99.3761,
+        47.9368
+      ],
+      "items": [
+        "c0dd867c-84b6-420b-a76d-c93177f6ed6a"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.26389,
+      "width_mm": 0.15,
+      "start_mm": [
+        99.3761,
+        47.9368
+      ],
+      "end_mm": [
+        99.1895,
+        47.7502
+      ]
+    },
+    {
+      "id": "81ef894a9f6a2080",
+      "kind": "short_zigzag",
+      "severity": "review",
+      "net": "PANEL_READY",
+      "layer": "F.Cu",
+      "at_mm": [
+        98.9783,
+        46.7381
+      ],
+      "items": [
+        "4afc9723-b464-45c2-8298-b3043abf9c2c",
+        "5fc49154-ee2c-4f0c-a577-9597d02da445",
+        "6103d392-7dc2-454a-af58-babd96b276f8"
+      ],
+      "explanation": "Short direction correction between parallel runs; inspect the entire endpoint-to-endpoint route."
+    },
+    {
+      "id": "32e7313135183fb7",
+      "kind": "pad_edge_touch",
+      "severity": "review",
+      "net": "PWR_ILIM",
+      "layer": "F.Cu",
+      "at_mm": [
+        56.8388,
+        16.175
+      ],
+      "items": [
+        "e392ecb9-b4ce-4165-a848-e1da021030f4",
+        "f567a39a-a77e-4868-8f04-c67f6b3ab312"
+      ],
+      "explanation": "An adjacent track cap overlaps the pad: inspect the complete entry and any redundant stub.",
+      "pad": "R70.1"
+    },
+    {
+      "id": "2e3d723af0f04e2a",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "PWR_OVP",
+      "layer": "B.Cu",
+      "at_mm": [
+        48.9772,
+        15.574
+      ],
+      "items": [
+        "ad6608cf-a497-49af-97bf-30fd28948354"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.151,
+      "width_mm": 0.18,
+      "start_mm": [
+        48.9772,
+        15.574
+      ],
+      "end_mm": [
+        48.8262,
+        15.574
+      ]
+    },
+    {
+      "id": "4e8915e4d9bd3506",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "PWR_OVP",
+      "layer": "F.Cu",
+      "at_mm": [
+        48.8752,
+        15.525
+      ],
+      "items": [
+        "30e6b8a8-1f45-449a-a979-9bd93cbd01cb"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.0693,
+      "width_mm": 0.18,
+      "start_mm": [
+        48.8752,
+        15.525
+      ],
+      "end_mm": [
+        48.8262,
+        15.574
+      ]
+    },
+    {
+      "id": "fa8b4e2f606b6de2",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "PWR_RTN",
+      "layer": "F.Cu",
+      "at_mm": [
+        46.825,
+        17.2
+      ],
+      "items": [
+        "d75efd03-6a41-4c4a-914b-4a0dba35d2d4"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.38891,
+      "width_mm": 0.25,
+      "start_mm": [
+        46.825,
+        17.2
+      ],
+      "end_mm": [
+        47.1,
+        17.475
+      ]
+    },
+    {
+      "id": "38751fa20199e1b4",
+      "kind": "short_segment",
+      "severity": "review",
+      "net": "PWR_UVLO",
+      "layer": "F.Cu",
+      "at_mm": [
+        45.175,
+        17.05
+      ],
+      "items": [
+        "42bee4fe-b69f-4a68-a4f8-9af25f1a8f25"
+      ],
+      "explanation": "Check for a corrective micro-jog; a centred pad escape can be legitimate.",
+      "length_mm": 0.15,
+      "width_mm": 0.18,
+      "start_mm": [
+        45.175,
+        17.05
+      ],
+      "end_mm": [
+        45.175,
+        17.2
+      ]
+    }
+  ],
+  "limitations": "Not visual sign-off, signal-integrity proof or a substitute for fresh-fill KiCad DRC. All findings require resolution."
+}

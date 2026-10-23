@@ -1,0 +1,1312 @@
+{
+  "source_sha256": "63f1451935c82d4ebbecc30402c32a7b9d686e32794771acce56aeda02ed0d1e",
+  "plane_area_mm2": {
+    "F.Cu": 2497.71,
+    "In1.Cu": 3396.1,
+    "In2.Cu": 3396.1,
+    "B.Cu": 2628.42
+  },
+  "reference_layers": {
+    "F.Cu": "In1.Cu",
+    "B.Cu": "In2.Cu"
+  },
+  "continuous_inner_planes": true,
+  "ground_connections": 105,
+  "transitions": [
+    {
+      "uuid": "1be0a4d5-b4af-4ab0-8ee5-2c74d9707f3e",
+      "net": "MCU_B3",
+      "at_mm": [
+        92.0,
+        12.70135
+      ],
+      "return_at_mm": [
+        92.5,
+        12.0
+      ],
+      "distance_mm": 0.8613
+    },
+    {
+      "uuid": "adecb437-521c-4e39-b7fa-a57598df121e",
+      "net": "MCU_B3",
+      "at_mm": [
+        102.75,
+        19.675
+      ],
+      "return_at_mm": [
+        103.25,
+        20.25
+      ],
+      "distance_mm": 0.762
+    },
+    {
+      "uuid": "5a0ce929-04dd-4054-8e06-ecc004136036",
+      "net": "LCD_R2",
+      "at_mm": [
+        113.9307,
+        13.86
+      ],
+      "return_at_mm": [
+        113.95,
+        14.75
+      ],
+      "distance_mm": 0.8902
+    },
+    {
+      "uuid": "6a28234a-2bce-41c5-8695-94c782ebb00a",
+      "net": "LCD_R2",
+      "at_mm": [
+        111.907,
+        7.0814
+      ],
+      "return_at_mm": [
+        113.5,
+        7.25
+      ],
+      "distance_mm": 1.6019
+    },
+    {
+      "uuid": "1c203975-106f-4ce4-afff-7efc61b84136",
+      "net": "MCU_PCLK",
+      "at_mm": [
+        102.389,
+        35.9575
+      ],
+      "return_at_mm": [
+        102.538,
+        34.425
+      ],
+      "distance_mm": 1.5397
+    },
+    {
+      "uuid": "6179b80d-8598-41a9-88fd-0577cac25987",
+      "net": "MCU_PCLK",
+      "at_mm": [
+        102.4149,
+        40.725
+      ],
+      "return_at_mm": [
+        104.25,
+        41.0
+      ],
+      "distance_mm": 1.8556
+    },
+    {
+      "uuid": "cdd158d9-1774-4ae2-a5b9-50711f114b2a",
+      "net": "MCU_PCLK",
+      "at_mm": [
+        98.0,
+        38.625
+      ],
+      "return_at_mm": [
+        98.0,
+        37.75
+      ],
+      "distance_mm": 0.875
+    },
+    {
+      "uuid": "4e58f512-85ff-41a1-a28f-892d9f6fc4ab",
+      "net": "MCU_DE",
+      "at_mm": [
+        98.0,
+        39.875
+      ],
+      "return_at_mm": [
+        99.5,
+        39.25
+      ],
+      "distance_mm": 1.625
+    },
+    {
+      "uuid": "97f4b089-e809-40dd-9d34-c058561c08d8",
+      "net": "MCU_DE",
+      "at_mm": [
+        102.9089,
+        41.375
+      ],
+      "return_at_mm": [
+        104.15,
+        42.0
+      ],
+      "distance_mm": 1.3896
+    },
+    {
+      "uuid": "ee0e629f-d15b-429d-ba7c-b81aa488272f",
+      "net": "MCU_HSYNC",
+      "at_mm": [
+        102.4149,
+        42.025
+      ],
+      "return_at_mm": [
+        104.15,
+        42.0
+      ],
+      "distance_mm": 1.7353
+    },
+    {
+      "uuid": "ffa38a00-ac36-4fda-93f6-31606c194bb0",
+      "net": "MCU_HSYNC",
+      "at_mm": [
+        98.0,
+        41.125
+      ],
+      "return_at_mm": [
+        99.5,
+        39.25
+      ],
+      "distance_mm": 2.4012
+    },
+    {
+      "uuid": "3eb8f11f-0b6c-4d40-8563-159a0690afdd",
+      "net": "MCU_VSYNC",
+      "at_mm": [
+        92.1315,
+        34.4779
+      ],
+      "return_at_mm": [
+        91.0,
+        33.5
+      ],
+      "distance_mm": 1.4955
+    },
+    {
+      "uuid": "899f9953-86a9-433d-baaa-70da04958646",
+      "net": "MCU_VSYNC",
+      "at_mm": [
+        98.0,
+        42.375
+      ],
+      "return_at_mm": [
+        99.5,
+        39.25
+      ],
+      "distance_mm": 3.4664
+    },
+    {
+      "uuid": "b8ecb4bb-b1c0-440b-b447-263d89382e03",
+      "net": "MCU_VSYNC",
+      "at_mm": [
+        102.9853,
+        42.675
+      ],
+      "return_at_mm": [
+        104.0,
+        43.5
+      ],
+      "distance_mm": 1.3078
+    },
+    {
+      "uuid": "69cb90c7-0004-4c40-86e4-6158ead636d7",
+      "net": "BUF_PCLK",
+      "at_mm": [
+        105.577,
+        41.5404
+      ],
+      "return_at_mm": [
+        104.25,
+        41.0
+      ],
+      "distance_mm": 1.4328
+    },
+    {
+      "uuid": "ec41547c-e662-41af-9285-a6db957b25b1",
+      "net": "BUF_PCLK",
+      "at_mm": [
+        109.8473,
+        37.8247
+      ],
+      "return_at_mm": [
+        109.0,
+        37.75
+      ],
+      "distance_mm": 0.8506
+    },
+    {
+      "uuid": "62085479-cccf-400b-bde4-a545e344a84b",
+      "net": "LCD_B3",
+      "at_mm": [
+        121.245,
+        20.1979
+      ],
+      "return_at_mm": [
+        121.25,
+        19.25
+      ],
+      "distance_mm": 0.9479
+    },
+    {
+      "uuid": "d6bf3ebf-0575-4df7-8e90-93832e375e33",
+      "net": "LCD_B3",
+      "at_mm": [
+        111.266,
+        19.6349
+      ],
+      "return_at_mm": [
+        113.05,
+        19.25
+      ],
+      "distance_mm": 1.825
+    },
+    {
+      "uuid": "94a81b17-867f-4d67-a576-d987e17e6ffa",
+      "net": "LCD_G2",
+      "at_mm": [
+        111.924,
+        26.1793
+      ],
+      "return_at_mm": [
+        113.05,
+        25.25
+      ],
+      "distance_mm": 1.46
+    },
+    {
+      "uuid": "ba4ca454-edec-4806-a007-dc803a0b0325",
+      "net": "LCD_G2",
+      "at_mm": [
+        111.711,
+        29.1506
+      ],
+      "return_at_mm": [
+        113.0,
+        29.1
+      ],
+      "distance_mm": 1.29
+    },
+    {
+      "uuid": "0c232510-405f-43ae-ae84-816f232617f4",
+      "net": "BUF_G0",
+      "at_mm": [
+        105.75,
+        29.9
+      ],
+      "return_at_mm": [
+        105.5,
+        28.25
+      ],
+      "distance_mm": 1.6688
+    },
+    {
+      "uuid": "f229b763-4d3e-434c-89c6-525c79921478",
+      "net": "BUF_G0",
+      "at_mm": [
+        108.475,
+        27.125
+      ],
+      "return_at_mm": [
+        107.775,
+        26.15
+      ],
+      "distance_mm": 1.2003
+    },
+    {
+      "uuid": "137f75bb-f053-495e-9838-e65f98ab3e2e",
+      "net": "MCU_G0",
+      "at_mm": [
+        102.4149,
+        29.225
+      ],
+      "return_at_mm": [
+        103.35,
+        30.5
+      ],
+      "distance_mm": 1.5812
+    },
+    {
+      "uuid": "76e6d7bd-6da5-4cfd-b177-86c3c58a38fb",
+      "net": "MCU_G0",
+      "at_mm": [
+        98.0,
+        27.125
+      ],
+      "return_at_mm": [
+        99.5,
+        27.75
+      ],
+      "distance_mm": 1.625
+    },
+    {
+      "uuid": "6053b990-3af0-45f9-b0e6-4a84426e8739",
+      "net": "MCU_B6",
+      "at_mm": [
+        102.4,
+        21.625
+      ],
+      "return_at_mm": [
+        102.5,
+        23.0
+      ],
+      "distance_mm": 1.3786
+    },
+    {
+      "uuid": "9455064c-1d15-449c-9a14-abe8588f9dc7",
+      "net": "MCU_B6",
+      "at_mm": [
+        92.0,
+        20.32135
+      ],
+      "return_at_mm": [
+        92.5,
+        22.25
+      ],
+      "distance_mm": 1.9924
+    },
+    {
+      "uuid": "7cd8cd02-cbd9-49a3-8d10-02a876a8ec56",
+      "net": "BUF_G7",
+      "at_mm": [
+        108.12,
+        34.425
+      ],
+      "return_at_mm": [
+        106.862,
+        35.875
+      ],
+      "distance_mm": 1.9197
+    },
+    {
+      "uuid": "864d8bb7-5caf-46a4-b637-e2c9253be295",
+      "net": "BUF_G7",
+      "at_mm": [
+        108.363,
+        36.3325
+      ],
+      "return_at_mm": [
+        107.775,
+        37.65
+      ],
+      "distance_mm": 1.4428
+    },
+    {
+      "uuid": "34113be7-5cb1-496f-ab41-a5e8ba2c0c20",
+      "net": "LCD_G7",
+      "at_mm": [
+        111.3805,
+        35.6768
+      ],
+      "return_at_mm": [
+        112.0,
+        34.0
+      ],
+      "distance_mm": 1.7876
+    },
+    {
+      "uuid": "cfb4d3ac-86fd-4770-b959-d7f2c6be4c1a",
+      "net": "LCD_G7",
+      "at_mm": [
+        121.1324,
+        27.9036
+      ],
+      "return_at_mm": [
+        121.35,
+        26.05
+      ],
+      "distance_mm": 1.8663
+    },
+    {
+      "uuid": "0da5a826-b6ef-43d5-babd-534922818de7",
+      "net": "MCU_B4",
+      "at_mm": [
+        92.0,
+        15.24135
+      ],
+      "return_at_mm": [
+        90.25,
+        15.25
+      ],
+      "distance_mm": 1.75
+    },
+    {
+      "uuid": "9c6b0989-c949-4dc7-9262-982932441213",
+      "net": "MCU_B4",
+      "at_mm": [
+        102.4,
+        20.325
+      ],
+      "return_at_mm": [
+        103.25,
+        20.25
+      ],
+      "distance_mm": 0.8533
+    },
+    {
+      "uuid": "13190190-ea6e-41cf-83fb-0f7ab186e350",
+      "net": "LCD_HSYNC",
+      "at_mm": [
+        112.1683,
+        40.4028
+      ],
+      "return_at_mm": [
+        113.05,
+        40.25
+      ],
+      "distance_mm": 0.8948
+    },
+    {
+      "uuid": "a10aa962-1219-4a7c-89d5-8dbfc6f433c6",
+      "net": "LCD_HSYNC",
+      "at_mm": [
+        121.1271,
+        29.7846
+      ],
+      "return_at_mm": [
+        121.25,
+        30.75
+      ],
+      "distance_mm": 0.9732
+    },
+    {
+      "uuid": "85f8ae62-8a28-4f95-94d0-bfae33d82c81",
+      "net": "LCD_PCLK",
+      "at_mm": [
+        121.1389,
+        28.9742
+      ],
+      "return_at_mm": [
+        121.25,
+        30.75
+      ],
+      "distance_mm": 1.7793
+    },
+    {
+      "uuid": "d067a173-ef5a-4a7d-84fa-3089fa8c2d89",
+      "net": "LCD_PCLK",
+      "at_mm": [
+        112.8026,
+        37.892
+      ],
+      "return_at_mm": [
+        113.95,
+        37.75
+      ],
+      "distance_mm": 1.1562
+    },
+    {
+      "uuid": "904c7530-fe63-4b05-bf9f-2b17b97fa6f8",
+      "net": "MCU_G7",
+      "at_mm": [
+        103.0302,
+        33.775
+      ],
+      "return_at_mm": [
+        102.538,
+        34.425
+      ],
+      "distance_mm": 0.8153
+    },
+    {
+      "uuid": "d01751cc-5ead-4e77-894b-b6326740227a",
+      "net": "MCU_G7",
+      "at_mm": [
+        98.0,
+        35.875
+      ],
+      "return_at_mm": [
+        98.0,
+        37.75
+      ],
+      "distance_mm": 1.875
+    },
+    {
+      "uuid": "86ea5437-09e8-44d3-9aa5-568107540db4",
+      "net": "MCU_B0",
+      "at_mm": [
+        92.0,
+        5.08135
+      ],
+      "return_at_mm": [
+        92.5,
+        7.0
+      ],
+      "distance_mm": 1.9827
+    },
+    {
+      "uuid": "b408f7f4-7c37-4272-a9c1-14105bdc7a74",
+      "net": "MCU_B0",
+      "at_mm": [
+        102.4,
+        17.725
+      ],
+      "return_at_mm": [
+        103.75,
+        18.0
+      ],
+      "distance_mm": 1.3777
+    },
+    {
+      "uuid": "09d4d08f-febf-4f53-9a1d-ab65d924fae1",
+      "net": "MCU_B1",
+      "at_mm": [
+        92.0,
+        7.62135
+      ],
+      "return_at_mm": [
+        92.5,
+        7.0
+      ],
+      "distance_mm": 0.7975
+    },
+    {
+      "uuid": "a2f291f7-fa04-4f77-b8b5-6465ca2c9766",
+      "net": "MCU_B1",
+      "at_mm": [
+        102.75,
+        18.375
+      ],
+      "return_at_mm": [
+        103.75,
+        18.0
+      ],
+      "distance_mm": 1.068
+    },
+    {
+      "uuid": "7b8caf08-1761-40fe-b939-f6f5984a8a12",
+      "net": "MCU_B2",
+      "at_mm": [
+        102.4,
+        19.025
+      ],
+      "return_at_mm": [
+        103.25,
+        20.25
+      ],
+      "distance_mm": 1.491
+    },
+    {
+      "uuid": "fe89b434-446d-4574-86d4-661e08f316ee",
+      "net": "MCU_B2",
+      "at_mm": [
+        92.0,
+        10.161349
+      ],
+      "return_at_mm": [
+        92.5,
+        12.0
+      ],
+      "distance_mm": 1.9054
+    },
+    {
+      "uuid": "47e85831-9658-4ea0-8ef8-43fd13c1bc8b",
+      "net": "MCU_B5",
+      "at_mm": [
+        102.75,
+        20.975
+      ],
+      "return_at_mm": [
+        103.25,
+        20.25
+      ],
+      "distance_mm": 0.8807
+    },
+    {
+      "uuid": "771e687d-568a-4cd5-9465-652a5e371554",
+      "net": "MCU_B5",
+      "at_mm": [
+        92.0,
+        17.78135
+      ],
+      "return_at_mm": [
+        90.25,
+        17.75
+      ],
+      "distance_mm": 1.7503
+    },
+    {
+      "uuid": "15ec1d4c-9aa7-49e2-9ce3-7dfcea846383",
+      "net": "MCU_B7",
+      "at_mm": [
+        92.0,
+        22.86135
+      ],
+      "return_at_mm": [
+        92.5,
+        22.25
+      ],
+      "distance_mm": 0.7898
+    },
+    {
+      "uuid": "99596a45-2e97-4a84-a23a-26ecf4c8fbc5",
+      "net": "MCU_B7",
+      "at_mm": [
+        102.75,
+        22.275
+      ],
+      "return_at_mm": [
+        102.5,
+        23.0
+      ],
+      "distance_mm": 0.7669
+    },
+    {
+      "uuid": "91e78912-7770-4eb2-8073-cb94d54b73fc",
+      "net": "BUF_B0",
+      "at_mm": [
+        108.1473,
+        16.119
+      ],
+      "return_at_mm": [
+        107.775,
+        14.65
+      ],
+      "distance_mm": 1.5154
+    },
+    {
+      "uuid": "de6401ba-46a5-4e21-af43-66d7e4124535",
+      "net": "BUF_B0",
+      "at_mm": [
+        105.589,
+        18.6773
+      ],
+      "return_at_mm": [
+        103.75,
+        18.0
+      ],
+      "distance_mm": 1.9598
+    },
+    {
+      "uuid": "2e0a3bea-a169-4fdd-9ae1-c0917bb2d2ad",
+      "net": "LCD_R0",
+      "at_mm": [
+        113.736,
+        12.6125
+      ],
+      "return_at_mm": [
+        113.95,
+        11.75
+      ],
+      "distance_mm": 0.8887
+    },
+    {
+      "uuid": "3d5aa42f-3636-484d-bdc4-2064bb6aff78",
+      "net": "LCD_R0",
+      "at_mm": [
+        111.2875,
+        3.7349
+      ],
+      "return_at_mm": [
+        112.25,
+        3.0
+      ],
+      "distance_mm": 1.211
+    },
+    {
+      "uuid": "77fe6228-03be-4f49-9814-80dc1bdfeab9",
+      "net": "BUF_R1",
+      "at_mm": [
+        109.5961,
+        3.1741
+      ],
+      "return_at_mm": [
+        107.775,
+        3.15
+      ],
+      "distance_mm": 1.8213
+    },
+    {
+      "uuid": "f8515dce-3157-4f4e-81f2-b9658876f6e3",
+      "net": "BUF_R1",
+      "at_mm": [
+        108.3514,
+        7.5112
+      ],
+      "return_at_mm": [
+        108.262,
+        6.225
+      ],
+      "distance_mm": 1.2893
+    },
+    {
+      "uuid": "dbd7b421-4622-4dda-bb44-956dcb2e3d04",
+      "net": "LCD_R4",
+      "at_mm": [
+        114.5185,
+        9.961
+      ],
+      "return_at_mm": [
+        113.95,
+        11.75
+      ],
+      "distance_mm": 1.8772
+    },
+    {
+      "uuid": "ed85ba06-2406-4dc2-bfc8-40b348ad6a81",
+      "net": "LCD_R4",
+      "at_mm": [
+        121.245,
+        16.5157
+      ],
+      "return_at_mm": [
+        121.25,
+        15.7
+      ],
+      "distance_mm": 0.8157
+    },
+    {
+      "uuid": "03f1dc2c-c92b-4b96-966a-cdc619813cca",
+      "net": "LCD_B2",
+      "at_mm": [
+        112.927,
+        20.7329
+      ],
+      "return_at_mm": [
+        113.95,
+        20.75
+      ],
+      "distance_mm": 1.0231
+    },
+    {
+      "uuid": "21f606ce-464c-4217-8aba-09e12e7792c3",
+      "net": "LCD_B2",
+      "at_mm": [
+        111.93,
+        18.5491
+      ],
+      "return_at_mm": [
+        113.05,
+        19.25
+      ],
+      "distance_mm": 1.3212
+    },
+    {
+      "uuid": "3d464591-7222-4dfd-8e0a-c6fbb11845a2",
+      "net": "LCD_VSYNC",
+      "at_mm": [
+        112.829,
+        41.6824
+      ],
+      "return_at_mm": [
+        113.05,
+        40.25
+      ],
+      "distance_mm": 1.4493
+    },
+    {
+      "uuid": "45584cef-da01-4394-bc5c-0266f1ade986",
+      "net": "LCD_VSYNC",
+      "at_mm": [
+        121.298,
+        32.25
+      ],
+      "return_at_mm": [
+        121.25,
+        30.75
+      ],
+      "distance_mm": 1.5008
+    },
+    {
+      "uuid": "39d19de4-0603-4fbd-95fa-2eb3b63f29d6",
+      "net": "LCD_DE",
+      "at_mm": [
+        111.4863,
+        31.2816
+      ],
+      "return_at_mm": [
+        113.95,
+        30.75
+      ],
+      "distance_mm": 2.5204
+    },
+    {
+      "uuid": "77ddae77-cb4f-41c8-818e-a0c1d6fad5ef",
+      "net": "LCD_DE",
+      "at_mm": [
+        113.9434,
+        31.5799
+      ],
+      "return_at_mm": [
+        113.95,
+        30.75
+      ],
+      "distance_mm": 0.8299
+    },
+    {
+      "uuid": "8d663f43-dddf-4014-a7ab-f3990335e823",
+      "net": "LCD_DE",
+      "at_mm": [
+        112.8012,
+        31.2816
+      ],
+      "return_at_mm": [
+        113.95,
+        30.75
+      ],
+      "distance_mm": 1.2658
+    },
+    {
+      "uuid": "b1ee8007-eb01-400d-b5a8-19cfd3acf54a",
+      "net": "LCD_DE",
+      "at_mm": [
+        108.7246,
+        39.7761
+      ],
+      "return_at_mm": [
+        108.262,
+        40.725
+      ],
+      "distance_mm": 1.0557
+    },
+    {
+      "uuid": "331024aa-8c5b-4b5e-a15d-2f63c3f4820e",
+      "net": "LCD_G5",
+      "at_mm": [
+        111.4023,
+        32.9444
+      ],
+      "return_at_mm": [
+        112.0,
+        34.0
+      ],
+      "distance_mm": 1.2131
+    },
+    {
+      "uuid": "39ed7e6c-7919-4c45-91e4-77f2695f06c1",
+      "net": "LCD_G5",
+      "at_mm": [
+        121.1268,
+        26.7877
+      ],
+      "return_at_mm": [
+        121.35,
+        26.05
+      ],
+      "distance_mm": 0.7707
+    },
+    {
+      "uuid": "b3857f57-30b1-4cb9-a5d8-4116bba2b5bc",
+      "net": "LCD_G4",
+      "at_mm": [
+        112.039,
+        32.125
+      ],
+      "return_at_mm": [
+        112.0,
+        34.0
+      ],
+      "distance_mm": 1.8754
+    },
+    {
+      "uuid": "f2864faa-5e16-4d02-969f-da3fc2d1a6e0",
+      "net": "LCD_G4",
+      "at_mm": [
+        112.487,
+        27.3048
+      ],
+      "return_at_mm": [
+        113.05,
+        28.25
+      ],
+      "distance_mm": 1.1002
+    },
+    {
+      "uuid": "4f93dcdd-be75-43ae-a95d-a07f8c707ba2",
+      "net": "LCD_G3",
+      "at_mm": [
+        111.893,
+        30.2314
+      ],
+      "return_at_mm": [
+        113.0,
+        29.1
+      ],
+      "distance_mm": 1.5829
+    },
+    {
+      "uuid": "bb3e6845-f2f0-495c-a623-7a5b754f0bd6",
+      "net": "LCD_G3",
+      "at_mm": [
+        113.025,
+        26.5543
+      ],
+      "return_at_mm": [
+        113.95,
+        26.75
+      ],
+      "distance_mm": 0.9455
+    },
+    {
+      "uuid": "bf76f4bb-9343-459f-9ae5-1ea296ed921a",
+      "net": "LCD_G1",
+      "at_mm": [
+        121.245,
+        23.4337
+      ],
+      "return_at_mm": [
+        121.25,
+        25.25
+      ],
+      "distance_mm": 1.8163
+    },
+    {
+      "uuid": "efee3046-0cbc-48f2-8285-aea6807db50a",
+      "net": "LCD_G1",
+      "at_mm": [
+        110.7683,
+        25.7141
+      ],
+      "return_at_mm": [
+        111.15,
+        23.8
+      ],
+      "distance_mm": 1.9518
+    },
+    {
+      "uuid": "6e066f1a-14cc-416f-8107-69a23af9b65b",
+      "net": "LCD_R7",
+      "at_mm": [
+        121.128,
+        17.7478
+      ],
+      "return_at_mm": [
+        121.25,
+        19.25
+      ],
+      "distance_mm": 1.5071
+    },
+    {
+      "uuid": "fd8360ee-df0d-4acf-a05b-d0714c80ca9c",
+      "net": "LCD_R7",
+      "at_mm": [
+        112.179,
+        13.9988
+      ],
+      "return_at_mm": [
+        113.05,
+        13.25
+      ],
+      "distance_mm": 1.1486
+    },
+    {
+      "uuid": "2eb1c3bb-6584-424a-aecb-59b1b085eae7",
+      "net": "LCD_R6",
+      "at_mm": [
+        111.1105,
+        12.2256
+      ],
+      "return_at_mm": [
+        110.75,
+        14.0
+      ],
+      "distance_mm": 1.8107
+    },
+    {
+      "uuid": "b7d77652-ef0e-4598-8c04-df96d3d8b732",
+      "net": "LCD_R6",
+      "at_mm": [
+        113.3567,
+        17.0623
+      ],
+      "return_at_mm": [
+        113.05,
+        16.25
+      ],
+      "distance_mm": 0.8683
+    },
+    {
+      "uuid": "6a45fb14-b6f3-43b6-a2cb-46e1cb655c55",
+      "net": "LCD_R3",
+      "at_mm": [
+        121.13,
+        14.7328
+      ],
+      "return_at_mm": [
+        121.25,
+        15.7
+      ],
+      "distance_mm": 0.9746
+    },
+    {
+      "uuid": "e85be995-ef55-47cb-bafd-dd8ace07edf1",
+      "net": "LCD_R3",
+      "at_mm": [
+        114.0615,
+        7.875
+      ],
+      "return_at_mm": [
+        113.5,
+        7.25
+      ],
+      "distance_mm": 0.8402
+    },
+    {
+      "uuid": "9c7bda59-53f2-469d-8dbf-6522806949c9",
+      "net": "LCD_R1",
+      "at_mm": [
+        121.245,
+        13.7263
+      ],
+      "return_at_mm": [
+        121.25,
+        15.7
+      ],
+      "distance_mm": 1.9737
+    },
+    {
+      "uuid": "a7e61731-db80-43f6-986b-4f071cc1b5fd",
+      "net": "LCD_R1",
+      "at_mm": [
+        117.42,
+        7.0059
+      ],
+      "return_at_mm": [
+        117.75,
+        6.25
+      ],
+      "distance_mm": 0.8248
+    },
+    {
+      "uuid": "12bce4ca-9886-4c63-b84a-517365a14842",
+      "net": "MCU_G1",
+      "at_mm": [
+        98.0,
+        28.375
+      ],
+      "return_at_mm": [
+        99.5,
+        27.75
+      ],
+      "distance_mm": 1.625
+    },
+    {
+      "uuid": "9014bc48-ceed-435f-ae25-bfc8cf928771",
+      "net": "MCU_G1",
+      "at_mm": [
+        102.9089,
+        29.875
+      ],
+      "return_at_mm": [
+        103.35,
+        30.5
+      ],
+      "distance_mm": 0.765
+    },
+    {
+      "uuid": "1132f6c9-f03e-4756-b116-263192dddfda",
+      "net": "MCU_G2",
+      "at_mm": [
+        102.4149,
+        30.525
+      ],
+      "return_at_mm": [
+        103.35,
+        30.5
+      ],
+      "distance_mm": 0.9354
+    },
+    {
+      "uuid": "f99940de-9aa9-42b1-afa8-244d9ac7b874",
+      "net": "MCU_G2",
+      "at_mm": [
+        98.0,
+        29.625
+      ],
+      "return_at_mm": [
+        99.5,
+        27.75
+      ],
+      "distance_mm": 2.4012
+    },
+    {
+      "uuid": "1a4d661d-2672-42f5-aa83-bc7c5ca2befa",
+      "net": "MCU_G3",
+      "at_mm": [
+        98.0,
+        30.875
+      ],
+      "return_at_mm": [
+        98.75,
+        33.0
+      ],
+      "distance_mm": 2.2535
+    },
+    {
+      "uuid": "edbf1ce4-2fb6-4c3f-89b8-c4f2452e089b",
+      "net": "MCU_G3",
+      "at_mm": [
+        102.9089,
+        31.175
+      ],
+      "return_at_mm": [
+        103.35,
+        30.5
+      ],
+      "distance_mm": 0.8063
+    },
+    {
+      "uuid": "59cf1a15-d2b5-4c7e-bbac-103ff9ea6c47",
+      "net": "MCU_G4",
+      "at_mm": [
+        98.0,
+        32.125
+      ],
+      "return_at_mm": [
+        98.75,
+        33.0
+      ],
+      "distance_mm": 1.1524
+    },
+    {
+      "uuid": "cfc766d4-b782-4214-9f9c-4a4d1c3cc274",
+      "net": "MCU_G4",
+      "at_mm": [
+        102.4149,
+        31.825
+      ],
+      "return_at_mm": [
+        103.35,
+        30.5
+      ],
+      "distance_mm": 1.6217
+    },
+    {
+      "uuid": "5f2af6d4-4f37-4dde-8a20-d56c512d6d2c",
+      "net": "MCU_G5",
+      "at_mm": [
+        103.3,
+        32.475
+      ],
+      "return_at_mm": [
+        103.35,
+        30.5
+      ],
+      "distance_mm": 1.9756
+    },
+    {
+      "uuid": "add7b9c8-205c-4430-971a-1d0d18a1cb32",
+      "net": "MCU_G5",
+      "at_mm": [
+        107.4668,
+        36.8085
+      ],
+      "return_at_mm": [
+        107.775,
+        37.65
+      ],
+      "distance_mm": 0.8962
+    },
+    {
+      "uuid": "1cf0df95-195b-41d0-9d44-82a66e1a7635",
+      "net": "MCU_G6",
+      "at_mm": [
+        93.2943,
+        36.8823
+      ],
+      "return_at_mm": [
+        91.0,
+        33.5
+      ],
+      "distance_mm": 4.087
+    },
+    {
+      "uuid": "6bb86361-1590-44ba-b61c-c1ca6d6e4f22",
+      "net": "MCU_G6",
+      "at_mm": [
+        98.0,
+        34.625
+      ],
+      "return_at_mm": [
+        98.75,
+        33.0
+      ],
+      "distance_mm": 1.7897
+    },
+    {
+      "uuid": "faf26abc-1598-4f53-8f76-36a4f1eaec2c",
+      "net": "MCU_G6",
+      "at_mm": [
+        102.4149,
+        33.125
+      ],
+      "return_at_mm": [
+        102.538,
+        34.425
+      ],
+      "distance_mm": 1.3058
+    }
+  ],
+  "maximum_transition_return_distance_mm": 4.087,
+  "transition_review_target_mm": 2,
+  "transitions_requiring_dense_fanout_review": [
+    {
+      "uuid": "ffa38a00-ac36-4fda-93f6-31606c194bb0",
+      "net": "MCU_HSYNC",
+      "at_mm": [
+        98.0,
+        41.125
+      ],
+      "return_at_mm": [
+        99.5,
+        39.25
+      ],
+      "distance_mm": 2.4012
+    },
+    {
+      "uuid": "899f9953-86a9-433d-baaa-70da04958646",
+      "net": "MCU_VSYNC",
+      "at_mm": [
+        98.0,
+        42.375
+      ],
+      "return_at_mm": [
+        99.5,
+        39.25
+      ],
+      "distance_mm": 3.4664
+    },
+    {
+      "uuid": "39d19de4-0603-4fbd-95fa-2eb3b63f29d6",
+      "net": "LCD_DE",
+      "at_mm": [
+        111.4863,
+        31.2816
+      ],
+      "return_at_mm": [
+        113.95,
+        30.75
+      ],
+      "distance_mm": 2.5204
+    },
+    {
+      "uuid": "f99940de-9aa9-42b1-afa8-244d9ac7b874",
+      "net": "MCU_G2",
+      "at_mm": [
+        98.0,
+        29.625
+      ],
+      "return_at_mm": [
+        99.5,
+        27.75
+      ],
+      "distance_mm": 2.4012
+    },
+    {
+      "uuid": "1a4d661d-2672-42f5-aa83-bc7c5ca2befa",
+      "net": "MCU_G3",
+      "at_mm": [
+        98.0,
+        30.875
+      ],
+      "return_at_mm": [
+        98.75,
+        33.0
+      ],
+      "distance_mm": 2.2535
+    },
+    {
+      "uuid": "1cf0df95-195b-41d0-9d44-82a66e1a7635",
+      "net": "MCU_G6",
+      "at_mm": [
+        93.2943,
+        36.8823
+      ],
+      "return_at_mm": [
+        91.0,
+        33.5
+      ],
+      "distance_mm": 4.087
+    }
+  ],
+  "maximum_nonlaunch_reference_gap_mm": 0.0,
+  "reference_gap_candidates": [],
+  "sample_spacing_mm": 0.05,
+  "qualification": "Geometry only. Distance targets identify inspection candidates; they are not manufacturing waivers or a measured signal-integrity guarantee."
+}

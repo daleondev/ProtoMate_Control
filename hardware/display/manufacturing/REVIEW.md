@@ -123,9 +123,26 @@ frames during the early startup interval cannot turn the backlight on.
 The final independent order review is recorded in
 [`order-review.json`](verification/order-review.json). It binds the checks to the
 two exact ODB++ archives and lists the remaining physical/procurement conditions.
-Release remains on hold until the current digital checks and complete visual
-atlas pass. Local acceptance does not certify an assembled system or replace
-AISLER's processed preview.
+Digital checks and the complete visual atlas pass for these frozen sources.
+The display record covers **168 regions** and **210 individual geometry
+candidates**; the GIGA record covers **344 regions** and **141 candidates**.
+The candidates are retained features with individual reasons, not unresolved
+DRC violations. Each record binds the inspected images, source, rules, tooling
+and exports by SHA-256. Exact duplicate images share inspection evidence only
+where the image hash and checklist are identical; their notes identify the
+original reviewed region. The final whole-board passes cover the frozen exports.
+
+The geometry/review fixture suite passes **26 tests**, including intentional
+defects, legitimate escapes and power/thermal connections, displaced track
+junctions, unsigned review rejection and changed-export rejection. It supports
+the visual inspection; it does not replace it. See the
+[display record](verification/display-adapter-visual/review.json) and
+[GIGA record](verification/giga-adapter-visual/review.json), with adjacent images
+and coverage inventories.
+
+Local acceptance does not certify an assembled system or replace AISLER's
+processed preview. Both inner layers contain ground planes rather than signal
+tracks; they remain necessary parts of the selected reference-plane architecture.
 
 ## Assembly and first-board acceptance
 
@@ -159,9 +176,9 @@ supervision to conceal an inadequate supply. Smartwin gives typical backlight
 current, not a guaranteed maximum. All four contacts must stay within their
 individual 0.3 A ratings. Keep total converter output capacitance, including the
 panel, within 900 µF. These are first-board acceptance requirements.
-The calculated static contact voltage is **3.029 V** at the 1.2 A allocation.
+The calculated static contact voltage is **about 3.024 V** at the 1.2 A allocation.
 The 50 mV downward ripple allowance exceeds the quoted 50 mV peak-to-peak
-typical value but is not a manufacturer-guaranteed bound. Therefore the 29 mV
+typical value but is not a manufacturer-guaranteed bound. Therefore the approximately 24 mV
 static margin cannot be presented as a worst-case transient guarantee.
 
 Use **Molex 15018-0563** with two **505110-6091** bottom-contact sockets:

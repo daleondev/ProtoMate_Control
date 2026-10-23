@@ -10,6 +10,7 @@ import pcbnew as k
 from audit_workmanship import scan, angle_error, simple_paths
 from layout_policy import capture, check_protected, allow_silkscreen_removal, record_placement_change, record_thermal_angles
 from review_atlas import validate
+from audit_copper import isolated_zone_fragments
 from finish_board import finish
 from prepare_routes import prepare
 
@@ -17,6 +18,17 @@ k.SwigPyIterator.next=k.SwigPyIterator.__next__
 
 
 class LayoutReviewTests(unittest.TestCase):
+    def test_zone_cap_sliver_is_not_a_useful_ground_connection(self):
+        nodes=[{'kind':kind} for kind in ('zone','track','track')]
+        graph={0:{1,2},1:{0,2},2:{0,1}}
+        self.assertEqual(isolated_zone_fragments(nodes,graph,{0,1,2}),[1,2])
+
+    def test_ground_bridge_and_thermal_pad_connection_are_preserved(self):
+        for neighbour in ('zone','pad','via'):
+            nodes=[{'kind':kind} for kind in ('zone','track',neighbour)]
+            graph={0:{1},1:{0,2},2:{1}}
+            self.assertEqual(isolated_zone_fragments(nodes,graph,{0,1,2}),[])
+
     def setUp(self):
         self.folder=tempfile.TemporaryDirectory()
         self.path=Path(self.folder.name)/'fixture.kicad_pcb'
@@ -169,6 +181,16 @@ class LayoutReviewTests(unittest.TestCase):
         self.track((0,0),(2,0));self.track((2,0),(2.2,.2));self.track((2.2,.2),(4,.2))
         finding=next(f for f in self.findings() if f['kind']=='short_zigzag')
         self.assertEqual(finding['severity'],'review')
+
+    def test_overlapping_caps_cannot_hide_displaced_junctions(self):
+        self.track((0,0),(1,1),'+24V_DISPLAY',width=.4)
+        self.track((1.05,1),(1.4,1.35),'+24V_DISPLAY',width=.4)
+        self.assertIn('displaced_track_junction',{f['kind'] for f in self.findings()})
+
+    def test_centred_power_t_junction_is_not_displaced(self):
+        self.track((0,0),(4,0),'+24V_DISPLAY',width=.4)
+        self.track((2,2),(2,0),'+24V_DISPLAY',width=.4)
+        self.assertNotIn('displaced_track_junction',{f['kind'] for f in self.findings()})
 
     def test_unconnected_signal_via_is_flagged(self):
         via=k.PCB_VIA(self.board);via.SetNet(self.net('SIGNAL'))

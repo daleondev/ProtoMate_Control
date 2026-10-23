@@ -2,13 +2,13 @@
 <export version="E">
   <design>
     <source>/home/david/Dokumente/ProtoMate_Control/hardware/display/giga-adapter/giga-adapter.kicad_sch</source>
-    <date>2026-10-22T19:27:59</date>
+    <date>2026-10-23T11:35:08</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>giga-adapter / Smartwin display interface</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>giga-adapter.kicad_sch</source>
         <comment number="1" value=""/>
@@ -26,7 +26,7 @@
       <title_block>
         <title>giga-adapter / ribbon</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>ribbon.kicad_sch</source>
         <comment number="1" value=""/>
@@ -44,7 +44,7 @@
       <title_block>
         <title>giga-adapter / buffer1</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>buffer1.kicad_sch</source>
         <comment number="1" value=""/>
@@ -62,7 +62,7 @@
       <title_block>
         <title>giga-adapter / buffer2</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>buffer2.kicad_sch</source>
         <comment number="1" value=""/>
@@ -80,7 +80,7 @@
       <title_block>
         <title>giga-adapter / buffer3</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>buffer3.kicad_sch</source>
         <comment number="1" value=""/>
@@ -98,7 +98,7 @@
       <title_block>
         <title>giga-adapter / buffer4</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>buffer4.kicad_sch</source>
         <comment number="1" value=""/>
@@ -116,7 +116,7 @@
       <title_block>
         <title>giga-adapter / touch</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>touch.kicad_sch</source>
         <comment number="1" value=""/>
@@ -134,7 +134,7 @@
       <title_block>
         <title>giga-adapter / power_input</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>power_input.kicad_sch</source>
         <comment number="1" value=""/>
@@ -152,7 +152,7 @@
       <title_block>
         <title>giga-adapter / power12</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>power12.kicad_sch</source>
         <comment number="1" value=""/>
@@ -170,7 +170,7 @@
       <title_block>
         <title>giga-adapter / headers</title>
         <company>ProtoMate</company>
-        <rev>E</rev>
+        <rev>F</rev>
         <date>2026-10-22</date>
         <source>headers.kicad_sch</source>
         <comment number="1" value=""/>

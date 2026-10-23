@@ -1,5 +1,5 @@
 {
-  "revision": "F",
+  "revision": "G",
   "status": "CALCULATED DESIGN BUDGET; FIRST-BOARD QUALIFICATION PENDING",
   "input": "24V nominal, regulated +/-10%, >=2A source available; common ground",
   "uv_start_min_typ_max_V": [
@@ -65,9 +65,9 @@
       3.2426721293273544,
       3.3497996204515803
     ],
-    "routed_supply_return_contact_drop_V": 0.0887571990507699,
+    "routed_supply_return_contact_drop_V": 0.07505820597893292,
     "dynamic_drop_allowance_V": 0.1,
-    "panel_min_with_allowance_V": 3.0539149302765844,
+    "panel_min_with_allowance_V": 3.0676139233484214,
     "panel_requirement_V": [
       3.0,
       3.6
@@ -108,10 +108,10 @@
     "nominal_V": 3.3,
     "static_min_before_ripple_and_copper_V": 3.1548,
     "ripple_negative_allowance_V": 0.05,
-    "routed_return_contact_drop_V": 0.07546465998426809,
+    "routed_return_contact_drop_V": 0.08108645329033867,
     "datasheet_ripple_Vpp_typical": 0.05,
     "ripple_limit_status": "The retained TSR2 datasheet gives a typical value, not a guaranteed maximum. The negative ripple allowance is a design assumption to qualify.",
-    "static_min_with_allowances_V": 3.029335340015732,
+    "static_min_with_allowances_V": 3.0237135467096614,
     "nominal_external_capacitance_uF": 188,
     "converter_capacitive_load_limit_uF": 900,
     "unknown_panel_capacitance": "Included in the 900uF limit; first-board check.",

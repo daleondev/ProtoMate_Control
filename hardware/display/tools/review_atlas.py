@@ -62,7 +62,8 @@ def exported_binding(paths):
 def inspection_tools():
     root=Path(__file__).resolve().parent
     return {name:sha256(root/name) for name in
-            ('review_atlas.py','audit_workmanship.py','layout_policy.py','inspect_gerbers.py','review_layout.py')}
+            ('review_atlas.py','audit_copper.py','audit_workmanship.py','layout_policy.py',
+             'inspect_gerbers.py','review_layout.py')}
 
 
 def save_manifest(path, manifest):
@@ -164,12 +165,20 @@ def generate(board_path, output, extra_images, export_sources):
     for footprint in sorted(board.GetFootprints(),key=lambda f:f.GetReference()):
         reference=footprint.GetReference()
         if not reference.startswith(('J','U','F','Q')):continue
-        bb=footprint.GetBoundingBox(False,False)
+        # Some imported connector graphics retain a remote library origin.
+        # Bound the inspection around physical contacts, not those graphics.
+        pads=list(footprint.Pads())
+        if not pads:continue
+        boxes=[pad.GetBoundingBox() for pad in pads]
+        contact_bounds=[min(bb.GetX() for bb in boxes)/1e6,
+                        min(bb.GetY() for bb in boxes)/1e6,
+                        max(bb.GetRight() for bb in boxes)/1e6,
+                        max(bb.GetBottom() for bb in boxes)/1e6]
         # Buffer/regulator views include the associated termination and local
         # decoupling banks. Every remaining passive is covered by the tile grid.
         margin=4 if reference.startswith('U') else 1
-        region=[max(bounds[0],bb.GetX()/1e6-margin),max(bounds[1],bb.GetY()/1e6-margin),
-                min(bounds[2],bb.GetRight()/1e6+margin),min(bounds[3],bb.GetBottom()/1e6+margin)]
+        region=[max(bounds[0],contact_bounds[0]-margin),max(bounds[1],contact_bounds[1]-margin),
+                min(bounds[2],contact_bounds[2]+margin),min(bounds[3],contact_bounds[3]+margin)]
         for label,layer in (('F',k.F_Cu),('B',k.B_Cu)):
             identifier=f'component-{reference}-{label}'
             image=output/(identifier+'.png');render(board,layer,False,region,image)
@@ -188,7 +197,7 @@ def generate(board_path, output, extra_images, export_sources):
             if not calibration.exists():
                 raise RuntimeError('Independent Gerber render needs a resolution/bounds sidecar: '+str(calibration))
             info=load_manifest(calibration)
-            if info['pixels_per_mm']<PIXELS_PER_MM or info['image_sha256']!=sha256(path):
+            if info['pixels_per_mm']<PIXELS_PER_MM-1e-9 or info['image_sha256']!=sha256(path):
                 raise RuntimeError('Uncalibrated or low-resolution Gerber evidence: '+str(path))
             im=Image.open(evidence)
             stride=round((TILE_MM-TILE_OVERLAP_MM)*info['pixels_per_mm'])

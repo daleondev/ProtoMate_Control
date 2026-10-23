@@ -23,6 +23,28 @@ def xy(p):return (p.x/1e6,p.y/1e6)
 def polygon_set(ps):
  def loop(s):return [xy(s.CPoint(i)) for i in range(s.PointCount())]
  return [Polygon(loop(ps.COutline(i)),[loop(ps.CHole(i,j)) for j in range(ps.HoleCount(i))]).buffer(0) for i in range(ps.OutlineCount())]
+
+def isolated_zone_fragments(nodes, adjacency, active):
+ """Find trace components connected only to one existing filled polygon.
+
+ A polygon approximation can leave a tiny trace-cap sliver outside a pour,
+ defeating full-containment checks. Preserve pad/via entries and bridges
+ between distinct polygons; report isolated trace fragments for removal trials.
+ """
+ pending={i for i in active if nodes[i]['kind']=='track'};result=[]
+ while pending:
+  component=set();todo=[next(iter(pending))]
+  while todo:
+   i=todo.pop()
+   if i not in pending:continue
+   pending.remove(i);component.add(i)
+   todo.extend(j for j in adjacency.get(i,set()) if j in pending)
+  neighbours={j for i in component for j in adjacency.get(i,set())
+              if j in active and j not in component}
+  if len(neighbours)==1 and nodes[next(iter(neighbours))]['kind']=='zone':
+   result.extend(sorted(component))
+ return result
+
 def scan(path):
  b=k.LoadBoard(str(path));nodes=[];nets=defaultdict(list);shapes=defaultdict(list);zone_union=defaultdict(list)
  def add(kind,obj,net,geo,label):
@@ -127,6 +149,10 @@ def scan(path):
      key=lambda i:(nodes[i]['kind']=='via',nodes[i]['obj'].GetLength() if nodes[i]['kind']=='track' else sum(len(adj_layers[i,j]) for j in adj[i])),reverse=True)
   for i in candidates:
    if connected(terms,i):drop(i,'not needed for any terminal-to-terminal signal connection')
+ # Check every net for isolated fragments. Unlike intentional local pad/via
+ # connections, these do not join any terminal or two separate copper areas.
+ for i in isolated_zone_fragments(nodes,adj,active):
+  drop(i,'isolated trace fragment connected only to one filled polygon')
  # Ground/power: remove only vias with no interlayer function, not stitching/thermal pairs.
  retained=[]
  for net,ids in nets.items():

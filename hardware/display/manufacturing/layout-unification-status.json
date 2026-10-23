@@ -1,58 +1,51 @@
 {
-  "status": "IN PROGRESS — MANUFACTURING HOLD",
+  "status": "LOCAL RELEASE CHECKS PASS \u2014 AISLER PROCESSING PENDING",
   "architecture": "F signals/power + GND; In1 GND; In2 GND; B signals/power + GND",
-  "authoritative_boards_modified": false,
+  "authoritative_boards_modified": true,
   "placement_feasibility": "PASS with authorized component relocation",
-  "local_visual_inspection": "IN PROGRESS — no final sign-off",
+  "local_visual_inspection": "PASS \u2014 complete hash-bound regional inspection",
   "aisler_processing": "NOT PERFORMED",
   "physical_qualification": "NOT PERFORMED",
-  "new_revision_issued": false,
+  "new_revision_issued": true,
   "boards": {
     "display-adapter": {
-      "proposal": "proposals/outer-ground/display-adapter/display-adapter.kicad_pcb",
-      "proposal_sha256": "ba9e93f6e2fe299dad3514ad61c6d827faf4bab5ab35f27c29189d52cd573fd7",
-      "DRC_violations": 0,
-      "unrouted": 0,
-      "parity_errors": 0,
-      "architecture_policy": "PASS",
-      "workmanship": {
-        "tracks": 904,
-        "vias": 198,
-        "errors": 0,
-        "review": 266
-      },
-      "release_eligible": false
+      "source": "display-adapter/display-adapter.kicad_pcb",
+      "source_sha256": "753d5c065fcacfc42f4594859c9a4a25cdd8891f91f4a4c504d5f3b5a3bb39db",
+      "architecture": "Both inner layers continuous GND; all routing on F.Cu/B.Cu; stitched outer GND",
+      "release_eligible": true,
+      "verification": "Local electrical, manufacturing, export and visual checks PASS",
+      "reviewed_regions": 168,
+      "reviewed_geometry_candidates": 210,
+      "review_manifest_sha256": "78b70337c09c8eb33d04526ef81a915c5ca0fbec7f84b1c4a1371f9b9bf861a0"
     },
     "giga-adapter": {
-      "proposal": "proposals/outer-ground/giga-adapter/giga-adapter.kicad_pcb",
-      "proposal_sha256": "58b4944c556fee8aaf629dbd11d7f9479f313fc7d44b1fac652bcf832d25c979",
-      "DRC_violations": 0,
-      "unrouted": 0,
-      "parity_errors": 0,
-      "architecture_policy": "PASS",
-      "workmanship": {
-        "tracks": 1041,
-        "vias": 205,
-        "errors": 0,
-        "review": 188
-      },
-      "release_eligible": false
+      "source": "giga-adapter/giga-adapter.kicad_pcb",
+      "source_sha256": "63f1451935c82d4ebbecc30402c32a7b9d686e32794771acce56aeda02ed0d1e",
+      "architecture": "Both inner layers continuous GND; all routing on F.Cu/B.Cu; stitched outer GND",
+      "release_eligible": true,
+      "verification": "Local electrical, manufacturing, export and visual checks PASS",
+      "reviewed_regions": 344,
+      "reviewed_geometry_candidates": 141,
+      "review_manifest_sha256": "aa8bc04d7e4ecba244878a47ef77a10b616096cbdec8e172b9c17213529729fb"
     }
   },
   "placement_changes": {
-    "giga-adapter": "R33–R48 moved into an alternating bank beside J8; connector and buffer positions preserved.",
-    "display-adapter": "C9 rotated/repositioned onto the straight 24 V input route; TP8 moved clear of both capacitor and converter courtyards."
+    "giga-adapter": "R33\u2013R48 moved into an alternating bank beside J8; connector and buffer positions preserved.",
+    "display-adapter": "C9 on the 24 V feed, TP8 clear of neighbouring courtyards, R16/R17 beside their supervisors for direct connections and a straight supply bus."
   },
   "tests": {
-    "fixtures_passed": 22,
+    "fixtures_passed": 26,
     "atlas_generation": "PASS on synthetic fixture",
     "unsigned_atlas_rejected": true,
     "changed_exports_rejected": true
   },
   "remaining_work": [
-    "Complete visual routing cleanup and disposition of all geometry-review candidates.",
-    "Complete exhaustive source/export/3D inspection with region-specific records.",
-    "Refresh return-path, timing, power and thermal calculations and all release exports.",
-    "Promote only the accepted layout and issue matching new revisions/packages after all local gates."
-  ]
+    "Inspect AISLER processed jobs for these exact ODB++ archives before ordering.",
+    "Qualify first-board mechanical fit, assembly, power, thermal and display operation."
+  ],
+  "revisions": {
+    "display-adapter": "G",
+    "giga-adapter": "F",
+    "source_bundle": "G"
+  }
 }

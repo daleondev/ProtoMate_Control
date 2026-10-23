@@ -1,8 +1,8 @@
 {
   "result": "PASS \u2014 routed power connectivity and geometry",
   "source_sha256": {
-    "display-adapter": "6b6dbfbf39db216e7d1de27b07834458546e884ac1974367f665c4e57625b4b0",
-    "giga-adapter": "d18a243556bc5fe6faea82ea60e7ca0f8f2dabe219511b39c0a1ce81b85181c7"
+    "display-adapter": "753d5c065fcacfc42f4594859c9a4a25cdd8891f91f4a4c504d5f3b5a3bb39db",
+    "giga-adapter": "63f1451935c82d4ebbecc30402c32a7b9d686e32794771acce56aeda02ed0d1e"
   },
   "routes": [
     {
@@ -15,7 +15,7 @@
       "board": "giga-adapter",
       "start": "F1.2",
       "end": "U7.1",
-      "hot_copper_ohm": 0.04113276438923501
+      "hot_copper_ohm": 0.033620316690261345
     },
     {
       "board": "giga-adapter",
@@ -27,7 +27,7 @@
       "board": "giga-adapter",
       "start": "U7.16",
       "end": "F2.1",
-      "hot_copper_ohm": 0.03268559690781519
+      "hot_copper_ohm": 0.03268558703572528
     },
     {
       "board": "giga-adapter",
@@ -39,19 +39,19 @@
       "board": "giga-adapter",
       "start": "D3.1",
       "end": "J5.8",
-      "hot_copper_ohm": 0.07394517532055993
+      "hot_copper_ohm": 0.07404122985527174
     },
     {
       "board": "giga-adapter",
       "start": "D3.1",
       "end": "J9.24",
-      "hot_copper_ohm": 0.04598314167912168
+      "hot_copper_ohm": 0.0462270259515597
     },
     {
       "board": "display-adapter",
       "start": "U1.1",
       "end": "C9.1",
-      "hot_copper_ohm": 0.013959808496798589
+      "hot_copper_ohm": 0.01568942911165688
     },
     {
       "board": "display-adapter",
@@ -63,49 +63,49 @@
       "board": "display-adapter",
       "start": "U1.1",
       "end": "U2.1",
-      "hot_copper_ohm": 0.02300935454860696
+      "hot_copper_ohm": 0.021106095778323546
     },
     {
       "board": "display-adapter",
       "start": "U2.3",
       "end": "U3.9",
-      "hot_copper_ohm": 0.03601115522052167
+      "hot_copper_ohm": 0.055076795302140234
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "C13.1",
-      "hot_copper_ohm": 0.010061883113294201
+      "hot_copper_ohm": 0.011986258275783571
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "C14.1",
-      "hot_copper_ohm": 0.003858042323655877
+      "hot_copper_ohm": 0.0036769560282029446
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "TP1.1",
-      "hot_copper_ohm": 0.13022000156226507
+      "hot_copper_ohm": 0.13548942652366097
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.54",
-      "hot_copper_ohm": 0.1677195024896109
+      "hot_copper_ohm": 0.12517353814194032
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.55",
-      "hot_copper_ohm": 0.1594714358229442
+      "hot_copper_ohm": 0.11692547147527367
     },
     {
       "board": "display-adapter",
       "start": "U3.1",
       "end": "J2.56",
-      "hot_copper_ohm": 0.1677195024896109
+      "hot_copper_ohm": 0.12517353814194032
     }
   ],
   "fused_input_minimum_track_width_mm": 0.6,
@@ -120,8 +120,8 @@
   },
   "RTN_thermal_vias": 4,
   "RTN_zone_area_mm2": {
-    "F.Cu": 23.39265206999902,
-    "B.Cu": 58.202202374024
+    "F.Cu": 23.32483076728702,
+    "B.Cu": 52.8259632124235
   },
   "backlight_contacts": [
     5,

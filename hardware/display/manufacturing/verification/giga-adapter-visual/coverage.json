@@ -1,0 +1,6484 @@
+[
+  {
+    "id": "F-routes-overview",
+    "image": "F-routes-overview.png",
+    "image_sha256": "04b876418a8635ecd43d8c0bc47cc4f22c8cbd59ec081d9327364af8c9613cbb",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      122.025,
+      53.365
+    ],
+    "kind": "overview",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "organisation",
+      "whole_board_return_paths",
+      "final_frozen_pass"
+    ]
+  },
+  {
+    "id": "F-routes-r01-c01",
+    "image": "F-routes-r01-c01.png",
+    "image_sha256": "983e451c30a44bf4106ad389db857eb55b2c7f4bda909330d7429a92a8fbe1e9",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      30.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r01-c02",
+    "image": "F-routes-r01-c02.png",
+    "image_sha256": "252761636a8bcb66b1f5cd951a0925dee7486eae03f4da108c9357d3c9cb64d0",
+    "bounds_mm": [
+      28.975,
+      -0.025,
+      48.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r01-c03",
+    "image": "F-routes-r01-c03.png",
+    "image_sha256": "c7a3500ba3945196c8ab36e3d64f7c78e38786315afe99f8e49eabc722171806",
+    "bounds_mm": [
+      46.975,
+      -0.025,
+      66.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r01-c04",
+    "image": "F-routes-r01-c04.png",
+    "image_sha256": "5fd459b274cbbc3b437af8595b0f5c0b27960739885151ae883823be9d2ba64a",
+    "bounds_mm": [
+      64.975,
+      -0.025,
+      84.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r01-c05",
+    "image": "F-routes-r01-c05.png",
+    "image_sha256": "54855a9dfa9a9bfe6613512302558d8fa48cabd22d265f453719bbab298d45d0",
+    "bounds_mm": [
+      82.975,
+      -0.025,
+      102.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r01-c06",
+    "image": "F-routes-r01-c06.png",
+    "image_sha256": "c81c675ed5d2858bbc1c36fcb37a583575ebf449e7a4dfec2cb9dd6bb2d27cdd",
+    "bounds_mm": [
+      100.975,
+      -0.025,
+      120.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r01-c07",
+    "image": "F-routes-r01-c07.png",
+    "image_sha256": "89f4dcfcdf620eca3dac605b16fb32c8d67af53c85f9129d3015bc3f2fc0c549",
+    "bounds_mm": [
+      118.975,
+      -0.025,
+      122.025,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r02-c02",
+    "image": "F-routes-r02-c02.png",
+    "image_sha256": "071c30fe36d0361ac6eeca9a9d8934e23212f4e008e586c98e7b7bc07026a24b",
+    "bounds_mm": [
+      28.975,
+      17.975,
+      48.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r02-c03",
+    "image": "F-routes-r02-c03.png",
+    "image_sha256": "ca170dad833ba3a8684341ea01129caee7e4105f611e6ffddce2d4397c9429b5",
+    "bounds_mm": [
+      46.975,
+      17.975,
+      66.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r02-c04",
+    "image": "F-routes-r02-c04.png",
+    "image_sha256": "ab69f4a99f03dc4e8f5b58562bcffd8aa83d5472012b2973f7baab620e9dad68",
+    "bounds_mm": [
+      64.975,
+      17.975,
+      84.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r02-c05",
+    "image": "F-routes-r02-c05.png",
+    "image_sha256": "acb640978c3158b14b890d13b5c527b9b5236e006151c75dd3796da311977673",
+    "bounds_mm": [
+      82.975,
+      17.975,
+      102.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r02-c06",
+    "image": "F-routes-r02-c06.png",
+    "image_sha256": "9fb6efddeb230c6c756d8923f49e8b3562f68681565fe5da9d6716e055ec0c5c",
+    "bounds_mm": [
+      100.975,
+      17.975,
+      120.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r02-c07",
+    "image": "F-routes-r02-c07.png",
+    "image_sha256": "5eac622eda7e0efa42b775562bcf3f9dfddf2591b21708de7011246bfb6d102b",
+    "bounds_mm": [
+      118.975,
+      17.975,
+      122.025,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r03-c01",
+    "image": "F-routes-r03-c01.png",
+    "image_sha256": "9011ff51578ced39fdfa26f4dee37f06f80c57965f74e488e9fc25f0fb513be3",
+    "bounds_mm": [
+      10.975,
+      35.975,
+      30.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r03-c02",
+    "image": "F-routes-r03-c02.png",
+    "image_sha256": "cf433119b4609f2316ed6b1b3a179bc75fa8dcb4513646e05b40236d820968b1",
+    "bounds_mm": [
+      28.975,
+      35.975,
+      48.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r03-c03",
+    "image": "F-routes-r03-c03.png",
+    "image_sha256": "463e2c5edf3cd7060325fa0d9e713ee7451dc199068692bdea9dce08c52a300e",
+    "bounds_mm": [
+      46.975,
+      35.975,
+      66.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r03-c04",
+    "image": "F-routes-r03-c04.png",
+    "image_sha256": "ab5d15592c8190b696bd5bf522575af48ed9737340d0a1d6e9e6d398c1797db1",
+    "bounds_mm": [
+      64.975,
+      35.975,
+      84.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r03-c05",
+    "image": "F-routes-r03-c05.png",
+    "image_sha256": "44b608d82999c5460ddcf5990985ba1d2dc8499ef17b07a3cdb845f4e1b5a060",
+    "bounds_mm": [
+      82.975,
+      35.975,
+      102.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r03-c06",
+    "image": "F-routes-r03-c06.png",
+    "image_sha256": "c641e255bb29b596f79c8403cab3e95f10dfbc74042d3085efa38ef3ead0bc7a",
+    "bounds_mm": [
+      100.975,
+      35.975,
+      120.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-routes-r03-c07",
+    "image": "F-routes-r03-c07.png",
+    "image_sha256": "24cb13ce8b33a2160966b0741fa3b5031b99ecf3c35042b8191be1f8c85553a9",
+    "bounds_mm": [
+      118.975,
+      35.975,
+      122.025,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-overview",
+    "image": "F-filled-overview.png",
+    "image_sha256": "ab441f87642abd0de4dcbb62e0c25f66cac6953d97b93968cc548cecedac1ff0",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      122.025,
+      53.365
+    ],
+    "kind": "overview",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "organisation",
+      "whole_board_return_paths",
+      "final_frozen_pass"
+    ]
+  },
+  {
+    "id": "F-filled-r01-c01",
+    "image": "F-filled-r01-c01.png",
+    "image_sha256": "072c98c966d85e61c2fd23c4807e70353fb687946c485307cb6fc0a4eb36633d",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      30.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r01-c02",
+    "image": "F-filled-r01-c02.png",
+    "image_sha256": "2cfead9bf88a95ad56943b1a675935e8a03929430a0d71783389f3d921882d6d",
+    "bounds_mm": [
+      28.975,
+      -0.025,
+      48.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r01-c03",
+    "image": "F-filled-r01-c03.png",
+    "image_sha256": "6b3bfc089be0f947083abccf1695c640717d73bf8f614b568951724a6ead14ee",
+    "bounds_mm": [
+      46.975,
+      -0.025,
+      66.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r01-c04",
+    "image": "F-filled-r01-c04.png",
+    "image_sha256": "e1533468a8e32857087c6fec2148906610999d5a2770e1f4b53b397fe1883ec1",
+    "bounds_mm": [
+      64.975,
+      -0.025,
+      84.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r01-c05",
+    "image": "F-filled-r01-c05.png",
+    "image_sha256": "6e9a76c973d2a1ca8723ce3b85c8342be39f28e41d46d8cdf4613f1959a83ea3",
+    "bounds_mm": [
+      82.975,
+      -0.025,
+      102.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r01-c06",
+    "image": "F-filled-r01-c06.png",
+    "image_sha256": "a065ff24530f2ce6634ac40d356b5d357e636dfd539c34e6dc89ccc860598770",
+    "bounds_mm": [
+      100.975,
+      -0.025,
+      120.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r01-c07",
+    "image": "F-filled-r01-c07.png",
+    "image_sha256": "30203c20f95339078aba6b693217ee423369e4ad007b7ed246406c84a9be43d7",
+    "bounds_mm": [
+      118.975,
+      -0.025,
+      122.025,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r02-c02",
+    "image": "F-filled-r02-c02.png",
+    "image_sha256": "e460e3a4b7788d7683d87f6f981f6ab4a874aa9b88a6fb39673e8c5e02af983b",
+    "bounds_mm": [
+      28.975,
+      17.975,
+      48.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r02-c03",
+    "image": "F-filled-r02-c03.png",
+    "image_sha256": "85f9a0c748e9decc3c6b8dbda79d94fe6bf8245b5cd135fb4c50944e3683eb22",
+    "bounds_mm": [
+      46.975,
+      17.975,
+      66.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r02-c04",
+    "image": "F-filled-r02-c04.png",
+    "image_sha256": "eaff5f2be6aa3c5ac20b5b551081eba35bff52b24c837ec7d36656cc4a01611a",
+    "bounds_mm": [
+      64.975,
+      17.975,
+      84.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r02-c05",
+    "image": "F-filled-r02-c05.png",
+    "image_sha256": "3ad5768e6f160374d90374422e785edbd10529cea180c614fed75a4357be0ad0",
+    "bounds_mm": [
+      82.975,
+      17.975,
+      102.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r02-c06",
+    "image": "F-filled-r02-c06.png",
+    "image_sha256": "f75c53f28144be70efe4a0727f75610e72037d3727014312b44ef85af64df520",
+    "bounds_mm": [
+      100.975,
+      17.975,
+      120.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r02-c07",
+    "image": "F-filled-r02-c07.png",
+    "image_sha256": "c913a72c3cbba036e1076dd606c6516ce9a4cf468ab67b9916f9364809168e20",
+    "bounds_mm": [
+      118.975,
+      17.975,
+      122.025,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r03-c01",
+    "image": "F-filled-r03-c01.png",
+    "image_sha256": "e1aca18572761387ae85276d1b42018ec4b8abbab7731b50683ca3f92190d4fa",
+    "bounds_mm": [
+      10.975,
+      35.975,
+      30.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r03-c02",
+    "image": "F-filled-r03-c02.png",
+    "image_sha256": "78c69b167671d45c7ec827bbd7bcd6db931407bd7d34625f9588f979c8a90b3c",
+    "bounds_mm": [
+      28.975,
+      35.975,
+      48.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r03-c03",
+    "image": "F-filled-r03-c03.png",
+    "image_sha256": "0c8835b638a45ed55558504de4c9da76a8419b64874567ba078111a74975f97d",
+    "bounds_mm": [
+      46.975,
+      35.975,
+      66.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r03-c04",
+    "image": "F-filled-r03-c04.png",
+    "image_sha256": "2d39d575e7352fa024dd0170001f9bff010459011681736293c786ab4e8e10f3",
+    "bounds_mm": [
+      64.975,
+      35.975,
+      84.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r03-c05",
+    "image": "F-filled-r03-c05.png",
+    "image_sha256": "2bfa78fbd8077a20274312a42497713a9af8417e33bc6d991f7d7c66baeee575",
+    "bounds_mm": [
+      82.975,
+      35.975,
+      102.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r03-c06",
+    "image": "F-filled-r03-c06.png",
+    "image_sha256": "12e9b5aba38d91cb9cc899181f10a5c6e3d4f9e5d9b79eea85a0b1c2d218cbfa",
+    "bounds_mm": [
+      100.975,
+      35.975,
+      120.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "F-filled-r03-c07",
+    "image": "F-filled-r03-c07.png",
+    "image_sha256": "356d47e8fbd0cc757eb7d5a81342511eaef768a7167a88b33bf352709d692d7b",
+    "bounds_mm": [
+      118.975,
+      35.975,
+      122.025,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "F.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-overview",
+    "image": "In1-filled-overview.png",
+    "image_sha256": "97ca8bfb1df4c6d15812a83b2370a95a97c70279d5adc29b6ef5ddb41d1494c7",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      122.025,
+      53.365
+    ],
+    "kind": "overview",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "organisation",
+      "whole_board_return_paths",
+      "final_frozen_pass"
+    ]
+  },
+  {
+    "id": "In1-filled-r01-c01",
+    "image": "In1-filled-r01-c01.png",
+    "image_sha256": "81716d88ff0df777be2389ce2973d8505a3098e2063fef07792c0c3ef34179e6",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      30.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r01-c02",
+    "image": "In1-filled-r01-c02.png",
+    "image_sha256": "3f3b77c20c7c98c31abdfb94da95d3d8d422f77938568df91eade61fa1a045f9",
+    "bounds_mm": [
+      28.975,
+      -0.025,
+      48.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r01-c03",
+    "image": "In1-filled-r01-c03.png",
+    "image_sha256": "9af012025f34ec057bf651923958e3bca2817e0b492ba5b4efaff45605308b6b",
+    "bounds_mm": [
+      46.975,
+      -0.025,
+      66.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r01-c04",
+    "image": "In1-filled-r01-c04.png",
+    "image_sha256": "0083f5bbe22e6f876f5c6c527b0ab5cd9534e5a1c65069e11304bdb10a70bc19",
+    "bounds_mm": [
+      64.975,
+      -0.025,
+      84.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r01-c05",
+    "image": "In1-filled-r01-c05.png",
+    "image_sha256": "97b773a301e67e2fd90c57851a8bdddebe83f1c0049cb63b688db692daa15305",
+    "bounds_mm": [
+      82.975,
+      -0.025,
+      102.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r01-c06",
+    "image": "In1-filled-r01-c06.png",
+    "image_sha256": "8b2736447f00d4b8c0e6b92a7e0bccce859acf6b3cfbf512785f92a67798b12f",
+    "bounds_mm": [
+      100.975,
+      -0.025,
+      120.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r01-c07",
+    "image": "In1-filled-r01-c07.png",
+    "image_sha256": "5f60dc1481f7a781cbc559ee2e82ff61cc7ecccbab443723c5a92c40149eae20",
+    "bounds_mm": [
+      118.975,
+      -0.025,
+      122.025,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r02-c02",
+    "image": "In1-filled-r02-c02.png",
+    "image_sha256": "f28f0c7be1e162661046f0db7603d6801771e9e4de3489f3fcdf8befe5522c8d",
+    "bounds_mm": [
+      28.975,
+      17.975,
+      48.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r02-c03",
+    "image": "In1-filled-r02-c03.png",
+    "image_sha256": "aea87a5132b91bd45d5c9f9947ee19c6e7703534f35c2e82803327ac9beeedda",
+    "bounds_mm": [
+      46.975,
+      17.975,
+      66.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r02-c04",
+    "image": "In1-filled-r02-c04.png",
+    "image_sha256": "0e544d450aa7678918cc9338f83fa1465db61d2ec8aa9260e7beba6c2bebd9dc",
+    "bounds_mm": [
+      64.975,
+      17.975,
+      84.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r02-c05",
+    "image": "In1-filled-r02-c05.png",
+    "image_sha256": "8cb5e8b53635ec8b9ca2f5cc89a9a26e960fc56f0f09649649e4ebc9b8280538",
+    "bounds_mm": [
+      82.975,
+      17.975,
+      102.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r02-c06",
+    "image": "In1-filled-r02-c06.png",
+    "image_sha256": "1904eda526e67540ac2ba828ad3f89c716874434f49ac1c1d9d0ffd2c00c9818",
+    "bounds_mm": [
+      100.975,
+      17.975,
+      120.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r02-c07",
+    "image": "In1-filled-r02-c07.png",
+    "image_sha256": "2f569fb797d1c23410fce807fb0e9a065b9d823eb32a99873c6d51fe30dbb244",
+    "bounds_mm": [
+      118.975,
+      17.975,
+      122.025,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r03-c01",
+    "image": "In1-filled-r03-c01.png",
+    "image_sha256": "1212972c9e8f960d1a3dbf4590f68b8d83b0f3ddb87f24fd66ab3006852a73d8",
+    "bounds_mm": [
+      10.975,
+      35.975,
+      30.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r03-c02",
+    "image": "In1-filled-r03-c02.png",
+    "image_sha256": "2040812fda1c791d4ddb76515fb6b7a38578c16f169bc522a87e28331eee42ef",
+    "bounds_mm": [
+      28.975,
+      35.975,
+      48.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r03-c03",
+    "image": "In1-filled-r03-c03.png",
+    "image_sha256": "3f5689d655fcc6fb9c947898521b189a78c3330b2c28b0b8febb7cfd7da49b60",
+    "bounds_mm": [
+      46.975,
+      35.975,
+      66.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r03-c04",
+    "image": "In1-filled-r03-c04.png",
+    "image_sha256": "0a3dfb9d09b6b1b4634f8d7c1e2aa5f996a91fd19216cd9db21be8bdf9414425",
+    "bounds_mm": [
+      64.975,
+      35.975,
+      84.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r03-c05",
+    "image": "In1-filled-r03-c05.png",
+    "image_sha256": "358a5562ea53ebd0bf6e2666012f9c334d9378e0e47c784b16aead47ee1f4fa4",
+    "bounds_mm": [
+      82.975,
+      35.975,
+      102.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r03-c06",
+    "image": "In1-filled-r03-c06.png",
+    "image_sha256": "86bdadbcade4f3baad58de7952ab597bac96701b02e71145092fb6b659ac3720",
+    "bounds_mm": [
+      100.975,
+      35.975,
+      120.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In1-filled-r03-c07",
+    "image": "In1-filled-r03-c07.png",
+    "image_sha256": "d63c53d3137a0e30efe8faa6be9745092c16ddf7c2a3981ef0f75ace829f7c69",
+    "bounds_mm": [
+      118.975,
+      35.975,
+      122.025,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In1.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-overview",
+    "image": "In2-filled-overview.png",
+    "image_sha256": "97ca8bfb1df4c6d15812a83b2370a95a97c70279d5adc29b6ef5ddb41d1494c7",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      122.025,
+      53.365
+    ],
+    "kind": "overview",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "organisation",
+      "whole_board_return_paths",
+      "final_frozen_pass"
+    ]
+  },
+  {
+    "id": "In2-filled-r01-c01",
+    "image": "In2-filled-r01-c01.png",
+    "image_sha256": "81716d88ff0df777be2389ce2973d8505a3098e2063fef07792c0c3ef34179e6",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      30.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r01-c02",
+    "image": "In2-filled-r01-c02.png",
+    "image_sha256": "3f3b77c20c7c98c31abdfb94da95d3d8d422f77938568df91eade61fa1a045f9",
+    "bounds_mm": [
+      28.975,
+      -0.025,
+      48.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r01-c03",
+    "image": "In2-filled-r01-c03.png",
+    "image_sha256": "9af012025f34ec057bf651923958e3bca2817e0b492ba5b4efaff45605308b6b",
+    "bounds_mm": [
+      46.975,
+      -0.025,
+      66.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r01-c04",
+    "image": "In2-filled-r01-c04.png",
+    "image_sha256": "0083f5bbe22e6f876f5c6c527b0ab5cd9534e5a1c65069e11304bdb10a70bc19",
+    "bounds_mm": [
+      64.975,
+      -0.025,
+      84.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r01-c05",
+    "image": "In2-filled-r01-c05.png",
+    "image_sha256": "97b773a301e67e2fd90c57851a8bdddebe83f1c0049cb63b688db692daa15305",
+    "bounds_mm": [
+      82.975,
+      -0.025,
+      102.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r01-c06",
+    "image": "In2-filled-r01-c06.png",
+    "image_sha256": "8b2736447f00d4b8c0e6b92a7e0bccce859acf6b3cfbf512785f92a67798b12f",
+    "bounds_mm": [
+      100.975,
+      -0.025,
+      120.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r01-c07",
+    "image": "In2-filled-r01-c07.png",
+    "image_sha256": "5f60dc1481f7a781cbc559ee2e82ff61cc7ecccbab443723c5a92c40149eae20",
+    "bounds_mm": [
+      118.975,
+      -0.025,
+      122.025,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r02-c02",
+    "image": "In2-filled-r02-c02.png",
+    "image_sha256": "f28f0c7be1e162661046f0db7603d6801771e9e4de3489f3fcdf8befe5522c8d",
+    "bounds_mm": [
+      28.975,
+      17.975,
+      48.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r02-c03",
+    "image": "In2-filled-r02-c03.png",
+    "image_sha256": "aea87a5132b91bd45d5c9f9947ee19c6e7703534f35c2e82803327ac9beeedda",
+    "bounds_mm": [
+      46.975,
+      17.975,
+      66.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r02-c04",
+    "image": "In2-filled-r02-c04.png",
+    "image_sha256": "0e544d450aa7678918cc9338f83fa1465db61d2ec8aa9260e7beba6c2bebd9dc",
+    "bounds_mm": [
+      64.975,
+      17.975,
+      84.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r02-c05",
+    "image": "In2-filled-r02-c05.png",
+    "image_sha256": "8cb5e8b53635ec8b9ca2f5cc89a9a26e960fc56f0f09649649e4ebc9b8280538",
+    "bounds_mm": [
+      82.975,
+      17.975,
+      102.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r02-c06",
+    "image": "In2-filled-r02-c06.png",
+    "image_sha256": "1904eda526e67540ac2ba828ad3f89c716874434f49ac1c1d9d0ffd2c00c9818",
+    "bounds_mm": [
+      100.975,
+      17.975,
+      120.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r02-c07",
+    "image": "In2-filled-r02-c07.png",
+    "image_sha256": "2f569fb797d1c23410fce807fb0e9a065b9d823eb32a99873c6d51fe30dbb244",
+    "bounds_mm": [
+      118.975,
+      17.975,
+      122.025,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r03-c01",
+    "image": "In2-filled-r03-c01.png",
+    "image_sha256": "1212972c9e8f960d1a3dbf4590f68b8d83b0f3ddb87f24fd66ab3006852a73d8",
+    "bounds_mm": [
+      10.975,
+      35.975,
+      30.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r03-c02",
+    "image": "In2-filled-r03-c02.png",
+    "image_sha256": "2040812fda1c791d4ddb76515fb6b7a38578c16f169bc522a87e28331eee42ef",
+    "bounds_mm": [
+      28.975,
+      35.975,
+      48.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r03-c03",
+    "image": "In2-filled-r03-c03.png",
+    "image_sha256": "3f5689d655fcc6fb9c947898521b189a78c3330b2c28b0b8febb7cfd7da49b60",
+    "bounds_mm": [
+      46.975,
+      35.975,
+      66.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r03-c04",
+    "image": "In2-filled-r03-c04.png",
+    "image_sha256": "0a3dfb9d09b6b1b4634f8d7c1e2aa5f996a91fd19216cd9db21be8bdf9414425",
+    "bounds_mm": [
+      64.975,
+      35.975,
+      84.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r03-c05",
+    "image": "In2-filled-r03-c05.png",
+    "image_sha256": "358a5562ea53ebd0bf6e2666012f9c334d9378e0e47c784b16aead47ee1f4fa4",
+    "bounds_mm": [
+      82.975,
+      35.975,
+      102.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r03-c06",
+    "image": "In2-filled-r03-c06.png",
+    "image_sha256": "86bdadbcade4f3baad58de7952ab597bac96701b02e71145092fb6b659ac3720",
+    "bounds_mm": [
+      100.975,
+      35.975,
+      120.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "In2-filled-r03-c07",
+    "image": "In2-filled-r03-c07.png",
+    "image_sha256": "d63c53d3137a0e30efe8faa6be9745092c16ddf7c2a3981ef0f75ace829f7c69",
+    "bounds_mm": [
+      118.975,
+      35.975,
+      122.025,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "In2.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-overview",
+    "image": "B-routes-overview.png",
+    "image_sha256": "288daa8f9c2f9bd7aab597aed20dc48e165b3bba04ee3d099282a8fee8110310",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      122.025,
+      53.365
+    ],
+    "kind": "overview",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "organisation",
+      "whole_board_return_paths",
+      "final_frozen_pass"
+    ]
+  },
+  {
+    "id": "B-routes-r01-c01",
+    "image": "B-routes-r01-c01.png",
+    "image_sha256": "8f626a80fd4b28e86e81f57ad39d2011f4cbaf2bfe69b917ee23525cbf22a118",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      30.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r01-c02",
+    "image": "B-routes-r01-c02.png",
+    "image_sha256": "4007ac2eacafb55ac36a91599d54fee6a2a61e801bd6b0cbe1a3bd1d616ad6a7",
+    "bounds_mm": [
+      28.975,
+      -0.025,
+      48.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r01-c03",
+    "image": "B-routes-r01-c03.png",
+    "image_sha256": "c9909efcce58c665415da8fe0d09571cfea1dfa6a3f6aa87718f5b1d46c5d57e",
+    "bounds_mm": [
+      46.975,
+      -0.025,
+      66.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r01-c04",
+    "image": "B-routes-r01-c04.png",
+    "image_sha256": "f0821296d9337e6c0b3ec6939e2d77727c7981c86225b04dc6f95ad7a29ee2f4",
+    "bounds_mm": [
+      64.975,
+      -0.025,
+      84.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r01-c05",
+    "image": "B-routes-r01-c05.png",
+    "image_sha256": "4c60d6a50d874732bd0591d09010540291febd5b4b1a6f00c239c2f1e3daeb48",
+    "bounds_mm": [
+      82.975,
+      -0.025,
+      102.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r01-c06",
+    "image": "B-routes-r01-c06.png",
+    "image_sha256": "5b76b39c7ca74faabf20ca2b1b9f4b3ff750a76ae0c8b25ef269379915539e9f",
+    "bounds_mm": [
+      100.975,
+      -0.025,
+      120.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r01-c07",
+    "image": "B-routes-r01-c07.png",
+    "image_sha256": "adf2419ea51ce47018370a4cc5fe9d94b6cb1cc161e26e728a65d3d91851a720",
+    "bounds_mm": [
+      118.975,
+      -0.025,
+      122.025,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r02-c02",
+    "image": "B-routes-r02-c02.png",
+    "image_sha256": "790c448c9797521ce11de744a80ee9c1f8a2dfe6b42f5dabcb9bf3fffb8bc5f9",
+    "bounds_mm": [
+      28.975,
+      17.975,
+      48.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r02-c03",
+    "image": "B-routes-r02-c03.png",
+    "image_sha256": "165615726f89b828969b8c7eda70954180da2f50d6bed8c8872bbe7171217628",
+    "bounds_mm": [
+      46.975,
+      17.975,
+      66.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r02-c04",
+    "image": "B-routes-r02-c04.png",
+    "image_sha256": "35057c3890a1d0c862f7abf46ba29b130cdf59481f94d246b560a25c7f105866",
+    "bounds_mm": [
+      64.975,
+      17.975,
+      84.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r02-c05",
+    "image": "B-routes-r02-c05.png",
+    "image_sha256": "c470b1ecb6fcadd7cd0de1ce8d2d19110dbc04cb7e273f172f4e8999aa888213",
+    "bounds_mm": [
+      82.975,
+      17.975,
+      102.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r02-c06",
+    "image": "B-routes-r02-c06.png",
+    "image_sha256": "a307c50407b2d86bd24793a7e5cb474a7fcccc37b6690752c225fb95f6609169",
+    "bounds_mm": [
+      100.975,
+      17.975,
+      120.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r02-c07",
+    "image": "B-routes-r02-c07.png",
+    "image_sha256": "0c5318df560ed5d6af960bc31635abfcbdfe58d7ecf1375677b1739a7812161a",
+    "bounds_mm": [
+      118.975,
+      17.975,
+      122.025,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r03-c01",
+    "image": "B-routes-r03-c01.png",
+    "image_sha256": "95541c9be78dfaeeae73f8fa18e3c556b0f308a8459dfeb301f082f0ad3cc1d1",
+    "bounds_mm": [
+      10.975,
+      35.975,
+      30.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r03-c02",
+    "image": "B-routes-r03-c02.png",
+    "image_sha256": "b71e470a5d5b5ddde5aaeff641ec6b05173b0c474648e6483f93f870cc28c8fb",
+    "bounds_mm": [
+      28.975,
+      35.975,
+      48.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r03-c03",
+    "image": "B-routes-r03-c03.png",
+    "image_sha256": "416f489796d93e9b9c9bebf71fe54b8d6fb2941c5d45d1b44debeb5e31199a8d",
+    "bounds_mm": [
+      46.975,
+      35.975,
+      66.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r03-c04",
+    "image": "B-routes-r03-c04.png",
+    "image_sha256": "8e39da40da92435a031eb22b3b9fe2c3abdf268adf94ecaae433cdcc0a36da93",
+    "bounds_mm": [
+      64.975,
+      35.975,
+      84.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r03-c05",
+    "image": "B-routes-r03-c05.png",
+    "image_sha256": "bdb54b605431384e33b86f7bbdf1badea75da0298cd6dcaa0e8d936d8cc4af4e",
+    "bounds_mm": [
+      82.975,
+      35.975,
+      102.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r03-c06",
+    "image": "B-routes-r03-c06.png",
+    "image_sha256": "e03e721288f03c64a1acd91600b39cc206db39d4c3d9ccb8880cda9dd2b6087d",
+    "bounds_mm": [
+      100.975,
+      35.975,
+      120.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-routes-r03-c07",
+    "image": "B-routes-r03-c07.png",
+    "image_sha256": "e77338792cac549ccee16acf9d3eb8f6199a387dc31fcc7bf0726caed0ee39fd",
+    "bounds_mm": [
+      118.975,
+      35.975,
+      122.025,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": false,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-overview",
+    "image": "B-filled-overview.png",
+    "image_sha256": "03a7010a1e1c01a86bb19d5eea755d94fd903ffdce7aedf0623a9f7303a7d119",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      122.025,
+      53.365
+    ],
+    "kind": "overview",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "organisation",
+      "whole_board_return_paths",
+      "final_frozen_pass"
+    ]
+  },
+  {
+    "id": "B-filled-r01-c01",
+    "image": "B-filled-r01-c01.png",
+    "image_sha256": "74223d8e1fb29e848b6bc2240694912faf876d04d2132eefabbe4a8e36d84bd7",
+    "bounds_mm": [
+      10.975,
+      -0.025,
+      30.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r01-c02",
+    "image": "B-filled-r01-c02.png",
+    "image_sha256": "89fea238d478c737601effcf53f6ca57413d1708b05899cda74153067e42d27e",
+    "bounds_mm": [
+      28.975,
+      -0.025,
+      48.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r01-c03",
+    "image": "B-filled-r01-c03.png",
+    "image_sha256": "1a52007cf346b249ee334e33c1afcc5547fad88697dc4af5e50d8a307e535d15",
+    "bounds_mm": [
+      46.975,
+      -0.025,
+      66.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r01-c04",
+    "image": "B-filled-r01-c04.png",
+    "image_sha256": "ab89cea5682c52d64c624671d3aac97762d9b7a18d2649ac25d7968871684110",
+    "bounds_mm": [
+      64.975,
+      -0.025,
+      84.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r01-c05",
+    "image": "B-filled-r01-c05.png",
+    "image_sha256": "8301783e4969416bf4b429114fc2542ebee35847e42f3bbc128491f5f3b90c51",
+    "bounds_mm": [
+      82.975,
+      -0.025,
+      102.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r01-c06",
+    "image": "B-filled-r01-c06.png",
+    "image_sha256": "0f8342340712827d08bc5c4e67e2a22ab2ec648189a0b7a70cc70fbd5f0dfda8",
+    "bounds_mm": [
+      100.975,
+      -0.025,
+      120.975,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r01-c07",
+    "image": "B-filled-r01-c07.png",
+    "image_sha256": "d3bd2de958c8a94b7f100f731d3871907abcd68dee68546f22d1a45c8c1d043c",
+    "bounds_mm": [
+      118.975,
+      -0.025,
+      122.025,
+      19.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r02-c02",
+    "image": "B-filled-r02-c02.png",
+    "image_sha256": "8eae7c3e7c16cbc5fa62958cff2a7525c104978bd3a8319f4ec2b29d32d101f8",
+    "bounds_mm": [
+      28.975,
+      17.975,
+      48.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r02-c03",
+    "image": "B-filled-r02-c03.png",
+    "image_sha256": "61dd30b34309cbc4b1ce7aa32cba385b85f261385db762606d26141aa35d21eb",
+    "bounds_mm": [
+      46.975,
+      17.975,
+      66.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r02-c04",
+    "image": "B-filled-r02-c04.png",
+    "image_sha256": "a3741bb9ce1e3332cebf1f0e4fe06108bfc5b506a67f28dd2cd529dd29dc6afa",
+    "bounds_mm": [
+      64.975,
+      17.975,
+      84.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r02-c05",
+    "image": "B-filled-r02-c05.png",
+    "image_sha256": "8e74deb433672ec7be6fa9a3ef0bc0bd60d9b301dd0778de32623253a39cb36e",
+    "bounds_mm": [
+      82.975,
+      17.975,
+      102.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r02-c06",
+    "image": "B-filled-r02-c06.png",
+    "image_sha256": "3d7f9159524b9272627f7cc19fa99f312e56f2fe50c4e677f6ca1f6fa6db0181",
+    "bounds_mm": [
+      100.975,
+      17.975,
+      120.975,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r02-c07",
+    "image": "B-filled-r02-c07.png",
+    "image_sha256": "17bda6777dbe5d47d70e159dec08ad05468f66cc033d50db463f67851ee290ff",
+    "bounds_mm": [
+      118.975,
+      17.975,
+      122.025,
+      37.975
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r03-c01",
+    "image": "B-filled-r03-c01.png",
+    "image_sha256": "923bb3698ecb952f6fa41d56993a3bb01b69ed9da5022cb70c130bb1cfc104df",
+    "bounds_mm": [
+      10.975,
+      35.975,
+      30.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r03-c02",
+    "image": "B-filled-r03-c02.png",
+    "image_sha256": "f044e6d84efc5e6c2d3880a737d6befc430bb79286f2a83ef9826877f65e6d04",
+    "bounds_mm": [
+      28.975,
+      35.975,
+      48.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r03-c03",
+    "image": "B-filled-r03-c03.png",
+    "image_sha256": "efd3dcc348aadd4888b8c2bff57939e8f1e08cc7923ca0cb1f186a943b0d19b8",
+    "bounds_mm": [
+      46.975,
+      35.975,
+      66.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r03-c04",
+    "image": "B-filled-r03-c04.png",
+    "image_sha256": "c66648314b99a4f0be4a67c65cbd5d0c9ada220ef93fb455b6555ebebcfe999a",
+    "bounds_mm": [
+      64.975,
+      35.975,
+      84.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r03-c05",
+    "image": "B-filled-r03-c05.png",
+    "image_sha256": "c4cbd8114e5d3df0986680de58f57281baeebfac6c42cf579b7b064ef4f3b130",
+    "bounds_mm": [
+      82.975,
+      35.975,
+      102.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r03-c06",
+    "image": "B-filled-r03-c06.png",
+    "image_sha256": "02dfd913a51788c1d6e807329a4cd6a91ed8c48ac37a9761b19b40e4cec878a6",
+    "bounds_mm": [
+      100.975,
+      35.975,
+      120.975,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "B-filled-r03-c07",
+    "image": "B-filled-r03-c07.png",
+    "image_sha256": "b6c362678fb3f10b96145a7238bf483a97cf4d9e5aa884226e640d6d7d96f40f",
+    "bounds_mm": [
+      118.975,
+      35.975,
+      122.025,
+      53.365
+    ],
+    "kind": "copper",
+    "layer": "B.Cu",
+    "filled": true,
+    "checks": [
+      "route_geometry",
+      "pad_via_entries",
+      "redundancy",
+      "return_paths"
+    ]
+  },
+  {
+    "id": "component-F1-F",
+    "image": "component-F1-F.png",
+    "image_sha256": "dc10c56b925a39f17b95d22b95693e1fe2c5666147fea3506cd39178ba7f1121",
+    "bounds_mm": [
+      55.8,
+      19.2,
+      62.2,
+      23.0
+    ],
+    "kind": "component",
+    "reference": "F1",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-F1-B",
+    "image": "component-F1-B.png",
+    "image_sha256": "228a7183006965206a4ba142d149783972da304f493cf3fbb01a4cb83fe718b2",
+    "bounds_mm": [
+      55.8,
+      19.2,
+      62.2,
+      23.0
+    ],
+    "kind": "component",
+    "reference": "F1",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-F2-F",
+    "image": "component-F2-F.png",
+    "image_sha256": "b78ddffef29341a6316df769d407dc89bb66c41b03a9d0f8b6937ba55154393e",
+    "bounds_mm": [
+      67.975,
+      23.625,
+      74.025,
+      27.375
+    ],
+    "kind": "component",
+    "reference": "F2",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-F2-B",
+    "image": "component-F2-B.png",
+    "image_sha256": "678055f8921754d757a662cfd6e130c87d26515df0c49944d65065a1f873706d",
+    "bounds_mm": [
+      67.975,
+      23.625,
+      74.025,
+      27.375
+    ],
+    "kind": "component",
+    "reference": "F2",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J1-F",
+    "image": "component-J1-F.png",
+    "image_sha256": "9ab45cf74c2b4cc162ff2b2696ea27b2a6a26b5f171b6c2439c8bedc2fd578dd",
+    "bounds_mm": [
+      113.5,
+      7.449999999999999,
+      119.35,
+      45.55
+    ],
+    "kind": "component",
+    "reference": "J1",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J1-B",
+    "image": "component-J1-B.png",
+    "image_sha256": "d4c82ccf753a371cd98cc27b595e0c864d700dc8b807887eb26460f6dde3115e",
+    "bounds_mm": [
+      113.5,
+      7.449999999999999,
+      119.35,
+      45.55
+    ],
+    "kind": "component",
+    "reference": "J1",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J10-F",
+    "image": "component-J10-F.png",
+    "image_sha256": "b698cfe348c0a57c6a994dc0fe4b7a4b02f2d962bc4d292b7a2f6306fc487842",
+    "bounds_mm": [
+      44.4,
+      19.7,
+      55.8,
+      29.65
+    ],
+    "kind": "component",
+    "reference": "J10",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J10-B",
+    "image": "component-J10-B.png",
+    "image_sha256": "105c51faab42ea70a5496bb2eceb5bc0c016cb90ac22d56a4354120e8141670d",
+    "bounds_mm": [
+      44.4,
+      19.7,
+      55.8,
+      29.65
+    ],
+    "kind": "component",
+    "reference": "J10",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J2-F",
+    "image": "component-J2-F.png",
+    "image_sha256": "1a999416f09de8eeb5dd97a2a551315663a3a7587c9a31f2ce15be2f15e5ccdb",
+    "bounds_mm": [
+      16.92159,
+      0.62734,
+      43.58159,
+      4.42734
+    ],
+    "kind": "component",
+    "reference": "J2",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J2-B",
+    "image": "component-J2-B.png",
+    "image_sha256": "73c1971b6f93671d8e229db053957da2c34bee7d8da43ebabfd2c485519629bd",
+    "bounds_mm": [
+      16.92159,
+      0.62734,
+      43.58159,
+      4.42734
+    ],
+    "kind": "component",
+    "reference": "J2",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J3-F",
+    "image": "component-J3-F.png",
+    "image_sha256": "ada45e82b40cf3d84b3fd58dd9c9a7e7f76efb50e79da31da206618f3c8b1eeb",
+    "bounds_mm": [
+      43.84559,
+      0.62734,
+      65.42559,
+      4.42734
+    ],
+    "kind": "component",
+    "reference": "J3",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J3-B",
+    "image": "component-J3-B.png",
+    "image_sha256": "ada45e82b40cf3d84b3fd58dd9c9a7e7f76efb50e79da31da206618f3c8b1eeb",
+    "bounds_mm": [
+      43.84559,
+      0.62734,
+      65.42559,
+      4.42734
+    ],
+    "kind": "component",
+    "reference": "J3",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J4-F",
+    "image": "component-J4-F.png",
+    "image_sha256": "4c0e704692efeafbb277b0306b27d539681625590a907243c42c2ae80db68322",
+    "bounds_mm": [
+      66.70559,
+      0.62734,
+      88.28559,
+      4.42734
+    ],
+    "kind": "component",
+    "reference": "J4",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J4-B",
+    "image": "component-J4-B.png",
+    "image_sha256": "4c0e704692efeafbb277b0306b27d539681625590a907243c42c2ae80db68322",
+    "bounds_mm": [
+      66.70559,
+      0.62734,
+      88.28559,
+      4.42734
+    ],
+    "kind": "component",
+    "reference": "J4",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J5-F",
+    "image": "component-J5-F.png",
+    "image_sha256": "3593280bca7b72b6dac29504a607455a5945fbdcb247a4c833ad0901275fcdf9",
+    "bounds_mm": [
+      26.06564,
+      48.88731,
+      47.64564,
+      52.68731
+    ],
+    "kind": "component",
+    "reference": "J5",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J5-B",
+    "image": "component-J5-B.png",
+    "image_sha256": "12f66e41232116f6351e7aebfaf5c0f029f2346b488ce8938dd7b2bd59904795",
+    "bounds_mm": [
+      26.06564,
+      48.88731,
+      47.64564,
+      52.68731
+    ],
+    "kind": "component",
+    "reference": "J5",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J6-F",
+    "image": "component-J6-F.png",
+    "image_sha256": "eef33cf86ef41ea915ca4ce7cfd7305a66d700acdd4c7de5687a55c521241f17",
+    "bounds_mm": [
+      48.92564,
+      48.88731,
+      70.50564,
+      52.68731
+    ],
+    "kind": "component",
+    "reference": "J6",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J6-B",
+    "image": "component-J6-B.png",
+    "image_sha256": "ada45e82b40cf3d84b3fd58dd9c9a7e7f76efb50e79da31da206618f3c8b1eeb",
+    "bounds_mm": [
+      48.92564,
+      48.88731,
+      70.50564,
+      52.68731
+    ],
+    "kind": "component",
+    "reference": "J6",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J7-F",
+    "image": "component-J7-F.png",
+    "image_sha256": "911a578d883777cbff8d572e7df1a060d387660438191e69367f1510c8a2f782",
+    "bounds_mm": [
+      71.78564,
+      48.88731,
+      93.36564,
+      52.68731
+    ],
+    "kind": "component",
+    "reference": "J7",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J7-B",
+    "image": "component-J7-B.png",
+    "image_sha256": "ada45e82b40cf3d84b3fd58dd9c9a7e7f76efb50e79da31da206618f3c8b1eeb",
+    "bounds_mm": [
+      71.78564,
+      48.88731,
+      93.36564,
+      52.68731
+    ],
+    "kind": "component",
+    "reference": "J7",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J8-F",
+    "image": "component-J8-F.png",
+    "image_sha256": "c4d0c87c45dd90a9f6c048e109168cdcda93df146ba498855c17859bc38cd529",
+    "bounds_mm": [
+      92.12999,
+      0.6913499999999999,
+      98.36999,
+      47.57135
+    ],
+    "kind": "component",
+    "reference": "J8",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J8-B",
+    "image": "component-J8-B.png",
+    "image_sha256": "c6f776788211d80a53eb98a5959a10b258108249dc1e0a951a0d6b41e7eeff79",
+    "bounds_mm": [
+      92.12999,
+      0.6913499999999999,
+      98.36999,
+      47.57135
+    ],
+    "kind": "component",
+    "reference": "J8",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J9-F",
+    "image": "component-J9-F.png",
+    "image_sha256": "9533c977948231900867cd3a559c1d53b6ebc7f54d86b469b516310682fd5f3d",
+    "bounds_mm": [
+      79.40524,
+      10.80131,
+      85.74524,
+      42.54131
+    ],
+    "kind": "component",
+    "reference": "J9",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-J9-B",
+    "image": "component-J9-B.png",
+    "image_sha256": "8663cf513609cf348b68ff21e52289892acce67185c85b01f3f7e3c7d32e9844",
+    "bounds_mm": [
+      79.40524,
+      10.80131,
+      85.74524,
+      42.54131
+    ],
+    "kind": "component",
+    "reference": "J9",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U1-F",
+    "image": "component-U1-F.png",
+    "image_sha256": "266569fc00ad9186819ad244e5a5a04788713675f490a552130a49a855d44ede",
+    "bounds_mm": [
+      96.4,
+      0.7249999999999996,
+      111.6,
+      16.275
+    ],
+    "kind": "component",
+    "reference": "U1",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U1-B",
+    "image": "component-U1-B.png",
+    "image_sha256": "89508d4149a3b95bb10e1adfa9538bc6d728a494dab6e31f3f91cee3ae6ce5b7",
+    "bounds_mm": [
+      96.4,
+      0.7249999999999996,
+      111.6,
+      16.275
+    ],
+    "kind": "component",
+    "reference": "U1",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U2-F",
+    "image": "component-U2-F.png",
+    "image_sha256": "7f805c9edd2c4a365711c01b6195cd8278ca4eb31d76200c2dad9121d709eb5c",
+    "bounds_mm": [
+      96.4,
+      12.225000000000001,
+      111.6,
+      27.775
+    ],
+    "kind": "component",
+    "reference": "U2",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U2-B",
+    "image": "component-U2-B.png",
+    "image_sha256": "a26f14c9c6c6bd98323c41b7452a78dfc7dc9e4e85186f2e57201c4434fc440a",
+    "bounds_mm": [
+      96.4,
+      12.225000000000001,
+      111.6,
+      27.775
+    ],
+    "kind": "component",
+    "reference": "U2",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U3-F",
+    "image": "component-U3-F.png",
+    "image_sha256": "53ac84536b960573a2d26629795320a79734e08f37e4be8fb51aef711d4f550e",
+    "bounds_mm": [
+      96.4,
+      23.725,
+      111.6,
+      39.275
+    ],
+    "kind": "component",
+    "reference": "U3",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U3-B",
+    "image": "component-U3-B.png",
+    "image_sha256": "312639b37e55b43cba95c47f624e26c87e3ee974690a2fb4ac0c7369d0ee9c06",
+    "bounds_mm": [
+      96.4,
+      23.725,
+      111.6,
+      39.275
+    ],
+    "kind": "component",
+    "reference": "U3",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U4-F",
+    "image": "component-U4-F.png",
+    "image_sha256": "c61714a67752bbef2dfa66bbbb124564cd6bf5cd3613ad2fa0c2651eb0f9bf0f",
+    "bounds_mm": [
+      96.4,
+      35.225,
+      111.6,
+      50.775
+    ],
+    "kind": "component",
+    "reference": "U4",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U4-B",
+    "image": "component-U4-B.png",
+    "image_sha256": "83663bb4251121856b95e61d20ae00a0ab8adc82df888dec0d0c7704ed52ad98",
+    "bounds_mm": [
+      96.4,
+      35.225,
+      111.6,
+      50.775
+    ],
+    "kind": "component",
+    "reference": "U4",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U5-F",
+    "image": "component-U5-F.png",
+    "image_sha256": "0008ef92c4d1d73392efeaced56c48b8bcc3257c590acfd044b01b26894afd8a",
+    "bounds_mm": [
+      81.2,
+      38.75,
+      92.8,
+      49.25
+    ],
+    "kind": "component",
+    "reference": "U5",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U5-B",
+    "image": "component-U5-B.png",
+    "image_sha256": "e2f55e9fd32d2c79e58b27e2365cf5b6a9015b01c9deb6de6e264adb7c328713",
+    "bounds_mm": [
+      81.2,
+      38.75,
+      92.8,
+      49.25
+    ],
+    "kind": "component",
+    "reference": "U5",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U6-F",
+    "image": "component-U6-F.png",
+    "image_sha256": "a80b6d8fd075e8d6ccdd2a1da149055c13d6633db71a23e7398a630fd201c4d7",
+    "bounds_mm": [
+      28.075000000000003,
+      1.0,
+      41.925,
+      11.4
+    ],
+    "kind": "component",
+    "reference": "U6",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U6-B",
+    "image": "component-U6-B.png",
+    "image_sha256": "67a08571aea2c331af5240528a84465e1eaf70f11b07c86a0886ec8051871642",
+    "bounds_mm": [
+      28.075000000000003,
+      1.0,
+      41.925,
+      11.4
+    ],
+    "kind": "component",
+    "reference": "U6",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U7-F",
+    "image": "component-U7-F.png",
+    "image_sha256": "e6b746cb259817c8cf5075397b812688dfc4756e13cbd3e989b9aacdc70f0980",
+    "bounds_mm": [
+      45.35,
+      8.7,
+      60.65,
+      21.7
+    ],
+    "kind": "component",
+    "reference": "U7",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U7-B",
+    "image": "component-U7-B.png",
+    "image_sha256": "2222342758c4bd8a039e31252f18f81159070d883243e66543b1de36ae76b3cc",
+    "bounds_mm": [
+      45.35,
+      8.7,
+      60.65,
+      21.7
+    ],
+    "kind": "component",
+    "reference": "U7",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U8-F",
+    "image": "component-U8-F.png",
+    "image_sha256": "0bd914676f804ef87db593e9b46165718e3d318055a969a9fe77c54ef032d98e",
+    "bounds_mm": [
+      62.150000000000006,
+      6.75,
+      76.93,
+      17.25
+    ],
+    "kind": "component",
+    "reference": "U8",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U8-B",
+    "image": "component-U8-B.png",
+    "image_sha256": "f7ca6b441cda3068297a6b38383643b19e8e912b9fb744b54dab23cb72e67885",
+    "bounds_mm": [
+      62.150000000000006,
+      6.75,
+      76.93,
+      17.25
+    ],
+    "kind": "component",
+    "reference": "U8",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U9-F",
+    "image": "component-U9-F.png",
+    "image_sha256": "6eca7a9955cf6edb518122ae6c34c15c874fa7a8d8942999c004dc6024bf5677",
+    "bounds_mm": [
+      82.4,
+      28.75,
+      94.0,
+      39.25
+    ],
+    "kind": "component",
+    "reference": "U9",
+    "layer": "F.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "component-U9-B",
+    "image": "component-U9-B.png",
+    "image_sha256": "ee06c4cf41019399b1a641a2acab3805543d19d2dff7e8fb802383b815e82aa1",
+    "bounds_mm": [
+      82.4,
+      28.75,
+      94.0,
+      39.25
+    ],
+    "kind": "component",
+    "reference": "U9",
+    "layer": "B.Cu",
+    "checks": [
+      "fanout",
+      "entries_and_vias",
+      "soldering_access",
+      "local_return_and_power"
+    ]
+  },
+  {
+    "id": "export-gerber-F",
+    "image": "export-gerber-F.png",
+    "image_sha256": "577644ed9d3d47dae8c5c4b31a409ae847c17a0a47fbd82130aa38826d17da1b",
+    "kind": "export",
+    "role": "gerber-F",
+    "checks": [
+      "copper",
+      "mask",
+      "silkscreen",
+      "mechanical"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r01-c01",
+    "image": "export-gerber-F-r01-c01.png",
+    "image_sha256": "6cab464930b172197d58cb8ca988c9491cd8320f47f34f58c53798476263a573",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      0,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r01-c02",
+    "image": "export-gerber-F-r01-c02.png",
+    "image_sha256": "e735eb9a94c9003de625ca3c941c62975b555577b21b82aea40143c1fd1c22cb",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      1440,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r01-c03",
+    "image": "export-gerber-F-r01-c03.png",
+    "image_sha256": "fb2f81fbde3f79b85b76f185283b44a2e049d33d9ba3e400e3ecca7d0446fbb7",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      2880,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r01-c04",
+    "image": "export-gerber-F-r01-c04.png",
+    "image_sha256": "e0f36be4766dbd898abb0df7cdff515676d6d8f3b883f2e469e56117e82d7464",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      4320,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r01-c05",
+    "image": "export-gerber-F-r01-c05.png",
+    "image_sha256": "4ef67a1831e59103356a0b4578f26edace0f3c88194d08a205a2a4e636a8378b",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      5760,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r01-c06",
+    "image": "export-gerber-F-r01-c06.png",
+    "image_sha256": "3e7bc313ab3688d376f536c3c89d54eecdde1e99e6b63a4bd398ae5dcc791618",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      7200,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r01-c07",
+    "image": "export-gerber-F-r01-c07.png",
+    "image_sha256": "700ebabe8e51a5c19e96142db82950a4b670294a6b4e6aa363d2573aaf14a0fa",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      8640,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r02-c01",
+    "image": "export-gerber-F-r02-c01.png",
+    "image_sha256": "ff312dcdbc1fd8454fda3af553fe1bfbd4d15077f4d4d4daffd48725c700c7c3",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      0,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r02-c02",
+    "image": "export-gerber-F-r02-c02.png",
+    "image_sha256": "d6bde98cfdf9cd9e89a10de134f17349cec6601f4df2b556a355819b5b367441",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      1440,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r02-c03",
+    "image": "export-gerber-F-r02-c03.png",
+    "image_sha256": "a12262ac35408a9ac2c494544775d93f08cfc004a2c89ca6261bfeb1e562cfea",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      2880,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r02-c04",
+    "image": "export-gerber-F-r02-c04.png",
+    "image_sha256": "571d013d168cee58e1975542855f93b9470e28741476f47ba2c2e68b2f2dc77c",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      4320,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r02-c05",
+    "image": "export-gerber-F-r02-c05.png",
+    "image_sha256": "039889dd53337105b9eab496a1a30e0419c907ae7a3a1b0f9eba247a75bc4e10",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      5760,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r02-c06",
+    "image": "export-gerber-F-r02-c06.png",
+    "image_sha256": "efdf7bb912fe179a8d74d4be380fa2568f924b0e1f1e1a5d0c10d74b3f36dbf0",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      7200,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r02-c07",
+    "image": "export-gerber-F-r02-c07.png",
+    "image_sha256": "5735a368e303ae6f5f0d74bfd2d5dd008840df2c8f33e3798e8591afd24dd6c8",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      8640,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r03-c01",
+    "image": "export-gerber-F-r03-c01.png",
+    "image_sha256": "fe73d9321fe6a83c5f4b4c3ee2c3732d485821c600d1f0f916179b1ae9b22011",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      0,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r03-c02",
+    "image": "export-gerber-F-r03-c02.png",
+    "image_sha256": "0c148d5d659f137854c5c4e6cfa031050eca60e75cdbd6c585bd35b2be3a4fdc",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      1440,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r03-c03",
+    "image": "export-gerber-F-r03-c03.png",
+    "image_sha256": "165c02c68101ec46a4b9c94a7b5a4ef4759a151e79b17e6c92f9c431f6028a60",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      2880,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r03-c04",
+    "image": "export-gerber-F-r03-c04.png",
+    "image_sha256": "f339cefc0af80d837b24a1aca9a2b60a264a3801667bd7263d11ef68b8c0502e",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      4320,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r03-c05",
+    "image": "export-gerber-F-r03-c05.png",
+    "image_sha256": "f04099c57eeb13a069b083765fa21e627985d97aac7706f4fb50fc336084b9a1",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      5760,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r03-c06",
+    "image": "export-gerber-F-r03-c06.png",
+    "image_sha256": "f0da0a61e43501f81f8cb484a2eaf21ea0bfd0c1c4cf847fde327f1cdddc17cb",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      7200,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r03-c07",
+    "image": "export-gerber-F-r03-c07.png",
+    "image_sha256": "09a66208e2dc35f75eccdfda207a19772b19bbb44270c5cd5ca2a840c9af7a6e",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      8640,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r04-c01",
+    "image": "export-gerber-F-r04-c01.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      0,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r04-c02",
+    "image": "export-gerber-F-r04-c02.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      1440,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r04-c03",
+    "image": "export-gerber-F-r04-c03.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      2880,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r04-c04",
+    "image": "export-gerber-F-r04-c04.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      4320,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r04-c05",
+    "image": "export-gerber-F-r04-c05.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      5760,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r04-c06",
+    "image": "export-gerber-F-r04-c06.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      7200,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-F-r04-c07",
+    "image": "export-gerber-F-r04-c07.png",
+    "image_sha256": "20baecf59356cfe84ad671911e367cf02d7f2062ecdeb7ed28e0c5ee84e9de95",
+    "kind": "export-detail",
+    "role": "gerber-F",
+    "pixel_origin": [
+      8640,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1",
+    "image": "export-gerber-In1.png",
+    "image_sha256": "220b653ccaa8fb90082bd62fef9b953559f00674136e65681bd19e3fcdacb18e",
+    "kind": "export",
+    "role": "gerber-In1",
+    "checks": [
+      "copper",
+      "mask",
+      "silkscreen",
+      "mechanical"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r01-c01",
+    "image": "export-gerber-In1-r01-c01.png",
+    "image_sha256": "790750b9e3a55d35d350ac72b68ddff7473de5a1d4e53078d5fa8cc7ffbe0b63",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      0,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r01-c02",
+    "image": "export-gerber-In1-r01-c02.png",
+    "image_sha256": "fffc6a30843027171acbb794178d3dd696d0d79a41bcfdf55dba7f6d356cdab7",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      1440,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r01-c03",
+    "image": "export-gerber-In1-r01-c03.png",
+    "image_sha256": "b499a41ded2348b9924607823fc1f88192488d4025e244be3c06507c2d9ecc82",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      2880,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r01-c04",
+    "image": "export-gerber-In1-r01-c04.png",
+    "image_sha256": "8995dcc4a0aab41ccccb0f50ecf8ae6b30233493309852f52cd4c86c6f680195",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      4320,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r01-c05",
+    "image": "export-gerber-In1-r01-c05.png",
+    "image_sha256": "fcc2ffdbfd1c38c696b2cca5947f3d12b0795202006e5ee354ce20a00e4a2c62",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      5760,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r01-c06",
+    "image": "export-gerber-In1-r01-c06.png",
+    "image_sha256": "049fe9ef03e485b797f9cf5a93df8913c425e711d9d902e128bf4116770e4c6c",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      7200,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r01-c07",
+    "image": "export-gerber-In1-r01-c07.png",
+    "image_sha256": "99371d48c124d38828040d79ce0277a77abd3f15925b023e97a781a09d77acbf",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      8640,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r02-c01",
+    "image": "export-gerber-In1-r02-c01.png",
+    "image_sha256": "ff312dcdbc1fd8454fda3af553fe1bfbd4d15077f4d4d4daffd48725c700c7c3",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      0,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r02-c02",
+    "image": "export-gerber-In1-r02-c02.png",
+    "image_sha256": "7929a7537066823f4201891bdd8ca9f1365f62743e9c70f34579b3747d8493b1",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      1440,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r02-c03",
+    "image": "export-gerber-In1-r02-c03.png",
+    "image_sha256": "da1a1cb3e2acf9b35bfec8f12ec080c8388700ec7130a32c89ae101d633dcce1",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      2880,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r02-c04",
+    "image": "export-gerber-In1-r02-c04.png",
+    "image_sha256": "64272078a9a38564f590e8e7dec16ad770aea6a4a51f26aeed864896e2bca9a4",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      4320,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r02-c05",
+    "image": "export-gerber-In1-r02-c05.png",
+    "image_sha256": "c6e8d0c0f926c3c9c00efcfaaee42395ddfe91a9a10a9c076ce3ebd808d7bb72",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      5760,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r02-c06",
+    "image": "export-gerber-In1-r02-c06.png",
+    "image_sha256": "6bad829a0157e97951cfd2728cd26e24f9281cf31ad4339a3b761dec8dd61906",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      7200,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r02-c07",
+    "image": "export-gerber-In1-r02-c07.png",
+    "image_sha256": "1d887334ab4569b2f613ddbc96dc99509ca64e348e14f31e379168cefc2d9be4",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      8640,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r03-c01",
+    "image": "export-gerber-In1-r03-c01.png",
+    "image_sha256": "41bdeafb626d15e09147b49d317e069b1f5889de9a540c20b725470f8fdc10a9",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      0,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r03-c02",
+    "image": "export-gerber-In1-r03-c02.png",
+    "image_sha256": "f85bdbd0383844f16fbf9516f7ab4ae1808643c4766725dcaff2081a5e1497c2",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      1440,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r03-c03",
+    "image": "export-gerber-In1-r03-c03.png",
+    "image_sha256": "ffc28f71a87b095e70b2f08f0d58f3c1a48321b0f8c9012104c3891d559ae544",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      2880,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r03-c04",
+    "image": "export-gerber-In1-r03-c04.png",
+    "image_sha256": "746803542a1a7113ba7e26a90993ff0dccc40ead99f8daf9223e651db4b68751",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      4320,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r03-c05",
+    "image": "export-gerber-In1-r03-c05.png",
+    "image_sha256": "ffd7c98ca00b731a159e59501b375641a8ea58cc9d05d76401734c9afdda0a11",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      5760,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r03-c06",
+    "image": "export-gerber-In1-r03-c06.png",
+    "image_sha256": "a8ae46f72c8850a56a9d2583c03311ef64e78b9667b8d265c604a3352910d9cb",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      7200,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r03-c07",
+    "image": "export-gerber-In1-r03-c07.png",
+    "image_sha256": "fab10ebb50104b447af665cf328fda8f961593f6aaa91ef746ac9402775361c6",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      8640,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r04-c01",
+    "image": "export-gerber-In1-r04-c01.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      0,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r04-c02",
+    "image": "export-gerber-In1-r04-c02.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      1440,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r04-c03",
+    "image": "export-gerber-In1-r04-c03.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      2880,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r04-c04",
+    "image": "export-gerber-In1-r04-c04.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      4320,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r04-c05",
+    "image": "export-gerber-In1-r04-c05.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      5760,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r04-c06",
+    "image": "export-gerber-In1-r04-c06.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      7200,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In1-r04-c07",
+    "image": "export-gerber-In1-r04-c07.png",
+    "image_sha256": "20baecf59356cfe84ad671911e367cf02d7f2062ecdeb7ed28e0c5ee84e9de95",
+    "kind": "export-detail",
+    "role": "gerber-In1",
+    "pixel_origin": [
+      8640,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2",
+    "image": "export-gerber-In2.png",
+    "image_sha256": "220b653ccaa8fb90082bd62fef9b953559f00674136e65681bd19e3fcdacb18e",
+    "kind": "export",
+    "role": "gerber-In2",
+    "checks": [
+      "copper",
+      "mask",
+      "silkscreen",
+      "mechanical"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r01-c01",
+    "image": "export-gerber-In2-r01-c01.png",
+    "image_sha256": "790750b9e3a55d35d350ac72b68ddff7473de5a1d4e53078d5fa8cc7ffbe0b63",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      0,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r01-c02",
+    "image": "export-gerber-In2-r01-c02.png",
+    "image_sha256": "fffc6a30843027171acbb794178d3dd696d0d79a41bcfdf55dba7f6d356cdab7",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      1440,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r01-c03",
+    "image": "export-gerber-In2-r01-c03.png",
+    "image_sha256": "b499a41ded2348b9924607823fc1f88192488d4025e244be3c06507c2d9ecc82",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      2880,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r01-c04",
+    "image": "export-gerber-In2-r01-c04.png",
+    "image_sha256": "8995dcc4a0aab41ccccb0f50ecf8ae6b30233493309852f52cd4c86c6f680195",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      4320,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r01-c05",
+    "image": "export-gerber-In2-r01-c05.png",
+    "image_sha256": "fcc2ffdbfd1c38c696b2cca5947f3d12b0795202006e5ee354ce20a00e4a2c62",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      5760,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r01-c06",
+    "image": "export-gerber-In2-r01-c06.png",
+    "image_sha256": "049fe9ef03e485b797f9cf5a93df8913c425e711d9d902e128bf4116770e4c6c",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      7200,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r01-c07",
+    "image": "export-gerber-In2-r01-c07.png",
+    "image_sha256": "99371d48c124d38828040d79ce0277a77abd3f15925b023e97a781a09d77acbf",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      8640,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r02-c01",
+    "image": "export-gerber-In2-r02-c01.png",
+    "image_sha256": "ff312dcdbc1fd8454fda3af553fe1bfbd4d15077f4d4d4daffd48725c700c7c3",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      0,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r02-c02",
+    "image": "export-gerber-In2-r02-c02.png",
+    "image_sha256": "7929a7537066823f4201891bdd8ca9f1365f62743e9c70f34579b3747d8493b1",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      1440,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r02-c03",
+    "image": "export-gerber-In2-r02-c03.png",
+    "image_sha256": "da1a1cb3e2acf9b35bfec8f12ec080c8388700ec7130a32c89ae101d633dcce1",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      2880,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r02-c04",
+    "image": "export-gerber-In2-r02-c04.png",
+    "image_sha256": "64272078a9a38564f590e8e7dec16ad770aea6a4a51f26aeed864896e2bca9a4",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      4320,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r02-c05",
+    "image": "export-gerber-In2-r02-c05.png",
+    "image_sha256": "c6e8d0c0f926c3c9c00efcfaaee42395ddfe91a9a10a9c076ce3ebd808d7bb72",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      5760,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r02-c06",
+    "image": "export-gerber-In2-r02-c06.png",
+    "image_sha256": "6bad829a0157e97951cfd2728cd26e24f9281cf31ad4339a3b761dec8dd61906",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      7200,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r02-c07",
+    "image": "export-gerber-In2-r02-c07.png",
+    "image_sha256": "1d887334ab4569b2f613ddbc96dc99509ca64e348e14f31e379168cefc2d9be4",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      8640,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r03-c01",
+    "image": "export-gerber-In2-r03-c01.png",
+    "image_sha256": "41bdeafb626d15e09147b49d317e069b1f5889de9a540c20b725470f8fdc10a9",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      0,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r03-c02",
+    "image": "export-gerber-In2-r03-c02.png",
+    "image_sha256": "f85bdbd0383844f16fbf9516f7ab4ae1808643c4766725dcaff2081a5e1497c2",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      1440,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r03-c03",
+    "image": "export-gerber-In2-r03-c03.png",
+    "image_sha256": "ffc28f71a87b095e70b2f08f0d58f3c1a48321b0f8c9012104c3891d559ae544",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      2880,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r03-c04",
+    "image": "export-gerber-In2-r03-c04.png",
+    "image_sha256": "746803542a1a7113ba7e26a90993ff0dccc40ead99f8daf9223e651db4b68751",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      4320,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r03-c05",
+    "image": "export-gerber-In2-r03-c05.png",
+    "image_sha256": "ffd7c98ca00b731a159e59501b375641a8ea58cc9d05d76401734c9afdda0a11",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      5760,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r03-c06",
+    "image": "export-gerber-In2-r03-c06.png",
+    "image_sha256": "a8ae46f72c8850a56a9d2583c03311ef64e78b9667b8d265c604a3352910d9cb",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      7200,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r03-c07",
+    "image": "export-gerber-In2-r03-c07.png",
+    "image_sha256": "fab10ebb50104b447af665cf328fda8f961593f6aaa91ef746ac9402775361c6",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      8640,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r04-c01",
+    "image": "export-gerber-In2-r04-c01.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      0,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r04-c02",
+    "image": "export-gerber-In2-r04-c02.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      1440,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r04-c03",
+    "image": "export-gerber-In2-r04-c03.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      2880,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r04-c04",
+    "image": "export-gerber-In2-r04-c04.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      4320,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r04-c05",
+    "image": "export-gerber-In2-r04-c05.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      5760,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r04-c06",
+    "image": "export-gerber-In2-r04-c06.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      7200,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-In2-r04-c07",
+    "image": "export-gerber-In2-r04-c07.png",
+    "image_sha256": "20baecf59356cfe84ad671911e367cf02d7f2062ecdeb7ed28e0c5ee84e9de95",
+    "kind": "export-detail",
+    "role": "gerber-In2",
+    "pixel_origin": [
+      8640,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B",
+    "image": "export-gerber-B.png",
+    "image_sha256": "f62d9e0d83451b6f6ee855fef7deb7ec16aa0f4525593ae7c21083fe67ebd25d",
+    "kind": "export",
+    "role": "gerber-B",
+    "checks": [
+      "copper",
+      "mask",
+      "silkscreen",
+      "mechanical"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r01-c01",
+    "image": "export-gerber-B-r01-c01.png",
+    "image_sha256": "a2ea6ee388c622d475c0cb85afffdfb60691c6f334fbd3984df4ab0637231767",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      0,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r01-c02",
+    "image": "export-gerber-B-r01-c02.png",
+    "image_sha256": "6d3cb5033f5b87e1975e498df6750048440cb5f9e5d21e2930bfe41c321a44c1",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      1440,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r01-c03",
+    "image": "export-gerber-B-r01-c03.png",
+    "image_sha256": "d55ad6ef5d6cefa666d6658d7913fb72bdb17266a60010ed6961710e60a6d744",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      2880,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r01-c04",
+    "image": "export-gerber-B-r01-c04.png",
+    "image_sha256": "0f3477405f5e8738290b80d55b1952d4375f4dc93e4874bf7328e5dba64c61ef",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      4320,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r01-c05",
+    "image": "export-gerber-B-r01-c05.png",
+    "image_sha256": "1a6369a634bc20c4eff4443dc478db7d6e308c52d20cde6d37eba4ead393c104",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      5760,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r01-c06",
+    "image": "export-gerber-B-r01-c06.png",
+    "image_sha256": "f46d33f49e11776eed7e066a95d4f54852ed5e9321410f39e64a4e779dc0f1ff",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      7200,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r01-c07",
+    "image": "export-gerber-B-r01-c07.png",
+    "image_sha256": "4049d50083bf966c3b63d63097d658da45718c48a3d2f8cbee2793b9f77af100",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      8640,
+      0
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r02-c01",
+    "image": "export-gerber-B-r02-c01.png",
+    "image_sha256": "ff312dcdbc1fd8454fda3af553fe1bfbd4d15077f4d4d4daffd48725c700c7c3",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      0,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r02-c02",
+    "image": "export-gerber-B-r02-c02.png",
+    "image_sha256": "618ec6c0c3ac41355812f02977cba0058905e71c234e042f1044f8803f4c4819",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      1440,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r02-c03",
+    "image": "export-gerber-B-r02-c03.png",
+    "image_sha256": "49ec3ee00b1ebc0c3d3b6f7a9bbfba82fc27f79937ffaee8b2ba9fd119db4362",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      2880,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r02-c04",
+    "image": "export-gerber-B-r02-c04.png",
+    "image_sha256": "10e22dd2bd6bbb1dff87d2b9131f2372b7452d592c04bdada153c97a99534d78",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      4320,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r02-c05",
+    "image": "export-gerber-B-r02-c05.png",
+    "image_sha256": "16f57bb0e12f4b7dfdf14fb0a8b90a3aaaa404fbbafb74d54b179fedbcc2b9e7",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      5760,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r02-c06",
+    "image": "export-gerber-B-r02-c06.png",
+    "image_sha256": "81e45d8620b7e60c9725812cf1a8abf4a1d4f4e15eea6685f4736ef01b6ee696",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      7200,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r02-c07",
+    "image": "export-gerber-B-r02-c07.png",
+    "image_sha256": "a5e853e047d74e1a511114603ed21fc535df3b1f15150c13d2ccdb28999730d2",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      8640,
+      1440
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r03-c01",
+    "image": "export-gerber-B-r03-c01.png",
+    "image_sha256": "3239cab0c38b14889fe2f86a702b10ebb188ebd17ca4f4c3d77914b4b95d6b2a",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      0,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r03-c02",
+    "image": "export-gerber-B-r03-c02.png",
+    "image_sha256": "789513dc183b111261af781648c03cee8cabb3e134aa5a07a9ee229775c723d7",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      1440,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r03-c03",
+    "image": "export-gerber-B-r03-c03.png",
+    "image_sha256": "ffa620aa733e04d6c1048b932886d62976850a24264128dc02e3001f61a1a05d",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      2880,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r03-c04",
+    "image": "export-gerber-B-r03-c04.png",
+    "image_sha256": "1d5fed71ef20e5dd292924c3c788057e5035ded7d9f28becf07e0f6ef4d5fd2b",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      4320,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r03-c05",
+    "image": "export-gerber-B-r03-c05.png",
+    "image_sha256": "cc36aae73df83d2d596982eec1d1d771aeb0b59d046dad25d48fdf88350b3679",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      5760,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r03-c06",
+    "image": "export-gerber-B-r03-c06.png",
+    "image_sha256": "c3ee408d1274803bf668d29e792f9732bb856ef918dbdc6a782aa5627bac58dc",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      7200,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r03-c07",
+    "image": "export-gerber-B-r03-c07.png",
+    "image_sha256": "eb1c243a170efb75b3810b3080efa3622e74b5a055aed5f5daab0de80e4efc8b",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      8640,
+      2880
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r04-c01",
+    "image": "export-gerber-B-r04-c01.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      0,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r04-c02",
+    "image": "export-gerber-B-r04-c02.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      1440,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r04-c03",
+    "image": "export-gerber-B-r04-c03.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      2880,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r04-c04",
+    "image": "export-gerber-B-r04-c04.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      4320,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r04-c05",
+    "image": "export-gerber-B-r04-c05.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      5760,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r04-c06",
+    "image": "export-gerber-B-r04-c06.png",
+    "image_sha256": "92fa5b7a015ef8adc0386abc7c8e2e957f1c8884d805aa73a25c464c1df76474",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      7200,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-B-r04-c07",
+    "image": "export-gerber-B-r04-c07.png",
+    "image_sha256": "20baecf59356cfe84ad671911e367cf02d7f2062ecdeb7ed28e0c5ee84e9de95",
+    "kind": "export-detail",
+    "role": "gerber-B",
+    "pixel_origin": [
+      8640,
+      4320
+    ],
+    "pixels_per_mm": 80.00071175010454,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk",
+    "image": "export-gerber-top-mask-silk.png",
+    "image_sha256": "9242c18fe5552d3937f978e1815595ca1327ade448110671c9ad0c273a4eba09",
+    "kind": "export",
+    "role": "gerber-top-mask-silk",
+    "checks": [
+      "copper",
+      "mask",
+      "silkscreen",
+      "mechanical"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r01-c01",
+    "image": "export-gerber-top-mask-silk-r01-c01.png",
+    "image_sha256": "d9d742a21de21e5b98685738a2064251d47365f6a655ffde569a35152fc31dcb",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      0,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r01-c02",
+    "image": "export-gerber-top-mask-silk-r01-c02.png",
+    "image_sha256": "18c6449f695380fe0b11febd74af3d70fed8b7beb4631c7a05ca010c6ca12e66",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      1440,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r01-c03",
+    "image": "export-gerber-top-mask-silk-r01-c03.png",
+    "image_sha256": "676cedf8f3cf9436b43c3d551c1ddeaf77c921c65819f7aa884e2f32763aa883",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      2880,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r01-c04",
+    "image": "export-gerber-top-mask-silk-r01-c04.png",
+    "image_sha256": "83eb40a01d912c637a71c54b41a0be48bb3205de55ac4145be15c82a16c6d3ee",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      4320,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r01-c05",
+    "image": "export-gerber-top-mask-silk-r01-c05.png",
+    "image_sha256": "b6bb57f558691a6609706303c9f31ae55fe6ef2fd4ae7a41516aa6dc2c38accf",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      5760,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r01-c06",
+    "image": "export-gerber-top-mask-silk-r01-c06.png",
+    "image_sha256": "a52110a3cd9d7552753cfd571259106fdf1e282457c78141a0c1cea639587742",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      7200,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r01-c07",
+    "image": "export-gerber-top-mask-silk-r01-c07.png",
+    "image_sha256": "b85d16043fb09bfd906e26fbfe3d38edec7c44081b106dd79374882bfa36a02b",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      8640,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r02-c01",
+    "image": "export-gerber-top-mask-silk-r02-c01.png",
+    "image_sha256": "ff312dcdbc1fd8454fda3af553fe1bfbd4d15077f4d4d4daffd48725c700c7c3",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      0,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r02-c02",
+    "image": "export-gerber-top-mask-silk-r02-c02.png",
+    "image_sha256": "5acc45f89d4d3b23ec2a24c575db253cc9e4466970634bd02a191acec003880c",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      1440,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r02-c03",
+    "image": "export-gerber-top-mask-silk-r02-c03.png",
+    "image_sha256": "08d2a14f6ae2aa3ac2d0c66a1a96ac1bacaa80058593197da484a03415a51719",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      2880,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r02-c04",
+    "image": "export-gerber-top-mask-silk-r02-c04.png",
+    "image_sha256": "43fb340fa62ccdc358e3c682bccdc1eb9a2d5161d4c2a9515575f3243bb0c2d2",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      4320,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r02-c05",
+    "image": "export-gerber-top-mask-silk-r02-c05.png",
+    "image_sha256": "c32d0c7e3a68dae2b596967d5b970a0eaf383ff354932933c0f2f620d4863a2a",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      5760,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r02-c06",
+    "image": "export-gerber-top-mask-silk-r02-c06.png",
+    "image_sha256": "50635d98d0c2796c6d386003edcdc8ddb2c5c0bf55eb2ca8ce4dceecde048320",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      7200,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r02-c07",
+    "image": "export-gerber-top-mask-silk-r02-c07.png",
+    "image_sha256": "2e1331d6362df0f47f3e81193c76880dc5dab698542290ab026ca76d4be983bf",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      8640,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r03-c01",
+    "image": "export-gerber-top-mask-silk-r03-c01.png",
+    "image_sha256": "9f48b18ba8239b205cf6207ff11573713683b81939336287452388cf12c43fb9",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      0,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r03-c02",
+    "image": "export-gerber-top-mask-silk-r03-c02.png",
+    "image_sha256": "91dfa7541f21f9ce58dc27c0d9f34cca43e4661df72aa0fdd7054fec9be3723a",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      1440,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r03-c03",
+    "image": "export-gerber-top-mask-silk-r03-c03.png",
+    "image_sha256": "47be6494af0fa3fa24e493ed40a80afa0abeadad59400f162dc39397e7163ed4",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      2880,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r03-c04",
+    "image": "export-gerber-top-mask-silk-r03-c04.png",
+    "image_sha256": "91986ee2c316c1dafc181d40e1faf23240570f11accff94ccd5867e0da7e62b2",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      4320,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r03-c05",
+    "image": "export-gerber-top-mask-silk-r03-c05.png",
+    "image_sha256": "5a54ebd6d4e098d4f639f5bd09ce036c104de2d10927ccb04db4dc23ecd21778",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      5760,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r03-c06",
+    "image": "export-gerber-top-mask-silk-r03-c06.png",
+    "image_sha256": "8f0c0c5418e290a07a65c61c1011dd837da803386ce33dba4ffd210fb1e4ae6c",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      7200,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r03-c07",
+    "image": "export-gerber-top-mask-silk-r03-c07.png",
+    "image_sha256": "8280140241a65e485af57b4f9c10fdce31140aaefe08cea7c9548e6640bfeafb",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      8640,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r04-c01",
+    "image": "export-gerber-top-mask-silk-r04-c01.png",
+    "image_sha256": "84670dbc32628ccbd64a5b3fea44612710dc353e45629154f56739dc95ccf64f",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      0,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r04-c02",
+    "image": "export-gerber-top-mask-silk-r04-c02.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      1440,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r04-c03",
+    "image": "export-gerber-top-mask-silk-r04-c03.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      2880,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r04-c04",
+    "image": "export-gerber-top-mask-silk-r04-c04.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      4320,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r04-c05",
+    "image": "export-gerber-top-mask-silk-r04-c05.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      5760,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r04-c06",
+    "image": "export-gerber-top-mask-silk-r04-c06.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      7200,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-top-mask-silk-r04-c07",
+    "image": "export-gerber-top-mask-silk-r04-c07.png",
+    "image_sha256": "dc7e611c7975f6c2aaf4d14a5611504961f4513fbd32b5e9370ebace8c5a8255",
+    "kind": "export-detail",
+    "role": "gerber-top-mask-silk",
+    "pixel_origin": [
+      8640,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk",
+    "image": "export-gerber-bottom-mask-silk.png",
+    "image_sha256": "c22f73fb3b50cdb2e2d1101b63cdf8cf2e2886ff4fc8d40438e02c61d5f82960",
+    "kind": "export",
+    "role": "gerber-bottom-mask-silk",
+    "checks": [
+      "copper",
+      "mask",
+      "silkscreen",
+      "mechanical"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r01-c01",
+    "image": "export-gerber-bottom-mask-silk-r01-c01.png",
+    "image_sha256": "2b23d3c0eb61490482774ba9fe6b7c2c81ef7b1faf488216bf02fbb65e5764a6",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      0,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r01-c02",
+    "image": "export-gerber-bottom-mask-silk-r01-c02.png",
+    "image_sha256": "0c8bc4c0287b4afb75658ea9bdbb33ce9ab6a7367406feb30b1c0ce8e9a0d135",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      1440,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r01-c03",
+    "image": "export-gerber-bottom-mask-silk-r01-c03.png",
+    "image_sha256": "80b770ab28d02dabdad50c502c70dc20b1d8a0c1fff1a069981ea18b2f2aad43",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      2880,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r01-c04",
+    "image": "export-gerber-bottom-mask-silk-r01-c04.png",
+    "image_sha256": "f3c3403b03db75055581b70f9f321ffcfe41b5c48f035860c5b382636ca2b2b5",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      4320,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r01-c05",
+    "image": "export-gerber-bottom-mask-silk-r01-c05.png",
+    "image_sha256": "fd978ba20df7b8ea5a5cb7e6e7db4de25ee50a84f8b97c9f1bc4ddbbc368931e",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      5760,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r01-c06",
+    "image": "export-gerber-bottom-mask-silk-r01-c06.png",
+    "image_sha256": "618017d7340fafc5c24cca917e8986ab4e0d67ccf420950aa1f70973a2aee6d1",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      7200,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r01-c07",
+    "image": "export-gerber-bottom-mask-silk-r01-c07.png",
+    "image_sha256": "d087018251b4464262cd193d1d373e3d2edd09e517c7dbe77f854c0bda4d2a09",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      8640,
+      0
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r02-c01",
+    "image": "export-gerber-bottom-mask-silk-r02-c01.png",
+    "image_sha256": "30d0be83bd1b1f9860614023a3658c74d1e9160a03e1f3b7040aaefbb2165290",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      0,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r02-c02",
+    "image": "export-gerber-bottom-mask-silk-r02-c02.png",
+    "image_sha256": "462155931d80344b15f22a1ec7c2c64707d580a2ea01bd960fab3ea929f5ac9d",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      1440,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r02-c03",
+    "image": "export-gerber-bottom-mask-silk-r02-c03.png",
+    "image_sha256": "f1d3ed5ca2ed4c38f588ffcfa6d33aa66a4a3fd81f92773c5b9df363065a656b",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      2880,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r02-c04",
+    "image": "export-gerber-bottom-mask-silk-r02-c04.png",
+    "image_sha256": "c8a218c240bf10b314e81628fa7085364dbd52b27333878e41f801b497433108",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      4320,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r02-c05",
+    "image": "export-gerber-bottom-mask-silk-r02-c05.png",
+    "image_sha256": "818d797413f6fc46f84b1b3232c2a968b7690c982d7eb7e7c052d87c4c88e3b2",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      5760,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r02-c06",
+    "image": "export-gerber-bottom-mask-silk-r02-c06.png",
+    "image_sha256": "ff312dcdbc1fd8454fda3af553fe1bfbd4d15077f4d4d4daffd48725c700c7c3",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      7200,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r02-c07",
+    "image": "export-gerber-bottom-mask-silk-r02-c07.png",
+    "image_sha256": "968e3a4ac94c4fb05cd376bb160cbc73b9c904f02c1e1da6838a2115112610ac",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      8640,
+      1440
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r03-c01",
+    "image": "export-gerber-bottom-mask-silk-r03-c01.png",
+    "image_sha256": "26f659529fcd9f7b3d6cd52670d9aecc010440c7325a22d0162b98a7bb14d346",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      0,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r03-c02",
+    "image": "export-gerber-bottom-mask-silk-r03-c02.png",
+    "image_sha256": "60229516c7ab5c924f23ff9aa59dc7343fb95adfdca5ecbf8926e47b6748f258",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      1440,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r03-c03",
+    "image": "export-gerber-bottom-mask-silk-r03-c03.png",
+    "image_sha256": "6f6d012a1d3169601638a9b0ecd2e3d35e8238b81fdbd8f4f00e2456b204cf81",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      2880,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r03-c04",
+    "image": "export-gerber-bottom-mask-silk-r03-c04.png",
+    "image_sha256": "5df65dbd6943a3f5ed655930d20219a63d28b3f57367123f87098aae87447e89",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      4320,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r03-c05",
+    "image": "export-gerber-bottom-mask-silk-r03-c05.png",
+    "image_sha256": "04726165547584fb240160f96d5a1404751703f5e4abec05bc94fc5af320c2ff",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      5760,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r03-c06",
+    "image": "export-gerber-bottom-mask-silk-r03-c06.png",
+    "image_sha256": "7422bced355a9d6ac51db4487bde1454e6ae88199fce5b80b764502f48b1b69f",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      7200,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r03-c07",
+    "image": "export-gerber-bottom-mask-silk-r03-c07.png",
+    "image_sha256": "c7fb4116475a397b9f4367757c9d02902b56d12539ef8fccdcef4fbbbb0a3703",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      8640,
+      2880
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r04-c01",
+    "image": "export-gerber-bottom-mask-silk-r04-c01.png",
+    "image_sha256": "ea08397572793fd6f9b1a9cfee6c67159d219e2e73d4247c25061ec161d5c001",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      0,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r04-c02",
+    "image": "export-gerber-bottom-mask-silk-r04-c02.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      1440,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r04-c03",
+    "image": "export-gerber-bottom-mask-silk-r04-c03.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      2880,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r04-c04",
+    "image": "export-gerber-bottom-mask-silk-r04-c04.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      4320,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r04-c05",
+    "image": "export-gerber-bottom-mask-silk-r04-c05.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      5760,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r04-c06",
+    "image": "export-gerber-bottom-mask-silk-r04-c06.png",
+    "image_sha256": "1e81656b4b7ad68abfcce001fc0683e1900e69dc5b7a17f62caeef7f23de2246",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      7200,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-gerber-bottom-mask-silk-r04-c07",
+    "image": "export-gerber-bottom-mask-silk-r04-c07.png",
+    "image_sha256": "5e4f80c569031f1247cbe63bce76dcdcdd9c5437165af5f3cf77768f5969581a",
+    "kind": "export-detail",
+    "role": "gerber-bottom-mask-silk",
+    "pixel_origin": [
+      8640,
+      4320
+    ],
+    "pixels_per_mm": 79.99999999999999,
+    "checks": [
+      "export_copper",
+      "mask_openings",
+      "silkscreen_clearance",
+      "connector_orientation"
+    ]
+  },
+  {
+    "id": "export-mechanical-top",
+    "image": "export-mechanical-top.png",
+    "image_sha256": "17322439fff688ce88dd94d38508de8caaf89e17a9f563c4ba06bd7e47c5a627",
+    "kind": "export",
+    "role": "mechanical-top",
+    "checks": [
+      "copper",
+      "mask",
+      "silkscreen",
+      "mechanical"
+    ]
+  },
+  {
+    "id": "export-mechanical-bottom",
+    "image": "export-mechanical-bottom.png",
+    "image_sha256": "14932bae0ed9c5eb3fb7ab104650cab1712b0b07b3281e278d1dae9c5db2e913",
+    "kind": "export",
+    "role": "mechanical-bottom",
+    "checks": [
+      "copper",
+      "mask",
+      "silkscreen",
+      "mechanical"
+    ]
+  }
+]

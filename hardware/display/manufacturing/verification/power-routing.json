@@ -1,5 +1,5 @@
 {
-  "revision": "F",
+  "revision": "G",
   "method": "Measured connected copper paths with length/width resistance at 35um; 1.3 hot-copper factor. Shared segments carry the sum of allocated loads. Parallel paths and copper pours are ignored. Pad interiors treated as equipotential; each via transition allocated 2mOhm. Return copper and connector losses remain separate budget allowances.",
   "total_budget_A": 1.5,
   "loads": [
@@ -7,55 +7,55 @@
       "load": "backlight",
       "pad": "J1.5",
       "budget_A": 0.2625,
-      "selected_path_ohm": 0.021276502367842454,
-      "supply_drop_V": 0.018537827486234577
+      "selected_path_ohm": 0.025961330122901277,
+      "supply_drop_V": 0.023456896629046348
     },
     {
       "load": "backlight",
       "pad": "J1.6",
       "budget_A": 0.2625,
-      "selected_path_ohm": 0.014033645224985314,
-      "supply_drop_V": 0.01473532748623458
+      "selected_path_ohm": 0.01871847298004414,
+      "supply_drop_V": 0.019654396629046347
     },
     {
       "load": "backlight",
       "pad": "J1.7",
       "budget_A": 0.2625,
-      "selected_path_ohm": 0.02220507379641388,
-      "supply_drop_V": 0.018781577486234578
+      "selected_path_ohm": 0.026889901551472705,
+      "supply_drop_V": 0.02370064662904635
     },
     {
       "load": "backlight",
       "pad": "J1.8",
       "budget_A": 0.2625,
-      "selected_path_ohm": 0.014962216653556742,
-      "supply_drop_V": 0.014979077486234579
+      "selected_path_ohm": 0.019647044408615567,
+      "supply_drop_V": 0.019898146629046348
     },
     {
       "load": "TFT",
       "pad": "J1.10",
       "budget_A": 0.25,
-      "selected_path_ohm": 0.08612912947309123,
-      "supply_drop_V": 0.03751864309829194
+      "selected_path_ohm": 0.09604775382155911,
+      "supply_drop_V": 0.034391968078143556
     },
     {
       "load": "touch",
       "pad": "J1.49",
       "budget_A": 0.05,
-      "selected_path_ohm": 0.07189497047886056,
-      "supply_drop_V": 0.028130678996386584
+      "selected_path_ohm": 0.10592037548180125,
+      "supply_drop_V": 0.00551050813746314
     },
     {
       "load": "interface reference rail",
       "pad": "J2.56",
       "budget_A": 0.15,
-      "selected_path_ohm": 0.1677195024896109,
-      "supply_drop_V": 0.04975719905076989
+      "selected_path_ohm": 0.12517353814194032,
+      "supply_drop_V": 0.036058205978932924
     }
   ],
-  "maximum_logic_supply_drop_V": 0.04975719905076989,
-  "maximum_backlight_supply_drop_V": 0.018781577486234578,
-  "maximum_panel_supply_drop_V": 0.03751864309829194,
+  "maximum_logic_supply_drop_V": 0.036058205978932924,
+  "maximum_backlight_supply_drop_V": 0.02370064662904635,
+  "maximum_panel_supply_drop_V": 0.034391968078143556,
   "return_allowance_ohm": 0.02,
   "physical_verification": "PENDING: actual current, via plating, return spreading and temperature"
 }

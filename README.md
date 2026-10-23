@@ -1419,8 +1419,10 @@ on the display adapter. Hardware supervisors gate PWM/reset/standby; PI1/D70
 reports supply readiness so firmware repeats initialization after power recovery.
 USB-C remains available for CDC; GIGA and display 3.3 V rails stay separate.
 The projects include protected interfaces, cable specifications and AISLER
-bare-board upload packages: display revision E and GIGA revision D
-(both four layers), both 1.6 mm with ENIG. Local fabrication checks pass; AISLER's
+bare-board upload packages: display revision G and GIGA revision F
+(both four layers), both 1.6 mm with ENIG. Both use continuous inner ground
+planes and stitched outer fills. Local fabrication checks and the recorded
+regional visual review pass; AISLER's
 processed-job acceptance and first-board fit/electrical/display testing remain pending.
 The [hardware review](hardware/display/manufacturing/REVIEW.md) identifies open
 RGB timing and supply-transient qualification; fabrication readiness does not

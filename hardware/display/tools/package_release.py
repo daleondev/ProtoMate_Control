@@ -134,6 +134,40 @@ def main():
         design_hashes(), indent=2) + '\n')
     status['visual_review'] = dict(result='PASS — recorded local inspection', boards=visual)
     (manufacturing/'release-status.json').write_text(json.dumps(status,indent=2)+'\n')
+    order_path = verification / 'order-review.json'
+    order = json.loads(order_path.read_text())
+    for relative, expected in order['evidence_sha256'].items():
+        assert digest(verification / relative) == expected, ('Order evidence changed', relative)
+    for name, result in visual.items():
+        assert order['boards'][name]['PCB_sha256'] == digest(ROOT/name/(name+'.kicad_pcb'))
+        assert order['boards'][name]['upload_sha256'] == digest(
+            manufacturing/release_name(name)/(release_name(name)+'-aisler-odb.zip'))
+        order['evidence_sha256'][name+'-visual/review.json'] = result['manifest_sha256']
+    order['routing'] = (
+        'PASS — local copper/layout checks and complete hash-bound regional visual '
+        'inspection. Every retained geometry candidate has an individual reason; '
+        'this is not physical signal-integrity qualification or AISLER CAM acceptance.')
+    order['visual_review'] = status['visual_review']
+    order_path.write_text(json.dumps(order, indent=2)+'\n')
+
+    progress_path = manufacturing / 'layout-unification-status.json'
+    progress = json.loads(progress_path.read_text())
+    progress.update(status='LOCAL RELEASE CHECKS PASS — AISLER PROCESSING PENDING',
+                    local_visual_inspection='PASS — complete hash-bound regional inspection',
+                    new_revision_issued=True)
+    progress['revisions'] = progress.pop('draft_revisions', progress.get('revisions'))
+    for name, result in visual.items():
+        progress['boards'][name].update(
+            source_sha256=digest(ROOT/name/(name+'.kicad_pcb')),
+            release_eligible=True,
+            verification='Local electrical, manufacturing, export and visual checks PASS',
+            reviewed_regions=result['regions'],
+            reviewed_geometry_candidates=result['reviewed_geometry_candidates'],
+            review_manifest_sha256=result['manifest_sha256'])
+    progress['remaining_work'] = [
+        'Inspect AISLER processed jobs for these exact ODB++ archives before ordering.',
+        'Qualify first-board mechanical fit, assembly, power, thermal and display operation.']
+    progress_path.write_text(json.dumps(progress, indent=2)+'\n')
     releases = ROOT / 'releases'
     releases.mkdir(exist_ok=True)
     # The package guide omits repository-specific archive links.
@@ -155,6 +189,7 @@ def main():
             for item in ['cable-specification.pdf', 'connections.csv', 'cable-conductors.csv']:
                 shutil.copy2(ROOT / item, folder / item)
             shutil.copy2(manufacturing / 'release-status.json', folder / 'release-status.json')
+            shutil.copy2(progress_path, folder / progress_path.name)
             (folder/'REVIEW.md').write_text((manufacturing/'REVIEW.md').read_text().replace(
                 '`../references/`', '`source/references/`').replace(
                 '(../references/', '(source/references/').replace(
@@ -173,6 +208,7 @@ def main():
         (folder/'aisler-support'/'.git').unlink(missing_ok=True)
         shutil.copy2(manufacturing/'aisler-support-lock.json',folder/'manufacturing'/'aisler-support-lock.json')
         shutil.copy2(manufacturing / 'release-status.json', folder / 'manufacturing' / 'release-status.json')
+        shutil.copy2(progress_path, folder / 'manufacturing' / progress_path.name)
         shutil.copy2(manufacturing/'REVIEW.md', folder/'manufacturing'/'REVIEW.md')
         archive(folder, releases / (folder.name + '-source.zip'))
     checksums(releases)

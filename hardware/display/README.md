@@ -1,13 +1,12 @@
 # Smartwin–GIGA display adapters
 
-**Manufacturing hold: the unified layouts are implemented in the main projects;
-visual inspection and revision-matched release validation are in progress.**
+**Local electrical, manufacturing and recorded visual checks pass.**
 Both use complete outer-layer routing, two continuous inner GND planes and
 stitched outer fills. Authorized placement changes put GIGA R33–R48 beside J8
-and reposition display C9/TP8 for a straight supply route and component clearance.
+and reposition display C9/TP8 and R16/R17 for direct supply and supervisor connections.
 Connector positions and board mechanics remain fixed.
 See [current validation status](manufacturing/layout-unification-status.json).
-Do not order an earlier archive as the current design.
+The matching releases below are ready for upload and AISLER processing review.
 
 The **four-layer display adapter (revision G)** and **four-layer GIGA adapter
 (revision F)** connect the Smartwin **SMMH0701024600S-C20** to the Arduino
@@ -17,18 +16,17 @@ symbol or footprint library. Keep this directory structure when moving them.
 
 Release files:
 
-- [Display F: AISLER ODB++ upload](releases/display-adapter-rev-F-aisler-odb.zip)
-- [GIGA E: AISLER ODB++ upload](releases/giga-adapter-rev-E-aisler-odb.zip)
-- [Display F: review and soldering package](releases/display-adapter-rev-F-aisler-review.zip)
-- [GIGA E: review and soldering package](releases/giga-adapter-rev-E-aisler-review.zip)
-- [Source bundle F: projects, libraries, models and tools](releases/smartwin-giga-rev-F-source.zip)
-- [Nominal GIGA mating assembly](assembly/giga-mated-rev-E.png)
+- [Display G: AISLER ODB++ upload](releases/display-adapter-rev-G-aisler-odb.zip)
+- [GIGA F: AISLER ODB++ upload](releases/giga-adapter-rev-F-aisler-odb.zip)
+- [Display G: review and soldering package](releases/display-adapter-rev-G-aisler-review.zip)
+- [GIGA F: review and soldering package](releases/giga-adapter-rev-F-aisler-review.zip)
+- [Source bundle G: projects, libraries, models and tools](releases/smartwin-giga-rev-G-source.zip)
+- [Nominal GIGA mating assembly](assembly/giga-mated-rev-F.png)
 - [Component lists and Mouser procurement](procurement/README.md): quantities for one
   board pair, explicit substitutes, stock evidence and remaining sourcing gaps;
   the DC jack is already owned.
 
-After the manufacturing hold is cleared, upload only the two ZIPs labelled
-**AISLER ODB++ upload**, one job per board.
+Upload only the two ZIPs labelled **AISLER ODB++ upload**, one job per board.
 The review packages contain fabrication references, procurement BOMs, placement
 and soldering drawings. They are not assembly orders. `releases/SHA256SUMS`
 identifies the exact archives.
@@ -154,7 +152,7 @@ The backlight converter is independent. Its specified load-step excursion can
 reach 250 mV. The added bulk capacitance and actual PWM load therefore need a
 first-board test for rail dips and supervisor retriggering. The supervisors inhibit
 the panel on undervoltage; they do not make an undersized supply acceptable.
-The calculated static minimum at the backlight contacts is 3.029 V at the
+The calculated static minimum at the backlight contacts is about 3.024 V at the
 1.2 A allocation. Its 50 mV downward ripple allowance is a design assumption:
 TRACO specifies 50 mV peak-to-peak **typical**, not a guaranteed maximum. This
 small remaining margin does not establish operation under every load transient.
@@ -224,7 +222,7 @@ crosstalk and timing still require the first-board measurements below.
 | PANEL_3V3 reference return | 5, 6, 7 | 56, 55, 54 |
 | PANEL_READY return → GIGA D70 | 9 | 52 |
 
-Use the **display-F / GIGA-E pair** and revision-F cable drawing. The cable is
+Use the **display-G / GIGA-F pair** and revision-G cable drawing. The cable is
 rated 60 V / 0.5 A per conductor; the sockets are rated 50 V / 0.5 A per contact.
 The complete link is therefore limited by the socket's voltage rating. Cable
 copper is **0.30 × 0.10 mm**. Electrical budgets conservatively use **106 mm**,
@@ -351,8 +349,8 @@ headers retain 1.8 mm pads. All component-hole rings are at least 0.30 mm.
 
 ## AISLER upload and manufacturing review
 
-1. Upload `display-adapter-rev-F-aisler-odb.zip` and
-   `giga-adapter-rev-E-aisler-odb.zip` as separate AISLER projects.
+1. Upload `display-adapter-rev-G-aisler-odb.zip` and
+   `giga-adapter-rev-F-aisler-odb.zip` as separate AISLER projects.
 2. Confirm **4 layers on both, ENIG on both, 1.6 mm ±10%, 35 µm copper**,
    green mask and white silk. Select bare boards only; no assembly or stencil.
 3. Inspect the processed copper, holes and mask. Confirm all 50 display contacts,
@@ -438,8 +436,8 @@ similarly restricted to the recorded pads; pad dimensions, hole sizes, relief
 gaps and required spoke counts remain protected. The original fingerprints
 remain intact, so these exceptions cannot conceal unrelated footprint or
 mechanical edits. Published AISLER limits take precedence over
-templates. These architectural requirements are **not yet met by the
-authoritative PCBs**.
+templates. Both authoritative PCBs meet these architectural requirements;
+the separate visual and manufacturing release gates must also pass.
 
 `tools/audit_workmanship.py BOARD --output REPORT.json` screens every net,
 including ground and power, for angles, short zigzags, overlaps, hairpins,
@@ -472,7 +470,7 @@ archives are made only after these checks and visual/mechanical review.
 
 `tools/design.py` defines board revisions and layer/via settings;
 `tools/aisler.py` applies the pinned manufacturing profiles without replacing
-routing. The source bundle revision is F. The source bundle includes the same
+routing. The source bundle revision is G. The source bundle includes the same
 support templates and a hashed CubeMX pin snapshot for offline reproduction.
 In the full repository, the electrical audit checks the current CubeMX file;
 outside it, the report explicitly identifies the recorded release assignments.

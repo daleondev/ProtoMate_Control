@@ -4,13 +4,13 @@
   "half_period_ns": 12.20703125,
   "panel_setup_hold_ns": 5,
   "buffer_interdevice_worst_case_range_ns": 3.5,
-  "adapter_trace_skew_estimate_ns_at_7ps_per_mm": 0.3929854072548697,
+  "adapter_trace_skew_estimate_ns_at_7ps_per_mm": 0.42792969995227237,
   "stm32_DS12930_table105_conditions": "VDD >2.7V, OSPEED=11, IO compensation enabled, stated load and voltage-scale conditions; Very-high GPIO speed and CSI-referenced IO compensation are configured in firmware; physical loading remains to be qualified.",
   "stm32_data_valid_max_ns": 0.5,
   "stm32_data_hold_min_ns": 0,
   "stm32_half_cycle_tolerance_ns": 0.5,
-  "conditional_setup_margin_ns_before_unmodelled_terms": 2.7156570549953796,
-  "conditional_hold_margin_ns_before_unmodelled_terms": 2.8140458427451303,
+  "conditional_setup_margin_ns_before_unmodelled_terms": 2.6865149591159465,
+  "conditional_hold_margin_ns_before_unmodelled_terms": 2.7791015500477276,
   "unmodelled_terms": [
     "Arduino PCB routes",
     "FFC conductor skew, material and connector/package effects",
@@ -69,5 +69,33 @@
     "vertical_total": 610,
     "frame_rate_Hz": 59.95316159250586,
     "status": "CONFIGURED in CubeMX and bootstrap; panel testing pending"
+  },
+  "outer_layer_impedance_estimate": {
+    "source": "https://www.ti.com/lit/an/sprabi2d/sprabi2d.pdf",
+    "formula": "87/sqrt(er+1.41) * ln(5.98*h/(0.8*w+t))",
+    "h_mm": 0.14,
+    "copper_mm": 0.035,
+    "assumed_er_range": [
+      4.0,
+      4.6
+    ],
+    "widths": [
+      {
+        "width_mm": 0.15,
+        "estimate_ohm": [
+          59.9,
+          63.1
+        ]
+      },
+      {
+        "width_mm": 0.18,
+        "estimate_ohm": [
+          54.7,
+          57.7
+        ]
+      }
+    ],
+    "limitations": "Microstrip approximation; outer GND fill changes this to locally coplanar geometry. Mask, actual laminate Dk, etching, vias, cable and headers are not modeled. No impedance-controlled fabrication claim.",
+    "termination": "Keep the existing 33-ohm source resistors beside the buffers. Driver output resistance contributes to source impedance; qualify/tune the populated value from panel-end ringing and setup/hold measurements. No decorative delay meanders."
   }
 }

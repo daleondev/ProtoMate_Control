@@ -141,6 +141,31 @@ def scan(path):
                 if line.hausdorff_distance(lines[j]) < .00001 and items[i].GetWidth() == items[j].GetWidth():
                     finding('duplicate_track', 'error', [items[i], items[j]], 'Duplicate same-layer copper.')
 
+    # Copper overlap is electrically connected in KiCad even if the two track
+    # centre lines stop short of one another. Such joins hid a staircase from
+    # the exact-endpoint graph below. Inspect them independently of that graph.
+    for (net, layer), items in groups.items():
+        lines = [LineString([xy(t.GetStart()), xy(t.GetEnd())]) for t in items]
+        anchors = [g for _, p in pads if p.GetNetname() == net and p.IsOnLayer(layer)
+                   for g in polygon_set(p.GetEffectivePolygon(layer))]
+        anchors += [Point(xy(v.GetPosition())).buffer(v.GetWidth(layer)/2e6)
+                    for v in vias if v.GetNetname() == net and v.IsOnLayer(layer)]
+        for i, track in enumerate(items):
+            for endpoint in (xy(track.GetStart()), xy(track.GetEnd())):
+                point = Point(endpoint)
+                if any(g.distance(point) < EPS for g in anchors):
+                    continue
+                others = [(j, line.distance(point)) for j, line in enumerate(lines) if j != i]
+                if any(distance < EPS for _, distance in others):
+                    continue  # Exact corner or centred T junction.
+                touching = [(j, distance) for j, distance in others
+                            if distance < (items[j].GetWidth()+track.GetWidth())/2e6-.0001]
+                if touching:
+                    j, distance = min(touching, key=lambda entry: entry[1])
+                    finding('displaced_track_junction', 'review', [track, items[j]],
+                        'Copper edges overlap but the centre lines do not meet; repair an offset join or justify a real pad/plane connection.',
+                        endpoint_mm=endpoint, centreline_gap_mm=round(distance, 5))
+
     foreign_cache = {}
     for (group, point), items in junctions.items():
         if len(items) != 2:

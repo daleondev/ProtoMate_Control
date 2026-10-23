@@ -4,7 +4,7 @@
   "revision": "F",
   "support_revision": "00fe215f96ce7a938946e1a176de4ca8cac291ef",
   "template": "aisler-4-layer-hd-drc",
-  "source_sha256": "acb4e3fda600f4f08727449ea9f086083c6f7a5792d814ca6c63d58170783f53",
+  "source_sha256": "63f1451935c82d4ebbecc30402c32a7b9d686e32794771acce56aeda02ed0d1e",
   "finished_thickness_mm": 1.6,
   "finished_thickness_tolerance_percent": 10,
   "copper_um": 35,
@@ -14,7 +14,7 @@
   "minimum_hole_spacing_mm": 0.37100973412422655,
   "minimum_processed_fine_pitch_mask_web_mm": 0.15999999999999928,
   "minimum_processed_connector_to_via_mask_web_mm": 0.1849999999999943,
-  "through_vias": 234,
+  "through_vias": 237,
   "plated_slots": [
     {
       "pad": "J10.1",
