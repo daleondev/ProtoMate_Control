@@ -170,7 +170,8 @@ namespace
         frame.fill(std::byte{ 42 });
         ASSERT_TRUE(run(endpoints[0]->send(frame, Lane::Background)));
         std::array<std::byte, 1> small{};
-        EXPECT_EQ(run(endpoints[1]->receive(small, Lane::Background)), std::unexpected(Error::BufferTooSmall));
+        EXPECT_EQ(run(endpoints[1]->receive(small, Lane::Background)),
+                  std::unexpected(Error::BufferTooSmall));
         std::array<std::byte, icc::MAX_BACKGROUND_FRAME_BYTES> received{};
         ASSERT_TRUE(run(endpoints[1]->receive(received, Lane::Background)));
         EXPECT_EQ(received, frame);
@@ -531,12 +532,15 @@ namespace
           launch(context, exchange(*endpoints[0], std::byte{ 0xCC }, std::byte{ 0xDD }, icc::Lane::Urgent));
         auto urgentRight = launch(
           peerContext, exchange(*endpoints[1], std::byte{ 0xDD }, std::byte{ 0xCC }, icc::Lane::Urgent));
-        auto backgroundLeft = launch(context, exchange(*endpoints[0], std::byte{ 0xEE }, std::byte{ 0xFF }, icc::Lane::Background));
-        auto backgroundRight = launch(peerContext, exchange(*endpoints[1], std::byte{ 0xFF }, std::byte{ 0xEE }, icc::Lane::Background));
+        auto backgroundLeft = launch(
+          context, exchange(*endpoints[0], std::byte{ 0xEE }, std::byte{ 0xFF }, icc::Lane::Background));
+        auto backgroundRight = launch(
+          peerContext, exchange(*endpoints[1], std::byte{ 0xFF }, std::byte{ 0xEE }, icc::Lane::Background));
         std::jthread leftRunner([&] { context.run(); }), rightRunner([&] { peerContext.run(); });
         const auto leftStatus = left.wait_for(5s), rightStatus = right.wait_for(5s);
         const auto urgentLeftStatus = urgentLeft.wait_for(5s), urgentRightStatus = urgentRight.wait_for(5s);
-        const auto backgroundLeftStatus = backgroundLeft.wait_for(5s), backgroundRightStatus = backgroundRight.wait_for(5s);
+        const auto backgroundLeftStatus = backgroundLeft.wait_for(5s),
+                   backgroundRightStatus = backgroundRight.wait_for(5s);
         endpoints[0]->close();
         // Keep both contexts running through disconnection cleanup, even on failure.
         left.wait();

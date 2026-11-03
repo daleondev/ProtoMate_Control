@@ -23,9 +23,10 @@ namespace hal::timer
                 static auto instance = [] {
                     handle.Instance = TIM5;
                     handle.State = HAL_TIM_STATE_READY;
-                    return std::make_shared<Timer>(Timer::Configuration{
-                        .handle = handle, .input_frequency_hz = stm32::apb1_timer_input_frequency_hz(),
-                        .interrupt = TIM5_IRQn});
+                    return std::make_shared<Timer>(
+                      Timer::Configuration{ .handle = handle,
+                                            .input_frequency_hz = stm32::apb1_timer_input_frequency_hz(),
+                                            .interrupt = TIM5_IRQn });
                 }();
                 return instance;
             }
@@ -34,13 +35,15 @@ namespace hal::timer
                 static auto instance = [] {
                     handle.Instance = TIM12;
                     handle.State = HAL_TIM_STATE_READY;
-                    return std::make_shared<Timer>(Timer::Configuration{
-                        .handle = handle, .input_frequency_hz = stm32::apb1_timer_input_frequency_hz(),
-                        .interrupt = TIM8_BRK_TIM12_IRQn});
+                    return std::make_shared<Timer>(
+                      Timer::Configuration{ .handle = handle,
+                                            .input_frequency_hz = stm32::apb1_timer_input_frequency_hz(),
+                                            .interrupt = TIM8_BRK_TIM12_IRQn });
                 }();
                 return instance;
             }
-            default: return {};
+            default:
+                return {};
         }
     }
 }

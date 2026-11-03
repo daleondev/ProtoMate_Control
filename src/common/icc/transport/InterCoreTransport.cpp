@@ -97,7 +97,9 @@ namespace icc
       std::stop_token stop)
     {
         const auto index = 2 * static_cast<std::size_t>(lane);
-        if (index >= m_waiters.size()) { co_return std::unexpected(Error::Disconnected); }
+        if (index >= m_waiters.size()) {
+            co_return std::unexpected(Error::Disconnected);
+        }
         auto& waiter = m_waiters.at(index);
         for (;;) {
             std::unique_lock lock(m_mutex);
@@ -121,7 +123,9 @@ namespace icc
             const auto notified = co_await waiter.ready.wait(stop);
             lock.lock();
             waiter.waiting = false;
-            if (notified) { waiter.pending = false; }
+            if (notified) {
+                waiter.pending = false;
+            }
         }
     }
 
@@ -131,7 +135,9 @@ namespace icc
       std::stop_token stop)
     {
         const auto index = 2 * static_cast<std::size_t>(lane) + 1;
-        if (index >= m_waiters.size()) { co_return std::unexpected(Error::Disconnected); }
+        if (index >= m_waiters.size()) {
+            co_return std::unexpected(Error::Disconnected);
+        }
         auto& waiter = m_waiters.at(index);
         for (;;) {
             std::unique_lock lock(m_mutex);
@@ -141,8 +147,7 @@ namespace icc
             if (m_closed) {
                 co_return std::unexpected(Error::Disconnected);
             }
-            const auto result =
-              m_channel->tryReceive(buffer, lane);
+            const auto result = m_channel->tryReceive(buffer, lane);
             if (result) {
                 co_return *result;
             }
@@ -154,7 +159,9 @@ namespace icc
             const auto notified = co_await waiter.ready.wait(stop);
             lock.lock();
             waiter.waiting = false;
-            if (notified) { waiter.pending = false; }
+            if (notified) {
+                waiter.pending = false;
+            }
         }
     }
 }

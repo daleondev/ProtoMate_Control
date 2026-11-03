@@ -4,15 +4,17 @@
 
 #include "hal/drivers/impl/StepGenerator.hpp"
 #include "hal/hal.hpp"
-#include "hal/stm32/InterruptGuard.hpp"
 #include "hal/stm32/HardwareSemaphore.hpp"
+#include "hal/stm32/InterruptGuard.hpp"
 #include "hal/stm32/TimerClock.hpp"
 
 #include <array>
 
 #if defined(CORE_CM4)
 // Debugger/bench counters: core cycles, including refill and progress callbacks.
-extern "C" { volatile std::uint32_t giga_step_irq_cycles_max{}; }
+extern "C" {
+volatile std::uint32_t giga_step_irq_cycles_max{};
+}
 #endif
 
 namespace
@@ -46,7 +48,7 @@ namespace hal::stm32
             DMA1_Stream0, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             DMA1_Stream1, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             DMA1_Stream2, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            DMA1_Stream3 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            DMA1_Stream3  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         constexpr std::array<unsigned, 4> SHIFTS{ 0U, 6U, 16U, 22U };
         constexpr std::uint32_t ERROR_FLAGS{ 0x0DU }; // FEIF, DMEIF, TEIF
@@ -89,8 +91,11 @@ namespace hal::stm32
         };
         auto output_mode(std::size_t axis, OutputMode mode) noexcept -> void
         {
-            auto& reg{ // NOLINT(clang-analyzer-core.FixedAddressDereference)
-                axis == 0U ? TIM2->CCMR1 : TIM2->CCMR2 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            auto& reg{
+                // NOLINT(clang-analyzer-core.FixedAddressDereference)
+                axis == 0U
+                  ? TIM2->CCMR1
+                  : TIM2->CCMR2 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             }; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             const auto shift{ axis == 2U ? CAPTURE_COMPARE_FIELD_BITS : 0U };
             // Preserve the other channel sharing this CCMR register.
@@ -99,21 +104,23 @@ namespace hal::stm32
         }
 
     }
-        auto StepHardware::pin_mode(std::size_t axis, bool alternate) noexcept -> void
-        {
-            const HardwareSemaphore shared(5);
-            if (!shared) { hal::panic("STEP GPIO configuration lock timeout"); }
-            auto* port = m_pins[axis].port == gpio::Port::A ? GPIOA : GPIOB;
-            const auto pin = static_cast<std::uint16_t>(1U << m_pins[axis].number);
-            HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
-            GPIO_InitTypeDef config{};
-            config.Mode = alternate ? GPIO_MODE_AF_PP : GPIO_MODE_OUTPUT_PP;
-            config.Pull = GPIO_PULLDOWN;
-            config.Speed = GPIO_SPEED_FREQ_LOW;
-            config.Alternate = GPIO_AF1_TIM2;
-            config.Pin = pin;
-            HAL_GPIO_Init(port, &config);
+    auto StepHardware::pin_mode(std::size_t axis, bool alternate) noexcept -> void
+    {
+        const HardwareSemaphore shared(5);
+        if (!shared) {
+            hal::panic("STEP GPIO configuration lock timeout");
         }
+        auto* port = m_pins[axis].port == gpio::Port::A ? GPIOA : GPIOB;
+        const auto pin = static_cast<std::uint16_t>(1U << m_pins[axis].number);
+        HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
+        GPIO_InitTypeDef config{};
+        config.Mode = alternate ? GPIO_MODE_AF_PP : GPIO_MODE_OUTPUT_PP;
+        config.Pull = GPIO_PULLDOWN;
+        config.Speed = GPIO_SPEED_FREQ_LOW;
+        config.Alternate = GPIO_AF1_TIM2;
+        config.Pin = pin;
+        HAL_GPIO_Init(port, &config);
+    }
     StepHardware::~StepHardware()
     {
         const InterruptGuard lock;
@@ -141,7 +148,9 @@ namespace hal::stm32
         static_cast<void>(stop());
         {
             const HardwareSemaphore shared(5);
-            if (!shared) { return false; }
+            if (!shared) {
+                return false;
+            }
             __HAL_RCC_TIM2_CLK_ENABLE(); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             __HAL_RCC_TIM7_CLK_ENABLE(); // NOLINT(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             __HAL_RCC_DMA1_CLK_ENABLE(); // NOLINT(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -150,8 +159,8 @@ namespace hal::stm32
         // Preserve the common 100 ns scheduling unit across clock configurations.
         const auto hz = apb1_timer_input_frequency_hz();
         if (hz < STEP_TIMER_FREQUENCY_HZ || hz % STEP_TIMER_FREQUENCY_HZ != 0U ||
-            hz / STEP_TIMER_FREQUENCY_HZ > 65'536U ||
-            hz % GUARD_TIMER_FREQUENCY_HZ != 0U || hz / GUARD_TIMER_FREQUENCY_HZ > 65'536U) {
+            hz / STEP_TIMER_FREQUENCY_HZ > 65'536U || hz % GUARD_TIMER_FREQUENCY_HZ != 0U ||
+            hz / GUARD_TIMER_FREQUENCY_HZ > 65'536U) {
             return false;
         }
         TIM2->CR1 = 0U;  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -167,30 +176,33 @@ namespace hal::stm32
           (TIM_OCMODE_FORCED_INACTIVE
            << CAPTURE_COMPARE_FIELD_BITS); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM2->PSC = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          hz / STEP_TIMER_FREQUENCY_HZ - 1U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM2->ARR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          util::STEP_ARR; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM2->CNT = 0U;   // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM2->CCR1 = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          util::STEP_PARK; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM2->CCR2 = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          util::STEP_PARK; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM2->CCR3 = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          util::STEP_PARK; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM2->CCR4 = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          hz / STEP_TIMER_FREQUENCY_HZ -
+          1U;                   // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->ARR =             // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          util::STEP_ARR;       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->CNT = 0U;         // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->CCR1 =            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          util::STEP_PARK;      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->CCR2 =            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          util::STEP_PARK;      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->CCR3 =            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          util::STEP_PARK;      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->CCR4 =            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           util::STEP_PARK;      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM2->EGR = TIM_EGR_UG; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        while ((TIM2->SR & TIM_SR_UIF) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-               0U) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        while ((TIM2->SR &
+                TIM_SR_UIF) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+               0U) {           // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
-        TIM2->SR = 0U;            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->SR = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         memory.stop_counter = 0U;
         publish(); // DMA writes CR1: CEN=0, no restart.
         for (std::size_t i = 0; i < STREAMS.size(); ++i) {
             DMA1->LIFCR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               ALL_FLAGS
               << SHIFTS[i]; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            auto* mux{ reinterpret_cast<DMAMUX_Channel_TypeDef*>( // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
+            auto* mux{ reinterpret_cast<
+              DMAMUX_Channel_TypeDef*>( // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
               DMAMUX1_Channel0_BASE + // NOLINT(performance-no-int-to-ptr) //
                                       // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) -- DMA address
                                       // register/cache-maintenance ABI.
@@ -215,14 +227,16 @@ namespace hal::stm32
         guard->NDTR = 1U;
         TIM7->CR1 = 0U;  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM7->DIER = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM7->PSC = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          hz / GUARD_TIMER_FREQUENCY_HZ - 1U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM7->ARR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM7->PSC =      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          hz / GUARD_TIMER_FREQUENCY_HZ -
+          1U;                   // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM7->ARR =             // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           GUARD_TIMER_RELOAD;   // 1 ms completion monitor; no output pins. //
                                 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM7->EGR = TIM_EGR_UG; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        while ((TIM7->SR & TIM_SR_UIF) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-               0U) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        while ((TIM7->SR &
+                TIM_SR_UIF) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+               0U) {           // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
         TIM7->SR = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         HAL_NVIC_SetPriority(TIM7_IRQn, STEP_IRQ_PRIORITY, 0U);
@@ -237,8 +251,8 @@ namespace hal::stm32
           TIM2->DIER, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           CC_DMA
             [axis]); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        CLEAR_BIT( // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          TIM2->CCER, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        CLEAR_BIT(   // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          TIM2->CCER,       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           CC_ENABLE[axis]); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         disable(axis);
         compare(axis) = util::STEP_PARK;
@@ -247,23 +261,28 @@ namespace hal::stm32
         DMA1->LIFCR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           ALL_FLAGS
           << SHIFTS[axis]; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM2->SR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->SR =         // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           ~CC_FLAGS[axis]; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         CLEAR_BIT(stream->CR, DMA_SxCR_CT);
         stream->PAR = reinterpret_cast<std::uintptr_t>( // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-          &compare(axis)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-                           // -- DMA address register/cache-maintenance ABI.
-        stream->M0AR = reinterpret_cast<std::uintptr_t>( // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-          memory.edges[axis][0].data()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) -- DMA address
-                                         // register/cache-maintenance ABI.
-        stream->M1AR = reinterpret_cast<std::uintptr_t>( // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-          memory.edges[axis][1].data()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) -- DMA address
-                                         // register/cache-maintenance ABI.
+          &compare(axis));                              // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                                                        // -- DMA address register/cache-maintenance ABI.
+        stream->M0AR =
+          reinterpret_cast<std::uintptr_t>( // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            memory.edges[axis][0].data());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) -- DMA
+                                            // address register/cache-maintenance ABI.
+        stream->M1AR =
+          reinterpret_cast<std::uintptr_t>( // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            memory.edges[axis][1].data());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) -- DMA
+                                            // address register/cache-maintenance ABI.
         stream->NDTR = entries;
         SET_BIT(stream->CR, DMA_SxCR_DBM | DMA_SxCR_CIRC | DMA_SxCR_MINC | DMA_SxCR_HTIE);
         const auto lead{ util::step_distance(
           TIM2->CNT, first) }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        if ((TIM2->CR1 & TIM_CR1_CEN) == 0U || lead < util::STEP_MIN_PHASE || // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        if ((TIM2->CR1 & TIM_CR1_CEN) == 0U ||
+            lead <
+              util::
+                STEP_MIN_PHASE || // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             lead >
               util::
                 STEP_HORIZON) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -272,10 +291,10 @@ namespace hal::stm32
         }
         SET_BIT(stream->CR, DMA_SxCR_EN);
         output_mode(axis, OutputMode::Toggle);
-        SET_BIT(TIM2->CCER, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        SET_BIT(TIM2->CCER,       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 CC_ENABLE[axis]); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        SET_BIT(TIM2->DIER, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                CC_DMA[axis]); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        SET_BIT(TIM2->DIER,       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                CC_DMA[axis]);    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         __DSB();
         compare(axis) = first; // Last: expose a future edge on the running counter.
         return true;
@@ -285,7 +304,8 @@ namespace hal::stm32
         SET_BIT(STREAMS[3]->CR, DMA_SxCR_EN);
         guard(deadline);
         __DSB();
-        TIM2->CR1 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2
+          ->CR1 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           TIM_CR1_CEN; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     }
     auto StepHardware::guard(std::uint32_t tick) noexcept -> void
@@ -293,16 +313,17 @@ namespace hal::stm32
         if (tick == util::STEP_PARK) {
             // CCR > ARR can still generate a compare request at wrap!
             CLEAR_BIT( // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              TIM2->DIER, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+              TIM2->DIER,      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               TIM_DIER_CC2DE); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            TIM2->CCR2 = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            TIM2->CCR2 =       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               util::STEP_PARK; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
         else {
-            TIM2->CCR2 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            TIM2
+              ->CCR2 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               tick; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            SET_BIT( // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              TIM2->DIER, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            SET_BIT(           // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+              TIM2->DIER,      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               TIM_DIER_CC2DE); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
         __DSB();
@@ -318,18 +339,20 @@ namespace hal::stm32
     auto StepHardware::completionWatch(bool enabled) noexcept -> void
     {
         if (!enabled) {
-            TIM7->CR1 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            TIM7
+              ->CR1 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               0U; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             TIM7->DIER = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
-        else if ((TIM7->CR1 & TIM_CR1_CEN) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                 0U) {      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            TIM7->CNT = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            TIM7->SR = 0U;  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            TIM7->DIER = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              TIM_DIER_UIE; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            TIM7->CR1 = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-              TIM_CR1_CEN; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        else if ((TIM7->CR1 &
+                  TIM_CR1_CEN) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                 0U) {            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            TIM7->CNT = 0U;       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            TIM7->SR = 0U;        // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            TIM7->DIER =          // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+              TIM_DIER_UIE;       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            TIM7->CR1 =           // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+              TIM_CR1_CEN;        // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
     }
     auto StepHardware::sample() noexcept -> util::StepSample
@@ -354,17 +377,25 @@ namespace hal::stm32
                 channel.tick =
                   TIM2->CNT; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 channel.compare_pending =
-                  (TIM2->SR & CC_FLAGS[i]) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                  0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                  (TIM2->SR &
+                   CC_FLAGS[i]) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                  0U;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 channel.high =
-                  i == 0U ? (GPIOA->IDR & GPIO_PIN_0) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                              0U // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                          : (GPIOB->IDR & (i == 1U ? GPIO_PIN_10 : GPIO_PIN_11)) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                              0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                  i == 0U
+                    ? (GPIOA->IDR &
+                       GPIO_PIN_0) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                        0U // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                    : (GPIOB->IDR &
+                       (i == 1U
+                          ? GPIO_PIN_10
+                          : GPIO_PIN_11)) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                        0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 after = stream->NDTR;
                 if (before == after && ((control ^ stream->CR) & DMA_SxCR_CT) == 0U &&
-                    ((flags ^ DMA1->LISR) & (COMPLETE_FLAG << SHIFTS[i])) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                      0U) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                    ((flags ^ DMA1->LISR) &
+                     (COMPLETE_FLAG << SHIFTS
+                        [i])) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                      0U) {      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     break;
                 }
             }
@@ -379,13 +410,16 @@ namespace hal::stm32
             result.error |= (flags & (ERROR_FLAGS << shift)) != 0U;
         }
         result.tick = TIM2->CNT; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        result.running = (TIM2->CR1 & TIM_CR1_CEN) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                         0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        result.running =
+          (TIM2->CR1 &
+           TIM_CR1_CEN) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          0U;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         return result;
     }
     auto StepHardware::acknowledge(std::size_t axis) noexcept -> void
     {
-        DMA1->LIFCR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        DMA1
+          ->LIFCR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           (COMPLETE_FLAG | HALF_FLAG) << SHIFTS
             [axis]; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     }
@@ -407,15 +441,15 @@ namespace hal::stm32
         auto& after{ result.channels[axis] };
         after.compare = last_compare;
         after.transfer_complete = before.transfer_complete || after.target != before.target;
-        CLEAR_BIT( // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          TIM2->CCER, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        CLEAR_BIT(          // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          TIM2->CCER,       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           CC_ENABLE[axis]); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         pin_mode(axis, false);
         output_mode(axis, OutputMode::Inactive);
         DMA1->LIFCR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           ALL_FLAGS
           << SHIFTS[axis]; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        TIM2->SR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        TIM2->SR =         // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           ~CC_FLAGS[axis]; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         return result;
     }
@@ -424,7 +458,7 @@ namespace hal::stm32
     {
         completionWatch(false);
         CLEAR_BIT( // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          TIM2->CR1, // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          TIM2->CR1,    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           TIM_CR1_CEN); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         __DSB();
         TIM2->DIER = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -457,7 +491,8 @@ namespace hal::stm32
 #endif
         const InterruptGuard lock;
         // Clear HT flags only; the core consumes TC together with CT/NDTR.
-        DMA1->LIFCR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        DMA1
+          ->LIFCR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           (HALF_FLAG << SHIFTS[0]) | (HALF_FLAG << SHIFTS[1]) |
           (HALF_FLAG << SHIFTS
              [2]); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -465,9 +500,10 @@ namespace hal::stm32
             generator->service();
         }
         // Finished/failed generators must not leave a level-sensitive IRQ pending.
-        if ((TIM2->CR1 & TIM_CR1_CEN) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            0U) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            DMA1->LIFCR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        if ((TIM2->CR1 &
+             TIM_CR1_CEN) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            0U) {            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            DMA1->LIFCR =    // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               (ALL_FLAGS << SHIFTS[0]) | (ALL_FLAGS << SHIFTS[1]) |
               (ALL_FLAGS
                << SHIFTS[2]) | // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -475,7 +511,9 @@ namespace hal::stm32
         }
 #if defined(CORE_CM4)
         const auto elapsed = DWT->CYCCNT - started;
-        if (elapsed > giga_step_irq_cycles_max) { giga_step_irq_cycles_max = elapsed; }
+        if (elapsed > giga_step_irq_cycles_max) {
+            giga_step_irq_cycles_max = elapsed;
+        }
 #endif
     }
 }
@@ -486,7 +524,8 @@ extern "C" void DMA1_Stream2_IRQHandler() { hal::stm32::step_interrupt(); }
 extern "C" void DMA1_Stream3_IRQHandler() { hal::stm32::step_interrupt(); }
 extern "C" void TIM7_IRQHandler()
 {
-    TIM7->SR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+    TIM7
+      ->SR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
       0U; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     hal::stm32::step_interrupt();
 }

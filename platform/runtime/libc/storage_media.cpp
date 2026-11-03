@@ -22,7 +22,6 @@ extern "C" UINT _fx_partition_offset_calculate(void* partition_sector,
                                                ULONG* partition_start,
                                                ULONG* partition_size);
 
-
 namespace
 {
     constexpr ULONG SECTOR_SIZE{ 512U };

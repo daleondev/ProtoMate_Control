@@ -12,8 +12,8 @@
 namespace icc
 {
     using hal::intercore::Lane;
-    using hal::intercore::LANE_PRIORITY;
     using hal::intercore::LANE_COUNT;
+    using hal::intercore::LANE_PRIORITY;
     using hal::intercore::MAX_BACKGROUND_FRAME_BYTES;
 
     // One endpoint of a connection between two bridges. Transfers complete,

@@ -10,9 +10,12 @@ namespace ui::logging
               // This is already formatted by IO. Do not re-log through global
               // Pneumo routing or replace its timestamp with UI's receive time.
               auto line{ std::string{ "[IO] " } + record.substr(0, icc::MAX_LOG_BYTES) };
-              if (line.back() != '\n') { line += '\n'; }
+              if (line.back() != '\n') {
+                  line += '\n';
+              }
               output(line);
-          }, icc::LOG_SUBSCRIPTION) }
+          },
+          icc::LOG_SUBSCRIPTION) }
     {
     }
 
@@ -30,8 +33,5 @@ namespace ui::logging
         }
     }
 
-    pnm::msg::SubscriptionStatistics Subscriber::statistics() const
-    {
-        return m_subscription.statistics();
-    }
+    pnm::msg::SubscriptionStatistics Subscriber::statistics() const { return m_subscription.statistics(); }
 }

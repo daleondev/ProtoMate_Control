@@ -10,7 +10,7 @@ namespace hal::rtc
         static RTC_HandleTypeDef handle{};
         static auto instance = [] {
             handle.Instance = RTC;
-            return std::make_shared<Rtc>(Rtc::Configuration{handle});
+            return std::make_shared<Rtc>(Rtc::Configuration{ handle });
         }();
         return instance;
     }

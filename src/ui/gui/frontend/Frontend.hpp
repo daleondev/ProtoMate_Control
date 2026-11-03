@@ -105,7 +105,8 @@ namespace ui::gui
             void setupScreen() override;
             void tearDownScreen() override;
             void handleTickEvent() override;
-            unsigned triangles{2000};
+            unsigned triangles{ 2000 };
+
           private:
             scene3d::RenderService& m_renderer;
             touchgfx::Box m_background;

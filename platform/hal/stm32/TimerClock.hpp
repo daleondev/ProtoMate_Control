@@ -15,7 +15,8 @@ namespace hal::stm32
 
         std::uint64_t frequency{ HAL_RCC_GetPCLK1Freq() };
         if (
-          (RCC->CFGR & RCC_CFGR_TIMPRE) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          (RCC->CFGR &
+           RCC_CFGR_TIMPRE) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           0U) { // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             if (clock_configuration.APB1CLKDivider == RCC_APB1_DIV1 ||
                 clock_configuration.APB1CLKDivider == RCC_APB1_DIV2 ||

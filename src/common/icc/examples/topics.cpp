@@ -75,7 +75,9 @@ int main()
         while (received_logs.size() < 3 && std::chrono::steady_clock::now() < deadline) {
             log_subscription.poll(10ms);
         }
-        if (received_logs != std::vector<std::string>{ "Motor initialized", "Reference switch activated", "Motion stopped" } ||
+        if (received_logs != std::vector<std::string>{ "Motor initialized",
+                                                       "Reference switch activated",
+                                                       "Motion stopped" } ||
             io_bridge.topicStatistics("demo/io/logs")->dropped != 0) {
             throw std::runtime_error("Background FIFO lost or reordered records");
         }

@@ -24,9 +24,7 @@ namespace std _GLIBCXX_VISIBILITY(default)
 
         void run_current_thread_exit_callbacks()
         {
-            auto* const element{
-                static_cast<__at_thread_exit_elt*>(__gthread_getspecific(thread_exit_key))
-            };
+            auto* const element{ static_cast<__at_thread_exit_elt*>(__gthread_getspecific(thread_exit_key)) };
             static_cast<void>(__gthread_setspecific(thread_exit_key, nullptr));
             run_thread_exit_callbacks(element);
         }
@@ -61,7 +59,9 @@ namespace std _GLIBCXX_VISIBILITY(default)
         struct notifier final : __at_thread_exit_elt
         {
             notifier(condition_variable& condition, unique_lock<mutex>& lock)
-              : __at_thread_exit_elt{}, condition{ &condition }, mutex_pointer{ lock.release() }
+              : __at_thread_exit_elt{}
+              , condition{ &condition }
+              , mutex_pointer{ lock.release() }
             {
                 _M_cb = &notifier::run;
             }
@@ -91,8 +91,7 @@ namespace std _GLIBCXX_VISIBILITY(default)
             std::terminate();
         }
 
-        element->_M_next =
-          static_cast<__at_thread_exit_elt*>(__gthread_getspecific(thread_exit_key));
+        element->_M_next = static_cast<__at_thread_exit_elt*>(__gthread_getspecific(thread_exit_key));
         if (__gthread_setspecific(thread_exit_key, element) != 0) {
             std::terminate();
         }

@@ -1,8 +1,8 @@
 #include "Link.hpp"
+#include "hal/devices/impl/Lan9253.hpp"
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 #include "runtime/synchronization/Notification.hpp"
-#include "hal/devices/impl/Lan9253.hpp"
 
 #include <exception>
 extern "C" volatile std::uint32_t giga_step_irq_cycles_max;
@@ -142,12 +142,18 @@ namespace
             auto spi = hal::core::create_ethercat_spi();
             auto cs = hal::core::create_ethercat_chip_select();
             auto reset = hal::core::create_ethercat_reset();
-            if (!check(spi && cs && reset, 80)) { return false; }
-            hal::device::Lan9253 esc{*spi, *cs};
-            if (!check(esc.identify().has_value(), 81)) { return false; }
+            if (!check(spi && cs && reset, 80)) {
+                return false;
+            }
+            hal::device::Lan9253 esc{ *spi, *cs };
+            if (!check(esc.identify().has_value(), 81)) {
+                return false;
+            }
             for (unsigned i = 0; i < 100000; ++i) {
                 const auto value = esc.readSystemRegister(hal::device::Lan9253::BYTE_TEST_ADDRESS);
-                if (!check(value && *value == hal::device::Lan9253::BYTE_TEST_VALUE, 82)) { return false; }
+                if (!check(value && *value == hal::device::Lan9253::BYTE_TEST_VALUE, 82)) {
+                    return false;
+                }
             }
             return true;
         }
@@ -158,10 +164,7 @@ namespace
             }
             return value;
         }
-        static bool padsLow()
-        {
-            return !(GPIOA->IDR & (GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3));
-        }
+        static bool padsLow() { return !(GPIOA->IDR & (GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3)); }
         bool constant(std::array<std::chrono::nanoseconds, 3> periods, Counts counts)
         {
             for (std::size_t i{}; i < axes.size(); ++i) {
@@ -303,12 +306,13 @@ int main()
     try {
         bench::Link link{ bench::Publisher::IO };
         Bench test;
-        auto ping = link.bus.service<^^bench::Services::bench_ping>().serve([](std::uint32_t value) {
-            return value ^ 0xA55AA55Au;
-        });
+        auto ping = link.bus.service<^^bench::Services::bench_ping>().serve(
+          [](std::uint32_t value) { return value ^ 0xA55AA55Au; });
         auto control_worker = runtime::thread::create_jthread(
           { .name = "bench.control", .priority = 10, .stack_size = 8192 }, [&](std::stop_token stop) {
-            while (!stop.stop_requested()) { ping.poll(10ms); }
+            while (!stop.stop_requested()) {
+                ping.poll(10ms);
+            }
         });
         std::atomic_uint32_t received{}, errors{};
         auto load = link.bus.topic<^^bench::Topics::bench_load>().subscribe([&](const bench::Load& data) {

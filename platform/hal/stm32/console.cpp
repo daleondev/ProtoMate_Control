@@ -1,14 +1,15 @@
 #include "hal/console.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 #include "hal/stm32/UsbConsole.h"
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #if defined(CORE_CM7)
 #include "usbd_cdc_if.h"
 #include <tx_api.h>
 #include <tx_thread.h>
-namespace {
+namespace
+{
     std::array<std::uint8_t, 4096> input{};
     // A complete `stack ui` table with the GUI/touch workers exceeds 8 KiB.
     // Keep one bounded burst without waiting for a host or truncating its prompt.
@@ -19,10 +20,12 @@ namespace {
     std::uint32_t packetLength{};
     TX_EVENT_FLAGS_GROUP events{};
     TX_THREAD worker{};
-    alignas(8) std::array<std::uint8_t,4096> workerStack{};
+    alignas(8) std::array<std::uint8_t, 4096> workerStack{};
     void notify() noexcept
     {
-        if (!started) { return; }
+        if (!started) {
+            return;
+        }
         // Keep ThreadX from enabling IRQs inside the console's PRIMASK guard.
         _tx_thread_preempt_disable = _tx_thread_preempt_disable + 1u;
         static_cast<void>(tx_event_flags_set(&events, 1u, TX_OR));
@@ -33,9 +36,13 @@ namespace {
     }
     void kick() noexcept
     {
-        if (!connected || inFlight || outputHead == outputTail) { return; }
+        if (!connected || inFlight || outputHead == outputTail) {
+            return;
+        }
         const auto count = std::min<std::uint32_t>(packet.size(), outputHead - outputTail);
-        for (std::uint32_t i = 0; i < count; ++i) { packet[i] = output[(outputTail + i) % output.size()]; }
+        for (std::uint32_t i = 0; i < count; ++i) {
+            packet[i] = output[(outputTail + i) % output.size()];
+        }
         if (CDC_Transmit_FS(packet.data(), static_cast<std::uint16_t>(count)) == USBD_OK) {
             outputTail += count;
             inFlight = true;
@@ -44,7 +51,9 @@ namespace {
     }
 }
 // Monotonic counter also readable when the host is absent or unresponsive.
-extern "C" { std::uint32_t giga_console_dropped_bytes{}; }
+extern "C" {
+std::uint32_t giga_console_dropped_bytes{};
+}
 extern "C" void giga_console_reset()
 {
     const hal::stm32::InterruptGuard guard;
@@ -61,7 +70,10 @@ extern "C" void giga_console_reset()
 extern "C" void giga_console_connected(int value)
 {
     const hal::stm32::InterruptGuard guard;
-    if (!value) { giga_console_reset(); return; }
+    if (!value) {
+        giga_console_reset();
+        return;
+    }
     dtr = true;
     connected = !suspended;
     resetPending = true;
@@ -86,10 +98,14 @@ extern "C" void giga_console_resume()
 extern "C" void giga_console_receive(const std::uint8_t* bytes, std::uint32_t count)
 {
     const hal::stm32::InterruptGuard guard;
-    if (!connected) { return; }
+    if (!connected) {
+        return;
+    }
     if (quarantine) {
         for (std::uint32_t i = 0; i < count; ++i) {
-            if (bytes[i] == '\n' || bytes[i] == '\r') { quarantine = false; }
+            if (bytes[i] == '\n' || bytes[i] == '\r') {
+                quarantine = false;
+            }
         }
         return;
     }
@@ -100,12 +116,16 @@ extern "C" void giga_console_receive(const std::uint8_t* bytes, std::uint32_t co
         notify();
         return; // Discard the entire packet; never execute its truncated tail.
     }
-    for (std::uint32_t i = 0; i < count; ++i) { input[inputHead++ % input.size()] = bytes[i]; }
+    for (std::uint32_t i = 0; i < count; ++i) {
+        input[inputHead++ % input.size()] = bytes[i];
+    }
 }
 extern "C" void giga_console_deinitialized()
 {
     const hal::stm32::InterruptGuard guard;
-    if (inFlight) { giga_console_dropped_bytes += packetLength; }
+    if (inFlight) {
+        giga_console_dropped_bytes += packetLength;
+    }
     inFlight = false;
     giga_console_reset();
 }
@@ -137,17 +157,23 @@ extern "C" int __io_getchar()
 {
     // The CLI uses try_read; libc's character hook is intentionally nonblocking.
     const auto value = hal::console::try_read();
-    return value.state == hal::console::InputState::Character ? static_cast<unsigned char>(value.character) : -1;
+    return value.state == hal::console::InputState::Character ? static_cast<unsigned char>(value.character)
+                                                              : -1;
 }
 hal::console::Input hal::console::try_read() noexcept
 {
 #if defined(CORE_CM7)
     const stm32::InterruptGuard guard;
-    if (resetPending) { resetPending = false; return {InputState::Reset}; }
-    if (inputHead == inputTail) { return {}; }
-    return {InputState::Character, static_cast<char>(input[inputTail++ % input.size()])};
+    if (resetPending) {
+        resetPending = false;
+        return { InputState::Reset };
+    }
+    if (inputHead == inputTail) {
+        return {};
+    }
+    return { InputState::Character, static_cast<char>(input[inputTail++ % input.size()]) };
 #else
-    return {InputState::Closed};
+    return { InputState::Closed };
 #endif
 }
 
@@ -155,20 +181,36 @@ void hal::console::initialize()
 {
 #if defined(CORE_CM7)
     const stm32::InterruptGuard guard;
-    if (started) { return; }
+    if (started) {
+        return;
+    }
     static char eventName[] = "usb.console.events", threadName[] = "usb.console";
-    if (tx_event_flags_create(&events, eventName) != TX_SUCCESS) { Error_Handler(); }
+    if (tx_event_flags_create(&events, eventName) != TX_SUCCESS) {
+        Error_Handler();
+    }
     started = true;
     const auto entry = +[](ULONG) {
         for (;;) {
             ULONG flags{};
-            if (tx_event_flags_get(&events, 1, TX_OR_CLEAR, &flags, TX_WAIT_FOREVER) != TX_SUCCESS) { Error_Handler(); }
+            if (tx_event_flags_get(&events, 1, TX_OR_CLEAR, &flags, TX_WAIT_FOREVER) != TX_SUCCESS) {
+                Error_Handler();
+            }
             const stm32::InterruptGuard local;
             kick();
         }
     };
-    if (tx_thread_create(&worker, threadName, entry, 0, workerStack.data(), workerStack.size(),
-        20, 20, TX_NO_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS) { Error_Handler(); }
+    if (tx_thread_create(&worker,
+                         threadName,
+                         entry,
+                         0,
+                         workerStack.data(),
+                         workerStack.size(),
+                         20,
+                         20,
+                         TX_NO_TIME_SLICE,
+                         TX_AUTO_START) != TX_SUCCESS) {
+        Error_Handler();
+    }
     notify();
 #endif
 }

@@ -1,12 +1,17 @@
 #pragma once
 
-#include <pneumo/units.hpp>
 #include <cstddef>
 #include <cstdint>
+#include <pneumo/units.hpp>
 
 namespace hal::motor
 {
-    enum class Id : std::uint8_t { Motor1, Motor2, Motor3 };
+    enum class Id : std::uint8_t
+    {
+        Motor1,
+        Motor2,
+        Motor3
+    };
 
     struct FeedbackConfiguration
     {

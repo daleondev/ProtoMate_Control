@@ -1,5 +1,8 @@
 #pragma once
-namespace ui::gui { class Controller; }
+namespace ui::gui
+{
+    class Controller;
+}
 #include <cstdint>
 
 #include "pneumo/meta.hpp"
@@ -18,20 +21,48 @@ namespace ui::gui { class Controller; }
 #include <utility>
 #include <vector>
 
-namespace pnm::msg { class Bus; }
-namespace ui { class SystemState; }
-namespace ui::motion { class Client; class Robot; }
+namespace pnm::msg
+{
+    class Bus;
+}
+namespace ui
+{
+    class SystemState;
+}
+namespace ui::motion
+{
+    class Client;
+    class Robot;
+}
 
 namespace ui::cli
 {
     class Parser;
 
-    namespace display { void setup(Parser& parser, ui::gui::Controller& gui); }
-    namespace state { void setup(Parser& parser, const SystemState& system); }
-    namespace filesystem { void setup(Parser& parser); }
-    namespace utilities { void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop); }
-    namespace robot { void setup(Parser& parser, ui::motion::Robot& robot); }
-    namespace motor { void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop); }
+    namespace display
+    {
+        void setup(Parser& parser, ui::gui::Controller& gui);
+    }
+    namespace state
+    {
+        void setup(Parser& parser, const SystemState& system);
+    }
+    namespace filesystem
+    {
+        void setup(Parser& parser);
+    }
+    namespace utilities
+    {
+        void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);
+    }
+    namespace robot
+    {
+        void setup(Parser& parser, ui::motion::Robot& robot);
+    }
+    namespace motor
+    {
+        void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
+    }
 
     struct ArgumentSpec
     {

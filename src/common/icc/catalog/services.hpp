@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/diagnostics/Memory.hpp"
+#include "common/icc/transport/ITransport.hpp"
 #include "common/motion/Motor.hpp"
 #include "common/motion/Trajectory.hpp"
-#include "common/icc/transport/ITransport.hpp"
 
 #include <cstdint>
 #include <pneumo/messaging.hpp>
@@ -20,16 +20,16 @@ namespace icc
     struct Services
     {
         // Versioned, explicitly serialized trajectory capabilities/admission.
-        [[= ServiceProvider::IO]]
-        pnm::msg::Service<motion::trajectory::Packet, motion::trajectory::Packet> io_trajectory;
+        [[= ServiceProvider::IO]] pnm::msg::Service<motion::trajectory::Packet, motion::trajectory::Packet>
+          io_trajectory;
 
-        [[= ServiceProvider::IO]]
-        pnm::msg::Service<diagnostics::MemoryQuery, diagnostics::MemorySnapshot> io_memory;
+        [[= ServiceProvider::IO]] pnm::msg::Service<diagnostics::MemoryQuery, diagnostics::MemorySnapshot>
+          io_memory;
 
-        [[= ServiceProvider::IO]]
-        pnm::msg::Service<motion::MotorRequest, motion::MotorResponse> io_motor;
+        [[= ServiceProvider::IO]] pnm::msg::Service<motion::MotorRequest, motion::MotorResponse> io_motor;
 
-        [[= ServiceProvider::IO, = Lane::Urgent]]
-        pnm::msg::Service<motion::MotorRequest, motion::MotorResponse> io_motor_stop;
+        [[ = ServiceProvider::IO,
+           = Lane::Urgent ]] pnm::msg::Service<motion::MotorRequest, motion::MotorResponse>
+          io_motor_stop;
     };
 }

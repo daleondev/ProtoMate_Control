@@ -13,8 +13,8 @@ namespace
     class Owner
     {
         friend class runtime::ThreadGroup;
-        static constexpr runtime::thread::Definition FIRST{.priority = 10, .stack_size = 16U * 1024U};
-        static constexpr runtime::thread::Definition SECOND{.priority = 11, .stack_size = 16U * 1024U};
+        static constexpr runtime::thread::Definition FIRST{ .priority = 10, .stack_size = 16U * 1024U };
+        static constexpr runtime::thread::Definition SECOND{ .priority = 11, .stack_size = 16U * 1024U };
         [[= FIRST]] void first()
         {
             auto* current = tx_thread_identify();
@@ -64,10 +64,11 @@ namespace
     class FailingOwner
     {
         friend class runtime::ThreadGroup;
-        static constexpr runtime::thread::Definition FIRST{.priority = 10, .stack_size = 16U * 1024U};
+        static constexpr runtime::thread::Definition FIRST{ .priority = 10, .stack_size = 16U * 1024U };
         // Rejected by the runtime's stack-size overflow validation, without allocating.
-        static constexpr runtime::thread::Definition SECOND{
-          .priority = 11, .stack_size = std::numeric_limits<std::size_t>::max()};
+        static constexpr runtime::thread::Definition SECOND{ .priority = 11,
+                                                             .stack_size =
+                                                               std::numeric_limits<std::size_t>::max() };
         [[= FIRST]] void first() { ++calls; }
         [[= SECOND]] void second() { ++calls; }
 

@@ -7,9 +7,9 @@ extern "C" void SystemClock_Config();
 
 namespace
 {
-    constexpr std::uint32_t BOOT_SEMAPHORE{0};
-    constexpr std::uint32_t BOOT_WAIT_ITERATIONS{1'000'000};
-    constexpr std::uint32_t LED_HALF_PERIOD_MS{500};
+    constexpr std::uint32_t BOOT_SEMAPHORE{ 0 };
+    constexpr std::uint32_t BOOT_WAIT_ITERATIONS{ 1'000'000 };
+    constexpr std::uint32_t LED_HALF_PERIOD_MS{ 500 };
 
     // Used before HAL/SysTick initialization, so a bounded register wait is
     // intentional. Both firmware images must be flashed before a board reset.

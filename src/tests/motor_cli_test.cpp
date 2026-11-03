@@ -6,12 +6,12 @@
 #include "common/icc/transport/InProcessTransport.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 #include "io/motion/Server.hpp"
-#include "ui/motion/Client.hpp"
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/motor.hpp"
+#include "ui/motion/Client.hpp"
 
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 #include <limits>
 #include <sstream>
 
@@ -35,18 +35,27 @@ namespace
         std::atomic_bool initialized{};
         std::string_view name() const noexcept override { return "test driver"; }
         Status status() const noexcept override { return { .ready = initialized.load(), .error = {} }; }
-        hal::util::Result<> initialize() override { initialized = true; return {}; }
+        hal::util::Result<> initialize() override
+        {
+            initialized = true;
+            return {};
+        }
         hal::util::Result<> verify() override { return {}; }
         void service() override {}
         void setFaultCallback(FaultCallback) override {}
     };
 
-    template<typename Predicate> bool waitUntil(Predicate predicate)
+    template<typename Predicate>
+    bool waitUntil(Predicate predicate)
     {
         const auto end{ std::chrono::steady_clock::now() + 3s };
         while (true) {
-            if (predicate()) { return true; }
-            if (std::chrono::steady_clock::now() >= end) { return false; }
+            if (predicate()) {
+                return true;
+            }
+            if (std::chrono::steady_clock::now() >= end) {
+                return false;
+            }
             std::this_thread::sleep_for(1ms);
         }
     }
@@ -60,7 +69,9 @@ namespace
         std::jthread ioRunner{ example::run_context(ioContext) }, uiRunner{ example::run_context(uiContext) };
         icc::Bridge ioBridge{ ioBus, ioContext, *endpoints[0] }, uiBridge{ uiBus, uiContext, *endpoints[1] };
         Controller controller{ CONFIGURATION, [](const auto&, const auto&) {
-            return Controller::Drivers{ std::make_shared<Driver>(), std::make_shared<Driver>(), std::make_shared<Driver>() };
+            return Controller::Drivers{ std::make_shared<Driver>(),
+                                        std::make_shared<Driver>(),
+                                        std::make_shared<Driver>() };
         } };
         io::motion::Server server{ ioBus, controller };
         ui::motion::Client client{ uiBus };
@@ -72,7 +83,8 @@ namespace
         void SetUp() override
         {
             for (auto pin : std::array<std::uint8_t, 3>{ 7, 8, 10 }) {
-                hal::gpio::simulated_input({ hal::gpio::Port::E, pin })->setSimulatedLevel(hal::gpio::Level::Low);
+                hal::gpio::simulated_input({ hal::gpio::Port::E, pin })
+                  ->setSimulatedLevel(hal::gpio::Level::Low);
             }
             ioBridge.registerServices<icc::Services>(icc::ServiceProvider::IO);
             uiBridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
@@ -84,7 +96,8 @@ namespace
                 client.setConnected(value.state == icc::ConnectionState::Connected);
             });
             ioBridge.setConnectionCallback([this](icc::ConnectionStatus value) {
-                if (value.state == icc::ConnectionState::Failed || value.reason == icc::ConnectionReason::PeerStopped) {
+                if (value.state == icc::ConnectionState::Failed ||
+                    value.reason == icc::ConnectionReason::PeerStopped) {
                     ioStop.request_stop();
                 }
             });
@@ -94,7 +107,11 @@ namespace
             ioBridge.start();
             uiBridge.start();
             ASSERT_TRUE(waitUntil([this] {
-                try { return client.state().sequence > 0; } catch (...) { return false; }
+                try {
+                    return client.state().sequence > 0;
+                } catch (...) {
+                    return false;
+                }
             }));
         }
         void TearDown() override
@@ -108,7 +125,8 @@ namespace
         }
         auto command(std::string_view text)
         {
-            output.str({}); output.clear();
+            output.str({});
+            output.clear();
             return parser.execute(text, output);
         }
         void enable()
@@ -119,15 +137,22 @@ namespace
         bool jobIs(std::uint64_t id, State state)
         {
             const auto jobs{ client.jobs() };
-            for (const auto& job : jobs) { if (job.id == id) { return job.state == state; } }
+            for (const auto& job : jobs) {
+                if (job.id == id) {
+                    return job.state == state;
+                }
+            }
             return false;
         }
-        double position(Id id) { return controller.motor(id).setpointPosition().get<pnm::units::AngleUnits::deg>(); }
+        double position(Id id)
+        {
+            return controller.motor(id).setpointPosition().get<pnm::units::AngleUnits::deg>();
+        }
         auto rejected(MotorGoal goal)
         {
             std::optional<pnm::msg::ActionResult<MotorResult>> result;
-            auto call{ uiBus.action<^^icc::Actions::io_motor_motion>().sendGoal(goal, { .accept_timeout = 2s },
-                { .on_result = [&result](auto value) { result = value; } }) };
+            auto call{ uiBus.action<^^icc::Actions::io_motor_motion>().sendGoal(
+              goal, { .accept_timeout = 2s }, { .on_result = [&result](auto value) { result = value; } }) };
             EXPECT_TRUE(waitUntil([&] { return call.poll(); }));
             EXPECT_TRUE(result.has_value());
             return result;
@@ -144,10 +169,17 @@ namespace
         EXPECT_FALSE(second.contains("robot"));
         ASSERT_TRUE(command("help motor move"));
         EXPECT_NE(output.str().find("blending-high"), std::string::npos);
-        for (auto text : { "motor move m1 1", "motor move m4 1 --speed 5", "motor move m1 nan --speed 5",
-                           "motor move m1 1 --speed inf", "motor move m1 1 --speed 0", "motor move m1 1 --speed 5 --accel -1",
-                           "motor move m1 1 --speed 5 --speed 6", "motor move m1 1 --speed 5 --buffer nonsense",
-                           "motor home m1 --latch 6", "motor home m1 --timeout 0", "motor jobs 1.5" }) {
+        for (auto text : { "motor move m1 1",
+                           "motor move m4 1 --speed 5",
+                           "motor move m1 nan --speed 5",
+                           "motor move m1 1 --speed inf",
+                           "motor move m1 1 --speed 0",
+                           "motor move m1 1 --speed 5 --accel -1",
+                           "motor move m1 1 --speed 5 --speed 6",
+                           "motor move m1 1 --speed 5 --buffer nonsense",
+                           "motor home m1 --latch 6",
+                           "motor home m1 --timeout 0",
+                           "motor jobs 1.5" }) {
             EXPECT_FALSE(command(text)) << text;
         }
         EXPECT_TRUE(client.jobs().empty());
@@ -229,7 +261,10 @@ namespace
     {
         enable();
         const auto status{ client.request({ .operation = MotorOperation::Enable }) };
-        MotorGoal goal{ .motor = MotorId::M1, .position = -10, .velocity = 5, .commandGeneration = status.commandGeneration };
+        MotorGoal goal{ .motor = MotorId::M1,
+                        .position = -10,
+                        .velocity = 5,
+                        .commandGeneration = status.commandGeneration };
         ASSERT_TRUE(command("motor stop"));
         auto result{ rejected(goal) };
         ASSERT_TRUE(result);
@@ -254,9 +289,16 @@ namespace
         const auto status{ client.request({ .operation = MotorOperation::Enable }) };
         std::optional<pnm::msg::ActionResult<MotorResult>> result;
         auto action{ uiBus.action<^^icc::Actions::io_motor_motion>().sendGoal(
-            { .motor = MotorId::M1, .position = -90, .velocity = 5, .commandGeneration = status.commandGeneration },
-            { .accept_timeout = 2s }, { .on_result = [&result](auto value) { result = value; } }) };
-        ASSERT_TRUE(waitUntil([&] { action.poll(); return position(Id::Motor1) < -1; }));
+          { .motor = MotorId::M1,
+            .position = -90,
+            .velocity = 5,
+            .commandGeneration = status.commandGeneration },
+          { .accept_timeout = 2s },
+          { .on_result = [&result](auto value) { result = value; } }) };
+        ASSERT_TRUE(waitUntil([&] {
+            action.poll();
+            return position(Id::Motor1) < -1;
+        }));
         action.requestCancel();
         ASSERT_TRUE(waitUntil([&] { return action.poll(); }));
         ASSERT_TRUE(result && *result);
@@ -297,7 +339,7 @@ namespace
         ASSERT_TRUE(waitUntil([&] { return !controller.enabled(); }));
         EXPECT_FALSE(controller.motor(Id::Motor3).isReferenced());
         ASSERT_TRUE(waitUntil([&] { return jobIs(1, State::Unknown) || jobIs(1, State::Stopped); }))
-            << static_cast<int>(client.jobs().front().state);
+          << static_cast<int>(client.jobs().front().state);
         EXPECT_FALSE(command("motor status"));
     }
 
@@ -328,7 +370,8 @@ namespace
         ASSERT_TRUE(command("motor move m1 -90 --speed 5"));
         ASSERT_TRUE(waitUntil([&] {
             const auto state{ client.state() };
-            return state.ready && state.enabled && state.motors[0].position < -1 && state.motors[0].velocity < 0;
+            return state.ready && state.enabled && state.motors[0].position < -1 &&
+                   state.motors[0].velocity < 0;
         }));
         ASSERT_TRUE(command("motor stop m1"));
         ASSERT_TRUE(waitUntil([&] { return client.state().motors[0].velocity == 0; }));
@@ -361,12 +404,20 @@ namespace
         }
         void expectUnavailable(std::string_view reason)
         {
-            try { static_cast<void>(client.state()); FAIL() << "expected unavailable telemetry"; }
-            catch (const std::runtime_error& error) { EXPECT_NE(std::string_view{ error.what() }.find(reason), std::string_view::npos); }
+            try {
+                static_cast<void>(client.state());
+                FAIL() << "expected unavailable telemetry";
+            } catch (const std::runtime_error& error) {
+                EXPECT_NE(std::string_view{ error.what() }.find(reason), std::string_view::npos);
+            }
         }
         bool received(std::uint64_t sequence)
         {
-            try { return client.state().sequence == sequence; } catch (...) { return false; }
+            try {
+                return client.state().sequence == sequence;
+            } catch (...) {
+                return false;
+            }
         }
     };
 
@@ -376,7 +427,9 @@ namespace
         start();
         expectUnavailable("awaiting");
         // The IO clock has a different epoch; freshness uses UI's receipt time.
-        topic.publish({ .commandGeneration = 1, .sequence = 10, .sampled_at_us = std::numeric_limits<std::uint64_t>::max() });
+        topic.publish({ .commandGeneration = 1,
+                        .sequence = 10,
+                        .sampled_at_us = std::numeric_limits<std::uint64_t>::max() });
         ASSERT_TRUE(waitUntil([&] { return received(10); }));
         std::this_thread::sleep_for(MOTOR_STATE_MAX_AGE + 30ms);
         expectUnavailable("stale");
@@ -406,16 +459,19 @@ namespace
     {
         start();
         MotorResponse reply{ .message = {}, .commandGeneration = 7 };
-        auto commands{ bus.service<^^icc::Services::io_motor>().serve([&](const MotorRequest&) { return reply; }) };
+        auto commands{ bus.service<^^icc::Services::io_motor>().serve(
+          [&](const MotorRequest&) { return reply; }) };
         std::uint64_t submitted{};
         auto actions{ bus.action<^^icc::Actions::io_motor_motion>().serveDeferred(
-            [&](const MotorGoal& goal, pnm::msg::ActionExecution<MotorProgress, MotorResult> execution) {
-                submitted = goal.commandGeneration;
-                execution.accept();
-                execution.succeed({ MotorOutcome::Completed, {} });
-            }) };
+          [&](const MotorGoal& goal, pnm::msg::ActionExecution<MotorProgress, MotorResult> execution) {
+            submitted = goal.commandGeneration;
+            execution.accept();
+            execution.succeed({ MotorOutcome::Completed, {} });
+        }) };
         const auto request = [&] {
-            auto future{ std::async(std::launch::async, [&] { return client.request({ .operation = MotorOperation::Initialize }); }) };
+            auto future{ std::async(std::launch::async, [&] {
+                return client.request({ .operation = MotorOperation::Initialize });
+            }) };
             EXPECT_TRUE(waitUntil([&] { return commands.poll() != 0; }));
             return future.get();
         };

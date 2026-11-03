@@ -5,8 +5,17 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-namespace hal { [[noreturn]] inline void panic(const char*) noexcept { std::abort(); } }
-enum HAL_StatusTypeDef { HAL_OK, HAL_ERROR, HAL_BUSY, HAL_TIMEOUT };
+namespace hal
+{
+    [[noreturn]] inline void panic(const char*) noexcept { std::abort(); }
+}
+enum HAL_StatusTypeDef
+{
+    HAL_OK,
+    HAL_ERROR,
+    HAL_BUSY,
+    HAL_TIMEOUT
+};
 inline int HAL_HSEM_FastTake(std::uint32_t) { return HAL_OK; }
 inline void HAL_HSEM_Release(std::uint32_t, std::uint32_t) {}
 using std::uint32_t;
@@ -166,9 +175,9 @@ inline auto* M1_STEP_GPIO_Port = GPIOA;
 inline auto* M2_STEP_GPIO_Port = GPIOA;
 inline auto* M3_STEP_GPIO_Port = GPIOA;
 inline auto* STEPPERS_EN_N_GPIO_Port = GPIOC;
-constexpr uint32_t M1_STEP_Pin = 1, M2_STEP_Pin = 1U << 2, M3_STEP_Pin = 1U << 3,
-                   STEPPERS_EN_N_Pin = 1U << 7;
-constexpr uint32_t GPIO_PIN_15 = 1U << 15, GPIO_PIN_0 = 1, GPIO_PIN_10 = 1U << 10, GPIO_PIN_11 = 1U << 11, GPIO_PIN_RESET = 0;
+constexpr uint32_t M1_STEP_Pin = 1, M2_STEP_Pin = 1U << 2, M3_STEP_Pin = 1U << 3, STEPPERS_EN_N_Pin = 1U << 7;
+constexpr uint32_t GPIO_PIN_15 = 1U << 15, GPIO_PIN_0 = 1, GPIO_PIN_10 = 1U << 10, GPIO_PIN_11 = 1U << 11,
+                   GPIO_PIN_RESET = 0;
 constexpr uint32_t GPIO_MODE_AF_PP = 2, GPIO_MODE_OUTPUT_PP = 1, GPIO_PULLDOWN = 2, GPIO_SPEED_FREQ_LOW = 0,
                    GPIO_AF1_TIM2 = 1;
 struct GPIO_InitTypeDef

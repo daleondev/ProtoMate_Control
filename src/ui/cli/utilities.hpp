@@ -2,8 +2,14 @@
 
 #include <stop_token>
 
-namespace pnm::msg { class Bus; }
-namespace ui::cli { class Parser; }
+namespace pnm::msg
+{
+    class Bus;
+}
+namespace ui::cli
+{
+    class Parser;
+}
 
 namespace ui::cli::utilities
 {

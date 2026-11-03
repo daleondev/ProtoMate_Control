@@ -10,7 +10,9 @@ namespace ui::logging
 
     pnm::Result<std::size_t> Sink::write(std::span<const std::byte> data)
     {
-        if (data.empty()) { return 0U; }
+        if (data.empty()) {
+            return 0U;
+        }
         // Character views may alias an existing byte buffer without copying.
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         const auto text{ std::string_view{ reinterpret_cast<const char*>(data.data()), data.size() } };

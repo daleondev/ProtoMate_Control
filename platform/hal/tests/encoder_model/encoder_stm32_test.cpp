@@ -15,9 +15,11 @@ namespace
         void SetUp() override
         {
             primask = 0U;
-            encoder = std::make_unique<hal::QuadratureEncoder>(
-                hal::util::TimerLease{hal::timer::Peripheral::Tim3},
-                hal::util::TimerLease{hal::timer::Peripheral::Tim6}, nullptr, nullptr);
+            encoder =
+              std::make_unique<hal::QuadratureEncoder>(hal::util::TimerLease{ hal::timer::Peripheral::Tim3 },
+                                                       hal::util::TimerLease{ hal::timer::Peripheral::Tim6 },
+                                                       nullptr,
+                                                       nullptr);
         }
     };
 
@@ -27,7 +29,9 @@ namespace
         hal::IQuadratureEncoder::Count position{};
         encoder->setSampleCallback([&](const auto& sample) noexcept {
             ++callbacks;
-            if (sample.position) { position = *sample.position; }
+            if (sample.position) {
+                position = *sample.position;
+            }
         });
         EXPECT_FALSE(encoder->isRunning());
         EXPECT_EQ(TIM6->CR1 & TIM_CR1_CEN, 0U);
@@ -54,7 +58,7 @@ namespace
     TEST_F(EncoderRegisterTest, WrapInterruptsPreserveSignedPositionAcrossRestart)
     {
         ASSERT_TRUE(encoder->start());
-        for (auto count : {0x5555U, 0xAAAAU, 0U}) {
+        for (auto count : { 0x5555U, 0xAAAAU, 0U }) {
             TIM3->CNT = count;
             TIM3->SR = TIM_FLAG_UPDATE | TIM_FLAG_CC3 | TIM_FLAG_CC4;
             TIM3_IRQHandler();
@@ -72,12 +76,12 @@ namespace
     TEST_F(EncoderRegisterTest, DestructionReleasesBothTimersAndDisablesInterrupts)
     {
         ASSERT_TRUE(encoder->start());
-        EXPECT_FALSE(hal::util::TimerLease{hal::timer::Peripheral::Tim3});
-        EXPECT_FALSE(hal::util::TimerLease{hal::timer::Peripheral::Tim6});
+        EXPECT_FALSE(hal::util::TimerLease{ hal::timer::Peripheral::Tim3 });
+        EXPECT_FALSE(hal::util::TimerLease{ hal::timer::Peripheral::Tim6 });
         encoder.reset();
         EXPECT_FALSE(irq_enabled[TIM3_IRQn]);
         EXPECT_FALSE(irq_enabled[TIM6_DAC_IRQn]);
-        EXPECT_TRUE(hal::util::TimerLease{hal::timer::Peripheral::Tim3});
-        EXPECT_TRUE(hal::util::TimerLease{hal::timer::Peripheral::Tim6});
+        EXPECT_TRUE(hal::util::TimerLease{ hal::timer::Peripheral::Tim3 });
+        EXPECT_TRUE(hal::util::TimerLease{ hal::timer::Peripheral::Tim6 });
     }
 }

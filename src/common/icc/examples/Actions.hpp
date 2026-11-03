@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <pneumo/messaging.hpp>
 
 #include <cstdint>
@@ -20,8 +19,7 @@ namespace example
     // IO executes this simulated action; UI submits goals and receives progress.
     struct Actions
     {
-        [[= ActionProvider::IO]]
-        pnm::msg::Action<std::uint32_t, std::uint32_t, std::uint32_t> demo_io_count;
+        [[= ActionProvider::IO]] pnm::msg::Action<std::uint32_t, std::uint32_t, std::uint32_t> demo_io_count;
 
         // The name defaults to "demo/io/count". To override it, add a name
         // annotation to the same field, e.g. [[= ActionProvider::IO, = "demo/count"_fs]].

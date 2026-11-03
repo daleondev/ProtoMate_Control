@@ -126,8 +126,8 @@ namespace icc
     bool Bridge::loopsStopped() const
     {
         return !m_sendRunning && !m_receiveRunning && !m_urgentSendRunning && !m_urgentReceiveRunning &&
-               !m_backgroundSendRunning && !m_backgroundReceiveRunning &&
-               !m_healthRunning && !m_cleanupRunning;
+               !m_backgroundSendRunning && !m_backgroundReceiveRunning && !m_healthRunning &&
+               !m_cleanupRunning;
     }
 
     std::optional<Bridge::Failure> Bridge::failure() const
@@ -241,8 +241,8 @@ namespace icc
         if (lane == Lane::Background) {
             // Logs never participate in service/action admission or graceful
             // result draining. Pending background traffic is expendable at stop.
-            return m_connection.ready() && !m_shutdownRequested.load()
-                     ? m_topics.takeFrame(lane) : std::nullopt;
+            return m_connection.ready() && !m_shutdownRequested.load() ? m_topics.takeFrame(lane)
+                                                                       : std::nullopt;
         }
         if (lane == Lane::Urgent) {
             if (auto frame = m_connection.takeFrame()) {

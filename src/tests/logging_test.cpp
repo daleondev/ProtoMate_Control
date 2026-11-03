@@ -2,11 +2,11 @@
 #include "common/icc/catalog/topics.hpp"
 #include "common/icc/transport/InProcessTransport.hpp"
 #include "io/logging/Sink.hpp"
-#include "ui/logging/Subscriber.hpp"
 #include "runtime/thread.hpp"
+#include "ui/logging/Subscriber.hpp"
 
-#include <gtest/gtest.h>
 #include <chrono>
+#include <gtest/gtest.h>
 #include <thread>
 #include <vector>
 
@@ -41,7 +41,9 @@ namespace
         void pump()
         {
             for (unsigned turn{}; turn < 10000; ++turn) {
-                if (ioContext.poll() + uiContext.poll() == 0) { return; }
+                if (ioContext.poll() + uiContext.poll() == 0) {
+                    return;
+                }
             }
             throw std::runtime_error("ICC did not become idle");
         }
@@ -55,9 +57,9 @@ namespace
         }
         void startWorker()
         {
-            worker = runtime::thread::create_jthread(
-              { .name = "log test", .priority = 20, .stack_size = 16384 },
-              [this](std::stop_token stop) { subscriber.run(stop); });
+            worker =
+              runtime::thread::create_jthread({ .name = "log test", .priority = 20, .stack_size = 16384 },
+                                              [this](std::stop_token stop) { subscriber.run(stop); });
         }
         bool waitForOutput(std::size_t count)
         {
@@ -65,7 +67,9 @@ namespace
             while (std::chrono::steady_clock::now() < deadline) {
                 {
                     std::scoped_lock lock{ mutex };
-                    if (output.size() == count) { return true; }
+                    if (output.size() == count) {
+                        return true;
+                    }
                 }
                 std::this_thread::sleep_for(1ms);
             }
@@ -80,7 +84,9 @@ namespace
         void TearDown() override
         {
             worker.request_stop();
-            if (worker.joinable()) { worker.join(); }
+            if (worker.joinable()) {
+                worker.join();
+            }
             EXPECT_TRUE(sink->close());
             endpoints[0]->close();
             pump();
@@ -114,7 +120,9 @@ namespace
 
     TEST_F(LoggingTest, QueuesStayBoundedWithoutPeerOrConsoleWorker)
     {
-        for (unsigned i{}; i < 40; ++i) { write(std::to_string(i)); }
+        for (unsigned i{}; i < 40; ++i) {
+            write(std::to_string(i));
+        }
         auto stats{ ioBridge.topicStatistics("io/logs") };
         ASSERT_TRUE(stats);
         EXPECT_EQ(stats->queued, 16U);

@@ -22,20 +22,21 @@ namespace hal::timer
     {
         switch (configuration.peripheral) {
             case Peripheral::Tim5: {
-                static auto timer{ std::make_shared<Timer>(Timer::Configuration{
-                  .input_frequency_hz = TIMER_5_INPUT_FREQUENCY_HZ,
-                  .prescaler = TIMER_5_PRESCALER,
-                  .auto_reload = TIMER_5_AUTO_RELOAD }) };
+                static auto timer{ std::make_shared<Timer>(
+                  Timer::Configuration{ .input_frequency_hz = TIMER_5_INPUT_FREQUENCY_HZ,
+                                        .prescaler = TIMER_5_PRESCALER,
+                                        .auto_reload = TIMER_5_AUTO_RELOAD }) };
                 return timer;
             }
             case Peripheral::Tim12: {
-                static auto timer{ std::make_shared<Timer>(Timer::Configuration{
-                  .input_frequency_hz = TIMER_12_INPUT_FREQUENCY_HZ,
-                  .prescaler = TIMER_12_PRESCALER,
-                  .auto_reload = TIMER_12_AUTO_RELOAD }) };
+                static auto timer{ std::make_shared<Timer>(
+                  Timer::Configuration{ .input_frequency_hz = TIMER_12_INPUT_FREQUENCY_HZ,
+                                        .prescaler = TIMER_12_PRESCALER,
+                                        .auto_reload = TIMER_12_AUTO_RELOAD }) };
                 return timer;
             }
-            default: return {};
+            default:
+                return {};
         }
     }
 }

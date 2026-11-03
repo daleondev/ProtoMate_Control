@@ -1,13 +1,16 @@
 #include "backend.hpp"
-#include <tx_api.h>
 #include <limits>
-namespace runtime::detail {
-    namespace {
+#include <tx_api.h>
+namespace runtime::detail
+{
+    namespace
+    {
         std::uint64_t tick_epoch{};
         std::uint32_t last_tick{};
-        constexpr std::uint64_t NANOSECONDS_PER_SECOND{1'000'000'000ULL};
+        constexpr std::uint64_t NANOSECONDS_PER_SECOND{ 1'000'000'000ULL };
     }
-    void initialize_steady_clock() noexcept {
+    void initialize_steady_clock() noexcept
+    {
         last_tick = static_cast<std::uint32_t>(tx_time_get());
         tick_epoch = 0;
     }
@@ -15,8 +18,7 @@ namespace runtime::detail {
     {
         const std::uint64_t seconds{ ticks / TX_TIMER_TICKS_PER_SECOND };
         const std::uint64_t remainder{ ticks % TX_TIMER_TICKS_PER_SECOND };
-        constexpr auto maximum{ static_cast<std::uint64_t>(
-          std::numeric_limits<std::int64_t>::max()) };
+        constexpr auto maximum{ static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) };
         const std::uint64_t fractional_nanoseconds{ remainder * NANOSECONDS_PER_SECOND /
                                                     TX_TIMER_TICKS_PER_SECOND };
         if (seconds > (maximum - fractional_nanoseconds) / NANOSECONDS_PER_SECOND) {

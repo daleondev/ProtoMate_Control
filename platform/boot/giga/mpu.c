@@ -1,9 +1,14 @@
-#include "platform.h"
 #include "InternalFlashLayout.h"
+#include "platform.h"
 
-static void region(uint32_t number, uint32_t base, uint32_t size, uint32_t execute, uint32_t cache, uint32_t access)
+static void region(uint32_t number,
+                   uint32_t base,
+                   uint32_t size,
+                   uint32_t execute,
+                   uint32_t cache,
+                   uint32_t access)
 {
-    MPU_Region_InitTypeDef r = {0};
+    MPU_Region_InitTypeDef r = { 0 };
     r.Enable = MPU_REGION_ENABLE;
     /* M7 region zero blocks unused external addresses. More specific regions
        below override it; M4 has no speculative fetches and only eight slots. */
@@ -23,7 +28,9 @@ static void region(uint32_t number, uint32_t base, uint32_t size, uint32_t execu
 #if defined(CORE_CM4)
     /* Cover data/MSP and the SRAM2 data alias as XN. Execution uses the
        separate 0x10000000 instruction alias for SRAM1 and part of SRAM2. */
-    if (number == 7) { r.SubRegionDisable = 0x03; }
+    if (number == 7) {
+        r.SubRegionDisable = 0x03;
+    }
 #endif
     HAL_MPU_ConfigRegion(&r);
 }
@@ -35,7 +42,7 @@ void giga_configure_mpu(uint32_t ram_debug)
        monopolize FMC and starve LTDC even while the CPU appears idle. Deny
        0x60000000..0xDFFFFFFF, then explicitly map only installed memories.
        Subregions 0/1/2 and 7 retain the architectural internal/peripheral map. */
-    MPU_Region_InitTypeDef guard = {0};
+    MPU_Region_InitTypeDef guard = { 0 };
     guard.Enable = MPU_REGION_ENABLE;
     guard.Number = 0;
     guard.BaseAddress = 0;

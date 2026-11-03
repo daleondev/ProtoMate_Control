@@ -592,12 +592,14 @@ TEST(RuntimeLibstdcxx, ThreadExitDestructorCanJoinAnotherThread)
         bool destructor_finished{};
     } state;
     runtime::detail::KeyHandle key{};
-    ASSERT_EQ(runtime::detail::key_create(&key, [](void* pointer) {
+    ASSERT_EQ(runtime::detail::key_create(&key,
+                                          [](void* pointer) {
         auto& current{ *static_cast<ExitState*>(pointer) };
         std::thread child{ [&] { current.child_ran = true; } };
         child.join();
         current.destructor_finished = true;
-    }), 0);
+    }),
+              0);
 
     int key_status{};
     std::thread worker{ [&] { key_status = runtime::detail::key_set(key, &state); } };
@@ -699,18 +701,17 @@ TEST(RuntimeLibstdcxx, ThreadFactoryBoundsCustomNames)
     // The name need not be NUL-terminated, including at the conversion buffer's
     // exact capacity. Bytes beyond the view must never be copied into the name.
     constexpr std::array name_storage{ 'i', 'o', '_', 'w', 'o', 'r', 'k', 'e', 'r', 'X' };
-    const std::array<std::pair<std::string_view, std::string_view>, 4U> cases{{
-        { std::string_view{ name_storage.data(), name_storage.size() - 1U }, "IoWorker Thread" },
-        { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
-        { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "Unknown Thread" },
-        { "___", " Thread" },
-    }};
+    const std::array<std::pair<std::string_view, std::string_view>, 4U> cases{ {
+      { std::string_view{ name_storage.data(), name_storage.size() - 1U }, "IoWorker Thread" },
+      { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "Unknown Thread" },
+      { "___", " Thread" },
+    } };
 
     for (const auto& [requested, expected] : cases) {
         std::string observed;
-        auto worker = runtime::thread::create({ .name = requested }, [&] {
-            observed = tx_thread_identify()->tx_thread_name;
-        });
+        auto worker = runtime::thread::create({ .name = requested },
+                                              [&] { observed = tx_thread_identify()->tx_thread_name; });
         worker.join();
         EXPECT_EQ(observed, expected);
     }
@@ -802,30 +803,35 @@ TEST(RuntimeLibstdcxx, ThreadFactoryRejectsInvalidAttributes)
 
 TEST(RuntimeLibstdcxx, CallerOwnedStackSurvivesJoinAndCanBeReused)
 {
-    alignas(std::max_align_t) static std::array<std::byte, 16U*1024U> storage;
-    for (unsigned run=0; run<3; ++run) {
+    alignas(std::max_align_t) static std::array<std::byte, 16U * 1024U> storage;
+    for (unsigned run = 0; run < 3; ++run) {
         void* observed{};
-        auto worker=runtime::thread::create(
-            {.stack_size=storage.size(),.stack_storage=storage.data()}, [&] {
-                observed=tx_thread_identify()->tx_thread_stack_start;
-            });
+        auto worker =
+          runtime::thread::create({ .stack_size = storage.size(), .stack_storage = storage.data() },
+                                  [&] { observed = tx_thread_identify()->tx_thread_stack_start; });
         worker.join();
-        EXPECT_EQ(observed,storage.data());
+        EXPECT_EQ(observed, storage.data());
         // Under ASan this also detects accidental ownership/free on retirement.
-        storage.front()=std::byte{0x31};storage.back()=std::byte{0x72};
+        storage.front() = std::byte{ 0x31 };
+        storage.back() = std::byte{ 0x72 };
     }
 }
 
 TEST(RuntimeLibstdcxx, CallerOwnedStackRejectsRoundingAndMisalignment)
 {
-    alignas(std::max_align_t) static std::array<std::byte, 16U*1024U> storage;
-    const auto rejected=[](runtime::thread::Attributes attributes) {
-        try { auto worker=runtime::thread::create(attributes,[]{});worker.join();return false; }
-        catch(const std::system_error& error) { return error.code()==std::errc::invalid_argument; }
+    alignas(std::max_align_t) static std::array<std::byte, 16U * 1024U> storage;
+    const auto rejected = [](runtime::thread::Attributes attributes) {
+        try {
+            auto worker = runtime::thread::create(attributes, [] {});
+            worker.join();
+            return false;
+        } catch (const std::system_error& error) {
+            return error.code() == std::errc::invalid_argument;
+        }
     };
-    EXPECT_TRUE(rejected({.stack_size=storage.size()-1,.stack_storage=storage.data()}));
-    EXPECT_TRUE(rejected({.stack_size=storage.size(),.stack_storage=storage.data()+1}));
-    EXPECT_TRUE(rejected({.stack_storage=storage.data()}));
+    EXPECT_TRUE(rejected({ .stack_size = storage.size() - 1, .stack_storage = storage.data() }));
+    EXPECT_TRUE(rejected({ .stack_size = storage.size(), .stack_storage = storage.data() + 1 }));
+    EXPECT_TRUE(rejected({ .stack_storage = storage.data() }));
 }
 
 TEST(RuntimeLibstdcxx, ThreadFactoryRestoresPreviouslyPublishedAttributes)

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "hal/drivers/itf/IUart.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
+#include "hal/drivers/itf/IUart.hpp"
 #include "hal/hal.hpp"
 #include <memory>
 

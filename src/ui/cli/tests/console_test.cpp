@@ -1,8 +1,8 @@
-#include "ui/motion/Client.hpp"
+#include "hal/console.hpp"
 #include "ui/cli/Console.hpp"
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/motor.hpp"
-#include "hal/console.hpp"
+#include "ui/motion/Client.hpp"
 
 #include <gtest/gtest.h>
 
@@ -31,10 +31,17 @@ namespace
         }
         void TearDown() override
         {
-            if (old_output) { std::cout.rdbuf(old_output); }
-            if (saved >= 0) { ::dup2(saved, STDIN_FILENO); ::close(saved); }
+            if (old_output) {
+                std::cout.rdbuf(old_output);
+            }
+            if (saved >= 0) {
+                ::dup2(saved, STDIN_FILENO);
+                ::close(saved);
+            }
             for (const int descriptor : pipe) {
-                if (descriptor >= 0) { ::close(descriptor); }
+                if (descriptor >= 0) {
+                    ::close(descriptor);
+                }
             }
         }
         void send(std::string_view text)
@@ -48,14 +55,15 @@ namespace
         }
         void addEcho(ui::cli::Parser& parser)
         {
-            ASSERT_TRUE(parser.registerCommand({
-                .name = "say", .description = "test command",
-                .arguments = { { .name = "value", .description = "text" } }, .flags = {},
+            ASSERT_TRUE(parser.registerCommand(
+              { .name = "say",
+                .description = "test command",
+                .arguments = { { .name = "value", .description = "text" } },
+                .flags = {},
                 .callback = [](const ui::cli::Arguments& arguments, std::ostream& stream) {
-                    stream << arguments.at(0) << '\n';
-                    return 0;
-                }
-            }));
+                stream << arguments.at(0) << '\n';
+                return 0;
+            } }));
         }
 
         std::array<int, 2> pipe{ -1, -1 };

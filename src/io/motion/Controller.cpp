@@ -1,7 +1,7 @@
 #include "Controller.hpp"
 #include "Limits.hpp"
-#include <cmath>
 #include "runtime/thread.hpp"
+#include <cmath>
 
 #ifdef HAL_PLATFORM_STM32
 #include "hal/stm32/InterruptGuard.hpp"
@@ -22,16 +22,19 @@ namespace io::motion
         {
             std::promise<StepperMotor::Result> completion;
             completion.set_value(StepperMotor::Result::Rejected);
-            if (notify) { notify(); }
+            if (notify) {
+                notify();
+            }
             return completion.get_future();
         }
     }
 
-    Controller::Controller(const Configuration& configuration, const DriverFactory& driver_factory,
+    Controller::Controller(const Configuration& configuration,
+                           const DriverFactory& driver_factory,
                            std::shared_ptr<pnm::log::ISink> log_sink)
       : m_enable{ hal::core::create_steppers_enable_output() }
       , m_generator{ hal::core::create_stepper_generator() }
-      , m_configuration{configuration}
+      , m_configuration{ configuration }
     {
         if (!m_enable || !m_generator) {
             throw std::runtime_error("motion hardware unavailable on this core or already owned");
@@ -60,15 +63,21 @@ namespace io::motion
             if (!feedback) {
                 throw std::runtime_error("motor feedback creation failed");
             }
-            m_motors[i] = std::make_unique<StepperMotor>(
-              id, config.reference_position, config.full_step_angle, config.microsteps,
-              m_generator, std::move(drivers[i]), std::move(feedback), [this]() noexcept {
-                  // May run in an ISR under the driver's lock. Defer all joins,
-                  // generator access and UART work to the diagnostic worker.
-                  m_faulted.store(true);
-                  m_enable->write(hal::gpio::Level::High);
-                  m_driverNotification.signal();
-              }, log_sink);
+            m_motors[i] = std::make_unique<StepperMotor>(id,
+                                                         config.reference_position,
+                                                         config.full_step_angle,
+                                                         config.microsteps,
+                                                         m_generator,
+                                                         std::move(drivers[i]),
+                                                         std::move(feedback),
+                                                         [this]() noexcept {
+                // May run in an ISR under the driver's lock. Defer all joins,
+                // generator access and UART work to the diagnostic worker.
+                m_faulted.store(true);
+                m_enable->write(hal::gpio::Level::High);
+                m_driverNotification.signal();
+            },
+                                                         log_sink);
         }
         m_driverWorker = runtime::thread::create_jthread(
           { .name = "motion diagnostics", .priority = 18, .stack_size = 8192U },
@@ -123,33 +132,45 @@ namespace io::motion
 
     ::motion::trajectory::Reply Controller::trajectorySnapshot() const
     {
-        namespace tr=::motion::trajectory;
-        std::scoped_lock lock{m_mutex};
+        namespace tr = ::motion::trajectory;
+        std::scoped_lock lock{ m_mutex };
         tr::Reply result;
-        result.enabled=enabled();
-        const auto generator=m_generator->status();
-        result.counts_exact=generator.counts_exact;
-        result.state=result.enabled ? tr::State::Unreferenced : tr::State::Disabled;
-        for(unsigned i=0;i<3;++i) {
-            const auto step=m_configuration[i].full_step_angle.get()/m_configuration[i].microsteps;
-            result.capabilities.step_radians[i]=step;
-            result.capabilities.reference_steps[i]=m_configuration[i].reference_position.get()/step;
+        result.enabled = enabled();
+        const auto generator = m_generator->status();
+        result.counts_exact = generator.counts_exact;
+        result.state = result.enabled ? tr::State::Unreferenced : tr::State::Disabled;
+        for (unsigned i = 0; i < 3; ++i) {
+            const auto step = m_configuration[i].full_step_angle.get() / m_configuration[i].microsteps;
+            result.capabilities.step_radians[i] = step;
+            result.capabilities.reference_steps[i] = m_configuration[i].reference_position.get() / step;
             // Numerical admission ceilings, not a claim about mechanical limits.
             // A calibrated RobotConfiguration must impose the machine's limits.
-            result.capabilities.limits[i]={-tr::MAX_POSITION,tr::MAX_POSITION,
-                limits::MAX_PLANNED_RATE,1e8,1e8,1e10};
-            const auto count=tr::quantize(m_motors[i]->setpointPosition().get()/step);
-            if(count) { result.position[i]=*count; } else { result.counts_exact=false; }
-            result.boundary[i].position=result.position[i];
-            result.boundary[i].velocity=m_motors[i]->setpointVelocity().get()/step;
-            if(m_motors[i]->isReferenced()) { result.referenced|=static_cast<std::uint8_t>(1U<<i); }
+            result.capabilities.limits[i] = {
+                -tr::MAX_POSITION, tr::MAX_POSITION, limits::MAX_PLANNED_RATE, 1e8, 1e8, 1e10
+            };
+            const auto count = tr::quantize(m_motors[i]->setpointPosition().get() / step);
+            if (count) {
+                result.position[i] = *count;
+            }
+            else {
+                result.counts_exact = false;
+            }
+            result.boundary[i].position = result.position[i];
+            result.boundary[i].velocity = m_motors[i]->setpointVelocity().get() / step;
+            if (m_motors[i]->isReferenced()) {
+                result.referenced |= static_cast<std::uint8_t>(1U << i);
+            }
         }
-        if(result.enabled && result.referenced==7) { result.state=tr::State::Ready; }
-        if(m_faulted.load() || !result.counts_exact) { result.state=tr::State::Faulted; }
+        if (result.enabled && result.referenced == 7) {
+            result.state = tr::State::Ready;
+        }
+        if (m_faulted.load() || !result.counts_exact) {
+            result.state = tr::State::Faulted;
+        }
         // The existing per-axis STEP API cannot provide atomic group splices or
         // a time-bounded immutable horizon. Never advertise it as that backend.
-        result.capabilities.coordinated_execution=false;
-        result.capabilities.hardware_fingerprint=tr::fingerprint(result.capabilities);
+        result.capabilities.coordinated_execution = false;
+        result.capabilities.hardware_fingerprint = tr::fingerprint(result.capabilities);
         return result;
     }
 
@@ -313,39 +334,53 @@ namespace io::motion
         return axis(id).setMotionDefaults(defaults);
     }
 
-    std::future<StepperMotor::Result> Controller::moveRel(
-      MotorId id, pnm::units::Angle distance, pnm::units::AngularVelocity velocity,
-      pnm::units::AngularAcceleration acceleration, pnm::units::AngularAcceleration deceleration,
-      pnm::units::AngularJerk jerk, BufferMode buffer_mode, pnm::units::Time timeout, std::function<void()> completed)
+    std::future<StepperMotor::Result> Controller::moveRel(MotorId id,
+                                                          pnm::units::Angle distance,
+                                                          pnm::units::AngularVelocity velocity,
+                                                          pnm::units::AngularAcceleration acceleration,
+                                                          pnm::units::AngularAcceleration deceleration,
+                                                          pnm::units::AngularJerk jerk,
+                                                          BufferMode buffer_mode,
+                                                          pnm::units::Time timeout,
+                                                          std::function<void()> completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
         if (!canMoveLocked()) {
             return rejectedMotion(completed);
         }
-        auto future{ target.moveRel(distance, velocity, acceleration, deceleration, jerk, buffer_mode, timeout) };
+        auto future{ target.moveRel(
+          distance, velocity, acceleration, deceleration, jerk, buffer_mode, timeout) };
         target.m_lastCompletion.then(completed);
         return future;
     }
 
-    std::future<StepperMotor::Result> Controller::moveAbs(
-      MotorId id, pnm::units::Angle position, pnm::units::AngularVelocity velocity,
-      pnm::units::AngularAcceleration acceleration, pnm::units::AngularAcceleration deceleration,
-      pnm::units::AngularJerk jerk, BufferMode buffer_mode, pnm::units::Time timeout, std::function<void()> completed)
+    std::future<StepperMotor::Result> Controller::moveAbs(MotorId id,
+                                                          pnm::units::Angle position,
+                                                          pnm::units::AngularVelocity velocity,
+                                                          pnm::units::AngularAcceleration acceleration,
+                                                          pnm::units::AngularAcceleration deceleration,
+                                                          pnm::units::AngularJerk jerk,
+                                                          BufferMode buffer_mode,
+                                                          pnm::units::Time timeout,
+                                                          std::function<void()> completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
         if (!canMoveLocked()) {
             return rejectedMotion(completed);
         }
-        auto future{ target.moveAbs(position, velocity, acceleration, deceleration, jerk, buffer_mode, timeout) };
+        auto future{ target.moveAbs(
+          position, velocity, acceleration, deceleration, jerk, buffer_mode, timeout) };
         target.m_lastCompletion.then(completed);
         return future;
     }
 
-    std::future<StepperMotor::Result> Controller::reference(
-      MotorId id, pnm::units::AngularVelocity seek_velocity,
-      pnm::units::AngularVelocity latch_velocity, pnm::units::Time timeout, std::function<void()> completed)
+    std::future<StepperMotor::Result> Controller::reference(MotorId id,
+                                                            pnm::units::AngularVelocity seek_velocity,
+                                                            pnm::units::AngularVelocity latch_velocity,
+                                                            pnm::units::Time timeout,
+                                                            std::function<void()> completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
@@ -357,8 +392,8 @@ namespace io::motion
         return future;
     }
 
-    pnm::Result<hal::step::PulseCount> Controller::setVelocity(
-      MotorId id, pnm::units::AngularVelocity velocity)
+    pnm::Result<hal::step::PulseCount> Controller::setVelocity(MotorId id,
+                                                               pnm::units::AngularVelocity velocity)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };

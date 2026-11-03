@@ -104,7 +104,7 @@ namespace ui::gui
             {
                 HAL::endFrame();
                 auto micros = timer.elapsed().count();
-                const auto drawUs=micros;
+                const auto drawUs = micros;
                 std::uint32_t synchronizeUs{};
                 auto& graphics = static_cast<GraphicsDMA&>(dma);
                 if (graphics.failed()) {
@@ -125,18 +125,18 @@ namespace ui::gui
                                                                     owner.m_display->framebuffer(previous),
                                                                     dirty[i]);
                     }
-                    synchronizeUs=timer.elapsed().count();
+                    synchronizeUs = timer.elapsed().count();
                     micros += synchronizeUs;
                     dirtyCount = 0;
                 }
                 std::scoped_lock lock(owner.m_mutex);
                 ++owner.m_status.frames;
-                owner.m_status.drawUs=drawUs;
-                owner.m_status.synchronizeUs=synchronizeUs;
-                owner.m_status.totalDrawUs+=drawUs;
-                owner.m_status.totalSynchronizeUs+=synchronizeUs;
-                owner.m_status.imageTransferUs=graphics.imageTransferUs();
-                owner.m_status.imageTransfers=graphics.imageTransfers();
+                owner.m_status.drawUs = drawUs;
+                owner.m_status.synchronizeUs = synchronizeUs;
+                owner.m_status.totalDrawUs += drawUs;
+                owner.m_status.totalSynchronizeUs += synchronizeUs;
+                owner.m_status.imageTransferUs = graphics.imageTransferUs();
+                owner.m_status.imageTransfers = graphics.imageTransfers();
                 owner.m_status.maximumRenderUs =
                   std::max(owner.m_status.maximumRenderUs, static_cast<std::uint32_t>(micros));
                 if (micros > 16680) {
@@ -222,7 +222,7 @@ namespace ui::gui
     bool Controller::scene(unsigned triangles)
     {
         return (triangles == 500 || triangles == 2000 || triangles == 5000) &&
-          enqueue({Command::Scene, triangles});
+               enqueue({ Command::Scene, triangles });
     }
     bool Controller::backlight(unsigned percent)
     {

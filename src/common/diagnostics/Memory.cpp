@@ -37,8 +37,8 @@ namespace diagnostics
             result.capacity = limit - base;
             result.reserved = info.arena;
             result.used = info.uordblks;
-            result.available = info.fordblks +
-              (result.reserved < result.capacity ? result.capacity - result.reserved : 0U);
+            result.available =
+              info.fordblks + (result.reserved < result.capacity ? result.capacity - result.reserved : 0U);
 #endif
             result.releasable = info.keepcost;
             result.free_blocks = info.ordblks;
@@ -73,8 +73,8 @@ namespace diagnostics
             }
 #endif
             const auto used = [top, size = result.stack_size](std::uintptr_t pointer) {
-                return static_cast<std::uint32_t>(pointer < top ?
-                  std::min<std::uintptr_t>(top - pointer, size) : 0U);
+                return static_cast<std::uint32_t>(
+                  pointer < top ? std::min<std::uintptr_t>(top - pointer, size) : 0U);
             };
             result.current_stack_usage = used(current);
             result.peak_stack_usage = result.current_stack_usage;
@@ -117,9 +117,14 @@ namespace diagnostics
         result.shared_runtime = true;
 #endif
         switch (query) {
-            case MemoryQuery::Heap: result.heap = collect_heap(); break;
-            case MemoryQuery::Stack: collect_stacks(result.stack); break;
-            default: throw std::invalid_argument("Unknown memory diagnostic query");
+            case MemoryQuery::Heap:
+                result.heap = collect_heap();
+                break;
+            case MemoryQuery::Stack:
+                collect_stacks(result.stack);
+                break;
+            default:
+                throw std::invalid_argument("Unknown memory diagnostic query");
         }
         return result;
     }

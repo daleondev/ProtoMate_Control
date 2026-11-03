@@ -1,10 +1,10 @@
+#include "fmc.h"
 #include "platform.h"
 #include "quadspi.h"
-#include "fmc.h"
 
-static void command(uint32_t opcode, uint8_t *data, uint32_t count, int write)
+static void command(uint32_t opcode, uint8_t* data, uint32_t count, int write)
 {
-    QSPI_CommandTypeDef c = {0};
+    QSPI_CommandTypeDef c = { 0 };
     c.Instruction = opcode;
     c.InstructionMode = QSPI_INSTRUCTION_1_LINE;
     c.AddressMode = QSPI_ADDRESS_NONE;
@@ -14,9 +14,13 @@ static void command(uint32_t opcode, uint8_t *data, uint32_t count, int write)
     c.DdrMode = QSPI_DDR_MODE_DISABLE;
     c.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
     c.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
-    if (HAL_QSPI_Command(&hqspi, &c, 100) != HAL_OK) { giga_fail(0x201); }
-    if (count && (write ? HAL_QSPI_Transmit(&hqspi, data, 100)
-                        : HAL_QSPI_Receive(&hqspi, data, 100)) != HAL_OK) { giga_fail(0x202); }
+    if (HAL_QSPI_Command(&hqspi, &c, 100) != HAL_OK) {
+        giga_fail(0x201);
+    }
+    if (count &&
+        (write ? HAL_QSPI_Transmit(&hqspi, data, 100) : HAL_QSPI_Receive(&hqspi, data, 100)) != HAL_OK) {
+        giga_fail(0x202);
+    }
 }
 
 void giga_qspi_initialize(void)
@@ -29,11 +33,13 @@ void giga_qspi_initialize(void)
     HAL_Delay(1);
     uint8_t id[3];
     command(0x9F, id, sizeof id, 0);
-    volatile GigaHandoff *h = (volatile GigaHandoff *)GIGA_HANDOFF_ADDRESS;
+    volatile GigaHandoff* h = (volatile GigaHandoff*)GIGA_HANDOFF_ADDRESS;
     h->qspi_id = ((uint32_t)id[0] << 16) | ((uint32_t)id[1] << 8) | id[2];
     /* Adesto/Renesas manufacturer, 128 Mbit density. No writes to unknown parts. */
-    if (h->qspi_id != 0x1F8901u) { giga_fail(0x203); }
-    QSPI_CommandTypeDef c = {0};
+    if (h->qspi_id != 0x1F8901u) {
+        giga_fail(0x203);
+    }
+    QSPI_CommandTypeDef c = { 0 };
     c.Instruction = 0x5A;
     c.InstructionMode = QSPI_INSTRUCTION_1_LINE;
     c.AddressMode = QSPI_ADDRESS_1_LINE;
@@ -44,11 +50,14 @@ void giga_qspi_initialize(void)
     c.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
     c.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
     uint8_t sfdp[4];
-    if (HAL_QSPI_Command(&hqspi, &c, 100) != HAL_OK ||
-        HAL_QSPI_Receive(&hqspi, sfdp, 100) != HAL_OK) { giga_fail(0x204); }
-    h->qspi_sfdp = (uint32_t)sfdp[0] | ((uint32_t)sfdp[1] << 8) |
-        ((uint32_t)sfdp[2] << 16) | ((uint32_t)sfdp[3] << 24);
-    if (h->qspi_sfdp != 0x50444653u) { giga_fail(0x205); }
+    if (HAL_QSPI_Command(&hqspi, &c, 100) != HAL_OK || HAL_QSPI_Receive(&hqspi, sfdp, 100) != HAL_OK) {
+        giga_fail(0x204);
+    }
+    h->qspi_sfdp =
+      (uint32_t)sfdp[0] | ((uint32_t)sfdp[1] << 8) | ((uint32_t)sfdp[2] << 16) | ((uint32_t)sfdp[3] << 24);
+    if (h->qspi_sfdp != 0x50444653u) {
+        giga_fail(0x205);
+    }
     uint8_t sr2;
     command(0x35, &sr2, 1, 0);
     if (!(sr2 & 2u)) {
@@ -58,7 +67,9 @@ void giga_qspi_initialize(void)
         command(0x31, &wanted, 1, 1);
         HAL_Delay(1);
         command(0x35, &sr2, 1, 0);
-        if (sr2 != wanted) { giga_fail(0x206); }
+        if (sr2 != wanted) {
+            giga_fail(0x206);
+        }
     }
     c.Instruction = 0x6B;
     c.DataMode = QSPI_DATA_4_LINES;
@@ -76,16 +87,20 @@ void giga_qspi_initialize(void)
     MODIFY_REG(hqspi.Instance->DCR, QUADSPI_DCR_FSIZE, 24u << QUADSPI_DCR_FSIZE_Pos);
 #endif
     QSPI_MemoryMappedTypeDef map = { .TimeOutActivation = QSPI_TIMEOUT_COUNTER_DISABLE };
-    if (HAL_QSPI_MemoryMapped(&hqspi, &c, &map) != HAL_OK) { giga_fail(0x207); }
+    if (HAL_QSPI_MemoryMapped(&hqspi, &c, &map) != HAL_OK) {
+        giga_fail(0x207);
+    }
 }
 
 static void sdram_command(uint32_t mode, uint32_t refresh, uint32_t mode_register)
 {
-    FMC_SDRAM_CommandTypeDef c = {
-        .CommandMode = mode, .CommandTarget = FMC_SDRAM_CMD_TARGET_BANK1,
-        .AutoRefreshNumber = refresh, .ModeRegisterDefinition = mode_register
-    };
-    if (HAL_SDRAM_SendCommand(&hsdram1, &c, 100) != HAL_OK) { giga_fail(0x210); }
+    FMC_SDRAM_CommandTypeDef c = { .CommandMode = mode,
+                                   .CommandTarget = FMC_SDRAM_CMD_TARGET_BANK1,
+                                   .AutoRefreshNumber = refresh,
+                                   .ModeRegisterDefinition = mode_register };
+    if (HAL_SDRAM_SendCommand(&hsdram1, &c, 100) != HAL_OK) {
+        giga_fail(0x210);
+    }
 }
 
 void giga_memories_initialize(void)
@@ -98,13 +113,18 @@ void giga_memories_initialize(void)
     sdram_command(FMC_SDRAM_CMD_AUTOREFRESH_MODE, 8, 0);
     /* Burst length 1, sequential, CAS3, standard operating mode, single write. */
     sdram_command(FMC_SDRAM_CMD_LOAD_MODE, 1, 0x230);
-    if (HAL_SDRAM_ProgramRefreshRate(&hsdram1, 1542) != HAL_OK) { giga_fail(0x211); }
+    if (HAL_SDRAM_ProgramRefreshRate(&hsdram1, 1542) != HAL_OK) {
+        giga_fail(0x211);
+    }
 }
 
-static int sdram_failure(uint32_t phase, volatile uint32_t *address,
-                         uint32_t expected, uint32_t actual, uint32_t started)
+static int sdram_failure(uint32_t phase,
+                         volatile uint32_t* address,
+                         uint32_t expected,
+                         uint32_t actual,
+                         uint32_t started)
 {
-    volatile GigaHandoff *h = (volatile GigaHandoff *)GIGA_HANDOFF_ADDRESS;
+    volatile GigaHandoff* h = (volatile GigaHandoff*)GIGA_HANDOFF_ADDRESS;
     h->sdram_phase = phase;
     h->sdram_address = (uint32_t)address;
     h->sdram_expected = expected;
@@ -126,9 +146,9 @@ int giga_sdram_test(void)
 {
     /* Destructive maintenance test, before applications/graphics own SDRAM.
        Every word tested in both directions, including each bank/address bit. */
-    volatile uint32_t *ram = (volatile uint32_t *)0xC0000000u;
+    volatile uint32_t* ram = (volatile uint32_t*)0xC0000000u;
     const uint32_t words = (8u * 1024u * 1024u) / sizeof(uint32_t);
-    volatile GigaHandoff *h = (volatile GigaHandoff *)GIGA_HANDOFF_ADDRESS;
+    volatile GigaHandoff* h = (volatile GigaHandoff*)GIGA_HANDOFF_ADDRESS;
     const uint32_t started = HAL_GetTick();
     h->sdram_phase = 0;
     h->sdram_address = 0;
@@ -143,39 +163,49 @@ int giga_sdram_test(void)
             ram[0] = expected;
             __DSB();
             const uint32_t actual = ram[0];
-            if (actual != expected) { return sdram_failure(phase, ram, expected, actual, started); }
+            if (actual != expected) {
+                return sdram_failure(phase, ram, expected, actual, started);
+            }
         }
     }
     /* Check NBL0/NBL1 byte masking and halfword stores on the 16-bit bus. */
     h->sdram_phase = 3;
     ram[0] = 0;
     uint32_t expected = 0;
-    volatile uint8_t *bytes = (volatile uint8_t *)ram;
+    volatile uint8_t* bytes = (volatile uint8_t*)ram;
     for (unsigned lane = 0; lane < 4; ++lane) {
         const uint8_t value = (uint8_t)(0xA5u ^ (lane * 0x11u));
         bytes[lane] = value;
         expected |= (uint32_t)value << (8 * lane);
         __DSB();
         const uint32_t actual = ram[0];
-        if (actual != expected) { return sdram_failure(3, ram, expected, actual, started); }
+        if (actual != expected) {
+            return sdram_failure(3, ram, expected, actual, started);
+        }
     }
     h->sdram_phase = 4;
-    volatile uint16_t *halfwords = (volatile uint16_t *)ram;
+    volatile uint16_t* halfwords = (volatile uint16_t*)ram;
     for (unsigned lane = 0; lane < 2; ++lane) {
         const uint16_t value = lane == 0 ? 0xA55Au : 0x3CC3u;
         halfwords[lane] = value;
         expected = (expected & ~(0xFFFFu << (16 * lane))) | ((uint32_t)value << (16 * lane));
         __DSB();
         const uint32_t actual = ram[0];
-        if (actual != expected) { return sdram_failure(4, ram, expected, actual, started); }
+        if (actual != expected) {
+            return sdram_failure(4, ram, expected, actual, started);
+        }
     }
     h->sdram_phase = 5;
-    for (uint32_t i = 0; i < words; ++i) { ram[i] = i ^ 0xA55A3CC3u; }
+    for (uint32_t i = 0; i < words; ++i) {
+        ram[i] = i ^ 0xA55A3CC3u;
+    }
     __DSB();
     for (uint32_t i = 0; i < words; ++i) {
         const uint32_t expected = i ^ 0xA55A3CC3u;
         const uint32_t actual = ram[i];
-        if (actual != expected) { return sdram_failure(5, &ram[i], expected, actual, started); }
+        if (actual != expected) {
+            return sdram_failure(5, &ram[i], expected, actual, started);
+        }
         ram[i] = ~(i ^ 0xA55A3CC3u);
     }
     __DSB();
@@ -183,27 +213,35 @@ int giga_sdram_test(void)
     for (uint32_t i = words; i-- != 0;) {
         const uint32_t expected = ~(i ^ 0xA55A3CC3u);
         const uint32_t actual = ram[i];
-        if (actual != expected) { return sdram_failure(6, &ram[i], expected, actual, started); }
+        if (actual != expected) {
+            return sdram_failure(6, &ram[i], expected, actual, started);
+        }
         ram[i] = 0;
     }
     __DSB();
     h->sdram_phase = 7;
     uint32_t pattern = 0x12345678u;
-    for (uint32_t i = 0; i < words; ++i) { ram[i] = pattern = sdram_pattern(pattern); }
+    for (uint32_t i = 0; i < words; ++i) {
+        ram[i] = pattern = sdram_pattern(pattern);
+    }
     __DSB();
     HAL_Delay(250); /* Several complete 64 ms refresh intervals, no SDRAM access. */
     pattern = 0x12345678u;
     for (uint32_t i = 0; i < words; ++i) {
         pattern = sdram_pattern(pattern);
         const uint32_t actual = ram[i];
-        if (actual != pattern) { return sdram_failure(7, &ram[i], pattern, actual, started); }
+        if (actual != pattern) {
+            return sdram_failure(7, &ram[i], pattern, actual, started);
+        }
         ram[i] = 0;
     }
     __DSB();
     h->sdram_phase = 8;
     for (uint32_t i = 0; i < words; ++i) {
         const uint32_t actual = ram[i];
-        if (actual != 0) { return sdram_failure(8, &ram[i], 0, actual, started); }
+        if (actual != 0) {
+            return sdram_failure(8, &ram[i], 0, actual, started);
+        }
     }
     h->sdram_phase = 0;
     h->sdram_elapsed_ms = HAL_GetTick() - started;

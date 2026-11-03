@@ -33,9 +33,17 @@ namespace runtime::storage
         static constexpr std::size_t RECORD_BYTES{ SECTOR_BYTES + 32 };
         static constexpr std::size_t RECORDS_PER_BLOCK{ BLOCK_BYTES / RECORD_BYTES };
         static constexpr std::size_t RECORDS{ RECORDS_PER_BLOCK * BLOCKS };
-        enum class Mount { Ready, Blank, Corrupt };
+        enum class Mount
+        {
+            Ready,
+            Blank,
+            Corrupt
+        };
 
-        explicit FlashJournal(FlashDevice& device) : m_device{ device } {}
+        explicit FlashJournal(FlashDevice& device)
+          : m_device{ device }
+        {
+        }
         Mount mount() noexcept;
         bool read(std::size_t sector, std::span<std::byte, SECTOR_BYTES> data) noexcept;
         bool write(std::size_t sector, std::span<const std::byte, SECTOR_BYTES> data) noexcept;
@@ -44,8 +52,7 @@ namespace runtime::storage
         std::uint32_t erases() const noexcept { return m_erases; }
         static constexpr std::size_t offset(std::size_t slot) noexcept
         {
-            return (slot / RECORDS_PER_BLOCK) * BLOCK_BYTES +
-                   (slot % RECORDS_PER_BLOCK) * RECORD_BYTES;
+            return (slot / RECORDS_PER_BLOCK) * BLOCK_BYTES + (slot % RECORDS_PER_BLOCK) * RECORD_BYTES;
         }
 
       private:
@@ -57,8 +64,10 @@ namespace runtime::storage
             std::uint16_t slot{ NONE };
             bool deleted{};
         };
-        bool append(std::size_t sector, std::span<const std::byte, SECTOR_BYTES> data,
-                    bool deleted, std::size_t slot) noexcept;
+        bool append(std::size_t sector,
+                    std::span<const std::byte, SECTOR_BYTES> data,
+                    bool deleted,
+                    std::size_t slot) noexcept;
         bool reclaim() noexcept;
         std::size_t freeSlot(std::size_t excludedBlock = BLOCKS) const noexcept;
         bool isEmpty(std::size_t block) const noexcept;

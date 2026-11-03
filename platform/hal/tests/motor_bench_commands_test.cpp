@@ -9,8 +9,7 @@ using motor_bench::parse;
 
 TEST(MotorBenchCommands, DefaultMoveSelectsOnlyTheRequestedAxes)
 {
-    for (const auto& [line, axes] : {
-             std::pair{ "move m1", 1U }, { "move m2", 2U }, { "move both", 3U } }) {
+    for (const auto& [line, axes] : { std::pair{ "move m1", 1U }, { "move m2", 2U }, { "move both", 3U } }) {
         SCOPED_TRACE(line);
         const auto command = parse(line);
         ASSERT_TRUE(command);
@@ -43,8 +42,12 @@ TEST(MotorBenchCommands, PulseFrequencyAndDurationLimitsAreInclusive)
         SCOPED_TRACE(line);
         EXPECT_TRUE(parse(line));
     }
-    for (auto line : { "move m1 0", "move m1 3201", "move m1 1 49", "move m1 1 1001",
-                       "move m1 1001 50", "move m1 3200 159" }) {
+    for (auto line : { "move m1 0",
+                       "move m1 3201",
+                       "move m1 1 49",
+                       "move m1 1 1001",
+                       "move m1 1001 50",
+                       "move m1 3200 159" }) {
         SCOPED_TRACE(line);
         EXPECT_FALSE(parse(line));
     }
@@ -52,9 +55,17 @@ TEST(MotorBenchCommands, PulseFrequencyAndDurationLimitsAreInclusive)
 
 TEST(MotorBenchCommands, RejectsMalformedNumbersWithoutPartialExecution)
 {
-    for (auto line : { "move m1 -1", "move m1 +1", "move m1 1.5", "move m1 1foo",
-                       "move m1 0x10", "move m1 4294967296", "move m1 1 4294967296",
-                       "move m1 1 100x", "move m1 1 -100", "move m1 nan", "move m1 inf" }) {
+    for (auto line : { "move m1 -1",
+                       "move m1 +1",
+                       "move m1 1.5",
+                       "move m1 1foo",
+                       "move m1 0x10",
+                       "move m1 4294967296",
+                       "move m1 1 4294967296",
+                       "move m1 1 100x",
+                       "move m1 1 -100",
+                       "move m1 nan",
+                       "move m1 inf" }) {
         SCOPED_TRACE(line);
         EXPECT_FALSE(parse(line));
     }
@@ -62,10 +73,12 @@ TEST(MotorBenchCommands, RejectsMalformedNumbersWithoutPartialExecution)
 
 TEST(MotorBenchCommands, FeedbackAndControlCommandsHaveNoHiddenMotionArguments)
 {
-    for (const auto& [line, operation] : {
-             std::pair{ "help", Operation::Help }, { "check", Operation::Check },
-             { "status", Operation::Status }, { "hold", Operation::Hold },
-             { "stop", Operation::Stop }, { "independent", Operation::Independent } }) {
+    for (const auto& [line, operation] : { std::pair{ "help", Operation::Help },
+                                           { "check", Operation::Check },
+                                           { "status", Operation::Status },
+                                           { "hold", Operation::Hold },
+                                           { "stop", Operation::Stop },
+                                           { "independent", Operation::Independent } }) {
         SCOPED_TRACE(line);
         const auto command = parse(line);
         ASSERT_TRUE(command);
@@ -73,8 +86,8 @@ TEST(MotorBenchCommands, FeedbackAndControlCommandsHaveNoHiddenMotionArguments)
         EXPECT_EQ(command->axes, 0U);
         EXPECT_FALSE(parse(std::string{ line } + " m1"));
     }
-    for (const auto& [line, axes] : {
-             std::pair{ "feedback m1", 1U }, { "feedback m2", 2U }, { "feedback both", 3U } }) {
+    for (const auto& [line, axes] :
+         { std::pair{ "feedback m1", 1U }, { "feedback m2", 2U }, { "feedback both", 3U } }) {
         SCOPED_TRACE(line);
         const auto command = parse(line);
         ASSERT_TRUE(command);
@@ -86,9 +99,19 @@ TEST(MotorBenchCommands, FeedbackAndControlCommandsHaveNoHiddenMotionArguments)
 
 TEST(MotorBenchCommands, MissingAxesExtraWordsAndUnknownCommandsAreRejected)
 {
-    for (auto line : { "move", "forward", "reverse", "feedback", "move m3", "feedback m3",
-                       "move both 400 200 extra", "move both 400 200 extra more", "hold m1",
-                       "move m1; stop", "move m1\nstop", "mode spread", "mo m1" }) {
+    for (auto line : { "move",
+                       "forward",
+                       "reverse",
+                       "feedback",
+                       "move m3",
+                       "feedback m3",
+                       "move both 400 200 extra",
+                       "move both 400 200 extra more",
+                       "hold m1",
+                       "move m1; stop",
+                       "move m1\nstop",
+                       "mode spread",
+                       "mo m1" }) {
         SCOPED_TRACE(line);
         EXPECT_FALSE(parse(line));
     }

@@ -11,7 +11,12 @@ namespace hal::test
     {
       public:
         std::string_view name() const noexcept override { return "signal test"; }
-        Status status() const noexcept override { Status result{}; result.ready = true; return result; }
+        Status status() const noexcept override
+        {
+            Status result{};
+            result.ready = true;
+            return result;
+        }
         util::Result<> initialize() override { return {}; }
         util::Result<> verify() override { return {}; }
         void service() override {}

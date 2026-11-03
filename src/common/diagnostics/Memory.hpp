@@ -5,8 +5,16 @@
 
 namespace diagnostics
 {
-    enum class MemoryQuery : std::uint8_t { Heap, Stack };
-    enum class Allocator : std::uint8_t { Newlib, Glibc };
+    enum class MemoryQuery : std::uint8_t
+    {
+        Heap,
+        Stack
+    };
+    enum class Allocator : std::uint8_t
+    {
+        Newlib,
+        Glibc
+    };
 
     // Value-only snapshots shared by the local CLI and the IO diagnostic service.
     // Fixed bounds keep the complete response below one ICC frame (2048 bytes).

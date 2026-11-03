@@ -4,11 +4,11 @@
 #include <cstdint>
 
 extern "C" {
-    extern void* _tx_thread_system_stack_ptr;
-    extern std::uint32_t g_pfnVectors[];
-    void _tx_timer_interrupt();
-    void _tx_execution_isr_enter();
-    void _tx_execution_isr_exit();
+extern void* _tx_thread_system_stack_ptr;
+extern std::uint32_t g_pfnVectors[];
+void _tx_timer_interrupt();
+void _tx_execution_isr_enter();
+void _tx_execution_isr_exit();
 }
 
 namespace

@@ -5,8 +5,8 @@
 namespace io::diagnostics
 {
     Server::Server(pnm::msg::Bus& bus)
-      : m_memory{ bus.service<^^icc::Services::io_memory>().serve(
-          ::diagnostics::collectMemory, { .max_pending = 2 }) }
+      : m_memory{ bus.service<^^icc::Services::io_memory>().serve(::diagnostics::collectMemory,
+                                                                  { .max_pending = 2 }) }
     {
     }
 

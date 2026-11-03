@@ -8,4 +8,3 @@
 
 // FileX serializes all access to a media instance.  Avoid a second nested
 // ThreadX mutex in LevelX; the storage adapter also owns the physical device.
-

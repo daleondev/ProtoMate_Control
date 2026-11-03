@@ -14,8 +14,8 @@ namespace hal::util
     // On STM32 the entire region is Normal, shareable, non-cacheable memory.
     struct InterCoreQueue
     {
-        static constexpr std::uint32_t CAPACITY{4};
-        static constexpr std::size_t MAX_FRAME_BYTES{2048};
+        static constexpr std::uint32_t CAPACITY{ 4 };
+        static constexpr std::size_t MAX_FRAME_BYTES{ 2048 };
         struct Frame
         {
             std::uint32_t size;
@@ -34,16 +34,21 @@ namespace hal::util
         bool full() noexcept
         {
             return std::atomic_ref(written).load(std::memory_order_relaxed) -
-                     std::atomic_ref(read).load(std::memory_order_acquire) >= CAPACITY;
+                     std::atomic_ref(read).load(std::memory_order_acquire) >=
+                   CAPACITY;
         }
 
         std::expected<void, IInterCoreChannel::Error> push(std::span<const std::byte> bytes) noexcept
         {
             using Error = IInterCoreChannel::Error;
-            if (bytes.size() > MAX_FRAME_BYTES) { return std::unexpected(Error::TooLarge); }
+            if (bytes.size() > MAX_FRAME_BYTES) {
+                return std::unexpected(Error::TooLarge);
+            }
             const auto tail = std::atomic_ref(written).load(std::memory_order_relaxed);
             const auto head = std::atomic_ref(read).load(std::memory_order_acquire);
-            if (tail - head >= CAPACITY) { return std::unexpected(Error::WouldBlock); }
+            if (tail - head >= CAPACITY) {
+                return std::unexpected(Error::WouldBlock);
+            }
             auto& slot = frames[tail % CAPACITY];
             std::ranges::copy(bytes, slot.bytes.begin());
             slot.size = static_cast<std::uint32_t>(bytes.size());
@@ -56,12 +61,16 @@ namespace hal::util
             using Error = IInterCoreChannel::Error;
             const auto head = std::atomic_ref(read).load(std::memory_order_relaxed);
             const auto tail = std::atomic_ref(written).load(std::memory_order_acquire);
-            if (tail == head) { return std::unexpected(Error::WouldBlock); }
+            if (tail == head) {
+                return std::unexpected(Error::WouldBlock);
+            }
             const auto& slot = frames[head % CAPACITY];
             if (tail - head > CAPACITY || slot.size > MAX_FRAME_BYTES) {
                 return std::unexpected(Error::Disconnected);
             }
-            if (slot.size > buffer.size()) { return std::unexpected(Error::BufferTooSmall); }
+            if (slot.size > buffer.size()) {
+                return std::unexpected(Error::BufferTooSmall);
+            }
             const auto size = slot.size;
             std::ranges::copy(std::span(slot.bytes).first(size), buffer.begin());
             std::atomic_ref(read).store(head + 1U, std::memory_order_release);
@@ -71,8 +80,8 @@ namespace hal::util
 
     struct InterCoreMemory
     {
-        static constexpr std::uint32_t MAGIC{0x50325031}; // P2P1
-        static constexpr std::uint32_t VERSION{2};
+        static constexpr std::uint32_t MAGIC{ 0x50325031 }; // P2P1
+        static constexpr std::uint32_t VERSION{ 2 };
         std::uint32_t magic;
         std::uint32_t version;
         // 0 = not opened, 1 = open, 2 = closed. Only the named side writes it.
@@ -83,8 +92,7 @@ namespace hal::util
         IInterCoreChannel::Readiness readiness(std::size_t side) noexcept
         {
             IInterCoreChannel::Readiness result;
-            if (side >= inbox.size() ||
-                std::atomic_ref(state[side]).load(std::memory_order_acquire) == 2 ||
+            if (side >= inbox.size() || std::atomic_ref(state[side]).load(std::memory_order_acquire) == 2 ||
                 std::atomic_ref(state[1 - side]).load(std::memory_order_acquire) == 2) {
                 result.send.fill(true);
                 result.receive.fill(true);
@@ -101,22 +109,25 @@ namespace hal::util
             return result;
         }
 
-        std::expected<void, IInterCoreChannel::Error> push(
-          std::size_t destination, std::span<const std::byte> bytes, IInterCoreChannel::Lane lane) noexcept
+        std::expected<void, IInterCoreChannel::Error> push(std::size_t destination,
+                                                           std::span<const std::byte> bytes,
+                                                           IInterCoreChannel::Lane lane) noexcept
         {
             using Channel = IInterCoreChannel;
             const auto index = static_cast<std::size_t>(lane);
             if (destination >= inbox.size() || index >= hal::intercore::LANE_COUNT) {
                 return std::unexpected(Channel::Error::Disconnected);
             }
-            if (lane == Channel::Lane::Background && bytes.size() > hal::intercore::MAX_BACKGROUND_FRAME_BYTES) {
+            if (lane == Channel::Lane::Background &&
+                bytes.size() > hal::intercore::MAX_BACKGROUND_FRAME_BYTES) {
                 return std::unexpected(Channel::Error::TooLarge);
             }
             return inbox[destination][index].push(bytes);
         }
 
-        std::expected<std::size_t, IInterCoreChannel::Error> pop(
-          std::size_t destination, std::span<std::byte> bytes, IInterCoreChannel::Lane lane) noexcept
+        std::expected<std::size_t, IInterCoreChannel::Error> pop(std::size_t destination,
+                                                                 std::span<std::byte> bytes,
+                                                                 IInterCoreChannel::Lane lane) noexcept
         {
             using Channel = IInterCoreChannel;
             const auto index = static_cast<std::size_t>(lane);
@@ -124,7 +135,9 @@ namespace hal::util
                 return std::unexpected(Channel::Error::Disconnected);
             }
             for (const auto priority : hal::intercore::LANE_PRIORITY) {
-                if (priority == lane) { break; }
+                if (priority == lane) {
+                    break;
+                }
                 if (!inbox[destination][static_cast<std::size_t>(priority)].empty()) {
                     return std::unexpected(Channel::Error::WouldBlock);
                 }
@@ -134,7 +147,9 @@ namespace hal::util
     };
     static_assert(std::atomic_ref<std::uint32_t>::is_always_lock_free);
     static_assert(std::atomic_ref<std::uint32_t>::required_alignment <= 4);
-    static_assert(std::is_trivially_default_constructible_v<InterCoreMemory> && std::is_trivially_copyable_v<InterCoreMemory> && std::is_standard_layout_v<InterCoreMemory>);
+    static_assert(std::is_trivially_default_constructible_v<InterCoreMemory> &&
+                  std::is_trivially_copyable_v<InterCoreMemory> &&
+                  std::is_standard_layout_v<InterCoreMemory>);
     static_assert(sizeof(InterCoreMemory) == 49312);
     static_assert(sizeof(InterCoreMemory) <= 64 * 1024);
 }

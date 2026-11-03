@@ -2,12 +2,12 @@
 // The line-specific exceptions below preserve the vendor register interface.
 #include "FaultShutdown.hpp"
 
-#include "hal/hal.hpp"
 #include "hal/board/arduino_giga/pins.h"
+#include "hal/hal.hpp"
 
 #include <bit>
-#include <initializer_list>
 #include <cstdint>
+#include <initializer_list>
 
 namespace
 {

@@ -1,10 +1,10 @@
 #include "hal/board/board.hpp"
 #include "hal/devices/impl/Tmc2209Driver.hpp"
-#include "hal/drivers/impl/linux/Gpio.hpp"
 #include "hal/devices/impl/linux/Tmc2209Model.hpp"
+#include "hal/drivers/impl/linux/Gpio.hpp"
 
-#include <gtest/gtest.h>
 #include <atomic>
+#include <gtest/gtest.h>
 #include <thread>
 
 namespace
@@ -19,21 +19,26 @@ namespace
         std::shared_ptr<hal::device::Tmc2209Model> uart{ std::make_shared<hal::device::Tmc2209Model>() };
         std::shared_ptr<hal::IDigitalOutput> enable{ hal::board::create_steppers_enable_output() };
         std::array<std::shared_ptr<Driver>, 3> drivers{
-          hal::board::create_stepper_drivers({ 16, 16, 16 }, enable, uart) };
+            hal::board::create_stepper_drivers({ 16, 16, 16 }, enable, uart)
+        };
         std::array<std::shared_ptr<hal::GpioInput>, 3> inputs{
             hal::gpio::simulated_input({ hal::gpio::Port::F, 2 }),
             hal::gpio::simulated_input({ hal::gpio::Port::D, 4 }),
-            hal::gpio::simulated_input({ hal::gpio::Port::D, 3 }) };
+            hal::gpio::simulated_input({ hal::gpio::Port::D, 3 })
+        };
         void SetUp() override
         {
             ASSERT_TRUE(enable);
             ASSERT_TRUE(uart);
-            for (auto& driver : drivers) ASSERT_TRUE(driver);
+            for (auto& driver : drivers)
+                ASSERT_TRUE(driver);
             inputs[0]->setSimulatedLevel(Low);
         }
         void TearDown() override
         {
-            for (auto& driver : drivers) if (driver) driver->clearFaultCallback();
+            for (auto& driver : drivers)
+                if (driver)
+                    driver->clearFaultCallback();
             drivers = {};
             EXPECT_EQ(uart.use_count(), 1L); // All device/bus ownership must be released.
             inputs = {};
@@ -42,7 +47,8 @@ namespace
         }
         void initialize()
         {
-            for (auto& driver : drivers) ASSERT_TRUE(driver->initialize());
+            for (auto& driver : drivers)
+                ASSERT_TRUE(driver->initialize());
         }
     };
 }
@@ -52,7 +58,8 @@ TEST_F(StepperDrivers, BoardSelectsRequiredCapabilitiesAndDoesNotEnableOrInitial
     EXPECT_EQ(drivers[0]->name(), "DM542T");
     EXPECT_FALSE(drivers[0]->configuration());
     EXPECT_TRUE(drivers[0]->status().fault_latched); // Open ALM at construction.
-    for (const auto& driver : drivers) EXPECT_FALSE(driver->status().ready);
+    for (const auto& driver : drivers)
+        EXPECT_FALSE(driver->status().ready);
     auto m2{ drivers[1]->configuration()->snapshot() };
     auto m3{ drivers[2]->configuration()->snapshot() };
     EXPECT_EQ(m2.address, 0);
@@ -63,7 +70,8 @@ TEST_F(StepperDrivers, BoardSelectsRequiredCapabilitiesAndDoesNotEnableOrInitial
     EXPECT_EQ(m3.configuration.run_milliamps, 550);
     EXPECT_EQ(enable->read(), High);
     initialize();
-    for (auto& driver : drivers) EXPECT_TRUE(driver->status().ready);
+    for (auto& driver : drivers)
+        EXPECT_TRUE(driver->status().ready);
     EXPECT_EQ(enable->read(), High); // Recovery never enables.
 }
 
@@ -202,14 +210,20 @@ TEST(StepperDriverBus, PreparesAllNodesSerializesDriverOperationsAndRetainsAnIni
         std::atomic_bool entered{}, overlap{};
         std::atomic_uint prepared{};
         std::function<void()> on_read;
-        hal::util::Result<> exchange(std::span<const std::uint8_t> tx, std::span<std::uint8_t> rx,
+        hal::util::Result<> exchange(std::span<const std::uint8_t> tx,
+                                     std::span<std::uint8_t> rx,
                                      std::chrono::milliseconds timeout) override
         {
-            if (entered.exchange(true)) overlap = true;
-            if (tx.size() == 8 && tx[2] == 0x83) prepared.fetch_or(1U << tx[1]);
+            if (entered.exchange(true))
+                overlap = true;
+            if (tx.size() == 8 && tx[2] == 0x83)
+                prepared.fetch_or(1U << tx[1]);
             if (!rx.empty()) {
                 EXPECT_EQ(prepared.load(), 3U);
-                if (on_read) { auto hook{ std::exchange(on_read, {}) }; hook(); }
+                if (on_read) {
+                    auto hook{ std::exchange(on_read, {}) };
+                    hook();
+                }
             }
             std::this_thread::yield();
             auto result{ model.exchange(tx, rx, timeout) };
@@ -218,20 +232,32 @@ TEST(StepperDriverBus, PreparesAllNodesSerializesDriverOperationsAndRetainsAnIni
         }
     };
     auto transport{ std::make_shared<Bus>() };
-    auto bus{ std::make_shared<hal::device::Tmc2209Bus>(transport, std::vector<std::uint8_t>{0, 1}) };
+    auto bus{ std::make_shared<hal::device::Tmc2209Bus>(transport, std::vector<std::uint8_t>{ 0, 1 }) };
     auto enable{ hal::board::create_steppers_enable_output() };
     auto diag2{ hal::board::create_stepper_diagnostic(hal::board::MotorId::Motor2) };
     auto diag3{ hal::board::create_stepper_diagnostic(hal::board::MotorId::Motor3) };
     auto input{ hal::gpio::simulated_input({ hal::gpio::Port::D, 4 }) };
-    hal::device::Tmc2209Driver m2{ bus, 0, diag2, enable, {}, {700, false} };
-    hal::device::Tmc2209Driver m3{ bus, 1, diag3, enable,
-        { .run_milliamps=550, .hold_milliamps=550 }, {590, true} };
-    transport->on_read = [&] { input->setSimulatedLevel(High); input->setSimulatedLevel(Low); };
+    hal::device::Tmc2209Driver m2{ bus, 0, diag2, enable, {}, { 700, false } };
+    hal::device::Tmc2209Driver m3{
+        bus, 1, diag3, enable, { .run_milliamps = 550, .hold_milliamps = 550 }, { 590, true }
+    };
+    transport->on_read = [&] {
+        input->setSimulatedLevel(High);
+        input->setSimulatedLevel(Low);
+    };
     EXPECT_FALSE(m2.initialize());
     EXPECT_TRUE(m2.status().fault_latched);
     EXPECT_FALSE(m2.status().ready);
-    std::jthread first{ [&] { EXPECT_TRUE(m2.initialize()); for (int i{}; i<20; ++i) m2.service(); } };
-    std::jthread second{ [&] { EXPECT_TRUE(m3.initialize()); for (int i{}; i<20; ++i) m3.service(); } };
+    std::jthread first{ [&] {
+        EXPECT_TRUE(m2.initialize());
+        for (int i{}; i < 20; ++i)
+            m2.service();
+    } };
+    std::jthread second{ [&] {
+        EXPECT_TRUE(m3.initialize());
+        for (int i{}; i < 20; ++i)
+            m3.service();
+    } };
     first.join();
     second.join();
     EXPECT_FALSE(transport->overlap.load());

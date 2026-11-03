@@ -5,8 +5,8 @@
 
 namespace
 {
-    constexpr std::uint32_t BOOT_SEMAPHORE{0};
-    constexpr std::uint32_t LED_HALF_PERIOD_MS{250};
+    constexpr std::uint32_t BOOT_SEMAPHORE{ 0 };
+    constexpr std::uint32_t LED_HALF_PERIOD_MS{ 250 };
 }
 
 int main()

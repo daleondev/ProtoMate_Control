@@ -1,6 +1,6 @@
-#include "hal/core/core.hpp"
-#include "hal/core/Catalog.hpp"
 #include "hal/board/board.hpp"
+#include "hal/core/Catalog.hpp"
+#include "hal/core/core.hpp"
 
 #include <gtest/gtest.h>
 
@@ -76,8 +76,9 @@ namespace
         ASSERT_TRUE(generator);
         auto bus = hal::core::create_stepper_driver_bus();
         ASSERT_TRUE(bus);
-        const auto drivers = hal::core::create_stepper_drivers({16, 16, 16}, enable, bus);
-        for (const auto id : {hal::core::MotorId::Motor1, hal::core::MotorId::Motor2, hal::core::MotorId::Motor3}) {
+        const auto drivers = hal::core::create_stepper_drivers({ 16, 16, 16 }, enable, bus);
+        for (const auto id :
+             { hal::core::MotorId::Motor1, hal::core::MotorId::Motor2, hal::core::MotorId::Motor3 }) {
             auto output = hal::core::create_stepper_step_output(generator, id);
             ASSERT_TRUE(output);
             EXPECT_NE(output->status().state, hal::step::State::Running);
@@ -85,11 +86,11 @@ namespace
             ASSERT_TRUE(direction);
             EXPECT_EQ(direction->read(), hal::gpio::Level::Low);
             EXPECT_TRUE(hal::core::create_reference_limit_switch(id));
-            auto feedback = hal::core::create_motor_feedback(id, {1.8_deg, 16});
+            auto feedback = hal::core::create_motor_feedback(id, { 1.8_deg, 16 });
             ASSERT_TRUE(feedback);
-            EXPECT_EQ(feedback->source(), id == hal::core::MotorId::Motor1
-                ? hal::device::IMotorFeedback::Source::ShaftEncoder
-                : hal::device::IMotorFeedback::Source::DriverIndex);
+            EXPECT_EQ(feedback->source(),
+                      id == hal::core::MotorId::Motor1 ? hal::device::IMotorFeedback::Source::ShaftEncoder
+                                                       : hal::device::IMotorFeedback::Source::DriverIndex);
             EXPECT_TRUE(drivers[static_cast<std::size_t>(id)]);
         }
         EXPECT_EQ(enable->read(), hal::gpio::Level::High);
@@ -115,7 +116,7 @@ namespace
     TEST(HalBoard, AccessIsIndependentOfCoreAssignments)
     {
         // Core availability does not restrict physical board factories.
-        for (const auto id : {hal::board::LedId::Green, hal::board::LedId::Blue, hal::board::LedId::Red}) {
+        for (const auto id : { hal::board::LedId::Green, hal::board::LedId::Blue, hal::board::LedId::Red }) {
             EXPECT_TRUE(hal::board::create_led(id));
         }
         EXPECT_TRUE(hal::board::create_button(hal::board::ButtonId::User));

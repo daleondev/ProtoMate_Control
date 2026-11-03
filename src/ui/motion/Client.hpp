@@ -2,8 +2,8 @@
 
 #include "common/motion/Motor.hpp"
 #include "runtime/synchronization/Notification.hpp"
-#include <pneumo/messaging.hpp>
 #include <mutex>
+#include <pneumo/messaging.hpp>
 #include <stop_token>
 
 namespace ui::motion
@@ -13,7 +13,17 @@ namespace ui::motion
     class Client final
     {
       public:
-        enum class JobState : std::uint8_t { Submitting, Accepted, Completed, Stopped, TimedOut, Rejected, Faulted, Unknown };
+        enum class JobState : std::uint8_t
+        {
+            Submitting,
+            Accepted,
+            Completed,
+            Stopped,
+            TimedOut,
+            Rejected,
+            Faulted,
+            Unknown
+        };
         struct JobInfo
         {
             std::uint64_t id{};

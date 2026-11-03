@@ -30,7 +30,9 @@ namespace io
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::IO);
         m_bridge.registerActions<icc::Actions>(icc::ActionProvider::IO);
         m_bridge.setConnectionCallback([this](icc::ConnectionStatus status) {
-            if (status.state == icc::ConnectionState::Failed) { m_state.fail(); }
+            if (status.state == icc::ConnectionState::Failed) {
+                m_state.fail();
+            }
             if (status.state == icc::ConnectionState::Failed ||
                 status.reason == icc::ConnectionReason::PeerStopped) {
                 requestStop();
@@ -86,7 +88,9 @@ namespace io
     void Application::join()
     {
         m_threads.join();
-        if (m_stopSource.stop_requested()) { m_state.stopped(); }
+        if (m_stopSource.stop_requested()) {
+            m_state.stopped();
+        }
     }
 
     icc::ConnectionStatus Application::connectionStatus() const { return m_bridge.connectionStatus(); }
@@ -103,8 +107,8 @@ namespace io
         try {
             m_stateTopic.publish(state());
             if (!m_stopSource.stop_requested()) {
-                m_stateTimer = m_iccContext.scheduleAt(
-                  std::chrono::steady_clock::now() + app::STATE_PERIOD, [this] { publishState(); });
+                m_stateTimer = m_iccContext.scheduleAt(std::chrono::steady_clock::now() + app::STATE_PERIOD,
+                                                       [this] { publishState(); });
             }
         } catch (...) {
             if (!m_stopSource.stop_requested()) {
@@ -124,8 +128,9 @@ namespace io
 
     void Application::diagnosticThread()
     {
-        try { m_diagnostics.run(m_stopSource.get_token()); }
-        catch (...) {
+        try {
+            m_diagnostics.run(m_stopSource.get_token());
+        } catch (...) {
             m_state.fail();
             requestStop();
         }
@@ -153,7 +158,10 @@ namespace io
         static_cast<void>(m_logSink->close());
         // Best effort: topics are not acknowledged. Peer goodbye/link health
         // still governs shutdown when this final publication cannot be delivered.
-        try { m_stateTopic.publish(state()); } catch (...) {}
+        try {
+            m_stateTopic.publish(state());
+        } catch (...) {
+        }
         // Keep the context alive until bridge shutdown has drained its work.
         m_bridge.stop();
         m_iccContext.stop();

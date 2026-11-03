@@ -35,7 +35,7 @@ namespace hal::encoder
             return {};
         }
         auto instance{ std::make_shared<QuadratureEncoder>(
-            std::move(lease), std::move(samplerLease), std::move(a), std::move(b)) };
+          std::move(lease), std::move(samplerLease), std::move(a), std::move(b)) };
         return instance;
     }
 }

@@ -15,6 +15,7 @@ namespace
         void turnOff() noexcept override { m_on = false; }
         void toggle() noexcept override { m_on = !m_on; }
         bool isOn() const noexcept override { return m_on; }
+
       private:
         bool m_on{};
     };

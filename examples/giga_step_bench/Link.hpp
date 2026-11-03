@@ -1,8 +1,8 @@
 #pragma once
 
-#include "hal/core/core.hpp"
 #include "common/icc/bridge/Bridge.hpp"
 #include "common/icc/transport/InterCoreTransport.hpp"
+#include "hal/core/core.hpp"
 #include "runtime/thread.hpp"
 
 #include <array>
@@ -56,8 +56,7 @@ namespace bench
     };
     struct Services
     {
-        [[= Publisher::IO, = icc::Lane::Urgent]]
-        pnm::msg::Service<std::uint32_t, std::uint32_t> bench_ping;
+        [[ = Publisher::IO, = icc::Lane::Urgent ]] pnm::msg::Service<std::uint32_t, std::uint32_t> bench_ping;
     };
 
     // Independent test endpoints using the production transport/runtime. No

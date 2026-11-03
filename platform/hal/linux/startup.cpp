@@ -47,4 +47,3 @@ extern "C" [[noreturn]] void hal_fault_handler(const char* fault) noexcept
 }
 
 extern "C" [[noreturn]] void Error_Handler() { hal_error_handler(); }
-

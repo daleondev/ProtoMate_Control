@@ -3,74 +3,113 @@
 #include "ui/gui/Controller.hpp"
 #include <charconv>
 #include <ostream>
-namespace ui::cli::display {
-    namespace commands {
+namespace ui::cli::display
+{
+    namespace commands
+    {
         using namespace pnm::meta::string::literals;
-        [[= "Show RGB color bars through the GUI renderer."_fs, = Name{"display bars"_fs}]]
-        auto bars(ui::gui::Controller& gui, const Arguments&, std::ostream&) -> CallbackResult {
-            return gui.bars() ? CallbackResult{0} : callback_failure("GUI unavailable or request queue full");
+        [[ = "Show RGB color bars through the GUI renderer."_fs,
+           = Name{ "display bars"_fs } ]] auto bars(ui::gui::Controller& gui, const Arguments&, std::ostream&)
+          -> CallbackResult
+        {
+            return gui.bars() ? CallbackResult{ 0 }
+                              : callback_failure("GUI unavailable or request queue full");
         }
-        [[= "Return to the shared GUI showcase."_fs, = Name{"display gui"_fs}]]
-        auto showcase(ui::gui::Controller& gui, const Arguments&, std::ostream&) -> CallbackResult {
-            return gui.showcase() ? CallbackResult{0} : callback_failure("GUI unavailable or request queue full");
+        [[ = "Return to the shared GUI showcase."_fs,
+           = Name{ "display gui"_fs } ]] auto showcase(ui::gui::Controller& gui,
+                                                       const Arguments&,
+                                                       std::ostream&) -> CallbackResult
+        {
+            return gui.showcase() ? CallbackResult{ 0 }
+                                  : callback_failure("GUI unavailable or request queue full");
         }
-        [[= "Run the shaded 3D performance benchmark."_fs, = Name{"display scene"_fs},
-          = Arg{.name="triangles"_fs, .description="500, 2000 or 5000"_fs}]]
-        auto scene(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult {
-            unsigned triangles{}; const auto text=args.require("triangles");
-            const auto [end,error]=std::from_chars(text.data(),text.data()+text.size(),triangles);
-            if (error!=std::errc{} || end!=text.data()+text.size() || !gui.scene(triangles)) {
+        [[
+            = "Run the shaded 3D performance benchmark."_fs,
+            = Name{ "display scene"_fs },
+            = Arg{ .name = "triangles"_fs, .description = "500, 2000 or 5000"_fs }
+        ]] auto scene(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult
+        {
+            unsigned triangles{};
+            const auto text = args.require("triangles");
+            const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), triangles);
+            if (error != std::errc{} || end != text.data() + text.size() || !gui.scene(triangles)) {
                 return callback_failure("Expected 500, 2000 or 5000; GUI must be available");
             }
             return 0;
         }
-        [[= "Set display backlight (0..100 percent)."_fs, = Name{"display backlight"_fs},
-          = Arg{.name="percent"_fs, .description="0..100"_fs}]]
-        auto backlight(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult {
-            unsigned percent{}; const auto text = args.require("percent");
-            const auto [end, error] = std::from_chars(text.data(), text.data()+text.size(), percent);
-            if (error != std::errc{} || end != text.data()+text.size() || percent > 100) { return callback_failure("Expected 0..100"); }
-            return gui.backlight(percent) ? CallbackResult{0} : callback_failure("GUI unavailable or request queue full");
-        }
-        [[= "Report cached touch state; performs no I2C transaction."_fs, = Name{"display touch"_fs}]]
-        auto touch(ui::gui::Controller& gui, const Arguments&, std::ostream& out) -> CallbackResult {
-            const auto status = gui.status();
-            out << "Touch " << (status.touchAvailable ? "available" : "unavailable") << "; contact=" << status.touchDown
-                << "; x=" << status.touchX << "; y=" << status.touchY;
-            if (status.touchTime != std::chrono::steady_clock::time_point{}) {
-                out << "; age=" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-status.touchTime).count() << " ms";
+        [[
+            = "Set display backlight (0..100 percent)."_fs,
+            = Name{ "display backlight"_fs },
+            = Arg{ .name = "percent"_fs, .description = "0..100"_fs }
+        ]] auto backlight(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult
+        {
+            unsigned percent{};
+            const auto text = args.require("percent");
+            const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), percent);
+            if (error != std::errc{} || end != text.data() + text.size() || percent > 100) {
+                return callback_failure("Expected 0..100");
             }
-            out << '\n'; return 0;
+            return gui.backlight(percent) ? CallbackResult{ 0 }
+                                          : callback_failure("GUI unavailable or request queue full");
         }
-        [[= "Report rendering and framebuffer delivery diagnostics."_fs, = Name{"display status"_fs}]]
-        auto status(ui::gui::Controller& gui, const Arguments&, std::ostream& out) -> CallbackResult {
+        [[
+            = "Report cached touch state; performs no I2C transaction."_fs,
+            = Name{ "display touch"_fs }
+        ]] auto touch(ui::gui::Controller& gui, const Arguments&, std::ostream& out) -> CallbackResult
+        {
+            const auto status = gui.status();
+            out << "Touch " << (status.touchAvailable ? "available" : "unavailable")
+                << "; contact=" << status.touchDown << "; x=" << status.touchX << "; y=" << status.touchY;
+            if (status.touchTime != std::chrono::steady_clock::time_point{}) {
+                out << "; age="
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                         std::chrono::steady_clock::now() - status.touchTime)
+                         .count()
+                    << " ms";
+            }
+            out << '\n';
+            return 0;
+        }
+        [[
+            = "Report rendering and framebuffer delivery diagnostics."_fs,
+            = Name{ "display status"_fs }
+        ]] auto status(ui::gui::Controller& gui, const Arguments&, std::ostream& out) -> CallbackResult
+        {
             const auto s = gui.status();
-            constexpr const char* names[]{"starting","running","unavailable","fault","stopped"};
-            out << "GUI " << names[unsigned(s.state)] << "; rendered=" << s.frames << "; presented=" << s.presented
-                << "; buffer=" << s.activeBuffer << "; max render=" << s.maximumRenderUs << " us; late=" << s.missedDeadlines
-                << "; underruns=" << s.underruns << "; errors=" << s.errors << "; queue overflow=" << s.queueOverflow
-                << "; graphics verified=" << s.graphicsVerified << "; interactions=" << s.interactions << "; value=" << s.value << "; animating=" << s.animating << '\n';
-            out << "DMA errors=" << s.dmaErrors << "; render failures=" << s.renderFailures << "; input overflow=" << s.inputOverflow << '\n';
+            constexpr const char* names[]{ "starting", "running", "unavailable", "fault", "stopped" };
+            out << "GUI " << names[unsigned(s.state)] << "; rendered=" << s.frames
+                << "; presented=" << s.presented << "; buffer=" << s.activeBuffer
+                << "; max render=" << s.maximumRenderUs << " us; late=" << s.missedDeadlines
+                << "; underruns=" << s.underruns << "; errors=" << s.errors
+                << "; queue overflow=" << s.queueOverflow << "; graphics verified=" << s.graphicsVerified
+                << "; interactions=" << s.interactions << "; value=" << s.value
+                << "; animating=" << s.animating << '\n';
+            out << "DMA errors=" << s.dmaErrors << "; render failures=" << s.renderFailures
+                << "; input overflow=" << s.inputOverflow << '\n';
             out << "GUI draw us=" << s.drawUs << "; synchronization us=" << s.synchronizeUs << '\n';
             out << "GUI total draw us=" << s.totalDrawUs << "; total sync us=" << s.totalSynchronizeUs
-                << "; image transfer us=" << s.imageTransferUs << "; image transfers=" << s.imageTransfers << '\n';
-            const auto r=gui.sceneStatus();
+                << "; image transfer us=" << s.imageTransferUs << "; image transfers=" << s.imageTransfers
+                << '\n';
+            const auto r = gui.sceneStatus();
             out << "3D running=" << r.running << "; visible=" << r.visible << "; failed=" << r.failed
-                << "; rendered=" << r.rendered << "; acquired=" << r.acquired
-                << "; presented=" << r.presented << "; presented revision=" << r.presentedRevision
-                << "; latency us=" << r.lastLatencyUs << "; max latency us=" << r.maximumLatencyUs
-                << "; last us=" << r.lastRenderUs << "; max us=" << r.maximumRenderUs
-                << "; clear us=" << r.clearUs << "; geometry us=" << r.geometryUs
-                << "; total us=" << r.totalRenderUs << "; completed revision=" << r.completedRevision
+                << "; rendered=" << r.rendered << "; acquired=" << r.acquired << "; presented=" << r.presented
+                << "; presented revision=" << r.presentedRevision << "; latency us=" << r.lastLatencyUs
+                << "; max latency us=" << r.maximumLatencyUs << "; last us=" << r.lastRenderUs
+                << "; max us=" << r.maximumRenderUs << "; clear us=" << r.clearUs
+                << "; geometry us=" << r.geometryUs << "; total us=" << r.totalRenderUs
+                << "; completed revision=" << r.completedRevision
                 << "; acquired revision=" << r.acquiredRevision << "; replaced=" << r.replaced
                 << "; rejected=" << r.rejected << '\n';
             return 0;
         }
     }
-    void setup(Parser& parser, ui::gui::Controller& gui) {
+    void setup(Parser& parser, ui::gui::Controller& gui)
+    {
         std::call_once(parser.m_displayRegistration, [&] {
             register_commands<^^commands>(parser, [&gui](auto command) {
-                return [&gui, command](const Arguments& args, std::ostream& out) { return command(gui, args, out); };
+                return [&gui, command](const Arguments& args, std::ostream& out) {
+                    return command(gui, args, out);
+                };
             });
         });
     }

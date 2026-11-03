@@ -1,13 +1,13 @@
 #include "hal/board/board.hpp"
-#include "hal/drivers/util/EncoderCounter.hpp"
-#include "hal/drivers/util/EncoderSampler.hpp"
-#include "hal/drivers/util/PwmTiming.hpp"
 #include "hal/drivers/factory/encoder.hpp"
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/factory/pwm.hpp"
 #include "hal/drivers/factory/timer.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 #include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
+#include "hal/drivers/util/EncoderCounter.hpp"
+#include "hal/drivers/util/EncoderSampler.hpp"
+#include "hal/drivers/util/PwmTiming.hpp"
 
 #include <gtest/gtest.h>
 
@@ -24,7 +24,9 @@ namespace
 {
     using namespace std::chrono_literals;
     using enum hal::gpio::Port;
-    constexpr hal::pwm::Configuration m1{ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 9U } };
+    constexpr hal::pwm::Configuration m1{ hal::timer::Peripheral::Tim1,
+                                          hal::timer::Channel::Channel1,
+                                          { E, 9U } };
     constexpr hal::encoder::Configuration encoder{ hal::timer::Peripheral::Tim3, { B, 4U }, { B, 5U } };
 }
 
@@ -100,9 +102,12 @@ TEST(HalPwm, QuantizationCoversPrescalerBoundariesAndVerySlowPulses)
 
 TEST(HalPwm, ValidatesRoutesAndReleasesTimerAfterPinClaimFailure)
 {
-    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim2, hal::timer::Channel::Channel1, { E, 9U } }), nullptr);
-    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel2, { E, 9U } }), nullptr);
-    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 8U } }), nullptr);
+    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim2, hal::timer::Channel::Channel1, { E, 9U } }),
+              nullptr);
+    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel2, { E, 9U } }),
+              nullptr);
+    EXPECT_EQ(hal::pwm::create({ hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { E, 8U } }),
+              nullptr);
     auto blocker{ hal::gpio::create_input({ .pin = m1.pin, .alternate_function = std::nullopt }) };
     ASSERT_NE(blocker, nullptr);
     EXPECT_EQ(hal::pwm::create(m1), nullptr);
@@ -336,11 +341,13 @@ TEST(HalMotorBoard, AllOutputsAreIndependentAndIndexDoesNotChangePosition)
     EXPECT_FALSE(second->prepare({ 200us, 5us }, 2));
     EXPECT_EQ(third->pulseCount(), 0U);
     static_cast<void>(generator->stop());
-    EXPECT_NE(hal::timer::create({ .peripheral = hal::timer::Peripheral::Tim5 }), nullptr); // Runtime is independent of TIM2.
+    EXPECT_NE(hal::timer::create({ .peripheral = hal::timer::Peripheral::Tim5 }),
+              nullptr); // Runtime is independent of TIM2.
     EXPECT_EQ(hal::timer::create({ .peripheral = hal::timer::Peripheral::Tim2 }), nullptr);
     EXPECT_EQ(hal::board::create_encoder(Motor2), nullptr);
     EXPECT_EQ(hal::board::create_encoder_index(Motor3), nullptr);
-    EXPECT_EQ(hal::board::create_stepper_step_output(generator, static_cast<hal::board::MotorId>(255)), nullptr);
+    EXPECT_EQ(hal::board::create_stepper_step_output(generator, static_cast<hal::board::MotorId>(255)),
+              nullptr);
     EXPECT_EQ(hal::board::create_stepper_direction_output(static_cast<hal::board::MotorId>(255)), nullptr);
 
     const auto input{ std::dynamic_pointer_cast<hal::QuadratureEncoder>(hal::board::create_encoder(Motor1)) };
@@ -465,7 +472,8 @@ TEST(HalMotorBoard, CompletionArrivesWithoutAnyQueriesAndSubscriptionCanBeRetire
     ASSERT_TRUE(generator->start());
     std::atomic_uint completions{};
     ASSERT_TRUE(axis->setCompletionCallback([&](const auto& status) noexcept {
-        if (status.state == hal::step::State::Completed) ++completions;
+        if (status.state == hal::step::State::Completed)
+            ++completions;
     }));
     ASSERT_TRUE(axis->prepare({ 10us, 5us }, 513U)); // Tail parks between DMA interrupt boundaries.
     ASSERT_TRUE(axis->start());

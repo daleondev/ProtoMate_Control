@@ -4,7 +4,6 @@
 
 #include "hal/drivers/impl/linux/StepHardware.hpp"
 
-
 namespace hal::step
 {
     auto create(Configuration /*configuration*/) -> std::shared_ptr<IStepGenerator>

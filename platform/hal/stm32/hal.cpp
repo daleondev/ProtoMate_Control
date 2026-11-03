@@ -2,30 +2,30 @@
 #include "hal/console.hpp"
 #include "hal/drivers/impl/stm32/Gpio.hpp"
 #include "hal/drivers/impl/stm32/InterCoreChannel.hpp"
+#include "hal/stm32/FaultShutdown.hpp"
 #include "hal/stm32/HardwareSemaphore.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
-#include "hal/stm32/FaultShutdown.hpp"
 
-#include <cstdint>
 #include <array>
 #include <atomic>
+#include <cstdint>
 #if defined(CORE_CM4)
-#include "usart.h"
 #include "dma.h"
 #include "spi.h"
+#include "usart.h"
 #endif
 #if defined(CORE_CM7)
-#include "rtc.h"
 #include "rng.h"
+#include "rtc.h"
 #endif
 
 #include "platform.h"
 #if defined(CORE_CM7)
-#include "usb_device.h"
-#include "ltdc.h"
-#include "dma2d.h"
 #include "crc.h"
+#include "dma2d.h"
 #include "i2c.h"
+#include "ltdc.h"
+#include "usb_device.h"
 #endif
 
 namespace hal
@@ -34,12 +34,16 @@ namespace hal
     {
         // Shared clocks, QSPI, FMC, MPU and caches belong to the bootstrap.
         SystemCoreClockUpdate();
-        if (HAL_Init() != HAL_OK) { Error_Handler(); }
+        if (HAL_Init() != HAL_OK) {
+            Error_Handler();
+        }
         {
             // Startup runs before application threads/callback registration.
             // Leave SysTick enabled so HAL peripheral timeout loops stay bounded.
             const stm32::HardwareSemaphore shared(5);
-            if (!shared) { panic("GPIO startup lock timeout"); }
+            if (!shared) {
+                panic("GPIO startup lock timeout");
+            }
             MX_GPIO_Init();
 #if defined(CORE_CM4)
             MX_DMA_Init();
@@ -51,8 +55,8 @@ namespace hal
             MX_USART2_UART_Init();
             MX_SPI5_Init();
             // Owners install callbacks before enabling STEP DMA interrupts.
-            for (const auto irq : {DMA1_Stream0_IRQn, DMA1_Stream1_IRQn,
-                                   DMA1_Stream2_IRQn, DMA1_Stream3_IRQn}) {
+            for (const auto irq :
+                 { DMA1_Stream0_IRQn, DMA1_Stream1_IRQn, DMA1_Stream2_IRQn, DMA1_Stream3_IRQn }) {
                 HAL_NVIC_DisableIRQ(irq);
                 HAL_NVIC_ClearPendingIRQ(irq);
             }
@@ -90,14 +94,16 @@ namespace hal
 
     [[noreturn]] void panic(const char* message, const char* detail, std::source_location location) noexcept
     {
-        const HalPanicInfo info{message, detail, location.file_name(), location.function_name(), location.line()};
+        const HalPanicInfo info{
+            message, detail, location.file_name(), location.function_name(), location.line()
+        };
         hal_panic_handler(&info);
     }
 }
 
 // Private to each core and readable in the debugger without console ownership.
 extern "C" {
-    HalPanicInfo hal_last_panic{};
+HalPanicInfo hal_last_panic{};
 }
 
 extern "C" [[noreturn]] __attribute__((weak)) void hal_panic_handler(const HalPanicInfo* info) noexcept
@@ -125,4 +131,3 @@ extern "C" void HardFault_Handler() { hal_fault_handler("HardFault"); }
 extern "C" void MemManage_Handler() { hal_fault_handler("MemManage"); }
 extern "C" void BusFault_Handler() { hal_fault_handler("BusFault"); }
 extern "C" void UsageFault_Handler() { hal_fault_handler("UsageFault"); }
-

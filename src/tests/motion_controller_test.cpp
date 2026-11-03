@@ -1,5 +1,5 @@
-#include "io/motion/Controller.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
+#include "io/motion/Controller.hpp"
 
 #include <gtest/gtest.h>
 
@@ -15,11 +15,9 @@ namespace
     using Motor = io::motion::StepperMotor;
     using Id = Controller::MotorId;
     using Level = hal::gpio::Level;
-    constexpr Controller::Configuration CONFIGURATION{
-        Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16 },
-        Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16 },
-        Controller::MotorConfiguration{ 0_deg, 1.8_deg, 16 }
-    };
+    constexpr Controller::Configuration CONFIGURATION{ Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16 },
+                                                       Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16 },
+                                                       Controller::MotorConfiguration{ 0_deg, 1.8_deg, 16 } };
 
     class Driver final : public hal::device::IStepperDriver
     {
@@ -63,7 +61,8 @@ namespace
         void fault()
         {
             std::scoped_lock lock(m_mutex);
-            m_status = { .fault_latched = true, .fault = Fault::Electrical,
+            m_status = { .fault_latched = true,
+                         .fault = Fault::Electrical,
                          .error = std::make_error_code(std::errc::io_error) };
             if (m_callback) {
                 m_callback();
@@ -78,8 +77,9 @@ namespace
 
     struct Hardware
     {
-        std::array<std::shared_ptr<Driver>, 3> drivers{
-            std::make_shared<Driver>(), std::make_shared<Driver>(), std::make_shared<Driver>() };
+        std::array<std::shared_ptr<Driver>, 3> drivers{ std::make_shared<Driver>(),
+                                                        std::make_shared<Driver>(),
+                                                        std::make_shared<Driver>() };
         Controller::DriverFactory factory()
         {
             return [this](const std::array<std::size_t, 3>& microsteps,
@@ -192,8 +192,8 @@ namespace
         auto third{ controller.moveRel(Id::Motor3, -1.125_deg, 5_rpm) };
         ASSERT_EQ(third.wait_for(2s), std::future_status::ready);
         EXPECT_EQ(third.get(), Motor::Result::Completed);
-        EXPECT_NEAR(controller.motor(Id::Motor3).setpointPosition().get<pnm::units::AngleUnits::deg>(),
-                    -1.125, 0.0001);
+        EXPECT_NEAR(
+          controller.motor(Id::Motor3).setpointPosition().get<pnm::units::AngleUnits::deg>(), -1.125, 0.0001);
     }
 
     TEST(MotionController, FaultDisablesAllMotorsCancelsPendingWorkAndDoesNotAutoRecover)
@@ -204,8 +204,8 @@ namespace
         controller.initializeDrivers();
         controller.enable();
         auto active{ controller.moveRel(Id::Motor1, -90_deg, 5_rpm) };
-        auto pending{ controller.moveRel(Id::Motor1, -90_deg, 5_rpm, 0_rad_s2, 0_rad_s2, 0_rad_s3,
-                                         io::motion::BufferMode::Buffered) };
+        auto pending{ controller.moveRel(
+          Id::Motor1, -90_deg, 5_rpm, 0_rad_s2, 0_rad_s2, 0_rad_s3, io::motion::BufferMode::Buffered) };
         ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointPosition() < 0_deg; }));
         hardware.drivers[2]->fault();
         EXPECT_EQ(hardware.enableLevel(), Level::High); // Synchronous fault path.

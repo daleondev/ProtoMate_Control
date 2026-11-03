@@ -9,12 +9,51 @@ namespace motion
 {
     // ICC values describe motor shafts only: degrees, rpm, degrees/s^2,
     // degrees/s^3 and seconds. No HAL types or mechanical conversions cross ICC.
-    enum class MotorId : std::uint8_t { M1, M2, M3, All };
-    enum class MotorOperation : std::uint8_t { None, Initialize, Enable, Disable, Stop, Defaults, Speed };
-    enum class MotorMotion : std::uint8_t { Relative, Absolute, Home };
-    enum class MotorBuffer : std::uint8_t { Aborting, Buffered, BlendingLow, BlendingPrevious, BlendingNext, BlendingHigh };
-    enum class MotorOutcome : std::uint8_t { Completed, Stopped, TimedOut, Rejected, Faulted };
-    enum class MotorFeedback : std::uint8_t { Encoder, Index };
+    enum class MotorId : std::uint8_t
+    {
+        M1,
+        M2,
+        M3,
+        All
+    };
+    enum class MotorOperation : std::uint8_t
+    {
+        None,
+        Initialize,
+        Enable,
+        Disable,
+        Stop,
+        Defaults,
+        Speed
+    };
+    enum class MotorMotion : std::uint8_t
+    {
+        Relative,
+        Absolute,
+        Home
+    };
+    enum class MotorBuffer : std::uint8_t
+    {
+        Aborting,
+        Buffered,
+        BlendingLow,
+        BlendingPrevious,
+        BlendingNext,
+        BlendingHigh
+    };
+    enum class MotorOutcome : std::uint8_t
+    {
+        Completed,
+        Stopped,
+        TimedOut,
+        Rejected,
+        Faulted
+    };
+    enum class MotorFeedback : std::uint8_t
+    {
+        Encoder,
+        Index
+    };
 
     inline constexpr std::chrono::milliseconds MOTOR_STATE_PERIOD{ 20 };
     inline constexpr std::chrono::milliseconds MOTOR_STATE_MAX_AGE{ 500 };

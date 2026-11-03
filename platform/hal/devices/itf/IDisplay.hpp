@@ -1,11 +1,13 @@
 #pragma once
-#include "hal/util/Result.hpp"
 #include "hal/drivers/itf/DisplayEvents.hpp"
+#include "hal/util/Result.hpp"
 #include <cstdint>
 #include <span>
-namespace hal::device {
-    class IDisplay {
-    public:
+namespace hal::device
+{
+    class IDisplay
+    {
+      public:
         virtual ~IDisplay() = default;
         // Two RGB565 framebuffers; only render to the inactive buffer.
         virtual auto initialize() -> util::Result<> = 0;

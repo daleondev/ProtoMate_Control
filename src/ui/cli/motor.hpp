@@ -1,7 +1,10 @@
 #pragma once
 #include <stop_token>
 
-namespace ui::motion { class Client; }
+namespace ui::motion
+{
+    class Client;
+}
 
 namespace ui::cli
 {

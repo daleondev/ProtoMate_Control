@@ -1,7 +1,7 @@
 #pragma once
 #include "hal/devices/itf/IDisplay.hpp"
-#include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
+#include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IRgbOutput.hpp"
 #include <memory>
 namespace hal::device
@@ -45,8 +45,16 @@ namespace hal::device
         std::shared_ptr<IRgbOutput> m_output;
         std::shared_ptr<IDigitalOutput> m_standby, m_reset;
         std::shared_ptr<IDigitalInput> m_powerReady;
-        enum class Phase { Unpowered, ResetHold, ResetReleased, Starting, AwaitFrame, Active };
-        Phase m_phase{Phase::Unpowered};
+        enum class Phase
+        {
+            Unpowered,
+            ResetHold,
+            ResetReleased,
+            Starting,
+            AwaitFrame,
+            Active
+        };
+        Phase m_phase{ Phase::Unpowered };
         std::chrono::steady_clock::time_point m_deadline{};
         unsigned m_brightness{};
         std::uint32_t m_frameSync{};

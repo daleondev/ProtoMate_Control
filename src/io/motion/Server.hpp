@@ -16,7 +16,10 @@ namespace io::motion
 
       private:
         using Execution = pnm::msg::ActionExecution<::motion::MotorProgress, ::motion::MotorResult>;
-        struct Finished { std::atomic_bool ready{}; };
+        struct Finished
+        {
+            std::atomic_bool ready{};
+        };
         struct Job
         {
             ::motion::MotorId motor;

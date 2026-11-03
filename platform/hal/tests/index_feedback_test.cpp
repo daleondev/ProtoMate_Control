@@ -2,8 +2,8 @@
 #include "hal/devices/impl/IndexFeedback.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
 
-#include <gtest/gtest.h>
 #include <atomic>
+#include <gtest/gtest.h>
 #include <thread>
 
 namespace
@@ -18,7 +18,8 @@ namespace
     class IndexFeedbackTest : public testing::Test
     {
       protected:
-        std::shared_ptr<hal::IDigitalInput> pin{ hal::board::create_stepper_index(hal::board::MotorId::Motor2) };
+        std::shared_ptr<hal::IDigitalInput> pin{ hal::board::create_stepper_index(
+          hal::board::MotorId::Motor2) };
         std::shared_ptr<hal::GpioInput> input{ std::dynamic_pointer_cast<hal::GpioInput>(pin) };
         IndexFeedback feedback{ pin, 1.8_deg, 16U, &now };
         IndexFeedback::Sample sample{};

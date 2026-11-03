@@ -103,7 +103,8 @@ namespace io::motion
                 }
             });
 
-            pnm::log::debug(logSink(pnm::log::Level::Debug), "Motor initialized: {} degrees per microstep",
+            pnm::log::debug(logSink(pnm::log::Level::Debug),
+                            "Motor initialized: {} degrees per microstep",
                             m_stepAngle.get<pnm::units::AngleUnits::deg>());
         } catch (...) {
             m_driver->clearFaultCallback();
@@ -695,7 +696,8 @@ namespace io::motion
                                                               pnm::units::AngularVelocity latch_velocity,
                                                               pnm::units::Time timeout)
     {
-        pnm::log::debug(logSink(pnm::log::Level::Debug),
+        pnm::log::debug(
+          logSink(pnm::log::Level::Debug),
           "Motor {} reference requested: seek={} rpm, latch={} rpm, timeout={} s, switch position={} deg",
           static_cast<unsigned>(m_id) + 1U,
           seek_velocity.get<pnm::units::AngularVelocityUnits::rpm>(),
@@ -1049,11 +1051,13 @@ namespace io::motion
             }
         }
         else {
-            pnm::log::debug(logSink(pnm::log::Level::Debug), "Motor {} reference: switch already active", motor_id);
+            pnm::log::debug(
+              logSink(pnm::log::Level::Debug), "Motor {} reference: switch already active", motor_id);
         }
 
         pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: confirming first contact (10 ms stable HIGH)", motor_id);
+                        "Motor {} reference: confirming first contact (10 ms stable HIGH)",
+                        motor_id);
         auto result{ waitReferenceLevel(High, deadline, stop) };
         if (result != Result::Completed) {
             return result;
@@ -1069,13 +1073,15 @@ namespace io::motion
         }
 
         pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: confirming release (10 ms stable LOW)", motor_id);
+                        "Motor {} reference: confirming release (10 ms stable LOW)",
+                        motor_id);
         result = waitReferenceLevel(Low, deadline, stop);
         if (result != Result::Completed) {
             return result;
         }
 
-        pnm::log::debug(logSink(pnm::log::Level::Debug), "Motor {} reference: seeking second contact Forward at {} rpm",
+        pnm::log::debug(logSink(pnm::log::Level::Debug),
+                        "Motor {} reference: seeking second contact Forward at {} rpm",
                         motor_id,
                         latch_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
         result = seek(Direction::Forward, latch_velocity, High);
@@ -1084,13 +1090,15 @@ namespace io::motion
         }
 
         pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: confirming second contact (10 ms stable HIGH)", motor_id);
+                        "Motor {} reference: confirming second contact (10 ms stable HIGH)",
+                        motor_id);
         result = waitReferenceLevel(High, deadline, stop);
         if (result != Result::Completed) {
             return result;
         }
 
-        pnm::log::debug(logSink(pnm::log::Level::Debug), "Motor {} reference: applying switch position {} deg",
+        pnm::log::debug(logSink(pnm::log::Level::Debug),
+                        "Motor {} reference: applying switch position {} deg",
                         motor_id,
                         m_referenceSwitchPosition.get<pnm::units::AngleUnits::deg>());
         return applyReferencePosition(stop);
@@ -1184,14 +1192,16 @@ namespace io::motion
         }
         const auto timing{ timingFor(velocity) };
         if (!timing || !timeout.isFinite() || timeout < 0_s) {
-            pnm::log::warn(logSink(pnm::log::Level::Warn), "Motor move rejected: invalid velocity or timeout");
+            pnm::log::warn(logSink(pnm::log::Level::Warn),
+                           "Motor move rejected: invalid velocity or timeout");
             return Result::Rejected;
         }
 
         const auto now{ std::chrono::steady_clock::now() };
         const auto available{ (std::chrono::steady_clock::time_point::max() - now) / 2 };
         if (timeout >= available) {
-            pnm::log::warn(logSink(pnm::log::Level::Warn), "Motor move rejected: invalid timeout={} s",
+            pnm::log::warn(logSink(pnm::log::Level::Warn),
+                           "Motor move rejected: invalid timeout={} s",
                            timeout.get<pnm::units::TimeUnits::s>());
             return Result::Rejected;
         }
@@ -1235,7 +1245,8 @@ namespace io::motion
             if (!switch_target && toward_reference &&
                 (m_events->reference_activated.load() ||
                  m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
-                pnm::log::warn(logSink(pnm::log::Level::Warn), "Motor move rejected: reference limit switch active");
+                pnm::log::warn(logSink(pnm::log::Level::Warn),
+                               "Motor move rejected: reference limit switch active");
                 return Result::Rejected;
             }
 
@@ -1263,7 +1274,8 @@ namespace io::motion
             result = Result::Faulted;
         }
 
-        pnm::log::debug(logSink(pnm::log::Level::Debug), "Motor motion ended: {}, position={} deg",
+        pnm::log::debug(logSink(pnm::log::Level::Debug),
+                        "Motor motion ended: {}, position={} deg",
                         result,
                         setpointPosition().get<pnm::units::AngleUnits::deg>());
         return result;

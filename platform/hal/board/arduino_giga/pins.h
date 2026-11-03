@@ -4,4 +4,8 @@
 #define BOARD_STEP_PORT GPIOA
 #define BOARD_STEP_PINS (GPIO_PIN_0 | GPIO_PIN_2 | GPIO_PIN_3)
 
-#define BOARD_MOTOR_GPIO_CLOCKS() do { __HAL_RCC_GPIOC_CLK_ENABLE(); __HAL_RCC_GPIOA_CLK_ENABLE(); } while (0)
+#define BOARD_MOTOR_GPIO_CLOCKS()                                                                            \
+    do {                                                                                                     \
+        __HAL_RCC_GPIOC_CLK_ENABLE();                                                                        \
+        __HAL_RCC_GPIOA_CLK_ENABLE();                                                                        \
+    } while (0)

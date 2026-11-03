@@ -37,8 +37,12 @@ namespace icc
         bool higherPriorityPending(std::size_t side, Lane lane) const
         {
             for (const auto priority : LANE_PRIORITY) {
-                if (priority == lane) { break; }
-                if (inbox[side][static_cast<std::size_t>(priority)].count != 0) { return true; }
+                if (priority == lane) {
+                    break;
+                }
+                if (inbox[side][static_cast<std::size_t>(priority)].count != 0) {
+                    return true;
+                }
             }
             return false;
         }
@@ -158,7 +162,9 @@ namespace icc
             wake->close();
         }
         for (auto& receiver : receivers) {
-            if (receiver) { receiver->close(); }
+            if (receiver) {
+                receiver->close();
+            }
         }
         co_return size;
     }

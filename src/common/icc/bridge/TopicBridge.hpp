@@ -7,9 +7,9 @@
 #include <pneumo/coroutines.hpp>
 #include <pneumo/meta.hpp>
 
-#include <concepts>
 #include <array>
 #include <atomic>
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -56,7 +56,8 @@ namespace icc
         void checkRegistration(std::string_view topic) const;
         std::optional<OutgoingFrame> takeFrame(Lane lane);
         void dispatch(const util::IncomingFrame& frame, Lane lane);
-        [[nodiscard]] std::optional<pnm::msg::SubscriptionStatistics> statistics(std::string_view topic) const;
+        [[nodiscard]] std::optional<pnm::msg::SubscriptionStatistics> statistics(
+          std::string_view topic) const;
         void close();
 
         struct OutgoingTopic
@@ -119,25 +120,35 @@ namespace icc
                 if constexpr (std::meta::is_nonstatic_data_member(member)) {
                     using Metadata = pnm::msg::TopicMetadata<member>;
                     using Message = typename Metadata::Message;
-                    static constexpr auto lanes{ std::define_static_array(util::annotations_of_type<Lane>(member)) };
+                    static constexpr auto lanes{ std::define_static_array(
+                      util::annotations_of_type<Lane>(member)) };
                     static_assert(lanes.size() <= 1, "A topic may select only one transport lane");
                     constexpr auto lane = [] {
-                        if constexpr (lanes.empty()) { return Lane::Normal; }
-                        else { return std::meta::extract<Lane>(lanes[0]); }
+                        if constexpr (lanes.empty()) {
+                            return Lane::Normal;
+                        }
+                        else {
+                            return std::meta::extract<Lane>(lanes[0]);
+                        }
                     }();
                     static_assert(lane == Lane::Normal || lane == Lane::Background,
                                   "Topics use Normal or Background; urgent capacity is reserved for control");
                     static constexpr auto configurations{ std::define_static_array(
                       util::annotations_of_type<pnm::msg::SubscriptionOptions>(member)) };
-                    static_assert(configurations.size() <= 1, "A topic may select only one queue configuration");
+                    static_assert(configurations.size() <= 1,
+                                  "A topic may select only one queue configuration");
                     constexpr auto options = [] {
-                        if constexpr (configurations.empty()) { return pnm::msg::SubscriptionOptions::latestOnly(); }
-                        else { return std::meta::extract<pnm::msg::SubscriptionOptions>(configurations[0]); }
+                        if constexpr (configurations.empty()) {
+                            return pnm::msg::SubscriptionOptions::latestOnly();
+                        }
+                        else {
+                            return std::meta::extract<pnm::msg::SubscriptionOptions>(configurations[0]);
+                        }
                     }();
                     static_assert(options.capacity >= 1 && options.capacity <= 64,
                                   "Bridge topic queues must hold 1 to 64 records");
                     static_assert(options.overflow == pnm::msg::OverflowPolicy::DropOldest ||
-                                  options.overflow == pnm::msg::OverflowPolicy::DropNewest,
+                                    options.overflow == pnm::msg::OverflowPolicy::DropNewest,
                                   "Unknown topic overflow policy");
                     if (publisher == local_publisher) {
                         registerOutgoing<Message>(Metadata::name, lane, options);
@@ -152,7 +163,9 @@ namespace icc
 
     template<pnm::utils::memory::Serializable T>
         requires std::default_initializable<T>
-    void TopicBridge::registerOutgoing(std::string_view topic, Lane lane, pnm::msg::SubscriptionOptions options)
+    void TopicBridge::registerOutgoing(std::string_view topic,
+                                       Lane lane,
+                                       pnm::msg::SubscriptionOptions options)
     {
         const std::scoped_lock lock(m_mutex);
         checkRegistration(topic);
@@ -161,8 +174,8 @@ namespace icc
         // context thread. Its result is moved straight into the send coroutine.
         auto pending = std::make_shared<std::optional<OutgoingFrame>>();
         auto oversized = std::make_shared<std::atomic<std::uint64_t>>(0);
-        auto subscription = std::make_shared<pnm::msg::Subscription<T>>(
-          m_bus.topic<T>(topic).subscribe([pending, oversized, lane, name = std::string(topic)](const T& value) {
+        auto subscription = std::make_shared<pnm::msg::Subscription<T>>(m_bus.topic<T>(topic).subscribe(
+          [pending, oversized, lane, name = std::string(topic)](const T& value) {
             try {
                 auto frame = util::encode_frame(FrameKind::Topic, name, 0, value);
                 if (lane == Lane::Background && frame.size > MAX_BACKGROUND_FRAME_BYTES) {
@@ -171,29 +184,33 @@ namespace icc
                 }
                 *pending = std::move(frame);
             } catch (const std::length_error&) {
-                if (lane != Lane::Background) { throw; }
+                if (lane != Lane::Background) {
+                    throw;
+                }
                 oversized->fetch_add(1, std::memory_order_relaxed);
             }
         }, options));
 
-        auto readiness = pnm::msg::watch(*subscription, [signal = m_outgoingWakeup, lane] {
-            signal->signal(lane).notify();
-        });
+        auto readiness = pnm::msg::watch(
+          *subscription, [signal = m_outgoingWakeup, lane] { signal->signal(lane).notify(); });
         auto take = [subscription, pending, signal = m_outgoingWakeup, lane]() mutable {
             // One record per turn: preserve FIFO without monopolizing the context.
             subscription->pollSome(1);
-            if (subscription->statistics().queued != 0) { signal->signal(lane).notify(); }
+            if (subscription->statistics().queued != 0) {
+                signal->signal(lane).notify();
+            }
             return std::exchange(*pending, std::nullopt);
         };
         m_outgoingTopics.push_back({
           .name = std::string(topic),
           .lane = lane,
           .take = std::move(take),
-          .statistics = [subscription, oversized] {
-              auto result = subscription->statistics();
-              result.dropped += oversized->load(std::memory_order_relaxed);
-              return result;
-          },
+          .statistics =
+            [subscription, oversized] {
+            auto result = subscription->statistics();
+            result.dropped += oversized->load(std::memory_order_relaxed);
+            return result;
+        },
           .readiness = std::move(readiness),
         });
     }

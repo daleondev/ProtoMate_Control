@@ -11,8 +11,8 @@
 #ifndef _GLIBCXX_CXX_IO_H
 #define _GLIBCXX_CXX_IO_H 1
 
-#include <cstdio>
 #include <bits/gthr.h>
+#include <cstdio>
 
 #if defined(__linux__)
 #include <pthread.h>
@@ -20,21 +20,21 @@
 
 namespace std _GLIBCXX_VISIBILITY(default)
 {
-_GLIBCXX_BEGIN_NAMESPACE_VERSION
+    _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 #if defined(__linux__)
-  using __c_lock = pthread_mutex_t;
+    using __c_lock = pthread_mutex_t;
 #elif defined(__GTHREAD_LEGACY_MUTEX_T)
-  using __c_lock = __GTHREAD_LEGACY_MUTEX_T;
+    using __c_lock = __GTHREAD_LEGACY_MUTEX_T;
 #else
-  // Arm's libstdc++ uses a four-byte __gthread_mutex_t for this ABI slot.
-  // The ThreadX MutexHandle is also pointer-sized (four bytes on Cortex-M).
-  using __c_lock = __gthread_mutex_t;
+    // Arm's libstdc++ uses a four-byte __gthread_mutex_t for this ABI slot.
+    // The ThreadX MutexHandle is also pointer-sized (four bytes on Cortex-M).
+    using __c_lock = __gthread_mutex_t;
 #endif
 
-  using __c_file = FILE;
+    using __c_file = FILE;
 
-_GLIBCXX_END_NAMESPACE_VERSION
+    _GLIBCXX_END_NAMESPACE_VERSION
 } // namespace std
 
 #endif // _GLIBCXX_CXX_IO_H

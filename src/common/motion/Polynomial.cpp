@@ -9,38 +9,50 @@ namespace motion
     namespace
     {
         constexpr double EPSILON = 128 * std::numeric_limits<double>::epsilon();
-        constexpr unsigned BINOMIAL[6][6]{
-            {1}, {1,1}, {1,2,1}, {1,3,3,1}, {1,4,6,4,1}, {1,5,10,10,5,1}};
+        constexpr unsigned BINOMIAL[6][6]{ { 1 },          { 1, 1 },          { 1, 2, 1 },
+                                           { 1, 3, 3, 1 }, { 1, 4, 6, 4, 1 }, { 1, 5, 10, 10, 5, 1 } };
 
         unsigned degree(const Polynomial& p) noexcept
         {
             unsigned n = 5;
-            while (n && p.coefficients[n] == 0) { --n; }
+            while (n && p.coefficients[n] == 0) {
+                --n;
+            }
             return n;
         }
 
         double error(const Polynomial& p) noexcept
         {
             double total = 1;
-            for (double c : p.coefficients) { total += std::abs(c); }
+            for (double c : p.coefficients) {
+                total += std::abs(c);
+            }
             return EPSILON * total;
         }
     }
 
     bool Interval::finite() const noexcept
-    { return std::isfinite(minimum) && std::isfinite(maximum) && minimum <= maximum; }
+    {
+        return std::isfinite(minimum) && std::isfinite(maximum) && minimum <= maximum;
+    }
     double Interval::magnitude() const noexcept { return std::max(std::abs(minimum), std::abs(maximum)); }
 
     bool Polynomial::finite() const noexcept
-    { return std::ranges::all_of(coefficients, [](double c) { return std::isfinite(c); }); }
+    {
+        return std::ranges::all_of(coefficients, [](double c) { return std::isfinite(c); });
+    }
 
     double Polynomial::at(double u, unsigned order) const noexcept
     {
-        if (order > 5) { return 0; }
+        if (order > 5) {
+            return 0;
+        }
         double value = 0;
         for (int i = 5; i >= static_cast<int>(order); --i) {
             double c = coefficients[static_cast<std::size_t>(i)];
-            for (unsigned j = 0; j < order; ++j) { c *= i - static_cast<int>(j); }
+            for (unsigned j = 0; j < order; ++j) {
+                c *= i - static_cast<int>(j);
+            }
             value = value * u + c;
         }
         return value;
@@ -74,13 +86,15 @@ namespace motion
     Interval Polynomial::range(double from, double to, unsigned order) const noexcept
     {
         if (!finite() || !std::isfinite(from) || !std::isfinite(to) || from > to || order > 5) {
-            return {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()};
+            return { std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN() };
         }
         auto p = *this;
-        for (unsigned i = 0; i < order; ++i) { p = p.derivative(); }
+        for (unsigned i = 0; i < order; ++i) {
+            p = p.derivative();
+        }
         const auto shifted = p.restrict(from, to);
         const unsigned n = 5 - order;
-        Interval result{shifted.coefficients[0], shifted.coefficients[0]};
+        Interval result{ shifted.coefficients[0], shifted.coefficients[0] };
         for (unsigned i = 1; i <= n; ++i) {
             double b = 0;
             for (unsigned k = 0; k <= i; ++k) {
@@ -97,12 +111,19 @@ namespace motion
 
     std::size_t Polynomial::roots(std::span<double, 5> output, double from, double to) const noexcept
     {
-        if (!finite() || !std::isfinite(from) || !std::isfinite(to) || from >= to) { return 0; }
+        if (!finite() || !std::isfinite(from) || !std::isfinite(to) || from >= to) {
+            return 0;
+        }
         const unsigned n = degree(*this);
-        if (!n) { return 0; }
+        if (!n) {
+            return 0;
+        }
         if (n == 1) {
             const double root = -coefficients[0] / coefficients[1];
-            if (root > from && root < to) { output[0] = root; return 1; }
+            if (root > from && root < to) {
+                output[0] = root;
+                return 1;
+            }
             return 0;
         }
         std::array<double, 5> turning{};
@@ -124,13 +145,23 @@ namespace motion
                 for (unsigned iteration = 0; iteration < 60; ++iteration) {
                     const double middle = low + (high - low) * 0.5;
                     const double value = at(middle);
-                    if (middle == low || middle == high || value == 0) { low = high = middle; break; }
-                    if ((flow < 0) == (value < 0)) { low = middle; flow = value; }
-                    else { high = middle; }
+                    if (middle == low || middle == high || value == 0) {
+                        low = high = middle;
+                        break;
+                    }
+                    if ((flow < 0) == (value < 0)) {
+                        low = middle;
+                        flow = value;
+                    }
+                    else {
+                        high = middle;
+                    }
                 }
                 append(low + (high - low) * 0.5);
             }
-            if (interval < turns && std::abs(fright) <= error(*this)) { append(right); }
+            if (interval < turns && std::abs(fright) <= error(*this)) {
+                append(right);
+            }
             left = right;
             fleft = fright;
         }
@@ -142,9 +173,11 @@ namespace motion
         const double v0 = start.velocity * t, v1 = end.velocity * t;
         const double a0 = start.acceleration * t * t, a1 = end.acceleration * t * t;
         const double d = end.position - start.position;
-        return {{start.position, v0, a0 * 0.5,
-                 10*d - 6*v0 - 4*v1 - 1.5*a0 + 0.5*a1,
-                 -15*d + 8*v0 + 7*v1 + 1.5*a0 - a1,
-                 6*d - 3*v0 - 3*v1 - 0.5*a0 + 0.5*a1}};
+        return { { start.position,
+                   v0,
+                   a0 * 0.5,
+                   10 * d - 6 * v0 - 4 * v1 - 1.5 * a0 + 0.5 * a1,
+                   -15 * d + 8 * v0 + 7 * v1 + 1.5 * a0 - a1,
+                   6 * d - 3 * v0 - 3 * v1 - 0.5 * a0 + 0.5 * a1 } };
     }
 }

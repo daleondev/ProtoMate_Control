@@ -1,6 +1,6 @@
 #include "hal/devices/impl/Lan9253.hpp"
-#include <gtest/gtest.h>
 #include <array>
+#include <gtest/gtest.h>
 #include <map>
 #include <thread>
 #include <vector>
@@ -17,17 +17,25 @@ namespace
         Level level{ Level::Low };
         std::vector<Level> changes;
         Level read() const noexcept override { return level; }
-        void write(Level value) noexcept override { level = value; changes.push_back(value); }
+        void write(Level value) noexcept override
+        {
+            level = value;
+            changes.push_back(value);
+        }
         void toggle() noexcept override { write(hal::gpio::inverted(level)); }
     };
 
     class Spi final : public hal::ISpi
     {
       public:
-        explicit Spi(Select& select) : cs{ select } {}
+        explicit Spi(Select& select)
+          : cs{ select }
+        {
+        }
         Select& cs;
-        std::map<std::uint16_t, std::uint32_t> values{
-            { 0x64, 0x87654321 }, { 0x74, 0x08000000 }, { 0x50, 0x92530001 } };
+        std::map<std::uint16_t, std::uint32_t> values{ { 0x64, 0x87654321 },
+                                                       { 0x74, 0x08000000 },
+                                                       { 0x50, 0x92530001 } };
         std::vector<std::array<std::uint8_t, 7>> requests;
         std::vector<std::chrono::milliseconds> timeouts;
         std::error_code failure;
@@ -52,9 +60,12 @@ namespace
             std::copy(tx.begin(), tx.end(), copy.begin());
             requests.push_back(copy);
             timeouts.push_back(timeout);
-            if (throws) throw std::runtime_error("injected SPI failure");
-            if (failure) return std::unexpected(failure);
-            if (delay > 0ms) std::this_thread::sleep_for(delay);
+            if (throws)
+                throw std::runtime_error("injected SPI failure");
+            if (failure)
+                return std::unexpected(failure);
+            if (delay > 0ms)
+                std::this_thread::sleep_for(delay);
             const auto address = std::uint16_t((tx[1] << 8) | tx[2]);
             if (tx[0] == 2) {
                 const auto value = std::uint32_t{ tx[3] } | (std::uint32_t{ tx[4] } << 8) |
@@ -62,14 +73,19 @@ namespace
                 values[address] = value;
                 if (emulateCsr && address == 0x304 && !stuckCsr) {
                     const auto target = static_cast<std::uint16_t>(value);
-                    if (value & 0x40000000U) values[0x300] = csrValues[target];
+                    if (value & 0x40000000U)
+                        values[0x300] = csrValues[target];
                     else {
                         csrValues[target] = values[0x300];
                         csrWrites.emplace_back(target, values[0x300]);
                         if (bootRequests && target == 0x502) {
                             EXPECT_TRUE(values[0x300] == 0x100 || values[0x300] == 0x400);
-                            if (++bootAcknowledgements == 2) values[0x74] |= Esc::READY_MASK;
-                            else { csrValues[0x504] = 4; csrValues[0x502] = 0x9460; }
+                            if (++bootAcknowledgements == 2)
+                                values[0x74] |= Esc::READY_MASK;
+                            else {
+                                csrValues[0x504] = 4;
+                                csrValues[0x502] = 0x9460;
+                            }
                         }
                     }
                     values[0x304] &= ~0x80000000U;
@@ -78,8 +94,11 @@ namespace
             }
             const auto value = values[address];
             // Command-phase receive data is undefined and must be ignored.
-            rx[0] = 0xde; rx[1] = 0xad; rx[2] = 0xbe;
-            for (unsigned i = 0; i < 4; ++i) rx[3 + i] = static_cast<std::uint8_t>(value >> (8U * i));
+            rx[0] = 0xde;
+            rx[1] = 0xad;
+            rx[2] = 0xbe;
+            for (unsigned i = 0; i < 4; ++i)
+                rx[3 + i] = static_cast<std::uint8_t>(value >> (8U * i));
             return {};
         }
     };
@@ -112,7 +131,8 @@ TEST(Lan9253, InvalidAlignmentRangeAndTimeoutNeverSelectDevice)
     for (auto address : { 0U, 0x3cU, 0x65U, 0x400U, 0x3064U, 0xffffU })
         EXPECT_EQ(esc.readSystemRegister(address).error(), std::make_error_code(std::errc::invalid_argument));
     for (auto timeout : { -1ms, 0ms, 1001ms }) {
-        EXPECT_EQ(esc.readSystemRegister(0x64, timeout).error(), std::make_error_code(std::errc::invalid_argument));
+        EXPECT_EQ(esc.readSystemRegister(0x64, timeout).error(),
+                  std::make_error_code(std::errc::invalid_argument));
         EXPECT_EQ(esc.identify(timeout).error(), std::make_error_code(std::errc::invalid_argument));
     }
     EXPECT_TRUE(bus.requests.empty());
@@ -196,7 +216,8 @@ TEST(Lan9253, SystemWriteAndIndirectCsrFramingAlignmentAndBusyHandshake)
     EXPECT_EQ(bus.csrValues[0x508], 0xabcdef98U);
     EXPECT_EQ(bus.values[0x304], 0x00040508U);
     const auto transfers = bus.requests.size();
-    for (const auto& [address, size] : { std::pair{0x501, 2}, {0x502, 4}, {0x3000, 4}, {0x500, 3}, {0x500, 0} }) {
+    for (const auto& [address, size] :
+         { std::pair{ 0x501, 2 }, { 0x502, 4 }, { 0x3000, 4 }, { 0x500, 3 }, { 0x500, 0 } }) {
         EXPECT_FALSE(esc.readEscRegister(address, size));
         EXPECT_FALSE(esc.writeEscRegister(address, size, 0));
     }
@@ -241,8 +262,8 @@ TEST(Lan9253, CsrDeadlineExpiryDoesNotStartAnotherTransfer)
 
 namespace
 {
-    constexpr std::array<std::uint8_t, 16> bootConfiguration{
-        0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xe9, 0 };
+    constexpr std::array<std::uint8_t, 16> bootConfiguration{ 0x80, 0, 0, 0, 0, 0, 0,    0,
+                                                              0,    0, 0, 0, 0, 0, 0xe9, 0 };
 }
 
 TEST(Lan9253, EmulatedBootServesTwoEightByteRequestsBeforeStrictIdentification)
@@ -257,9 +278,13 @@ TEST(Lan9253, EmulatedBootServesTwoEightByteRequestsBeforeStrictIdentification)
     ASSERT_TRUE(identity);
     EXPECT_EQ(identity->hardware_config, 0x0800001bU);
     EXPECT_EQ(bus.bootAcknowledgements, 2U);
-    EXPECT_EQ(bus.csrWrites, (std::vector<std::pair<std::uint16_t, std::uint32_t>>{
-        {0x508, 0x80}, {0x50c, 0}, {0x502, 0x100},
-        {0x508, 0}, {0x50c, 0x00e90000}, {0x502, 0x400} }));
+    EXPECT_EQ(bus.csrWrites,
+              (std::vector<std::pair<std::uint16_t, std::uint32_t>>{ { 0x508, 0x80 },
+                                                                     { 0x50c, 0 },
+                                                                     { 0x502, 0x100 },
+                                                                     { 0x508, 0 },
+                                                                     { 0x50c, 0x00e90000 },
+                                                                     { 0x502, 0x400 } }));
     const auto writes = bus.csrWrites.size();
     EXPECT_TRUE(esc.initializeEmulatedBoot(bootConfiguration)); // Already ready: no writes.
     EXPECT_EQ(bus.csrWrites.size(), writes);

@@ -4,9 +4,9 @@
 #include <array>
 #include <cstdint>
 #include <expected>
+#include <pneumo/common.hpp>
 #include <span>
 #include <string_view>
-#include <pneumo/common.hpp>
 
 namespace motion::trajectory
 {
@@ -25,18 +25,74 @@ namespace motion::trajectory
 
     enum class Error : std::uint8_t
     {
-        None, InvalidInput, Configuration, Unreferenced, Busy, Stale, Capacity,
-        Discontinuity, PositionLimit, VelocityLimit, AccelerationLimit, JerkLimit,
-        Timing, Protocol, Checksum, Order, Unsupported, Fault, Unknown,
-        Unreachable, Singularity, Workspace, PathTolerance, SubdivisionLimit,
-        LeaseExpired, Starved, Cancelled, TooLate, NoStoppingPath
+        None,
+        InvalidInput,
+        Configuration,
+        Unreferenced,
+        Busy,
+        Stale,
+        Capacity,
+        Discontinuity,
+        PositionLimit,
+        VelocityLimit,
+        AccelerationLimit,
+        JerkLimit,
+        Timing,
+        Protocol,
+        Checksum,
+        Order,
+        Unsupported,
+        Fault,
+        Unknown,
+        Unreachable,
+        Singularity,
+        Workspace,
+        PathTolerance,
+        SubdivisionLimit,
+        LeaseExpired,
+        Starved,
+        Cancelled,
+        TooLate,
+        NoStoppingPath
     };
     std::string_view name(Error error) noexcept;
     enum class State : std::uint8_t
-    { Disabled, Unreferenced, Ready, Staged, Running, Homing, Holding, Held, Completed, Stopped, Faulted, Unknown };
+    {
+        Disabled,
+        Unreferenced,
+        Ready,
+        Staged,
+        Running,
+        Homing,
+        Holding,
+        Held,
+        Completed,
+        Stopped,
+        Faulted,
+        Unknown
+    };
     enum class Operation : std::uint8_t
-    { Inspect, Acquire, Release, Upload, Commit, Hold, Resume, Stop, Abort, Disable, Renew, Initialize, Enable, Home };
-    enum class Branch : std::uint8_t { Continuation, Stopping };
+    {
+        Inspect,
+        Acquire,
+        Release,
+        Upload,
+        Commit,
+        Hold,
+        Resume,
+        Stop,
+        Abort,
+        Disable,
+        Renew,
+        Initialize,
+        Enable,
+        Home
+    };
+    enum class Branch : std::uint8_t
+    {
+        Continuation,
+        Stopping
+    };
 
     using MotorStates = std::array<KinematicState, 3>;
     using Positions = std::array<double, 3>;
@@ -58,38 +114,39 @@ namespace motion::trajectory
 
     struct Capabilities
     {
-        std::uint16_t version{VERSION};
-        std::uint32_t tick_ns{TICK_NS};
+        std::uint16_t version{ VERSION };
+        std::uint32_t tick_ns{ TICK_NS };
         std::array<double, 3> step_radians{};
         std::array<double, 3> reference_steps{};
         std::array<Limits, 3> limits{};
         std::uint64_t hardware_fingerprint{};
-        std::uint32_t minimum_period_ticks{100}, high_ticks{50}, direction_setup_ticks{50}, direction_hold_ticks{50};
-        std::uint16_t capacity{IO_SEGMENTS};
+        std::uint32_t minimum_period_ticks{ 100 }, high_ticks{ 50 }, direction_setup_ticks{ 50 },
+          direction_hold_ticks{ 50 };
+        std::uint16_t capacity{ IO_SEGMENTS };
         bool coordinated_execution{};
     };
     struct Request
     {
-        Operation operation{Operation::Inspect};
-        std::uint16_t version{VERSION};
+        Operation operation{ Operation::Inspect };
+        std::uint16_t version{ VERSION };
         std::uint64_t boot{}, session{}, generation{}, configuration{}, revision{}, splice_tick{};
         Counts expected_position{};
         std::uint32_t index{};
         std::uint8_t count{};
-        Branch branch{Branch::Continuation};
+        Branch branch{ Branch::Continuation };
         bool final{};
         std::array<Segment, UPLOAD_SEGMENTS> segments{};
     };
     struct Reply
     {
-        Error error{Error::None};
-        State state{State::Disabled};
+        Error error{ Error::None };
+        State state{ State::Disabled };
         Capabilities capabilities{};
         std::uint64_t boot{}, session{}, generation{}, revision{}, tick{}, splice_tick{}, job{};
         std::uint32_t next_index{}, stopping_index{};
         std::uint16_t credits{};
         std::uint8_t referenced{};
-        bool enabled{}, counts_exact{true};
+        bool enabled{}, counts_exact{ true };
         Counts position{};
         MotorStates boundary{};
         double path{};
@@ -117,7 +174,8 @@ namespace motion::trajectory
 
 namespace pnm::utils::memory
 {
-    template<> struct SerializationAdapter<motion::trajectory::Packet>
+    template<>
+    struct SerializationAdapter<motion::trajectory::Packet>
     {
         static std::size_t bufferSize(const motion::trajectory::Packet& value);
         static void serialize(const motion::trajectory::Packet& value, std::span<std::byte> output);

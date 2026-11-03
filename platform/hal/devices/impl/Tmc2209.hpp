@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hal/drivers/itf/IUart.hpp"
 #include "hal/devices/itf/IConfigurableStepperDriver.hpp"
+#include "hal/drivers/itf/IUart.hpp"
 #include <memory>
 
 namespace hal::device

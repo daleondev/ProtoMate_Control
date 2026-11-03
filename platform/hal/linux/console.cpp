@@ -135,15 +135,23 @@ hal::console::Input hal::console::try_read() noexcept
 {
     pollfd input{ .fd = STDIN_FILENO, .events = POLLIN, .revents = 0 };
     const auto ready{ ::poll(&input, 1, 0) };
-    if (ready == 0 || (ready < 0 && errno == EINTR)) { return {}; }
+    if (ready == 0 || (ready < 0 && errno == EINTR)) {
+        return {};
+    }
     if (ready < 0 || (input.revents & (POLLERR | POLLNVAL)) != 0) {
         return { InputState::Error };
     }
     char byte{};
     const auto count{ ::read(STDIN_FILENO, &byte, 1) };
-    if (count == 1) { return { InputState::Character, byte }; }
-    if (count == 0) { return { InputState::Closed }; }
-    if (errno == EINTR || errno == EAGAIN) { return {}; }
+    if (count == 1) {
+        return { InputState::Character, byte };
+    }
+    if (count == 0) {
+        return { InputState::Closed };
+    }
+    if (errno == EINTR || errno == EAGAIN) {
+        return {};
+    }
     return { InputState::Error };
 }
 

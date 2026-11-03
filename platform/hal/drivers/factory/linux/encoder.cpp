@@ -4,7 +4,6 @@
 #include "hal/drivers/impl/linux/QuadratureEncoder.hpp"
 #include "hal/linux/Mutex.hpp"
 
-
 #include <utility>
 
 namespace

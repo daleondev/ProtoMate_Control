@@ -100,7 +100,8 @@ namespace hal::core
     {
         Devices result{};
         bool found{};
-        for (const auto member : std::meta::static_data_members_of(^^Catalog, std::meta::access_context::current())) {
+        for (const auto member :
+             std::meta::static_data_members_of(^^Catalog, std::meta::access_context::current())) {
             const auto owners = std::meta::annotations_of(member);
             if (owners.size() != 1) {
                 throw "Each device catalog entry needs exactly one core annotation";
@@ -110,12 +111,16 @@ namespace hal::core
                 throw "Unknown core in device catalog";
             }
             if (owner == processor) {
-                if (found) { throw "Duplicate core in device catalog"; }
+                if (found) {
+                    throw "Duplicate core in device catalog";
+                }
                 result = std::meta::extract<Devices>(member);
                 found = true;
             }
         }
-        if (!found) { throw "No device catalog for this core"; }
+        if (!found) {
+            throw "No device catalog for this core";
+        }
         return result;
     }
 }

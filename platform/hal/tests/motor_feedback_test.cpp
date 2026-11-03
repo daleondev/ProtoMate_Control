@@ -17,8 +17,18 @@ namespace
     class Encoder final : public hal::IQuadratureEncoder
     {
       public:
-        hal::util::Result<> start() noexcept override { value.running = true; publish(); return {}; }
-        hal::util::Result<> stop() noexcept override { value.running = false; publish(); return {}; }
+        hal::util::Result<> start() noexcept override
+        {
+            value.running = true;
+            publish();
+            return {};
+        }
+        hal::util::Result<> stop() noexcept override
+        {
+            value.running = false;
+            publish();
+            return {};
+        }
         bool isRunning() const noexcept override { return value.running; }
         hal::util::Result<Count> position() const noexcept override { return value.position; }
         hal::util::Result<> setPosition(Count count) noexcept override
@@ -27,8 +37,16 @@ namespace
             ++resets;
             return {};
         }
-        void setSampleCallback(SampleCallback next) override { callback = std::move(next); publish(); }
-        void publish() { if (callback) callback(value); }
+        void setSampleCallback(SampleCallback next) override
+        {
+            callback = std::move(next);
+            publish();
+        }
+        void publish()
+        {
+            if (callback)
+                callback(value);
+        }
         void emit(Count count, std::chrono::nanoseconds time)
         {
             value.position = count;
@@ -191,8 +209,10 @@ TEST(MotorFeedbackBoard, IndexUsesSuppliedMotorAngleAndKeepsUnknownFeedbackInval
 TEST(MotorFeedbackBoard, RejectsInvalidMotorScalingBeforeClaimingHardware)
 {
     using enum hal::board::MotorId;
-    EXPECT_THROW(static_cast<void>(hal::board::create_motor_feedback(Motor1, { 0_deg, 16U })), std::invalid_argument);
-    EXPECT_THROW(static_cast<void>(hal::board::create_motor_feedback(Motor2, { 1.8_deg, 0U })), std::invalid_argument);
+    EXPECT_THROW(static_cast<void>(hal::board::create_motor_feedback(Motor1, { 0_deg, 16U })),
+                 std::invalid_argument);
+    EXPECT_THROW(static_cast<void>(hal::board::create_motor_feedback(Motor2, { 1.8_deg, 0U })),
+                 std::invalid_argument);
     EXPECT_FALSE(hal::board::create_motor_feedback(static_cast<hal::board::MotorId>(99), { 1.8_deg, 16U }));
     EXPECT_TRUE(hal::board::create_motor_feedback(Motor1, { 1.8_deg, 16U }));
 }

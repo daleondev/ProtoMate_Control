@@ -3,7 +3,8 @@
 
 namespace io::logging
 {
-    Sink::Sink(pnm::msg::Bus& bus) : m_topic{ bus.topic<^^icc::Topics::io_logs>() }
+    Sink::Sink(pnm::msg::Bus& bus)
+      : m_topic{ bus.topic<^^icc::Topics::io_logs>() }
     {
         colors(pnm::log::ColorMode::Never);
     }
@@ -16,7 +17,9 @@ namespace io::logging
 
     pnm::Result<> Sink::open()
     {
-        if (isOpen()) { return {}; }
+        if (isOpen()) {
+            return {};
+        }
         return std::unexpected(std::make_error_code(std::errc::operation_canceled));
     }
 
@@ -33,7 +36,9 @@ namespace io::logging
         if (!m_topic) {
             return std::unexpected(std::make_error_code(std::errc::operation_canceled));
         }
-        if (data.empty()) { return 0U; }
+        if (data.empty()) {
+            return 0U;
+        }
         // Character views may alias a byte buffer.
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         const auto text{ std::string_view{ reinterpret_cast<const char*>(data.data()), data.size() } };

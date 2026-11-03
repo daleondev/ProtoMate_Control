@@ -1,5 +1,5 @@
-#include "hal/drivers/util/PulseTrain.hpp"
 #include "hal/drivers/impl/linux/PwmOutput.hpp"
+#include "hal/drivers/util/PulseTrain.hpp"
 
 #include <gtest/gtest.h>
 
@@ -25,10 +25,12 @@ namespace
     {
       protected:
         std::shared_ptr<Pin> pin{ std::make_shared<Pin>() };
-        hal::PwmOutput output{ { hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { hal::gpio::Port::E, 9U } },
-                               1U,
-                               hal::util::TimerLease{ hal::timer::Peripheral::Tim1 },
-                               pin };
+        hal::PwmOutput output{
+            { hal::timer::Peripheral::Tim1, hal::timer::Channel::Channel1, { hal::gpio::Port::E, 9U } },
+            1U,
+            hal::util::TimerLease{ hal::timer::Peripheral::Tim1 },
+            pin
+        };
 
         void SetUp() override { ASSERT_TRUE(output.configure({ 100us, 5us })); }
     };
@@ -182,10 +184,12 @@ TEST(PulseTrain, RejectsUnconfiguredStartsAndDestructionDoesNotNotify)
 {
     std::uint64_t callbacks{};
     {
-        hal::PwmOutput output{ { hal::timer::Peripheral::Tim4, hal::timer::Channel::Channel3, { hal::gpio::Port::D, 14U } },
-                               2U,
-                               hal::util::TimerLease{ hal::timer::Peripheral::Tim4 },
-                               std::make_shared<Pin>() };
+        hal::PwmOutput output{
+            { hal::timer::Peripheral::Tim4, hal::timer::Channel::Channel3, { hal::gpio::Port::D, 14U } },
+            2U,
+            hal::util::TimerLease{ hal::timer::Peripheral::Tim4 },
+            std::make_shared<Pin>()
+        };
         EXPECT_EQ(output.startPulses(1U).error(), std::errc::operation_not_permitted);
         ASSERT_TRUE(output.configure({ 100us, 5us }));
         ASSERT_TRUE(output.setPulseCallback([&](std::uint64_t) noexcept { ++callbacks; }));

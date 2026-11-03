@@ -134,7 +134,8 @@ namespace hal
         if (m_running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
-        m_counter.reset({ .count = count, .raw = static_cast<std::uint16_t>(__HAL_TIM_GET_COUNTER(&m_handle)) });
+        m_counter.reset(
+          { .count = count, .raw = static_cast<std::uint16_t>(__HAL_TIM_GET_COUNTER(&m_handle)) });
         return {};
     }
     auto QuadratureEncoder::setSampleCallback(SampleCallback callback) -> void

@@ -15,6 +15,7 @@ namespace hal::device
         hal::util::Result<> verify() override;
         void service() override { m_fault.checkInput(); }
         void setFaultCallback(FaultCallback callback) override { m_fault.setCallback(std::move(callback)); }
+
       private:
         // Shared enable is observed, never written by an individual driver.
         std::shared_ptr<IDigitalOutput> m_enable;

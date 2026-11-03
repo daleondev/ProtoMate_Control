@@ -72,7 +72,9 @@ namespace
         }
 
 #if defined(HAL_PLATFORM_LINUX)
-        if (runtime_host_completed) { runtime_host_completed(exit_status); }
+        if (runtime_host_completed) {
+            runtime_host_completed(exit_status);
+        }
         std::exit(exit_status);
 #else
         if (exit_status != EXIT_SUCCESS) {
@@ -100,7 +102,9 @@ extern "C" int __wrap_main(int argc, char** argv)
 #endif
     hal::initialize();
 #if defined(HAL_PLATFORM_LINUX)
-    if (runtime_host_main) { return runtime_host_main(tx_kernel_enter); }
+    if (runtime_host_main) {
+        return runtime_host_main(tx_kernel_enter);
+    }
 #endif
     tx_kernel_enter();
     Error_Handler();

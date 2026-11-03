@@ -293,23 +293,21 @@ namespace hal
         auto* const entry{ std::ranges::find_if(s_registry, [&](const Timer* candidate) {
             return candidate != nullptr && candidate->m_handle.Instance == instance;
         }) };
-        if (entry == s_registry.end()) { return; }
+        if (entry == s_registry.end()) {
+            return;
+        }
         auto& timer = **entry;
         auto& handle = timer.m_handle;
         if (__HAL_TIM_GET_FLAG(&handle, TIM_FLAG_UPDATE) != RESET &&
             __HAL_TIM_GET_IT_SOURCE(&handle, TIM_IT_UPDATE) != RESET) {
             __HAL_TIM_CLEAR_IT(&handle, TIM_IT_UPDATE);
-            if (timer.m_periodElapsedCallback) { timer.m_periodElapsedCallback(); }
+            if (timer.m_periodElapsedCallback) {
+                timer.m_periodElapsedCallback();
+            }
         }
     }
 }
 
-extern "C" void TIM5_IRQHandler()
-{
-    hal::Timer::dispatchInterrupt(TIM5);
-}
+extern "C" void TIM5_IRQHandler() { hal::Timer::dispatchInterrupt(TIM5); }
 
-extern "C" void TIM8_BRK_TIM12_IRQHandler()
-{
-    hal::Timer::dispatchInterrupt(TIM12);
-}
+extern "C" void TIM8_BRK_TIM12_IRQHandler() { hal::Timer::dispatchInterrupt(TIM12); }

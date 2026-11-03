@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
+#include "common/app/State.hpp"
 #include "common/icc/transport/ITransport.hpp"
 #include "common/motion/Motor.hpp"
-#include "common/app/State.hpp"
+#include <cstdint>
 #include <pneumo/messaging.hpp>
+#include <string>
 
 namespace icc
 {
@@ -23,13 +23,14 @@ namespace icc
     // Shared application contracts. Both bridges register this catalog.
     struct Topics
     {
-        [[= TopicPublisher::IO, = pnm::msg::SubscriptionOptions::latestOnly()]]
-        pnm::msg::Topic<app::State> io_controller_state;
+        [[ = TopicPublisher::IO, = pnm::msg::SubscriptionOptions::latestOnly() ]] pnm::msg::Topic<app::State>
+          io_controller_state;
 
-        [[= TopicPublisher::IO, = Lane::Background, = LOG_SUBSCRIPTION]]
-        pnm::msg::Topic<std::string> io_logs;
+        [[ = TopicPublisher::IO, = Lane::Background, = LOG_SUBSCRIPTION ]] pnm::msg::Topic<std::string>
+          io_logs;
 
-        [[= TopicPublisher::IO, = pnm::msg::SubscriptionOptions::latestOnly()]]
-        pnm::msg::Topic<motion::MotorSnapshot> io_motor_state;
+        [[ = TopicPublisher::IO,
+           = pnm::msg::SubscriptionOptions::latestOnly() ]] pnm::msg::Topic<motion::MotorSnapshot>
+          io_motor_state;
     };
 }

@@ -11,9 +11,9 @@ namespace hal::uart
     auto create(Configuration configuration) -> std::shared_ptr<IUart>
     {
         if (configuration.peripheral != Peripheral::Usart2 ||
-            (configuration.tx != gpio::Pin{gpio::Port::D, 5} || configuration.rx != gpio::Pin{gpio::Port::D, 6}) ||
-            !util::valid_uart_configuration(configuration.transport) ||
-            !__HAL_RCC_USART2_IS_CLK_ENABLED()) {
+            (configuration.tx != gpio::Pin{ gpio::Port::D, 5 } ||
+             configuration.rx != gpio::Pin{ gpio::Port::D, 6 }) ||
+            !util::valid_uart_configuration(configuration.transport) || !__HAL_RCC_USART2_IS_CLK_ENABLED()) {
             return {};
         }
         constexpr auto enabled{ USART_CR1_UE | USART_CR1_TE | USART_CR1_RE | USART_CR1_FIFOEN };
@@ -22,14 +22,17 @@ namespace hal::uart
             return {};
         }
         auto tx{ gpio::create_output({ .pin = configuration.tx,
-                                      .initial_level = gpio::Level::High,
-                                      .pull = gpio::Pull::Up,
-                                      .alternate_function = 7U }) };
-        if (!tx) { return {}; }
-        auto rx{ gpio::create_input({ .pin = configuration.rx,
-                                     .pull = gpio::Pull::Up,
-                                     .alternate_function = 7U }) };
-        if (!rx) { return {}; }
+                                       .initial_level = gpio::Level::High,
+                                       .pull = gpio::Pull::Up,
+                                       .alternate_function = 7U }) };
+        if (!tx) {
+            return {};
+        }
+        auto rx{ gpio::create_input(
+          { .pin = configuration.rx, .pull = gpio::Pull::Up, .alternate_function = 7U }) };
+        if (!rx) {
+            return {};
+        }
 
         // Startup configures the peripheral once. A private handle describes
         // that hardware for blocking HAL transfers; no generated handle is
@@ -46,8 +49,10 @@ namespace hal::uart
             return result;
         }();
         static util::ExclusiveInstances<1> instances;
-        return instances.create<Uart>(0U, Uart::HardwareConfiguration{
-            .handle = handle, .configuration = configuration.transport,
-            .tx = std::move(tx), .rx = std::move(rx) });
+        return instances.create<Uart>(0U,
+                                      Uart::HardwareConfiguration{ .handle = handle,
+                                                                   .configuration = configuration.transport,
+                                                                   .tx = std::move(tx),
+                                                                   .rx = std::move(rx) });
     }
 }

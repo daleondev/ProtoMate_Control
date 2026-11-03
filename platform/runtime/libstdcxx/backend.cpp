@@ -1,6 +1,6 @@
 #include "backend.hpp"
-#include "hal/drivers/factory/timer.hpp"
 #include "hal/core/core.hpp"
+#include "hal/drivers/factory/timer.hpp"
 #include "hal/hal.hpp"
 
 #include <algorithm>
@@ -151,7 +151,6 @@ namespace runtime
             ULONG next_registry_id{ 1U };
             ThreadControl* registry_head{};
             KeyDefinition keys[RUNTIME_THREAD_KEY_COUNT];
-
 
             std::int64_t system_clock_epoch_nanoseconds{};
             std::uint64_t system_clock_epoch_ticks{};
@@ -758,7 +757,9 @@ namespace runtime
                     }
                     unregister_thread(control);
                     delete control;
-                    if (owns_stack) { ::operator delete[](stack); }
+                    if (owns_stack) {
+                        ::operator delete[](stack);
+                    }
                     if (cleanup_ack != nullptr && tx_semaphore_put(cleanup_ack) != TX_SUCCESS) {
                         fatal_error("cleanup acknowledgement", TX_SEMAPHORE_ERROR);
                     }
@@ -806,7 +807,8 @@ namespace runtime
                 return EAGAIN;
             }
             control->owns_stack = attributes.stack_storage == nullptr;
-            control->stack = control->owns_stack
+            control->stack =
+              control->owns_stack
                 ? ::operator new[](static_cast<std::size_t>(normalized_stack_size), std::nothrow)
                 : attributes.stack_storage;
             if (control->stack == nullptr) {
@@ -836,13 +838,17 @@ namespace runtime
             }
 
             if (tx_mutex_create(&control->lifecycle_mutex, lifecycle_mutex_name, TX_INHERIT) != TX_SUCCESS) {
-                if (control->owns_stack) { ::operator delete[](control->stack); }
+                if (control->owns_stack) {
+                    ::operator delete[](control->stack);
+                }
                 delete control;
                 return EAGAIN;
             }
             if (tx_semaphore_create(&control->completion, completion_name, 0U) != TX_SUCCESS) {
                 static_cast<void>(tx_mutex_delete(&control->lifecycle_mutex));
-                if (control->owns_stack) { ::operator delete[](control->stack); }
+                if (control->owns_stack) {
+                    ::operator delete[](control->stack);
+                }
                 delete control;
                 return EAGAIN;
             }
@@ -863,7 +869,9 @@ namespace runtime
                 unregister_thread(control);
                 static_cast<void>(tx_semaphore_delete(&control->completion));
                 static_cast<void>(tx_mutex_delete(&control->lifecycle_mutex));
-                if (control->owns_stack) { ::operator delete[](control->stack); }
+                if (control->owns_stack) {
+                    ::operator delete[](control->stack);
+                }
                 delete control;
                 return EAGAIN;
             }

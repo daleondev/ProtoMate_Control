@@ -1,9 +1,9 @@
 #include "common/icc/bridge/Bridge.hpp"
 #include "common/icc/transport/InProcessTransport.hpp"
 
-#include <gtest/gtest.h>
 #include <atomic>
 #include <chrono>
+#include <gtest/gtest.h>
 #include <optional>
 #include <string>
 #include <thread>
@@ -13,20 +13,29 @@ namespace
 {
     using namespace std::chrono_literals;
     using icc::Lane;
-    enum class Core { IO, UI };
+    enum class Core
+    {
+        IO,
+        UI
+    };
     struct Topics
     {
-        [[= Core::IO, = Lane::Background, = pnm::msg::SubscriptionOptions{ .capacity = 4 }]]
-        pnm::msg::Topic<std::string> logs;
-        [[= Core::IO, = Lane::Background,
-          = pnm::msg::SubscriptionOptions{ 4, pnm::msg::OverflowPolicy::DropNewest }]]
-        pnm::msg::Topic<std::string> oldest;
+        [[ = Core::IO,
+           = Lane::Background,
+           = pnm::msg::SubscriptionOptions{ .capacity = 4 } ]] pnm::msg::Topic<std::string>
+          logs;
+        [[
+            = Core::IO,
+            = Lane::Background,
+            = pnm::msg::SubscriptionOptions{ 4, pnm::msg::OverflowPolicy::DropNewest }
+        ]] pnm::msg::Topic<std::string>
+          oldest;
         [[= Core::IO]] pnm::msg::Topic<unsigned> state;
     };
     struct Services
     {
         [[= Core::IO]] pnm::msg::Service<unsigned, unsigned> normal;
-        [[= Core::IO, = Lane::Urgent]] pnm::msg::Service<unsigned, unsigned> stop;
+        [[ = Core::IO, = Lane::Urgent ]] pnm::msg::Service<unsigned, unsigned> stop;
     };
     struct Actions
     {
@@ -36,15 +45,21 @@ namespace
     class GatedBackground final : public icc::ITransport
     {
       public:
-        explicit GatedBackground(ITransport& inner) : m_inner(inner) {}
+        explicit GatedBackground(ITransport& inner)
+          : m_inner(inner)
+        {
+        }
         void block() { m_gate.emplace(); }
         void release()
         {
-            if (auto gate = std::exchange(m_gate, std::nullopt)) { gate->close(); }
+            if (auto gate = std::exchange(m_gate, std::nullopt)) {
+                gate->close();
+            }
         }
         bool waiting{};
-        pnm::coro::Task<pnm::EmptyResult<Error>> send(std::span<const std::byte> frame, Lane lane,
-                                                    std::stop_token stop) override
+        pnm::coro::Task<pnm::EmptyResult<Error>> send(std::span<const std::byte> frame,
+                                                      Lane lane,
+                                                      std::stop_token stop) override
         {
             if (lane == Lane::Background && m_gate) {
                 auto gate = *m_gate;
@@ -54,11 +69,13 @@ namespace
             }
             co_return co_await m_inner.send(frame, lane, stop);
         }
-        pnm::coro::Task<pnm::Result<std::size_t, Error>> receive(std::span<std::byte> buffer, Lane lane,
-                                                              std::stop_token stop) override
+        pnm::coro::Task<pnm::Result<std::size_t, Error>> receive(std::span<std::byte> buffer,
+                                                                 Lane lane,
+                                                                 std::stop_token stop) override
         {
             co_return co_await m_inner.receive(buffer, lane, stop);
         }
+
       private:
         ITransport& m_inner;
         std::optional<pnm::coro::Channel<bool>> m_gate;
@@ -85,7 +102,9 @@ namespace
         void pump()
         {
             for (unsigned turn{}; turn < 10000; ++turn) {
-                if (ioContext.poll() + uiContext.poll() == 0) { return; }
+                if (ioContext.poll() + uiContext.poll() == 0) {
+                    return;
+                }
             }
             throw std::runtime_error("Bridge did not become idle");
         }
@@ -110,8 +129,10 @@ namespace
     TEST_F(BackgroundTest, StartupBurstsRetainBoundedFifoWithVisibleLoss)
     {
         std::vector<std::string> recent, oldest;
-        auto a = uiBus.topic<^^Topics::logs>().subscribe([&](const auto& value) { recent.push_back(value); }, { .capacity = 16 });
-        auto b = uiBus.topic<^^Topics::oldest>().subscribe([&](const auto& value) { oldest.push_back(value); }, { .capacity = 16 });
+        auto a = uiBus.topic<^^Topics::logs>().subscribe([&](const auto& value) { recent.push_back(value); },
+                                                         { .capacity = 16 });
+        auto b = uiBus.topic<^^Topics::oldest>().subscribe(
+          [&](const auto& value) { oldest.push_back(value); }, { .capacity = 16 });
         for (unsigned i{}; i < 10; ++i) {
             ioBus.topic<^^Topics::logs>().publish(std::to_string(i));
             ioBus.topic<^^Topics::oldest>().publish(std::to_string(i));
@@ -133,7 +154,8 @@ namespace
     TEST_F(BackgroundTest, OversizedLogsAreCountedAndFollowingRecordsStillArrive)
     {
         std::vector<std::string> received;
-        auto subscription = uiBus.topic<^^Topics::logs>().subscribe([&](const auto& value) { received.push_back(value); });
+        auto subscription =
+          uiBus.topic<^^Topics::logs>().subscribe([&](const auto& value) { received.push_back(value); });
         // Exactly 512 bytes including the 16-byte header and four-byte topic name.
         const std::string maximum(icc::MAX_BACKGROUND_FRAME_BYTES - icc::util::HEADER_BYTES - 4, 'x');
         ioBus.topic<^^Topics::logs>().publish(maximum);
@@ -158,20 +180,25 @@ namespace
             execution.emplace(std::move(value));
         });
         std::vector<std::string> received;
-        auto logs = uiBus.topic<^^Topics::logs>().subscribe([&](const auto& value) { received.push_back(value); });
+        auto logs =
+          uiBus.topic<^^Topics::logs>().subscribe([&](const auto& value) { received.push_back(value); });
         connect();
         transport.block();
         ioBus.topic<^^Topics::logs>().publish("in flight");
         pump();
         ASSERT_TRUE(transport.waiting);
-        for (unsigned i{}; i < 100; ++i) { ioBus.topic<^^Topics::logs>().publish(std::to_string(i)); }
+        for (unsigned i{}; i < 100; ++i) {
+            ioBus.topic<^^Topics::logs>().publish(std::to_string(i));
+        }
         EXPECT_EQ(io.topicStatistics("logs")->queued, 4U);
         EXPECT_EQ(io.topicStatistics("logs")->dropped, 96U);
         auto ordinary = uiBus.service<^^Services::normal>().request(10U, 1s);
         auto urgent = uiBus.service<^^Services::stop>().request(10U, 1s);
         std::optional<pnm::msg::ActionResult<unsigned>> result;
-        auto goal = uiBus.action<^^Actions::move>().sendGoal(10U, { .accept_timeout = 1s },
-          { .on_result = [&](auto value) { result.emplace(std::move(value)); } });
+        auto goal = uiBus.action<^^Actions::move>().sendGoal(
+          10U, { .accept_timeout = 1s }, { .on_result = [&](auto value) {
+            result.emplace(std::move(value));
+        } });
         pump();
         EXPECT_EQ(normal.poll(), 1U);
         EXPECT_EQ(stop.poll(), 1U);
@@ -215,14 +242,21 @@ namespace
         pump();
         ASSERT_TRUE(transport.waiting);
         std::atomic_bool stopped{};
-        std::jthread stopper([&] { io.stop(1s); stopped.store(true); });
+        std::jthread stopper([&] {
+            io.stop(1s);
+            stopped.store(true);
+        });
         const auto deadline = std::chrono::steady_clock::now() + 2s;
         while (!stopped.load() && std::chrono::steady_clock::now() < deadline) {
             pump();
             std::this_thread::sleep_for(1ms);
         }
         EXPECT_TRUE(stopped.load());
-        if (!stopped.load()) { endpoints[0]->close(); transport.release(); pump(); }
+        if (!stopped.load()) {
+            endpoints[0]->close();
+            transport.release();
+            pump();
+        }
         stopper.join();
         pump();
         ui.stop();
@@ -236,7 +270,8 @@ namespace
     {
         connect();
         auto frame = icc::util::encode_frame(icc::util::FrameKind::Topic, "state", 0, 42U);
-        auto send = [](icc::ITransport& transport, std::span<const std::byte> bytes) -> pnm::coro::Task<void> {
+        auto send = [](icc::ITransport& transport,
+                       std::span<const std::byte> bytes) -> pnm::coro::Task<void> {
             EXPECT_TRUE(co_await transport.send(bytes, Lane::Background));
         };
         pnm::coro::co_spawn(ioContext, send(*endpoints[0], std::span(frame.bytes).first(frame.size)));

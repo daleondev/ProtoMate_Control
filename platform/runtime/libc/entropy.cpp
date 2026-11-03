@@ -1,10 +1,10 @@
 #include "hal/core/core.hpp"
 #include "hal/hal.hpp"
-#include <tx_api.h>
 #include <cerrno>
 #include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <tx_api.h>
 
 // Required Newlib/BSP ABI spelling.
 // NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)

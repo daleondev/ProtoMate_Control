@@ -26,12 +26,13 @@ namespace io::motion
         using Drivers = std::array<std::shared_ptr<hal::device::IStepperDriver>, 3>;
         // Optional dependency injection for tests. Production uses hal::core.
         using DriverFactory = std::function<Drivers(const std::array<std::size_t, 3>&,
-                                                   const std::shared_ptr<hal::IDigitalOutput>&)>;
+                                                    const std::shared_ptr<hal::IDigitalOutput>&)>;
 
         // Creates motors/feedback and a diagnostic worker, but neither configures
         // drivers nor starts the STEP timebase nor energizes the motors.
         // The optional sink is shared by all motor workers.
-        explicit Controller(const Configuration& configuration, const DriverFactory& driver_factory = {},
+        explicit Controller(const Configuration& configuration,
+                            const DriverFactory& driver_factory = {},
                             std::shared_ptr<pnm::log::ISink> log_sink = {});
         ~Controller();
         Controller(const Controller&) = delete;
@@ -43,7 +44,7 @@ namespace io::motion
         // initialize all drivers and start the common timebase (without pulses).
         // Failure leaves the controller disabled and rejects motion until recovery.
         void initializeDrivers();
-        void enable(); // Verifies every driver; waits for shared enable to settle.
+        void enable();  // Verifies every driver; waits for shared enable to settle.
         void disable(); // Stops/joins all work and invalidates references.
         void stop(std::optional<MotorId> motor = std::nullopt); // Retains holding torque.
         [[nodiscard]] bool enabled() const noexcept;
@@ -56,22 +57,30 @@ namespace io::motion
         pnm::Result<> setMotionDefaults(MotorId id, Defaults defaults);
 
         // Completion observers only notify a worker; they may run under command locks.
-        std::future<StepperMotor::Result> moveRel(
-          MotorId id, pnm::units::Angle distance, pnm::units::AngularVelocity velocity,
-          pnm::units::AngularAcceleration acceleration = 0_rad_s2,
-          pnm::units::AngularAcceleration deceleration = 0_rad_s2,
-          pnm::units::AngularJerk jerk = 0_rad_s3, BufferMode buffer_mode = BufferMode::Aborting,
-          pnm::units::Time timeout = 0_s, std::function<void()> completed = {});
-        std::future<StepperMotor::Result> moveAbs(
-          MotorId id, pnm::units::Angle target, pnm::units::AngularVelocity velocity,
-          pnm::units::AngularAcceleration acceleration = 0_rad_s2,
-          pnm::units::AngularAcceleration deceleration = 0_rad_s2,
-          pnm::units::AngularJerk jerk = 0_rad_s3, BufferMode buffer_mode = BufferMode::Aborting,
-          pnm::units::Time timeout = 0_s, std::function<void()> completed = {});
+        std::future<StepperMotor::Result> moveRel(MotorId id,
+                                                  pnm::units::Angle distance,
+                                                  pnm::units::AngularVelocity velocity,
+                                                  pnm::units::AngularAcceleration acceleration = 0_rad_s2,
+                                                  pnm::units::AngularAcceleration deceleration = 0_rad_s2,
+                                                  pnm::units::AngularJerk jerk = 0_rad_s3,
+                                                  BufferMode buffer_mode = BufferMode::Aborting,
+                                                  pnm::units::Time timeout = 0_s,
+                                                  std::function<void()> completed = {});
+        std::future<StepperMotor::Result> moveAbs(MotorId id,
+                                                  pnm::units::Angle target,
+                                                  pnm::units::AngularVelocity velocity,
+                                                  pnm::units::AngularAcceleration acceleration = 0_rad_s2,
+                                                  pnm::units::AngularAcceleration deceleration = 0_rad_s2,
+                                                  pnm::units::AngularJerk jerk = 0_rad_s3,
+                                                  BufferMode buffer_mode = BufferMode::Aborting,
+                                                  pnm::units::Time timeout = 0_s,
+                                                  std::function<void()> completed = {});
         std::future<StepperMotor::Result> reference(
-          MotorId id, pnm::units::AngularVelocity seek_velocity = DEFAULT_REFERENCE_SEEK,
+          MotorId id,
+          pnm::units::AngularVelocity seek_velocity = DEFAULT_REFERENCE_SEEK,
           pnm::units::AngularVelocity latch_velocity = DEFAULT_REFERENCE_LATCH,
-          pnm::units::Time timeout = DEFAULT_REFERENCE_TIMEOUT, std::function<void()> completed = {});
+          pnm::units::Time timeout = DEFAULT_REFERENCE_TIMEOUT,
+          std::function<void()> completed = {});
         pnm::Result<hal::step::PulseCount> setVelocity(MotorId id, pnm::units::AngularVelocity velocity);
 
       private:

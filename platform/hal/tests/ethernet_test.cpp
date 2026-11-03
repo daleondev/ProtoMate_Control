@@ -43,7 +43,8 @@ TEST(HalEthernet, ParsesRawAndVlanEtherTypes)
 
 TEST(HalEthernet, LinuxBackendValidatesStateWithoutRawSocketPrivileges)
 {
-    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
+    const auto ethernet{ hal::ethernet::create(
+      hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
     ASSERT_NE(ethernet, nullptr);
     EXPECT_FALSE(ethernet->isRunning());
     EXPECT_TRUE(ethernet->stop().has_value());
@@ -58,9 +59,8 @@ TEST(HalEthernet, LinuxBackendValidatesStateWithoutRawSocketPrivileges)
     EXPECT_EQ(receive.error(), std::make_error_code(std::errc::not_connected));
 
     const auto link{ ethernet->getLinkInfo() };
-    if (!link &&
-        (link.error() == std::make_error_code(std::errc::operation_not_permitted) ||
-         link.error() == std::make_error_code(std::errc::permission_denied))) {
+    if (!link && (link.error() == std::make_error_code(std::errc::operation_not_permitted) ||
+                  link.error() == std::make_error_code(std::errc::permission_denied))) {
         GTEST_SKIP() << "network control sockets are unavailable";
     }
     ASSERT_TRUE(link.has_value());
@@ -70,8 +70,8 @@ TEST(HalEthernet, LinuxBackendValidatesStateWithoutRawSocketPrivileges)
 TEST(HalEthernet, RejectsInvalidInterfaceNameBeforeOpeningRawSocket)
 {
     const std::string interface_name(128U, 'x');
-    const auto ethernet{ hal::ethernet::create(
-      hal::IEthernet::Configuration{ .interface_name = interface_name, .receive_ether_type = std::nullopt }) };
+    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{
+      .interface_name = interface_name, .receive_ether_type = std::nullopt }) };
     ASSERT_NE(ethernet, nullptr);
 
     const auto result{ ethernet->start() };
@@ -81,7 +81,8 @@ TEST(HalEthernet, RejectsInvalidInterfaceNameBeforeOpeningRawSocket)
 
 TEST(HalEthernet, ValidatesFramesAndTimeoutsBeforeUsingSocket)
 {
-    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
+    const auto ethernet{ hal::ethernet::create(
+      hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
     ASSERT_NE(ethernet, nullptr);
 
     std::array<std::byte, hal::IEthernet::ETHERNET_HEADER_SIZE> frame{};
@@ -106,13 +107,13 @@ TEST(HalEthernet, ValidatesFramesAndTimeoutsBeforeUsingSocket)
 
 TEST(HalEthernet, OpensAndClosesLinuxPacketSocketWhenPermitted)
 {
-    const auto ethernet{ hal::ethernet::create(hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
+    const auto ethernet{ hal::ethernet::create(
+      hal::IEthernet::Configuration{ .interface_name = "lo", .receive_ether_type = std::nullopt }) };
     ASSERT_NE(ethernet, nullptr);
 
     const auto started{ ethernet->start() };
-    if (!started &&
-        (started.error() == std::make_error_code(std::errc::operation_not_permitted) ||
-         started.error() == std::make_error_code(std::errc::permission_denied))) {
+    if (!started && (started.error() == std::make_error_code(std::errc::operation_not_permitted) ||
+                     started.error() == std::make_error_code(std::errc::permission_denied))) {
         GTEST_SKIP() << "CAP_NET_RAW is unavailable";
     }
     ASSERT_TRUE(started.has_value()) << started.error().message();

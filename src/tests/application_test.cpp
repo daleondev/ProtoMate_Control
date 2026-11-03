@@ -5,10 +5,10 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <chrono>
 #include <stdexcept>
 #include <thread>
-#include <array>
 #include <unistd.h>
 
 namespace
@@ -61,7 +61,9 @@ namespace
         {
             ::dup2(m_saved, STDIN_FILENO);
             ::close(m_saved);
-            if (m_pipe[1] >= 0) { ::close(m_pipe[1]); }
+            if (m_pipe[1] >= 0) {
+                ::close(m_pipe[1]);
+            }
         }
         ConsoleInput(const ConsoleInput&) = delete;
         ConsoleInput& operator=(const ConsoleInput&) = delete;

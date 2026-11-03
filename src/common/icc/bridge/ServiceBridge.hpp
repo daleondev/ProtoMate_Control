@@ -218,7 +218,8 @@ namespace icc
                 const auto id = ++m_lastCallId;
                 auto frame = util::encode_frame(FrameKind::Request, name, id, value);
                 auto timer = wakeAfter(owned->remainingTime());
-                auto readiness = pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notifyControl(); });
+                auto readiness =
+                  pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notifyControl(); });
                 m_outgoingCalls.push_back({
                   .id = id,
                   .lane = lane,

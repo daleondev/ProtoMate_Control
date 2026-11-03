@@ -53,7 +53,7 @@ namespace hal::device
     }
     auto SmartwinDisplay::servicePeriod() const noexcept -> std::chrono::milliseconds
     {
-        return std::min(m_output->servicePeriod(), std::chrono::milliseconds{10});
+        return std::min(m_output->servicePeriod(), std::chrono::milliseconds{ 10 });
     }
     void SmartwinDisplay::service() noexcept
     {
@@ -76,41 +76,42 @@ namespace hal::device
             return;
         }
         switch (m_phase) {
-        case Phase::Unpowered:
-            m_deadline = now + 2ms;
-            m_phase = Phase::ResetHold;
-            break;
-        case Phase::ResetHold:
-            if (now >= m_deadline) {
-                m_reset->write(gpio::Level::High);
-                m_deadline = now + 10ms;
-                m_phase = Phase::ResetReleased;
-            }
-            break;
-        case Phase::ResetReleased:
-            if (now >= m_deadline) {
-                m_standby->write(gpio::Level::High);
-                // Smartwin's power-on/standby-exit diagram needs multiple
-                // scan frames to establish the internal panel rails and data.
-                // Allow about twelve frames at 59.95 Hz before lighting it.
-                m_deadline = now + 200ms;
-                m_phase = Phase::Starting;
-            }
-            break;
-        case Phase::Starting:
-            if (now >= m_deadline) {
-                m_frameSync = m_output->state().vsyncs;
-                m_phase = Phase::AwaitFrame;
-            }
-            break;
-        case Phase::AwaitFrame:
-            if (const auto state = m_output->state(); state.presentations && state.vsyncs != m_frameSync && !state.errors) {
-                static_cast<void>(m_output->backlight(m_brightness));
-                m_phase = Phase::Active;
-            }
-            break;
-        case Phase::Active:
-            break;
+            case Phase::Unpowered:
+                m_deadline = now + 2ms;
+                m_phase = Phase::ResetHold;
+                break;
+            case Phase::ResetHold:
+                if (now >= m_deadline) {
+                    m_reset->write(gpio::Level::High);
+                    m_deadline = now + 10ms;
+                    m_phase = Phase::ResetReleased;
+                }
+                break;
+            case Phase::ResetReleased:
+                if (now >= m_deadline) {
+                    m_standby->write(gpio::Level::High);
+                    // Smartwin's power-on/standby-exit diagram needs multiple
+                    // scan frames to establish the internal panel rails and data.
+                    // Allow about twelve frames at 59.95 Hz before lighting it.
+                    m_deadline = now + 200ms;
+                    m_phase = Phase::Starting;
+                }
+                break;
+            case Phase::Starting:
+                if (now >= m_deadline) {
+                    m_frameSync = m_output->state().vsyncs;
+                    m_phase = Phase::AwaitFrame;
+                }
+                break;
+            case Phase::AwaitFrame:
+                if (const auto state = m_output->state();
+                    state.presentations && state.vsyncs != m_frameSync && !state.errors) {
+                    static_cast<void>(m_output->backlight(m_brightness));
+                    m_phase = Phase::Active;
+                }
+                break;
+            case Phase::Active:
+                break;
         }
     }
 }

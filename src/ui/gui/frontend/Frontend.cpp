@@ -1,9 +1,9 @@
 #include "Frontend.hpp"
 #include "Theme.hpp"
-#include <images/BitmapDatabase.hpp>
-#include <texts/TextKeysAndLanguages.hpp>
 #include <chrono>
+#include <images/BitmapDatabase.hpp>
 #include <stdexcept>
+#include <texts/TextKeysAndLanguages.hpp>
 namespace ui::gui
 {
     void Presenter::activate() { m_view.refresh(m_model); }
@@ -164,8 +164,9 @@ namespace ui::gui
         currentPresenter =
           m_detailsActive ? static_cast<touchgfx::Presenter*>(&m_detailsPresenter) : &m_presenter;
         currentPresenter->activate();
-        switchScreen(m_sceneActive ? static_cast<touchgfx::Screen*>(&m_sceneView) :
-                     m_detailsActive ? static_cast<touchgfx::Screen*>(&m_detailsView) : &m_view);
+        switchScreen(m_sceneActive     ? static_cast<touchgfx::Screen*>(&m_sceneView)
+                     : m_detailsActive ? static_cast<touchgfx::Screen*>(&m_detailsView)
+                                       : &m_view);
     }
     void Frontend::diagnostics(bool enabled)
     {
@@ -205,15 +206,16 @@ namespace ui::gui
         m_model.details = false;
         m_sceneRequested = true;
     }
-    Frontend::SceneView::SceneView(scene3d::RenderService& renderer) : m_renderer(renderer)
+    Frontend::SceneView::SceneView(scene3d::RenderService& renderer)
+      : m_renderer(renderer)
     {
-        m_background.setPosition(0,0,1024,600);
+        m_background.setPosition(0, 0, 1024, 600);
         m_background.setColor(theme::BACKGROUND);
         add(m_background);
         // Odd coordinates deliberately exercise cached source / DMA alignment.
-        m_image.setXY(49,137);
+        m_image.setXY(49, 137);
         add(m_image);
-        m_label.setPosition(48,48,928,64);
+        m_label.setPosition(48, 48, 928, 64);
         m_label.setTypedText(touchgfx::TypedText(T_BODYVALUE));
         m_label.setWildcard(m_labelText.data());
         m_label.setColor(theme::TEXT);
@@ -223,13 +225,16 @@ namespace ui::gui
     {
         if (!m_registered) {
             touchgfx::Bitmap::setCache(m_cache.data(), sizeof(m_cache), 2);
-            for (unsigned i=0;i<2;++i) {
-                m_bitmaps[i]=touchgfx::Bitmap::dynamicBitmapCreateExternal(
-                  scene3d::WIDTH,scene3d::HEIGHT,m_renderer.pixels(i).data(),touchgfx::Bitmap::RGB565);
-                if (m_bitmaps[i]==touchgfx::BITMAP_INVALID) { throw std::runtime_error("3D bitmap registration failed"); }
-                touchgfx::Bitmap::dynamicBitmapSetSolidRect(m_bitmaps[i], {0,0,scene3d::WIDTH,scene3d::HEIGHT});
+            for (unsigned i = 0; i < 2; ++i) {
+                m_bitmaps[i] = touchgfx::Bitmap::dynamicBitmapCreateExternal(
+                  scene3d::WIDTH, scene3d::HEIGHT, m_renderer.pixels(i).data(), touchgfx::Bitmap::RGB565);
+                if (m_bitmaps[i] == touchgfx::BITMAP_INVALID) {
+                    throw std::runtime_error("3D bitmap registration failed");
+                }
+                touchgfx::Bitmap::dynamicBitmapSetSolidRect(m_bitmaps[i],
+                                                            { 0, 0, scene3d::WIDTH, scene3d::HEIGHT });
             }
-            m_registered=true;
+            m_registered = true;
         }
         m_image.setVisible(false);
         m_renderer.visible(true);
@@ -238,24 +243,30 @@ namespace ui::gui
     Frontend::SceneView::~SceneView()
     {
         if (m_registered) {
-            for (auto id:m_bitmaps) { touchgfx::Bitmap::dynamicBitmapDelete(id); }
+            for (auto id : m_bitmaps) {
+                touchgfx::Bitmap::dynamicBitmapDelete(id);
+            }
             touchgfx::Bitmap::removeCache();
         }
     }
     void Frontend::SceneView::handleTickEvent()
     {
-        const auto time=std::chrono::duration_cast<std::chrono::microseconds>(
-          std::chrono::steady_clock::now().time_since_epoch()).count();
-        m_renderer.submit({&scene3d::benchmarkScene(triangles),
-          scene3d::benchmarkSnapshot(float(time%60000000)/1000000, ++m_revision, time)});
-        if (const auto image=m_renderer.acquire()) {
+        const auto time = std::chrono::duration_cast<std::chrono::microseconds>(
+                            std::chrono::steady_clock::now().time_since_epoch())
+                            .count();
+        m_renderer.submit(
+          { &scene3d::benchmarkScene(triangles),
+            scene3d::benchmarkSnapshot(float(time % 60000000) / 1000000, ++m_revision, time) });
+        if (const auto image = m_renderer.acquire()) {
             m_image.setBitmap(touchgfx::Bitmap(m_bitmaps[image->slot]));
             m_image.setVisible(true);
             m_image.invalidate();
         }
-        if (m_revision%60==1) {
-            touchgfx::Unicode::snprintf(m_labelText.data(),m_labelText.size(),
-              "Shaded 3D benchmark | %u triangles | 640 x 400",triangles);
+        if (m_revision % 60 == 1) {
+            touchgfx::Unicode::snprintf(m_labelText.data(),
+                                        m_labelText.size(),
+                                        "Shaded 3D benchmark | %u triangles | 640 x 400",
+                                        triangles);
             m_label.setTypedText(m_label.getTypedText());
             m_label.invalidate();
         }

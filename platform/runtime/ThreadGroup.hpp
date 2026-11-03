@@ -21,7 +21,7 @@ namespace runtime::thread
     {
         std::int32_t priority{};
         std::size_t stack_size{};
-            void* stack_storage{};
+        void* stack_storage{};
     };
 }
 
@@ -55,7 +55,8 @@ namespace runtime
             try {
                 // Clang generates reserved names for expansion statements.
                 // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
-                template for (constexpr auto entry : entries) {
+                template for (constexpr auto entry : entries)
+                {
                     // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
                     static_assert(std::is_convertible_v<decltype(&[:entry:]), void (Owner::*)()>,
                                   "Thread entries must be nonstatic void methods without arguments");
@@ -64,15 +65,17 @@ namespace runtime
                                   "Thread priority is out of range");
                     static_assert(definition.stack_size >= TX_MINIMUM_STACK,
                                   "Thread stack is smaller than the platform minimum");
-                    const auto thread_name = std::string(name) + "." + std::string(std::meta::identifier_of(entry));
-                    m_threads.push_back(thread::create(
-                      { .name = thread_name, .priority = definition.priority, .stack_size = definition.stack_size,
-                        .stack_storage = definition.stack_storage },
-                      [this, &owner] {
-                          if (waitForLaunch()) {
-                              (owner.*&[:entry:])();
-                          }
-                      }));
+                    const auto thread_name =
+                      std::string(name) + "." + std::string(std::meta::identifier_of(entry));
+                    m_threads.push_back(thread::create({ .name = thread_name,
+                                                         .priority = definition.priority,
+                                                         .stack_size = definition.stack_size,
+                                                         .stack_storage = definition.stack_storage },
+                                                       [this, &owner] {
+                        if (waitForLaunch()) {
+                            (owner.*&[:entry:])();
+                        }
+                    }));
                 }
             } catch (...) {
                 release(false);

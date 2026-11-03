@@ -51,7 +51,9 @@ namespace ui::cli
                     std::this_thread::sleep_for(INPUT_INTERVAL);
                     continue;
                 case hal::console::InputState::Closed:
-                    if (!line.empty() || overflow) { execute(); }
+                    if (!line.empty() || overflow) {
+                        execute();
+                    }
                     std::cout.flush();
                     return;
                 case hal::console::InputState::Reset:
@@ -76,14 +78,18 @@ namespace ui::cli
                 return;
             }
             if (character == '\r' || character == '\n') {
-                if (echo) { std::cout << '\n'; }
+                if (echo) {
+                    std::cout << '\n';
+                }
                 execute();
                 std::cout << "> " << std::flush;
             }
             else if (character == '\b' || character == '\x7f') {
                 if (!line.empty() && !overflow) {
                     line.pop_back();
-                    if (echo) { std::cout << "\b \b" << std::flush; }
+                    if (echo) {
+                        std::cout << "\b \b" << std::flush;
+                    }
                 }
             }
             else if (!overflow) {
@@ -92,7 +98,9 @@ namespace ui::cli
                 }
                 else {
                     line.push_back(character);
-                    if (echo) { std::cout << character << std::flush; }
+                    if (echo) {
+                        std::cout << character << std::flush;
+                    }
                 }
             }
         }

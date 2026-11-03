@@ -1,26 +1,26 @@
 #pragma once
-#include "hal/drivers/itf/IGraphics.hpp"
 #include "hal/devices/itf/IDisplay.hpp"
 #include "hal/devices/itf/ITouch.hpp"
+#include "hal/drivers/itf/IGraphics.hpp"
 
-#include "hal/devices/itf/ILed.hpp"
 #include "hal/devices/itf/IButton.hpp"
-#include "hal/drivers/itf/IRtc.hpp"
-#include "hal/drivers/itf/IRng.hpp"
-#include "hal/drivers/itf/ITimer.hpp"
-#include "hal/util/Core.hpp"
-#include "hal/drivers/itf/IInterCoreChannel.hpp"
+#include "hal/devices/itf/ILed.hpp"
 #include "hal/devices/itf/IMotorFeedback.hpp"
 #include "hal/devices/itf/IStepperDriver.hpp"
 #include "hal/devices/itf/MotorTypes.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
+#include "hal/drivers/itf/IInterCoreChannel.hpp"
+#include "hal/drivers/itf/IRng.hpp"
+#include "hal/drivers/itf/IRtc.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
+#include "hal/drivers/itf/ITimer.hpp"
 #include "hal/drivers/itf/IUart.hpp"
+#include "hal/util/Core.hpp"
 
 #include "hal/drivers/itf/ISpi.hpp"
-#include <memory>
 #include <array>
+#include <memory>
 
 namespace hal::core
 {
@@ -45,14 +45,14 @@ namespace hal::core
     // Construction does not start pulses, initialize drivers or enable motors.
     [[nodiscard]] auto create_stepper_generator() -> std::shared_ptr<IStepGenerator>;
     [[nodiscard]] auto create_stepper_step_output(const std::shared_ptr<IStepGenerator>& generator,
-                                                 MotorId id) -> std::shared_ptr<IStepOutput>;
+                                                  MotorId id) -> std::shared_ptr<IStepOutput>;
     [[nodiscard]] auto create_stepper_direction_output(MotorId id) -> std::shared_ptr<IDigitalOutput>;
     [[nodiscard]] auto create_steppers_enable_output() -> std::shared_ptr<IDigitalOutput>;
     [[nodiscard]] auto create_reference_limit_switch(MotorId id) -> std::shared_ptr<IDigitalInput>;
     [[nodiscard]] auto create_stepper_driver_bus() -> std::shared_ptr<IUart>;
     [[nodiscard]] auto create_stepper_drivers(const std::array<std::size_t, 3>& microsteps,
-                                             const std::shared_ptr<IDigitalOutput>& enable,
-                                             std::shared_ptr<IUart> uart = {})
+                                              const std::shared_ptr<IDigitalOutput>& enable,
+                                              std::shared_ptr<IUart> uart = {})
       -> std::array<std::shared_ptr<device::IStepperDriver>, 3>;
     [[nodiscard]] auto create_motor_feedback(MotorId id, const MotorFeedbackConfig& config)
       -> std::shared_ptr<device::IMotorFeedback>;

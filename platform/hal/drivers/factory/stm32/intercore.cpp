@@ -10,7 +10,9 @@ namespace hal::intercore
         static std::mutex mutex;
         static std::weak_ptr<IInterCoreChannel> endpoint;
         const std::scoped_lock lock(mutex);
-        if (!endpoint.expired()) { return {}; }
+        if (!endpoint.expired()) {
+            return {};
+        }
         auto result = std::make_shared<InterCoreChannel>();
         endpoint = result;
         return result;

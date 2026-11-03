@@ -23,9 +23,9 @@ namespace annotated_cli_fixture::commands
         = ui::cli::Arg{ .name = "suffix"_fs, .description = "Optional suffix"_fs, .optional = true },
         = ui::cli::Flag{ .name = "upper"_fs, .short_name = 'u', .description = "Mark as upper"_fs },
         = ui::cli::Flag{ .name = "prefix"_fs,
-                     .short_name = 'p',
-                     .description = "Text prefix"_fs,
-                     .value_name = "text"_fs }
+                         .short_name = 'p',
+                         .description = "Text prefix"_fs,
+                         .value_name = "text"_fs }
     ]] static auto echo(const ui::cli::Arguments& args, std::ostream& out) -> ui::cli::CallbackResult
     {
         out << args.flagValue("prefix").value_or("") << args.require("text")
@@ -35,7 +35,8 @@ namespace annotated_cli_fixture::commands
 
     [[ = "Forward pipeline input."_fs,
        = ui::cli::Name{ "meta stream"_fs } ]] static auto stream(const ui::cli::Arguments& /*unused*/,
-                                                             ui::cli::CommandIO& io) -> ui::cli::CallbackResult
+                                                                 ui::cli::CommandIO& io)
+      -> ui::cli::CallbackResult
     {
         io.output << io.input.rdbuf();
         return 0;
@@ -55,8 +56,9 @@ namespace bound_cli_fixture
 
         [[ = "Count calls on the injected context."_fs,
            = ui::cli::Name{ "meta count"_fs } ]] static auto count(Context& context,
-                                                               const ui::cli::Arguments& /*unused*/,
-                                                               ui::cli::CommandIO& io) -> ui::cli::CallbackResult
+                                                                   const ui::cli::Arguments& /*unused*/,
+                                                                   ui::cli::CommandIO& io)
+          -> ui::cli::CallbackResult
         {
             io.output << ++context.calls;
             return 0;

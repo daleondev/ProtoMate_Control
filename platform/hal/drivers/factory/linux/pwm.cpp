@@ -3,7 +3,6 @@
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/impl/linux/PwmOutput.hpp"
 
-
 #include <array>
 #include <utility>
 

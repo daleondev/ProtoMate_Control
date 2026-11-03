@@ -1,7 +1,7 @@
 #pragma once
-#include "hal/drivers/itf/IGraphics.hpp"
 #include "hal/devices/itf/IDisplay.hpp"
 #include "hal/devices/itf/ITouch.hpp"
+#include "hal/drivers/itf/IGraphics.hpp"
 
 #include "hal/devices/itf/IButton.hpp"
 #include "hal/devices/itf/ILed.hpp"
@@ -10,14 +10,14 @@
 #include "hal/devices/itf/MotorTypes.hpp"
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
-#include "hal/drivers/itf/IQuadratureEncoder.hpp"
-#include "hal/drivers/itf/ISpi.hpp"
-#include "hal/drivers/itf/ITimer.hpp"
-#include "hal/drivers/itf/IStepGenerator.hpp"
-#include "hal/drivers/itf/IUart.hpp"
-#include "hal/drivers/itf/IRtc.hpp"
-#include "hal/drivers/itf/IRng.hpp"
 #include "hal/drivers/itf/IInterCoreChannel.hpp"
+#include "hal/drivers/itf/IQuadratureEncoder.hpp"
+#include "hal/drivers/itf/IRng.hpp"
+#include "hal/drivers/itf/IRtc.hpp"
+#include "hal/drivers/itf/ISpi.hpp"
+#include "hal/drivers/itf/IStepGenerator.hpp"
+#include "hal/drivers/itf/ITimer.hpp"
+#include "hal/drivers/itf/IUart.hpp"
 #include <array>
 
 #include <cstdint>

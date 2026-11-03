@@ -1,8 +1,8 @@
 #include "Rtc.hpp"
 
 #include "hal/stm32/HalResult.hpp"
-#include "hal/stm32/InterruptGuard.hpp"
 #include "hal/stm32/HardwareSemaphore.hpp"
+#include "hal/stm32/InterruptGuard.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -51,7 +51,9 @@ namespace hal
             // read and releasing our snapshot at a calendar rollover.
             const stm32::InterruptGuard interrupt_guard;
             const stm32::HardwareSemaphore shared(3);
-            if (!shared) { return make_error_result<Timestamp>(HalError::Timeout); }
+            if (!shared) {
+                return make_error_result<Timestamp>(HalError::Timeout);
+            }
             time_status = HAL_RTC_GetTime(&m_handle, &time, RTC_FORMAT_BIN);
             // Always read the date, even if a future HAL implementation can
             // fail GetTime after locking the shadow registers.

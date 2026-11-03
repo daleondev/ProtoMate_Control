@@ -48,7 +48,10 @@ namespace hal::board
 
     }
 
-    auto create_stepper_generator() -> std::shared_ptr<IStepGenerator> { return step::create({ .pins = { gpio::Pin{A, 0}, gpio::Pin{A, 2}, gpio::Pin{A, 3} } }); }
+    auto create_stepper_generator() -> std::shared_ptr<IStepGenerator>
+    {
+        return step::create({ .pins = { gpio::Pin{ A, 0 }, gpio::Pin{ A, 2 }, gpio::Pin{ A, 3 } } });
+    }
 
     auto create_stepper_driver_bus() -> std::shared_ptr<IUart>
     {
@@ -57,7 +60,8 @@ namespace hal::board
         return device::tmc2209::create_transport({
           .peripheral = uart::Peripheral::Usart2,
           .transport = { .local_echo = true, .settle_time = std::chrono::milliseconds{ 1 } },
-          .tx = {D, 5}, .rx = {D, 6},
+          .tx = { D, 5 },
+          .rx = { D, 6 },
         });
     }
 

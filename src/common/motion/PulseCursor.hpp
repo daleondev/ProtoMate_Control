@@ -20,29 +20,30 @@ namespace motion::trajectory
     class PulseCursor final
     {
       public:
-        PulseCursor(const Capabilities& capabilities, Counts position, std::uint64_t origin=0);
+        PulseCursor(const Capabilities& capabilities, Counts position, std::uint64_t origin = 0);
         [[nodiscard]] Error append(const Segment& segment) noexcept;
-        [[nodiscard]] std::expected<std::optional<Pulse>,Error> next() noexcept;
+        [[nodiscard]] std::expected<std::optional<Pulse>, Error> next() noexcept;
         [[nodiscard]] Counts position() const noexcept { return m_position; }
         [[nodiscard]] std::uint64_t endTick() const noexcept { return m_end; }
         [[nodiscard]] Error error() const noexcept { return m_error; }
+
       private:
         struct Axis
         {
-            std::array<double,7> divisions{};
-            std::size_t count{},interval{};
+            std::array<double, 7> divisions{};
+            std::size_t count{}, interval{};
             std::optional<Pulse> pending;
             std::uint64_t last_tick{};
-            bool has_pulsed{},direction{};
+            bool has_pulsed{}, direction{};
         };
         [[nodiscard]] Error advance(unsigned axis) noexcept;
         Capabilities m_capabilities;
         Counts m_position;
-        std::array<Axis,3> m_axes{};
+        std::array<Axis, 3> m_axes{};
         Segment m_segment{};
         MotorStates m_boundary{};
-        std::uint64_t m_begin{},m_end{};
-        Error m_error{Error::None};
-        bool m_active{},m_started{};
+        std::uint64_t m_begin{}, m_end{};
+        Error m_error{ Error::None };
+        bool m_active{}, m_started{};
     };
 }

@@ -68,7 +68,8 @@ namespace icc
         // Thread-safe pending subscription records and cumulative overflow/size
         // drops. Excludes frames already handed to the transport; no delivery ACK.
         // nullopt for unknown/incoming topics or after bridge cleanup.
-        [[nodiscard]] std::optional<pnm::msg::SubscriptionStatistics> topicStatistics(std::string_view name) const;
+        [[nodiscard]] std::optional<pnm::msg::SubscriptionStatistics> topicStatistics(
+          std::string_view name) const;
 
         // Catalog annotations identify the PROVIDER. Replies return automatically.
         // Register before start(), with matching names and Request/Response types

@@ -1,7 +1,13 @@
 #pragma once
 
-namespace ui { class SystemState; }
-namespace ui::cli { class Parser; }
+namespace ui
+{
+    class SystemState;
+}
+namespace ui::cli
+{
+    class Parser;
+}
 
 namespace ui::cli::state
 {

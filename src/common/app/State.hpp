@@ -7,7 +7,14 @@
 namespace app
 {
     // Application lifecycle, independent of motor enable, referencing and motion.
-    enum class State : std::uint8_t { Starting, Ready, Stopping, Stopped, Fault };
+    enum class State : std::uint8_t
+    {
+        Starting,
+        Ready,
+        Stopping,
+        Stopped,
+        Fault
+    };
 
     inline constexpr std::chrono::milliseconds STATE_PERIOD{ 100 };
     inline constexpr std::chrono::milliseconds STATE_MAX_AGE{ 500 };
@@ -26,14 +33,18 @@ namespace app
         {
             auto current{ m_state.load() };
             while (current == State::Starting || current == State::Ready) {
-                if (m_state.compare_exchange_weak(current, State::Stopping)) { break; }
+                if (m_state.compare_exchange_weak(current, State::Stopping)) {
+                    break;
+                }
             }
         }
         void stopped() noexcept
         {
             auto current{ m_state.load() };
             while (current != State::Fault && current != State::Stopped) {
-                if (m_state.compare_exchange_weak(current, State::Stopped)) { break; }
+                if (m_state.compare_exchange_weak(current, State::Stopped)) {
+                    break;
+                }
             }
         }
         void fail() noexcept { m_state.store(State::Fault); }

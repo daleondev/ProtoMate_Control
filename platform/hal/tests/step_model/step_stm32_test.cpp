@@ -39,7 +39,10 @@ namespace
             dma_streams = {};
             primask = 0;
             timer.CR1 = 0;
-            auto hardware{ std::make_unique<hal::stm32::StepHardware>(std::array<hal::gpio::Pin, 3>{hal::gpio::Pin{hal::gpio::Port::A, 0}, hal::gpio::Pin{hal::gpio::Port::A, 2}, hal::gpio::Pin{hal::gpio::Port::A, 3}}) };
+            auto hardware{ std::make_unique<hal::stm32::StepHardware>(
+              std::array<hal::gpio::Pin, 3>{ hal::gpio::Pin{ hal::gpio::Port::A, 0 },
+                                             hal::gpio::Pin{ hal::gpio::Port::A, 2 },
+                                             hal::gpio::Pin{ hal::gpio::Port::A, 3 } }) };
             engine = std::make_shared<hal::util::StepGenerator>(std::move(hardware));
             hal::stm32::register_step_generator(engine.get());
             for (unsigned i = 0; i < 3; ++i)
@@ -94,9 +97,8 @@ namespace
                     auto d = hal::util::step_distance(timer.CNT, target);
                     return d ? d : hal::util::STEP_PARK;
                 };
-                auto next = (timer.DIER & TIM_DIER_CC2DE)
-                              ? distance(timer.CCR2)
-                              : std::uint64_t{ hal::util::STEP_PARK } - timer.CNT;
+                auto next = (timer.DIER & TIM_DIER_CC2DE) ? distance(timer.CCR2)
+                                                          : std::uint64_t{ hal::util::STEP_PARK } - timer.CNT;
                 std::array<std::uint64_t, 3> events;
                 for (unsigned i = 0; i < 3; ++i) {
                     events[i] = compare(i) == hal::util::STEP_PARK

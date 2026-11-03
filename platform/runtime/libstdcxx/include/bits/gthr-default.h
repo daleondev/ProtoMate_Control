@@ -15,8 +15,7 @@
 
 // Accept only the Arm libstdc++ snapshots checked against this adapter.
 // GCC 16.1 and 16.2 share the vendored filesystem and atomic implementations.
-#if defined(__ARM_EABI__) &&                                                                                 \
-  (!defined(__GLIBCXX__) || (__GLIBCXX__ != 20260430 && __GLIBCXX__ != 20260807))
+#if defined(__ARM_EABI__) && (!defined(__GLIBCXX__) || (__GLIBCXX__ != 20260430 && __GLIBCXX__ != 20260807))
 #error "The ThreadX libstdc++ adapter requires Arm GCC 16.1.0 or GCC 16.2.0"
 #endif
 

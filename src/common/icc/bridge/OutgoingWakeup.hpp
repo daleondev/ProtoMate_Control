@@ -36,9 +36,12 @@ namespace icc::util
         OutgoingSignal& signal(Lane lane)
         {
             switch (lane) {
-                case Lane::Urgent: return urgent;
-                case Lane::Background: return background;
-                default: return normal;
+                case Lane::Urgent:
+                    return urgent;
+                case Lane::Background:
+                    return background;
+                default:
+                    return normal;
             }
         }
         void notifyControl() noexcept

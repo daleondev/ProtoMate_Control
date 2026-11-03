@@ -11,6 +11,7 @@ namespace runtime::storage
         bool program(std::size_t offset, std::span<const std::byte, 32> word) noexcept override;
         bool erase(std::size_t block) noexcept override;
         std::uint32_t error() const noexcept { return m_error; }
+
       private:
         std::uint32_t m_error{};
     };

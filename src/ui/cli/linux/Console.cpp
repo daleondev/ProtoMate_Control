@@ -1,8 +1,8 @@
 #include "Console.hpp"
 
-#include "ui/cli/Parser.hpp"
-#include "ui/cli/Console.hpp"
 #include "hal/linux/console.hpp"
+#include "ui/cli/Console.hpp"
+#include "ui/cli/Parser.hpp"
 
 #include <algorithm>
 #include <array>

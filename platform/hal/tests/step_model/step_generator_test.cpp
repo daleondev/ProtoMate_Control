@@ -1,5 +1,5 @@
-#include "hal/drivers/impl/linux/SimulatedStepHardware.hpp"
 #include "hal/drivers/impl/StepGenerator.hpp"
+#include "hal/drivers/impl/linux/SimulatedStepHardware.hpp"
 
 #include <gtest/gtest.h>
 
@@ -55,15 +55,16 @@ namespace
 
 TEST(StepArithmetic, AdditionMatchesCounterModulusIncludingCarryAndPark)
 {
-    constexpr std::array values{0U, 1U, 2U, 0x7FFFFFFFU, 0x80000000U, 0xFFFFFFFEU, 0xFFFFFFFFU};
+    constexpr std::array values{ 0U, 1U, 2U, 0x7FFFFFFFU, 0x80000000U, 0xFFFFFFFEU, 0xFFFFFFFFU };
     const auto verify = [](std::uint32_t tick, std::uint32_t delta) {
-        EXPECT_EQ(hal::util::step_add(tick, delta),
-                  (std::uint64_t{tick} + delta) % hal::util::STEP_PARK);
+        EXPECT_EQ(hal::util::step_add(tick, delta), (std::uint64_t{ tick } + delta) % hal::util::STEP_PARK);
     };
     for (auto tick : values) {
-        for (auto delta : values) { verify(tick, delta); }
+        for (auto delta : values) {
+            verify(tick, delta);
+        }
     }
-    std::uint32_t random{0xC001CAFEU};
+    std::uint32_t random{ 0xC001CAFEU };
     for (unsigned i{}; i < 10000; ++i) {
         const auto tick = random;
         random = random * 1664525U + 1013904223U;
@@ -876,36 +877,37 @@ TEST_F(StepTest, PreparedGroupUsesOneClockOriginAcrossRolloverAndLeavesOtherAxes
 {
     ASSERT_TRUE(generator->start());
     hardware->advance(hal::util::STEP_PARK - 2000ULL);
-    const auto origin{hardware->elapsed};
-    ASSERT_TRUE(outputs[0]->prepare({100us,5us},3));
-    ASSERT_TRUE(outputs[1]->prepare({200us,5us},2));
-    ASSERT_TRUE(outputs[2]->prepare({100us,5us},1));
-    ASSERT_TRUE(generator->startPrepared({100us,100us,300us}));
+    const auto origin{ hardware->elapsed };
+    ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 3));
+    ASSERT_TRUE(outputs[1]->prepare({ 200us, 5us }, 2));
+    ASSERT_TRUE(outputs[2]->prepare({ 100us, 5us }, 1));
+    ASSERT_TRUE(generator->startPrepared({ 100us, 100us, 300us }));
     hardware->advance(20000U);
-    EXPECT_EQ(rises(0),(std::vector<std::uint64_t>{origin+1000,origin+2000,origin+3000}));
-    EXPECT_EQ(rises(1),(std::vector<std::uint64_t>{origin+1000,origin+3000}));
-    EXPECT_EQ(rises(2),(std::vector<std::uint64_t>{origin+3000}));
-    for (auto state: generator->status().axes) EXPECT_EQ(state,State::Completed);
-    ASSERT_TRUE(outputs[0]->prepare({100us,5us},20));
-    ASSERT_TRUE(outputs[1]->prepare({100us,5us},1));
+    EXPECT_EQ(rises(0), (std::vector<std::uint64_t>{ origin + 1000, origin + 2000, origin + 3000 }));
+    EXPECT_EQ(rises(1), (std::vector<std::uint64_t>{ origin + 1000, origin + 3000 }));
+    EXPECT_EQ(rises(2), (std::vector<std::uint64_t>{ origin + 3000 }));
+    for (auto state : generator->status().axes)
+        EXPECT_EQ(state, State::Completed);
+    ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 20));
+    ASSERT_TRUE(outputs[1]->prepare({ 100us, 5us }, 1));
     ASSERT_TRUE(outputs[0]->start(100us));
-    ASSERT_TRUE(generator->startPrepared({std::nullopt,100us,std::nullopt}));
+    ASSERT_TRUE(generator->startPrepared({ std::nullopt, 100us, std::nullopt }));
     hardware->advance(30000U);
-    EXPECT_EQ(outputs[0]->status().pulses,20U);
-    EXPECT_EQ(outputs[1]->status().pulses,1U);
+    EXPECT_EQ(outputs[0]->status().pulses, 20U);
+    EXPECT_EQ(outputs[1]->status().pulses, 1U);
 }
 
 TEST_F(StepTest, PreparedGroupValidatesEveryAxisBeforeEmittingAnyPulse)
 {
-    ASSERT_TRUE(outputs[0]->prepare({100us,5us},5));
+    ASSERT_TRUE(outputs[0]->prepare({ 100us, 5us }, 5));
     ASSERT_TRUE(generator->start());
-    EXPECT_FALSE(generator->startPrepared({100us,100us,std::nullopt})); // Axis 2 unprepared.
-    EXPECT_FALSE(generator->startPrepared({1us,std::nullopt,std::nullopt}));
+    EXPECT_FALSE(generator->startPrepared({ 100us, 100us, std::nullopt })); // Axis 2 unprepared.
+    EXPECT_FALSE(generator->startPrepared({ 1us, std::nullopt, std::nullopt }));
     EXPECT_FALSE(generator->startPrepared({}));
     hardware->advance(20000U);
     EXPECT_TRUE(hardware->edges.empty());
-    ASSERT_TRUE(generator->startPrepared({100us,std::nullopt,std::nullopt}));
-    EXPECT_FALSE(generator->startPrepared({100us,std::nullopt,std::nullopt}));
+    ASSERT_TRUE(generator->startPrepared({ 100us, std::nullopt, std::nullopt }));
+    EXPECT_FALSE(generator->startPrepared({ 100us, std::nullopt, std::nullopt }));
     hardware->advance(20000U);
-    EXPECT_EQ(rises(0).size(),5U);
+    EXPECT_EQ(rises(0).size(), 5U);
 }

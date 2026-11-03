@@ -33,8 +33,11 @@ namespace icc
         // Scan each bounded subscription once. Rotating the starting point
         // prevents one frequently published topic from starving the others.
         for (std::size_t offset = 0; offset < m_outgoingTopics.size(); ++offset) {
-            const auto index = (m_nextOutgoingTopic[static_cast<std::size_t>(lane)] + offset) % m_outgoingTopics.size();
-            if (m_outgoingTopics[index].lane != lane) { continue; }
+            const auto index =
+              (m_nextOutgoingTopic[static_cast<std::size_t>(lane)] + offset) % m_outgoingTopics.size();
+            if (m_outgoingTopics[index].lane != lane) {
+                continue;
+            }
             if (auto frame = m_outgoingTopics[index].take()) {
                 m_nextOutgoingTopic[static_cast<std::size_t>(lane)] = (index + 1) % m_outgoingTopics.size();
                 return frame;
@@ -67,7 +70,9 @@ namespace icc
     {
         const std::scoped_lock lock(m_mutex);
         const auto found = std::ranges::find(m_outgoingTopics, topic, &OutgoingTopic::name);
-        if (found == m_outgoingTopics.end()) { return std::nullopt; }
+        if (found == m_outgoingTopics.end()) {
+            return std::nullopt;
+        }
         return found->statistics();
     }
 }

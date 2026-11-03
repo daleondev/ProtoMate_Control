@@ -5,13 +5,13 @@
 #include "common/icc/examples/ContextThread.hpp"
 #include "common/icc/transport/InProcessTransport.hpp"
 #include "io/diagnostics/Server.hpp"
+#include "runtime/thread.hpp"
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/utilities.hpp"
-#include "runtime/thread.hpp"
 
-#include <gtest/gtest.h>
 #include <algorithm>
 #include <chrono>
+#include <gtest/gtest.h>
 #include <sstream>
 #include <string>
 
@@ -97,7 +97,9 @@ namespace
                 EXPECT_NE(output.str().find(worker_name), std::string::npos) << output.str();
                 EXPECT_NE(output.str().find("Stack-Usage Bar"), std::string::npos);
             }
-            else { EXPECT_NE(output.str().find("glibc"), std::string::npos); }
+            else {
+                EXPECT_NE(output.str().find("glibc"), std::string::npos);
+            }
         }
         worker.request_stop();
         worker.join();
@@ -120,9 +122,8 @@ namespace
         for (const auto command : { "heap io", "stack io" }) {
             std::ostringstream output;
             ui::cli::ExecutionResult result;
-            auto caller{ runtime::thread::create({ .stack_size = 32768 }, [&] {
-                result = parser.execute(command, output);
-            }) };
+            auto caller{ runtime::thread::create({ .stack_size = 32768 },
+                                                 [&] { result = parser.execute(command, output); }) };
             EXPECT_EQ(server.poll(1s), 1U);
             caller.join();
             ASSERT_TRUE(result) << result.message;
@@ -145,9 +146,8 @@ namespace
           [&](MemoryQuery, pnm::msg::Reply<MemorySnapshot> reply) { pending.emplace(std::move(reply)); }) };
         std::ostringstream output;
         ui::cli::ExecutionResult result;
-        auto caller{ runtime::thread::create({ .stack_size = 32768 }, [&] {
-            result = parser.execute("stack io", output);
-        }) };
+        auto caller{ runtime::thread::create({ .stack_size = 32768 },
+                                             [&] { result = parser.execute("stack io", output); }) };
         EXPECT_EQ(server.poll(1s), 1U);
         const auto before{ std::chrono::steady_clock::now() };
         stop.request_stop();
@@ -168,9 +168,8 @@ namespace
         }) };
         std::ostringstream output;
         ui::cli::ExecutionResult result;
-        auto caller{ runtime::thread::create({ .stack_size = 32768 }, [&] {
-            result = parser.execute("stack io", output);
-        }) };
+        auto caller{ runtime::thread::create({ .stack_size = 32768 },
+                                             [&] { result = parser.execute("stack io", output); }) };
         EXPECT_EQ(server.poll(1s), 1U);
         caller.join();
         EXPECT_EQ(result.error, ui::cli::ExecutionError::CallbackFailed);
@@ -182,13 +181,12 @@ namespace
     {
         auto server{ ioBus.service<^^icc::Services::io_memory>().serveDeferred(
           [](MemoryQuery, pnm::msg::Reply<MemorySnapshot> reply) {
-              reply.fail(pnm::msg::ServiceError::Busy);
-          }) };
+            reply.fail(pnm::msg::ServiceError::Busy);
+        }) };
         std::ostringstream output;
         ui::cli::ExecutionResult result;
-        auto caller{ runtime::thread::create({ .stack_size = 32768 }, [&] {
-            result = parser.execute("heap io", output);
-        }) };
+        auto caller{ runtime::thread::create({ .stack_size = 32768 },
+                                             [&] { result = parser.execute("heap io", output); }) };
         EXPECT_EQ(server.poll(1s), 1U);
         caller.join();
         EXPECT_EQ(result.error, ui::cli::ExecutionError::CallbackFailed);
@@ -213,11 +211,12 @@ namespace
     {
         for (auto query : { MemoryQuery::Heap, MemoryQuery::Stack }) {
             const auto snapshot{ diagnostics::collectMemory(query) };
-            const auto frame{ icc::util::encode_frame(icc::util::FrameKind::Response, "io/memory", 1, snapshot) };
+            const auto frame{ icc::util::encode_frame(
+              icc::util::FrameKind::Response, "io/memory", 1, snapshot) };
             EXPECT_LE(frame.size, icc::util::MAX_FRAME_BYTES);
             MemorySnapshot decoded{};
-            ASSERT_TRUE(pnm::utils::memory::deserialize(icc::util::decode_frame(
-              std::span{ frame.bytes }.first(frame.size)).payload, decoded));
+            ASSERT_TRUE(pnm::utils::memory::deserialize(
+              icc::util::decode_frame(std::span{ frame.bytes }.first(frame.size)).payload, decoded));
             EXPECT_EQ(decoded.query, query);
             EXPECT_TRUE(decoded.shared_runtime);
             EXPECT_LE(decoded.stack.count, decoded.stack.threads.size());

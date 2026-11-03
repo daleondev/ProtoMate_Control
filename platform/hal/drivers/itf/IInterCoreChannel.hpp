@@ -2,8 +2,8 @@
 
 #include "hal/drivers/itf/Lanes.hpp"
 
-#include <cstddef>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <functional>
@@ -17,7 +17,13 @@ namespace hal
     {
       public:
         using Lane = hal::intercore::Lane;
-        enum class Error : std::uint8_t { WouldBlock, Disconnected, TooLarge, BufferTooSmall };
+        enum class Error : std::uint8_t
+        {
+            WouldBlock,
+            Disconnected,
+            TooLarge,
+            BufferTooSmall
+        };
         using Notification = std::move_only_function<void() noexcept>;
         struct Readiness
         {
@@ -35,7 +41,8 @@ namespace hal
         // Receive returns WouldBlock while a higher-priority lane has queued
         // frames. Servicing that lane must notify local waiters as well as the peer.
         virtual std::expected<void, Error> trySend(std::span<const std::byte> frame, Lane lane) noexcept = 0;
-        virtual std::expected<std::size_t, Error> tryReceive(std::span<std::byte> buffer, Lane lane) noexcept = 0;
+        virtual std::expected<std::size_t, Error> tryReceive(std::span<std::byte> buffer,
+                                                             Lane lane) noexcept = 0;
         // Advisory, non-consuming snapshot for a notification worker. Receive
         // readiness respects lane priority. Closed endpoints report all ready
         // so pending transfers can retry and observe Disconnected. A transfer
@@ -47,6 +54,7 @@ namespace hal
         virtual void setNotification(Notification callback) noexcept = 0;
         // Permanent for this boot/endpoint; wake the peer and local waiters.
         virtual void close() noexcept = 0;
+
       protected:
         IInterCoreChannel() = default;
     };

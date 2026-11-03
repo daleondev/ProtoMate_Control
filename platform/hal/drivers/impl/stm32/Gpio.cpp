@@ -2,8 +2,8 @@
 // The line-specific exceptions below preserve the vendor register interface.
 #include "Gpio.hpp"
 
-#include "hal/stm32/InterruptGuard.hpp"
 #include "hal/stm32/HardwareSemaphore.hpp"
+#include "hal/stm32/InterruptGuard.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -21,9 +21,11 @@ namespace hal
         void clear_pending(std::uint32_t mask) noexcept
         {
 #if defined(CORE_CM4)
-            __HAL_GPIO_EXTID2_CLEAR_IT(mask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            __HAL_GPIO_EXTID2_CLEAR_IT(
+              mask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 #else
-            __HAL_GPIO_EXTI_CLEAR_IT(mask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+            __HAL_GPIO_EXTI_CLEAR_IT(
+              mask); // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 #endif
         }
 
@@ -220,7 +222,9 @@ namespace hal
     {
         const stm32::InterruptGuard local_guard;
         const stm32::HardwareSemaphore register_guard(5);
-        if (!register_guard) { hal::panic("GPIO configuration lock timeout"); }
+        if (!register_guard) {
+            hal::panic("GPIO configuration lock timeout");
+        }
         enable_port_clock(configuration.pin.port);
 
         if (configuration.edge != gpio::Edge::None) {
@@ -254,7 +258,9 @@ namespace hal
     {
         const stm32::InterruptGuard local_guard;
         const stm32::HardwareSemaphore register_guard(5);
-        if (!register_guard) { hal::panic("GPIO configuration lock timeout"); }
+        if (!register_guard) {
+            hal::panic("GPIO configuration lock timeout");
+        }
         if (m_configuration.edge != gpio::Edge::None) {
             HAL_NVIC_DisableIRQ(m_interrupt);
             HAL_GPIO_DeInit(m_port, m_pinMask);
@@ -313,7 +319,9 @@ namespace hal
     {
         const stm32::InterruptGuard local_guard;
         const stm32::HardwareSemaphore register_guard(5);
-        if (!register_guard) { hal::panic("GPIO configuration lock timeout"); }
+        if (!register_guard) {
+            hal::panic("GPIO configuration lock timeout");
+        }
         enable_port_clock(configuration.pin.port);
         HAL_GPIO_WritePin(m_port, m_pinMask, hal_level(configuration.initial_level));
 
@@ -331,7 +339,9 @@ namespace hal
     {
         const stm32::InterruptGuard local_guard;
         const stm32::HardwareSemaphore register_guard(5);
-        if (!register_guard) { hal::panic("GPIO configuration lock timeout"); }
+        if (!register_guard) {
+            hal::panic("GPIO configuration lock timeout");
+        }
         HAL_GPIO_DeInit(m_port, m_pinMask);
     }
 
@@ -358,14 +368,18 @@ namespace hal
 // NOLINTNEXTLINE(readability-identifier-naming)
 extern "C" void HAL_GPIO_EXTI_Callback(std::uint16_t GPIO_Pin) { hal::GpioInput::dispatchEdge(GPIO_Pin); }
 
-namespace {
-    void core_exti(std::uint16_t pin) {
+namespace
+{
+    void core_exti(std::uint16_t pin)
+    {
 #if defined(CORE_CM4)
         const auto mask = EXTI_D2->IMR1;
 #else
         const auto mask = EXTI_D1->IMR1;
 #endif
-        if ((mask & pin) != 0U) { HAL_GPIO_EXTI_IRQHandler(pin); }
+        if ((mask & pin) != 0U) {
+            HAL_GPIO_EXTI_IRQHandler(pin);
+        }
     }
 }
 extern "C" void EXTI0_IRQHandler() { core_exti(GPIO_PIN_0); }

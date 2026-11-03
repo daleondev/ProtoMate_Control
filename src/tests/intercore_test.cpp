@@ -1,7 +1,7 @@
-#include "hal/util/InterCoreMemory.hpp"
 #include "common/icc/bridge/Bridge.hpp"
 #include "common/icc/examples/ContextThread.hpp"
 #include "common/icc/transport/InterCoreTransport.hpp"
+#include "hal/util/InterCoreMemory.hpp"
 
 #include <condition_variable>
 #include <future>
@@ -23,8 +23,12 @@ namespace
     struct TestTopics
     {
         [[= Publisher::Sender]] pnm::msg::Topic<std::uint32_t> test_value;
-        [[= Publisher::Sender, = icc::Lane::Background, = pnm::msg::SubscriptionOptions{ .capacity = 8 }]]
-        pnm::msg::Topic<std::uint32_t> test_logs;
+        [[
+            = Publisher::Sender,
+            = icc::Lane::Background,
+            = pnm::msg::SubscriptionOptions{ .capacity = 8 }
+        ]] pnm::msg::Topic<std::uint32_t>
+          test_logs;
     };
 
     // Model only the MMIO/interrupt boundary, using the production ring layout.
@@ -304,7 +308,9 @@ namespace
         auto& queue = memory->inbox[1][normal];
         queue.read = queue.written = std::numeric_limits<std::uint32_t>::max() - 1;
         const std::array frame{ std::byte{ 7 } };
-        for (unsigned i{}; i < Queue::CAPACITY; ++i) { ASSERT_TRUE(memory->push(1, frame, Lane::Normal)); }
+        for (unsigned i{}; i < Queue::CAPACITY; ++i) {
+            ASSERT_TRUE(memory->push(1, frame, Lane::Normal));
+        }
         auto ready = memory->readiness(0);
         EXPECT_FALSE(ready.send[normal]);
         EXPECT_TRUE(ready.send[urgent]);
@@ -320,10 +326,12 @@ namespace
         EXPECT_FALSE(memory->readiness(1).receive[background]);
         ASSERT_TRUE(memory->pop(1, out, Lane::Normal));
         EXPECT_TRUE(memory->readiness(0).send[normal]);
-        for (unsigned i = 1; i < Queue::CAPACITY; ++i) { ASSERT_TRUE(memory->pop(1, out, Lane::Normal)); }
+        for (unsigned i = 1; i < Queue::CAPACITY; ++i) {
+            ASSERT_TRUE(memory->pop(1, out, Lane::Normal));
+        }
         EXPECT_TRUE(memory->readiness(1).receive[background]);
         memory->state[0] = 2;
-        for (const auto side : {0U, 1U}) {
+        for (const auto side : { 0U, 1U }) {
             ready = memory->readiness(side);
             for (std::size_t i{}; i < hal::intercore::LANE_COUNT; ++i) {
                 EXPECT_TRUE(ready.send[i]);
@@ -342,9 +350,8 @@ namespace
         auto waiting = pair.launch(pair.b.receive(low, Lane::Background, stop.get_token()));
         {
             std::unique_lock lock(pair.memory->mutex);
-            ASSERT_TRUE(pair.memory->changed.wait_for(lock, 2s, [&] {
-                return pair.memory->receive_attempts[1][background] != 0;
-            }));
+            ASSERT_TRUE(pair.memory->changed.wait_for(
+              lock, 2s, [&] { return pair.memory->receive_attempts[1][background] != 0; }));
         }
         const std::array frame{ std::byte{ 4 } };
         for (unsigned i{}; i < 32; ++i) {
@@ -415,15 +422,20 @@ namespace
         auto subscription =
           io.topic<^^TestTopics::test_value>().subscribe([&](std::uint32_t value) { result = value; });
         std::vector<std::uint32_t> logs;
-        auto log_subscription = io.topic<^^TestTopics::test_logs>().subscribe([&](auto value) { logs.push_back(value); });
-        for (unsigned i{}; i < 8; ++i) { ui.topic<^^TestTopics::test_logs>().publish(i); }
+        auto log_subscription =
+          io.topic<^^TestTopics::test_logs>().subscribe([&](auto value) { logs.push_back(value); });
+        for (unsigned i{}; i < 8; ++i) {
+            ui.topic<^^TestTopics::test_logs>().publish(i);
+        }
         io_bridge.start();
         ui_bridge.start();
         ui.topic<^^TestTopics::test_value>().publish(42U);
         ASSERT_EQ(subscription.poll(2s), 1U);
         EXPECT_EQ(result, 42U);
         const auto deadline = std::chrono::steady_clock::now() + 2s;
-        while (logs.size() < 8 && std::chrono::steady_clock::now() < deadline) { log_subscription.poll(10ms); }
+        while (logs.size() < 8 && std::chrono::steady_clock::now() < deadline) {
+            log_subscription.poll(10ms);
+        }
         EXPECT_EQ(logs, (std::vector<std::uint32_t>{ 0, 1, 2, 3, 4, 5, 6, 7 }));
         ui_bridge.stop();
         io_bridge.stop();
