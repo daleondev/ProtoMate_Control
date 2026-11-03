@@ -27,12 +27,12 @@ namespace icc
                    pnm::coro::Context& context,
                    ITransport& transport,
                    ConnectionOptions connection)
-      : m_context(context)
-      , m_transport(transport)
-      , m_topics(bus, m_outgoingWakeup)
-      , m_services(bus, context, m_outgoingWakeup, m_stopSource.get_token())
-      , m_actions(bus, context, m_outgoingWakeup, m_stopSource.get_token())
-      , m_connection(connection)
+      : m_context{ context }
+      , m_transport{ transport }
+      , m_topics{ bus, m_outgoingWakeup }
+      , m_services{ bus, context, m_outgoingWakeup, m_stopSource.get_token() }
+      , m_actions{ bus, context, m_outgoingWakeup, m_stopSource.get_token() }
+      , m_connection{ connection }
     {
     }
 
@@ -40,7 +40,7 @@ namespace icc
 
     void Bridge::start()
     {
-        std::unique_lock lock(m_mutex);
+        std::unique_lock lock{ m_mutex };
         if (m_started) {
             throw std::logic_error("Bridge can only be started once");
         }
@@ -50,18 +50,18 @@ namespace icc
             // Construct all coroutine chains before scheduling any of them.
             // Moving these ready-made tasks into co_spawn also avoids allocating
             // a new loop task inside its detached entry callback.
-            auto health = runLoop(healthLoop(m_stopSource.get_token()), &m_healthRunning);
-            auto sender = runLoop(sendLoop(Lane::Normal, m_stopSource.get_token()), &m_sendRunning);
-            auto receiver = runLoop(receiveLoop(Lane::Normal, m_stopSource.get_token()), &m_receiveRunning);
+            auto health{ runLoop(healthLoop(m_stopSource.get_token()), &m_healthRunning) };
+            auto sender{ runLoop(sendLoop(Lane::Normal, m_stopSource.get_token()), &m_sendRunning) };
+            auto receiver{ runLoop(receiveLoop(Lane::Normal, m_stopSource.get_token()), &m_receiveRunning) };
 
-            auto urgent_sender =
-              runLoop(sendLoop(Lane::Urgent, m_stopSource.get_token()), &m_urgentSendRunning);
-            auto urgent_receiver =
-              runLoop(receiveLoop(Lane::Urgent, m_stopSource.get_token()), &m_urgentReceiveRunning);
-            auto background_sender =
-              runLoop(sendLoop(Lane::Background, m_stopSource.get_token()), &m_backgroundSendRunning);
-            auto background_receiver =
-              runLoop(receiveLoop(Lane::Background, m_stopSource.get_token()), &m_backgroundReceiveRunning);
+            auto urgent_sender{ runLoop(sendLoop(Lane::Urgent, m_stopSource.get_token()),
+                                        &m_urgentSendRunning) };
+            auto urgent_receiver{ runLoop(receiveLoop(Lane::Urgent, m_stopSource.get_token()),
+                                          &m_urgentReceiveRunning) };
+            auto background_sender{ runLoop(sendLoop(Lane::Background, m_stopSource.get_token()),
+                                            &m_backgroundSendRunning) };
+            auto background_receiver{ runLoop(receiveLoop(Lane::Background, m_stopSource.get_token()),
+                                              &m_backgroundReceiveRunning) };
 
             pnm::coro::co_spawn(m_context, std::move(health));
             m_healthRunning = true;
@@ -94,7 +94,7 @@ namespace icc
     void Bridge::stop(std::chrono::milliseconds grace)
     {
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             if (!m_started) {
                 return;
             }
@@ -103,8 +103,8 @@ namespace icc
         m_shutdownRequested.store(true);
         m_outgoingWakeup->notify();
         m_healthWakeup->notify();
-        std::unique_lock lock(m_mutex);
-        const auto stopped = [this] { return loopsStopped(); };
+        std::unique_lock lock{ m_mutex };
+        const auto stopped{ [this] { return loopsStopped(); } };
         if (!m_finished.wait_for(lock, grace, stopped)) {
             // The grace period bounds action draining, not an already-running
             // final notification. Once cleanup starts, wait for that callback.
@@ -132,13 +132,13 @@ namespace icc
 
     std::optional<Bridge::Failure> Bridge::failure() const
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         return m_failure;
     }
 
     void Bridge::setConnectionCallback(ConnectionCallback callback)
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         checkRegistration();
         m_connection.setCallback(std::move(callback));
     }
@@ -160,7 +160,7 @@ namespace icc
 
     void Bridge::recordFailure(Failure failure, ConnectionReason reason)
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         if (!m_failure) {
             m_failure = std::move(failure);
             m_failureReason = reason;
@@ -178,8 +178,8 @@ namespace icc
             if (m_connection.tick()) {
                 m_outgoingWakeup->signal(Lane::Urgent).notify();
             }
-            auto timer =
-              m_context.scheduleAt(m_connection.nextWake(), [signal = m_healthWakeup] { signal->notify(); });
+            auto timer{ m_context.scheduleAt(m_connection.nextWake(),
+                                             [signal = m_healthWakeup] { signal->notify(); }) };
             if (!(co_await m_healthWakeup->ready.wait(stop))) {
                 if (stop.stop_requested()) {
                     break;
@@ -219,7 +219,7 @@ namespace icc
                 m_connection.requestGoodbye();
                 m_outgoingWakeup->signal(Lane::Urgent).notify();
             }
-            if (auto frame = takeReadyFrame(lane)) {
+            if (auto frame{ takeReadyFrame(lane) }) {
                 co_return frame;
             }
 
@@ -245,15 +245,15 @@ namespace icc
                                                                        : std::nullopt;
         }
         if (lane == Lane::Urgent) {
-            if (auto frame = m_connection.takeFrame()) {
+            if (auto frame{ m_connection.takeFrame() }) {
                 m_healthWakeup->notify();
                 return frame;
             }
         }
         if (m_connection.ready()) {
-            for (unsigned checked = 0; checked < 3; ++checked) {
-                if (auto frame = takeFrame(lane, m_nextHelper[static_cast<std::size_t>(lane)]++ % 3)) {
-                    const auto kind = static_cast<util::FrameKind>(frame->bytes[1]);
+            for (unsigned checked{ 0 }; checked < 3; ++checked) {
+                if (auto frame{ takeFrame(lane, m_nextHelper[static_cast<std::size_t>(lane)]++ % 3) }) {
+                    const auto kind{ static_cast<util::FrameKind>(frame->bytes[1]) };
                     m_actionSending[static_cast<std::size_t>(lane)] =
                       kind >= util::FrameKind::ActionGoal && kind <= util::FrameKind::ActionAck;
                     return frame;
@@ -281,13 +281,13 @@ namespace icc
     void Bridge::dispatchIncomingFrame(std::span<const std::byte> bytes, Lane lane)
     {
         m_connection.checkDeadline();
-        const auto frame = util::decode_frame(bytes);
+        const auto frame{ util::decode_frame(bytes) };
         if (lane == Lane::Background &&
             (frame.kind != util::FrameKind::Topic || bytes.size() > MAX_BACKGROUND_FRAME_BYTES)) {
             throw std::invalid_argument("Invalid background frame");
         }
         if (frame.kind >= util::FrameKind::Hello) {
-            const bool was_ready = m_connection.ready();
+            const bool was_ready{ m_connection.ready() };
             if (m_connection.dispatch(frame, lane)) {
                 m_peerStopped = true;
                 if (!m_actions.drained()) {
@@ -331,7 +331,7 @@ namespace icc
                                           bool* running)
     {
         try {
-            auto result = co_await loop;
+            auto result{ co_await loop };
             if (!result) {
                 recordFailure(result.error(), ConnectionReason::TransportError);
             }
@@ -347,7 +347,7 @@ namespace icc
         m_stopSource.request_stop();
         bool last{};
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             *running = false;
             last = loopsStopped();
             if (last) {
@@ -361,7 +361,7 @@ namespace icc
             // Application notifications must never run under the lifecycle lock.
             // m_cleanupRunning keeps stop/destruction waiting through this callback.
             finishConnection();
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_cleanupRunning = false;
             m_finished.notify_all();
         }
@@ -370,15 +370,15 @@ namespace icc
     void Bridge::finishConnection()
     {
         try {
-            const bool failed = failure().has_value();
+            const bool failed{ failure().has_value() };
             m_services.close(failed ? pnm::msg::ServiceError::TransportError
                                     : pnm::msg::ServiceError::Cancelled);
             m_actions.close(failed ? pnm::msg::ActionError::TransportError
                                    : pnm::msg::ActionError::Unavailable);
             m_topics.close();
-            ConnectionStatus status;
+            ConnectionStatus status{};
             {
-                std::scoped_lock lock(m_mutex);
+                std::scoped_lock lock{ m_mutex };
                 status = m_failure
                            ? ConnectionStatus{ .state = ConnectionState::Failed, .reason = m_failureReason }
                            : ConnectionStatus{ .state = ConnectionState::Stopped,
@@ -390,7 +390,7 @@ namespace icc
             recordFailure(std::current_exception(), ConnectionReason::InternalError);
             ConnectionReason reason{};
             {
-                std::scoped_lock lock(m_mutex);
+                std::scoped_lock lock{ m_mutex };
                 reason = m_failureReason;
             }
             try {
@@ -406,7 +406,7 @@ namespace icc
     {
         while (!stop.stop_requested()) {
             // Suspends until a message, lifecycle event or deadline provides work.
-            auto frame = co_await nextOutgoingFrame(lane, stop);
+            auto frame{ co_await nextOutgoingFrame(lane, stop) };
             if (!frame || stop.stop_requested()) {
                 break;
             }
@@ -417,8 +417,8 @@ namespace icc
 
             // frame owns the storage throughout the await. A full transport
             // suspends this loop while the receive loop can continue running.
-            const auto bytes = std::span<const std::byte>(frame->bytes).first(frame->size);
-            auto result = co_await m_transport.send(bytes, lane, stop);
+            const auto bytes{ std::span<const std::byte>(frame->bytes).first(frame->size) };
+            auto result{ co_await m_transport.send(bytes, lane, stop) };
             if (!result) {
                 if (result.error() == ITransport::Error::Cancelled && stop.stop_requested()) {
                     break;
@@ -444,7 +444,7 @@ namespace icc
             co_return pnm::EmptyResult<ITransport::Error>{};
         }
         while (!stop.stop_requested()) {
-            auto result = co_await m_transport.receive(buffer, lane, stop);
+            auto result{ co_await m_transport.receive(buffer, lane, stop) };
             if (!result) {
                 if (result.error() == ITransport::Error::Cancelled && stop.stop_requested()) {
                     break;

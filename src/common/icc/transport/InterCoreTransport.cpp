@@ -23,7 +23,7 @@ namespace
 namespace icc
 {
     InterCoreTransport::InterCoreTransport(std::shared_ptr<hal::IInterCoreChannel> channel)
-      : m_channel(std::move(channel))
+      : m_channel{ std::move(channel) }
     {
         if (!m_channel) {
             throw std::invalid_argument("Missing inter-core channel");
@@ -53,16 +53,16 @@ namespace icc
 
     void InterCoreTransport::wakeWaiters()
     {
-        std::array<std::optional<pnm::coro::Channel<bool>>, 2 * LANE_COUNT> wake;
+        std::array<std::optional<pnm::coro::Channel<bool>>, 2 * LANE_COUNT> wake{};
         {
-            const std::scoped_lock lock(m_mutex);
-            const auto ready = m_channel->readiness();
+            const std::scoped_lock lock{ m_mutex };
+            const auto ready{ m_channel->readiness() };
             for (std::size_t priority{}; priority < LANE_COUNT; ++priority) {
-                const auto lane = static_cast<std::size_t>(LANE_PRIORITY[priority]);
-                const auto index = 2 * lane;
+                const auto lane{ static_cast<std::size_t>(LANE_PRIORITY[priority]) };
+                const auto index{ 2 * lane };
                 for (std::size_t operation{}; operation < 2; ++operation) {
-                    auto& waiter = m_waiters[index + operation];
-                    const bool available = operation == 0 ? ready.send[lane] : ready.receive[lane];
+                    auto& waiter{ m_waiters[index + operation] };
+                    const bool available{ operation == 0 ? ready.send[lane] : ready.receive[lane] };
                     if (waiter.waiting && !waiter.pending && (m_closed || available)) {
                         waiter.waiting = false;
                         waiter.pending = true;
@@ -81,7 +81,7 @@ namespace icc
     void InterCoreTransport::close() noexcept
     {
         {
-            const std::scoped_lock lock(m_mutex);
+            const std::scoped_lock lock{ m_mutex };
             if (m_closed) {
                 return;
             }
@@ -96,20 +96,20 @@ namespace icc
       Lane lane,
       std::stop_token stop)
     {
-        const auto index = 2 * static_cast<std::size_t>(lane);
+        const auto index{ 2 * static_cast<std::size_t>(lane) };
         if (index >= m_waiters.size()) {
             co_return std::unexpected(Error::Disconnected);
         }
-        auto& waiter = m_waiters.at(index);
+        auto& waiter{ m_waiters.at(index) };
         for (;;) {
-            std::unique_lock lock(m_mutex);
+            std::unique_lock lock{ m_mutex };
             if (stop.stop_requested()) {
                 co_return std::unexpected(Error::Cancelled);
             }
             if (m_closed) {
                 co_return std::unexpected(Error::Disconnected);
             }
-            const auto result = m_channel->trySend(frame, lane);
+            const auto result{ m_channel->trySend(frame, lane) };
             if (result) {
                 co_return pnm::EmptyResult<Error>{};
             }
@@ -120,7 +120,7 @@ namespace icc
             // a notification between the failed operation and arming the wait.
             waiter.waiting = true;
             lock.unlock();
-            const auto notified = co_await waiter.ready.wait(stop);
+            const auto notified{ co_await waiter.ready.wait(stop) };
             lock.lock();
             waiter.waiting = false;
             if (notified) {
@@ -134,20 +134,20 @@ namespace icc
       Lane lane,
       std::stop_token stop)
     {
-        const auto index = 2 * static_cast<std::size_t>(lane) + 1;
+        const auto index{ 2 * static_cast<std::size_t>(lane) + 1 };
         if (index >= m_waiters.size()) {
             co_return std::unexpected(Error::Disconnected);
         }
-        auto& waiter = m_waiters.at(index);
+        auto& waiter{ m_waiters.at(index) };
         for (;;) {
-            std::unique_lock lock(m_mutex);
+            std::unique_lock lock{ m_mutex };
             if (stop.stop_requested()) {
                 co_return std::unexpected(Error::Cancelled);
             }
             if (m_closed) {
                 co_return std::unexpected(Error::Disconnected);
             }
-            const auto result = m_channel->tryReceive(buffer, lane);
+            const auto result{ m_channel->tryReceive(buffer, lane) };
             if (result) {
                 co_return *result;
             }
@@ -156,7 +156,7 @@ namespace icc
             }
             waiter.waiting = true;
             lock.unlock();
-            const auto notified = co_await waiter.ready.wait(stop);
+            const auto notified{ co_await waiter.ready.wait(stop) };
             lock.lock();
             waiter.waiting = false;
             if (notified) {

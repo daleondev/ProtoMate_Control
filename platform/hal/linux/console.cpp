@@ -27,7 +27,8 @@ namespace
     // ThreadX initializes the project's std::mutex implementation.
     struct ConsoleState
     {
-        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+        // This platform macro supplies the complete braced initializer.
+        pthread_mutex_t mutex PTHREAD_MUTEX_INITIALIZER;
         std::array<linux_console::Message, QUEUE_CAPACITY> queue{};
         std::size_t head{}, count{}, dropped{};
         Mode mode{ Mode::PassThrough };
@@ -35,7 +36,7 @@ namespace
 
     auto console_state() noexcept -> ConsoleState&
     {
-        static constinit ConsoleState state;
+        static constinit ConsoleState state{};
         return state;
     }
 
@@ -159,7 +160,7 @@ namespace linux_console
 {
     auto begin_buffering() noexcept -> void
     {
-        Lock lock;
+        Lock lock{};
         if (lock && console_state().mode == Mode::PassThrough) {
             console_state().mode = Mode::Buffering;
         }
@@ -167,7 +168,7 @@ namespace linux_console
 
     auto activate_interactive() noexcept -> void
     {
-        Lock lock;
+        Lock lock{};
         if (lock && console_state().mode != Mode::Plain) {
             console_state().mode = Mode::Interactive;
         }
@@ -175,7 +176,7 @@ namespace linux_console
 
     auto activate_plain() noexcept -> void
     {
-        Lock lock;
+        Lock lock{};
         if (!lock) {
             return;
         }
@@ -185,7 +186,7 @@ namespace linux_console
 
     auto publish(Channel channel, std::string_view text) noexcept -> void
     {
-        Lock lock;
+        Lock lock{};
         if (!lock) {
             return;
         }
@@ -216,7 +217,7 @@ namespace linux_console
 
     auto drain(std::span<Message> output) noexcept -> std::size_t
     {
-        Lock lock;
+        Lock lock{};
         if (!lock || output.empty() || console_state().mode != Mode::Interactive) {
             return 0U;
         }

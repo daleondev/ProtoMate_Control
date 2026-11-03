@@ -40,8 +40,8 @@ namespace hal::stm32
         };
         // Explicitly initialized on reset: this linker section is NOLOAD.
         __attribute__((section(".StepDmaSection"), aligned(DMA_CACHE_LINE_BYTES))) DmaMemory
-          memory; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables) -- Fixed DMA/IRQ state,
-                  // serialized by InterruptGuard.
+          memory{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables) -- Fixed DMA/IRQ state,
+                    // serialized by InterruptGuard.
         util::StepGenerator* generator{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables) --
                                           // Fixed DMA/IRQ state, serialized by InterruptGuard.
         const std::array STREAMS{
@@ -106,12 +106,12 @@ namespace hal::stm32
     }
     auto StepHardware::pin_mode(std::size_t axis, bool alternate) noexcept -> void
     {
-        const HardwareSemaphore shared(5);
+        const HardwareSemaphore shared{ 5 };
         if (!shared) {
             hal::panic("STEP GPIO configuration lock timeout");
         }
-        auto* port = m_pins[axis].port == gpio::Port::A ? GPIOA : GPIOB;
-        const auto pin = static_cast<std::uint16_t>(1U << m_pins[axis].number);
+        auto* port{ m_pins[axis].port == gpio::Port::A ? GPIOA : GPIOB };
+        const auto pin{ static_cast<std::uint16_t>(1U << m_pins[axis].number) };
         HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
         GPIO_InitTypeDef config{};
         config.Mode = alternate ? GPIO_MODE_AF_PP : GPIO_MODE_OUTPUT_PP;
@@ -123,7 +123,7 @@ namespace hal::stm32
     }
     StepHardware::~StepHardware()
     {
-        const InterruptGuard lock;
+        const InterruptGuard lock{};
         shutdown();
     }
     auto StepHardware::shutdown() noexcept -> void
@@ -147,7 +147,7 @@ namespace hal::stm32
 #endif
         static_cast<void>(stop());
         {
-            const HardwareSemaphore shared(5);
+            const HardwareSemaphore shared{ 5 };
             if (!shared) {
                 return false;
             }
@@ -157,7 +157,7 @@ namespace hal::stm32
             __HAL_RCC_D2SRAM1_CLK_ENABLE(); // NOLINT(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
         // Preserve the common 100 ns scheduling unit across clock configurations.
-        const auto hz = apb1_timer_input_frequency_hz();
+        const auto hz{ apb1_timer_input_frequency_hz() };
         if (hz < STEP_TIMER_FREQUENCY_HZ || hz % STEP_TIMER_FREQUENCY_HZ != 0U ||
             hz / STEP_TIMER_FREQUENCY_HZ > 65'536U || hz % GUARD_TIMER_FREQUENCY_HZ != 0U ||
             hz / GUARD_TIMER_FREQUENCY_HZ > 65'536U) {
@@ -197,7 +197,7 @@ namespace hal::stm32
         TIM2->SR = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         memory.stop_counter = 0U;
         publish(); // DMA writes CR1: CEN=0, no restart.
-        for (std::size_t i = 0; i < STREAMS.size(); ++i) {
+        for (std::size_t i{ 0 }; i < STREAMS.size(); ++i) {
             DMA1->LIFCR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               ALL_FLAGS
               << SHIFTS[i]; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -357,8 +357,8 @@ namespace hal::stm32
     }
     auto StepHardware::sample() noexcept -> util::StepSample
     {
-        util::StepSample result;
-        for (std::size_t i = 0; i < 3U; ++i) {
+        util::StepSample result{};
+        for (std::size_t i{ 0 }; i < 3U; ++i) {
             auto& channel{ result.channels[i] };
             auto* stream{ STREAMS[i] };
             std::uint32_t before{};
@@ -463,11 +463,11 @@ namespace hal::stm32
         __DSB();
         TIM2->DIER = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         const auto before_disable{ sample() };
-        for (std::size_t i = 0; i < STREAMS.size(); ++i) {
+        for (std::size_t i{ 0 }; i < STREAMS.size(); ++i) {
             disable(i);
         }
         auto result{ sample() };
-        for (std::size_t i = 0; i < result.channels.size(); ++i) {
+        for (std::size_t i{ 0 }; i < result.channels.size(); ++i) {
             // RM0433 15.3.15/16: clearing EN itself raises TCIF even
             // for a partial buffer. Preserve genuine completion flags
             // from before shutdown. With CEN stopped, at most one
@@ -478,7 +478,7 @@ namespace hal::stm32
             after.transfer_complete = before.transfer_complete || after.target != before.target;
         }
         TIM2->CCER = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        for (std::size_t i = 0; i < 3U; ++i) {
+        for (std::size_t i{ 0 }; i < 3U; ++i) {
             pin_mode(i, false);
         }
         return result;
@@ -487,9 +487,9 @@ namespace hal::stm32
     auto step_interrupt() noexcept -> void
     {
 #if defined(CORE_CM4)
-        const auto started = DWT->CYCCNT;
+        const auto started{ DWT->CYCCNT };
 #endif
-        const InterruptGuard lock;
+        const InterruptGuard lock{};
         // Clear HT flags only; the core consumes TC together with CT/NDTR.
         DMA1
           ->LIFCR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -510,7 +510,7 @@ namespace hal::stm32
               (ALL_FLAGS << SHIFTS[3]);
         }
 #if defined(CORE_CM4)
-        const auto elapsed = DWT->CYCCNT - started;
+        const auto elapsed{ DWT->CYCCNT - started };
         if (elapsed > giga_step_irq_cycles_max) {
             giga_step_irq_cycles_max = elapsed;
         }

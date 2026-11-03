@@ -680,7 +680,7 @@ Alternatively, `cmake --preset clang-tidy-linux` followed by
 These are explicit analysis targets; normal builds still use GCC without linting.
 
 The runner requires Docker, Python 3, CMake/Ninja, the project's GCC 16 Arm
-toolchain (including newlib/libstdc++ headers), and host ncurses development
+toolchain (including newlib/libstdc++ headers), and host ncurses/SDL2 development
 headers. It uses a pinned Pneumo devcontainer image with matching
 Clang/P2996, clang-tidy and reflection headers. If the image is not already
 installed, pull it once:
@@ -693,13 +693,14 @@ The container runs without network access, with project sources mounted read-onl
 Analysis copies of the compilation databases select Clang and reflection flags.
 Linux analysis uses the image's libstdc++. STM32 analysis uses
 `--target=arm-none-eabi`, the selected Cortex-M4/M7 and FPU settings and the real Arm
-toolchain's libstdc++/newlib headers, mounted read-only. Real host ncurses headers
+toolchain's libstdc++/newlib headers, mounted read-only. Real host ncurses and SDL2 headers
 are copied into the report directory. Firmware build flags,
 dependency declarations and application sources are not rewritten.
 
 The runner configures private STM32 CMake directories under
 `<build-directory>/clang-tidy/configurations/stm32-io/` and `stm32-ui/` to obtain the HAL and runtime's
-actual includes and definitions without building or flashing anything. Separate analysis
+actual includes and definitions. It generates the M7 GUI/scene assets needed by
+the real headers without building or flashing firmware. Separate analysis
 databases preserve Linux, M4 and M7 contexts for shared sources. Every active production
 HAL/runtime C/C++ source must have a compilation command; retained unbuilt board
 implementations are excluded from that inventory; setup fails if a newly
@@ -761,6 +762,51 @@ To require complete coverage:
 ```sh
 python3 scripts/clang_tidy.py --build-dir build/debug-linux --strict
 ```
+
+Variable declarations must use **direct brace initialization**, for example
+`double time{0};` and `auto count{10};`. Copy initialization (`double time = 0;`),
+copy-list initialization (`double time = {0};`) and parenthesized initialization
+(`double time(0);`) are lint errors. The same policy covers explicit member
+defaults and constructor member/base initializers. Parameters, range-for variables
+and lambda init-captures retain their required syntax.
+
+The native `protomate-brace-initialization` clang-tidy check is ported from
+LabServer's `BraceInitializationCheck.cpp`. The existing runner loads it with
+`--load`, including during configuration verification; `.clang-tidy` promotes
+its diagnostics to errors. Both `modernize-use-default-member-init.UseAssignment`
+and `cppcoreguidelines-pro-type-member-init.UseAssignment` are explicitly false
+so their suggested member initializers also use braces.
+
+`scripts/clang-tidy/build-style-check.sh` builds the plugin against the **exact
+Clang/P2996 revision** in the pinned image. The first run downloads that revision's
+LLVM sources and generates the matching headers; this bootstrap needs network
+access. Sources, generated headers and the plugin are cached under
+`build/clang-tidy-plugin/`. Later unchanged runs reuse the plugin; analysis stays
+offline. Do not load the plugin into a different Clang version.
+
+Run the native rule's regression fixtures with:
+
+```sh
+bash scripts/clang-tidy/test-style-check.sh
+# or: cmake --build --preset debug-linux --target clang-tidy-style-test
+```
+
+The plugin emits **no automatic replacements**: changing constructor syntax can
+select a different `std::initializer_list` overload or change deduction/narrowing.
+Use a documented, narrowly named `NOLINT(protomate-brace-initialization)` exception
+where the alternate construction semantics are intentional. The rule reports
+violations without rewriting sources. Normal builds still do not run lint. Direct clang-tidy invocations must load `build/clang-tidy-plugin/protomate-style.so`.
+
+For strict verification of the brace policy alone:
+
+```sh
+python3 scripts/clang_tidy.py --build-dir build/debug-linux \
+    --checks='-*,protomate-brace-initialization' --strict
+```
+
+The full `clang-tidy` target retains every configured check. The native rule
+recognizes C++26 expansion-loop bindings and ignores compiler-generated range
+temporaries; declarations inside loop bodies are still checked.
 
 The naming rules live in `.clang-tidy`. Clang 21 uses `GlobalConstant` for global
 constants including constexpr, and `PublicMember` for public fields including

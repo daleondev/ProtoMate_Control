@@ -9,6 +9,7 @@ Checks: >
   performance-*,
   clang-analyzer-*,
   cppcoreguidelines-*,
+  protomate-brace-initialization,
   -readability-identifier-length,
   -readability-implicit-bool-conversion,
   -readability-redundant-member-init,
@@ -20,7 +21,13 @@ Checks: >
 WarningsAsErrors: "*"
 HeaderFilterRegex: ".*/(src|platform/hal|platform/runtime)/.*"
 ExcludeHeaderFilterRegex: "(^|/)(test|tests|vendor)/"
+# Native check ported from LabServer, built against our exact Clang/P2996 ABI.
+# scripts/clang_tidy.py loads it for analysis and configuration verification.
 CheckOptions:
+  - key: modernize-use-default-member-init.UseAssignment
+    value: false
+  - key: cppcoreguidelines-pro-type-member-init.UseAssignment
+    value: false
   # Count application control flow, not GoogleTest/assertion macro internals.
   - key: readability-function-cognitive-complexity.IgnoreMacros
     value: true

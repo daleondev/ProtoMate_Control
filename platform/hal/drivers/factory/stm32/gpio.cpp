@@ -30,7 +30,7 @@ namespace hal::gpio
 
         auto owners() -> std::array<PinOwner, PIN_COUNT>&
         {
-            static std::array<PinOwner, PIN_COUNT> value;
+            static std::array<PinOwner, PIN_COUNT> value{};
             return value;
         }
 
@@ -78,7 +78,7 @@ namespace hal::gpio
 
         [[nodiscard]] auto owners_mutex() -> FactoryMutex&
         {
-            static FactoryMutex mutex;
+            static FactoryMutex mutex{};
             return mutex;
         }
 

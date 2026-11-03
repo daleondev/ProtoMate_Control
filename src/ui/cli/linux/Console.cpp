@@ -126,7 +126,7 @@ namespace
 
     [[nodiscard]] auto widen(std::string_view input) -> std::wstring
     {
-        std::wstring output;
+        std::wstring output{};
         output.reserve(input.size());
         std::mbstate_t state{};
 
@@ -162,7 +162,7 @@ namespace
 
     [[nodiscard]] auto narrow(std::wstring_view input) -> std::string
     {
-        std::string output;
+        std::string output{};
         output.reserve(input.size());
         std::mbstate_t state{};
         std::array<char, MB_LEN_MAX> buffer{};
@@ -203,7 +203,7 @@ namespace
             return std::wstring{ text };
         }
 
-        std::wstring result;
+        std::wstring result{};
         int used{};
         const int content_width{ std::max(0, width - 1) };
         for (const wchar_t character : text) {
@@ -249,7 +249,7 @@ namespace
       public:
         [[nodiscard]] auto read() -> InputBatch
         {
-            InputBatch result;
+            InputBatch result{};
             pollfd descriptor{
                 .fd = STDIN_FILENO,
                 .events = POLLIN,
@@ -417,7 +417,7 @@ namespace
         {
             bool running{ true };
             bool dirty{ true };
-            TerminalInput input;
+            TerminalInput input{};
 
             while (running && !stop.stop_requested()) {
                 dirty = resizeIfNeeded() || drainMessages() || dirty;
@@ -542,7 +542,7 @@ namespace
             m_input.clear();
             m_cursor = 0U;
 
-            std::ostringstream output;
+            std::ostringstream output{};
             const ui::cli::ExecutionResult execution{ m_parser->execute(line, output) };
             const std::string command_output{ std::move(output).str() };
             if (!command_output.empty()) {
@@ -796,7 +796,7 @@ namespace
                 --first;
             }
 
-            std::wstring visible;
+            std::wstring visible{};
             int used{};
             for (std::size_t index{ first }; index < m_input.size(); ++index) {
                 const int width{ character_width(m_input[index]) };
@@ -842,7 +842,7 @@ namespace ui::cli::terminal
 
     auto run(Parser& parser, std::stop_token stop) -> void
     {
-        TerminalSession terminal;
+        TerminalSession terminal{};
         if (!terminal.active()) {
             linux_console::activate_plain();
             runStream(parser, stop, false);

@@ -16,10 +16,10 @@ namespace example
 
     inline std::jthread run_context(pnm::coro::Context& context)
     {
-        auto run = [&context](const std::stop_token& stop) {
+        auto run{ [&context](const std::stop_token& stop) {
             std::stop_callback cancellation{ stop, [&context] { context.stop(); } };
             context.run();
-        };
+        } };
 #if defined(HAL_PLATFORM_LINUX) || defined(HAL_PLATFORM_STM32)
         return runtime::thread::create_jthread({ .name = "icc", .stack_size = CONTEXT_STACK_BYTES }, run);
 #else

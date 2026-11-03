@@ -28,9 +28,9 @@ namespace ui::cli
     {
         constexpr auto INPUT_INTERVAL{ std::chrono::milliseconds{ 10 } };
         constexpr std::size_t MAX_LINE_SIZE{ 4096 };
-        std::string line;
+        std::string line{};
         bool after_cr{}, overflow{};
-        const auto execute = [&] {
+        const auto execute{ [&] {
             if (overflow) {
                 std::cout << "error: command line exceeds 4096 bytes\n";
             }
@@ -42,7 +42,7 @@ namespace ui::cli
             }
             line.clear();
             overflow = false;
-        };
+        } };
         std::cout << "> " << std::flush;
         while (!stop.stop_requested()) {
             const auto input{ hal::console::try_read() };

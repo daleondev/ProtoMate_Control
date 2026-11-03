@@ -62,10 +62,10 @@ namespace icc
                                  pnm::coro::Context& context,
                                  std::shared_ptr<util::OutgoingWakeup> wakeup,
                                  std::stop_token stop)
-      : m_bus(bus)
-      , m_context(context)
-      , m_outgoingWakeup(std::move(wakeup))
-      , m_stop(std::move(stop))
+      : m_bus{ bus }
+      , m_context{ context }
+      , m_outgoingWakeup{ std::move(wakeup) }
+      , m_stop{ std::move(stop) }
     {
     }
 
@@ -78,7 +78,7 @@ namespace icc
 
     ServiceBridge::OutgoingFrame ServiceBridge::makeServiceError(std::uint64_t id, ServiceError error)
     {
-        auto frame = util::make_frame(FrameKind::Error, {}, id, 1);
+        auto frame{ util::make_frame(FrameKind::Error, {}, id, 1) };
         frame.bytes[util::HEADER_BYTES] = encode_error(error);
         return frame;
     }
@@ -91,7 +91,7 @@ namespace icc
         if (name.size() > util::MAX_FRAME_BYTES - util::HEADER_BYTES) {
             throw std::length_error("Service name exceeds bridge frame capacity");
         }
-        const auto duplicate = [name](const auto& route) { return route.name == name; };
+        const auto duplicate{ [name](const auto& route) { return route.name == name; } };
         if (std::ranges::any_of(m_outgoingServices, duplicate) ||
             std::ranges::any_of(m_incomingServices, duplicate)) {
             throw std::invalid_argument("Bridge service must be registered only once");
@@ -103,9 +103,9 @@ namespace icc
 
     pnm::coro::Context::Timer ServiceBridge::wakeAfter(Clock::duration delay)
     {
-        const auto now = Clock::now();
-        const auto deadline =
-          delay >= Clock::time_point::max() - now ? Clock::time_point::max() : now + delay;
+        const auto now{ Clock::now() };
+        const auto deadline{ delay >= Clock::time_point::max() - now ? Clock::time_point::max()
+                                                                     : now + delay };
         return m_context.scheduleAt(deadline, [signal = m_outgoingWakeup] { signal->notifyControl(); });
     }
 
@@ -125,7 +125,7 @@ namespace icc
     {
         // Cancel expired/abandoned calls first. A request already queued in the
         // transport cannot be recalled; cancellation is best effort at the peer.
-        for (auto it = m_outgoingCalls.begin(); it != m_outgoingCalls.end();) {
+        for (auto it{ m_outgoingCalls.begin() }; it != m_outgoingCalls.end();) {
             if (it->pending()) {
                 ++it;
                 continue;
@@ -138,38 +138,40 @@ namespace icc
             // caller stops waiting. This also bounds overtaking cancellations.
             if (lane == Lane::Urgent && !it->cancel_sent) {
                 it->cancel_sent = true;
-                auto frame = util::make_frame(FrameKind::Cancel, {}, it->id, 1);
+                auto frame{ util::make_frame(FrameKind::Cancel, {}, it->id, 1) };
                 frame.bytes[util::HEADER_BYTES] = it->lane == Lane::Urgent ? std::byte{ 1 } : std::byte{ 0 };
                 return frame;
             }
             ++it;
         }
-        const auto reply = std::ranges::find(m_serviceReplies, lane, &std::pair<Lane, OutgoingFrame>::first);
+        const auto reply{ std::ranges::find(m_serviceReplies, lane, &std::pair<Lane, OutgoingFrame>::first) };
         if (reply != m_serviceReplies.end()) {
-            auto frame = reply->second;
+            auto frame{ reply->second };
             m_serviceReplies.erase(reply);
             return frame;
         }
-        for (auto it = m_incomingCalls.begin(); it != m_incomingCalls.end(); ++it) {
+        for (auto it{ m_incomingCalls.begin() }; it != m_incomingCalls.end(); ++it) {
             if (it->lane != lane) {
                 continue;
             }
-            if (auto frame = it->take()) {
+            if (auto frame{ it->take() }) {
                 m_incomingCalls.erase(it);
                 return frame; // sendLoop owns the result until transport accepts it.
             }
         }
         for (auto& call : m_outgoingCalls) {
             if (call.lane == lane && call.request) {
-                const auto remaining = std::chrono::ceil<std::chrono::milliseconds>(call.remaining()).count();
+                const auto remaining{
+                    std::chrono::ceil<std::chrono::milliseconds>(call.remaining()).count()
+                };
                 if (remaining <= 0) {
                     m_outgoingWakeup->notifyControl();
                     continue;
                 }
-                auto frame = *call.request;
+                auto frame{ *call.request };
                 call.request.reset();
-                const auto budget =
-                  std::min<std::uint64_t>(remaining, std::numeric_limits<std::uint32_t>::max());
+                const auto budget{ std::min<std::uint64_t>(remaining,
+                                                           std::numeric_limits<std::uint32_t>::max()) };
                 util::set_request_budget(frame, static_cast<std::uint32_t>(budget));
                 return frame;
             }
@@ -221,14 +223,14 @@ namespace icc
 
     void ServiceBridge::dispatchRequest(const util::IncomingFrame& frame, Lane lane)
     {
-        const auto& [kind, name, id, budget, payload] = frame;
-        auto& last_incoming = m_lastIncomingCallId[static_cast<std::size_t>(lane)];
+        const auto& [kind, name, id, budget, payload]{ frame };
+        auto& last_incoming{ m_lastIncomingCallId[static_cast<std::size_t>(lane)] };
         if (name.empty() || budget == 0 || id <= last_incoming) {
             throw std::invalid_argument("Invalid or repeated service request");
         }
         last_incoming = id;
-        const auto early =
-          std::ranges::find(m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first);
+        const auto early{ std::ranges::find(
+          m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first) };
         if (early != m_earlyCancellations.end()) {
             if (early->second != lane) {
                 throw std::invalid_argument("Service cancellation lane mismatch");
@@ -237,7 +239,7 @@ namespace icc
             queueServiceError(id, ServiceError::Cancelled, lane);
             return;
         }
-        const auto service = std::ranges::find(m_incomingServices, name, &IncomingService::name);
+        const auto service{ std::ranges::find(m_incomingServices, name, &IncomingService::name) };
         if (service == m_incomingServices.end()) {
             queueServiceError(id, ServiceError::Unavailable, lane);
             return;
@@ -259,12 +261,12 @@ namespace icc
 
     void ServiceBridge::dispatchCancellation(const util::IncomingFrame& frame, Lane lane)
     {
-        const auto& [kind, name, id, budget, payload] = frame;
+        const auto& [kind, name, id, budget, payload]{ frame };
         if (lane != Lane::Urgent || payload.size() != 1 || std::to_integer<unsigned>(payload[0]) > 1) {
             throw std::invalid_argument("Invalid service cancellation");
         }
-        const auto target_lane = payload[0] == std::byte{ 1 } ? Lane::Urgent : Lane::Normal;
-        const auto call = std::ranges::find(m_incomingCalls, id, &IncomingCall::id);
+        const auto target_lane{ payload[0] == std::byte{ 1 } ? Lane::Urgent : Lane::Normal };
+        const auto call{ std::ranges::find(m_incomingCalls, id, &IncomingCall::id) };
         if (call != m_incomingCalls.end()) {
             if (call->lane != target_lane) {
                 throw std::invalid_argument("Service cancellation lane mismatch");
@@ -274,8 +276,8 @@ namespace icc
             queueServiceError(id, ServiceError::Cancelled, target_lane);
         }
         else if (id > m_lastIncomingCallId[static_cast<std::size_t>(target_lane)]) {
-            const auto early =
-              std::ranges::find(m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first);
+            const auto early{ std::ranges::find(
+              m_earlyCancellations, id, &std::pair<std::uint64_t, Lane>::first) };
             if (early != m_earlyCancellations.end()) {
                 if (early->second != target_lane) {
                     throw std::invalid_argument("Conflicting service cancellation lanes");
@@ -294,8 +296,8 @@ namespace icc
 
     void ServiceBridge::dispatchResponse(const util::IncomingFrame& frame, Lane lane)
     {
-        const auto& [kind, name, id, budget, payload] = frame;
-        std::optional<ServiceError> error;
+        const auto& [kind, name, id, budget, payload]{ frame };
+        std::optional<ServiceError> error{};
         if (kind == FrameKind::Error) {
             if (payload.size() != 1) {
                 throw std::invalid_argument("Invalid service error payload");
@@ -308,7 +310,7 @@ namespace icc
         if (id > m_lastCallId) {
             throw std::invalid_argument("Reply for an unknown call ID");
         }
-        const auto call = std::ranges::find(m_outgoingCalls, id, &OutgoingCall::id);
+        const auto call{ std::ranges::find(m_outgoingCalls, id, &OutgoingCall::id) };
         if (call != m_outgoingCalls.end()) {
             if (call->lane != lane) {
                 throw std::invalid_argument("Service reply on the wrong transport lane");

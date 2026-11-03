@@ -53,19 +53,19 @@ namespace runtime::storage
         bool valid{};
         std::array<std::byte, RECORD_BYTES> record{};
         for (std::size_t slot{}; slot < RECORDS; ++slot) {
-            const auto address = offset(slot);
-            auto header = std::span{ record }.last<32>();
-            const bool headerRead = m_device.read(address + SECTOR_BYTES, header);
-            const bool dataRead = m_device.read(address, std::span{ record }.first<SECTOR_BYTES>());
+            const auto address{ offset(slot) };
+            auto header{ std::span{ record }.last<32>() };
+            const bool headerRead{ m_device.read(address + SECTOR_BYTES, header) };
+            const bool dataRead{ m_device.read(address, std::span{ record }.first<SECTOR_BYTES>()) };
             m_free[slot] = headerRead && dataRead && erased(record);
             blank = blank && m_free[slot];
             if (m_free[slot] || !headerRead || get(header, 0) != MAGIC || get(header, 4) != VERSION ||
                 crc(header.first<28>()) != get(header, 28)) {
                 continue;
             }
-            const auto sector = get(header, 16);
-            const auto deleted = get(header, 20);
-            const auto sequence = std::uint64_t{ get(header, 8) } | (std::uint64_t{ get(header, 12) } << 32);
+            const auto sector{ get(header, 16) };
+            const auto deleted{ get(header, 20) };
+            const auto sequence{ std::uint64_t{ get(header, 8) } | (std::uint64_t{ get(header, 12) } << 32) };
             if (sector >= SECTORS || deleted > 1 || sequence == 0) {
                 return Mount::Corrupt;
             }
@@ -73,7 +73,7 @@ namespace runtime::storage
                 m_sequence = sequence;
                 m_cursor = (slot / RECORDS_PER_BLOCK);
             }
-            const auto checksum = get(header, 24);
+            const auto checksum{ get(header, 24) };
             if (!dataRead || crc(std::span{ record }.first<SECTOR_BYTES>()) != checksum) {
                 damaged[sector] = std::max(damaged[sector], sequence);
                 continue;
@@ -85,8 +85,8 @@ namespace runtime::storage
         }
         // Unused tail bytes must also be erased before automatic first formatting.
         for (std::size_t block{}; block < BLOCKS && blank; ++block) {
-            const auto tail = block * BLOCK_BYTES + RECORDS_PER_BLOCK * RECORD_BYTES;
-            auto bytes = std::span{ record }.first(BLOCK_BYTES - RECORDS_PER_BLOCK * RECORD_BYTES);
+            const auto tail{ block * BLOCK_BYTES + RECORDS_PER_BLOCK * RECORD_BYTES };
+            auto bytes{ std::span{ record }.first(BLOCK_BYTES - RECORDS_PER_BLOCK * RECORD_BYTES) };
             blank = m_device.read(tail, bytes) && erased(bytes);
         }
         for (std::size_t sector{}; sector < SECTORS; ++sector) {
@@ -106,7 +106,7 @@ namespace runtime::storage
         if (!m_ready || sector >= SECTORS) {
             return false;
         }
-        const auto& entry = m_map[sector];
+        const auto& entry{ m_map[sector] };
         if (entry.slot == NONE || entry.deleted) {
             std::ranges::fill(data, std::byte{});
             return true;
@@ -116,14 +116,14 @@ namespace runtime::storage
 
     bool FlashJournal::isEmpty(std::size_t block) const noexcept
     {
-        const auto first = m_free.begin() + static_cast<std::ptrdiff_t>(block * RECORDS_PER_BLOCK);
+        const auto first{ m_free.begin() + static_cast<std::ptrdiff_t>(block * RECORDS_PER_BLOCK) };
         return std::all_of(first, first + RECORDS_PER_BLOCK, [](bool free) { return free; });
     }
 
     std::size_t FlashJournal::freeSlot(std::size_t excludedBlock) const noexcept
     {
         for (std::size_t i{}; i < RECORDS; ++i) {
-            const auto slot = (m_cursor * RECORDS_PER_BLOCK + i) % RECORDS;
+            const auto slot{ (m_cursor * RECORDS_PER_BLOCK + i) % RECORDS };
             if (slot / RECORDS_PER_BLOCK != excludedBlock && m_free[slot]) {
                 return slot;
             }
@@ -140,7 +140,7 @@ namespace runtime::storage
             return false;
         }
         m_free[slot] = false; // A failed/torn program must never be retried in place.
-        const auto sequence = ++m_sequence;
+        const auto sequence{ ++m_sequence };
         std::array<std::byte, 32> header{};
         put(header, 0, MAGIC);
         put(header, 4, VERSION);
@@ -148,11 +148,11 @@ namespace runtime::storage
         put(header, 12, static_cast<std::uint32_t>(sequence >> 32));
         put(header, 16, static_cast<std::uint32_t>(sector));
         put(header, 20, deleted ? 1U : 0U);
-        const auto checksum = crc(data);
+        const auto checksum{ crc(data) };
         put(header, 24, checksum);
         put(header, 28, crc(std::span{ header }.first<28>()));
         for (std::size_t at{}; at < SECTOR_BYTES; at += 32) {
-            auto word = std::span<const std::byte, 32>{ data.data() + at, 32 };
+            auto word{ std::span<const std::byte, 32>{ data.data() + at, 32 } };
             // Leave all-ones flashwords physically erased, including their ECC bits.
             if (!erased(word) && !m_device.program(offset(slot) + at, word)) {
                 m_ready = false;
@@ -175,14 +175,14 @@ namespace runtime::storage
         std::size_t victim{ BLOCKS };
         std::size_t least{ SECTORS + 1 };
         for (std::size_t i{}; i < BLOCKS; ++i) {
-            const auto block = (m_cursor + i) % BLOCKS;
+            const auto block{ (m_cursor + i) % BLOCKS };
             if (isEmpty(block)) {
                 continue;
             }
-            const auto live =
-              static_cast<std::size_t>(std::count_if(m_map.begin(), m_map.end(), [block](const Entry& e) {
+            const auto live{ static_cast<std::size_t>(
+              std::count_if(m_map.begin(), m_map.end(), [block](const Entry& e) {
                 return e.slot != NONE && e.slot / RECORDS_PER_BLOCK == block;
-            }));
+            })) };
             std::size_t outside{};
             for (std::size_t slot{}; slot < RECORDS; ++slot) {
                 if (slot / RECORDS_PER_BLOCK != block && m_free[slot]) {
@@ -199,7 +199,7 @@ namespace runtime::storage
         }
         std::array<std::byte, SECTOR_BYTES> data{};
         for (std::size_t sector{}; sector < SECTORS; ++sector) {
-            const auto entry = m_map[sector];
+            const auto entry{ m_map[sector] };
             if (entry.slot == NONE || entry.slot / RECORDS_PER_BLOCK != victim) {
                 continue;
             }
@@ -213,7 +213,7 @@ namespace runtime::storage
             return false;
         }
         ++m_erases;
-        auto first = m_free.begin() + static_cast<std::ptrdiff_t>(victim * RECORDS_PER_BLOCK);
+        auto first{ m_free.begin() + static_cast<std::ptrdiff_t>(victim * RECORDS_PER_BLOCK) };
         std::fill_n(first, RECORDS_PER_BLOCK, true);
         m_cursor = (victim + 1) % BLOCKS;
         return true;

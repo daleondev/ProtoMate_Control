@@ -14,7 +14,7 @@ runtime::storage::Diagnostics runtime_storage_diagnostics{};
 namespace
 {
     using runtime::storage::FlashJournal;
-    runtime::storage::InternalFlash device;
+    runtime::storage::InternalFlash device{};
     // CPU-only storage state: no DMA accesses these objects. Use private DTCM
     // instead of consuming the AXI RAM needed by the CLI and ICC thread heaps.
     [[gnu::section(".dtcm_bss")]] FlashJournal journal{ device };
@@ -26,7 +26,7 @@ namespace
 
     void driver(FX_MEDIA* media) noexcept
     {
-        auto& status = media->fx_media_driver_status;
+        auto& status{ media->fx_media_driver_status };
         status = FX_IO_ERROR;
         switch (media->fx_media_driver_request) {
             case FX_DRIVER_INIT:
@@ -47,24 +47,23 @@ namespace
             default:
                 return;
         }
-        const auto request = media->fx_media_driver_request;
-        const bool boot = request == FX_DRIVER_BOOT_READ || request == FX_DRIVER_BOOT_WRITE;
-        const bool write = request == FX_DRIVER_WRITE || request == FX_DRIVER_BOOT_WRITE;
-        const auto sector = boot ? 0UL : media->fx_media_driver_logical_sector;
-        const auto count = boot ? 1U : media->fx_media_driver_sectors;
+        const auto request{ media->fx_media_driver_request };
+        const bool boot{ request == FX_DRIVER_BOOT_READ || request == FX_DRIVER_BOOT_WRITE };
+        const bool write{ request == FX_DRIVER_WRITE || request == FX_DRIVER_BOOT_WRITE };
+        const auto sector{ boot ? 0UL : media->fx_media_driver_logical_sector };
+        const auto count{ boot ? 1U : media->fx_media_driver_sectors };
         if (!runtime::storage::detail::valid_sector_range(sector, 0, count, FlashJournal::SECTORS)) {
             return;
         }
-        auto* buffer = reinterpret_cast<std::byte*>(media->fx_media_driver_buffer);
+        auto* buffer{ reinterpret_cast<std::byte*>(media->fx_media_driver_buffer) };
         for (std::size_t i{}; i < count; ++i) {
             bool ok{};
             if (request == FX_DRIVER_RELEASE_SECTORS) {
                 ok = journal.release(sector + i);
             }
             else {
-                auto bytes =
-                  std::span<std::byte, FlashJournal::SECTOR_BYTES>{ buffer + i * FlashJournal::SECTOR_BYTES,
-                                                                    FlashJournal::SECTOR_BYTES };
+                auto bytes{ std::span<std::byte, FlashJournal::SECTOR_BYTES>{
+                  buffer + i * FlashJournal::SECTOR_BYTES, FlashJournal::SECTOR_BYTES } };
                 ok = write ? journal.write(sector + i, bytes) : journal.read(sector + i, bytes);
             }
             runtime_storage_diagnostics.internal_flash_error = device.error();
@@ -85,16 +84,16 @@ namespace runtime::storage
             return ::mounted;
         }
         attempted = true;
-        auto& info = runtime_storage_diagnostics;
+        auto& info{ runtime_storage_diagnostics };
         info.flash_blocks = FlashJournal::BLOCKS;
         info.flash_logical_sectors = FlashJournal::SECTORS;
-        const auto state = journal.mount();
+        const auto state{ journal.mount() };
         info.internal_flash_error = device.error();
         if (state == FlashJournal::Mount::Corrupt) {
             info.flash_filex_status = FX_MEDIA_INVALID;
             return false;
         }
-        static auto name = std::to_array("FLASH");
+        static auto name{ std::to_array("FLASH") };
         if (state == FlashJournal::Mount::Blank) {
             info.flash_filex_status = fx_media_format(&flash,
                                                       driver,

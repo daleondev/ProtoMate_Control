@@ -18,8 +18,8 @@ namespace
     constexpr std::size_t INITIALIZED_BYTE{ 0U };
     constexpr std::size_t IN_PROGRESS_BYTE{ 1U };
 
-    TX_MUTEX cxx_guard_mutex;
-    CHAR cxx_guard_mutex_name[] = "C++ static init";
+    TX_MUTEX cxx_guard_mutex{};
+    CHAR cxx_guard_mutex_name[]{ "C++ static init" };
     bool cxx_guard_mutex_ready{};
 
     [[nodiscard]] bool interrupt_context() noexcept

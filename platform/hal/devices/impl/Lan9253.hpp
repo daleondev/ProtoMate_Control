@@ -12,14 +12,14 @@ namespace hal::device
     class Lan9253
     {
       public:
-        static constexpr std::uint16_t ID_REVISION_ADDRESS = 0x0050;
-        static constexpr std::uint16_t BYTE_TEST_ADDRESS = 0x0064;
-        static constexpr std::uint16_t HARDWARE_CONFIG_ADDRESS = 0x0074;
-        static constexpr std::uint32_t BYTE_TEST_VALUE = 0x87654321;
-        static constexpr std::uint32_t READY_MASK = 1U << 27;
-        static constexpr std::uint16_t CHIP_ID = 0x9253;
+        static constexpr std::uint16_t ID_REVISION_ADDRESS{ 0x0050 };
+        static constexpr std::uint16_t BYTE_TEST_ADDRESS{ 0x0064 };
+        static constexpr std::uint16_t HARDWARE_CONFIG_ADDRESS{ 0x0074 };
+        static constexpr std::uint32_t BYTE_TEST_VALUE{ 0x87654321 };
+        static constexpr std::uint32_t READY_MASK{ 1U << 27 };
+        static constexpr std::uint16_t CHIP_ID{ 0x9253 };
 
-        static constexpr std::size_t CONFIGURATION_BYTES = 16;
+        static constexpr std::size_t CONFIGURATION_BYTES{ 16 };
         static constexpr std::chrono::milliseconds DEFAULT_TIMEOUT{ 100 };
         static constexpr std::chrono::milliseconds BOOT_TIMEOUT{ 1000 };
 

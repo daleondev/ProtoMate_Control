@@ -12,8 +12,8 @@ namespace hal::step
         constexpr std::array pins{ gpio::Pin{ .port = A, .number = 0U },
                                    gpio::Pin{ .port = B, .number = 10U },
                                    gpio::Pin{ .port = B, .number = 11U } };
-        std::array<std::shared_ptr<IDigitalOutput>, 3> owners;
-        for (std::size_t i = 0; i < pins.size(); ++i) {
+        std::array<std::shared_ptr<IDigitalOutput>, 3> owners{};
+        for (std::size_t i{ 0 }; i < pins.size(); ++i) {
             owners[i] = gpio::create_output({ .pin = pins[i], .pull = gpio::Pull::Down });
             if (!owners[i]) {
                 return {};

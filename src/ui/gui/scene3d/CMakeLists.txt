@@ -11,6 +11,7 @@ add_custom_command(OUTPUT ${asset_dir}/low.cpp ${asset_dir}/medium.cpp ${asset_d
         --tgx ${PROJECT_SOURCE_DIR}/external/tgx --output ${asset_dir} --benchmark
     DEPENDS ${PROJECT_SOURCE_DIR}/scripts/scene3d_assets.py ${converter_sources}
     VERBATIM COMMENT "Converting shaded 3D benchmark meshes (TGX, no textures)")
+add_custom_target(scene3d-assets DEPENDS ${asset_dir}/low.h ${asset_dir}/medium.h ${asset_dir}/high.h)
 add_library(proto_scene3d_renderer STATIC Scene.hpp Scene.cpp Renderer.hpp Renderer.cpp Benchmark.cpp
     ${asset_dir}/low.cpp ${asset_dir}/medium.cpp ${asset_dir}/high.cpp)
 add_library(proto::ui::gui::scene3d ALIAS proto_scene3d_renderer)

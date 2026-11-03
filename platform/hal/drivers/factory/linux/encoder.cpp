@@ -17,12 +17,12 @@ namespace hal::encoder
     {
         auto owner_mutex() -> linux::Mutex&
         {
-            static linux::Mutex value;
+            static linux::Mutex value{};
             return value;
         }
         auto owner() -> std::weak_ptr<QuadratureEncoder>&
         {
-            static std::weak_ptr<QuadratureEncoder> value;
+            static std::weak_ptr<QuadratureEncoder> value{};
             return value;
         }
     }

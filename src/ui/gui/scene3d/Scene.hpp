@@ -5,8 +5,8 @@
 
 namespace ui::gui::scene3d
 {
-    inline constexpr unsigned WIDTH = 640, HEIGHT = 400, MAX_NODES = 32;
-    inline constexpr std::size_t PIXELS = WIDTH * HEIGHT;
+    inline constexpr unsigned WIDTH{ 640 }, HEIGHT{ 400 }, MAX_NODES{ 32 };
+    inline constexpr std::size_t PIXELS{ WIDTH * HEIGHT };
     struct Vec3
     {
         float x{}, y{}, z{};

@@ -17,7 +17,7 @@ namespace hal::linux
 
         explicit Mutex(bool recursive = false) noexcept
         {
-            pthread_mutexattr_t attributes;
+            pthread_mutexattr_t attributes{};
             if (pthread_mutexattr_init(&attributes) != 0) {
                 std::terminate();
             }

@@ -24,10 +24,10 @@ namespace ui
 #if defined(CORE_CM7)
     // A dedicated private stack preserves AXI heap for ICC/CLI. The linker
     // checks the DTCM budget; no runtime objects live in the SDRAM POD arena.
-    __attribute__((section(".dtcm_bss"))) std::byte Application::s_plannerStack[24UZ * 1024UZ];
+    alignas(32) __attribute__((section(".dtcm_bss"))) std::byte Application::s_plannerStack[24UZ * 1024UZ];
 #endif
     Application::Application(icc::ITransport& transport)
-      : m_bridge(m_bus, m_iccContext, transport)
+      : m_bridge{ m_bus, m_iccContext, transport }
       , m_systemState{ hal::core::create_error_led(), hal::core::create_status_led() }
       , m_ioState{ m_bus.topic<^^icc::Topics::io_controller_state>().subscribe(
           [this](app::State state) { m_systemState.receiveIo(state); },
@@ -67,7 +67,7 @@ namespace ui
 
     void Application::start()
     {
-        std::unique_lock lock(m_mutex);
+        std::unique_lock lock{ m_mutex };
         if (m_started || m_stopping) {
             throw std::logic_error("UI application can only be started once, before stopping");
         }
@@ -88,7 +88,7 @@ namespace ui
     void Application::requestStop()
     {
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_stopping = true;
             m_systemState.setLocal(app::State::Stopping);
         }
@@ -163,7 +163,7 @@ namespace ui
     void Application::cliThread()
     {
         try {
-            cli::Parser parser;
+            cli::Parser parser{};
             cli::filesystem::setup(parser);
             cli::display::setup(parser, m_gui);
             cli::state::setup(parser, m_systemState);
@@ -194,7 +194,7 @@ namespace ui
     void Application::applicationThread()
     {
         {
-            std::scoped_lock lock(m_mutex); // Wait until startup has finished.
+            std::scoped_lock lock{ m_mutex }; // Wait until startup has finished.
         }
         try {
             m_motors.run(m_stopSource.get_token());

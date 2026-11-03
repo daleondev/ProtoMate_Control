@@ -39,8 +39,8 @@ namespace
         if (!connected || inFlight || outputHead == outputTail) {
             return;
         }
-        const auto count = std::min<std::uint32_t>(packet.size(), outputHead - outputTail);
-        for (std::uint32_t i = 0; i < count; ++i) {
+        const auto count{ std::min<std::uint32_t>(packet.size(), outputHead - outputTail) };
+        for (std::uint32_t i{ 0 }; i < count; ++i) {
             packet[i] = output[(outputTail + i) % output.size()];
         }
         if (CDC_Transmit_FS(packet.data(), static_cast<std::uint16_t>(count)) == USBD_OK) {
@@ -56,7 +56,7 @@ std::uint32_t giga_console_dropped_bytes{};
 }
 extern "C" void giga_console_reset()
 {
-    const hal::stm32::InterruptGuard guard;
+    const hal::stm32::InterruptGuard guard{};
     connected = false;
     dtr = false;
     suspended = false;
@@ -69,7 +69,7 @@ extern "C" void giga_console_reset()
 }
 extern "C" void giga_console_connected(int value)
 {
-    const hal::stm32::InterruptGuard guard;
+    const hal::stm32::InterruptGuard guard{};
     if (!value) {
         giga_console_reset();
         return;
@@ -81,15 +81,15 @@ extern "C" void giga_console_connected(int value)
 }
 extern "C" void giga_console_suspend()
 {
-    const hal::stm32::InterruptGuard guard;
-    const bool previousDtr = dtr;
+    const hal::stm32::InterruptGuard guard{};
+    const bool previousDtr{ dtr };
     giga_console_reset();
     dtr = previousDtr;
     suspended = true;
 }
 extern "C" void giga_console_resume()
 {
-    const hal::stm32::InterruptGuard guard;
+    const hal::stm32::InterruptGuard guard{};
     suspended = false;
     connected = dtr;
     resetPending = true;
@@ -97,12 +97,12 @@ extern "C" void giga_console_resume()
 }
 extern "C" void giga_console_receive(const std::uint8_t* bytes, std::uint32_t count)
 {
-    const hal::stm32::InterruptGuard guard;
+    const hal::stm32::InterruptGuard guard{};
     if (!connected) {
         return;
     }
     if (quarantine) {
-        for (std::uint32_t i = 0; i < count; ++i) {
+        for (std::uint32_t i{ 0 }; i < count; ++i) {
             if (bytes[i] == '\n' || bytes[i] == '\r') {
                 quarantine = false;
             }
@@ -116,13 +116,13 @@ extern "C" void giga_console_receive(const std::uint8_t* bytes, std::uint32_t co
         notify();
         return; // Discard the entire packet; never execute its truncated tail.
     }
-    for (std::uint32_t i = 0; i < count; ++i) {
+    for (std::uint32_t i{ 0 }; i < count; ++i) {
         input[inputHead++ % input.size()] = bytes[i];
     }
 }
 extern "C" void giga_console_deinitialized()
 {
-    const hal::stm32::InterruptGuard guard;
+    const hal::stm32::InterruptGuard guard{};
     if (inFlight) {
         giga_console_dropped_bytes += packetLength;
     }
@@ -131,7 +131,7 @@ extern "C" void giga_console_deinitialized()
 }
 extern "C" void giga_console_transmitted()
 {
-    const hal::stm32::InterruptGuard guard;
+    const hal::stm32::InterruptGuard guard{};
     inFlight = false;
     notify();
 }
@@ -140,7 +140,7 @@ extern "C" void giga_console_transmitted()
 extern "C" int __io_putchar(int value)
 {
 #if defined(CORE_CM7)
-    const hal::stm32::InterruptGuard guard;
+    const hal::stm32::InterruptGuard guard{};
     if (!connected || outputHead - outputTail == output.size()) {
         ++giga_console_dropped_bytes;
         return value; // Logging cannot stall on the USB host or set stdio error state.
@@ -156,14 +156,14 @@ extern "C" int __io_putchar(int value)
 extern "C" int __io_getchar()
 {
     // The CLI uses try_read; libc's character hook is intentionally nonblocking.
-    const auto value = hal::console::try_read();
+    const auto value{ hal::console::try_read() };
     return value.state == hal::console::InputState::Character ? static_cast<unsigned char>(value.character)
                                                               : -1;
 }
 hal::console::Input hal::console::try_read() noexcept
 {
 #if defined(CORE_CM7)
-    const stm32::InterruptGuard guard;
+    const stm32::InterruptGuard guard{};
     if (resetPending) {
         resetPending = false;
         return { InputState::Reset };
@@ -180,25 +180,25 @@ hal::console::Input hal::console::try_read() noexcept
 void hal::console::initialize()
 {
 #if defined(CORE_CM7)
-    const stm32::InterruptGuard guard;
+    const stm32::InterruptGuard guard{};
     if (started) {
         return;
     }
-    static char eventName[] = "usb.console.events", threadName[] = "usb.console";
+    static char eventName[]{ "usb.console.events" }, threadName[]{ "usb.console" };
     if (tx_event_flags_create(&events, eventName) != TX_SUCCESS) {
         Error_Handler();
     }
     started = true;
-    const auto entry = +[](ULONG) {
+    const auto entry{ +[](ULONG) {
         for (;;) {
             ULONG flags{};
             if (tx_event_flags_get(&events, 1, TX_OR_CLEAR, &flags, TX_WAIT_FOREVER) != TX_SUCCESS) {
                 Error_Handler();
             }
-            const stm32::InterruptGuard local;
+            const stm32::InterruptGuard local{};
             kick();
         }
-    };
+    } };
     if (tx_thread_create(&worker,
                          threadName,
                          entry,

@@ -53,9 +53,9 @@ namespace ui::gui
         if (!m_enabled) {
             return;
         }
-        const bool activate = m_pressed && event.getType() == touchgfx::ClickEvent::RELEASED &&
-                              event.getX() >= 0 && event.getY() >= 0 && event.getX() < getWidth() &&
-                              event.getY() < getHeight();
+        const bool activate{ m_pressed && event.getType() == touchgfx::ClickEvent::RELEASED &&
+                             event.getX() >= 0 && event.getY() >= 0 && event.getX() < getWidth() &&
+                             event.getY() < getHeight() };
         m_pressed = event.getType() == touchgfx::ClickEvent::PRESSED;
         update();
         if (activate && m_callback) {
@@ -84,14 +84,14 @@ namespace ui::gui
     }
     void Slider::value(unsigned value)
     {
-        const auto x = 8 + int(std::min(value, 100u) * 384 / 100);
+        const auto x{ 8 + int(std::min(value, 100u) * 384 / 100) };
         m_fill.setWidth(x - 8);
         m_thumb.setX(x - 8);
         invalidate();
     }
     void Slider::position(int x)
     {
-        const auto selected = unsigned(std::clamp(x - 8, 0, 384) * 100 / 384);
+        const auto selected{ unsigned(std::clamp(x - 8, 0, 384) * 100 / 384) };
         value(selected);
         if (m_callback) {
             m_callback(m_context, selected);

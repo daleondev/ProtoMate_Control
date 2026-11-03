@@ -7,7 +7,7 @@ namespace hal
     {
       public:
         explicit I2c(I2C_HandleTypeDef& handle)
-          : m_handle(handle)
+          : m_handle{ handle }
         {
         }
         auto probe(std::uint8_t address, std::chrono::milliseconds timeout) -> util::Result<> override;

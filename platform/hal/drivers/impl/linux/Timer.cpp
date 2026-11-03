@@ -297,7 +297,7 @@ namespace hal
 
     auto Timer::setPeriodElapsedCallback(PeriodElapsedCallback callback) noexcept -> void
     {
-        std::shared_ptr<PeriodElapsedCallback> replacement;
+        std::shared_ptr<PeriodElapsedCallback> replacement{};
         if (callback) {
             replacement = std::make_shared<PeriodElapsedCallback>(std::move(callback));
         }

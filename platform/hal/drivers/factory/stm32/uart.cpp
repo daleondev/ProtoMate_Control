@@ -37,7 +37,7 @@ namespace hal::uart
         // Startup configures the peripheral once. A private handle describes
         // that hardware for blocking HAL transfers; no generated handle is
         // shared between processors and construction sends no bytes.
-        static UART_HandleTypeDef handle = [] {
+        static UART_HandleTypeDef handle{ [] {
             UART_HandleTypeDef result{};
             result.Instance = USART2;
             result.Init.WordLength = UART_WORDLENGTH_8B;
@@ -47,8 +47,8 @@ namespace hal::uart
             result.Mask = 0xFFU;
             result.FifoMode = UART_FIFOMODE_ENABLE;
             return result;
-        }();
-        static util::ExclusiveInstances<1> instances;
+        }() };
+        static util::ExclusiveInstances<1> instances{};
         return instances.create<Uart>(0U,
                                       Uart::HardwareConfiguration{ .handle = handle,
                                                                    .configuration = configuration.transport,

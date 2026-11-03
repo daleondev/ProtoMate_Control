@@ -206,7 +206,7 @@ namespace
     {
         std::uintptr_t offset{ __atomic_load_n(&object.location.offset, __ATOMIC_ACQUIRE) };
         if (offset == 0U) {
-            const hal::stm32::InterruptGuard guard;
+            const hal::stm32::InterruptGuard guard{};
             offset = object.location.offset;
             if (offset == 0U) {
                 if (emutls_object_count == std::numeric_limits<std::uintptr_t>::max()) {
@@ -377,7 +377,7 @@ extern "C" auto __emutls_register_common(void* object_pointer,
     if (object_pointer == nullptr) {
         tls_failure();
     }
-    const hal::stm32::InterruptGuard guard;
+    const hal::stm32::InterruptGuard guard{};
     auto& object{ *static_cast<EmutlsObject*>(object_pointer) };
     if (object.size < size) {
         object.size = size;

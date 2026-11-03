@@ -18,11 +18,11 @@ namespace motion::trajectory
             void integer(T value)
             {
                 using U = std::make_unsigned_t<T>;
-                const U bits = std::bit_cast<U>(value);
+                const U bits{ std::bit_cast<U>(value) };
                 if (packet.size + sizeof(T) > Packet::CAPACITY) {
                     throw std::length_error("trajectory frame");
                 }
-                for (std::size_t i = 0; i < sizeof(T); ++i) {
+                for (std::size_t i{ 0 }; i < sizeof(T); ++i) {
                     packet.bytes[packet.size++] = std::byte((bits >> (8 * i)) & 255U);
                 }
             }
@@ -47,7 +47,7 @@ namespace motion::trajectory
                     return {};
                 }
                 U value{};
-                for (std::size_t i = 0; i < sizeof(T); ++i) {
+                for (std::size_t i{ 0 }; i < sizeof(T); ++i) {
                     value |= static_cast<U>(std::to_integer<unsigned>(packet.bytes[position++])) << (8 * i);
                 }
                 return std::bit_cast<T>(value);
@@ -55,14 +55,14 @@ namespace motion::trajectory
             double number() { return std::bit_cast<double>(integer<std::uint64_t>()); }
             bool boolean()
             {
-                const auto value = integer<std::uint8_t>();
+                const auto value{ integer<std::uint8_t>() };
                 valid &= value <= 1;
                 return value != 0;
             }
             bool finish()
             {
-                const auto size = position;
-                const auto crc = integer<std::uint32_t>();
+                const auto size{ position };
+                const auto crc{ integer<std::uint32_t>() };
                 return valid && position == packet.size &&
                        crc == checksum(std::span(packet.bytes).first(size));
             }
@@ -98,7 +98,7 @@ namespace motion::trajectory
         }
         Segment readSegment(Reader& r)
         {
-            Segment s;
+            Segment s{};
             s.ticks = r.integer<std::uint64_t>();
             for (auto& p : s.motors) {
                 for (double& c : p.coefficients) {
@@ -133,7 +133,7 @@ namespace motion::trajectory
         }
         Capabilities readCapabilities(Reader& r)
         {
-            Capabilities c;
+            Capabilities c{};
             c.version = r.integer<std::uint16_t>();
             c.tick_ns = r.integer<std::uint32_t>();
             for (double& n : c.step_radians) {
@@ -192,15 +192,15 @@ namespace motion::trajectory
                                     "cancelled",
                                     "too late",
                                     "no stopping path" };
-        const auto n = static_cast<unsigned>(e);
+        const auto n{ static_cast<unsigned>(e) };
         return n < names.size() ? names[n] : "invalid error";
     }
 
     MotorStates Segment::at(double u) const noexcept
     {
-        MotorStates result;
-        const double duration = ticks * TICK_SECONDS;
-        for (std::size_t i = 0; i < result.size(); ++i) {
+        MotorStates result{};
+        const double duration{ ticks * TICK_SECONDS };
+        for (std::size_t i{ 0 }; i < result.size(); ++i) {
             result[i] = { motors[i].at(u),
                           motors[i].at(u, 1) / duration,
                           motors[i].at(u, 2) / (duration * duration) };
@@ -214,10 +214,10 @@ namespace motion::trajectory
             s.path_begin < 0 || s.path_end < s.path_begin || s.path_end > 1) {
             return Error::InvalidInput;
         }
-        const double t = s.ticks * TICK_SECONDS;
-        for (std::size_t i = 0; i < 3; ++i) {
-            const auto& p = s.motors[i];
-            const auto& l = limits[i];
+        const double t{ s.ticks * TICK_SECONDS };
+        for (std::size_t i{ 0 }; i < 3; ++i) {
+            const auto& p{ s.motors[i] };
+            const auto& l{ limits[i] };
             if (!p.finite()) {
                 return Error::InvalidInput;
             }
@@ -230,7 +230,7 @@ namespace motion::trajectory
                 l.velocity <= 0 || l.acceleration <= 0 || l.deceleration <= 0 || l.jerk <= 0) {
                 return Error::Configuration;
             }
-            const auto position = p.range();
+            const auto position{ p.range() };
             if (!position.finite() || position.minimum < l.minimum - 1e-4 ||
                 position.maximum > l.maximum + 1e-4) {
                 return Error::PositionLimit;
@@ -252,7 +252,7 @@ namespace motion::trajectory
 
     bool continuous(const MotorStates& a, const MotorStates& b) noexcept
     {
-        for (std::size_t i = 0; i < 3; ++i) {
+        for (std::size_t i{ 0 }; i < 3; ++i) {
             if (!near(a[i].position, b[i].position, 1e-5) || !near(a[i].velocity, b[i].velocity, 1e-4) ||
                 !near(a[i].acceleration, b[i].acceleration, 1e-3)) {
                 return false;
@@ -276,10 +276,10 @@ namespace motion::trajectory
 
     std::uint32_t checksum(std::span<const std::byte> data) noexcept
     {
-        std::uint32_t crc = 0xffffffffU;
+        std::uint32_t crc{ 0xffffffffU };
         for (const auto byte : data) {
             crc ^= std::to_integer<std::uint8_t>(byte);
-            for (unsigned i = 0; i < 8; ++i) {
+            for (unsigned i{ 0 }; i < 8; ++i) {
                 crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1U)));
             }
         }
@@ -289,12 +289,12 @@ namespace motion::trajectory
     std::uint64_t fingerprint(const Capabilities& c) noexcept
     {
         // FNV-1a on canonical numeric fields; excludes runtime availability.
-        auto canonical = c;
+        auto canonical{ c };
         canonical.hardware_fingerprint = 0;
         canonical.coordinated_execution = false;
-        Writer w;
+        Writer w{};
         write(w, canonical);
-        std::uint64_t hash = 14695981039346656037ULL;
+        std::uint64_t hash{ 14695981039346656037ULL };
         for (auto b : std::span(w.packet.bytes).first(w.packet.size)) {
             hash ^= std::to_integer<std::uint8_t>(b);
             hash *= 1099511628211ULL;
@@ -307,7 +307,7 @@ namespace motion::trajectory
         if (r.count > UPLOAD_SEGMENTS) {
             throw std::length_error("trajectory upload count");
         }
-        Writer w;
+        Writer w{};
         w.integer(std::uint8_t{ 1 });
         w.integer(std::uint8_t(r.operation));
         w.integer(r.version);
@@ -321,14 +321,14 @@ namespace motion::trajectory
         w.integer(r.count);
         w.integer(std::uint8_t(r.branch));
         w.integer(std::uint8_t(r.final));
-        for (std::size_t i = 0; i < r.count; ++i) {
+        for (std::size_t i{ 0 }; i < r.count; ++i) {
             write(w, r.segments[i]);
         }
         return w.finish();
     }
     Packet encode(const Reply& r)
     {
-        Writer w;
+        Writer w{};
         w.integer(std::uint8_t{ 2 });
         w.integer(std::uint8_t(r.error));
         w.integer(std::uint8_t(r.state));
@@ -360,7 +360,7 @@ namespace motion::trajectory
         if (r.integer<std::uint8_t>() != 1) {
             return std::unexpected(Error::Protocol);
         }
-        Request v;
+        Request v{};
         v.operation = Operation(r.integer<std::uint8_t>());
         v.version = r.integer<std::uint16_t>();
         v.boot = r.integer<std::uint64_t>();
@@ -380,7 +380,7 @@ namespace motion::trajectory
             v.version != VERSION) {
             return std::unexpected(Error::Protocol);
         }
-        for (std::size_t i = 0; i < v.count; ++i) {
+        for (std::size_t i{ 0 }; i < v.count; ++i) {
             v.segments[i] = readSegment(r);
         }
         if (!r.finish()) {
@@ -397,7 +397,7 @@ namespace motion::trajectory
         if (r.integer<std::uint8_t>() != 2) {
             return std::unexpected(Error::Protocol);
         }
-        Reply v;
+        Reply v{};
         v.error = Error(r.integer<std::uint8_t>());
         v.state = State(r.integer<std::uint8_t>());
         v.capabilities = readCapabilities(r);

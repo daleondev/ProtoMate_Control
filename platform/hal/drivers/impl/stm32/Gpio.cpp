@@ -220,8 +220,8 @@ namespace hal
       , m_pinMask{ pin_mask(configuration.pin.number) }
       , m_interrupt{ interrupt_for(configuration.pin.number) }
     {
-        const stm32::InterruptGuard local_guard;
-        const stm32::HardwareSemaphore register_guard(5);
+        const stm32::InterruptGuard local_guard{};
+        const stm32::HardwareSemaphore register_guard{ 5 };
         if (!register_guard) {
             hal::panic("GPIO configuration lock timeout");
         }
@@ -256,8 +256,8 @@ namespace hal
 
     GpioInput::~GpioInput()
     {
-        const stm32::InterruptGuard local_guard;
-        const stm32::HardwareSemaphore register_guard(5);
+        const stm32::InterruptGuard local_guard{};
+        const stm32::HardwareSemaphore register_guard{ 5 };
         if (!register_guard) {
             hal::panic("GPIO configuration lock timeout");
         }
@@ -292,7 +292,7 @@ namespace hal
         {
             // Exclude both EXTI and a task switch between concurrent setters.
             // Destroy the previous callback after leaving the critical section.
-            const stm32::InterruptGuard interrupt_guard;
+            const stm32::InterruptGuard interrupt_guard{};
             m_edgeCallback.swap(callback);
         }
     }
@@ -317,8 +317,8 @@ namespace hal
       : m_port{ gpio_port(configuration.pin.port) }
       , m_pinMask{ pin_mask(configuration.pin.number) }
     {
-        const stm32::InterruptGuard local_guard;
-        const stm32::HardwareSemaphore register_guard(5);
+        const stm32::InterruptGuard local_guard{};
+        const stm32::HardwareSemaphore register_guard{ 5 };
         if (!register_guard) {
             hal::panic("GPIO configuration lock timeout");
         }
@@ -337,8 +337,8 @@ namespace hal
 
     GpioOutput::~GpioOutput()
     {
-        const stm32::InterruptGuard local_guard;
-        const stm32::HardwareSemaphore register_guard(5);
+        const stm32::InterruptGuard local_guard{};
+        const stm32::HardwareSemaphore register_guard{ 5 };
         if (!register_guard) {
             hal::panic("GPIO configuration lock timeout");
         }
@@ -357,7 +357,7 @@ namespace hal
 
     auto GpioOutput::toggle() noexcept -> void
     {
-        const stm32::InterruptGuard interrupt_guard;
+        const stm32::InterruptGuard interrupt_guard{};
         // Toggle the output latch, not IDR: an open-drain output can be held
         // low externally even when its latch is high (released).
         HAL_GPIO_TogglePin(m_port, m_pinMask);
@@ -373,9 +373,9 @@ namespace
     void core_exti(std::uint16_t pin)
     {
 #if defined(CORE_CM4)
-        const auto mask = EXTI_D2->IMR1;
+        const auto mask{ EXTI_D2->IMR1 };
 #else
-        const auto mask = EXTI_D1->IMR1;
+        const auto mask{ EXTI_D1->IMR1 };
 #endif
         if ((mask & pin) != 0U) {
             HAL_GPIO_EXTI_IRQHandler(pin);

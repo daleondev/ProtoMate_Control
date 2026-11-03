@@ -20,10 +20,10 @@ namespace icc
                                pnm::coro::Context& context,
                                std::shared_ptr<util::OutgoingWakeup> wakeup,
                                std::stop_token stop)
-      : m_bus(bus)
-      , m_context(context)
-      , m_wakeup(std::move(wakeup))
-      , m_stop(std::move(stop))
+      : m_bus{ bus }
+      , m_context{ context }
+      , m_wakeup{ std::move(wakeup) }
+      , m_stop{ std::move(stop) }
     {
     }
 
@@ -31,7 +31,7 @@ namespace icc
 
     ActionBridge::Frame ActionBridge::makeError(std::uint64_t id, Error error)
     {
-        auto frame = util::make_frame(Kind::ActionError, {}, id, 1);
+        auto frame{ util::make_frame(Kind::ActionError, {}, id, 1) };
         switch (error) {
             case Error::Unavailable:
                 frame.bytes[util::HEADER_BYTES] = static_cast<std::byte>(WireError::Unavailable);
@@ -119,7 +119,7 @@ namespace icc
         if (name.size() > util::MAX_FRAME_BYTES - util::HEADER_BYTES) {
             throw std::length_error("Action name exceeds frame capacity");
         }
-        const auto duplicate = [name](const auto& route) { return route.name == name; };
+        const auto duplicate{ [name](const auto& route) { return route.name == name; } };
         if (std::ranges::any_of(m_outgoingRoutes, duplicate) ||
             std::ranges::any_of(m_incomingRoutes, duplicate)) {
             throw std::invalid_argument("Bridge action must be registered only once");
@@ -131,9 +131,9 @@ namespace icc
 
     pnm::coro::Context::Timer ActionBridge::wakeAfter(Clock::duration delay)
     {
-        const auto now = Clock::now();
-        const auto deadline =
-          delay >= Clock::time_point::max() - now ? Clock::time_point::max() : now + delay;
+        const auto now{ Clock::now() };
+        const auto deadline{ delay >= Clock::time_point::max() - now ? Clock::time_point::max()
+                                                                     : now + delay };
         return m_context.scheduleAt(deadline, [signal = m_wakeup] { signal->notifyControl(); });
     }
 
@@ -162,8 +162,8 @@ namespace icc
 
     std::optional<ActionBridge::Frame> ActionBridge::takeFrame(Lane lane)
     {
-        for (auto it = m_outgoingGoals.begin(); it != m_outgoingGoals.end();) {
-            const bool pending = it->pending();
+        for (auto it{ m_outgoingGoals.begin() }; it != m_outgoingGoals.end();) {
+            const bool pending{ it->pending() };
             if (!pending && it->request) {
                 it = m_outgoingGoals.erase(it); // Never sent; no remote execution exists.
                 continue;
@@ -180,7 +180,7 @@ namespace icc
             ++it;
         }
         if (lane == Lane::Urgent && !m_acknowledgements.empty()) {
-            const auto id = m_acknowledgements.front();
+            const auto id{ m_acknowledgements.front() };
             m_acknowledgements.pop_front();
             return util::make_frame(Kind::ActionAck, {}, id, 0);
         }
@@ -200,10 +200,10 @@ namespace icc
         }
         // Rotate between active providers; a busy feedback source cannot starve
         // another goal's acceptance/result. Preserve each goal's event ordering.
-        for (std::size_t checked = 0; checked < m_incomingGoals.size(); ++checked) {
+        for (std::size_t checked{ 0 }; checked < m_incomingGoals.size(); ++checked) {
             m_nextIncoming %= m_incomingGoals.size();
-            auto& goal = m_incomingGoals[m_nextIncoming++];
-            auto& events = *goal.events;
+            auto& goal{ m_incomingGoals[m_nextIncoming++] };
+            auto& events{ *goal.events };
             if (std::exchange(events.acceptance_pending, false)) {
                 return util::make_frame(Kind::ActionAccepted, {}, goal.id, 0);
             }
@@ -217,12 +217,14 @@ namespace icc
         }
         for (auto& goal : m_outgoingGoals) {
             if (goal.request) {
-                const auto remaining = std::chrono::ceil<std::chrono::milliseconds>(goal.remaining()).count();
+                const auto remaining{
+                    std::chrono::ceil<std::chrono::milliseconds>(goal.remaining()).count()
+                };
                 if (remaining <= 0) {
                     m_wakeup->notifyControl();
                     continue;
                 }
-                auto frame = *goal.request;
+                auto frame{ *goal.request };
                 goal.request.reset();
                 util::set_request_budget(frame,
                                          static_cast<std::uint32_t>(std::min<std::uint64_t>(
@@ -282,9 +284,9 @@ namespace icc
 
     void ActionBridge::dispatch(const util::IncomingFrame& frame, Lane lane)
     {
-        const auto kind = frame.kind;
-        const auto required_lane =
-          kind == Kind::ActionCancel || kind == Kind::ActionAck ? Lane::Urgent : Lane::Normal;
+        const auto kind{ frame.kind };
+        const auto required_lane{ kind == Kind::ActionCancel || kind == Kind::ActionAck ? Lane::Urgent
+                                                                                        : Lane::Normal };
         if (lane != required_lane) {
             throw std::invalid_argument("Action frame on the wrong transport lane");
         }
@@ -308,17 +310,17 @@ namespace icc
 
     void ActionBridge::dispatchGoal(const util::IncomingFrame& frame)
     {
-        const auto& [kind, name, id, budget, payload] = frame;
+        const auto& [kind, name, id, budget, payload]{ frame };
         if (name.empty() || budget == 0 || id <= m_lastIncoming) {
             throw std::invalid_argument("Invalid or repeated action goal");
         }
         m_lastIncoming = id;
-        const bool cancelled = std::erase(m_earlyCancellations, id) != 0;
+        const bool cancelled{ std::erase(m_earlyCancellations, id) != 0 };
         if (m_stopping) {
             reject(id, Error::Unavailable);
             return;
         }
-        const auto route = std::ranges::find(m_incomingRoutes, name, &IncomingRoute::name);
+        const auto route{ std::ranges::find(m_incomingRoutes, name, &IncomingRoute::name) };
         if (route == m_incomingRoutes.end()) {
             reject(id, Error::Unavailable);
             return;
@@ -350,11 +352,11 @@ namespace icc
 
     void ActionBridge::dispatchControl(const util::IncomingFrame& frame)
     {
-        const auto& [kind, name, id, budget, payload] = frame;
+        const auto& [kind, name, id, budget, payload]{ frame };
         if (!payload.empty() || (kind == Kind::ActionAck && id > m_lastIncoming)) {
             throw std::invalid_argument("Invalid action cancellation/acknowledgement");
         }
-        const auto goal = std::ranges::find(m_incomingGoals, id, &IncomingGoal::id);
+        const auto goal{ std::ranges::find(m_incomingGoals, id, &IncomingGoal::id) };
         if (kind == Kind::ActionCancel) {
             if (goal != m_incomingGoals.end()) {
                 goal->cancel();
@@ -374,7 +376,7 @@ namespace icc
                 }
                 m_incomingGoals.erase(goal);
             }
-            const auto rejection = std::ranges::find(m_rejections, id, &Rejection::id);
+            const auto rejection{ std::ranges::find(m_rejections, id, &Rejection::id) };
             if (rejection != m_rejections.end()) {
                 if (!rejection->sent) {
                     throw std::invalid_argument("Premature action rejection acknowledgement");
@@ -388,10 +390,10 @@ namespace icc
     std::pair<std::optional<ActionBridge::Status>, std::optional<ActionBridge::Error>> ActionBridge::
       decodeEvent(const util::IncomingFrame& frame)
     {
-        const auto kind = frame.kind;
-        const auto payload = frame.payload;
-        std::optional<Status> status;
-        std::optional<Error> error;
+        const auto kind{ frame.kind };
+        const auto payload{ frame.payload };
+        std::optional<Status> status{};
+        std::optional<Error> error{};
         switch (kind) {
             case Kind::ActionAccepted:
                 if (!payload.empty()) {
@@ -420,7 +422,7 @@ namespace icc
                                      std::optional<Status> status,
                                      std::optional<Error> error)
     {
-        const auto kind = frame.kind;
+        const auto kind{ frame.kind };
         if (goal.request) {
             throw std::invalid_argument("Action event before submission");
         }
@@ -452,12 +454,12 @@ namespace icc
 
     void ActionBridge::dispatchEvent(const util::IncomingFrame& frame)
     {
-        const auto& [kind, name, id, budget, payload] = frame;
+        const auto& [kind, name, id, budget, payload]{ frame };
         if (id > m_lastOutgoing) {
             throw std::invalid_argument("Action event for unknown goal");
         }
-        const auto [status, error] = decodeEvent(frame);
-        const auto goal = std::ranges::find(m_outgoingGoals, id, &OutgoingGoal::id);
+        const auto [status, error]{ decodeEvent(frame) };
+        const auto goal{ std::ranges::find(m_outgoingGoals, id, &OutgoingGoal::id) };
         if (goal != m_outgoingGoals.end()) {
             if (deliverToGoal(*goal, frame, status, error)) {
                 m_outgoingGoals.erase(goal);

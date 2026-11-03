@@ -30,7 +30,7 @@
 
 namespace
 {
-    thread_local std::optional<runtime::thread::Attributes> pending_attributes;
+    thread_local std::optional<runtime::thread::Attributes> pending_attributes{};
 
     void cleanup_thread_runtime(TX_THREAD* thread) noexcept;
 }
@@ -130,27 +130,27 @@ namespace runtime
             static_assert(std::atomic_ref<void*>::required_alignment <= alignof(ConditionHandle));
             static_assert(std::atomic_ref<void*>::required_alignment <= alignof(SemaphoreHandle));
 
-            TX_MUTEX initialization_mutex;
-            TX_QUEUE cleanup_queue;
-            TX_THREAD reaper_thread;
-            TX_TIMER rollover_timer;
+            TX_MUTEX initialization_mutex{};
+            TX_QUEUE cleanup_queue{};
+            TX_THREAD reaper_thread{};
+            TX_TIMER rollover_timer{};
             alignas(STACK_ALIGNMENT) UCHAR reaper_stack[REAPER_STACK_SIZE];
             ULONG cleanup_queue_storage[CLEANUP_QUEUE_DEPTH];
-            CHAR initialization_mutex_name[] = "std init";
-            CHAR cleanup_queue_name[] = "std cleanup";
-            CHAR reaper_thread_name[] = "std reaper";
-            CHAR rollover_timer_name[] = "std clock wrap";
-            CHAR mutex_name[] = "std mutex";
-            CHAR condition_mutex_name[] = "std condition";
-            CHAR waiter_semaphore_name[] = "std cv waiter";
-            CHAR semaphore_name[] = "std semaphore";
-            CHAR completion_name[] = "std completion";
-            CHAR lifecycle_mutex_name[] = "std lifecycle";
+            CHAR initialization_mutex_name[]{ "std init" };
+            CHAR cleanup_queue_name[]{ "std cleanup" };
+            CHAR reaper_thread_name[]{ "std reaper" };
+            CHAR rollover_timer_name[]{ "std clock wrap" };
+            CHAR mutex_name[]{ "std mutex" };
+            CHAR condition_mutex_name[]{ "std condition" };
+            CHAR waiter_semaphore_name[]{ "std cv waiter" };
+            CHAR semaphore_name[]{ "std semaphore" };
+            CHAR completion_name[]{ "std completion" };
+            CHAR lifecycle_mutex_name[]{ "std lifecycle" };
             bool initialized{};
             std::uint32_t next_thread_number{};
             ULONG next_registry_id{ 1U };
             ThreadControl* registry_head{};
-            KeyDefinition keys[RUNTIME_THREAD_KEY_COUNT];
+            KeyDefinition keys[RUNTIME_THREAD_KEY_COUNT]{};
 
             std::int64_t system_clock_epoch_nanoseconds{};
             std::uint64_t system_clock_epoch_ticks{};
@@ -897,7 +897,7 @@ namespace runtime
             }
 
             TX_SEMAPHORE acknowledgement{};
-            CHAR acknowledgement_name[] = "std join ack";
+            CHAR acknowledgement_name[]{ "std join ack" };
             if (tx_semaphore_create(&acknowledgement, acknowledgement_name, 0U) != TX_SUCCESS) {
                 return EAGAIN;
             }

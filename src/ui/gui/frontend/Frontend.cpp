@@ -79,7 +79,7 @@ namespace ui::gui
         add(m_details);
         constexpr std::array<std::uint32_t, 8> colors{ 0xffffff, 0xffff00, 0x00ffff, 0x00ff00,
                                                        0xff00ff, 0xff0000, 0x0000ff, 0 };
-        for (unsigned i = 0; i < m_bars.size(); ++i) {
+        for (unsigned i{ 0 }; i < m_bars.size(); ++i) {
             m_bars[i].setPosition(i * 128, 0, 128, 600);
             m_bars[i].setColor(colors[i]);
             m_bars[i].setVisible(false);
@@ -96,13 +96,13 @@ namespace ui::gui
     {
         if (m_previousTick != model.ticks) {
             m_indicator.invalidate();
-            const auto phase = model.ticks % theme::ANIMATION_FRAMES;
+            const auto phase{ model.ticks % theme::ANIMATION_FRAMES };
             m_indicator.setX(504 + int((phase < 60 ? phase : 120 - phase) * 6));
             m_indicator.invalidate();
             m_previousTick = model.ticks;
         }
         // Update text/widgets only on interaction, keeping animation dirty regions small.
-        const auto expected = model.value;
+        const auto expected{ model.value };
         if (m_valueText[0] == 0 || model.interactions != m_interactions) {
             m_interactions = model.interactions;
             touchgfx::Unicode::snprintf(m_valueText.data(), m_valueText.size(), "Value  %u / 100", expected);
@@ -182,9 +182,9 @@ namespace ui::gui
         touchgfx::MVPApplication::handleTickEvent();
     }
     Frontend::Frontend(scene3d::RenderService& renderer)
-      : m_presenter(m_model, m_view)
-      , m_detailsPresenter(m_model)
-      , m_sceneView(renderer)
+      : m_presenter{ m_model, m_view }
+      , m_detailsPresenter{ m_model }
+      , m_sceneView{ renderer }
     {
         m_view.bind(m_presenter);
         m_detailsView.bind(m_detailsPresenter);
@@ -207,7 +207,7 @@ namespace ui::gui
         m_sceneRequested = true;
     }
     Frontend::SceneView::SceneView(scene3d::RenderService& renderer)
-      : m_renderer(renderer)
+      : m_renderer{ renderer }
     {
         m_background.setPosition(0, 0, 1024, 600);
         m_background.setColor(theme::BACKGROUND);
@@ -225,7 +225,7 @@ namespace ui::gui
     {
         if (!m_registered) {
             touchgfx::Bitmap::setCache(m_cache.data(), sizeof(m_cache), 2);
-            for (unsigned i = 0; i < 2; ++i) {
+            for (unsigned i{ 0 }; i < 2; ++i) {
                 m_bitmaps[i] = touchgfx::Bitmap::dynamicBitmapCreateExternal(
                   scene3d::WIDTH, scene3d::HEIGHT, m_renderer.pixels(i).data(), touchgfx::Bitmap::RGB565);
                 if (m_bitmaps[i] == touchgfx::BITMAP_INVALID) {
@@ -251,13 +251,13 @@ namespace ui::gui
     }
     void Frontend::SceneView::handleTickEvent()
     {
-        const auto time = std::chrono::duration_cast<std::chrono::microseconds>(
-                            std::chrono::steady_clock::now().time_since_epoch())
-                            .count();
+        const auto time{ std::chrono::duration_cast<std::chrono::microseconds>(
+                           std::chrono::steady_clock::now().time_since_epoch())
+                           .count() };
         m_renderer.submit(
           { &scene3d::benchmarkScene(triangles),
             scene3d::benchmarkSnapshot(float(time % 60000000) / 1000000, ++m_revision, time) });
-        if (const auto image = m_renderer.acquire()) {
+        if (const auto image{ m_renderer.acquire() }) {
             m_image.setBitmap(touchgfx::Bitmap(m_bitmaps[image->slot]));
             m_image.setVisible(true);
             m_image.invalidate();

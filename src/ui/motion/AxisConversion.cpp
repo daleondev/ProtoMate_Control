@@ -70,8 +70,8 @@ namespace ui::motion
             positive_ratio(config.travel_per_output_revolution.get());
             finite_input(config.motor_reference);
             finite_input(config.axis_reference);
-            const auto factor = direction_sign(config.direction) * config.travel_per_output_revolution.get() /
-                                config.motor_revolutions_per_output_revolution / (1_rev).get();
+            const auto factor{ direction_sign(config.direction) * config.travel_per_output_revolution.get() /
+                               config.motor_revolutions_per_output_revolution / (1_rev).get() };
             positive_ratio(std::abs(factor));
             return factor;
         }

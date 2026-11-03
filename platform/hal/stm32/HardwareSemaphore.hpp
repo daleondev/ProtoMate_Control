@@ -12,7 +12,7 @@ namespace hal::stm32
     {
       public:
         explicit HardwareSemaphore(std::uint32_t id) noexcept
-          : m_id(id)
+          : m_id{ id }
         {
             for (std::uint32_t attempt{}; attempt < 100'000; ++attempt) {
                 if (HAL_HSEM_FastTake(id) == HAL_OK) {

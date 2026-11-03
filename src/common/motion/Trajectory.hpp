@@ -10,18 +10,18 @@
 
 namespace motion::trajectory
 {
-    inline constexpr std::uint16_t VERSION = 1;
-    inline constexpr std::uint32_t TICK_NS = 100;
-    inline constexpr std::uint64_t CHECKPOINT_TICKS = 200'000; // 20 ms
-    inline constexpr std::uint64_t COMMIT_HORIZON_TICKS = 100'000;
-    inline constexpr std::uint64_t LOOKAHEAD_TICKS = 5'000'000;
-    inline constexpr std::uint64_t LEASE_TICKS = 2'500'000;
-    inline constexpr std::size_t UPLOAD_SEGMENTS = 4;
-    inline constexpr std::size_t IO_SEGMENTS = 256;
-    inline constexpr std::size_t UI_SEGMENTS = 512;
-    inline constexpr std::size_t COMMANDS = 64;
-    inline constexpr double MAX_POSITION = 1e9;
-    inline constexpr double TICK_SECONDS = TICK_NS * 1e-9;
+    inline constexpr std::uint16_t VERSION{ 1 };
+    inline constexpr std::uint32_t TICK_NS{ 100 };
+    inline constexpr std::uint64_t CHECKPOINT_TICKS{ 200'000 }; // 20 ms
+    inline constexpr std::uint64_t COMMIT_HORIZON_TICKS{ 100'000 };
+    inline constexpr std::uint64_t LOOKAHEAD_TICKS{ 5'000'000 };
+    inline constexpr std::uint64_t LEASE_TICKS{ 2'500'000 };
+    inline constexpr std::size_t UPLOAD_SEGMENTS{ 4 };
+    inline constexpr std::size_t IO_SEGMENTS{ 256 };
+    inline constexpr std::size_t UI_SEGMENTS{ 512 };
+    inline constexpr std::size_t COMMANDS{ 64 };
+    inline constexpr double MAX_POSITION{ 1e9 };
+    inline constexpr double TICK_SECONDS{ TICK_NS * 1e-9 };
 
     enum class Error : std::uint8_t
     {
@@ -156,7 +156,7 @@ namespace motion::trajectory
     // messages. Unused native padding and unused segment slots never cross ICC.
     struct Packet
     {
-        static constexpr std::size_t CAPACITY = 1536;
+        static constexpr std::size_t CAPACITY{ 1536 };
         std::uint16_t size{};
         std::array<std::byte, CAPACITY> bytes{};
     };

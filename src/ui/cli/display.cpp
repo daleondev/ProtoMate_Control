@@ -30,8 +30,8 @@ namespace ui::cli::display
         ]] auto scene(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult
         {
             unsigned triangles{};
-            const auto text = args.require("triangles");
-            const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), triangles);
+            const auto text{ args.require("triangles") };
+            const auto [end, error]{ std::from_chars(text.data(), text.data() + text.size(), triangles) };
             if (error != std::errc{} || end != text.data() + text.size() || !gui.scene(triangles)) {
                 return callback_failure("Expected 500, 2000 or 5000; GUI must be available");
             }
@@ -44,8 +44,8 @@ namespace ui::cli::display
         ]] auto backlight(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult
         {
             unsigned percent{};
-            const auto text = args.require("percent");
-            const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), percent);
+            const auto text{ args.require("percent") };
+            const auto [end, error]{ std::from_chars(text.data(), text.data() + text.size(), percent) };
             if (error != std::errc{} || end != text.data() + text.size() || percent > 100) {
                 return callback_failure("Expected 0..100");
             }
@@ -57,7 +57,7 @@ namespace ui::cli::display
             = Name{ "display touch"_fs }
         ]] auto touch(ui::gui::Controller& gui, const Arguments&, std::ostream& out) -> CallbackResult
         {
-            const auto status = gui.status();
+            const auto status{ gui.status() };
             out << "Touch " << (status.touchAvailable ? "available" : "unavailable")
                 << "; contact=" << status.touchDown << "; x=" << status.touchX << "; y=" << status.touchY;
             if (status.touchTime != std::chrono::steady_clock::time_point{}) {
@@ -75,7 +75,7 @@ namespace ui::cli::display
             = Name{ "display status"_fs }
         ]] auto status(ui::gui::Controller& gui, const Arguments&, std::ostream& out) -> CallbackResult
         {
-            const auto s = gui.status();
+            const auto s{ gui.status() };
             constexpr const char* names[]{ "starting", "running", "unavailable", "fault", "stopped" };
             out << "GUI " << names[unsigned(s.state)] << "; rendered=" << s.frames
                 << "; presented=" << s.presented << "; buffer=" << s.activeBuffer
@@ -90,7 +90,7 @@ namespace ui::cli::display
             out << "GUI total draw us=" << s.totalDrawUs << "; total sync us=" << s.totalSynchronizeUs
                 << "; image transfer us=" << s.imageTransferUs << "; image transfers=" << s.imageTransfers
                 << '\n';
-            const auto r = gui.sceneStatus();
+            const auto r{ gui.sceneStatus() };
             out << "3D running=" << r.running << "; visible=" << r.visible << "; failed=" << r.failed
                 << "; rendered=" << r.rendered << "; acquired=" << r.acquired << "; presented=" << r.presented
                 << "; presented revision=" << r.presentedRevision << "; latency us=" << r.lastLatencyUs

@@ -41,9 +41,9 @@ namespace hal::stm32
         BOARD_MOTOR_GPIO_CLOCKS();
         __DSB();
         force_output(BOARD_ENABLE_PORT, BOARD_ENABLE_PIN, true);
-        std::uint32_t pins = BOARD_STEP_PINS;
+        std::uint32_t pins{ BOARD_STEP_PINS };
         while (pins) {
-            const auto pin = 1U << std::countr_zero(pins);
+            const auto pin{ 1U << std::countr_zero(pins) };
             force_output(BOARD_STEP_PORT, pin, false);
             pins &= ~pin;
         }

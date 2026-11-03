@@ -42,7 +42,7 @@ namespace io::logging
         // Character views may alias a byte buffer.
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         const auto text{ std::string_view{ reinterpret_cast<const char*>(data.data()), data.size() } };
-        std::string record;
+        std::string record{};
         if (text.size() <= icc::MAX_LOG_BYTES) {
             record = text;
         }

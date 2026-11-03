@@ -12,7 +12,7 @@ namespace hal::i2c
         if (peripheral != Peripheral::I2c4) {
             return {};
         }
-        static util::ExclusiveInstances<1> instances;
+        static util::ExclusiveInstances<1> instances{};
         return instances.create<I2c>(0, hi2c4);
 #else
         static_cast<void>(peripheral);

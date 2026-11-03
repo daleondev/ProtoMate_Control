@@ -25,7 +25,7 @@ namespace hal
       , m_timerInputHz{ configuration.input_frequency_hz }
       , m_interrupt{ configuration.interrupt }
     {
-        const stm32::InterruptGuard interrupt_guard;
+        const stm32::InterruptGuard interrupt_guard{};
         if (std::ranges::any_of(s_registry, [&](const Timer* timer) {
             return timer != nullptr && timer->m_handle.Instance == configuration.handle.Instance;
         })) {
@@ -41,7 +41,7 @@ namespace hal
 
     Timer::~Timer()
     {
-        const stm32::InterruptGuard interrupt_guard;
+        const stm32::InterruptGuard interrupt_guard{};
         static_cast<void>(HAL_TIM_Base_Stop_IT(&m_handle));
         HAL_NVIC_DisableIRQ(m_interrupt);
         HAL_NVIC_ClearPendingIRQ(m_interrupt);
@@ -278,7 +278,7 @@ namespace hal
             // Masking this timer alone still allows another task to preempt this
             // setter. Protect the swap against both tasks and callbacks, then
             // release the old callback with normal interrupt state restored.
-            const stm32::InterruptGuard interrupt_guard;
+            const stm32::InterruptGuard interrupt_guard{};
             m_periodElapsedCallback.swap(callback);
         }
     }
@@ -296,8 +296,8 @@ namespace hal
         if (entry == s_registry.end()) {
             return;
         }
-        auto& timer = **entry;
-        auto& handle = timer.m_handle;
+        auto& timer{ **entry };
+        auto& handle{ timer.m_handle };
         if (__HAL_TIM_GET_FLAG(&handle, TIM_FLAG_UPDATE) != RESET &&
             __HAL_TIM_GET_IT_SOURCE(&handle, TIM_IT_UPDATE) != RESET) {
             __HAL_TIM_CLEAR_IT(&handle, TIM_IT_UPDATE);

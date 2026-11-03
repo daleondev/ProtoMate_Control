@@ -7,7 +7,7 @@ namespace hal::core
 {
     namespace
     {
-        constexpr auto DEVICES = devices_for(util::executing_core());
+        constexpr auto DEVICES{ devices_for(util::executing_core()) };
 
         template<typename Result, typename... Parameters, typename... Arguments>
         auto create(Result (*factory)(Parameters...), Arguments&&... arguments) -> Result

@@ -9,7 +9,7 @@ namespace io::motion
     // Two banks bound active + staged storage to the agreed 256 records.
     struct TrajectoryWindow
     {
-        static constexpr std::size_t CAPACITY = ::motion::trajectory::IO_SEGMENTS / 2;
+        static constexpr std::size_t CAPACITY{ ::motion::trajectory::IO_SEGMENTS / 2 };
         std::array<::motion::trajectory::Segment, CAPACITY> segments{};
         std::uint16_t continuation{}, stopping{};
         std::uint64_t continuation_ticks{}, total_ticks{}, revision{};

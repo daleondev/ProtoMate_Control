@@ -813,10 +813,10 @@ namespace
 
         int validateMigratedPaths() const
         {
-            const auto too_long = [this](const auto& path) {
+            const auto too_long{ [this](const auto& path) {
                 return migrated_path_length(path.data(), old_name.data(), new_name.data(), directory) >=
                        MAXIMUM_PATH;
-            };
+            } };
             for (const auto& descriptor : descriptors) {
                 if (descriptor.allocated && too_long(descriptor.path)) {
                     return ENAMETOOLONG;
@@ -967,7 +967,7 @@ namespace runtime::filex
         if (!usable()) {
             return errno;
         }
-        const RegistryGuard guard;
+        const RegistryGuard guard{};
         return guard ? normalize_path_unlocked(path, output) : guard.error();
     }
 
@@ -976,7 +976,7 @@ namespace runtime::filex
         if (!usable()) {
             return errno;
         }
-        const RegistryGuard guard;
+        const RegistryGuard guard{};
         return guard ? information_unlocked(path, result) : guard.error();
     }
 
@@ -987,7 +987,7 @@ namespace runtime::filex
         if (!usable()) {
             return errno;
         }
-        const RegistryGuard guard;
+        const RegistryGuard guard{};
         ULONG64 available{};
         if (!guard) {
             bytes = 0U;
@@ -1010,7 +1010,7 @@ namespace runtime::filex
         if (!usable()) {
             return errno;
         }
-        const RegistryGuard guard;
+        const RegistryGuard guard{};
         if (!guard) {
             return guard.error();
         }
@@ -1023,7 +1023,7 @@ namespace runtime::filex
         if (!usable()) {
             return errno;
         }
-        const RegistryGuard guard;
+        const RegistryGuard guard{};
         if (!guard) {
             return guard.error();
         }
@@ -1085,7 +1085,7 @@ extern "C" int _open(const char* path, int flags, ...)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1170,7 +1170,7 @@ extern "C" int _close(int file)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1211,7 +1211,7 @@ extern "C" int _read(int file, char* buffer, int length)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1261,7 +1261,7 @@ extern "C" int _write(int file, const char* buffer, int length)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1308,7 +1308,7 @@ extern "C" off_t _lseek(int file, off_t offset, int origin)
     if (!usable()) {
         return static_cast<off_t>(-1);
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return static_cast<off_t>(-1);
@@ -1389,7 +1389,7 @@ extern "C" int _fstat(int file, struct stat* value)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1416,7 +1416,7 @@ extern "C" int _stat(const char* path, struct stat* value)
         errno = value == nullptr ? EFAULT : errno;
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1456,7 +1456,7 @@ extern "C" int _unlink(const char* path)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1495,12 +1495,12 @@ extern "C" int _rename(const char* old_path, const char* new_path)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
     }
-    RenameOperation operation;
+    RenameOperation operation{};
     const int error{ operation.execute(old_path, new_path) };
     if (error != 0) {
         errno = error;
@@ -1516,7 +1516,7 @@ extern "C" int _mkdir(const char* path, mode_t /*unused*/)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1546,7 +1546,7 @@ extern "C" int _rmdir(const char* path)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1620,7 +1620,7 @@ extern "C" int _fsync(int file)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1651,7 +1651,7 @@ extern "C" int _ftruncate(int file, off_t length)
         errno = length < 0 ? EINVAL : errno;
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -1712,7 +1712,7 @@ extern "C" int _utime(const char* path, const struct utimbuf* times)
     if (!usable()) {
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -2052,7 +2052,7 @@ extern "C" DIR* opendir(const char* path)
     if (!usable()) {
         return nullptr;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return nullptr;
@@ -2159,7 +2159,7 @@ extern "C" dirent* readdir(DIR* directory)
         errno = EBADF;
         return nullptr;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return nullptr;
@@ -2190,7 +2190,7 @@ extern "C" int closedir(DIR* directory)
         errno = EBADF;
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -2212,7 +2212,7 @@ extern "C" void rewinddir(DIR* directory)
         errno = EBADF;
         return;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return;
@@ -2232,7 +2232,7 @@ extern "C" long telldir(DIR* directory)
         errno = EBADF;
         return -1;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return -1;
@@ -2256,7 +2256,7 @@ extern "C" void seekdir(DIR* directory, long position)
         errno = EINVAL;
         return;
     }
-    const RegistryGuard guard;
+    const RegistryGuard guard{};
     if (!guard) {
         errno = guard.error();
         return;

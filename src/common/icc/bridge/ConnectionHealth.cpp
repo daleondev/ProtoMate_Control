@@ -9,7 +9,7 @@
 namespace icc
 {
     ConnectionHealth::ConnectionHealth(ConnectionOptions options)
-      : m_options(options)
+      : m_options{ options }
     {
         if (options.heartbeat <= std::chrono::milliseconds::zero() || options.timeout <= options.heartbeat ||
             options.timeout > std::chrono::days{ 1 }) {
@@ -69,7 +69,7 @@ namespace icc
         if (!m_deadline) {
             throw std::logic_error("Connection timer has not started");
         }
-        const auto deadline = *m_deadline;
+        const auto deadline{ *m_deadline };
         return std::min(deadline, m_nextHeartbeat.value_or(deadline));
     }
 
@@ -106,7 +106,7 @@ namespace icc
         if (lane != Lane::Urgent || !frame.name.empty() || frame.budget != 0 || !frame.payload.empty()) {
             throw std::invalid_argument("Invalid connection control frame");
         }
-        const auto now = Clock::now();
+        const auto now{ Clock::now() };
         switch (frame.kind) {
             case Kind::Hello:
                 if (frame.id != 0) {

@@ -18,7 +18,7 @@ namespace ui::cli::robot
         double number(std::string_view text)
         {
             double value{};
-            const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
+            const auto parsed{ std::from_chars(text.data(), text.data() + text.size(), value) };
             if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() ||
                 !std::isfinite(value)) {
                 throw std::invalid_argument("expected a finite number");
@@ -28,7 +28,7 @@ namespace ui::cli::robot
         std::uint64_t identifier(std::string_view text)
         {
             std::uint64_t value{};
-            const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
+            const auto parsed{ std::from_chars(text.data(), text.data() + text.size(), value) };
             if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() || !value) {
                 throw std::invalid_argument("invalid job ID");
             }
@@ -58,9 +58,9 @@ namespace ui::cli::robot
                                std::ostream& out,
                                ui::motion::MoveKind kind)
         {
-            Robot::PreviewRequest request;
+            Robot::PreviewRequest request{};
             request.move.kind = kind;
-            const auto fixture = args.flagValue("fixture");
+            const auto fixture{ args.flagValue("fixture") };
             if (fixture) {
                 if (*fixture == "180") {
                     request.model = Robot::Model::Fixture180;
@@ -80,24 +80,24 @@ namespace ui::cli::robot
             request.start = { number(*args.flagValue("start-shoulder")) * 1_deg,
                               number(*args.flagValue("start-elbow")) * 1_deg,
                               number(*args.flagValue("start-z")) * 1_mm };
-            const auto a = number(args.require("a")), b = number(args.require("b")),
-                       c = number(args.require("c"));
+            const auto a{ number(args.require("a")) }, b{ number(args.require("b")) },
+              c{ number(args.require("c")) };
             if (kind == ui::motion::MoveKind::Joints) {
                 request.move.joints = { a * 1_deg, b * 1_deg, c * 1_mm };
             }
             else {
                 request.move.target = { a * 1_mm, b * 1_mm, c * 1_mm };
             }
-            if (const auto speed = args.flagValue("speed")) {
+            if (const auto speed{ args.flagValue("speed") }) {
                 request.move.speed = number(*speed);
             }
-            if (const auto feed = args.flagValue("feed")) {
+            if (const auto feed{ args.flagValue("feed") }) {
                 request.move.feed = number(*feed) * 1_mm_s;
             }
             if (args.hasFlag("work")) {
                 request.move.frame = ui::motion::CoordinateFrame::Work;
             }
-            const auto job = robot.preview(request);
+            const auto job{ robot.preview(request) };
             if (!job) {
                 return callback_failure(std::string(::motion::trajectory::name(job.error())));
             }
@@ -201,13 +201,13 @@ namespace ui::cli::robot
             = Arg{ .name = "id"_fs, .description = "Optional job ID"_fs, .optional = true }
         ]] static CallbackResult jobs(Robot& robot, const Arguments& args, std::ostream& out)
         {
-            const auto selected = args.get("id") ? identifier(*args.get("id")) : 0;
-            bool found = false;
+            const auto selected{ args.get("id") ? identifier(*args.get("id")) : 0 };
+            bool found{ false };
             for (const auto id : robot.jobs()) {
                 if (!id || (selected && selected != id)) {
                     continue;
                 }
-                const auto job = robot.job(id);
+                const auto job{ robot.job(id) };
                 if (!job) {
                     continue;
                 }
@@ -222,7 +222,7 @@ namespace ui::cli::robot
                 if (job->state != Robot::JobState::Preview) {
                     continue;
                 }
-                const auto& p = job->plan;
+                const auto& p{ job->plan };
                 out << std::format(
                   "  {:.6f} s; {} / 512 segments; elbow={}; error bound={:.4f} mm (quantization {:.4f} mm)\n",
                   p.duration,
@@ -238,7 +238,7 @@ namespace ui::cli::robot
                   job->tcp.x.get() * 1000,
                   job->tcp.y.get() * 1000,
                   job->tcp.z.get() * 1000);
-                for (unsigned i = 0; i < 3; ++i) {
+                for (unsigned i{ 0 }; i < 3; ++i) {
                     out << std::format("  m{} peaks <= {:.3f} steps/s, {:.3f} steps/s^2, {:.3f} steps/s^3; "
                                        "endpoint={} steps\n",
                                        i + 1,
@@ -262,7 +262,7 @@ namespace ui::cli::robot
             = Arg{ .name = "id"_fs, .description = "Job ID"_fs }
         ]] static CallbackResult cancel(Robot& robot, const Arguments& args, std::ostream& out)
         {
-            const auto error = robot.cancel(identifier(args.require("id")));
+            const auto error{ robot.cancel(identifier(args.require("id"))) };
             if (error != ui::motion::RobotError::None) {
                 return callback_failure(std::string(::motion::trajectory::name(error)));
             }

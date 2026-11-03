@@ -8,12 +8,12 @@ namespace hal::util
         if (!transfer.width || !transfer.height || transfer.width > 0x3fff || transfer.height > 0xffff) {
             return false;
         }
-        const auto fits = [&](std::size_t size, std::size_t stride, unsigned bytes) {
-            const auto row = static_cast<std::size_t>(transfer.width) * bytes;
+        const auto fits{ [&](std::size_t size, std::size_t stride, unsigned bytes) {
+            const auto row{ static_cast<std::size_t>(transfer.width) * bytes };
             return stride >= row && stride % bytes == 0 && stride / bytes - transfer.width <= 0x3fff &&
                    stride <= (std::numeric_limits<std::size_t>::max() - row) / transfer.height &&
                    size >= (transfer.height - 1) * stride + row;
-        };
+        } };
         if (!transfer.destination.data() ||
             !fits(transfer.destination.size(), transfer.destinationStride, 2) ||
             reinterpret_cast<std::uintptr_t>(transfer.destination.data()) % 2) {
@@ -31,11 +31,11 @@ namespace hal::util
             transfer.sourceFormat != graphics::Format::Argb8888) {
             return false;
         }
-        const unsigned bytes = transfer.sourceFormat == graphics::Format::Rgb565 ? 2 : 4;
-        const auto source = reinterpret_cast<std::uintptr_t>(transfer.source.data());
-        const auto destination = reinterpret_cast<std::uintptr_t>(transfer.destination.data());
-        const bool overlap = source <= destination ? destination - source < transfer.source.size()
-                                                   : source - destination < transfer.destination.size();
+        const unsigned bytes{ transfer.sourceFormat == graphics::Format::Rgb565 ? 2U : 4U };
+        const auto source{ reinterpret_cast<std::uintptr_t>(transfer.source.data()) };
+        const auto destination{ reinterpret_cast<std::uintptr_t>(transfer.destination.data()) };
+        const bool overlap{ source <= destination ? destination - source < transfer.source.size()
+                                                  : source - destination < transfer.destination.size() };
         return transfer.source.data() && !overlap &&
                fits(transfer.source.size(), transfer.sourceStride, bytes) &&
                reinterpret_cast<std::uintptr_t>(transfer.source.data()) % bytes == 0;
@@ -47,7 +47,7 @@ namespace hal::util
     }
     inline std::uint32_t argb8888(std::uint16_t color) noexcept
     {
-        const auto r = (color >> 11) & 31, g = (color >> 5) & 63, b = color & 31;
+        const auto r{ (color >> 11) & 31 }, g{ (color >> 5) & 63 }, b{ color & 31 };
         return 0xff000000u | ((r << 3 | r >> 2) << 16) | ((g << 2 | g >> 4) << 8) | (b << 3 | b >> 2);
     }
 }

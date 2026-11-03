@@ -35,7 +35,7 @@ namespace
     // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
     alignas(STACK_ALIGNMENT) std::array<std::byte, APPLICATION_THREAD_STACK_SIZE> application_thread_stack{};
     std::array<CHAR, APPLICATION_THREAD_NAME_SIZE> application_thread_name{ "Application Thread" };
-    TX_THREAD application_thread;
+    TX_THREAD application_thread{};
     int application_argc{};
     char** application_argv{};
     // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)

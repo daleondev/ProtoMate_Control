@@ -5,7 +5,7 @@
 // execute on the ThreadX application thread because our runtime owns std::mutex.
 extern "C" int runtime_host_main(void (*kernel)())
 {
-    const auto status = hal::linux::display::run(kernel);
+    const auto status{ hal::linux::display::run(kernel) };
     if (!hal::linux::display::cleanupComplete()) {
         return status;
     }

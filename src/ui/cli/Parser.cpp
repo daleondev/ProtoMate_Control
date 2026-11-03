@@ -251,7 +251,7 @@ namespace
 
     [[nodiscard]] auto parse_line(const std::vector<Token>& tokens) -> std::expected<ParsedLine, std::string>
     {
-        ParsedLine result;
+        ParsedLine result{};
         result.stages.emplace_back();
 
         for (std::size_t index{}; index < tokens.size(); ++index) {
@@ -562,7 +562,7 @@ namespace ui::cli
                 return "unknown command '" + std::string{ *command_name } + "'\n";
             }
 
-            std::ostringstream output;
+            std::ostringstream output{};
             output << "Usage: " << usage(command->name) << '\n';
             if (!command->description.empty()) {
                 output << command->description << '\n';
@@ -572,7 +572,7 @@ namespace ui::cli
             return std::move(output).str();
         }
 
-        std::ostringstream output;
+        std::ostringstream output{};
         output << "Available commands:\n"
                << "  help [command]  Show command help\n";
         for (const auto& command : m_commands) {
@@ -609,7 +609,7 @@ namespace ui::cli
             if (specification == flags.end()) {
                 return std::unexpected("unknown flag '--" + std::string{ name } + "'");
             }
-            std::optional<std::string> value;
+            std::optional<std::string> value{};
             if (specification->value_name) {
                 if (separator != std::string_view::npos) {
                     value = option.substr(separator + 1U);
@@ -641,7 +641,7 @@ namespace ui::cli
                 if (specification == flags.end()) {
                     return std::unexpected("unknown flag '-" + std::string{ name } + "'");
                 }
-                std::optional<std::string> value;
+                std::optional<std::string> value{};
                 if (specification->value_name) {
                     if (offset + 1U < token.size()) {
                         value = token.substr(offset + 1U);
@@ -666,7 +666,7 @@ namespace ui::cli
         static auto parseArguments(const Command& command, std::span<const std::string> tokens)
           -> std::expected<ParsedArguments, std::string>
         {
-            ParsedArguments result;
+            ParsedArguments result{};
             bool parse_flags{ true };
             for (std::size_t index{}; index < tokens.size(); ++index) {
                 const auto& token{ tokens[index] };
@@ -695,7 +695,7 @@ namespace ui::cli
         static auto executeHelp(const Parser& parser, std::span<const std::string> stage, CommandIO& io)
           -> ExecutionResult
         {
-            std::string path;
+            std::string path{};
             for (const auto& word : stage.subspan(1U)) {
                 if (!path.empty()) {
                     path += ' ';
@@ -772,7 +772,7 @@ namespace ui::cli
         static auto executeStage(const Parser& parser, const std::vector<Word>& source_stage, CommandIO& io)
           -> ExecutionResult
         {
-            std::vector<std::string> stage;
+            std::vector<std::string> stage{};
             stage.reserve(source_stage.size());
             stage.push_back(source_stage.front().text);
             for (std::size_t index{ 1U }; index < source_stage.size(); ++index) {
@@ -904,13 +904,13 @@ namespace ui::cli
             };
         }
 
-        std::string pipeline_input;
+        std::string pipeline_input{};
         for (std::size_t index{}; index < parsed_line->stages.size(); ++index) {
             std::istringstream input{ std::move(pipeline_input) };
             const bool final_stage{ index + 1U == parsed_line->stages.size() };
 
             if (!final_stage) {
-                LimitedStringBuffer buffer;
+                LimitedStringBuffer buffer{};
                 std::ostream stage_output{ &buffer };
                 CommandIO io{ .input = input, .output = stage_output };
                 ExecutionResult result{ Executor::executeStage(*this, parsed_line->stages[index], io) };
@@ -946,7 +946,7 @@ namespace ui::cli
 
     auto Parser::run(std::istream& input, std::ostream& output, std::string_view prompt) const -> void
     {
-        std::string line;
+        std::string line{};
         while (output << prompt << std::flush, std::getline(input, line)) {
             const ExecutionResult result{ execute(line, output) };
             if (result.error != ExecutionError::None && result.error != ExecutionError::EmptyInput) {

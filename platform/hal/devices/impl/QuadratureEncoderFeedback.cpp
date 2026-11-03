@@ -132,7 +132,7 @@ namespace hal::device
         // that lock. Temporarily detach callbacks while the counter keeps running.
         m_encoder->clearSampleCallback();
         const auto count{ m_encoder->position() };
-        hal::util::Result<> result;
+        hal::util::Result<> result{};
         if (count) {
             const auto offset{ position - m_state->count_angle * static_cast<double>(*count) };
             if (!offset.isFinite()) {

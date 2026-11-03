@@ -67,3 +67,9 @@ add_custom_target(clang-tidy
         --build-dir ${PROJECT_BINARY_DIR}
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     USES_TERMINAL VERBATIM COMMENT "clang-tidy")
+
+# Native initialization-policy regression tests use the same pinned toolchain.
+add_custom_target(clang-tidy-style-test
+    COMMAND bash ${PROJECT_SOURCE_DIR}/scripts/clang-tidy/test-style-check.sh
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    USES_TERMINAL VERBATIM COMMENT "Test native brace-initialization check")

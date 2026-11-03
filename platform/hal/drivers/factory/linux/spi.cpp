@@ -18,7 +18,7 @@ namespace hal::spi
         if (index >= SPI_INSTANCE_COUNT) {
             return {};
         }
-        static util::ExclusiveInstances<SPI_POOL_SIZE> instances;
+        static util::ExclusiveInstances<SPI_POOL_SIZE> instances{};
         return instances.create<Spi>(index, SIMULATED_SPI_CLOCK_HZ);
     }
 }

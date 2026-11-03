@@ -49,7 +49,7 @@ namespace std _GLIBCXX_VISIBILITY(default)
 
         void initialize_thread_exit_key()
         {
-            static const ThreadExitKey key_owner;
+            static const ThreadExitKey key_owner{};
             static_cast<void>(key_owner);
             if (std::atexit(run_current_thread_exit_callbacks) != 0) {
                 std::terminate();
@@ -86,7 +86,7 @@ namespace std _GLIBCXX_VISIBILITY(default)
 
     void __at_thread_exit(__at_thread_exit_elt* element)
     {
-        static __gthread_once_t once = __GTHREAD_ONCE_INIT;
+        static __gthread_once_t once{ __GTHREAD_ONCE_INIT };
         if (__gthread_once(&once, initialize_thread_exit_key) != 0) {
             std::terminate();
         }

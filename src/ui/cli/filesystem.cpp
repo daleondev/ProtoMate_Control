@@ -42,7 +42,7 @@ namespace ui::cli::filesystem
             [[nodiscard]] auto current_dir() -> fs::path&
             {
                 static fs::path directory{ [] {
-                    std::error_code error;
+                    std::error_code error{};
                     auto initial{ fs::current_path(error) };
                     return error ? fs::path{ "/" } : initial.lexically_normal();
                 }() };
@@ -134,7 +134,7 @@ namespace ui::cli::filesystem
             auto split_pattern(std::string_view pattern, std::span<const std::uint8_t> wildcard_mask)
               -> std::vector<PatternComponent>
             {
-                std::vector<PatternComponent> components;
+                std::vector<PatternComponent> components{};
                 for (std::size_t begin{}; begin < pattern.size();) {
                     while (begin < pattern.size() && pattern[begin] == '/') {
                         ++begin;
@@ -162,9 +162,9 @@ namespace ui::cli::filesystem
                                  std::string_view pattern)
               -> std::expected<std::vector<fs::path>, CallbackError>
             {
-                std::vector<fs::path> matches;
+                std::vector<fs::path> matches{};
                 for (const auto& candidate : candidates) {
-                    std::error_code error;
+                    std::error_code error{};
                     fs::directory_iterator iterator{ candidate, error };
                     if (error == std::errc::no_such_file_or_directory ||
                         error == std::errc::not_a_directory) {
@@ -174,7 +174,7 @@ namespace ui::cli::filesystem
                         return wildcard_failure("cannot expand wildcard in", candidate, error);
                     }
 
-                    const fs::directory_iterator end;
+                    const fs::directory_iterator end{};
                     while (iterator != end) {
                         const std::string name{ iterator->path().filename().generic_string() };
                         const bool hidden_without_explicit_dot{ name.starts_with('.') &&
@@ -204,10 +204,10 @@ namespace ui::cli::filesystem
                                  bool absolute,
                                  bool require_directory) -> WildcardResult
             {
-                std::vector<std::string> result;
+                std::vector<std::string> result{};
                 for (auto& candidate : candidates) {
                     candidate = candidate.lexically_normal();
-                    std::error_code error;
+                    std::error_code error{};
                     const fs::file_status status{ fs::status(candidate, error) };
                     if (error == std::errc::no_such_file_or_directory ||
                         error == std::errc::not_a_directory) {
@@ -341,7 +341,7 @@ namespace ui::cli::filesystem
                     return 0;
                 }
 
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status status{ fs::symlink_status(path, error) };
                 if (error) {
                     return filesystem_failure("cannot inspect", path, error);
@@ -372,7 +372,7 @@ namespace ui::cli::filesystem
                                          bool recursive,
                                          bool overwrite) -> CallbackResult
             {
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status source_status{ fs::status(source, error) };
                 if (error) {
                     return filesystem_failure("cannot inspect", source, error);
@@ -409,7 +409,7 @@ namespace ui::cli::filesystem
                                          bool print_heading,
                                          std::ostream& output) -> CallbackResult
             {
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status status{ fs::status(path, error) };
                 if (error) {
                     return filesystem_failure("cannot access", path, error);
@@ -428,9 +428,9 @@ namespace ui::cli::filesystem
                     output << path_text(path) << ":\n";
                 }
 
-                std::vector<fs::path> entries;
+                std::vector<fs::path> entries{};
                 fs::directory_iterator iterator{ path, error };
-                const fs::directory_iterator end;
+                const fs::directory_iterator end{};
                 while (!error && iterator != end) {
                     if (include_hidden || !is_hidden(iterator->path())) {
                         entries.push_back(iterator->path());
@@ -454,7 +454,7 @@ namespace ui::cli::filesystem
 
             [[nodiscard]] auto touch_path(const fs::path& path, bool no_create) -> CallbackResult
             {
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status status{ fs::status(path, error) };
                 const bool missing{ is_not_found(error) || (!error && !fs::exists(status)) };
                 if (error && !is_not_found(error)) {
@@ -496,7 +496,7 @@ namespace ui::cli::filesystem
 
             [[nodiscard]] auto create_directory_path(const fs::path& path, bool parents) -> CallbackResult
             {
-                std::error_code error;
+                std::error_code error{};
                 const bool created{ parents ? fs::create_directories(path, error)
                                             : fs::create_directory(path, error) };
                 if (error) {
@@ -517,7 +517,7 @@ namespace ui::cli::filesystem
                     return callback_failure("cannot remove the current working directory");
                 }
 
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status status{ fs::symlink_status(path, error) };
                 if (error) {
                     return filesystem_failure("cannot access", path, error);
@@ -534,7 +534,7 @@ namespace ui::cli::filesystem
 
             [[nodiscard]] auto remove_path(const fs::path& path, bool recursive, bool force) -> CallbackResult
             {
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status status{ fs::symlink_status(path, error) };
                 const bool missing{ is_not_found(error) || (!error && !fs::exists(status)) };
                 if (missing) {
@@ -563,7 +563,7 @@ namespace ui::cli::filesystem
 
             [[nodiscard]] auto print_file(const fs::path& path, std::ostream& output) -> CallbackResult
             {
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status status{ fs::status(path, error) };
                 if (error) {
                     return filesystem_failure("cannot access", path, error);
@@ -607,7 +607,7 @@ namespace ui::cli::filesystem
 
             fs::path path{ current_dir() };
             if (args.hasFlag("physical")) {
-                std::error_code error;
+                std::error_code error{};
                 path = fs::canonical(path, error);
                 if (error) {
                     return filesystem_failure("cannot resolve", current_dir(), error);
@@ -628,7 +628,7 @@ namespace ui::cli::filesystem
                 return std::unexpected(path.error());
             }
 
-            std::error_code error;
+            std::error_code error{};
             const fs::file_status status{ fs::status(*path, error) };
             if (error) {
                 return filesystem_failure("cannot access", *path, error);
@@ -766,7 +766,7 @@ namespace ui::cli::filesystem
                     return std::unexpected(source.error());
                 }
 
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status source_status{ fs::status(*source, error) };
                 if (error) {
                     return filesystem_failure("cannot access", *source, error);
@@ -823,7 +823,7 @@ namespace ui::cli::filesystem
 
             const std::size_t source_count{ args.size() - 1U };
             if (source_count > 1U) {
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status destination_status{ fs::status(*destination_root, error) };
                 if (error) {
                     return filesystem_failure(
@@ -855,7 +855,7 @@ namespace ui::cli::filesystem
                     return std::unexpected(source.error());
                 }
 
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status source_status{ fs::symlink_status(*source, error) };
                 if (error) {
                     return filesystem_failure("cannot access", *source, error);
@@ -925,7 +925,7 @@ namespace ui::cli::filesystem
 
             const std::size_t source_count{ args.size() - 1U };
             if (source_count > 1U) {
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status destination_status{ fs::status(*destination_root, error) };
                 if (error) {
                     return filesystem_failure(

@@ -49,8 +49,8 @@ namespace icc
     };
 
     InProcessTransport::InProcessTransport(std::shared_ptr<Shared> shared, std::size_t side)
-      : m_shared(std::move(shared))
-      , m_side(side)
+      : m_shared{ std::move(shared) }
+      , m_side{ side }
     {
     }
 
@@ -58,7 +58,7 @@ namespace icc
 
     std::array<std::shared_ptr<InProcessTransport>, 2> InProcessTransport::pair()
     {
-        auto shared = std::make_shared<Shared>();
+        auto shared{ std::make_shared<Shared>() };
         return { std::shared_ptr<InProcessTransport>(new InProcessTransport(shared, 0)),
                  std::shared_ptr<InProcessTransport>(new InProcessTransport(shared, 1)) };
     }
@@ -71,9 +71,9 @@ namespace icc
         if (static_cast<std::size_t>(lane) >= LANE_COUNT) {
             co_return std::unexpected(Error::Disconnected);
         }
-        auto shared = m_shared;
-        auto& queue = shared->inbox[1 - m_side].at(static_cast<std::size_t>(lane));
-        std::unique_lock lock(shared->mutex);
+        auto shared{ m_shared };
+        auto& queue{ shared->inbox[1 - m_side].at(static_cast<std::size_t>(lane)) };
+        std::unique_lock lock{ shared->mutex };
         for (;;) {
             if (stop.stop_requested()) {
                 co_return std::unexpected(Error::Cancelled);
@@ -88,7 +88,7 @@ namespace icc
                 break;
             }
 
-            pnm::coro::Channel<bool> ready;
+            pnm::coro::Channel<bool> ready{};
             queue.space_ready = ready;
             lock.unlock();
             co_await ready.next(stop);
@@ -97,11 +97,11 @@ namespace icc
             // Notifications and cancellation both recheck the protected state.
         }
 
-        auto& slot = queue.frames[(queue.head + queue.count) % FRAME_CAPACITY];
+        auto& slot{ queue.frames[(queue.head + queue.count) % FRAME_CAPACITY] };
         std::ranges::copy(frame, slot.bytes.begin());
         slot.size = frame.size();
         ++queue.count;
-        auto wake = std::exchange(queue.data_ready, std::nullopt);
+        auto wake{ std::exchange(queue.data_ready, std::nullopt) };
         lock.unlock();
         // A wakeup may resume a coroutine inline. Never notify under the queue lock.
         if (wake) {
@@ -118,9 +118,9 @@ namespace icc
         if (static_cast<std::size_t>(lane) >= LANE_COUNT) {
             co_return std::unexpected(Error::Disconnected);
         }
-        auto shared = m_shared;
-        auto& queue = shared->inbox[m_side].at(static_cast<std::size_t>(lane));
-        std::unique_lock lock(shared->mutex);
+        auto shared{ m_shared };
+        auto& queue{ shared->inbox[m_side].at(static_cast<std::size_t>(lane)) };
+        std::unique_lock lock{ shared->mutex };
         for (;;) {
             if (stop.stop_requested()) {
                 co_return std::unexpected(Error::Cancelled);
@@ -132,7 +132,7 @@ namespace icc
                 break;
             }
 
-            pnm::coro::Channel<bool> ready;
+            pnm::coro::Channel<bool> ready{};
             queue.data_ready = ready;
             lock.unlock();
             co_await ready.next(stop);
@@ -140,21 +140,21 @@ namespace icc
             queue.data_ready.reset();
         }
 
-        const auto& slot = queue.frames[queue.head];
+        const auto& slot{ queue.frames[queue.head] };
         if (slot.size > buffer.size()) {
             co_return std::unexpected(Error::BufferTooSmall);
         }
 
-        const auto size = slot.size;
+        const auto size{ slot.size };
         std::ranges::copy(std::span(slot.bytes).first(size), buffer.begin());
         queue.head = (queue.head + 1) % FRAME_CAPACITY;
         --queue.count;
-        auto wake = std::exchange(queue.space_ready, std::nullopt);
+        auto wake{ std::exchange(queue.space_ready, std::nullopt) };
         // Consuming a higher lane can make a waiting lower lane eligible even
         // though no new frame arrived. Wake in priority order, outside the lock.
-        std::array<std::optional<pnm::coro::Channel<bool>>, LANE_COUNT> receivers;
+        std::array<std::optional<pnm::coro::Channel<bool>>, LANE_COUNT> receivers{};
         for (std::size_t index{}; index < LANE_COUNT; ++index) {
-            auto& candidate = shared->inbox[m_side][static_cast<std::size_t>(LANE_PRIORITY[index])];
+            auto& candidate{ shared->inbox[m_side][static_cast<std::size_t>(LANE_PRIORITY[index])] };
             receivers[index] = std::exchange(candidate.data_ready, std::nullopt);
         }
         lock.unlock();
@@ -172,18 +172,18 @@ namespace icc
     void InProcessTransport::close() noexcept
     {
         constexpr std::size_t signal_count{ 4 * LANE_COUNT };
-        std::array<std::optional<pnm::coro::Channel<bool>>, signal_count> wake;
+        std::array<std::optional<pnm::coro::Channel<bool>>, signal_count> wake{};
         {
-            std::scoped_lock lock(m_shared->mutex);
+            std::scoped_lock lock{ m_shared->mutex };
             if (m_shared->closed) {
                 return;
             }
             m_shared->closed = true;
-            for (std::size_t side = 0; side < m_shared->inbox.size(); ++side) {
-                for (std::size_t lane = 0; lane < LANE_COUNT; ++lane) {
-                    auto& queue = m_shared->inbox[side][lane];
+            for (std::size_t side{ 0 }; side < m_shared->inbox.size(); ++side) {
+                for (std::size_t lane{ 0 }; lane < LANE_COUNT; ++lane) {
+                    auto& queue{ m_shared->inbox[side][lane] };
                     queue.count = 0;
-                    const auto index = (2 * LANE_COUNT * side) + (2 * lane);
+                    const auto index{ (2 * LANE_COUNT * side) + (2 * lane) };
                     wake[index] = std::exchange(queue.data_ready, std::nullopt);
                     wake[index + 1] = std::exchange(queue.space_ready, std::nullopt);
                 }

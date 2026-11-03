@@ -14,7 +14,7 @@ namespace hal::device
     {
         auto error(std::errc value) { return std::unexpected(std::make_error_code(value)); }
         // VSENSE=1, VFS=180 mV, Rsense=50 mOhm plus internal 20 mOhm.
-        constexpr double FULL_SCALE = 180.0 / (0.05 + 0.02) / std::numbers::sqrt2;
+        constexpr double FULL_SCALE{ 180.0 / (0.05 + 0.02) / std::numbers::sqrt2 };
     }
 
     Tmc2209::Tmc2209(std::shared_ptr<IUart> bus, std::uint8_t address)
@@ -31,7 +31,7 @@ namespace hal::device
         std::uint8_t crc{};
         for (auto byte : bytes) {
             for (unsigned bit{}; bit < BYTE_BITS; ++bit) {
-                const bool feedback = ((crc >> (BYTE_BITS - 1U)) ^ (byte & 1U)) != 0;
+                const bool feedback{ ((crc >> (BYTE_BITS - 1U)) ^ (byte & 1U)) != 0 };
                 crc = static_cast<std::uint8_t>((crc << 1U) ^ (feedback ? CRC_POLYNOMIAL : 0U));
                 byte >>= 1U;
             }
@@ -44,7 +44,7 @@ namespace hal::device
         std::array<std::uint8_t, READ_REQUEST_BYTES> request{ SYNC, m_address, reg, 0 };
         request.back() = crc(std::span{ request }.first(3));
         std::array<std::uint8_t, FRAME_BYTES> reply{};
-        if (auto result = m_bus->exchange(request, reply, TRANSACTION_TIMEOUT); !result) {
+        if (auto result{ m_bus->exchange(request, reply, TRANSACTION_TIMEOUT) }; !result) {
             return std::unexpected(result.error());
         }
         if (reply[0] != SYNC || reply[1] != MASTER_ADDRESS || reply[2] != reg ||
@@ -58,7 +58,7 @@ namespace hal::device
     // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     hal::util::Result<> Tmc2209::write(std::uint8_t reg, std::uint32_t value)
     {
-        const auto before = read(IFCNT); // IFCNT, not an acknowledgement of arbitrary readback.
+        const auto before{ read(IFCNT) }; // IFCNT, not an acknowledgement of arbitrary readback.
         if (!before) {
             return std::unexpected(before.error());
         }
@@ -67,10 +67,10 @@ namespace hal::device
                                                        static_cast<std::uint8_t>(reg | WRITE_FLAG) };
         write_word(std::span{ request }.subspan<DATA_OFFSET, REGISTER_BYTES>(), value);
         request.back() = crc(std::span{ request }.first(request.size() - 1U));
-        if (auto result = m_bus->exchange(request, {}, TRANSACTION_TIMEOUT); !result) {
+        if (auto result{ m_bus->exchange(request, {}, TRANSACTION_TIMEOUT) }; !result) {
             return result;
         }
-        const auto after = read(IFCNT);
+        const auto after{ read(IFCNT) };
         if (!after) {
             return std::unexpected(after.error());
         }
@@ -99,8 +99,8 @@ namespace hal::device
     hal::util::Result<> Tmc2209::initialize(const Configuration& config)
     {
         m_initialized = false;
-        const auto run = currentScale(config.run_milliamps);
-        const auto hold = currentScale(config.hold_milliamps);
+        const auto run{ currentScale(config.run_milliamps) };
+        const auto hold{ currentScale(config.hold_milliamps) };
         if (!run || !hold || config.hold_milliamps > config.run_milliamps ||
             !std::has_single_bit(config.microsteps) || config.microsteps > MAX_MICROSTEPS ||
             (config.mode != Mode::SpreadCycle && config.mode != Mode::StealthChop) ||
@@ -114,10 +114,10 @@ namespace hal::device
             SYNC, m_address, static_cast<std::uint8_t>(NODECONF | WRITE_FLAG), 0, 0, 2, 0, 0
         };
         delay.back() = crc(std::span{ delay }.first(delay.size() - 1U));
-        if (auto r = m_bus->exchange(delay, {}, TRANSACTION_TIMEOUT); !r) {
+        if (auto r{ m_bus->exchange(delay, {}, TRANSACTION_TIMEOUT) }; !r) {
             return r;
         }
-        auto input = read(IOIN);
+        auto input{ read(IOIN) };
         if (!input) {
             return std::unexpected(input.error());
         }
@@ -154,16 +154,16 @@ namespace hal::device
               { 0x01, 7U } }
         };
         for (auto [reg, value] : registers) {
-            if (auto result = write(reg, value); !result) {
+            if (auto result{ write(reg, value) }; !result) {
                 return result;
             }
         }
         m_initialized = true;
-        if (auto result = verify(); !result) {
+        if (auto result{ verify() }; !result) {
             m_initialized = false;
             return result;
         }
-        auto state = status();
+        auto state{ status() };
         if (!state) {
             m_initialized = false;
             return std::unexpected(state.error());
@@ -182,7 +182,7 @@ namespace hal::device
         }
         for (auto [reg, expected] : std::array<std::pair<std::uint8_t, std::uint32_t>, 3>{
                { { 0x00, m_gconf }, { 0x6C, m_chopconf }, { 0x70, 0xC10D0024U } } }) {
-            auto value = read(reg);
+            auto value{ read(reg) };
             if (!value) {
                 return std::unexpected(value.error());
             }
@@ -203,7 +203,7 @@ namespace hal::device
                 SYNC, address, static_cast<std::uint8_t>(NODECONF | WRITE_FLAG), 0, 0, 2, 0, 0
             };
             frame.back() = crc(std::span{ frame }.first(frame.size() - 1U));
-            if (auto result = bus.exchange(frame, {}, TRANSACTION_TIMEOUT); !result) {
+            if (auto result{ bus.exchange(frame, {}, TRANSACTION_TIMEOUT) }; !result) {
                 return result;
             }
         }
@@ -212,7 +212,7 @@ namespace hal::device
 
     hal::util::Result<Tmc2209::Status> Tmc2209::status()
     {
-        auto input = read(IOIN);
+        auto input{ read(IOIN) };
         if (!input) {
             return std::unexpected(input.error());
         }
@@ -222,15 +222,15 @@ namespace hal::device
         if (((*input >> 2U) & 3U) != m_address || (*input & IOIN_SPREAD)) {
             return error(std::errc::state_not_recoverable);
         }
-        auto global = read(0x01);
+        auto global{ read(0x01) };
         if (!global) {
             return std::unexpected(global.error());
         }
-        auto driver = read(DRV_STATUS);
+        auto driver{ read(DRV_STATUS) };
         if (!driver) {
             return std::unexpected(driver.error());
         }
-        auto load = read(SG_RESULT);
+        auto load{ read(SG_RESULT) };
         if (!load) {
             return std::unexpected(load.error());
         }

@@ -17,27 +17,27 @@ namespace runtime::storage
             return false;
         }
         while (!output.empty()) {
-            const auto address = STORAGE_INTERNAL_ORIGIN + (offset & ~std::size_t{ 31 });
-            const auto inside = offset & 31U;
-            const auto count = std::min(output.size(), 32U - inside);
+            const auto address{ STORAGE_INTERNAL_ORIGIN + (offset & ~std::size_t{ 31 }) };
+            const auto inside{ offset & 31U };
+            const auto count{ std::min(output.size(), 32U - inside) };
             std::array<std::uint32_t, 8> word{};
             // A reset during programming can leave invalid ECC. Probe a single
             // noncacheable flashword at elevated fault priority, ignoring only
             // synchronous data BusFaults during these loads. RM0399 4.7.7;
             // Cortex-M7 BFHFNMIGN + FAULTMASK. No ISR or scheduler runs here.
-            const auto previousMask = __get_FAULTMASK();
-            const auto previousCcr = SCB->CCR;
+            const auto previousMask{ __get_FAULTMASK() };
+            const auto previousCcr{ SCB->CCR };
             __disable_fault_irq();
             SCB->CCR = previousCcr | SCB_CCR_BFHFNMIGN_Msk;
             FLASH->CCR2 = FLASH_CCR_CLR_DBECCERR | FLASH_CCR_CLR_SNECCERR;
             __DSB();
             __ISB();
-            const auto* source = reinterpret_cast<volatile const std::uint32_t*>(address);
+            const auto* source{ reinterpret_cast<volatile const std::uint32_t*>(address) };
             for (std::size_t i{}; i < word.size(); ++i) {
                 word[i] = source[i];
             }
             __DSB();
-            const auto errors = FLASH->SR2 & (FLASH_SR_DBECCERR | FLASH_SR_SNECCERR);
+            const auto errors{ FLASH->SR2 & (FLASH_SR_DBECCERR | FLASH_SR_SNECCERR) };
             FLASH->CCR2 = FLASH_CCR_CLR_DBECCERR | FLASH_CCR_CLR_SNECCERR;
             SCB->CCR = previousCcr;
             __DSB();
@@ -73,11 +73,11 @@ namespace runtime::storage
             return false;
         }
         __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS_BANK2);
-        const auto status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD,
-                                              STORAGE_INTERNAL_ORIGIN + static_cast<std::uint32_t>(offset),
-                                              reinterpret_cast<std::uint32_t>(bytes.data()));
+        const auto status{ HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD,
+                                             STORAGE_INTERNAL_ORIGIN + static_cast<std::uint32_t>(offset),
+                                             reinterpret_cast<std::uint32_t>(bytes.data())) };
         m_error = HAL_FLASH_GetError();
-        const auto locked = HAL_FLASH_Lock();
+        const auto locked{ HAL_FLASH_Lock() };
         __DSB();
         return status == HAL_OK && locked == HAL_OK && read(offset, bytes) && std::ranges::equal(bytes, word);
     }
@@ -99,9 +99,9 @@ namespace runtime::storage
             return false;
         }
         __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS_BANK2);
-        const auto status = HAL_FLASHEx_Erase(&request, &failed);
+        const auto status{ HAL_FLASHEx_Erase(&request, &failed) };
         m_error = HAL_FLASH_GetError();
-        const auto locked = HAL_FLASH_Lock();
+        const auto locked{ HAL_FLASH_Lock() };
         __DSB();
         if (status != HAL_OK || locked != HAL_OK) {
             return false;

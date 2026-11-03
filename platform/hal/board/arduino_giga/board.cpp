@@ -26,7 +26,7 @@ namespace hal::board
 
         auto make_led(gpio::Pin pin) -> std::shared_ptr<device::ILed>
         {
-            auto output = gpio::create_output({ .pin = pin, .initial_level = gpio::Level::High });
+            auto output{ gpio::create_output({ .pin = pin, .initial_level = gpio::Level::High }) };
             if (!output) {
                 return {};
             }
@@ -38,15 +38,15 @@ namespace hal::board
     {
         switch (id) {
             case LedId::Green: {
-                static auto led = make_led(GREEN_LED);
+                static auto led{ make_led(GREEN_LED) };
                 return led;
             }
             case LedId::Blue: {
-                static auto led = make_led(BLUE_LED);
+                static auto led{ make_led(BLUE_LED) };
                 return led;
             }
             case LedId::Red: {
-                static auto led = make_led(RED_LED);
+                static auto led{ make_led(RED_LED) };
                 return led;
             }
             default:
@@ -59,14 +59,14 @@ namespace hal::board
         if (id != ButtonId::User) {
             return {};
         }
-        static auto button = []() -> std::shared_ptr<device::IButton> {
-            auto input =
-              gpio::create_input({ .pin = USER_BUTTON, .pull = gpio::Pull::None, .edge = gpio::Edge::Both });
+        static auto button{ []() -> std::shared_ptr<device::IButton> {
+            auto input{ gpio::create_input(
+              { .pin = USER_BUTTON, .pull = gpio::Pull::None, .edge = gpio::Edge::Both }) };
             if (!input) {
                 return {};
             }
             return std::make_shared<device::Button>(std::move(input), gpio::Level::High);
-        }();
+        }() };
         return button;
     }
 }

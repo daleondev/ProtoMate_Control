@@ -23,13 +23,13 @@ namespace
       public:
         void notify()
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_pending = true;
             m_changed.notify_one();
         }
         void wait()
         {
-            std::unique_lock lock(m_mutex);
+            std::unique_lock lock{ m_mutex };
             if (!m_changed.wait_for(lock, 2s, [this] { return m_pending; })) {
                 throw std::runtime_error("Timed out waiting for action readiness");
             }
@@ -50,19 +50,19 @@ namespace
                     bool cancel)
     {
         using example::Actions;
-        auto ui_ready = std::make_shared<Signal>();
+        auto ui_ready{ std::make_shared<Signal>() };
         bool accepted{};
         std::uint32_t current{};
-        std::optional<pnm::msg::ActionResult<std::uint32_t>> result;
-        auto goal = ui_bus.action<^^Actions::demo_io_count>().sendGoal(
+        std::optional<pnm::msg::ActionResult<std::uint32_t>> result{};
+        auto goal{ ui_bus.action<^^Actions::demo_io_count>().sendGoal(
           TARGET, { .accept_timeout = 2s }, { .on_accepted = [&] {
             accepted = true;
             std::cout << "UI: IO accepted\n";
         }, .on_feedback = [&](const std::uint32_t& count) {
             current = count;
             std::cout << "UI: count " << count << '\n';
-        }, .on_result = [&](auto value) { result.emplace(std::move(value)); } });
-        auto goal_readiness = pnm::msg::watch(goal, [ui_ready] { ui_ready->notify(); });
+        }, .on_result = [&](auto value) { result.emplace(std::move(value)); } }) };
+        auto goal_readiness{ pnm::msg::watch(goal, [ui_ready] { ui_ready->notify(); }) };
         while (!execution) {
             provider.poll();
             if (!execution) {
@@ -87,7 +87,7 @@ namespace
             }
         }
         if (cancel) {
-            auto cancellation_readiness = pnm::msg::watch(*execution, [io_ready] { io_ready->notify(); });
+            auto cancellation_readiness{ pnm::msg::watch(*execution, [io_ready] { io_ready->notify(); }) };
             goal.requestCancel();
             while (!execution->cancelRequested()) {
                 io_ready->wait();
@@ -102,7 +102,7 @@ namespace
         while (!goal.poll()) {
             ui_ready->wait();
         }
-        const auto expected = cancel ? pnm::msg::ActionStatus::Cancelled : pnm::msg::ActionStatus::Succeeded;
+        const auto expected{ cancel ? pnm::msg::ActionStatus::Cancelled : pnm::msg::ActionStatus::Succeeded };
         if (!result || !*result || (**result).status != expected ||
             (**result).value != (cancel ? PROGRESS : TARGET)) {
             throw std::runtime_error("Unexpected terminal action result");
@@ -116,20 +116,20 @@ int main()
     using example::ActionProvider;
     using example::Actions;
     try {
-        pnm::msg::Bus io_bus;
-        pnm::msg::Bus ui_bus;
-        pnm::coro::Context context;
-        auto endpoints = icc::InProcessTransport::pair();
-        auto icc_thread = example::run_context(context);
-        icc::Bridge io_bridge(io_bus, context, *endpoints[0]);
-        icc::Bridge ui_bridge(ui_bus, context, *endpoints[1]);
+        pnm::msg::Bus io_bus{};
+        pnm::msg::Bus ui_bus{};
+        pnm::coro::Context context{};
+        auto endpoints{ icc::InProcessTransport::pair() };
+        auto icc_thread{ example::run_context(context) };
+        icc::Bridge io_bridge{ io_bus, context, *endpoints[0] };
+        icc::Bridge ui_bridge{ ui_bus, context, *endpoints[1] };
         io_bridge.registerActions<Actions>(ActionProvider::IO);
         ui_bridge.registerActions<Actions>(ActionProvider::UI);
 
-        auto io_ready = std::make_shared<Signal>();
-        std::optional<Execution> execution;
+        auto io_ready{ std::make_shared<Signal>() };
+        std::optional<Execution> execution{};
         std::uint32_t target{};
-        auto provider = io_bus.action<^^Actions::demo_io_count>().serveDeferred(
+        auto provider{ io_bus.action<^^Actions::demo_io_count>().serveDeferred(
           [&](std::uint32_t requested, Execution next) {
             if (execution) {
                 next.fail(pnm::msg::ActionError::Busy);
@@ -148,8 +148,8 @@ int main()
             }
             target = requested;
             execution.emplace(std::move(next));
-        });
-        auto provider_readiness = pnm::msg::watch(provider, [io_ready] { io_ready->notify(); });
+        }) };
+        auto provider_readiness{ pnm::msg::watch(provider, [io_ready] { io_ready->notify(); }) };
         io_bridge.start();
         ui_bridge.start();
 

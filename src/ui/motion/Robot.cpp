@@ -72,8 +72,8 @@ namespace ui::motion
         if (r.model > Model::FixtureArchived) {
             return std::unexpected(RobotError::InvalidInput);
         }
-        auto selected = m_arena->slots.end();
-        for (auto it = m_arena->slots.begin(); it != m_arena->slots.end(); ++it) {
+        auto selected{ m_arena->slots.end() };
+        for (auto it{ m_arena->slots.begin() }; it != m_arena->slots.end(); ++it) {
             if (terminal(it->job.state) &&
                 (selected == m_arena->slots.end() || it->job.id < selected->job.id)) {
                 selected = it;
@@ -85,7 +85,7 @@ namespace ui::motion
         if (!m_next) {
             return std::unexpected(RobotError::Capacity);
         }
-        const auto id = m_next++;
+        const auto id{ m_next++ };
         r.move.job = id;
         selected->request = r;
         selected->job = { .id = id, .state = JobState::Queued, .model = r.model };
@@ -121,7 +121,7 @@ namespace ui::motion
     {
         std::scoped_lock lock{ m_mutex };
         std::array<std::uint64_t, tr::COMMANDS> out{};
-        for (std::size_t i = 0; i < out.size(); ++i) {
+        for (std::size_t i{ 0 }; i < out.size(); ++i) {
             out[i] = m_arena->slots[i].job.id;
         }
         return out;
@@ -129,15 +129,15 @@ namespace ui::motion
     Robot::Job Robot::calculate(PreviewRequest r, std::uint64_t id, std::stop_token stop)
     {
         Job result{ .id = id, .state = JobState::Rejected, .model = r.model };
-        auto call = m_service.request(tr::encode(tr::Request{}), std::chrono::seconds{ 3 });
+        auto call{ m_service.request(tr::encode(tr::Request{}), std::chrono::seconds{ 3 }) };
         const std::stop_callback cancellation{ stop, [&call] { call.cancel(); } };
-        const auto response = call.get();
+        const auto response{ call.get() };
         if (!response) {
             result.state = JobState::Unknown;
             result.error = RobotError::Unknown;
             return result;
         }
-        const auto decoded = tr::decodeReply(*response);
+        const auto decoded{ tr::decodeReply(*response) };
         if (!decoded) {
             result.error = decoded.error();
             return result;
@@ -146,10 +146,10 @@ namespace ui::motion
             result.error = decoded->error;
             return result;
         }
-        const auto configuration = r.model == Model::Physical
-                                     ? boardRobotConfiguration()
-                                     : std::optional{ simulationConfiguration(
-                                         decoded->capabilities, r.model == Model::FixtureArchived) };
+        const auto configuration{ r.model == Model::Physical
+                                    ? boardRobotConfiguration()
+                                    : std::optional{ simulationConfiguration(
+                                        decoded->capabilities, r.model == Model::FixtureArchived) } };
         if (!configuration) {
             result.error = RobotError::Configuration;
             return result;
@@ -157,9 +157,9 @@ namespace ui::motion
         try {
             RobotModel model{ *configuration, decoded->capabilities };
             tr::Counts start{};
-            const auto p = model.toMotors(r.start);
-            for (unsigned i = 0; i < 3; ++i) {
-                const auto count = tr::quantize(p[i]);
+            const auto p{ model.toMotors(r.start) };
+            for (unsigned i{ 0 }; i < 3; ++i) {
+                const auto count{ tr::quantize(p[i]) };
                 if (!count) {
                     result.error = count.error();
                     return result;
@@ -171,7 +171,7 @@ namespace ui::motion
             if (result.error != RobotError::None) {
                 return result;
             }
-            const auto compiled = planner.compile();
+            const auto compiled{ planner.compile() };
             if (!compiled) {
                 result.error = compiled.error();
                 return result;
@@ -179,7 +179,7 @@ namespace ui::motion
             // Numeric pulse preparation is a second gate after continuous path
             // validation; impossible DIR/STEP timing is never stretched.
             tr::PulseCursor cursor{ decoded->capabilities, start };
-            std::uint64_t pulseBudget = 1'000'000;
+            std::uint64_t pulseBudget{ 1'000'000 };
             for (const auto& segment : planner.segments()) {
                 result.error = cursor.append(segment);
                 if (result.error != RobotError::None) {
@@ -191,7 +191,7 @@ namespace ui::motion
                         result.error = RobotError::Cancelled;
                         return result;
                     }
-                    const auto pulse = cursor.next();
+                    const auto pulse{ cursor.next() };
                     if (!pulse) {
                         result.error = pulse.error();
                         return result;
@@ -206,11 +206,11 @@ namespace ui::motion
                 }
             }
             tr::Positions endpoint{};
-            for (unsigned i = 0; i < 3; ++i) {
+            for (unsigned i{ 0 }; i < 3; ++i) {
                 endpoint[i] = compiled->endpoint[i];
             }
             result.endpoint = model.toJoints(endpoint);
-            const auto fk = model.kinematics().forward(result.endpoint);
+            const auto fk{ model.kinematics().forward(result.endpoint) };
             if (!fk) {
                 result.error = RobotError::InvalidInput;
                 return result;
@@ -229,11 +229,11 @@ namespace ui::motion
     {
         const std::stop_callback cancellation{ stop, [this] { m_changed.signal(); } };
         while (!stop.stop_requested()) {
-            PreviewRequest request;
-            std::uint64_t id = 0;
+            PreviewRequest request{};
+            std::uint64_t id{ 0 };
             {
                 std::scoped_lock lock{ m_mutex };
-                Slot* selected = nullptr;
+                Slot* selected{ nullptr };
                 for (auto& slot : m_arena->slots) {
                     if (slot.job.state == JobState::Queued && (!selected || slot.job.id < selected->job.id)) {
                         selected = &slot;
@@ -249,7 +249,7 @@ namespace ui::motion
                 m_changed.waitUntil(std::chrono::steady_clock::time_point::max());
                 continue;
             }
-            const auto result = calculate(request, id, stop);
+            const auto result{ calculate(request, id, stop) };
             {
                 std::scoped_lock lock{ m_mutex };
                 for (auto& slot : m_arena->slots) {

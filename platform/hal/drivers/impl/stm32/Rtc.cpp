@@ -49,8 +49,8 @@ namespace hal
             // The shadow-register lock is global to the peripheral. Prevent a
             // second thread or interrupt from interleaving another Time/Date
             // read and releasing our snapshot at a calendar rollover.
-            const stm32::InterruptGuard interrupt_guard;
-            const stm32::HardwareSemaphore shared(3);
+            const stm32::InterruptGuard interrupt_guard{};
+            const stm32::HardwareSemaphore shared{ 3 };
             if (!shared) {
                 return make_error_result<Timestamp>(HalError::Timeout);
             }

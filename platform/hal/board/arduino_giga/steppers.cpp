@@ -136,7 +136,7 @@ namespace hal::board
             return {};
         }
         auto bus{ std::make_shared<device::Tmc2209Bus>(std::move(uart), std::vector<std::uint8_t>{ 0, 1 }) };
-        std::array<std::shared_ptr<device::IStepperDriver>, 3> drivers;
+        std::array<std::shared_ptr<device::IStepperDriver>, 3> drivers{};
         auto alarm{ create_stepper_diagnostic(MotorId::Motor1) };
         if (!alarm) {
             return {};

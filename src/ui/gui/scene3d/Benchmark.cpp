@@ -12,10 +12,10 @@ namespace ui::gui::scene3d
                              { &high, 1000, { { -1, -.65f, -.8f }, { 1, .65f, .8f } } } };
         constexpr Scene scene(unsigned level)
         {
-            Scene s;
+            Scene s{};
             s.count = 5;
             constexpr std::uint32_t colors[]{ 0x54dbc3, 0x76a9fa, 0xffba6b, 0xb6a0ff, 0xe87991 };
-            for (unsigned i = 0; i < 5; ++i) {
+            for (unsigned i{ 0 }; i < 5; ++i) {
                 s.nodes[i] = { &meshes[level], -1, { colors[i] } };
             }
             return s;
@@ -28,7 +28,7 @@ namespace ui::gui::scene3d
     }
     SceneSnapshot benchmarkSnapshot(float phase, std::uint64_t revision, std::uint64_t timeUs) noexcept
     {
-        SceneSnapshot s;
+        SceneSnapshot s{};
         s.revision = revision;
         s.sourceTimeUs = timeUs;
         constexpr Vec3 positions[]{
@@ -36,7 +36,7 @@ namespace ui::gui::scene3d
         };
         s.camera.target = { 0, .5f, .3f };
         s.camera.distance = 7;
-        for (unsigned i = 0; i < 5; ++i) {
+        for (unsigned i{ 0 }; i < 5; ++i) {
             s.transforms[i].translation = positions[i];
             s.transforms[i].rotation = rotation({ .3f, .5f, 1 }, phase * (.3f + i * .1f));
             s.transforms[i].scale = 1.15f;

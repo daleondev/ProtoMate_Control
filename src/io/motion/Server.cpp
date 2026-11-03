@@ -58,9 +58,9 @@ namespace io::motion
     ::motion::trajectory::Packet Server::trajectory(const ::motion::trajectory::Packet& packet)
     {
         namespace tr = ::motion::trajectory;
-        auto result = m_controller->trajectorySnapshot();
+        auto result{ m_controller->trajectorySnapshot() };
         result.generation = m_commandGeneration;
-        const auto request = tr::decodeRequest(packet);
+        const auto request{ tr::decodeRequest(packet) };
         result.error = !request                                       ? request.error()
                        : request->operation == tr::Operation::Inspect ? tr::Error::None
                                                                       : tr::Error::Unsupported;
@@ -79,7 +79,7 @@ namespace io::motion
 
     MotorSnapshot Server::snapshot()
     {
-        MotorSnapshot result;
+        MotorSnapshot result{};
         result.commandGeneration = m_commandGeneration;
         result.sequence = ++m_sequence;
         result.sampled_at_us = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -125,7 +125,7 @@ namespace io::motion
 
     MotorResponse Server::request(const MotorRequest& value, bool urgent)
     {
-        MotorResponse result;
+        MotorResponse result{};
         try {
             if (m_stop.stop_requested()) {
                 throw std::runtime_error("IO controller is stopping");
@@ -237,8 +237,8 @@ namespace io::motion
                                                           std::move(completed));
             }
             else {
-                const auto move =
-                  goal.motion == MotorMotion::Relative ? &Controller::moveRel : &Controller::moveAbs;
+                const auto move{ goal.motion == MotorMotion::Relative ? &Controller::moveRel
+                                                                      : &Controller::moveAbs };
                 (*slot)->result = (m_controller->*move)(motor,
                                                         goal.position * 1_deg,
                                                         goal.velocity * 1_rpm,

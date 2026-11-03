@@ -13,7 +13,7 @@ namespace motion
     class Profile final
     {
       public:
-        static constexpr unsigned MAX_PHASES = 13;
+        static constexpr unsigned MAX_PHASES{ 13 };
         struct State
         {
             double position{}, velocity{}, acceleration{};

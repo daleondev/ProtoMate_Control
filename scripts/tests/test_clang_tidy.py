@@ -163,6 +163,20 @@ class PartialLintTests(unittest.TestCase):
             self.assertEqual(len(selected), 1)
             self.assertIn("-DAPPLICATION", selected[0]["arguments"])
 
+    def test_model_test_recompilations_do_not_duplicate_production_commands(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            production = {"directory": str(root), "file": str(tidy.ROOT / "platform/hal/drivers/impl/StepOutput.cpp"),
+                          "arguments": ["g++", "-DPRODUCTION", "-c", "source.cpp", "-o",
+                                        "platform/hal/drivers/CMakeFiles/hal_drivers.dir/StepOutput.cpp.o"]}
+            model = {**production, "arguments": ["g++", "-DFAKE", "-c", "source.cpp", "-o",
+                                                 "platform/hal/tests/CMakeFiles/model.dir/StepOutput.cpp.o"]}
+            (root / "compile_commands.json").write_text(json.dumps([model, production]))
+            tidy.prepare_database(root, root / "lint")
+            selected = json.loads((root / "lint/analysis.json").read_text())
+            self.assertEqual(len(selected), 1)
+            self.assertIn("-DPRODUCTION", selected[0]["arguments"])
+
     def test_cross_compiler_headers_exclude_gcc_builtins(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -283,6 +297,7 @@ class PartialLintTests(unittest.TestCase):
                 report = tidy.check(entry, SimpleNamespace(output=output, timeout=5))
             self.assertEqual(run.call_count, 1)
             self.assertEqual(run.call_args.args[0][0], tidy.TIDY)
+            self.assertIn(f"--load={tidy.STYLE_PLUGIN}", run.call_args.args[0])
             self.assertIn("--exclude-header-filter=" + tidy.EXCLUDED_HEADERS, run.call_args.args[0])
             self.assertEqual(run.call_args.kwargs["cwd"], temporary)
             self.assertEqual(report["status"], "blocked")
@@ -307,6 +322,7 @@ class PartialLintTests(unittest.TestCase):
                 report = tidy.check(entry, SimpleNamespace(output=output, timeout=5))
             self.assertEqual(run.call_count, 1)
             self.assertEqual(run.call_args.args[0][0], tidy.TIDY)
+            self.assertIn(f"--load={tidy.STYLE_PLUGIN}", run.call_args.args[0])
             self.assertEqual(run.call_args.kwargs["stderr"], subprocess.STDOUT)
             self.assertEqual(report["status"], "parsed")
             self.assertEqual(len(report["diagnostics"]), 1)
@@ -333,6 +349,7 @@ class PartialLintTests(unittest.TestCase):
                 status = tidy.run_inside(SimpleNamespace(output=output, timeout=5, jobs=1, strict=False))
             self.assertEqual(status, 1)
             self.assertEqual(run.call_count, 3)
+            self.assertIn(f"--load={tidy.STYLE_PLUGIN}", run.call_args_list[0].args[0])
             self.assertEqual(console.getvalue(), finding * 2)
             report = json.loads((output / "report.json").read_text())
             self.assertEqual(report["coverage"], "complete")

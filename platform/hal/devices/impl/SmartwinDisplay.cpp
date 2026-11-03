@@ -7,10 +7,10 @@ namespace hal::device
                                      std::shared_ptr<IDigitalOutput> standby,
                                      std::shared_ptr<IDigitalOutput> reset,
                                      std::shared_ptr<IDigitalInput> powerReady)
-      : m_output(std::move(output))
-      , m_standby(std::move(standby))
-      , m_reset(std::move(reset))
-      , m_powerReady(std::move(powerReady))
+      : m_output{ std::move(output) }
+      , m_standby{ std::move(standby) }
+      , m_reset{ std::move(reset) }
+      , m_powerReady{ std::move(powerReady) }
     {
     }
     SmartwinDisplay::~SmartwinDisplay() { shutdown(); }
@@ -34,7 +34,7 @@ namespace hal::device
         }
         m_standby->write(gpio::Level::Low);
         m_reset->write(gpio::Level::Low);
-        const auto result = m_output->initialize();
+        const auto result{ m_output->initialize() };
         if (!result) {
             return result;
         }
@@ -64,8 +64,8 @@ namespace hal::device
         }
         // Hardware gates the outputs immediately. This bounded thread-context
         // state machine also repeats panel initialization after power returns.
-        const bool ready = !m_powerReady || m_powerReady->read() == gpio::Level::High;
-        const auto now = std::chrono::steady_clock::now();
+        const bool ready{ !m_powerReady || m_powerReady->read() == gpio::Level::High };
+        const auto now{ std::chrono::steady_clock::now() };
         if (!ready) {
             if (m_phase != Phase::Unpowered) {
                 static_cast<void>(m_output->backlight(0));
@@ -104,7 +104,7 @@ namespace hal::device
                 }
                 break;
             case Phase::AwaitFrame:
-                if (const auto state = m_output->state();
+                if (const auto state{ m_output->state() };
                     state.presentations && state.vsyncs != m_frameSync && !state.errors) {
                     static_cast<void>(m_output->backlight(m_brightness));
                     m_phase = Phase::Active;

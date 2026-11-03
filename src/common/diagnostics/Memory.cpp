@@ -52,7 +52,7 @@ namespace diagnostics
 #if defined(PNM_PLATFORM_LINUX)
             _tx_linux_thread_stack_refresh(&thread);
 #endif
-            if (const auto* name = thread.tx_thread_name; name != nullptr) {
+            if (const auto* name{ thread.tx_thread_name }; name != nullptr) {
                 std::size_t length{};
                 while (length + 1 < result.name.size() && name[length] != '\0') {
                     result.name[length] = name[length];
@@ -72,10 +72,10 @@ namespace diagnostics
                 asm volatile("mrs %0, psp" : "=r"(current));
             }
 #endif
-            const auto used = [top, size = result.stack_size](std::uintptr_t pointer) {
+            const auto used{ [top, size = result.stack_size](std::uintptr_t pointer) {
                 return static_cast<std::uint32_t>(
                   pointer < top ? std::min<std::uintptr_t>(top - pointer, size) : 0U);
-            };
+            } };
             result.current_stack_usage = used(current);
             result.peak_stack_usage = result.current_stack_usage;
 #if defined(TX_ENABLE_STACK_CHECKING)

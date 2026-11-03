@@ -11,7 +11,7 @@ namespace hal
       public:
         // M7 initializes the peripheral at boot; each core has a private HAL handle.
         explicit Rng(RNG_HandleTypeDef& handle)
-          : m_handle(handle)
+          : m_handle{ handle }
         {
         }
         auto generate() noexcept -> util::Result<Value> override;

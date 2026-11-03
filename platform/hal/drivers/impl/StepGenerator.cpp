@@ -3,7 +3,8 @@
 
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/stm32/InterruptGuard.hpp"
-#define STEP_LOCK const stm32::InterruptGuard lock
+#define STEP_LOCK                                                                                            \
+    const stm32::InterruptGuard lock {}
 #else
 #define STEP_LOCK                                                                                            \
     const std::scoped_lock lock { m_mutex }
@@ -29,7 +30,7 @@ namespace hal::util
     StepGenerator::~StepGenerator()
     {
         m_hardware->stopService();
-        ProgressCallback retired;
+        ProgressCallback retired{};
         STEP_LOCK;
         retired.swap(m_callback);
         m_hardware->shutdown();
@@ -68,8 +69,8 @@ namespace hal::util
             (sequence.size() != 1U && (!count || *count != sequence.size()))) {
             return fail(std::errc::invalid_argument);
         }
-        std::vector<Timing> timings;
-        std::shared_ptr<const step::Sequence> retired;
+        std::vector<Timing> timings{};
+        std::shared_ptr<const step::Sequence> retired{};
         timings.reserve(sequence.size());
         for (const auto timing : sequence) {
             const auto converted{ convertTiming(timing) };
@@ -95,7 +96,7 @@ namespace hal::util
     }
     auto StepGenerator::clear(std::size_t index) noexcept -> util::Result<>
     {
-        std::shared_ptr<const step::Sequence> retired;
+        std::shared_ptr<const step::Sequence> retired{};
         STEP_LOCK;
         if (index >= m_axes.size()) {
             return fail(std::errc::invalid_argument);
@@ -224,7 +225,7 @@ namespace hal::util
                 return false;
             }
         }
-        for (std::size_t i = 0; i < axis.entries; i += 2U) {
+        for (std::size_t i{ 0 }; i < axis.entries; i += 2U) {
             if (axis.terminal) {
                 data[i] = data[i + 1U] = STEP_PARK;
                 continue;
@@ -269,7 +270,7 @@ namespace hal::util
             return fail(std::errc::io_error);
         }
         m_status = {};
-        for (std::size_t i = 0; i < m_axes.size(); ++i) {
+        for (std::size_t i{ 0 }; i < m_axes.size(); ++i) {
             m_axes[i].finished = true;
             m_listeners[i].notified = true;
             m_progressListeners[i].active = false;
@@ -425,7 +426,7 @@ namespace hal::util
     auto StepGenerator::startPrepared(
       const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays) noexcept -> util::Result<>
     {
-        if (auto result = validateDelays(delays); !result) {
+        if (auto result{ validateDelays(delays) }; !result) {
             return result;
         }
         STEP_LOCK;
@@ -455,7 +456,7 @@ namespace hal::util
             if (!delay) {
                 continue;
             }
-            if (auto result = prepareAxisBuffers(i, *delay); !result) {
+            if (auto result{ prepareAxisBuffers(i, *delay) }; !result) {
                 return result;
             }
         }
@@ -578,7 +579,7 @@ namespace hal::util
     }
     auto StepGenerator::updateCounts(const StepSample& sample) noexcept -> void
     {
-        for (std::size_t i = 0; i < m_axes.size(); ++i) {
+        for (std::size_t i{ 0 }; i < m_axes.size(); ++i) {
             if (!m_axes[i].finished) {
                 const auto pulses{ observe(i, sample).pulses };
                 const auto& axis{ m_axes[i] };
@@ -629,7 +630,7 @@ namespace hal::util
         }
         updateCounts(sample);
         const auto failure{ sample.error || !m_status.counts_exact ? step::State::DmaError : reason };
-        for (std::size_t i = 0; i < m_axes.size(); ++i) {
+        for (std::size_t i{ 0 }; i < m_axes.size(); ++i) {
             if (m_axes[i].finished) {
                 continue;
             }
@@ -736,7 +737,7 @@ namespace hal::util
         if (m_callback) {
             m_callback(m_notified);
         }
-        for (std::size_t i = 0; i < m_axes.size(); ++i) {
+        for (std::size_t i{ 0 }; i < m_axes.size(); ++i) {
             auto& progress{ m_progressListeners[i] };
             const auto current{ axisStatus(i) };
             if (progress.active && current != progress.notified) {
@@ -774,7 +775,7 @@ namespace hal::util
             return;
         }
         updateCounts(sample);
-        for (std::size_t i = 0; i < m_axes.size(); ++i) {
+        for (std::size_t i{ 0 }; i < m_axes.size(); ++i) {
             auto& axis{ m_axes[i] };
             if (axis.finished) {
                 continue;

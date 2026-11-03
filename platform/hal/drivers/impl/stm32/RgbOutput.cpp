@@ -19,9 +19,9 @@ namespace hal
     RgbOutput::RgbOutput(LTDC_HandleTypeDef& lcd,
                          TIM_HandleTypeDef& pwm,
                          std::shared_ptr<IDigitalOutput> backlight)
-      : m_lcd(lcd)
-      , m_pwm(pwm)
-      , m_backlight(std::move(backlight))
+      : m_lcd{ lcd }
+      , m_pwm{ pwm }
+      , m_backlight{ std::move(backlight) }
     {
         static char name[]{ "LTDC completion" };
         if (tx_semaphore_create(&m_completion, name, 0) != TX_SUCCESS) {
@@ -35,7 +35,7 @@ namespace hal
     }
     void RgbOutput::shutdown() noexcept
     {
-        stm32::InterruptGuard guard;
+        stm32::InterruptGuard guard{};
         __HAL_TIM_SET_COMPARE(&m_pwm, TIM_CHANNEL_1, 0);
         __HAL_LTDC_DISABLE(&m_lcd);
         m_lcd.Instance->IER = 0;
@@ -56,7 +56,7 @@ namespace hal
         }
         __HAL_TIM_SET_COMPARE(&m_pwm, TIM_CHANNEL_1, 0);
         __HAL_LTDC_DISABLE(&m_lcd);
-        for (unsigned slot = 0; slot < 2; ++slot) {
+        for (unsigned slot{ 0 }; slot < 2; ++slot) {
             std::ranges::fill(framebuffer(slot), 0);
         }
         // RM0399: AXI initiator 6 is LTDC. Its FIFO has a hard pixel-clock
@@ -66,14 +66,14 @@ namespace hal
         // completed framebuffer is committed at vertical blank.
         __HAL_LTDC_LAYER_DISABLE(&m_lcd, 0);
         __HAL_LTDC_LAYER_DISABLE(&m_lcd, 1);
-        auto result =
-          HAL_LTDC_SetAddress_NoReload(&m_lcd, reinterpret_cast<std::uint32_t>(framebuffer(0).data()), 0);
+        auto result{ HAL_LTDC_SetAddress_NoReload(
+          &m_lcd, reinterpret_cast<std::uint32_t>(framebuffer(0).data()), 0) };
         if (result != HAL_OK) {
             return make_result(result);
         }
         __HAL_LTDC_RELOAD_CONFIG(&m_lcd);
         {
-            stm32::InterruptGuard guard;
+            stm32::InterruptGuard guard{};
             m_state = {};
             instance = this;
             m_lcd.Instance->ICR = LTDC_ICR_CFUIF | LTDC_ICR_CTERRIF | LTDC_ICR_CRRIF | LTDC_ICR_CLIF;
@@ -100,17 +100,17 @@ namespace hal
     }
     auto RgbOutput::state() const noexcept -> display::State
     {
-        stm32::InterruptGuard guard;
+        stm32::InterruptGuard guard{};
         return m_state;
     }
     void RgbOutput::setCallback(display::Callback callback) noexcept
     {
-        stm32::InterruptGuard guard;
+        stm32::InterruptGuard guard{};
         m_callback = callback;
     }
     void RgbOutput::interrupt() noexcept
     {
-        const auto flags = m_lcd.Instance->ISR & m_lcd.Instance->IER;
+        const auto flags{ m_lcd.Instance->ISR & m_lcd.Instance->IER };
         m_lcd.Instance->ICR = flags;
         if (flags & LTDC_ISR_FUIF) {
             ++m_state.underruns;
@@ -135,7 +135,7 @@ namespace hal
     }
     auto RgbOutput::requestPresent(unsigned slot) -> util::Result<>
     {
-        stm32::InterruptGuard guard;
+        stm32::InterruptGuard guard{};
         if (!m_initialized || slot > 1 || slot == m_state.active) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
@@ -143,8 +143,8 @@ namespace hal
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
         __DSB();
-        auto result =
-          HAL_LTDC_SetAddress_NoReload(&m_lcd, reinterpret_cast<std::uint32_t>(framebuffer(slot).data()), 0);
+        auto result{ HAL_LTDC_SetAddress_NoReload(
+          &m_lcd, reinterpret_cast<std::uint32_t>(framebuffer(slot).data()), 0) };
         if (result == HAL_OK) {
             __HAL_LTDC_LAYER_ENABLE(&m_lcd, 0);
             m_state.pending = slot;
@@ -159,15 +159,15 @@ namespace hal
     }
     auto RgbOutput::present(unsigned slot) -> util::Result<>
     {
-        const auto result = requestPresent(slot);
+        const auto result{ requestPresent(slot) };
         if (!result) {
             return result;
         }
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds{ 100 };
+        const auto deadline{ std::chrono::steady_clock::now() + std::chrono::milliseconds{ 100 } };
         while (state().pending) {
-            const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                     deadline - std::chrono::steady_clock::now())
-                                     .count();
+            const auto remaining{ std::chrono::duration_cast<std::chrono::milliseconds>(
+                                    deadline - std::chrono::steady_clock::now())
+                                    .count() };
             if ((remaining <= 0 ||
                  tx_semaphore_get(&m_completion, static_cast<ULONG>(remaining) + 1) != TX_SUCCESS) &&
                 state().pending) {
@@ -179,7 +179,7 @@ namespace hal
     }
     auto RgbOutput::fill(unsigned slot, std::uint16_t color) -> util::Result<>
     {
-        const auto current = state();
+        const auto current{ state() };
         if (slot > 1 || (m_initialized && (slot == current.active || current.pending == slot))) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }

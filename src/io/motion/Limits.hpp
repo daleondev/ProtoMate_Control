@@ -20,9 +20,9 @@ namespace io::motion::limits
     inline constexpr auto COORDINATED_DURATION_MARGIN{ COORDINATED_START_DELAY + HIGH_TIME };
     inline constexpr unsigned BLEND_SEARCH_STEPS{ 32U };
     inline constexpr unsigned BLEND_REFINE_STEPS{ 24U };
-    inline constexpr auto BOUND_ROUNDING_MARGIN = 2 * TIMER_TICK;
+    inline constexpr auto BOUND_ROUNDING_MARGIN{ 2 * TIMER_TICK };
     inline constexpr double NANOSECOND_ROUNDING_TOLERANCE{ 0.001 };
-    inline constexpr auto MAX_BOUND = std::chrono::nanoseconds{ 1'000'000'000'000'000 };
+    inline constexpr auto MAX_BOUND{ std::chrono::nanoseconds{ 1'000'000'000'000'000 } };
     inline constexpr double MAX_PROFILE_SECONDS{ 1e8 };
     inline constexpr double SYNCHRONIZED_HORIZON_SECONDS{ 53.68 };
     inline constexpr double NORMALIZATION_TOLERANCE{ 1e-8 };

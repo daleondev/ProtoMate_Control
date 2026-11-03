@@ -30,12 +30,12 @@ namespace hal::gpio
 
         auto owners() -> std::array<PinOwner, PIN_COUNT>&
         {
-            static std::array<PinOwner, PIN_COUNT> value;
+            static std::array<PinOwner, PIN_COUNT> value{};
             return value;
         }
         auto owners_mutex() -> linux::Mutex&
         {
-            static linux::Mutex value;
+            static linux::Mutex value{};
             return value;
         }
 

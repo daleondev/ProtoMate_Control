@@ -32,7 +32,7 @@ namespace hal
       , m_a{ std::move(a) }
       , m_b{ std::move(b) }
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         m_handle.Instance = TIM3;
         m_handle.State = HAL_TIM_STATE_READY;
         HAL_NVIC_DisableIRQ(TIM6_DAC_IRQn);
@@ -57,7 +57,7 @@ namespace hal
     }
     QuadratureEncoder::~QuadratureEncoder()
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         m_sampler.setCallback({});
         static_cast<void>(stop()); // NOLINT(bugprone-unused-return-value) -- Cleanup enforces stop; its final
                                    // status is not consumed here.
@@ -69,7 +69,7 @@ namespace hal
     }
     auto QuadratureEncoder::start() noexcept -> util::Result<>
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         const auto count{ m_counter.position() };
         if (!count) {
             return std::unexpected(count.error());
@@ -101,7 +101,7 @@ namespace hal
     }
     auto QuadratureEncoder::stop() noexcept -> util::Result<>
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         TIM6->DIER = 0U;
         CLEAR_BIT(TIM6->CR1, TIM_CR1_CEN);
         HAL_NVIC_DisableIRQ(TIM6_DAC_IRQn);
@@ -119,18 +119,18 @@ namespace hal
     }
     auto QuadratureEncoder::isRunning() const noexcept -> bool
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         return m_running;
     }
     auto QuadratureEncoder::position() const noexcept -> util::Result<Count>
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         sample();
         return m_counter.position();
     }
     auto QuadratureEncoder::setPosition(Count count) noexcept -> util::Result<>
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         if (m_running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
@@ -140,14 +140,14 @@ namespace hal
     }
     auto QuadratureEncoder::setSampleCallback(SampleCallback callback) -> void
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         m_sampler.setCallback(std::move(callback));
         sample();
         m_sampler.publish({ .position = m_counter.position(), .timestamp = now(), .running = m_running });
     }
     auto QuadratureEncoder::dispatchTimebase() noexcept -> void
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         if (s_instance == nullptr || !s_instance->m_running) {
             return;
         }
@@ -160,7 +160,7 @@ namespace hal
     }
     auto QuadratureEncoder::dispatchInterrupt() noexcept -> void
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         const std::uint32_t pending{ TIM3->SR & TIM3->DIER & SERVICE_FLAGS };
         if (pending == 0U) {
             return;

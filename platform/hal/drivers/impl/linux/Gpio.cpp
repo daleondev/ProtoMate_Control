@@ -18,7 +18,7 @@ namespace hal
 
     auto GpioInput::setEdgeCallback(EdgeCallback callback) noexcept -> void
     {
-        std::shared_ptr<EdgeCallback> replacement;
+        std::shared_ptr<EdgeCallback> replacement{};
         if (callback) {
             try {
                 replacement = std::make_shared<EdgeCallback>(std::move(callback));
@@ -38,7 +38,7 @@ namespace hal
             return;
         }
 
-        std::shared_ptr<EdgeCallback> callback;
+        std::shared_ptr<EdgeCallback> callback{};
         {
             const std::scoped_lock lock{ m_callbackMutex };
             callback = m_edgeCallback;

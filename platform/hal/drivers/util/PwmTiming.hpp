@@ -32,7 +32,7 @@ namespace hal::util
         if (period_ns > max_ns) {
             return std::unexpected(std::make_error_code(std::errc::result_out_of_range));
         }
-        const auto ceil_div = [](std::uint64_t a, std::uint64_t b) { return (a + b - 1U) / b; };
+        const auto ceil_div{ [](std::uint64_t a, std::uint64_t b) { return (a + b - 1U) / b; } };
         const auto cycles{ ceil_div(period_ns * input_hz, ns_per_second) };
         const auto divider{ ceil_div(cycles, max_ticks) };
         const auto period_ticks{ ceil_div(cycles, divider) };

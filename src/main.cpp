@@ -9,10 +9,10 @@
 
 int main()
 try {
-    auto transport = icc::InProcessTransport::pair();
+    auto transport{ icc::InProcessTransport::pair() };
     // Keep application state off the small runtime startup-thread stack.
-    auto io = std::make_unique<io::Application>(*transport[0]);
-    auto ui = std::make_unique<ui::Application>(*transport[1]);
+    auto io{ std::make_unique<io::Application>(*transport[0]) };
+    auto ui{ std::make_unique<ui::Application>(*transport[1]) };
     io->start();
     ui->start();
 

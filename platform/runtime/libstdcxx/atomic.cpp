@@ -60,7 +60,7 @@ namespace
                                              std::uint64_t operand,
                                              Operation operation) noexcept
     {
-        const hal::stm32::InterruptGuard interrupt_guard;
+        const hal::stm32::InterruptGuard interrupt_guard{};
         const std::uint64_t previous{ read_value(pointer) };
         write_value(pointer, operation(previous, operand));
         return previous;
@@ -73,19 +73,19 @@ namespace
 // NOLINTBEGIN(bugprone-reserved-identifier,cppcoreguidelines-macro-usage,readability-identifier-naming)
 extern "C" std::uint64_t __atomic_load_8(const volatile void* pointer, int /*unused*/)
 {
-    const hal::stm32::InterruptGuard interrupt_guard;
+    const hal::stm32::InterruptGuard interrupt_guard{};
     return read_value(pointer);
 }
 
 extern "C" void __atomic_store_8(volatile void* pointer, std::uint64_t value, int /*unused*/)
 {
-    const hal::stm32::InterruptGuard interrupt_guard;
+    const hal::stm32::InterruptGuard interrupt_guard{};
     write_value(pointer, value);
 }
 
 extern "C" std::uint64_t __atomic_exchange_8(volatile void* pointer, std::uint64_t value, int /*unused*/)
 {
-    const hal::stm32::InterruptGuard interrupt_guard;
+    const hal::stm32::InterruptGuard interrupt_guard{};
     const std::uint64_t previous{ read_value(pointer) };
     write_value(pointer, value);
     return previous;
@@ -105,7 +105,7 @@ extern "C" bool runtime_atomic_compare_exchange_8(volatile void* pointer,
                                                   int /*unused*/,
                                                   int /*unused*/)
 {
-    const hal::stm32::InterruptGuard interrupt_guard;
+    const hal::stm32::InterruptGuard interrupt_guard{};
     const std::uint64_t current{ read_value(pointer) };
     auto* expected{ static_cast<std::uint64_t*>(expected_pointer) };
     if (current == *expected) {
@@ -177,13 +177,13 @@ extern "C" bool runtime_atomic_compare_exchange(std::size_t /*size*/,
 
 extern "C" void runtime_atomic_load(std::size_t size, void* object, void* result, int /*unused*/)
 {
-    const hal::stm32::InterruptGuard interrupt_guard;
+    const hal::stm32::InterruptGuard interrupt_guard{};
     copy_bytes(result, object, size);
 }
 
 extern "C" void runtime_atomic_store(std::size_t size, void* object, void* value, int /*unused*/)
 {
-    const hal::stm32::InterruptGuard interrupt_guard;
+    const hal::stm32::InterruptGuard interrupt_guard{};
     copy_bytes(object, value, size);
 }
 
@@ -195,7 +195,7 @@ extern "C" void runtime_atomic_exchange(std::size_t size,
                                         void* result,
                                         int /*unused*/)
 {
-    const hal::stm32::InterruptGuard interrupt_guard;
+    const hal::stm32::InterruptGuard interrupt_guard{};
     auto* object_bytes{ static_cast<volatile std::uint8_t*>(object) };
     auto* value_bytes{ static_cast<volatile std::uint8_t*>(value) };
     auto* result_bytes{ static_cast<volatile std::uint8_t*>(result) };
@@ -217,7 +217,7 @@ extern "C" bool runtime_atomic_compare_exchange(std::size_t size,
                                                 int /*unused*/,
                                                 int /*unused*/)
 {
-    const hal::stm32::InterruptGuard interrupt_guard;
+    const hal::stm32::InterruptGuard interrupt_guard{};
     if (equal_bytes(object, expected, size)) {
         copy_bytes(object, desired, size);
         return true;

@@ -102,11 +102,11 @@ namespace hal::core
         bool found{};
         for (const auto member :
              std::meta::static_data_members_of(^^Catalog, std::meta::access_context::current())) {
-            const auto owners = std::meta::annotations_of(member);
+            const auto owners{ std::meta::annotations_of(member) };
             if (owners.size() != 1) {
                 throw "Each device catalog entry needs exactly one core annotation";
             }
-            const auto owner = std::meta::extract<util::Core>(owners.front());
+            const auto owner{ std::meta::extract<util::Core>(owners.front()) };
             if (owner != util::Core::M4 && owner != util::Core::M7 && owner != util::Core::Host) {
                 throw "Unknown core in device catalog";
             }

@@ -14,8 +14,8 @@ namespace ui::gui
     {
       public:
         Presenter(Model& model, ShowcaseView& view)
-          : m_model(model)
-          , m_view(view)
+          : m_model{ model }
+          , m_view{ view }
         {
         }
         void activate() override;
@@ -52,7 +52,7 @@ namespace ui::gui
     {
       public:
         explicit DetailsPresenter(Model& model)
-          : m_model(model)
+          : m_model{ model }
         {
         }
         void back() { m_model.details = false; }

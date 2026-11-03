@@ -8,7 +8,7 @@ namespace hal::rgb
         if (configuration.peripheral != Peripheral::Ltdc) {
             return {};
         }
-        static util::ExclusiveInstances<1> instances;
+        static util::ExclusiveInstances<1> instances{};
         return instances.create<RgbOutput>(0);
     }
 }

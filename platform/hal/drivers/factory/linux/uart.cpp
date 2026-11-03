@@ -19,7 +19,7 @@ namespace hal::uart
             !util::valid_uart_configuration(configuration.transport) || index >= UART_INSTANCE_COUNT) {
             return {};
         }
-        static util::ExclusiveInstances<UART_POOL_SIZE> instances;
+        static util::ExclusiveInstances<UART_POOL_SIZE> instances{};
         return instances.create<Uart>(index, configuration.transport);
     }
 }

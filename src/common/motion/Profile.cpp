@@ -8,17 +8,17 @@ namespace motion
 {
     namespace
     {
-        constexpr double HALF = 0.5;
-        constexpr double QUADRATIC_FACTOR = 2.0;
-        constexpr double CUBIC_INTEGRATION_FACTOR = 6.0;
-        constexpr double ACCELERATION_TOLERANCE = 1e-10;
-        constexpr double FEASIBILITY_TOLERANCE = 1e-12;
-        constexpr double POSITION_TOLERANCE = 1e-9;
-        constexpr double MINIMUM_DISTANCE_SCALE = 1e-9;
-        constexpr double TIME_TOLERANCE = 1e-12;
-        constexpr double MINIMUM_VELOCITY_SCALE = 1e-20;
-        constexpr unsigned VELOCITY_SEARCH_ITERATIONS = 64;
-        constexpr unsigned TIME_SEARCH_ITERATIONS = 48;
+        constexpr double HALF{ 0.5 };
+        constexpr double QUADRATIC_FACTOR{ 2.0 };
+        constexpr double CUBIC_INTEGRATION_FACTOR{ 6.0 };
+        constexpr double ACCELERATION_TOLERANCE{ 1e-10 };
+        constexpr double FEASIBILITY_TOLERANCE{ 1e-12 };
+        constexpr double POSITION_TOLERANCE{ 1e-9 };
+        constexpr double MINIMUM_DISTANCE_SCALE{ 1e-9 };
+        constexpr double TIME_TOLERANCE{ 1e-12 };
+        constexpr double MINIMUM_VELOCITY_SCALE{ 1e-20 };
+        constexpr unsigned VELOCITY_SEARCH_ITERATIONS{ 64 };
+        constexpr unsigned TIME_SEARCH_ITERATIONS{ 48 };
 
         Profile::State advance(Profile::State s, double t, double jerk) noexcept
         {
@@ -48,7 +48,7 @@ namespace motion
 
     void Profile::append(PhaseChange change) noexcept
     {
-        const auto [duration, jerk, acceleration] = change;
+        const auto [duration, jerk, acceleration]{ change };
         if (duration <= 0.0) {
             return;
         }
@@ -65,7 +65,7 @@ namespace motion
 
     void Profile::changeVelocity(VelocityChange change) noexcept
     {
-        const auto [target, acceleration, jerk] = change;
+        const auto [target, acceleration, jerk]{ change };
         const auto difference{ target - m_state.velocity };
         if (difference == 0.0) {
             return;
@@ -113,10 +113,10 @@ namespace motion
             const auto available{ m_distance - m_state.position };
             const auto inherited{ m_state.velocity };
             const auto ceiling{ std::max(limits.velocity, m_endVelocity) };
-            const auto via = [&](double cruise) {
+            const auto via{ [&](double cruise) {
                 return change_distance(inherited, cruise, limits.deceleration, limits.jerk) +
                        change_distance(cruise, m_endVelocity, limits.deceleration, limits.jerk);
-            };
+            } };
             if (via(ceiling) > available) {
                 // A short successor may need one continuous deceleration. Do
                 // not insist on flattening acceleration at its cruise speed:
@@ -126,7 +126,7 @@ namespace motion
                 }
                 auto low{ m_endVelocity };
                 auto high{ ceiling };
-                for (unsigned i = 0; i < VELOCITY_SEARCH_ITERATIONS; ++i) {
+                for (unsigned i{ 0 }; i < VELOCITY_SEARCH_ITERATIONS; ++i) {
                     const auto middle{ (low + high) * HALF };
                     if (via(middle) <= available) {
                         low = middle;
@@ -163,10 +163,10 @@ namespace motion
         // A blend can explicitly request a junction faster than the previous
         // command's cruise speed. Preserve an inherited higher velocity too.
         const auto maximum_peak{ std::max(limits.velocity, minimum_peak) };
-        const auto required = [&](double peak) {
+        const auto required{ [&](double peak) {
             return change_distance(from, peak, limits.acceleration, limits.jerk) +
                    change_distance(peak, m_endVelocity, limits.deceleration, limits.jerk);
-        };
+        } };
         const auto minimum_distance{ required(minimum_peak) };
         if (!std::isfinite(minimum_distance) ||
             minimum_distance > remaining * (1.0 + FEASIBILITY_TOLERANCE)) {
@@ -174,7 +174,7 @@ namespace motion
         }
         auto low{ minimum_peak };
         auto high{ maximum_peak };
-        for (unsigned i = 0; i < VELOCITY_SEARCH_ITERATIONS; ++i) {
+        for (unsigned i{ 0 }; i < VELOCITY_SEARCH_ITERATIONS; ++i) {
             const auto middle{ low + ((high - low) * HALF) };
             if (required(middle) > remaining) {
                 high = middle;
@@ -216,7 +216,7 @@ namespace motion
             return std::nullopt;
         }
 
-        Profile result;
+        Profile result{};
         result.m_state = { .position = 0.0, .velocity = start_velocity, .acceleration = start_acceleration };
         result.m_distance = distance;
         result.m_endVelocity = end_velocity;
@@ -245,7 +245,7 @@ namespace motion
         if (time >= m_duration) {
             return { .position = m_distance, .velocity = m_endVelocity, .acceleration = 0.0 };
         }
-        for (unsigned i = 0; i < m_size; ++i) {
+        for (unsigned i{ 0 }; i < m_size; ++i) {
             const auto& phase{ m_phases[i] };
             if (time <= phase.start + phase.duration) {
                 return advance(phase.state, std::clamp(time - phase.start, 0.0, phase.duration), phase.jerk);
@@ -256,7 +256,7 @@ namespace motion
 
     double Profile::phaseTimeAt(const Phase& p, double position, TimeHint hint) noexcept
     {
-        const auto end = p.end_position;
+        const auto end{ p.end_position };
         const auto distance{ std::max(0.0, position - p.state.position) };
         if (p.jerk == 0.0) {
             const auto denominator{
@@ -284,7 +284,7 @@ namespace motion
                 t = std::clamp(local + ((position - prior.position) / prior.velocity), lo, hi);
             }
         }
-        for (unsigned iteration = 0; iteration < TIME_SEARCH_ITERATIONS; ++iteration) {
+        for (unsigned iteration{ 0 }; iteration < TIME_SEARCH_ITERATIONS; ++iteration) {
             const auto state{ advance(p.state, t, p.jerk) };
             const auto error{ state.position - position };
             // A picosecond residual is far below the 100 ns timer tick.
@@ -318,7 +318,7 @@ namespace motion
         if (position >= m_distance) {
             return m_duration;
         }
-        for (unsigned i = 0; i < m_size; ++i) {
+        for (unsigned i{ 0 }; i < m_size; ++i) {
             const auto& p{ m_phases[i] };
             const auto end{ p.end_position };
             if (position > end && i + 1U < m_size) {
@@ -332,13 +332,13 @@ namespace motion
     double Profile::maximumStepInterval(double step) const noexcept
     {
         double result{};
-        const auto examine = [&](double position) {
+        const auto examine{ [&](double position) {
             result = std::max(
               result, timeAt(std::min(m_distance, position + step)) - timeAt(std::max(0.0, position - step)));
-        };
+        } };
         examine(0.0);
         examine(m_distance);
-        for (unsigned i = 0; i < m_size; ++i) {
+        for (unsigned i{ 0 }; i < m_size; ++i) {
             examine(m_phases[i].state.position);
         }
         return result;
@@ -355,11 +355,11 @@ std::optional<motion::Profile> motion::Profile::brake(double velocity,
         limits.jerk <= 0 || acceleration > limits.acceleration || -acceleration > limits.deceleration) {
         return {};
     }
-    Profile result;
+    Profile result{};
     result.m_state = { 0, velocity, acceleration };
     if (acceleration != 0) {
-        const double duration = std::abs(acceleration) / limits.jerk;
-        const double end_velocity = velocity + 0.5 * acceleration * duration;
+        const double duration{ std::abs(acceleration) / limits.jerk };
+        const double end_velocity{ velocity + 0.5 * acceleration * duration };
         if (end_velocity < 0 || !std::isfinite(end_velocity)) {
             return {};
         }
@@ -379,12 +379,12 @@ std::optional<motion::Profile> motion::Profile::brake(double velocity,
 
 motion::Profile::Description motion::Profile::description() const noexcept
 {
-    Description result;
+    Description result{};
     result.size = m_size;
     result.distance = m_distance;
     result.end_velocity = m_endVelocity;
-    for (unsigned i = 0; i < m_size; ++i) {
-        const auto& p = m_phases[i];
+    for (unsigned i{ 0 }; i < m_size; ++i) {
+        const auto& p{ m_phases[i] };
         result.phases[i] = { .duration = p.duration,
                              .jerk = p.jerk,
                              .position = p.state.position,
@@ -398,28 +398,30 @@ std::optional<motion::Profile> motion::Profile::fromDescription(const Descriptio
     if (value.size > value.phases.size()) {
         return {};
     }
-    Profile result;
+    Profile result{};
     if (value.size) {
         result.m_state.velocity = value.phases[0].velocity;
         result.m_state.acceleration = value.phases[0].acceleration;
     }
-    const auto near = [](double a, double b) {
+    const auto near{ [](double a, double b) {
         return std::abs(a - b) <= POSITION_TOLERANCE * std::max({ 1.0, std::abs(a), std::abs(b) });
-    };
-    for (unsigned i = 0; i < value.size; ++i) {
-        const auto& p = value.phases[i];
+    } };
+    for (unsigned i{ 0 }; i < value.size; ++i) {
+        const auto& p{ value.phases[i] };
         if (!std::isfinite(p.duration) || !std::isfinite(p.jerk) || !std::isfinite(p.position) ||
             !std::isfinite(p.velocity) || !std::isfinite(p.acceleration) || p.duration <= 0 ||
             !near(p.position, result.m_state.position) || !near(p.velocity, result.m_state.velocity)) {
             return {};
         }
         // Acceleration may jump for a trapezoidal (unlimited jerk) profile.
-        auto velocity = [&](double t) { return p.velocity + (p.acceleration * t) + (HALF * p.jerk * t * t); };
+        auto velocity{ [&](double t) {
+            return p.velocity + (p.acceleration * t) + (HALF * p.jerk * t * t);
+        } };
         if (velocity(0) < -POSITION_TOLERANCE || velocity(p.duration) < -POSITION_TOLERANCE) {
             return {};
         }
         if (p.jerk != 0) {
-            auto t = -p.acceleration / p.jerk;
+            auto t{ -p.acceleration / p.jerk };
             if (t > 0 && t < p.duration && velocity(t) < -POSITION_TOLERANCE) {
                 return {};
             }

@@ -402,7 +402,7 @@ namespace ui::cli::motor
         ]] static auto jobs(const Context& context, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            std::optional<std::uint64_t> selected;
+            std::optional<std::uint64_t> selected{};
             if (const auto text{ args.get("id") }) {
                 std::uint64_t value{};
                 const auto parsed{ std::from_chars(text->data(), text->data() + text->size(), value) };

@@ -39,7 +39,7 @@ namespace hal
 
     [[nodiscard]] inline auto hal_error_category() noexcept -> const std::error_category&
     {
-        static HalErrorCategory instance;
+        static HalErrorCategory instance{};
         return instance;
     }
 

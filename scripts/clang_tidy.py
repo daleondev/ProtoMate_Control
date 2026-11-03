@@ -28,6 +28,7 @@ IMAGE = ("ghcr.io/daleondev/pneumo-devcontainer@"
 COMPILER = "/opt/clang-p2996/bin/clang++"
 C_COMPILER = "/opt/clang-p2996/bin/clang"
 TIDY = "/opt/clang-p2996/bin/clang-tidy"
+STYLE_PLUGIN = ROOT / "build/clang-tidy-plugin/protomate-style.so"
 REFLECTION_HEADERS = Path("/opt/clang-p2996/include/c++/v1")
 DIAGNOSTIC = re.compile(
     r"^(.+?):(\d+):(\d+): (?:warning|error|fatal error): (.*?) \[([^\]]+)\]$", re.MULTILINE)
@@ -56,6 +57,13 @@ def configure_database(output, name, arguments):
     (output / f"configure-{name}.log").write_text(result.stdout)
     if result.returncode:
         raise ValueError(f"CMake configuration {name} failed:\n{result.stdout}")
+    if name == "stm32-ui":
+        # Analysis needs the same generated assets as compilation, not stubs.
+        assets = subprocess.run(["cmake", "--build", str(build), "--target", "gui-assets", "scene3d-assets"],
+                                cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        (output / f"assets-{name}.log").write_text(assets.stdout)
+        if assets.returncode:
+            raise ValueError(f"Asset generation {name} failed:\n{assets.stdout}")
     return name, build
 
 
@@ -132,6 +140,15 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
             if not in_scope(source):
                 continue
             arguments = entry.get("arguments") or shlex.split(entry["command"])
+            # Hardware-model tests also compile production files with fakes.
+            # Keep the actual production command for each platform.
+            object_file = entry.get("output")
+            if object_file is None and "-o" in arguments:
+                object_file = arguments[arguments.index("-o") + 1]
+            if object_file:
+                relative_output = Path(os.path.relpath(Path(entry["directory"]) / object_file, directory))
+                if {"test", "tests"}.intersection(relative_output.parts):
+                    continue
             # runtime_attach also compiles this hook into tests and examples.
             # Analyze its actual Application configuration once per platform.
             if source == ROOT / "platform/runtime/startup.cpp":
@@ -150,7 +167,7 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
             target = ["--target=arm-none-eabi"] if arm else []
             if cxx:
                 target.append("-nostdinc++" if arm else "-stdlib=libstdc++")
-            includes = arm_includes if arm else [output / "system-include"]
+            includes = arm_includes if arm else [output / "system-include", output / "system-include/SDL2"]
             for include in includes:
                 target.extend(["-isystem", str(include)])
             commands.append({"directory": entry["directory"], "file": str(source), "arguments": [
@@ -172,7 +189,7 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
                     for source in (ROOT / directory).rglob("*")
                     if source.suffix in (".cpp", ".cc", ".c", ".cxx") and in_scope(source.resolve())
                     and (not source.is_relative_to(ROOT / "platform/hal/board")
-                         or source.parent.name in ("linux", "nucleo_h755ziq"))}
+                         or source.parent.name in ("linux", "arduino_giga"))}
         missing = expected - {Path(item["file"]) for item in selected}
         if missing:
             raise ValueError("HAL/runtime sources missing compilation commands: " + ", ".join(
@@ -242,10 +259,13 @@ def check(entry, args):
     output.parent.mkdir(parents=True, exist_ok=True)
     fixes = output.with_suffix(output.suffix + ".yaml")
     fixes.unlink(missing_ok=True)
-    command = [TIDY, "-p", entry.get("database", str(args.output)), "--config-file=" + str(ROOT / ".clang-tidy"),
+    command = [TIDY, f"--load={STYLE_PLUGIN}", "-p", entry.get("database", str(args.output)),
+               "--config-file=" + str(ROOT / ".clang-tidy"),
                "--header-filter=" + header_filter(),
                "--exclude-header-filter=" + EXCLUDED_HEADERS,
                "--export-fixes=" + str(fixes), str(source)]
+    if getattr(args, "checks", None):
+        command.insert(1, f"--checks={args.checks}")
     code, log, tidy_seconds = run_command(command, entry["directory"], args.timeout)
     with OUTPUT_LOCK:
         print(log, end="", flush=True)
@@ -263,8 +283,9 @@ def run_inside(args):
         print(f"Clang-tidy reflection setup failed: {error}", file=sys.stderr)
         return 2
     version = subprocess.check_output([TIDY, "--version"], text=True).strip()
-    verification = subprocess.run([TIDY, "--verify-config", f"--config-file={ROOT / '.clang-tidy'}"],
-                                  capture_output=True, text=True)
+    verification = subprocess.run(
+        [TIDY, f"--load={STYLE_PLUGIN}", "--verify-config", f"--config-file={ROOT / '.clang-tidy'}"],
+        capture_output=True, text=True)
     if verification.returncode:
         print(verification.stdout + verification.stderr, file=sys.stderr)
         return 2
@@ -305,6 +326,7 @@ def run_inside(args):
                              for report in blocked)
     (args.output / "summary.txt").write_text(summary + "\nBlocked files:\n" + blocked_text + "\n")
     (args.output / "report.json").write_text(json.dumps({"image": IMAGE, "compiler": version,
+        "checks": getattr(args, "checks", None),
         "standard_library": "libstdc++", "reflection_headers": "Clang/P2996; adapted includes and namespaces",
         "scope": [str(directory.relative_to(ROOT)) for directory in SOURCE_ROOTS],
         "excluded_directories": list(EXCLUDED_DIRECTORIES),
@@ -319,6 +341,7 @@ def main():
     parser.add_argument("--jobs", type=int, default=min(4, os.cpu_count() or 1))
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--strict", action="store_true")
+    parser.add_argument("--checks", help="Optional clang-tidy check filter for focused verification")
     parser.add_argument("--inside-container", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     args.build_dir = args.build_dir.resolve()
@@ -332,6 +355,10 @@ def main():
             raise ValueError("Use a build directory under the project's build/ directory")
         if not shutil.which("docker"):
             raise ValueError("Docker is required for the reflection-capable Pneumo toolchain")
+        # Bootstrap the native declaration check against this exact compiler ABI.
+        # The cached plugin is then loaded by the existing offline lint container.
+        subprocess.run(["bash", str(ROOT / "scripts/clang-tidy/build-style-check.sh")],
+                       cwd=ROOT, check=True)
         args.output.mkdir(parents=True, exist_ok=True)
         for name in ("findings.txt", "partial-findings.txt", "summary.txt", "report.json"):
             (args.output / name).unlink(missing_ok=True)
@@ -343,7 +370,8 @@ def main():
         # headers of the host Linux build, without importing host C++ headers.
         for name in ("curses.h", "ncurses_dll.h", "unctrl.h"):
             shutil.copyfile(Path("/usr/include") / name, includes / name)
-        databases = [configure_database(args.output, f"stm32-{core}", ["--preset", f"h755-{core}-debug"])
+        shutil.copytree(Path("/usr/include/SDL2"), includes / "SDL2", dirs_exist_ok=True)
+        databases = [configure_database(args.output, f"stm32-{core}", ["--preset", f"giga-{core}-debug"])
                      for core in ("io", "ui")]
         arm_includes = arm_include_directories(databases[0][1])
         prepare_database(args.build_dir, args.output, databases, arm_includes)
@@ -364,6 +392,8 @@ def main():
                    "--timeout", str(args.timeout)]
         if args.strict:
             command.append("--strict")
+        if args.checks:
+            command.append(f"--checks={args.checks}")
         return subprocess.run(command, check=False).returncode
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f"Clang-tidy setup failed: {error}", file=sys.stderr)

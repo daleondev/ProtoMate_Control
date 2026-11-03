@@ -56,8 +56,8 @@ namespace icc
         {
           public:
             ConnectionFailure(ConnectionReason reason, const char* message)
-              : std::runtime_error(message)
-              , reason(reason)
+              : std::runtime_error{ message }
+              , reason{ reason }
             {
             }
             ConnectionReason reason;

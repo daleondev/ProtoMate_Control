@@ -7,7 +7,7 @@ namespace hal::device
     {
       public:
         explicit PointerTouch(TouchReport (*read)())
-          : m_read(read)
+          : m_read{ read }
         {
         }
         auto initialize() -> util::Result<> override { return {}; }

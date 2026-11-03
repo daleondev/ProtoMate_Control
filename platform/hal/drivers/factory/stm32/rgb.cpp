@@ -15,11 +15,11 @@ namespace hal::rgb
             configuration.backlight != gpio::Pin{ gpio::Port::C, 6 }) {
             return {};
         }
-        auto pin = gpio::create_output({ .pin = configuration.backlight, .alternate_function = 3 });
+        auto pin{ gpio::create_output({ .pin = configuration.backlight, .alternate_function = 3 }) };
         if (!pin) {
             return {};
         }
-        static util::ExclusiveInstances<1> instances;
+        static util::ExclusiveInstances<1> instances{};
         return instances.create<RgbOutput>(0, hltdc, htim8, std::move(pin));
 #else
         static_cast<void>(configuration);

@@ -33,10 +33,10 @@ namespace hal
 
         const auto start{ HAL_GetTick() };
         const auto budget{ static_cast<std::uint32_t>(timeout.count()) };
-        const auto remaining = [&] {
+        const auto remaining{ [&] {
             const auto used{ HAL_GetTick() - start };
             return used < budget ? budget - used : 0U;
-        };
+        } };
         if (m_configuration.settle_time.count() > 0) {
             HAL_Delay(static_cast<std::uint32_t>(m_configuration.settle_time.count()));
         }

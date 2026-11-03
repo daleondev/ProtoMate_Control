@@ -63,7 +63,7 @@ namespace ui::motion
             JointPosition maximum{};
         };
 
-        static constexpr double DEFAULT_MINIMUM_BEND_SINE = 1e-6;
+        static constexpr double DEFAULT_MINIMUM_BEND_SINE{ 1e-6 };
 
         struct Config
         {

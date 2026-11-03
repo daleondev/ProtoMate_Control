@@ -197,13 +197,13 @@ namespace io::motion
                                                                pnm::units::Time timeout,
                                                                bool relative)
     {
-        const auto epoch = m_abortEpoch.load();
-        const auto rejected = [this] {
-            util::Completion<Result> promise;
+        const auto epoch{ m_abortEpoch.load() };
+        const auto rejected{ [this] {
+            util::Completion<Result> promise{};
             m_lastCompletion = promise;
             promise.setValue(Result::Rejected);
             return promise.getFuture();
-        };
+        } };
         const auto now{ std::chrono::steady_clock::now() };
         if (!m_driver->status().ready || !position.isFinite() || !timingFor(velocity) ||
             !timeout.isFinite() || timeout < 0_s ||
@@ -393,7 +393,7 @@ namespace io::motion
             // Find a feasible lower speed, then refine its upper boundary.
             if (!replacement) {
                 double upper{ junction };
-                for (unsigned i = 1U; i <= motion::limits::BLEND_SEARCH_STEPS; ++i) {
+                for (unsigned i{ 1U }; i <= motion::limits::BLEND_SEARCH_STEPS; ++i) {
                     const auto lower{ junction *
                                       (1.0 - static_cast<double>(i) /
                                                static_cast<double>(motion::limits::BLEND_SEARCH_STEPS)) };
@@ -401,7 +401,7 @@ namespace io::motion
                     if (replacement) {
                         auto low{ lower };
                         auto high{ upper };
-                        for (unsigned j = 0U; j < motion::limits::BLEND_REFINE_STEPS; ++j) {
+                        for (unsigned j{ 0U }; j < motion::limits::BLEND_REFINE_STEPS; ++j) {
                             const auto middle{ (low + high) * 0.5 };
                             if (auto candidate{ make(middle) }) {
                                 low = middle;
@@ -422,7 +422,7 @@ namespace io::motion
                    ::motion::Profile::State state,
                    std::optional<hal::step::ScheduleCursor> cursor)
         {
-            std::shared_ptr<Command> next;
+            std::shared_ptr<Command> next{};
             {
                 std::scoped_lock lock{ m_motor->m_queueMutex };
                 next = m_motor->m_pending;
@@ -440,9 +440,9 @@ namespace io::motion
                 return false;
             }
             const auto junction{ junctionSpeed(*next) };
-            const auto make = [&](double speed) {
+            const auto make{ [&](double speed) {
                 return makeBlend(*next, *next_count, begin, state, speed);
-            };
+            } };
             auto replacement{ feasibleBlend(junction, make) };
             if (!replacement) {
                 return false;
@@ -518,7 +518,7 @@ namespace io::motion
                 auto update_result{ pnm::Result<Count>{
                   std::unexpected(std::make_error_code(std::errc::operation_not_permitted)) } };
                 const auto old_velocity{ m_command->velocity };
-                for (unsigned attempt = 0; attempt < 3U; ++attempt) {
+                for (unsigned attempt{ 0 }; attempt < 3U; ++attempt) {
                     const auto cursor{ m_motor->m_stepOutput->scheduleCursor() };
                     if (!cursor || cursor->terminal || cursor->first_uncommitted + 1U >= m_activeEnd) {
                         break;
@@ -561,7 +561,7 @@ namespace io::motion
         void blendPending()
         {
             if (!m_following) {
-                for (unsigned attempt = 0U; attempt < 3U && !m_following; ++attempt) {
+                for (unsigned attempt{ 0U }; attempt < 3U && !m_following; ++attempt) {
                     const auto cursor{ m_motor->m_stepOutput->scheduleCursor() };
                     if (!cursor || cursor->terminal || cursor->first_uncommitted + 1U >= m_activeEnd) {
                         break;
@@ -951,13 +951,13 @@ namespace io::motion
 
     std::future<StepperMotor::Result> StepperMotor::startMotion(std::function<Result(std::stop_token)> task)
     {
-        const auto epoch = m_abortEpoch.load();
+        const auto epoch{ m_abortEpoch.load() };
         std::scoped_lock lock{ m_workerMutex };
         if (m_worker.joinable()) {
             static_cast<void>(m_worker.request_stop());
             m_worker.join();
         }
-        util::Completion<Result> completion;
+        util::Completion<Result> completion{};
         m_lastCompletion = completion;
         auto future{ completion.getFuture() };
         {
@@ -1015,7 +1015,7 @@ namespace io::motion
         {
             std::atomic_bool& flag;
             explicit FinishReferencing(std::atomic_bool& value)
-              : flag(value)
+              : flag{ value }
             {
             }
             FinishReferencing(const FinishReferencing&) = delete;
@@ -1027,8 +1027,7 @@ namespace io::motion
 
         const auto deadline{ now + timeout.toChrono<std::chrono::steady_clock::duration>() };
         const std::stop_callback cancellation{ stop, [this] { m_events->notification.signal(); } };
-        const auto seek =
-          [&](Direction direction, pnm::units::AngularVelocity speed, hal::gpio::Level level) {
+        const auto seek{ [&](Direction direction, pnm::units::AngularVelocity speed, hal::gpio::Level level) {
             if (interrupted(stop)) {
                 return Result::Stopped;
             }
@@ -1037,7 +1036,7 @@ namespace io::motion
                 return Result::TimedOut;
             }
             return performMotion(direction, speed, pnm::units::Time{ remaining }, stop, std::nullopt, level);
-        };
+        } };
 
         using enum hal::gpio::Level;
         if (m_referenceSwitchInput->read() != High) {
@@ -1109,7 +1108,7 @@ namespace io::motion
                                                           const std::stop_token& stop)
     {
         constexpr auto settle_time{ 10ms };
-        std::optional<std::chrono::steady_clock::time_point> stable_since;
+        std::optional<std::chrono::steady_clock::time_point> stable_since{};
         auto changes{ m_events->reference_changes.load() };
         while (true) {
             if (!m_driver->status().ready) {

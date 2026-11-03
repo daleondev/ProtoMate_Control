@@ -14,9 +14,9 @@ namespace ui::gui::scene3d
             std::uint16_t depth[PIXELS];
         };
 #if defined(CORE_CM7)
-        __attribute__((section(".gui_sdram"))) Storage buffers;
+        __attribute__((section(".gui_sdram"))) Storage buffers{};
 #else
-        Storage buffers;
+        Storage buffers{};
 #endif
         std::atomic_bool claimed{};
     }
@@ -27,18 +27,18 @@ namespace ui::gui::scene3d
     }
     Status RenderService::status() const
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         return m_status;
     }
     bool RenderService::submit(const Frame& frame)
     {
         if (!frame.scene || !frame.snapshot.valid(*frame.scene)) {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             ++m_status.rejected;
             return false;
         }
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             if (m_stop || m_status.failed || !m_status.visible) {
                 return false;
             }
@@ -54,7 +54,7 @@ namespace ui::gui::scene3d
     void RenderService::visible(bool value)
     {
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             if (m_status.visible != value) {
                 ++m_visibilityGeneration;
             }
@@ -69,13 +69,13 @@ namespace ui::gui::scene3d
     }
     std::optional<Image> RenderService::acquire()
     {
-        std::optional<Image> result;
+        std::optional<Image> result{};
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             if (m_ready && m_status.visible) {
                 m_front = m_ready;
                 m_ready.reset();
-                const auto& f = m_frames[*m_front];
+                const auto& f{ m_frames[*m_front] };
                 ++m_status.acquired;
                 m_status.acquiredRevision = f.revision;
                 m_status.sourceTimeUs = f.sourceTimeUs;
@@ -90,7 +90,7 @@ namespace ui::gui::scene3d
     void RenderService::stopAndWait()
     {
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_stop = true;
         }
         m_changed.signal();
@@ -100,13 +100,13 @@ namespace ui::gui::scene3d
     }
     void RenderService::presented()
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         if (m_status.visible && m_front && m_status.presentedRevision != m_status.acquiredRevision) {
             ++m_status.presented;
             m_status.presentedRevision = m_status.acquiredRevision;
-            const auto now = std::chrono::duration_cast<std::chrono::microseconds>(
-                               std::chrono::steady_clock::now().time_since_epoch())
-                               .count();
+            const auto now{ std::chrono::duration_cast<std::chrono::microseconds>(
+                              std::chrono::steady_clock::now().time_since_epoch())
+                              .count() };
             m_status.lastLatencyUs = static_cast<std::uint32_t>(
               std::min<std::uint64_t>(std::uint64_t(now) - m_status.sourceTimeUs, UINT32_MAX));
             m_status.maximumLatencyUs = std::max(m_status.maximumLatencyUs, m_status.lastLatencyUs);
@@ -114,9 +114,9 @@ namespace ui::gui::scene3d
     }
     void RenderService::run(std::stop_token stop)
     {
-        const std::stop_callback cancellation(stop, [this] { m_changed.signal(); });
+        const std::stop_callback cancellation{ stop, [this] { m_changed.signal(); } };
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             if (m_stop || stop.stop_requested()) {
                 return;
             }
@@ -128,18 +128,18 @@ namespace ui::gui::scene3d
         }
         try {
             util::FrameTimer timer{ hal::core::create_runtime_timer() };
-            auto next = std::chrono::steady_clock::now();
+            auto next{ std::chrono::steady_clock::now() };
             for (;;) {
-                Frame frame;
-                std::optional<unsigned> slot;
+                Frame frame{};
+                std::optional<unsigned> slot{};
                 std::uint64_t generation{};
                 {
-                    std::scoped_lock lock(m_mutex);
+                    std::scoped_lock lock{ m_mutex };
                     if (m_stop || stop.stop_requested()) {
                         break;
                     }
                     if (m_status.visible && m_hasPending && std::chrono::steady_clock::now() >= next) {
-                        for (unsigned i = 0; i < 2; ++i) {
+                        for (unsigned i{ 0 }; i < 2; ++i) {
                             if (m_front != i && m_ready != i) {
                                 slot = i;
                                 break;
@@ -161,13 +161,13 @@ namespace ui::gui::scene3d
                     }
                     continue;
                 }
-                const auto began = std::chrono::steady_clock::now();
+                const auto began{ std::chrono::steady_clock::now() };
                 timer.start();
-                RenderTimings timings;
-                const auto ok = render(frame, buffers.color[*slot], buffers.depth, &timings);
-                const auto elapsed = static_cast<std::uint32_t>(timer.elapsed().count());
+                RenderTimings timings{};
+                const auto ok{ render(frame, buffers.color[*slot], buffers.depth, &timings) };
+                const auto elapsed{ static_cast<std::uint32_t>(timer.elapsed().count()) };
                 {
-                    std::scoped_lock lock(m_mutex);
+                    std::scoped_lock lock{ m_mutex };
                     m_status.lastRenderUs = elapsed;
                     m_status.clearUs = timings.clearUs;
                     m_status.geometryUs = timings.geometryUs;
@@ -194,11 +194,11 @@ namespace ui::gui::scene3d
                                 std::chrono::steady_clock::now() + std::chrono::milliseconds{ 1 });
             }
         } catch (...) {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_status.failed = true;
         }
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_status.running = false;
             m_hasPending = false;
         }

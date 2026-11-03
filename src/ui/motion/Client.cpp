@@ -202,7 +202,7 @@ namespace ui::motion
     std::vector<Client::JobInfo> Client::jobs() const
     {
         std::scoped_lock lock{ m_mutex };
-        std::vector<JobInfo> result;
+        std::vector<JobInfo> result{};
         result.reserve(m_jobs.size());
         for (const auto& job : m_jobs) {
             result.push_back(job->info);

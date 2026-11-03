@@ -12,15 +12,16 @@ namespace hal::linux::display
 {
     namespace
     {
-        constexpr unsigned WIDTH = 1024, HEIGHT = 600;
-        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+        constexpr unsigned WIDTH{ 1024 }, HEIGHT{ 600 };
+        // This platform macro supplies the complete braced initializer.
+        pthread_mutex_t mutex PTHREAD_MUTEX_INITIALIZER;
         struct Lock
         {
             Lock() { pthread_mutex_lock(&mutex); }
             ~Lock() { pthread_mutex_unlock(&mutex); }
         };
         std::array<std::array<std::uint16_t, WIDTH * HEIGHT>, 2> buffers{};
-        hal::display::State state;
+        hal::display::State state{};
         std::array<Pointer, 32> input{};
         unsigned head{}, count{}, drops{}, duty{};
         Pointer last{};
@@ -35,16 +36,16 @@ namespace hal::linux::display
         }
         void inputEvent(bool down, int x, int y, int w, int h, bool cancelled = false)
         {
-            const auto scale = std::min(double(w) / WIDTH, double(h) / HEIGHT);
-            const auto left = (w - WIDTH * scale) * .5, top = (h - HEIGHT * scale) * .5;
-            const auto px = scale > 0 ? (x - left) / scale : -1;
-            const auto py = scale > 0 ? (y - top) / scale : -1;
+            const auto scale{ std::min(double(w) / WIDTH, double(h) / HEIGHT) };
+            const auto left{ (w - WIDTH * scale) * .5 }, top{ (h - HEIGHT * scale) * .5 };
+            const auto px{ scale > 0 ? (x - left) / scale : -1 };
+            const auto py{ scale > 0 ? (y - top) / scale : -1 };
             Pointer point{ down && px >= 0 && py >= 0 && px < WIDTH && py < HEIGHT,
                            static_cast<std::uint16_t>(std::clamp(px, 0., double(WIDTH - 1))),
                            static_cast<std::uint16_t>(std::clamp(py, 0., double(HEIGHT - 1))),
                            nowNs(),
                            cancelled || px < 0 || py < 0 || px >= WIDTH || py >= HEIGHT };
-            Lock lock;
+            Lock lock{};
             // Keep press/release edges; coalesce consecutive drag coordinates.
             if (count && input[(head + count - 1) % input.size()].down == point.down) {
                 input[(head + count - 1) % input.size()] = point;
@@ -68,12 +69,12 @@ namespace hal::linux::display
     bool cleanupComplete() noexcept { return cleaned.load(std::memory_order_acquire); }
     bool available() noexcept
     {
-        Lock lock;
+        Lock lock{};
         return enabled;
     }
     bool acquire() noexcept
     {
-        Lock lock;
+        Lock lock{};
         if (!enabled || leased) {
             return false;
         }
@@ -88,7 +89,7 @@ namespace hal::linux::display
     }
     void release() noexcept
     {
-        Lock lock;
+        Lock lock{};
         leased = false;
         state.pending.reset();
         duty = 0;
@@ -99,7 +100,7 @@ namespace hal::linux::display
     }
     bool submit(unsigned slot) noexcept
     {
-        Lock lock;
+        Lock lock{};
         if (!leased || state.closed || state.pending || slot > 1 || slot == state.active) {
             return false;
         }
@@ -108,12 +109,12 @@ namespace hal::linux::display
     }
     hal::display::State snapshot() noexcept
     {
-        Lock lock;
+        Lock lock{};
         return state;
     }
     Pointer pointer() noexcept
     {
-        Lock lock;
+        Lock lock{};
         if (count) {
             last = input[head];
             head = (head + 1) % input.size();
@@ -123,12 +124,12 @@ namespace hal::linux::display
     }
     std::uint32_t inputDrops() noexcept
     {
-        Lock lock;
+        Lock lock{};
         return drops;
     }
     void brightness(unsigned percent) noexcept
     {
-        Lock lock;
+        Lock lock{};
         duty = percent;
     }
     void completed(int status) noexcept
@@ -143,20 +144,21 @@ namespace hal::linux::display
             std::fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
             return EXIT_FAILURE;
         }
-        SDL_Window* window = SDL_CreateWindow("ProtoMate | Interface studio",
-                                              SDL_WINDOWPOS_CENTERED,
-                                              SDL_WINDOWPOS_CENTERED,
-                                              WIDTH,
-                                              HEIGHT,
-                                              SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-        SDL_Renderer* renderer = window ? SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED) : nullptr;
+        SDL_Window* window{ SDL_CreateWindow("ProtoMate | Interface studio",
+                                             SDL_WINDOWPOS_CENTERED,
+                                             SDL_WINDOWPOS_CENTERED,
+                                             WIDTH,
+                                             HEIGHT,
+                                             SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI) };
+        SDL_Renderer* renderer{ window ? SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED) : nullptr };
         if (!renderer && window) {
             renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
         }
-        SDL_Texture* texture =
-          renderer
-            ? SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT)
-            : nullptr;
+        SDL_Texture* texture{
+            renderer ? SDL_CreateTexture(
+                         renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT)
+                     : nullptr
+        };
         if (!texture) {
             std::fprintf(stderr, "SDL display failed: %s\n", SDL_GetError());
             SDL_DestroyRenderer(renderer);
@@ -166,7 +168,7 @@ namespace hal::linux::display
         }
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
         {
-            Lock lock;
+            Lock lock{};
             enabled = true;
         }
         finished.store(false);
@@ -181,14 +183,14 @@ namespace hal::linux::display
         }
         pthread_detach(thread); // ThreadX scheduler ends with the process, after application cleanup.
         bool down{};
-        auto nextFrame = nowNs();
+        auto nextFrame{ nowNs() };
         while (!finished.load(std::memory_order_acquire)) {
-            SDL_Event event;
+            SDL_Event event{};
             int w{}, h{};
             SDL_GetWindowSize(window, &w, &h);
             while (SDL_PollEvent(&event)) {
                 if (event.type == SDL_QUIT) {
-                    Lock lock;
+                    Lock lock{};
                     state.closed = true;
                 }
                 if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
@@ -208,16 +210,16 @@ namespace hal::linux::display
                     inputEvent(false, 0, 0, w, h, true);
                 }
             }
-            const auto now = nowNs();
+            const auto now{ nowNs() };
             if (now >= nextFrame) {
                 nextFrame = now + 16666667;
                 bool updated{};
                 {
-                    Lock lock;
+                    Lock lock{};
                     if (leased) {
                         ++state.vsyncs;
                         if (state.pending) {
-                            const auto slot = *state.pending;
+                            const auto slot{ *state.pending };
                             // SDL finishes copying before the old framebuffer is
                             // released. Neither GUI rendering nor shutdown can race it.
                             if (SDL_UpdateTexture(texture, nullptr, buffers[slot].data(), WIDTH * 2) == 0) {
@@ -238,7 +240,7 @@ namespace hal::linux::display
                 if (updated || SDL_GetWindowFlags(window) & SDL_WINDOW_SHOWN) {
                     int rw{}, rh{};
                     SDL_GetRendererOutputSize(renderer, &rw, &rh);
-                    const auto scale = std::min(double(rw) / WIDTH, double(rh) / HEIGHT);
+                    const auto scale{ std::min(double(rw) / WIDTH, double(rh) / HEIGHT) };
                     SDL_Rect destination{ (rw - int(WIDTH * scale)) / 2,
                                           (rh - int(HEIGHT * scale)) / 2,
                                           int(WIDTH * scale),
@@ -252,7 +254,7 @@ namespace hal::linux::display
             SDL_Delay(1);
         }
         {
-            Lock lock;
+            Lock lock{};
             enabled = false;
         }
         SDL_DestroyTexture(texture);

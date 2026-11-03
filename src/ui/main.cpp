@@ -8,7 +8,7 @@ int main()
 {
     // Each firmware constructs only its own application, inside its own runtime.
     icc::InterCoreTransport transport{ hal::core::create_intercore_channel() };
-    auto application = std::make_unique<ui::Application>(transport);
+    auto application{ std::make_unique<ui::Application>(transport) };
     application->start();
     application->join();
     return 0;

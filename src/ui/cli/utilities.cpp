@@ -60,10 +60,10 @@ namespace ui::cli::utilities
                     return line.find(pattern) != std::string_view::npos;
                 }
 
-                const auto same_character = [](char left, char right) {
+                const auto same_character{ [](char left, char right) {
                     return std::tolower(static_cast<unsigned char>(left)) ==
                            std::tolower(static_cast<unsigned char>(right));
-                };
+                } };
                 return std::ranges::search(line, pattern, same_character).begin() != line.end();
             }
 
@@ -358,7 +358,7 @@ namespace ui::cli::utilities
             {
                 bool selected_any{};
                 std::size_t line_number{};
-                std::string line;
+                std::string line{};
 
                 errno = 0;
                 while (std::getline(input, line)) {
@@ -459,7 +459,7 @@ namespace ui::cli::utilities
                 }
                 const fs::path path{ std::move(*resolved) };
 
-                std::error_code error;
+                std::error_code error{};
                 const fs::file_status status{ fs::status(path, error) };
                 if (error) {
                     return callback_failure("cannot access '" + path_text(path) + "': " + error.message());
@@ -622,7 +622,7 @@ namespace ui::cli::utilities
 
             std::size_t metric_row{};
             std::size_t bar_row{};
-            const auto write_value = [&](std::string_view metric, const auto& value) {
+            const auto write_value{ [&](std::string_view metric, const auto& value) {
                 if (metric_row != 0U) {
                     write_heap_row_separator(io.output, value_width, usage_percent, bar_row);
                     ++bar_row;
@@ -630,7 +630,7 @@ namespace ui::cli::utilities
                 write_heap_row(io.output, metric, value, value_width, usage_percent, bar_row);
                 ++metric_row;
                 ++bar_row;
-            };
+            } };
 
             write_value(HEAP_ALLOCATOR, allocator);
             if (heap_info.capacity) {

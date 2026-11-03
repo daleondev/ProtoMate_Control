@@ -168,17 +168,17 @@ namespace icc
                     using Metadata = pnm::msg::ServiceMetadata<member>;
                     using Request = typename Metadata::Request;
                     using Response = typename Metadata::Response;
-                    static constexpr auto lanes =
-                      std::define_static_array(util::annotations_of_type<Lane>(member));
+                    static constexpr auto lanes{ std::define_static_array(
+                      util::annotations_of_type<Lane>(member)) };
                     static_assert(lanes.size() <= 1, "A service may select only one transport lane");
-                    constexpr auto lane = [] {
+                    constexpr auto lane{ [] {
                         if constexpr (lanes.empty()) {
                             return Lane::Normal;
                         }
                         else {
                             return std::meta::extract<Lane>(lanes[0]);
                         }
-                    }();
+                    }() };
                     static_assert(lane == Lane::Normal || lane == Lane::Urgent, "Unknown service lane");
                     if (provider == local_provider) {
                         registerIncoming<Request, Response>(Metadata::name, lane);
@@ -197,7 +197,7 @@ namespace icc
     void ServiceBridge::registerOutgoing(std::string_view service, Lane lane)
     {
         checkRegistration(service);
-        auto proxy = m_bus.service<Request, Response>(service).serveDeferred(
+        auto proxy{ m_bus.service<Request, Response>(service).serveDeferred(
           [this, name = std::string(service), lane](const Request& value, pnm::msg::Reply<Response> reply) {
             if (m_stop.stop_requested()) {
                 reply.fail(m_serviceShutdownError);
@@ -213,13 +213,13 @@ namespace icc
                 reply.fail(ServiceError::TransportError);
                 return;
             }
-            auto owned = std::make_shared<pnm::msg::Reply<Response>>(std::move(reply));
+            auto owned{ std::make_shared<pnm::msg::Reply<Response>>(std::move(reply)) };
             try {
-                const auto id = ++m_lastCallId;
-                auto frame = util::encode_frame(FrameKind::Request, name, id, value);
-                auto timer = wakeAfter(owned->remainingTime());
-                auto readiness =
-                  pnm::msg::watch(*owned, [signal = m_outgoingWakeup] { signal->notifyControl(); });
+                const auto id{ ++m_lastCallId };
+                auto frame{ util::encode_frame(FrameKind::Request, name, id, value) };
+                auto timer{ wakeAfter(owned->remainingTime()) };
+                auto readiness{ pnm::msg::watch(*owned,
+                                                [signal = m_outgoingWakeup] { signal->notifyControl(); }) };
                 m_outgoingCalls.push_back({
                   .id = id,
                   .lane = lane,
@@ -249,8 +249,8 @@ namespace icc
                 // Oversized/unserializable requests never go to the peer.
                 owned->fail(ServiceError::TransportError);
             }
-        }, { .max_pending = MAX_CALLS });
-        auto readiness = pnm::msg::watch(proxy, [signal = m_outgoingWakeup] { signal->notifyControl(); });
+        }, { .max_pending = MAX_CALLS }) };
+        auto readiness{ pnm::msg::watch(proxy, [signal = m_outgoingWakeup] { signal->notifyControl(); }) };
         m_outgoingServices.push_back({
           .name = std::string(service),
           .poll = [proxy = std::move(proxy)]() mutable { proxy.poll(); },
@@ -264,18 +264,19 @@ namespace icc
     void ServiceBridge::registerIncoming(std::string_view service, Lane lane)
     {
         checkRegistration(service);
-        auto request =
-          [this, local = m_bus.service<Request, Response>(service), lane](
-            std::uint64_t id, std::span<const std::byte> bytes, std::chrono::milliseconds timeout) {
+        auto request{
+            [this, local = m_bus.service<Request, Response>(service), lane](
+              std::uint64_t id, std::span<const std::byte> bytes, std::chrono::milliseconds timeout) {
             Request value{};
             if (!pnm::utils::memory::deserialize(bytes, value)) {
                 throw std::invalid_argument("Invalid service request");
             }
             // request() enqueues for the application's provider; it never executes
             // its handler here. Only inspect get() after ready() confirms completion.
-            auto call = std::make_shared<pnm::msg::PendingCall<Response>>(local.request(value, timeout));
-            auto readiness = pnm::msg::watch(*call, [signal = m_outgoingWakeup] { signal->notifyControl(); });
-            auto timer = wakeAfter(timeout);
+            auto call{ std::make_shared<pnm::msg::PendingCall<Response>>(local.request(value, timeout)) };
+            auto readiness{ pnm::msg::watch(*call,
+                                            [signal = m_outgoingWakeup] { signal->notifyControl(); }) };
+            auto timer{ wakeAfter(timeout) };
             return IncomingCall{
                 .id = id,
                 .lane = lane,
@@ -283,7 +284,7 @@ namespace icc
                 if (!call->ready()) {
                     return std::nullopt;
                 }
-                auto result = call->get();
+                auto result{ call->get() };
                 if (!result) {
                     return makeServiceError(id, result.error());
                 }
@@ -297,6 +298,7 @@ namespace icc
                 .readiness = std::move(readiness),
                 .timer = std::move(timer),
             };
+        }
         };
         m_incomingServices.push_back(
           { .name = std::string(service), .lane = lane, .request = std::move(request) });

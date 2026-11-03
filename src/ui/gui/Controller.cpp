@@ -26,15 +26,15 @@ namespace ui::gui
             Controller& owner;
             bool cancelled{};
             explicit Touch(Controller& controller)
-              : owner(controller)
+              : owner{ controller }
             {
             }
             void init() override {}
             bool sampleTouch(std::int32_t& x, std::int32_t& y) override
             {
-                const auto current = owner.status();
-                const bool invalid = current.touchCancelled || !current.touchAvailable ||
-                                     std::chrono::steady_clock::now() - current.touchTime >= 100ms;
+                const auto current{ owner.status() };
+                const bool invalid{ current.touchCancelled || !current.touchAvailable ||
+                                    std::chrono::steady_clock::now() - current.touchTime >= 100ms };
                 if (invalid && !cancelled) {
                     touchgfx::Application::getInstance()->handleClickEvent(
                       touchgfx::ClickEvent(touchgfx::ClickEvent::CANCEL, 0, 0));
@@ -56,9 +56,9 @@ namespace ui::gui
                  touchgfx::LCD& lcd,
                  Touch& touch,
                  std::stop_token token)
-              : HAL(dma, lcd, touch, 1024, 600)
-              , owner(controller)
-              , stop(token)
+              : HAL{ dma, lcd, touch, 1024, 600 }
+              , owner{ controller }
+              , stop{ token }
             {
             }
             std::uint16_t* getTFTFrameBuffer() const override
@@ -67,7 +67,7 @@ namespace ui::gui
             }
             void setTFTFrameBuffer(std::uint16_t* address) override
             {
-                const unsigned slot = address == owner.m_display->framebuffer(0).data() ? 0 : 1;
+                const unsigned slot{ address == owner.m_display->framebuffer(0).data() ? 0U : 1U };
                 if (stop.stop_requested() || !owner.m_display->requestPresent(slot) ||
                     !owner.waitPresentation(slot, stop)) {
                     owner.m_renderFailed = true;
@@ -82,7 +82,7 @@ namespace ui::gui
             void flushFrameBuffer(const touchgfx::Rect& region) override
             {
                 HAL::flushFrameBuffer(region);
-                auto clipped = region;
+                auto clipped{ region };
                 clipped.restrictTo(1024, 600);
                 if (clipped.isEmpty()) {
                     return;
@@ -103,24 +103,24 @@ namespace ui::gui
             void endFrame() override
             {
                 HAL::endFrame();
-                auto micros = timer.elapsed().count();
-                const auto drawUs = micros;
+                auto micros{ timer.elapsed().count() };
+                const auto drawUs{ micros };
                 std::uint32_t synchronizeUs{};
-                auto& graphics = static_cast<GraphicsDMA&>(dma);
+                auto& graphics{ static_cast<GraphicsDMA&>(dma) };
                 if (graphics.failed()) {
                     owner.m_renderFailed = true;
                 }
-                const auto previous = owner.m_display->state().active;
+                const auto previous{ owner.m_display->state().active };
                 if (!owner.m_renderFailed) {
                     swapFrameBuffers();
                 }
-                const auto active = owner.m_display->state().active;
+                const auto active{ owner.m_display->state().active };
                 if (!owner.m_renderFailed && active != previous) {
                     owner.m_scene.presented();
                     // Reload has completed: the former scanout buffer is now
                     // exclusively ours. Keep only changed regions synchronized.
                     timer.start();
-                    for (unsigned i = 0; i < dirtyCount && !owner.m_renderFailed; ++i) {
+                    for (unsigned i{ 0 }; i < dirtyCount && !owner.m_renderFailed; ++i) {
                         owner.m_renderFailed = !graphics.copyRegion(owner.m_display->framebuffer(active),
                                                                     owner.m_display->framebuffer(previous),
                                                                     dirty[i]);
@@ -129,7 +129,7 @@ namespace ui::gui
                     micros += synchronizeUs;
                     dirtyCount = 0;
                 }
-                std::scoped_lock lock(owner.m_mutex);
+                std::scoped_lock lock{ owner.m_mutex };
                 ++owner.m_status.frames;
                 owner.m_status.drawUs = drawUs;
                 owner.m_status.synchronizeUs = synchronizeUs;
@@ -165,10 +165,10 @@ namespace ui::gui
         } assets;
         Frontend frontend;
         Engine(Controller& owner, std::stop_token stop)
-          : dma(hal::core::create_graphics(), stop)
-          , touch(owner)
-          , port(owner, dma, lcd, touch, stop)
-          , frontend(owner.m_scene)
+          : dma{ hal::core::create_graphics(), stop }
+          , touch{ owner }
+          , port{ owner, dma, lcd, touch, stop }
+          , frontend{ owner.m_scene }
         {
             touchgfx_paint_link();
             os::prepare(stop);
@@ -179,16 +179,16 @@ namespace ui::gui
             port.setFrameBufferStartAddresses(
               owner.m_display->framebuffer(0).data(), owner.m_display->framebuffer(1).data(), nullptr);
             port.registerEventListener(frontend);
-            const bool verified = dma.verify(owner.m_display->framebuffer(1));
+            const bool verified{ dma.verify(owner.m_display->framebuffer(1)) };
             {
-                std::scoped_lock lock(owner.m_mutex);
+                std::scoped_lock lock{ owner.m_mutex };
                 owner.m_status.graphicsVerified = verified;
             }
             if (!verified) {
                 throw std::runtime_error("graphics pixel self-test failed");
             }
             frontend.setCommands([](void* pointer) {
-                auto& controller = *static_cast<Controller*>(pointer);
+                auto& controller{ *static_cast<Controller*>(pointer) };
                 controller.commands(*controller.m_engine);
             }, &owner);
             frontend.changeToStartScreen();
@@ -199,12 +199,12 @@ namespace ui::gui
     Controller::~Controller() = default;
     Status Controller::status() const
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         return m_status;
     }
     bool Controller::enqueue(Request request)
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         if (m_status.state == State::Stopped || m_status.state == State::Fault ||
             m_status.state == State::Unavailable) {
             return false;
@@ -230,10 +230,10 @@ namespace ui::gui
     }
     void Controller::commands(Engine& engine)
     {
-        for (unsigned i = 0; i < m_requests.size(); ++i) {
+        for (unsigned i{ 0 }; i < m_requests.size(); ++i) {
             Request request{};
             {
-                std::scoped_lock lock(m_mutex);
+                std::scoped_lock lock{ m_mutex };
                 if (!m_count) {
                     break;
                 }
@@ -257,10 +257,10 @@ namespace ui::gui
     }
     bool Controller::waitPresentation(unsigned slot, std::stop_token stop)
     {
-        const auto deadline = std::chrono::steady_clock::now() + 100ms;
+        const auto deadline{ std::chrono::steady_clock::now() + 100ms };
         for (;;) {
             m_display->service();
-            const auto state = m_display->state();
+            const auto state{ m_display->state() };
             if (!state.pending) {
                 return state.active == slot && !state.errors;
             }
@@ -273,11 +273,11 @@ namespace ui::gui
     }
     bool Controller::run(std::stop_token stop)
     {
-        const std::stop_callback cancellation(stop, [this] { m_notification.signal(); });
+        const std::stop_callback cancellation{ stop, [this] { m_notification.signal(); } };
         m_display = hal::core::create_display();
         if (!m_display || !m_display->initialize()) {
             {
-                std::scoped_lock lock(m_mutex);
+                std::scoped_lock lock{ m_mutex };
                 m_status.state = State::Unavailable;
             }
             pnm::log::warn("GUI display unavailable; CLI and ICC remain active");
@@ -290,15 +290,15 @@ namespace ui::gui
         try {
             m_engine = std::make_unique<Engine>(*this, stop);
             {
-                std::scoped_lock lock(m_mutex);
+                std::scoped_lock lock{ m_mutex };
                 m_status.state = State::Running;
             }
             bool illuminated{};
-            std::uint32_t lastSync = m_display->state().vsyncs;
-            auto lastFrame = std::chrono::steady_clock::now();
+            std::uint32_t lastSync{ m_display->state().vsyncs };
+            auto lastFrame{ std::chrono::steady_clock::now() };
             while (!stop.stop_requested() && !m_renderFailed) {
                 m_display->service();
-                auto state = m_display->state();
+                auto state{ m_display->state() };
                 if (state.closed) {
                     closed = true;
                     break;
@@ -316,7 +316,7 @@ namespace ui::gui
                         static_cast<void>(m_display->backlight(10));
                         illuminated = true;
                     }
-                    std::scoped_lock lock(m_mutex);
+                    std::scoped_lock lock{ m_mutex };
                     m_status.presented = state.presentations;
                     m_status.activeBuffer = state.active;
                     m_status.underruns = state.underruns;
@@ -342,8 +342,8 @@ namespace ui::gui
             m_renderFailed = true;
         }
         {
-            std::scoped_lock lock(m_mutex);
-            const auto finalState = m_display->state();
+            std::scoped_lock lock{ m_mutex };
+            const auto finalState{ m_display->state() };
             m_status.underruns = finalState.underruns;
             m_status.errors = finalState.errors;
             if (m_engine) {
@@ -360,15 +360,15 @@ namespace ui::gui
         os::finish();
         m_display.reset();
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_status.state = m_renderFailed && !stop.stop_requested() ? State::Fault : State::Stopped;
         }
         return closed;
     }
     void Controller::acquireTouch(std::stop_token stop)
     {
-        const std::stop_callback cancellation(stop, [this] { m_touchNotification.signal(); });
-        auto touch = hal::core::create_touch();
+        const std::stop_callback cancellation{ stop, [this] { m_touchNotification.signal(); } };
+        auto touch{ hal::core::create_touch() };
         if (!touch) {
             return;
         }
@@ -376,21 +376,21 @@ namespace ui::gui
             static_cast<Controller*>(pointer)->m_touchNotification.signal();
         }, this);
         bool ready{};
-        std::optional<unsigned> primary;
+        std::optional<unsigned> primary{};
         while (!stop.stop_requested()) {
             if (!ready) {
                 ready = bool(touch->initialize());
             }
-            auto report = ready ? touch->read()
-                                : hal::util::Result<hal::device::TouchReport>{ std::unexpected(
-                                    std::make_error_code(std::errc::no_such_device)) };
-            hal::device::TouchPoint point;
+            auto report{ ready ? touch->read()
+                               : hal::util::Result<hal::device::TouchReport>{
+                                   std::unexpected(std::make_error_code(std::errc::no_such_device)) } };
+            hal::device::TouchPoint point{};
             if (report) {
                 if (primary && !report->points[*primary].active) {
                     primary.reset();
                 }
                 else if (!primary) {
-                    for (unsigned i = 0; i < report->points.size(); ++i) {
+                    for (unsigned i{ 0 }; i < report->points.size(); ++i) {
                         if (report->points[i].active) {
                             primary = i;
                             break;
@@ -411,7 +411,7 @@ namespace ui::gui
                 primary.reset();
             }
             {
-                std::scoped_lock lock(m_mutex);
+                std::scoped_lock lock{ m_mutex };
                 m_status.touchAvailable = bool(report);
                 m_status.touchDown = point.active;
                 m_status.touchCancelled = !report || report->cancelled;
@@ -427,7 +427,7 @@ namespace ui::gui
         }
         touch->setCallback(nullptr, nullptr);
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_status.touchAvailable = false;
             m_status.touchDown = false;
         }

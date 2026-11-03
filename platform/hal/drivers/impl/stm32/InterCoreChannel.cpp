@@ -11,7 +11,7 @@ namespace
     // Both linkers reserve the same NOLOAD section. Neither startup clears it.
     // Only M7 initializes it, while M4 is still stopped. Whole-board reset is
     // required to reopen a closed endpoint; a live peer's queues are never reset.
-    __attribute__((section(".intercore"), aligned(32))) hal::util::InterCoreMemory memory;
+    __attribute__((section(".intercore"), aligned(32))) hal::util::InterCoreMemory memory{};
 #if defined(CORE_CM4)
     constexpr std::size_t SIDE{ 0 };
     constexpr auto INTERRUPT{ HSEM2_IRQn };
@@ -39,7 +39,7 @@ namespace hal
 
     InterCoreChannel::InterCoreChannel()
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         if (s_instance ||
             std::atomic_ref(memory.magic).load(std::memory_order_acquire) != util::InterCoreMemory::MAGIC ||
             std::atomic_ref(memory.version).load(std::memory_order_relaxed) !=
@@ -60,7 +60,7 @@ namespace hal
     {
         setNotification({});
         close();
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         HAL_HSEM_DeactivateNotification(LOCAL_MASK);
         HAL_NVIC_DisableIRQ(INTERRUPT);
         HAL_NVIC_ClearPendingIRQ(INTERRUPT);
@@ -77,7 +77,7 @@ namespace hal
     {
         // Only this processor ever takes the peer's doorbell. Serialize local
         // senders and receivers so fast take/release cannot overlap on this core.
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         __DMB();
         if (HAL_HSEM_FastTake(PEER_SEMAPHORE) != HAL_OK) {
             hal::panic("HSEM doorbell unexpectedly owned");
@@ -91,7 +91,7 @@ namespace hal
         if (disconnected()) {
             return std::unexpected(Error::Disconnected);
         }
-        auto result = memory.push(1 - SIDE, frame, lane);
+        auto result{ memory.push(1 - SIDE, frame, lane) };
         if (result) {
             notifyPeer();
         }
@@ -105,10 +105,10 @@ namespace hal
         if (disconnected()) {
             return std::unexpected(Error::Disconnected);
         }
-        auto result = memory.pop(SIDE, buffer, lane);
+        auto result{ memory.pop(SIDE, buffer, lane) };
         if (result) {
             notifyPeer();
-            const stm32::InterruptGuard guard;
+            const stm32::InterruptGuard guard{};
             if (m_notification) {
                 m_notification();
             }
@@ -118,7 +118,7 @@ namespace hal
 
     void InterCoreChannel::setNotification(Notification callback) noexcept
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         m_notification = std::move(callback);
         if (m_notification) {
             m_notification();
@@ -129,7 +129,7 @@ namespace hal
 
     void InterCoreChannel::close() noexcept
     {
-        const stm32::InterruptGuard guard;
+        const stm32::InterruptGuard guard{};
         std::atomic_ref(memory.state[SIDE]).store(2, std::memory_order_release);
         notifyPeer();
         if (m_notification) {

@@ -20,7 +20,7 @@ namespace io::motion
 
         std::future<StepperMotor::Result> rejectedMotion(const std::function<void()>& notify)
         {
-            std::promise<StepperMotor::Result> completion;
+            std::promise<StepperMotor::Result> completion{};
             completion.set_value(StepperMotor::Result::Rejected);
             if (notify) {
                 notify();
@@ -134,13 +134,13 @@ namespace io::motion
     {
         namespace tr = ::motion::trajectory;
         std::scoped_lock lock{ m_mutex };
-        tr::Reply result;
+        tr::Reply result{};
         result.enabled = enabled();
-        const auto generator = m_generator->status();
+        const auto generator{ m_generator->status() };
         result.counts_exact = generator.counts_exact;
         result.state = result.enabled ? tr::State::Unreferenced : tr::State::Disabled;
-        for (unsigned i = 0; i < 3; ++i) {
-            const auto step = m_configuration[i].full_step_angle.get() / m_configuration[i].microsteps;
+        for (unsigned i{ 0 }; i < 3; ++i) {
+            const auto step{ m_configuration[i].full_step_angle.get() / m_configuration[i].microsteps };
             result.capabilities.step_radians[i] = step;
             result.capabilities.reference_steps[i] = m_configuration[i].reference_position.get() / step;
             // Numerical admission ceilings, not a claim about mechanical limits.
@@ -148,7 +148,7 @@ namespace io::motion
             result.capabilities.limits[i] = {
                 -tr::MAX_POSITION, tr::MAX_POSITION, limits::MAX_PLANNED_RATE, 1e8, 1e8, 1e10
             };
-            const auto count = tr::quantize(m_motors[i]->setpointPosition().get() / step);
+            const auto count{ tr::quantize(m_motors[i]->setpointPosition().get() / step) };
             if (count) {
                 result.position[i] = *count;
             }
@@ -226,7 +226,7 @@ namespace io::motion
         {
 #ifdef HAL_PLATFORM_STM32
             // Do not overwrite an alarm ISR's disable write with our enable.
-            const hal::stm32::InterruptGuard guard;
+            const hal::stm32::InterruptGuard guard{};
 #endif
             permitted = !m_faulted.load() && driversReady();
             if (permitted) {

@@ -20,26 +20,26 @@ namespace hal::timer
         switch (configuration.peripheral) {
             case Peripheral::Tim5: {
                 static TIM_HandleTypeDef handle{};
-                static auto instance = [] {
+                static auto instance{ [] {
                     handle.Instance = TIM5;
                     handle.State = HAL_TIM_STATE_READY;
                     return std::make_shared<Timer>(
                       Timer::Configuration{ .handle = handle,
                                             .input_frequency_hz = stm32::apb1_timer_input_frequency_hz(),
                                             .interrupt = TIM5_IRQn });
-                }();
+                }() };
                 return instance;
             }
             case Peripheral::Tim12: {
                 static TIM_HandleTypeDef handle{};
-                static auto instance = [] {
+                static auto instance{ [] {
                     handle.Instance = TIM12;
                     handle.State = HAL_TIM_STATE_READY;
                     return std::make_shared<Timer>(
                       Timer::Configuration{ .handle = handle,
                                             .input_frequency_hz = stm32::apb1_timer_input_frequency_hz(),
                                             .interrupt = TIM8_BRK_TIM12_IRQn });
-                }();
+                }() };
                 return instance;
             }
             default:

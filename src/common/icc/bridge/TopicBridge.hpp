@@ -123,28 +123,28 @@ namespace icc
                     static constexpr auto lanes{ std::define_static_array(
                       util::annotations_of_type<Lane>(member)) };
                     static_assert(lanes.size() <= 1, "A topic may select only one transport lane");
-                    constexpr auto lane = [] {
+                    constexpr auto lane{ [] {
                         if constexpr (lanes.empty()) {
                             return Lane::Normal;
                         }
                         else {
                             return std::meta::extract<Lane>(lanes[0]);
                         }
-                    }();
+                    }() };
                     static_assert(lane == Lane::Normal || lane == Lane::Background,
                                   "Topics use Normal or Background; urgent capacity is reserved for control");
                     static constexpr auto configurations{ std::define_static_array(
                       util::annotations_of_type<pnm::msg::SubscriptionOptions>(member)) };
                     static_assert(configurations.size() <= 1,
                                   "A topic may select only one queue configuration");
-                    constexpr auto options = [] {
+                    constexpr auto options{ [] {
                         if constexpr (configurations.empty()) {
                             return pnm::msg::SubscriptionOptions::latestOnly();
                         }
                         else {
                             return std::meta::extract<pnm::msg::SubscriptionOptions>(configurations[0]);
                         }
-                    }();
+                    }() };
                     static_assert(options.capacity >= 1 && options.capacity <= 64,
                                   "Bridge topic queues must hold 1 to 64 records");
                     static_assert(options.overflow == pnm::msg::OverflowPolicy::DropOldest ||
@@ -167,17 +167,17 @@ namespace icc
                                        Lane lane,
                                        pnm::msg::SubscriptionOptions options)
     {
-        const std::scoped_lock lock(m_mutex);
+        const std::scoped_lock lock{ m_mutex };
         checkRegistration(topic);
 
         // The typed callback runs only when takeFrame() polls it on the
         // context thread. Its result is moved straight into the send coroutine.
-        auto pending = std::make_shared<std::optional<OutgoingFrame>>();
-        auto oversized = std::make_shared<std::atomic<std::uint64_t>>(0);
-        auto subscription = std::make_shared<pnm::msg::Subscription<T>>(m_bus.topic<T>(topic).subscribe(
+        auto pending{ std::make_shared<std::optional<OutgoingFrame>>() };
+        auto oversized{ std::make_shared<std::atomic<std::uint64_t>>(0) };
+        auto subscription{ std::make_shared<pnm::msg::Subscription<T>>(m_bus.topic<T>(topic).subscribe(
           [pending, oversized, lane, name = std::string(topic)](const T& value) {
             try {
-                auto frame = util::encode_frame(FrameKind::Topic, name, 0, value);
+                auto frame{ util::encode_frame(FrameKind::Topic, name, 0, value) };
                 if (lane == Lane::Background && frame.size > MAX_BACKGROUND_FRAME_BYTES) {
                     oversized->fetch_add(1, std::memory_order_relaxed);
                     return;
@@ -189,25 +189,25 @@ namespace icc
                 }
                 oversized->fetch_add(1, std::memory_order_relaxed);
             }
-        }, options));
+        }, options)) };
 
-        auto readiness = pnm::msg::watch(
-          *subscription, [signal = m_outgoingWakeup, lane] { signal->signal(lane).notify(); });
-        auto take = [subscription, pending, signal = m_outgoingWakeup, lane]() mutable {
+        auto readiness{ pnm::msg::watch(
+          *subscription, [signal = m_outgoingWakeup, lane] { signal->signal(lane).notify(); }) };
+        auto take{ [subscription, pending, signal = m_outgoingWakeup, lane]() mutable {
             // One record per turn: preserve FIFO without monopolizing the context.
             subscription->pollSome(1);
             if (subscription->statistics().queued != 0) {
                 signal->signal(lane).notify();
             }
             return std::exchange(*pending, std::nullopt);
-        };
+        } };
         m_outgoingTopics.push_back({
           .name = std::string(topic),
           .lane = lane,
           .take = std::move(take),
           .statistics =
             [subscription, oversized] {
-            auto result = subscription->statistics();
+            auto result{ subscription->statistics() };
             result.dropped += oversized->load(std::memory_order_relaxed);
             return result;
         },
@@ -219,16 +219,16 @@ namespace icc
         requires std::default_initializable<T>
     void TopicBridge::registerIncoming(std::string_view topic, Lane lane)
     {
-        const std::scoped_lock lock(m_mutex);
+        const std::scoped_lock lock{ m_mutex };
         checkRegistration(topic);
 
-        auto publish = [local_topic = m_bus.topic<T>(topic)](std::span<const std::byte> payload) {
+        auto publish{ [local_topic = m_bus.topic<T>(topic)](std::span<const std::byte> payload) {
             T value{};
             if (!pnm::utils::memory::deserialize(payload, value)) {
                 throw std::invalid_argument("Invalid incoming topic payload");
             }
             local_topic.publish(value);
-        };
+        } };
         m_incomingTopics.push_back({
           .name = std::string(topic),
           .lane = lane,

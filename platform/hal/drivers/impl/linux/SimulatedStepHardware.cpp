@@ -54,7 +54,7 @@ namespace hal::util
 
     auto SimulatedStepHardware::sample() noexcept -> StepSample
     {
-        for (std::size_t i = 0; i < registers.channels.size(); ++i) {
+        for (std::size_t i{ 0 }; i < registers.channels.size(); ++i) {
             registers.channels[i].tick = registers.tick;
             registers.channels[i].high = high[i];
         }
@@ -91,7 +91,7 @@ namespace hal::util
         completion_watch = false;
         const auto result{ SimulatedStepHardware::sample() };
         active = {};
-        for (std::size_t i = 0; i < high.size(); ++i) {
+        for (std::size_t i{ 0 }; i < high.size(); ++i) {
             if (high[i] && trace_edges) {
                 edges.push_back({ elapsed, i, false });
             }
@@ -143,7 +143,7 @@ namespace hal::util
             next_poll += COMPLETION_POLL_TICKS;
             irq = true;
         }
-        for (std::size_t i = 0; i < 3U; ++i) {
+        for (std::size_t i{ 0 }; i < 3U; ++i) {
             if (matches[i] != next) {
                 continue;
             }
@@ -161,14 +161,14 @@ namespace hal::util
     auto SimulatedStepHardware::advance(std::uint64_t ticks) noexcept -> void
     {
         while (ticks != 0U && registers.running) {
-            auto distance = [this](std::uint32_t target) -> std::uint64_t {
+            auto distance{ [this](std::uint32_t target) -> std::uint64_t {
                 const auto value{ step_distance(registers.tick, target) };
                 return value == 0U ? STEP_PARK : value;
-            };
+            } };
             auto next{ deadline == STEP_PARK ? std::uint64_t{ STEP_PARK } - registers.tick
                                              : distance(deadline) };
             std::array<std::uint64_t, 3> matches{};
-            for (std::size_t i = 0; i < 3U; ++i) {
+            for (std::size_t i{ 0 }; i < 3U; ++i) {
                 matches[i] = registers.channels[i].compare == STEP_PARK
                                ? std::uint64_t{ STEP_PARK } - registers.tick
                                : distance(registers.channels[i].compare);

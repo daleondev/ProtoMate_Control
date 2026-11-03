@@ -73,7 +73,7 @@ namespace icc::util
         if constexpr (pnm::utils::memory::HasSerializationAdapter<T>) {
             size = pnm::utils::memory::SerializationAdapter<T>::bufferSize(value);
         }
-        auto frame = make_frame(kind, name, id, size);
+        auto frame{ make_frame(kind, name, id, size) };
         if (!pnm::utils::memory::serialize(value, std::span(frame.bytes).subspan(frame.size - size, size))) {
             throw std::length_error("Cannot serialize bridge payload");
         }

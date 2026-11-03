@@ -20,7 +20,7 @@ namespace hal
     auto RgbOutput::state() const noexcept -> display::State { return linux::display::snapshot(); }
     void RgbOutput::setCallback(display::Callback callback) noexcept
     {
-        std::scoped_lock lock(m_callbackMutex);
+        std::scoped_lock lock{ m_callbackMutex };
         m_callback = callback;
     }
     void RgbOutput::shutdown() noexcept
@@ -40,13 +40,13 @@ namespace hal
     }
     auto RgbOutput::present(unsigned slot) -> util::Result<>
     {
-        const auto result = requestPresent(slot);
+        const auto result{ requestPresent(slot) };
         if (!result) {
             return result;
         }
-        for (unsigned i = 0; i < 100; ++i) {
+        for (unsigned i{ 0 }; i < 100; ++i) {
             service();
-            const auto current = state();
+            const auto current{ state() };
             if (!current.pending) {
                 return current.active == slot ? util::Result<>{}
                                               : std::unexpected(std::make_error_code(std::errc::io_error));
@@ -57,8 +57,8 @@ namespace hal
     }
     void RgbOutput::service() noexcept
     {
-        const auto current = state();
-        std::scoped_lock lock(m_callbackMutex);
+        const auto current{ state() };
+        std::scoped_lock lock{ m_callbackMutex };
         if (current.presentations != m_observed.presentations) {
             m_callback(display::Event::Presented);
         }
@@ -75,7 +75,7 @@ namespace hal
     }
     auto RgbOutput::fill(unsigned slot, std::uint16_t color) -> util::Result<>
     {
-        const auto current = state();
+        const auto current{ state() };
         if (slot > 1 || slot == current.active || current.pending == slot) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }

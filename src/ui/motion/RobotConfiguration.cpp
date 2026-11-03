@@ -21,7 +21,7 @@ namespace ui::motion
         bool positive(double n) { return std::isfinite(n) && n > 0; }
         bool permutation(const std::array<std::uint8_t, 3>& indices)
         {
-            auto copy = indices;
+            auto copy{ indices };
             std::ranges::sort(copy);
             return copy == std::array<std::uint8_t, 3>{ 0, 1, 2 };
         }
@@ -32,9 +32,9 @@ namespace ui::motion
 
     RobotConfiguration simulationConfiguration(const tr::Capabilities& hardware, bool archived)
     {
-        RobotConfiguration c;
+        RobotConfiguration c{};
         c.expected_hardware = hardware.hardware_fingerprint;
-        for (unsigned i = 0; i < 2; ++i) {
+        for (unsigned i{ 0 }; i < 2; ++i) {
             c.rotary[i] = { .motor_revolutions_per_axis_revolution = 6.0,
                             .motor_reference =
                               Angle::create(hardware.reference_steps[i] * hardware.step_radians[i]),
@@ -94,13 +94,13 @@ namespace ui::motion
         for (double value : coordinates(c.work.origin)) {
             require(std::isfinite(value));
         }
-        auto low = coordinates(c.workspace_minimum), high = coordinates(c.workspace_maximum);
-        for (unsigned i = 0; i < 3; ++i) {
+        auto low{ coordinates(c.workspace_minimum) }, high{ coordinates(c.workspace_maximum) };
+        for (unsigned i{ 0 }; i < 3; ++i) {
             require(std::isfinite(low[i]) && std::isfinite(high[i]) && low[i] < high[i]);
             require(positive(h.step_radians[i]) && std::isfinite(h.reference_steps[i]));
         }
-        for (unsigned j = 0; j < 3; ++j) {
-            const auto m = c.motor_for_joint[j];
+        for (unsigned j{ 0 }; j < 3; ++j) {
+            const auto m{ c.motor_for_joint[j] };
             if (j < 2) {
                 m_offset[j] = m_rotary[j].toMotorPosition(0_rad).get() / h.step_radians[m];
                 m_scale[j] = m_rotary[j].toMotorDisplacement(1_rad).get() / h.step_radians[m];
@@ -110,7 +110,7 @@ namespace ui::motion
                 m_scale[j] = m_linear.toMotorDisplacement(1_m).get() / h.step_radians[m];
             }
             require(std::isfinite(m_offset[j]) && positive(std::abs(m_scale[j])));
-            const auto& home = c.homing[j];
+            const auto& home{ c.homing[j] };
             if (home.configured) {
                 require(positive(home.seek.get()) && positive(home.latch.get()) && home.latch < home.seek &&
                         positive(home.backoff.get()) && positive(home.maximum_travel.get()) &&
@@ -143,9 +143,9 @@ namespace ui::motion
     tr::Positions RobotModel::toMotors(JointPosition p) const
     {
         tr::Positions result{};
-        const auto q = joints(p);
-        for (unsigned j = 0; j < 3; ++j) {
-            const auto m = m_configuration.motor_for_joint[j];
+        const auto q{ joints(p) };
+        for (unsigned j{ 0 }; j < 3; ++j) {
+            const auto m{ m_configuration.motor_for_joint[j] };
             result[m] = m_offset[j] + m_scale[j] * q[j];
             if (!std::isfinite(result[m]) || std::abs(result[m]) > tr::MAX_POSITION) {
                 throw std::out_of_range("robot motor coordinate");
@@ -156,8 +156,8 @@ namespace ui::motion
     JointPosition RobotModel::toJoints(const tr::Positions& p) const
     {
         std::array<double, 3> q{};
-        for (unsigned j = 0; j < 3; ++j) {
-            const double value = p[m_configuration.motor_for_joint[j]];
+        for (unsigned j{ 0 }; j < 3; ++j) {
+            const double value{ p[m_configuration.motor_for_joint[j]] };
             if (!std::isfinite(value) || std::abs(value) > tr::MAX_POSITION) {
                 throw std::out_of_range("robot motor coordinate");
             }
@@ -168,7 +168,7 @@ namespace ui::motion
     tr::MotorStates RobotModel::toMotors(const std::array<::motion::KinematicState, 3>& q) const
     {
         tr::MotorStates result{};
-        for (unsigned j = 0; j < 3; ++j) {
+        for (unsigned j{ 0 }; j < 3; ++j) {
             result[m_configuration.motor_for_joint[j]] = { m_offset[j] + m_scale[j] * q[j].position,
                                                            m_scale[j] * q[j].velocity,
                                                            m_scale[j] * q[j].acceleration };
@@ -177,22 +177,22 @@ namespace ui::motion
     }
     std::array<tr::Limits, 3> RobotModel::jointLimits() const noexcept
     {
-        const auto lo = joints(m_configuration.geometry.limits->minimum),
-                   hi = joints(m_configuration.geometry.limits->maximum);
+        const auto lo{ joints(m_configuration.geometry.limits->minimum) },
+          hi{ joints(m_configuration.geometry.limits->maximum) };
         std::array<tr::Limits, 3> result{};
-        for (unsigned j = 0; j < 2; ++j) {
-            const auto& d = m_configuration.rotary_dynamics[j];
+        for (unsigned j{ 0 }; j < 2; ++j) {
+            const auto& d{ m_configuration.rotary_dynamics[j] };
             result[j] = { lo[j],       hi[j], d.velocity.get(), d.acceleration.get(), d.deceleration.get(),
                           d.jerk.get() };
         }
-        const auto& d = m_configuration.linear_dynamics;
+        const auto& d{ m_configuration.linear_dynamics };
         result[2] = {
             lo[2], hi[2], d.velocity.get(), d.acceleration.get(), d.deceleration.get(), d.jerk.get()
         };
-        for (unsigned j = 0; j < 3; ++j) {
-            auto& l = result[j];
-            const auto& h = m_hardware.limits[m_configuration.motor_for_joint[j]];
-            const double scale = std::abs(m_scale[j]);
+        for (unsigned j{ 0 }; j < 3; ++j) {
+            auto& l{ result[j] };
+            const auto& h{ m_hardware.limits[m_configuration.motor_for_joint[j]] };
+            const double scale{ std::abs(m_scale[j]) };
             l.velocity = std::min(l.velocity, h.velocity / scale);
             l.acceleration = std::min(l.acceleration, h.acceleration / scale);
             l.deceleration = std::min(l.deceleration, h.deceleration / scale);
@@ -202,13 +202,13 @@ namespace ui::motion
     }
     std::array<tr::Limits, 3> RobotModel::motorLimits() const noexcept
     {
-        auto result = m_hardware.limits;
-        const auto joints = jointLimits();
-        for (unsigned j = 0; j < 3; ++j) {
-            auto& m = result[m_configuration.motor_for_joint[j]];
-            const auto& q = joints[j];
-            const double scale = std::abs(m_scale[j]);
-            const double a = m_offset[j] + m_scale[j] * q.minimum, b = m_offset[j] + m_scale[j] * q.maximum;
+        auto result{ m_hardware.limits };
+        const auto joints{ jointLimits() };
+        for (unsigned j{ 0 }; j < 3; ++j) {
+            auto& m{ result[m_configuration.motor_for_joint[j]] };
+            const auto& q{ joints[j] };
+            const double scale{ std::abs(m_scale[j]) };
+            const double a{ m_offset[j] + m_scale[j] * q.minimum }, b{ m_offset[j] + m_scale[j] * q.maximum };
             m.minimum = std::max(m.minimum, std::min(a, b));
             m.maximum = std::min(m.maximum, std::max(a, b));
             m.velocity = q.velocity * scale;
@@ -220,41 +220,41 @@ namespace ui::motion
     }
     CartesianPosition RobotModel::vectorFromWork(CartesianPosition p) const noexcept
     {
-        const double c = std::cos(m_configuration.work.yaw.get()),
-                     s = std::sin(m_configuration.work.yaw.get());
+        const double c{ std::cos(m_configuration.work.yaw.get()) },
+          s{ std::sin(m_configuration.work.yaw.get()) };
         return { Distance::create(c * p.x.get() - s * p.y.get()),
                  Distance::create(s * p.x.get() + c * p.y.get()),
                  p.z };
     }
     CartesianPosition RobotModel::fromWork(CartesianPosition p) const noexcept
     {
-        const auto v = vectorFromWork(p);
-        const auto& o = m_configuration.work.origin;
+        const auto v{ vectorFromWork(p) };
+        const auto& o{ m_configuration.work.origin };
         return { v.x + o.x, v.y + o.y, v.z + o.z };
     }
     double RobotModel::quantizationBound() const noexcept
     {
-        const auto& g = m_configuration.geometry;
-        const double l2 = std::hypot((g.second_arm_length + g.tool_offset.x).get(), g.tool_offset.y.get());
-        const double xy = (g.first_arm_length.get() + l2) / std::abs(m_scale[0]) + l2 / std::abs(m_scale[1]);
+        const auto& g{ m_configuration.geometry };
+        const double l2{ std::hypot((g.second_arm_length + g.tool_offset.x).get(), g.tool_offset.y.get()) };
+        const double xy{ (g.first_arm_length.get() + l2) / std::abs(m_scale[0]) + l2 / std::abs(m_scale[1]) };
         return std::hypot(xy, 1 / std::abs(m_scale[2]));
     }
     std::uint64_t RobotModel::fingerprint() const noexcept
     {
-        std::uint64_t hash = m_configuration.expected_hardware;
-        const auto add = [&](double n) {
-            auto bits = std::bit_cast<std::uint64_t>(n);
-            for (unsigned b = 0; b < 8; ++b) {
+        std::uint64_t hash{ m_configuration.expected_hardware };
+        const auto add{ [&](double n) {
+            auto bits{ std::bit_cast<std::uint64_t>(n) };
+            for (unsigned b{ 0 }; b < 8; ++b) {
                 hash ^= (bits >> (8 * b)) & 255U;
                 hash *= 1099511628211ULL;
             }
-        };
-        for (unsigned j = 0; j < 3; ++j) {
+        } };
+        for (unsigned j{ 0 }; j < 3; ++j) {
             add(m_configuration.motor_for_joint[j]);
             add(m_scale[j]);
             add(m_offset[j]);
         }
-        const auto& g = m_configuration.geometry;
+        const auto& g{ m_configuration.geometry };
         for (double n : { g.first_arm_length.get(),
                           g.second_arm_length.get(),
                           g.base_yaw.get(),
@@ -280,9 +280,9 @@ namespace ui::motion
         for (double v : joints(m_configuration.joint_blend_tolerance)) {
             add(v);
         }
-        for (unsigned j = 0; j < 3; ++j) {
+        for (unsigned j{ 0 }; j < 3; ++j) {
             add(m_configuration.homing_order[j]);
-            const auto& home = m_configuration.homing[j];
+            const auto& home{ m_configuration.homing[j] };
             add(home.configured);
             add(home.positive);
             add(home.seek.get());

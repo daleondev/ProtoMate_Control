@@ -11,7 +11,7 @@ namespace hal::graphics
         if (peripheral != Peripheral::Dma2d) {
             return {};
         }
-        static util::ExclusiveInstances<1> instances;
+        static util::ExclusiveInstances<1> instances{};
         return instances.create<Graphics>(0, *DMA2D);
 #else
         static_cast<void>(peripheral);

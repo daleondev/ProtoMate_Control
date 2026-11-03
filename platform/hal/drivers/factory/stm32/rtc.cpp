@@ -8,10 +8,10 @@ namespace hal::rtc
         // Hardware is initialized exactly once by M7 before releasing M4.
         // Handles and thread synchronization remain private to each processor.
         static RTC_HandleTypeDef handle{};
-        static auto instance = [] {
+        static auto instance{ [] {
             handle.Instance = RTC;
             return std::make_shared<Rtc>(Rtc::Configuration{ handle });
-        }();
+        }() };
         return instance;
     }
 }

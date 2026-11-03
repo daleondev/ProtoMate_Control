@@ -13,7 +13,7 @@ namespace
         runtime::Notification vsync;
         std::stop_token stop;
         explicit Synchronization(std::stop_token token)
-          : stop(token)
+          : stop{ token }
         {
             static char name[]{ "TouchGFX framebuffer" };
             if (tx_semaphore_create(&framebuffer, name, 1) != TX_SUCCESS) {
@@ -22,7 +22,7 @@ namespace
         }
         ~Synchronization() { static_cast<void>(tx_semaphore_delete(&framebuffer)); }
     };
-    std::unique_ptr<Synchronization> synchronization;
+    std::unique_ptr<Synchronization> synchronization{};
 }
 namespace ui::gui::os
 {

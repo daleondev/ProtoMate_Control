@@ -91,12 +91,12 @@ namespace hal
                 return std::nullopt;
             }
 
-            const auto read_ether_type = [&](std::size_t offset) {
+            const auto read_ether_type{ [&](std::size_t offset) {
                 return static_cast<EtherType>(
                   static_cast<std::underlying_type_t<EtherType>>(std::to_integer<std::uint8_t>(frame[offset]))
                     << BITS_PER_BYTE |
                   std::to_integer<std::uint8_t>(frame[offset + 1U]));
-            };
+            } };
 
             std::size_t offset{ ETHER_TYPE_OFFSET };
             while (*type == EtherType::VLAN || *type == EtherType::ServiceVlan) {

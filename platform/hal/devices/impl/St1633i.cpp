@@ -24,10 +24,10 @@ namespace hal::device
                      std::uint8_t address,
                      std::shared_ptr<IDigitalOutput> reset,
                      std::shared_ptr<IDigitalInput> interrupt)
-      : m_bus(std::move(bus))
-      , m_address(address)
-      , m_reset(std::move(reset))
-      , m_interrupt(std::move(interrupt))
+      : m_bus{ std::move(bus) }
+      , m_address{ address }
+      , m_reset{ std::move(reset) }
+      , m_interrupt{ std::move(interrupt) }
     {
     }
     auto St1633i::initialize() -> util::Result<>
@@ -37,7 +37,7 @@ namespace hal::device
         std::this_thread::sleep_for(std::chrono::milliseconds{ 2 });
         m_reset->write(gpio::Level::High);
         std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
-        auto result = m_bus->probe(m_address, std::chrono::milliseconds{ 2 });
+        auto result{ m_bus->probe(m_address, std::chrono::milliseconds{ 2 }) };
         if (result) {
             m_initialized = true;
         }
@@ -49,7 +49,7 @@ namespace hal::device
             return std::unexpected(std::make_error_code(std::errc::not_connected));
         }
         std::array<std::uint8_t, 2> identity{};
-        auto result = m_bus->readRegister(m_address, 0, identity, std::chrono::milliseconds{ 5 });
+        auto result{ m_bus->readRegister(m_address, 0, identity, std::chrono::milliseconds{ 5 }) };
         if (!result) {
             return std::unexpected(result.error());
         }
@@ -62,8 +62,8 @@ namespace hal::device
             return std::unexpected(result.error());
         }
         TouchReport report{ .firmware = identity[0], .status = identity[1] };
-        for (unsigned i = 0; i < report.points.size(); ++i) {
-            const auto offset = i * 4;
+        for (unsigned i{ 0 }; i < report.points.size(); ++i) {
+            const auto offset{ i * 4 };
             report.points[i] = {
                 .active = (bytes[offset] & 0x80u) != 0,
                 .x = static_cast<std::uint16_t>(((bytes[offset] & 0x70u) << 4) | bytes[offset + 1]),

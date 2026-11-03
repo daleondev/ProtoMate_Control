@@ -20,38 +20,38 @@ int main()
     using example::Topics;
 
     try {
-        pnm::msg::Bus io_bus;
-        pnm::msg::Bus ui_bus;
-        auto endpoints = icc::InProcessTransport::pair();
-        pnm::coro::Context context;
+        pnm::msg::Bus io_bus{};
+        pnm::msg::Bus ui_bus{};
+        auto endpoints{ icc::InProcessTransport::pair() };
+        pnm::coro::Context context{};
 
         // One dedicated icc thread runs both bridges, sleeping when idle.
         // Declare it before the bridges: their destructors drain their loops
         // before this thread requests context shutdown and joins, even on error.
-        auto icc_thread = example::run_context(context);
+        auto icc_thread{ example::run_context(context) };
 
-        icc::Bridge io_bridge(io_bus, context, *endpoints[0]);
-        icc::Bridge ui_bridge(ui_bus, context, *endpoints[1]);
+        icc::Bridge io_bridge{ io_bus, context, *endpoints[0] };
+        icc::Bridge ui_bridge{ ui_bus, context, *endpoints[1] };
         io_bridge.registerTopics<Topics>(TopicPublisher::IO);
         ui_bridge.registerTopics<Topics>(TopicPublisher::UI);
 
         // These are ordinary local subscriptions. The bridges handle transport.
-        std::string received_state;
-        std::string received_status;
-        auto ui_subscription =
-          ui_bus.topic<^^Topics::demo_io_state>().subscribe([&](const std::string& value) {
+        std::string received_state{};
+        std::string received_status{};
+        auto ui_subscription{ ui_bus.topic<^^Topics::demo_io_state>().subscribe(
+          [&](const std::string& value) {
             received_state = value;
             std::cout << "UI received demo/io/state: " << value << '\n';
-        });
-        auto io_subscription = io_bus.topic<^^Topics::status>().subscribe([&](const std::string& value) {
+        }) };
+        auto io_subscription{ io_bus.topic<^^Topics::status>().subscribe([&](const std::string& value) {
             received_status = value;
             std::cout << "IO received demo/ui/status: " << value << '\n';
-        });
-        std::vector<std::string> received_logs;
-        auto log_subscription = ui_bus.topic<^^Topics::demo_io_logs>().subscribe([&](const auto& value) {
+        }) };
+        std::vector<std::string> received_logs{};
+        auto log_subscription{ ui_bus.topic<^^Topics::demo_io_logs>().subscribe([&](const auto& value) {
             received_logs.push_back(value);
             std::cout << "UI received IO log: " << value << '\n';
-        }, { .capacity = 16 });
+        }, { .capacity = 16 }) };
 
         // Startup messages can queue before the peer is ready, within the bound.
         io_bus.topic<^^Topics::demo_io_logs>().publish("Motor initialized");
@@ -71,7 +71,7 @@ int main()
         if (received_state != "idle" || received_status != "ready") {
             throw std::runtime_error("Forwarded topic value did not match");
         }
-        const auto deadline = std::chrono::steady_clock::now() + 2s;
+        const auto deadline{ std::chrono::steady_clock::now() + 2s };
         while (received_logs.size() < 3 && std::chrono::steady_clock::now() < deadline) {
             log_subscription.poll(10ms);
         }

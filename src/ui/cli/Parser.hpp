@@ -307,7 +307,7 @@ namespace ui::cli
         };
 
         template<typename T>
-        inline constexpr bool IS_ARG_V = IsArgTrait<std::remove_cvref_t<T>>::value;
+        inline constexpr bool IS_ARG_V{ IsArgTrait<std::remove_cvref_t<T>>::value };
 
         template<typename T>
         concept IsArg = IS_ARG_V<T>;
@@ -323,7 +323,7 @@ namespace ui::cli
         };
 
         template<typename T>
-        inline constexpr bool IS_FLAG_V = IsFlagTrait<std::remove_cvref_t<T>>::value;
+        inline constexpr bool IS_FLAG_V{ IsFlagTrait<std::remove_cvref_t<T>>::value };
 
         template<typename T>
         concept IsFlag = IS_FLAG_V<T>;
@@ -400,7 +400,7 @@ namespace ui::cli
     {
         static_assert(std::meta::is_namespace(Commands), "Expected a namespace containing command handlers.");
         static constexpr auto command_functions{ [] {
-            std::vector<std::meta::info> functions;
+            std::vector<std::meta::info> functions{};
             for (auto func : std::meta::members_of(Commands, std::meta::access_context::current())) {
                 if (std::meta::is_function(func)) {
                     functions.push_back(func);

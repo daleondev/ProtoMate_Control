@@ -44,12 +44,12 @@ namespace hal::util
             if (bytes.size() > MAX_FRAME_BYTES) {
                 return std::unexpected(Error::TooLarge);
             }
-            const auto tail = std::atomic_ref(written).load(std::memory_order_relaxed);
-            const auto head = std::atomic_ref(read).load(std::memory_order_acquire);
+            const auto tail{ std::atomic_ref(written).load(std::memory_order_relaxed) };
+            const auto head{ std::atomic_ref(read).load(std::memory_order_acquire) };
             if (tail - head >= CAPACITY) {
                 return std::unexpected(Error::WouldBlock);
             }
-            auto& slot = frames[tail % CAPACITY];
+            auto& slot{ frames[tail % CAPACITY] };
             std::ranges::copy(bytes, slot.bytes.begin());
             slot.size = static_cast<std::uint32_t>(bytes.size());
             std::atomic_ref(written).store(tail + 1U, std::memory_order_release);
@@ -59,19 +59,19 @@ namespace hal::util
         std::expected<std::size_t, IInterCoreChannel::Error> pop(std::span<std::byte> buffer) noexcept
         {
             using Error = IInterCoreChannel::Error;
-            const auto head = std::atomic_ref(read).load(std::memory_order_relaxed);
-            const auto tail = std::atomic_ref(written).load(std::memory_order_acquire);
+            const auto head{ std::atomic_ref(read).load(std::memory_order_relaxed) };
+            const auto tail{ std::atomic_ref(written).load(std::memory_order_acquire) };
             if (tail == head) {
                 return std::unexpected(Error::WouldBlock);
             }
-            const auto& slot = frames[head % CAPACITY];
+            const auto& slot{ frames[head % CAPACITY] };
             if (tail - head > CAPACITY || slot.size > MAX_FRAME_BYTES) {
                 return std::unexpected(Error::Disconnected);
             }
             if (slot.size > buffer.size()) {
                 return std::unexpected(Error::BufferTooSmall);
             }
-            const auto size = slot.size;
+            const auto size{ slot.size };
             std::ranges::copy(std::span(slot.bytes).first(size), buffer.begin());
             std::atomic_ref(read).store(head + 1U, std::memory_order_release);
             return size;
@@ -91,7 +91,7 @@ namespace hal::util
 
         IInterCoreChannel::Readiness readiness(std::size_t side) noexcept
         {
-            IInterCoreChannel::Readiness result;
+            IInterCoreChannel::Readiness result{};
             if (side >= inbox.size() || std::atomic_ref(state[side]).load(std::memory_order_acquire) == 2 ||
                 std::atomic_ref(state[1 - side]).load(std::memory_order_acquire) == 2) {
                 result.send.fill(true);
@@ -100,8 +100,8 @@ namespace hal::util
             }
             bool higher_pending{};
             for (const auto lane : hal::intercore::LANE_PRIORITY) {
-                const auto index = static_cast<std::size_t>(lane);
-                const bool pending = !inbox[side][index].empty();
+                const auto index{ static_cast<std::size_t>(lane) };
+                const bool pending{ !inbox[side][index].empty() };
                 result.send[index] = !inbox[1 - side][index].full();
                 result.receive[index] = pending && !higher_pending;
                 higher_pending |= pending;
@@ -114,7 +114,7 @@ namespace hal::util
                                                            IInterCoreChannel::Lane lane) noexcept
         {
             using Channel = IInterCoreChannel;
-            const auto index = static_cast<std::size_t>(lane);
+            const auto index{ static_cast<std::size_t>(lane) };
             if (destination >= inbox.size() || index >= hal::intercore::LANE_COUNT) {
                 return std::unexpected(Channel::Error::Disconnected);
             }
@@ -130,7 +130,7 @@ namespace hal::util
                                                                  IInterCoreChannel::Lane lane) noexcept
         {
             using Channel = IInterCoreChannel;
-            const auto index = static_cast<std::size_t>(lane);
+            const auto index{ static_cast<std::size_t>(lane) };
             if (destination >= inbox.size() || index >= hal::intercore::LANE_COUNT) {
                 return std::unexpected(Channel::Error::Disconnected);
             }

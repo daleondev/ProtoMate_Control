@@ -21,7 +21,7 @@ namespace io
     }
 
     Application::Application(icc::ITransport& transport)
-      : m_bridge(m_bus, m_iccContext, transport)
+      : m_bridge{ m_bus, m_iccContext, transport }
       , m_stateTopic{ m_bus.topic<^^icc::Topics::io_controller_state>() }
       , m_logSink{ std::make_shared<logging::Sink>(m_bus) }
       , m_diagnostics{ m_bus }
@@ -53,7 +53,7 @@ namespace io
 
     void Application::start()
     {
-        std::unique_lock lock(m_mutex);
+        std::unique_lock lock{ m_mutex };
         if (m_started || m_stopping) {
             throw std::logic_error("IO application can only be started once, before stopping");
         }
@@ -78,7 +78,7 @@ namespace io
     void Application::requestStop()
     {
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock{ m_mutex };
             m_stopping = true;
             m_state.stopping();
         }
@@ -139,7 +139,7 @@ namespace io
     void Application::applicationThread()
     {
         {
-            std::scoped_lock lock(m_mutex); // Wait until startup has finished.
+            std::scoped_lock lock{ m_mutex }; // Wait until startup has finished.
         }
         try {
             m_motorServer->run(m_stopSource.get_token());

@@ -201,7 +201,7 @@ namespace icc
         requires std::is_enum_v<Publisher>
     void Bridge::registerTopics(Publisher local_publisher)
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         checkRegistration();
         m_topics.registerCatalog<Catalog>(local_publisher);
     }
@@ -210,7 +210,7 @@ namespace icc
         requires std::is_enum_v<Provider>
     void Bridge::registerServices(Provider local_provider)
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         checkRegistration();
         m_services.registerCatalog<Catalog>(local_provider);
     }
@@ -219,7 +219,7 @@ namespace icc
         requires std::is_enum_v<Provider>
     void Bridge::registerActions(Provider local_provider)
     {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock lock{ m_mutex };
         checkRegistration();
         m_actions.registerCatalog<Catalog>(local_provider);
     }
