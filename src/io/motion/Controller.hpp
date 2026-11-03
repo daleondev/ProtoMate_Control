@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StepperMotor.hpp"
+#include "common/motion/Trajectory.hpp"
 #include "hal/core/core.hpp"
 
 #include <array>
@@ -47,6 +48,7 @@ namespace io::motion
         void stop(std::optional<MotorId> motor = std::nullopt); // Retains holding torque.
         [[nodiscard]] bool enabled() const noexcept;
         [[nodiscard]] bool ready() const;
+        [[nodiscard]] ::motion::trajectory::Reply trajectorySnapshot() const;
 
         // Inspection only: command submission goes through the controller so it
         // can serialize admission against disable, recovery and shared faults.
@@ -87,6 +89,7 @@ namespace io::motion
         runtime::Notification m_driverNotification;
         std::atomic_bool m_faulted{ false };
         mutable std::mutex m_mutex;
+        Configuration m_configuration;
         bool m_initialized{};
         bool m_faultHandled{};
         std::array<std::unique_ptr<StepperMotor>, 3> m_motors;

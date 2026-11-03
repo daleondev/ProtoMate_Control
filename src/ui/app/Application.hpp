@@ -6,6 +6,7 @@
 #include "runtime/ThreadGroup.hpp"
 #include "ui/logging/Subscriber.hpp"
 #include "ui/motion/Client.hpp"
+#include "ui/motion/Robot.hpp"
 #include "ui/gui/Controller.hpp"
 
 #include <mutex>
@@ -53,6 +54,14 @@ namespace ui
         static constexpr runtime::thread::Definition GUI_THREAD{.priority=8, .stack_size=16UZ*1024UZ};
         static constexpr runtime::thread::Definition RENDER_THREAD{.priority=16, .stack_size=16UZ*1024UZ};
         static constexpr runtime::thread::Definition TOUCH_THREAD{.priority=7, .stack_size=8UZ*1024UZ};
+#if defined(CORE_CM7)
+        alignas(32) static std::byte s_plannerStack[24UZ*1024UZ];
+        static constexpr runtime::thread::Definition PLANNER_THREAD{
+            .priority=15,.stack_size=sizeof(s_plannerStack),.stack_storage=s_plannerStack};
+#else
+        static constexpr runtime::thread::Definition PLANNER_THREAD{.priority=15,.stack_size=64UZ*1024UZ};
+#endif
+        [[= PLANNER_THREAD]] void plannerThread();
         [[= GUI_THREAD]] void guiThread();
         [[= RENDER_THREAD]] void renderThread();
         [[= TOUCH_THREAD]] void touchThread();
@@ -70,6 +79,7 @@ namespace ui
         pnm::coro::Context::Timer m_stateTimer;
         logging::Subscriber m_logs;
         motion::Client m_motors;
+        motion::Robot m_robot;
         gui::Controller m_gui;
         std::mutex m_mutex;
         bool m_started{};

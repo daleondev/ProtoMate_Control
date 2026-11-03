@@ -40,6 +40,8 @@ namespace motion
                                              double start_velocity = 0.0,
                                              double start_acceleration = 0.0,
                                              double end_velocity = 0.0) noexcept;
+        // Finite monotone braking continuation, preserving initial acceleration.
+        static std::optional<Profile> brake(double velocity, double acceleration, Limits limits) noexcept;
         State at(double time) const noexcept;
         struct TimeHint
         {

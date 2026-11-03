@@ -31,6 +31,7 @@ namespace io::motion
         void admit(const ::motion::MotorGoal& goal, Execution execution);
         void dispatchJobs(bool feedback);
 
+        ::motion::trajectory::Packet trajectory(const ::motion::trajectory::Packet& packet);
         Controller* m_controller;
         std::shared_ptr<runtime::Notification> m_notification{ std::make_shared<runtime::Notification>() };
         std::array<std::optional<Job>, 8> m_jobs;
@@ -39,5 +40,6 @@ namespace io::motion
         pnm::msg::Topic<::motion::MotorSnapshot> m_state;
         pnm::msg::ServiceServer<::motion::MotorRequest, ::motion::MotorResponse> m_commands, m_urgent;
         pnm::msg::ActionServer<::motion::MotorGoal, ::motion::MotorProgress, ::motion::MotorResult> m_motions;
+        pnm::msg::ServiceServer<::motion::trajectory::Packet, ::motion::trajectory::Packet> m_trajectories;
     };
 }

@@ -46,7 +46,22 @@ namespace io::motion
       , m_motions{ bus.action<^^icc::Actions::io_motor_motion>().serveDeferred(
           [this](const MotorGoal& goal, Execution execution) { admit(goal, std::move(execution)); },
           { .max_goals = 8 }) }
+      , m_trajectories{bus.service<^^icc::Services::io_trajectory>().serve(
+          [this](const ::motion::trajectory::Packet& packet) { return trajectory(packet); }, {.max_pending=2})}
     {
+    }
+
+    ::motion::trajectory::Packet Server::trajectory(const ::motion::trajectory::Packet& packet)
+    {
+        namespace tr=::motion::trajectory;
+        auto result=m_controller->trajectorySnapshot();
+        result.generation=m_commandGeneration;
+        const auto request=tr::decodeRequest(packet);
+        result.error=!request ? request.error() : request->operation==tr::Operation::Inspect
+            ? tr::Error::None : tr::Error::Unsupported;
+        // No upload/control request is routed to independent diagnostic motors.
+        // Execution remains unavailable until the group HAL is implemented.
+        return tr::encode(result);
     }
 
     MotorProgress Server::progress(MotorId motor) const
@@ -209,6 +224,7 @@ namespace io::motion
         const auto commands{ pnm::msg::watch(m_commands, wake) };
         const auto urgent{ pnm::msg::watch(m_urgent, wake) };
         const auto actions{ pnm::msg::watch(m_motions, wake) };
+        const auto trajectories{pnm::msg::watch(m_trajectories,wake)};
         const std::stop_callback cancellation{ stop, wake };
         auto feedback{ std::chrono::steady_clock::now() };
         try {
@@ -216,6 +232,7 @@ namespace io::motion
                 m_urgent.poll();
                 dispatchJobs(false);
                 m_commands.poll();
+                m_trajectories.poll();
                 m_motions.poll();
                 const auto now{ std::chrono::steady_clock::now() };
                 dispatchJobs(now >= feedback);
@@ -232,10 +249,12 @@ namespace io::motion
             m_controller->disable();
             m_motions.close();
             m_commands.close();
+            m_trajectories.close();
             m_urgent.close();
             throw;
         }
         m_commands.close();
+        m_trajectories.close();
         m_urgent.close();
         m_motions.requestStop();
         m_controller->disable();

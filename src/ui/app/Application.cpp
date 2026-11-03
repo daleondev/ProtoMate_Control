@@ -9,6 +9,7 @@
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/filesystem.hpp"
 #include "ui/cli/motor.hpp"
+#include "ui/cli/robot.hpp"
 #include "ui/cli/state.hpp"
 #include "ui/cli/utilities.hpp"
 #include "ui/logging/Sink.hpp"
@@ -20,6 +21,11 @@
 
 namespace ui
 {
+#if defined(CORE_CM7)
+    // A dedicated private stack preserves AXI heap for ICC/CLI. The linker
+    // checks the DTCM budget; no runtime objects live in the SDRAM POD arena.
+    __attribute__((section(".dtcm_bss"))) std::byte Application::s_plannerStack[24UZ*1024UZ];
+#endif
     Application::Application(icc::ITransport& transport)
       : m_bridge(m_bus, m_iccContext, transport)
       , m_systemState{ hal::core::create_error_led(), hal::core::create_status_led() }
@@ -28,6 +34,7 @@ namespace ui
           pnm::msg::SubscriptionOptions::latestOnly()) }
       , m_logs{ m_bus, cli::writeLog }
       , m_motors{ m_bus }
+      , m_robot{m_bus}
     {
         hal::console::initialize();
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
@@ -37,6 +44,7 @@ namespace ui
             m_systemState.setConnection(status);
             if (status.state == icc::ConnectionState::Failed) { m_systemState.setLocal(app::State::Fault); }
             m_motors.setConnected(status.state == icc::ConnectionState::Connected);
+            m_robot.setConnected(status.state == icc::ConnectionState::Connected);
             if (status.state == icc::ConnectionState::Failed ||
                 status.reason == icc::ConnectionReason::PeerStopped) {
                 requestStop();
@@ -152,6 +160,7 @@ namespace ui
             cli::state::setup(parser, m_systemState);
             cli::utilities::setup(parser, m_bus, m_stopSource.get_token());
             cli::motor::setup(parser, m_motors, m_stopSource.get_token());
+            cli::robot::setup(parser,m_robot);
             cli::run(parser, m_stopSource.get_token());
         } catch (const std::exception& error) {
             m_systemState.setLocal(app::State::Fault);
@@ -161,6 +170,12 @@ namespace ui
         }
         // Closing the console also shuts down the UI and its peer cleanly.
         requestStop();
+    }
+
+    void Application::plannerThread()
+    {
+        try { m_robot.run(m_stopSource.get_token()); }
+        catch (...) { m_systemState.setLocal(app::State::Fault);requestStop(); }
     }
 
     void Application::applicationThread()

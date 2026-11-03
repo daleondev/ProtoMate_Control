@@ -26,6 +26,12 @@ namespace runtime
 
             // Stack size in bytes. Zero selects the configured default.
             std::size_t stack_size{};
+
+            // Optional caller-owned, max_align_t-aligned storage of exactly
+            // stack_size bytes (already aligned; no implicit rounding). It must
+            // remain exclusively owned by this thread until join completes, or
+            // until a detached thread has fully retired. Never freed by runtime.
+            void* stack_storage{};
         };
 
         // Low-level escape hatch for APIs that create a thread internally.

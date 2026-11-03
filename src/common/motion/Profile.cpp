@@ -345,6 +345,31 @@ namespace motion
     }
 }
 
+std::optional<motion::Profile> motion::Profile::brake(double velocity, double acceleration, Limits limits) noexcept
+{
+    if (!std::isfinite(velocity) || velocity < 0 || !std::isfinite(acceleration) ||
+        !std::isfinite(limits.deceleration) || limits.deceleration <= 0 ||
+        !std::isfinite(limits.acceleration) || limits.acceleration <= 0 ||
+        !std::isfinite(limits.jerk) || limits.jerk <= 0 ||
+        acceleration > limits.acceleration || -acceleration > limits.deceleration) { return {}; }
+    Profile result;
+    result.m_state = {0, velocity, acceleration};
+    if (acceleration != 0) {
+        const double duration = std::abs(acceleration) / limits.jerk;
+        const double end_velocity = velocity + 0.5 * acceleration * duration;
+        if (end_velocity < 0 || !std::isfinite(end_velocity)) { return {}; }
+        result.append({duration, -std::copysign(limits.jerk, acceleration), acceleration});
+        result.m_state.acceleration = 0;
+    }
+    if (result.m_state.velocity > 0) {
+        result.changeVelocity({0, limits.deceleration, limits.jerk});
+    }
+    result.m_distance = result.m_state.position;
+    result.m_endVelocity = 0;
+    if (!std::isfinite(result.m_distance) || result.m_distance < 0 || !std::isfinite(result.m_duration)) { return {}; }
+    return result;
+}
+
 motion::Profile::Description motion::Profile::description() const noexcept
 {
     Description result;
@@ -367,6 +392,10 @@ std::optional<motion::Profile> motion::Profile::fromDescription(const Descriptio
         return {};
     }
     Profile result;
+    if (value.size) {
+        result.m_state.velocity = value.phases[0].velocity;
+        result.m_state.acceleration = value.phases[0].acceleration;
+    }
     const auto near = [](double a, double b) {
         return std::abs(a - b) <= POSITION_TOLERANCE * std::max({ 1.0, std::abs(a), std::abs(b) });
     };

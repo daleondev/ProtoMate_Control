@@ -1,4 +1,6 @@
 #include "Controller.hpp"
+#include "Limits.hpp"
+#include <cmath>
 #include "runtime/thread.hpp"
 
 #ifdef HAL_PLATFORM_STM32
@@ -29,6 +31,7 @@ namespace io::motion
                            std::shared_ptr<pnm::log::ISink> log_sink)
       : m_enable{ hal::core::create_steppers_enable_output() }
       , m_generator{ hal::core::create_stepper_generator() }
+      , m_configuration{configuration}
     {
         if (!m_enable || !m_generator) {
             throw std::runtime_error("motion hardware unavailable on this core or already owned");
@@ -116,6 +119,38 @@ namespace io::motion
         std::scoped_lock lock{ m_mutex };
         return m_initialized && !m_faulted.load() && driversReady() &&
                m_generator->status().state == hal::step::State::Running;
+    }
+
+    ::motion::trajectory::Reply Controller::trajectorySnapshot() const
+    {
+        namespace tr=::motion::trajectory;
+        std::scoped_lock lock{m_mutex};
+        tr::Reply result;
+        result.enabled=enabled();
+        const auto generator=m_generator->status();
+        result.counts_exact=generator.counts_exact;
+        result.state=result.enabled ? tr::State::Unreferenced : tr::State::Disabled;
+        for(unsigned i=0;i<3;++i) {
+            const auto step=m_configuration[i].full_step_angle.get()/m_configuration[i].microsteps;
+            result.capabilities.step_radians[i]=step;
+            result.capabilities.reference_steps[i]=m_configuration[i].reference_position.get()/step;
+            // Numerical admission ceilings, not a claim about mechanical limits.
+            // A calibrated RobotConfiguration must impose the machine's limits.
+            result.capabilities.limits[i]={-tr::MAX_POSITION,tr::MAX_POSITION,
+                limits::MAX_PLANNED_RATE,1e8,1e8,1e10};
+            const auto count=tr::quantize(m_motors[i]->setpointPosition().get()/step);
+            if(count) { result.position[i]=*count; } else { result.counts_exact=false; }
+            result.boundary[i].position=result.position[i];
+            result.boundary[i].velocity=m_motors[i]->setpointVelocity().get()/step;
+            if(m_motors[i]->isReferenced()) { result.referenced|=static_cast<std::uint8_t>(1U<<i); }
+        }
+        if(result.enabled && result.referenced==7) { result.state=tr::State::Ready; }
+        if(m_faulted.load() || !result.counts_exact) { result.state=tr::State::Faulted; }
+        // The existing per-axis STEP API cannot provide atomic group splices or
+        // a time-bounded immutable horizon. Never advertise it as that backend.
+        result.capabilities.coordinated_execution=false;
+        result.capabilities.hardware_fingerprint=tr::fingerprint(result.capabilities);
+        return result;
     }
 
     bool Controller::canMoveLocked() const

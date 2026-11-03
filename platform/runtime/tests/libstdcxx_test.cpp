@@ -800,6 +800,34 @@ TEST(RuntimeLibstdcxx, ThreadFactoryRejectsInvalidAttributes)
     EXPECT_EQ(creation_error({ .priority = static_cast<std::int32_t>(TX_MAX_PRIORITIES) }), invalid_argument);
 }
 
+TEST(RuntimeLibstdcxx, CallerOwnedStackSurvivesJoinAndCanBeReused)
+{
+    alignas(std::max_align_t) static std::array<std::byte, 16U*1024U> storage;
+    for (unsigned run=0; run<3; ++run) {
+        void* observed{};
+        auto worker=runtime::thread::create(
+            {.stack_size=storage.size(),.stack_storage=storage.data()}, [&] {
+                observed=tx_thread_identify()->tx_thread_stack_start;
+            });
+        worker.join();
+        EXPECT_EQ(observed,storage.data());
+        // Under ASan this also detects accidental ownership/free on retirement.
+        storage.front()=std::byte{0x31};storage.back()=std::byte{0x72};
+    }
+}
+
+TEST(RuntimeLibstdcxx, CallerOwnedStackRejectsRoundingAndMisalignment)
+{
+    alignas(std::max_align_t) static std::array<std::byte, 16U*1024U> storage;
+    const auto rejected=[](runtime::thread::Attributes attributes) {
+        try { auto worker=runtime::thread::create(attributes,[]{});worker.join();return false; }
+        catch(const std::system_error& error) { return error.code()==std::errc::invalid_argument; }
+    };
+    EXPECT_TRUE(rejected({.stack_size=storage.size()-1,.stack_storage=storage.data()}));
+    EXPECT_TRUE(rejected({.stack_size=storage.size(),.stack_storage=storage.data()+1}));
+    EXPECT_TRUE(rejected({.stack_storage=storage.data()}));
+}
+
 TEST(RuntimeLibstdcxx, ThreadFactoryRestoresPreviouslyPublishedAttributes)
 {
     constexpr std::size_t factory_stack_size{ 8192U };

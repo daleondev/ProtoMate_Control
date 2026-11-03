@@ -6,4 +6,7 @@ target_sources(proto_common_motion
         Motor.hpp
         Profile.hpp
         Profile.cpp
+        Polynomial.cpp
+        Trajectory.cpp
+        PulseCursor.cpp
 )

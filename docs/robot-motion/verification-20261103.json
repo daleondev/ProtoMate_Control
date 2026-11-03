@@ -1,0 +1,1060 @@
+{
+  "date": "2026-11-03",
+  "motors_disconnected": true,
+  "scope": "Existing independent STEP backend and asynchronous robot previews only; coordinated robot execution is not implemented.",
+  "debug_manifest": {
+    "format": 1,
+    "pair_id": "fb07c430eccba773ce25b43bb73e9fe8e91ad877826781cf3a7bcf2cd859c40a",
+    "images": [
+      {
+        "core": 4,
+        "storage": 2416967680,
+        "size": 1017960,
+        "crc": 546681972,
+        "entry": 2417141581,
+        "vectors": 268435456,
+        "stack": 805601280,
+        "flags": 0,
+        "segments": [
+          {
+            "load": 2416967680,
+            "run": 268435456,
+            "size": 664,
+            "flags": 1
+          },
+          {
+            "load": 2416968344,
+            "run": 268437504,
+            "size": 169564,
+            "flags": 1
+          },
+          {
+            "load": 2417969872,
+            "run": 805502976,
+            "size": 15736,
+            "flags": 1
+          },
+          {
+            "load": 0,
+            "run": 805518712,
+            "size": 26640,
+            "flags": 2
+          },
+          {
+            "load": 0,
+            "run": 805545376,
+            "size": 12320,
+            "flags": 2
+          }
+        ]
+      },
+      {
+        "core": 7,
+        "storage": 2420113408,
+        "size": 1397244,
+        "crc": 3738844181,
+        "entry": 2420148509,
+        "vectors": 536870912,
+        "stack": 537001984,
+        "flags": 0,
+        "segments": [
+          {
+            "load": 2420114072,
+            "run": 0,
+            "size": 16088,
+            "flags": 1
+          },
+          {
+            "load": 2420113408,
+            "run": 536870912,
+            "size": 664,
+            "flags": 1
+          },
+          {
+            "load": 2420130160,
+            "run": 536872960,
+            "size": 12704,
+            "flags": 1
+          },
+          {
+            "load": 0,
+            "run": 536885664,
+            "size": 93024,
+            "flags": 2
+          },
+          {
+            "load": 2421506916,
+            "run": 603979776,
+            "size": 3192,
+            "flags": 1
+          },
+          {
+            "load": 2421510108,
+            "run": 603982976,
+            "size": 512,
+            "flags": 1
+          },
+          {
+            "load": 0,
+            "run": 603983488,
+            "size": 19744,
+            "flags": 2
+          }
+        ]
+      }
+    ]
+  },
+  "bench_pair": "5967acd0fa1938e7",
+  "bench_results": [
+    {
+      "case": 1,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=1 check=0 pulses=1,2,3 completions=1,1,1 progress=8 changed_at=0 guard=0 load=0 echoes=0 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 1,
+          "high_samples": {
+            "min": 120,
+            "max": 120,
+            "mean": 120.0
+          },
+          "period_samples": null,
+          "residual_samples": null,
+          "frequency_error_percent": null,
+          "first_sample": 830825,
+          "last_sample": 830945
+        },
+        {
+          "axis": 2,
+          "pulses": 2,
+          "high_samples": {
+            "min": 120,
+            "max": 120,
+            "mean": 120.0
+          },
+          "period_samples": {
+            "min": 23997,
+            "max": 23997,
+            "mean": 23997.0
+          },
+          "residual_samples": {
+            "min": 0.0,
+            "max": 0.0,
+            "mean": 0.0
+          },
+          "frequency_error_percent": 0.01250156269534397,
+          "first_sample": 830825,
+          "last_sample": 854942
+        },
+        {
+          "axis": 3,
+          "pulses": 3,
+          "high_samples": {
+            "min": 120,
+            "max": 120,
+            "mean": 120.0
+          },
+          "period_samples": {
+            "min": 23996,
+            "max": 23997,
+            "mean": 23996.5
+          },
+          "residual_samples": {
+            "min": -0.5,
+            "max": 0.5,
+            "mean": 0.0
+          },
+          "frequency_error_percent": 0.014585460379623605,
+          "first_sample": 830825,
+          "last_sample": 878938
+        }
+      ],
+      "service_max_cycles": 6381,
+      "stop_cycles": 0,
+      "ltdc_underruns": 0
+    },
+    {
+      "case": 2,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=2 check=0 pulses=300,400,500 completions=1,1,1 progress=313 changed_at=0 guard=0 load=0 echoes=0 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 300,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.06666666666666
+          },
+          "period_samples": {
+            "min": 23996,
+            "max": 23997,
+            "mean": 23996.672240802676
+          },
+          "residual_samples": {
+            "min": -0.6722408026762423,
+            "max": 0.3277591973237577,
+            "mean": -6.570262728526839e-13
+          },
+          "frequency_error_percent": 0.013867586155003053,
+          "first_sample": 804015,
+          "last_sample": 7979140
+        },
+        {
+          "axis": 2,
+          "pulses": 400,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.0725
+          },
+          "period_samples": {
+            "min": 11998,
+            "max": 11999,
+            "mean": 11998.333333333334
+          },
+          "residual_samples": {
+            "min": -0.33333333333393966,
+            "max": 0.6666666666660603,
+            "mean": -6.063298011819521e-13
+          },
+          "frequency_error_percent": 0.01389081816918214,
+          "first_sample": 1266326,
+          "last_sample": 6053782
+        },
+        {
+          "axis": 3,
+          "pulses": 500,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.042
+          },
+          "period_samples": {
+            "min": 5999,
+            "max": 6000,
+            "mean": 5999.168336673347
+          },
+          "residual_samples": {
+            "min": -0.16833667334685742,
+            "max": 0.8316633266531426,
+            "mean": -1.640371205602476e-13
+          },
+          "frequency_error_percent": 0.01386297699914607,
+          "first_sample": 1830523,
+          "last_sample": 4824228
+        }
+      ],
+      "service_max_cycles": 12155,
+      "stop_cycles": 0,
+      "ltdc_underruns": 0
+    },
+    {
+      "case": 3,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=3 check=0 pulses=100000,100000,100000 completions=1,1,1 progress=2351 changed_at=0 guard=0 load=0 echoes=0 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 100000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.0586
+          },
+          "period_samples": {
+            "min": 239,
+            "max": 240,
+            "mean": 239.96669966699667
+          },
+          "residual_samples": {
+            "min": -0.966699666996675,
+            "max": 0.03330033300332502,
+            "mean": -5.011081700491535e-15
+          },
+          "frequency_error_percent": 0.01387706421329682,
+          "first_sample": 630192,
+          "last_sample": 24626742
+        },
+        {
+          "axis": 2,
+          "pulses": 100000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.04586
+          },
+          "period_samples": {
+            "min": 239,
+            "max": 240,
+            "mean": 239.96669966699667
+          },
+          "residual_samples": {
+            "min": -0.966699666996675,
+            "max": 0.03330033300332502,
+            "mean": -5.011081700491535e-15
+          },
+          "frequency_error_percent": 0.01387706421329682,
+          "first_sample": 630192,
+          "last_sample": 24626742
+        },
+        {
+          "axis": 3,
+          "pulses": 100000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.03484
+          },
+          "period_samples": {
+            "min": 239,
+            "max": 240,
+            "mean": 239.96669966699667
+          },
+          "residual_samples": {
+            "min": -0.966699666996675,
+            "max": 0.03330033300332502,
+            "mean": -5.011081700491535e-15
+          },
+          "frequency_error_percent": 0.01387706421329682,
+          "first_sample": 630192,
+          "last_sample": 24626742
+        }
+      ],
+      "service_max_cycles": 143846,
+      "stop_cycles": 0,
+      "ltdc_underruns": 0
+    },
+    {
+      "case": 4,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=4 check=0 pulses=20000,5000,2500 completions=1,1,1 progress=430 changed_at=2305 guard=0 load=0 echoes=0 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 20000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.062
+          },
+          "period_samples": {
+            "min": 1199,
+            "max": 2400,
+            "mean": 2261.439271963598
+          },
+          "residual_samples": {
+            "min": -0.8335013530004289,
+            "max": 0.33299729399914213,
+            "mean": 9.159069600333403e-14
+          },
+          "frequency_error_percent": 0.013876812642066305,
+          "first_sample": 1218001,
+          "last_sample": 46444645
+        },
+        {
+          "axis": 2,
+          "pulses": 5000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.0498
+          },
+          "period_samples": {
+            "min": 4799,
+            "max": 4800,
+            "mean": 4799.334066813362
+          },
+          "residual_samples": {
+            "min": -0.33406681336236943,
+            "max": 0.6659331866376306,
+            "mean": 3.0310425548183605e-13
+          },
+          "frequency_error_percent": 0.013875533092022607,
+          "first_sample": 1218001,
+          "last_sample": 25209992
+        },
+        {
+          "axis": 3,
+          "pulses": 2500,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.036
+          },
+          "period_samples": {
+            "min": 9598,
+            "max": 9599,
+            "mean": 9598.668267306923
+          },
+          "residual_samples": {
+            "min": -0.6682673069226439,
+            "max": 0.3317326930773561,
+            "mean": 1.2519654958378844e-13
+          },
+          "frequency_error_percent": 0.013874140203529173,
+          "first_sample": 1218001,
+          "last_sample": 25205193
+        }
+      ],
+      "service_max_cycles": 52052,
+      "stop_cycles": 0,
+      "ltdc_underruns": 0
+    },
+    {
+      "case": 5,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=5 check=0 pulses=5000,975,5000 completions=1,2,1 progress=145 changed_at=0 guard=0 load=0 echoes=0 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 5000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.0616
+          },
+          "period_samples": {
+            "min": 2399,
+            "max": 2400,
+            "mean": 2399.6669333866776
+          },
+          "residual_samples": {
+            "min": -0.6669333866771012,
+            "max": 0.3330666133228988,
+            "mean": 2.342417340533397e-13
+          },
+          "frequency_error_percent": 0.01387970174897557,
+          "first_sample": 919924,
+          "last_sample": 12915979
+        },
+        {
+          "axis": 2,
+          "pulses": 975,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.08102564102565
+          },
+          "period_samples": {
+            "min": 2999,
+            "max": 532087,
+            "mean": 3906.8100616016427
+          },
+          "residual_samples": {
+            "min": -0.583944281524964,
+            "max": 0.6656891495604214,
+            "mean": 3.178090427572411e-14
+          },
+          "frequency_error_percent": 0.013870447575503597,
+          "first_sample": 919924,
+          "last_sample": 4725277
+        },
+        {
+          "axis": 3,
+          "pulses": 5000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.042
+          },
+          "period_samples": {
+            "min": 2399,
+            "max": 2400,
+            "mean": 2399.6669333866776
+          },
+          "residual_samples": {
+            "min": -0.6669333866771012,
+            "max": 0.3330666133228988,
+            "mean": 2.342417340533397e-13
+          },
+          "frequency_error_percent": 0.01387970174897557,
+          "first_sample": 919924,
+          "last_sample": 12915979
+        }
+      ],
+      "service_max_cycles": 96437,
+      "stop_cycles": 11948,
+      "ltdc_underruns": 0
+    },
+    {
+      "case": 6,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=6 check=0 pulses=512,512,512 completions=1,1,1 progress=218 changed_at=0 guard=0 load=0 echoes=0 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 512,
+          "high_samples": {
+            "min": 120,
+            "max": 120,
+            "mean": 120.0
+          },
+          "period_samples": {
+            "min": 2399,
+            "max": 2400,
+            "mean": 2399.665362035225
+          },
+          "residual_samples": {
+            "min": -0.6653620352249163,
+            "max": 0.3346379647750837,
+            "mean": 1.325975641528046e-13
+          },
+          "frequency_error_percent": 0.013945192945197249,
+          "first_sample": 772721,
+          "last_sample": 1999070
+        },
+        {
+          "axis": 2,
+          "pulses": 512,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.015625
+          },
+          "period_samples": {
+            "min": 4799,
+            "max": 4800,
+            "mean": 4799.332681017612
+          },
+          "residual_samples": {
+            "min": -0.3326810176122308,
+            "max": 0.6673189823877692,
+            "mean": 2.9367245751963435e-13
+          },
+          "frequency_error_percent": 0.013904411857645904,
+          "first_sample": 772721,
+          "last_sample": 3225300
+        },
+        {
+          "axis": 3,
+          "pulses": 512,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.021484375
+          },
+          "period_samples": {
+            "min": 9598,
+            "max": 9599,
+            "mean": 9598.667318982387
+          },
+          "residual_samples": {
+            "min": -0.6673189823886787,
+            "max": 0.3326810176113213,
+            "mean": -1.2031671592925625e-12
+          },
+          "frequency_error_percent": 0.013884021326338036,
+          "first_sample": 772721,
+          "last_sample": 5677760
+        }
+      ],
+      "service_max_cycles": 12099,
+      "stop_cycles": 0,
+      "ltdc_underruns": 0
+    },
+    {
+      "case": 7,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=7 check=0 pulses=512,256,128 completions=1,1,1 progress=4 changed_at=0 guard=1 load=0 echoes=0 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 512,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.068359375
+          },
+          "period_samples": {
+            "min": 239,
+            "max": 240,
+            "mean": 239.96477495107632
+          },
+          "residual_samples": {
+            "min": -0.9647749510763219,
+            "max": 0.03522504892367806,
+            "mean": -1.0011561051805716e-15
+          },
+          "frequency_error_percent": 0.014679258208150081,
+          "first_sample": 829370,
+          "last_sample": 952113
+        },
+        {
+          "axis": 2,
+          "pulses": 256,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.04296875
+          },
+          "period_samples": {
+            "min": 479,
+            "max": 480,
+            "mean": 479.93333333333334
+          },
+          "residual_samples": {
+            "min": -0.9333333333333371,
+            "max": 0.06666666666666288,
+            "mean": -3.789561257387201e-15
+          },
+          "frequency_error_percent": 0.01389081816918214,
+          "first_sample": 829370,
+          "last_sample": 951873
+        },
+        {
+          "axis": 3,
+          "pulses": 128,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.0546875
+          },
+          "period_samples": {
+            "min": 959,
+            "max": 960,
+            "mean": 959.8661417322835
+          },
+          "residual_samples": {
+            "min": -0.8661417322833813,
+            "max": 0.13385826771661868,
+            "mean": 8.325099140244324e-14
+          },
+          "frequency_error_percent": 0.013945514056268316,
+          "first_sample": 829370,
+          "last_sample": 951393
+        }
+      ],
+      "service_max_cycles": 6732,
+      "stop_cycles": 0,
+      "ltdc_underruns": 0
+    },
+    {
+      "case": 8,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=8 check=0 pulses=100000,100000,100000 completions=1,1,1 progress=2351 changed_at=0 guard=0 load=34 echoes=48 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 100000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.05826
+          },
+          "period_samples": {
+            "min": 239,
+            "max": 240,
+            "mean": 239.96666966669667
+          },
+          "residual_samples": {
+            "min": -0.9666696666966743,
+            "max": 0.03333033330332569,
+            "mean": -7.345664258930505e-15
+          },
+          "frequency_error_percent": 0.013889567809410863,
+          "first_sample": 7292881,
+          "last_sample": 31289428
+        },
+        {
+          "axis": 2,
+          "pulses": 100000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.04393
+          },
+          "period_samples": {
+            "min": 239,
+            "max": 240,
+            "mean": 239.96666966669667
+          },
+          "residual_samples": {
+            "min": -0.9666696666966743,
+            "max": 0.03333033330332569,
+            "mean": -7.345664258930505e-15
+          },
+          "frequency_error_percent": 0.013889567809410863,
+          "first_sample": 7292881,
+          "last_sample": 31289428
+        },
+        {
+          "axis": 3,
+          "pulses": 100000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.03577
+          },
+          "period_samples": {
+            "min": 239,
+            "max": 240,
+            "mean": 239.96666966669667
+          },
+          "residual_samples": {
+            "min": -0.9666696666966743,
+            "max": 0.03333033330332569,
+            "mean": -7.345664258930505e-15
+          },
+          "frequency_error_percent": 0.013889567809410863,
+          "first_sample": 7292881,
+          "last_sample": 31289428
+        }
+      ],
+      "service_max_cycles": 145379,
+      "stop_cycles": 0,
+      "ltdc_underruns": 0,
+      "icc": {
+        "published": 57,
+        "elapsed_ms": 1705,
+        "outgoing_dropped": 0,
+        "connected": 1,
+        "urgent_replies": 7,
+        "urgent_errors": 0,
+        "urgent_max_us": 52000
+      }
+    },
+    {
+      "case": 9,
+      "passed": true,
+      "timing_passed": true,
+      "samples": 72000000,
+      "sample_rate": 24000000,
+      "firmware": "[step-bench] PASS case=9 check=0 pulses=1000,1000,1000 completions=1,1,1 progress=196 changed_at=0 guard=0 load=0 echoes=0 errors=0",
+      "axes": [
+        {
+          "axis": 1,
+          "pulses": 1000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.054
+          },
+          "period_samples": {
+            "min": 6023,
+            "max": 11998,
+            "mean": 9007.756756756757
+          },
+          "residual_samples": {
+            "min": -0.9658399999998437,
+            "max": 0.9674400000003516,
+            "mean": -1.2745671496317313e-14
+          },
+          "frequency_error_percent": 0.013901932368609593,
+          "first_sample": 778337,
+          "last_sample": 9777207
+        },
+        {
+          "axis": 2,
+          "pulses": 1000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.045
+          },
+          "period_samples": {
+            "min": 6023,
+            "max": 11998,
+            "mean": 9007.756756756757
+          },
+          "residual_samples": {
+            "min": -0.9658399999998437,
+            "max": 0.9674400000003516,
+            "mean": -1.2745671496317313e-14
+          },
+          "frequency_error_percent": 0.013901932368609593,
+          "first_sample": 778337,
+          "last_sample": 9777207
+        },
+        {
+          "axis": 3,
+          "pulses": 1000,
+          "high_samples": {
+            "min": 120,
+            "max": 121,
+            "mean": 120.033
+          },
+          "period_samples": {
+            "min": 6023,
+            "max": 11998,
+            "mean": 9007.756756756757
+          },
+          "residual_samples": {
+            "min": -0.9658399999998437,
+            "max": 0.9674400000003516,
+            "mean": -1.2745671496317313e-14
+          },
+          "frequency_error_percent": 0.013901932368609593,
+          "first_sample": 778337,
+          "last_sample": 9777207
+        }
+      ],
+      "service_max_cycles": 142890,
+      "stop_cycles": 0,
+      "ltdc_underruns": 0
+    }
+  ],
+  "planner": {
+    "previews": [
+      {
+        "job": 6,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.6527502090011694
+      },
+      {
+        "job": 7,
+        "move": "point 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.6034892400002718
+      },
+      {
+        "job": 8,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.7052423969998927
+      },
+      {
+        "job": 9,
+        "move": "joints 10 80 40",
+        "expected_error": "configuration mismatch/unverified",
+        "wall_seconds": 0.2513972470005683
+      },
+      {
+        "job": 10,
+        "move": "linear 1000 1000 35",
+        "expected_error": "unreachable",
+        "wall_seconds": 0.2518164400007663
+      },
+      {
+        "job": 11,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8029264609995153
+      },
+      {
+        "job": 12,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.7024754520007264
+      },
+      {
+        "job": 13,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8025707929991768
+      },
+      {
+        "job": 14,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.7530334229995788
+      },
+      {
+        "job": 15,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.7524173860001611
+      },
+      {
+        "job": 16,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.7528790060005122
+      },
+      {
+        "job": 17,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8024138870005117
+      },
+      {
+        "job": 18,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.651998752999134
+      },
+      {
+        "job": 19,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8524763570003415
+      },
+      {
+        "job": 20,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.752458168000885
+      },
+      {
+        "job": 21,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.804544459000681
+      },
+      {
+        "job": 22,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.552460446000623
+      },
+      {
+        "job": 23,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8039643550000619
+      },
+      {
+        "job": 24,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.6539389400004438
+      },
+      {
+        "job": 25,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8543533909996768
+      },
+      {
+        "job": 26,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.6541615969999839
+      },
+      {
+        "job": 27,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8043656200006808
+      },
+      {
+        "job": 28,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.6047129109992966
+      },
+      {
+        "job": 29,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.7533667719999357
+      },
+      {
+        "job": 30,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.7539383929997712
+      },
+      {
+        "job": 31,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.7031807410003239
+      },
+      {
+        "job": 32,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.9040716439994867
+      },
+      {
+        "job": 33,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8531752849994518
+      },
+      {
+        "job": 34,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.7520515310006886
+      },
+      {
+        "job": 35,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.9030556049983716
+      },
+      {
+        "job": 36,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.6023354600001767
+      },
+      {
+        "job": 37,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8024143989987351
+      },
+      {
+        "job": 38,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.5519089340014034
+      },
+      {
+        "job": 39,
+        "move": "joints 10 80 40",
+        "expected_error": null,
+        "wall_seconds": 0.8530011959992407
+      },
+      {
+        "job": 40,
+        "move": "linear 235 178 35",
+        "expected_error": null,
+        "wall_seconds": 0.8025305139999546
+      }
+    ],
+    "heap_before": 231312,
+    "heap_after": 231336,
+    "heap_growth": 24,
+    "planner_stack_headroom": 0.3905258017255413,
+    "drivers_disabled": true,
+    "qualification": "preview only; no coordinated execution"
+  },
+  "preview_step_capture": {
+    "sample_rate_hz": 24000000,
+    "samples": 72000000,
+    "channels": {
+      "D0": "M1 STEP A7 PA0",
+      "D1": "M2 STEP D3 PA2",
+      "D2": "M3 STEP D2 PA3"
+    },
+    "all_step_channels_low": true,
+    "sha256": "b3226244d4c75f836b07de646489aaa304881fac12952d43749341054e2bc000"
+  },
+  "unverified": [
+    "DIR and enable signal timing",
+    "coordinated group execution and replacements",
+    "live controls and queued blending",
+    "watchdog reset outputs",
+    "powered robot motion and accuracy"
+  ]
+}

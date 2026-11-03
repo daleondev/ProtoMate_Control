@@ -9,6 +9,7 @@ target_sources(proto_io_motion
         Controller.cpp
         Server.hpp
         Server.cpp
+        TrajectorySession.cpp
         StepperMotor.hpp
         StepperMotor.cpp 
         Sequence.hpp

@@ -107,6 +107,7 @@ namespace runtime
                 ThreadControl* registry_next{};
                 ULONG registry_id{};
                 void* stack{};
+                bool owns_stack{};
                 void* (*entry)(void*){};
                 void* argument{};
                 TX_MUTEX lifecycle_mutex{};
@@ -749,6 +750,7 @@ namespace runtime
 
                     TX_SEMAPHORE* const cleanup_ack{ control->cleanup_ack };
                     void* const stack{ control->stack };
+                    const bool owns_stack{ control->owns_stack };
                     if (tx_thread_delete(&control->thread) != TX_SUCCESS ||
                         tx_mutex_delete(&control->lifecycle_mutex) != TX_SUCCESS ||
                         tx_semaphore_delete(&control->completion) != TX_SUCCESS) {
@@ -756,7 +758,7 @@ namespace runtime
                     }
                     unregister_thread(control);
                     delete control;
-                    ::operator delete[](stack);
+                    if (owns_stack) { ::operator delete[](stack); }
                     if (cleanup_ack != nullptr && tx_semaphore_put(cleanup_ack) != TX_SUCCESS) {
                         fatal_error("cleanup acknowledgement", TX_SEMAPHORE_ERROR);
                     }
@@ -789,6 +791,11 @@ namespace runtime
             if (!normalize_thread_stack_size(attributes.stack_size, normalized_stack_size)) {
                 return EINVAL;
             }
+            if (attributes.stack_storage != nullptr &&
+                (attributes.stack_size != normalized_stack_size ||
+                 reinterpret_cast<std::uintptr_t>(attributes.stack_storage) % STACK_ALIGNMENT != 0U)) {
+                return EINVAL;
+            }
             UINT validated_priority{};
             if (!validate_thread_priority(attributes.priority, validated_priority)) {
                 return EINVAL;
@@ -798,7 +805,10 @@ namespace runtime
             if (control == nullptr) {
                 return EAGAIN;
             }
-            control->stack = ::operator new[](static_cast<std::size_t>(normalized_stack_size), std::nothrow);
+            control->owns_stack = attributes.stack_storage == nullptr;
+            control->stack = control->owns_stack
+                ? ::operator new[](static_cast<std::size_t>(normalized_stack_size), std::nothrow)
+                : attributes.stack_storage;
             if (control->stack == nullptr) {
                 delete control;
                 return EAGAIN;
@@ -826,13 +836,13 @@ namespace runtime
             }
 
             if (tx_mutex_create(&control->lifecycle_mutex, lifecycle_mutex_name, TX_INHERIT) != TX_SUCCESS) {
-                ::operator delete[](control->stack);
+                if (control->owns_stack) { ::operator delete[](control->stack); }
                 delete control;
                 return EAGAIN;
             }
             if (tx_semaphore_create(&control->completion, completion_name, 0U) != TX_SUCCESS) {
                 static_cast<void>(tx_mutex_delete(&control->lifecycle_mutex));
-                ::operator delete[](control->stack);
+                if (control->owns_stack) { ::operator delete[](control->stack); }
                 delete control;
                 return EAGAIN;
             }
@@ -853,7 +863,7 @@ namespace runtime
                 unregister_thread(control);
                 static_cast<void>(tx_semaphore_delete(&control->completion));
                 static_cast<void>(tx_mutex_delete(&control->lifecycle_mutex));
-                ::operator delete[](control->stack);
+                if (control->owns_stack) { ::operator delete[](control->stack); }
                 delete control;
                 return EAGAIN;
             }

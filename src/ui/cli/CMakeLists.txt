@@ -18,6 +18,7 @@ target_sources(proto_ui_cli INTERFACE
     state.cpp
     motor.hpp 
     motor.cpp
+    robot.cpp
 )
 
 target_link_libraries(proto_ui_cli INTERFACE

@@ -21,6 +21,7 @@ namespace runtime::thread
     {
         std::int32_t priority{};
         std::size_t stack_size{};
+            void* stack_storage{};
     };
 }
 
@@ -65,7 +66,8 @@ namespace runtime
                                   "Thread stack is smaller than the platform minimum");
                     const auto thread_name = std::string(name) + "." + std::string(std::meta::identifier_of(entry));
                     m_threads.push_back(thread::create(
-                      { .name = thread_name, .priority = definition.priority, .stack_size = definition.stack_size },
+                      { .name = thread_name, .priority = definition.priority, .stack_size = definition.stack_size,
+                        .stack_storage = definition.stack_storage },
                       [this, &owner] {
                           if (waitForLaunch()) {
                               (owner.*&[:entry:])();

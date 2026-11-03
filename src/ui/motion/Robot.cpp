@@ -1,0 +1,167 @@
+#include "Robot.hpp"
+#include "common/icc/catalog/services.hpp"
+#include "common/motion/PulseCursor.hpp"
+#include <algorithm>
+#include <atomic>
+#include <new>
+#include <stdexcept>
+
+namespace ui::motion
+{
+    namespace tr=::motion::trajectory;
+    namespace
+    {
+#if defined(CORE_CM7)
+        // Raw, explicitly initialized POD storage. No startup access to SDRAM,
+        // no heap/mutex/runtime objects in the reserved motion region.
+        alignas(32) __attribute__((section(".motion_sdram"))) std::byte arenaStorage[256*1024];
+        std::atomic_bool arenaClaimed{};
+#endif
+        bool terminal(Robot::JobState state)
+        { return state!=Robot::JobState::Queued && state!=Robot::JobState::Planning; }
+    }
+    std::unique_ptr<Robot::Arena,Robot::ReleaseArena> Robot::reserveArena()
+    {
+#if defined(CORE_CM7)
+        if(arenaClaimed.exchange(true)) { throw std::logic_error("robot planning arena already owned"); }
+        return std::unique_ptr<Arena,ReleaseArena>{std::construct_at(reinterpret_cast<Arena*>(arenaStorage))};
+#else
+        return std::unique_ptr<Arena,ReleaseArena>{new Arena{}};
+#endif
+    }
+    void Robot::ReleaseArena::operator()(Arena* arena) const noexcept
+    {
+#if defined(CORE_CM7)
+        std::destroy_at(arena);arenaClaimed=false;
+#else
+        delete arena;
+#endif
+    }
+    Robot::Robot(pnm::msg::Bus& bus)
+      :m_service{bus.service<^^icc::Services::io_trajectory>()},m_arena{reserveArena()} {}
+    Robot::~Robot()=default; // Application joins the planning worker first.
+    void Robot::setConnected(bool connected)
+    {
+        std::scoped_lock lock{m_mutex};m_connected=connected;
+        if(!connected) {
+            for(auto& slot:m_arena->slots) {
+                if(!terminal(slot.job.state)) { slot.job.state=JobState::Unknown;slot.job.error=RobotError::Unknown; }
+            }
+        }
+        m_changed.signal();
+    }
+    std::expected<std::uint64_t,RobotError> Robot::preview(PreviewRequest r)
+    {
+        std::scoped_lock lock{m_mutex};
+        if(!m_connected || m_stopped) { return std::unexpected(RobotError::Unknown); }
+        if(r.model>Model::FixtureArchived) { return std::unexpected(RobotError::InvalidInput); }
+        auto selected=m_arena->slots.end();
+        for(auto it=m_arena->slots.begin();it!=m_arena->slots.end();++it) {
+            if(terminal(it->job.state) && (selected==m_arena->slots.end() || it->job.id<selected->job.id)) { selected=it; }
+        }
+        if(selected==m_arena->slots.end()) { return std::unexpected(RobotError::Capacity); }
+        if(!m_next) { return std::unexpected(RobotError::Capacity); }
+        const auto id=m_next++;
+        r.move.job=id;selected->request=r;selected->job={.id=id,.state=JobState::Queued,.model=r.model};
+        m_changed.signal();return id;
+    }
+    RobotError Robot::cancel(std::uint64_t id)
+    {
+        std::scoped_lock lock{m_mutex};
+        for(auto& slot:m_arena->slots) {
+            if(slot.job.id==id && id) {
+                if(terminal(slot.job.state)) { return RobotError::TooLate; }
+                slot.job.state=JobState::Cancelled;slot.job.error=RobotError::Cancelled;return RobotError::None;
+            }
+        }
+        return RobotError::InvalidInput;
+    }
+    std::optional<Robot::Job> Robot::job(std::uint64_t id) const
+    {
+        std::scoped_lock lock{m_mutex};
+        for(const auto& slot:m_arena->slots) { if(id && slot.job.id==id) { return slot.job; } }
+        return {};
+    }
+    std::array<std::uint64_t,tr::COMMANDS> Robot::jobs() const
+    {
+        std::scoped_lock lock{m_mutex};std::array<std::uint64_t,tr::COMMANDS> out{};
+        for(std::size_t i=0;i<out.size();++i) { out[i]=m_arena->slots[i].job.id; }return out;
+    }
+    Robot::Job Robot::calculate(PreviewRequest r,std::uint64_t id,std::stop_token stop)
+    {
+        Job result{.id=id,.state=JobState::Rejected,.model=r.model};
+        auto call=m_service.request(tr::encode(tr::Request{}),std::chrono::seconds{3});
+        const std::stop_callback cancellation{stop,[&call]{call.cancel();}};
+        const auto response=call.get();
+        if(!response) { result.state=JobState::Unknown;result.error=RobotError::Unknown;return result; }
+        const auto decoded=tr::decodeReply(*response);
+        if(!decoded) { result.error=decoded.error();return result; }
+        if(decoded->error!=RobotError::None) { result.error=decoded->error;return result; }
+        const auto configuration=r.model==Model::Physical ? boardRobotConfiguration() :
+            std::optional{simulationConfiguration(decoded->capabilities,r.model==Model::FixtureArchived)};
+        if(!configuration) { result.error=RobotError::Configuration;return result; }
+        try {
+            RobotModel model{*configuration,decoded->capabilities};
+            tr::Counts start{};const auto p=model.toMotors(r.start);
+            for(unsigned i=0;i<3;++i) {
+                const auto count=tr::quantize(p[i]);
+                if(!count) { result.error=count.error();return result; }start[i]=*count;
+            }
+            Planner planner{model,m_arena->workspace};
+            result.error=planner.prepare(r.move,start);
+            if(result.error!=RobotError::None) { return result; }
+            const auto compiled=planner.compile();
+            if(!compiled) { result.error=compiled.error();return result; }
+            // Numeric pulse preparation is a second gate after continuous path
+            // validation; impossible DIR/STEP timing is never stretched.
+            tr::PulseCursor cursor{decoded->capabilities,start};
+            std::uint64_t pulseBudget=1'000'000;
+            for(const auto& segment:planner.segments()) {
+                result.error=cursor.append(segment);
+                if(result.error!=RobotError::None) { return result; }
+                for(;;) {
+                    if(stop.stop_requested()) { result.state=JobState::Cancelled;result.error=RobotError::Cancelled;return result; }
+                    const auto pulse=cursor.next();
+                    if(!pulse) { result.error=pulse.error();return result; }
+                    if(!*pulse) { break; }
+                    if(!pulseBudget--) { result.error=RobotError::Capacity;return result; }
+                }
+            }
+            tr::Positions endpoint{};
+            for(unsigned i=0;i<3;++i) { endpoint[i]=compiled->endpoint[i]; }
+            result.endpoint=model.toJoints(endpoint);
+            const auto fk=model.kinematics().forward(result.endpoint);
+            if(!fk) { result.error=RobotError::InvalidInput;return result; }
+            result.tcp=fk->position;result.plan=*compiled;result.state=JobState::Preview;
+        } catch(const std::invalid_argument&) { result.error=RobotError::Configuration; }
+          catch(const std::out_of_range&) { result.error=RobotError::PositionLimit; }
+        return result;
+    }
+    void Robot::run(std::stop_token stop)
+    {
+        const std::stop_callback cancellation{stop,[this]{m_changed.signal();}};
+        while(!stop.stop_requested()) {
+            PreviewRequest request;std::uint64_t id=0;
+            {
+                std::scoped_lock lock{m_mutex};
+                Slot* selected=nullptr;
+                for(auto& slot:m_arena->slots) {
+                    if(slot.job.state==JobState::Queued && (!selected || slot.job.id<selected->job.id)) { selected=&slot; }
+                }
+                if(selected) { selected->job.state=JobState::Planning;request=selected->request;id=selected->job.id; }
+            }
+            if(!id) { m_changed.waitUntil(std::chrono::steady_clock::time_point::max());continue; }
+            const auto result=calculate(request,id,stop);
+            {
+                std::scoped_lock lock{m_mutex};
+                for(auto& slot:m_arena->slots) {
+                    if(slot.job.id==id && slot.job.state==JobState::Planning) { slot.job=result;break; }
+                }
+            }
+        }
+        std::scoped_lock lock{m_mutex};m_stopped=true;
+        for(auto& slot:m_arena->slots) {
+            if(!terminal(slot.job.state)) { slot.job.state=JobState::Cancelled;slot.job.error=RobotError::Cancelled; }
+        }
+    }
+}

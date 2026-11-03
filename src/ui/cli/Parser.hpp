@@ -20,7 +20,7 @@ namespace ui::gui { class Controller; }
 
 namespace pnm::msg { class Bus; }
 namespace ui { class SystemState; }
-namespace ui::motion { class Client; }
+namespace ui::motion { class Client; class Robot; }
 
 namespace ui::cli
 {
@@ -30,6 +30,7 @@ namespace ui::cli
     namespace state { void setup(Parser& parser, const SystemState& system); }
     namespace filesystem { void setup(Parser& parser); }
     namespace utilities { void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop); }
+    namespace robot { void setup(Parser& parser, ui::motion::Robot& robot); }
     namespace motor { void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop); }
 
     struct ArgumentSpec
@@ -208,6 +209,7 @@ namespace ui::cli
         friend void state::setup(Parser& parser, const SystemState& system);
         friend void filesystem::setup(Parser& parser);
         friend void utilities::setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);
+        friend void robot::setup(Parser& parser, ui::motion::Robot& robot);
         friend void motor::setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
 
         struct Executor;
@@ -217,6 +219,7 @@ namespace ui::cli
         std::once_flag m_filesystemRegistration;
         std::once_flag m_utilitiesRegistration;
         std::once_flag m_motorRegistration;
+        std::once_flag m_robotRegistration;
         std::once_flag m_displayRegistration;
         std::once_flag m_stateRegistration;
     };

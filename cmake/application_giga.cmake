@@ -59,6 +59,12 @@ else()
       __gui_sdram_start = .; *(.gui_sdram .gui_sdram.*) . = ALIGN(32);
       __gui_sdram_end = .;
     } >GUI
+    .motion_sdram (NOLOAD) : ALIGN(32) {
+      __motion_sdram_start = .; *(.motion_sdram .motion_sdram.*) . = ALIGN(32);
+      __motion_sdram_end = .;
+    } >GUI
+    ASSERT(SIZEOF(.motion_sdram) <= 262144, \"Robot planning arena exceeds 256 KiB\")
+    ASSERT(SIZEOF(.gui_sdram) + SIZEOF(.motion_sdram) <= 2097152, \"UI SDRAM reservations overlap region end\")
     ASSERT(SIZEOF(.fast) + SIZEOF(.ARM.fast_extab) + SIZEOF(.ARM.fast_exidx) <= 24576, \"Initial M7 ITCM budget exceeded\")
     ASSERT(SIZEOF(.gui_sdram) <= 1601536, \"3D buffers exceed their budget\")")
     # CPU-only metadata, console rings and runtime stacks use private DTCM.

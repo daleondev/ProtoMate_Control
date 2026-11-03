@@ -1334,7 +1334,96 @@ the reset capture; firmware cannot maintain GPIO output drive while reset is
 asserted. The capture and transitions are recorded in
 `build/giga-step-results/reset-results.json`. Normal Debug firmware is restored;
 IO heap/stack services and disabled-motor status work over USB/ICC.
-The shared GUI foundation is described above. Application-specific screens, M7 robot planning and EtherCAT robot integration remain future work. Use the GIGA KiCad wiring; Nucleo connector numbers do not apply.
+The shared GUI foundation is described above. M7 robot previews are described
+below; coordinated robot execution, application-specific screens and EtherCAT
+robot integration remain unfinished. Use the GIGA KiCad wiring; Nucleo connector
+numbers do not apply.
+
+### Robot planning foundation — execution not yet implemented
+
+`src/ui/motion/Robot` is an application-owned asynchronous preview API. Its M7
+worker handles typed motor/axis conversions, SCARA FK/IK, joint interpolation,
+Cartesian endpoint positioning and straight Cartesian paths. Point positioning
+uses joint interpolation, so its TCP path may curve. Linear positioning
+preserves the selected elbow branch and certifies an adaptive quintic joint
+approximation and its retimed motor trajectory against continuous bounds.
+Subdivisions and storage are bounded; exceeding them rejects the preview.
+
+`boardRobotConfiguration()` deliberately returns no configuration. No calibrated
+mechanical parameters have been supplied. The `180` and `archived` fixtures
+explicitly select uncalibrated simulation geometry and never permit physical
+robot execution. IO electrical step resolution is queried over ICC before a
+preview; configuration fingerprints and positive finite dynamics are checked.
+
+```text
+robot
+robot preview joints 10 80 40 --fixture 180 --start-shoulder 0 --start-elbow 68.7549354 --start-z 30
+robot preview point 235 178 35 --fixture 180 --start-shoulder 0 --start-elbow 68.7549354 --start-z 30
+robot preview linear 235 178 35 --fixture 180 --start-shoulder 0 --start-elbow 68.7549354 --start-z 30
+robot jobs 1
+robot cancel 1
+```
+
+Rotary positions use degrees; Cartesian/Z positions use millimetres. Linear
+`--feed` uses mm/s and `--speed` is a fraction in `(0, 1]`. Every preview requires
+an explicit starting pose. `robot jobs` reports duration, selected branch,
+quantized endpoint, conservative path-error budget, motor dynamic bounds and
+segment consumption. It reports a planning result, not mechanical accuracy.
+The 64 retained jobs are independent previews, not an executable motion queue.
+
+The worker runs at priority 15, below ICC, CLI, touch and state dispatch. Its
+256 KiB POD planning arena occupies the existing M7 UI SDRAM region. Its 24 KiB
+stack has a separate, linker-checked DTCM reservation; allocating this stack
+from the general heap exhausted ICC startup allocations on hardware. Runtime
+thread attributes support explicitly borrowed aligned stack storage, retained
+until join completes. Thread-control objects remain in ordinary private RAM.
+No shared ICC-memory layout is changed.
+
+The shared trajectory library provides versioned little-endian serialization,
+CRC checking, fixed-width fields, conservative polynomial validation and an
+allocation-free pulse-time iterator. Four segments fit a full ICC frame below
+2,048 bytes. The isolated IO session model tests staged uploads, duplicates,
+generation checks, stopping tails and atomic commit rejection with a fake
+executor. It is **not connected to the physical STEP engine**. The production
+`io_trajectory` service permits inspection and returns `Unsupported` for every
+mutating operation. It advertises `coordinated_execution=false`.
+
+| Requested implementation stage | Current acceptance status |
+| --- | --- |
+| Configuration, conversions, FK/IK and previews | Implemented foundation; mathematical and onboard preview tests pass |
+| Transfer, ownership and group scheduling | Codec/session/pulse-iterator tests pass in isolation; physical executor, exclusivity and production commit path pending |
+| Coordinated positioning and configured homing | Not implemented through the robot API |
+| Cartesian lines, blends and lookahead | Line/curve previews implemented; queued blends and execution lookahead pending |
+| Jog, hold/resume, stop, override and fallback selection | Stopping-profile mathematics implemented; live controls and IO integration pending |
+| Integrated qualification | Existing STEP regression and preview stress pass; coordinated captures, watchdog, interruption tests and physical commissioning pending |
+
+The existing independent raw-motor commands remain available. They must not be
+treated as the new coordinated execution path. In particular, their fixed DMA
+pulse buffering does not establish the requested 10 ms immutable horizon.
+No robot motion, homing, jog, blend, watchdog-reset safety or powered mechanical
+accuracy is qualified by the preview tests.
+
+Hardware verification on 2026-11-03 used the Atmel-ICE and a 24 MHz analyzer,
+with motor power disconnected and only the three STEP channels attached:
+
+- All nine existing STEP bench cases passed, including 100,000 pulses on each
+  channel under combined load, deliberate underrun, wrap and variable periods.
+  Worst combined-load service time was 145,379 M4 cycles (605.75 µs), a 4.23×
+  margin against that bench's 2.56 ms refill deadline. DIR and enable were not
+  captured. This margin does not qualify a future coordinated executor.
+- Normal Debug pair `fb07c430eccba773` passed joint, endpoint and linear previews,
+  missing-configuration and unreachable-target rejection, and 30 further
+  previews with GUI/ICC/USB traffic. Heap growth was 24 bytes after warm-up;
+  planner stack headroom was 39.05%. All drivers remained disabled in status.
+- A concurrent three-second capture contained 72,000,000 samples with all three
+  STEP channels LOW. It verifies that previews do not generate motion.
+
+Reproduce the preview stress with
+`python3 scripts/robot_hardware_check.py --rounds 30`. Raw captures, manifests and
+console logs are in `build/robot-verification/`; the compact result is retained
+in `docs/robot-motion/verification-20261103.json`. The complete Linux CTest suite
+passes 55/55 targets; robot math, protocol/API and runtime stack tests also pass
+with ASan/UBSan. Both GIGA configurations build, with the M4 RAM audit passing.
 
 ### Clocks and ownership
 
@@ -1727,7 +1816,7 @@ Use this checklist for subsequent regression and load tests:
 
 The GIGA schematic/pinout and local MCU/panel references are in
 [`docs/arduino_giga_r1_wifi`](docs/arduino_giga_r1_wifi) and
-[`docs/display`](docs/display). Shared trajectory planning will later live on
-M7; independent motor profile generation remains on M4 for now. Its bounded
+[`docs/display`](docs/display). Shared trajectory previews run on M7;
+independent motor profile generation remains on M4 for now. Its bounded
 execution contract and ICC services/actions/topics remain separate from the
 physical transport and the GUI.
