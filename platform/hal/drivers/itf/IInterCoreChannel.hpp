@@ -1,6 +1,6 @@
 #pragma once
 
-#include "communication/Lanes.hpp"
+#include "hal/drivers/itf/Lanes.hpp"
 
 #include <cstddef>
 #include <array>
@@ -16,13 +16,13 @@ namespace hal
     class IInterCoreChannel
     {
       public:
-        using Lane = communication::Lane;
+        using Lane = hal::intercore::Lane;
         enum class Error : std::uint8_t { WouldBlock, Disconnected, TooLarge, BufferTooSmall };
         using Notification = std::move_only_function<void() noexcept>;
         struct Readiness
         {
-            std::array<bool, communication::LANE_COUNT> send{};
-            std::array<bool, communication::LANE_COUNT> receive{};
+            std::array<bool, hal::intercore::LANE_COUNT> send{};
+            std::array<bool, hal::intercore::LANE_COUNT> receive{};
         };
 
         virtual ~IInterCoreChannel() = default;

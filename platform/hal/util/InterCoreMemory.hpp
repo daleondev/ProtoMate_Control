@@ -78,7 +78,7 @@ namespace hal::util
         // 0 = not opened, 1 = open, 2 = closed. Only the named side writes it.
         std::array<std::uint32_t, 2> state;
         // [destination: M4=0, M7=1][normal=0, urgent=1, background=2]
-        std::array<std::array<InterCoreQueue, communication::LANE_COUNT>, 2> inbox;
+        std::array<std::array<InterCoreQueue, hal::intercore::LANE_COUNT>, 2> inbox;
 
         IInterCoreChannel::Readiness readiness(std::size_t side) noexcept
         {
@@ -91,7 +91,7 @@ namespace hal::util
                 return result;
             }
             bool higher_pending{};
-            for (const auto lane : communication::LANE_PRIORITY) {
+            for (const auto lane : hal::intercore::LANE_PRIORITY) {
                 const auto index = static_cast<std::size_t>(lane);
                 const bool pending = !inbox[side][index].empty();
                 result.send[index] = !inbox[1 - side][index].full();
@@ -106,10 +106,10 @@ namespace hal::util
         {
             using Channel = IInterCoreChannel;
             const auto index = static_cast<std::size_t>(lane);
-            if (destination >= inbox.size() || index >= communication::LANE_COUNT) {
+            if (destination >= inbox.size() || index >= hal::intercore::LANE_COUNT) {
                 return std::unexpected(Channel::Error::Disconnected);
             }
-            if (lane == Channel::Lane::Background && bytes.size() > communication::MAX_BACKGROUND_FRAME_BYTES) {
+            if (lane == Channel::Lane::Background && bytes.size() > hal::intercore::MAX_BACKGROUND_FRAME_BYTES) {
                 return std::unexpected(Channel::Error::TooLarge);
             }
             return inbox[destination][index].push(bytes);
@@ -120,10 +120,10 @@ namespace hal::util
         {
             using Channel = IInterCoreChannel;
             const auto index = static_cast<std::size_t>(lane);
-            if (destination >= inbox.size() || index >= communication::LANE_COUNT) {
+            if (destination >= inbox.size() || index >= hal::intercore::LANE_COUNT) {
                 return std::unexpected(Channel::Error::Disconnected);
             }
-            for (const auto priority : communication::LANE_PRIORITY) {
+            for (const auto priority : hal::intercore::LANE_PRIORITY) {
                 if (priority == lane) { break; }
                 if (!inbox[destination][static_cast<std::size_t>(priority)].empty()) {
                     return std::unexpected(Channel::Error::WouldBlock);

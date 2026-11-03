@@ -1,5 +1,5 @@
 #include "platform.h"
-#include "storage/InternalFlashLayout.h"
+#include "InternalFlashLayout.h"
 
 static void region(uint32_t number, uint32_t base, uint32_t size, uint32_t execute, uint32_t cache, uint32_t access)
 {

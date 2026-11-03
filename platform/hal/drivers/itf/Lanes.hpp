@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace communication
+namespace hal::intercore
 {
     // Shared contract for byte transports and physical inter-core channels.
     // Values index the shared-memory queues; priority is independent of index.

@@ -23,6 +23,17 @@ Motor construction leaves all drivers disabled; initialization, enabling and
 motion are explicit CLI operations. Display/touch bring-up uses `display`
 commands. A shared TouchGFX showcase runs on M7 and Linux; robot planning and application-specific screens remain future work.
 
+## Platform layout
+
+| Directory | Responsibility |
+| --- | --- |
+| `platform/boot/` | Board startup, recovery images, memory protection and GIGA flash partition layout |
+| `platform/hal/` | Hardware contracts, drivers, devices, board wiring and core selection; includes the inter-core lane contract |
+| `platform/runtime/` | ThreadX integration, C/C++ runtime and filesystem/storage implementations |
+
+The GIGA partition header is shared by boot MPU setup and the runtime flash
+adapter; the partition addresses and erase geometry are defined in one place.
+
 ## Application layout
 
 | Directory | Responsibility |
@@ -1031,9 +1042,10 @@ waiting for a result on the p2p context. Native readiness notifications and
 deadline timers wake the bridge. No waiting thread is created per call.
 
 The lane enum, priority order and background frame limit are defined once in
-[`platform/communication/Lanes.hpp`](platform/communication/Lanes.hpp), exposed by
-the header-only `platform::communication` target. It depends only on standard
-headers; both HAL and ICC use this contract without depending on each other.
+[`hal/drivers/itf/Lanes.hpp`](platform/hal/drivers/itf/Lanes.hpp) in the
+`hal::intercore` namespace, alongside the physical inter-core channel interface.
+The header depends only on standard headers; ICC consumes this HAL contract
+through `hal::drivers`, while HAL remains independent of application code.
 `icc::Lane` and `hal::IInterCoreChannel::Lane` are aliases of the same type.
 
 `ITransport` asynchronously sends and receives complete frames using borrowed
@@ -1567,7 +1579,7 @@ Storage operations run on M7. M4 does not wait for the filesystem or access
 the storage bank; its motion timing under simultaneous writes remains a separate
 hardware load test.
 
-Implementation: [partition](platform/storage/InternalFlashLayout.h),
+Implementation: [partition](platform/boot/giga/InternalFlashLayout.h),
 [journal](platform/runtime/libc/storage/FlashJournal.hpp),
 [STM32 access](platform/runtime/libc/stm32/InternalFlash.cpp), and
 [FileX driver](platform/runtime/libc/stm32/storage_media.cpp).

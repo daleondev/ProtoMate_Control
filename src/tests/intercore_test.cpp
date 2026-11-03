@@ -37,7 +37,7 @@ namespace
             std::condition_variable changed;
             hal::util::InterCoreMemory memory{};
             std::array<Notification, 2> notify;
-            std::array<std::array<unsigned, communication::LANE_COUNT>, 2> receive_attempts{};
+            std::array<std::array<unsigned, hal::intercore::LANE_COUNT>, 2> receive_attempts{};
             std::array<unsigned, 2> readiness_checks{};
             bool closed{};
         };
@@ -286,7 +286,7 @@ namespace
         stop.request_stop();
         ASSERT_EQ(cancelled.wait_for(2s), std::future_status::ready);
         EXPECT_EQ(cancelled.get().error(), Error::Cancelled);
-        std::array<std::byte, communication::MAX_BACKGROUND_FRAME_BYTES + 1> oversized{};
+        std::array<std::byte, hal::intercore::MAX_BACKGROUND_FRAME_BYTES + 1> oversized{};
         EXPECT_EQ(pair.run(pair.a.send(oversized, Lane::Background)).error(), Error::TooLarge);
         auto receiver = pair.launch(pair.a.receive(high, Lane::Background));
         pair.b.close();
@@ -296,7 +296,7 @@ namespace
 
     TEST(InterCoreQueue, ReadinessRespectsPriorityCapacityRolloverAndClosure)
     {
-        using communication::Lane;
+        using hal::intercore::Lane;
         auto memory = std::make_unique<hal::util::InterCoreMemory>();
         const auto normal = static_cast<std::size_t>(Lane::Normal);
         const auto urgent = static_cast<std::size_t>(Lane::Urgent);
@@ -325,7 +325,7 @@ namespace
         memory->state[0] = 2;
         for (const auto side : {0U, 1U}) {
             ready = memory->readiness(side);
-            for (std::size_t i{}; i < communication::LANE_COUNT; ++i) {
+            for (std::size_t i{}; i < hal::intercore::LANE_COUNT; ++i) {
                 EXPECT_TRUE(ready.send[i]);
                 EXPECT_TRUE(ready.receive[i]);
             }
@@ -395,7 +395,7 @@ namespace
         TransportPair pair;
         const std::array frame{ std::byte{ 7 } };
         std::array<std::byte, 1> out{};
-        const auto invalid = static_cast<icc::Lane>(communication::LANE_COUNT);
+        const auto invalid = static_cast<icc::Lane>(hal::intercore::LANE_COUNT);
         EXPECT_EQ(pair.run(pair.a.send(frame, invalid)).error(), Error::Disconnected);
         EXPECT_EQ(pair.run(pair.b.receive(out, invalid)).error(), Error::Disconnected);
         ASSERT_TRUE(pair.run(pair.a.send(frame)));

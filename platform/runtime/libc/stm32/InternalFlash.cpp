@@ -1,5 +1,5 @@
 #include "InternalFlash.hpp"
-#include "storage/InternalFlashLayout.h"
+#include "boot/giga/InternalFlashLayout.h"
 #include "stm32h7xx_hal.h"
 
 #include <algorithm>

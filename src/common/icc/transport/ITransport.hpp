@@ -1,6 +1,6 @@
 #pragma once
 
-#include "communication/Lanes.hpp"
+#include "hal/drivers/itf/Lanes.hpp"
 #include <pneumo/coroutines.hpp>
 
 #include <cstddef>
@@ -11,10 +11,10 @@
 
 namespace icc
 {
-    using communication::Lane;
-    using communication::LANE_PRIORITY;
-    using communication::LANE_COUNT;
-    using communication::MAX_BACKGROUND_FRAME_BYTES;
+    using hal::intercore::Lane;
+    using hal::intercore::LANE_PRIORITY;
+    using hal::intercore::LANE_COUNT;
+    using hal::intercore::MAX_BACKGROUND_FRAME_BYTES;
 
     // One endpoint of a connection between two bridges. Transfers complete,
     // ordered byte frames within each lane. Message types belong to the bridge.
