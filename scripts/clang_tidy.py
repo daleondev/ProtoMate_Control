@@ -380,7 +380,7 @@ def main():
         # headers of the host Linux build, without importing host C++ headers.
         for name in ("curses.h", "ncurses_dll.h", "unctrl.h"):
             shutil.copyfile(Path("/usr/include") / name, includes / name)
-        for name in ("SDL2", "epoxy", "glm", "KHR", "GL"):
+        for name in ("SDL2", "epoxy", "glm", "assimp", "KHR", "GL"):
             shutil.copytree(Path("/usr/include") / name, includes / name, dirs_exist_ok=True)
         databases = [configure_database(args.output, f"stm32-{core}", ["--preset", f"giga-{core}-debug"])
                      for core in ("io", "ui")]

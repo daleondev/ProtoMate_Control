@@ -1,5 +1,6 @@
 """The installed artifact must run without its build tree or a sibling controller."""
 import os
+import hashlib
 from pathlib import Path
 import selectors
 import shutil
@@ -29,6 +30,8 @@ with tempfile.TemporaryDirectory(prefix="protomate-single-executable-") as folde
         assert len(children)==1,children
         child=int(children[0])
         assert "memfd:Application-controller" in os.readlink(f"/proc/{child}/exe")
+        with open(sys.argv[2], "rb") as source, open(f"/proc/{child}/exe", "rb") as embedded:
+            assert hashlib.file_digest(source, "sha256").digest() == hashlib.file_digest(embedded, "sha256").digest(), "embedded ELF bytes differ from the linked controller"
         assert Path(f"/proc/{process.pid}/exe").resolve()==executable
         assert sorted(path.name for path in Path(folder).iterdir())==["Application"],"executable extracted files"
         process.stdin.close()
@@ -39,4 +42,4 @@ with tempfile.TemporaryDirectory(prefix="protomate-single-executable-") as folde
     finally:
         if process.poll() is None:process.terminate();process.wait(10)
         events.close()
-print("PASS: copied Application forks exactly one embedded controller; no sibling binary or extracted files")
+print("PASS: copied Application forks exactly one embedded controller; byte-exact ELF, no sibling binary or extracted files")

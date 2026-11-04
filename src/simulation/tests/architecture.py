@@ -8,13 +8,18 @@ def symbols(path):
 
 host = symbols(native)
 firmware = symbols(controller)
-for required in ("simulation::Machine::execute", "simulation::Session::start", "protomate_controller_image_start"):
+for required in ("simulation::Machine::execute", "simulation::Session::start", "simulation::assets::controllerImage()"):
     assert required in host, f"native simulation is missing {required}"
 for forbidden in ("_tx_thread_schedule", "simulation::client::call", "touchgfx::", "runtime::thread::"):
     assert forbidden not in host, f"controller runtime leaked into native application: {forbidden}"
 for required in ("simulation::client::call", "ui::Application::", "io::Application::"):
     assert required in firmware, f"controller is missing {required}"
-for forbidden in ("simulation::Machine::", "simulation::Session::", "simulation::viewer::",
+for forbidden in ("simulation::Machine::", "simulation::Session::", "simulation::viewer::", "simulation::assets::",
                   "SimulatedStepHardware::", "Tmc2209Model::"):
     assert forbidden not in firmware, f"simulated hardware leaked into controller: {forbidden}"
+
+assert "simulation::viewer::ModelAsset::read(" in host, "native viewer must use the model importer"
+for name in ("simulation::viewer::ModelAsset", "simulation::viewer::ModelRenderer", "Assimp::"):
+    assert name not in firmware, f"native CAD importer leaked into controller: {name}"
+
 print("PASS: native and ThreadX link closures remain isolated; production controller contains proxies only")

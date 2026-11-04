@@ -1,13 +1,18 @@
 #pragma once
+#include "Geometry.hpp"
 #include <SDL.h>
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <epoxy/gl.h>
 #include <glm/glm.hpp>
+#include <limits>
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -182,15 +187,19 @@ namespace simulation::viewer
     class Shader
     {
       public:
-        Shader(const Context& context, GLenum stage, const char* text)
+        Shader(const Context& context, GLenum stage, std::string_view text)
           : m_context{ &context }
         {
             context.check();
+            if (text.empty() || text.size() > static_cast<std::size_t>(std::numeric_limits<GLint>::max()))
+                throw std::invalid_argument{ "invalid shader source length" };
             m_id = glCreateShader(stage);
             if (!m_id)
                 throw std::runtime_error{ "shader allocation" };
             try {
-                glShaderSource(m_id, 1, &text, nullptr);
+                const auto* source{ text.data() };
+                const auto length{ static_cast<GLint>(text.size()) };
+                glShaderSource(m_id, 1, &source, &length);
                 glCompileShader(m_id);
                 GLint valid{};
                 glGetShaderiv(m_id, GL_COMPILE_STATUS, &valid);
@@ -237,7 +246,7 @@ namespace simulation::viewer
     class Program
     {
       public:
-        Program(const Context& context, const char* vertex, const char* fragment)
+        Program(const Context& context, std::string_view vertex, std::string_view fragment)
           : m_context{ &context }
         {
             context.check();
@@ -333,20 +342,17 @@ namespace simulation::viewer
         Texture m_color;
         Renderbuffer m_depth;
     };
-    struct Vertex
-    {
-        glm::vec3 position{}, normal{};
-    };
     class Mesh
     {
       public:
         Mesh(const Context& context, std::span<const Vertex> vertices, GLenum mode = GL_TRIANGLES)
           : m_vertices{ context }
+          , m_indices{ context }
           , m_array{ context }
           , m_count{ static_cast<GLsizei>(vertices.size()) }
           , m_mode{ mode }
         {
-            if (vertices.size() > 1'000'000)
+            if (vertices.size() > 2'000'000)
                 throw std::length_error{ "mesh vertex count" };
             static_assert(std::is_standard_layout_v<Vertex>);
             glNamedBufferData(m_vertices.get(),
@@ -365,9 +371,25 @@ namespace simulation::viewer
                 glVertexArrayAttribBinding(m_array.get(), i, 0);
             }
         }
+        Mesh(const Context& context, std::span<const Vertex> vertices, std::span<const std::uint32_t> indices)
+          : Mesh{ context, vertices }
+        {
+            if (indices.empty() || indices.size() > 6'000'000 || indices.size() % 3)
+                throw std::length_error{ "invalid triangle index count" };
+            for (auto index : indices)
+                if (index >= vertices.size())
+                    throw std::out_of_range{ "mesh vertex index" };
+            glNamedBufferData(
+              m_indices.get(), static_cast<GLsizeiptr>(indices.size_bytes()), indices.data(), GL_STATIC_DRAW);
+            glVertexArrayElementBuffer(m_array.get(), m_indices.get());
+            m_count = static_cast<GLsizei>(indices.size());
+            m_indexed = true;
+        }
         void update(std::span<const Vertex> vertices)
         {
-            if (vertices.size() > 1'000'000)
+            if (m_indexed)
+                throw std::logic_error{ "cannot stream-update an indexed mesh" };
+            if (vertices.size() > 2'000'000)
                 throw std::length_error{ "mesh vertex count" };
             m_count = static_cast<GLsizei>(vertices.size());
             glNamedBufferData(m_vertices.get(),
@@ -378,13 +400,17 @@ namespace simulation::viewer
         void draw() const
         {
             glBindVertexArray(m_array.get());
-            glDrawArrays(m_mode, 0, m_count);
+            if (m_indexed)
+                glDrawElements(m_mode, m_count, GL_UNSIGNED_INT, nullptr);
+            else
+                glDrawArrays(m_mode, 0, m_count);
         }
 
       private:
-        Buffer m_vertices;
+        Buffer m_vertices, m_indices;
         VertexArray m_array;
         GLsizei m_count{};
         GLenum m_mode{};
+        bool m_indexed{};
     };
 }

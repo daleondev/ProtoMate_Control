@@ -1,6 +1,8 @@
 #include "Viewer.hpp"
 #include "../Session.hpp"
+#include "../assets/EmbeddedAssets.hpp"
 #include "Gl.hpp"
+#include "ModelRenderer.hpp"
 #include "Text.hpp"
 #include <algorithm>
 #include <cmath>
@@ -14,21 +16,6 @@ namespace simulation::viewer
 {
     namespace
     {
-        constexpr const char* VERTEX{ R"(#version 450 core
-layout(location=0) in vec3 position;
-layout(location=1) in vec3 normal;
-uniform mat4 model;
-uniform mat4 viewProjection;
-out vec3 worldNormal;
-void main() { worldNormal = transpose(inverse(mat3(model))) * normal; gl_Position = viewProjection * model * vec4(position,1); }
-)" };
-        constexpr const char* FRAGMENT{ R"(#version 450 core
-in vec3 worldNormal;
-uniform vec3 color;
-uniform int unlit;
-out vec4 fragment;
-void main() { float light = unlit != 0 ? 1.0 : 0.28 + 0.72 * max(dot(normalize(worldNormal),normalize(vec3(0.3,-0.5,1))),0); fragment = vec4(color * light,1); }
-)" };
         std::vector<Vertex> cube()
         {
             std::vector<Vertex> result{};
@@ -78,16 +65,22 @@ void main() { float light = unlit != 0 ? 1.0 : 0.28 + 0.72 * max(dot(normalize(w
               glm::rotate(glm::translate(glm::mat4{ 1 }, position), yaw, glm::vec3{ 0, 0, 1 }), dimensions);
         }
     }
-    void run(Session& session)
+    void run(Session& session, const ViewerOptions& options)
     {
         const auto& profile{ session.profile() };
-        const float upper{ static_cast<float>(profile.geometry_mm[0]) },
-          forearm{ static_cast<float>(profile.geometry_mm[1]) },
-          tool{ static_cast<float>(profile.geometry_mm[2]) };
+        const auto models{ RobotModels::load(options.model_directory, options.coordinates) };
+        for (const auto& part : models.parts)
+            for (const auto& warning : part.warnings)
+                std::fprintf(stderr, "simulation model: %s\n", warning.c_str());
+        std::fprintf(stderr,
+                     "simulation models: %s (Assimp, three articulated parts)\n",
+                     models.placeholders ? "embedded DUMMY geometry" : "external export");
         SdlSession sdl{};
         Window window{};
         Context context{ window };
-        Program program{ context, VERTEX, FRAGMENT };
+        ModelRenderer robot{ context, models };
+        const auto shader{ assets::sceneShader() };
+        Program program{ context, shader.vertex, shader.fragment };
         const auto model_location{ program.location("model") },
           view_location{ program.location("viewProjection") }, color_location{ program.location("color") },
           unlit_location{ program.location("unlit") };
@@ -139,22 +132,23 @@ void main() { float light = unlit != 0 ? 1.0 : 0.28 + 0.72 * max(dot(normalize(w
             }
             const auto state{ session.snapshot() };
             std::array<char, 512> title{};
-            std::snprintf(
-              title.data(),
-              title.size(),
-              "ProtoMate | %s (PROVISIONAL) | J %.2f %.2f deg Z %.2f mm | TCP %.1f %.1f %.1f mm | %s | REF "
-              "%x FAULT %x | t %.3f s | drag orbit / right-drag pan / wheel zoom / R reset",
-              Profile::NAME,
-              state.joints[0] * 180 / std::numbers::pi,
-              state.joints[1] * 180 / std::numbers::pi,
-              state.joints[2],
-              state.tcp_mm[0],
-              state.tcp_mm[1],
-              state.tcp_mm[2],
-              state.enabled ? "ENABLED" : "DISABLED",
-              state.references,
-              state.faults,
-              state.time_ns / 1e9);
+            std::snprintf(title.data(),
+                          title.size(),
+                          "ProtoMate | %s | %s (PROVISIONAL) | J %.2f %.2f deg Z %.2f mm | TCP %.1f %.1f "
+                          "%.1f mm | %s | REF "
+                          "%x FAULT %x | t %.3f s | drag orbit / right-drag pan / wheel zoom / R reset",
+                          models.placeholders ? "DUMMY MODELS" : "EXTERNAL MODELS",
+                          Profile::NAME,
+                          state.joints[0] * 180 / std::numbers::pi,
+                          state.joints[1] * 180 / std::numbers::pi,
+                          state.joints[2],
+                          state.tcp_mm[0],
+                          state.tcp_mm[1],
+                          state.tcp_mm[2],
+                          state.enabled ? "ENABLED" : "DISABLED",
+                          state.references,
+                          state.faults,
+                          state.time_ns / 1e9);
             SDL_SetWindowTitle(window.get(), title.data());
             const glm::vec3 eye{ focus + distance * glm::vec3{ std::cos(yaw) * std::cos(pitch),
                                                                std::sin(yaw) * std::cos(pitch),
@@ -176,18 +170,9 @@ void main() { float light = unlit != 0 ? 1.0 : 0.28 + 0.72 * max(dot(normalize(w
             draw(grid, glm::mat4{ 1 }, { .17F, .22F, .28F }, true);
             draw(box, transform({ 0, 0, 10 }, { 160, 160, 20 }), { .22F, .25F, .30F });
             draw(joint, transform({ 0, 0, 70 }, { 100, 100, 100 }), { .48F, .50F, .54F });
-            const float q1{ float(state.joints[0]) }, q2{ q1 + float(state.joints[1]) };
-            const glm::vec3 elbow{ upper * std::cos(q1), upper * std::sin(q1), 140 };
-            const glm::vec3 wrist{ elbow + glm::vec3{ forearm * std::cos(q2), forearm * std::sin(q2), 0 } };
-            draw(
-              box, transform({ elbow.x / 2, elbow.y / 2, 130 }, { upper, 38, 28 }, q1), { .20F, .50F, .70F });
-            draw(joint, transform(elbow, { 65, 65, 55 }), { .55F, .57F, .60F });
-            draw(box, transform((elbow + wrist) * .5F, { forearm, 32, 24 }, q2), { .20F, .55F, .70F });
-            draw(box, transform(wrist + glm::vec3{ 0, 0, -35 }, { 35, 40, 150 }, q2), { .42F, .44F, .47F });
+            robot.draw(robotModelTransforms(profile, state.joints, options.shoulder_height_mm), vp, eye);
+            glUseProgram(program.get());
             const glm::vec3 tcp{ float(state.tcp_mm[0]), float(state.tcp_mm[1]), float(state.tcp_mm[2]) };
-            draw(box,
-                 transform((glm::vec3{ wrist.x, wrist.y, tcp.z } + tcp) * .5F, { tool, 24, 16 }, q2),
-                 { .64F, .66F, .68F });
             draw(joint,
                  transform(tcp, { 10, 10, 20 }),
                  state.faults ? glm::vec3{ 1, .2F, .1F } : glm::vec3{ .2F, 1, .45F });
@@ -204,10 +189,11 @@ void main() { float light = unlit != 0 ? 1.0 : 0.28 + 0.72 * max(dot(normalize(w
             std::snprintf(
               label.data(),
               label.size(),
-              "PROTOMATE SIMULATED HARDWARE - CAD PROVISIONAL V1\nGEOMETRY AND GEARING NOT CALIBRATED\nPOWER "
+              "PROTOMATE SIMULATED HARDWARE - %s\nGEOMETRY AND GEARING NOT CALIBRATED\nPOWER "
               "%s  DRIVERS %s  REF %X  FAULT %X  %s\nSHAFT DEG  %.3F  %.3F  %.3F\nJOINT DEG  %.3F  %.3F  Z "
               "%.3F MM\nTCP MM  X %.3F  Y %.3F  Z %.3F\nSIM TIME %.3F S   AVERAGE SPEED %.2FX\nNO DYNAMICS - "
               "NO CONTACT - NO LOAD MODEL\nDRAG ORBIT - RIGHT DRAG PAN - WHEEL ZOOM - R RESET",
+              models.placeholders ? "DUMMY MODELS" : "EXTERNAL MODELS",
               state.powered ? "ON" : "OFF",
               state.enabled ? "ENABLED" : "DISABLED",
               state.references,

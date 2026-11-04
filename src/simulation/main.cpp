@@ -1,21 +1,27 @@
 #include "ExecutableImage.hpp"
 #include "Session.hpp"
+#include "assets/EmbeddedAssets.hpp"
 #include "viewer/Viewer.hpp"
+#include <charconv>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <string_view>
 #include <thread>
-
-extern "C" {
-extern const std::byte protomate_controller_image_start[];
-extern const std::uint64_t protomate_controller_image_size;
-}
 
 int main(int argc, char** argv)
 try {
     simulation::installSignalHandlers();
     bool headless{};
     simulation::SessionOptions options{};
+    simulation::viewer::ViewerOptions viewer_options{};
+    const auto number{ [](std::string_view input) {
+        double value{};
+        const auto result{ std::from_chars(input.data(), input.data() + input.size(), value) };
+        if (result.ec != std::errc{} || result.ptr != input.data() + input.size() || !std::isfinite(value))
+            throw std::invalid_argument{ "invalid numeric model option" };
+        return value;
+    } };
     int first_argument{ argc };
     for (int i{ 1 }; i < argc; ++i) {
         const std::string_view argument{ argv[i] };
@@ -27,6 +33,21 @@ try {
         else if (argument == "--media-dir" && i + 1 < argc) {
             options.media_directory = argv[++i];
         }
+        else if (argument == "--robot-models" && i + 1 < argc)
+            viewer_options.model_directory = argv[++i];
+        else if (argument == "--model-scale" && i + 1 < argc)
+            viewer_options.coordinates.millimetres_per_unit = number(argv[++i]);
+        else if (argument == "--model-up" && i + 1 < argc) {
+            const std::string_view up{ argv[++i] };
+            if (up == "y")
+                viewer_options.coordinates.up = simulation::viewer::UpAxis::Y;
+            else if (up == "z")
+                viewer_options.coordinates.up = simulation::viewer::UpAxis::Z;
+            else
+                throw std::invalid_argument{ "--model-up expects y or z" };
+        }
+        else if (argument == "--model-shoulder-height" && i + 1 < argc)
+            viewer_options.shoulder_height_mm = number(argv[++i]);
         else if (argument == "--") {
             first_argument = i + 1;
             break;
@@ -35,6 +56,9 @@ try {
             std::puts(
               "Application [--headless] [--media-dir directory] [--trace file.csv] [-- controller "
               "arguments]\n"
+              "Models: --robot-models DIR [--model-scale mm-per-unit] [--model-up y|z]\n"
+              "        [--model-shoulder-height mm]; defaults: 1000, y, 140.\n"
+              "DIR contains shoulder, forearm, carriage model files; embedded defaults are DUMMY meshes.\n"
               "One executable, two processes: native simulation and the embedded ThreadX controller.\n"
               "Close the robot window to continue headless.");
             return 0;
@@ -42,15 +66,16 @@ try {
         else
             throw std::invalid_argument{ "unknown simulator argument" };
     }
-    simulation::ExecutableImage controller{ { protomate_controller_image_start,
-                                              protomate_controller_image_size } };
+    viewer_options.coordinates.matrix();
+    simulation::viewer::robotModelTransforms(options.profile, { 0, 0, 0 }, viewer_options.shoulder_height_mm);
+    simulation::ExecutableImage controller{ simulation::assets::controllerImage() };
     simulation::Session session{ std::move(options) };
     session.launch(controller.fd(),
                    std::span{ argv + first_argument, static_cast<std::size_t>(argc - first_argument) });
     session.start();
     if (!headless) {
         try {
-            simulation::viewer::run(session);
+            simulation::viewer::run(session, viewer_options);
         } catch (const std::exception& e) {
             std::fprintf(stderr, "simulation viewer unavailable: %s; continuing headless\n", e.what());
         }

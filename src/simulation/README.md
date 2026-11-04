@@ -15,7 +15,14 @@ system shared libraries are still required.
 
 The build links the controller privately at
 `CMakeFiles/controller/controller.elf` and embeds it as read-only data in
-`Application`. It is a build intermediate, not a second deployment artifact.
+`Application` using C++26 `#embed` in `ControllerImage.cpp`. It is a build
+intermediate, not a second deployment artifact. Models and standalone GLSL
+files are embedded by `assets/RobotModels.cpp` and `assets/Shaders.cpp`; all
+asset views refer to immutable static storage. No assembly embedding templates
+or generated C++ byte lists are used. GCC's dependency files track embedded
+model/shader inputs, and CMake also explicitly tracks the generated controller
+ELF. Editing an asset rebuilds its embedding translation unit. Shader sources
+are passed to OpenGL with explicit lengths, without assuming NUL termination.
 The controller must remain a separate link image because its ThreadX threading
 ABI and libc hooks cannot be mixed with the native C++ runtime. This packaging
 preserves process isolation without loading both runtimes into one address space.
@@ -29,11 +36,21 @@ process environment variables. The child also receives SIGKILL if the parent
 dies unexpectedly. Linux must permit executable `memfd` images.
 
 The controller still owns its TouchGFX window. The viewer uses SDL2, OpenGL 4.5 core,
-GLSL 450, epoxy and GLM; it shares no renderer, shaders, widgets or graphics
+GLSL 450, epoxy, GLM and Assimp; it shares no renderer, shaders, widgets or graphics
 resources with TouchGFX. Closing the robot window leaves simulation running.
 EOF in the controller terminal requests normal application shutdown. SIGINT or
 SIGTERM stops the simulator and its child. The embedded controller requires its
 inherited simulator session; there is no automatic mock-hardware fallback.
+
+Assimp is found with `find_package(assimp CONFIG REQUIRED)` and linked through
+`assimp::assimp`, using the system installation like GLM/epoxy. It is required
+for Linux configuration, including headless runs of this same binary, and is
+absent from the embedded controller and GIGA builds. Nothing is fetched by CMake.
+
+Three embedded dummy GLB models now pass through Assimp and follow shoulder,
+elbow and Z-carriage state. The window labels them **DUMMY MODELS**. Exported
+CAD can replace them with `--robot-models DIR`; see
+[asset frames, export conventions and limitations](assets/robot/README.md).
 
 Options:
 
@@ -44,6 +61,10 @@ Options:
 - `--trace FILE.csv`: write timestamped GPIO transitions, including STEP, DIR,
   enable and reference contacts. The file is replaced. Capture buffering is
   bounded; overflow fails the session instead of silently losing edges.
+- `--robot-models DIR`: load `shoulder`, `forearm`, `carriage` mesh files from DIR.
+- `--model-scale N`, `--model-up y|z`: millimetres per imported unit and up axis
+  for external models; defaults 1000 and Y (glTF convention).
+- `--model-shoulder-height MM`: visual shoulder datum, default 140 mm.
 - `--`: pass remaining arguments to the controller.
 
 Orbit with left drag, pan with right drag, zoom with the wheel, reset the camera

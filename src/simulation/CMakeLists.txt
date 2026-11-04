@@ -2,6 +2,14 @@ target_sources(proto_ui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ControllerLink.cpp)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SIM_EPOXY REQUIRED IMPORTED_TARGET epoxy)
 find_package(glm CONFIG REQUIRED)
+find_package(assimp CONFIG REQUIRED)
+
+add_library(protomate_simulation_assets STATIC assets/RobotModels.cpp assets/Shaders.cpp)
+target_link_libraries(protomate_simulation_assets PUBLIC project_compiler_settings)
+add_library(protomate_simulation_models STATIC viewer/ModelAsset.cpp)
+target_link_libraries(protomate_simulation_models PUBLIC project_compiler_settings glm::glm PRIVATE assimp::assimp protomate_simulation_assets)
+add_library(protomate_simulation_model_renderer STATIC viewer/ModelRenderer.cpp)
+target_link_libraries(protomate_simulation_model_renderer PUBLIC protomate_simulation_models PkgConfig::SDL2 PkgConfig::SIM_EPOXY)
 
 add_library(protomate_simulation_machine STATIC
     ${PROJECT_SOURCE_DIR}/platform/simulation/SharedMemory.cpp
@@ -21,18 +29,22 @@ target_link_libraries(protomate_simulation_session PUBLIC protomate_simulation_m
 add_library(protomate_simulation_image STATIC ExecutableImage.cpp)
 target_link_libraries(protomate_simulation_image PUBLIC project_compiler_settings)
 
-# Embed the complete controller link image as read-only data. An explicit file
-# dependency rebuilds the assembly object whenever controller code changes.
-configure_file(ControllerImage.S.in ${CMAKE_CURRENT_BINARY_DIR}/ControllerImage.S @ONLY)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/ControllerImage.S PROPERTIES
-    OBJECT_DEPENDS "${PROTOMATE_CONTROLLER_IMAGE}")
-add_executable(Application main.cpp viewer/Viewer.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/ControllerImage.S)
+# The compiler embeds the complete private ELF as read-only C++26 data.
+# Track the generated ELF explicitly so changed controller code rebuilds the asset.
+set_source_files_properties(ControllerImage.cpp PROPERTIES
+    OBJECT_DEPENDS "${PROTOMATE_CONTROLLER_IMAGE}"
+    # Avoid describing the entire byte initializer again in host DWARF.
+    # The embedded controller ELF retains its own complete debug information.
+    COMPILE_OPTIONS "-g0")
+add_executable(Application main.cpp viewer/Viewer.cpp ControllerImage.cpp)
+target_compile_definitions(Application PRIVATE
+    PROTOMATE_CONTROLLER_IMAGE="${PROTOMATE_CONTROLLER_IMAGE}")
 add_dependencies(Application ${PROTOMATE_CONTROLLER_TARGET})
 set_target_properties(Application PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-target_link_libraries(Application PRIVATE protomate_simulation_session protomate_simulation_image PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
+target_link_libraries(Application PRIVATE protomate_simulation_session protomate_simulation_image protomate_simulation_model_renderer PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
 foreach(target Application protomate_simulation_machine protomate_simulation_session
-               protomate_simulation_image protomate_simulation_bridge)
+               protomate_simulation_image protomate_simulation_bridge
+               protomate_simulation_models protomate_simulation_model_renderer protomate_simulation_assets)
     target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
 endforeach()
 add_custom_target(run-simulation COMMAND $<TARGET_FILE:Application>
@@ -51,8 +63,12 @@ if(BUILD_TESTING)
     target_link_libraries(protomate_simulation_session_tests PRIVATE protomate_simulation_session)
     add_test(NAME simulation.session COMMAND protomate_simulation_session_tests)
     set_tests_properties(simulation.session PROPERTIES TIMEOUT 15)
+    add_executable(protomate_simulation_model_tests tests/model_test.cpp)
+    target_link_libraries(protomate_simulation_model_tests PRIVATE protomate_simulation_models)
+    add_test(NAME simulation.models COMMAND protomate_simulation_model_tests)
+    set_tests_properties(simulation.models PROPERTIES TIMEOUT 30)
     add_executable(protomate_simulation_gl_tests tests/gl_test.cpp)
-    target_link_libraries(protomate_simulation_gl_tests PRIVATE project_compiler_settings PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
+    target_link_libraries(protomate_simulation_gl_tests PRIVATE protomate_simulation_model_renderer project_compiler_settings PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
     add_executable(protomate_simulation_client_probe tests/client_probe.cpp)
     runtime_attach(protomate_simulation_client_probe)
     target_include_directories(protomate_simulation_client_probe PRIVATE ${PROJECT_SOURCE_DIR}/platform)
@@ -73,7 +89,7 @@ if(BUILD_TESTING)
     add_test(NAME simulation.launch COMMAND protomate_simulation_launch_tests)
     set_tests_properties(simulation.launch PROPERTIES TIMEOUT 10)
     add_test(NAME simulation.packaging COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging.py $<TARGET_FILE:Application>)
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging.py $<TARGET_FILE:Application> $<TARGET_FILE:${PROTOMATE_CONTROLLER_TARGET}>)
     set_tests_properties(simulation.packaging PROPERTIES TIMEOUT 60)
     find_program(SIM_XVFB_RUN xvfb-run)
     if(SIM_XVFB_RUN)
