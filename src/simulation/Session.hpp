@@ -15,7 +15,9 @@ namespace simulation
         ~Session();
         Session(const Session&) = delete;
         Session& operator=(const Session&) = delete;
-        void launch(const char* executable, std::span<char*> arguments);
+        // Must precede start() and any SDL/thread initialization. The child only
+        // performs async-signal-safe setup before executing the supplied ELF fd.
+        void launch(int executable_fd, std::span<char*> arguments);
         void start();
         void stop() noexcept;
         bool running() const noexcept { return m_running.load(); }

@@ -42,6 +42,10 @@ add_library(runtime::threads ALIAS runtime_threads)
 target_sources(runtime_threads INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/ThreadGroup.hpp)
 target_link_libraries(runtime_threads INTERFACE runtime::runtime pneumo::meta)
 
+if(NOT DEFINED PROTOMATE_CONTROLLER_TARGET)
+    set(PROTOMATE_CONTROLLER_TARGET ${PROJECT_NAME})
+endif()
+
 function(runtime_attach target_name)
     if(NOT TARGET ${target_name})
         message(FATAL_ERROR "Unknown runtime executable target: ${target_name}")
@@ -63,7 +67,7 @@ function(runtime_attach target_name)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         target_link_options(${target_name} PRIVATE LINKER:--undefined=protomate_sim_wait_interrupt)
-        if(NOT target_name STREQUAL "Application")
+        if(NOT "${target_name}" STREQUAL "${PROTOMATE_CONTROLLER_TARGET}")
             target_sources(${target_name} PRIVATE
                 ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/Hardware.cpp
                 ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/LegacyStepHardware.cpp
@@ -77,7 +81,7 @@ function(runtime_attach target_name)
     )
 endfunction()
 
-runtime_attach(${PROJECT_NAME})
+runtime_attach(${PROTOMATE_CONTROLLER_TARGET})
 
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_subdirectory(tests)

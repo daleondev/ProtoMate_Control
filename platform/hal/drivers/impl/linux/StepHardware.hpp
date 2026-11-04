@@ -8,7 +8,7 @@
 
 namespace hal::util
 {
-    // Register/DMA proxy only. Electrical events execute in protomate-sim.
+    // Register/DMA proxy only. Electrical events execute in the native simulation process.
     class LinuxStepHardware final : public StepHardware
     {
       public:

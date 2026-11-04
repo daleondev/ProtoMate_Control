@@ -9,10 +9,10 @@ import time
 import tempfile
 import csv
 
-simulator, controller = sys.argv[1:3]
+simulator = sys.argv[1]
 artifacts = tempfile.TemporaryDirectory(prefix="protomate-integration-")
 trace_path = os.path.join(artifacts.name,"signals.csv")
-process = subprocess.Popen([simulator, "--headless", "--trace", trace_path, "--controller", controller], stdin=subprocess.PIPE,
+process = subprocess.Popen([simulator, "--headless", "--trace", trace_path], stdin=subprocess.PIPE,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            env={**os.environ, "SDL_VIDEODRIVER": "dummy"})
 selector = selectors.DefaultSelector()

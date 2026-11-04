@@ -18,11 +18,21 @@ target_link_libraries(protomate_simulation_bridge PUBLIC project_compiler_settin
 add_library(protomate_simulation_session STATIC Session.cpp)
 target_link_libraries(protomate_simulation_session PUBLIC protomate_simulation_machine protomate_simulation_bridge pneumo::messaging Threads::Threads)
 
-add_executable(protomate-sim main.cpp viewer/Viewer.cpp)
-set_target_properties(protomate-sim PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-target_link_libraries(protomate-sim PRIVATE protomate_simulation_session PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
-add_custom_target(run-simulation COMMAND $<TARGET_FILE:protomate-sim> --controller $<TARGET_FILE:Application>
-    DEPENDS protomate-sim Application USES_TERMINAL)
+add_library(protomate_simulation_image STATIC ExecutableImage.cpp)
+target_link_libraries(protomate_simulation_image PUBLIC project_compiler_settings)
+
+# Embed the complete controller link image as read-only data. An explicit file
+# dependency rebuilds the assembly object whenever controller code changes.
+configure_file(ControllerImage.S.in ${CMAKE_CURRENT_BINARY_DIR}/ControllerImage.S @ONLY)
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/ControllerImage.S PROPERTIES
+    OBJECT_DEPENDS "${PROTOMATE_CONTROLLER_IMAGE}")
+add_executable(Application main.cpp viewer/Viewer.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/ControllerImage.S)
+add_dependencies(Application ${PROTOMATE_CONTROLLER_TARGET})
+set_target_properties(Application PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+target_link_libraries(Application PRIVATE protomate_simulation_session protomate_simulation_image PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
+add_custom_target(run-simulation COMMAND $<TARGET_FILE:Application>
+    DEPENDS Application USES_TERMINAL)
 
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -31,10 +41,19 @@ if(BUILD_TESTING)
     add_executable(protomate_simulation_storage_probe tests/storage_probe.cpp)
     runtime_attach(protomate_simulation_storage_probe)
     target_include_directories(protomate_simulation_storage_probe PRIVATE ${PROJECT_SOURCE_DIR}/platform)
-    add_test(NAME simulation.storage COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/storage.py $<TARGET_FILE:protomate-sim> $<TARGET_FILE:protomate_simulation_storage_probe>)
+    add_executable(protomate_simulation_test_launcher tests/launcher.cpp)
+    target_link_libraries(protomate_simulation_test_launcher PRIVATE protomate_simulation_session)
+    add_test(NAME simulation.storage COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/storage.py $<TARGET_FILE:protomate_simulation_test_launcher> $<TARGET_FILE:protomate_simulation_storage_probe>)
     set_tests_properties(simulation.storage PROPERTIES TIMEOUT 125)
-    add_test(NAME simulation.lifecycle COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/lifecycle.py $<TARGET_FILE:protomate-sim> $<TARGET_FILE:Application>)
+    add_test(NAME simulation.lifecycle COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/lifecycle.py $<TARGET_FILE:Application>)
     set_tests_properties(simulation.lifecycle PROPERTIES TIMEOUT 60)
+    add_executable(protomate_simulation_launch_tests tests/launch_test.cpp)
+    target_link_libraries(protomate_simulation_launch_tests PRIVATE protomate_simulation_session protomate_simulation_image)
+    add_test(NAME simulation.launch COMMAND protomate_simulation_launch_tests)
+    set_tests_properties(simulation.launch PROPERTIES TIMEOUT 10)
+    add_test(NAME simulation.packaging COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging.py $<TARGET_FILE:Application>)
+    set_tests_properties(simulation.packaging PROPERTIES TIMEOUT 60)
     find_program(SIM_XVFB_RUN xvfb-run)
     if(SIM_XVFB_RUN)
         add_test(NAME simulation.opengl COMMAND ${SIM_XVFB_RUN} -a $<TARGET_FILE:protomate_simulation_gl_tests>)
@@ -45,6 +64,6 @@ if(BUILD_TESTING)
     add_test(NAME simulation.machine COMMAND protomate_simulation_tests)
     set_tests_properties(simulation.machine PROPERTIES TIMEOUT 15)
     add_test(NAME simulation.integration COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.py $<TARGET_FILE:protomate-sim> $<TARGET_FILE:Application>)
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.py $<TARGET_FILE:Application>)
     set_tests_properties(simulation.integration PROPERTIES TIMEOUT 90)
 endif()

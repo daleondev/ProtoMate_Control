@@ -30,12 +30,12 @@ else()
     add_subdirectory(io)
     add_subdirectory(ui)
 
-    target_sources(${PROJECT_NAME} 
+    target_sources(${PROTOMATE_CONTROLLER_TARGET}
         PRIVATE 
             ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
     )
 
-    target_link_libraries(${PROJECT_NAME} 
+    target_link_libraries(${PROTOMATE_CONTROLLER_TARGET}
         PRIVATE 
             proto::io 
             proto::ui

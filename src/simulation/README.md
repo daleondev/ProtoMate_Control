@@ -3,21 +3,37 @@
 ```sh
 cmake --preset debug-linux
 cmake --build --preset debug-linux -j4
-./build/debug-linux/protomate-sim
+./build/debug-linux/Application
 ```
 
-The launcher starts the existing controller and a native robot viewer. The
-controller still owns its TouchGFX window. The viewer uses SDL2, OpenGL 4.5 core,
+`Application` is the only project executable needed for deployment. It forks
+before starting threads or SDL. The parent runs the native simulation and robot
+viewer; the child executes the embedded controller image from a sealed Linux
+`memfd`, retaining its own ThreadX C++ runtime and TouchGFX window. Nothing is
+extracted to disk, and no sibling controller executable is required. The normal
+system shared libraries are still required.
+
+The build links the controller privately at
+`CMakeFiles/controller/controller.elf` and embeds it as read-only data in
+`Application`. It is a build intermediate, not a second deployment artifact.
+The controller must remain a separate link image because its ThreadX threading
+ABI and libc hooks cannot be mixed with the native C++ runtime. This packaging
+preserves process isolation without loading both runtimes into one address space.
+
+The parent reports child startup/exec errors immediately, propagates its exit
+status, and reaps it on shutdown. The child also receives SIGKILL if the parent
+dies unexpectedly. Linux must permit executable `memfd` images.
+
+The controller still owns its TouchGFX window. The viewer uses SDL2, OpenGL 4.5 core,
 GLSL 450, epoxy and GLM; it shares no renderer, shaders, widgets or graphics
 resources with TouchGFX. Closing the robot window leaves simulation running.
 EOF in the controller terminal requests normal application shutdown. SIGINT or
-SIGTERM stops the simulator and its child. The controller executable requires a
-simulator session; there is no automatic mock-hardware fallback.
+SIGTERM stops the simulator and its child. The embedded controller requires its
+inherited simulator session; there is no automatic mock-hardware fallback.
 
 Options:
 
 - `--headless`: omit the robot window; the controller display is independent.
-- `--controller PATH`: choose the controller executable (default: sibling `Application`).
 - `--media-dir DIR`: retain isolated `flash.img` and `sd.img`; otherwise use
   temporary, unlinked files. Existing images are size-checked and exclusively
   locked. Host `/flash` files are not used as simulated raw media.
@@ -58,8 +74,8 @@ mechanical position feedback.
 
 ## Process and time boundaries
 
-`Application` owns production device behavior, control, scheduling, planning,
-FileX/LevelX, CLI and TouchGFX. `protomate-sim` owns the timer/DMA register model,
+The controller child owns production device behavior, control, scheduling,
+planning, FileX/LevelX, CLI and TouchGFX. The native parent owns the timer/DMA register model,
 GPIO levels, motor-driver registers, encoder count, shaft truth, raw media files
 and native rendering. Legacy STEP/TMC emulators are isolated test fixtures and
 are not linked into the production controller executable.
@@ -160,3 +176,9 @@ remain available. `simulation.lifecycle` kills/stalls peers and checks child
 cleanup. `simulation.storage` writes files through FileX/LevelX, restarts both
 processes, and reads them from the retained native images. GIGA builds exclude
 the native simulator.
+
+`simulation.packaging` copies only `Application` to an empty directory, starts
+it, reads native hardware state through the controller, verifies exactly one
+controller child executing from memory, and checks shutdown without extracted
+files. `simulation.launch` checks image seals and failure/reaping behavior for
+invalid embedded images.

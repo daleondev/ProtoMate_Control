@@ -25,8 +25,9 @@ commands. A shared TouchGFX showcase runs on M7 and Linux; robot planning and ap
 
 ## Native Linux robot simulation
 
-Build as usual, then launch **`build/debug-linux/protomate-sim`**, which starts
-`Application` and its TouchGFX window plus a separate robot window. Use
+Build as usual, then launch **`build/debug-linux/Application`**. This one
+executable forks into a native simulation process and a controller process,
+opening the TouchGFX window plus a separate robot window. Use
 `--headless` to omit only the robot window. See [simulator usage and model
 boundaries](src/simulation/README.md) for the provisional physical profile,
 fault controls, persistent media, signal capture and verification commands.

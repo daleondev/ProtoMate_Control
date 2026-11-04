@@ -35,11 +35,18 @@ add_library(project_compiler_settings INTERFACE)
 target_compile_features(project_compiler_settings INTERFACE cxx_std_26)
 include(cmake/platform_linux.cmake)
 
-add_executable(${PROJECT_NAME})
-target_link_libraries(${PROJECT_NAME} PRIVATE platform project_compiler_settings)
-target_compile_options(${PROJECT_NAME} PRIVATE
+# The ThreadX controller is a private link image embedded into the native
+# Application executable. Its C++ runtime must never be linked into the host.
+set(PROTOMATE_CONTROLLER_TARGET protomate_controller)
+set(PROTOMATE_CONTROLLER_IMAGE ${PROJECT_BINARY_DIR}/CMakeFiles/controller/controller.elf)
+add_executable(${PROTOMATE_CONTROLLER_TARGET})
+set_target_properties(${PROTOMATE_CONTROLLER_TARGET} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/CMakeFiles/controller
+    OUTPUT_NAME controller SUFFIX .elf)
+target_link_libraries(${PROTOMATE_CONTROLLER_TARGET} PRIVATE platform project_compiler_settings)
+target_compile_options(${PROTOMATE_CONTROLLER_TARGET} PRIVATE
     "$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
-target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=8192U)
+target_compile_definitions(${PROTOMATE_CONTROLLER_TARGET} PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=8192U)
 
 add_subdirectory(external/pneumo)
 add_subdirectory(platform/hal)

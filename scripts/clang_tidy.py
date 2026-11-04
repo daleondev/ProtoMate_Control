@@ -162,7 +162,7 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
                 if object_file is None:
                     raise ValueError("Runtime startup command has no output; cannot identify Application")
                 relative_output = os.path.relpath(Path(entry["directory"]) / object_file, directory)
-                if not relative_output.startswith("CMakeFiles/Application.dir/"):
+                if not relative_output.startswith(("CMakeFiles/Application.dir/", "CMakeFiles/protomate_controller.dir/")):
                     continue
             # Native simulation deliberately compiles ICC/codec sources again
             # without ThreadX's C++ ABI. Analyze both real configurations.

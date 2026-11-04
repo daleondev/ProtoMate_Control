@@ -16,7 +16,7 @@ add_dependencies(proto_ui_gui gui-assets)
 # Rendering must be optimized even in Debug; preserve symbols.
 target_compile_options(proto_ui_gui PRIVATE -O2)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/integration/Host.cpp)
+    target_sources(${PROTOMATE_CONTROLLER_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/integration/Host.cpp)
 endif()
 
 if(STM32_CORE STREQUAL "CM7")

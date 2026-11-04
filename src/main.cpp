@@ -12,7 +12,7 @@
 int main()
 try {
     if (!simulation::client::connected() || simulation::client::failed()) {
-        std::fputs("Start through protomate-sim to connect simulated hardware.\n", stderr);
+        std::fputs("Launch the packaged Application to connect simulated hardware.\n", stderr);
         return EXIT_FAILURE;
     }
     simulation::ControllerLink simulator{};

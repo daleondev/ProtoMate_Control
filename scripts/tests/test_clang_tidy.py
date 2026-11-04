@@ -146,22 +146,23 @@ class PartialLintTests(unittest.TestCase):
             self.assertIn("--target=arm-none-eabi", entries[1]["arguments"])
 
     def test_startup_uses_application_command_instead_of_tests_or_examples(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            build = Path(temporary)
-            output = build / "lint"
-            output.mkdir()
-            source = tidy.ROOT / "platform/runtime/startup.cpp"
-            entries = [{"directory": str(build), "file": str(source),
-                        "arguments": ["g++", "-D" + label, "-o", obj, "-c", str(source)]}
-                       for label, obj in (
-                           ("TEST", "platform/runtime/tests/CMakeFiles/runtime_tests.dir/__/startup.cpp.o"),
-                           ("EXAMPLE", "src/p2p/examples/CMakeFiles/example.dir/startup.cpp.o"),
-                           ("APPLICATION", "CMakeFiles/Application.dir/platform/runtime/startup.cpp.o"))]
-            (build / "compile_commands.json").write_text(json.dumps(entries))
-            tidy.prepare_database(build, output)
-            selected = json.loads((output / "analysis.json").read_text())
-            self.assertEqual(len(selected), 1)
-            self.assertIn("-DAPPLICATION", selected[0]["arguments"])
+        for target in ("Application", "protomate_controller"):
+            with tempfile.TemporaryDirectory() as temporary:
+                build = Path(temporary)
+                output = build / "lint"
+                output.mkdir()
+                source = tidy.ROOT / "platform/runtime/startup.cpp"
+                entries = [{"directory": str(build), "file": str(source),
+                            "arguments": ["g++", "-D" + label, "-o", obj, "-c", str(source)]}
+                           for label, obj in (
+                               ("TEST", "platform/runtime/tests/CMakeFiles/runtime_tests.dir/__/startup.cpp.o"),
+                               ("EXAMPLE", "src/p2p/examples/CMakeFiles/example.dir/startup.cpp.o"),
+                               ("APPLICATION", f"CMakeFiles/{target}.dir/platform/runtime/startup.cpp.o"))]
+                (build / "compile_commands.json").write_text(json.dumps(entries))
+                tidy.prepare_database(build, output)
+                selected = json.loads((output / "analysis.json").read_text())
+                self.assertEqual(len(selected), 1)
+                self.assertIn("-DAPPLICATION", selected[0]["arguments"])
 
     def test_model_test_recompilations_do_not_duplicate_production_commands(self):
         with tempfile.TemporaryDirectory() as temporary:
