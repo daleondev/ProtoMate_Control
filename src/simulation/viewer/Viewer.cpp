@@ -80,7 +80,7 @@ void main() { float light = unlit != 0 ? 1.0 : 0.28 + 0.72 * max(dot(normalize(w
     }
     void run(Session& session)
     {
-        const Profile profile{};
+        const auto& profile{ session.profile() };
         const float upper{ static_cast<float>(profile.geometry_mm[0]) },
           forearm{ static_cast<float>(profile.geometry_mm[1]) },
           tool{ static_cast<float>(profile.geometry_mm[2]) };

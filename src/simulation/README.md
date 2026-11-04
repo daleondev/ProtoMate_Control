@@ -21,7 +21,11 @@ ABI and libc hooks cannot be mixed with the native C++ runtime. This packaging
 preserves process isolation without loading both runtimes into one address space.
 
 The parent reports child startup/exec errors immediately, propagates its exit
-status, and reaps it on shutdown. The child also receives SIGKILL if the parent
+status after reaping it (even when IPC closes first), and bounds shutdown.
+`ControllerProcess` owns fork/exec/reaping; `Session` owns IPC and the worker.
+Typed `SessionOptions` supplies the media path, trace path and one immutable
+physical profile shared with the viewer. Simulator options are not ambient
+process environment variables. The child also receives SIGKILL if the parent
 dies unexpectedly. Linux must permit executable `memfd` images.
 
 The controller still owns its TouchGFX window. The viewer uses SDL2, OpenGL 4.5 core,
@@ -50,7 +54,7 @@ the machine clock or performs HAL calls.
 
 ## Physical profile and scope
 
-`Machine.hpp::Profile` defines **cad-provisional-v1**, not a calibrated robot.
+`Profile.hpp::Profile` defines **cad-provisional-v1**, not a calibrated robot.
 Its arm lengths are 205 and 223.4 mm, with a 135 mm distal tool offset. Rotary
 gearing is provisionally 6:1 and Z travel 8 mm/revolution. Shaft reference
 positions are 135 degrees; corresponding joint references are 0 rad, 1.2 rad,
@@ -107,6 +111,7 @@ at up to 100 Hz and renders at approximately 60 Hz.
 
 - STEP uses the existing 100 ns tick model, compare toggles, 32-bit timer wrap,
   double-buffer DMA, remaining counts, bank ownership and interrupt delivery.
+  GPIO, PWM and coordinated STEP share one electrical signal path and trace.
   Signed pulses drive electrical phase; mechanics advance at the valid falling
   edge. A shortened pulse can be rejected without inventing a driver alarm.
   The conservative simulation pulse constraints are 2.5 us high and 5 us DIR
@@ -145,7 +150,8 @@ motor disable
 ```
 
 `sim status` reports native truth independently of `motor status`. `sim power
-on|off` controls simulated driver power. `sim fault m1|m2|m3 NAME` selects one
+on|off` controls the simulated motor supply only; MCU timers, GPIO enable and
+driver logic remain live. A pulse interrupted by power loss is discarded. `sim fault m1|m2|m3 NAME` selects one
 fault for that axis, replacing its previous fault:
 
 - `clear`, `alarm`, `reference-stuck`, `reference-open`, `lost-step`;
@@ -153,6 +159,10 @@ fault for that axis, replacing its previous fault:
 - `slip DEGREES` (one-time signed physical displacement);
 - `dma-delay`, `irq-delay` (held until cleared);
 - `uart-open`, `uart-corrupt` (M2/M3 only).
+
+The `lost-step` fault preserves electrical pulse counts and INDEX phase while
+preventing shaft movement. It is distinct from disconnecting STEP. Invalid
+fault requests preserve the existing fault and pose.
 
 Clearing an injected fault does not reset controller fault latches or re-enable
 motors. Recover explicitly through the existing controller commands. Reference
@@ -182,3 +192,12 @@ it, reads native hardware state through the controller, verifies exactly one
 controller child executing from memory, and checks shutdown without extracted
 files. `simulation.launch` checks image seals and failure/reaping behavior for
 invalid embedded images.
+
+The architecture test inspects both real link images to prevent ThreadX/TouchGFX
+from entering the native process and simulated hardware from entering the
+controller. Additional regressions exercise early IPC close with delayed or
+stalled child exit, invalid session descriptors, a delayed initial heartbeat,
+corrupt queues, immutable deferred DMA publications, invalid timer updates,
+fractional prescalers, power interruption, common GPIO/PWM wiring, Z gearing,
+exception cleanup and OpenGL context ownership. Run `simulation.regressions`
+and `simulation.machine` under the sanitizer preset for native model checks.

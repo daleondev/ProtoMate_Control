@@ -15,16 +15,17 @@ int main(int argc, char** argv)
 try {
     simulation::installSignalHandlers();
     bool headless{};
+    simulation::SessionOptions options{};
     int first_argument{ argc };
     for (int i{ 1 }; i < argc; ++i) {
         const std::string_view argument{ argv[i] };
         if (argument == "--headless")
             headless = true;
         else if (argument == "--trace" && i + 1 < argc) {
-            setenv("PROTOMATE_TRACE", argv[++i], 1);
+            options.trace_path = argv[++i];
         }
         else if (argument == "--media-dir" && i + 1 < argc) {
-            setenv("PROTOMATE_MEDIA_DIR", argv[++i], 1);
+            options.media_directory = argv[++i];
         }
         else if (argument == "--") {
             first_argument = i + 1;
@@ -43,7 +44,7 @@ try {
     }
     simulation::ExecutableImage controller{ { protomate_controller_image_start,
                                               protomate_controller_image_size } };
-    simulation::Session session{};
+    simulation::Session session{ std::move(options) };
     session.launch(controller.fd(),
                    std::span{ argv + first_argument, static_cast<std::size_t>(argc - first_argument) });
     session.start();

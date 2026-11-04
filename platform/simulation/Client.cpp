@@ -1,11 +1,16 @@
 #include "Client.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
+#include <algorithm>
 #include <cerrno>
+#include <charconv>
 #include <cstdio>
 #include <cstdlib>
+#include <fcntl.h>
 #include <memory>
 #include <pthread.h>
+#include <string_view>
 #include <tx_api.h>
+#include <unistd.h>
 
 namespace simulation::client
 {
@@ -23,7 +28,8 @@ namespace simulation::client
             std::array<void*, 21> timers{};
             std::array<void (*)(void*), 21> timer_callbacks{};
             std::array<Packet, 64> deferred{};
-            unsigned deferred_count{};
+            unsigned deferred_count{}, bulk_used{};
+            std::uint64_t started{ hostNow() };
             std::function<void()> step_callback;
             Connection()
             {
@@ -31,11 +37,40 @@ namespace simulation::client
                 if (!value)
                     return;
                 try {
-                    mapping = std::make_unique<Mapping>(std::stoi(value));
-                    request_fd = std::stoi(std::getenv("PROTOMATE_SIM_REQUEST_FD"));
-                    response_fd = std::stoi(std::getenv("PROTOMATE_SIM_RESPONSE_FD"));
-                    interrupt_fd = std::stoi(std::getenv("PROTOMATE_SIM_INTERRUPT_FD"));
-                    acknowledged_fd = std::stoi(std::getenv("PROTOMATE_SIM_ACK_FD"));
+                    const auto descriptor{ [](const char* name) {
+                        const char* text{ std::getenv(name) };
+                        if (!text)
+                            throw std::invalid_argument{ "missing simulator descriptor" };
+                        const std::string_view view{ text };
+                        int fd{};
+                        const auto parsed{ std::from_chars(view.data(), view.data() + view.size(), fd) };
+                        if (parsed.ec != std::errc{} || parsed.ptr != view.data() + view.size() || fd < 3 ||
+                            fcntl(fd, F_GETFD) < 0)
+                            throw std::invalid_argument{ "invalid simulator descriptor" };
+                        return fd;
+                    } };
+                    const std::array<int, 5> fds{ descriptor("PROTOMATE_SIM_FD"),
+                                                  descriptor("PROTOMATE_SIM_REQUEST_FD"),
+                                                  descriptor("PROTOMATE_SIM_RESPONSE_FD"),
+                                                  descriptor("PROTOMATE_SIM_INTERRUPT_FD"),
+                                                  descriptor("PROTOMATE_SIM_ACK_FD") };
+                    for (unsigned i{}; i < fds.size(); ++i) {
+                        for (unsigned j{}; j < i; ++j)
+                            if (fds[i] == fds[j])
+                                throw std::invalid_argument{ "aliased simulator descriptors" };
+                        if (fcntl(fds[i], F_SETFD, FD_CLOEXEC) < 0)
+                            throw std::runtime_error{ "simulator descriptor flags" };
+                    }
+                    auto checked{ std::make_unique<Mapping>(fds[0]) };
+                    if (acquire(checked->memory().closed) || acquire(checked->memory().client_ready))
+                        throw std::invalid_argument{ "closed or already claimed simulator session" };
+                    request_fd = fds[1];
+                    response_fd = fds[2];
+                    interrupt_fd = fds[3];
+                    acknowledged_fd = fds[4];
+                    mapping = std::move(checked);
+                    close(fds[0]);
+                    release(mapping->memory().client_heartbeat, hostNow());
                     release(mapping->memory().client_ready, 1U);
                 } catch (...) {
                     failed.store(true);
@@ -91,8 +126,11 @@ namespace simulation::client
         try {
             auto frame{ encode(request) };
             const auto deadline{ hostNow() + 1'000'000'000ULL };
-            while (enqueue(m.registers[0], frame) == QueueResult::Full) {
-                if (c.isr || hostNow() >= deadline) {
+            for (;;) {
+                const auto queued{ enqueue(m.registers[0], frame) };
+                if (queued == QueueResult::Success)
+                    break;
+                if (queued != QueueResult::Full || acquire(m.closed) || hostNow() >= deadline) {
                     fault();
                     return result;
                 }
@@ -105,16 +143,12 @@ namespace simulation::client
                 const auto state{ dequeue(m.registers[1], bytes, size) };
                 if (state == QueueResult::Success) {
                     auto reply{ decode(std::span{ bytes }.first(size)) };
-                    if (reply.session != m.session) {
+                    if (reply.session != m.session || reply.sequence != request.sequence ||
+                        reply.operation != request.operation) {
                         fault();
                         return result;
                     }
-                    if (reply.sequence == request.sequence)
-                        return reply;
-                    if (reply.sequence > request.sequence) {
-                        fault();
-                        return result;
-                    }
+                    return reply;
                 }
                 else if (state != QueueResult::Empty) {
                     fault();
@@ -130,6 +164,25 @@ namespace simulation::client
             fault();
             return result;
         }
+    }
+    bool publishBank(unsigned axis, unsigned bank, std::span<const std::byte> bytes) noexcept
+    {
+        static_assert(sizeof(hal::util::StepBuffer) <= BULK_BYTES);
+        auto& c{ connection() };
+        if (!c.mapping || c.failed || bytes.size() != sizeof(hal::util::StepBuffer))
+            return false;
+        if (c.isr && c.bulk_used == BULK_COUNT) {
+            fault();
+            return false;
+        }
+        // Deferred writes need distinct immutable slots until the entire IRQ
+        // batch is acknowledged. Reusing axis*2+bank invalidated earlier writes.
+        const unsigned slot{ c.isr ? c.bulk_used++ : 0 };
+        auto& shared{ c.mapping->memory() };
+        std::copy(bytes.begin(), bytes.end(), shared.bulk[slot].begin());
+        const auto generation{ acquire(shared.bulk_generation[slot]) + 1U };
+        release(shared.bulk_generation[slot], generation);
+        return command(Operation::Publish, { axis, bank, slot, generation, checksum(bytes) }).status == 0;
     }
     Packet command(Operation operation, std::array<std::uint64_t, 8> arguments) noexcept
     {
@@ -229,7 +282,9 @@ extern "C" int protomate_sim_wait_interrupt()
         if (acquire(m.irq_sequence) != acquire(m.irq_ack))
             return static_cast<int>(acquire(m.irq_flags));
         const auto last{ acquire(m.server_heartbeat) };
-        if (hostNow() - last > 1'000'000'000ULL) {
+        const auto wall{ hostNow() };
+        if ((last && wall > last && wall - last > 1'000'000'000ULL) ||
+            (!last && wall - c.started > 10'000'000'000ULL)) {
             client::fault();
             return -1;
         }
@@ -256,7 +311,7 @@ extern "C" void protomate_sim_dispatch_interrupt()
             break;
         }
     }
-    c.deferred_count = 0;
+    c.deferred_count = c.bulk_used = 0;
 }
 extern "C" void protomate_sim_ack_interrupt()
 {

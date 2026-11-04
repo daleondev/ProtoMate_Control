@@ -105,6 +105,10 @@ namespace simulation
     }
     Mapping::Mapping(int fd)
     {
+        const int seals{ fcntl(fd, F_GET_SEALS) };
+        constexpr int required{ F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL };
+        if (seals < 0 || (seals & required) != required)
+            throw std::runtime_error{ "unsealed simulation mapping" };
         struct stat information{};
         if (syscall(SYS_fstat, fd, &information) != 0 || information.st_size != MAPPING_BYTES)
             throw std::runtime_error{ "invalid simulation mapping size" };

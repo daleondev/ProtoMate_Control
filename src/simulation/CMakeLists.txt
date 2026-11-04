@@ -15,7 +15,7 @@ add_library(protomate_simulation_bridge STATIC
     ../common/icc/bridge/ActionBridge.cpp ../common/icc/bridge/Frame.cpp)
 target_include_directories(protomate_simulation_bridge PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/platform)
 target_link_libraries(protomate_simulation_bridge PUBLIC project_compiler_settings pneumo::coroutines pneumo::messaging)
-add_library(protomate_simulation_session STATIC Session.cpp)
+add_library(protomate_simulation_session STATIC Session.cpp ControllerProcess.cpp)
 target_link_libraries(protomate_simulation_session PUBLIC protomate_simulation_machine protomate_simulation_bridge pneumo::messaging Threads::Threads)
 
 add_library(protomate_simulation_image STATIC ExecutableImage.cpp)
@@ -31,13 +31,34 @@ add_executable(Application main.cpp viewer/Viewer.cpp
 add_dependencies(Application ${PROTOMATE_CONTROLLER_TARGET})
 set_target_properties(Application PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 target_link_libraries(Application PRIVATE protomate_simulation_session protomate_simulation_image PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
+foreach(target Application protomate_simulation_machine protomate_simulation_session
+               protomate_simulation_image protomate_simulation_bridge)
+    target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
+endforeach()
 add_custom_target(run-simulation COMMAND $<TARGET_FILE:Application>
     DEPENDS Application USES_TERMINAL)
 
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME simulation.architecture COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/architecture.py
+        ${CMAKE_NM} $<TARGET_FILE:Application> $<TARGET_FILE:${PROTOMATE_CONTROLLER_TARGET}>)
+    set_tests_properties(simulation.architecture PROPERTIES TIMEOUT 30)
+    add_executable(protomate_simulation_review_tests tests/review_test.cpp)
+    target_link_libraries(protomate_simulation_review_tests PRIVATE protomate_simulation_machine)
+    add_test(NAME simulation.regressions COMMAND protomate_simulation_review_tests)
+    set_tests_properties(simulation.regressions PROPERTIES TIMEOUT 15)
+    add_executable(protomate_simulation_session_tests tests/session_test.cpp)
+    target_link_libraries(protomate_simulation_session_tests PRIVATE protomate_simulation_session)
+    add_test(NAME simulation.session COMMAND protomate_simulation_session_tests)
+    set_tests_properties(simulation.session PROPERTIES TIMEOUT 15)
     add_executable(protomate_simulation_gl_tests tests/gl_test.cpp)
     target_link_libraries(protomate_simulation_gl_tests PRIVATE project_compiler_settings PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
+    add_executable(protomate_simulation_client_probe tests/client_probe.cpp)
+    runtime_attach(protomate_simulation_client_probe)
+    target_include_directories(protomate_simulation_client_probe PRIVATE ${PROJECT_SOURCE_DIR}/platform)
+    add_test(NAME simulation.client COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/client_test.py
+        $<TARGET_FILE:protomate_simulation_test_launcher> $<TARGET_FILE:protomate_simulation_client_probe>)
+    set_tests_properties(simulation.client PROPERTIES TIMEOUT 90)
     add_executable(protomate_simulation_storage_probe tests/storage_probe.cpp)
     runtime_attach(protomate_simulation_storage_probe)
     target_include_directories(protomate_simulation_storage_probe PRIVATE ${PROJECT_SOURCE_DIR}/platform)

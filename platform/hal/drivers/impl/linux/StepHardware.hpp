@@ -36,6 +36,7 @@ namespace hal::util
 
       private:
         StepBuffers memory{};
-        std::array<std::array<std::uint32_t, 2>, 3> m_published{};
+        StepBuffers m_published{};
+        std::array<std::array<bool, 2>, 3> m_valid{};
     };
 }

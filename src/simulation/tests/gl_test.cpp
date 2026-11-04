@@ -48,6 +48,21 @@ void main(){color=vec4(0.2,0.8,0.4,1);})" };
         dimensions = true;
     }
     require(dimensions, "invalid resize rejected");
+    unsigned rejected_accesses{};
+    std::thread wrong_thread{ [&] {
+        try {
+            program.get();
+        } catch (const std::logic_error&) {
+            ++rejected_accesses;
+        }
+        try {
+            target.get();
+        } catch (const std::logic_error&) {
+            ++rejected_accesses;
+        }
+    } };
+    wrong_thread.join();
+    require(rejected_accesses == 2, "cross-thread GL access must throw, not terminate or return a handle");
     std::array<Vertex, 3> vertices{ { { { -1, -1, 0 }, {} }, { { 1, -1, 0 }, {} }, { { 0, 1, 0 }, {} } } };
     Mesh mesh{ context, vertices };
     glBindFramebuffer(GL_FRAMEBUFFER, target.get());

@@ -1,17 +1,26 @@
 #pragma once
-#include "Machine.hpp"
+#include "ControllerProcess.hpp"
+#include "Profile.hpp"
+#include "simulation/SharedMemory.hpp"
 #include <atomic>
+#include <filesystem>
 #include <mutex>
 #include <thread>
 
 namespace simulation
 {
+    class Machine;
     bool stopRequested() noexcept;
     void installSignalHandlers();
+    struct SessionOptions
+    {
+        Profile profile{};
+        std::filesystem::path media_directory{}, trace_path{};
+    };
     class Session
     {
       public:
-        Session();
+        explicit Session(SessionOptions options = {});
         ~Session();
         Session(const Session&) = delete;
         Session& operator=(const Session&) = delete;
@@ -23,13 +32,17 @@ namespace simulation
         bool running() const noexcept { return m_running.load(); }
         int childStatus() const noexcept { return m_child_status.load(); }
         PlantSnapshot snapshot() const;
+        const Profile& profile() const noexcept { return m_options.profile; }
         SharedMemory& memory() noexcept { return m_mapping.memory(); }
 
       private:
         void work(std::stop_token stop);
+        void execute(Machine& machine, std::stop_token stop);
+        void publishSnapshot(const Machine& machine);
+        const SessionOptions m_options;
         Mapping m_mapping;
+        ControllerProcess m_process;
         std::array<int, 4> m_events{ -1, -1, -1, -1 };
-        int m_child{ -1 };
         std::atomic_bool m_running{};
         std::atomic_int m_child_status{};
         mutable std::mutex m_snapshot_mutex;

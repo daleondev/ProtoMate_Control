@@ -19,8 +19,11 @@ namespace simulation::viewer
       public:
         SdlSession()
         {
-            if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
-                throw std::runtime_error{ SDL_GetError() };
+            if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
+                const std::string error{ SDL_GetError() };
+                SDL_Quit();
+                throw std::runtime_error{ error };
+            }
         }
         ~SdlSession() { SDL_Quit(); }
         SdlSession(const SdlSession&) = delete;
@@ -221,7 +224,11 @@ namespace simulation::viewer
         }
         Shader(const Shader&) = delete;
         Shader& operator=(const Shader&) = delete;
-        GLuint get() const noexcept { return m_id; }
+        GLuint get() const
+        {
+            m_context->check();
+            return m_id;
+        }
 
       private:
         const Context* m_context;
@@ -276,7 +283,11 @@ namespace simulation::viewer
           , m_id{ std::exchange(other.m_id, 0) }
         {
         }
-        GLuint get() const noexcept { return m_id; }
+        GLuint get() const
+        {
+            m_context->check();
+            return m_id;
+        }
         GLint location(const char* name) const
         {
             m_context->check();
@@ -315,7 +326,7 @@ namespace simulation::viewer
             std::swap(m_color, replacement.m_color);
             std::swap(m_depth, replacement.m_depth);
         }
-        GLuint get() const noexcept { return m_frame.get(); }
+        GLuint get() const { return m_frame.get(); }
 
       private:
         Framebuffer m_frame;

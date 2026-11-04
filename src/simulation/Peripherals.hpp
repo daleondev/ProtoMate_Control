@@ -1,17 +1,21 @@
 #pragma once
 #include "simulation/SharedMemory.hpp"
+#include <functional>
 namespace simulation
 {
     class Peripherals final
     {
       public:
-        explicit Peripherals(SharedMemory& shared)
+        using Output = std::function<void(unsigned, bool, std::uint64_t)>;
+        Peripherals(SharedMemory& shared, Output output)
           : m_shared{ shared }
+          , m_output{ std::move(output) }
         {
         }
         void execute(const Packet& q, Packet& r, std::uint64_t now);
         std::uint64_t deadline(std::uint64_t now, std::uint64_t maximum) const;
         unsigned advance(std::uint64_t now);
+        void stop(std::uint64_t now) noexcept;
 
       private:
         struct Timer
@@ -25,10 +29,11 @@ namespace simulation
         {
             unsigned pin{};
             std::uint64_t period{}, high{}, next{}, count{}, limit{};
-            bool running{}, level{}, counted{};
+            bool configured{}, running{}, level{}, counted{};
         };
         std::array<Pwm, 3> m_pwm{};
         SharedMemory& m_shared;
+        Output m_output;
         std::uint64_t elapsed(const Timer& t, std::uint64_t now) const;
         void capture(Timer& t, std::uint64_t now);
         void publish(unsigned index, std::uint64_t now);

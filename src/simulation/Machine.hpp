@@ -1,6 +1,7 @@
 #pragma once
 #include "Media.hpp"
 #include "Peripherals.hpp"
+#include "Profile.hpp"
 #include "SimulatedStepHardware.hpp"
 #include "Tmc2209Model.hpp"
 #include "simulation/SharedMemory.hpp"
@@ -10,18 +11,6 @@
 
 namespace simulation
 {
-    struct Profile
-    {
-        static constexpr const char* NAME{ "cad-provisional-v1" };
-        std::array<double, 3> geometry_mm{ 205.0, 223.4, 135.0 };
-        std::array<double, 3> ratio{ 6.0, 6.0, 1.0 };
-        double z_mm_per_revolution{ 8.0 };
-        std::array<double, 3> shaft_reference{ 135.0, 135.0, 135.0 };
-        std::array<double, 3> axis_reference{ 0.0, 1.2, 30.0 };
-        double switch_on{ 135.0 }, switch_off{ 134.55 };
-        unsigned dm542_microsteps{ 16 };
-        void validate() const;
-    };
     inline constexpr unsigned pin(unsigned port, unsigned number) { return port * 16U + number; }
     inline constexpr std::array<unsigned, 3> STEP_PINS{ pin(0, 0), pin(0, 2), pin(0, 3) };
     inline constexpr std::array<unsigned, 3> DIR_PINS{ pin(9, 8), pin(3, 13), pin(7, 13) };
@@ -39,6 +28,7 @@ namespace simulation
     {
       public:
         explicit Machine(SharedMemory& memory, Profile profile = {}, const std::filesystem::path& media = {});
+        ~Machine() { disconnect(); }
         Packet execute(const Packet& request);
         void advance(std::uint64_t nanoseconds);
         void publish();
@@ -56,6 +46,8 @@ namespace simulation
 
       private:
         void edge(const hal::util::SimulatedStepHardware::Edge& edge);
+        void output(unsigned pin, bool high, std::uint64_t time);
+        void stepEdge(unsigned axis, bool high, std::uint64_t time);
         void input(unsigned pin, bool value);
         void sensors();
         void record(std::uint64_t time, unsigned pin, bool high) noexcept;
@@ -80,9 +72,9 @@ namespace simulation
         std::int64_t m_encoder_count{}, m_encoder_last{};
         bool m_encoder_running{};
         unsigned m_interrupt{};
-        bool m_power{ true }, m_lease{};
+        bool m_power{ true }, m_lease{}, m_disconnected{};
         Packet m_last_reply{}, m_last_command{};
         Media m_media;
-        Peripherals m_peripherals{ m_memory };
+        Peripherals m_peripherals;
     };
 }

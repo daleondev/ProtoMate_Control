@@ -14,7 +14,7 @@ namespace hal::util
     }
     auto LinuxStepHardware::reset() noexcept -> bool
     {
-        m_published = {};
+        m_valid = {};
         return simulation::client::command(simulation::Operation::Reset).status == 0;
     }
     auto LinuxStepHardware::arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept -> bool
@@ -61,21 +61,15 @@ namespace hal::util
             return;
         for (unsigned axis{}; axis < 3; ++axis)
             for (unsigned bank{}; bank < 2; ++bank) {
-                const auto slot{ axis * 2 + bank };
-                auto& bytes{ shared->bulk[slot] };
+                if (m_valid[axis][bank] && memory[axis][bank] == m_published[axis][bank])
+                    continue;
                 std::array<std::byte, sizeof(StepBuffer)> encoded{};
                 for (unsigned i{}; i < STEP_BUFFER_EDGES; ++i)
                     simulation::put(encoded, i * 4, memory[axis][bank][i], 4);
-                const auto hash{ simulation::checksum(encoded) };
-                if (m_published[axis][bank] == hash)
-                    continue;
-                std::copy(encoded.begin(), encoded.end(), bytes.begin());
-                const auto generation{ simulation::acquire(shared->bulk_generation[slot]) + 1U };
-                simulation::release(shared->bulk_generation[slot], generation);
-                const auto reply{ simulation::client::command(simulation::Operation::Publish,
-                                                              { axis, bank, slot, generation, hash }) };
-                if (!reply.status)
-                    m_published[axis][bank] = hash;
+                if (simulation::client::publishBank(axis, bank, encoded)) {
+                    m_published[axis][bank] = memory[axis][bank];
+                    m_valid[axis][bank] = true;
+                }
             }
     }
 

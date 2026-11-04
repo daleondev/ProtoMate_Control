@@ -14,6 +14,7 @@ namespace simulation::client
     SharedMemory* memory() noexcept;
     Packet call(Packet request) noexcept;
     Packet command(Operation operation, std::array<std::uint64_t, 8> arguments = {}) noexcept;
+    bool publishBank(unsigned axis, unsigned bank, std::span<const std::byte> bytes) noexcept;
     hal::util::StepSample sample() noexcept;
     std::uint64_t now() noexcept;
     void setStepCallback(std::function<void()> callback);

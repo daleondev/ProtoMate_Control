@@ -38,9 +38,11 @@ namespace simulation
       : m_memory{ memory }
       , m_profile{ profile }
       , m_media{ media }
+      , m_peripherals{ m_memory,
+                       [this](unsigned index, bool high, std::uint64_t time) { output(index, high, time); } }
     {
         m_profile.validate();
-        m_outputs[ENABLE_PIN] = 1;
+        output(ENABLE_PIN, true, m_time);
         m_step.trace_edges = false;
         m_step.interrupt = [this] {
             m_interrupt |= 2U;
@@ -105,58 +107,81 @@ namespace simulation
             input(INDEX_PINS[i - 1], phase256 < 256);
         }
     }
-    void Machine::edge(const hal::util::SimulatedStepHardware::Edge& e)
+    void Machine::output(unsigned index, bool high, std::uint64_t time)
     {
-        const auto t{ m_edge_epoch + e.tick * hal::util::STEP_TICK_NS };
-        record(t, STEP_PINS[e.axis], e.high);
-        release(m_memory.gpio[STEP_PINS[e.axis]], std::uint32_t(e.high));
-        if (!e.high) {
-            if (!m_pending_step[e.axis])
+        if (acquire(m_memory.gpio[index]) == std::uint32_t(high))
+            return;
+        for (unsigned i{}; i < 3; ++i)
+            if (index == DIR_PINS[i]) {
+                if (acquire(m_memory.gpio[STEP_PINS[i]]) || (m_rise[i] && time - m_rise[i] < 5000)) {
+                    ++m_rejected_pulses[i];
+                    m_pending_step[i] = false;
+                }
+                m_direction_time[i] = time;
+            }
+        m_outputs[index] = high;
+        record(time, index, high);
+        release(m_memory.gpio[index], std::uint32_t(high));
+        if (index == ENABLE_PIN && high)
+            m_pending_step = {};
+        for (unsigned i{}; i < 3; ++i)
+            if (index == STEP_PINS[i])
+                stepEdge(i, high, time);
+    }
+    void Machine::edge(const hal::util::SimulatedStepHardware::Edge& edge)
+    {
+        output(STEP_PINS[edge.axis], edge.high, m_edge_epoch + edge.tick * hal::util::STEP_TICK_NS);
+    }
+    void Machine::stepEdge(unsigned axis, bool high, std::uint64_t t)
+    {
+        if (!high) {
+            if (!m_pending_step[axis])
                 return;
-            m_pending_step[e.axis] = false;
-            if (t < m_rise[e.axis] || t - m_rise[e.axis] < 2500) {
-                ++m_rejected_pulses[e.axis];
+            m_pending_step[axis] = false;
+            if (t < m_rise[axis] || t - m_rise[axis] < 2500) {
+                ++m_rejected_pulses[axis];
                 return;
             }
-            if (!m_power || m_outputs[ENABLE_PIN] || m_fault[e.axis] == Fault::DriverAlarm ||
-                m_fault[e.axis] == Fault::LostStep)
+            if (!m_power || m_outputs[ENABLE_PIN] || m_fault[axis] == Fault::DriverAlarm)
                 return;
             // An ideal accepted pulse advances mechanics after its minimum high time.
             // Timing violations do not invent an ALARM output on the physical driver.
-            const int direction{ m_pending_direction[e.axis] };
-            const double delta{ direction * 1.8 / m_pending_resolution[e.axis] };
-            m_steps[e.axis] += direction;
-            m_electrical[e.axis] += delta;
-            m_shaft[e.axis] += delta;
+            const int direction{ m_pending_direction[axis] };
+            const double delta{ direction * 1.8 / m_pending_resolution[axis] };
+            m_steps[axis] += direction;
+            m_electrical[axis] += delta;
+            if (m_fault[axis] != Fault::LostStep)
+                m_shaft[axis] += delta;
             const auto previous{ m_time };
             m_time = t;
             sensors();
             m_time = previous;
             return;
         }
-        m_rise[e.axis] = t;
-        m_pending_step[e.axis] = false;
-        if (!m_power || m_outputs[ENABLE_PIN] || m_fault[e.axis] == Fault::DriverAlarm ||
-            m_fault[e.axis] == Fault::LostStep)
+        m_rise[axis] = t;
+        m_pending_step[axis] = false;
+        if (!m_power || m_outputs[ENABLE_PIN] || m_fault[axis] == Fault::DriverAlarm)
             return;
-        if (t < m_direction_time[e.axis] || t - m_direction_time[e.axis] < 5000) {
-            ++m_rejected_pulses[e.axis];
+        if (t < m_direction_time[axis] || t - m_direction_time[axis] < 5000) {
+            ++m_rejected_pulses[axis];
             return;
         }
         unsigned resolution{ m_profile.dm542_microsteps };
-        if (e.axis) {
-            const auto chop{ m_tmc.getRegister(static_cast<unsigned>(e.axis - 1), 0x6C) };
+        if (axis) {
+            const auto chop{ m_tmc.getRegister(static_cast<unsigned>(axis - 1), 0x6C) };
             resolution = 256U >> std::min(8U, (chop >> 24U) & 15U);
         }
-        m_pending_direction[e.axis] = m_outputs[DIR_PINS[e.axis]] ? 1 : -1;
-        m_pending_resolution[e.axis] = resolution;
-        m_pending_step[e.axis] = true;
+        m_pending_direction[axis] = m_outputs[DIR_PINS[axis]] ? 1 : -1;
+        m_pending_resolution[axis] = resolution;
+        m_pending_step[axis] = true;
         sensors();
     }
     void Machine::advance(std::uint64_t nanoseconds)
     {
-        if (m_lease)
+        if (m_lease || m_disconnected)
             return;
+        if (nanoseconds > UINT64_MAX - m_time)
+            throw std::overflow_error{ "simulation time overflow" };
         const auto end{ m_peripherals.deadline(m_time, m_time + nanoseconds) };
         if (m_step.registers.running) {
             const auto before{ m_step.elapsed };
@@ -201,9 +226,9 @@ namespace simulation
         for (unsigned i{}; i < 2; ++i)
             result.joints[i] = (m_shaft[i] - m_profile.shaft_reference[i]) / m_profile.ratio[i] * RAD +
                                m_profile.axis_reference[i];
-        result.joints[2] =
-          (m_shaft[2] - m_profile.shaft_reference[2]) / 360.0 * m_profile.z_mm_per_revolution +
-          m_profile.axis_reference[2];
+        result.joints[2] = (m_shaft[2] - m_profile.shaft_reference[2]) / (360.0 * m_profile.ratio[2]) *
+                             m_profile.z_mm_per_revolution +
+                           m_profile.axis_reference[2];
         const auto shoulder{ result.joints[0] }, elbow{ shoulder + result.joints[1] };
         result.tcp_mm = { m_profile.geometry_mm[0] * std::cos(shoulder) +
                             (m_profile.geometry_mm[1] + m_profile.geometry_mm[2]) * std::cos(elbow),
@@ -218,16 +243,29 @@ namespace simulation
         }
         result.enabled = !m_outputs[ENABLE_PIN];
         result.powered = m_power;
-        result.connected = acquire(m_memory.client_ready) != 0;
+        result.connected = !m_disconnected && acquire(m_memory.client_ready) != 0;
         return result;
     }
     void Machine::disconnect() noexcept
     {
-        m_step.stop();
+        if (m_disconnected)
+            return;
+        m_disconnected = true;
+        // Withdraw drive before forcing STEP low: cleanup must not invent a
+        // final mechanical step from a half-finished pulse.
+        m_pending_step = {};
+        if (!m_outputs[ENABLE_PIN])
+            record(m_time, ENABLE_PIN, true);
         m_outputs[ENABLE_PIN] = 1;
         release(m_memory.gpio[ENABLE_PIN], 1U);
+        m_edge_epoch = m_time - m_step.elapsed * hal::util::STEP_TICK_NS;
+        m_step.stop();
+        for (const auto index : STEP_PINS)
+            output(index, false, m_time);
+        m_peripherals.stop(m_time);
         m_lease = false;
         publish();
+        m_interrupt = 0;
     }
     Packet Machine::execute(const Packet& q)
     {
@@ -235,6 +273,14 @@ namespace simulation
         r.status = 0;
         r.time_ns = m_time;
         r.size = 0;
+        if (m_disconnected && q.operation != Operation::State) {
+            r.status = ENOTCONN;
+            return r;
+        }
+        if (q.status || q.size > PAYLOAD_BYTES) {
+            r.status = EINVAL;
+            return r;
+        }
         if (q.session != m_memory.session) {
             r.status = ESTALE;
             return r;
@@ -263,22 +309,38 @@ namespace simulation
                     m_lease = false;
                     break;
                 case Operation::Reset:
+                    m_pending_step = {};
+                    m_edge_epoch = m_time - m_step.elapsed * hal::util::STEP_TICK_NS;
+                    m_step.stop();
                     m_step.reset();
                     break;
                 case Operation::Start:
+                    if (axis > UINT32_MAX) {
+                        r.status = EINVAL;
+                        break;
+                    }
                     m_step_clock = m_time;
                     m_step.start(static_cast<std::uint32_t>(axis));
                     break;
                 case Operation::Guard:
+                    if (axis > UINT32_MAX) {
+                        r.status = EINVAL;
+                        break;
+                    }
                     m_step.guard(static_cast<std::uint32_t>(axis));
                     break;
                 case Operation::Watch:
+                    if (axis > 1) {
+                        r.status = EINVAL;
+                        break;
+                    }
                     m_step.completionWatch(axis != 0);
                     break;
                 case Operation::Sample:
                     break;
                 case Operation::Arm:
-                    if (axis >= 3 || q.arguments[2] > hal::util::STEP_BUFFER_EDGES || q.arguments[2] == 0 ||
+                    if (axis >= 3 || q.arguments[1] > UINT32_MAX ||
+                        q.arguments[2] > hal::util::STEP_BUFFER_EDGES || q.arguments[2] == 0 ||
                         !m_step.arm(axis,
                                     static_cast<std::uint32_t>(q.arguments[1]),
                                     static_cast<std::uint32_t>(q.arguments[2])))
@@ -332,8 +394,7 @@ namespace simulation
                     }
                     m_is_output[axis] = q.arguments[1] != 0;
                     if (m_is_output[axis]) {
-                        m_outputs[axis] = static_cast<std::uint32_t>(q.arguments[2]);
-                        release(m_memory.gpio[axis], m_outputs[axis]);
+                        output(static_cast<unsigned>(axis), q.arguments[2] != 0, m_time);
                     }
                     else
                         sensors();
@@ -349,21 +410,13 @@ namespace simulation
                         r.status = EINVAL;
                         break;
                     }
-                    for (unsigned i{}; i < 3; ++i)
-                        if (axis == DIR_PINS[i] && m_outputs[axis] != q.arguments[1]) {
-                            if (acquire(m_memory.gpio[STEP_PINS[i]]) ||
-                                (m_rise[i] && m_time - m_rise[i] < 5000)) {
-                                ++m_rejected_pulses[i];
-                                m_pending_step[i] = false;
-                            }
-                            m_direction_time[i] = m_time;
-                        }
-                    if (m_outputs[axis] != (q.arguments[1] != 0))
-                        record(m_time, static_cast<unsigned>(axis), q.arguments[1] != 0);
-                    m_outputs[axis] = q.arguments[1] != 0;
-                    release(m_memory.gpio[axis], m_outputs[axis]);
+                    output(static_cast<unsigned>(axis), q.arguments[1] != 0, m_time);
                     break;
                 case Operation::EncoderRun:
+                    if (axis > 1) {
+                        r.status = EINVAL;
+                        break;
+                    }
                     m_encoder_running = axis != 0;
                     m_encoder_last = encoder(m_shaft[0]);
                     break;
@@ -408,16 +461,15 @@ namespace simulation
                         r.status = EINVAL;
                         break;
                     }
-                    m_fault[axis] = static_cast<Fault>(q.arguments[1]);
-                    if (m_fault[axis] == Fault::ShaftSlip) {
+                    if (q.arguments[1] == std::to_underlying(Fault::ShaftSlip)) {
                         const auto slip{ std::bit_cast<double>(q.arguments[2]) };
                         if (!std::isfinite(slip) || std::abs(slip) > 36000) {
-                            m_fault[axis] = Fault::None;
                             r.status = EINVAL;
                             break;
                         }
                         m_shaft[axis] += slip;
                     }
+                    m_fault[axis] = static_cast<Fault>(q.arguments[1]);
                     m_step.interrupts_enabled = std::none_of(
                       m_fault.begin(), m_fault.end(), [](Fault f) { return f == Fault::InterruptDelay; });
                     if (axis)
@@ -427,9 +479,16 @@ namespace simulation
                     sensors();
                     break;
                 case Operation::Power:
+                    if (axis > 1) {
+                        r.status = EINVAL;
+                        break;
+                    }
                     m_power = axis != 0;
+                    // This is the motor supply, not an MCU reset or an enable
+                    // command. Controller counters, GPIO and driver logic remain
+                    // live. A pulse spanning a supply loss cannot move the plant.
                     if (!m_power)
-                        disconnect();
+                        m_pending_step = {};
                     break;
                 case Operation::State: {
                     const auto s{ snapshot() };

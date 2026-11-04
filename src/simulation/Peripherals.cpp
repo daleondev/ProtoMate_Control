@@ -3,18 +3,28 @@
 #include <cerrno>
 namespace simulation
 {
+    namespace
+    {
+        // Wide intermediate products preserve fractional divider frequencies and
+        // avoid overflow when a timer has been running for a long time.
+        __extension__ using Wide = unsigned __int128;
+        constexpr std::uint64_t NS{ 1'000'000'000 };
+        std::uint64_t saturate(Wide value)
+        {
+            return value > UINT64_MAX ? UINT64_MAX : static_cast<std::uint64_t>(value);
+        }
+    }
     std::uint64_t Peripherals::elapsed(const Timer& t, std::uint64_t now) const
     {
         if (!t.running)
             return 0;
-        const auto hz{ t.frequency / (std::uint64_t{ t.prescaler } + 1) };
-        const auto delta{ now - t.origin };
-        return delta / 1'000'000'000 * hz + (delta % 1'000'000'000) * hz / 1'000'000'000;
+        const auto divisor{ NS * (std::uint64_t{ t.prescaler } + 1) };
+        return static_cast<std::uint64_t>(Wide{ now - t.origin } * t.frequency / divisor);
     }
     void Peripherals::capture(Timer& t, std::uint64_t now)
     {
         t.counter =
-          static_cast<std::uint32_t>((t.counter + elapsed(t, now)) % (std::uint64_t{ t.reload } + 1));
+          static_cast<std::uint32_t>((Wide{ t.counter } + elapsed(t, now)) % (std::uint64_t{ t.reload } + 1));
         t.origin = now;
         t.cycles = 0;
     }
@@ -23,7 +33,8 @@ namespace simulation
         const auto& t{ m_timers[i] };
         auto& s{ m_shared.timers[i] };
         release(s[0],
-                static_cast<std::uint32_t>((t.counter + elapsed(t, now)) % (std::uint64_t{ t.reload } + 1)));
+                static_cast<std::uint32_t>((Wide{ t.counter } + elapsed(t, now)) %
+                                           (std::uint64_t{ t.reload } + 1)));
         release(s[1], t.prescaler);
         release(s[2], t.reload);
         release(s[3], t.frequency);
@@ -43,10 +54,11 @@ namespace simulation
             auto& p{ m_pwm[i] };
             if (q.operation == Operation::PwmConfigure) {
                 if (p.running || q.arguments[1] >= 176 || !q.arguments[2] ||
-                    q.arguments[3] > q.arguments[2]) {
+                    q.arguments[2] > UINT64_MAX / 2 || q.arguments[3] > q.arguments[2]) {
                     r.status = EINVAL;
                     return;
                 }
+                p.configured = true;
                 p.pin = static_cast<unsigned>(q.arguments[1]);
                 p.period = q.arguments[2];
                 p.high = q.arguments[3];
@@ -54,7 +66,8 @@ namespace simulation
             else if (q.operation == Operation::PwmStart) {
                 if (p.running && !p.counted && !q.arguments[2])
                     return;
-                if (p.running || !p.period || (q.arguments[2] && (p.high == 0 || p.high == p.period))) {
+                if (p.running || !p.period || q.arguments[2] > 1 || p.period > UINT64_MAX - now ||
+                    (q.arguments[2] && (p.high == 0 || p.high == p.period))) {
                     r.status = EINVAL;
                     return;
                 }
@@ -70,10 +83,12 @@ namespace simulation
                 }
             }
             else {
+                if (!p.configured)
+                    return;
                 p.running = false;
                 p.level = false;
             }
-            release(m_shared.gpio[p.pin], std::uint32_t(p.level));
+            m_output(p.pin, p.level, now);
             release(m_shared.pwm[i][0], p.count);
             release(m_shared.pwm[i][1], std::uint64_t(p.running));
             release(m_shared.pwm[i][2], std::uint64_t(p.level));
@@ -85,6 +100,13 @@ namespace simulation
         }
         auto& t{ m_timers[i] };
         if (q.operation == Operation::TimerConfigure) {
+            const auto kind{ q.arguments[1] };
+            if (kind > 4 || q.arguments[2] > UINT32_MAX ||
+                (kind == 0 && (!q.arguments[2] || q.arguments[2] > NS || q.arguments[3] > UINT32_MAX ||
+                               q.arguments[4] > UINT32_MAX))) {
+                r.status = EINVAL;
+                return;
+            }
             capture(t, now);
             if (q.arguments[1] == 0) {
                 t.frequency = static_cast<std::uint32_t>(q.arguments[2]);
@@ -101,10 +123,11 @@ namespace simulation
                 t.reload = static_cast<std::uint32_t>(q.arguments[2]);
                 t.counter = 0;
             }
+            t.counter = static_cast<std::uint32_t>(t.counter % (std::uint64_t{ t.reload } + 1));
             ++t.version;
         }
         else if (q.operation == Operation::TimerStart) {
-            if (t.frequency / (std::uint64_t{ t.prescaler } + 1) == 0) {
+            if (!t.frequency || q.arguments[1] > 1) {
                 r.status = EINVAL;
                 return;
             }
@@ -125,12 +148,11 @@ namespace simulation
     {
         for (const auto& t : m_timers)
             if (t.running && t.interrupt) {
-                const auto hz{ t.frequency / (std::uint64_t{ t.prescaler } + 1) };
                 const auto period{ std::uint64_t{ t.reload } + 1 };
-                const auto ticks{ (t.cycles + 1) * period - t.counter };
-                const auto end{ t.origin + (ticks / hz) * 1'000'000'000 +
-                                (ticks % hz * 1'000'000'000 + hz - 1) / hz };
-                maximum = std::min(maximum, std::max(now, ((end + 99) / 100) * 100));
+                const auto ticks{ (Wide{ t.cycles } + 1) * period - t.counter };
+                const auto numerator{ ticks * NS * (std::uint64_t{ t.prescaler } + 1) };
+                const auto end{ Wide{ t.origin } + (numerator + t.frequency - 1) / t.frequency };
+                maximum = std::min(maximum, std::max(now, saturate(((end + 99) / 100) * 100)));
             }
         for (const auto& p : m_pwm)
             if (p.running)
@@ -142,7 +164,8 @@ namespace simulation
         unsigned flags{};
         for (unsigned i{}; i < m_timers.size(); ++i) {
             auto& t{ m_timers[i] };
-            const auto cycles{ (t.counter + elapsed(t, now)) / (std::uint64_t{ t.reload } + 1) };
+            const auto cycles{ static_cast<std::uint64_t>((Wide{ t.counter } + elapsed(t, now)) /
+                                                          (std::uint64_t{ t.reload } + 1)) };
             if (t.running && t.interrupt && cycles > t.cycles) {
                 flags |= 8U;
                 t.notifications += cycles - t.cycles;
@@ -157,14 +180,14 @@ namespace simulation
                 if (p.level) {
                     if (p.counted)
                         ++p.count;
-                    p.next += p.high;
+                    p.next = saturate(Wide{ p.next } + p.high);
                 }
                 else {
-                    p.next += p.period - p.high;
+                    p.next = saturate(Wide{ p.next } + p.period - p.high);
                     if (p.limit && p.count >= p.limit)
                         p.running = false;
                 }
-                release(m_shared.gpio[p.pin], std::uint32_t(p.level));
+                m_output(p.pin, p.level, now);
                 release(m_shared.pwm[i][0], p.count);
                 release(m_shared.pwm[i][1], std::uint64_t(p.running));
                 release(m_shared.pwm[i][2], std::uint64_t(p.level));
@@ -174,4 +197,21 @@ namespace simulation
         }
         return flags;
     }
+    void Peripherals::stop(std::uint64_t now) noexcept
+    {
+        for (unsigned i{}; i < m_timers.size(); ++i) {
+            m_timers[i].running = false;
+            m_timers[i].interrupt = false;
+            release(m_shared.timers[i][4], 0U);
+        }
+        for (unsigned i{}; i < m_pwm.size(); ++i) {
+            auto& p{ m_pwm[i] };
+            if (p.running)
+                m_output(p.pin, false, now);
+            p.running = p.level = false;
+            release(m_shared.pwm[i][1], std::uint64_t{});
+            release(m_shared.pwm[i][2], std::uint64_t{});
+        }
+    }
+
 }
