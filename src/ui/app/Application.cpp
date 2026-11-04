@@ -1,3 +1,6 @@
+#ifdef HAL_PLATFORM_LINUX
+#include "simulation/ControllerLink.hpp"
+#endif
 #include "Application.hpp"
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
@@ -164,6 +167,9 @@ namespace ui
     {
         try {
             cli::Parser parser{};
+#ifdef HAL_PLATFORM_LINUX
+            simulation::setupCommands(parser);
+#endif
             cli::filesystem::setup(parser);
             cli::display::setup(parser, m_gui);
             cli::state::setup(parser, m_systemState);

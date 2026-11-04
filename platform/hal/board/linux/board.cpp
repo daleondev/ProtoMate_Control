@@ -5,6 +5,7 @@
 #include "hal/drivers/factory/intercore.hpp"
 #include "hal/drivers/factory/rng.hpp"
 #include "hal/drivers/factory/rtc.hpp"
+#include "simulation/Client.hpp"
 
 #include "hal/devices/factory/display.hpp"
 #include "hal/devices/factory/tmc2209.hpp"
@@ -44,16 +45,34 @@ namespace hal::board
         using enum gpio::Port;
         constexpr gpio::Pin USER_BUTTON_PIN{ .port = C, .number = 13U };
         constexpr gpio::Pin ETHERCAT_SELECT_PIN{ .port = F, .number = 6U };
-        constexpr gpio::Pin M1_DIRECTION_PIN{ .port = E, .number = 12U };
-        constexpr gpio::Pin M2_DIRECTION_PIN{ .port = E, .number = 13U };
-        constexpr gpio::Pin M3_DIRECTION_PIN{ .port = E, .number = 14U };
-        constexpr gpio::Pin STEPPERS_ENABLE_PIN{ .port = E, .number = 15U };
+        const gpio::Pin M1_DIRECTION_PIN{ simulation::client::connected()
+                                            ? gpio::Pin{ .port = J, .number = 8U }
+                                            : gpio::Pin{ .port = E, .number = 12U } };
+        const gpio::Pin M2_DIRECTION_PIN{ simulation::client::connected()
+                                            ? gpio::Pin{ .port = D, .number = 13U }
+                                            : gpio::Pin{ .port = E, .number = 13U } };
+        const gpio::Pin M3_DIRECTION_PIN{ simulation::client::connected()
+                                            ? gpio::Pin{ .port = H, .number = 13U }
+                                            : gpio::Pin{ .port = E, .number = 14U } };
+        const gpio::Pin STEPPERS_ENABLE_PIN{ simulation::client::connected()
+                                               ? gpio::Pin{ .port = C, .number = 7U }
+                                               : gpio::Pin{ .port = E, .number = 15U } };
         constexpr gpio::Pin ENCODER_A_PIN{ .port = B, .number = 4U };
-        constexpr gpio::Pin ENCODER_B_PIN{ .port = B, .number = 5U };
-        constexpr gpio::Pin ENCODER_INDEX_PIN{ .port = B, .number = 6U };
-        constexpr gpio::Pin M1_REFERENCE_PIN{ .port = E, .number = 7U };
-        constexpr gpio::Pin M2_REFERENCE_PIN{ .port = E, .number = 8U };
-        constexpr gpio::Pin M3_REFERENCE_PIN{ .port = E, .number = 10U };
+        const gpio::Pin ENCODER_B_PIN{ simulation::client::connected()
+                                         ? gpio::Pin{ .port = A, .number = 7U }
+                                         : gpio::Pin{ .port = B, .number = 5U } };
+        const gpio::Pin ENCODER_INDEX_PIN{ simulation::client::connected()
+                                             ? gpio::Pin{ .port = G, .number = 7U }
+                                             : gpio::Pin{ .port = B, .number = 6U } };
+        const gpio::Pin M1_REFERENCE_PIN{ simulation::client::connected()
+                                            ? gpio::Pin{ .port = E, .number = 4U }
+                                            : gpio::Pin{ .port = E, .number = 7U } };
+        const gpio::Pin M2_REFERENCE_PIN{ simulation::client::connected()
+                                            ? gpio::Pin{ .port = E, .number = 5U }
+                                            : gpio::Pin{ .port = E, .number = 8U } };
+        const gpio::Pin M3_REFERENCE_PIN{ simulation::client::connected()
+                                            ? gpio::Pin{ .port = B, .number = 2U }
+                                            : gpio::Pin{ .port = E, .number = 10U } };
         constexpr gpio::Pin RED_LED_PIN{ .port = B, .number = 14U };
 
         [[nodiscard]] auto make_stepper_output(gpio::Pin pin, gpio::Level initial_level)
@@ -124,13 +143,19 @@ namespace hal::board
     {
         if (id == MotorId::Motor1) {
             return gpio::create_input(
-              { .pin = { .port = F, .number = 2 }, .pull = gpio::Pull::Up, .edge = gpio::Edge::Rising });
+              { .pin = { .port = simulation::client::connected() ? B : F,
+                         .number = static_cast<std::uint8_t>(simulation::client::connected() ? 1 : 2) },
+                .pull = gpio::Pull::Up,
+                .edge = gpio::Edge::Rising });
         }
         if (id != MotorId::Motor2 && id != MotorId::Motor3) {
             return {};
         }
         return gpio::create_input(
-          { .pin = { .port = D, .number = static_cast<std::uint8_t>(id == MotorId::Motor2 ? 4 : 3) },
+          { .pin = { .port = simulation::client::connected() ? C : D,
+                     .number = static_cast<std::uint8_t>(simulation::client::connected()
+                                                           ? (id == MotorId::Motor2 ? 3 : 0)
+                                                           : (id == MotorId::Motor2 ? 4 : 3)) },
             .pull = gpio::Pull::Down,
             .edge = gpio::Edge::Rising });
     }
@@ -141,7 +166,10 @@ namespace hal::board
             return {};
         }
         return gpio::create_input(
-          { .pin = { .port = D, .number = static_cast<std::uint8_t>(id == MotorId::Motor2 ? 0 : 1) },
+          { .pin = { .port = simulation::client::connected() ? B : D,
+                     .number = static_cast<std::uint8_t>(simulation::client::connected()
+                                                           ? (id == MotorId::Motor2 ? 8 : 9)
+                                                           : (id == MotorId::Motor2 ? 0 : 1)) },
             .pull = gpio::Pull::Down,
             .edge = gpio::Edge::Both });
     }

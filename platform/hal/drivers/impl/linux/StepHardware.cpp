@@ -1,60 +1,82 @@
 #include "StepHardware.hpp"
-#include <thread>
-
 namespace hal::util
 {
-    struct LinuxStepHardware::Service
-    {
-        explicit Service(StepGenerator& generator)
-          : worker{ [&generator](const std::stop_token& stop) {
-              while (!stop.stop_requested()) {
-                  generator.service();
-                  std::this_thread::sleep_for(std::chrono::milliseconds{ 1 });
-              }
-          } }
-        {
-        }
-        std::jthread worker;
-    };
-    LinuxStepHardware::LinuxStepHardware() { trace_edges = false; }
     LinuxStepHardware::~LinuxStepHardware() { stopService(); }
     void LinuxStepHardware::beginService(StepGenerator& generator)
     {
-        m_service = std::make_unique<Service>(generator);
+        simulation::client::Transaction guard{};
+        simulation::client::setStepCallback([&generator] { generator.service(); });
     }
-    void LinuxStepHardware::stopService() noexcept { m_service.reset(); }
-
+    void LinuxStepHardware::stopService() noexcept
+    {
+        simulation::client::Transaction guard{};
+        simulation::client::setStepCallback({});
+    }
+    auto LinuxStepHardware::reset() noexcept -> bool
+    {
+        m_published = {};
+        return simulation::client::command(simulation::Operation::Reset).status == 0;
+    }
+    auto LinuxStepHardware::arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept -> bool
+    {
+        return simulation::client::command(simulation::Operation::Arm, { axis, first, count }).status == 0;
+    }
     auto LinuxStepHardware::start(std::uint32_t tick) noexcept -> void
     {
-        m_last = std::chrono::steady_clock::now();
-        SimulatedStepHardware::start(tick);
+        simulation::client::command(simulation::Operation::Start, { tick });
     }
-
-    auto LinuxStepHardware::sample() noexcept -> StepSample
+    auto LinuxStepHardware::guard(std::uint32_t tick) noexcept -> void
     {
-        update();
-        return SimulatedStepHardware::sample();
+        simulation::client::command(simulation::Operation::Guard, { tick });
     }
-
+    auto LinuxStepHardware::completionWatch(bool enabled) noexcept -> void
+    {
+        simulation::client::command(simulation::Operation::Watch, { enabled });
+    }
+    auto LinuxStepHardware::sample() noexcept -> StepSample { return simulation::client::sample(); }
+    auto LinuxStepHardware::acknowledge(std::size_t axis) noexcept -> void
+    {
+        simulation::client::command(simulation::Operation::Acknowledge, { axis });
+    }
+    auto LinuxStepHardware::finishAxis(std::size_t axis) noexcept -> void
+    {
+        simulation::client::command(simulation::Operation::FinishAxis, { axis });
+    }
+    auto LinuxStepHardware::stopAxis(std::size_t axis) noexcept -> StepSample
+    {
+        auto value{ sample() };
+        simulation::client::command(simulation::Operation::StopAxis, { axis });
+        return value;
+    }
     auto LinuxStepHardware::stop() noexcept -> StepSample
     {
-        update();
-        return SimulatedStepHardware::stop();
+        auto value{ sample() };
+        simulation::client::command(simulation::Operation::Stop);
+        return value;
+    }
+    auto LinuxStepHardware::publish() noexcept -> void
+    {
+        auto* shared{ simulation::client::memory() };
+        if (!shared)
+            return;
+        for (unsigned axis{}; axis < 3; ++axis)
+            for (unsigned bank{}; bank < 2; ++bank) {
+                const auto slot{ axis * 2 + bank };
+                auto& bytes{ shared->bulk[slot] };
+                std::array<std::byte, sizeof(StepBuffer)> encoded{};
+                for (unsigned i{}; i < STEP_BUFFER_EDGES; ++i)
+                    simulation::put(encoded, i * 4, memory[axis][bank][i], 4);
+                const auto hash{ simulation::checksum(encoded) };
+                if (m_published[axis][bank] == hash)
+                    continue;
+                std::copy(encoded.begin(), encoded.end(), bytes.begin());
+                const auto generation{ simulation::acquire(shared->bulk_generation[slot]) + 1U };
+                simulation::release(shared->bulk_generation[slot], generation);
+                const auto reply{ simulation::client::command(simulation::Operation::Publish,
+                                                              { axis, bank, slot, generation, hash }) };
+                if (!reply.status)
+                    m_published[axis][bank] = hash;
+            }
     }
 
-    auto LinuxStepHardware::update() noexcept -> void
-    {
-        if (m_advancing || !registers.running) {
-            return;
-        }
-        m_advancing = true;
-        const auto now{ std::chrono::steady_clock::now() };
-        const auto ticks{ std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_last).count() /
-                          STEP_TICK_NS };
-        if (ticks > 0) {
-            m_last += std::chrono::nanoseconds{ ticks * STEP_TICK_NS };
-            advance(static_cast<std::uint64_t>(ticks));
-        }
-        m_advancing = false;
-    }
 }

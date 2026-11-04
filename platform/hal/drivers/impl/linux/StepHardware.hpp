@@ -1,15 +1,15 @@
 #pragma once
 
 #include "hal/drivers/impl/StepGenerator.hpp"
-#include "hal/drivers/impl/linux/SimulatedStepHardware.hpp"
+#include "hal/drivers/util/StepHardware.hpp"
 
+#include "simulation/Client.hpp"
 #include <chrono>
 
 namespace hal::util
 {
-    // Linux is a logical simulation, serviced by a background ThreadX worker
-    // and synchronous queries. It makes no real-time GPIO guarantee.
-    class LinuxStepHardware final : public SimulatedStepHardware
+    // Register/DMA proxy only. Electrical events execute in protomate-sim.
+    class LinuxStepHardware final : public StepHardware
     {
       public:
         LinuxStepHardware(const LinuxStepHardware&) = delete;
@@ -17,19 +17,25 @@ namespace hal::util
         LinuxStepHardware(LinuxStepHardware&&) = delete;
         auto operator=(LinuxStepHardware&&) -> LinuxStepHardware& = delete;
 
-        LinuxStepHardware();
+        LinuxStepHardware() = default;
+        auto buffers() noexcept -> StepBuffers& override { return memory; }
         ~LinuxStepHardware() override;
         void beginService(StepGenerator& generator);
         void stopService() noexcept override;
+        auto reset() noexcept -> bool override;
+        auto arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept -> bool override;
+        auto guard(std::uint32_t tick) noexcept -> void override;
+        auto completionWatch(bool enabled) noexcept -> void override;
+        auto acknowledge(std::size_t axis) noexcept -> void override;
+        auto finishAxis(std::size_t axis) noexcept -> void override;
+        auto stopAxis(std::size_t axis) noexcept -> StepSample override;
+        auto publish() noexcept -> void override;
         auto start(std::uint32_t tick) noexcept -> void override;
         auto sample() noexcept -> StepSample override;
         auto stop() noexcept -> StepSample override;
 
       private:
-        struct Service;
-        std::unique_ptr<Service> m_service;
-        auto update() noexcept -> void;
-        std::chrono::steady_clock::time_point m_last;
-        bool m_advancing{};
+        StepBuffers memory{};
+        std::array<std::array<std::uint32_t, 2>, 3> m_published{};
     };
 }

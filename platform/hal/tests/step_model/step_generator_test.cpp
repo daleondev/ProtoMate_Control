@@ -1,5 +1,5 @@
 #include "hal/drivers/impl/StepGenerator.hpp"
-#include "hal/drivers/impl/linux/SimulatedStepHardware.hpp"
+#include "hal/tests/fixtures/SimulatedStepHardware.hpp"
 
 #include <gtest/gtest.h>
 

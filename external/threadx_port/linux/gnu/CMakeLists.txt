@@ -49,6 +49,11 @@ threadx_linux_generate_patched_source(TX_LINUX_THREAD_STACK_BUILD_SOURCE "tx_thr
 threadx_linux_generate_patched_source(TX_LINUX_THREAD_SYSTEM_RETURN_SOURCE "tx_thread_system_return.c")
 threadx_linux_generate_patched_source(TX_LINUX_THREAD_SCHEDULE_SOURCE "tx_thread_schedule.c")
 
+file(READ "${TX_LINUX_INITIALIZE_LOW_LEVEL_SOURCE}" sim_port)
+string(REPLACE "void    *_tx_linux_timer_interrupt(void *p)\n{" "extern int protomate_sim_wait_interrupt(void) __attribute__((weak));\nextern void protomate_sim_dispatch_interrupt(void) __attribute__((weak));\nextern void protomate_sim_ack_interrupt(void) __attribute__((weak));\nvoid    *_tx_linux_timer_interrupt(void *p)\n{" sim_port "${sim_port}")
+string(REPLACE "        clock_gettime(CLOCK_REALTIME, &ts);" "        if (protomate_sim_wait_interrupt) {\n            int flags = protomate_sim_wait_interrupt();\n            if (flags >= 0) {\n                _tx_thread_context_save();\n                if (flags & 1) _tx_timer_interrupt();\n                protomate_sim_dispatch_interrupt();\n                protomate_sim_ack_interrupt();\n                _tx_thread_context_restore();\n                continue;\n            }\n        }\n        clock_gettime(CLOCK_REALTIME, &ts);" sim_port "${sim_port}")
+file(WRITE "${TX_LINUX_INITIALIZE_LOW_LEVEL_SOURCE}" "${sim_port}")
+
 target_sources(${PROJECT_NAME}
     PRIVATE
     # {{BEGIN_TARGET_SOURCES}}

@@ -1,7 +1,7 @@
 #include "hal/board/board.hpp"
 #include "hal/devices/impl/Tmc2209Driver.hpp"
-#include "hal/devices/impl/linux/Tmc2209Model.hpp"
 #include "hal/drivers/impl/linux/Gpio.hpp"
+#include "hal/tests/fixtures/Tmc2209Model.hpp"
 
 #include <atomic>
 #include <gtest/gtest.h>

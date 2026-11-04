@@ -33,7 +33,7 @@ REFLECTION_HEADERS = Path("/opt/clang-p2996/include/c++/v1")
 DIAGNOSTIC = re.compile(
     r"^(.+?):(\d+):(\d+): (?:warning|error|fatal error): (.*?) \[([^\]]+)\]$", re.MULTILINE)
 OUTPUT_LOCK = Lock()
-SOURCE_ROOTS = (ROOT / "src", ROOT / "platform/hal", ROOT / "platform/runtime")
+SOURCE_ROOTS = (ROOT / "src", ROOT / "platform/hal", ROOT / "platform/runtime", ROOT / "platform/simulation")
 EXCLUDED_DIRECTORIES = ("test", "tests", "vendor")
 EXCLUDED_HEADERS = r"(^|/)(" + "|".join(EXCLUDED_DIRECTORIES) + r")/"
 
@@ -132,7 +132,11 @@ def source_file(entry):
 
 def prepare_database(build, output, extra_databases=(), arm_includes=()):
     selected = []
-    for context, directory in [("linux", build), *extra_databases]:
+    databases = [("linux", build), *extra_databases]
+    host_entries = json.loads((build / "compile_commands.json").read_text())
+    if any("src/simulation/CMakeFiles/" in entry.get("command", str(entry.get("arguments", []))) for entry in host_entries):
+        databases.append(("linux-native", build))
+    for context, directory in databases:
         entries = json.loads((directory / "compile_commands.json").read_text())
         commands = []
         for entry in entries:
@@ -160,6 +164,12 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
                 relative_output = os.path.relpath(Path(entry["directory"]) / object_file, directory)
                 if not relative_output.startswith("CMakeFiles/Application.dir/"):
                     continue
+            # Native simulation deliberately compiles ICC/codec sources again
+            # without ThreadX's C++ ABI. Analyze both real configurations.
+            if context in ("linux", "linux-native"):
+                native = object_file is not None and "src/simulation/CMakeFiles/" in str(object_file)
+                if native != (context == "linux-native"):
+                    continue
             arm = any(arg.startswith("-mcpu=") for arg in arguments)
             cxx = source.suffix != ".c"
             if arm and not arm_includes:
@@ -185,7 +195,7 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
     # An explicit inventory prevents new platform-only files from silently
     # falling outside the selected build configurations.
     if extra_databases:
-        expected = {source.resolve() for directory in ("platform/hal", "platform/runtime")
+        expected = {source.resolve() for directory in ("platform/hal", "platform/runtime", "platform/simulation")
                     for source in (ROOT / directory).rglob("*")
                     if source.suffix in (".cpp", ".cc", ".c", ".cxx") and in_scope(source.resolve())
                     and (not source.is_relative_to(ROOT / "platform/hal/board")
@@ -370,7 +380,8 @@ def main():
         # headers of the host Linux build, without importing host C++ headers.
         for name in ("curses.h", "ncurses_dll.h", "unctrl.h"):
             shutil.copyfile(Path("/usr/include") / name, includes / name)
-        shutil.copytree(Path("/usr/include/SDL2"), includes / "SDL2", dirs_exist_ok=True)
+        for name in ("SDL2", "epoxy", "glm", "KHR", "GL"):
+            shutil.copytree(Path("/usr/include") / name, includes / name, dirs_exist_ok=True)
         databases = [configure_database(args.output, f"stm32-{core}", ["--preset", f"giga-{core}-debug"])
                      for core in ("io", "ui")]
         arm_includes = arm_include_directories(databases[0][1])

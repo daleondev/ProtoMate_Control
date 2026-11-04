@@ -1,5 +1,7 @@
 #include "common/icc/transport/InProcessTransport.hpp"
 #include "io/app/Application.hpp"
+#include "simulation/Client.hpp"
+#include "simulation/ControllerLink.hpp"
 #include "ui/app/Application.hpp"
 
 #include <cstdio>
@@ -9,6 +11,11 @@
 
 int main()
 try {
+    if (!simulation::client::connected() || simulation::client::failed()) {
+        std::fputs("Start through protomate-sim to connect simulated hardware.\n", stderr);
+        return EXIT_FAILURE;
+    }
+    simulation::ControllerLink simulator{};
     auto transport{ icc::InProcessTransport::pair() };
     // Keep application state off the small runtime startup-thread stack.
     auto io{ std::make_unique<io::Application>(*transport[0]) };

@@ -7,6 +7,9 @@
 #include <mutex>
 #endif
 
+#ifdef HAL_PLATFORM_LINUX
+#include "simulation/Client.hpp"
+#endif
 #include <algorithm>
 #include <limits>
 #include <optional>
@@ -34,6 +37,19 @@ namespace hal::device
         {
             explicit Guard(Mutex& /*unused*/) noexcept {}
             stm32::InterruptGuard interrupt_guard;
+        };
+#elif defined(HAL_PLATFORM_LINUX)
+        using Mutex = util::DriverMutex;
+        struct Guard
+        {
+            simulation::client::Transaction transaction{};
+            std::unique_lock<Mutex> lock;
+            explicit Guard(Mutex& mutex)
+              : lock{ mutex, std::defer_lock }
+            {
+                if (!simulation::client::connected())
+                    lock.lock();
+            }
         };
 #else
         using Mutex = util::DriverMutex;

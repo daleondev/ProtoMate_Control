@@ -1,4 +1,5 @@
 #include "Rtc.hpp"
+#include "simulation/Client.hpp"
 
 #include <cerrno>
 #include <system_error>
@@ -10,6 +11,11 @@ namespace hal
 {
     auto Rtc::getTime() const noexcept -> util::Result<Timestamp>
     {
+        if (auto* memory{ simulation::client::memory() }) {
+            const auto ns{ simulation::acquire(memory->epoch_ns) + simulation::client::now() };
+            return Timestamp{ .seconds_since_epoch = static_cast<std::int64_t>(ns / 1'000'000'000),
+                              .nanoseconds = static_cast<std::uint32_t>(ns % 1'000'000'000) };
+        }
         timespec now{};
         if (clock_gettime(CLOCK_REALTIME, &now) != 0) {
             return std::unexpected(std::error_code{ errno, std::generic_category() });

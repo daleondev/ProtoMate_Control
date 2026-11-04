@@ -2,6 +2,7 @@
 
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/impl/linux/PwmOutput.hpp"
+#include "hal/drivers/impl/linux/RemotePwm.hpp"
 
 #include <array>
 #include <utility>
@@ -46,6 +47,11 @@ namespace hal::pwm
             if (!pin) {
                 return {};
             }
+            if (simulation::client::connected())
+                return std::make_shared<RemotePwm>(static_cast<unsigned>(&route - routes.data()),
+                                                   configuration,
+                                                   std::move(lease),
+                                                   std::move(pin));
             return std::make_shared<PwmOutput>(
               configuration, route.alternate, std::move(lease), std::move(pin));
         }

@@ -1,3 +1,6 @@
+#ifdef HAL_PLATFORM_LINUX
+#include "simulation/Client.hpp"
+#endif
 #include "DriverFaultMonitor.hpp"
 
 #ifdef HAL_PLATFORM_STM32
@@ -21,6 +24,19 @@ namespace hal::device::util
         {
             explicit Guard(Mutex& /*unused*/) {}
             stm32::InterruptGuard interrupts;
+        };
+#elif defined(HAL_PLATFORM_LINUX)
+        using Mutex = DriverMutex;
+        struct Guard
+        {
+            simulation::client::Transaction transaction{};
+            std::unique_lock<Mutex> lock;
+            explicit Guard(Mutex& mutex)
+              : lock{ mutex, std::defer_lock }
+            {
+                if (!simulation::client::connected())
+                    lock.lock();
+            }
         };
 #else
         using Mutex = DriverMutex;

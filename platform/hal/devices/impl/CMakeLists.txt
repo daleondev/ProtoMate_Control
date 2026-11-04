@@ -23,13 +23,7 @@ target_sources(hal_devices_impl
         ${CMAKE_CURRENT_SOURCE_DIR}/QuadratureEncoderFeedback.cpp
 )
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_sources(hal_devices_impl
-        INTERFACE
-            ${CMAKE_CURRENT_SOURCE_DIR}/linux/Tmc2209Model.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/linux/Tmc2209Model.cpp
-    )
-endif()
+
 
 target_sources(hal_devices_impl INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/SmartwinDisplay.hpp ${CMAKE_CURRENT_SOURCE_DIR}/SmartwinDisplay.cpp

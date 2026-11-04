@@ -5,6 +5,13 @@
 #include "hal/stm32/InterruptGuard.hpp"
 #define STEP_LOCK                                                                                            \
     const stm32::InterruptGuard lock {}
+#elif defined(HAL_PLATFORM_LINUX)
+#include "simulation/Client.hpp"
+#define STEP_LOCK                                                                                            \
+    const simulation::client::Transaction transaction{};                                                     \
+    std::unique_lock lock{ m_mutex, std::defer_lock };                                                       \
+    if (!simulation::client::connected())                                                                    \
+    lock.lock()
 #else
 #define STEP_LOCK                                                                                            \
     const std::scoped_lock lock { m_mutex }

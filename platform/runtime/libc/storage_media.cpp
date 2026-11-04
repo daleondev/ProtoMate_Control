@@ -1,5 +1,7 @@
 #include "storage_media.hpp"
+#include "simulation/MediaClient.hpp"
 #include "storage_media_policy.hpp"
+#include <cstdlib>
 
 #include <lx_api.h>
 
@@ -107,6 +109,8 @@ namespace
     [[nodiscard]] auto open_image(const ImageConfiguration& configuration, File& file, bool& created) noexcept
       -> bool
     {
+        if (std::getenv("PROTOMATE_SIM_FD"))
+            return protomate_sim_media_info(configuration.kind[0] == 's', &created);
         constexpr std::size_t image_path_capacity{ 128U };
         std::array<char, image_path_capacity> path{};
         // Bounded formatting for a C filesystem path, without throwing allocations.
@@ -147,6 +151,8 @@ namespace
 
     [[nodiscard]] auto qspi_read(std::size_t offset, void* destination, std::size_t bytes) noexcept -> bool
     {
+        if (std::getenv("PROTOMATE_SIM_FD"))
+            return protomate_sim_media_read(0, offset, destination, bytes);
         return offset <= FLASH_BYTES && bytes <= FLASH_BYTES - offset &&
                file_read(nor_file.get(), offset, destination, bytes);
     }
@@ -156,6 +162,8 @@ namespace
         if (offset > FLASH_BYTES || bytes > FLASH_BYTES - offset) {
             return false;
         }
+        if (std::getenv("PROTOMATE_SIM_FD"))
+            return protomate_sim_media_write(0, offset, source, bytes);
         std::array<UCHAR, FLASH_PAGE_BYTES> current{};
         const auto* input{ static_cast<const UCHAR*>(source) };
         while (bytes != 0U) {
@@ -180,6 +188,9 @@ namespace
 
     [[nodiscard]] auto qspi_erase(std::size_t offset) noexcept -> bool
     {
+        if (std::getenv("PROTOMATE_SIM_FD"))
+            return offset < FLASH_BYTES && offset % ERASE_BLOCK_BYTES == 0 &&
+                   protomate_sim_media_erase(offset, ERASE_BLOCK_BYTES);
         std::array<UCHAR, ERASE_BLOCK_BYTES> erased{};
         erased.fill(ERASED_FLASH_BYTE);
         return offset < FLASH_BYTES && (offset % ERASE_BLOCK_BYTES) == 0U &&
@@ -188,6 +199,11 @@ namespace
 
     [[nodiscard]] auto sd_read(ULONG sector, void* destination, UINT sectors) noexcept -> bool
     {
+        if (std::getenv("PROTOMATE_SIM_FD"))
+            return protomate_sim_media_read(1,
+                                            static_cast<std::size_t>(sector) * SECTOR_SIZE,
+                                            destination,
+                                            static_cast<std::size_t>(sectors) * SECTOR_SIZE);
         return runtime::storage::detail::valid_sector_range(sector, 0U, sectors, sd_device.sectors) &&
                file_read(sd_device.file.get(),
                          static_cast<std::size_t>(sector) * SECTOR_SIZE,
@@ -197,6 +213,11 @@ namespace
 
     [[nodiscard]] auto sd_write(ULONG sector, const void* source, UINT sectors) noexcept -> bool
     {
+        if (std::getenv("PROTOMATE_SIM_FD"))
+            return protomate_sim_media_write(1,
+                                             static_cast<std::size_t>(sector) * SECTOR_SIZE,
+                                             source,
+                                             static_cast<std::size_t>(sectors) * SECTOR_SIZE);
         return runtime::storage::detail::valid_sector_range(sector, 0U, sectors, sd_device.sectors) &&
                file_write(sd_device.file.get(),
                           static_cast<std::size_t>(sector) * SECTOR_SIZE,
@@ -211,6 +232,10 @@ namespace
             case FX_DRIVER_INIT:
             case FX_DRIVER_UNINIT:
             case FX_DRIVER_FLUSH:
+                media_ptr->fx_media_driver_status =
+                  (!std::getenv("PROTOMATE_SIM_FD") || protomate_sim_media_flush(1)) ? FX_SUCCESS
+                                                                                     : FX_IO_ERROR;
+                return;
             case FX_DRIVER_ABORT:
                 media_ptr->fx_media_driver_status = FX_SUCCESS;
                 return;
@@ -417,6 +442,10 @@ namespace
                 media_ptr->fx_media_driver_status = release_levelx_sectors(media_ptr);
                 return;
             case FX_DRIVER_FLUSH:
+                media_ptr->fx_media_driver_status =
+                  (!std::getenv("PROTOMATE_SIM_FD") || protomate_sim_media_flush(0)) ? FX_SUCCESS
+                                                                                     : FX_IO_ERROR;
+                return;
             case FX_DRIVER_ABORT:
                 media_ptr->fx_media_driver_status = FX_SUCCESS;
                 return;

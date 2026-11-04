@@ -68,8 +68,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Uart.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Spi.hpp
             ${CMAKE_CURRENT_SOURCE_DIR}/linux/Spi.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/linux/SimulatedStepHardware.hpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/linux/SimulatedStepHardware.cpp
     )
 
 else()

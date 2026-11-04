@@ -19,7 +19,7 @@ Checks: >
   -cppcoreguidelines-pro-bounds-constant-array-index
 
 WarningsAsErrors: "*"
-HeaderFilterRegex: ".*/(src|platform/hal|platform/runtime)/.*"
+HeaderFilterRegex: ".*/(src|platform/hal|platform/runtime|platform/simulation)/.*"
 ExcludeHeaderFilterRegex: "(^|/)(test|tests|vendor)/"
 # Native check ported from LabServer, built against our exact Clang/P2996 ABI.
 # scripts/clang_tidy.py loads it for analysis and configuration verification.

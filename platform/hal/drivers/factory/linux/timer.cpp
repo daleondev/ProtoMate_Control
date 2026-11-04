@@ -1,5 +1,6 @@
 #include "hal/drivers/factory/timer.hpp"
 
+#include "hal/drivers/impl/linux/RemoteTimer.hpp"
 #include "hal/drivers/impl/linux/Timer.hpp"
 
 #include <cstdint>
@@ -22,6 +23,10 @@ namespace hal::timer
     {
         switch (configuration.peripheral) {
             case Peripheral::Tim5: {
+                if (simulation::client::connected()) {
+                    static auto remote{ std::make_shared<RemoteTimer>(5, 240000000, 239, UINT32_MAX) };
+                    return remote;
+                }
                 static auto timer{ std::make_shared<Timer>(
                   Timer::Configuration{ .input_frequency_hz = TIMER_5_INPUT_FREQUENCY_HZ,
                                         .prescaler = TIMER_5_PRESCALER,
@@ -29,6 +34,10 @@ namespace hal::timer
                 return timer;
             }
             case Peripheral::Tim12: {
+                if (simulation::client::connected()) {
+                    static auto remote{ std::make_shared<RemoteTimer>(12, 64000000, 63, 65535) };
+                    return remote;
+                }
                 static auto timer{ std::make_shared<Timer>(
                   Timer::Configuration{ .input_frequency_hz = TIMER_12_INPUT_FREQUENCY_HZ,
                                         .prescaler = TIMER_12_PRESCALER,

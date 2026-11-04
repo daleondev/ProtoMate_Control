@@ -1,0 +1,162 @@
+# Native Linux hardware simulator
+
+```sh
+cmake --preset debug-linux
+cmake --build --preset debug-linux -j4
+./build/debug-linux/protomate-sim
+```
+
+The launcher starts the existing controller and a native robot viewer. The
+controller still owns its TouchGFX window. The viewer uses SDL2, OpenGL 4.5 core,
+GLSL 450, epoxy and GLM; it shares no renderer, shaders, widgets or graphics
+resources with TouchGFX. Closing the robot window leaves simulation running.
+EOF in the controller terminal requests normal application shutdown. SIGINT or
+SIGTERM stops the simulator and its child. The controller executable requires a
+simulator session; there is no automatic mock-hardware fallback.
+
+Options:
+
+- `--headless`: omit the robot window; the controller display is independent.
+- `--controller PATH`: choose the controller executable (default: sibling `Application`).
+- `--media-dir DIR`: retain isolated `flash.img` and `sd.img`; otherwise use
+  temporary, unlinked files. Existing images are size-checked and exclusively
+  locked. Host `/flash` files are not used as simulated raw media.
+- `--trace FILE.csv`: write timestamped GPIO transitions, including STEP, DIR,
+  enable and reference contacts. The file is replaced. Capture buffering is
+  bounded; overflow fails the session instead of silently losing edges.
+- `--`: pass remaining arguments to the controller.
+
+Orbit with left drag, pan with right drag, zoom with the wheel, reset the camera
+with R. The overlay reports physical shaft positions, converted joints, TCP,
+reference contacts, power, enable, faults, device time and average execution
+speed. Stale snapshots are labelled and highlighted. Rendering never advances
+the machine clock or performs HAL calls.
+
+## Physical profile and scope
+
+`Machine.hpp::Profile` defines **cad-provisional-v1**, not a calibrated robot.
+Its arm lengths are 205 and 223.4 mm, with a 135 mm distal tool offset. Rotary
+gearing is provisionally 6:1 and Z travel 8 mm/revolution. Shaft reference
+positions are 135 degrees; corresponding joint references are 0 rad, 1.2 rad,
+and 30 mm. Switches activate at 135 and release at 134.55 shaft degrees. These
+values are explicit simulation fixtures, not permission to commission hardware.
+
+The first two joints retain unwrapped coordinates. Geometry is computed from
+native shaft truth. Coordinate resets, controller homing and encoder resets do
+not teleport the mechanism. Mechanics are ideal kinematic tracking of accepted
+pulses. Disable freezes position. There is **no inertia, gravity, payload,
+contact, collision, friction, compliance, backlash or thermal model**. Physical
+travel is not clamped to conceal controller errors.
+
+Wiring follows the current GIGA board factory: STEP PA0/PA2/PA3, DIR PJ8/PD13/PH13,
+shared active-low enable PC7, normally-closed references PE4/PE5/PB2, alarms
+PB1/PC3/PC0, M2/M3 INDEX PB8/PB9, and M1 encoder PB4/PA7/PG7. M1 is a DM542T at
+16 microsteps; M2/M3 are addressed TMC2209 devices, configured by the actual
+controller driver. M1 encoder resolution is 400 P/R decoded x4. Its four-count
+Z width is provisional. INDEX derives from driver electrical phase and is not
+mechanical position feedback.
+
+## Process and time boundaries
+
+`Application` owns production device behavior, control, scheduling, planning,
+FileX/LevelX, CLI and TouchGFX. `protomate-sim` owns the timer/DMA register model,
+GPIO levels, motor-driver registers, encoder count, shaft truth, raw media files
+and native rendering. Legacy STEP/TMC emulators are isolated test fixtures and
+are not linked into the production controller executable.
+
+A dedicated instance of the existing ICC bridge carries simulator control and
+status over three bounded shared-memory lanes. It has its own bus and session,
+separate from UI/IO ICC. A distinct synchronous register mailbox handles HAL
+access while ThreadX interrupts are masked. It cannot depend on a coroutine
+worker being scheduled. All wire packets use explicit little-endian fields,
+version/session validation, checksums and bounded payloads. Shared DMA slots
+are generation-checked and active banks cannot be overwritten.
+
+One native worker owns all mutable machine state. Register transactions freeze
+device time; callbacks run in the ThreadX interrupt context. Callback writes
+use a fixed batch and are drained after callbacks return, before time advances.
+The clock steps to the next device event, including timer rollover, DMA bank
+transitions, PWM transitions and feedback edges; 1 ms clock ticks feed ThreadX.
+It is paced against host time, slowing down under host load rather than dropping
+hardware edges. It is not a cycle-accurate Cortex-M scheduler or a hardware
+refill-deadline certification tool. Hardware qualification remains separate.
+
+Host-monotonic heartbeats operate independently of device time and detect a
+stopped peer even during a time lease. Disconnect stops native STEP output and
+disables the ideal plant. Neither process automatically replays uncertain
+motion or reconnects to an old session. The viewer receives immutable snapshots
+at up to 100 Hz and renders at approximately 60 Hz.
+
+## Device fidelity
+
+- STEP uses the existing 100 ns tick model, compare toggles, 32-bit timer wrap,
+  double-buffer DMA, remaining counts, bank ownership and interrupt delivery.
+  Signed pulses drive electrical phase; mechanics advance at the valid falling
+  edge. A shortened pulse can be rejected without inventing a driver alarm.
+  The conservative simulation pulse constraints are 2.5 us high and 5 us DIR
+  setup/hold. `sim status` reports rejected pulses separately.
+- TMC emulation implements addressed reads/writes, CRC, IFCNT, reset registers,
+  GSTAT write-one-to-clear, selected writable registers, microstep resolution,
+  INDEX, faults and disconnects. The UART exchange boundary includes nominal
+  115200-baud transfer/turnaround time. This is not an analog single-wire bus,
+  UART shift-register, DMA or electrical echo-collision model.
+- Reference switches have hysteresis. Encoder counters can run, stop and rebase
+  independently of mechanical truth. Feedback disconnect, missed motor motion
+  and shaft slip are distinct faults.
+- Native general timers and PWM advance only with device time. Counted PWM
+  ends low; normal PWM remains uncounted. RTC follows the session epoch plus
+  device time. The standard-library wall clock remains a host service.
+- Raw storage provides 16 MiB NOR and 64 MiB SD images; production FileX/LevelX
+  still format, mount and access them when its runtime is initialized. The Linux
+  CLI retains its existing host-filesystem behavior; the storage qualification
+  probe explicitly uses the production FileX syscall adapter. NOR rejects zero-to-one programming.
+  Media models do not claim SD command-level, wear, power-cut atomicity or
+  flash erase/program latency fidelity.
+- Host display/input, console, OS entropy and explicitly selected real host
+  Ethernet adapters remain host services. Unimplemented SPI devices remain
+  unavailable; they do not return fabricated successful transactions.
+
+## Controls and verification
+
+```text
+motor driver init
+motor enable
+motor move m1 9 --speed 10
+motor jobs
+sim status
+motor home m1 --seek 30 --latch 3
+motor disable
+```
+
+`sim status` reports native truth independently of `motor status`. `sim power
+on|off` controls simulated driver power. `sim fault m1|m2|m3 NAME` selects one
+fault for that axis, replacing its previous fault:
+
+- `clear`, `alarm`, `reference-stuck`, `reference-open`, `lost-step`;
+- `encoder-open` (M1 only);
+- `slip DEGREES` (one-time signed physical displacement);
+- `dma-delay`, `irq-delay` (held until cleared);
+- `uart-open`, `uart-corrupt` (M2/M3 only).
+
+Clearing an injected fault does not reset controller fault latches or re-enable
+motors. Recover explicitly through the existing controller commands. Reference
+open and stuck-active are electrically indistinguishable to this NC input.
+
+```sh
+ctest --test-dir build/debug-linux --output-on-failure
+cmake --preset sanitize-linux
+cmake --build --preset sanitize-linux --target protomate_simulation_tests
+ctest --test-dir build/sanitize-linux -R '^simulation.machine$' --output-on-failure
+```
+
+`simulation.machine` exercises wire validation, interprocess queues, timing,
+pulses, reference hysteresis, encoder truth, TMC registers and NOR behavior.
+`simulation.integration` launches the real controller, exercises all three
+motors, slip feedback, homing, alarms, recovery, stop and shutdown, and checks
+recorded STEP edges. `simulation.opengl` uses Xvfb/Mesa where installed to test
+actual shader execution, pixel readback, move-only resource ownership and FBO
+resize/error handling. All original HAL, application, GUI and runtime tests
+remain available. `simulation.lifecycle` kills/stalls peers and checks child
+cleanup. `simulation.storage` writes files through FileX/LevelX, restarts both
+processes, and reads them from the retained native images. GIGA builds exclude
+the native simulator.

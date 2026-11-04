@@ -23,12 +23,26 @@ Motor construction leaves all drivers disabled; initialization, enabling and
 motion are explicit CLI operations. Display/touch bring-up uses `display`
 commands. A shared TouchGFX showcase runs on M7 and Linux; robot planning and application-specific screens remain future work.
 
+## Native Linux robot simulation
+
+Build as usual, then launch **`build/debug-linux/protomate-sim`**, which starts
+`Application` and its TouchGFX window plus a separate robot window. Use
+`--headless` to omit only the robot window. See [simulator usage and model
+boundaries](src/simulation/README.md) for the provisional physical profile,
+fault controls, persistent media, signal capture and verification commands.
+
+The robot window displays native simulated shaft/axis state, not motion requests
+or controller position estimates. The controller retains the production IO
+state machines, drivers, STEP generator, FileX/LevelX and UI/IO ICC. Emulated
+motion hardware and physical state live in the separate native process.
+
 ## Platform layout
 
 | Directory | Responsibility |
 | --- | --- |
 | `platform/boot/` | Board startup, recovery images, memory protection and GIGA flash partition layout |
 | `platform/hal/` | Hardware contracts, drivers, devices, board wiring and core selection; includes the inter-core lane contract |
+| `platform/simulation/` | Linux simulator wire contract, shared memory, HAL mailbox and interrupt handoff |
 | `platform/runtime/` | ThreadX integration, C/C++ runtime and filesystem/storage implementations |
 
 The GIGA partition header is shared by boot MPU setup and the runtime flash
@@ -40,6 +54,7 @@ adapter; the partition addresses and erase geometry are defined in one place.
 | --- | --- |
 | `src/common/` | Shared contracts, motion profiles, application lifecycle concept, ICC bridge and transports |
 | `src/io/` | M4 entry point, IO application, motor ownership and motion execution |
+| `src/simulation/` | Native hardware process, machine models, independent SDL/OpenGL viewer and tests |
 | `src/ui/` | M7 entry point, UI application, CLI and shared GUI; future planning |
 
 Each firmware compiles only its own application target, `proto::io` or

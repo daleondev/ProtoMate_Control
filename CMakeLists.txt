@@ -45,6 +45,7 @@ add_subdirectory(external/pneumo)
 add_subdirectory(platform/hal)
 add_subdirectory(platform/runtime)
 add_subdirectory(src)
+add_subdirectory(src/simulation)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 if(BUILD_TESTING)

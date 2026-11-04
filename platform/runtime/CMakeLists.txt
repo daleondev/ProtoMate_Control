@@ -61,6 +61,16 @@ function(runtime_attach target_name)
             platform::hal
     )
 
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_options(${target_name} PRIVATE LINKER:--undefined=protomate_sim_wait_interrupt)
+        if(NOT target_name STREQUAL "Application")
+            target_sources(${target_name} PRIVATE
+                ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/Hardware.cpp
+                ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/LegacyStepHardware.cpp
+                ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/SimulatedStepHardware.cpp
+                ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/Tmc2209Model.cpp)
+        endif()
+    endif()
     target_link_options(${target_name}
         PRIVATE
             LINKER:--wrap=main

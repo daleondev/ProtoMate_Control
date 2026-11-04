@@ -56,6 +56,7 @@ namespace hal
         auto toggle() noexcept -> void override;
 
       private:
+        gpio::Pin m_pin{};
         std::atomic<gpio::Level> m_level;
     };
 

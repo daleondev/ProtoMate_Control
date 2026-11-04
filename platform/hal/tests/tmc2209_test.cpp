@@ -1,5 +1,5 @@
 #include "hal/devices/impl/Tmc2209.hpp"
-#include "hal/devices/impl/linux/Tmc2209Model.hpp"
+#include "hal/tests/fixtures/Tmc2209Model.hpp"
 #include <gtest/gtest.h>
 
 namespace
