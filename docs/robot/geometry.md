@@ -5,7 +5,8 @@ visual groups in `src/simulation/assets/robot/`. These are **nominal CAD
 measurements, not calibration of the assembled robot**. `geometry.json` records
 source SHA-256 hashes, all 372 STEP body bounds, all 372 visual body bounds,
 selected analytic cylinders, assembly references, registration checks, and
-verbatim relevant product descriptions. No collision STL is used.
+verbatim relevant product descriptions. The measurements themselves do not use collision STLs. Native simulation uses
+the supplied moving collision STLs separately for switch contacts.
 
 Reproduce with FreeCAD 1.1 / OpenCascade 7.9 installed:
 
@@ -22,9 +23,9 @@ source hashes and correspondence between the report and C++ constants.
 ## Frames and kinematics
 
 All coordinates below are millimetres, right-handed, Z up, X along the extended
-arms. The exported STEP pose has both rotary coordinates zero. Z is the tool-tip
-height above the base foot plane, not carriage displacement from an arbitrary
-zero. Analytic cylindrical axes determine the rotary centers; the J3 assembly
+arms. The exported STEP pose has both rotary coordinates zero. The simulator starts in this pose. Its Z joint is displacement from CAD rest,
+with zero travel corresponding to a TCP height of 28.9 mm above the base foot
+plane. Analytic cylindrical axes determine the rotary centers; the J3 assembly
 placement determines the Z-stage attachment datum.
 
 | Quantity | Evaluated value | Evidence |
@@ -61,7 +62,8 @@ Let `T` denote translation and `Rz` rotation about Z. Rendering uses:
 base     = identity
 shoulder = T(0, 0, 52) Rz(q1)
 forearm  = shoulder T(205, 0, 317.9) Rz(q2)
-carriage = forearm T(358.4, 0, tcpZ + 280 - 369.9)
+carriage = forearm T(358.4, 0, 308.9 - 369.9 + qZ)
+tcpZ     = 28.9 + qZ
 ```
 
 This puts the rendered cutter tip at exactly the simulator's forward-kinematic
@@ -119,10 +121,27 @@ points at the modeled PCB surface, in the rest world frame, are:
 - J2: (135.3, −7.5, 270.9), (135.3, 7.5, 270.9), axes −Z.
 - Z: (523.7, 68.5, 256.3), (523.7, 68.5, 271.3), axes −X.
 
-CAD gives neither electrical actuation travel nor hysteresis. Native homing
-therefore retains its explicitly uncalibrated shaft-threshold fixture. Mounts
-are available as typed `cad::HOME_SENSOR_MOUNTS` and move with their actual
-parent visual link; they do not silently redefine the reference switches.
+The curved fixed roots of the modeled spring levers provide the geometric
+flexion axes, also retained in `geometry.json` and `cad::LEVER_ROOTS_MM`:
+
+| Sensor | Local root point | Press rotation axis |
+|---|---|---|
+| J1 | (−79.2, 2.800388, 195.2) | −Z |
+| J2 | (153.6, 2.800388, 221.8) | −Z |
+| Z | (321.6, 50.2, −108.900388) | −X |
+
+Native homing now uses collisions between each extracted lever and the next
+moving link's supplied collision STL. Parent-relative transforms follow actual
+converted motor motion. The free and nominally deflected lever must both be
+contacted to activate; backing clear releases the contact. The real controller
+reads those transitions through its normal NC inputs.
+
+CAD gives neither electrical actuation travel nor hysteresis. The simulator
+therefore uses explicit, adjustable **assumptions**: 2° rigid lever flexion and
+0.05 mm clearance for release. The collision STL bounds are approximately
+0.25 mm wider than the visual models. Neither the derived contact angles nor
+controller homing coordinates are physically calibrated switch positions.
+The switch model does not imply general rigid-body dynamics or collision safety.
 
 ## Conflicts and remaining unknowns
 

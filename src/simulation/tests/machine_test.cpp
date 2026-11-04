@@ -130,16 +130,13 @@ try {
     command(Operation::Fault,
             { 0, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(-720.0) });
     require(command(Operation::EncoderRead).arguments[0] == 1600, "stopped encoder does not count");
-    // Reference contacts use hysteresis. Fault injection changes contacts, not calibrated pose.
+    // Geometry-derived contact at 60 degrees on J2; 45 degrees is clear.
     command(Operation::Fault,
-            { 1, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(135.0) });
-    require(acquire(shared.gpio[REF_PINS[1]]) == 1, "reference activates");
+            { 1, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(300.0) });
+    require(acquire(shared.gpio[REF_PINS[1]]) == 1, "collision activates reference");
     command(Operation::Fault,
-            { 1, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(-0.2) });
-    require(acquire(shared.gpio[REF_PINS[1]]) == 1, "reference hysteresis holds");
-    command(Operation::Fault,
-            { 1, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(-0.3) });
-    require(acquire(shared.gpio[REF_PINS[1]]) == 0, "reference releases");
+            { 1, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(-75.0) });
+    require(acquire(shared.gpio[REF_PINS[1]]) == 0, "moving away from the lever releases reference");
     command(Operation::Fault, { 1, std::to_underlying(Fault::ReferenceDisconnected) });
     require(acquire(shared.gpio[REF_PINS[1]]) == 1, "NC disconnected contact is active");
     // Runtime timers advance only with device time, including wrap and pending interrupts.

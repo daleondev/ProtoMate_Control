@@ -190,7 +190,7 @@ namespace simulation::viewer
               "PROTOMATE SIMULATED HARDWARE - %s\nNOMINAL CAD - HOMING NOT CALIBRATED\nPOWER "
               "%s  DRIVERS %s  REF %X  FAULT %X  %s\nSHAFT DEG  %.3F  %.3F  %.3F\nJOINT DEG  %.3F  %.3F  Z "
               "%.3F MM\nTCP MM  X %.3F  Y %.3F  Z %.3F\nSIM TIME %.3F S   AVERAGE SPEED %.2FX\nNO DYNAMICS - "
-              "NO CONTACT - NO LOAD MODEL\nDRAG ORBIT - RIGHT DRAG PAN - WHEEL ZOOM - R RESET",
+              "SWITCH CONTACTS ONLY - NO LOAD MODEL\nDRAG ORBIT - RIGHT DRAG PAN - WHEEL ZOOM - R RESET",
               models.external ? "EXTERNAL CAD" : "FUSION CAD",
               state.powered ? "ON" : "OFF",
               state.enabled ? "ENABLED" : "DISABLED",

@@ -5,11 +5,16 @@ find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
 # Keep the 50 MiB model byte initializers out of host DWARF, as for the controller image.
-set_source_files_properties(assets/RobotModels.cpp PROPERTIES COMPILE_OPTIONS "-g0")
-add_library(protomate_simulation_assets STATIC assets/RobotModels.cpp assets/Shaders.cpp)
+set_source_files_properties(assets/RobotModels.cpp assets/CollisionMeshes.cpp PROPERTIES COMPILE_OPTIONS "-g0")
+add_library(protomate_simulation_assets STATIC assets/RobotModels.cpp assets/Shaders.cpp assets/CollisionMeshes.cpp)
 target_link_libraries(protomate_simulation_assets PUBLIC project_compiler_settings)
+add_library(protomate_simulation_kinematics STATIC Profile.cpp Kinematics.cpp ../ui/motion/AxisConversion.cpp)
+target_include_directories(protomate_simulation_kinematics PUBLIC ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(protomate_simulation_kinematics PUBLIC project_compiler_settings pneumo::units glm::glm)
+add_library(protomate_simulation_contacts STATIC CollisionMesh.cpp ContactSensors.cpp)
+target_link_libraries(protomate_simulation_contacts PUBLIC protomate_simulation_kinematics PRIVATE protomate_simulation_assets)
 add_library(protomate_simulation_models STATIC viewer/ModelAsset.cpp)
-target_link_libraries(protomate_simulation_models PUBLIC project_compiler_settings glm::glm PRIVATE assimp::assimp protomate_simulation_assets)
+target_link_libraries(protomate_simulation_models PUBLIC project_compiler_settings glm::glm protomate_simulation_kinematics PRIVATE assimp::assimp protomate_simulation_assets)
 add_library(protomate_simulation_model_renderer STATIC viewer/ModelRenderer.cpp)
 target_link_libraries(protomate_simulation_model_renderer PUBLIC protomate_simulation_models PkgConfig::SDL2 PkgConfig::SIM_EPOXY)
 
@@ -17,7 +22,7 @@ add_library(protomate_simulation_machine STATIC
     ${PROJECT_SOURCE_DIR}/platform/simulation/SharedMemory.cpp
     Machine.cpp Peripherals.cpp Media.cpp SimulatedStepHardware.cpp Tmc2209Model.cpp)
 target_include_directories(protomate_simulation_machine PUBLIC ${PROJECT_SOURCE_DIR}/platform ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries(protomate_simulation_machine PUBLIC project_compiler_settings)
+target_link_libraries(protomate_simulation_machine PUBLIC project_compiler_settings protomate_simulation_contacts)
 
 add_library(protomate_simulation_bridge STATIC
     ../common/icc/bridge/Bridge.cpp ../common/icc/bridge/ConnectionHealth.cpp
@@ -46,7 +51,8 @@ set_target_properties(Application PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_
 target_link_libraries(Application PRIVATE protomate_simulation_session protomate_simulation_image protomate_simulation_model_renderer PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
 foreach(target Application protomate_simulation_machine protomate_simulation_session
                protomate_simulation_image protomate_simulation_bridge
-               protomate_simulation_models protomate_simulation_model_renderer protomate_simulation_assets)
+               protomate_simulation_models protomate_simulation_model_renderer protomate_simulation_assets
+               protomate_simulation_kinematics protomate_simulation_contacts)
     target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
 endforeach()
 add_custom_target(run-simulation COMMAND $<TARGET_FILE:Application>
@@ -59,6 +65,10 @@ if(BUILD_TESTING)
     add_test(NAME simulation.architecture COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/architecture.py
         ${CMAKE_NM} $<TARGET_FILE:Application> $<TARGET_FILE:${PROTOMATE_CONTROLLER_TARGET}>)
     set_tests_properties(simulation.architecture PROPERTIES TIMEOUT 30)
+    add_executable(protomate_simulation_contact_tests tests/contact_test.cpp)
+    target_link_libraries(protomate_simulation_contact_tests PRIVATE protomate_simulation_contacts)
+    add_test(NAME simulation.contacts COMMAND protomate_simulation_contact_tests)
+    set_tests_properties(simulation.contacts PROPERTIES TIMEOUT 30)
     add_executable(protomate_simulation_review_tests tests/review_test.cpp)
     target_link_libraries(protomate_simulation_review_tests PRIVATE protomate_simulation_machine)
     add_test(NAME simulation.regressions COMMAND protomate_simulation_review_tests)
@@ -106,5 +116,5 @@ if(BUILD_TESTING)
     set_tests_properties(simulation.machine PROPERTIES TIMEOUT 15)
     add_test(NAME simulation.integration COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.py $<TARGET_FILE:Application>)
-    set_tests_properties(simulation.integration PROPERTIES TIMEOUT 90)
+    set_tests_properties(simulation.integration PROPERTIES TIMEOUT 180)
 endif()

@@ -1,4 +1,6 @@
 #pragma once
+#include "ContactSensors.hpp"
+#include "Kinematics.hpp"
 #include "Media.hpp"
 #include "Peripherals.hpp"
 #include "Profile.hpp"
@@ -56,6 +58,8 @@ namespace simulation
         bool m_trace_enabled{}, m_trace_overflow{};
         SharedMemory& m_memory;
         Profile m_profile;
+        Kinematics m_kinematics;
+        ContactSensors m_contacts;
         hal::util::SimulatedStepHardware m_step;
         hal::device::Tmc2209Model m_tmc;
         std::array<double, 3> m_shaft{}, m_electrical{};

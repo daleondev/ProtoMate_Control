@@ -16,6 +16,17 @@ namespace simulation::cad
     inline constexpr std::array<double, 3> MOTOR_REDUCTION{ 5.0, 5.0, 1.0 };
     inline constexpr double SCREW_LEAD_MM{ 1.25 };
 
+    // Analytic curved lever-root axes measured from STEP. Rigid rotation about
+    // these axes approximates spring flexion; electrical travel remains nominal.
+    inline constexpr std::array<std::array<double, 3>, 3> LEVER_ROOTS_MM{
+        { { -79.2, 2.800388317687, 195.2 },
+          { 153.6, 2.800388317687, 221.8 },
+          { 321.6, 50.2, -108.900388317687 } }
+    };
+    inline constexpr std::array<std::array<double, 3>, 3> LEVER_PRESS_AXES{
+        { { 0, 0, -1 }, { 0, 0, -1 }, { -1, 0, 0 } }
+    };
+
     enum class Link : unsigned
     {
         Base,

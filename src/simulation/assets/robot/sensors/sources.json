@@ -1,0 +1,35 @@
+{
+  "j1": {
+    "source": "src/simulation/assets/robot/base_link/base_link.dae",
+    "sha256": "bc3f42010f481681d7b9b848116a9eab95eeb009640e77276b85e8f8e7ed7782",
+    "body": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Spring lever - supplier free position",
+    "triangles": 112,
+    "output_sha256": "9cea112788605c0eedc6f39f108ac507f7551ef7a39a0654d8fcb7b7730f5104",
+    "moving_collision": {
+      "path": "src/simulation/assets/robot/link_1/link_1_collision.stl",
+      "sha256": "3119b5020f0ad2f9bd1acac930a2c1241e8af8bb083844ebf5f313d729090185"
+    }
+  },
+  "j2": {
+    "source": "src/simulation/assets/robot/link_1/link_1.dae",
+    "sha256": "fea77d8892ac0188e40475c4e0504795cc200baf99323af43a20cee2987804fd",
+    "body": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Spring lever - supplier free position",
+    "triangles": 112,
+    "output_sha256": "ddaa9baaa398f41acf631caf363d93d48e801527c4e8274a4a6add3182f3bee0",
+    "moving_collision": {
+      "path": "src/simulation/assets/robot/link_2/link_2_collision.stl",
+      "sha256": "b8842e7e7fedd0ffa4b5f2a3b45e2ae3f621f47ab366f7008e8450b882ee15c3"
+    }
+  },
+  "z": {
+    "source": "src/simulation/assets/robot/link_2/link_2.dae",
+    "sha256": "a662926cfdd9baa6781f3e7ed90538a31c7665ae4134a5878d6da155cac8de32",
+    "body": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Spring lever - supplier free position",
+    "triangles": 112,
+    "output_sha256": "192092699ed107a2c6e0404a5af137c37544e9ae12ac40cd3a231538a9cdbe93",
+    "moving_collision": {
+      "path": "src/simulation/assets/robot/link_3/link_3_collision.stl",
+      "sha256": "6f6a28d96312103a0f150f915b69903a216740b15bbc91771e40c25a40ff7199"
+    }
+  }
+}

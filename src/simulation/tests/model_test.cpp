@@ -88,11 +88,11 @@ try {
         require(near(glm::vec3{ transforms[2] * glm::vec4{ 0, 0, 0, 1 } }, elbow), "elbow follows shoulder");
         const glm::vec3 expected{ 205 * std::cos(a) + 358.4F * std::cos(b),
                                   205 * std::sin(a) + 358.4F * std::sin(b),
-                                  static_cast<float>(q[2]) };
+                                  static_cast<float>(q[2] + 28.9) };
         require(near(glm::vec3{ transforms[3] * glm::vec4{ 0, 0, -280, 1 } }, expected),
                 "actual exported cutter tip matches FK for all joints/multiple turns");
     }
-    const auto rest{ robotModelTransforms(profile, { 0, 0, 28.9 }) };
+    const auto rest{ robotModelTransforms(profile, { 0, 0, 0 }) };
     require(near(glm::vec3{ rest[3] * glm::vec4{ 0, 0, 0, 1 } }, { 563.4F, 0, 308.9F }),
             "export rest pose reproduces STEP carriage datum");
     // Independent STEP plunger centers: each sensor follows its proper parent link.

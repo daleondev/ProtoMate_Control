@@ -154,7 +154,17 @@ def main():
     for name, parent, plunger, pcb, outward in [('J1', 0, 127, 132, [1,0,0]), ('J2', 1, 256, 261, [1,0,0]), ('Z', 2, 364, 369, [0,-1,0])]:
         world = center(feature(plunger, name + '-HOME')['bounds_mm'])
         holes = [c for c in feature(pcb, name + '-HOME')['cylinders'] if abs(c['radius_mm']-1.5) < 1e-5]
+        root = cylinder(plunger + 1, name + '-HOME', .49961168231284)
+        # Any point along the cylinder axis describes the same lever hinge.
+        # Choose the free plunger's transverse center for readable local coordinates.
+        root_point = list(root['axis_point_mm'])
+        for axis, direction in enumerate(root['axis']):
+            if abs(direction) > .999:
+                root_point[axis] = world[axis]
         sensors.append({'name': name, 'parent': LINKS[parent], 'step_plunger': f'Part__Feature{plunger:03}',
+                        'step_lever': f'Part__Feature{plunger + 1:03}',
+                        'local_lever_root_mm': subtract(root_point, origins[parent]),
+                        'lever_press_axis': root['axis'],
                         'world_plunger_center_mm': world, 'local_plunger_center_mm': subtract(world, origins[parent]),
                         'outward_axis': outward, 'pcb_mounting_holes': holes,
                         'trigger_position': None, 'hysteresis': None})
@@ -185,7 +195,7 @@ def main():
                              'J1 description mentions 3MGT; selected pulley labels/geometry say 2GT.',
                              'Old link/base/shaft body descriptions disagree with evaluated geometry; see geometry.md.']}
     # Keep complete bounds, but analytic details only for useful shaft/pulley/sensor references.
-    analytic = {27,28,31,132,188,189,192,261,284,302,305,314,369}
+    analytic = {27,28,31,128,132,188,189,192,257,261,284,302,305,314,365,369}
     for key, body in features.items():
         index = int(key.removeprefix('Part__Feature') or 0)
         if index not in analytic:

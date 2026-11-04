@@ -4,39 +4,21 @@
 #include <cerrno>
 #include <cmath>
 #include <cstring>
-#include <numbers>
 
 namespace simulation
 {
     namespace
     {
-        constexpr double RAD{ std::numbers::pi / 180.0 };
         std::int64_t encoder(double degrees)
         {
             return static_cast<std::int64_t>(std::floor(degrees * 1600.0 / 360.0 + 1e-9));
         }
     }
-    void Profile::validate() const
-    {
-        for (double value : geometry_mm)
-            if (!std::isfinite(value) || value <= 0)
-                throw std::invalid_argument{ "invalid simulation geometry" };
-        for (double value : ratio)
-            if (!std::isfinite(value) || value <= 0)
-                throw std::invalid_argument{ "invalid simulation gearing" };
-        for (double value : shaft_reference)
-            if (!std::isfinite(value))
-                throw std::invalid_argument{ "invalid shaft reference" };
-        for (double value : axis_reference)
-            if (!std::isfinite(value))
-                throw std::invalid_argument{ "invalid axis reference" };
-        if (!std::isfinite(switch_on) || !std::isfinite(switch_off) || !std::isfinite(z_mm_per_revolution) ||
-            z_mm_per_revolution <= 0 || switch_off >= switch_on || dm542_microsteps == 0)
-            throw std::invalid_argument{ "invalid simulation profile" };
-    }
     Machine::Machine(SharedMemory& memory, Profile profile, const std::filesystem::path& media)
       : m_memory{ memory }
       , m_profile{ profile }
+      , m_kinematics{ profile }
+      , m_contacts{ profile }
       , m_media{ media }
       , m_peripherals{ m_memory,
                        [this](unsigned index, bool high, std::uint64_t time) { output(index, high, time); } }
@@ -73,11 +55,9 @@ namespace simulation
     }
     void Machine::sensors()
     {
+        const auto joints{ m_kinematics.joints(m_shaft) };
         for (unsigned i{}; i < 3; ++i) {
-            if (m_shaft[i] >= m_profile.switch_on)
-                m_reference[i] = true;
-            if (m_shaft[i] <= m_profile.switch_off)
-                m_reference[i] = false;
+            m_reference[i] = m_contacts.update(i, joints[i]);
             input(REF_PINS[i],
                   m_reference[i] || m_fault[i] == Fault::ReferenceStuck ||
                     m_fault[i] == Fault::ReferenceDisconnected);
@@ -223,18 +203,8 @@ namespace simulation
                               .session = m_memory.session,
                               .shaft_degrees = m_shaft,
                               .accepted_steps = m_steps };
-        for (unsigned i{}; i < 2; ++i)
-            result.joints[i] = (m_shaft[i] - m_profile.shaft_reference[i]) / m_profile.ratio[i] * RAD +
-                               m_profile.axis_reference[i];
-        result.joints[2] = (m_shaft[2] - m_profile.shaft_reference[2]) / (360.0 * m_profile.ratio[2]) *
-                             m_profile.z_mm_per_revolution +
-                           m_profile.axis_reference[2];
-        const auto shoulder{ result.joints[0] }, elbow{ shoulder + result.joints[1] };
-        result.tcp_mm = { m_profile.geometry_mm[0] * std::cos(shoulder) +
-                            (m_profile.geometry_mm[1] + m_profile.geometry_mm[2]) * std::cos(elbow),
-                          m_profile.geometry_mm[0] * std::sin(shoulder) +
-                            (m_profile.geometry_mm[1] + m_profile.geometry_mm[2]) * std::sin(elbow),
-                          result.joints[2] };
+        result.joints = m_kinematics.joints(m_shaft);
+        result.tcp_mm = Kinematics::tcp(m_profile, result.joints);
         for (unsigned i{}; i < 3; ++i) {
             if (acquire(m_memory.gpio[REF_PINS[i]]))
                 result.references |= 1U << i;

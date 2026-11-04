@@ -10,6 +10,8 @@ namespace simulation::assets
     // The controller implementation is linked only into the native Application.
     std::span<const std::byte> controllerImage() noexcept;
     std::array<std::span<const std::byte>, 4> robotModels() noexcept;
+    std::array<std::span<const std::byte>, 3> collisionLinks() noexcept;
+    std::array<std::span<const std::byte>, 3> switchLevers() noexcept;
     struct ShaderSources
     {
         std::string_view vertex{}, fragment{};

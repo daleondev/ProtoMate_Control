@@ -56,7 +56,7 @@ namespace simulation::viewer
                                 ModelCoordinates coordinates = {});
     };
     // Base + three articulated DAE frames, registered against evaluated STEP.
-    // Joints are relative rotary radians and world TCP height in millimetres.
+    // Joints are relative rotary radians and Z displacement from CAD rest in millimetres.
     std::array<glm::mat4, 4> robotModelTransforms(const Profile& profile,
                                                   const std::array<double, 3>& joints);
 }

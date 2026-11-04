@@ -34,7 +34,12 @@ for constant, link in [('J1_FRAME_Z_MM', 'link_1'), ('J2_FRAME_Z_MM', 'link_2'),
     close(values(constant), [report['visual_links'][link]['rest_translation_mm'][2]])
 close(values('TOOL_TIP_LOCAL_Z_MM'), [report['kinematics']['tool_tip_local_mm'][2]])
 close(values('REST_TCP_Z_MM'), [report['kinematics']['rest_tcp_mm'][2]])
+close(values('LEVER_ROOTS_MM'), [v for s in report['sensors'] for v in s['local_lever_root_mm']])
+close(values('LEVER_PRESS_AXES'), [v for s in report['sensors'] for v in s['lever_press_axis']])
 close(values('HOME_SENSOR_MOUNTS'), [v for s in report['sensors'] for v in s['local_plunger_center_mm'] + s['outward_axis']])
 for link in report['visual_links'].values():
     assert link['cross_check']['max_bound_residual_mm'] < .002
+import subprocess
+import sys
+subprocess.run([sys.executable, str(root / 'scripts/extract_robot_switches.py'), '--check'], check=True)
 print('PASS: STEP/DAE hashes, body coverage, frame registration, C++ geometry and sensor constants')

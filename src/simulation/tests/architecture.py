@@ -15,11 +15,14 @@ for forbidden in ("_tx_thread_schedule", "simulation::client::call", "touchgfx::
 for required in ("simulation::client::call", "ui::Application::", "io::Application::"):
     assert required in firmware, f"controller is missing {required}"
 for forbidden in ("simulation::Machine::", "simulation::Session::", "simulation::viewer::", "simulation::assets::",
-                  "SimulatedStepHardware::", "Tmc2209Model::"):
+                  "SimulatedStepHardware::", "Tmc2209Model::", "simulation::CollisionMesh::", "simulation::ContactSensors::", "simulation::Kinematics::"):
     assert forbidden not in firmware, f"simulated hardware leaked into controller: {forbidden}"
 
 assert "simulation::viewer::ModelAsset::read(" in host, "native viewer must use the model importer"
 for name in ("simulation::viewer::ModelAsset", "simulation::viewer::ModelRenderer", "Assimp::"):
     assert name not in firmware, f"native CAD importer leaked into controller: {name}"
+
+for required in ("ui::motion::RotaryAxisConversion::toAxisPosition", "ui::motion::LinearAxisConversion::toAxisPosition"):
+    assert required in host and required in firmware, f"pure shared conversion missing: {required}"
 
 print("PASS: native and ThreadX link closures remain isolated; production controller contains proxies only")

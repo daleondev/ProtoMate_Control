@@ -1,4 +1,5 @@
 #include "ModelAsset.hpp"
+#include "../Kinematics.hpp"
 #include "../assets/EmbeddedAssets.hpp"
 #include <algorithm>
 #include <assimp/Importer.hpp>
@@ -211,22 +212,9 @@ namespace simulation::viewer
                 throw std::invalid_argument{ "invalid rendered robot geometry" };
         if (std::abs(joints[2]) > 10000)
             throw std::invalid_argument{ "rendered Z exceeds 10 m" };
-        const auto first{ glm::rotate(
-          glm::translate(glm::mat4{ 1 }, glm::vec3{ 0, 0, static_cast<float>(cad::J1_FRAME_Z_MM) }),
-          static_cast<float>(std::remainder(joints[0], 2 * std::numbers::pi)),
-          glm::vec3{ 0, 0, 1 }) };
-        const auto second{ glm::rotate(
-          glm::translate(first,
-                         glm::vec3{ static_cast<float>(profile.geometry_mm[0]),
-                                    0,
-                                    static_cast<float>(cad::J2_FRAME_Z_MM - cad::J1_FRAME_Z_MM) }),
-          static_cast<float>(std::remainder(joints[1], 2 * std::numbers::pi)),
-          glm::vec3{ 0, 0, 1 }) };
-        const auto third{ glm::translate(
-          second,
-          glm::vec3{ static_cast<float>(profile.geometry_mm[1] + profile.geometry_mm[2]),
-                     0,
-                     static_cast<float>(joints[2] - cad::TOOL_TIP_LOCAL_Z_MM - cad::J2_FRAME_Z_MM) }) };
-        return { glm::mat4{ 1 }, first, second, third };
+        const auto frames{ Kinematics::frames(profile, joints) };
+        return {
+            glm::mat4{ frames[0] }, glm::mat4{ frames[1] }, glm::mat4{ frames[2] }, glm::mat4{ frames[3] }
+        };
     }
 }

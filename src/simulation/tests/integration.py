@@ -8,6 +8,7 @@ import sys
 import time
 import tempfile
 import csv
+import math
 
 simulator = sys.argv[1]
 artifacts = tempfile.TemporaryDirectory(prefix="protomate-integration-")
@@ -52,8 +53,17 @@ def wait_for(value, expected, timeout=20):
         time.sleep(0.15)
     raise AssertionError(f"{value}: expected {expected}\n{output}")
 
+def physical():
+    text = command("sim status")
+    rows = re.findall(r"m(\d) shaft=([-+\d.eE]+) deg; joint=([-+\d.eE]+) (?:rad|mm); TCP [XYZ]=([-+\d.eE]+)", text)
+    assert len(rows)==3, text
+    return [(float(shaft),float(joint),float(tcp)) for _,shaft,joint,tcp in rows]
+
 try:
     prompt()
+    zero=physical()
+    assert all(shaft==0 and joint==0 for shaft,joint,_ in zero),zero
+    assert abs(zero[0][2]-563.4)<1e-6 and zero[1][2]==0 and zero[2][2]==28.9,zero
     command("motor driver init")
     assert "power=1" in command("sim status")
     command("motor enable")
@@ -71,11 +81,26 @@ try:
     feedback = wait_for("motor status m1", "shaft encoder: position=18.0000")
     assert "m1: position=9.0000" in feedback and "shaft encoder: position=18.0000" in feedback, feedback
     command("sim fault m1 clear")
-    # Hardware reference contacts drive the unchanged IO homing state machine.
-    result = command("motor home m1 --seek 30 --latch 3")
-    job = re.search(r"job (\d+)", result).group(1)
-    wait_for(f"motor jobs {job}", "completed", 25)
-    wait_for("motor status m1", "referenced=yes")
+    # Geometry-generated NC contacts drive the production seek/release/latch state machine.
+    for axis,seek,latch in [(1,30,3),(2,30,3),(3,180,30)]:
+        result=command(f"motor home m{axis} --seek {seek} --latch {latch} --timeout 90")
+        job=re.search(r"job (\d+)",result).group(1)
+        wait_for(f"motor jobs {job}","completed",100)
+        wait_for(f"motor status m{axis}","referenced=yes")
+        homed=physical()[axis-1]
+        low,high=[(112,114),(55,57),(29,31)][axis-1]
+        joint=homed[1]*180/math.pi if axis<3 else homed[1]
+        assert low<joint<high,(axis,homed)
+        # IO assigns its configured 135-degree coordinate; mechanics must not teleport.
+        assert abs(homed[0]-135)>100,(axis,homed)
+        distance=-45 if axis<3 else -360
+        result=command(f"motor move m{axis} {distance} --speed 30")
+        job=re.search(r"job (\d+)",result).group(1)
+        wait_for(f"motor jobs {job}","completed")
+        moved=physical()[axis-1]
+        expected=distance/5*math.pi/180 if axis<3 else distance/360*1.25
+        assert math.isclose(moved[1]-homed[1],expected,abs_tol=3e-5),(axis,homed,moved)
+
     # Diagnostic alarm must reach the original driver/controller fault path.
     command("sim fault m2 alarm")
     wait_for("motor driver status", "Drivers: disabled")
@@ -95,14 +120,21 @@ try:
     with open(trace_path) as capture:
         edges = list(csv.DictReader(capture))
     assert all(int(a["time_ns"]) <= int(b["time_ns"]) for a,b in zip(edges,edges[1:])), "trace time order"
+    contacts={}
+    for port,pin in [('E',4),('E',5),('B',2)]:
+        contact=[e for e in edges if e['port']==port and int(e['pin'])==pin]
+        assert [e['level'] for e in contact][:4]==['1','0','1','0'],contact
+        assert all(int(b['time_ns'])>int(a['time_ns']) for a,b in zip(contact,contact[1:])),contact
+        contacts[(port,pin)]=contact
+    first_home=int(contacts[('E',4)][0]['time_ns'])
     for pin,count in [(2,160),(3,160)]:
-        signal=[edge for edge in edges if edge["port"]=="A" and int(edge["pin"])==pin]
+        signal=[edge for edge in edges if edge["port"]=="A" and int(edge["pin"])==pin and int(edge['time_ns'])<first_home]
         assert len(signal)==count*2, (pin,len(signal))
         for rising,falling in zip(signal[::2],signal[1::2]):
             assert rising["level"]=="1" and falling["level"]=="0"
             assert int(falling["time_ns"])-int(rising["time_ns"])>=2500
     assert not any("panic" in line.lower() for line in transcript.decode(errors="replace").splitlines())
-    print("PASS: ICC cross-process status, three-axis pulses, feedback/slip, homing, driver fault, stop and shutdown")
+    print("PASS: ICC cross-process status, three-axis pulses, feedback/slip, geometry-driven three-axis homing and post-home conversion, driver fault, stop and shutdown")
 except BaseException:
     sys.stderr.write(transcript.decode(errors="replace"))
     raise
