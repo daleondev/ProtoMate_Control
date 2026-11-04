@@ -1,14 +1,16 @@
 #pragma once
+#include "CadGeometry.hpp"
 #include <array>
 
 namespace simulation
 {
     struct Profile
     {
-        static constexpr const char* NAME{ "cad-provisional-v1" };
-        std::array<double, 3> geometry_mm{ 205.0, 223.4, 135.0 };
-        std::array<double, 3> ratio{ 6.0, 6.0, 1.0 };
-        double z_mm_per_revolution{ 8.0 };
+        static constexpr const char* NAME{ "fusion-cad-v2" };
+        std::array<double, 3> geometry_mm{ cad::LINK_LENGTHS_MM };
+        std::array<double, 3> ratio{ cad::MOTOR_REDUCTION };
+        double z_mm_per_revolution{ cad::SCREW_LEAD_MM };
+        // Uncalibrated homing fixtures, deliberately independent of CAD sensor mounts.
         std::array<double, 3> shaft_reference{ 135.0, 135.0, 135.0 };
         std::array<double, 3> axis_reference{ 0.0, 1.2, 30.0 };
         double switch_on{ 135.0 }, switch_off{ 134.55 };

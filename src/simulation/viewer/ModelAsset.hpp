@@ -18,7 +18,8 @@ namespace simulation::viewer
     };
     struct ModelCoordinates
     {
-        // glTF convention. OBJ/STL exports commonly need {1, UpAxis::Z} instead.
+        // Coordinates AFTER Assimp import. COLLADA Z_UP is normalized to Y-up
+        // by Assimp; these metre exports therefore need the default conversion.
         double millimetres_per_unit{ 1000 };
         UpAxis up{ UpAxis::Y };
         glm::mat4 matrix() const;
@@ -49,14 +50,13 @@ namespace simulation::viewer
     };
     struct RobotModels
     {
-        std::array<ModelAsset, 3> parts{};
-        bool placeholders{ true };
+        std::array<ModelAsset, 4> parts{};
+        bool external{};
         static RobotModels load(const std::filesystem::path& directory = {},
                                 ModelCoordinates coordinates = {});
     };
-    // Local frames: +X toward the next joint/TCP, +Z up; origins at the pivots.
-    // Height is a visual mounting datum, independent of the simulated TCP Z.
-    std::array<glm::mat4, 3> robotModelTransforms(const Profile& profile,
-                                                  const std::array<double, 3>& joints,
-                                                  double shoulder_height_mm = 140);
+    // Base + three articulated DAE frames, registered against evaluated STEP.
+    // Joints are relative rotary radians and world TCP height in millimetres.
+    std::array<glm::mat4, 4> robotModelTransforms(const Profile& profile,
+                                                  const std::array<double, 3>& joints);
 }

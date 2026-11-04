@@ -46,8 +46,6 @@ try {
             else
                 throw std::invalid_argument{ "--model-up expects y or z" };
         }
-        else if (argument == "--model-shoulder-height" && i + 1 < argc)
-            viewer_options.shoulder_height_mm = number(argv[++i]);
         else if (argument == "--") {
             first_argument = i + 1;
             break;
@@ -57,8 +55,9 @@ try {
               "Application [--headless] [--media-dir directory] [--trace file.csv] [-- controller "
               "arguments]\n"
               "Models: --robot-models DIR [--model-scale mm-per-unit] [--model-up y|z]\n"
-              "        [--model-shoulder-height mm]; defaults: 1000, y, 140.\n"
-              "DIR contains shoulder, forearm, carriage model files; embedded defaults are DUMMY meshes.\n"
+              "        defaults: 1000, y (coordinates after Assimp import).\n"
+              "DIR contains base_link/base_link.dae and link_1..3/link_1..3.dae; defaults are embedded "
+              "Fusion exports.\n"
               "One executable, two processes: native simulation and the embedded ThreadX controller.\n"
               "Close the robot window to continue headless.");
             return 0;
@@ -67,7 +66,7 @@ try {
             throw std::invalid_argument{ "unknown simulator argument" };
     }
     viewer_options.coordinates.matrix();
-    simulation::viewer::robotModelTransforms(options.profile, { 0, 0, 0 }, viewer_options.shoulder_height_mm);
+    simulation::viewer::robotModelTransforms(options.profile, { 0, 0, 0 });
     simulation::ExecutableImage controller{ simulation::assets::controllerImage() };
     simulation::Session session{ std::move(options) };
     session.launch(controller.fd(),

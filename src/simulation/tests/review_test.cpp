@@ -148,7 +148,7 @@ namespace
         const double before{ geared.machine.snapshot().joints[2] };
         geared.command(Operation::Fault,
                        { 2, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(360.0) });
-        require(std::abs(geared.machine.snapshot().joints[2] - before - 4.0) < 1e-9, "Z gearing ignored");
+        require(std::abs(geared.machine.snapshot().joints[2] - before - 0.625) < 1e-9, "Z gearing ignored");
     }
     void common_wiring()
     {

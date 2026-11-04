@@ -73,8 +73,8 @@ namespace simulation::viewer
             for (const auto& warning : part.warnings)
                 std::fprintf(stderr, "simulation model: %s\n", warning.c_str());
         std::fprintf(stderr,
-                     "simulation models: %s (Assimp, three articulated parts)\n",
-                     models.placeholders ? "embedded DUMMY geometry" : "external export");
+                     "simulation models: %s (Assimp, fixed base + three articulated links)\n",
+                     models.external ? "external Fusion CAD" : "embedded Fusion CAD");
         SdlSession sdl{};
         Window window{};
         Context context{ window };
@@ -96,8 +96,8 @@ namespace simulation::viewer
         Mesh grid{ context, lines, GL_LINES };
         Mesh overlay{ context, std::span<const Vertex>{} };
         auto wall_origin{ hostNow() };
-        float yaw{ -.8F }, pitch{ .65F }, distance{ 1100 };
-        glm::vec3 focus{ 150, 0, 100 };
+        float yaw{ -.8F }, pitch{ .65F }, distance{ 1400 };
+        glm::vec3 focus{ 180, 0, 200 };
         bool visible{ true };
         glEnable(GL_DEPTH_TEST);
         glClearColor(.045F, .06F, .085F, 1);
@@ -120,8 +120,8 @@ namespace simulation::viewer
                 if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_r) {
                     yaw = -.8F;
                     pitch = .65F;
-                    distance = 1100;
-                    focus = { 150, 0, 100 };
+                    distance = 1400;
+                    focus = { 180, 0, 200 };
                 }
             }
             int width{}, height{};
@@ -137,7 +137,7 @@ namespace simulation::viewer
                           "ProtoMate | %s | %s (PROVISIONAL) | J %.2f %.2f deg Z %.2f mm | TCP %.1f %.1f "
                           "%.1f mm | %s | REF "
                           "%x FAULT %x | t %.3f s | drag orbit / right-drag pan / wheel zoom / R reset",
-                          models.placeholders ? "DUMMY MODELS" : "EXTERNAL MODELS",
+                          models.external ? "EXTERNAL CAD" : "FUSION CAD",
                           Profile::NAME,
                           state.joints[0] * 180 / std::numbers::pi,
                           state.joints[1] * 180 / std::numbers::pi,
@@ -168,9 +168,7 @@ namespace simulation::viewer
             }
             };
             draw(grid, glm::mat4{ 1 }, { .17F, .22F, .28F }, true);
-            draw(box, transform({ 0, 0, 10 }, { 160, 160, 20 }), { .22F, .25F, .30F });
-            draw(joint, transform({ 0, 0, 70 }, { 100, 100, 100 }), { .48F, .50F, .54F });
-            robot.draw(robotModelTransforms(profile, state.joints, options.shoulder_height_mm), vp, eye);
+            robot.draw(robotModelTransforms(profile, state.joints), vp, eye);
             glUseProgram(program.get());
             const glm::vec3 tcp{ float(state.tcp_mm[0]), float(state.tcp_mm[1]), float(state.tcp_mm[2]) };
             draw(joint,
@@ -189,11 +187,11 @@ namespace simulation::viewer
             std::snprintf(
               label.data(),
               label.size(),
-              "PROTOMATE SIMULATED HARDWARE - %s\nGEOMETRY AND GEARING NOT CALIBRATED\nPOWER "
+              "PROTOMATE SIMULATED HARDWARE - %s\nNOMINAL CAD - HOMING NOT CALIBRATED\nPOWER "
               "%s  DRIVERS %s  REF %X  FAULT %X  %s\nSHAFT DEG  %.3F  %.3F  %.3F\nJOINT DEG  %.3F  %.3F  Z "
               "%.3F MM\nTCP MM  X %.3F  Y %.3F  Z %.3F\nSIM TIME %.3F S   AVERAGE SPEED %.2FX\nNO DYNAMICS - "
               "NO CONTACT - NO LOAD MODEL\nDRAG ORBIT - RIGHT DRAG PAN - WHEEL ZOOM - R RESET",
-              models.placeholders ? "DUMMY MODELS" : "EXTERNAL MODELS",
+              models.external ? "EXTERNAL CAD" : "FUSION CAD",
               state.powered ? "ON" : "OFF",
               state.enabled ? "ENABLED" : "DISABLED",
               state.references,

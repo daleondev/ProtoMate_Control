@@ -47,10 +47,11 @@ Assimp is found with `find_package(assimp CONFIG REQUIRED)` and linked through
 for Linux configuration, including headless runs of this same binary, and is
 absent from the embedded controller and GIGA builds. Nothing is fetched by CMake.
 
-Three embedded dummy GLB models now pass through Assimp and follow shoulder,
-elbow and Z-carriage state. The window labels them **DUMMY MODELS**. Exported
-CAD can replace them with `--robot-models DIR`; see
-[asset frames, export conventions and limitations](assets/robot/README.md).
+Four embedded Fusion DAE groups (base plus three moving links) pass through
+Assimp and follow actual native shaft truth. Their local frames and the cutter
+tip are registered against the evaluated STEP assembly. See
+[asset frames and import conventions](assets/robot/README.md) and the
+[measured geometry and sensor report](../../docs/robot/geometry.md).
 
 Options:
 
@@ -61,10 +62,9 @@ Options:
 - `--trace FILE.csv`: write timestamped GPIO transitions, including STEP, DIR,
   enable and reference contacts. The file is replaced. Capture buffering is
   bounded; overflow fails the session instead of silently losing edges.
-- `--robot-models DIR`: load `shoulder`, `forearm`, `carriage` mesh files from DIR.
+- `--robot-models DIR`: load `base_link/base_link.dae` and `link_1..3/link_1..3.dae` from DIR.
 - `--model-scale N`, `--model-up y|z`: millimetres per imported unit and up axis
-  for external models; defaults 1000 and Y (glTF convention).
-- `--model-shoulder-height MM`: visual shoulder datum, default 140 mm.
+  for external models **after Assimp normalization**; defaults 1000 and Y.
 - `--`: pass remaining arguments to the controller.
 
 Orbit with left drag, pan with right drag, zoom with the wheel, reset the camera
@@ -75,12 +75,17 @@ the machine clock or performs HAL calls.
 
 ## Physical profile and scope
 
-`Profile.hpp::Profile` defines **cad-provisional-v1**, not a calibrated robot.
-Its arm lengths are 205 and 223.4 mm, with a 135 mm distal tool offset. Rotary
-gearing is provisionally 6:1 and Z travel 8 mm/revolution. Shaft reference
-positions are 135 degrees; corresponding joint references are 0 rad, 1.2 rad,
-and 30 mm. Switches activate at 135 and release at 134.55 shaft degrees. These
-values are explicit simulation fixtures, not permission to commission hardware.
+`Profile.hpp::Profile` defines **fusion-cad-v2**, a nominal CAD profile, not a
+calibrated robot. `CadGeometry.hpp` holds the STEP-derived 205 / 223.4 mm links
+and 135 mm tool offset. Current pulley labels specify 5:1 rotary gearing; the
+CAD author's assumed M8×1.25 screw sets nominal Z travel to 1.25 mm/revolution.
+The report explicitly records conflicting older component descriptions.
+
+Shaft reference positions remain 135 degrees; corresponding joint references
+are 0 rad, 1.2 rad, and 30 mm. Switches activate at 135 and release at 134.55
+shaft degrees. **These homing values remain simulation fixtures**, independent
+of the measured CAD sensor mounts: static geometry does not supply electrical
+switch activation or hysteresis. No hardware calibration/admission is enabled.
 
 The first two joints retain unwrapped coordinates. Geometry is computed from
 native shaft truth. Coordinate resets, controller homing and encoder resets do

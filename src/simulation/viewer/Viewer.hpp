@@ -10,7 +10,6 @@ namespace simulation::viewer
     {
         std::filesystem::path model_directory{};
         ModelCoordinates coordinates{};
-        double shoulder_height_mm{ 140 };
     };
     void run(Session& session, const ViewerOptions& options = {});
 }

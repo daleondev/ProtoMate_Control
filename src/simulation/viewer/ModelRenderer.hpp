@@ -10,7 +10,7 @@ namespace simulation::viewer
     {
       public:
         ModelRenderer(const Context& context, const RobotModels& models);
-        void draw(const std::array<glm::mat4, 3>& frames, const glm::mat4& view_projection, glm::vec3 eye);
+        void draw(const std::array<glm::mat4, 4>& frames, const glm::mat4& view_projection, glm::vec3 eye);
 
       private:
         struct Geometry

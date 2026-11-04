@@ -4,6 +4,8 @@ pkg_check_modules(SIM_EPOXY REQUIRED IMPORTED_TARGET epoxy)
 find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
+# Keep the 50 MiB model byte initializers out of host DWARF, as for the controller image.
+set_source_files_properties(assets/RobotModels.cpp PROPERTIES COMPILE_OPTIONS "-g0")
 add_library(protomate_simulation_assets STATIC assets/RobotModels.cpp assets/Shaders.cpp)
 target_link_libraries(protomate_simulation_assets PUBLIC project_compiler_settings)
 add_library(protomate_simulation_models STATIC viewer/ModelAsset.cpp)
@@ -52,6 +54,8 @@ add_custom_target(run-simulation COMMAND $<TARGET_FILE:Application>
 
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME simulation.cad_assets COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cad_assets.py)
+    set_tests_properties(simulation.cad_assets PROPERTIES TIMEOUT 15)
     add_test(NAME simulation.architecture COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/architecture.py
         ${CMAKE_NM} $<TARGET_FILE:Application> $<TARGET_FILE:${PROTOMATE_CONTROLLER_TARGET}>)
     set_tests_properties(simulation.architecture PROPERTIES TIMEOUT 30)

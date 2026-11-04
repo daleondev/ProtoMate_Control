@@ -189,56 +189,44 @@ namespace simulation::viewer
         if (directory.empty()) {
             const auto embedded{ assets::robotModels() };
             for (std::size_t i{}; i < result.parts.size(); ++i)
-                result.parts[i] = ModelAsset::read(embedded[i], "glb");
+                result.parts[i] = ModelAsset::read(embedded[i], "dae");
         }
         else {
-            constexpr std::array names{ "shoulder", "forearm", "carriage" };
-            Assimp::Importer importer{};
-            for (std::size_t i{}; i < names.size(); ++i) {
-                std::filesystem::path selected{};
-                for (const auto& entry : std::filesystem::directory_iterator{ directory }) {
-                    if (entry.is_regular_file() && entry.path().stem() == names[i] &&
-                        importer.IsExtensionSupported(entry.path().extension().string())) {
-                        if (!selected.empty())
-                            throw std::runtime_error{ std::string{ "ambiguous model files for " } +
-                                                      names[i] };
-                        selected = entry.path();
-                    }
-                }
-                if (selected.empty())
-                    throw std::runtime_error{ std::string{ "missing Assimp-compatible model: " } + names[i] };
-                result.parts[i] = ModelAsset::read(selected, coordinates);
-            }
-            result.placeholders = false;
+            // Exact visual filenames: never select the neighboring collision STLs.
+            constexpr std::array names{ "base_link", "link_1", "link_2", "link_3" };
+            for (std::size_t i{}; i < names.size(); ++i)
+                result.parts[i] =
+                  ModelAsset::read(directory / names[i] / (std::string{ names[i] } + ".dae"), coordinates);
+            result.external = true;
         }
         return result;
     }
-    std::array<glm::mat4, 3> robotModelTransforms(const Profile& profile,
-                                                  const std::array<double, 3>& joints,
-                                                  double shoulder_height_mm)
+    std::array<glm::mat4, 4> robotModelTransforms(const Profile& profile, const std::array<double, 3>& joints)
     {
         for (double value : joints)
             if (!std::isfinite(value))
                 throw std::invalid_argument{ "invalid rendered joint state" };
-        if (!std::isfinite(shoulder_height_mm) || shoulder_height_mm < 0 || shoulder_height_mm > 2000)
-            throw std::invalid_argument{ "invalid model shoulder height" };
         for (double length : profile.geometry_mm)
             if (!std::isfinite(length) || length <= 0 || length > 10000)
                 throw std::invalid_argument{ "invalid rendered robot geometry" };
         if (std::abs(joints[2]) > 10000)
             throw std::invalid_argument{ "rendered Z exceeds 10 m" };
         const auto first{ glm::rotate(
-          glm::translate(glm::mat4{ 1 }, glm::vec3{ 0, 0, static_cast<float>(shoulder_height_mm) }),
+          glm::translate(glm::mat4{ 1 }, glm::vec3{ 0, 0, static_cast<float>(cad::J1_FRAME_Z_MM) }),
           static_cast<float>(std::remainder(joints[0], 2 * std::numbers::pi)),
           glm::vec3{ 0, 0, 1 }) };
         const auto second{ glm::rotate(
-          glm::translate(first, glm::vec3{ static_cast<float>(profile.geometry_mm[0]), 0, 0 }),
+          glm::translate(first,
+                         glm::vec3{ static_cast<float>(profile.geometry_mm[0]),
+                                    0,
+                                    static_cast<float>(cad::J2_FRAME_Z_MM - cad::J1_FRAME_Z_MM) }),
           static_cast<float>(std::remainder(joints[1], 2 * std::numbers::pi)),
           glm::vec3{ 0, 0, 1 }) };
-        const auto third{ glm::translate(second,
-                                         glm::vec3{ static_cast<float>(profile.geometry_mm[1]),
-                                                    0,
-                                                    static_cast<float>(joints[2] - shoulder_height_mm) }) };
-        return { first, second, third };
+        const auto third{ glm::translate(
+          second,
+          glm::vec3{ static_cast<float>(profile.geometry_mm[1] + profile.geometry_mm[2]),
+                     0,
+                     static_cast<float>(joints[2] - cad::TOOL_TIP_LOCAL_Z_MM - cad::J2_FRAME_Z_MM) }) };
+        return { glm::mat4{ 1 }, first, second, third };
     }
 }

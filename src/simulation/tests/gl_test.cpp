@@ -89,7 +89,7 @@ try {
     glEnable(GL_DEPTH_TEST);
     const glm::vec3 eye{ 650, -650, 500 };
     const auto vp{ glm::perspective(glm::radians(45.0F), 1.0F, 1.0F, 3000.0F) *
-                   glm::lookAt(eye, glm::vec3{ 200, 0, 80 }, glm::vec3{ 0, 0, 1 }) };
+                   glm::lookAt(eye, glm::vec3{ 200, 0, 200 }, glm::vec3{ 0, 0, 1 }) };
     const auto capture{ [&](std::array<double, 3> q) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         robot.draw(robotModelTransforms(simulation::Profile{}, q), vp, eye);

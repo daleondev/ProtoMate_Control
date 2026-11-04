@@ -23,7 +23,7 @@ namespace simulation::viewer
         }
         m_transparent.reserve(m_instances.size());
     }
-    void ModelRenderer::draw(const std::array<glm::mat4, 3>& frames,
+    void ModelRenderer::draw(const std::array<glm::mat4, 4>& frames,
                              const glm::mat4& view_projection,
                              glm::vec3 eye)
     {

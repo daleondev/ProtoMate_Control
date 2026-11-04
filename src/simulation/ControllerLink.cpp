@@ -109,7 +109,7 @@ namespace simulation
                 return ui::cli::callback_failure(
                   "simulator request failed; outcome must be reconciled with sim status");
             if (q.operation == Operation::State) {
-                out << "cad-provisional-v1 (NOT calibrated) time=" << reply->time_ns / 1e9
+                out << "Native simulation (NOT calibrated) time=" << reply->time_ns / 1e9
                     << " s enable=" << reply->arguments[2] << " power=" << reply->arguments[3]
                     << " references=" << reply->arguments[0] << " faults=" << reply->arguments[1] << '\n';
                 for (unsigned i{}; i < 3; ++i)
