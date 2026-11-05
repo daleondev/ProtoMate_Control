@@ -315,6 +315,7 @@ namespace simulation
                                     static_cast<std::uint32_t>(q.arguments[2])))
                         r.status = EINVAL;
                     break;
+                case Operation::PublishFuture:
                 case Operation::Publish: {
                     const auto bank{ q.arguments[1] }, slot{ q.arguments[2] };
                     if (axis >= 3 || bank >= 2 || slot >= BULK_COUNT ||
@@ -322,7 +323,8 @@ namespace simulation
                         r.status = EINVAL;
                         break;
                     }
-                    if (m_step.active[axis] && m_step.registers.channels[axis].target == bank) {
+                    if (q.operation == Operation::Publish && m_step.active[axis] &&
+                        m_step.registers.channels[axis].target == bank) {
                         r.status = EBUSY;
                         break;
                     }
@@ -331,8 +333,47 @@ namespace simulation
                         r.status = EILSEQ;
                         break;
                     }
+                    if (q.operation == Operation::PublishFuture) {
+                        const auto cut = std::uint32_t(q.arguments[5]);
+                        const auto future = [cut](std::uint32_t tick) {
+                            const auto distance = hal::util::step_distance(cut, tick);
+                            return tick == hal::util::STEP_PARK ||
+                                   (distance && distance < hal::util::STEP_HORIZON);
+                        };
+                        const auto lead = hal::util::step_distance(m_step.registers.tick, cut);
+                        if (q.arguments[5] > UINT32_MAX || lead < 20'000 || lead >= hal::util::STEP_HORIZON)
+                            r.status = EINVAL;
+                        for (unsigned i = 0; i < m_step.entries[axis]; ++i) {
+                            const auto previous = m_step.memory[axis][bank][i];
+                            const auto replacement = std::uint32_t(get(bytes, i * 4, 4));
+                            if (previous != replacement && (!future(previous) || !future(replacement)))
+                                r.status = EINVAL;
+                        }
+                        if (r.status)
+                            break;
+                    }
                     for (std::size_t i{}; i < hal::util::STEP_BUFFER_EDGES; ++i)
                         m_step.memory[axis][bank][i] = static_cast<std::uint32_t>(get(bytes, i * 4, 4));
+                    break;
+                }
+                case Operation::Retarget: {
+                    if (axis >= 3 || q.arguments[1] > UINT32_MAX || q.arguments[2] > UINT32_MAX) {
+                        r.status = EINVAL;
+                        break;
+                    }
+                    const auto cut = std::uint32_t(q.arguments[2]);
+                    const auto future = [cut](std::uint32_t tick) {
+                        const auto distance = hal::util::step_distance(cut, tick);
+                        return tick == hal::util::STEP_PARK ||
+                               (distance && distance < hal::util::STEP_HORIZON);
+                    };
+                    const auto lead = hal::util::step_distance(m_step.registers.tick, cut);
+                    if (lead < 20'000 || lead >= hal::util::STEP_HORIZON ||
+                        !future(m_step.registers.channels[axis].compare) ||
+                        !future(std::uint32_t(q.arguments[1])))
+                        r.status = EINVAL;
+                    else
+                        m_step.retarget(axis, std::uint32_t(q.arguments[1]));
                     break;
                 }
                 case Operation::Acknowledge:

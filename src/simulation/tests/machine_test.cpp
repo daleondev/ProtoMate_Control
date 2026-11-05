@@ -312,3 +312,21 @@ TEST_F(SimulationMachine, DisconnectDisablesPlant)
     machine.disconnect();
     ASSERT_TRUE((!machine.snapshot().enabled)) << "disconnect disables plant";
 }
+
+TEST_F(SimulationMachine, FutureSpliceRequiresGuardAndPreservesNearEdges)
+{
+    command(Operation::Reset); command(Operation::Start,{hal::util::STEP_PARK});
+    const auto publish=[&](Operation operation,std::array<std::uint32_t,4> values,std::uint32_t cut) {
+        for(unsigned i=0;i<values.size();++i) put(shared.bulk[0],i*4,values[i],4);
+        release(shared.bulk_generation[0],1U);
+        return command(operation,{0,0,0,1,checksum(std::span(shared.bulk[0]).first(sizeof(hal::util::StepBuffer))),cut});
+    };
+    const std::array<std::uint32_t,4> original{100'050,110'000,110'050,hal::util::STEP_PARK};
+    ASSERT_EQ(publish(Operation::Publish,original,0).status,0U);
+    ASSERT_EQ(command(Operation::Arm,{0,100'000,4}).status,0U);
+    EXPECT_EQ(publish(Operation::Publish,original,0).status,EBUSY);
+    EXPECT_NE(publish(Operation::PublishFuture,{100'050,120'000,120'050,hal::util::STEP_PARK},125'000).status,0U);
+    EXPECT_EQ(publish(Operation::PublishFuture,{100'050,120'000,120'050,hal::util::STEP_PARK},90'000).status,0U);
+    EXPECT_NE(command(Operation::Retarget,{0,99'000,110'000}).status,0U);
+    EXPECT_EQ(command(Operation::Retarget,{0,101'000,90'000}).status,0U);
+}

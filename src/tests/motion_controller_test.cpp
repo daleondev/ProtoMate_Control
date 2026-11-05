@@ -282,3 +282,60 @@ namespace
         EXPECT_TRUE(replacement.ready());
     }
 }
+
+TEST(MotionController, PreparedExecutorOwnsAxesAndTracksPositionThroughCompletionAndFault)
+{
+    Hardware hardware;
+    Controller controller{ CONFIGURATION, hardware.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    io::motion::Executor::Command command{ .id = 1 };
+    command.axes[0].limits = { 1000, 10000, 10000, 100000 };
+    command.axes[0].profile = motion::Profile::create(100, command.axes[0].limits)->description();
+    EXPECT_FALSE(controller.prepareExecution(command)); // Homing remains mandatory.
+    auto input = hal::gpio::simulated_input({ hal::gpio::Port::E, 7 });
+    ASSERT_NE(input, nullptr);
+    auto homing = controller.reference(Id::Motor1, 10_rpm, 2_rpm, 2_s);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
+    input->setSimulatedLevel(Level::High);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() < 0_rpm; }));
+    input->setSimulatedLevel(Level::Low);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
+    input->setSimulatedLevel(Level::High);
+    ASSERT_EQ(homing.wait_for(2s), std::future_status::ready);
+    ASSERT_EQ(homing.get(), Motor::Result::Completed);
+    auto tooFast = command;
+    tooFast.axes[0].limits.velocity = io::motion::Executor::MAX_PRODUCTION_RATE + 1.;
+    const auto rejected = controller.prepareExecution(tooFast);
+    ASSERT_FALSE(rejected);
+    EXPECT_EQ(rejected.error(), std::errc::invalid_argument);
+    EXPECT_EQ(controller.executionStatus().state, io::motion::Executor::State::Idle);
+    ASSERT_TRUE(controller.prepareExecution(command)); // Backward away from switch.
+    EXPECT_EQ(controller.moveRel(Id::Motor2, -1_deg, 1_rpm).get(), Motor::Result::Rejected);
+    ASSERT_TRUE(controller.startExecution(1));
+    EXPECT_FALSE(controller.startExecution(1));
+    ASSERT_TRUE(waitUntil([&] {
+        controller.renewExecution(1);
+        const auto s = controller.executionStatus().state;
+        return s == io::motion::Executor::State::Completed || s == io::motion::Executor::State::Stopped ||
+               s == io::motion::Executor::State::Faulted;
+    }));
+    const auto status = controller.executionStatus();
+    EXPECT_EQ(status.state, io::motion::Executor::State::Completed);
+    EXPECT_EQ(status.pulses[0], 100U);
+    EXPECT_NEAR(
+      controller.motor(Id::Motor1).setpointPosition().get<pnm::units::AngleUnits::deg>(), 123.75, 1e-8);
+    EXPECT_EQ(controller.motor(Id::Motor1).setpointVelocity(), 0_rpm);
+    EXPECT_TRUE(controller.enabled());
+    command.id = 2;
+    ASSERT_TRUE(controller.prepareExecution(command));
+    ASSERT_TRUE(controller.startExecution(2));
+    hardware.drivers[0]->fault();
+    EXPECT_EQ(hardware.enableLevel(), Level::High);
+    ASSERT_TRUE(
+      waitUntil([&] { return controller.executionStatus().state == io::motion::Executor::State::Faulted; }));
+    EXPECT_FALSE(controller.renewExecution(2));
+    command.id = 3;
+    EXPECT_FALSE(controller.prepareExecution(command));
+}

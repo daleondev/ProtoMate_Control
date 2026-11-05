@@ -97,6 +97,22 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(self.valid(seal(words)), expected, (hex(address), size))
             self.assertEqual(images.destination(4, address, size, False), expected, (hex(address), size))
 
+    def test_private_m4_axi_metadata_ownership(self):
+        for address, size, expected in [
+                (0x24040000, 64, True), (0x2407FFC0, 64, True),
+                (0x2407FFC0, 65, False), (0x24080000, 64, False),
+                (0x2403FFC0, 64, False)]:
+            words = manifest()
+            words[18] = 2
+            words[24:28] = [0x90100080, address, size, 1]
+            self.assertEqual(self.valid(seal(words)), expected)
+            self.assertEqual(images.destination(4, address, size, False), expected)
+        self.assertFalse(images.destination(7, 0x24040000, 64, False))
+        words = manifest()
+        words[90] = 2
+        words[96:100] = [0x90400080, 0x24040000, 64, 1]
+        self.assertFalse(self.valid(seal(words)))
+
     def test_payload_crc_and_matching_pair_footer(self):
         pair = bytes(range(32))
         payload = bytes(range(64)) + pair

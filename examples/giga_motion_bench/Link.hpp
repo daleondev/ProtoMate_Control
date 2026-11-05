@@ -47,7 +47,7 @@ namespace motion_bench
             bridge.registerTopics<Topics>(SIDE == 0 ? Peer::IO : Peer::UI);
             bridge.registerActions<Actions>(SIDE == 0 ? Peer::IO : Peer::UI);
             worker = runtime::thread::create_jthread(
-              { .name = "bench.icc", .priority = SIDE == 0 ? (protectedScheduling ? 5 : 2) : 4, .stack_size = 32U * 1024 },
+              { .name = "bench.icc", .priority = SIDE == 0 ? (protectedScheduling ? 5 : 4) : 4, .stack_size = 32U * 1024 },
               [this](std::stop_token stop) {
                   if (dispatchMode != 2) {
                       context.run();

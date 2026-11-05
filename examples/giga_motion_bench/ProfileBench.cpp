@@ -20,7 +20,8 @@ namespace motion_bench
             UINT oldPriority{};
             tx_thread_priority_change(tx_thread_identify(), 1, &oldPriority);
             static auto generator = hal::core::create_stepper_generator();
-            static std::array<std::optional<FixedSequence>,3> storage;
+            // Legacy comparison fixture allocates only when invoked; production
+            // executor storage has a separate fixed local-SRAM reservation.
             static std::array<std::shared_ptr<hal::IDigitalOutput>,3> directions;
             static std::array<std::shared_ptr<hal::IStepOutput>,3> axes;
             std::array<std::shared_ptr<FixedSequence>,3> sequences;
@@ -32,8 +33,7 @@ namespace motion_bench
                 const double speed = r.rate * scales[axis];
                 const auto profile = motion::Profile::create(speed * .4, {speed, speed * 10, speed * 10, speed * 100});
                 if (!profile) hal::panic("profile fixture");
-                storage[axis].emplace(*profile);
-                sequences[axis] = std::shared_ptr<FixedSequence>(&*storage[axis], [](auto*){});
+                sequences[axis] = std::make_shared<FixedSequence>(*profile);
                 if (!sequences[axis]->valid()) hal::panic("profile sequence");
                 delays[axis] = 5ms + std::chrono::nanoseconds(std::uint64_t(sequences[axis]->firstTick()) * 100);
                 if (!axes[axis]) axes[axis] = generator->output(static_cast<hal::step::Axis>(axis));

@@ -1,0 +1,573 @@
+{
+  "status": "not hardware-qualified",
+  "decision": "Stopped after the user-authorized single bounded attempt at 12.5 kHz; no further motion qualification runs.",
+  "scope": "M4 finite local executor; production ICC trajectory service remains coordinated_execution=false.",
+  "configuration": {
+    "controller_rate_cap_hz": 12500,
+    "dma_half_pulses": 32,
+    "nominal_horizon_ms": 20,
+    "lease_ms": 20,
+    "renewal_interval_ms": 7,
+    "worker_priority": 1,
+    "worker_stack_bytes": 16384,
+    "profile_pool_d2_bytes": 25408,
+    "additional_active_heap_budget_bytes": 32768,
+    "icc_notification_priority": 3,
+    "icc_dispatch_priority": 4
+  },
+  "host_verification": {
+    "debug_ctest": {
+      "passed": 72,
+      "failed": 0
+    },
+    "release_targeted_ctest": {
+      "passed": 7,
+      "failed": 0
+    },
+    "executor_googletests": 34,
+    "independent_python_oracle_tests": 14,
+    "image_validator_tests": 8,
+    "giga_builds_passed": [
+      "giga-debug",
+      "giga-release",
+      "giga-motion-bench-debug",
+      "giga-motion-bench-release"
+    ],
+    "clang_tidy_run": false,
+    "sanitizers_run": false
+  },
+  "firmware_pairs": {
+    "giga-debug": "aa8d2889811478aafa4478606083fa4af9fd3edef3832e7487ac835148caaef6",
+    "giga-release": "b31a6518625435f77d7c85d9bc8095fc3fc3a67342c6045d6d3610195965380c",
+    "giga-motion-bench-debug": "ad5efd8207b774adcea9c450bd9515f597de4790acf0485310cdb48bf6383c95",
+    "giga-motion-bench-release": "72ecc600ac5348f92e19eaf37417c02f9b91d4c400220a78d95d0e85854a74a2"
+  },
+  "hardware": {
+    "status": "failed pulse high-time gate",
+    "command": "executor 30 0 0 20 1 1",
+    "motor_power": "off; motors disconnected",
+    "rate_peaks_hz": [
+      12500,
+      10000,
+      6250
+    ],
+    "moves": 30,
+    "sample_rate_hz": 24000000,
+    "samples": 504268800,
+    "rising_edges": [
+      150000,
+      120000,
+      75000
+    ],
+    "falling_edges": [
+      150000,
+      120000,
+      75000
+    ],
+    "enable_low_samples": 0,
+    "final_step_levels": [
+      0,
+      0,
+      0
+    ],
+    "required_high_time_us": 5,
+    "high_time_violations": 30,
+    "violation_axis": 3,
+    "violating_high_times_samples": [
+      189,
+      190
+    ],
+    "violating_high_times_us": [
+      7.875,
+      7.916666666666667
+    ],
+    "pattern": "one width violation in each move",
+    "first_violation": {
+      "axis": 3,
+      "rise": 3666400,
+      "fall": 3666590,
+      "width_samples": 190,
+      "width_us": 7.916666666666667,
+      "nearby_transitions": [
+        {
+          "sample": 3666300,
+          "bits": 248
+        },
+        {
+          "sample": 3666400,
+          "bits": 253
+        },
+        {
+          "sample": 3666520,
+          "bits": 252
+        },
+        {
+          "sample": 3666590,
+          "bits": 248
+        }
+      ]
+    },
+    "last_violation": {
+      "axis": 3,
+      "rise": 437514653,
+      "fall": 437514843,
+      "width_samples": 190,
+      "width_us": 7.916666666666667,
+      "nearby_transitions": [
+        {
+          "sample": 437514553,
+          "bits": 184
+        },
+        {
+          "sample": 437514653,
+          "bits": 189
+        },
+        {
+          "sample": 437514773,
+          "bits": 188
+        },
+        {
+          "sample": 437514843,
+          "bits": 184
+        }
+      ]
+    },
+    "sample_filtering": "none",
+    "minimum_measured_refill_margin": 4.761123568983831,
+    "rising_edges_only": [
+      {
+        "axis": 1,
+        "rises": 150000,
+        "falls": 150000,
+        "max_rising_residual_samples": 2.196916163433343,
+        "clock_offset_percent": 0.013851783476390711
+      },
+      {
+        "axis": 2,
+        "rises": 120000,
+        "falls": 120000,
+        "max_rising_residual_samples": 3.271291047334671,
+        "clock_offset_percent": 0.013852005872594386
+      },
+      {
+        "axis": 3,
+        "rises": 75000,
+        "falls": 75000,
+        "max_rising_residual_samples": 2.691227490082383,
+        "clock_offset_percent": 0.013852304331707366
+      }
+    ],
+    "root_cause": "unresolved; saved capture alone does not distinguish software, electrical or acquisition cause",
+    "gui_frames_before_after": [
+      187,
+      1450
+    ],
+    "gui_underruns": 0,
+    "gui_errors": 0,
+    "io_report": {
+      "test": "executor",
+      "core": 4,
+      "sent": 30,
+      "received": 150000,
+      "backpressure": 0,
+      "errors": 0,
+      "elapsed_us": 18703710,
+      "value": 120000,
+      "checksum": 75000,
+      "heap_used": 105696,
+      "heap_free": 147144,
+      "stack_free": 0,
+      "stack_size": 0,
+      "cpu_10ms_ticks": 1881,
+      "wall_us": 18861200,
+      "minimum_stack_permill": 297,
+      "maximum_backlog": 172881,
+      "auxiliary": 18694,
+      "refill_cycles": 135568,
+      "refill_budget_ticks": 26894,
+      "minimum_stack_thread": "Application Thread",
+      "executor_build_us": 1000,
+      "executor_splice_us": 3000,
+      "executor_error": 0,
+      "executor_cut": 6062763,
+      "executor_reason": 0,
+      "executor_request": 0,
+      "icc_state": 2,
+      "icc_reason": 0,
+      "latency": {
+        "count": 30,
+        "mean_us": 4168.1,
+        "p50_us_upper": 4607,
+        "p95_us_upper": 4994,
+        "p99_us_upper": 4994,
+        "p999_us_upper": 4994,
+        "max_us": 4994
+      },
+      "processing": {
+        "count": 30,
+        "mean_us": 499.8,
+        "p50_us_upper": 511,
+        "p95_us_upper": 575,
+        "p99_us_upper": 575,
+        "p999_us_upper": 575,
+        "max_us": 575
+      },
+      "scheduling": {
+        "count": 7269,
+        "mean_us": 701.1,
+        "p50_us_upper": 207,
+        "p95_us_upper": 3327,
+        "p99_us_upper": 3839,
+        "p999_us_upper": 4095,
+        "max_us": 4215
+      }
+    },
+    "ui_report": {
+      "test": "executor",
+      "core": 7,
+      "sent": 1398,
+      "received": 0,
+      "backpressure": 0,
+      "errors": 0,
+      "elapsed_us": 18881899,
+      "value": 0,
+      "checksum": 0,
+      "heap_used": 151352,
+      "heap_free": 70920,
+      "stack_free": 0,
+      "stack_size": 0,
+      "cpu_10ms_ticks": 821,
+      "wall_us": 18949780,
+      "minimum_stack_permill": 601,
+      "maximum_backlog": 0,
+      "auxiliary": 0,
+      "refill_cycles": 0,
+      "refill_budget_ticks": 0,
+      "minimum_stack_thread": "Application Thread",
+      "executor_build_us": 0,
+      "executor_splice_us": 0,
+      "executor_error": 0,
+      "executor_cut": 0,
+      "executor_reason": 0,
+      "executor_request": 0,
+      "icc_state": 2,
+      "icc_reason": 0,
+      "latency": {
+        "count": 0,
+        "mean_us": 0.0,
+        "p50_us_upper": 0,
+        "p95_us_upper": 0,
+        "p99_us_upper": 0,
+        "p999_us_upper": 0,
+        "max_us": 0
+      },
+      "processing": {
+        "count": 0,
+        "mean_us": 0.0,
+        "p50_us_upper": 0,
+        "p95_us_upper": 0,
+        "p99_us_upper": 0,
+        "p999_us_upper": 0,
+        "max_us": 0
+      },
+      "scheduling": {
+        "count": 0,
+        "mean_us": 0.0,
+        "p50_us_upper": 0,
+        "p95_us_upper": 0,
+        "p99_us_upper": 0,
+        "p999_us_upper": 0,
+        "max_us": 0
+      }
+    },
+    "measured_io_busy_percent": 99.7285432528153,
+    "synthetic_load": "nominal 20% M4 reservation; 18694 work iterations during 18703.710 ms execution",
+    "traffic": "flood fixture: 512-byte normal and 480-byte background payloads at nominal 10 ms intervals",
+    "not_established": [
+      "equal 3 x 12.5 kHz waveform acceptance",
+      "current-rate controlled stop, lease expiry and worker-stall captures",
+      "ten-minute endurance or repeated fresh-boot acceptance",
+      "Debug hardware qualification of this executor",
+      "5 ms end-to-end admission or 20 ms inter-core adjustment onset",
+      "additional production CPU reserve",
+      "powered motion, calibrated limits or mechanical following accuracy"
+    ]
+  },
+  "normal_restoration": {
+    "build": "giga-debug",
+    "pair_id": "aa8d2889811478aafa4478606083fa4af9fd3edef3832e7487ac835148caaef6",
+    "programmed_and_verified": true,
+    "ui_state": "Ready",
+    "io_state": "Ready (fresh)",
+    "combined_state": "Ready",
+    "drivers": "disabled",
+    "motion_command_issued": false,
+    "gui_underruns": 0,
+    "gui_errors": 0,
+    "dma_errors": 0,
+    "idle_heap_snapshot": {
+      "io": {
+        "heap_used": 178968,
+        "heap_available": 69400
+      },
+      "ui": {
+        "heap_used": 230872,
+        "heap_available": 7816
+      }
+    },
+    "limitation": "USB/ICC health and idle snapshot only, not motion qualification or a fresh manual cold-boot test"
+  },
+  "normal_release_memory": {
+    "m4_instruction_used": 191328,
+    "m4_instruction_capacity": 194560,
+    "m4_static_data_used": 80160,
+    "m4_static_data_capacity": 90112,
+    "m4_private_axi_capacity": 262144,
+    "m4_axi_unwind_bytes": 13816,
+    "ram_audit": {
+      "roots": 63,
+      "reachable_functions": 168,
+      "vtables": 7,
+      "icc_entries": 20,
+      "outside_ram": 0
+    }
+  },
+  "artifacts": [
+    {
+      "path": "build/motion-options/executor-release60-scaled-flood/console.log",
+      "bytes": 2266,
+      "sha256": "8ea5029a181d35d9dd02ff6f161a569a84a46ea93132208710fd99524b7ed7d3"
+    },
+    {
+      "path": "build/motion-options/executor-release60-scaled-flood/failure-analysis.json",
+      "bytes": 15068,
+      "sha256": "5f7d49002942a939e2b92b893e88f6e225e93f43fa53a0369884a8f81214f05e"
+    },
+    {
+      "path": "build/motion-options/executor-release60-scaled-flood/firmware.json",
+      "bytes": 3815,
+      "sha256": "e07a20ad9e0eedbe7df06a3b79cde6a11c4b53342869d2cd4eb847933e1a4f10"
+    },
+    {
+      "path": "build/motion-options/executor-release60-scaled-flood/logic.bin.gz",
+      "bytes": 3698839,
+      "sha256": "1ad998f0be897ae218fd3c349615fcd49656c9d0cf8bd72c6899967a816ccbc1"
+    },
+    {
+      "path": "build/motion-options/executor-release60-scaled-flood/sample-summary.json",
+      "bytes": 684,
+      "sha256": "8edcd88d188d98b97985701150fb97deca5d3afaed26b73e77c491035fe03684"
+    },
+    {
+      "path": "build/motion-options/executor-release60-scaled-flood/sigrok.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/display-status.raw",
+      "bytes": 636,
+      "sha256": "f87df7a763cbfa804d5541bf40675c6f1d2bfeae5bed78b145a3e73f8ee1917a"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/display-status.txt",
+      "bytes": 637,
+      "sha256": "56b1f0f42942eb9789b136877900790373778ffe2a4b8609f8bfaf9652423a81"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/heap-io.raw",
+      "bytes": 2636,
+      "sha256": "0e6031150faede93a5ce0d0d41eea3d32d1c0e62c60f9edfad6ae5e20bb3bbd4"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/heap-io.txt",
+      "bytes": 2635,
+      "sha256": "e944f39a0b20d6b259b796031ff493846390175367235d76c46f87f2dd963538"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/heap-ui.raw",
+      "bytes": 2636,
+      "sha256": "1fe545bf091686677a26bb1ed0f02a9e9a8ac725fd913cb447c6c1f23f1c3b95"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/heap-ui.txt",
+      "bytes": 2635,
+      "sha256": "9e518629849799878b88fb003d2ccf48dbed5b85d6c27b0a22f81ef6fdcc7022"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/help.raw",
+      "bytes": 4069,
+      "sha256": "c023981399dd7addbaf0e358326ed76fda58860d55046bbb036096372f181c9f"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/help.txt",
+      "bytes": 4072,
+      "sha256": "8351e7b99e953986c6c5220723f57a5b58c317eb3e503cd27f1d0e75a0b95cda"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/motor-status.raw",
+      "bytes": 449,
+      "sha256": "f865baa59201ddf493e6269db73f58efd10a1e4eaa6abf233b0b17614033c13c"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/motor-status.txt",
+      "bytes": 448,
+      "sha256": "669762aed4be5b2c56945157f4271515e8635038b34977727b7849b37f7d11e9"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/stack-io.raw",
+      "bytes": 7292,
+      "sha256": "c93f4f4e3f79fe2320c9f6e7910bf524c3f0bb364184a5afb7e929d390574622"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/stack-io.txt",
+      "bytes": 7291,
+      "sha256": "4ae335a16fff7f21455581396b1557137d20d3c5ce85f0d64f3137886606b2ca"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/stack-ui.raw",
+      "bytes": 9780,
+      "sha256": "008645473427995283eb8ce8623c29205362212d40882ab4aaaa2028a5465600"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/stack-ui.txt",
+      "bytes": 9779,
+      "sha256": "3c60c948677ee2f3b5e444f65d345a64264b16edfb9a37bb9b9a54b420830ac8"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/startup.raw",
+      "bytes": 4,
+      "sha256": "88754a29250c85b169b983ec70256e82760a49415f9c9dc92a96a47e38e8802a"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/state.raw",
+      "bytes": 60,
+      "sha256": "c78f7eeec72a4c0e3688855438509606b9cc7f19aae8a3226045b7008f785447"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/state.txt",
+      "bytes": 59,
+      "sha256": "8b4e588b3e22d8be187525723b757373a52623bec979b134792ee2c23c286546"
+    },
+    {
+      "path": "build/motion-options/executor-normal-final/summary.json",
+      "bytes": 138,
+      "sha256": "1a7bffdbfad1f5f476398fdf743d8d1612e4df931f42a40b5bda4332ded527d6"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-all72-native60.log",
+      "bytes": 8855,
+      "sha256": "f52f7345242d59d88bd330f5d34219b8543085f59c014915f37a128abd02009f"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-tests60.log",
+      "bytes": 857,
+      "sha256": "52006cbcc487582966ca7a511a26784851d4d953ffbf01cfc50c63649e822bbe"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-tests-release60.log",
+      "bytes": 859,
+      "sha256": "8894555a50fc7c2eb4c7c83abc8d2b407fd54ae5479ca74fec9f6c4ec44355f7"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-normal-debug60.log",
+      "bytes": 8084,
+      "sha256": "d6e0303d2ed32c14f9efa63a620c4350595d06ae6d049cb835a53d4bede7e993"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-normal-release60.log",
+      "bytes": 7961,
+      "sha256": "e734aeefd70d2db495fbf2eb838127b7496cb64d474a7b1cf7d0f098ee5ac10a"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-bench-debug60.log",
+      "bytes": 8975,
+      "sha256": "95e015a9bed2a56b05f80f351ca5591746c2d4653ce643b8792296ff4771ff6b"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-bench-release60.log",
+      "bytes": 9003,
+      "sha256": "929841a88a8f6f76a7d4267a531fe7af7ed117dc4e5f3400252bef6e5e2785de"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-host60.log",
+      "bytes": 1847,
+      "sha256": "73cd1fa7df7019cbba6ed28e3f766e4eb23977a27e62f553c4044b610c3b3c62"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-host-release60.log",
+      "bytes": 1847,
+      "sha256": "cb82b7fb6964c65df7343251429bcb07e9e514a256dbe3f7759c06b6b5c2d5fe"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-oracle58.log",
+      "bytes": 99,
+      "sha256": "3d982959a6d0ad327e4c2ff7cfedf579823ee4d0c00b0aff1195763fb428a921"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-images58.log",
+      "bytes": 106,
+      "sha256": "2e7e95d82618f1ea08b0a24d61f374c3b161fb04ee47113d6baab1ebd15ac0a2"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-flash-normal60.log",
+      "bytes": 4688,
+      "sha256": "afc4a28579a399619e692628494e42969bebbe1db078dddd827c518fb2984f8a"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/executor-normal-check60-corrected.log",
+      "bytes": 16453,
+      "sha256": "b33c3d3ade3e6675bebfa6f21e4e9d59f1d60b87a5e8c67bc0e571980b092e39"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/giga-debug-manifest.json",
+      "bytes": 2158,
+      "sha256": "3914a08c26da468ff2b30d256757a5dafd08ea5a9ead3a97f2511e7ca675bb55"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/giga-motion-bench-debug-manifest.json",
+      "bytes": 2275,
+      "sha256": "2902f3c993fb04684644a92aab762fbd8c75b264b7375330d5fc2ae204b05d36"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/giga-motion-bench-release-manifest.json",
+      "bytes": 2275,
+      "sha256": "65deec30426d87f8834a8502c7b832d70e0ad5cd0d41dc9df37d4a3e1c8db54c"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/giga-release-manifest.json",
+      "bytes": 2157,
+      "sha256": "aa877c121705e17c1a64e978b3461f1073a33f6a16664401a63561fc91c20008"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/giga-io-debug-ram-audit.json",
+      "bytes": 12853,
+      "sha256": "e8eff52bff8b10a9ff08f35e1067b004e0e462205aa18e6ac3972531b54582bc"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/giga-io-motion-bench-debug-ram-audit.json",
+      "bytes": 6970,
+      "sha256": "80080f4cbd73e64051fe408357034b98933a885ddd8a6c202ea5ac142c9116e4"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/giga-io-motion-bench-release-ram-audit.json",
+      "bytes": 6972,
+      "sha256": "8075df16c94adbbdba86e45e357aff56eee9bcab42f50f502f37ac6b962e0001"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/giga-io-release-ram-audit.json",
+      "bytes": 12855,
+      "sha256": "638e832f7639c7ced0cfcbfeeffc2ec4d8b34928f14bb994c8d76e3311ef472d"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/analyze_saved_capture.py",
+      "bytes": 2305,
+      "sha256": "83554ad743f05ddc9f50046c15392f00d7d8bd1072bd8e21888d6be4418163d8"
+    },
+    {
+      "path": "build/motion-options/executor-host-validation/check_normal_firmware.py",
+      "bytes": 1741,
+      "sha256": "99d2f7d5b260b0688d66139202475b88bce56bc88fe83589c949fb0e8ee7b3e8"
+    }
+  ],
+  "artifact_retention": "Keep build/motion-options, including its content-addressed firmware directory; build files are not version controlled."
+}

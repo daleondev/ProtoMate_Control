@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Executor.hpp"
 #include "StepperMotor.hpp"
 #include "common/motion/Trajectory.hpp"
 #include "hal/core/core.hpp"
@@ -33,7 +34,8 @@ namespace io::motion
         // The optional sink is shared by all motor workers.
         explicit Controller(const Configuration& configuration,
                             const DriverFactory& driver_factory = {},
-                            std::shared_ptr<pnm::log::ISink> log_sink = {});
+                            std::shared_ptr<pnm::log::ISink> log_sink = {},
+                            std::pmr::memory_resource* profile_memory = std::pmr::get_default_resource());
         ~Controller();
         Controller(const Controller&) = delete;
         Controller& operator=(const Controller&) = delete;
@@ -45,7 +47,7 @@ namespace io::motion
         // Failure leaves the controller disabled and rejects motion until recovery.
         void initializeDrivers(std::stop_token stop = {});
         void enable(std::stop_token stop = {}); // Verification/settling is cancellable.
-        void disable(); // Stops/joins all work and invalidates references.
+        void disable();                         // Stops/joins all work and invalidates references.
         void stop(std::optional<MotorId> motor = std::nullopt); // Retains holding torque.
         [[nodiscard]] bool enabled() const noexcept;
         [[nodiscard]] bool ready() const;
@@ -83,6 +85,15 @@ namespace io::motion
           std::function<void()> completed = {});
         pnm::Result<hal::step::PulseCount> setVelocity(MotorId id, pnm::units::AngularVelocity velocity);
 
+        // Small execution boundary for value-only, finite motor-space profiles.
+        // The caller renews the command lease; neither API enables drivers.
+        hal::util::Result<> execute(const Executor::Command& command);
+        hal::util::Result<> prepareExecution(const Executor::Command& command);
+        hal::util::Result<> startExecution(std::uint64_t id);
+        bool renewExecution(std::uint64_t id);
+        bool stopExecution(std::uint64_t id);
+        Executor::Status executionStatus() const;
+
       private:
         StepperMotor& axis(MotorId id) const;
         bool driversReady() const noexcept;
@@ -91,12 +102,14 @@ namespace io::motion
         void invalidateReferencesLocked();
         void handleFaultsLocked();
         void monitorDrivers(const std::stop_token& stop);
+        void executeMotions(std::stop_token stop);
 
         std::shared_ptr<hal::IDigitalOutput> m_enable;
         std::shared_ptr<hal::IStepGenerator> m_generator;
         // Callback destinations outlive every motor and its driver observer.
         runtime::Notification m_driverNotification;
         runtime::Notification m_controlNotification;
+        runtime::Notification m_executionNotification;
         std::atomic_bool m_faulted{ false };
         // Serializes slow UART work, never acquired by stop/disable/admission.
         std::mutex m_operationMutex;
@@ -104,9 +117,13 @@ namespace io::motion
         std::uint64_t m_controlEpoch{};
         bool m_enabling{};
         Configuration m_configuration;
+        std::pmr::memory_resource* m_profileMemory;
         bool m_initialized{};
         bool m_faultHandled{};
         std::array<std::unique_ptr<StepperMotor>, 3> m_motors;
+        std::unique_ptr<Executor> m_executor;
+        std::uint8_t m_executionMask{};
+        std::jthread m_executionWorker;
         std::jthread m_driverWorker;
     };
 }

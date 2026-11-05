@@ -26,7 +26,7 @@ namespace hal::util
       -> bool
     {
         const auto lead{ step_distance(registers.tick, first) };
-        if (!registers.running || lead < STEP_MIN_PHASE || lead > STEP_HORIZON) {
+        if (!registers.running || (first != STEP_PARK && (lead < STEP_MIN_PHASE || lead > STEP_HORIZON))) {
             return false;
         }
         high[axis] = pending_dma[axis] = false;

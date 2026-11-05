@@ -9,6 +9,7 @@
 #include "hal/linux/Mutex.hpp"
 #endif
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -35,6 +36,9 @@ namespace hal::util
         auto stop() noexcept -> step::Status override;
         auto status() noexcept -> step::Status override;
         auto setProgressCallback(ProgressCallback callback) -> util::Result<> override;
+        util::Result<Timeline> timeline() noexcept override;
+        util::Result<> splice(const std::array<std::shared_ptr<const step::TimedSequence>, 3>& sequences,
+                              std::uint32_t preserve_until) override;
         // Called by DMA/TIM7 IRQs and API operations; Linux uses virtual IRQs.
         auto service() noexcept -> void;
         auto prepare(std::size_t index,
@@ -58,6 +62,9 @@ namespace hal::util
                              std::shared_ptr<const step::Sequence> sequence) -> util::Result<>;
 
       private:
+        struct SpliceWorkspace;
+        std::unique_ptr<SpliceWorkspace> m_splice;
+        std::atomic_flag m_splicing{};
         struct Timing
         {
             std::uint32_t period;
@@ -73,6 +80,8 @@ namespace hal::util
             std::uint64_t revision{};
             std::uint64_t completed_pulses{};
             std::uint32_t next_rise{};
+            std::uint32_t first_rise{};
+            std::optional<std::uint32_t> end_tick;
             std::uint32_t last_fall{};
             std::uint32_t entries{};
             std::uint8_t target{};

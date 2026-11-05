@@ -120,7 +120,7 @@ def check_build(root, build, platform_name):
             continue
         source = path.relative_to(root / 'platform').as_posix()
         command = entry.get('output', entry.get('command', ''))
-        if '/tests/' in source or 'hal/tests/CMakeFiles/' in command:
+        if '/tests/' in source or 'hal/tests/CMakeFiles/' in command or 'CMakeFiles/proto_executor_tests.dir/' in command:
             continue
         compiled.add(source)
         if source.startswith('hal/drivers/'):

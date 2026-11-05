@@ -17,6 +17,7 @@ namespace motion
         struct State
         {
             double position{}, velocity{}, acceleration{};
+            bool operator==(const State&) const = default;
         };
         struct Limits
         {
@@ -33,6 +34,7 @@ namespace motion
             double distance{}, end_velocity{};
         };
         Description description() const noexcept;
+        bool operator==(const Profile&) const = default;
         static std::optional<Profile> fromDescription(const Description& value) noexcept;
 
         static std::optional<Profile> create(double distance,
@@ -58,6 +60,7 @@ namespace motion
         {
             double start{}, duration{}, jerk{}, end_position{};
             State state;
+            bool operator==(const Phase&) const = default;
         };
         struct PhaseChange
         {

@@ -178,6 +178,20 @@ TEST_F(RegisterTest, ConfiguresRealAdapterForIndependentWordDmaAndHardwareGuard)
     EXPECT_FALSE(dma_streams[3].CR & DMA_SxCR_DBM);
 }
 
+TEST_F(RegisterTest, PendingCompareUsesTheConfiguredGigaPinsOnAllAxes)
+{
+    for (auto& axis : axes)
+        ASSERT_TRUE(axis->prepare({ 100us, 5us }, 3));
+    start();
+    hold_dma.fill(true);
+    advance(100); // Rising compare occurred; the DMA transfer is still pending.
+    const auto status = engine->status();
+    for (unsigned i = 0; i < 3; ++i) {
+        ASSERT_EQ(rising[i].size(), 1U);
+        EXPECT_EQ(status.pulses[i], 1U);
+    }
+}
+
 TEST_F(RegisterTest, FatalShutdownStopsActiveDmaMotionWithoutDriverOrInterruptService)
 {
     for (auto& axis : axes)

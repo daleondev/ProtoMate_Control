@@ -30,11 +30,14 @@ images measure raw ICC, coroutine transport, full messaging, planning/interpolat
 and the STEP backend while keeping motor enable inactive. They do not expose
 experimental coordinated motion through the production application.
 
-The initial coordinated-motion qualification target is **25 kHz per axis**.
+The coordinated-motion qualification target is **12.5 kHz per axis**.
 The command-admission target remains **5 ms**, and adjustment onset remains
 **20 ms**. Exact counts, trajectory limits and local stopping after stream loss
-remain required. This is a qualification target, not a change to the timer's
-electrical capability or the normal firmware's motion limits.
+remain required. The bounded hardware attempt at this rate **failed**: M3 produced
+one measured 7.88–7.92 µs high interval per move instead of the required 5 µs.
+Counts were exact, but this does not qualify the executor. Further qualification
+stopped and normal firmware was restored. The Controller enforces the 12.5 kHz cap;
+that cap is not a claim that the complete motion path has passed acceptance.
 
 Raw transfer and constant-frequency STEP capability are distinct from trajectory
 preparation, command admission and validated stopping after stream loss. The measured gates,
@@ -42,6 +45,44 @@ firmware identifiers, distributions and remaining qualification work are in
 [the motion architecture report](docs/motion-architecture/README.md).
 [Build, capture and fixture instructions](examples/giga_motion_bench/README.md)
 make the measurements repeatable.
+
+## Finite motion executor on M4
+
+`io::motion::Controller` now exposes `prepareExecution`, `startExecution`,
+`renewExecution`, `stopExecution` and `executionStatus`. `execute` combines
+preparation and start. Preparation validates complete value-only profiles while
+STEP is idle; start arms their common epoch. Drivers must already be initialized,
+enabled and the participating motors referenced. No method enables drivers implicitly.
+
+The executor accepts one bounded command for up to three axes: rest-to-rest,
+monotone profiles in **microsteps**, fixed direction per axis, at most **12.5 kHz**,
+**10 seconds** and **1,000,000 steps** per profile. Omit an axis's profile to leave
+it stationary. Profiles can have different durations. Independent motor commands
+remain available when this executor is not reserving the axes.
+
+Every installed schedule contains a nominal prefix followed by a complete local
+jerk-limited brake. The M4 worker advances the prefix through guarded DMA splices;
+its frontier is at most **20 ms** ahead of the sampled execution time. Cancellation
+stops renewal. Loss of a **20 ms command lease**, or a delayed worker, leaves the
+already installed brake executable without the producer. Braking duration depends
+on velocity, acceleration and configured limits; it is not a promise to reach rest
+within 20 ms. A keepalive cannot restart a stopped command. Fault/limit responses
+remain immediate stops, with explicit recovery and renewed referencing.
+
+The priority-1 worker uses a 16 KiB stack, wakes at 1 ms intervals while active,
+attempts renewal every 7 ms, and uses two reusable schedule banks sharing immutable
+nominal profiles in a reusable 25,408-byte local-SRAM pool. Heap staging storage
+is released when idle. DMA uses 32-pulse halves, a four-half
+preparation workspace and a 2 ms publication guard. Trajectory evaluation and
+stopping preparation are bounded; no per-renewal allocation or per-pulse thread
+notification is introduced. IRQs continue to refill hardware-timed STEP data.
+
+This local execution API is implemented but **not hardware-qualified**. The full Robot/ICC
+trajectory protocol, Cartesian admission, streaming, blends, live retiming,
+hold/resume and a qualified end-to-end command latency remain subsequent work.
+The existing trajectory service therefore still advertises
+`coordinated_execution = false`. Existing direct motor CLI commands retain their
+own execution path. [API, measured limits and verification evidence](src/io/motion/EXECUTOR.md).
 
 ## Native Linux robot simulation
 
@@ -291,14 +332,14 @@ a thread-context operation, not an ISR-safe or allocation-free API.
 | Thread in each GIGA image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
 | ThreadX timer worker | 0 | Port default |
-| `io.iccThread` | 2 | 32 KiB |
+| `io.iccThread` | 4 | 32 KiB |
 | `intercore.notify` | 3 | 8 KiB |
 | `ui.iccThread` | 4 | 32 KiB |
 | `ui.cliThread` | 5 | 16 KiB (64 KiB on Linux) |
-| `io.applicationThread` / `ui.applicationThread` | 14 | 16 KiB |
+| `io.applicationThread` / `ui.applicationThread` | 14 | 8 / 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
 | M4 motion diagnostics | 18 | 8 KiB |
-| `io.diagnosticThread` (heap/stack service) | 20 | 16 KiB |
+| `io.diagnosticThread` (heap/stack service) | 20 | 8 KiB |
 | `ui.logThread` | 20 | 8 KiB |
 | Runtime cleanup/reaper | 31 | 2 KiB |
 
@@ -1175,7 +1216,10 @@ Sustained higher-priority traffic may starve background delivery. Urgent traffic
 It does not preempt a running handler or rescue a stalled context. Cancellation and `close()` wake waiting operations; closing either
 endpoint disconnects the pair. Reconnection requires a new pair.
 
-The hardware transport's notification worker checks the shared ring counters
+The hardware transport's priority-3 notification worker outranks both ICC dispatchers,
+so a continuously ready ordinary lane cannot prevent urgent receive wakeups. It
+only forwards readiness; it does not decode messages or run application handlers.
+It checks the shared ring counters
 before waking a lane. Empty receivers and full senders remain suspended;
 consuming a higher-priority frame also rechecks lower-priority receivers.
 Each transfer direction reuses one coalesced notification, including across
@@ -1508,11 +1552,11 @@ mutating operation. It advertises `coordinated_execution=false`.
 | Requested implementation stage | Current acceptance status |
 | --- | --- |
 | Configuration, conversions, FK/IK and previews | Implemented foundation; mathematical and onboard preview tests pass |
-| Transfer, ownership and group scheduling | Codec/session/pulse-iterator tests pass in isolation; physical executor, exclusivity and production commit path pending |
+| Transfer, ownership and group scheduling | Finite local executor and axis exclusivity implemented; Robot/ICC transaction-to-executor commit path pending |
 | Coordinated positioning and configured homing | Not implemented through the robot API |
 | Cartesian lines, blends and lookahead | Line/curve previews implemented; queued blends and execution lookahead pending |
-| Jog, hold/resume, stop, override and fallback selection | Stopping-profile mathematics implemented; live controls and IO integration pending |
-| Integrated qualification | Existing STEP regression and preview stress pass; coordinated captures, watchdog, interruption tests and physical commissioning pending |
+| Jog, hold/resume, stop, override and fallback selection | Finite executor cancellation and local brake implemented; robot-level jog, resume and override pending |
+| Integrated qualification | Finite executor has separate electrical and host regression coverage; integrated Robot/ICC and physical commissioning pending |
 
 The existing independent raw-motor commands remain available. They must not be
 treated as the new coordinated execution path. In particular, their fixed DMA
@@ -1678,7 +1722,7 @@ compatibility. No application filesystem writes to XIP flash.
 | 0x08180000–0x081FFFFF | 512 KiB persistent storage, bank 2 sectors 4–7; M7 owner |
 | 0x10000000 | 2 KiB M4 vectors; remaining 190 KiB SRAM1/SRAM2 instruction alias for motion, runtime and ICC code/constants |
 | 0x30030000 / 0x30046000 | 88 KiB M4 data/DMA; 8 KiB M4 MSP |
-| 0x24000000 / 0x24040000 | 256 KiB M7 data/heap; 256 KiB M4 heap |
+| 0x24000000 / 0x24040000 | 256 KiB M7 data/heap; 256 KiB M4 unwind metadata/heap |
 | 0x00000000 | 64 KiB M7 ITCM, `.itcm` sections |
 | 0x20000000 | M7 vectors (2 KiB), `.dtcm`/`.dtcm_bss` working data (110 KiB) |
 | 0x2001C000 / 0x2001E000 | 8 KiB bootstrap scratch; 8 KiB M7 MSP |
@@ -1698,7 +1742,13 @@ M4's 0x10000000 code range aliases SRAM1 and the first 64 KiB of SRAM2;
 it is not additional RAM. The linker and both image validators exclude the
 corresponding data alias from application data segments. Frequently executed ICC
 bridge/transport code resides here so UI QSPI reads do not stall those instruction
-fetches. The M4 heap remains a separate 256 KiB AXI SRAM allocation. M7 CPU-only filesystem metadata, startup/reaper stacks and console rings occupy `.dtcm`/`.dtcm_bss`; USB FS copies through its FIFO and its DMA-capable Cube buffers remain in AXI SRAM. The general M7 heap remains in AXI SRAM. Both copy and zero tables cover these DTCM sections.
+fetches. M4's separate 256 KiB AXI allocation begins with the RAM code's exception
+unwind metadata (13,816 bytes in normal Release); its heap starts after that data.
+The bootstrap copies these records and both image validators enforce M4 ownership
+of the region. M7 CPU-only filesystem metadata, startup/reaper stacks and console
+rings occupy `.dtcm`/`.dtcm_bss`; USB FS copies through its FIFO and its DMA-capable
+Cube buffers remain in AXI SRAM. The general M7 heap remains in AXI SRAM. Both copy
+and zero tables cover these DTCM sections.
 
 MPU is configured before M7 caches. A low-priority, no-access/XN region blocks
 unused external addresses (`0x60000000..0xDFFFFFFF`); higher-priority regions

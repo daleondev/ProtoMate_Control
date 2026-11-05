@@ -10,6 +10,13 @@ target_sources(proto_io_motion
         Server.hpp
         Server.cpp
         TrajectorySession.cpp
+        Executor.hpp
+        Executor.cpp
+        ProfileSchedule.hpp
+        ProfileSchedule.cpp
+        ProfileCrossing.hpp
+        ProfileCurve.hpp
+        ProfileMemory.hpp
         StepperMotor.hpp
         StepperMotor.cpp 
         Sequence.hpp

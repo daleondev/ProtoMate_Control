@@ -44,6 +44,8 @@ namespace hal::util
         auto stopAxis(std::size_t axis) noexcept -> StepSample override;
         auto stop() noexcept -> StepSample override;
         auto publish() noexcept -> void override;
+        void retarget(std::size_t axis, std::uint32_t tick) noexcept override { registers.channels[axis].compare=tick; }
+        bool supportsRetarget() const noexcept override { return true; }
         auto transfer(std::size_t axis) noexcept -> bool;
         auto advance(std::uint64_t ticks) noexcept -> void;
 

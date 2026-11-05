@@ -29,6 +29,9 @@ if(STM32_CORE STREQUAL "CM4")
     set(GIGA_RAM_LENGTH 88K)
     set(GIGA_STACK_ORIGIN 0x30046000)
     set(GIGA_HEAP_REGION HEAP)
+    # Exception-unwind records are data, not instruction-fetch hot paths.
+    # Put them ahead of the M4 heap, retaining their signed PREL31 reach to SRAM.
+    set(GIGA_FAST_UNWIND_REGION HEAP)
     include(${PROJECT_SOURCE_DIR}/cmake/giga_fast_code.cmake)
 else()
     set(THREADX_ARCH cortex_m7)
@@ -46,6 +49,7 @@ else()
     set(GIGA_RAM_LENGTH 256K)
     set(GIGA_STACK_ORIGIN 0x2001E000)
     set(GIGA_HEAP_REGION RAM)
+    set(GIGA_FAST_UNWIND_REGION FAST)
     # Profiled mesh transform/raster paths exceed M7 I-cache working-set size.
     # Keep this initial renderer reservation below 24 KiB.
     set(GIGA_FAST_OBJECTS "")
@@ -186,6 +190,16 @@ set_source_files_properties(
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic")
 
 add_executable(${PROJECT_NAME})
+if(STM32_CORE STREQUAL "CM4" AND NOT GIGA_MOTION_BENCH AND NOT GIGA_STEP_BENCH)
+    # Keep the local executor API in the normal image before ICC exposes it.
+    # Dead stripping must not hide its RAM/code budget from the production audit.
+    target_link_options(${PROJECT_NAME} PRIVATE
+        LINKER:--undefined=_ZN2io6motion10Controller7executeERKNS0_8Executor7CommandE
+        LINKER:--undefined=_ZN2io6motion10Controller14renewExecutionEy
+        LINKER:--undefined=_ZN2io6motion10Controller13stopExecutionEy
+        LINKER:--undefined=_ZNK2io6motion10Controller15executionStatusEv)
+endif()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${application_role}-controller)
 target_link_libraries(${PROJECT_NAME} PRIVATE platform project_compiler_settings)
 target_compile_options(${PROJECT_NAME} PRIVATE
@@ -279,7 +293,7 @@ if(STM32_CORE STREQUAL "CM4")
     endforeach()
     foreach(source IN LISTS giga_fast_sources)
         set(fast_opt -Os)
-        if(source MATCHES "(StepGenerator|StepHardware|FixedBench|CompactExpand|ProfileBench)\\.cpp$")
+        if(source MATCHES "(StepGenerator|StepHardware|FixedBench|CompactExpand|ProfileBench|ProfileSchedule|Executor)\\.cpp$")
             set(fast_opt -O2)
         endif()
         set_source_files_properties(${PROJECT_SOURCE_DIR}/${source}

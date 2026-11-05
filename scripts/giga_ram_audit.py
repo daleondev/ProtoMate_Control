@@ -45,7 +45,7 @@ for n,label in labels.items():
  # Benchmark virtual sequence methods and progress callback are real ISR paths
  # too. In particular, a weak inline numeric fallback may be selected from a
  # different object than its RAM-resident caller.
- if label.startswith('motion_bench::FixedSequence::') and any('::'+x+'(' in label for x in ['generate','timing','count','maximumPeriod']) and 'veneer' not in label:roots.append(n)
+ if label.startswith(('motion_bench::FixedSequence::','io::motion::ProfileSchedule::')) and any('::'+x+'(' in label for x in ['generate','timing','count','maximumPeriod']) and 'veneer' not in label:roots.append(n)
  if '_S_call_storage' in label and '_Base_invoker<true' in label and 'motion_bench::profileBench(' in label:roots.append(n)
  if label.startswith('hal::stm32::StepHardware::') and any('::'+x+'(' in label for x in ['buffers','sample','guard','completionWatch','acknowledge','finishAxis','stopAxis','stop','publish','pin_mode']):roots.append(n)
  if any(x in label for x in ['hal::device::(anonymous namespace)::now(', 'hal::(anonymous namespace)::now(', 'runtime::thread::fatal_error(']):roots.append(n)
@@ -61,7 +61,7 @@ while todo:
 symbols=subprocess.check_output(['arm-none-eabi-nm','-nC',str(args.elf)],text=True)
 vtable_classes=('hal::stm32::StepHardware','hal::GpioInput','hal::GpioOutput',
                 'hal::device::IndexFeedback','hal::device::QuadratureEncoderFeedback',
-                'io::motion::Sequence','motion_bench::FixedSequence')
+                'io::motion::Sequence','motion_bench::FixedSequence','io::motion::ProfileSchedule')
 vtables={}
 for line in symbols.splitlines():
  for cls in vtable_classes:

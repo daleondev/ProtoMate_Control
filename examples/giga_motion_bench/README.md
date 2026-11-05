@@ -5,7 +5,7 @@ ThreadX runtime, ICC channel/transport/bridge, GUI and STEP backend, with motor
 enable held **HIGH (inactive)**. It does not expose experimental trajectories through
 the production motion service. See [measured gates and limitations](../../docs/motion-architecture/README.md).
 
-The working coordinated-motion target is **3 × 25 kHz**, with unchanged 5 ms
+The initial production-executor target is **3 × 12.5 kHz**, with unchanged 5 ms
 admission and 20 ms adjustment-onset targets. The 100 kHz constant-output and
 kernel fixtures remain stress/characterization cases. Passing a finite profile
 does not qualify stream-loss stopping or live retiming.
@@ -63,11 +63,12 @@ Use `run.py --output … 'command' …`; commands finish with `[motion-bench] DO
 | `topics bytes rate count` | UI→IO latest-only topic stream; coalescing counted explicitly |
 | `actions count 0` / `actions count 1` | Accepted action, feedback and success / requested cancellation and terminal acknowledgement |
 | `flood count` | Urgent calls with a two-second priority-1 burst overload on normal/latest and bounded background topics |
-| `kernel fixture count [priority]` | Identical algorithm fixtures on each core; dedicated static 20 KiB M4 / 24 KiB M7 worker |
+| `kernel fixture count [priority]` | Identical algorithm fixtures on each core; dedicated 20 KiB M4 / 24 KiB M7 worker; M4 stack uses AXI heap, M7 static storage |
 | `dispatch mode` | Select ordinary dispatch (0), priority experiment (1), or bounded coroutine polling experiment (2), before constructing ICC |
 | `fast rate count fixture` | Native bounded command path; fixture 0 alone, 1 ordinary ICC flood, 2 additionally 3 × 100 kHz STEP and fixed-work M4 load |
 | `stopping rate count method` | Full three-axis stopping timestamp cost; method 0 reference inversion, 1 bounded fixed-point evaluator |
 | `profile rate cycles load [shape] [half]` | Finite jerk-limited profiles, ≤25 kHz; shape 0 scaled / 1 equal peaks; half 64/128/256 pulses, default 64 |
+| `executor cycles injection_ms mode load [shape] [traffic]` | Production finite executor, 12.5 kHz peak and 32-pulse halves; mode 0 completes / 1 cancels / 2 stops keepalives / 3 stalls its worker for 700 ms; load 0/20; shape 0 equal / 1 scaled peaks / 2 unequal durations; traffic 0 normal / 1 flood |
 | `pulses rate count load` | Three simultaneous constant-rate outputs, GUI + service traffic, load setting 0/10/20/40 |
 | `status` | GUI presentation / underrun / error counters |
 | `reset` | Coordinated firmware restart; serial disconnects |
@@ -109,8 +110,57 @@ All trajectories are synthetic and uncalibrated; motor enable stays inactive.
 only compute. The fixed-point solver uses bounded Q32 polynomial comparisons and
 falls back to the original double comparison near ambiguous crossings. A 32-bit
 Newton ratio is an initial estimate only; the crossing predicate still determines
-the output tick. These solvers have **not** replaced production interpolation. The reference
-100 kHz fixture exposes an existing `PulseCursor::Timing` boundary failure.
+the output tick. The `executor` fixture uses the production `io::motion::Executor`
+and `ProfileSchedule`, including its bounded evaluator and local brake. The other
+kernel solvers remain experiments; the existing independent-motor `PulseCursor`
+has not been replaced. The reference 100 kHz fixture exposes its existing timing
+boundary failure.
+
+## Production executor fixture
+
+See [the executor API and ownership contract](../../src/io/motion/EXECUTOR.md).
+The current 12.5 kHz hardware attempt failed on M3 pulse width. Qualification is
+stopped; the commands below are reproduction instructions, not passed acceptance
+cases. The [result ledger](../../docs/motion-architecture/executor-results.json)
+identifies the captured image and incomplete gates.
+This fixture exercises the actual production evaluator, executor and HAL; it does
+not instantiate powered motor drivers or qualify the future ICC trajectory service.
+Preparation and start are measured separately. The M4 executor runs at priority 1,
+ICC at 4, its notification worker at 3, and synthetic work at 2. Motion stays
+above the work reservation; STEP IRQ precedence is unchanged.
+Notification delivery outranks ordinary dispatch even when traffic stays queued.
+GUI and ordinary ICC remain active. Load 20 reserves nominal 20% M4 work; acceptance
+also checks that at least 95% of its 1 kHz work periods actually ran. Connection
+state must remain Connected on both cores. Normal traffic offers 256-byte state
+payloads at 50 Hz and 128-byte background payloads at 10 Hz. `--executor-traffic
+flood` offers 512 + 480 bytes at 100 Hz; it is a separate overload case, not an
+accepted production traffic budget. Reset before entering this fixture if
+a previous transport experiment selected different ICC priorities.
+
+```sh
+python3 examples/giga_motion_bench/capture_stream.py --output build/executor-full --executor-cycles 1000 --load 20
+python3 examples/giga_motion_bench/capture_stream.py --output build/executor-scaled --executor-cycles 10 --executor-shape scaled --load 20
+python3 examples/giga_motion_bench/capture_stream.py --output build/executor-unequal --executor-cycles 10 --executor-shape unequal --load 20
+python3 examples/giga_motion_bench/capture_stream.py --output build/executor-stop --executor-cycles 1 --executor-stop 1 --stop-at 60 --load 20
+python3 examples/giga_motion_bench/capture_stream.py --output build/executor-lease --executor-cycles 1 --executor-stop 2 --stop-at 250 --load 20
+python3 examples/giga_motion_bench/capture_stream.py --output build/executor-stall --executor-cycles 1 --executor-stop 3 --stop-at 60 --load 20
+```
+
+The production renewal interval is 7 ms with a 20 ms nominal frontier. M4
+worker priorities are motion 1, reserved benchmark work 2, ICC notification 3 and
+ICC dispatch 4. The dispatch/notification ordering prevents ordinary traffic from
+starving its own wakeups; renewal work must also leave these workers CPU time.
+Debug retains symbols and assertions, but benchmark orchestration/route templates
+use `-Os`, and the production timing-critical executor/HAL code uses `-O2` in
+internal RAM. This tests Debug correctness without making unoptimized benchmark
+glue part of the timing workload.
+
+Each output directory is new. The capture compares the full waveform against an
+independent polynomial reference, including fractional stopping endpoints. It
+checks ENABLE separately, with no glitch filtering. Mode 3 stalls the owner thread;
+it deliberately leaves STEP interrupts running. Lost-interrupt cessation is a
+separate hardware-guard regression. A debugger halt can expire the ICC session;
+reset both cores before continuing after SWD inspection.
 
 ## Captures and host tests
 
@@ -169,7 +219,8 @@ retains any ENABLE failure; it never turns a rejected capture into `result.json`
   the shortest high-speed deadline by it is a separate, conservative bound.
   The counter includes service/refill/callback time; storing the counter itself
   follows the timestamp. Neither margin includes future IPC, retiming or stopping
-  preparation. 64-pulse halves contain 5.12 ms of data at 25 kHz; at lower speed
+  preparation. Two 64-pulse halves contain 5.12 ms at 25 kHz; the production executor uses
+  two 32-pulse halves for the same 5.12 ms at 12.5 kHz. At lower speed
   they span longer, so this is **not** a globally bounded commitment horizon.
 
 `profile` uses `processing` for prepare/start cost, `scheduling` for one-time
@@ -197,8 +248,13 @@ handoff. No measurement arrays or kernel stacks consume the small production UI 
 Additional explicit reservations are 256 KiB/core for compact-run experiments
 (M4 `0xC0480000`, M7 `0xC04C0000`) and 64 KiB shared at `0xC0500000` for the native
 command queue. All use the existing normal, non-cacheable benchmark SDRAM mapping.
-Live fixed-profile coefficients stay in M4 D2 SRAM; ISR code, including the weak
-double fallback selected by the linker, stays in instruction RAM.
+The production executor reserves 25,408 bytes of M4 D2 SRAM for its profile pool;
+ISR code, including the double fallback selected by the linker, stays in instruction
+RAM. The separate legacy `profile` comparison fixture now allocates its optional
+sequences from AXI heap, and the M4 `kernel` fixture allocates its 20 KiB stack only
+when invoked. Their placement differs from archived campaign images: reproduce
+those historical measurements with the recorded binaries, not a new build.
+The M7 kernel stack retains its static reservation and does not consume UI heap.
 
 The benchmark uses a reduced application composition. Its remaining heap is **not**
 the production UI's remaining heap. M7 runtime/ThreadX and kernel ITCM placement

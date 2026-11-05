@@ -267,17 +267,25 @@ namespace motion_bench
     void kernel(const Request& request, Report& report)
     {
         // The measured fixed-kernel peak is <14 KiB; 20 KiB leaves >30%
-        // headroom on M4 and reserves local SRAM for live sequence objects.
-        alignas(32) __attribute__((section(".bss.motion_bench_stack"))) static std::byte stack[(SIDE == 0 ? 20 : 24) * 1024];
+        // headroom on M4. Its optional kernel fixture uses AXI heap storage;
+        // production executor profiles own the limited local D2 SRAM instead.
+        // M7 retains its reserved stack, without taking space from the UI heap.
+        constexpr std::size_t stackSize = (SIDE == 0 ? 20 : 24) * 1024;
+        alignas(32) __attribute__((section(".bss.motion_bench_stack")))
+          static std::byte uiStack[SIDE == 0 ? 1 : stackSize];
+        std::unique_ptr<std::byte[]> ioStack;
+        if constexpr (SIDE == 0)
+            ioStack = std::make_unique<std::byte[]>(stackSize);
+        auto* stack = SIDE == 0 ? ioStack.get() : uiStack;
         auto worker =
           runtime::thread::create({ .name = "bench.kernel",
                                     .priority = static_cast<std::int32_t>(request.lane ? request.lane : 15),
-                                    .stack_size = sizeof(stack),
+                                    .stack_size = stackSize,
                                     .stack_storage = stack },
                                   [&] { executeKernel(request, report); });
         worker.join();
-        report.stack_size = sizeof(stack);
-        auto words = std::span(reinterpret_cast<const std::uint32_t*>(stack), sizeof(stack) / 4);
+        report.stack_size = stackSize;
+        auto words = std::span(reinterpret_cast<const std::uint32_t*>(stack), stackSize / 4);
         for (auto word : words) {
             if (word != 0xefefefefU)
                 break;

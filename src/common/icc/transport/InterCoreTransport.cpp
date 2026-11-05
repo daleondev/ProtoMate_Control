@@ -29,6 +29,10 @@ namespace icc
         if (!m_channel) {
             throw std::invalid_argument("Missing inter-core channel");
         }
+        // Must outrank both application dispatchers (priority 4). Otherwise
+        // continuously ready ordinary traffic can starve delivery of the urgent
+        // receive wakeup on which heartbeat/cancellation handling depends.
+        // This worker only transfers readiness notifications, never messages.
         m_worker = runtime::thread::create({ .name = "intercore.notify", .priority = 3, .stack_size = 8192 },
                                            [this] { notificationThread(); });
         m_channel->setNotification([this]() noexcept { m_notification.signal(); });

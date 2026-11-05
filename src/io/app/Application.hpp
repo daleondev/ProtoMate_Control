@@ -45,11 +45,15 @@ namespace io
 
       private:
         friend class runtime::ThreadGroup;
-        static constexpr runtime::thread::Definition ICC_THREAD{ .priority = 2, .stack_size = 32UZ * 1024UZ };
+        // Measured ARM housekeeping peaks are below 3 KiB. Hosted Debug uses
+        // wider C++ frames and retains its 16 KiB allowance.
+        static constexpr std::size_t HOUSEKEEPING_STACK_SIZE =
+          sizeof(void*) == 4 ? 8UZ * 1024UZ : 16UZ * 1024UZ;
+        static constexpr runtime::thread::Definition ICC_THREAD{ .priority = 4, .stack_size = 32UZ * 1024UZ };
         static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14,
-                                                                         .stack_size = 16UZ * 1024UZ };
+                                                                         .stack_size = HOUSEKEEPING_STACK_SIZE };
         static constexpr runtime::thread::Definition DIAGNOSTIC_THREAD{ .priority = 20,
-                                                                        .stack_size = 16UZ * 1024UZ };
+                                                                        .stack_size = HOUSEKEEPING_STACK_SIZE };
 
         [[= ICC_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();

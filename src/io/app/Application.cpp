@@ -1,4 +1,5 @@
 #include "Application.hpp"
+#include "io/motion/ProfileMemory.hpp"
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
 #include "common/icc/catalog/topics.hpp"
@@ -59,8 +60,10 @@ namespace io
         }
         m_started = true;
         try {
+            // Static storage maps to M4 local D2 SRAM, unlike the AXI heap.
+            static motion::ProfileMemory profileMemory;
             m_motion = std::make_unique<motion::Controller>(
-              MOTOR_CONFIGURATION, motion::Controller::DriverFactory{}, m_logSink);
+              MOTOR_CONFIGURATION, motion::Controller::DriverFactory{}, m_logSink, &profileMemory);
             m_motorServer = std::make_unique<motion::Server>(m_bus, *m_motion);
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
             m_threads.start(*this, "io");

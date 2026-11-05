@@ -6,3 +6,6 @@ target_include_directories(motion_bench_metrics_tests PRIVATE ${PROJECT_SOURCE_D
 target_link_libraries(motion_bench_metrics_tests PRIVATE hal_register_gtest project_compiler_settings)
 add_test(NAME motion_bench.metrics COMMAND motion_bench_metrics_tests)
 set_tests_properties(motion_bench.metrics PROPERTIES TIMEOUT 30)
+add_test(NAME motion_bench.capture COMMAND ${Python3_EXECUTABLE} -m pytest -q
+    ${CMAKE_CURRENT_SOURCE_DIR})
+set_tests_properties(motion_bench.capture PROPERTIES TIMEOUT 30)

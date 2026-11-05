@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Capture constant STEP trains or finite jerk-limited profiles at 24 MHz.
-Neither fixture establishes interactive replacement or stream-loss stopping.
+Executor mode also checks a preinstalled brake after cancellation or producer loss.
 """
 import argparse
 import glob
@@ -107,6 +107,11 @@ def main():
     parser.add_argument('--profile-rate',type=int,choices=[10000,25000],default=25000)
     parser.add_argument('--profile-shape',choices=['scaled','equal'],default='scaled')
     parser.add_argument('--profile-half',type=int,choices=[64,128,256],default=64)
+    parser.add_argument('--executor-cycles',type=int)
+    parser.add_argument('--executor-traffic',choices=['normal','flood'],default='normal')
+    parser.add_argument('--executor-stop', type=int, choices=[1,2,3], default=0)
+    parser.add_argument('--stop-at',type=int,default=150)
+    parser.add_argument('--executor-shape',choices=['equal','scaled','unequal'],default='equal')
     args = parser.parse_args()
     if not 1 <= args.seconds <= 600:
         parser.error('seconds must be 1..600')
@@ -121,14 +126,36 @@ def main():
             parser.error('profile cycles must be 1..1000 and cannot combine with fast-rate')
         command=f'profile {args.profile_rate} {args.profile_cycles} {args.load} {int(args.profile_shape=="equal")} {args.profile_half}'
         timeout=args.profile_cycles*.7+30
+    if args.executor_cycles is not None:
+        if not 1 <= args.executor_cycles <= 1000 or args.profile_cycles or args.fast_rate:
+            parser.error('executor cycles must be 1..1000 and used alone')
+        args.profile_cycles=args.executor_cycles
+        args.profile_shape=args.executor_shape
+        args.profile_rate=12500
+        args.profile_half=32
+        command=f'executor {args.executor_cycles} {args.stop_at if args.executor_stop else 0} {args.executor_stop} {args.load} {dict(equal=0,scaled=1,unequal=2)[args.executor_shape]} {int(args.executor_traffic=="flood")}'
+        if args.load not in (0,20):
+            parser.error('executor load must be 0 or 20')
+        if args.executor_stop and (args.executor_cycles != 1 or args.executor_shape != 'equal'):
+            parser.error('stop captures use one command with equal profiles')
+        if args.executor_stop and not 10 <= args.stop_at <= 500:
+            parser.error('captured stops use 10..500 ms; pre-start cancellation is a host regression')
+        timeout=args.executor_cycles*.8+30
     args.output.mkdir(parents=True, exist_ok=False)
-    if args.profile_cycles:
+    if args.executor_stop:
+        from executor_capture import ExecutorEdges
+        analyzer = ExecutorEdges(args.profile_rate)
+    elif args.executor_cycles and args.executor_shape == 'unequal':
+        from executor_capture import UnequalEdges
+        analyzer = UnequalEdges(args.executor_cycles, args.profile_rate, 'unequal')
+    elif args.profile_cycles:
         from profile_capture import ProfileEdges
         analyzer = ProfileEdges(args.profile_cycles,args.profile_rate,args.profile_shape)
     else:
         analyzer = Edges()
     configuration = dict(seconds=None if args.profile_cycles else args.seconds, load_setting=args.load,
-                         profile_cycles=args.profile_cycles, profile_rate=args.profile_rate if args.profile_cycles else None,
+                         executor_traffic=args.executor_traffic if args.executor_cycles else None,
+                         executor_cycles=args.executor_cycles, profile_cycles=args.profile_cycles, profile_rate=args.profile_rate if args.profile_cycles else None,
                          profile_shape=args.profile_shape if args.profile_cycles else None,
                          profile_half=args.profile_half if args.profile_cycles else None)
     errors = []
@@ -176,10 +203,21 @@ def main():
     evidence = dict(identity=identity, firmware=records, before=before, after=after, command=command,
                     **configuration, sha256_uncompressed=digest.hexdigest())
     (args.output/'firmware.json').write_text(json.dumps(evidence, indent=2)+'\n')
+    if args.executor_stop:
+        io=next(r for r in records if r.get('core')==4)
+        analyzer.cut=io['executor_cut']; analyzer.expected=io['received']
     result = analyzer.result(expected_pulses, 100000)
     reports = [r for r in records if 'core' in r]
     assert len(reports) == 2 and all(r['errors'] == 0 for r in reports), reports
     assert all(s['underruns']==0 and s['errors']==0 for s in before+after), (before,after)
+    if args.executor_cycles:
+        assert all(r['icc_state'] == 2 and r['icc_reason'] == 0 for r in reports), reports
+        io = next(r for r in reports if r['core'] == 4)
+        if args.load:
+            # The fixed-work producer must actually execute its nominal 1 kHz
+            # work budget, rather than obtain a pass by being starved itself.
+            assert io['auxiliary'] * 1000 >= .95 * io['elapsed_us'], io
+            result['synthetic_work_period_ratio'] = io['auxiliary'] * 1000 / io['elapsed_us']
     if args.profile_cycles:
         io=next(r for r in reports if r['core']==4)
         assert io['refill_cycles']>0

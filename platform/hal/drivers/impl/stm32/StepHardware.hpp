@@ -28,6 +28,8 @@ namespace hal::stm32
         auto start(std::uint32_t deadline) noexcept -> void override;
         auto guard(std::uint32_t tick) noexcept -> void override;
         auto publish() noexcept -> void override;
+        void retarget(std::size_t axis, std::uint32_t tick) noexcept override;
+        bool supportsRetarget() const noexcept override { return true; }
         auto completionWatch(bool enabled) noexcept -> void override;
         auto sample() noexcept -> util::StepSample override;
         auto acknowledge(std::size_t axis) noexcept -> void override;

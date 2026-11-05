@@ -64,3 +64,15 @@ target_compile_definitions(proto_robot_api_tests PRIVATE RUNTIME_APPLICATION_THR
 runtime_attach(proto_robot_api_tests)
 add_test(NAME application.robot_api COMMAND proto_robot_api_tests)
 set_tests_properties(application.robot_api PROPERTIES TIMEOUT 45)
+
+# Native, deterministic tests of the production executor and the DMA register
+# boundary. No hosted scheduler or wall-clock sleeps in algorithm tests.
+add_executable(proto_executor_tests executor_test.cpp ../io/motion/Executor.cpp
+    ../io/motion/ProfileSchedule.cpp ../common/motion/Profile.cpp
+    ${PROJECT_SOURCE_DIR}/platform/hal/drivers/impl/StepGenerator.cpp
+    ${PROJECT_SOURCE_DIR}/platform/hal/drivers/impl/StepOutput.cpp
+    ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/SimulatedStepHardware.cpp)
+target_include_directories(proto_executor_tests PRIVATE ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/platform)
+target_link_libraries(proto_executor_tests PRIVATE hal_register_gtest project_compiler_settings)
+add_test(NAME application.executor COMMAND proto_executor_tests)
+set_tests_properties(application.executor PROPERTIES TIMEOUT 30)

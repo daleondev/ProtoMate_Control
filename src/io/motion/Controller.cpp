@@ -31,10 +31,12 @@ namespace io::motion
 
     Controller::Controller(const Configuration& configuration,
                            const DriverFactory& driver_factory,
-                           std::shared_ptr<pnm::log::ISink> log_sink)
+                           std::shared_ptr<pnm::log::ISink> log_sink,
+                           std::pmr::memory_resource* profile_memory)
       : m_enable{ hal::core::create_steppers_enable_output() }
       , m_generator{ hal::core::create_stepper_generator() }
       , m_configuration{ configuration }
+      , m_profileMemory{ profile_memory }
     {
         if (!m_enable || !m_generator) {
             throw std::runtime_error("motion hardware unavailable on this core or already owned");
@@ -77,6 +79,7 @@ namespace io::motion
                 m_enable->write(hal::gpio::Level::High);
                 m_driverNotification.signal();
                 m_controlNotification.signal();
+                m_executionNotification.signal();
             },
                                                          log_sink);
         }
@@ -89,6 +92,12 @@ namespace io::motion
     {
         // Drop enable before waiting for diagnostics or motion workers.
         m_enable->write(hal::gpio::Level::High);
+        m_executionWorker.request_stop();
+        m_executionNotification.signal();
+        if (m_executionWorker.joinable())
+            m_executionWorker.join();
+        for (auto& motor : m_motors)
+            motor->m_events->group_notification.store(nullptr);
         static_cast<void>(m_driverWorker.request_stop());
         m_driverNotification.signal();
         if (m_driverWorker.joinable()) {
@@ -168,8 +177,26 @@ namespace io::motion
         if (m_faulted.load() || !result.counts_exact) {
             result.state = tr::State::Faulted;
         }
-        // The existing per-axis STEP API cannot provide atomic group splices or
-        // a time-bounded immutable horizon. Never advertise it as that backend.
+        if (result.enabled && result.counts_exact && m_executor) {
+            switch (m_executor->status().state) {
+                case Executor::State::Prepared:
+                    result.state = tr::State::Staged;
+                    break;
+                case Executor::State::Running:
+                    result.state = tr::State::Running;
+                    break;
+                case Executor::State::Braking:
+                    result.state = tr::State::Holding;
+                    break;
+                case Executor::State::Faulted:
+                    result.state = tr::State::Faulted;
+                    break;
+                default:
+                    break;
+            }
+        }
+        // The finite profile executor is available through the local Controller
+        // API. The richer trajectory/ICC service is not connected to it yet.
         result.capabilities.coordinated_execution = false;
         result.capabilities.hardware_fingerprint = tr::fingerprint(result.capabilities);
         return result;
@@ -177,8 +204,8 @@ namespace io::motion
 
     bool Controller::canMoveLocked() const
     {
-        return m_initialized && !m_enabling && enabled() && driversReady() &&
-               m_generator->status().state == hal::step::State::Running;
+        return (!m_executor || !m_executor->reserved()) && m_initialized && !m_enabling && enabled() &&
+               driversReady() && m_generator->status().state == hal::step::State::Running;
     }
 
     void Controller::initializeDrivers(std::stop_token stop)
@@ -222,6 +249,8 @@ namespace io::motion
             throw std::runtime_error("STEP timebase start failed: " + result.error().message());
         }
         m_initialized = true;
+        if (m_executor && !m_executor->recover())
+            throw std::runtime_error("executor recovery failed");
     }
 
     void Controller::enable(std::stop_token stop)
@@ -307,6 +336,8 @@ namespace io::motion
 
     void Controller::stopLocked(std::optional<MotorId> id)
     {
+        if (m_executor && m_executor->reserved())
+            m_executor->abort();
         if (id) {
             axis(*id).stopAndWait();
             return;
@@ -331,6 +362,13 @@ namespace io::motion
             m_enable->write(hal::gpio::Level::High);
         }
         m_controlNotification.signal();
+        if (m_executor && m_executor->reserved()) {
+            if (id && !(m_executionMask & (1U << static_cast<unsigned>(*id))))
+                return;
+            m_executor->stop(m_executor->status().id);
+            m_executionNotification.signal();
+            return;
+        }
         stopLocked(id);
     }
 
@@ -475,4 +513,127 @@ namespace io::motion
         // Admission is serialized; waiting for the motion worker is not.
         return result.get();
     }
+    hal::util::Result<> Controller::execute(const Executor::Command& command)
+    {
+        const auto result = prepareExecution(command);
+        return result ? startExecution(command.id) : result;
+    }
+    hal::util::Result<> Controller::prepareExecution(const Executor::Command& command)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!canMoveLocked())
+            return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+        for (const auto& axis : command.axes)
+            if (axis.profile && (!std::isfinite(axis.limits.velocity) ||
+                                 axis.limits.velocity > Executor::MAX_PRODUCTION_RATE))
+                return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+        for (unsigned i = 0; i < 3; ++i) {
+            const auto& motor = *m_motors[i];
+            std::scoped_lock queue{ motor.m_queueMutex };
+            if (motor.m_busy || motor.m_homing || motor.m_pending)
+                return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
+            if (command.axes[i].profile &&
+                (!motor.isReferenced() || (command.axes[i].forward && motor.referenceSwitchActive())))
+                return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+        }
+        // Completed homing/move threads still own their stacks until joined.
+        // Admission above established that all axes are idle. Reclaim those
+        // stacks before reserving the execution banks and dedicated worker.
+        for (auto& motor : m_motors)
+            motor->stopAndWait();
+        if (!m_executor) {
+            m_executor = std::make_unique<Executor>(
+              m_generator,
+              [this](unsigned axis, bool forward, std::shared_ptr<const hal::step::Sequence> sequence) {
+                return m_motors[axis]->prepareCoordinated(forward, std::move(sequence));
+            }, m_profileMemory);
+            for (auto& motor : m_motors)
+                motor->m_events->group_notification.store(&m_executionNotification);
+            try {
+                m_executionWorker = runtime::thread::create_jthread(
+                  { .name = "motion executor", .priority = 1, .stack_size = 16384U },
+                  [this](std::stop_token stop) { executeMotions(stop); });
+            } catch (...) {
+                for (auto& motor : m_motors)
+                    motor->m_events->group_notification.store(nullptr);
+                m_executor.reset();
+                throw;
+            }
+        }
+        const auto result = m_executor->prepare(command);
+        if (result) {
+            m_executionMask = 0;
+            for (unsigned i = 0; i < 3; ++i)
+                if (command.axes[i].profile)
+                    m_executionMask |= 1U << i;
+            m_executionNotification.signal();
+        }
+        return result;
+    }
+    hal::util::Result<> Controller::startExecution(std::uint64_t id)
+    {
+        std::scoped_lock lock{ m_mutex };
+        if (!m_executor || !m_initialized || m_enabling || !enabled() || !driversReady())
+            return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+        for (unsigned i = 0; i < 3; ++i)
+            if ((m_executionMask & (1U << i)) &&
+                (!m_motors[i]->isReferenced() || m_motors[i]->coordinatedBlocked()))
+                return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+        const auto result = m_executor->start(id);
+        m_executionNotification.signal();
+        return result;
+    }
+    bool Controller::renewExecution(std::uint64_t id)
+    {
+        std::scoped_lock lock{ m_mutex };
+        return m_executor && m_executor->renew(id);
+    }
+    bool Controller::stopExecution(std::uint64_t id)
+    {
+        std::scoped_lock lock{ m_mutex };
+        const bool accepted = m_executor && m_executor->stop(id);
+        m_executionNotification.signal();
+        return accepted;
+    }
+    Executor::Status Controller::executionStatus() const
+    {
+        std::scoped_lock lock{ m_mutex };
+        return m_executor ? m_executor->status() : Executor::Status{};
+    }
+    void Controller::executeMotions(std::stop_token stop)
+    {
+        const std::stop_callback wake{ stop, [this] { m_executionNotification.signal(); } };
+        while (!stop.stop_requested()) {
+            bool active{};
+            {
+                std::scoped_lock lock{ m_mutex };
+                active = m_executor && m_executor->active();
+                if (active) {
+                    bool blocked = m_faulted.load();
+                    for (unsigned i = 0; i < 3; ++i)
+                        blocked |= (m_executionMask & (1U << i)) &&
+                                   (!m_motors[i]->isReferenced() || m_motors[i]->coordinatedBlocked());
+                    if (blocked) {
+                        m_executor->abort();
+                        m_enable->write(hal::gpio::Level::High);
+                        invalidateReferencesLocked();
+                    }
+                    else
+                        m_executor->service();
+                    if (m_executor->status().state == Executor::State::Faulted) {
+                        m_faulted.store(true);
+                        m_enable->write(hal::gpio::Level::High);
+                        m_driverNotification.signal();
+                    }
+                    active = m_executor->active();
+                }
+            }
+            m_executionNotification.waitUntil(active ? std::chrono::steady_clock::now() + 1ms
+                                                     : std::chrono::steady_clock::time_point::max());
+        }
+        std::scoped_lock lock{ m_mutex };
+        if (m_executor && m_executor->reserved())
+            m_executor->abort();
+    }
+
 }

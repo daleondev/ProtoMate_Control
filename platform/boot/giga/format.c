@@ -21,6 +21,7 @@ static int destination(unsigned core, uint32_t address, uint32_t size, uint32_t 
     if (!core) {
         return within(address, size, 0x10000000, 192 * 1024) ||
                within(address, size, 0x30030000, 88 * 1024) ||
+               within(address, size, 0x24040000, 256 * 1024) ||
                ((flags & GIGA_RAM_DEBUG) && within(address, size, 0xC0400000, 2 * 1024 * 1024));
     }
     /* Keep bootstrap scratch (0x2001C000) and both MSP stacks intact. */

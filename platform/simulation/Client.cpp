@@ -165,7 +165,7 @@ namespace simulation::client
             return result;
         }
     }
-    bool publishBank(unsigned axis, unsigned bank, std::span<const std::byte> bytes) noexcept
+    bool publishBank(unsigned axis, unsigned bank, std::span<const std::byte> bytes, std::optional<std::uint32_t> cut) noexcept
     {
         static_assert(sizeof(hal::util::StepBuffer) <= BULK_BYTES);
         auto& c{ connection() };
@@ -182,7 +182,7 @@ namespace simulation::client
         std::copy(bytes.begin(), bytes.end(), shared.bulk[slot].begin());
         const auto generation{ acquire(shared.bulk_generation[slot]) + 1U };
         release(shared.bulk_generation[slot], generation);
-        return command(Operation::Publish, { axis, bank, slot, generation, checksum(bytes) }).status == 0;
+        return command(cut ? Operation::PublishFuture : Operation::Publish, { axis, bank, slot, generation, checksum(bytes), cut.value_or(0) }).status == 0;
     }
     Packet command(Operation operation, std::array<std::uint64_t, 8> arguments) noexcept
     {

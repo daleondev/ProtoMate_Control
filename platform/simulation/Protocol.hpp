@@ -10,7 +10,7 @@
 
 namespace simulation
 {
-    inline constexpr std::uint32_t VERSION{ 1 };
+    inline constexpr std::uint32_t VERSION{ 2 };
     inline constexpr std::size_t FRAME_BYTES{ 2048 }, PAYLOAD_BYTES{ 1536 };
     enum class Operation : std::uint32_t
     {
@@ -50,7 +50,9 @@ namespace simulation
         TimerStop,
         PwmConfigure,
         PwmStart,
-        PwmStop
+        PwmStop,
+        Retarget,
+        PublishFuture
     };
     enum class Fault : std::uint32_t
     {
@@ -118,7 +120,7 @@ namespace simulation
             throw std::invalid_argument{ "simulation protocol version/length" };
         Packet packet{};
         const auto op{ get(in, 4, 4) };
-        if (op > std::to_underlying(Operation::PwmStop))
+        if (op > std::to_underlying(Operation::PublishFuture))
             throw std::invalid_argument{ "simulation operation" };
         packet.operation = static_cast<Operation>(op);
         packet.status = static_cast<std::uint32_t>(get(in, 8, 4));

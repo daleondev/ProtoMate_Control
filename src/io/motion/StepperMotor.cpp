@@ -826,8 +826,8 @@ namespace io::motion
         if (status.state != hal::step::State::Running || reached) {
             m_events->notification.signal();
         }
-        if (auto* notification{ m_events->group_notification.load() }) {
-            notification->signal();
+        if (status.state != hal::step::State::Running) {
+            if (auto* notification{ m_events->group_notification.load() }) notification->signal();
         }
     }
 

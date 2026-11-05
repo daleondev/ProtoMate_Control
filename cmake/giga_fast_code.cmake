@@ -17,6 +17,8 @@ set(giga_fast_sources
     src/io/motion/StepperMotor.cpp
     src/io/motion/Controller.cpp
     src/io/motion/Sequence.cpp
+    src/io/motion/ProfileSchedule.cpp
+    src/io/motion/Executor.cpp
     src/common/motion/Profile.cpp
     src/common/icc/bridge/Bridge.cpp
     src/common/icc/bridge/ConnectionHealth.cpp
@@ -66,6 +68,7 @@ string(APPEND GIGA_FAST_OBJECTS " *libc_a-memcpy.o(.text* .rodata*)")
 string(APPEND GIGA_FAST_OBJECTS " *stm32h7xx_hal_gpio.c.obj(.text* .rodata*)")
 set(giga_fast_functions
     memcpy memmove memcmp memset ceil sqrt cbrt __ieee754_sqrt __errno
+    floor llround
     malloc free _malloc_r _free_r __malloc_lock __malloc_unlock
     # Profiled ICC wake/transfer paths. M4 has no instruction cache for QSPI;
     # these small, frequently executed paths otherwise compete with UI reads.

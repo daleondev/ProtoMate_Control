@@ -24,6 +24,7 @@ namespace hal::util
         std::array<bool, 3> active{}, high{}, hold_dma{}, pending_dma{};
         std::vector<Edge> edges;
         std::function<void()> interrupt;
+        std::function<void(StepSample&)> sample_filter;
         bool interrupts_enabled{ true }, trace_edges{ true };
         std::uint64_t elapsed{};
         std::uint32_t deadline{};
@@ -42,6 +43,9 @@ namespace hal::util
         auto stopAxis(std::size_t axis) noexcept -> StepSample override;
         auto stop() noexcept -> StepSample override;
         auto publish() noexcept -> void override;
+        void retarget(std::size_t axis, std::uint32_t tick) noexcept override
+        { registers.channels[axis].compare = tick; }
+        bool supportsRetarget() const noexcept override { return true; }
         auto transfer(std::size_t axis) noexcept -> bool;
         auto advance(std::uint64_t ticks) noexcept -> void;
 

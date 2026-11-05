@@ -33,20 +33,21 @@ namespace motion_bench
         Isolation,
         Dispatch,
         FastControl,
-        Profile
+        Profile,
+        Executor
     };
     struct Request
     {
         Operation operation{};
         std::uint32_t fixture{}, bytes{ 32 }, rate{ 1000 }, count{ 1000 }, direction{}, lane{}, start{},
-          trace{};
+          trace{}, traffic{};
     };
     struct Report
     {
         Histogram latency, processing, scheduling;
         std::uint32_t sent{}, received{}, rejected{}, errors{}, elapsed{}, value{}, clock{},
           maximum_backlog{}, heap_used{}, heap_free{}, stack_free{}, stack_size{}, cpu_ticks{}, wall_us{},
-          minimum_stack_permill{}, refill_cycles{}, refill_budget_ticks{};
+          minimum_stack_permill{}, refill_cycles{}, refill_budget_ticks{}, executor_build_us{}, executor_splice_us{}, executor_error{}, executor_cut{}, executor_reason{}, executor_request{}, icc_state{}, icc_reason{};
         std::uint64_t checksum{};
         std::array<char, 32> minimum_stack_thread{};
     };
@@ -70,6 +71,7 @@ namespace motion_bench
     {
         std::atomic_ref(v).store(n, std::memory_order_release);
     }
+    void executorBench(const Request&, Report&, std::shared_ptr<hal::IInterCoreChannel>);
     void profileBench(const Request&, Report&, std::shared_ptr<hal::IInterCoreChannel>);
     void fixedKernel(const Request&, Report&);
     void kernel(const Request&, Report&);

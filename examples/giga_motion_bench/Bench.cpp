@@ -58,6 +58,10 @@ namespace motion_bench
         std::printf("\"refill_cycles\":%lu,\"refill_budget_ticks\":%lu,",
                     (unsigned long)r.refill_cycles, (unsigned long)r.refill_budget_ticks);
         std::printf("\"minimum_stack_thread\":\"%s\",", r.minimum_stack_thread.data());
+        std::printf("\"executor_build_us\":%lu,\"executor_splice_us\":%lu,\"executor_error\":%lu,\"executor_cut\":%lu,\"executor_reason\":%lu,\"executor_request\":%lu,",
+                    (unsigned long)r.executor_build_us,(unsigned long)r.executor_splice_us,(unsigned long)r.executor_error,(unsigned long)r.executor_cut,(unsigned long)r.executor_reason,(unsigned long)r.executor_request);
+        std::printf("\"icc_state\":%lu,\"icc_reason\":%lu,",
+                    (unsigned long)r.icc_state, (unsigned long)r.icc_reason);
         printHistogram("latency", r.latency);
         std::printf(",");
         printHistogram("processing", r.processing);
@@ -121,6 +125,9 @@ namespace motion_bench
                 break;
             case Operation::Flood:
                 flood(r, report, channel);
+                break;
+            case Operation::Executor:
+                executorBench(r, report, channel);
                 break;
             case Operation::Profile:
                 profileBench(r, report, channel);
@@ -259,8 +266,15 @@ int main()
                 std::puts("[motion-bench] DONE");
                 continue;
             }
-            unsigned profileShape{}, profileHalf{64};
-            if (std::sscanf(line.data(), "profile %u %u %u %u %u", &rate, &count, &fixture, &profileShape, &profileHalf) >= 3) {
+            unsigned profileShape{}, profileHalf{64}, traffic{};
+            if (std::sscanf(line.data(), "executor %u %u %u %u %u %u", &count, &bytes, &direction, &fixture, &profileShape, &traffic) >= 4) {
+                if (!count || count > 1000 || bytes > 500 || direction > 3 || profileShape>2 || traffic>1 || (fixture != 0 && fixture != 20)) {
+                    std::puts("[motion-bench] invalid executor"); continue;
+                }
+                r.operation=Operation::Executor; r.count=count; r.bytes=bytes; r.direction=direction;
+                r.fixture=fixture; r.rate=12500; r.lane=profileShape; r.traffic=traffic; phase=2; name="executor";
+            }
+            else if (std::sscanf(line.data(), "profile %u %u %u %u %u", &rate, &count, &fixture, &profileShape, &profileHalf) >= 3) {
                 if (rate < 1000 || rate > 25000 || !count || count > 1000 || profileShape>1 ||
                     (profileHalf!=64 && profileHalf!=128 && profileHalf!=256) || (fixture != 0 && fixture != 20 && fixture != 40)) {
                     std::puts("[motion-bench] invalid profile"); continue;

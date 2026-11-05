@@ -16,6 +16,8 @@ extern "C" {
 volatile std::uint32_t giga_motion_bench_refill_ticks = UINT32_MAX;
 volatile std::uint32_t giga_motion_bench_worst_refill_cycles{};
 volatile std::uint32_t giga_motion_bench_worst_budget_ticks{};
+std::uint32_t giga_motion_bench_refill_index[3]{};
+std::uint32_t giga_motion_bench_worst_refill_index[3]{};
 }
 #endif
 // Debugger/bench counters: core cycles, including refill and progress callbacks.
@@ -145,6 +147,11 @@ namespace hal::stm32
         HAL_NVIC_ClearPendingIRQ(TIM7_IRQn);
     }
     auto StepHardware::buffers() noexcept -> util::StepBuffers& { return memory.edges; }
+    void StepHardware::retarget(std::size_t axis, std::uint32_t tick) noexcept
+    {
+        compare(axis) = tick;
+        __DSB();
+    }
     auto StepHardware::reset() noexcept -> bool
     {
 #if defined(CORE_CM4)
@@ -287,12 +294,12 @@ namespace hal::stm32
         const auto lead{ util::step_distance(
           TIM2->CNT, first) }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         if ((TIM2->CR1 & TIM_CR1_CEN) == 0U ||
-            lead <
+            (first != util::STEP_PARK && (lead <
               util::
                 STEP_MIN_PHASE || // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             lead >
               util::
-                STEP_HORIZON) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                STEP_HORIZON))) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             pin_mode(axis, false);
             return false;
         }
@@ -387,16 +394,8 @@ namespace hal::stm32
                   (TIM2->SR &
                    CC_FLAGS[i]) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                   0U;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                channel.high =
-                  i == 0U
-                    ? (GPIOA->IDR &
-                       GPIO_PIN_0) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                        0U // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                    : (GPIOB->IDR &
-                       (i == 1U
-                          ? GPIO_PIN_10
-                          : GPIO_PIN_11)) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                        0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                const auto* port = m_pins[i].port == gpio::Port::A ? GPIOA : GPIOB;
+                channel.high = (port->IDR & (1U << m_pins[i].number)) != 0U;
                 after = stream->NDTR;
                 if (before == after && ((control ^ stream->CR) & DMA_SxCR_CT) == 0U &&
                     ((flags ^ DMA1->LISR) &
@@ -497,6 +496,8 @@ namespace hal::stm32
         const auto started{ DWT->CYCCNT };
 #if defined(GIGA_MOTION_BENCH)
         giga_motion_bench_refill_ticks = UINT32_MAX;
+        for (auto& index : giga_motion_bench_refill_index)
+            index = UINT32_MAX;
 #endif
 #endif
         const InterruptGuard lock{};
@@ -528,6 +529,7 @@ namespace hal::stm32
             std::uint64_t(giga_motion_bench_worst_refill_cycles) * budget)) {
             giga_motion_bench_worst_refill_cycles = elapsed;
             giga_motion_bench_worst_budget_ticks = budget;
+            std::copy_n(giga_motion_bench_refill_index, 3, giga_motion_bench_worst_refill_index);
         }
 #endif
         if (elapsed > giga_step_irq_cycles_max) {

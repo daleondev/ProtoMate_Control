@@ -73,6 +73,9 @@ namespace hal
             virtual ~Sequence() = default;
             virtual PulseCount count() const noexcept = 0;
             virtual std::chrono::nanoseconds maximumPeriod() const noexcept = 0;
+            virtual std::uint32_t bufferPulses() const noexcept { return 256; }
+            virtual std::optional<std::int64_t> endTickOffset() const noexcept { return {}; }
+            virtual std::uint32_t initialOffset() const noexcept { return 0; }
             virtual util::Result<Timing> timing(PulseCount zero_based_pulse) const noexcept = 0;
             // Batch evaluation may reuse local inversion work; the trajectory
             // remains immutable and can be read concurrently by the planner.
@@ -87,6 +90,18 @@ namespace hal
                 }
                 return {};
             }
+        };
+        // Absolute rising-edge offsets, in 100 ns ticks from the first rise.
+        // Enables a thread to prepare a replacement of queued (not yet emitted)
+        // edges. Prefixes before the supplied time boundary must be identical.
+        class TimedSequence : public Sequence
+        {
+          public:
+            virtual util::Result<std::uint32_t> risingTick(PulseCount pulse) const noexcept = 0;
+            std::uint32_t bufferPulses() const noexcept override { return 64; }
+            // Optional certificate: every edge through this signed offset from
+            // first rise is identical in both immutable sequences.
+            virtual std::optional<std::int64_t> commonPrefix(const Sequence&) const noexcept { return {}; }
         };
         struct ScheduleCursor
         {
@@ -204,6 +219,25 @@ namespace hal
         // every selected axis and retains any counts already emitted.
         [[nodiscard]] virtual auto startPrepared(
           const std::array<std::optional<std::chrono::nanoseconds>, 3>& /*unused*/) noexcept -> util::Result<>
+        {
+            return std::unexpected(std::make_error_code(std::errc::not_supported));
+        }
+        struct Timeline
+        {
+            std::uint32_t tick{};
+            std::array<std::uint32_t, 3> first_rise{};
+        };
+        [[nodiscard]] virtual util::Result<Timeline> timeline() noexcept
+        {
+            return std::unexpected(std::make_error_code(std::errc::not_supported));
+        }
+        // Thread context only. Atomically replace the selected timed sequences.
+        // Changed edges must be strictly after preserve_until; that boundary
+        // must still be >= 2 ms away when publishing. Preparation runs outside
+        // the interrupt lock. Busy/timeout leaves every channel unchanged.
+        [[nodiscard]] virtual util::Result<> splice(
+          const std::array<std::shared_ptr<const step::TimedSequence>, 3>&,
+          std::uint32_t /*preserve_until*/)
         {
             return std::unexpected(std::make_error_code(std::errc::not_supported));
         }

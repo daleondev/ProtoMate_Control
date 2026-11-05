@@ -15,6 +15,8 @@ namespace hal::util
     auto LinuxStepHardware::reset() noexcept -> bool
     {
         m_valid = {};
+        m_cut.reset();
+        m_publicationError = false;
         return simulation::client::command(simulation::Operation::Reset).status == 0;
     }
     auto LinuxStepHardware::arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept -> bool
@@ -33,7 +35,12 @@ namespace hal::util
     {
         simulation::client::command(simulation::Operation::Watch, { enabled });
     }
-    auto LinuxStepHardware::sample() noexcept -> StepSample { return simulation::client::sample(); }
+    auto LinuxStepHardware::sample() noexcept -> StepSample
+    {
+        auto result = simulation::client::sample();
+        result.error |= m_publicationError;
+        return result;
+    }
     auto LinuxStepHardware::acknowledge(std::size_t axis) noexcept -> void
     {
         simulation::client::command(simulation::Operation::Acknowledge, { axis });
@@ -54,6 +61,12 @@ namespace hal::util
         simulation::client::command(simulation::Operation::Stop);
         return value;
     }
+    void LinuxStepHardware::retarget(std::size_t axis, std::uint32_t tick) noexcept
+    {
+        m_publicationError |=
+          simulation::client::command(simulation::Operation::Retarget, { axis, tick, m_cut.value_or(0) })
+            .status != 0;
+    }
     auto LinuxStepHardware::publish() noexcept -> void
     {
         auto* shared{ simulation::client::memory() };
@@ -66,10 +79,12 @@ namespace hal::util
                 std::array<std::byte, sizeof(StepBuffer)> encoded{};
                 for (unsigned i{}; i < STEP_BUFFER_EDGES; ++i)
                     simulation::put(encoded, i * 4, memory[axis][bank][i], 4);
-                if (simulation::client::publishBank(axis, bank, encoded)) {
+                if (simulation::client::publishBank(axis, bank, encoded, m_cut)) {
                     m_published[axis][bank] = memory[axis][bank];
                     m_valid[axis][bank] = true;
                 }
+                else
+                    m_publicationError = true;
             }
     }
 

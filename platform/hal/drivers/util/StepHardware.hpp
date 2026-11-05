@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <optional>
 
 namespace hal::util
 {
@@ -88,5 +89,10 @@ namespace hal::util
         virtual auto shutdown() noexcept -> void { static_cast<void>(stop()); }
         // Publish CPU buffer writes before exposing the extended deadline.
         virtual auto publish() noexcept -> void = 0;
+        // Called only when both old and replacement compare are safely in the
+        // future. Does not reset DMA, output phase or the timer.
+        virtual void retarget(std::size_t, std::uint32_t) noexcept {}
+        virtual bool supportsRetarget() const noexcept { return false; }
+        virtual void spliceWindow(std::optional<std::uint32_t>) noexcept {}
     };
 }
