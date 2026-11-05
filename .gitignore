@@ -3,7 +3,7 @@ build/
 !external/touchgfx/framework/tools/*/build/
 
 # Per-device factory firmware and option-byte backups stay local.
-backups/hardware/
+backups/
 
 # CubeMX user specific files
 .mxproject

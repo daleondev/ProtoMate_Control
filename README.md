@@ -124,6 +124,14 @@ Recovery requires explicit initialization and enabling. IO shutdown disables the
 motors before draining ICC. Motor settings live in `io/app/Application.cpp`:
 1.8° full steps, 16 microsteps and placeholder 135° shaft reference coordinates.
 
+The motor service dispatcher handles urgent stop/disable requests and telemetry.
+One bounded command worker (priority 16, 16 KiB stack) executes ordinary services;
+additional ordinary requests return `Busy` while it is occupied. UART verification
+and initialization run outside the controller admission lock, and enable settling
+is cancellable. Stop invalidates pending initialization/enable work and queued
+ordinary requests; only a new explicit command can enable the motors afterwards.
+Velocity updates enqueue under the admission lock and wait outside it.
+
 `src/ui/cli/` contains the annotation-based parser, filesystem and utility
 commands, Linux terminal frontend and direct motor commands. Registration uses
 `ui::cli::register_commands` with a parser owned by the CLI thread. Each command
@@ -1432,6 +1440,10 @@ an explicit starting pose. `robot jobs` reports duration, selected branch,
 quantized endpoint, conservative path-error budget, motor dynamic bounds and
 segment consumption. It reports a planning result, not mechanical accuracy.
 The 64 retained jobs are independent previews, not an executable motion queue.
+Cancelling an active preview cancels its pending ICC inspection and cooperatively
+interrupts planning and pulse validation. Disconnect does the same while retaining
+an `Unknown` outcome; reconnect never replays the cancelled work. Per-job stop
+state stays in internal RAM, outside the POD planning arena.
 
 The worker runs at priority 15, below ICC, CLI, touch and state dispatch. Its
 256 KiB POD planning arena occupies the existing M7 UI SDRAM region. Its 24 KiB

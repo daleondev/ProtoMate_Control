@@ -1,4 +1,5 @@
 #include "../Machine.hpp"
+#include "hal/devices/util/Tmc2209Protocol.hpp"
 #include <cmath>
 #include <cstdio>
 #include <fcntl.h>
@@ -29,6 +30,33 @@ namespace
                                      .sequence = ++sequence,
                                      .session = mapping.memory().session,
                                      .arguments = args });
+        }
+        void writeRegister(unsigned address, unsigned reg, std::uint32_t value)
+        {
+            Packet request{ .operation = Operation::Uart,
+                            .size = 8,
+                            .sequence = ++sequence,
+                            .session = mapping.memory().session };
+            std::array<std::uint8_t, 8> bytes{ 5, static_cast<std::uint8_t>(address),
+                                             static_cast<std::uint8_t>(reg | 0x80U) };
+            for (unsigned i{}; i < 4; ++i) {
+                bytes[i + 3] = static_cast<std::uint8_t>(value >> (24 - 8 * i));
+            }
+            for (unsigned i{}; i < 7; ++i) {
+                auto byte{ bytes[i] };
+                for (unsigned bit{}; bit < 8; ++bit) {
+                    const bool feedback{ bool((bytes[7] >> 7U) ^ (byte & 1U)) };
+                    bytes[7] = static_cast<std::uint8_t>(bytes[7] << 1U);
+                    if (feedback) {
+                        bytes[7] ^= 7;
+                    }
+                    byte >>= 1U;
+                }
+            }
+            for (unsigned i{}; i < bytes.size(); ++i) {
+                request.data[i] = std::byte{ bytes[i] };
+            }
+            require(!machine.execute(request).status, "TMC register write");
         }
         void advance(std::uint64_t ns)
         {
@@ -150,6 +178,35 @@ namespace
                        { 2, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(360.0) });
         require(std::abs(geared.machine.snapshot().joints[2] - before - 0.625) < 1e-9, "Z gearing ignored");
     }
+    void microstep_selection()
+    {
+        using namespace hal::device::util::tmc2209;
+        Fixture f;
+        const auto pulse{ [&](unsigned axis) {
+            const auto before{ f.machine.snapshot().shaft_degrees[axis] };
+            f.arm(axis);
+            f.advance(20000);
+            return f.machine.snapshot().shaft_degrees[axis] - before;
+        } };
+        require(std::abs(pulse(1) - 1.8 / 8) < 1e-9, "M2 reset must use MS2/MS1=00 (1/8)");
+        require(std::abs(pulse(2) - 1.8 / 32) < 1e-9, "M3 reset must use MS2/MS1=01 (1/32)");
+        f.writeRegister(0, CHOPCONF, CHOPCONF_RESET | (4U << MRES_SHIFT));
+        require(std::abs(pulse(1) - 1.8 / 8) < 1e-9, "MRES changed pin-selected resolution");
+        f.writeRegister(0, 0x00, GCONF_RESET | GCONF_MSTEP_REG_SELECT);
+        require(std::abs(pulse(1) - 1.8 / 16) < 1e-9, "UART-selected MRES not applied");
+        require(std::abs(pulse(2) - 1.8 / 32) < 1e-9, "M2 UART selection changed M3");
+        f.writeRegister(0, 0x00, GCONF_RESET);
+        require(std::abs(pulse(1) - 1.8 / 8) < 1e-9, "return to pin selection ignored");
+
+        hal::device::Tmc2209Model driver;
+        driver.setRegister(0, 0, GCONF_RESET | GCONF_MSTEP_REG_SELECT);
+        for (unsigned exponent{}; exponent <= 8; ++exponent) {
+            driver.setRegister(0, CHOPCONF, CHOPCONF_RESET | (exponent << MRES_SHIFT));
+            require(driver.microsteps(0) == (256U >> exponent), "legal MRES setting");
+        }
+        driver.reset(0);
+        require(driver.microsteps(0) == 8, "driver reset did not restore pin control");
+    }
     void common_wiring()
     {
         Fixture f{};
@@ -221,6 +278,7 @@ try {
     atomic_fault();
     power_and_reset();
     lost_step_and_gearing();
+    microstep_selection();
     common_wiring();
     sealed_mapping();
     cleanup();

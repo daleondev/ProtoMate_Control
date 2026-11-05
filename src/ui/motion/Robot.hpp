@@ -81,6 +81,9 @@ namespace ui::motion
         mutable std::mutex m_mutex;
         runtime::Notification m_changed;
         std::uint64_t m_next{ 1 };
+        // Cancellation state stays in internal RAM, outside the POD SDRAM arena.
+        std::uint64_t m_activeJob{};
+        std::stop_source m_activeStop{ std::nostopstate };
         bool m_connected{}, m_stopped{};
     };
 }

@@ -43,8 +43,8 @@ namespace io::motion
         // Explicit recovery while disabled: cancel old work, invalidate references,
         // initialize all drivers and start the common timebase (without pulses).
         // Failure leaves the controller disabled and rejects motion until recovery.
-        void initializeDrivers();
-        void enable();  // Verifies every driver; waits for shared enable to settle.
+        void initializeDrivers(std::stop_token stop = {});
+        void enable(std::stop_token stop = {}); // Verification/settling is cancellable.
         void disable(); // Stops/joins all work and invalidates references.
         void stop(std::optional<MotorId> motor = std::nullopt); // Retains holding torque.
         [[nodiscard]] bool enabled() const noexcept;
@@ -96,8 +96,13 @@ namespace io::motion
         std::shared_ptr<hal::IStepGenerator> m_generator;
         // Callback destinations outlive every motor and its driver observer.
         runtime::Notification m_driverNotification;
+        runtime::Notification m_controlNotification;
         std::atomic_bool m_faulted{ false };
+        // Serializes slow UART work, never acquired by stop/disable/admission.
+        std::mutex m_operationMutex;
         mutable std::mutex m_mutex;
+        std::uint64_t m_controlEpoch{};
+        bool m_enabling{};
         Configuration m_configuration;
         bool m_initialized{};
         bool m_faultHandled{};

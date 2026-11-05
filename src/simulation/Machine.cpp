@@ -148,8 +148,7 @@ namespace simulation
         }
         unsigned resolution{ m_profile.dm542_microsteps };
         if (axis) {
-            const auto chop{ m_tmc.getRegister(static_cast<unsigned>(axis - 1), 0x6C) };
-            resolution = 256U >> std::min(8U, (chop >> 24U) & 15U);
+            resolution = m_tmc.microsteps(axis - 1);
         }
         m_pending_direction[axis] = m_outputs[DIR_PINS[axis]] ? 1 : -1;
         m_pending_resolution[axis] = resolution;

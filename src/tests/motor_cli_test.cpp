@@ -33,14 +33,23 @@ namespace
     {
       public:
         std::atomic_bool initialized{};
+        std::atomic_uint verify_delay_ms{}, initialize_delay_ms{};
+        std::atomic_bool verifying{}, initializing{};
         std::string_view name() const noexcept override { return "test driver"; }
         Status status() const noexcept override { return { .ready = initialized.load(), .error = {} }; }
         hal::util::Result<> initialize() override
         {
+            initializing = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds{ initialize_delay_ms.load() });
             initialized = true;
             return {};
         }
-        hal::util::Result<> verify() override { return {}; }
+        hal::util::Result<> verify() override
+        {
+            verifying = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds{ verify_delay_ms.load() });
+            return {};
+        }
         void service() override {}
         void setFaultCallback(FaultCallback) override {}
     };
@@ -68,10 +77,11 @@ namespace
         decltype(icc::InProcessTransport::pair()) endpoints{ icc::InProcessTransport::pair() };
         std::jthread ioRunner{ example::run_context(ioContext) }, uiRunner{ example::run_context(uiContext) };
         icc::Bridge ioBridge{ ioBus, ioContext, *endpoints[0] }, uiBridge{ uiBus, uiContext, *endpoints[1] };
-        Controller controller{ CONFIGURATION, [](const auto&, const auto&) {
-            return Controller::Drivers{ std::make_shared<Driver>(),
-                                        std::make_shared<Driver>(),
-                                        std::make_shared<Driver>() };
+        std::array<std::shared_ptr<Driver>, 3> drivers{ std::make_shared<Driver>(),
+                                                      std::make_shared<Driver>(),
+                                                      std::make_shared<Driver>() };
+        Controller controller{ CONFIGURATION, [this](const auto&, const auto&) {
+            return Controller::Drivers{ drivers[0], drivers[1], drivers[2] };
         } };
         io::motion::Server server{ ioBus, controller };
         ui::motion::Client client{ uiBus };
@@ -191,6 +201,115 @@ namespace
         ASSERT_TRUE(command("motor driver status m2"));
         EXPECT_NE(output.str().find("m2 test driver"), std::string::npos);
         EXPECT_EQ(output.str().find("m1"), std::string::npos);
+    }
+
+    TEST_F(MotorCli, UrgentDisableInterruptsEnableSettling)
+    {
+        ASSERT_TRUE(command("motor driver init"));
+        auto enabling{ uiBus.service<^^icc::Services::io_motor>().request(
+          MotorRequest{ .operation = MotorOperation::Enable }, 3s) };
+        ASSERT_TRUE(waitUntil([&] { return controller.enabled(); }));
+        const auto started{ std::chrono::steady_clock::now() };
+        auto disabling{ uiBus.service<^^icc::Services::io_motor_stop>().request(
+          MotorRequest{ .operation = MotorOperation::Disable }, 3s) };
+        const auto result{ disabling.get() };
+        ASSERT_TRUE(result);
+        EXPECT_TRUE(result->ok);
+        EXPECT_LT(std::chrono::steady_clock::now() - started, 100ms);
+        EXPECT_FALSE(controller.enabled());
+        const auto cancelled{ enabling.get() };
+        ASSERT_TRUE(cancelled);
+        EXPECT_FALSE(cancelled->ok);
+        EXPECT_NE(cancelled->message.find("cancelled"), std::string::npos);
+        // Cancellation must not latch a driver fault or prevent explicit recovery.
+        ASSERT_TRUE(command("motor enable")) << output.str();
+        EXPECT_TRUE(controller.enabled());
+    }
+
+    TEST_F(MotorCli, SlowDriverVerificationDoesNotBlockUrgentDisableOrTelemetry)
+    {
+        ASSERT_TRUE(command("motor driver init"));
+        drivers[0]->verify_delay_ms = 250;
+        auto enabling{ uiBus.service<^^icc::Services::io_motor>().request(
+          MotorRequest{ .operation = MotorOperation::Enable }, 3s) };
+        ASSERT_TRUE(waitUntil([&] { return drivers[0]->verifying.load(); }));
+        const auto initial{ client.state().sequence };
+        auto busy{ uiBus.service<^^icc::Services::io_motor>().request(
+          MotorRequest{ .operation = MotorOperation::Enable }, 3s) };
+        const auto rejected{ busy.get() };
+        ASSERT_FALSE(rejected);
+        EXPECT_EQ(rejected.error(), pnm::msg::ServiceError::Busy);
+        const auto started{ std::chrono::steady_clock::now() };
+        auto disabling{ uiBus.service<^^icc::Services::io_motor_stop>().request(
+          MotorRequest{ .operation = MotorOperation::Disable }, 3s) };
+        const auto disabled{ disabling.get() };
+        ASSERT_TRUE(disabled);
+        EXPECT_TRUE(disabled->ok);
+        EXPECT_LT(std::chrono::steady_clock::now() - started, 100ms);
+        EXPECT_FALSE(controller.enabled());
+        ASSERT_TRUE(waitUntil([&] { return client.state().sequence > initial; }));
+        const auto cancelled{ enabling.get() };
+        ASSERT_TRUE(cancelled);
+        EXPECT_FALSE(cancelled->ok);
+        EXPECT_FALSE(controller.enabled());
+    }
+
+    TEST_F(MotorCli, StopDuringInitializationPreventsLateReadiness)
+    {
+        drivers[0]->initialize_delay_ms = 250;
+        auto initializing{ uiBus.service<^^icc::Services::io_motor>().request(
+          MotorRequest{ .operation = MotorOperation::Initialize }, 3s) };
+        ASSERT_TRUE(waitUntil([&] { return drivers[0]->initializing.load(); }));
+        const auto started{ std::chrono::steady_clock::now() };
+        auto stopping{ uiBus.service<^^icc::Services::io_motor_stop>().request(
+          MotorRequest{ .operation = MotorOperation::Stop }, 3s) };
+        ASSERT_TRUE(stopping.get());
+        EXPECT_LT(std::chrono::steady_clock::now() - started, 100ms);
+        const auto cancelled{ initializing.get() };
+        ASSERT_TRUE(cancelled);
+        EXPECT_FALSE(cancelled->ok);
+        EXPECT_FALSE(controller.ready());
+        EXPECT_FALSE(controller.enabled());
+    }
+
+    TEST_F(MotorCli, ShutdownCancelsPendingEnableBeforeJoiningWorkers)
+    {
+        ASSERT_TRUE(command("motor driver init"));
+        auto enabling{ uiBus.service<^^icc::Services::io_motor>().request(
+          MotorRequest{ .operation = MotorOperation::Enable }, 3s) };
+        ASSERT_TRUE(waitUntil([&] { return controller.enabled(); }));
+        EXPECT_FALSE(controller.ready()); // No admission before settling finishes.
+        ioStop.request_stop();
+        ASSERT_TRUE(waitUntil([&] { return !controller.enabled(); }));
+        const auto result{ enabling.get() };
+        EXPECT_TRUE(!result || !result->ok);
+    }
+
+    TEST(MotorServer, StopDiscardsAnOlderQueuedEnable)
+    {
+        pnm::msg::Bus bus;
+        Controller controller{ CONFIGURATION, [](const auto&, const auto&) {
+            return Controller::Drivers{ std::make_shared<Driver>(), std::make_shared<Driver>(),
+                                        std::make_shared<Driver>() };
+        } };
+        controller.initializeDrivers();
+        io::motion::Server server{ bus, controller };
+        auto enabling{ bus.service<^^icc::Services::io_motor>().request(
+          MotorRequest{ .operation = MotorOperation::Enable }, 3s) };
+        auto disabling{ bus.service<^^icc::Services::io_motor_stop>().request(
+          MotorRequest{ .operation = MotorOperation::Disable }, 3s) };
+        std::jthread worker{ [&](std::stop_token stop) { server.run(stop); } };
+        ASSERT_TRUE(disabling.get());
+        const auto discarded{ enabling.get() };
+        ASSERT_FALSE(discarded);
+        EXPECT_EQ(discarded.error(), pnm::msg::ServiceError::Cancelled);
+        EXPECT_FALSE(controller.enabled());
+        auto explicitEnable{ bus.service<^^icc::Services::io_motor>().request(
+          MotorRequest{ .operation = MotorOperation::Enable }, 3s) };
+        const auto result{ explicitEnable.get() };
+        ASSERT_TRUE(result);
+        EXPECT_TRUE(result->ok);
+        EXPECT_TRUE(controller.enabled());
     }
 
     TEST_F(MotorCli, MoveCompletesAndJobOutlivesCommand)

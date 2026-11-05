@@ -907,24 +907,34 @@ namespace io::motion
 
     pnm::Result<hal::step::PulseCount> StepperMotor::setVelocity(pnm::units::AngularVelocity velocity)
     {
-        if (!m_driver->status().ready) {
-            return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
-        }
-        if (!timingFor(velocity)) {
-            return std::unexpected(std::make_error_code(std::errc::invalid_argument));
-        }
+        return requestVelocity(velocity).get();
+    }
+
+    std::future<pnm::Result<hal::step::PulseCount>> StepperMotor::requestVelocity(
+      pnm::units::AngularVelocity velocity)
+    {
         auto request{ std::make_shared<VelocityRequest>() };
         request->velocity = velocity;
         auto future{ request->completion.get_future() };
+        const auto reject{ [&](std::errc error) {
+            request->completion.set_value(std::unexpected(std::make_error_code(error)));
+            return std::move(future);
+        } };
+        if (!m_driver->status().ready) {
+            return reject(std::errc::operation_not_permitted);
+        }
+        if (!timingFor(velocity)) {
+            return reject(std::errc::invalid_argument);
+        }
         {
             std::scoped_lock lock{ m_queueMutex };
             if (!m_busy || m_homing || !m_profileActive.load() || m_velocityRequest) {
-                return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+                return reject(std::errc::operation_not_permitted);
             }
             m_velocityRequest = request;
             m_events->notification.signal();
         }
-        return future.get();
+        return future;
     }
 
     bool StepperMotor::interrupted(const std::stop_token& stop) const noexcept

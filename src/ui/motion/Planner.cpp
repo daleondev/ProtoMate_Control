@@ -71,8 +71,9 @@ namespace ui::motion
         }
     }
 
-    Planner::Planner(const RobotModel& model, Workspace& workspace)
+    Planner::Planner(const RobotModel& model, Workspace& workspace, std::stop_token stop)
       : m_model{ &model }
+      , m_stop{ std::move(stop) }
       , m_workspace{ &workspace }
     {
     }
@@ -80,6 +81,9 @@ namespace ui::motion
     RobotError Planner::prepare(const Move& move, const tr::Counts& counts)
     {
         m_prepared = false;
+        if (m_stop.stop_requested()) {
+            return RobotError::Cancelled;
+        }
         m_pieces = 0;
         m_segments = 0;
         m_move = move;
@@ -247,6 +251,9 @@ namespace ui::motion
         std::size_t pending{ 1 };
         unsigned visits{ 0 };
         while (pending) {
+            if (m_stop.stop_requested()) {
+                return RobotError::Cancelled;
+            }
             if (++visits > 8192) {
                 return RobotError::SubdivisionLimit;
             }
@@ -306,6 +313,9 @@ namespace ui::motion
         work[0] = { from, to, depth };
         std::size_t pending{ 1 };
         while (pending) {
+            if (m_stop.stop_requested()) {
+                return RobotError::Cancelled;
+            }
             const auto interval{ work[--pending] };
             from = interval.from;
             to = interval.to;
@@ -479,6 +489,9 @@ namespace ui::motion
     }
     RobotError Planner::validatePath(const tr::Segment& segment, const std::array<P, 3>* reference) const
     {
+        if (m_stop.stop_requested()) {
+            return RobotError::Cancelled;
+        }
         const auto error{ tr::validate(segment, m_model->motorLimits()) };
         if (error != RobotError::None) {
             return error;
@@ -510,6 +523,9 @@ namespace ui::motion
         std::size_t pending{ 1 };
         unsigned visits{ 0 };
         while (pending) {
+            if (m_stop.stop_requested()) {
+                return RobotError::Cancelled;
+            }
             if (++visits > 8192) {
                 return RobotError::SubdivisionLimit;
             }
@@ -599,6 +615,9 @@ namespace ui::motion
         work[0] = { from, to, depth };
         std::size_t pending{ 1 };
         while (pending) {
+            if (m_stop.stop_requested()) {
+                return RobotError::Cancelled;
+            }
             const auto interval{ work[--pending] };
             from = interval.from;
             to = interval.to;
@@ -654,6 +673,9 @@ namespace ui::motion
     std::expected<PlanSummary, RobotError> Planner::compile(PathState start, double override, bool stopping)
     {
         m_segments = 0;
+        if (m_stop.stop_requested()) {
+            return std::unexpected(RobotError::Cancelled);
+        }
         if (!m_prepared || !std::isfinite(override) || override <= 0 || override > 1 ||
             !std::isfinite(start.position) || start.position < 0 || start.position >= 1 ||
             !std::isfinite(start.velocity) || start.velocity < 0 || !std::isfinite(start.acceleration)) {
@@ -692,6 +714,9 @@ namespace ui::motion
         std::sort(boundaries.begin(), boundaries.begin() + static_cast<std::ptrdiff_t>(size));
         std::uint64_t previous{ 0 };
         for (std::size_t i{ 0 }; i < size; ++i) {
+            if (m_stop.stop_requested()) {
+                return std::unexpected(RobotError::Cancelled);
+            }
             const auto error{ compileInterval(previous, boundaries[i], 0) };
             if (error != RobotError::None) {
                 m_segments = 0;

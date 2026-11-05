@@ -161,6 +161,8 @@ namespace io::motion
                                        bool relative);
 
         std::future<Result> startMotion(std::function<Result(std::stop_token)> task);
+        std::future<pnm::Result<hal::step::PulseCount>> requestVelocity(
+          pnm::units::AngularVelocity velocity);
 
         Result performMotion(Direction direction,
                              pnm::units::AngularVelocity velocity,

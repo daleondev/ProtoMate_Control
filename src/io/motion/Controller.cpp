@@ -76,6 +76,7 @@ namespace io::motion
                 m_faulted.store(true);
                 m_enable->write(hal::gpio::Level::High);
                 m_driverNotification.signal();
+                m_controlNotification.signal();
             },
                                                          log_sink);
         }
@@ -126,7 +127,7 @@ namespace io::motion
     bool Controller::ready() const
     {
         std::scoped_lock lock{ m_mutex };
-        return m_initialized && !m_faulted.load() && driversReady() &&
+        return m_initialized && !m_enabling && !m_faulted.load() && driversReady() &&
                m_generator->status().state == hal::step::State::Running;
     }
 
@@ -176,25 +177,42 @@ namespace io::motion
 
     bool Controller::canMoveLocked() const
     {
-        return m_initialized && enabled() && driversReady() &&
+        return m_initialized && !m_enabling && enabled() && driversReady() &&
                m_generator->status().state == hal::step::State::Running;
     }
 
-    void Controller::initializeDrivers()
+    void Controller::initializeDrivers(std::stop_token stop)
     {
-        std::scoped_lock lock{ m_mutex };
-        if (m_enable->read() != hal::gpio::Level::High) {
-            throw std::logic_error("disable motors before initializing drivers");
+        std::scoped_lock operation{ m_operationMutex };
+        std::uint64_t epoch{};
+        {
+            std::scoped_lock lock{ m_mutex };
+            if (stop.stop_requested()) {
+                throw std::runtime_error("driver initialization cancelled");
+            }
+            if (m_enable->read() != hal::gpio::Level::High) {
+                throw std::logic_error("disable motors before initializing drivers");
+            }
+            epoch = m_controlEpoch;
+            m_initialized = false;
+            stopLocked();
+            invalidateReferencesLocked();
+            static_cast<void>(m_generator->stop());
+            m_faulted.store(false);
+            m_faultHandled = false;
         }
-        m_initialized = false;
-        stopLocked();
-        invalidateReferencesLocked();
-        static_cast<void>(m_generator->stop());
-        m_faulted.store(false);
-        m_faultHandled = false;
         bool failed{};
         for (auto& motor : m_motors) {
+            // UART may block. Stop/disable must still acquire m_mutex meanwhile.
             failed |= !motor->driver().initialize();
+            std::scoped_lock lock{ m_mutex };
+            if (stop.stop_requested() || epoch != m_controlEpoch) {
+                throw std::runtime_error("driver initialization cancelled");
+            }
+        }
+        std::scoped_lock lock{ m_mutex };
+        if (stop.stop_requested() || epoch != m_controlEpoch) {
+            throw std::runtime_error("driver initialization cancelled");
         }
         handleFaultsLocked();
         if (failed || m_faulted.load() || !driversReady()) {
@@ -206,46 +224,84 @@ namespace io::motion
         m_initialized = true;
     }
 
-    void Controller::enable()
+    void Controller::enable(std::stop_token stop)
     {
-        std::scoped_lock lock{ m_mutex };
-        handleFaultsLocked();
-        if (!m_initialized || m_faulted.load() || !driversReady()) {
-            throw std::runtime_error("initialize all drivers before enabling motors");
-        }
-        if (enabled()) {
-            return;
-        }
-        for (auto& motor : m_motors) {
-            if (!motor->driver().verify()) {
-                m_faulted.store(true);
-            }
-        }
-        handleFaultsLocked();
-        bool permitted{};
+        std::scoped_lock operation{ m_operationMutex };
+        const std::stop_callback cancellation{ stop, [this] { m_controlNotification.signal(); } };
+        std::uint64_t epoch{};
         {
-#ifdef HAL_PLATFORM_STM32
-            // Do not overwrite an alarm ISR's disable write with our enable.
-            const hal::stm32::InterruptGuard guard{};
-#endif
-            permitted = !m_faulted.load() && driversReady();
-            if (permitted) {
-                m_enable->write(hal::gpio::Level::Low);
+            std::scoped_lock lock{ m_mutex };
+            if (stop.stop_requested()) {
+                throw std::runtime_error("motor enable cancelled");
             }
-        }
-        // Also closes the concurrent callback window in host tests.
-        if (!permitted || m_faulted.load() || !driversReady()) {
-            m_enable->write(hal::gpio::Level::High);
-            m_faulted.store(true);
             handleFaultsLocked();
-            throw std::runtime_error("driver verification failed before enable");
+            if (!m_initialized || m_faulted.load() || !driversReady()) {
+                throw std::runtime_error("initialize all drivers before enabling motors");
+            }
+            if (enabled()) {
+                return;
+            }
+            epoch = m_controlEpoch;
+            m_enabling = true;
         }
-        std::this_thread::sleep_for(ENABLE_SETTLING_TIME);
-        if (!enabled() || !driversReady()) {
+        try {
+            for (auto& motor : m_motors) {
+                const bool verified{ motor->driver().verify().has_value() };
+                std::scoped_lock lock{ m_mutex };
+                if (stop.stop_requested() || epoch != m_controlEpoch) {
+                    throw std::runtime_error("motor enable cancelled");
+                }
+                if (!verified) {
+                    m_faulted.store(true);
+                }
+            }
+            {
+                std::scoped_lock lock{ m_mutex };
+                if (stop.stop_requested() || epoch != m_controlEpoch) {
+                    throw std::runtime_error("motor enable cancelled");
+                }
+                handleFaultsLocked();
+                bool permitted{};
+                {
+#ifdef HAL_PLATFORM_STM32
+                    // Do not overwrite an alarm ISR's disable write with our enable.
+                    const hal::stm32::InterruptGuard guard{};
+#endif
+                    permitted = !m_faulted.load() && driversReady();
+                    if (permitted) {
+                        m_enable->write(hal::gpio::Level::Low);
+                    }
+                }
+                if (!permitted || !enabled() || !driversReady()) {
+                    m_faulted.store(true);
+                    handleFaultsLocked();
+                    throw std::runtime_error("driver verification failed before enable");
+                }
+            }
+            const auto deadline{ std::chrono::steady_clock::now() + ENABLE_SETTLING_TIME };
+            for (;;) {
+                {
+                    std::scoped_lock lock{ m_mutex };
+                    if (stop.stop_requested() || epoch != m_controlEpoch) {
+                        throw std::runtime_error("motor enable cancelled");
+                    }
+                    if (!enabled() || !driversReady()) {
+                        m_faulted.store(true);
+                        handleFaultsLocked();
+                        throw std::runtime_error("driver fault during enable settling");
+                    }
+                    if (std::chrono::steady_clock::now() >= deadline) {
+                        m_enabling = false;
+                        return;
+                    }
+                }
+                m_controlNotification.waitUntil(deadline);
+            }
+        } catch (...) {
+            std::scoped_lock lock{ m_mutex };
             m_enable->write(hal::gpio::Level::High);
-            m_faulted.store(true);
-            handleFaultsLocked();
-            throw std::runtime_error("driver fault during enable settling");
+            m_enabling = false;
+            throw;
         }
     }
 
@@ -267,6 +323,14 @@ namespace io::motion
     void Controller::stop(std::optional<MotorId> id)
     {
         std::scoped_lock lock{ m_mutex };
+        if (id) {
+            static_cast<void>(axis(*id)); // Reject invalid IDs before changing state.
+        }
+        ++m_controlEpoch;
+        if (m_enabling) {
+            m_enable->write(hal::gpio::Level::High);
+        }
+        m_controlNotification.signal();
         stopLocked(id);
     }
 
@@ -280,6 +344,8 @@ namespace io::motion
     void Controller::disable()
     {
         std::scoped_lock lock{ m_mutex };
+        ++m_controlEpoch;
+        m_controlNotification.signal();
         m_enable->write(hal::gpio::Level::High);
         stopLocked();
         invalidateReferencesLocked();
@@ -314,15 +380,17 @@ namespace io::motion
             if (stop.stop_requested()) {
                 return;
             }
-            std::scoped_lock lock{ m_mutex };
-            handleFaultsLocked();
+            std::scoped_lock operation{ m_operationMutex };
             for (auto& motor : m_motors) {
-                // No UART polling until explicitly initialized. A fault requires
-                // explicit recovery rather than automatically restoring readiness.
-                if (!m_initialized) {
-                    break;
+                {
+                    std::scoped_lock lock{ m_mutex };
+                    handleFaultsLocked();
+                    if (!m_initialized) {
+                        break;
+                    }
                 }
                 motor->driver().service();
+                std::scoped_lock lock{ m_mutex };
                 handleFaultsLocked();
             }
         }
@@ -395,11 +463,16 @@ namespace io::motion
     pnm::Result<hal::step::PulseCount> Controller::setVelocity(MotorId id,
                                                                pnm::units::AngularVelocity velocity)
     {
-        std::scoped_lock lock{ m_mutex };
-        auto& target{ axis(id) };
-        if (!canMoveLocked()) {
-            return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+        std::future<pnm::Result<hal::step::PulseCount>> result;
+        {
+            std::scoped_lock lock{ m_mutex };
+            auto& target{ axis(id) };
+            if (!canMoveLocked()) {
+                return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+            }
+            result = target.requestVelocity(velocity);
         }
-        return target.setVelocity(velocity);
+        // Admission is serialized; waiting for the motion worker is not.
+        return result.get();
     }
 }

@@ -2,6 +2,7 @@
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
 #include "common/icc/catalog/topics.hpp"
+#include "runtime/thread.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -40,11 +41,15 @@ namespace io::motion
     Server::Server(pnm::msg::Bus& bus, Controller& controller)
       : m_controller{ &controller }
       , m_state{ bus.topic<^^icc::Topics::io_motor_state>() }
-      , m_commands{ bus.service<^^icc::Services::io_motor>().serve(
-          [this](const MotorRequest& value) { return request(value, false); },
+      , m_commands{ bus.service<^^icc::Services::io_motor>().serveDeferred(
+          [this](const MotorRequest& value, Reply reply) { deferCommand(value, std::move(reply)); },
           { .max_pending = 4 }) }
       , m_urgent{ bus.service<^^icc::Services::io_motor_stop>().serve(
-          [this](const MotorRequest& value) { return request(value, true); },
+          [this](const MotorRequest& value) {
+              auto result{ request(value, true, m_stop) };
+              result.commandGeneration = m_commandGeneration;
+              return result;
+          },
           { .max_pending = 4 }) }
       , m_motions{ bus.action<^^icc::Actions::io_motor_motion>().serveDeferred(
           [this](const MotorGoal& goal, Execution execution) { admit(goal, std::move(execution)); },
@@ -123,12 +128,12 @@ namespace io::motion
         return result;
     }
 
-    MotorResponse Server::request(const MotorRequest& value, bool urgent)
+    MotorResponse Server::request(const MotorRequest& value, bool urgent, std::stop_token stop)
     {
         MotorResponse result{};
         try {
-            if (m_stop.stop_requested()) {
-                throw std::runtime_error("IO controller is stopping");
+            if (stop.stop_requested()) {
+                throw std::runtime_error("motor command cancelled");
             }
             if (value.motor > MotorId::All) {
                 throw std::invalid_argument("invalid motor");
@@ -140,20 +145,23 @@ namespace io::motion
             }
             switch (value.operation) {
                 case MotorOperation::Initialize:
-                    ++m_commandGeneration;
-                    m_controller->initializeDrivers();
+                    m_controller->initializeDrivers(stop);
                     break;
                 case MotorOperation::Enable:
-                    m_controller->enable();
+                    m_controller->enable(stop);
                     break;
                 case MotorOperation::Disable:
                     ++m_commandGeneration;
+                    cancelCommand();
                     m_controller->disable();
+                    discardQueuedCommands();
                     break;
                 case MotorOperation::Stop:
                     ++m_commandGeneration;
+                    cancelCommand();
                     m_controller->stop(value.motor == MotorId::All ? std::nullopt
                                                                    : std::optional{ id(value.motor) });
+                    discardQueuedCommands();
                     break;
                 case MotorOperation::Defaults: {
                     auto defaults{ m_controller->motor(id(value.motor)).motionDefaults() };
@@ -195,8 +203,101 @@ namespace io::motion
             result.ok = false;
             result.message = std::string_view{ error.what() }.substr(0, 160);
         }
-        result.commandGeneration = m_commandGeneration;
         return result;
+    }
+
+    void Server::deferCommand(const MotorRequest& value, Reply reply)
+    {
+        finishCommand();
+        if (m_stop.stop_requested() || m_discardCommands) {
+            reply.fail(pnm::msg::ServiceError::Cancelled);
+            return;
+        }
+        bool busy{};
+        {
+            std::scoped_lock lock{ m_commandMutex };
+            busy = static_cast<bool>(m_command);
+        }
+        if (busy) {
+            reply.fail(pnm::msg::ServiceError::Busy);
+            return;
+        }
+        auto command{ std::make_shared<Command>(value, std::move(reply)) };
+        command->cancellation = pnm::msg::watch(command->reply, [weak = std::weak_ptr{ command }] {
+            if (const auto pending{ weak.lock() }; pending && !pending->reply.pending()) {
+                pending->stop.request_stop();
+            }
+        });
+        if (value.operation == MotorOperation::Initialize && value.motor <= MotorId::All) {
+            ++m_commandGeneration;
+        }
+        {
+            std::scoped_lock lock{ m_commandMutex };
+            m_command = std::move(command);
+        }
+        m_commandNotification.signal();
+    }
+
+    void Server::finishCommand()
+    {
+        std::shared_ptr<Command> command;
+        {
+            std::scoped_lock lock{ m_commandMutex };
+            if (!m_command || !m_command->done.load()) {
+                return;
+            }
+            command = std::exchange(m_command, {});
+        }
+        command->result.commandGeneration = m_commandGeneration;
+        command->reply.respond(command->result);
+    }
+
+    void Server::cancelCommand()
+    {
+        std::shared_ptr<Command> command;
+        {
+            std::scoped_lock lock{ m_commandMutex };
+            command = m_command;
+        }
+        if (command) {
+            command->stop.request_stop();
+        }
+        m_commandNotification.signal();
+    }
+
+    void Server::discardQueuedCommands()
+    {
+        // Requests already waiting at the stop boundary must not re-enable the
+        // controller afterwards. New operations require an explicit submission.
+        m_discardCommands = true;
+        m_commands.poll();
+        m_discardCommands = false;
+    }
+
+    void Server::commandWorker(std::stop_token stop)
+    {
+        const std::stop_callback wake{ stop, [this] { m_commandNotification.signal(); } };
+        while (!stop.stop_requested() && !m_stop.stop_requested()) {
+            std::shared_ptr<Command> command;
+            {
+                std::scoped_lock lock{ m_commandMutex };
+                if (m_command && !m_command->started) {
+                    command = m_command;
+                    command->started = true;
+                }
+            }
+            if (!command) {
+                m_commandNotification.waitUntil(std::chrono::steady_clock::time_point::max());
+                continue;
+            }
+            try {
+                command->result = request(command->request, false, command->stop.get_token());
+            } catch (...) {
+                command->result.ok = false;
+            }
+            command->done.store(true);
+            m_notification->signal();
+        }
     }
 
     void Server::admit(const MotorGoal& goal, Execution execution)
@@ -300,12 +401,28 @@ namespace io::motion
         const auto urgent{ pnm::msg::watch(m_urgent, wake) };
         const auto actions{ pnm::msg::watch(m_motions, wake) };
         const auto trajectories{ pnm::msg::watch(m_trajectories, wake) };
-        const std::stop_callback cancellation{ stop, wake };
+        const std::stop_callback cancellation{ stop, [this, &wake] {
+            cancelCommand();
+            wake();
+        } };
+        auto worker{ runtime::thread::create_jthread(
+          { .name = "motor commands", .priority = 16, .stack_size = 16UZ * 1024UZ },
+          [this](std::stop_token token) { commandWorker(token); }) };
+        const auto drainCommand{ [&] {
+            cancelCommand();
+            worker.request_stop();
+            m_commandNotification.signal();
+            worker.join();
+            finishCommand();
+            std::scoped_lock lock{ m_commandMutex };
+            m_command.reset();
+        } };
         auto feedback{ std::chrono::steady_clock::now() };
         try {
             while (!stop.stop_requested()) {
                 m_urgent.poll();
                 dispatchJobs(false);
+                finishCommand();
                 m_commands.poll();
                 m_trajectories.poll();
                 m_motions.poll();
@@ -322,6 +439,7 @@ namespace io::motion
             }
         } catch (...) {
             m_controller->disable();
+            drainCommand();
             m_motions.close();
             m_commands.close();
             m_trajectories.close();
@@ -333,6 +451,7 @@ namespace io::motion
         m_urgent.close();
         m_motions.requestStop();
         m_controller->disable();
+        drainCommand();
         dispatchJobs(false);
         m_motions.close();
     }

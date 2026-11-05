@@ -179,3 +179,59 @@ TEST_F(RobotApi, CliRequiresExplicitStartAndReportsSimulationUnits)
     EXPECT_NE(out.str().find("steps/s^3"), std::string::npos);
     EXPECT_EQ(mutated, 0U);
 }
+
+TEST(RobotCancellation, ActivePreviewReleasesServiceAndLetsNextJobRun)
+{
+    pnm::msg::Bus bus;
+    Robot robot{ bus };
+    std::vector<pnm::msg::Reply<tr::Packet>> replies;
+    auto service{ bus.service<^^icc::Services::io_trajectory>().serveDeferred(
+      [&](const tr::Packet&, pnm::msg::Reply<tr::Packet> reply) { replies.push_back(std::move(reply)); }) };
+    robot.setConnected(true);
+    auto worker{ runtime::thread::create_jthread({ .name = "cancel planner", .stack_size = 65536U },
+                                                 [&](std::stop_token stop) { robot.run(stop); }) };
+    const auto first{ robot.preview(request()) };
+    ASSERT_TRUE(first);
+    ASSERT_TRUE(waitUntil([&] {
+        service.poll();
+        return replies.size() == 1;
+    }));
+    EXPECT_EQ(robot.cancel(*first), tr::Error::None);
+    EXPECT_FALSE(replies[0].pending());
+    const auto second{ robot.preview(request()) };
+    ASSERT_TRUE(second);
+    ASSERT_TRUE(waitUntil([&] {
+        service.poll();
+        return replies.size() == 2;
+    }));
+    EXPECT_EQ(robot.job(*first)->state, Robot::JobState::Cancelled);
+    tr::Reply reply;
+    reply.capabilities = caps();
+    EXPECT_FALSE(replies[0].respond(tr::encode(reply)));
+    ASSERT_TRUE(replies[1].respond(tr::encode(reply)));
+    ASSERT_TRUE(waitUntil([&] { return robot.job(*second)->state == Robot::JobState::Preview; }));
+}
+
+TEST(RobotCancellation, DisconnectCancelsActiveRequestWithoutReplayOnReconnect)
+{
+    pnm::msg::Bus bus;
+    Robot robot{ bus };
+    std::optional<pnm::msg::Reply<tr::Packet>> reply;
+    auto service{ bus.service<^^icc::Services::io_trajectory>().serveDeferred(
+      [&](const tr::Packet&, pnm::msg::Reply<tr::Packet> value) { reply.emplace(std::move(value)); }) };
+    robot.setConnected(true);
+    auto worker{ runtime::thread::create_jthread({ .name = "disconnect planner", .stack_size = 65536U },
+                                                 [&](std::stop_token stop) { robot.run(stop); }) };
+    const auto job{ robot.preview(request()) };
+    ASSERT_TRUE(job);
+    ASSERT_TRUE(waitUntil([&] {
+        service.poll();
+        return reply.has_value();
+    }));
+    robot.setConnected(false);
+    EXPECT_FALSE(reply->pending());
+    robot.setConnected(true);
+    std::this_thread::sleep_for(20ms);
+    EXPECT_EQ(service.poll(), 0U);
+    EXPECT_EQ(robot.job(*job)->state, Robot::JobState::Unknown);
+}

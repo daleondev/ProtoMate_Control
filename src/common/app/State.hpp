@@ -3,6 +3,8 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
+#include <initializer_list>
 
 namespace app
 {
@@ -18,6 +20,17 @@ namespace app
 
     inline constexpr std::chrono::milliseconds STATE_PERIOD{ 100 };
     inline constexpr std::chrono::milliseconds STATE_MAX_AGE{ 500 };
+
+    // An orderly transport shutdown must not hide a latched worker/system fault.
+    constexpr int exitStatus(std::initializer_list<State> states, bool connection_failed = false) noexcept
+    {
+        for (const auto state : states) {
+            if (state == State::Fault) {
+                return EXIT_FAILURE;
+            }
+        }
+        return connection_failed ? EXIT_FAILURE : EXIT_SUCCESS;
+    }
 
     // One-shot lifecycle. A late worker cannot overwrite shutdown or a fault.
     class ControllerState final

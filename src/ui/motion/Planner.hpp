@@ -3,6 +3,7 @@
 #include "RobotConfiguration.hpp"
 #include "common/motion/Profile.hpp"
 #include <span>
+#include <stop_token>
 
 namespace ui::motion
 {
@@ -60,7 +61,7 @@ namespace ui::motion
             std::array<Piece, 128> pieces{};
             std::array<::motion::trajectory::Segment, ::motion::trajectory::UI_SEGMENTS> segments{};
         };
-        Planner(const RobotModel& model, Workspace& workspace);
+        Planner(const RobotModel& model, Workspace& workspace, std::stop_token stop = {});
         [[nodiscard]] RobotError prepare(const Move& move, const ::motion::trajectory::Counts& start);
         [[nodiscard]] std::expected<PlanSummary, RobotError> compile(PathState start = {},
                                                                      double override = 1,
@@ -95,6 +96,7 @@ namespace ui::motion
                                                   unsigned& budget) const;
         [[nodiscard]] ::motion::Profile::Limits scalarLimits(double speed) const;
         const RobotModel* m_model;
+        std::stop_token m_stop;
         Workspace* m_workspace;
         Move m_move;
         JointPosition m_seed{};

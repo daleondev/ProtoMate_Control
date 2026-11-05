@@ -43,6 +43,21 @@ TEST(RobotPolynomial, HermitePreservesSixBoundaryConditions)
     EXPECT_NEAR(p.at(0, 2) / 6.25, a.acceleration, 1e-12);
     EXPECT_NEAR(p.at(1, 2) / 6.25, b.acceleration, 1e-12);
 }
+
+TEST(RobotPlanner, CancellationInterruptsPreparationCertificationAndCompilation)
+{
+    Fixture f;
+    std::stop_source stop;
+    ui::motion::Planner planner{ f.model, *f.arena, stop.get_token() };
+    const ui::motion::Move move{ .joints = { 10_deg, 80_deg, 40_mm } };
+    ASSERT_EQ(planner.prepare(move, f.origin), tr::Error::None);
+    stop.request_stop();
+    EXPECT_EQ(planner.compile().error(), tr::Error::Cancelled);
+    EXPECT_EQ(planner.prepare(move, f.origin), tr::Error::Cancelled);
+    tr::Segment segment{};
+    segment.ticks = 1000;
+    EXPECT_EQ(planner.validatePath(segment), tr::Error::Cancelled);
+}
 TEST(RobotPolynomial, BernsteinBoundsCoverInteriorOvershootAndRestriction)
 {
     const motion::Polynomial p{ { 0, 4, -4 } };

@@ -16,6 +16,7 @@ namespace hal::device
                                      std::chrono::milliseconds timeout) override;
         void setRegister(unsigned address, unsigned reg, std::uint32_t value);
         std::uint32_t getRegister(unsigned address, unsigned reg) const;
+        unsigned microsteps(unsigned address) const;
         void setConnected(unsigned address, bool connected);
         void reset(unsigned address);
 

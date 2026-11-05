@@ -51,16 +51,21 @@ namespace ui::motion
     Robot::~Robot() = default; // Application joins the planning worker first.
     void Robot::setConnected(bool connected)
     {
-        std::scoped_lock lock{ m_mutex };
-        m_connected = connected;
-        if (!connected) {
-            for (auto& slot : m_arena->slots) {
-                if (!terminal(slot.job.state)) {
-                    slot.job.state = JobState::Unknown;
-                    slot.job.error = RobotError::Unknown;
+        std::stop_source cancel{ std::nostopstate };
+        {
+            std::scoped_lock lock{ m_mutex };
+            m_connected = connected;
+            if (!connected) {
+                cancel = m_activeStop;
+                for (auto& slot : m_arena->slots) {
+                    if (!terminal(slot.job.state)) {
+                        slot.job.state = JobState::Unknown;
+                        slot.job.error = RobotError::Unknown;
+                    }
                 }
             }
         }
+        cancel.request_stop();
         m_changed.signal();
     }
     std::expected<std::uint64_t, RobotError> Robot::preview(PreviewRequest r)
@@ -94,7 +99,7 @@ namespace ui::motion
     }
     RobotError Robot::cancel(std::uint64_t id)
     {
-        std::scoped_lock lock{ m_mutex };
+        std::unique_lock lock{ m_mutex };
         for (auto& slot : m_arena->slots) {
             if (slot.job.id == id && id) {
                 if (terminal(slot.job.state)) {
@@ -102,6 +107,10 @@ namespace ui::motion
                 }
                 slot.job.state = JobState::Cancelled;
                 slot.job.error = RobotError::Cancelled;
+                auto cancel{ id == m_activeJob ? m_activeStop : std::stop_source{ std::nostopstate } };
+                lock.unlock(); // Stop callbacks may wake or re-enter consumers.
+                cancel.request_stop();
+                m_changed.signal();
                 return RobotError::None;
             }
         }
@@ -129,8 +138,7 @@ namespace ui::motion
     Robot::Job Robot::calculate(PreviewRequest r, std::uint64_t id, std::stop_token stop)
     {
         Job result{ .id = id, .state = JobState::Rejected, .model = r.model };
-        auto call{ m_service.request(tr::encode(tr::Request{}), std::chrono::seconds{ 3 }) };
-        const std::stop_callback cancellation{ stop, [&call] { call.cancel(); } };
+        auto call{ m_service.request(tr::encode(tr::Request{}), std::chrono::seconds{ 3 }, stop) };
         const auto response{ call.get() };
         if (!response) {
             result.state = JobState::Unknown;
@@ -166,7 +174,7 @@ namespace ui::motion
                 }
                 start[i] = *count;
             }
-            Planner planner{ model, m_arena->workspace };
+            Planner planner{ model, m_arena->workspace, stop };
             result.error = planner.prepare(r.move, start);
             if (result.error != RobotError::None) {
                 return result;
@@ -231,6 +239,7 @@ namespace ui::motion
         while (!stop.stop_requested()) {
             PreviewRequest request{};
             std::uint64_t id{ 0 };
+            std::stop_source jobStop{ std::nostopstate };
             {
                 std::scoped_lock lock{ m_mutex };
                 Slot* selected{ nullptr };
@@ -243,15 +252,21 @@ namespace ui::motion
                     selected->job.state = JobState::Planning;
                     request = selected->request;
                     id = selected->job.id;
+                    m_activeJob = id;
+                    m_activeStop = std::stop_source{};
+                    jobStop = m_activeStop;
                 }
             }
             if (!id) {
                 m_changed.waitUntil(std::chrono::steady_clock::time_point::max());
                 continue;
             }
-            const auto result{ calculate(request, id, stop) };
+            const std::stop_callback cancelJob{ stop, [&jobStop] { jobStop.request_stop(); } };
+            const auto result{ calculate(request, id, jobStop.get_token()) };
             {
                 std::scoped_lock lock{ m_mutex };
+                m_activeJob = 0;
+                m_activeStop = std::stop_source{ std::nostopstate };
                 for (auto& slot : m_arena->slots) {
                     if (slot.job.id == id && slot.job.state == JobState::Planning) {
                         slot.job = result;

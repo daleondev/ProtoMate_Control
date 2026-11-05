@@ -27,10 +27,9 @@ try {
     // handle stop requests and peer loss without relying on this thread.
     io->join();
     ui->join();
-    return io->connectionStatus().state == icc::ConnectionState::Failed ||
-               ui->connectionStatus().state == icc::ConnectionState::Failed
-             ? EXIT_FAILURE
-             : EXIT_SUCCESS;
+    return app::exitStatus({ io->state(), ui->state(), ui->systemState().combined },
+                           io->connectionStatus().state == icc::ConnectionState::Failed ||
+                             ui->connectionStatus().state == icc::ConnectionState::Failed);
 } catch (const std::exception& error) {
     std::fputs("Application startup failed: ", stderr);
     std::fputs(error.what(), stderr);

@@ -1,6 +1,7 @@
 #include "Tmc2209Model.hpp"
 
 #include "hal/devices/util/Tmc2209Protocol.hpp"
+#include <algorithm>
 
 namespace hal::device
 {
@@ -45,6 +46,17 @@ namespace hal::device
     std::uint32_t Tmc2209Model::getRegister(unsigned address, unsigned reg) const
     {
         return m_registers.at(address).at(reg);
+    }
+    unsigned Tmc2209Model::microsteps(unsigned address) const
+    {
+        if (!(getRegister(address, 0x00) & GCONF_MSTEP_REG_SELECT)) {
+            // MS2/MS1 also select the UART address. They remain authoritative
+            // after reset until firmware explicitly selects the MRES register.
+            constexpr std::array<unsigned, 4> pin_resolution{ 8, 32, 64, 16 };
+            return pin_resolution[(getRegister(address, IOIN) >> 2U) & 3U];
+        }
+        const auto mres{ (getRegister(address, CHOPCONF) >> MRES_SHIFT) & 15U };
+        return 256U >> std::min(8U, mres);
     }
     void Tmc2209Model::setConnected(unsigned address, bool connected) { m_connected.at(address) = connected; }
     hal::util::Result<> Tmc2209Model::exchange(std::span<const std::uint8_t> request,
