@@ -59,51 +59,84 @@ add_custom_target(run-simulation COMMAND $<TARGET_FILE:Application>
     DEPENDS Application USES_TERMINAL)
 
 if(BUILD_TESTING)
+    # The existing GTest targets link our ThreadX runtime. Native simulator tests
+    # must use the host C++ ABI, just like Application. Reuse the pinned source,
+    # but compile a separate copy without any runtime/HAL dependencies.
+    include(FetchContent)
+    FetchContent_GetProperties(googletest)
+    add_library(protomate_simulation_gtest STATIC ${googletest_SOURCE_DIR}/googletest/src/gtest-all.cc)
+    target_include_directories(protomate_simulation_gtest SYSTEM PUBLIC
+        ${googletest_SOURCE_DIR}/googletest/include)
+    target_include_directories(protomate_simulation_gtest PRIVATE ${googletest_SOURCE_DIR}/googletest)
+    target_link_libraries(protomate_simulation_gtest PUBLIC Threads::Threads)
+    add_library(protomate_simulation_gtest_main STATIC ${googletest_SOURCE_DIR}/googletest/src/gtest_main.cc)
+    target_link_libraries(protomate_simulation_gtest_main PUBLIC protomate_simulation_gtest)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
-    add_test(NAME simulation.cad_assets COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cad_assets.py)
+    execute_process(COMMAND ${Python3_EXECUTABLE} -c "import pytest"
+        RESULT_VARIABLE SIM_PYTEST_STATUS OUTPUT_QUIET ERROR_QUIET)
+    if(NOT SIM_PYTEST_STATUS EQUAL 0)
+        message(FATAL_ERROR "Simulator tests require pytest; install scripts/requirements.txt with ${Python3_EXECUTABLE}")
+    endif()
+    function(add_simulation_pytest name file)
+        add_test(NAME simulation.${name} COMMAND ${Python3_EXECUTABLE} -m pytest -q -ra
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/${file}
+            -o cache_dir=${PROJECT_BINARY_DIR}/pytest-cache/simulation
+            --junitxml=${PROJECT_BINARY_DIR}/test-results/simulation-${name}.xml
+            --simulator=$<TARGET_FILE:Application>
+            --controller=$<TARGET_FILE:${PROTOMATE_CONTROLLER_TARGET}>
+            --launcher=$<TARGET_FILE:protomate_simulation_test_launcher>
+            --client-probe=$<TARGET_FILE:protomate_simulation_client_probe>
+            --storage-probe=$<TARGET_FILE:protomate_simulation_storage_probe>
+            --nm=${CMAKE_NM} ${ARGN})
+    endfunction()
+    add_simulation_pytest(cad_assets test_cad_assets.py)
     set_tests_properties(simulation.cad_assets PROPERTIES TIMEOUT 15)
-    add_test(NAME simulation.architecture COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/architecture.py
-        ${CMAKE_NM} $<TARGET_FILE:Application> $<TARGET_FILE:${PROTOMATE_CONTROLLER_TARGET}>)
+    add_simulation_pytest(architecture test_architecture.py
+        --native-test=$<TARGET_FILE:protomate_simulation_contact_tests>
+        --native-test=$<TARGET_FILE:protomate_simulation_review_tests>
+        --native-test=$<TARGET_FILE:protomate_simulation_session_tests>
+        --native-test=$<TARGET_FILE:protomate_simulation_model_tests>
+        --native-test=$<TARGET_FILE:protomate_simulation_gl_tests>
+        --native-test=$<TARGET_FILE:protomate_simulation_launch_tests>
+        --native-test=$<TARGET_FILE:protomate_simulation_tests>)
     set_tests_properties(simulation.architecture PROPERTIES TIMEOUT 30)
     add_executable(protomate_simulation_contact_tests tests/contact_test.cpp)
-    target_link_libraries(protomate_simulation_contact_tests PRIVATE protomate_simulation_contacts)
+    target_link_libraries(protomate_simulation_contact_tests PRIVATE protomate_simulation_gtest_main protomate_simulation_contacts)
     add_test(NAME simulation.contacts COMMAND protomate_simulation_contact_tests)
     set_tests_properties(simulation.contacts PROPERTIES TIMEOUT 30)
     add_executable(protomate_simulation_review_tests tests/review_test.cpp)
-    target_link_libraries(protomate_simulation_review_tests PRIVATE protomate_simulation_machine)
+    target_link_libraries(protomate_simulation_review_tests PRIVATE protomate_simulation_gtest_main protomate_simulation_machine)
     add_test(NAME simulation.regressions COMMAND protomate_simulation_review_tests)
     set_tests_properties(simulation.regressions PROPERTIES TIMEOUT 15)
     add_executable(protomate_simulation_session_tests tests/session_test.cpp)
-    target_link_libraries(protomate_simulation_session_tests PRIVATE protomate_simulation_session)
+    target_link_libraries(protomate_simulation_session_tests PRIVATE protomate_simulation_gtest protomate_simulation_session)
     add_test(NAME simulation.session COMMAND protomate_simulation_session_tests)
     set_tests_properties(simulation.session PROPERTIES TIMEOUT 15)
     add_executable(protomate_simulation_model_tests tests/model_test.cpp)
-    target_link_libraries(protomate_simulation_model_tests PRIVATE protomate_simulation_models)
+    target_link_libraries(protomate_simulation_model_tests PRIVATE protomate_simulation_gtest_main protomate_simulation_models)
     add_test(NAME simulation.models COMMAND protomate_simulation_model_tests)
     set_tests_properties(simulation.models PROPERTIES TIMEOUT 30)
     add_executable(protomate_simulation_gl_tests tests/gl_test.cpp)
-    target_link_libraries(protomate_simulation_gl_tests PRIVATE protomate_simulation_model_renderer project_compiler_settings PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
+    target_link_libraries(protomate_simulation_gl_tests PRIVATE protomate_simulation_gtest_main protomate_simulation_model_renderer project_compiler_settings PkgConfig::SDL2 PkgConfig::SIM_EPOXY glm::glm)
     add_executable(protomate_simulation_client_probe tests/client_probe.cpp)
     runtime_attach(protomate_simulation_client_probe)
     target_include_directories(protomate_simulation_client_probe PRIVATE ${PROJECT_SOURCE_DIR}/platform)
-    add_test(NAME simulation.client COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/client_test.py
-        $<TARGET_FILE:protomate_simulation_test_launcher> $<TARGET_FILE:protomate_simulation_client_probe>)
+    add_simulation_pytest(client test_client.py)
     set_tests_properties(simulation.client PROPERTIES TIMEOUT 90)
     add_executable(protomate_simulation_storage_probe tests/storage_probe.cpp)
     runtime_attach(protomate_simulation_storage_probe)
     target_include_directories(protomate_simulation_storage_probe PRIVATE ${PROJECT_SOURCE_DIR}/platform)
     add_executable(protomate_simulation_test_launcher tests/launcher.cpp)
     target_link_libraries(protomate_simulation_test_launcher PRIVATE protomate_simulation_session)
-    add_test(NAME simulation.storage COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/storage.py $<TARGET_FILE:protomate_simulation_test_launcher> $<TARGET_FILE:protomate_simulation_storage_probe>)
+    add_simulation_pytest(storage test_storage.py)
     set_tests_properties(simulation.storage PROPERTIES TIMEOUT 125)
-    add_test(NAME simulation.lifecycle COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/lifecycle.py $<TARGET_FILE:Application>)
+    add_simulation_pytest(lifecycle test_lifecycle.py)
     set_tests_properties(simulation.lifecycle PROPERTIES TIMEOUT 60)
     add_executable(protomate_simulation_launch_tests tests/launch_test.cpp)
-    target_link_libraries(protomate_simulation_launch_tests PRIVATE protomate_simulation_session protomate_simulation_image)
+    target_link_libraries(protomate_simulation_launch_tests PRIVATE protomate_simulation_gtest_main protomate_simulation_session protomate_simulation_image)
     add_test(NAME simulation.launch COMMAND protomate_simulation_launch_tests)
     set_tests_properties(simulation.launch PROPERTIES TIMEOUT 10)
-    add_test(NAME simulation.packaging COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging.py $<TARGET_FILE:Application> $<TARGET_FILE:${PROTOMATE_CONTROLLER_TARGET}>)
+    add_simulation_pytest(packaging test_packaging.py)
     set_tests_properties(simulation.packaging PROPERTIES TIMEOUT 60)
     find_program(SIM_XVFB_RUN xvfb-run)
     if(SIM_XVFB_RUN)
@@ -111,10 +144,9 @@ if(BUILD_TESTING)
         set_tests_properties(simulation.opengl PROPERTIES TIMEOUT 30 RUN_SERIAL TRUE ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1;SDL_VIDEODRIVER=x11")
     endif()
     add_executable(protomate_simulation_tests tests/machine_test.cpp)
-    target_link_libraries(protomate_simulation_tests PRIVATE protomate_simulation_machine)
+    target_link_libraries(protomate_simulation_tests PRIVATE protomate_simulation_gtest_main protomate_simulation_machine)
     add_test(NAME simulation.machine COMMAND protomate_simulation_tests)
     set_tests_properties(simulation.machine PROPERTIES TIMEOUT 15)
-    add_test(NAME simulation.integration COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.py $<TARGET_FILE:Application>)
+    add_simulation_pytest(integration test_integration.py)
     set_tests_properties(simulation.integration PROPERTIES TIMEOUT 180)
 endif()

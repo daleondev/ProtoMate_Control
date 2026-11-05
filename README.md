@@ -311,7 +311,7 @@ Linux and checks that both compiler major versions remain 16. It includes
 SDL2/ncurses, Ruby with ERB/Nokogiri and `rsvg-convert` for GUI builds; Mesa, Xvfb and
 `xauth` for headless GUI tests; and OpenOCD, Arm GDB, `sigrok-cli` and FX2 analyzer
 firmware for hardware work. Python dependencies from
-[`scripts/requirements.txt`](scripts/requirements.txt) (NumPy, Pillow, pyserial)
+[`scripts/requirements.txt`](scripts/requirements.txt) (NumPy, Pillow, pyserial, pytest)
 are installed in `/opt/protomate-venv`, selected automatically through `PATH`
 and VS Code's Python interpreter setting. No activation or system-wide pip
 installation is needed in the container.
@@ -380,6 +380,29 @@ Linux simulates the HAL and uses the ThreadX Linux port. Standard Linux file
 I/O uses the host filesystem; explicit FileX tests use simulated media images.
 The application runs both ICC endpoints, the UI CLI and the GUI window. Use `SDL_VIDEODRIVER=dummy` for automated runs without a desktop. Redirecting a command
 script into `build/debug-linux/Application` executes it and exits at EOF.
+
+Simulator C++ suites use GoogleTest built against the native host runtime; the
+controller/runtime tests retain their separate ThreadX-linked GoogleTest. The
+link-isolation test checks that no ThreadX runtime leaks into the native test
+executables. Python integration suites use pytest for process lifecycle,
+packaging, persistent storage, CAD parity and end-to-end motion. Their small
+controller probe executables retain their own ThreadX entry points.
+
+Run both kinds through CTest, which supplies the built executable paths and
+uses Xvfb for the OpenGL suite:
+
+```sh
+ctest --test-dir build/debug-linux -R '^simulation\.' --output-on-failure
+ctest --test-dir build/release-linux -R '^simulation\.' --output-on-failure
+# Focus a native unit case without starting the controller:
+build/debug-linux/src/simulation/protomate_simulation_tests --gtest_filter='SimulationMachine.*'
+# Run an individual Python integration check directly:
+python3 -m pytest -q src/simulation/tests/test_lifecycle.py --simulator=build/debug-linux/Application
+```
+
+CTest's pytest runs write JUnit reports to `build/<preset>/test-results/`.
+Temporary media and copied executables are isolated per case; process fixtures
+reap children and close pipes even when assertions fail.
 
 ## Shared TouchGFX GUI
 

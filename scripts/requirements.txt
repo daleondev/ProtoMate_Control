@@ -4,3 +4,5 @@ numpy==2.5.2
 Pillow==12.3.0
 # USB CDC console and hardware validation scripts.
 pyserial==3.5
+# Native simulator process/integration tests.
+pytest==9.1.1

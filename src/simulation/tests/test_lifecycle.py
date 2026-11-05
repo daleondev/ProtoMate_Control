@@ -3,15 +3,25 @@ import os
 import selectors
 import signal
 import subprocess
-import sys
 import time
 
-simulator = sys.argv[1]
-# Reap the orphan ourselves when exercising an uncatchable parent death.
-libc=ctypes.CDLL(None,use_errno=True)
-assert libc.prctl(36,1,0,0,0)==0, "PR_SET_CHILD_SUBREAPER failed"
-for failure in ("controller-kill", "controller-stall", "simulator-stop", "simulator-kill"):
-    process = subprocess.Popen([simulator,"--headless"],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,env={**os.environ,"SDL_VIDEODRIVER":"dummy"})
+import pytest
+from pathlib import Path
+
+@pytest.fixture
+def subreaper():
+    libc = ctypes.CDLL(None, use_errno=True)
+    previous = ctypes.c_int()
+    assert libc.prctl(37, ctypes.byref(previous), 0, 0, 0) == 0
+    assert libc.prctl(36, 1, 0, 0, 0) == 0, "PR_SET_CHILD_SUBREAPER failed"
+    yield
+    assert libc.prctl(36, previous.value, 0, 0, 0) == 0
+
+
+@pytest.mark.parametrize("failure", [
+    "controller-kill", "controller-stall", "simulator-stop", "simulator-kill"])
+def test_process_failure_reaps_child(simulator, spawn, subreaper, failure):
+    process = spawn([simulator,"--headless"],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,env={**os.environ,"SDL_VIDEODRIVER":"dummy"})
     selector=selectors.DefaultSelector();selector.register(process.stdout,selectors.EVENT_READ)
     output=bytearray();child=None
     try:
@@ -22,7 +32,7 @@ for failure in ("controller-kill", "controller-stall", "simulator-stop", "simula
                 block=os.read(key.fileobj.fileno(),8192)
                 assert block,output.decode(errors="replace")
                 output.extend(block)
-        children=open(f"/proc/{process.pid}/task/{process.pid}/children").read().split()
+        children=Path(f"/proc/{process.pid}/task/{process.pid}/children").read_text().split()
         assert len(children)==1,children
         child=int(children[0])
         if failure=="simulator-stop":process.terminate()
@@ -45,6 +55,10 @@ for failure in ("controller-kill", "controller-stall", "simulator-stop", "simula
     finally:
         if process.poll() is None:
             process.kill();process.wait()
-        if child and os.path.exists(f"/proc/{child}"):os.kill(child,signal.SIGKILL)
+        if child and os.path.exists(f"/proc/{child}"):
+            os.kill(child, signal.SIGKILL)
+            try:
+                os.waitpid(child, 0)
+            except ChildProcessError:
+                pass
         selector.close()
-print("PASS: killed/stalled controller, simulator shutdown and hard parent death release the child without replay")

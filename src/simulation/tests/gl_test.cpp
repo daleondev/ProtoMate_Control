@@ -1,22 +1,24 @@
 #include "../viewer/Gl.hpp"
 #include "../viewer/ModelRenderer.hpp"
-#include <cstdio>
 #include <glm/gtc/matrix_transform.hpp>
+#include <gtest/gtest.h>
 #include <utility>
 using namespace simulation::viewer;
-namespace
+class SimulationOpenGL : public testing::Test
 {
-    void require(bool condition, const char* message)
-    {
-        if (!condition)
-            throw std::runtime_error{ message };
-    }
-}
-int main()
-try {
+  protected:
     SdlSession sdl;
     Window window;
     Context context{ window };
+    void TearDown() override
+    {
+        EXPECT_EQ(glGetError(), GL_NO_ERROR);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+};
+
+namespace
+{
     static constexpr char vertex[]{
 #embed "shaders/test.vert"
     };
@@ -26,24 +28,40 @@ try {
     static constexpr char invalid_source[]{
 #embed "shaders/invalid.vert"
     };
+}
+
+TEST_F(SimulationOpenGL, ShaderCompilerDiagnostics)
+{
     bool failed{};
     try {
         Shader invalid{ context, GL_VERTEX_SHADER, { invalid_source, sizeof(invalid_source) } };
     } catch (const std::runtime_error& e) {
         failed = std::string_view{ e.what() }.size() > 10;
     }
-    require(failed, "shader errors must include compiler log");
+    ASSERT_TRUE((failed)) << "shader errors must include compiler log";
+}
+
+TEST_F(SimulationOpenGL, ProgramMoveOwnership)
+{
     Program original{ context, { vertex, sizeof(vertex) }, { fragment, sizeof(fragment) } };
     const auto id{ original.get() };
     Program program{ std::move(original) };
-    require(program.get() == id, "program move ownership");
+    ASSERT_TRUE((program.get() == id)) << "program move ownership";
+}
+
+TEST_F(SimulationOpenGL, BufferMoveAndDestruction)
+{
     Buffer buffer{ context };
     const auto buffer_id{ buffer.get() };
     {
         Buffer moved{ std::move(buffer) };
-        require(glIsBuffer(moved.get()), "buffer moved alive");
+        ASSERT_TRUE((glIsBuffer(moved.get()))) << "buffer moved alive";
     }
-    require(!glIsBuffer(buffer_id), "buffer destruction releases object");
+    ASSERT_TRUE((!glIsBuffer(buffer_id))) << "buffer destruction releases object";
+}
+
+TEST_F(SimulationOpenGL, InvalidResizePreservesFramebuffer)
+{
     RenderTarget target{ context, 32, 32 };
     target.resize(context, 64, 64);
     bool dimensions{};
@@ -52,7 +70,14 @@ try {
     } catch (const std::invalid_argument&) {
         dimensions = true;
     }
-    require(dimensions, "invalid resize rejected");
+    ASSERT_TRUE((dimensions)) << "invalid resize rejected";
+    ASSERT_TRUE(glIsFramebuffer(target.get()));
+}
+
+TEST_F(SimulationOpenGL, RejectsCrossThreadAccess)
+{
+    Program program{ context, { vertex, sizeof(vertex) }, { fragment, sizeof(fragment) } };
+    RenderTarget target{ context, 64, 64 };
     unsigned rejected_accesses{};
     std::thread wrong_thread{ [&] {
         try {
@@ -67,7 +92,14 @@ try {
         }
     } };
     wrong_thread.join();
-    require(rejected_accesses == 2, "cross-thread GL access must throw, not terminate or return a handle");
+    ASSERT_TRUE((rejected_accesses == 2))
+      << "cross-thread GL access must throw, not terminate or return a handle";
+}
+
+TEST_F(SimulationOpenGL, ShaderDrawReadback)
+{
+    Program program{ context, { vertex, sizeof(vertex) }, { fragment, sizeof(fragment) } };
+    RenderTarget target{ context, 64, 64 };
     std::array<Vertex, 3> vertices{ { { { -1, -1, 0 }, {} }, { { 1, -1, 0 }, {} }, { { 0, 1, 0 }, {} } } };
     Mesh mesh{ context, vertices };
     glBindFramebuffer(GL_FRAMEBUFFER, target.get());
@@ -78,9 +110,15 @@ try {
     mesh.draw();
     std::array<unsigned char, 4> pixel{};
     glReadPixels(32, 32, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel.data());
-    require(pixel[0] >= 50 && pixel[0] <= 52 && pixel[1] >= 203 && pixel[1] <= 205 && pixel[2] >= 101 &&
-              pixel[2] <= 103,
-            "actual GLSL draw/readback");
+    ASSERT_TRUE((pixel[0] >= 50 && pixel[0] <= 52 && pixel[1] >= 203 && pixel[1] <= 205 && pixel[2] >= 101 &&
+                 pixel[2] <= 103))
+      << "actual GLSL draw/readback";
+}
+
+TEST_F(SimulationOpenGL, IndexedRobotAndIndependentJointRendering)
+{
+    RenderTarget target{ context, 256, 256 };
+    glClearColor(0, 0, 0, 1);
     const auto models{ RobotModels::load() };
     ModelRenderer robot{ context, models };
     target.resize(context, 256, 256);
@@ -103,7 +141,7 @@ try {
     for (std::size_t i{}; i < initial.size(); i += 4)
         if (initial[i] || initial[i + 1] || initial[i + 2])
             ++visible;
-    require(visible > 500, "imported indexed model must produce actual visible fragments");
+    ASSERT_TRUE((visible > 500)) << "imported indexed model must produce actual visible fragments";
     for (const auto q :
          std::array<std::array<double, 3>, 3>{ { { .4, 0, 30 }, { 0, .5, 30 }, { 0, 0, 100 } } }) {
         const auto moved{ capture(q) };
@@ -111,14 +149,8 @@ try {
         for (std::size_t i{}; i < moved.size(); i += 4)
             if (moved[i] != initial[i] || moved[i + 1] != initial[i + 1] || moved[i + 2] != initial[i + 2])
                 ++changed;
-        require(changed > 50, "each of the three joint states must change rendered model pixels");
+        ASSERT_TRUE((changed > 50)) << "each of the three joint states must change rendered model pixels";
     }
-    require(glGetError() == GL_NO_ERROR, "OpenGL errors");
+    ASSERT_TRUE((glGetError() == GL_NO_ERROR)) << "OpenGL errors";
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    std::puts("PASS: OpenGL 4.5, shader diagnostics, RAII moves/deletion, transactional FBO resize and "
-              "rendered pixels, Assimp indexed models and three-axis articulation");
-    return 0;
-} catch (const std::exception& e) {
-    std::fprintf(stderr, "FAIL: %s\n", e.what());
-    return 1;
 }
