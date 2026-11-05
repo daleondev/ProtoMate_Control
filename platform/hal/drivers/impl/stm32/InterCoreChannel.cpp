@@ -1,4 +1,5 @@
 #include "InterCoreChannel.hpp"
+#include "hal/util/InterCoreTrace.hpp"
 
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
@@ -91,8 +92,10 @@ namespace hal
         if (disconnected()) {
             return std::unexpected(Error::Disconnected);
         }
+        util::intercoreTrace(util::InterCoreStage::PublishBegin, unsigned(lane), frame);
         auto result{ memory.push(1 - SIDE, frame, lane) };
         if (result) {
+            util::intercoreTrace(util::InterCoreStage::Published, unsigned(lane), frame);
             notifyPeer();
         }
         return result;
@@ -106,6 +109,9 @@ namespace hal
             return std::unexpected(Error::Disconnected);
         }
         auto result{ memory.pop(SIDE, buffer, lane) };
+        if (result) {
+            util::intercoreTrace(util::InterCoreStage::Received, unsigned(lane), buffer.first(*result));
+        }
         if (result) {
             notifyPeer();
             const stm32::InterruptGuard guard{};
@@ -140,6 +146,7 @@ namespace hal
     void InterCoreChannel::dispatchNotification(std::uint32_t mask) noexcept
     {
         if ((mask & LOCAL_MASK) && s_instance) {
+            util::intercoreTrace(util::InterCoreStage::Interrupt);
             // HAL disabled notification before calling us. Rearm before waking
             // the worker; queue counters are authoritative, interrupts coalesce.
             HAL_HSEM_ActivateNotification(LOCAL_MASK);
@@ -155,7 +162,13 @@ extern "C" void HSEM2_IRQHandler() { HAL_HSEM_IRQHandler(); }
 #else
 extern "C" void HSEM1_IRQHandler() { HAL_HSEM_IRQHandler(); }
 #endif
+#if defined(GIGA_MOTION_BENCH)
+extern "C" void motion_bench_doorbell(std::uint32_t) noexcept;
+#endif
 extern "C" void HAL_HSEM_FreeCallback(std::uint32_t mask)
 {
     hal::InterCoreChannel::dispatchNotification(mask);
+#if defined(GIGA_MOTION_BENCH)
+    motion_bench_doorbell(mask);
+#endif
 }

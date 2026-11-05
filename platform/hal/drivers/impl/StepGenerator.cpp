@@ -21,6 +21,11 @@
 #include <limits>
 #include <utility>
 
+#if defined(GIGA_MOTION_BENCH)
+extern "C" std::uint32_t giga_motion_bench_buffer_edges;
+extern "C" volatile std::uint32_t giga_motion_bench_refill_ticks;
+#endif
+
 namespace hal::util
 {
     namespace
@@ -324,7 +329,13 @@ namespace hal::util
                                     .high_time = std::chrono::nanoseconds{ STEP_MIN_PHASE * STEP_TICK_NS } })
                                   ->period
                               : std::ranges::max(axis.timings, {}, &Timing::period).period };
-        axis.entries = 2U * std::min<std::uint32_t>(STEP_BUFFER_EDGES / 2U, STEP_HORIZON / (2U * longest));
+        axis.entries = 2U * std::min<std::uint32_t>(
+#if defined(GIGA_MOTION_BENCH)
+          std::clamp<std::uint32_t>(giga_motion_bench_buffer_edges, 4U, STEP_BUFFER_EDGES) / 2U,
+#else
+          STEP_BUFFER_EDGES / 2U,
+#endif
+          STEP_HORIZON / (2U * longest));
         // Short finite moves must issue a completion IRQ on their final fall.
         if (axis.requested && *axis.requested < axis.entries / 2U) {
             axis.entries = static_cast<std::uint32_t>(*axis.requested * 2U);
@@ -384,7 +395,13 @@ namespace hal::util
         else {
             longest = std::ranges::max(axis.timings, {}, &Timing::period).period;
         }
-        axis.entries = 2U * std::min<std::uint32_t>(STEP_BUFFER_EDGES / 2U, STEP_HORIZON / (2U * longest));
+        axis.entries = 2U * std::min<std::uint32_t>(
+#if defined(GIGA_MOTION_BENCH)
+          std::clamp<std::uint32_t>(giga_motion_bench_buffer_edges, 4U, STEP_BUFFER_EDGES) / 2U,
+#else
+          STEP_BUFFER_EDGES / 2U,
+#endif
+          STEP_HORIZON / (2U * longest));
         if (axis.requested && *axis.requested < axis.entries / 2U) {
             axis.entries = static_cast<std::uint32_t>(*axis.requested * 2U);
         }
@@ -807,6 +824,16 @@ namespace hal::util
                 finish(step::State::Underrun, true);
                 return;
             }
+#if defined(GIGA_MOTION_BENCH)
+            // The already armed guard uses the last committed falling edge.
+            // Capture its remaining time before extending it. Terminal tails
+            // need no further generated pulses and are excluded.
+            if (!axis.terminal) {
+                const auto available = step_distance(sample.tick, axis.last_fall);
+                giga_motion_bench_refill_ticks = std::min<std::uint32_t>(
+                    std::uint32_t(giga_motion_bench_refill_ticks), available < STEP_HORIZON ? available : 0U);
+            }
+#endif
             axis.completed_pulses += axis.entries / 2U;
             axis.target = sample.channels[i].target;
             m_hardware->acknowledge(i);

@@ -1,3 +1,6 @@
+#if defined(GIGA_MOTION_BENCH)
+#include "hal/util/InterCoreTrace.hpp"
+#endif
 #include "backend.hpp"
 #include "hal/core/core.hpp"
 #include "hal/drivers/factory/timer.hpp"
@@ -956,6 +959,10 @@ namespace runtime
 
         int thread_yield() noexcept
         {
+#if defined(GIGA_MOTION_BENCH)
+            hal::util::intercoreTrace(hal::util::InterCoreStage::Yield,
+              static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(__builtin_return_address(0))));
+#endif
             if (require_thread_context() != 0) {
                 return EPERM;
             }

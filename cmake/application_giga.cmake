@@ -52,6 +52,19 @@ else()
     foreach(symbol "*_drawMesh*" "*uber_shader*" "*_discardBox*")
         string(APPEND GIGA_FAST_OBJECTS " *libproto_scene3d_renderer.a:Renderer.cpp.obj(.text.${symbol})")
     endforeach()
+    set(giga_m7_fast_limit 24576)
+    if(GIGA_MOTION_BENCH)
+        # Campaign experiment: PC samples were distributed across runtime dispatch.
+        # Measure instruction-RAM placement without changing normal firmware.
+        set(giga_m7_fast_limit 65536)
+        foreach(object backend.cpp tls.cpp Kernels.cpp CompactExpand.cpp FastControl.cpp FixedBench.cpp)
+            string(APPEND GIGA_FAST_OBJECTS " */${object}.obj(.text* .rodata*) *:${object}.obj(.text* .rodata*)")
+        endforeach()
+        string(APPEND GIGA_FAST_OBJECTS " *libthreadx.a:*(.text* .rodata*)")
+        foreach(symbol memcpy memmove memset malloc free _malloc_r _free_r __malloc_lock __malloc_unlock)
+            string(APPEND GIGA_FAST_OBJECTS " *(.text.${symbol})")
+        endforeach()
+    endif()
     set(GIGA_GUI_MEMORY "GUI (rw) : ORIGIN = 0xC0600000, LENGTH = 2M")
     # Owner initializes every pixel/depth word before use. No bootstrap clear,
     # heap, general C++ objects or M4 RAM-debug overlap in this reservation.
@@ -65,7 +78,7 @@ else()
     } >GUI
     ASSERT(SIZEOF(.motion_sdram) <= 262144, \"Robot planning arena exceeds 256 KiB\")
     ASSERT(SIZEOF(.gui_sdram) + SIZEOF(.motion_sdram) <= 2097152, \"UI SDRAM reservations overlap region end\")
-    ASSERT(SIZEOF(.fast) + SIZEOF(.ARM.fast_extab) + SIZEOF(.ARM.fast_exidx) <= 24576, \"Initial M7 ITCM budget exceeded\")
+    ASSERT(SIZEOF(.fast) + SIZEOF(.ARM.fast_extab) + SIZEOF(.ARM.fast_exidx) <= ${giga_m7_fast_limit}, \"M7 ITCM reservation exceeded\")
     ASSERT(SIZEOF(.gui_sdram) <= 1601536, \"3D buffers exceed their budget\")")
     # CPU-only metadata, console rings and runtime stacks use private DTCM.
     # USB FS uses FIFO copies (no DMA); its Cube buffers remain in AXI SRAM.
@@ -75,8 +88,14 @@ else()
     set(GIGA_TCM_BSS "*startup.cpp.obj(.bss .bss.*)
       *libhal.a:console.cpp.obj(.bss .bss.*)
       *libruntime_libc.a:filesystem.cpp.obj(.bss .bss.*)
+      *(.bss.motion_bench_stack)
       *(.bss.*reaper_stack*)")
 
+endif()
+
+if(GIGA_MOTION_BENCH AND STM32_CORE STREQUAL "CM7")
+    # The larger campaign command stack is static AXI storage, not the UI heap.
+    string(REPLACE "*startup.cpp.obj(.bss .bss.*)" "" GIGA_TCM_BSS "${GIGA_TCM_BSS}")
 endif()
 
 add_library(project_compiler_settings INTERFACE)
@@ -171,7 +190,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${application_role}
 target_link_libraries(${PROJECT_NAME} PRIVATE platform project_compiler_settings)
 target_compile_options(${PROJECT_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
-target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=8192U)
+if(GIGA_MOTION_BENCH)
+    # The campaign command stack also collects bounded memory/stack snapshots.
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=16384U)
+else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=8192U)
+endif()
 if(STM32_CORE STREQUAL "CM4" AND GIGA_M4_RAM_DEBUG)
     set(GIGA_CODE_MEMORY "CODE (rx) : ORIGIN = 0xC0400000, LENGTH = 2M")
     set(GIGA_CODE_ALIAS "")
@@ -183,6 +207,38 @@ string(REPLACE ".text* .rodata*" ".ARM.extab*" GIGA_FAST_EXTAB "${GIGA_FAST_OBJE
 string(REPLACE ".text* .rodata*" ".ARM.exidx*" GIGA_FAST_EXIDX "${GIGA_FAST_OBJECTS}")
 string(REPLACE ".text." ".ARM.extab.text." GIGA_FAST_EXTAB "${GIGA_FAST_EXTAB}")
 string(REPLACE ".text." ".ARM.exidx.text." GIGA_FAST_EXIDX "${GIGA_FAST_EXIDX}")
+set(GIGA_BENCH_SECTIONS "")
+set(GIGA_BENCH_MEMORY "")
+if(GIGA_MOTION_BENCH)
+    add_compile_definitions(GIGA_MOTION_BENCH=1)
+    if(STM32_CORE STREQUAL "CM4")
+        set(bench_workspace 0xC0400000)
+        set(bench_trace 0xC0420000)
+        set(bench_buffers 0xC0430000)
+        set(bench_runs 0xC0480000)
+    else()
+        set(bench_workspace 0xC0440000)
+        set(bench_trace 0xC0460000)
+        set(bench_buffers 0xC0470000)
+        set(bench_runs 0xC04C0000)
+    endif()
+    set(GIGA_BENCH_MEMORY "BENCH_WORK (rw) : ORIGIN = ${bench_workspace}, LENGTH = 256K
+    BENCH_RUNS (rw) : ORIGIN = ${bench_runs}, LENGTH = 256K
+    BENCH_FAST (rw) : ORIGIN = 0xC0500000, LENGTH = 64K")
+    set(GIGA_BENCH_SECTIONS ".motion_bench_shared 0x3800D000 (NOLOAD) : { KEEP(*(.motion_bench_shared)) } >SHARED
+    .motion_bench_workspace (NOLOAD) : ALIGN(32) { KEEP(*(.motion_bench_workspace)) } >BENCH_WORK
+    .motion_bench_trace ${bench_trace} (NOLOAD) : ALIGN(32) { KEEP(*(.motion_bench_trace)) } >BENCH_WORK
+    .motion_bench_buffers ${bench_buffers} (NOLOAD) : ALIGN(32) { KEEP(*(.motion_bench_buffers)) } >BENCH_WORK
+    .motion_bench_runs (NOLOAD) : ALIGN(32) { KEEP(*(.motion_bench_runs)) } >BENCH_RUNS
+    .motion_bench_fast (NOLOAD) : ALIGN(32) { KEEP(*(.motion_bench_fast)) } >BENCH_FAST
+    ASSERT(SIZEOF(.motion_bench_fast) <= 65536, \"Benchmark fast channel overflow\")
+    ASSERT(SIZEOF(.motion_bench_runs) <= 262144, \"Benchmark runs overflow\")
+    ASSERT(SIZEOF(.motion_bench_buffers) <= 65536, \"Benchmark buffers overflow\")
+    ASSERT(SIZEOF(.motion_bench_trace) <= 65536, \"Benchmark trace overflow\")
+    ASSERT(ADDR(.intercore) + SIZEOF(.intercore) <= 0x3800D000, \"Benchmark overlaps ICC\")
+    ASSERT(SIZEOF(.motion_bench_shared) <= 8192, \"Benchmark overlaps handoff\")
+    ASSERT(SIZEOF(.motion_bench_workspace) <= 131072, \"Benchmark workspace overflow\")")
+endif()
 configure_file(${PROJECT_SOURCE_DIR}/platform/boot/giga/application.ld.in
                ${CMAKE_CURRENT_BINARY_DIR}/giga.ld @ONLY)
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/giga.ld)
@@ -223,7 +279,7 @@ if(STM32_CORE STREQUAL "CM4")
     endforeach()
     foreach(source IN LISTS giga_fast_sources)
         set(fast_opt -Os)
-        if(source MATCHES "(StepGenerator|StepHardware)\\.cpp$")
+        if(source MATCHES "(StepGenerator|StepHardware|FixedBench|CompactExpand|ProfileBench)\\.cpp$")
             set(fast_opt -O2)
         endif()
         set_source_files_properties(${PROJECT_SOURCE_DIR}/${source}
@@ -231,6 +287,18 @@ if(STM32_CORE STREQUAL "CM4")
             PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;${fast_opt};-include;${PROJECT_SOURCE_DIR}/platform/boot/giga/fast_unwind.h")
     endforeach()
     target_compile_options(threadx PRIVATE -Os)
+endif()
+
+if(STM32_CORE STREQUAL "CM7" AND GIGA_MOTION_BENCH)
+    target_compile_options(threadx PRIVATE -Os)
+    foreach(source platform/runtime/libstdcxx/backend.cpp platform/runtime/libstdcxx/tls.cpp examples/giga_motion_bench/Kernels.cpp examples/giga_motion_bench/FastControl.cpp examples/giga_motion_bench/FixedBench.cpp)
+        set_property(SOURCE ${PROJECT_SOURCE_DIR}/${source}
+            TARGET_DIRECTORY Application runtime_libstdcxx APPEND PROPERTY COMPILE_OPTIONS
+            -include ${PROJECT_SOURCE_DIR}/platform/boot/giga/fast_unwind.h)
+        if(source MATCHES "platform/runtime|FastControl")
+            set_property(SOURCE ${PROJECT_SOURCE_DIR}/${source} TARGET_DIRECTORY Application runtime_libstdcxx APPEND PROPERTY COMPILE_OPTIONS -Os)
+        endif()
+    endforeach()
 endif()
 
 target_include_directories(runtime_threadx PRIVATE $<TARGET_PROPERTY:platform,INCLUDE_DIRECTORIES>)

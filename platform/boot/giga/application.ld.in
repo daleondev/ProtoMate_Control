@@ -14,6 +14,7 @@ MEMORY
     HANDOFF (rw) : ORIGIN = 0x3800F000, LENGTH = 4K
     STACK (rw) : ORIGIN = @GIGA_STACK_ORIGIN@, LENGTH = 8K
     @GIGA_GUI_MEMORY@
+    @GIGA_BENCH_MEMORY@
 }
 @GIGA_CODE_ALIAS@
 _Min_Heap_Size = 16K;
@@ -227,6 +228,7 @@ SECTIONS
     KEEP(*(.intercore))
   } >SHARED
 
+  @GIGA_BENCH_SECTIONS@
   .boot_handoff (NOLOAD) : { . = . + LENGTH(HANDOFF); } >HANDOFF
 
   /* The MSP is used as the ThreadX system/interrupt stack. */

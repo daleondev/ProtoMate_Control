@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.22)
 
 # This entry point orchestrates two independent compiler configurations.
 option(GIGA_BUILD_BOTH "Build both GIGA controller applications" OFF)
+option(GIGA_MOTION_BENCH "Build the isolated dual-core motion architecture benchmark" OFF)
 option(GIGA_STEP_BENCH "Build the isolated dual-core STEP hardware bench" OFF)
+if(GIGA_MOTION_BENCH AND (GIGA_STEP_BENCH OR GIGA_M4_RAM_DEBUG))
+    message(FATAL_ERROR "Motion benchmark requires its own paired preset")
+endif()
 if(GIGA_BUILD_BOTH)
     project(Controllers LANGUAGES NONE)
     include(cmake/controllers_giga.cmake)
@@ -57,6 +61,7 @@ add_subdirectory(src/simulation)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 if(BUILD_TESTING)
     add_subdirectory(platform/hal/tests)
+    add_subdirectory(examples/giga_motion_bench/tests)
     add_test(NAME hal.architecture
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/cmake/tests/verify_hal_architecture.py
             --source ${PROJECT_SOURCE_DIR} --build ${PROJECT_BINARY_DIR} --platform linux)

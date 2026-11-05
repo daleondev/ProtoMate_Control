@@ -11,6 +11,13 @@
 #include <array>
 
 #if defined(CORE_CM4)
+#if defined(GIGA_MOTION_BENCH)
+extern "C" {
+volatile std::uint32_t giga_motion_bench_refill_ticks = UINT32_MAX;
+volatile std::uint32_t giga_motion_bench_worst_refill_cycles{};
+volatile std::uint32_t giga_motion_bench_worst_budget_ticks{};
+}
+#endif
 // Debugger/bench counters: core cycles, including refill and progress callbacks.
 extern "C" {
 volatile std::uint32_t giga_step_irq_cycles_max{};
@@ -488,6 +495,9 @@ namespace hal::stm32
     {
 #if defined(CORE_CM4)
         const auto started{ DWT->CYCCNT };
+#if defined(GIGA_MOTION_BENCH)
+        giga_motion_bench_refill_ticks = UINT32_MAX;
+#endif
 #endif
         const InterruptGuard lock{};
         // Clear HT flags only; the core consumes TC together with CT/NDTR.
@@ -511,6 +521,15 @@ namespace hal::stm32
         }
 #if defined(CORE_CM4)
         const auto elapsed{ DWT->CYCCNT - started };
+#if defined(GIGA_MOTION_BENCH)
+        const auto budget = giga_motion_bench_refill_ticks;
+        if (budget != UINT32_MAX && (!giga_motion_bench_worst_refill_cycles ||
+            std::uint64_t(elapsed) * giga_motion_bench_worst_budget_ticks >
+            std::uint64_t(giga_motion_bench_worst_refill_cycles) * budget)) {
+            giga_motion_bench_worst_refill_cycles = elapsed;
+            giga_motion_bench_worst_budget_ticks = budget;
+        }
+#endif
         if (elapsed > giga_step_irq_cycles_max) {
             giga_step_irq_cycles_max = elapsed;
         }

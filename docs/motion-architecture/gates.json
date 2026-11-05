@@ -1,0 +1,59 @@
+{
+  "status": "NOT_QUALIFIED",
+  "A": {
+    "result": "REJECT_CURRENT_IMPLEMENTATION",
+    "ram_crossing_mean_us": 36.517,
+    "available_us_per_pulse_with_20_percent_reserve_and_2x_margin": 1.3333333333333333
+  },
+  "B": {
+    "result": "REJECT_CURRENT_IMPLEMENTATION",
+    "nominal_batches": [
+      {
+        "ms": 1,
+        "max_us": 386,
+        "total_us_per_batch": 421.4
+      },
+      {
+        "ms": 2,
+        "max_us": 758,
+        "total_us_per_batch": 852.7
+      },
+      {
+        "ms": 5,
+        "max_us": 1711,
+        "total_us_per_batch": 1985.8
+      },
+      {
+        "ms": 10,
+        "max_us": 3516,
+        "total_us_per_batch": 4064.1
+      },
+      {
+        "ms": 20,
+        "max_us": 7509,
+        "total_us_per_batch": 8676.1
+      }
+    ],
+    "complete_braking_tail_us": 47180,
+    "tail_bytes": 111328,
+    "reason": "Nominal batching is promising; complete prepared stopping continuation misses tested replenishment deadlines."
+  },
+  "C": {
+    "result": "REJECT_CURRENT_IMPLEMENTATION",
+    "reason": "Retains A interpolation bottleneck and adds M4 planning work."
+  },
+  "bridge": {
+    "target_us": 5000,
+    "observed_admission_max_us": 14420,
+    "intended_submission_max_us": 159008
+  },
+  "raw_million": {
+    "sent_each": 1000000,
+    "received_each": 1000000,
+    "errors": [
+      0,
+      0
+    ]
+  },
+  "scope": "No live coordinated candidate, local stopping proof, adjustment-onset guarantee or architecture qualification is claimed."
+}

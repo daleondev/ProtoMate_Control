@@ -23,6 +23,26 @@ Motor construction leaves all drivers disabled; initialization, enabling and
 motion are explicit CLI operations. Display/touch bring-up uses `display`
 commands. A shared TouchGFX showcase runs on M7 and Linux; robot planning and application-specific screens remain future work.
 
+## Motion architecture qualification
+
+The dedicated paired `giga-motion-bench-debug` / `giga-motion-bench-release`
+images measure raw ICC, coroutine transport, full messaging, planning/interpolation
+and the STEP backend while keeping motor enable inactive. They do not expose
+experimental coordinated motion through the production application.
+
+The initial coordinated-motion qualification target is **25 kHz per axis**.
+The command-admission target remains **5 ms**, and adjustment onset remains
+**20 ms**. Exact counts, trajectory limits and local stopping after stream loss
+remain required. This is a qualification target, not a change to the timer's
+electrical capability or the normal firmware's motion limits.
+
+Raw transfer and constant-frequency STEP capability are distinct from trajectory
+preparation, command admission and validated stopping after stream loss. The measured gates,
+firmware identifiers, distributions and remaining qualification work are in
+[the motion architecture report](docs/motion-architecture/README.md).
+[Build, capture and fixture instructions](examples/giga_motion_bench/README.md)
+make the measurements repeatable.
+
 ## Native Linux robot simulation
 
 Build as usual, then launch **`build/debug-linux/Application`**. This one

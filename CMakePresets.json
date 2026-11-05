@@ -147,6 +147,48 @@
             "cacheVariables": {
                 "GIGA_STEP_BENCH": true
             }
+        },
+        {
+            "name": "giga-io-motion-bench-debug",
+            "inherits": "giga-io-debug",
+            "cacheVariables": {
+                "GIGA_MOTION_BENCH": true
+            }
+        },
+        {
+            "name": "giga-ui-motion-bench-debug",
+            "inherits": "giga-ui-debug",
+            "cacheVariables": {
+                "GIGA_MOTION_BENCH": true
+            }
+        },
+        {
+            "name": "giga-motion-bench-debug",
+            "inherits": "giga-debug",
+            "cacheVariables": {
+                "GIGA_MOTION_BENCH": true
+            }
+        },
+        {
+            "name": "giga-io-motion-bench-release",
+            "inherits": "giga-io-release",
+            "cacheVariables": {
+                "GIGA_MOTION_BENCH": true
+            }
+        },
+        {
+            "name": "giga-ui-motion-bench-release",
+            "inherits": "giga-ui-release",
+            "cacheVariables": {
+                "GIGA_MOTION_BENCH": true
+            }
+        },
+        {
+            "name": "giga-motion-bench-release",
+            "inherits": "giga-release",
+            "cacheVariables": {
+                "GIGA_MOTION_BENCH": true
+            }
         }
     ],
     "buildPresets": [
@@ -212,6 +254,30 @@
         {
             "name": "giga-bench-debug",
             "configurePreset": "giga-bench-debug"
+        },
+        {
+            "name": "giga-io-motion-bench-debug",
+            "configurePreset": "giga-io-motion-bench-debug"
+        },
+        {
+            "name": "giga-ui-motion-bench-debug",
+            "configurePreset": "giga-ui-motion-bench-debug"
+        },
+        {
+            "name": "giga-motion-bench-debug",
+            "configurePreset": "giga-motion-bench-debug"
+        },
+        {
+            "name": "giga-io-motion-bench-release",
+            "configurePreset": "giga-io-motion-bench-release"
+        },
+        {
+            "name": "giga-ui-motion-bench-release",
+            "configurePreset": "giga-ui-motion-bench-release"
+        },
+        {
+            "name": "giga-motion-bench-release",
+            "configurePreset": "giga-motion-bench-release"
         }
     ],
     "testPresets": [

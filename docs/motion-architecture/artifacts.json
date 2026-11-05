@@ -1,0 +1,637 @@
+[
+  {
+    "path": "build/motion-qualification/batch-preparation.console.log",
+    "size": 44421,
+    "sha256": "cf1160bd31ef0a8fb27eeef5d6c258970488afc0e5f002aefed9502d064803f6"
+  },
+  {
+    "path": "build/motion-qualification/batch-preparation.jsonl",
+    "size": 103286,
+    "sha256": "a3e8ce1684eeb2b05a6158cfaa65e5f9df2229b5a84fdabb4e6f185d94d368a7"
+  },
+  {
+    "path": "build/motion-qualification/bounded-overload-final.console.log",
+    "size": 1795,
+    "sha256": "84b4bff29b453210f8ba810ce3fe16538f7880b118759bac2334d1071ff3e899"
+  },
+  {
+    "path": "build/motion-qualification/bounded-overload-final.jsonl",
+    "size": 4850,
+    "sha256": "b481dee2beb26c85744c872fe67ea7de60713b40f5c880755ec08a2c22d4e74e"
+  },
+  {
+    "path": "build/motion-qualification/braking-gate.console.log",
+    "size": 4570,
+    "sha256": "ccb91794f3750abfe64f90ae9e1126b272921b5985cc06f955f7d748feb0617b"
+  },
+  {
+    "path": "build/motion-qualification/braking-gate.jsonl",
+    "size": 11351,
+    "sha256": "9610f828cd308751e09b2da007436a5b58355705822acfe3ee00fe6ae29c7d80"
+  },
+  {
+    "path": "build/motion-qualification/bridge-1.jsonl",
+    "size": 15313,
+    "sha256": "336983174930ed4ce6fa81b890d74017568bea5b360d62cc5cd1700069b1b6a4"
+  },
+  {
+    "path": "build/motion-qualification/bridge-sampling.jsonl",
+    "size": 4164,
+    "sha256": "5e544f818ef24b5dc704b26af47c59d5216bf228de995577ef1790f96799c6d7"
+  },
+  {
+    "path": "build/motion-qualification/debug-correctness.console.log",
+    "size": 11446,
+    "sha256": "5442946f939ea412257af42b013ebd6597a19ed0fbd1b7b91be9ec0db6a9eb4a"
+  },
+  {
+    "path": "build/motion-qualification/debug-correctness.jsonl",
+    "size": 26650,
+    "sha256": "24d3d1ebd8ce225da0d285a27b0ba69fff5faae332aa5dd5fd33fa549d2fa328"
+  },
+  {
+    "path": "build/motion-qualification/debug-final-16k.console.log",
+    "size": 8201,
+    "sha256": "a218512db10924d7bd5fa7a0ea5f43f97705e5334396293c3111d6696087b8d0"
+  },
+  {
+    "path": "build/motion-qualification/debug-final-16k.jsonl",
+    "size": 19318,
+    "sha256": "600e9b83748240361ea9cf55de11b60b8955919d4ad8c83729480d8e6d5b51a1"
+  },
+  {
+    "path": "build/motion-qualification/initial.jsonl",
+    "size": 3413,
+    "sha256": "695d2086736bef68b124434b871b52047a124c1b82470e228f08eb4a837360f6"
+  },
+  {
+    "path": "build/motion-qualification/itcm-placement.console.log",
+    "size": 5633,
+    "sha256": "0d603c110fc0fbaa46011f0d2109d377bd699991fb4746ed752f99cab9625b86"
+  },
+  {
+    "path": "build/motion-qualification/itcm-placement.jsonl",
+    "size": 13818,
+    "sha256": "d1bebb03ac126fe690bbb349049754571e29d45e986ebc7ae3cff559c68497f5"
+  },
+  {
+    "path": "build/motion-qualification/kernels-1.jsonl",
+    "size": 26683,
+    "sha256": "2dffc2fdeaf237b18dcf7f99aa7d235eee7dae19af811f880592a6b8be12808d"
+  },
+  {
+    "path": "build/motion-qualification/lifecycles-1.console.log",
+    "size": 5607,
+    "sha256": "3758022891e48a4eeb1c773a2f62c36638dadf37226c4c68e80b82c7ffb6c597"
+  },
+  {
+    "path": "build/motion-qualification/lifecycles-1.jsonl",
+    "size": 13712,
+    "sha256": "430cb98ebc7952987d3ab562547e6e44d424be2baea993355ccb4f30d9928654"
+  },
+  {
+    "path": "build/motion-qualification/normal-restored/console.log",
+    "size": 23041,
+    "sha256": "ecb9cfdf6e7ec5f4f0825cc9ee946c685bdc254d9fd8a31aa5609c44a5d727e2"
+  },
+  {
+    "path": "build/motion-qualification/normal-restored/registers-final.log",
+    "size": 1111,
+    "sha256": "ac941b3cf7eeefb21e16bdc50c510398009b7ab07cb613c299e82b29e30da19f"
+  },
+  {
+    "path": "build/motion-qualification/normal-restored/registers.log",
+    "size": 1092,
+    "sha256": "12f25b77799aeed708131a78c4baa4e9212b08def8e7451b30efe6e55845a40b"
+  },
+  {
+    "path": "build/motion-qualification/normal-restored/result.json",
+    "size": 42043,
+    "sha256": "eaf61fd969fa50142be8a7975ef3262dbe1e476b4a52af5115790142412a7073"
+  },
+  {
+    "path": "build/motion-qualification/profile-synchronized/workload.console.log",
+    "size": 1489,
+    "sha256": "b1c7fec4431daff86e1c92454f30ff5195584c3c74f936f12d0fb4b60c53914f"
+  },
+  {
+    "path": "build/motion-qualification/profile-synchronized/workload.jsonl",
+    "size": 4309,
+    "sha256": "e2bfc5dab2315c465a65d7e02874b870f0dee80b82c0b0acdc91d0f729efdafc"
+  },
+  {
+    "path": "build/motion-qualification/raw-1.jsonl",
+    "size": 158632,
+    "sha256": "92d31c0a0616f9403467d4d7c0ad46f254dbf794b4799225dcd011470902dea3"
+  },
+  {
+    "path": "build/motion-qualification/raw-million.console.log",
+    "size": 1481,
+    "sha256": "717cef442f4acca18431f2d7d5a7fb52463a9e802aaccfc2ad7d150c08989cd5"
+  },
+  {
+    "path": "build/motion-qualification/raw-million.jsonl",
+    "size": 4323,
+    "sha256": "6becf9e617c307302bebb867ab3d84d8db307ae7c142b9f3d843530d0a996c85"
+  },
+  {
+    "path": "build/motion-qualification/release-brake-predictor.console.log",
+    "size": 1808,
+    "sha256": "708c23571fafe39d3e5ea6c7b9f17c45eb4f9bb934a4511a07142e45e900f940"
+  },
+  {
+    "path": "build/motion-qualification/release-brake-predictor.jsonl",
+    "size": 4859,
+    "sha256": "bee0ef3e15f0bb01643a56668e7d10b9ea1e3531aaeb17372e79b9b6c034d77e"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/boot-1.console.log",
+    "size": 12855,
+    "sha256": "8d998fb5436ed2282b37d2c3c203d92a61026ac5bc6834e59f5a0274d3d2f38c"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/boot-1.jsonl",
+    "size": 29976,
+    "sha256": "c1a20f07e9db35a050e3ffdd7a374fe693d8c22e8353c998e798af5a3c3b3a26"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/boot-2.console.log",
+    "size": 1695,
+    "sha256": "81df01af1411a20856457bb8b43b9f77a07d552b2831e4c67d730a160eb9698c"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/boot-2.jsonl",
+    "size": 4486,
+    "sha256": "8f0f5bf9e390a8b6b2b1f58b1d6c98ed101d97ff5a6f2d569183ca029f098021"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1/console.log",
+    "size": 192,
+    "sha256": "fbf7ff94af13d533bc60aa15458bcbf5f485f6a063f8def3d85d02a55a3c07b5"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1/logic.bin.gz",
+    "size": 30,
+    "sha256": "4d0c3228f9d0fc33b8486746eb319622cc280769aff7324854d8de72a46feb5d"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1/sample-summary.json",
+    "size": 602,
+    "sha256": "d0bf55f1b62e4ed5ab162ffde524dc5015f4b0019c2a0397071a660be73598d6"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-final/console.log",
+    "size": 1839,
+    "sha256": "7120d4bce8c0cde1b7e2a9db87b67167a31cd9cd3fb2d7222a0ea497ee0b80a8"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-final/firmware.json",
+    "size": 3018,
+    "sha256": "a5f8050c2768680fbb952489b1179ec70cc8b0a6955ba38fb5bd475eaccd9241"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-final/logic.bin.gz",
+    "size": 1745158,
+    "sha256": "d79399465faac2f414ad5660b349bafd7a70cc8cec7f2855ae82fb8f90e963ec"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-final/result.json",
+    "size": 3997,
+    "sha256": "4da7c88eb7f8c65c884be0ceb6e0d414dcc6616604aa5fb129026f4cd45d2469"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-final/sample-summary.json",
+    "size": 607,
+    "sha256": "18ba278ddd8a637557b3ea5e3e1e7cfdfdb3c0056c3de579ea361736c70383ad"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-final/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-retry/console.log",
+    "size": 1780,
+    "sha256": "02c9a8e5c81dbbf0475e6d3ab22a1769357a727dff3446870623ce5cc13a1ee5"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-retry/firmware.json",
+    "size": 2807,
+    "sha256": "a8dcc9c2fa2e2f2922ef9adcd8aed0017f6a848a67e8e145f03ba48abd168abd"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-retry/logic.bin.gz",
+    "size": 1745539,
+    "sha256": "9fb67f7d1eea33deeb1a5187b5d8bd094a645aea03d1e6a2512e75e63cc41828"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-retry/sample-summary.json",
+    "size": 609,
+    "sha256": "49c27a0d70937728dc16ece131ae6e6ecbf35b11a6276b07dcd5295355be0dce"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release/step-boot-1-retry/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/boot-1.console.log",
+    "size": 12855,
+    "sha256": "00b19e9a9ce0369b94b402ba957d57f40a8787c605e8e456047a63600a695978"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/boot-1.jsonl",
+    "size": 29979,
+    "sha256": "dcd6f10bbdc32948744993534c95f9ead4aeef7cf159d940ce7c7ca3d9ce2ad2"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/boot-2.console.log",
+    "size": 12861,
+    "sha256": "ec7837cf101fa3d57a5b66254838cc7b9355e61658ea68fded2ca2367f1f2d20"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/boot-2.jsonl",
+    "size": 29990,
+    "sha256": "3cd275badbab931eb32f8092c3419128e6f23b5263a7736fc8372e0f2f07dc41"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/boot-3.console.log",
+    "size": 12848,
+    "sha256": "dafa9a5d8ba223e3d55b24b13a1e832a48f15ae18a0ba0895498513d3063babd"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/boot-3.jsonl",
+    "size": 29960,
+    "sha256": "3a33b73bef60b0ed586bfada64da326b683cbb79281afa5ed98ae0499bd29290"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/boots.json",
+    "size": 114,
+    "sha256": "bb9e9b1c32d34efd6aa5c82a5d63a53948a8663c2b7053b512ca726a7e23fedc"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-1/console.log",
+    "size": 1836,
+    "sha256": "4f9d2003375bbd20bf355a089d207662e0060eb72c6137ea5415fda86535a04f"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-1/firmware.json",
+    "size": 3015,
+    "sha256": "944fd9ce7ba0ca18e84006e25951fd6bc53048c61d0d36cfd7ddcc9857139f8d"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-1/logic.bin.gz",
+    "size": 1744861,
+    "sha256": "f75d7c6dd7d9780fe02d01dcc2ef8839702878908bae4c996d8879295ed3e068"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-1/result.json",
+    "size": 3997,
+    "sha256": "3f1d5c57333d3b5410e60770c28b245ac0cad5e480eb49c17307e7db95238c2e"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-1/sample-summary.json",
+    "size": 609,
+    "sha256": "c25fc4d8d1c984b8ebc62bca7e16af394b5510bf3ee2ddf9a069d1b5ffb9dc86"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-1/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-2/console.log",
+    "size": 1836,
+    "sha256": "3f2021667739962d1b2b2de7b58364ff8f9ef81d21c4dade3e9eeadc13bf186f"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-2/firmware.json",
+    "size": 3015,
+    "sha256": "c98384dc551fa3ce4e80785141c5140767928f6cac9f15b986ed186693259bcb"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-2/logic.bin.gz",
+    "size": 1745452,
+    "sha256": "502c556a0f3104e3f8d11fe9053b60fb5c722af7ae5e9e5266fdbccaa6e097ec"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-2/result.json",
+    "size": 3997,
+    "sha256": "5af4bd966889680644501e1bb1cec037751174c3a5b7fe5b115fa80341360134"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-2/sample-summary.json",
+    "size": 609,
+    "sha256": "eb07d92279fd588f0e52d170e4196c0dff1d8dc1c6ecd93c5277e2a67a4fb821"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-2/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-3/console.log",
+    "size": 1834,
+    "sha256": "afbbdcdec1f63e7cc7d292e7a8e0824e985a98bcb708cede267a6868fe68f41a"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-3/firmware.json",
+    "size": 3012,
+    "sha256": "b82541e4856dc600faba5e18e1fe9d4008e1ecd12bd5913171ed1f41112c9ff7"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-3/logic.bin.gz",
+    "size": 1743449,
+    "sha256": "86065106c6579b8f25f5e9d2f8b266d30a67a9a3c3e58b126dcdd899521a88e8"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-3/result.json",
+    "size": 3994,
+    "sha256": "6e9072824fe19ff75ea75b5e43e67c192163b682b8407507a6f3856665682213"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-3/sample-summary.json",
+    "size": 611,
+    "sha256": "389b219eff59f0e4bfb7e9c3e3e78b56b1036a8878ec9d52e9297050791feac5"
+  },
+  {
+    "path": "build/motion-qualification/repeated-release-final/step-boot-3/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/solver-optimized.console.log",
+    "size": 24541,
+    "sha256": "6f7503e7ca431ad84e34f4e3ffca3c8d49f0f14dfc608d2af1865039cd5c242a"
+  },
+  {
+    "path": "build/motion-qualification/solver-optimized.jsonl",
+    "size": 57620,
+    "sha256": "90c75e57bc5de5ad4388eacf786c24f7af60da5eaa6a84a941a9308d6abddd47"
+  },
+  {
+    "path": "build/motion-qualification/step-endurance-20/console.log",
+    "size": 1738,
+    "sha256": "89d1c4b18d725b5401331533e9e2d0c3f1e8c3621466b307468d37a9baac83a0"
+  },
+  {
+    "path": "build/motion-qualification/step-endurance-20/electrical-analysis.json",
+    "size": 996,
+    "sha256": "1a5d9fc10a73e858a0c5908712da8cb10fe44c62c5445a09f140e17237d90155"
+  },
+  {
+    "path": "build/motion-qualification/step-endurance-20/firmware.json",
+    "size": 2425,
+    "sha256": "b0da3dca82edd9b7be5848e7516322bd77fa8472244b367a4c7b53d2f251ac94"
+  },
+  {
+    "path": "build/motion-qualification/step-endurance-20/logic.bin.gz",
+    "size": 457737908,
+    "sha256": "0fd9d8cf070eb12339440ffb29bb50a047a379f385f8b6de06f5026f358ff976"
+  },
+  {
+    "path": "build/motion-qualification/step-endurance-20/partial-analysis.json",
+    "size": 648,
+    "sha256": "57ba614913e115d15f6e993bd22fa8b74f28cc7686f70aacff66717bf71e73b2"
+  },
+  {
+    "path": "build/motion-qualification/step-endurance-20/result.json",
+    "size": 3664,
+    "sha256": "268a5176212d937b7b1909882a539b460e5ea5e6f02e20697041949f46d92081"
+  },
+  {
+    "path": "build/motion-qualification/step-endurance-20/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/step-load-0/console.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/step-load-0/logic.bin",
+    "size": 72000000,
+    "sha256": "b16a0feca538dc47fcc399bdc2749a73cebbf98e12e597f1dff21e03d2fa1e35"
+  },
+  {
+    "path": "build/motion-qualification/step-load-0/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/step-load-0-repeat/console.log",
+    "size": 1383,
+    "sha256": "37c9f7538a6743beae632d50c95aad928cb4210f781978af80572c0990d4e3e0"
+  },
+  {
+    "path": "build/motion-qualification/step-load-0-repeat/firmware.json",
+    "size": 2006,
+    "sha256": "d2cc22fc31b5975ca0cc6ed06114cde17a018986b6e11068e633e7d4fec65d4a"
+  },
+  {
+    "path": "build/motion-qualification/step-load-0-repeat/logic.bin",
+    "size": 72000000,
+    "sha256": "580d2c8d1a2c52d7280fc15cc73a506ea304b4fbd36d47687f350db84871f130"
+  },
+  {
+    "path": "build/motion-qualification/step-load-0-repeat/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/step-static-0/console.log",
+    "size": 1384,
+    "sha256": "57bf1a4e4eee0c9ba129447a05bda276b2d17531081c0704bf8f6c4a7b18767e"
+  },
+  {
+    "path": "build/motion-qualification/step-static-0/firmware.json",
+    "size": 2007,
+    "sha256": "ca5d23b7c1c78b5e8a4d4cc018a35e16715eebcad12f32c8e6cbbed4534ab678"
+  },
+  {
+    "path": "build/motion-qualification/step-static-0/logic.bin",
+    "size": 72000000,
+    "sha256": "f003df513c91d03ffdff88cf575dd4de65fe0bba20fda596655412f4643500d1"
+  },
+  {
+    "path": "build/motion-qualification/step-static-0/result.json",
+    "size": 3078,
+    "sha256": "d2726bdd1be83759a536b588808c1b1f5c26a7c25c866c5bd049deeb28cb34d8"
+  },
+  {
+    "path": "build/motion-qualification/step-static-0/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/step-static-20/console.log",
+    "size": 1385,
+    "sha256": "84e789aa2aaf97721dc41d7f2a8d24fa2a2491a85d36be80307e41139a99978f"
+  },
+  {
+    "path": "build/motion-qualification/step-static-20/firmware.json",
+    "size": 2008,
+    "sha256": "5bf867285b6a823e2739e3437a544e297e19da3038fed7723ed0b3d13ea4a61b"
+  },
+  {
+    "path": "build/motion-qualification/step-static-20/logic.bin",
+    "size": 72000000,
+    "sha256": "5940926d70089457d5344d1bae0d08716fea93de499f8c3476b59c1db085b7a1"
+  },
+  {
+    "path": "build/motion-qualification/step-static-20/result.json",
+    "size": 3079,
+    "sha256": "5a0b211149d2a5c1c54c9433127c27369464f62a8a0064b462fe90e2dcd5e01c"
+  },
+  {
+    "path": "build/motion-qualification/step-static-20/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/step-static-40/console.log",
+    "size": 1385,
+    "sha256": "a0b89277bf181dd733b90c8f3988ec09d6029898e4a7b8bd35ab9361c53d1eb2"
+  },
+  {
+    "path": "build/motion-qualification/step-static-40/firmware.json",
+    "size": 2008,
+    "sha256": "0f5817c6f8299bd1b5a0a167d06f665deb36f0db1defc121632946860cccf2c1"
+  },
+  {
+    "path": "build/motion-qualification/step-static-40/logic.bin",
+    "size": 72000000,
+    "sha256": "bdaf3e7bf890af83e52c8f74a40efb96fcdd1801036707c6e6b7144345b869b7"
+  },
+  {
+    "path": "build/motion-qualification/step-static-40/result.json",
+    "size": 3079,
+    "sha256": "19c41a7f750a9bf6519cba6b3bb67c6eb8526a853045cafefa913e46464fb931"
+  },
+  {
+    "path": "build/motion-qualification/step-static-40/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/stream-smoke/console.log",
+    "size": 1748,
+    "sha256": "a83c76344bffdee6f796ae4767c88910dbc793efd8af2ebd5178e597952f66e5"
+  },
+  {
+    "path": "build/motion-qualification/stream-smoke/firmware.json",
+    "size": 2911,
+    "sha256": "b6ea093ce4efce3b020326124d0303847aa53eadb5c1c4455fd5169cf8767fba"
+  },
+  {
+    "path": "build/motion-qualification/stream-smoke/logic.bin.gz",
+    "size": 1946796,
+    "sha256": "4d2b26abe375848ca476e5eaa57a9729aa5a5f87b8cae56253dafcaaa0929dbd"
+  },
+  {
+    "path": "build/motion-qualification/stream-smoke/result.json",
+    "size": 3894,
+    "sha256": "b3d707c9770ca541c3e91a8fea5c2c9deb88684ee0a342cc2ea9cc7f32132cae"
+  },
+  {
+    "path": "build/motion-qualification/stream-smoke/sigrok.log",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "build/motion-qualification/tls-placement.console.log",
+    "size": 21049,
+    "sha256": "d868a4fed2e9420e792b7f0017efa95fb3ec956556b22f1f20f305b02b11f251"
+  },
+  {
+    "path": "build/motion-qualification/tls-placement.jsonl",
+    "size": 49489,
+    "sha256": "b7e47238e61778c1fb3ab6e98bb3242ae0eaca3d3399fee43793e2531b109726"
+  },
+  {
+    "path": "build/motion-qualification/trace-calibration.console.log",
+    "size": 168829,
+    "sha256": "bb8e7c79da03d3cda8ab021e764a8af31e1f8365c0178bc24fbf2033d1a4b741"
+  },
+  {
+    "path": "build/motion-qualification/trace-calibration.jsonl",
+    "size": 390531,
+    "sha256": "d97bb415dcbff993af9570cf262306716354c38671a59f499c5640b2a6ed64eb"
+  },
+  {
+    "path": "build/motion-qualification/traces-2.jsonl",
+    "size": 60234,
+    "sha256": "1112e8bbd05fae84083c8d1e2beb784a67f96f60b625320c1775b936e15d0553"
+  },
+  {
+    "path": "build/motion-qualification/traces-3.jsonl",
+    "size": 235953,
+    "sha256": "d411013e280a9fe0f411f41f185eb85f028b090f4c29d86a7aa0ae6ee93fe11a"
+  },
+  {
+    "path": "build/motion-qualification/transport-1.jsonl",
+    "size": 165397,
+    "sha256": "f9824a8522db0579b343cf17e90fc526db58c1a54193b208cb2f530089a53352"
+  },
+  {
+    "path": "build/motion-qualification/urgent-under-flood.console.log",
+    "size": 4729,
+    "sha256": "a2e72c6278e5fc63d8e514cb14d2caeef22e94c49ce52ddce05269ab8bfabecf"
+  },
+  {
+    "path": "build/motion-qualification/urgent-under-flood.jsonl",
+    "size": 11555,
+    "sha256": "7c263dce2ca4a55201266374d9533915eb63cac2c0467ad97c87727d01a504c1"
+  },
+  {
+    "path": "build/motion-qualification/validation/builds.json",
+    "size": 8903,
+    "sha256": "a680107567a9487df58220d8616f130dcd11dce5a511e05b62cc15f64a0193c7"
+  },
+  {
+    "path": "build/motion-qualification/validation/motion-ctest.log",
+    "size": 11475,
+    "sha256": "433a6b7736d4c3f3986775d01b4138dc127e65800b8dcee9a72604f8f3112398"
+  },
+  {
+    "path": "build/motion-qualification/validation/motion-debug-final.log",
+    "size": 7692,
+    "sha256": "b917dae602d83c033ec1786a44c95b337be3d092f46bdf0c5c1daae094f35cb2"
+  },
+  {
+    "path": "build/motion-qualification/validation/motion-final-host-build.log",
+    "size": 1122,
+    "sha256": "48318e5dabc27d0174991bf39b1977295c63fe05b08adba28f8bf080b19aa423"
+  },
+  {
+    "path": "build/motion-qualification/validation/motion-graphics-tests.log",
+    "size": 330,
+    "sha256": "620ff5df3cb429e16d347ee02a7ee9af00b9b41bb78c0178d7031df856a74553"
+  },
+  {
+    "path": "build/motion-qualification/validation/motion-normal-release.log",
+    "size": 9937,
+    "sha256": "3b3c355287fc4a922b47dc5b22f030ef6056c42b1d280a376a87678a8eb45ed5"
+  },
+  {
+    "path": "build/motion-qualification/validation/motion-restore-normal.log",
+    "size": 4688,
+    "sha256": "f84888ca0b1fcc5b5c52f16981a82470c390b67ee465872a58152551d71f5e8f"
+  },
+  {
+    "path": "build/motion-qualification/yield-trace.console.log",
+    "size": 39141,
+    "sha256": "0a2eb1ac978db52c249bcc78eb21e2e5db3be43f4073c281f5155d1abe0d5761"
+  },
+  {
+    "path": "build/motion-qualification/yield-trace.jsonl",
+    "size": 91439,
+    "sha256": "3d21dbe3eaafa0607172df7568aa125b6fe85184f00daa2140a0e96454b11b9e"
+  }
+]

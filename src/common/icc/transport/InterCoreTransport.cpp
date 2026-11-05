@@ -1,4 +1,5 @@
 #include "InterCoreTransport.hpp"
+#include "hal/util/InterCoreTrace.hpp"
 #include "runtime/thread.hpp"
 
 #include <stdexcept>
@@ -47,6 +48,7 @@ namespace icc
     {
         while (!m_stopping.load()) {
             m_notification.waitUntil(std::chrono::steady_clock::time_point::max());
+            hal::util::intercoreTrace(hal::util::InterCoreStage::NotificationWorker);
             wakeWaiters();
         }
     }
@@ -96,6 +98,7 @@ namespace icc
       Lane lane,
       std::stop_token stop)
     {
+        hal::util::intercoreTrace(hal::util::InterCoreStage::TransportSend, unsigned(lane), frame);
         const auto index{ 2 * static_cast<std::size_t>(lane) };
         if (index >= m_waiters.size()) {
             co_return std::unexpected(Error::Disconnected);
@@ -111,6 +114,7 @@ namespace icc
             }
             const auto result{ m_channel->trySend(frame, lane) };
             if (result) {
+                hal::util::intercoreTrace(hal::util::InterCoreStage::TransportSent, unsigned(lane), frame);
                 co_return pnm::EmptyResult<Error>{};
             }
             if (result.error() != hal::IInterCoreChannel::Error::WouldBlock) {
@@ -149,6 +153,7 @@ namespace icc
             }
             const auto result{ m_channel->tryReceive(buffer, lane) };
             if (result) {
+                hal::util::intercoreTrace(hal::util::InterCoreStage::TransportReceived, unsigned(lane), buffer.first(*result));
                 co_return *result;
             }
             if (result.error() != hal::IInterCoreChannel::Error::WouldBlock) {

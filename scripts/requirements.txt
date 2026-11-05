@@ -6,3 +6,6 @@ Pillow==12.3.0
 pyserial==3.5
 # Native simulator process/integration tests.
 pytest==9.1.1
+
+# Reproducible motion-qualification figures.
+matplotlib==3.11.2

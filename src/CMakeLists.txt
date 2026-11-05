@@ -2,6 +2,11 @@ add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 
 add_subdirectory(common)
 
+if(GIGA_MOTION_BENCH)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/examples/giga_motion_bench ${PROJECT_BINARY_DIR}/motion_bench)
+    return()
+endif()
+
 if(GIGA_STEP_BENCH)
     add_subdirectory(${PROJECT_SOURCE_DIR}/examples/giga_step_bench ${PROJECT_BINARY_DIR}/step_bench)
     return()

@@ -1,0 +1,1218 @@
+[
+  {
+    "samples": 97972224,
+    "sample_rate": 24000000,
+    "axes": [
+      {
+        "axis": 1,
+        "pulses": 200000,
+        "period_mean_samples": 239.96681483407417,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.01382906463494038
+      },
+      {
+        "axis": 2,
+        "pulses": 200000,
+        "period_mean_samples": 239.96681483407417,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.01382906463494038
+      },
+      {
+        "axis": 3,
+        "pulses": 200000,
+        "period_mean_samples": 239.96681483407417,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.01382906463494038
+      }
+    ],
+    "enable_inactive": true,
+    "stimulus_high_samples": 18762277,
+    "identity": [
+      {
+        "test": "identity",
+        "boot": 2280754346,
+        "pair_id": "a796db01a619fb48a949b1bc9ec02c61252af1681c66f4d55ecc0fa723ab62bf"
+      }
+    ],
+    "firmware": [
+      {
+        "test": "case",
+        "boot": 2280754346,
+        "sequence": 10,
+        "fixture": 20,
+        "bytes": 32,
+        "rate": 100000,
+        "count": 200000,
+        "direction": 0,
+        "lane": 0
+      },
+      {
+        "test": "pulses",
+        "core": 4,
+        "sent": 200000,
+        "received": 200000,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 2003243,
+        "value": 200000,
+        "checksum": 200000,
+        "heap_used": 104896,
+        "heap_free": 157248,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 199,
+        "wall_us": 2004201,
+        "minimum_stack_permill": 642,
+        "maximum_backlog": 145113,
+        "minimum_stack_thread": "Application Thread",
+        "latency": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "processing": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      },
+      {
+        "test": "pulses",
+        "core": 7,
+        "sent": 134,
+        "received": 0,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 2001025,
+        "value": 0,
+        "checksum": 0,
+        "heap_used": 154920,
+        "heap_free": 67416,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 151,
+        "wall_us": 2004868,
+        "minimum_stack_permill": 490,
+        "maximum_backlog": 0,
+        "minimum_stack_thread": "Application Thread",
+        "latency": {
+          "count": 134,
+          "mean_us": 334254.037,
+          "p50_us_upper": 360447,
+          "p95_us_upper": 655359,
+          "p99_us_upper": 670981,
+          "p999_us_upper": 670981,
+          "max_us": 670981
+        },
+        "processing": {
+          "count": 134,
+          "mean_us": 14892.313,
+          "p50_us_upper": 13311,
+          "p95_us_upper": 28671,
+          "p99_us_upper": 28671,
+          "p999_us_upper": 28767,
+          "max_us": 28767
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      }
+    ],
+    "before": [
+      {
+        "test": "status",
+        "frames": 13410,
+        "underruns": 0,
+        "errors": 0
+      }
+    ],
+    "after": [
+      {
+        "test": "status",
+        "frames": 13653,
+        "underruns": 0,
+        "errors": 0
+      }
+    ],
+    "seconds": 2,
+    "load_setting": 20,
+    "sha256_uncompressed": "46de3232261b48145fd85583c66b14b549cb951b830a8ba0ba93e1ec742a644c",
+    "source": "build/motion-qualification/repeated-release/step-boot-1-final"
+  },
+  {
+    "samples": 97972224,
+    "sample_rate": 24000000,
+    "axes": [
+      {
+        "axis": 1,
+        "pulses": 200000,
+        "period_mean_samples": 239.96686483432418,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013808225439237987
+      },
+      {
+        "axis": 2,
+        "pulses": 200000,
+        "period_mean_samples": 239.96686483432418,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013808225439237987
+      },
+      {
+        "axis": 3,
+        "pulses": 200000,
+        "period_mean_samples": 239.96686483432418,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013808225439237987
+      }
+    ],
+    "enable_inactive": true,
+    "stimulus_high_samples": 19790597,
+    "identity": [
+      {
+        "test": "identity",
+        "boot": 3337773152,
+        "pair_id": "a796db01a619fb48a949b1bc9ec02c61252af1681c66f4d55ecc0fa723ab62bf"
+      }
+    ],
+    "firmware": [
+      {
+        "test": "case",
+        "boot": 3337773152,
+        "sequence": 9,
+        "fixture": 20,
+        "bytes": 32,
+        "rate": 100000,
+        "count": 200000,
+        "direction": 0,
+        "lane": 0
+      },
+      {
+        "test": "pulses",
+        "core": 4,
+        "sent": 200000,
+        "received": 200000,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 2005921,
+        "value": 200000,
+        "checksum": 200000,
+        "heap_used": 104912,
+        "heap_free": 157232,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 200,
+        "wall_us": 2014077,
+        "minimum_stack_permill": 642,
+        "maximum_backlog": 145223,
+        "minimum_stack_thread": "Application Thread",
+        "latency": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "processing": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      },
+      {
+        "test": "pulses",
+        "core": 7,
+        "sent": 132,
+        "received": 0,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 2009406,
+        "value": 0,
+        "checksum": 0,
+        "heap_used": 154928,
+        "heap_free": 67408,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 152,
+        "wall_us": 2015255,
+        "minimum_stack_permill": 490,
+        "maximum_backlog": 0,
+        "minimum_stack_thread": "Application Thread",
+        "latency": {
+          "count": 132,
+          "mean_us": 361620.061,
+          "p50_us_upper": 393215,
+          "p95_us_upper": 699365,
+          "p99_us_upper": 699365,
+          "p999_us_upper": 699365,
+          "max_us": 699365
+        },
+        "processing": {
+          "count": 132,
+          "mean_us": 15182.364,
+          "p50_us_upper": 13311,
+          "p95_us_upper": 28527,
+          "p99_us_upper": 28527,
+          "p999_us_upper": 28527,
+          "max_us": 28527
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      }
+    ],
+    "before": [
+      {
+        "test": "status",
+        "frames": 6194,
+        "underruns": 0,
+        "errors": 0
+      }
+    ],
+    "after": [
+      {
+        "test": "status",
+        "frames": 6441,
+        "underruns": 0,
+        "errors": 0
+      }
+    ],
+    "seconds": 2,
+    "load_setting": 20,
+    "sha256_uncompressed": "6bf4cf113f7b63d56acb0030967aaefb9f1d64c4ebebca61052cedc1c8180f27",
+    "source": "build/motion-qualification/repeated-release-final/step-boot-1"
+  },
+  {
+    "samples": 97972224,
+    "sample_rate": 24000000,
+    "axes": [
+      {
+        "axis": 1,
+        "pulses": 200000,
+        "period_mean_samples": 239.96687483437418,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013804057601141118
+      },
+      {
+        "axis": 2,
+        "pulses": 200000,
+        "period_mean_samples": 239.96687483437418,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013804057601141118
+      },
+      {
+        "axis": 3,
+        "pulses": 200000,
+        "period_mean_samples": 239.96687483437418,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013804057601141118
+      }
+    ],
+    "enable_inactive": true,
+    "stimulus_high_samples": 18622113,
+    "identity": [
+      {
+        "test": "identity",
+        "boot": 4178253041,
+        "pair_id": "a796db01a619fb48a949b1bc9ec02c61252af1681c66f4d55ecc0fa723ab62bf"
+      }
+    ],
+    "firmware": [
+      {
+        "test": "case",
+        "boot": 4178253041,
+        "sequence": 9,
+        "fixture": 20,
+        "bytes": 32,
+        "rate": 100000,
+        "count": 200000,
+        "direction": 0,
+        "lane": 0
+      },
+      {
+        "test": "pulses",
+        "core": 4,
+        "sent": 200000,
+        "received": 200000,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 2004317,
+        "value": 200000,
+        "checksum": 200000,
+        "heap_used": 104904,
+        "heap_free": 157240,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 200,
+        "wall_us": 2010076,
+        "minimum_stack_permill": 642,
+        "maximum_backlog": 145288,
+        "minimum_stack_thread": "Application Thread",
+        "latency": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "processing": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      },
+      {
+        "test": "pulses",
+        "core": 7,
+        "sent": 132,
+        "received": 0,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 2004400,
+        "value": 0,
+        "checksum": 0,
+        "heap_used": 154936,
+        "heap_free": 67400,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 153,
+        "wall_us": 2009822,
+        "minimum_stack_permill": 490,
+        "maximum_backlog": 0,
+        "minimum_stack_thread": "Application Thread",
+        "latency": {
+          "count": 132,
+          "mean_us": 351349.212,
+          "p50_us_upper": 360447,
+          "p95_us_upper": 694360,
+          "p99_us_upper": 694360,
+          "p999_us_upper": 694360,
+          "max_us": 694360
+        },
+        "processing": {
+          "count": 132,
+          "mean_us": 15145.364,
+          "p50_us_upper": 14335,
+          "p95_us_upper": 22527,
+          "p99_us_upper": 24107,
+          "p999_us_upper": 24107,
+          "max_us": 24107
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      }
+    ],
+    "before": [
+      {
+        "test": "status",
+        "frames": 6194,
+        "underruns": 0,
+        "errors": 0
+      }
+    ],
+    "after": [
+      {
+        "test": "status",
+        "frames": 6442,
+        "underruns": 0,
+        "errors": 0
+      }
+    ],
+    "seconds": 2,
+    "load_setting": 20,
+    "sha256_uncompressed": "f9e7243fca0b73e7198400e6b01212b9d3136a2341833c5862feff38298b9569",
+    "source": "build/motion-qualification/repeated-release-final/step-boot-2"
+  },
+  {
+    "samples": 97732096,
+    "sample_rate": 24000000,
+    "axes": [
+      {
+        "axis": 1,
+        "pulses": 200000,
+        "period_mean_samples": 239.96687983439918,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013801973682237012
+      },
+      {
+        "axis": 2,
+        "pulses": 200000,
+        "period_mean_samples": 239.96687983439918,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013801973682237012
+      },
+      {
+        "axis": 3,
+        "pulses": 200000,
+        "period_mean_samples": 239.96687983439918,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013801973682237012
+      }
+    ],
+    "enable_inactive": true,
+    "stimulus_high_samples": 21262934,
+    "identity": [
+      {
+        "test": "identity",
+        "boot": 778196160,
+        "pair_id": "a796db01a619fb48a949b1bc9ec02c61252af1681c66f4d55ecc0fa723ab62bf"
+      }
+    ],
+    "firmware": [
+      {
+        "test": "case",
+        "boot": 778196160,
+        "sequence": 9,
+        "fixture": 20,
+        "bytes": 32,
+        "rate": 100000,
+        "count": 200000,
+        "direction": 0,
+        "lane": 0
+      },
+      {
+        "test": "pulses",
+        "core": 4,
+        "sent": 200000,
+        "received": 200000,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 2008185,
+        "value": 200000,
+        "checksum": 200000,
+        "heap_used": 104872,
+        "heap_free": 157272,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 200,
+        "wall_us": 2012267,
+        "minimum_stack_permill": 642,
+        "maximum_backlog": 145202,
+        "minimum_stack_thread": "Application Thread",
+        "latency": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "processing": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      },
+      {
+        "test": "pulses",
+        "core": 7,
+        "sent": 133,
+        "received": 0,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 2006755,
+        "value": 0,
+        "checksum": 0,
+        "heap_used": 154872,
+        "heap_free": 67464,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 151,
+        "wall_us": 2012634,
+        "minimum_stack_permill": 490,
+        "maximum_backlog": 0,
+        "minimum_stack_thread": "Application Thread",
+        "latency": {
+          "count": 133,
+          "mean_us": 353291.85,
+          "p50_us_upper": 360447,
+          "p95_us_upper": 686717,
+          "p99_us_upper": 686717,
+          "p999_us_upper": 686717,
+          "max_us": 686717
+        },
+        "processing": {
+          "count": 133,
+          "mean_us": 15048.241,
+          "p50_us_upper": 14335,
+          "p95_us_upper": 28540,
+          "p99_us_upper": 28540,
+          "p999_us_upper": 28540,
+          "max_us": 28540
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      }
+    ],
+    "before": [
+      {
+        "test": "status",
+        "frames": 6193,
+        "underruns": 0,
+        "errors": 0
+      }
+    ],
+    "after": [
+      {
+        "test": "status",
+        "frames": 6440,
+        "underruns": 0,
+        "errors": 0
+      }
+    ],
+    "seconds": 2,
+    "load_setting": 20,
+    "sha256_uncompressed": "52853fd07a89f344642804d080373f000c2949b2d6bba1935cc9e1d86335d0de",
+    "source": "build/motion-qualification/repeated-release-final/step-boot-3"
+  },
+  {
+    "samples": 14759467520,
+    "sample_rate": 24000000,
+    "axes": [
+      {
+        "axis": 1,
+        "pulses": 60000000,
+        "period_mean_samples": 239.96659833277664,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013919298542131031
+      },
+      {
+        "axis": 2,
+        "pulses": 60000000,
+        "period_mean_samples": 239.96659833277664,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013919298542131031
+      },
+      {
+        "axis": 3,
+        "pulses": 60000000,
+        "period_mean_samples": 239.96659833277664,
+        "period_min_samples": 239,
+        "period_max_samples": 240,
+        "width_min_samples": 120,
+        "width_max_samples": 121,
+        "clock_offset_percent": 0.013919298542131031
+      }
+    ],
+    "enable_inactive": true,
+    "stimulus_high_samples": 4843665318,
+    "identity": [
+      {
+        "test": "identity",
+        "boot": 3074030609,
+        "pair_id": "36fce5a0d1c14b6d5d6253c6e3f32018e2ddcd3e69ae7766da89291d476e360e"
+      }
+    ],
+    "firmware": [
+      {
+        "test": "pulses",
+        "core": 4,
+        "sent": 60000000,
+        "received": 60000000,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 600003245,
+        "value": 60000000,
+        "checksum": 60000000,
+        "heap_used": 107400,
+        "heap_free": 154744,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 59880,
+        "wall_us": 600004202,
+        "minimum_stack_permill": 408,
+        "maximum_backlog": 145569,
+        "latency": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "processing": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      },
+      {
+        "test": "pulses",
+        "core": 7,
+        "sent": 38732,
+        "received": 0,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 600000734,
+        "value": 0,
+        "checksum": 0,
+        "heap_used": 157112,
+        "heap_free": 82216,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 46710,
+        "wall_us": 600002578,
+        "minimum_stack_permill": 189,
+        "maximum_backlog": 0,
+        "latency": {
+          "count": 38732,
+          "mean_us": 106405880.903,
+          "p50_us_upper": 109051903,
+          "p95_us_upper": 212690693,
+          "p99_us_upper": 212690693,
+          "p999_us_upper": 212690693,
+          "max_us": 212690693
+        },
+        "processing": {
+          "count": 38732,
+          "mean_us": 15453.378,
+          "p50_us_upper": 14335,
+          "p95_us_upper": 22527,
+          "p99_us_upper": 28671,
+          "p999_us_upper": 30056,
+          "max_us": 30056
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      }
+    ],
+    "seconds": 600,
+    "load_setting": 20,
+    "capture_finalization": "Sample-count limit did not terminate; process stopped after firmware completion. Saved complete waveform independently reanalyzed.",
+    "sha256_gzip": "0fd9d8cf070eb12339440ffb29bb50a047a379f385f8b6de06f5026f358ff976",
+    "source": "build/motion-qualification/step-endurance-20"
+  },
+  {
+    "sample_rate": 24000000,
+    "samples": 72000000,
+    "enable_inactive": true,
+    "axes": [
+      {
+        "axis": 1,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      },
+      {
+        "axis": 2,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      },
+      {
+        "axis": 3,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      }
+    ],
+    "load_percent": 0,
+    "firmware": [
+      {
+        "test": "pulses",
+        "core": 4,
+        "sent": 100000,
+        "received": 100000,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 1003320,
+        "value": 100000,
+        "checksum": 100000,
+        "heap_used": 104392,
+        "heap_free": 157752,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 103,
+        "maximum_backlog": 145232,
+        "latency": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "processing": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      },
+      {
+        "test": "pulses",
+        "core": 7,
+        "sent": 77,
+        "received": 0,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 1008723,
+        "value": 0,
+        "checksum": 0,
+        "heap_used": 152272,
+        "heap_free": 87056,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 87,
+        "maximum_backlog": 0,
+        "latency": {
+          "count": 77,
+          "mean_us": 127013.234,
+          "p50_us_upper": 131071,
+          "p95_us_upper": 245759,
+          "p99_us_upper": 248681,
+          "p999_us_upper": 248681,
+          "max_us": 248681
+        },
+        "processing": {
+          "count": 77,
+          "mean_us": 13065.026,
+          "p50_us_upper": 12287,
+          "p95_us_upper": 22527,
+          "p99_us_upper": 22996,
+          "p999_us_upper": 22996,
+          "max_us": 22996
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      }
+    ],
+    "sha256": "f003df513c91d03ffdff88cf575dd4de65fe0bba20fda596655412f4643500d1",
+    "refill_margin": 4.230472623113363,
+    "source": "build/motion-qualification/step-static-0"
+  },
+  {
+    "sample_rate": 24000000,
+    "samples": 72000000,
+    "enable_inactive": true,
+    "axes": [
+      {
+        "axis": 1,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      },
+      {
+        "axis": 2,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      },
+      {
+        "axis": 3,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      }
+    ],
+    "load_percent": 20,
+    "firmware": [
+      {
+        "test": "pulses",
+        "core": 4,
+        "sent": 100000,
+        "received": 100000,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 1005768,
+        "value": 100000,
+        "checksum": 100000,
+        "heap_used": 106504,
+        "heap_free": 155640,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 101,
+        "maximum_backlog": 145218,
+        "latency": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "processing": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      },
+      {
+        "test": "pulses",
+        "core": 7,
+        "sent": 66,
+        "received": 0,
+        "backpressure": 0,
+        "errors": 1,
+        "elapsed_us": 1009065,
+        "value": 0,
+        "checksum": 0,
+        "heap_used": 156456,
+        "heap_free": 82872,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 76,
+        "maximum_backlog": 0,
+        "latency": {
+          "count": 66,
+          "mean_us": 188568.333,
+          "p50_us_upper": 196607,
+          "p95_us_upper": 359001,
+          "p99_us_upper": 359001,
+          "p999_us_upper": 359001,
+          "max_us": 359001
+        },
+        "processing": {
+          "count": 66,
+          "mean_us": 15249.121,
+          "p50_us_upper": 14335,
+          "p95_us_upper": 28281,
+          "p99_us_upper": 28281,
+          "p999_us_upper": 28281,
+          "max_us": 28281
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      }
+    ],
+    "sha256": "5940926d70089457d5344d1bae0d08716fea93de499f8c3476b59c1db085b7a1",
+    "refill_margin": 4.230880469363302,
+    "source": "build/motion-qualification/step-static-20"
+  },
+  {
+    "sample_rate": 24000000,
+    "samples": 72000000,
+    "enable_inactive": true,
+    "axes": [
+      {
+        "axis": 1,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      },
+      {
+        "axis": 2,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      },
+      {
+        "axis": 3,
+        "pulses": 100000,
+        "width_samples_min": 120,
+        "width_samples_max": 121,
+        "period_samples_mean": 239.9668096680967,
+        "clock_offset_percent": 0.013831217720983169,
+        "max_residual_samples": 0.9668096680966869
+      }
+    ],
+    "load_percent": 40,
+    "firmware": [
+      {
+        "test": "pulses",
+        "core": 4,
+        "sent": 100000,
+        "received": 100000,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 1012274,
+        "value": 100000,
+        "checksum": 100000,
+        "heap_used": 106480,
+        "heap_free": 155664,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 101,
+        "maximum_backlog": 145246,
+        "latency": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "processing": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      },
+      {
+        "test": "pulses",
+        "core": 7,
+        "sent": 53,
+        "received": 0,
+        "backpressure": 0,
+        "errors": 0,
+        "elapsed_us": 1010256,
+        "value": 0,
+        "checksum": 0,
+        "heap_used": 156432,
+        "heap_free": 82896,
+        "stack_free": 0,
+        "stack_size": 0,
+        "cpu_10ms_ticks": 63,
+        "maximum_backlog": 0,
+        "latency": {
+          "count": 53,
+          "mean_us": 261972.434,
+          "p50_us_upper": 294911,
+          "p95_us_upper": 490220,
+          "p99_us_upper": 490220,
+          "p999_us_upper": 490220,
+          "max_us": 490220
+        },
+        "processing": {
+          "count": 53,
+          "mean_us": 19024.472,
+          "p50_us_upper": 18431,
+          "p95_us_upper": 36863,
+          "p99_us_upper": 37342,
+          "p999_us_upper": 37342,
+          "max_us": 37342
+        },
+        "scheduling": {
+          "count": 0,
+          "mean_us": 0.0,
+          "p50_us_upper": 0,
+          "p95_us_upper": 0,
+          "p99_us_upper": 0,
+          "p999_us_upper": 0,
+          "max_us": 0
+        }
+      }
+    ],
+    "sha256": "bdaf3e7bf890af83e52c8f74a40efb96fcdd1801036707c6e6b7144345b869b7",
+    "refill_margin": 4.230064855486554,
+    "source": "build/motion-qualification/step-static-40"
+  }
+]

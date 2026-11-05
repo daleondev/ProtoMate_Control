@@ -1,0 +1,437 @@
+{
+  "reset": "coordinated firmware reset",
+  "boot_tokens": [
+    3337773152,
+    4178253041,
+    778196160
+  ],
+  "scope": "Release backend/communication repeatability; not coordinated motion qualification",
+  "boots": [
+    {
+      "boot": 1,
+      "reported_errors": 0,
+      "minimum_stack_permill": 490,
+      "raw": [
+        {
+          "test": "raw",
+          "core": 4,
+          "sent": 1000000,
+          "received": 1000000,
+          "backpressure": 944569,
+          "errors": 0,
+          "elapsed_us": 100000014,
+          "value": 0,
+          "checksum": 0,
+          "heap_used": 1384,
+          "heap_free": 260760,
+          "stack_free": 0,
+          "stack_size": 0,
+          "cpu_10ms_ticks": 10001,
+          "wall_us": 100019311,
+          "minimum_stack_permill": 642,
+          "maximum_backlog": 0,
+          "minimum_stack_thread": "Application Thread",
+          "latency": {
+            "count": 1000000,
+            "mean_us": 45.182,
+            "p50_us_upper": 14,
+            "p95_us_upper": 255,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1085
+          },
+          "processing": {
+            "count": 1000000,
+            "mean_us": 14.918,
+            "p50_us_upper": 14,
+            "p95_us_upper": 21,
+            "p99_us_upper": 35,
+            "p999_us_upper": 639,
+            "max_us": 879
+          },
+          "scheduling": {
+            "count": 1000000,
+            "mean_us": 10.097,
+            "p50_us_upper": 0,
+            "p95_us_upper": 1,
+            "p99_us_upper": 383,
+            "p999_us_upper": 575,
+            "max_us": 761
+          }
+        },
+        {
+          "test": "raw",
+          "core": 7,
+          "sent": 1000000,
+          "received": 1000000,
+          "backpressure": 406,
+          "errors": 0,
+          "elapsed_us": 99999949,
+          "value": 0,
+          "checksum": 0,
+          "heap_used": 52944,
+          "heap_free": 169392,
+          "stack_free": 0,
+          "stack_size": 0,
+          "cpu_10ms_ticks": 9980,
+          "wall_us": 100021304,
+          "minimum_stack_permill": 508,
+          "maximum_backlog": 0,
+          "minimum_stack_thread": "Application Thread",
+          "latency": {
+            "count": 1000000,
+            "mean_us": 49.306,
+            "p50_us_upper": 19,
+            "p95_us_upper": 239,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1160
+          },
+          "processing": {
+            "count": 1000000,
+            "mean_us": 39.208,
+            "p50_us_upper": 19,
+            "p95_us_upper": 55,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1160
+          },
+          "scheduling": {
+            "count": 1000000,
+            "mean_us": 30.264,
+            "p50_us_upper": 0,
+            "p95_us_upper": 223,
+            "p99_us_upper": 767,
+            "p999_us_upper": 959,
+            "max_us": 1076
+          }
+        }
+      ],
+      "step_axes": [
+        {
+          "axis": 1,
+          "pulses": 200000,
+          "period_mean_samples": 239.96686483432418,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013808225439237987
+        },
+        {
+          "axis": 2,
+          "pulses": 200000,
+          "period_mean_samples": 239.96686483432418,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013808225439237987
+        },
+        {
+          "axis": 3,
+          "pulses": 200000,
+          "period_mean_samples": 239.96686483432418,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013808225439237987
+        }
+      ],
+      "enable_inactive": true,
+      "gui_after": [
+        {
+          "test": "status",
+          "frames": 6441,
+          "underruns": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "boot": 2,
+      "reported_errors": 0,
+      "minimum_stack_permill": 490,
+      "raw": [
+        {
+          "test": "raw",
+          "core": 4,
+          "sent": 1000000,
+          "received": 1000000,
+          "backpressure": 945608,
+          "errors": 0,
+          "elapsed_us": 100000036,
+          "value": 0,
+          "checksum": 0,
+          "heap_used": 1384,
+          "heap_free": 260760,
+          "stack_free": 0,
+          "stack_size": 0,
+          "cpu_10ms_ticks": 10001,
+          "wall_us": 100019073,
+          "minimum_stack_permill": 642,
+          "maximum_backlog": 0,
+          "minimum_stack_thread": "Application Thread",
+          "latency": {
+            "count": 1000000,
+            "mean_us": 44.545,
+            "p50_us_upper": 14,
+            "p95_us_upper": 255,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1084
+          },
+          "processing": {
+            "count": 1000000,
+            "mean_us": 14.227,
+            "p50_us_upper": 14,
+            "p95_us_upper": 19,
+            "p99_us_upper": 27,
+            "p999_us_upper": 639,
+            "max_us": 889
+          },
+          "scheduling": {
+            "count": 1000000,
+            "mean_us": 10.127,
+            "p50_us_upper": 0,
+            "p95_us_upper": 1,
+            "p99_us_upper": 383,
+            "p999_us_upper": 575,
+            "max_us": 646
+          }
+        },
+        {
+          "test": "raw",
+          "core": 7,
+          "sent": 1000000,
+          "received": 1000000,
+          "backpressure": 434,
+          "errors": 0,
+          "elapsed_us": 99999953,
+          "value": 0,
+          "checksum": 0,
+          "heap_used": 52944,
+          "heap_free": 169392,
+          "stack_free": 0,
+          "stack_size": 0,
+          "cpu_10ms_ticks": 9979,
+          "wall_us": 100020020,
+          "minimum_stack_permill": 508,
+          "maximum_backlog": 0,
+          "minimum_stack_thread": "Application Thread",
+          "latency": {
+            "count": 1000000,
+            "mean_us": 48.693,
+            "p50_us_upper": 19,
+            "p95_us_upper": 239,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1087
+          },
+          "processing": {
+            "count": 1000000,
+            "mean_us": 38.566,
+            "p50_us_upper": 19,
+            "p95_us_upper": 51,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1087
+          },
+          "scheduling": {
+            "count": 1000000,
+            "mean_us": 30.318,
+            "p50_us_upper": 0,
+            "p95_us_upper": 223,
+            "p99_us_upper": 767,
+            "p999_us_upper": 959,
+            "max_us": 1056
+          }
+        }
+      ],
+      "step_axes": [
+        {
+          "axis": 1,
+          "pulses": 200000,
+          "period_mean_samples": 239.96687483437418,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013804057601141118
+        },
+        {
+          "axis": 2,
+          "pulses": 200000,
+          "period_mean_samples": 239.96687483437418,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013804057601141118
+        },
+        {
+          "axis": 3,
+          "pulses": 200000,
+          "period_mean_samples": 239.96687483437418,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013804057601141118
+        }
+      ],
+      "enable_inactive": true,
+      "gui_after": [
+        {
+          "test": "status",
+          "frames": 6442,
+          "underruns": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "boot": 3,
+      "reported_errors": 0,
+      "minimum_stack_permill": 490,
+      "raw": [
+        {
+          "test": "raw",
+          "core": 4,
+          "sent": 1000000,
+          "received": 1000000,
+          "backpressure": 955925,
+          "errors": 0,
+          "elapsed_us": 100000018,
+          "value": 0,
+          "checksum": 0,
+          "heap_used": 1384,
+          "heap_free": 260760,
+          "stack_free": 0,
+          "stack_size": 0,
+          "cpu_10ms_ticks": 10001,
+          "wall_us": 100019309,
+          "minimum_stack_permill": 642,
+          "maximum_backlog": 0,
+          "minimum_stack_thread": "Application Thread",
+          "latency": {
+            "count": 1000000,
+            "mean_us": 44.897,
+            "p50_us_upper": 14,
+            "p95_us_upper": 287,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1121
+          },
+          "processing": {
+            "count": 1000000,
+            "mean_us": 14.289,
+            "p50_us_upper": 14,
+            "p95_us_upper": 19,
+            "p99_us_upper": 29,
+            "p999_us_upper": 639,
+            "max_us": 953
+          },
+          "scheduling": {
+            "count": 1000000,
+            "mean_us": 10.346,
+            "p50_us_upper": 0,
+            "p95_us_upper": 1,
+            "p99_us_upper": 383,
+            "p999_us_upper": 575,
+            "max_us": 747
+          }
+        },
+        {
+          "test": "raw",
+          "core": 7,
+          "sent": 1000000,
+          "received": 1000000,
+          "backpressure": 392,
+          "errors": 0,
+          "elapsed_us": 99999942,
+          "value": 0,
+          "checksum": 0,
+          "heap_used": 52944,
+          "heap_free": 169392,
+          "stack_free": 0,
+          "stack_size": 0,
+          "cpu_10ms_ticks": 9980,
+          "wall_us": 100021426,
+          "minimum_stack_permill": 508,
+          "maximum_backlog": 0,
+          "minimum_stack_thread": "Application Thread",
+          "latency": {
+            "count": 1000000,
+            "mean_us": 49.629,
+            "p50_us_upper": 19,
+            "p95_us_upper": 255,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1156
+          },
+          "processing": {
+            "count": 1000000,
+            "mean_us": 39.283,
+            "p50_us_upper": 19,
+            "p95_us_upper": 55,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1156
+          },
+          "scheduling": {
+            "count": 1000000,
+            "mean_us": 30.608,
+            "p50_us_upper": 0,
+            "p95_us_upper": 223,
+            "p99_us_upper": 831,
+            "p999_us_upper": 959,
+            "max_us": 1076
+          }
+        }
+      ],
+      "step_axes": [
+        {
+          "axis": 1,
+          "pulses": 200000,
+          "period_mean_samples": 239.96687983439918,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013801973682237012
+        },
+        {
+          "axis": 2,
+          "pulses": 200000,
+          "period_mean_samples": 239.96687983439918,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013801973682237012
+        },
+        {
+          "axis": 3,
+          "pulses": 200000,
+          "period_mean_samples": 239.96687983439918,
+          "period_min_samples": 239,
+          "period_max_samples": 240,
+          "width_min_samples": 120,
+          "width_max_samples": 121,
+          "clock_offset_percent": 0.013801973682237012
+        }
+      ],
+      "enable_inactive": true,
+      "gui_after": [
+        {
+          "test": "status",
+          "frames": 6440,
+          "underruns": 0,
+          "errors": 0
+        }
+      ]
+    }
+  ]
+}

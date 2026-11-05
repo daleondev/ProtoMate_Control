@@ -1,0 +1,242 @@
+[
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-1/result.json",
+    "bytes": 4163,
+    "sha256": "59eeee941bcb1c7873dc3135086e243422fc5f80e336d7d50251c59d7439668a"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-1/firmware.json",
+    "bytes": 3299,
+    "sha256": "7afdc02068de4ee31dc8b0690aba73cfcf3959d3ab98dc6d493ca6107c83c905"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-1/logic.bin.gz",
+    "bytes": 1585172,
+    "sha256": "95efa151494a79b65e43dc008466ec5e50f113c67d0588980a48e2f2a6ace419"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-1/result.json",
+    "bytes": 4160,
+    "sha256": "aea18812cd9c1f898ccdc8d83aab17d0deb8cbbcb4b12ec7f339a3ef3a35d83b"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-1/firmware.json",
+    "bytes": 3300,
+    "sha256": "d776c34043650f9ffe193689ae9059007c65e2c4f2047204564b608d658bcc0c"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-1/logic.bin.gz",
+    "bytes": 1885327,
+    "sha256": "e71ef2d5e7118b32b00393c3256628d2feb2c90ac9210fb37d11fbfd3afc77e2"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-2/result.json",
+    "bytes": 4167,
+    "sha256": "2acfd97aa027754ab7b18498245afcff3109f921586447012c7ccb46417848bb"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-2/firmware.json",
+    "bytes": 3301,
+    "sha256": "5ebead0ba09d4bc6debece34304f6516dced57357c79afded3d82bd79a9156fb"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-2/logic.bin.gz",
+    "bytes": 1570619,
+    "sha256": "3114d8677ac47efb00ef25acc9f3ab23fec77f16d310f46cfdb3bb3d5a22a4eb"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-2/result.json",
+    "bytes": 4163,
+    "sha256": "2730b71bada08b2820c3b5af0042421565808310d6f9d2f2d89a6205d6a1e7a5"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-2/firmware.json",
+    "bytes": 3302,
+    "sha256": "ce2642c332a5250f6538dd8ae8f29ff0ed4c1aec1f2b834dd8b84003f7d27a34"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-2/logic.bin.gz",
+    "bytes": 1883187,
+    "sha256": "6fea6e4cac96c3b1cd38247ec5b096712879f4fe3eb532323bb46a85d07ab68d"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-3/result.json",
+    "bytes": 4165,
+    "sha256": "bf6173a03df682c7b7b1ed0b088e3da5c2058c0b1b56aabd60d3b5319f95638d"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-3/firmware.json",
+    "bytes": 3301,
+    "sha256": "b8050e6922159b026b4a7bf1958cc9e9a9f6629289a654972f68d40751861214"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/equal-boot-3/logic.bin.gz",
+    "bytes": 1575647,
+    "sha256": "89f6641a2a2873694714871668beecf184cf3f008dfed75e28dcd2849dd7cb00"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-3/result.json",
+    "bytes": 4162,
+    "sha256": "8951eecaffa395cc9fd00e38b0c98afe57b7bac576bed143fa32362351dcad29"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-3/firmware.json",
+    "bytes": 3302,
+    "sha256": "42f4bfc1e26feb42734fc2bd221c70c545b3350aed014c0880ee4b788e35ee05"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/scaled-boot-3/logic.bin.gz",
+    "bytes": 1877615,
+    "sha256": "134ea6cd5bf555974f87d063ce4d43ba353b570940365e5925dfe994bad5936c"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-new-cable/result.json",
+    "bytes": 4270,
+    "sha256": "47c5a9ab0a5db3c916482b196f933fd4673af0721d5405681bb9e806237cb270"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-new-cable/firmware.json",
+    "bytes": 3335,
+    "sha256": "76e2e6056d242a4898557f4e09c6b27de4e37e7597b6ffc3f4e1adb4d073596d"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-new-cable/logic.bin.gz",
+    "bytes": 134279255,
+    "sha256": "8b50e44b1da2a563bf093469841483ec34d471b011c768efd9abb1b5760be911"
+  },
+  {
+    "path": "build/motion-options/fast-million.jsonl",
+    "bytes": 4957,
+    "sha256": "000ee6432178c80adff7f621783de283d45f7785d3392008f997c1fcf3ce6729"
+  },
+  {
+    "path": "build/motion-options/firmware/e8d8c4e8e5c2e055f2aaef12c57c89c492cc1165bc3e1d069f34b126dabf0460",
+    "bytes": 37105484,
+    "sha256": "e8d8c4e8e5c2e055f2aaef12c57c89c492cc1165bc3e1d069f34b126dabf0460"
+  },
+  {
+    "path": "build/motion-options/firmware/e54b7f3e02a40abe696e634838b4a0e4a4eb64048187aafa664c9a4f22eb32f7",
+    "bytes": 1059720,
+    "sha256": "e54b7f3e02a40abe696e634838b4a0e4a4eb64048187aafa664c9a4f22eb32f7"
+  },
+  {
+    "path": "build/motion-options/firmware/b9390a56a870a25aaf5920d047ecb09725b540d555442d3f7b44341eca52f8f5",
+    "bytes": 24016300,
+    "sha256": "b9390a56a870a25aaf5920d047ecb09725b540d555442d3f7b44341eca52f8f5"
+  },
+  {
+    "path": "build/motion-options/firmware/2300924739037e48f13000064fbcf78759bd35023be14cebe91748c089e03639",
+    "bytes": 624,
+    "sha256": "2300924739037e48f13000064fbcf78759bd35023be14cebe91748c089e03639"
+  },
+  {
+    "path": "build/motion-options/firmware/21807c038fc5be12353293744095ff5a2ff2158bd74b8efa0199d033424ff8db",
+    "bytes": 397112,
+    "sha256": "21807c038fc5be12353293744095ff5a2ff2158bd74b8efa0199d033424ff8db"
+  },
+  {
+    "path": "build/motion-options/firmware/a9e4b784facf616a86002955abd20f6bd4e3d53835c51b664bd688a01cdaff9c",
+    "bytes": 2151,
+    "sha256": "a9e4b784facf616a86002955abd20f6bd4e3d53835c51b664bd688a01cdaff9c"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/boot-1.jsonl",
+    "bytes": 12676,
+    "sha256": "311dc7f21ee82f7e62f670439994482ab54a312c432f426588483fc69c7baf05"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/boot-2.jsonl",
+    "bytes": 12683,
+    "sha256": "55660961434093ac1bab4ce3b04f9d41ed8f936aebec212ffa9ba5a08b437e89"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/boot-3.jsonl",
+    "bytes": 12682,
+    "sha256": "858d7133c68fd0312d7ee82951066e082e4c4a9fabdcb6f9020c8a30479f947e"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/firmware/5825d78d2282d26393496c7a73081870dabb7db5829213dd3f41f0b187697885",
+    "bytes": 624,
+    "sha256": "5825d78d2282d26393496c7a73081870dabb7db5829213dd3f41f0b187697885"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/firmware/6d527bfecc8ec1f7b0484f652c9c4a18dda9d4bda91134b4b357cde8203e63e0",
+    "bytes": 1062128,
+    "sha256": "6d527bfecc8ec1f7b0484f652c9c4a18dda9d4bda91134b4b357cde8203e63e0"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/firmware/e7b600a3c950c41389a30256c5a244bab3b19befad0c14ed32bf04ea1741b3fd",
+    "bytes": 24945860,
+    "sha256": "e7b600a3c950c41389a30256c5a244bab3b19befad0c14ed32bf04ea1741b3fd"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/firmware/06b242844bcd1e80dcd362ce52293a4e4f23e8a3daf144df1a3534d53c4d8bc9",
+    "bytes": 404572,
+    "sha256": "06b242844bcd1e80dcd362ce52293a4e4f23e8a3daf144df1a3534d53c4d8bc9"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/firmware/0ef8dc21c792c74c4d08194f77af69e8951b2c51996c88f4bde673b1abf536e2",
+    "bytes": 37963660,
+    "sha256": "0ef8dc21c792c74c4d08194f77af69e8951b2c51996c88f4bde673b1abf536e2"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/firmware/99e473631cd7f8a024a2556bdacc5d2f9d2050e75f763a8ac252f5d4527b55f6",
+    "bytes": 2150,
+    "sha256": "99e473631cd7f8a024a2556bdacc5d2f9d2050e75f763a8ac252f5d4527b55f6"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/endurance/firmware.json",
+    "bytes": 3339,
+    "sha256": "cf0ddcbba44558839c15fe9c7eb4a447da339d5f6c968598355b0b33ea73308a"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/endurance/sample-summary.json",
+    "bytes": 713,
+    "sha256": "a2ae73d317e225458907c3b92629d4807d3c48380c19d18901d9d1f26162c793"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/endurance/logic.bin.gz",
+    "bytes": 134229295,
+    "sha256": "2cd39eb3ef8cc2c0a1e87fe78dd12a06bae4dc639666c19b71375bf95ba5996f"
+  },
+  {
+    "path": "build/motion-options/qualified-25k/endurance/step-waveform.json",
+    "bytes": 5391,
+    "sha256": "236d3b44c716df281f0e2eb8e3dc893d1b6fcc97867424fff3f3790fcc201b53"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-confirmation/firmware.json",
+    "bytes": 3340,
+    "sha256": "159689399bcd32760d87de83567b9057645aea38df60de1f46117030d70c792c"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-confirmation/sample-summary.json",
+    "bytes": 713,
+    "sha256": "496326b183c13b24009bb66c28e506d28e8e4ec30dea4b0bf5cd710d1329f50f"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-confirmation/logic.bin.gz",
+    "bytes": 134221104,
+    "sha256": "4171697e628c91e7675e23a21a8f22e947c07e09146065a2bf14aec4156ba5a0"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-confirmation/step-waveform.json",
+    "bytes": 6468,
+    "sha256": "e72aa4c23243957b40d6117ae02cf7edff2a5d16434e11c87696f899588c6c96"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-reseated/sample-summary.json",
+    "bytes": 707,
+    "sha256": "983b76a2d03ce3c3871621fee8297b8174f668339bb170dec3d0c84855df4ea1"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-reseated/logic.bin.gz",
+    "bytes": 117191097,
+    "sha256": "5d84551505e5b3d1d016eecc1cba9d9028b5261ae8976242428c20aaf8aa2368"
+  },
+  {
+    "path": "build/motion-options/endurance-25k-reseated/aborted.json",
+    "bytes": 196,
+    "sha256": "14b33c65721b9576d2e4dc7726fa029d611ec37c5cff73e2d176e8121a288e1b"
+  }
+]

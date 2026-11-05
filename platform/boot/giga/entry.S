@@ -25,7 +25,7 @@ giga_jump:
     bx r0
 .size giga_jump,.-giga_jump
 
-#if defined(GIGA_APPLICATION) && defined(CORE_CM4)
+#if defined(GIGA_APPLICATION) && (defined(CORE_CM4) || defined(GIGA_MOTION_BENCH))
 .section .fast.personality,"ax",%progbits
 .global __giga_fast_personality
 .type __giga_fast_personality,%function

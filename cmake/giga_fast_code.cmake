@@ -29,6 +29,7 @@ set(giga_fast_sources
     platform/runtime/libstdcxx/clock.cpp
     platform/runtime/libstdcxx/SteadyClock.cpp
     platform/runtime/libstdcxx/atomic.cpp
+    platform/runtime/libstdcxx/tls.cpp
     platform/runtime/libstdcxx/backend.cpp
     platform/runtime/threadx/Support.cpp
     platform/runtime/stm32/initialize.cpp
@@ -38,6 +39,16 @@ set(giga_fast_sources
     platform/hal/stm32/hal.cpp)
 if(GIGA_STEP_BENCH)
     list(APPEND giga_fast_sources examples/giga_step_bench/IoBench.cpp)
+endif()
+if(GIGA_MOTION_BENCH)
+    list(APPEND giga_fast_sources
+        examples/giga_motion_bench/Bench.cpp
+        examples/giga_motion_bench/ProfileBench.cpp
+        examples/giga_motion_bench/FixedBench.cpp
+        examples/giga_motion_bench/CompactExpand.cpp
+        examples/giga_motion_bench/FastControl.cpp
+        examples/giga_motion_bench/Pulses.cpp
+        )
 endif()
 set(GIGA_FAST_OBJECTS "")
 foreach(source IN LISTS giga_fast_sources)
@@ -62,6 +73,13 @@ set(giga_fast_functions
     HAL_HSEM_FastTake HAL_HSEM_Release HAL_HSEM_IRQHandler HAL_HSEM_ActivateNotification HAL_IncTick
     _ZNSt3_V216generic_categoryEv
     _ZNSt6chronossIxSt5ratioILx1ELx1000000000EExS2_EEDaRKNS_8durationIT_T0_EERKNS3_IT1_T2_EE)
+if(GIGA_MOTION_BENCH)
+    # This weak inline fallback is selected from the QSPI kernel object by the
+    # linker, even when its ISR caller lives in ProfileBench's RAM section.
+    list(APPEND giga_fast_functions
+        _ZNK12motion_bench7compact5Curve7crossedEmd
+        _ZN3hal5stm3214InterruptGuard*)
+endif()
 foreach(symbol IN LISTS giga_fast_functions)
     string(APPEND GIGA_FAST_OBJECTS " *(.text.${symbol})")
 endforeach()
