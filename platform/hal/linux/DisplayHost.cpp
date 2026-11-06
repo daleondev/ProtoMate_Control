@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <pthread.h>
+#include <signal.h>
 
 namespace hal::linux::display
 {
@@ -17,8 +18,25 @@ namespace hal::linux::display
         pthread_mutex_t mutex PTHREAD_MUTEX_INITIALIZER;
         struct Lock
         {
-            Lock() { pthread_mutex_lock(&mutex); }
-            ~Lock() { pthread_mutex_unlock(&mutex); }
+            sigset_t previous{};
+            Lock()
+            {
+                // ThreadX/Linux preempts workers with SIGUSR1. Suspending a
+                // worker while it owns this native mutex lets a higher-priority
+                // worker block in pthread_mutex_lock without yielding ThreadX:
+                // the owner can never resume. No ThreadX calls belong inside
+                // this short native critical section (including SDL's side).
+                sigset_t suspended{};
+                sigemptyset(&suspended);
+                sigaddset(&suspended, SIGUSR1);
+                pthread_sigmask(SIG_BLOCK, &suspended, &previous);
+                pthread_mutex_lock(&mutex);
+            }
+            ~Lock()
+            {
+                pthread_mutex_unlock(&mutex);
+                pthread_sigmask(SIG_SETMASK, &previous, nullptr);
+            }
         };
         std::array<std::array<std::uint16_t, WIDTH * HEIGHT>, 2> buffers{};
         hal::display::State state{};

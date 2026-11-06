@@ -30,6 +30,9 @@ namespace simulation
     }
     Session::Session(SessionOptions options)
       : m_options{ std::move(options) }
+      // CAD collision queries can exceed the live hardware-link timeout under
+      // instrumentation. Compute immutable geometry before launching the child.
+      , m_configuration{ Machine::configuration(m_options.profile) }
     {
         m_options.profile.validate();
         for (auto& fd : m_events) {
@@ -103,7 +106,7 @@ namespace simulation
         release(shared.epoch_ns,
                 static_cast<std::uint64_t>(std::chrono::system_clock::now().time_since_epoch() /
                                            std::chrono::nanoseconds{ 1 }));
-        Machine machine{ shared, m_options.profile, m_options.media_directory };
+        Machine machine{ shared, m_options.profile, m_options.media_directory, m_configuration };
         try {
             execute(machine, stop);
         } catch (...) {
@@ -159,8 +162,9 @@ namespace simulation
             q.session = shared.session;
             q.sequence = 0;
             // Simulator controls never masquerade as HAL register writes.
-            if (q.operation != Operation::State && q.operation != Operation::Configuration && q.operation != Operation::Fault &&
-                q.operation != Operation::Power && q.operation != Operation::Hello)
+            if (q.operation != Operation::State && q.operation != Operation::Configuration &&
+                q.operation != Operation::Fault && q.operation != Operation::Power &&
+                q.operation != Operation::Hello)
                 return Packet{ .operation = q.operation, .status = EINVAL };
             return machine.execute(q);
         }) };

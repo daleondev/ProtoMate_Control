@@ -35,11 +35,11 @@ loop M4 execution worker · notifications + up to 1 ms timed wait when active
   O -> H : preparePending(): fill requested DMA buffers
   O -> O : check faults, ownership lease and motion timeout
   O -> E : renew(id); service()
-  opt Maintenance due · nominally every 20 ms
+  opt Maintenance due · nominally every 40 ms
     E -> E : build next immutable schedule bank\ninclude stopping continuation from its boundary
     E -> H : splice(replacement, current boundary)
     H --> E : accepted, retry or error
-    E -> E : advance committed frontier toward now + 40 ms
+    E -> E : advance committed frontier toward now + 80 ms
   end
   H -> H : hardware-timed STEP edges
   H -->> O : refill / completion notifications

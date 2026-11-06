@@ -14,7 +14,13 @@ namespace io::motion
         Server(pnm::msg::Bus& bus, Controller& controller);
         void run(std::stop_token stop);
         void peerLost(bool stopping) noexcept
-        { if(stopping)m_peerStopping=true; m_peerLost=true;m_notification->signal(); }
+        {
+            if (stopping) {
+                m_peerStopping = true;
+            }
+            m_peerLost = true;
+            m_notification->signal();
+        }
 
       private:
         using Execution = pnm::msg::ActionExecution<::motion::MotorProgress, ::motion::MotorResult>;
@@ -32,8 +38,8 @@ namespace io::motion
             pnm::msg::ReadinessRegistration cancellation;
         };
         using ProgramReply = pnm::msg::Reply<::motion::trajectory::Packet>;
-        using ProgramExecution = pnm::msg::ActionExecution<::motion::trajectory::Update,
-                                                          ::motion::trajectory::Update>;
+        using ProgramExecution =
+          pnm::msg::ActionExecution<::motion::trajectory::Update, ::motion::trajectory::Update>;
         struct ProgramCommand
         {
             ::motion::trajectory::Request request;
@@ -44,7 +50,10 @@ namespace io::motion
             std::atomic_bool done{};
             bool started{};
             ProgramCommand(::motion::trajectory::Request r, ProgramReply response)
-              : request(std::move(r)), reply(std::move(response)) {}
+              : request(r)
+              , reply(std::move(response))
+            {
+            }
         };
         struct ProgramFinished
         {
@@ -80,8 +89,8 @@ namespace io::motion
             bool started{};
         };
         ::motion::MotorResponse request(const ::motion::MotorRequest& request,
-                                         bool urgent,
-                                         std::stop_token stop);
+                                        bool urgent,
+                                        std::stop_token stop);
         void deferCommand(const ::motion::MotorRequest& request, Reply reply);
         void finishCommand();
         void cancelCommand();
@@ -99,7 +108,7 @@ namespace io::motion
         std::array<std::optional<ProgramJob>, 3> m_programJobs;
         std::uint64_t m_commandGeneration{ 1 }, m_sequence{};
         std::stop_token m_stop;
-        std::atomic_bool m_peerLost{},m_peerStopping{};
+        std::atomic_bool m_peerLost{}, m_peerStopping{};
         bool m_discardCommands{}; // Dispatcher-only, while draining pre-stop requests.
         // One bounded ordinary operation; the dispatcher stays available to
         // stop axes, acknowledge cancellations and publish telemetry.
@@ -111,8 +120,10 @@ namespace io::motion
         pnm::msg::ServiceServer<::motion::MotorRequest, ::motion::MotorResponse> m_commands, m_urgent;
         pnm::msg::ActionServer<::motion::MotorGoal, ::motion::MotorProgress, ::motion::MotorResult> m_motions;
         pnm::msg::ServiceServer<::motion::trajectory::Packet, ::motion::trajectory::Packet> m_trajectories;
-        pnm::msg::ServiceServer<::motion::trajectory::Packet, ::motion::trajectory::Packet> m_trajectoryControl;
-        pnm::msg::ActionServer<::motion::trajectory::Run, ::motion::trajectory::Update,
-                              ::motion::trajectory::Update> m_programs;
+        pnm::msg::ServiceServer<::motion::trajectory::Packet, ::motion::trajectory::Packet>
+          m_trajectoryControl;
+        pnm::msg::
+          ActionServer<::motion::trajectory::Run, ::motion::trajectory::Update, ::motion::trajectory::Update>
+            m_programs;
     };
 }

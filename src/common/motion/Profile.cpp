@@ -113,9 +113,9 @@ namespace motion
             const auto available{ m_distance - m_state.position };
             const auto inherited{ m_state.velocity };
             const auto ceiling{ std::max(limits.velocity, m_endVelocity) };
-            const auto via{ [&](double cruise) {
+            const auto via{ [inherited, limits, end = m_endVelocity](double cruise) {
                 return change_distance(inherited, cruise, limits.deceleration, limits.jerk) +
-                       change_distance(cruise, m_endVelocity, limits.deceleration, limits.jerk);
+                       change_distance(cruise, end, limits.deceleration, limits.jerk);
             } };
             if (via(ceiling) > available) {
                 // A short successor may need one continuous deceleration. Do
@@ -163,9 +163,9 @@ namespace motion
         // A blend can explicitly request a junction faster than the previous
         // command's cruise speed. Preserve an inherited higher velocity too.
         const auto maximum_peak{ std::max(limits.velocity, minimum_peak) };
-        const auto required{ [&](double peak) {
+        const auto required{ [from, limits, end = m_endVelocity](double peak) {
             return change_distance(from, peak, limits.acceleration, limits.jerk) +
-                   change_distance(peak, m_endVelocity, limits.deceleration, limits.jerk);
+                   change_distance(peak, end, limits.deceleration, limits.jerk);
         } };
         const auto minimum_distance{ required(minimum_peak) };
         if (!std::isfinite(minimum_distance) ||
@@ -331,15 +331,12 @@ namespace motion
 
     double Profile::maximumStepInterval(double step) const noexcept
     {
-        double result{};
-        const auto examine{ [&](double position) {
-            result = std::max(
-              result, timeAt(std::min(m_distance, position + step)) - timeAt(std::max(0.0, position - step)));
+        const auto interval{ [this, step](double position) {
+            return timeAt(std::min(m_distance, position + step)) - timeAt(std::max(0.0, position - step));
         } };
-        examine(0.0);
-        examine(m_distance);
+        double result{ std::max(interval(0.0), interval(m_distance)) };
         for (unsigned i{ 0 }; i < m_size; ++i) {
-            examine(m_phases[i].state.position);
+            result = std::max(result, interval(m_phases[i].state.position));
         }
         return result;
     }
@@ -353,8 +350,7 @@ std::optional<motion::Profile> motion::Profile::brake(double velocity,
     // few binary64 ulps above its limit. Preserve the incoming state (C2 join),
     // allowing only arithmetic roundoff, not the broader admission tolerance.
     const auto exceeds = [](double value, double limit) {
-        return value > limit && value - limit >
-          8 * std::numeric_limits<double>::epsilon() * limit;
+        return value > limit && value - limit > 8 * std::numeric_limits<double>::epsilon() * limit;
     };
     if (!std::isfinite(velocity) || velocity < 0 || !std::isfinite(acceleration) ||
         !std::isfinite(limits.deceleration) || limits.deceleration <= 0 ||
@@ -364,18 +360,20 @@ std::optional<motion::Profile> motion::Profile::brake(double velocity,
         return {};
     }
     Profile result{};
-    result.m_state = { 0, velocity, acceleration };
+    result.m_state = { .position = 0, .velocity = velocity, .acceleration = acceleration };
     if (acceleration != 0) {
         const double duration{ std::abs(acceleration) / limits.jerk };
-        const double end_velocity{ velocity + 0.5 * acceleration * duration };
+        const double end_velocity{ velocity + (0.5 * acceleration * duration) };
         if (end_velocity < 0 || !std::isfinite(end_velocity)) {
             return {};
         }
-        result.append({ duration, -std::copysign(limits.jerk, acceleration), acceleration });
+        result.append({ .duration = duration,
+                        .jerk = -std::copysign(limits.jerk, acceleration),
+                        .acceleration = acceleration });
         result.m_state.acceleration = 0;
     }
     if (result.m_state.velocity > 0) {
-        result.changeVelocity({ 0, limits.deceleration, limits.jerk });
+        result.changeVelocity({ .target = 0, .acceleration = limits.deceleration, .jerk = limits.jerk });
     }
     result.m_distance = result.m_state.position;
     result.m_endVelocity = 0;
@@ -451,25 +449,33 @@ std::optional<motion::Profile> motion::Profile::fromDescription(const Descriptio
 
 std::optional<motion::Profile> motion::Profile::scaled(double scale) const noexcept
 {
-    if (!std::isfinite(scale) || scale <= 0) return {};
+    if (!std::isfinite(scale) || scale <= 0) {
+        return {};
+    }
     auto d = description();
     d.distance *= scale;
     d.end_velocity *= scale;
     for (unsigned i = 0; i < d.size; ++i) {
         auto& p = d.phases[i];
-        p.position *= scale; p.velocity *= scale;
-        p.acceleration *= scale; p.jerk *= scale;
+        p.position *= scale;
+        p.velocity *= scale;
+        p.acceleration *= scale;
+        p.jerk *= scale;
     }
     return fromDescription(d);
 }
 
 bool motion::Profile::brakingToRest(double time) const noexcept
 {
-    if (m_endVelocity != 0 || at(time).acceleration >= 0) return false;
-    for (unsigned i=0;i<m_size;++i) {
-        const auto& p=m_phases[i];
-        if (p.start+p.duration>time &&
-            (p.state.acceleration>1e-8 || p.state.acceleration+p.jerk*p.duration>1e-8)) return false;
+    if (m_endVelocity != 0 || at(time).acceleration >= 0) {
+        return false;
+    }
+    for (unsigned i = 0; i < m_size; ++i) {
+        const auto& p = m_phases[i];
+        if (p.start + p.duration > time &&
+            (p.state.acceleration > 1e-8 || p.state.acceleration + (p.jerk * p.duration) > 1e-8)) {
+            return false;
+        }
     }
     return true;
 }

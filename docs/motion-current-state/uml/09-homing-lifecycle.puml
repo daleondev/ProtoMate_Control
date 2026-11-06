@@ -1,0 +1,59 @@
+@startuml
+!include style.iuml
+title Sequential robot homing · lifetime, deadlines and cleanup
+caption The same StepperMotor seek/release/re-latch path is used for individual axis homing.
+footer Software behavior; disconnected-board fixtures use synthetic reference switches.
+autonumber
+box "M7 · UI" #EDF4FE
+participant "Client / Robot" as C
+end box
+boundary "Serialized ICC" as W #FFF5DF
+box "M4 · IO" #EAF7F4
+participant "Server" as S
+participant "Controller\nexecution worker" as O
+participant "StepperMotor\nselected stage" as M
+participant "Runtime\nThreadX" as T
+end box
+C -> W : Acquire Robot ownership; Prepare Home; Run
+W -> S : deferred preparation / action
+S -> O : validate version, reservation, revisions, configuration
+O -> O : store order and per-axis limits\nretain whole-robot ownership
+S -> O : startProgram(completion callback)
+O -> O : arm overall timeout if supplied
+S --> W : accepted
+W --> C : Running
+loop Configured homing order, while no cancellation / fault / timeout
+  O -> M : reference(seek, latch, stage timeout)
+  M -> M : join previous worker before reusing its stack
+  M -> T : create_jthread with reserved stack\n10 KiB ARM / 16 KiB Linux, priority 16
+  note over M,T
+    Stack storage is reserved once per motor.
+    Thread control / TLS still need bounded runtime resources.
+    Creation failures are logged with motor and job identity.
+  end note
+  M --> O : future<Result>; attach completion notification
+  M -> M : seek contact → release → slow re-latch
+  opt Overall timeout / owner lease expiry / cancellation
+    O -> M : requestStop() for participating motors
+    O -> O : record specific terminal reason\nwait for active-stage completion; do not start next stage
+  end
+  alt Successful latch
+    M -> M : establish configured reference position
+  else Stop / stage timeout / local fault
+    M -> M : stop output; retain unsuccessful reference state
+  end
+  M -->> O : ready flag + notification
+  O -> M : get completed result; stopAndWait()
+  M --> O : worker joined and cleanup complete
+  O -> O : advance only after successful stage
+end
+O -->> S : bounded completion record + notification
+S -> W : terminal Completed / Stopped / Faulted
+S -> O : releaseJob() after cleanup
+W --> C : retained job history; notify explicit waiters
+note over C,O #FFF5DF
+  Interrupting motion wait does not cancel motion.
+  A stop or timeout never resumes automatically.
+  Only completed homing stages establish references.
+end note
+@enduml

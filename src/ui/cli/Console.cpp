@@ -29,7 +29,8 @@ namespace ui::cli
         constexpr auto INPUT_INTERVAL{ std::chrono::milliseconds{ 10 } };
         constexpr std::size_t MAX_LINE_SIZE{ 4096 };
         std::string line{};
-        bool after_cr{}, overflow{};
+        bool after_cr{};
+        bool overflow{};
         const auto execute{ [&] {
             if (overflow) {
                 std::cout << "error: command line exceeds 4096 bytes\n";

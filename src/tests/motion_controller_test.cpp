@@ -4,9 +4,9 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <semaphore>
 #include <stdexcept>
 #include <type_traits>
-#include <semaphore>
 
 namespace
 {
@@ -27,10 +27,14 @@ namespace
         bool fail_initialization{};
         bool fail_verification{};
         std::atomic_uint service_calls{};
+        std::function<void()> before_status;
 
         std::string_view name() const noexcept override { return "controller test driver"; }
         Status status() const noexcept override
         {
+            if (before_status) {
+                before_status();
+            }
             std::scoped_lock lock(m_mutex);
             return m_status;
         }
@@ -78,7 +82,7 @@ namespace
 
     struct Hardware
     {
-        std::array<std::size_t, 3> expected_microsteps{16, 16, 16};
+        std::array<std::size_t, 3> expected_microsteps{ 16, 16, 16 };
         std::array<std::shared_ptr<Driver>, 3> drivers{ std::make_shared<Driver>(),
                                                         std::make_shared<Driver>(),
                                                         std::make_shared<Driver>() };
@@ -260,6 +264,46 @@ namespace
         ASSERT_TRUE(waitUntil([&] { return hardware.drivers[0]->service_calls.load() > 0; }));
     }
 
+    TEST(MotionController, TelemetryDoesNotWaitForRawMotionStartupLock)
+    {
+        auto generator{ hal::core::create_stepper_generator() };
+        auto driver{ std::make_shared<Driver>() };
+        driver->enable = hal::core::create_steppers_enable_output();
+        driver->enable->write(Level::High);
+        ASSERT_TRUE(driver->initialize());
+        ASSERT_TRUE(generator->start());
+        Motor motor{ Id::Motor1, 135_deg, 1.8_deg, 16, generator, driver };
+        hal::gpio::simulated_input({ hal::gpio::Port::E, 7 })->setSimulatedLevel(Level::Low);
+        std::binary_semaphore entered{ 0 }, release{ 0 };
+        unsigned worker_status_calls{};
+        const auto submitting_thread{ std::this_thread::get_id() };
+        driver->before_status = [&] {
+            // runCommand checks readiness once before arm's locked check.
+            if (std::this_thread::get_id() != submitting_thread && ++worker_status_calls == 2) {
+                entered.release();
+                release.acquire();
+            }
+        };
+        auto motion{ motor.moveRel(-1_deg, 1_rpm) };
+        const auto starting{ entered.try_acquire_for(1s) };
+        EXPECT_TRUE(starting);
+        std::promise<void> read;
+        auto read_done{ read.get_future() };
+        std::jthread observer{ [&] {
+            EXPECT_EQ(motor.setpointPosition(), 0_deg);
+            EXPECT_EQ(motor.setpointVelocity(), 0_rpm);
+            read.set_value();
+        } };
+        // This models a slow start while m_mutex is held, independently of CPU
+        // speed. The IO dispatcher must still read telemetry and renew leases.
+        EXPECT_EQ(read_done.wait_for(100ms), std::future_status::ready);
+        release.release(); // Always release, including on regression failure.
+        observer.join();
+        motor.stopAndWait();
+        driver->before_status = {};
+        EXPECT_EQ(motion.wait_for(1s), std::future_status::ready);
+    }
+
     TEST(MotionController, HomingCanBeStoppedAndRestarted)
     {
         Hardware hardware;
@@ -381,14 +425,14 @@ TEST(MotionController, FallbackResolutionReachesDriverFeedbackAndFingerprintToge
     std::uint64_t previous{};
     {
         Hardware hardware;
-        Controller controller{CONFIGURATION, hardware.factory()};
+        Controller controller{ CONFIGURATION, hardware.factory() };
         previous = controller.trajectorySnapshot().capabilities.hardware_fingerprint;
     }
     auto config = CONFIGURATION;
     config[2].microsteps = 8;
     Hardware hardware;
     hardware.expected_microsteps[2] = 8;
-    Controller controller{config, hardware.factory()};
+    Controller controller{ config, hardware.factory() };
     const auto snapshot = controller.trajectorySnapshot();
     EXPECT_DOUBLE_EQ(snapshot.capabilities.step_radians[2], 2 * snapshot.capabilities.step_radians[1]);
     EXPECT_NE(snapshot.capabilities.hardware_fingerprint, previous);
@@ -401,12 +445,12 @@ TEST(MotionController, FallbackResolutionReachesDriverFeedbackAndFingerprintToge
 TEST(MotionController, ProductionRateLimitAppliesToIndependentCommandsToo)
 {
     Hardware hardware;
-    Controller controller{CONFIGURATION, hardware.factory()};
+    Controller controller{ CONFIGURATION, hardware.factory() };
     releaseSwitches();
     controller.initializeDrivers();
     controller.enable();
-    const auto tooFast = 1_rad_s *
-      ((io::motion::Executor::MAX_PRODUCTION_RATE + 1) * CONFIGURATION[0].full_step_angle.get() / 16);
+    const auto tooFast = 1_rad_s * ((io::motion::Executor::MAX_PRODUCTION_RATE + 1) *
+                                    CONFIGURATION[0].full_step_angle.get() / 16);
     EXPECT_EQ(controller.moveRel(Id::Motor1, -1_deg, tooFast).get(), Motor::Result::Rejected);
     EXPECT_EQ(controller.moveAbs(Id::Motor1, 1_deg, tooFast).get(), Motor::Result::Rejected);
     EXPECT_EQ(controller.reference(Id::Motor1, tooFast).get(), Motor::Result::Rejected);
@@ -416,63 +460,108 @@ TEST(MotionController, ProductionRateLimitAppliesToIndependentCommandsToo)
 
 TEST(MotionController, ReservationsExcludeFamiliesAndRetainIndependentAxisAdmission)
 {
-    namespace tr=motion::trajectory;
-    Hardware hw; Controller controller{CONFIGURATION,hw.factory()};
-    releaseSwitches(); controller.initializeDrivers(); controller.enable();
-    tr::Request r{.operation=tr::Operation::Acquire,.boot=controller.trajectorySnapshot().boot,.configuration=1};
-    r.family=motion::Family::Axis;r.axes=1;r.job=10;
-    const auto first=controller.control(r);ASSERT_EQ(first.error,tr::Error::None);
-    const auto raw=controller.reserveMotor(11,Id::Motor2);
-    EXPECT_EQ(raw.error,tr::Error::Busy);EXPECT_EQ(raw.busy_job,10U);
-    r.family=motion::Family::Robot;r.axes=7;r.job=12;
-    const auto robot=controller.control(r);EXPECT_EQ(robot.error,tr::Error::Busy);EXPECT_EQ(robot.job,10U);
-    r.family=motion::Family::Axis;r.axes=2;r.job=13;
-    EXPECT_EQ(controller.control(r).error,tr::Error::None);
-    r.job=14;EXPECT_EQ(controller.control(r).error,tr::Error::Busy);
-    r.operation=tr::Operation::Stop;r.axes=1;r.job=10;
-    EXPECT_EQ(controller.control(r).error,tr::Error::None);
-    const auto snapshot=controller.trajectorySnapshot();
-    EXPECT_EQ(snapshot.owners[0],0U);EXPECT_EQ(snapshot.owners[1],13U);
-    r.operation=tr::Operation::Prepare;r.session=first.session;
-    EXPECT_EQ(controller.prepareProgram(r).error,tr::Error::Stale);
+    namespace tr = motion::trajectory;
+    Hardware hw;
+    Controller controller{ CONFIGURATION, hw.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    tr::Request r{ .operation = tr::Operation::Acquire,
+                   .boot = controller.trajectorySnapshot().boot,
+                   .configuration = 1 };
+    r.family = motion::Family::Axis;
+    r.axes = 1;
+    r.job = 10;
+    const auto first = controller.control(r);
+    ASSERT_EQ(first.error, tr::Error::None);
+    const auto raw = controller.reserveMotor(11, Id::Motor2);
+    EXPECT_EQ(raw.error, tr::Error::Busy);
+    EXPECT_EQ(raw.busy_job, 10U);
+    r.family = motion::Family::Robot;
+    r.axes = 7;
+    r.job = 12;
+    const auto robot = controller.control(r);
+    EXPECT_EQ(robot.error, tr::Error::Busy);
+    EXPECT_EQ(robot.job, 10U);
+    r.family = motion::Family::Axis;
+    r.axes = 2;
+    r.job = 13;
+    EXPECT_EQ(controller.control(r).error, tr::Error::None);
+    r.job = 14;
+    EXPECT_EQ(controller.control(r).error, tr::Error::Busy);
+    r.operation = tr::Operation::Stop;
+    r.axes = 1;
+    r.job = 10;
+    EXPECT_EQ(controller.control(r).error, tr::Error::None);
+    const auto snapshot = controller.trajectorySnapshot();
+    EXPECT_EQ(snapshot.owners[0], 0U);
+    EXPECT_EQ(snapshot.owners[1], 13U);
+    r.operation = tr::Operation::Prepare;
+    r.session = first.session;
+    EXPECT_EQ(controller.prepareProgram(r).error, tr::Error::Stale);
     controller.releaseJob(13);
-    EXPECT_EQ(controller.trajectorySnapshot().family,motion::Family::None);
+    EXPECT_EQ(controller.trajectorySnapshot().family, motion::Family::None);
 }
 
 TEST(MotionController, ExpiredPreparationCannotBeRevivedAndReconnectRequiresRecovery)
 {
-    namespace tr=motion::trajectory;
-    Hardware hw; Controller controller{CONFIGURATION,hw.factory()};
-    releaseSwitches(); controller.initializeDrivers(); controller.enable();
-    tr::Request r{.operation=tr::Operation::Acquire,.boot=controller.trajectorySnapshot().boot,.configuration=1};
-    r.family=motion::Family::Robot;r.axes=7;r.job=20;
-    const auto acquired=controller.control(r);ASSERT_EQ(acquired.error,tr::Error::None);
-    ASSERT_TRUE(waitUntil([&]{return controller.trajectorySnapshot().family==motion::Family::None;}));
-    r.operation=tr::Operation::Renew;r.renew_jobs[0]=20;controller.control(r);
-    r.operation=tr::Operation::Prepare;r.session=acquired.session;
-    EXPECT_EQ(controller.prepareProgram(r).error,tr::Error::Stale);
+    namespace tr = motion::trajectory;
+    Hardware hw;
+    Controller controller{ CONFIGURATION, hw.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    tr::Request r{ .operation = tr::Operation::Acquire,
+                   .boot = controller.trajectorySnapshot().boot,
+                   .configuration = 1 };
+    r.family = motion::Family::Robot;
+    r.axes = 7;
+    r.job = 20;
+    const auto acquired = controller.control(r);
+    ASSERT_EQ(acquired.error, tr::Error::None);
+    ASSERT_TRUE(waitUntil([&] { return controller.trajectorySnapshot().family == motion::Family::None; }));
+    r.operation = tr::Operation::Renew;
+    r.renew_jobs[0] = 20;
+    controller.control(r);
+    r.operation = tr::Operation::Prepare;
+    r.session = acquired.session;
+    EXPECT_EQ(controller.prepareProgram(r).error, tr::Error::Stale);
     controller.connectionLost();
-    EXPECT_TRUE(controller.enabled());EXPECT_FALSE(controller.ready());
-    r.operation=tr::Operation::Acquire;r.job=21;
-    EXPECT_EQ(controller.control(r).error,tr::Error::Fault);
-    controller.disable();controller.initializeDrivers();controller.enable();
-    EXPECT_EQ(controller.control(r).error,tr::Error::None);
+    EXPECT_TRUE(controller.enabled());
+    EXPECT_FALSE(controller.ready());
+    r.operation = tr::Operation::Acquire;
+    r.job = 21;
+    EXPECT_EQ(controller.control(r).error, tr::Error::Fault);
+    controller.disable();
+    controller.initializeDrivers();
+    controller.enable();
+    EXPECT_EQ(controller.control(r).error, tr::Error::None);
     controller.releaseJob(21);
 }
 
 TEST(MotionController, RawBufferedOwnershipSurvivesReleaseOfItsPredecessor)
 {
-    namespace tr=motion::trajectory;
-    Hardware hw; Controller controller{CONFIGURATION,hw.factory()};
-    releaseSwitches(); controller.initializeDrivers();controller.enable();
-    ASSERT_EQ(controller.reserveMotor(1,Id::Motor1).error,tr::Error::None);
-    ASSERT_EQ(controller.reserveMotor(2,Id::Motor1).error,tr::Error::None);
+    namespace tr = motion::trajectory;
+    Hardware hw;
+    Controller controller{ CONFIGURATION, hw.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    ASSERT_EQ(controller.reserveMotor(1, Id::Motor1).error, tr::Error::None);
+    ASSERT_EQ(controller.reserveMotor(2, Id::Motor1).error, tr::Error::None);
     controller.releaseJob(1);
-    tr::Request r{.operation=tr::Operation::Acquire,.boot=controller.trajectorySnapshot().boot,.configuration=1};
-    r.family=motion::Family::Axis;r.axes=2;r.job=3;
-    const auto busy=controller.control(r);EXPECT_EQ(busy.error,tr::Error::Busy);EXPECT_EQ(busy.job,2U);
+    tr::Request r{ .operation = tr::Operation::Acquire,
+                   .boot = controller.trajectorySnapshot().boot,
+                   .configuration = 1 };
+    r.family = motion::Family::Axis;
+    r.axes = 2;
+    r.job = 3;
+    const auto busy = controller.control(r);
+    EXPECT_EQ(busy.error, tr::Error::Busy);
+    EXPECT_EQ(busy.job, 2U);
     controller.releaseJob(2);
-    EXPECT_EQ(controller.control(r).error,tr::Error::None);controller.releaseJob(3);
+    EXPECT_EQ(controller.control(r).error, tr::Error::None);
+    controller.releaseJob(3);
 }
 
 TEST(MotionController, AbortingOneMotorDoesNotReuseAReleasedRobotGroupMask)
@@ -498,7 +587,8 @@ TEST(MotionController, AbortingOneMotorDoesNotReuseAReleasedRobotGroupMask)
     request.axis_revisions = reservation.axis_revisions;
     request.program.kind = tr::ProgramKind::Home;
     request.program.home_order = { 0, 1, 2 };
-    for (auto& home : request.program.home) home = { 5, 0.5, 30 };
+    for (auto& home : request.program.home)
+        home = { 5, 0.5, 30 };
     ASSERT_EQ(controller.prepareProgram(request).error, tr::Error::None);
     request.operation = tr::Operation::Stop;
     ASSERT_EQ(controller.control(request).error, tr::Error::None);
@@ -522,29 +612,34 @@ TEST(MotionController, HomingTimeoutIsNotReportedAsUserCancellation)
 {
     namespace tr = motion::trajectory;
     Hardware hardware;
-    Controller controller{CONFIGURATION, hardware.factory()};
+    Controller controller{ CONFIGURATION, hardware.factory() };
     releaseSwitches();
     controller.initializeDrivers();
     controller.enable();
-    tr::Request request{.operation=tr::Operation::Acquire,
-      .boot=controller.trajectorySnapshot().boot, .configuration=1};
-    request.family=motion::Family::Axis; request.axes=1; request.job=75;
-    const auto reservation=controller.control(request);
+    tr::Request request{ .operation = tr::Operation::Acquire,
+                         .boot = controller.trajectorySnapshot().boot,
+                         .configuration = 1 };
+    request.family = motion::Family::Axis;
+    request.axes = 1;
+    request.job = 75;
+    const auto reservation = controller.control(request);
     ASSERT_EQ(reservation.error, tr::Error::None);
-    request.operation=tr::Operation::Prepare;
-    request.session=reservation.session;
-    request.expected_position=reservation.position;
-    request.axis_revisions=reservation.axis_revisions;
-    request.program.kind=tr::ProgramKind::Home;
-    request.program.home_order={0,1,2};
-    for (auto& home:request.program.home) home={5,.5,.1};
+    request.operation = tr::Operation::Prepare;
+    request.session = reservation.session;
+    request.expected_position = reservation.position;
+    request.axis_revisions = reservation.axis_revisions;
+    request.program.kind = tr::ProgramKind::Home;
+    request.program.home_order = { 0, 1, 2 };
+    for (auto& home : request.program.home)
+        home = { 5, .5, .1 };
     ASSERT_EQ(controller.prepareProgram(request).error, tr::Error::None);
     std::promise<tr::Update> completed;
-    auto result=completed.get_future();
-    ASSERT_EQ(controller.startProgram({request.boot,request.session,request.job},
-      [&](const auto& update){completed.set_value(update);}), tr::Error::None);
+    auto result = completed.get_future();
+    ASSERT_EQ(controller.startProgram({ request.boot, request.session, request.job },
+                                      [&](const auto& update) { completed.set_value(update); }),
+              tr::Error::None);
     ASSERT_EQ(result.wait_for(2s), std::future_status::ready);
-    const auto terminal=result.get();
+    const auto terminal = result.get();
     EXPECT_EQ(terminal.state, motion::JobState::Stopped);
     EXPECT_EQ(terminal.error, tr::Error::HomingTimeout);
     EXPECT_FALSE(controller.motor(Id::Motor1).isReferenced());
@@ -552,99 +647,208 @@ TEST(MotionController, HomingTimeoutIsNotReportedAsUserCancellation)
 
 TEST(MotionController, AcceptedStopKeepsItsCauseAfterTheOwnershipLeaseExpires)
 {
-    namespace tr=motion::trajectory;
+    namespace tr = motion::trajectory;
     Hardware hw;
-    Controller controller{CONFIGURATION,hw.factory()};
-    releaseSwitches(); controller.initializeDrivers(); controller.enable();
-    auto input=hal::gpio::simulated_input({hal::gpio::Port::E,7});
-    auto homing=controller.reference(Id::Motor1,10_rpm,2_rpm,2_s);
-    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()>0_rpm;}));
+    Controller controller{ CONFIGURATION, hw.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    auto input = hal::gpio::simulated_input({ hal::gpio::Port::E, 7 });
+    auto homing = controller.reference(Id::Motor1, 10_rpm, 2_rpm, 2_s);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
     input->setSimulatedLevel(Level::High);
-    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()<0_rpm;}));
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() < 0_rpm; }));
     input->setSimulatedLevel(Level::Low);
-    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()>0_rpm;}));
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
     input->setSimulatedLevel(Level::High);
-    ASSERT_EQ(homing.get(),Motor::Result::Completed);
-    tr::Request r{.operation=tr::Operation::Acquire,.boot=controller.trajectorySnapshot().boot,.configuration=1};
-    r.family=motion::Family::Axis; r.axes=1; r.job=76;
-    const auto acquired=controller.control(r);
-    ASSERT_EQ(acquired.error,tr::Error::None);
-    r.operation=tr::Operation::Prepare; r.session=acquired.session;
-    r.expected_position=acquired.position; r.axis_revisions=acquired.axis_revisions;
-    r.program.displacement[0]=-100; r.program.limits[0]=acquired.capabilities.limits[0];
-    r.program.progress_limits={.5,1,1,10};
-    r.program.progress=motion::Profile::create(1,r.program.progress_limits)->description();
-    ASSERT_EQ(controller.prepareProgram(r).error,tr::Error::None);
+    ASSERT_EQ(homing.get(), Motor::Result::Completed);
+    tr::Request r{ .operation = tr::Operation::Acquire,
+                   .boot = controller.trajectorySnapshot().boot,
+                   .configuration = 1 };
+    r.family = motion::Family::Axis;
+    r.axes = 1;
+    r.job = 76;
+    const auto acquired = controller.control(r);
+    ASSERT_EQ(acquired.error, tr::Error::None);
+    r.operation = tr::Operation::Prepare;
+    r.session = acquired.session;
+    r.expected_position = acquired.position;
+    r.axis_revisions = acquired.axis_revisions;
+    r.program.displacement[0] = -100;
+    r.program.limits[0] = acquired.capabilities.limits[0];
+    r.program.progress_limits = { .5, 1, 1, 10 };
+    r.program.progress = motion::Profile::create(1, r.program.progress_limits)->description();
+    ASSERT_EQ(controller.prepareProgram(r).error, tr::Error::None);
     std::promise<tr::Update> completed;
-    auto result=completed.get_future();
-    ASSERT_EQ(controller.startProgram({r.boot,r.session,r.job},
-      [&](const auto& update){completed.set_value(update);}),tr::Error::None);
-    auto renewal=r; renewal.operation=tr::Operation::Renew; renewal.renew_jobs[0]=r.job;
-    const auto start=std::chrono::steady_clock::now();
-    while(std::chrono::steady_clock::now()-start<400ms) {
-        ASSERT_EQ(controller.control(renewal).error,tr::Error::None);
+    auto result = completed.get_future();
+    ASSERT_EQ(controller.startProgram({ r.boot, r.session, r.job },
+                                      [&](const auto& update) { completed.set_value(update); }),
+              tr::Error::None);
+    auto renewal = r;
+    renewal.operation = tr::Operation::Renew;
+    renewal.renew_jobs[0] = r.job;
+    const auto start = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start < 400ms) {
+        ASSERT_EQ(controller.control(renewal).error, tr::Error::None);
         std::this_thread::sleep_for(20ms);
     }
-    r.operation=tr::Operation::Stop;
-    ASSERT_EQ(controller.control(r).error,tr::Error::None);
-    EXPECT_EQ(result.wait_for(300ms),std::future_status::timeout); // Brake outlives lease.
-    ASSERT_EQ(result.wait_for(2s),std::future_status::ready);
-    const auto terminal=result.get();
-    EXPECT_EQ(terminal.state,motion::JobState::Stopped);
-    EXPECT_EQ(terminal.error,tr::Error::None);
-    EXPECT_EQ(controller.executionStatus(r.job).reason,io::motion::Executor::Reason::Cancelled);
+    r.operation = tr::Operation::Stop;
+    ASSERT_EQ(controller.control(r).error, tr::Error::None);
+    EXPECT_EQ(result.wait_for(300ms), std::future_status::timeout); // Brake outlives lease.
+    ASSERT_EQ(result.wait_for(2s), std::future_status::ready);
+    const auto terminal = result.get();
+    EXPECT_EQ(terminal.state, motion::JobState::Stopped);
+    EXPECT_EQ(terminal.error, tr::Error::None);
+    EXPECT_EQ(controller.executionStatus(r.job).reason, io::motion::Executor::Reason::Cancelled);
 }
 
 TEST(MotionController, CompilationLeavesAdmissionUnlockedAndCancellationCannotArm)
 {
-    namespace tr=motion::trajectory;
-    struct PausedMemory final : std::pmr::memory_resource {
-        std::binary_semaphore entered{0}, resume{0};
-        std::atomic_bool pause{true};
-        void* do_allocate(std::size_t bytes,std::size_t alignment) override {
-            if(pause.exchange(false)){entered.release();resume.acquire();}
-            return std::pmr::new_delete_resource()->allocate(bytes,alignment);
+    namespace tr = motion::trajectory;
+    struct PausedMemory final : std::pmr::memory_resource
+    {
+        std::binary_semaphore entered{ 0 }, resume{ 0 };
+        std::atomic_bool pause{ true };
+        void* do_allocate(std::size_t bytes, std::size_t alignment) override
+        {
+            if (pause.exchange(false)) {
+                entered.release();
+                resume.acquire();
+            }
+            return std::pmr::new_delete_resource()->allocate(bytes, alignment);
         }
-        void do_deallocate(void* p,std::size_t bytes,std::size_t alignment) override {
-            std::pmr::new_delete_resource()->deallocate(p,bytes,alignment);
+        void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
+        {
+            std::pmr::new_delete_resource()->deallocate(p, bytes, alignment);
         }
-        bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override{return this==&other;}
+        bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override
+        {
+            return this == &other;
+        }
     } memory;
-    Hardware hw; Controller controller{CONFIGURATION,hw.factory(),{},&memory};
-    releaseSwitches();controller.initializeDrivers();controller.enable();
-    auto input=hal::gpio::simulated_input({hal::gpio::Port::E,7});
-    auto homing=controller.reference(Id::Motor1,10_rpm,2_rpm,2_s);
-    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()>0_rpm;}));
+    Hardware hw;
+    Controller controller{ CONFIGURATION, hw.factory(), {}, &memory };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    auto input = hal::gpio::simulated_input({ hal::gpio::Port::E, 7 });
+    auto homing = controller.reference(Id::Motor1, 10_rpm, 2_rpm, 2_s);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
     input->setSimulatedLevel(Level::High);
-    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()<0_rpm;}));
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() < 0_rpm; }));
     input->setSimulatedLevel(Level::Low);
-    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()>0_rpm;}));
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
     input->setSimulatedLevel(Level::High);
-    ASSERT_EQ(homing.get(),Motor::Result::Completed);
-    tr::Request r{.operation=tr::Operation::Acquire,.boot=controller.trajectorySnapshot().boot,.configuration=1};
-    r.family=motion::Family::Axis;r.axes=1;r.job=44;
-    const auto acquired=controller.control(r);ASSERT_EQ(acquired.error,tr::Error::None);
-    r.operation=tr::Operation::Prepare;r.session=acquired.session;
-    r.expected_position=acquired.position;r.axis_revisions=acquired.axis_revisions;
-    r.program.displacement[0]=-100;
-    r.program.limits[0]=acquired.capabilities.limits[0];
-    r.program.progress_limits={1,10,10,100};
-    r.program.progress=motion::Profile::create(1,r.program.progress_limits)->description();
+    ASSERT_EQ(homing.get(), Motor::Result::Completed);
+    tr::Request r{ .operation = tr::Operation::Acquire,
+                   .boot = controller.trajectorySnapshot().boot,
+                   .configuration = 1 };
+    r.family = motion::Family::Axis;
+    r.axes = 1;
+    r.job = 44;
+    const auto acquired = controller.control(r);
+    ASSERT_EQ(acquired.error, tr::Error::None);
+    r.operation = tr::Operation::Prepare;
+    r.session = acquired.session;
+    r.expected_position = acquired.position;
+    r.axis_revisions = acquired.axis_revisions;
+    r.program.displacement[0] = -100;
+    r.program.limits[0] = acquired.capabilities.limits[0];
+    r.program.progress_limits = { 1, 10, 10, 100 };
+    r.program.progress = motion::Profile::create(1, r.program.progress_limits)->description();
     tr::Reply result;
-    auto compile=std::jthread([&]{result=controller.prepareProgram(r);});
+    auto compile = std::jthread([&] { result = controller.prepareProgram(r); });
     ASSERT_TRUE(memory.entered.try_acquire_for(1s));
     // If compilation still held Controller's mutex this call would deadlock.
     // The watchdog unblocks the allocator so regression failure stays bounded.
     std::atomic_bool released{};
-    auto watchdog=std::jthread([&]{std::this_thread::sleep_for(500ms);if(!released.exchange(true))memory.resume.release();});
-    auto cancel=r;cancel.operation=tr::Operation::Stop;
-    const auto start=std::chrono::steady_clock::now();
-    EXPECT_EQ(controller.control(cancel).error,tr::Error::None);
-    EXPECT_LT(std::chrono::steady_clock::now()-start,250ms);
-    if(!released.exchange(true))memory.resume.release();
+    auto watchdog = std::jthread([&] {
+        std::this_thread::sleep_for(500ms);
+        if (!released.exchange(true))
+            memory.resume.release();
+    });
+    auto cancel = r;
+    cancel.operation = tr::Operation::Stop;
+    const auto start = std::chrono::steady_clock::now();
+    EXPECT_EQ(controller.control(cancel).error, tr::Error::None);
+    EXPECT_LT(std::chrono::steady_clock::now() - start, 250ms);
+    if (!released.exchange(true))
+        memory.resume.release();
     compile.join();
-    EXPECT_EQ(result.error,tr::Error::Stale);
-    EXPECT_EQ(controller.trajectorySnapshot().family,motion::Family::None);
-    EXPECT_EQ(controller.motor(Id::Motor1).setpointVelocity(),0_rpm);
-    EXPECT_EQ(controller.motor(Id::Motor1).setpointPosition(),135_deg);
+    EXPECT_EQ(result.error, tr::Error::Stale);
+    EXPECT_EQ(controller.trajectorySnapshot().family, motion::Family::None);
+    EXPECT_EQ(controller.motor(Id::Motor1).setpointVelocity(), 0_rpm);
+    EXPECT_EQ(controller.motor(Id::Motor1).setpointPosition(), 135_deg);
+}
+
+TEST(MotionController, OverallHomingDeadlineStopsBeforeStartingTheNextAxis)
+{
+    namespace tr = motion::trajectory;
+    Hardware hardware;
+    Controller controller{ CONFIGURATION, hardware.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    tr::Request request{ .operation = tr::Operation::Acquire,
+                         .boot = controller.trajectorySnapshot().boot,
+                         .configuration = 1 };
+    request.family = motion::Family::Robot;
+    request.axes = 7;
+    request.job = 80;
+    const auto reservation = controller.control(request);
+    ASSERT_EQ(reservation.error, tr::Error::None);
+    request.operation = tr::Operation::Prepare;
+    request.session = reservation.session;
+    request.expected_position = reservation.position;
+    request.axis_revisions = reservation.axis_revisions;
+    request.program.kind = tr::ProgramKind::Home;
+    request.program.home_order = { 0, 1, 2 };
+    request.program.timeout = .05;
+    for (auto& home : request.program.home)
+        home = { 5, .5, 2 };
+    ASSERT_EQ(controller.prepareProgram(request).error, tr::Error::None);
+    std::promise<tr::Update> completed;
+    auto result = completed.get_future();
+    ASSERT_EQ(controller.startProgram({ request.boot, request.session, request.job },
+                                      [&](const auto& update) { completed.set_value(update); }),
+              tr::Error::None);
+    ASSERT_EQ(result.wait_for(1s), std::future_status::ready);
+    const auto terminal = result.get();
+    EXPECT_EQ(terminal.state, motion::JobState::Stopped);
+    EXPECT_EQ(terminal.error, tr::Error::HomingTimeout);
+    EXPECT_EQ(controller.motor(Id::Motor1).setpointVelocity(), 0_rpm);
+    EXPECT_EQ(controller.motor(Id::Motor2).setpointPosition(), 0_deg);
+    EXPECT_EQ(controller.motor(Id::Motor3).setpointPosition(), 0_deg);
+    controller.releaseJob(request.job);
+    EXPECT_EQ(controller.trajectorySnapshot().family, motion::Family::None);
+}
+
+TEST(MotionController, PreparationRejectsWrongProtocolVersionBeforeStaging)
+{
+    namespace tr = motion::trajectory;
+    Hardware hardware;
+    Controller controller{ CONFIGURATION, hardware.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    tr::Request request{ .operation = tr::Operation::Acquire,
+                         .boot = controller.trajectorySnapshot().boot,
+                         .configuration = 1 };
+    request.family = motion::Family::Axis;
+    request.axes = 1;
+    request.job = 81;
+    const auto reservation = controller.control(request);
+    ASSERT_EQ(reservation.error, tr::Error::None);
+    request.operation = tr::Operation::Prepare;
+    request.version = tr::VERSION + 1;
+    request.session = reservation.session;
+    request.expected_position = reservation.position;
+    request.axis_revisions = reservation.axis_revisions;
+    request.program.kind = tr::ProgramKind::Home;
+    request.program.home_order = { 0, 1, 2 };
+    for (auto& home : request.program.home)
+        home = { 5, .5, 2 };
+    EXPECT_EQ(controller.prepareProgram(request).error, tr::Error::Protocol);
+    EXPECT_EQ(controller.motor(Id::Motor1).setpointPosition(), 0_deg);
+    controller.releaseJob(request.job);
 }

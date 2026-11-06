@@ -83,6 +83,7 @@ package "M4 · IO application" #EAF7F4 {
   }
   class "StepperMotor" as Motor <<IO>> {
     raw moves + buffered successor + homing
+    reserved reusable stack per motor
     stepOutput : IStepOutput
     driver : IStepperDriver
     feedback : IMotorFeedback

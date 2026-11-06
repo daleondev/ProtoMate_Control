@@ -162,8 +162,7 @@ namespace io::motion
                                        bool relative);
 
         std::future<Result> startMotion(std::function<Result(std::stop_token)> task);
-        std::future<pnm::Result<hal::step::PulseCount>> requestVelocity(
-          pnm::units::AngularVelocity velocity);
+        std::future<pnm::Result<hal::step::PulseCount>> requestVelocity(pnm::units::AngularVelocity velocity);
 
         Result performMotion(Direction direction,
                              pnm::units::AngularVelocity velocity,
@@ -205,6 +204,7 @@ namespace io::motion
 
         void finishQueue(Result result) noexcept;
         void reportFailure(const char* stage) const noexcept;
+        void reportOperationFailure(const char* stage, std::error_code error) const noexcept;
 
         std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
 
@@ -220,7 +220,7 @@ namespace io::motion
 
         std::shared_ptr<MotionEvents> m_events{ std::make_shared<MotionEvents>() };
 
-        std::shared_ptr<hal::IStepOutput> m_stepOutput;
+        const std::shared_ptr<hal::IStepOutput> m_stepOutput;
         std::shared_ptr<hal::IDigitalOutput> m_dirOutput;
         std::shared_ptr<hal::IDigitalInput> m_referenceSwitchInput;
         std::shared_ptr<hal::device::IMotorFeedback> m_feedback;
@@ -236,8 +236,8 @@ namespace io::motion
         // Live velocity replacement needs over 7 KiB on ARM. 10 KiB
         // preserves measured headroom above 25% without three 16 KiB stacks.
         static constexpr std::size_t WORKER_STACK_BYTES = sizeof(void*) == 4 ? 10240U : 16384U;
-        std::unique_ptr<std::byte[]> m_workerStack{
-          std::make_unique_for_overwrite<std::byte[]>(WORKER_STACK_BYTES) };
+        std::unique_ptr<std::byte[]> m_workerStack{ std::make_unique_for_overwrite<std::byte[]>(
+          WORKER_STACK_BYTES) };
         std::jthread m_worker;
         mutable std::mutex m_queueMutex;
         Defaults m_motionDefaults;

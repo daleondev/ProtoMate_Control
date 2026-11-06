@@ -86,10 +86,14 @@ namespace ui::cli::motor
             switch (state) {
                 case Submitting:
                     return "submitting";
-                case Planning: return "planning";
-                case Preparing: return "preparing";
-                case Running: return "running";
-                case Stopping: return "stopping";
+                case Planning:
+                    return "planning";
+                case Preparing:
+                    return "preparing";
+                case Running:
+                    return "running";
+                case Stopping:
+                    return "stopping";
                 case Accepted:
                     return "accepted (running or queued)";
                 case Completed:
@@ -444,7 +448,7 @@ namespace ui::cli::motor
     void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop)
     {
         std::call_once(parser.m_motorRegistration, [&parser, &client, stop] {
-            const Context context{ &client, stop };
+            const Context context{ .client = &client, .stop = stop };
             register_commands<^^commands>(parser, [context](auto command) {
                 return [context, command](const Arguments& args, std::ostream& out) {
                     return command(context, args, out);

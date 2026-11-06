@@ -108,26 +108,26 @@ namespace ui::cli::utilities
                     return diagnostics::collectMemory(query);
                 }
                 if (controller != "io") {
-                    return std::unexpected(CallbackError{ "controller must be 'ui' or 'io'" });
+                    return std::unexpected(CallbackError{ .message = "controller must be 'ui' or 'io'" });
                 }
                 // Wait only on the CLI thread. ICC workers remain free to route
                 // the request/reply; shutdown cancels the outstanding request.
                 auto call{ context.memory.request(query, std::chrono::seconds{ 2 }, context.stop) };
                 auto result{ call.get() };
                 if (!result) {
-                    return std::unexpected(
-                      CallbackError{ "IO diagnostics: " + std::string{ service_error(result.error()) } });
+                    return std::unexpected(CallbackError{
+                      .message = "IO diagnostics: " + std::string{ service_error(result.error()) } });
                 }
                 if (result->query != query || result->stack.count > result->stack.threads.size() ||
                     result->stack.total < result->stack.count) {
-                    return std::unexpected(CallbackError{ "IO diagnostics: invalid response" });
+                    return std::unexpected(CallbackError{ .message = "IO diagnostics: invalid response" });
                 }
                 return std::move(*result);
             }
 
             std::string_view thread_name(const ThreadInfo& info)
             {
-                const auto end{ std::ranges::find(info.name, '\0') };
+                const auto* const end{ std::ranges::find(info.name, '\0') };
                 return { info.name.data(), static_cast<std::size_t>(end - info.name.begin()) };
             }
 
@@ -662,7 +662,9 @@ namespace ui::cli::utilities
     void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop)
     {
         std::call_once(parser.m_utilitiesRegistration, [&parser, &bus, stop] {
-            const commands::Context context{ &parser, bus.service<^^icc::Services::io_memory>(), stop };
+            const commands::Context context{ .parser = &parser,
+                                             .memory = bus.service<^^icc::Services::io_memory>(),
+                                             .stop = stop };
             register_commands<^^commands>(parser, [context](auto function) -> Callback {
                 return [context, function](const Arguments& args, CommandIO& io) -> CallbackResult {
                     if constexpr (std::invocable<decltype(function),

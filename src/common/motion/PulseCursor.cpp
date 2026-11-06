@@ -84,11 +84,12 @@ namespace motion::trajectory
             }
             const bool forward{ *endpoint > m_position[axis] };
             const double crossing{ static_cast<double>(m_position[axis]) + (forward ? 0.5 : -0.5) };
-            double low{ a.divisions[a.interval] }, high{ to };
+            double low{ a.divisions[a.interval] };
+            double high{ to };
             // Fixed iterations, independent of displacement. Bracketing retains
             // the selected monotone branch even for zero endpoint derivatives.
             for (unsigned iteration{ 0 }; iteration < 52; ++iteration) {
-                const double middle{ low + (high - low) * 0.5 };
+                const double middle{ low + ((high - low) * 0.5) };
                 if ((p.at(middle) < crossing) == forward) {
                     low = middle;
                 }
@@ -125,7 +126,7 @@ namespace motion::trajectory
             else if (tick < a.last_tick || tick - a.last_tick < m_capabilities.direction_setup_ticks) {
                 return Error::Timing;
             }
-            a.pending = Pulse{ tick, static_cast<std::uint8_t>(axis), forward };
+            a.pending = Pulse{ .tick = tick, .axis = static_cast<std::uint8_t>(axis), .forward = forward };
             return Error::None;
         }
         a.pending.reset();
@@ -139,19 +140,20 @@ namespace motion::trajectory
         if (!m_active) {
             return std::optional<Pulse>{};
         }
-        unsigned selected{ 3 };
-        for (unsigned i{ 0 }; i < 3; ++i) {
-            if (m_axes[i].pending &&
-                (selected == 3 || m_axes[i].pending->tick < m_axes[selected].pending->tick)) {
-                selected = i;
+        std::optional<Pulse> next_pulse{};
+        for (const auto& axis : m_axes) {
+            const auto pending = axis.pending;
+            if (pending && (!next_pulse || pending->tick < next_pulse->tick)) {
+                next_pulse = pending;
             }
         }
-        if (selected == 3) {
+        if (!next_pulse) {
             m_active = false;
             return std::optional<Pulse>{};
         }
+        const auto pulse = *next_pulse;
+        const auto selected = pulse.axis;
         auto& a{ m_axes[selected] };
-        const auto pulse{ *a.pending };
         m_position[selected] += pulse.forward ? 1 : -1;
         a.last_tick = pulse.tick;
         a.direction = pulse.forward;

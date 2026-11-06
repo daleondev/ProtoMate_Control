@@ -9,6 +9,7 @@
 #include "simulation/SharedMemory.hpp"
 #include <array>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace simulation
@@ -29,7 +30,12 @@ namespace simulation
     class Machine
     {
       public:
-        explicit Machine(SharedMemory& memory, Profile profile = {}, const std::filesystem::path& media = {});
+        using Configuration = std::array<double, 20>;
+        static Configuration configuration(const Profile& profile);
+        explicit Machine(SharedMemory& memory,
+                         Profile profile = {},
+                         const std::filesystem::path& media = {},
+                         std::optional<Configuration> configuration = {});
         ~Machine() { disconnect(); }
         Packet execute(const Packet& request);
         void advance(std::uint64_t nanoseconds);
@@ -58,6 +64,7 @@ namespace simulation
         bool m_trace_enabled{}, m_trace_overflow{};
         SharedMemory& m_memory;
         Profile m_profile;
+        std::optional<Configuration> m_configuration{};
         Kinematics m_kinematics;
         ContactSensors m_contacts;
         hal::util::SimulatedStepHardware m_step;

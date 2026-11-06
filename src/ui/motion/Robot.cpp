@@ -25,7 +25,7 @@ namespace ui::motion
     std::unique_ptr<Robot::Arena, Robot::ReleaseArena> Robot::reserveArena()
     {
 #if defined(CORE_CM7)
-        static_assert(sizeof(Arena)<=sizeof(arenaStorage));
+        static_assert(sizeof(Arena) <= sizeof(arenaStorage));
         if (arenaClaimed.exchange(true)) {
             throw std::logic_error("robot planning arena already owned");
         }
@@ -49,16 +49,20 @@ namespace ui::motion
       , m_arena{ reserveArena() }
     {
     }
-    Robot::Robot(pnm::msg::Bus& bus, Client& client) : Robot(bus) { m_client=&client; }
+    Robot::Robot(pnm::msg::Bus& bus, Client& client)
+      : Robot(bus)
+    {
+        m_client = &client;
+    }
     Robot::~Robot() = default; // Application joins the planning worker first.
     void Robot::setConnected(bool connected)
     {
-        std::stop_source cancel{ std::nostopstate };
+        std::optional<std::stop_source> cancel;
         {
             std::scoped_lock lock{ m_mutex };
             m_connected = connected;
             if (!connected) {
-                cancel = m_activeStop;
+                cancel.emplace(m_activeStop);
                 for (auto& slot : m_arena->slots) {
                     if (!terminal(slot.job.state)) {
                         slot.job.state = JobState::Unknown;
@@ -67,7 +71,9 @@ namespace ui::motion
                 }
             }
         }
-        cancel.request_stop();
+        if (cancel) {
+            cancel->request_stop();
+        }
         m_changed.signal();
     }
     std::expected<std::uint64_t, RobotError> Robot::preview(PreviewRequest r)
@@ -79,8 +85,8 @@ namespace ui::motion
         if (r.model > Model::FixtureArchived) {
             return std::unexpected(RobotError::InvalidInput);
         }
-        auto selected{ m_arena->slots.end() };
-        for (auto it{ m_arena->slots.begin() }; it != m_arena->slots.end(); ++it) {
+        auto* selected{ m_arena->slots.end() };
+        for (auto* it{ m_arena->slots.begin() }; it != m_arena->slots.end(); ++it) {
             if (terminal(it->job.state) &&
                 (selected == m_arena->slots.end() || it->job.id < selected->job.id)) {
                 selected = it;
@@ -239,7 +245,9 @@ namespace ui::motion
     {
         const std::stop_callback cancellation{ stop, [this] { m_changed.signal(); } };
         while (!stop.stop_requested()) {
-            if (executePending(stop)) continue;
+            if (executePending(stop)) {
+                continue;
+            }
             PreviewRequest request{};
             std::uint64_t id{ 0 };
             std::stop_source jobStop{ std::nostopstate };

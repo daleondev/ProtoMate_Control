@@ -30,13 +30,19 @@ extern "C" volatile std::uint32_t giga_motion_bench_worst_refill_cycles;
 extern "C" volatile std::uint32_t giga_motion_bench_worst_budget_ticks;
 // Debugger-readable screening counters: completed axis, scratch capacity,
 // changed revision, expanded queued prefix, turnover/TC, target mismatch.
-extern "C" { std::uint32_t giga_motion_bench_splice_retries[6]{}; }
+extern "C" {
+std::uint32_t giga_motion_bench_splice_retries[6]{};
+}
 // Last startup per axis: origin, armed compare, DMA first word, replacement
 // tick, old compare, new compare, new first word, DMA reload performed.
-extern "C" { std::array<std::array<std::uint32_t, 8>, 3> giga_motion_bench_startup{}; }
+extern "C" {
+std::array<std::array<std::uint32_t, 8>, 3> giga_motion_bench_startup{};
+}
 #endif
 
-extern "C" { unsigned motion_debug_fault_line{}; }
+extern "C" {
+unsigned motion_debug_fault_line{};
+}
 namespace hal::util
 {
     struct StepGenerator::RefillWorkspace
@@ -72,7 +78,9 @@ namespace hal::util
         std::vector<std::uint32_t> words;
         std::vector<step::Timing> timings;
         explicit SpliceWorkspace(std::uint32_t entries)
-          : capacity(entries), words(entries * 18), timings(entries * 2)
+          : capacity(entries)
+          , words(entries * 18)
+          , timings(entries * 2)
         {
             // Scratch buffers are not DMA-owned. Size them for the actual
             // prepared window, instead of reserving the maximum legacy window.
@@ -114,6 +122,22 @@ namespace hal::util
             const auto offset = *sequence->endTickOffset();
             const auto value = (std::int64_t(first) + offset + STEP_PARK) % STEP_PARK;
             return std::uint32_t(value);
+        }
+    }
+
+    auto StepGenerator::reserveScratch(std::uint32_t entries) noexcept -> util::Result<>
+    {
+        if (m_splice && m_splice->capacity >= entries)
+            return {};
+        // Do not temporarily retain both allocations when growing. Every user
+        // holds m_splicing and releases its temporary schedule references before
+        // returning. Active DMA buffers and installed sequences live elsewhere.
+        m_splice.reset();
+        try {
+            m_splice = std::make_unique<SpliceWorkspace>(entries);
+            return {};
+        } catch (...) {
+            return fail(std::errc::not_enough_memory);
         }
     }
 
@@ -227,8 +251,8 @@ namespace hal::util
                 if (sequences[i])
                     entries = std::max(entries, m_axes[i].entries);
         }
-        if (!m_splice || m_splice->capacity < entries)
-            m_splice = std::make_unique<SpliceWorkspace>(entries);
+        if (const auto reserved = reserveScratch(entries); !reserved)
+            return reserved;
         auto& work = *m_splice;
         struct Retire
         {
@@ -272,10 +296,11 @@ namespace hal::util
                 w.base = a.completed_pulses;
                 w.entries = a.entries;
                 w.target = a.target;
-                if(sequences[i]->timeBase()<a.sequence->timeBase() ||
-                   sequences[i]->timeBase()-a.sequence->timeBase()>=STEP_HORIZON)
+                if (sequences[i]->timeBase() < a.sequence->timeBase() ||
+                    sequences[i]->timeBase() - a.sequence->timeBase() >= STEP_HORIZON)
                     return fail(std::errc::invalid_argument);
-                w.origin = step_add(a.first_rise,std::uint32_t(sequences[i]->timeBase()-a.sequence->timeBase()));
+                w.origin =
+                  step_add(a.first_rise, std::uint32_t(sequences[i]->timeBase() - a.sequence->timeBase()));
                 w.next = a.next_rise;
                 w.terminal = a.terminal;
                 w.generated = a.generated;
@@ -326,7 +351,7 @@ namespace hal::util
             w.unchanged = unchanged;
             if (w.unchanged)
                 continue;
-            STEP_TRACE(mark(step_trace::Axis0 + 3*i));
+            STEP_TRACE(mark(step_trace::Axis0 + 3 * i));
             if (sequence.count() < w.base)
                 return fail(std::errc::invalid_argument);
             const auto count = std::min<std::uint64_t>(w.entries * 2, sequence.count() - w.base);
@@ -348,10 +373,10 @@ namespace hal::util
                     ++copied;
                 }
             }
-            STEP_TRACE(work(i, unsigned(count-copied),copied,w.entries));
+            STEP_TRACE(work(i, unsigned(count - copied), copied, w.entries));
             if (!sequence.generate(w.base + copied, std::span(work.timings).subspan(copied, count - copied)))
                 return fail(std::errc::invalid_argument);
-            STEP_TRACE(mark(step_trace::Generated0 + 3*i));
+            STEP_TRACE(mark(step_trace::Generated0 + 3 * i));
             w.first = w.next = count ? step_add(w.origin, *start) : STEP_PARK;
             w.last = count ? w.first : w.origin;
             w.generated = w.base;
@@ -384,7 +409,7 @@ namespace hal::util
                 }
                 w.tails[half] = { w.generated, w.next, w.last, w.terminal };
             }
-            STEP_TRACE(mark(step_trace::Staged0 + 3*i));
+            STEP_TRACE(mark(step_trace::Staged0 + 3 * i));
         }
         preparePending(); // DMA may have consumed a half during replacement calculation.
         STEP_TRACE(mark(step_trace::RefilledAfter));
@@ -403,16 +428,15 @@ namespace hal::util
                 sample = m_hardware->sample();
                 bool pending{};
                 for (unsigned i = 0; i < 3; ++i)
-                    pending |= sequences[i] &&
-                               (sample.channels[i].transfer_complete ||
-                                sample.channels[i].target != m_axes[i].target);
+                    pending |= sequences[i] && (sample.channels[i].transfer_complete ||
+                                                sample.channels[i].target != m_axes[i].target);
                 if (!pending)
                     break;
             }
             const auto lead = step_distance(sample.tick, preserve_until);
             STEP_TRACE(mark(step_trace::FinalSample));
             if (lead < 20'000 || lead >= STEP_HORIZON) {
-                STEP_TRACE(failure(step_trace::LeadTime,lead));
+                STEP_TRACE(failure(step_trace::LeadTime, lead));
                 return fail(std::errc::timed_out);
             }
             const auto mutableEdge = [preserve_until](std::uint32_t tick) {
@@ -461,8 +485,8 @@ namespace hal::util
                 // LOW and reload the FIFO without losing emitted-step counts.
                 const auto prefetched = m_hardware->buffers()[i][a.target][used];
                 if (prefetched != w.edges[w.shift][used]) {
-                    restart[i] = !channel.high && used % 2U == 0 && w.shift < 2 &&
-                                 mutableEdge(compares[i]) && mutableEdge(channel.compare);
+                    restart[i] = !channel.high && used % 2U == 0 && w.shift < 2 && mutableEdge(compares[i]) &&
+                                 mutableEdge(channel.compare);
                     if (!restart[i])
                         return retry(5);
                 }
@@ -480,7 +504,7 @@ namespace hal::util
                     continue;
                 auto& a = m_axes[i];
                 const auto& w = work.axes[i];
-                a.first_rise=w.origin;
+                a.first_rise = w.origin;
                 if (w.unchanged) {
                     a.sequence = sequences[i];
                     a.requested = sequences[i]->count();
@@ -492,17 +516,20 @@ namespace hal::util
                     // This channel is LOW and its next edge is beyond the
                     // protected frontier. Park DMA before rebasing its buffer
                     // indices; published past entries may then be reused.
-                    const auto parked=m_hardware->stopAxis(i);
-                    if(parked.channels[i].high || !parked.running || parked.error) {
-                        finish(step::State::Underrun,true);
+                    const auto parked = m_hardware->stopAxis(i);
+                    if (parked.channels[i].high || !parked.running || parked.error) {
+                        finish(step::State::Underrun, true);
                         return fail(std::errc::io_error);
                     }
                     const auto consumed = w.shift * w.entries + w.entries - sample.channels[i].remaining;
 #if defined(GIGA_MOTION_BENCH)
                     if (w.base == 0 && consumed == 0) {
                         auto& trace = giga_motion_bench_startup[i];
-                        trace[3] = sample.tick; trace[4] = sample.channels[i].compare;
-                        trace[5] = compares[i]; trace[6] = w.edges[0][0]; trace[7] = 1;
+                        trace[3] = sample.tick;
+                        trace[4] = sample.channels[i].compare;
+                        trace[5] = compares[i];
+                        trace[6] = w.edges[0][0];
+                        trace[7] = 1;
                     }
 #endif
                     a.completed_pulses = w.base + consumed / 2;
@@ -528,7 +555,7 @@ namespace hal::util
                         }
                     m_hardware->publish();
                     if (!m_hardware->arm(i, compares[i], a.entries)) {
-                        STEP_TRACE(failure(step_trace::Arm,step_distance(sample.tick,compares[i])));
+                        STEP_TRACE(failure(step_trace::Arm, step_distance(sample.tick, compares[i])));
                         finish(step::State::Underrun, true);
                         return fail(std::errc::timed_out);
                     }
@@ -643,8 +670,8 @@ namespace hal::util
             } unlock{ m_splicing };
             const auto entries =
               2U * std::clamp<std::uint32_t>(sequence->bufferPulses(), 1U, STEP_BUFFER_EDGES / 2U);
-            if (!m_splice || m_splice->capacity < entries)
-                m_splice = std::make_unique<SpliceWorkspace>(entries);
+            if (const auto reserved = reserveScratch(entries); !reserved)
+                return reserved;
         }
         STEP_LOCK;
         if (m_inCallback) {
@@ -715,8 +742,8 @@ namespace hal::util
         auto& data{ m_hardware->buffers()[index][buffer] };
         // Sequence metadata is immutable. Read its bound once per refill,
         // rather than making one virtual call for every generated pulse.
-        const auto maximumPeriod = axis.sequence ? axis.sequence->maximumPeriod()
-                                                 : std::chrono::nanoseconds{};
+        const auto maximumPeriod =
+          axis.sequence ? axis.sequence->maximumPeriod() : std::chrono::nanoseconds{};
         if (axis.sequence && !axis.terminal) {
             if (!axis.requested || axis.generated > *axis.requested) {
                 return false;
@@ -770,9 +797,14 @@ namespace hal::util
     {
         if (m_preparing.test_and_set())
             return;
-        struct Unlock { std::atomic_flag& flag; ~Unlock() { flag.clear(); } } unlock{m_preparing};
+        struct Unlock
+        {
+            std::atomic_flag& flag;
+            ~Unlock() { flag.clear(); }
+        } unlock{ m_preparing };
         // Worker-owned bounded staging, never visible to DMA until committed.
-        if (!m_refill) return;
+        if (!m_refill)
+            return;
         auto& timings = m_refill->timings;
         auto& edges = m_refill->edges;
         auto& periods = m_refill->periods;
@@ -789,16 +821,22 @@ namespace hal::util
                 auto& a = m_axes[i];
                 if (!m_refillNotification || !a.refill_pending || a.finished)
                     continue;
-                sequence = a.sequence; requested = a.requested;
-                revision = a.revision; generated = original_generated = a.generated;
-                entries = a.entries; next = a.next_rise; last = a.last_fall;
-                target = a.target; terminal = a.terminal;
+                sequence = a.sequence;
+                requested = a.requested;
+                revision = a.revision;
+                generated = original_generated = a.generated;
+                entries = a.entries;
+                next = a.next_rise;
+                last = a.last_fall;
+                target = a.target;
+                terminal = a.terminal;
                 if (!sequence)
                     for (unsigned p = 0; p < entries / 2; ++p) {
-                        if (requested && generated + p >= *requested) break;
+                        if (requested && generated + p >= *requested)
+                            break;
                         const auto t = a.timings[a.timings.size() == 1 ? 0 : generated + p];
-                        timings[p] = {std::chrono::nanoseconds(std::uint64_t(t.period) * STEP_TICK_NS),
-                                      std::chrono::nanoseconds(std::uint64_t(t.high) * STEP_TICK_NS)};
+                        timings[p] = { std::chrono::nanoseconds(std::uint64_t(t.period) * STEP_TICK_NS),
+                                       std::chrono::nanoseconds(std::uint64_t(t.high) * STEP_TICK_NS) };
                     }
             }
             bool valid = true;
@@ -808,29 +846,38 @@ namespace hal::util
             }
             const auto maximum = sequence ? sequence->maximumPeriod() : std::chrono::nanoseconds::max();
             for (unsigned n = 0; valid && n < entries; n += 2) {
-                if (terminal) { edges[n] = edges[n + 1] = STEP_PARK; periods[n / 2] = 0; continue; }
+                if (terminal) {
+                    edges[n] = edges[n + 1] = STEP_PARK;
+                    periods[n / 2] = 0;
+                    continue;
+                }
                 const auto t = convertTiming(timings[n / 2]);
                 if (!t || timings[n / 2].period > maximum || t->period > STEP_HORIZON / entries) {
-                    valid = false; break;
+                    valid = false;
+                    break;
                 }
                 periods[n / 2] = t->period;
-                last = step_add(next, t->high); next = step_add(next, t->period);
+                last = step_add(next, t->high);
+                next = step_add(next, t->period);
                 terminal = requested && ++generated == *requested;
-                if (!requested) ++generated;
-                edges[n] = last; edges[n + 1] = terminal ? STEP_PARK : next;
+                if (!requested)
+                    ++generated;
+                edges[n] = last;
+                edges[n + 1] = terminal ? STEP_PARK : next;
             }
             {
                 STEP_LOCK;
                 service();
                 auto& a = m_axes[i];
-                if (a.finished || !a.refill_pending || a.revision != revision ||
-                    a.target != target || a.generated != original_generated)
+                if (a.finished || !a.refill_pending || a.revision != revision || a.target != target ||
+                    a.generated != original_generated)
                     continue; // A stop/replacement won while the worker calculated.
                 const auto before = m_hardware->sample();
                 const auto lead = step_distance(before.tick, a.last_fall);
                 // Copy is bounded; the old guard remains armed throughout it.
                 if (!valid || !before.running || before.error || lead < 1'000 || lead >= STEP_HORIZON) {
-                    finish(step::State::Underrun, true); return;
+                    finish(step::State::Underrun, true);
+                    return;
                 }
                 std::copy_n(edges.begin(), entries, m_hardware->buffers()[i][1U - target].begin());
                 std::copy_n(periods.begin(), entries / 2, a.periods[1U - target].begin());
@@ -838,17 +885,21 @@ namespace hal::util
                 const auto after = m_hardware->sample();
                 if (!after.running || after.error || after.channels[i].target != target ||
                     after.channels[i].transfer_complete) {
-                    finish(step::State::Underrun, true); return;
+                    finish(step::State::Underrun, true);
+                    return;
                 }
-                a.generated = generated; a.next_rise = next; a.last_fall = last;
-                a.terminal = terminal; a.refill_pending = false;
+                a.generated = generated;
+                a.next_rise = next;
+                a.last_fall = last;
+                a.terminal = terminal;
+                a.refill_pending = false;
 #if defined(GIGA_MOTION_BENCH)
                 // Complete refill transaction: notification delay, computation
                 // and publication, measured on the common 10 MHz timeline.
                 const auto elapsed = step_distance(a.refill_tick, after.tick) * 24U;
                 if (!giga_motion_bench_worst_refill_cycles ||
                     std::uint64_t(elapsed) * giga_motion_bench_worst_budget_ticks >
-                    std::uint64_t(giga_motion_bench_worst_refill_cycles) * a.refill_budget) {
+                      std::uint64_t(giga_motion_bench_worst_refill_cycles) * a.refill_budget) {
                     giga_motion_bench_worst_refill_cycles = elapsed;
                     giga_motion_bench_worst_budget_ticks = a.refill_budget;
                 }
@@ -1005,10 +1056,16 @@ namespace hal::util
     auto StepGenerator::startPrepared(
       const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays) noexcept -> util::Result<>
     {
-        if (auto result = validateDelays(delays); !result) return result;
+        if (auto result = validateDelays(delays); !result)
+            return result;
         preparePending();
-        if (m_splicing.test_and_set()) return fail(std::errc::device_or_resource_busy);
-        struct Unlock { std::atomic_flag& flag; ~Unlock() { flag.clear(); } } unlock{m_splicing};
+        if (m_splicing.test_and_set())
+            return fail(std::errc::device_or_resource_busy);
+        struct Unlock
+        {
+            std::atomic_flag& flag;
+            ~Unlock() { flag.clear(); }
+        } unlock{ m_splicing };
         // Use the same bounded scratch as schedule replacement. Never calculate
         // crossings with interrupts disabled or write buffers owned by DMA.
         std::array<std::optional<step::PulseCount>, 3> requested;
@@ -1017,29 +1074,37 @@ namespace hal::util
         std::uint32_t capacity = 2;
         {
             STEP_LOCK;
-            if (m_inCallback) return fail(std::errc::device_or_resource_busy);
+            if (m_inCallback)
+                return fail(std::errc::device_or_resource_busy);
             service();
             if (m_status.state != step::State::Running)
                 return fail(std::errc::operation_not_permitted);
             for (unsigned i = 0; i < 3; ++i) {
-                if (!delays[i]) continue;
+                if (!delays[i])
+                    continue;
                 const auto& a = m_axes[i];
-                if (!a.finished) return fail(std::errc::device_or_resource_busy);
-                if (!a.sequence && a.timings.empty()) return fail(std::errc::operation_not_permitted);
+                if (!a.finished)
+                    return fail(std::errc::device_or_resource_busy);
+                if (!a.sequence && a.timings.empty())
+                    return fail(std::errc::operation_not_permitted);
                 revisions[i] = a.revision;
                 requested[i] = a.requested;
-                const auto maximum = a.sequence
-                  ? convertTiming({a.sequence->maximumPeriod(), std::chrono::nanoseconds{STEP_MIN_PHASE * STEP_TICK_NS}})
-                  : util::Result<Timing>{std::ranges::max(a.timings, {}, &Timing::period)};
-                if (!maximum) return std::unexpected(maximum.error());
-                const auto window = a.sequence
-                  ? std::clamp<std::uint32_t>(a.sequence->bufferPulses(), 1U, STEP_BUFFER_EDGES / 2U)
-                  : STEP_BUFFER_EDGES / 2U;
+                const auto maximum =
+                  a.sequence ? convertTiming({ a.sequence->maximumPeriod(),
+                                               std::chrono::nanoseconds{ STEP_MIN_PHASE * STEP_TICK_NS } })
+                             : util::Result<Timing>{ std::ranges::max(a.timings, {}, &Timing::period) };
+                if (!maximum)
+                    return std::unexpected(maximum.error());
+                const auto window =
+                  a.sequence
+                    ? std::clamp<std::uint32_t>(a.sequence->bufferPulses(), 1U, STEP_BUFFER_EDGES / 2U)
+                    : STEP_BUFFER_EDGES / 2U;
                 sizes[i] = 2 * std::min<std::uint32_t>(window, STEP_HORIZON / (2 * maximum->period));
 #if defined(GIGA_MOTION_BENCH)
-                sizes[i] = 2 * std::min(
-                  std::clamp<std::uint32_t>(giga_motion_bench_buffer_edges, 4U, STEP_BUFFER_EDGES) / 2U,
-                  STEP_HORIZON / (2 * maximum->period));
+                sizes[i] =
+                  2 * std::min(
+                        std::clamp<std::uint32_t>(giga_motion_bench_buffer_edges, 4U, STEP_BUFFER_EDGES) / 2U,
+                        STEP_HORIZON / (2 * maximum->period));
 #endif
                 if (requested[i] && *requested[i] && *requested[i] < sizes[i] / 2 &&
                     (!a.sequence || !a.sequence->endTickOffset()))
@@ -1047,19 +1112,24 @@ namespace hal::util
                 capacity = std::max(capacity, sizes[i]);
             }
         }
-        try {
-            if (!m_splice || m_splice->capacity < capacity)
-                m_splice = std::make_unique<SpliceWorkspace>(capacity);
-        } catch (...) { return fail(std::errc::not_enough_memory); }
+        if (const auto reserved = reserveScratch(capacity); !reserved)
+            return reserved;
         auto& work = *m_splice;
-        struct Retire {
+        struct Retire
+        {
             SpliceWorkspace& work;
-            ~Retire() { for (auto& a : work.axes) a.previous.reset(); }
-        } retire{work};
+            ~Retire()
+            {
+                for (auto& a : work.axes)
+                    a.previous.reset();
+            }
+        } retire{ work };
         for (unsigned i = 0; i < 3; ++i) {
-            if (!delays[i]) continue;
+            if (!delays[i])
+                continue;
             auto& w = work.axes[i];
-            w.entries = sizes[i]; w.generated = 0;
+            w.entries = sizes[i];
+            w.generated = 0;
             w.first = std::uint32_t((delays[i]->count() + STEP_TICK_NS - 1) / STEP_TICK_NS);
             w.terminal = requested[i] && *requested[i] == 0;
             {
@@ -1074,37 +1144,39 @@ namespace hal::util
             const auto maximum = w.previous ? w.previous->maximumPeriod() : std::chrono::nanoseconds::max();
             for (unsigned half = 0; half < 2; ++half) {
                 const auto count = requested[i]
-                  ? std::min<step::PulseCount>(w.entries / 2, *requested[i] - w.generated)
-                  : w.entries / 2;
+                                     ? std::min<step::PulseCount>(w.entries / 2, *requested[i] - w.generated)
+                                     : w.entries / 2;
                 if (w.previous) {
                     if (!w.previous->generate(w.generated, std::span(work.timings).first(count)))
                         return fail(std::errc::invalid_argument);
-                } else {
+                }
+                else {
                     STEP_LOCK;
                     const auto& a = m_axes[i];
                     if (!a.finished || a.revision != revisions[i])
                         return fail(std::errc::operation_canceled);
                     for (unsigned n = 0; n < count; ++n) {
                         const auto t = a.timings[a.timings.size() == 1 ? 0 : w.generated + n];
-                        work.timings[n] = {std::chrono::nanoseconds(std::uint64_t(t.period) * STEP_TICK_NS),
-                                           std::chrono::nanoseconds(std::uint64_t(t.high) * STEP_TICK_NS)};
+                        work.timings[n] = { std::chrono::nanoseconds(std::uint64_t(t.period) * STEP_TICK_NS),
+                                            std::chrono::nanoseconds(std::uint64_t(t.high) * STEP_TICK_NS) };
                     }
                 }
                 for (unsigned n = 0; n < w.entries; n += 2) {
                     if (w.terminal) {
-                        w.edges[half][n] = w.edges[half][n+1] = STEP_PARK;
-                        w.periods[half][n/2] = 0;
+                        w.edges[half][n] = w.edges[half][n + 1] = STEP_PARK;
+                        w.periods[half][n / 2] = 0;
                         continue;
                     }
-                    const auto t = convertTiming(work.timings[n/2]);
-                    if (!t || work.timings[n/2].period > maximum || t->period > STEP_HORIZON / w.entries)
+                    const auto t = convertTiming(work.timings[n / 2]);
+                    if (!t || work.timings[n / 2].period > maximum || t->period > STEP_HORIZON / w.entries)
                         return fail(std::errc::invalid_argument);
-                    w.periods[half][n/2] = t->period;
-                    w.last = step_add(w.next, t->high); w.next = step_add(w.next, t->period);
+                    w.periods[half][n / 2] = t->period;
+                    w.last = step_add(w.next, t->high);
+                    w.next = step_add(w.next, t->period);
                     ++w.generated;
                     w.terminal = requested[i] && w.generated == *requested[i];
                     w.edges[half][n] = w.last;
-                    w.edges[half][n+1] = w.terminal ? STEP_PARK : w.next;
+                    w.edges[half][n + 1] = w.terminal ? STEP_PARK : w.next;
                 }
                 // Let an already-running independent axis refill during a slow
                 // initial calculation. Its DMA and deadlines never pause.
@@ -1113,25 +1185,34 @@ namespace hal::util
         }
         STEP_LOCK;
         service();
-        if (m_status.state != step::State::Running) return fail(std::errc::operation_canceled);
+        if (m_status.state != step::State::Running)
+            return fail(std::errc::operation_canceled);
         for (unsigned i = 0; i < 3; ++i)
             if (delays[i] && (!m_axes[i].finished || m_axes[i].revision != revisions[i]))
                 return fail(std::errc::operation_canceled);
         const auto origin = m_hardware->sample();
-        if (!origin.running || origin.error) return fail(std::errc::io_error);
+        if (!origin.running || origin.error)
+            return fail(std::errc::io_error);
         for (unsigned i = 0; i < 3; ++i) {
-            if (!delays[i]) continue;
-            auto& a = m_axes[i]; auto& w = work.axes[i];
+            if (!delays[i])
+                continue;
+            auto& a = m_axes[i];
+            auto& w = work.axes[i];
             for (unsigned half = 0; half < 2; ++half) {
                 for (unsigned n = 0; n < w.entries; ++n)
-                    m_hardware->buffers()[i][half][n] = w.edges[half][n] == STEP_PARK
-                      ? STEP_PARK : step_add(origin.tick, w.edges[half][n]);
-                std::copy_n(w.periods[half].begin(), w.entries/2, a.periods[half].begin());
+                    m_hardware->buffers()[i][half][n] =
+                      w.edges[half][n] == STEP_PARK ? STEP_PARK : step_add(origin.tick, w.edges[half][n]);
+                std::copy_n(w.periods[half].begin(), w.entries / 2, a.periods[half].begin());
             }
-            a.generated = w.generated; a.completed_pulses = 0;
-            a.refill_pending = false; a.target = 0; a.terminal = w.terminal;
-            a.entries = w.entries; a.next_rise = step_add(origin.tick, w.next);
-            a.first_rise = step_add(origin.tick, w.first); a.last_fall = step_add(origin.tick, w.last);
+            a.generated = w.generated;
+            a.completed_pulses = 0;
+            a.refill_pending = false;
+            a.target = 0;
+            a.terminal = w.terminal;
+            a.entries = w.entries;
+            a.next_rise = step_add(origin.tick, w.next);
+            a.first_rise = step_add(origin.tick, w.first);
+            a.last_fall = step_add(origin.tick, w.last);
             a.end_tick = endTick(a.sequence.get(), a.first_rise);
             ++a.revision;
         }
@@ -1165,8 +1246,15 @@ namespace hal::util
             m_axes[i].finished = false;
 #if defined(GIGA_MOTION_BENCH)
             giga_motion_bench_startup[i] = {
-              origin.tick, step_add(first, m_axes[i].sequence ? m_axes[i].sequence->initialOffset() : 0),
-              m_hardware->buffers()[i][0][0], 0, 0, 0, 0, 0 };
+                origin.tick,
+                step_add(first, m_axes[i].sequence ? m_axes[i].sequence->initialOffset() : 0),
+                m_hardware->buffers()[i][0][0],
+                0,
+                0,
+                0,
+                0,
+                0
+            };
 #endif
             m_listeners[i].notified = false;
             m_status.pulses[i] = 0U;
@@ -1266,9 +1354,8 @@ namespace hal::util
                     // pulse ordinal. Bank indexing is relative to that base,
                     // not to the command's original pulse zero.
                     const auto half = axis.entries / 2U;
-                    const auto offset = pulses > axis.completed_pulses
-                                          ? pulses - axis.completed_pulses - 1U
-                                          : std::uint64_t(half * 2U - 1U);
+                    const auto offset = pulses > axis.completed_pulses ? pulses - axis.completed_pulses - 1U
+                                                                       : std::uint64_t(half * 2U - 1U);
                     const auto period{ axis.periods[axis.target ^ ((offset / half) & 1U)][offset % half] };
                     m_status.periods[i] = std::chrono::nanoseconds{ std::uint64_t{ period } * STEP_TICK_NS };
                 }
@@ -1311,7 +1398,8 @@ namespace hal::util
     }
     auto StepGenerator::finish(step::State reason, bool send_notification, unsigned site) noexcept -> void
     {
-        if(reason==step::State::Underrun || reason==step::State::DmaError) motion_debug_fault_line=site;
+        if (reason == step::State::Underrun || reason == step::State::DmaError)
+            motion_debug_fault_line = site;
         const auto sample{ m_hardware->stop() };
         if (m_status.state != step::State::Running) {
             return;

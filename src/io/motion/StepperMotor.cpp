@@ -41,7 +41,8 @@ namespace io::motion
       , m_microsteps{ microsteps }
       , m_stepOutput{ hal::core::create_stepper_step_output(step_generator, id) }
       , m_dirOutput{ hal::core::create_stepper_direction_output(id) }
-      , m_referenceSwitchInput{ reference_input ? std::move(reference_input) : hal::core::create_reference_limit_switch(id) }
+      , m_referenceSwitchInput{ reference_input ? std::move(reference_input)
+                                                : hal::core::create_reference_limit_switch(id) }
       , m_feedback{ feedback ? std::move(feedback)
                              : hal::core::create_motor_feedback(
                                  id,
@@ -141,7 +142,12 @@ namespace io::motion
                                                             BufferMode mode,
                                                             pnm::units::Time timeout)
     {
-        return submitMove(distance, velocity, { acceleration, deceleration, jerk }, mode, timeout, true);
+        return submitMove(distance,
+                          velocity,
+                          { .acceleration = acceleration, .deceleration = deceleration, .jerk = jerk },
+                          mode,
+                          timeout,
+                          true);
     }
 
     std::future<StepperMotor::Result> StepperMotor::moveAbs(pnm::units::Angle target,
@@ -152,7 +158,12 @@ namespace io::motion
                                                             BufferMode mode,
                                                             pnm::units::Time timeout)
     {
-        return submitMove(target, velocity, { acceleration, deceleration, jerk }, mode, timeout, false);
+        return submitMove(target,
+                          velocity,
+                          { .acceleration = acceleration, .deceleration = deceleration, .jerk = jerk },
+                          mode,
+                          timeout,
+                          false);
     }
 
     std::future<StepperMotor::Result> StepperMotor::moveRel(pnm::units::Angle distance,
@@ -362,8 +373,8 @@ namespace io::motion
                 return false;
             }
             const auto junction{ junctionSpeed(*next) };
-            const auto make{ [&](double speed) {
-                return makeBlend(*next, *next_count, begin, state, speed);
+            const auto make{ [this, command = next.get(), count = *next_count, begin, state](double speed) {
+                return makeBlend(*command, count, begin, state, speed);
             } };
             auto replacement{ feasibleBlend(junction, make) };
             if (!replacement) {
@@ -384,7 +395,8 @@ namespace io::motion
             m_motor->m_events->notification.clear();
             m_motor->m_events->reference_activated.store(false);
             m_motor->m_events->reference_released.store(false);
-            if (!m_motor->m_stepOutput->prepareSequence(m_sequence)) {
+            if (const auto prepared{ m_motor->m_stepOutput->prepareSequence(m_sequence) }; !prepared) {
+                m_motor->reportOperationFailure("raw STEP preparation", prepared.error());
                 return Result::Rejected;
             }
             {
@@ -404,7 +416,8 @@ namespace io::motion
                 m_motor->m_profileActive.store(true);
                 const auto delay{ std::chrono::nanoseconds{
                   static_cast<std::int64_t>(std::ceil((m_sequence->timeAtPulse(1U) + 0.01) * 1e9)) } };
-                if (!m_motor->m_stepOutput->start(delay)) {
+                if (const auto started{ m_motor->m_stepOutput->start(delay) }; !started) {
+                    m_motor->reportOperationFailure("raw STEP start", started.error());
                     return Result::Rejected;
                 }
             }
@@ -654,14 +667,15 @@ namespace io::motion
 
     pnm::units::Angle StepperMotor::setpointPosition() const
     {
-        std::scoped_lock lock{ m_mutex };
+        // The immutable output handle synchronizes status/accounting itself.
+        // Never make telemetry wait for initial-buffer preparation under m_mutex:
+        // the IO dispatcher also owns lease renewal and must remain responsive.
         static_cast<void>(m_stepOutput->status());
         return m_position.load();
     }
 
     pnm::units::AngularVelocity StepperMotor::setpointVelocity() const
     {
-        std::scoped_lock lock{ m_mutex };
         static_cast<void>(m_stepOutput->status());
         return m_velocity.load();
     }
@@ -749,7 +763,9 @@ namespace io::motion
             m_events->notification.signal();
         }
         if (status.state != hal::step::State::Running) {
-            if (auto* notification{ m_events->group_notification.load() }) notification->signal();
+            if (auto* notification{ m_events->group_notification.load() }) {
+                notification->signal();
+            }
         }
     }
 

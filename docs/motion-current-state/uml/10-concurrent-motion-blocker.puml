@@ -1,0 +1,48 @@
+@startuml
+!include style.iuml
+title Concurrent motion · reproduced GIGA communication failure
+caption Motor-disconnected application fixture; this is an unresolved qualification blocker.
+footer Temporal sequence from console records; the exact blocking / scheduling mechanism is not yet established.
+autonumber
+actor CLI
+box "M7 · UI" #EDF4FE
+participant "Client / Planner" as C
+participant "ICC Bridge / Application" as U
+end box
+boundary "Shared-memory transport" as T #FFF5DF
+box "M4 · IO" #EAF7F4
+participant "ICC / Server" as S
+participant "Controller / Executor" as E
+end box
+CLI -> C : axis jog shoulder -.2 --continuous
+C -> U : acquire, prepare, run
+U -> T : serialized messages
+T -> S : deliver
+S -> E : start rolling shoulder program
+E --> C : Running (through ICC)
+CLI -> C : axis move elbow -1
+C -> U : acquire / prepare / run independent axis
+U -> T : serialized messages
+T -> S : deliver
+S -> E : start independent elbow program
+E --> C : Running (through ICC)
+note over U,E #FFF5DF
+  Both jobs are legal members of the Axis family.
+  Heartbeats and ownership renewals must remain serviceable.
+end note
+U -> U : peer heartbeat deadline expires
+U -> U : report "Peer heartbeat expired"\nrequest application shutdown
+U --x C : ownership renewal can no longer complete
+C -> C : retain uncertainty about remote execution
+E -> E : apply local ownership / link-loss handling
+note over S,E #FFF5DF
+  No HardFault observed; M4 remains alive.
+  A short debugger sample found command serialization active,
+  but does not prove that serialization caused the timeout.
+end note
+note over CLI,E #FFF0F1
+  Passing isolated raw / coordinated waveform captures do not
+  qualify this overlap. Do not claim complete application readiness.
+  No relaxation of heartbeat or ownership deadlines was applied.
+end note
+@enduml

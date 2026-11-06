@@ -37,7 +37,7 @@ else Motor family admitted
   S -> O : moveRel() / moveAbs()\ncompletion observer
   O -> M : submit to selected motor
   alt New active move
-    M -> M : create motion worker\n16 KiB stack + runtime allocations
+    M -> M : create motion worker\nreuse reserved stack\n10 KiB ARM / 16 KiB Linux; priority 16
   else Allowed buffered / blended successor
     M -> M : apply existing bounded queue rules
   end
@@ -49,6 +49,12 @@ else Motor family admitted
   end note
   M -> M : runCommands() / CommandRunner\nbuild Profile + Sequence
   M -> H : configure / start selected IStepOutput
+  note over M,H #FFF5DF
+    Telemetry reads generator-synchronized state without taking the
+    motor command mutex. Startup cannot block ICC through that mutex.
+    Scratch growth retires the old workspace before allocating its
+    replacement; active DMA buffers are separate and remain owned.
+  end note
   loop Until completion, stop or fault
     H -> H : generate hardware STEP edges
     H -->> M : progress / completion notification
@@ -68,7 +74,7 @@ else Motor family admitted
   end
   note over S,M #FFF5DF
     Current raw completion reports a command result before the
-    worker necessarily returns. Ordinary completion does not join it.
+    worker necessarily returns. The next submission joins it before stack reuse.
     The sequential robot-homing path explicitly calls stopAndWait().
   end note
 end

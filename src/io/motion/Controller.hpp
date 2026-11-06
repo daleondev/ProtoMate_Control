@@ -22,7 +22,7 @@ namespace io::motion
         {
             pnm::units::Angle reference_position;
             pnm::units::Angle full_step_angle;
-            std::size_t microsteps;
+            std::size_t microsteps{};
         };
         using Configuration = std::array<MotorConfiguration, 3>;
         using Drivers = std::array<std::shared_ptr<hal::device::IStepperDriver>, 3>;
@@ -30,10 +30,11 @@ namespace io::motion
         using DriverFactory = std::function<Drivers(const std::array<std::size_t, 3>&,
                                                     const std::shared_ptr<hal::IDigitalOutput>&)>;
 
-        struct Hardware {
+        struct Hardware
+        {
             std::shared_ptr<hal::IDigitalOutput> enable;
             std::shared_ptr<hal::IStepGenerator> generator;
-            std::array<std::shared_ptr<hal::IDigitalInput>,3> references{};
+            std::array<std::shared_ptr<hal::IDigitalInput>, 3> references{};
         };
         // Omitted hardware uses the core catalog; test composition can substitute
         // only external devices while retaining the real timer/DMA implementation.
@@ -58,7 +59,7 @@ namespace io::motion
         void enable(std::stop_token stop = {}); // Verification/settling is cancellable.
         void abort(std::optional<MotorId> motor = std::nullopt);
         void connectionLost();
-        void disable();                         // Stops/joins all work and invalidates references.
+        void disable(); // Stops/joins all work and invalidates references.
         void stop(std::optional<MotorId> motor = std::nullopt); // Retains holding torque.
         [[nodiscard]] bool enabled() const noexcept;
         [[nodiscard]] bool ready() const;
@@ -67,7 +68,7 @@ namespace io::motion
         ::motion::trajectory::Reply prepareProgram(const ::motion::trajectory::Request& request,
                                                    std::stop_token stop = {});
         ::motion::trajectory::Error startProgram(const ::motion::trajectory::Run& run,
-          std::function<void(::motion::trajectory::Update)> completed);
+                                                 std::function<void(::motion::trajectory::Update)> completed);
         void releaseJob(std::uint64_t job);
         Ownership::Admission reserveMotor(std::uint64_t job, MotorId motor);
 
@@ -156,7 +157,7 @@ namespace io::motion
             bool managed{}, zero{}, started{}, notified{};
             double duration{};
             ::motion::trajectory::Error error{};
-            std::chrono::steady_clock::time_point timeout{std::chrono::steady_clock::time_point::max()};
+            std::chrono::steady_clock::time_point timeout{ std::chrono::steady_clock::time_point::max() };
             std::function<void(::motion::trajectory::Update)> completed;
             bool homing{}, home_finished{};
             std::array<::motion::trajectory::HomeStage, 3> home{};
@@ -167,7 +168,7 @@ namespace io::motion
         };
         std::array<Group, 3> m_groups;
         Ownership m_ownership;
-        std::uint64_t m_lastExecution{}, m_boot{1};
+        std::uint64_t m_lastExecution{}, m_boot{ 1 };
         std::jthread m_executionWorker;
         std::jthread m_driverWorker;
     };

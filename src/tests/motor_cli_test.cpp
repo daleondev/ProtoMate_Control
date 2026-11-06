@@ -78,8 +78,8 @@ namespace
         std::jthread ioRunner{ example::run_context(ioContext) }, uiRunner{ example::run_context(uiContext) };
         icc::Bridge ioBridge{ ioBus, ioContext, *endpoints[0] }, uiBridge{ uiBus, uiContext, *endpoints[1] };
         std::array<std::shared_ptr<Driver>, 3> drivers{ std::make_shared<Driver>(),
-                                                      std::make_shared<Driver>(),
-                                                      std::make_shared<Driver>() };
+                                                        std::make_shared<Driver>(),
+                                                        std::make_shared<Driver>() };
         Controller controller{ CONFIGURATION, [this](const auto&, const auto&) {
             return Controller::Drivers{ drivers[0], drivers[1], drivers[2] };
         } };
@@ -289,7 +289,8 @@ namespace
     {
         pnm::msg::Bus bus;
         Controller controller{ CONFIGURATION, [](const auto&, const auto&) {
-            return Controller::Drivers{ std::make_shared<Driver>(), std::make_shared<Driver>(),
+            return Controller::Drivers{ std::make_shared<Driver>(),
+                                        std::make_shared<Driver>(),
                                         std::make_shared<Driver>() };
         } };
         controller.initializeDrivers();
@@ -614,4 +615,26 @@ namespace
         ASSERT_TRUE(waitUntil([&] { return actions.poll() != 0; }));
         EXPECT_EQ(submitted, 8U);
     }
+}
+
+TEST_F(MotorCli, InterruptedWaitDoesNotCancelItsMotion)
+{
+    enable();
+    const auto id = client.submit({ .motor = MotorId::M1, .position = -90, .velocity = 5 });
+    ASSERT_TRUE(waitUntil([&] { return position(Id::Motor1) < 0; }));
+    std::stop_source cancellation;
+    auto waiting = std::async(std::launch::async, [&] {
+        try {
+            client.wait(id, 2s, cancellation.get_token());
+        } catch (const std::runtime_error& error) {
+            return std::string{ error.what() };
+        }
+        return std::string{};
+    });
+    cancellation.request_stop();
+    ASSERT_EQ(waiting.wait_for(500ms), std::future_status::ready);
+    EXPECT_EQ(waiting.get(), "wait interrupted; motion continues");
+    EXPECT_LT(controller.motor(Id::Motor1).setpointVelocity(), 0_rpm);
+    client.cancel(id);
+    EXPECT_TRUE(waitUntil([&] { return jobIs(id, State::Stopped); }));
 }

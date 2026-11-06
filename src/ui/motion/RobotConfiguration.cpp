@@ -27,8 +27,8 @@ namespace ui::motion
             // Cancelled affine terms can put an exact integer boundary a few
             // floating-point ulps below that integer. Correct only that numeric
             // roundoff, never round a genuinely fractional soft limit outward.
-            const double tolerance = 8 * std::numeric_limits<double>::epsilon() *
-                                     (std::abs(offset) + std::abs(scaled) + 1);
+            const double tolerance =
+              8 * std::numeric_limits<double>::epsilon() * (std::abs(offset) + std::abs(scaled) + 1);
             return std::abs(value - integer) <= tolerance ? integer : value;
         }
         bool permutation(const std::array<std::uint8_t, 3>& indices)
@@ -41,14 +41,19 @@ namespace ui::motion
     }
 
     std::optional<RobotConfiguration> boardRobotConfiguration() { return std::nullopt; }
-    namespace { ConfigurationProvider simulationProvider; }
+    namespace
+    {
+        ConfigurationProvider simulationProvider;
+    }
     void setSimulationConfigurationProvider(ConfigurationProvider provider)
     {
         simulationProvider = std::move(provider);
     }
     std::optional<RobotConfiguration> executionConfiguration(const tr::Capabilities& hardware)
     {
-        if (simulationProvider) return simulationProvider(hardware);
+        if (simulationProvider) {
+            return simulationProvider(hardware);
+        }
         return boardRobotConfiguration();
     }
 
@@ -61,28 +66,33 @@ namespace ui::motion
                             .motor_reference =
                               Angle::create(hardware.reference_steps[i] * hardware.step_radians[i]),
                             .axis_reference = Angle::create(i == 0 ? 0.0 : 1.2) };
-            c.rotary_dynamics[i] = { 5_rpm, 120_deg_s2, 120_deg_s2, 600_deg_s3 };
+            c.rotary_dynamics[i] = {
+                .velocity = 5_rpm, .acceleration = 120_deg_s2, .deceleration = 120_deg_s2, .jerk = 600_deg_s3
+            };
         }
         c.linear = { .travel_per_output_revolution = 8_mm,
                      .motor_revolutions_per_output_revolution = 1.0,
                      .motor_reference = Angle::create(hardware.reference_steps[2] * hardware.step_radians[2]),
                      .axis_reference = 30_mm };
-        c.linear_dynamics = { 20_mm_s, 100_mm_s2, 100_mm_s2, 500_mm_s3 };
+        c.linear_dynamics = {
+            .velocity = 20_mm_s, .acceleration = 100_mm_s2, .deceleration = 100_mm_s2, .jerk = 500_mm_s3
+        };
         c.geometry.first_arm_length = archived ? 205_mm : 180_mm;
         c.geometry.second_arm_length = archived ? 223.4_mm : 180_mm;
         c.geometry.tool_offset.x = archived ? 135_mm : 0_mm;
         c.geometry.minimum_bend_sine = 0.05;
-        c.geometry.limits = ScaraKinematics::JointLimits{ .minimum = { -150_deg, 10_deg, 0_mm },
-                                                          .maximum = { 150_deg, 170_deg, 60_mm } };
-        c.workspace_minimum = { -600_mm, -600_mm, 0_mm };
-        c.workspace_maximum = { 600_mm, 600_mm, 60_mm };
+        c.geometry.limits =
+          ScaraKinematics::JointLimits{ .minimum = { .shoulder = -150_deg, .elbow = 10_deg, .z = 0_mm },
+                                        .maximum = { .shoulder = 150_deg, .elbow = 170_deg, .z = 60_mm } };
+        c.workspace_minimum = { .x = -600_mm, .y = -600_mm, .z = 0_mm };
+        c.workspace_maximum = { .x = 600_mm, .y = 600_mm, .z = 60_mm };
         c.feed = 20_mm_s;
         c.path_tolerance = 0.5_mm;
         c.blend_tolerance = 1_mm;
-        c.joint_blend_tolerance = { 1_deg, 1_deg, 1_mm };
+        c.joint_blend_tolerance = { .shoulder = 1_deg, .elbow = 1_deg, .z = 1_mm };
         c.homing_order = { 2, 0, 1 };
         for (auto& h : c.homing) {
-            h = { true, true, 5_rpm, 0.5_rpm, 30_s };
+            h = { .configured = true, .positive = true, .seek = 5_rpm, .latch = 0.5_rpm, .timeout = 30_s };
         }
         return c;
     }
@@ -98,11 +108,11 @@ namespace ui::motion
                 h.hardware_fingerprint == tr::fingerprint(h));
         require(permutation(c.motor_for_joint) && permutation(c.homing_order) &&
                 c.geometry.limits.has_value());
-        if(scope==Scope::Robot) {
-        m_kinematics.emplace(c.geometry);
-        require(positive(c.feed.get()) && positive(c.path_tolerance.get()) &&
-                positive(c.blend_tolerance.get()));
-        require(c.work.yaw.isFinite());
+        if (scope == Scope::Robot) {
+            m_kinematics.emplace(c.geometry);
+            require(positive(c.feed.get()) && positive(c.path_tolerance.get()) &&
+                    positive(c.blend_tolerance.get()));
+            require(c.work.yaw.isFinite());
         }
         require(h.capacity >= 2 && h.capacity <= tr::IO_SEGMENTS && h.high_ticks > 0 &&
                 h.minimum_period_ticks > h.high_ticks && h.direction_setup_ticks > 0 &&
@@ -112,19 +122,20 @@ namespace ui::motion
                     l.minimum >= -tr::MAX_POSITION && l.maximum <= tr::MAX_POSITION && positive(l.velocity) &&
                     positive(l.acceleration) && positive(l.deceleration) && positive(l.jerk));
         }
-        if(scope==Scope::Robot) {
-        for (double v : joints(c.joint_blend_tolerance)) {
-            require(positive(v));
+        if (scope == Scope::Robot) {
+            for (double v : joints(c.joint_blend_tolerance)) {
+                require(positive(v));
+            }
+            for (double value : coordinates(c.work.origin)) {
+                require(std::isfinite(value));
+            }
+            auto low{ coordinates(c.workspace_minimum) };
+            auto high{ coordinates(c.workspace_maximum) };
+            for (unsigned i{ 0 }; i < 3; ++i) {
+                require(std::isfinite(low[i]) && std::isfinite(high[i]) && low[i] < high[i]);
+            }
         }
-        for (double value : coordinates(c.work.origin)) {
-            require(std::isfinite(value));
-        }
-        auto low{ coordinates(c.workspace_minimum) }, high{ coordinates(c.workspace_maximum) };
-        for (unsigned i{ 0 }; i < 3; ++i) {
-            require(std::isfinite(low[i]) && std::isfinite(high[i]) && low[i] < high[i]);
-        }
-        }
-        for(unsigned i=0;i<3;++i) {
+        for (unsigned i = 0; i < 3; ++i) {
             require(positive(h.step_radians[i]) && std::isfinite(h.reference_steps[i]));
         }
         for (unsigned j{ 0 }; j < 3; ++j) {
@@ -180,7 +191,7 @@ namespace ui::motion
         const auto q{ joints(p) };
         for (unsigned j{ 0 }; j < 3; ++j) {
             const auto m{ m_configuration.motor_for_joint[j] };
-            result[m] = m_offset[j] + m_scale[j] * q[j];
+            result[m] = m_offset[j] + (m_scale[j] * q[j]);
             if (!std::isfinite(result[m]) || std::abs(result[m]) > tr::MAX_POSITION) {
                 throw std::out_of_range("robot motor coordinate");
             }
@@ -203,26 +214,34 @@ namespace ui::motion
     {
         tr::MotorStates result{};
         for (unsigned j{ 0 }; j < 3; ++j) {
-            result[m_configuration.motor_for_joint[j]] = { m_offset[j] + m_scale[j] * q[j].position,
-                                                           m_scale[j] * q[j].velocity,
-                                                           m_scale[j] * q[j].acceleration };
+            result[m_configuration.motor_for_joint[j]] = { .position =
+                                                             m_offset[j] + (m_scale[j] * q[j].position),
+                                                           .velocity = m_scale[j] * q[j].velocity,
+                                                           .acceleration = m_scale[j] * q[j].acceleration };
         }
         return result;
     }
     std::array<tr::Limits, 3> RobotModel::jointLimits() const noexcept
     {
-        const auto lo{ joints(m_configuration.geometry.limits->minimum) },
-          hi{ joints(m_configuration.geometry.limits->maximum) };
+        const auto lo{ joints(m_configuration.geometry.limits->minimum) };
+        const auto hi{ joints(m_configuration.geometry.limits->maximum) };
         std::array<tr::Limits, 3> result{};
         for (unsigned j{ 0 }; j < 2; ++j) {
             const auto& d{ m_configuration.rotary_dynamics[j] };
-            result[j] = { lo[j],       hi[j], d.velocity.get(), d.acceleration.get(), d.deceleration.get(),
-                          d.jerk.get() };
+            result[j] = { .minimum = lo[j],
+                          .maximum = hi[j],
+                          .velocity = d.velocity.get(),
+                          .acceleration = d.acceleration.get(),
+                          .deceleration = d.deceleration.get(),
+                          .jerk = d.jerk.get() };
         }
         const auto& d{ m_configuration.linear_dynamics };
-        result[2] = {
-            lo[2], hi[2], d.velocity.get(), d.acceleration.get(), d.deceleration.get(), d.jerk.get()
-        };
+        result[2] = { .minimum = lo[2],
+                      .maximum = hi[2],
+                      .velocity = d.velocity.get(),
+                      .acceleration = d.acceleration.get(),
+                      .deceleration = d.deceleration.get(),
+                      .jerk = d.jerk.get() };
         for (unsigned j{ 0 }; j < 3; ++j) {
             auto& l{ result[j] };
             const auto& h{ m_hardware.limits[m_configuration.motor_for_joint[j]] };
@@ -242,8 +261,8 @@ namespace ui::motion
             auto& m{ result[m_configuration.motor_for_joint[j]] };
             const auto& q{ joints[j] };
             const double scale{ std::abs(m_scale[j]) };
-            const double a{ stepBoundary(m_offset[j], m_scale[j] * q.minimum) },
-                         b{ stepBoundary(m_offset[j], m_scale[j] * q.maximum) };
+            const double a{ stepBoundary(m_offset[j], m_scale[j] * q.minimum) };
+            const double b{ stepBoundary(m_offset[j], m_scale[j] * q.maximum) };
             m.minimum = std::max(m.minimum, std::min(a, b));
             m.maximum = std::min(m.maximum, std::max(a, b));
             m.velocity = q.velocity * scale;
@@ -255,10 +274,10 @@ namespace ui::motion
     }
     CartesianPosition RobotModel::vectorFromWork(CartesianPosition p) const noexcept
     {
-        const double c{ std::cos(m_configuration.work.yaw.get()) },
-          s{ std::sin(m_configuration.work.yaw.get()) };
-        return { Distance::create(c * p.x.get() - s * p.y.get()),
-                 Distance::create(s * p.x.get() + c * p.y.get()),
+        const double c{ std::cos(m_configuration.work.yaw.get()) };
+        const double s{ std::sin(m_configuration.work.yaw.get()) };
+        return { Distance::create((c * p.x.get()) - (s * p.y.get())),
+                 Distance::create((s * p.x.get()) + (c * p.y.get())),
                  p.z };
     }
     CartesianPosition RobotModel::fromWork(CartesianPosition p) const noexcept
@@ -271,7 +290,8 @@ namespace ui::motion
     {
         const auto& g{ m_configuration.geometry };
         const double l2{ std::hypot((g.second_arm_length + g.tool_offset.x).get(), g.tool_offset.y.get()) };
-        const double xy{ (g.first_arm_length.get() + l2) / std::abs(m_scale[0]) + l2 / std::abs(m_scale[1]) };
+        const double xy{ ((g.first_arm_length.get() + l2) / std::abs(m_scale[0])) +
+                         (l2 / std::abs(m_scale[1])) };
         return std::hypot(xy, 1 / std::abs(m_scale[2]));
     }
     std::uint64_t RobotModel::fingerprint() const noexcept

@@ -19,42 +19,47 @@ namespace ui::motion
     {
 #if defined(CORE_CM7)
         static_assert(sizeof(History) <= sizeof(historyStorage));
-        if (historyClaimed.exchange(true)) throw std::logic_error("motion history already owned");
-        return std::unique_ptr<History, ReleaseHistory>{std::construct_at(reinterpret_cast<History*>(historyStorage))};
+        if (historyClaimed.exchange(true))
+            throw std::logic_error("motion history already owned");
+        return std::unique_ptr<History, ReleaseHistory>{ std::construct_at(
+          reinterpret_cast<History*>(historyStorage)) };
 #else
-        return std::unique_ptr<History, ReleaseHistory>{new History{}};
+        return std::unique_ptr<History, ReleaseHistory>{ new History{} };
 #endif
     }
     void Client::ReleaseHistory::operator()(History* history) const noexcept
     {
 #if defined(CORE_CM7)
         std::destroy_at(history);
-        historyClaimed=false;
+        historyClaimed = false;
 #else
         delete history;
 #endif
     }
     Client::~Client() = default;
-    void Client::setPlannedDuration(std::uint64_t id,double seconds)
+    void Client::setPlannedDuration(std::uint64_t id, double seconds)
     {
-        std::scoped_lock lock{m_mutex};
-        findLocked(id)->info.planned_seconds=seconds;
+        std::scoped_lock lock{ m_mutex };
+        findLocked(id)->info.planned_seconds = seconds;
     }
     void Client::retireJobsLocked()
     {
-        std::erase_if(m_jobs,[this](const auto& job) {
-            if (!terminal(job->info.state) || job->handle || job->program || job->reservation || job->preparing)
+        std::erase_if(m_jobs, [this](const auto& job) {
+            if (!terminal(job->info.state) || job->handle || job->program || job->reservation ||
+                job->preparing) {
                 return false;
-            m_history->jobs[m_history->count++]=job->info;
+            }
+            m_history->jobs[m_history->count++] = job->info;
             return true;
         });
-        std::sort(m_history->jobs.begin(),m_history->jobs.begin()+m_history->count,
-                  [](const auto& a,const auto& b){return a.id<b.id;});
+        std::sort(m_history->jobs.begin(),
+                  m_history->jobs.begin() + m_history->count,
+                  [](const auto& a, const auto& b) { return a.id < b.id; });
     }
     void Client::finishPlanning(std::uint64_t id)
     {
-        std::scoped_lock lock{m_mutex};
-        findLocked(id)->preparing=false;
+        std::scoped_lock lock{ m_mutex };
+        findLocked(id)->preparing = false;
         retireJobsLocked();
     }
 }

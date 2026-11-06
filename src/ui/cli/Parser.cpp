@@ -399,7 +399,8 @@ namespace ui::cli
                     return std::unexpected("command has more than one variadic argument");
                 }
                 if (variadic_seen && argument.optional) {
-                    return std::unexpected("optional argument follows a variadic argument: " + std::string(argument.name));
+                    return std::unexpected("optional argument follows a variadic argument: " +
+                                           std::string(argument.name));
                 }
                 optional_seen = optional_seen || argument.optional;
                 variadic_seen = variadic_seen || argument.variadic;
@@ -439,17 +440,27 @@ namespace ui::cli
     {
         auto owned = std::make_unique<OwnedCommand>();
         owned->command = std::move(command);
-        for (const auto& arg : owned->command.arguments)
-            owned->arguments.push_back({arg.name, arg.description, arg.optional, arg.variadic});
-        for (const auto& flag : owned->command.flags)
-            owned->flags.push_back({flag.name, flag.short_name, flag.description,
-              flag.value_name ? std::optional<std::string_view>{*flag.value_name} : std::nullopt});
-        CommandView view{owned->command.name, owned->command.description, owned->arguments,
-                         owned->flags, std::move(owned->command.callback)};
+        for (const auto& arg : owned->command.arguments) {
+            owned->arguments.push_back({ arg.name, arg.description, arg.optional, arg.variadic });
+        }
+        for (const auto& flag : owned->command.flags) {
+            owned->flags.push_back(
+              { flag.name,
+                flag.short_name,
+                flag.description,
+                flag.value_name ? std::optional<std::string_view>{ *flag.value_name } : std::nullopt });
+        }
+        CommandView view{ .name = owned->command.name,
+                          .description = owned->command.description,
+                          .arguments = owned->arguments,
+                          .flags = owned->flags,
+                          .callback = std::move(owned->command.callback) };
         m_ownedCommands.push_back(std::move(owned));
         try {
             auto result = registerStaticCommand(std::move(view));
-            if (!result) m_ownedCommands.pop_back();
+            if (!result) {
+                m_ownedCommands.pop_back();
+            }
             return result;
         } catch (...) {
             m_ownedCommands.pop_back();
@@ -645,7 +656,8 @@ namespace ui::cli
                 }
             }
             else if (separator != std::string_view::npos) {
-                return std::unexpected("flag '--" + std::string(specification->name) + "' does not accept a value");
+                return std::unexpected("flag '--" + std::string(specification->name) +
+                                       "' does not accept a value");
             }
             result.flags.push_back({ .specification = static_cast<std::size_t>(specification - flags.begin()),
                                      .value = std::move(value) });

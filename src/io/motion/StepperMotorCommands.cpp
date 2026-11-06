@@ -7,6 +7,20 @@
 
 namespace io::motion
 {
+    void StepperMotor::reportOperationFailure(const char* stage, std::error_code error) const noexcept
+    {
+        try {
+            pnm::log::error(logSink(pnm::log::Level::Error),
+                            "Motor {} {} failed: {} (errno={})",
+                            static_cast<unsigned>(m_id) + 1U,
+                            stage,
+                            error.message(),
+                            error.value());
+        } catch (...) {
+            std::fputs("Motor operation failed; diagnostic logging unavailable\n", stderr);
+        }
+    }
+
     // Cold admission and failure reporting stay outside the instruction-RAM
     // execution paths. Never called from an interrupt.
     void StepperMotor::reportFailure(const char* stage) const noexcept
@@ -14,14 +28,21 @@ namespace io::motion
         const auto failure = std::current_exception();
         try {
             try {
-                if (failure) std::rethrow_exception(failure);
+                if (failure) {
+                    std::rethrow_exception(failure);
+                }
             } catch (const std::exception& error) {
-                pnm::log::error(logSink(pnm::log::Level::Error), "Motor {} {} failed: {}",
-                               static_cast<unsigned>(m_id) + 1, stage, error.what());
+                pnm::log::error(logSink(pnm::log::Level::Error),
+                                "Motor {} {} failed: {}",
+                                static_cast<unsigned>(m_id) + 1,
+                                stage,
+                                error.what());
                 return;
             }
-            pnm::log::error(logSink(pnm::log::Level::Error), "Motor {} {} failed: unknown exception",
-                           static_cast<unsigned>(m_id) + 1, stage);
+            pnm::log::error(logSink(pnm::log::Level::Error),
+                            "Motor {} {} failed: unknown exception",
+                            static_cast<unsigned>(m_id) + 1,
+                            stage);
         } catch (...) {
             std::fputs("Motor failure; diagnostic logging unavailable\n", stderr);
         }

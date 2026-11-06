@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 namespace motion
 {
@@ -48,12 +49,12 @@ namespace motion
             return 0;
         }
         double value{ 0 };
-        for (int i{ 5 }; i >= static_cast<int>(order); --i) {
+        for (int i{ 5 }; std::cmp_greater_equal(i, order); --i) {
             double c{ coefficients[static_cast<std::size_t>(i)] };
             for (unsigned j{ 0 }; j < order; ++j) {
                 c *= i - static_cast<int>(j);
             }
-            value = value * u + c;
+            value = (value * u) + c;
         }
         return value;
     }
@@ -74,8 +75,8 @@ namespace motion
         double width_power{ 1 };
         for (unsigned k{ 0 }; k <= 5; ++k) {
             double shifted{ 0 };
-            for (int j{ 5 }; j >= static_cast<int>(k); --j) {
-                shifted = shifted * from + coefficients[static_cast<unsigned>(j)] * BINOMIAL[j][k];
+            for (int j{ 5 }; std::cmp_greater_equal(j, k); --j) {
+                shifted = (shifted * from) + (coefficients[static_cast<unsigned>(j)] * BINOMIAL[j][k]);
             }
             result.coefficients[k] = shifted * width_power;
             width_power *= width;
@@ -86,7 +87,8 @@ namespace motion
     Interval Polynomial::range(double from, double to, unsigned order) const noexcept
     {
         if (!finite() || !std::isfinite(from) || !std::isfinite(to) || from > to || order > 5) {
-            return { std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN() };
+            return { .minimum = std::numeric_limits<double>::quiet_NaN(),
+                     .maximum = std::numeric_limits<double>::quiet_NaN() };
         }
         auto p{ *this };
         for (unsigned i{ 0 }; i < order; ++i) {
@@ -94,7 +96,7 @@ namespace motion
         }
         const auto shifted{ p.restrict(from, to) };
         const unsigned n{ 5 - order };
-        Interval result{ shifted.coefficients[0], shifted.coefficients[0] };
+        Interval result{ .minimum = shifted.coefficients[0], .maximum = shifted.coefficients[0] };
         for (unsigned i{ 1 }; i <= n; ++i) {
             double b{ 0 };
             for (unsigned k{ 0 }; k <= i; ++k) {
@@ -129,11 +131,12 @@ namespace motion
         std::array<double, 5> turning{};
         const auto turns{ derivative().roots(turning, from, to) };
         std::size_t count{ 0 };
-        const auto append{ [&](double x) {
+        const auto append{ [from, to, output](double x, std::size_t count) {
             if (x > from && x < to && count < output.size() &&
                 (count == 0 || x - output[count - 1] > 8 * std::numeric_limits<double>::epsilon())) {
                 output[count++] = x;
             }
+            return count;
         } };
         double left{ from };
         double fleft{ at(left) };
@@ -141,9 +144,11 @@ namespace motion
             const double right{ interval < turns ? turning[interval] : to };
             const double fright{ at(right) };
             if ((fleft < 0 && fright > 0) || (fleft > 0 && fright < 0)) {
-                double low{ left }, high{ right }, flow{ fleft };
+                double low{ left };
+                double high{ right };
+                double flow{ fleft };
                 for (unsigned iteration{ 0 }; iteration < 60; ++iteration) {
-                    const double middle{ low + (high - low) * 0.5 };
+                    const double middle{ low + ((high - low) * 0.5) };
                     const double value{ at(middle) };
                     if (middle == low || middle == high || value == 0) {
                         low = high = middle;
@@ -157,10 +162,10 @@ namespace motion
                         high = middle;
                     }
                 }
-                append(low + (high - low) * 0.5);
+                count = append(low + ((high - low) * 0.5), count);
             }
             if (interval < turns && std::abs(fright) <= error(*this)) {
-                append(right);
+                count = append(right, count);
             }
             left = right;
             fleft = fright;
@@ -170,14 +175,16 @@ namespace motion
 
     Polynomial hermite(KinematicState start, KinematicState end, double t) noexcept
     {
-        const double v0{ start.velocity * t }, v1{ end.velocity * t };
-        const double a0{ start.acceleration * t * t }, a1{ end.acceleration * t * t };
+        const double v0{ start.velocity * t };
+        const double v1{ end.velocity * t };
+        const double a0{ start.acceleration * t * t };
+        const double a1{ end.acceleration * t * t };
         const double d{ end.position - start.position };
         return { { start.position,
                    v0,
                    a0 * 0.5,
-                   10 * d - 6 * v0 - 4 * v1 - 1.5 * a0 + 0.5 * a1,
-                   -15 * d + 8 * v0 + 7 * v1 + 1.5 * a0 - a1,
-                   6 * d - 3 * v0 - 3 * v1 - 0.5 * a0 + 0.5 * a1 } };
+                   (10 * d) - (6 * v0) - (4 * v1) - (1.5 * a0) + (0.5 * a1),
+                   (-15 * d) + (8 * v0) + (7 * v1) + (1.5 * a0) - a1,
+                   (6 * d) - (3 * v0) - (3 * v1) - (0.5 * a0) + (0.5 * a1) } };
     }
 }

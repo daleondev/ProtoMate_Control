@@ -201,7 +201,9 @@ namespace io::motion
         }
         w.total_ticks += addedTicks;
         w.revision = r.revision;
-        m_chunks[m_chunkCount++] = { r.index, crc, r.count, r.branch, r.final };
+        m_chunks[m_chunkCount++] = {
+            .index = r.index, .crc = crc, .count = r.count, .branch = r.branch, .final = r.final
+        };
         return tr::Error::None;
     }
     tr::Error TrajectorySession::commit(const tr::Request& r)

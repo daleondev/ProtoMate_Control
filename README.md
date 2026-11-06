@@ -95,44 +95,36 @@ accepts only binary64 roundoff at acceleration limits (eight machine epsilons,
 relative to the limit). Exact captured-input, phase-boundary, scaling and
 out-of-limit regressions cover this numerical boundary.
 
-The **40/80 ms scheduling configuration passes the short coordinated electrical
-checks**: the deadline reproduction, full completion and early/late controlled
-stops. All four analyzer captures have exact counts (400 or 266 per axis),
-120–121 samples HIGH at 24 MHz, at most one sample of inter-axis skew and ENABLE
-inactive throughout. None reports a rejected replacement. Later stops reach the
-original 400-pulse endpoint; the early stop verifies a shortened path at 266.
-The deadline-reproduction capture's slowest retained replacement takes 17.621 ms
-and has 22.226 ms remaining at the final check, against the unchanged 2 ms guard.
-These are instrumented elapsed times including preemption, not a worst-case bound.
+The current motion review has separate software and electrical results. Short
+motor-disconnected analyzer captures pass for raw commands (**18/18/9 pulses**),
+coordinated completion (**400 per axis**) and controlled stopping (**266 per axis**).
+HIGH time is 120–121 samples at 24 MHz; coordinated rising-edge skew is at most
+one sample. Physical ENABLE remains inactive throughout. These captures peak
+near 711 pulses/s and do **not** qualify the configured 6,250-pulse/s ceiling.
 
-The application workflow also passes homing → stop → homing, independent axes,
-coordinated reversals, continuous/timed jog, command-family exclusion and group
-stopping. Its reversal test explicitly clears Z's reference contact first; a
-return onto that active contact correctly faults the group. **Full hardware
-qualification remains incomplete:** subsequent raw `motor move` commands fault
-on M2 and M3, with their cause not yet isolated. No further motion or rate tests
-were run after that failure. The captured motion-executor stack peak is
-4,936/16,380 bytes; the motor-command worker reaches 14,608/16,380 bytes and needs
-review. That high-water mark alone does not establish the raw-fault cause.
+**Full hardware application qualification is blocked:** a continuous shoulder
+jog overlapping an independent elbow move can expire the ICC heartbeat. The UI
+now reports the explicit connection failure before shutting down; M4 remains
+alive and applies local loss handling. No HardFault was observed in that failure.
+The precise scheduling/blocking mechanism remains unresolved. Neither heartbeat
+nor ownership deadlines have been relaxed to conceal it.
 
-Test-image diagnostics retain eight bounded timing records, with no allocation
-or logging during replacement. Terminal logs report the last and slowest retained
-transaction; this is not a whole-job maximum. The serial test driver also handles
-command echoes interleaved with logs. Repeated synthetic homing uses reset-aware
-fixture pulse accounting; it does not validate physical contacts.
+The review fixes an overall homing deadline, missing preparation-version
+validation, an interrupted-wait wakeup race, telemetry waiting on raw startup's
+command lock, a native display-mutex preemption deadlock, and an unnecessary
+peak allocation when STEP scratch storage grows. Preparation/start failures now
+retain their stage and allocation failures report capacity exhaustion. The
+native simulator caches mechanical configuration before starting live transport.
 
-Evidence, firmware hashes, phase analysis and both workflow failures are retained
-in `build/motion-baseline/renewal40`. The board remains on the **motor-disabled
-electrical fixture, pair `3bc0f20bd5838127`**, with drivers disabled and the same
-40/80 ms scheduling constants as production source. Adaptive staging is not used.
-Nine host CTest suites/workflows and 17 Python checks pass. No endurance or
-higher-rate hardware qualification is claimed. The coordinated captures peak at
-approximately 711 pulses/s per axis; the 6,250 ceiling remains unqualified here.
-The ordinary interaction objective is **approximately 200 ms to start changing
-motion**, not to reach rest. Captured UI submission acknowledgements take
-50–151 ms; these do not measure IO acceptance or stop-onset latency. Those latency
-bounds remain to be established. Prior isolated STEP captures do not qualify this
-full API.
+The ordinary interaction objective remains approximately **200 ms to start
+changing motion**, not to reach rest. The current captures establish pulse
+behavior, not a worst-case admission/stop-onset bound or maximum-rate endurance.
+ASan/UBSan component checks and complete native workflows are reported separately:
+the two instrumented native workflows still time out without a sanitizer memory
+error report. Lint findings also remain; a successful parse is not a clean lint
+result. See the [current review](docs/motion-current-state/review.md) for exact
+build, test, firmware and capture evidence.
+
 Powered mechanical acceptance requires calibrated limits and transmissions.
 [Executor architecture and verification](src/io/motion/EXECUTOR.md).
 

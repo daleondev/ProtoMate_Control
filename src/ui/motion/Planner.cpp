@@ -122,7 +122,8 @@ namespace ui::motion
                 return kinematicError(solution.error());
             }
             target = *solution;
-            const auto a{ xyz(from->position) }, b{ xyz(endpoint) };
+            const auto a{ xyz(from->position) };
+            const auto b{ xyz(endpoint) };
             for (unsigned i{ 0 }; i < 3; ++i) {
                 m_cartesian[i] = { { a[i], b[i] - a[i] } };
             }
@@ -196,7 +197,9 @@ namespace ui::motion
 
     std::expected<Planner::JointState, RobotError> Planner::inverseAt(double s) const
     {
-        std::array<double, 3> p{}, v{}, a{};
+        std::array<double, 3> p{};
+        std::array<double, 3> v{};
+        std::array<double, 3> a{};
         for (unsigned i{ 0 }; i < 3; ++i) {
             p[i] = m_cartesian[i].at(s);
             v[i] = m_cartesian[i].at(s, 1);
@@ -207,32 +210,34 @@ namespace ui::motion
             return std::unexpected(kinematicError(q.error()));
         }
         const auto velocity{ m_model->kinematics().inverseVelocity(
-          *q, { Velocity::create(v[0]), Velocity::create(v[1]), Velocity::create(v[2]) }) };
+          *q, { .x = Velocity::create(v[0]), .y = Velocity::create(v[1]), .z = Velocity::create(v[2]) }) };
         if (!velocity) {
             return std::unexpected(kinematicError(velocity.error()));
         }
-        const auto pos{ m_model->joints(*q) }, speed{ components(*velocity) };
+        const auto pos{ m_model->joints(*q) };
+        const auto speed{ components(*velocity) };
         const auto& g{ m_model->configuration().geometry };
         const double first{ g.base_yaw.get() + pos[0] };
         const double phase{ std::atan2(g.tool_offset.y.get(),
                                        (g.second_arm_length + g.tool_offset.x).get()) };
         const double second{ first + pos[1] + phase };
-        const double l1{ g.first_arm_length.get() },
-          l2{ std::hypot((g.second_arm_length + g.tool_offset.x).get(), g.tool_offset.y.get()) };
-        const double w1{ speed[0] * speed[0] }, w2{ (speed[0] + speed[1]) * (speed[0] + speed[1]) };
+        const double l1{ g.first_arm_length.get() };
+        const double l2{ std::hypot((g.second_arm_length + g.tool_offset.x).get(), g.tool_offset.y.get()) };
+        const double w1{ speed[0] * speed[0] };
+        const double w2{ (speed[0] + speed[1]) * (speed[0] + speed[1]) };
         // J*q'' = p'' - Jdot*q'. inverseVelocity applies the same inverse J.
         const auto acceleration{ m_model->kinematics().inverseVelocity(
           *q,
-          { Velocity::create(a[0] + l1 * std::cos(first) * w1 + l2 * std::cos(second) * w2),
-            Velocity::create(a[1] + l1 * std::sin(first) * w1 + l2 * std::sin(second) * w2),
-            Velocity::create(a[2]) }) };
+          { .x = Velocity::create(a[0] + (l1 * std::cos(first) * w1) + (l2 * std::cos(second) * w2)),
+            .y = Velocity::create(a[1] + (l1 * std::sin(first) * w1) + (l2 * std::sin(second) * w2)),
+            .z = Velocity::create(a[2]) }) };
         if (!acceleration) {
             return std::unexpected(kinematicError(acceleration.error()));
         }
         const auto acc{ components(*acceleration) };
         JointState result{};
         for (unsigned i{ 0 }; i < 3; ++i) {
-            result[i] = { pos[i], speed[i], acc[i] };
+            result[i] = { .position = pos[i], .velocity = speed[i], .acceleration = acc[i] };
         }
         return result;
     }
@@ -245,7 +250,7 @@ namespace ui::motion
             unsigned depth;
         };
         std::array<Interval, 18> work{};
-        work[0] = { from, to, depth };
+        work[0] = { .from = from, .to = to, .depth = depth };
         std::size_t pending{ 1 };
         unsigned visits{ 0 };
         while (pending) {
@@ -259,7 +264,8 @@ namespace ui::motion
             from = interval.from;
             to = interval.to;
             depth = interval.depth;
-            const auto a{ inverseAt(from) }, b{ inverseAt(to) };
+            const auto a{ inverseAt(from) };
+            const auto b{ inverseAt(to) };
             if (!a) {
                 return a.error();
             }
@@ -289,8 +295,8 @@ namespace ui::motion
             if (!mid) {
                 return mid.error();
             }
-            work[pending++] = { middle, to, depth + 1 };
-            work[pending++] = { from, middle, depth + 1 };
+            work[pending++] = { .from = middle, .to = to, .depth = depth + 1 };
+            work[pending++] = { .from = from, .to = middle, .depth = depth + 1 };
         }
         return RobotError::None;
     }
@@ -308,7 +314,7 @@ namespace ui::motion
             unsigned depth;
         };
         std::array<Interval, 18> work{};
-        work[0] = { from, to, depth };
+        work[0] = { .from = from, .to = to, .depth = depth };
         std::size_t pending{ 1 };
         while (pending) {
             if (m_stop.stop_requested()) {
@@ -324,7 +330,8 @@ namespace ui::motion
             --budget;
             const double middle{ (from + to) * 0.5 };
             std::array<double, 3> position{};
-            std::array<I, 3> ranges{}, derivatives{};
+            std::array<I, 3> ranges{};
+            std::array<I, 3> derivatives{};
             const auto limits{ m_model->jointLimits() };
             bool proven{ true };
             RobotError reason{ RobotError::PositionLimit };
@@ -356,10 +363,11 @@ namespace ui::motion
                 proven = false;
                 reason = RobotError::Singularity;
             }
-            const auto a{ shift(ranges[0], g.base_yaw.get()) },
-              b{ shift(add(ranges[0], ranges[1]), g.base_yaw.get() + phase) };
-            const double l1{ g.first_arm_length.get() },
-              l2{ std::hypot((g.second_arm_length + g.tool_offset.x).get(), g.tool_offset.y.get()) };
+            const auto a{ shift(ranges[0], g.base_yaw.get()) };
+            const auto b{ shift(add(ranges[0], ranges[1]), g.base_yaw.get() + phase) };
+            const double l1{ g.first_arm_length.get() };
+            const double l2{ std::hypot((g.second_arm_length + g.tool_offset.x).get(),
+                                        g.tool_offset.y.get()) };
             std::array<I, 3> tcp{ shift(add(scale(cosine(a), l1), scale(cosine(b), l2)),
                                         g.base_origin.x.get()),
                                   shift(add(scale(sine(a), l1), scale(sine(b), l2)), g.base_origin.y.get()),
@@ -368,8 +376,9 @@ namespace ui::motion
             if (!fk) {
                 return kinematicError(fk.error());
             }
-            const auto actual{ xyz(fk->position) }, lo{ xyz(m_model->configuration().workspace_minimum) },
-              hi{ xyz(m_model->configuration().workspace_maximum) };
+            const auto actual{ xyz(fk->position) };
+            const auto lo{ xyz(m_model->configuration().workspace_minimum) };
+            const auto hi{ xyz(m_model->configuration().workspace_maximum) };
             for (unsigned i{ 0 }; i < 3; ++i) {
                 if (actual[i] < lo[i] - GEOMETRY_EPS || actual[i] > hi[i] + GEOMETRY_EPS) {
                     return RobotError::Workspace;
@@ -391,12 +400,10 @@ namespace ui::motion
                     const auto expected{ (*desired)[i].range(from, to, 1) };
                     const auto difference{ add(velocity[i], scale(expected, -1)) };
                     const double bound{ std::abs(actual[i] - (*desired)[i].at(middle)) +
-                                        difference.magnitude() * (to - from) * 0.5 + GEOMETRY_EPS };
+                                        (difference.magnitude() * (to - from) * 0.5) + GEOMETRY_EPS };
                     deviation2 += bound * bound;
                 }
-                const double available{
-                    m_model->configuration().path_tolerance.get() * 0.45
-                };
+                const double available{ m_model->configuration().path_tolerance.get() * 0.45 };
                 if (std::sqrt(deviation2) > available) {
                     proven = false;
                     reason = RobotError::PathTolerance;
@@ -408,8 +415,8 @@ namespace ui::motion
             if (depth >= 16 || to - from < 1e-9) {
                 return reason;
             }
-            work[pending++] = { middle, to, depth + 1 };
-            work[pending++] = { from, middle, depth + 1 };
+            work[pending++] = { .from = middle, .to = to, .depth = depth + 1 };
+            work[pending++] = { .from = from, .to = middle, .depth = depth + 1 };
         }
         return RobotError::None;
     }
@@ -417,7 +424,9 @@ namespace ui::motion
     ::motion::Profile::Limits Planner::scalarLimits(double speed) const
     {
         const auto limits{ m_model->jointLimits() };
-        std::array<double, 3> d1{}, d2{}, d3{};
+        std::array<double, 3> d1{};
+        std::array<double, 3> d2{};
+        std::array<double, 3> d3{};
         for (std::size_t n{ 0 }; n < m_pieces; ++n) {
             const auto& p{ m_workspace->pieces[n] };
             const double w{ p.end - p.begin };
@@ -427,7 +436,9 @@ namespace ui::motion
                 d3[i] = std::max(d3[i], p.joints[i].range(0, 1, 3).magnitude() / (w * w * w));
             }
         }
-        ::motion::Profile::Limits scalar{ 1e6, 1e6, 1e6, 1e6 };
+        ::motion::Profile::Limits scalar{
+            .velocity = 1e6, .acceleration = 1e6, .deceleration = 1e6, .jerk = 1e6
+        };
         for (unsigned i{ 0 }; i < 3; ++i) {
             if (d1[i] < 1e-12) {
                 continue;
@@ -445,8 +456,9 @@ namespace ui::motion
         }
         scalar.velocity *= m_move.speed * speed;
         double stretch{ 1 };
-        const double v{ scalar.velocity }, a{ std::max(scalar.acceleration, scalar.deceleration) },
-          j{ scalar.jerk };
+        const double v{ scalar.velocity };
+        const double a{ std::max(scalar.acceleration, scalar.deceleration) };
+        const double j{ scalar.jerk };
         for (unsigned i{ 0 }; i < 3; ++i) {
             stretch = std::max(stretch, d1[i] * v / limits[i].velocity);
             stretch = std::max(stretch,
@@ -464,52 +476,83 @@ namespace ui::motion
         return scalar;
     }
 
-    std::expected<tr::FiniteProgram, RobotError> Planner::finite(double acceleration, double deceleration,
-                                                                  double jerk, double* estimated_seconds) const
+    std::expected<tr::FiniteProgram, RobotError> Planner::finite(double acceleration,
+                                                                 double deceleration,
+                                                                 double jerk,
+                                                                 double* estimated_seconds) const
     {
-        if(estimated_seconds)*estimated_seconds=0;
-        if (!m_prepared || (m_move.kind != MoveKind::Joints && m_move.kind != MoveKind::Point) || m_pieces!=1)
-            return std::unexpected(RobotError::Unsupported);
-        for (auto factor : {acceleration,deceleration,jerk})
-            if (!std::isfinite(factor) || factor<=0 || factor>1) return std::unexpected(RobotError::InvalidInput);
-        tr::FiniteProgram out;
-        out.limits=m_model->motorLimits();
-        std::array<double,3> target{};
-        for (unsigned i=0;i<3;++i) target[i]=m_workspace->pieces[0].joints[i].at(1);
-        const auto motors=m_model->toMotors(m_model->joints(target));
-        bool moving{};
-        for (unsigned i=0;i<3;++i) {
-            const auto count=tr::quantize(motors[i]);
-            if (!count) return std::unexpected(count.error());
-            out.displacement[i]=*count-m_start[i];
-            moving |= out.displacement[i]!=0;
+        if (estimated_seconds) {
+            *estimated_seconds = 0;
         }
-        if (!moving) return out;
-        tr::Positions first{},last{};
-        for(unsigned i=0;i<3;++i){first[i]=m_start[i];last[i]=first[i]+out.displacement[i];}
-        const auto qa=m_model->joints(m_model->toJoints(first));
-        const auto qb=m_model->joints(m_model->toJoints(last));
-        std::array<P,3> quantizedPath{};
-        for(unsigned i=0;i<3;++i)quantizedPath[i].coefficients={qa[i],qb[i]-qa[i]};
-        unsigned certificationBudget=8192;
-        if(const auto error=certify(quantizedPath,nullptr,0,1,0,certificationBudget);error!=RobotError::None)
+        if (!m_prepared || (m_move.kind != MoveKind::Joints && m_move.kind != MoveKind::Point) ||
+            m_pieces != 1) {
+            return std::unexpected(RobotError::Unsupported);
+        }
+        for (auto factor : { acceleration, deceleration, jerk }) {
+            if (!std::isfinite(factor) || factor <= 0 || factor > 1)
+                return std::unexpected(RobotError::InvalidInput);
+        }
+        tr::FiniteProgram out;
+        out.limits = m_model->motorLimits();
+        std::array<double, 3> target{};
+        for (unsigned i = 0; i < 3; ++i) {
+            target[i] = m_workspace->pieces[0].joints[i].at(1);
+        }
+        const auto motors = m_model->toMotors(m_model->joints(target));
+        bool moving{};
+        for (unsigned i = 0; i < 3; ++i) {
+            const auto count = tr::quantize(motors[i]);
+            if (!count) {
+                return std::unexpected(count.error());
+            }
+            out.displacement[i] = *count - m_start[i];
+            moving |= out.displacement[i] != 0;
+        }
+        if (!moving) {
+            return out;
+        }
+        tr::Positions first{};
+        tr::Positions last{};
+        for (unsigned i = 0; i < 3; ++i) {
+            first[i] = m_start[i];
+            last[i] = first[i] + out.displacement[i];
+        }
+        const auto qa = m_model->joints(m_model->toJoints(first));
+        const auto qb = m_model->joints(m_model->toJoints(last));
+        std::array<P, 3> quantizedPath{};
+        for (unsigned i = 0; i < 3; ++i) {
+            quantizedPath[i].coefficients = { qa[i], qb[i] - qa[i] };
+        }
+        unsigned certificationBudget = 8192;
+        if (const auto error = certify(quantizedPath, nullptr, 0, 1, 0, certificationBudget);
+            error != RobotError::None) {
             return std::unexpected(error);
+        }
         // Exact linear joint interpolation needs no sampled/quintic expansion.
         // Every axis follows this one scalar law and its one stopping branch.
-        auto limits=scalarLimits(1);
+        auto limits = scalarLimits(1);
         // Rounding a short displacement upward must not increase its physical
         // dynamics above the axis limits used for the unquantized plan.
-        for(unsigned i=0;i<3;++i)if(const auto d=std::abs(double(out.displacement[i]));d>0){
-            limits.velocity=std::min(limits.velocity,out.limits[i].velocity*m_move.speed/d);
-            limits.acceleration=std::min(limits.acceleration,out.limits[i].acceleration/d);
-            limits.deceleration=std::min(limits.deceleration,out.limits[i].deceleration/d);
-            limits.jerk=std::min(limits.jerk,out.limits[i].jerk/d);
+        for (unsigned i = 0; i < 3; ++i) {
+            if (const auto d = std::abs(double(out.displacement[i])); d > 0) {
+                limits.velocity = std::min(limits.velocity, out.limits[i].velocity * m_move.speed / d);
+                limits.acceleration = std::min(limits.acceleration, out.limits[i].acceleration / d);
+                limits.deceleration = std::min(limits.deceleration, out.limits[i].deceleration / d);
+                limits.jerk = std::min(limits.jerk, out.limits[i].jerk / d);
+            }
         }
-        limits.acceleration*=acceleration; limits.deceleration*=deceleration; limits.jerk*=jerk;
-        const auto law=::motion::Profile::create(1.,limits);
-        if(law && estimated_seconds)*estimated_seconds=law->duration();
-        if (!law || law->duration()>90.) return std::unexpected(RobotError::Timing);
-        out.progress=law->description(); out.progress_limits=limits;
+        limits.acceleration *= acceleration;
+        limits.deceleration *= deceleration;
+        limits.jerk *= jerk;
+        const auto law = ::motion::Profile::create(1., limits);
+        if (law && estimated_seconds) {
+            *estimated_seconds = law->duration();
+        }
+        if (!law || law->duration() > 90.) {
+            return std::unexpected(RobotError::Timing);
+        }
+        out.progress = law->description();
+        out.progress_limits = limits;
         return out;
     }
 
@@ -524,15 +567,18 @@ namespace ui::motion
         const double u{ std::clamp((s - p.begin) / w, 0.0, 1.0) };
         JointState out{};
         for (unsigned i{ 0 }; i < 3; ++i) {
-            const double d1{ p.joints[i].at(u, 1) / w }, d2{ p.joints[i].at(u, 2) / (w * w) };
-            out[i] = { p.joints[i].at(u), d1 * velocity, d2 * velocity * velocity + d1 * acceleration };
+            const double d1{ p.joints[i].at(u, 1) / w };
+            const double d2{ p.joints[i].at(u, 2) / (w * w) };
+            out[i] = { .position = p.joints[i].at(u),
+                       .velocity = d1 * velocity,
+                       .acceleration = d2 * velocity * velocity + (d1 * acceleration) };
         }
         return out;
     }
     PathState Planner::pathAt(double seconds) const noexcept
     {
         const auto s{ m_profile.at(seconds) };
-        return { m_offset + s.position, s.velocity, s.acceleration };
+        return { .position = m_offset + s.position, .velocity = s.velocity, .acceleration = s.acceleration };
     }
     RobotError Planner::validatePath(const tr::Segment& segment, const std::array<P, 3>* reference) const
     {
@@ -566,7 +612,7 @@ namespace ui::motion
             unsigned depth;
         };
         std::array<Interval, 22> work{};
-        work[0] = { from, to, depth };
+        work[0] = { .from = from, .to = to, .depth = depth };
         std::size_t pending{ 1 };
         unsigned visits{ 0 };
         while (pending) {
@@ -583,7 +629,8 @@ namespace ui::motion
             if (to <= from) {
                 continue;
             }
-            const auto a{ pathAt(from * tr::TICK_SECONDS) }, b{ pathAt(to * tr::TICK_SECONDS) };
+            const auto a{ pathAt(from * tr::TICK_SECONDS) };
+            const auto b{ pathAt(to * tr::TICK_SECONDS) };
             auto start{ m_model->toMotors(jointAt(a.position, a.velocity, a.acceleration)) };
             auto end{ m_model->toMotors(jointAt(b.position, b.velocity, b.acceleration)) };
             if (to == m_durationTicks) {
@@ -608,14 +655,16 @@ namespace ui::motion
                 // endpoint derivatives. For MoveLinear this is the scalar time law.
                 for (unsigned i{ 0 }; i < 3; ++i) {
                     const auto& p{ m_cartesian[i] };
-                    const ::motion::KinematicState p0{ p.at(a.position),
-                                                       p.at(a.position, 1) * a.velocity,
-                                                       p.at(a.position, 2) * a.velocity * a.velocity +
-                                                         p.at(a.position, 1) * a.acceleration };
-                    const ::motion::KinematicState p1{ p.at(b.position),
-                                                       p.at(b.position, 1) * b.velocity,
-                                                       p.at(b.position, 2) * b.velocity * b.velocity +
-                                                         p.at(b.position, 1) * b.acceleration };
+                    const ::motion::KinematicState p0{ .position = p.at(a.position),
+                                                       .velocity = p.at(a.position, 1) * a.velocity,
+                                                       .acceleration =
+                                                         p.at(a.position, 2) * a.velocity * a.velocity +
+                                                         (p.at(a.position, 1) * a.acceleration) };
+                    const ::motion::KinematicState p1{ .position = p.at(b.position),
+                                                       .velocity = p.at(b.position, 1) * b.velocity,
+                                                       .acceleration =
+                                                         p.at(b.position, 2) * b.velocity * b.velocity +
+                                                         (p.at(b.position, 1) * b.acceleration) };
                     reference[i] = ::motion::hermite(p0, p1, duration);
                 }
             }
@@ -638,9 +687,9 @@ namespace ui::motion
             if (depth >= 20 || to - from <= 10) {
                 return error;
             }
-            const auto middle{ from + (to - from) / 2 };
-            work[pending++] = { middle, to, depth + 1 };
-            work[pending++] = { from, middle, depth + 1 };
+            const auto middle{ from + ((to - from) / 2) };
+            work[pending++] = { .from = middle, .to = to, .depth = depth + 1 };
+            work[pending++] = { .from = from, .to = middle, .depth = depth + 1 };
         }
         return RobotError::None;
     }
@@ -659,7 +708,7 @@ namespace ui::motion
             unsigned depth;
         };
         std::array<Interval, 18> work{};
-        work[0] = { from, to, depth };
+        work[0] = { .from = from, .to = to, .depth = depth };
         std::size_t pending{ 1 };
         while (pending) {
             if (m_stop.stop_requested()) {
@@ -673,9 +722,12 @@ namespace ui::motion
                 return RobotError::SubdivisionLimit;
             }
             --budget;
-            const double t0{ start + duration * from }, t1{ start + duration * to },
-              middle{ (from + to) * 0.5 };
-            const auto a{ pathAt(t0) }, b{ pathAt(t1) }, mid{ pathAt(start + duration * middle) };
+            const double t0{ start + duration * from };
+            const double t1{ start + duration * to };
+            const double middle{ (from + to) * 0.5 };
+            const auto a{ pathAt(t0) };
+            const auto b{ pathAt(t1) };
+            const auto mid{ pathAt(start + duration * middle) };
             // Bound the actual scalar velocity on every intersected constant-jerk
             // phase. This also covers intervals straddling tick-rounded phase ends.
             I speed{ std::min(a.velocity, b.velocity), std::max(a.velocity, b.velocity) };
@@ -683,8 +735,8 @@ namespace ui::motion
             const auto description{ m_profile.description() };
             for (unsigned i{ 0 }; i < description.size; ++i) {
                 const auto& phase{ description.phases[i] };
-                const double lo{ std::max(t0 - phaseStart, 0.0) },
-                  hi{ std::min(t1 - phaseStart, phase.duration) };
+                const double lo{ std::max(t0 - phaseStart, 0.0) };
+                const double hi{ std::min(t1 - phaseStart, phase.duration) };
                 if (lo <= hi) {
                     const auto v{ P{ { phase.velocity, phase.acceleration, phase.jerk * 0.5 } }.range(lo,
                                                                                                       hi) };
@@ -699,20 +751,18 @@ namespace ui::motion
                                            scale(speed, duration)) };
                 const auto derivative{ add(exact, scale(reference[i].range(from, to, 1), -1)) };
                 const double bound{ std::abs(m_cartesian[i].at(mid.position) - reference[i].at(middle)) +
-                                    derivative.magnitude() * (to - from) * 0.5 + GEOMETRY_EPS };
+                                    (derivative.magnitude() * (to - from) * 0.5) + GEOMETRY_EPS };
                 squared += bound * bound;
             }
-            const double available{
-                m_model->configuration().path_tolerance.get() * 0.45
-            };
+            const double available{ m_model->configuration().path_tolerance.get() * 0.45 };
             if (std::sqrt(squared) <= available) {
                 continue;
             }
             if (depth >= 16) {
                 return RobotError::SubdivisionLimit;
             }
-            work[pending++] = { middle, to, depth + 1 };
-            work[pending++] = { from, middle, depth + 1 };
+            work[pending++] = { .from = middle, .to = to, .depth = depth + 1 };
+            work[pending++] = { .from = from, .to = middle, .depth = depth + 1 };
         }
         return RobotError::None;
     }

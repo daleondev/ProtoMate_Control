@@ -14,9 +14,13 @@ namespace simulation
             return static_cast<std::int64_t>(std::floor(degrees * 1600.0 / 360.0 + 1e-9));
         }
     }
-    Machine::Machine(SharedMemory& memory, Profile profile, const std::filesystem::path& media)
+    Machine::Machine(SharedMemory& memory,
+                     Profile profile,
+                     const std::filesystem::path& media,
+                     std::optional<Configuration> configuration)
       : m_memory{ memory }
       , m_profile{ profile }
+      , m_configuration{ std::move(configuration) }
       , m_kinematics{ profile }
       , m_contacts{ profile }
       , m_media{ media }
@@ -33,6 +37,34 @@ namespace simulation
         m_step.edge_callback = [this](const auto& value) { edge(value); };
         sensors();
         publish();
+    }
+    Machine::Configuration Machine::configuration(const Profile& profile)
+    {
+        // Calibration of the simulated geometry, independent of the
+        // controller's commanded/reference positions.
+        Configuration values{};
+        profile.validate();
+        for (unsigned i = 0; i < 3; ++i) {
+            values[i] = profile.ratio[i];
+            values[4 + i] = profile.axis_reference[i];
+            values[7 + i] = profile.shaft_reference[i];
+            values[10 + i] = double(profile.direction[i]);
+            values[13 + i] = profile.geometry_mm[i];
+            double low = i == 0 ? 110. : i == 1 ? 50. : 25.;
+            double high = i == 0 ? 115. : i == 1 ? 60. : 35.;
+            for (unsigned n = 0; n < 40; ++n) {
+                const double mid = (low + high) * .5;
+                const double q = i < 2 ? mid * std::numbers::pi / 180. : mid;
+                if (ContactSensors::contact(profile, i, q, profile.sensor_operate_deflection_deg[i]))
+                    high = mid;
+                else
+                    low = mid;
+            }
+            values[17 + i] = i < 2 ? high * std::numbers::pi / 180. : high / 1000.;
+        }
+        values[3] = profile.z_mm_per_revolution;
+        values[16] = cad::REST_TCP_Z_MM;
+        return values;
     }
     void Machine::record(std::uint64_t time, unsigned index, bool high) noexcept
     {
@@ -504,29 +536,13 @@ namespace simulation
                         m_pending_step = {};
                     break;
                 case Operation::Configuration: {
-                    // Calibration of the simulated geometry, independent of the
-                    // controller's commanded/reference positions.
-                    std::array<double,20> values{};
-                    for (unsigned i=0;i<3;++i) {
-                        values[i]=m_profile.ratio[i];
-                        values[4+i]=m_profile.axis_reference[i];
-                        values[7+i]=m_profile.shaft_reference[i];
-                        values[10+i]=double(m_profile.direction[i]);
-                        values[13+i]=m_profile.geometry_mm[i];
-                        double low=i==0?110.:i==1?50.:25.;
-                        double high=i==0?115.:i==1?60.:35.;
-                        for (unsigned n=0;n<40;++n) {
-                            const double mid=(low+high)*.5;
-                            const double q=i<2?mid*std::numbers::pi/180.:mid;
-                            if (ContactSensors::contact(m_profile,i,q,m_profile.sensor_operate_deflection_deg[i])) high=mid;
-                            else low=mid;
-                        }
-                        values[17+i]=i<2?high*std::numbers::pi/180.:high/1000.;
+                    if (!m_configuration) {
+                        m_configuration = configuration(m_profile);
                     }
-                    values[3]=m_profile.z_mm_per_revolution;
-                    values[16]=cad::REST_TCP_Z_MM;
-                    for (unsigned i=0;i<values.size();++i) put(r.data,i*8,std::bit_cast<std::uint64_t>(values[i]),8);
-                    r.size=values.size()*8;
+                    const auto& values = *m_configuration;
+                    for (unsigned i = 0; i < values.size(); ++i)
+                        put(r.data, i * 8, std::bit_cast<std::uint64_t>(values[i]), 8);
+                    r.size = values.size() * 8;
                     break;
                 }
                 case Operation::State: {

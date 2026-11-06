@@ -6,8 +6,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <stdexcept>
 #include <pneumo/logging.hpp>
+#include <stdexcept>
 
 namespace io::motion
 {
@@ -58,14 +58,16 @@ namespace io::motion
       , m_trajectories{ bus.service<^^icc::Services::io_trajectory>().serveDeferred(
           [this](const ::motion::trajectory::Packet& packet, ProgramReply reply) {
               deferProgram(packet, std::move(reply));
-          }, { .max_pending = 2 }) }
-      , m_trajectoryControl{bus.service<^^icc::Services::io_trajectory_control>().serve(
+          },
+          { .max_pending = 2 }) }
+      , m_trajectoryControl{ bus.service<^^icc::Services::io_trajectory_control>().serve(
           [this](const ::motion::trajectory::Packet& packet) { return trajectory(packet); },
-          {.max_pending=4})}
-      , m_programs{bus.action<^^icc::Actions::io_motion>().serveDeferred(
+          { .max_pending = 4 }) }
+      , m_programs{ bus.action<^^icc::Actions::io_motion>().serveDeferred(
           [this](const ::motion::trajectory::Run& run, ProgramExecution execution) {
               admitProgram(run, std::move(execution));
-          }, {.max_goals=3})}
+          },
+          { .max_goals = 3 }) }
     {
     }
 
@@ -73,13 +75,16 @@ namespace io::motion
     {
         namespace tr = ::motion::trajectory;
         const auto decoded = tr::decodeRequest(packet);
-        if (!decoded) return tr::encode(tr::Reply{.error=decoded.error()});
+        if (!decoded) {
+            return tr::encode(tr::Reply{ .error = decoded.error() });
+        }
         const auto op = decoded->operation;
-        if (op != tr::Operation::Stop && op != tr::Operation::Abort &&
-            op != tr::Operation::Renew && op != tr::Operation::Release)
-            return tr::encode(tr::Reply{.error=tr::Error::Protocol});
+        if (op != tr::Operation::Stop && op != tr::Operation::Abort && op != tr::Operation::Renew &&
+            op != tr::Operation::Release) {
+            return tr::encode(tr::Reply{ .error = tr::Error::Protocol });
+        }
         auto result = m_controller->control(*decoded);
-        if(result.error==tr::Error::None && (op==tr::Operation::Stop || op==tr::Operation::Abort)) {
+        if (result.error == tr::Error::None && (op == tr::Operation::Stop || op == tr::Operation::Abort)) {
             ++m_commandGeneration;
             discardQueuedCommands();
         }
@@ -90,9 +95,9 @@ namespace io::motion
     MotorProgress Server::progress(MotorId motor) const
     {
         const auto& axis{ m_controller->motor(id(motor)) };
-        return { axis.setpointPosition().get<AngleUnits::deg>(),
-                 axis.setpointVelocity().get<AngularVelocityUnits::rpm>(),
-                 axis.isReferenced() };
+        return { .position = axis.setpointPosition().get<AngleUnits::deg>(),
+                 .velocity = axis.setpointVelocity().get<AngularVelocityUnits::rpm>(),
+                 .referenced = axis.isReferenced() };
     }
 
     MotorSnapshot Server::snapshot()
@@ -107,7 +112,8 @@ namespace io::motion
         result.ready = m_controller->ready();
         const auto ownership = m_controller->trajectorySnapshot();
         result.boot = ownership.boot;
-        result.family = ownership.family; result.owners = ownership.owners;
+        result.family = ownership.family;
+        result.owners = ownership.owners;
         result.revisions = ownership.axis_revisions;
         result.configuration = ownership.capabilities.hardware_fingerprint;
         for (std::size_t i{}; i < result.motors.size(); ++i) {
@@ -178,7 +184,7 @@ namespace io::motion
                     ++m_commandGeneration;
                     cancelCommand();
                     m_controller->abort(value.motor == MotorId::All ? std::nullopt
-                                                                   : std::optional{ id(value.motor) });
+                                                                    : std::optional{ id(value.motor) });
                     discardQueuedCommands();
                     break;
                 case MotorOperation::Defaults: {
@@ -201,9 +207,11 @@ namespace io::motion
                             throw std::runtime_error(changed.error().message());
                         }
                     }
-                    result.defaults = { defaults.acceleration.get<AngularAccelerationUnits::deg_s2>(),
-                                        defaults.deceleration.get<AngularAccelerationUnits::deg_s2>(),
-                                        defaults.jerk.get<AngularJerkUnits::deg_s3>() };
+                    result.defaults = { .acceleration =
+                                          defaults.acceleration.get<AngularAccelerationUnits::deg_s2>(),
+                                        .deceleration =
+                                          defaults.deceleration.get<AngularAccelerationUnits::deg_s2>(),
+                                        .jerk = defaults.jerk.get<AngularJerkUnits::deg_s3>() };
                     break;
                 }
                 case MotorOperation::Speed: {
@@ -276,9 +284,12 @@ namespace io::motion
         std::shared_ptr<ProgramCommand> program;
         {
             std::scoped_lock lock{ m_commandMutex };
-            command = m_command; program = m_programCommand;
+            command = m_command;
+            program = m_programCommand;
         }
-        if (program) program->stop.request_stop();
+        if (program) {
+            program->stop.request_stop();
+        }
         if (command) {
             command->stop.request_stop();
         }
@@ -303,7 +314,8 @@ namespace io::motion
             {
                 std::scoped_lock lock{ m_commandMutex };
                 if (m_programCommand && !m_programCommand->started) {
-                    program = m_programCommand; program->started = true;
+                    program = m_programCommand;
+                    program->started = true;
                 }
                 if (m_command && !m_command->started) {
                     command = m_command;
@@ -311,15 +323,38 @@ namespace io::motion
                 }
             }
             if (program) {
-                pnm::log::debug("Preparing job {}",program->request.job);
-                const auto began=std::chrono::steady_clock::now();
-                try { program->result = ::motion::trajectory::encode(
-                    m_controller->prepareProgram(program->request, program->stop.get_token())); }
-                catch (...) { program->result = ::motion::trajectory::encode(
-                    ::motion::trajectory::Reply{.error=::motion::trajectory::Error::Fault}); }
-                pnm::log::debug("Prepared job {} in {} us",program->request.job,
-                  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-began).count());
-                program->done.store(true); m_notification->signal();
+                pnm::log::debug("Preparing job {}", program->request.job);
+                const auto began = std::chrono::steady_clock::now();
+                try {
+                    program->result = ::motion::trajectory::encode(
+                      m_controller->prepareProgram(program->request, program->stop.get_token()));
+                } catch (const std::bad_alloc&) {
+                    program->result = ::motion::trajectory::encode(
+                      ::motion::trajectory::Reply{ .error = ::motion::trajectory::Error::Capacity });
+                    try {
+                        pnm::log::error("Motion preparation {} exhausted its memory budget",
+                                        program->request.job);
+                    } catch (...) {
+                    }
+                } catch (const std::exception& error) {
+                    program->result = ::motion::trajectory::encode(
+                      ::motion::trajectory::Reply{ .error = ::motion::trajectory::Error::Fault });
+                    try {
+                        pnm::log::error(
+                          "Motion preparation {} threw: {}", program->request.job, error.what());
+                    } catch (...) {
+                    }
+                } catch (...) {
+                    program->result = ::motion::trajectory::encode(
+                      ::motion::trajectory::Reply{ .error = ::motion::trajectory::Error::Fault });
+                }
+                pnm::log::debug("Prepared job {} in {} us",
+                                program->request.job,
+                                std::chrono::duration_cast<std::chrono::microseconds>(
+                                  std::chrono::steady_clock::now() - began)
+                                  .count());
+                program->done.store(true);
+                m_notification->signal();
                 continue;
             }
             if (!command) {
@@ -345,10 +380,10 @@ namespace io::motion
             return;
         }
         if (execution.cancelRequested()) {
-            execution.cancelled({ MotorOutcome::Stopped, {} });
+            execution.cancelled({ .outcome = MotorOutcome::Stopped, .final_state = {} });
             return;
         }
-        auto slot{ std::ranges::find_if(m_jobs, [](const auto& job) { return !job; }) };
+        auto* slot{ std::ranges::find_if(m_jobs, [](const auto& job) { return !job; }) };
         if (slot == m_jobs.end()) {
             execution.fail(pnm::msg::ActionError::Busy);
             return;
@@ -363,16 +398,27 @@ namespace io::motion
         if (goal.job) {
             const auto owner = m_controller->reserveMotor(goal.job, id(goal.motor));
             if (owner.error != ::motion::trajectory::Error::None) {
-                execution.reject({.outcome=MotorOutcome::Rejected,.final_state=progress(goal.motor),.busy_job=owner.busy_job}); return;
+                execution.reject({ .outcome = MotorOutcome::Rejected,
+                                   .final_state = progress(goal.motor),
+                                   .busy_job = owner.busy_job });
+                return;
             }
-        } else if (m_controller->trajectorySnapshot().family != Family::None &&
-                   m_controller->trajectorySnapshot().family != Family::Motor) {
-            execution.fail(pnm::msg::ActionError::Busy); return;
+        }
+        else if (m_controller->trajectorySnapshot().family != Family::None &&
+                 m_controller->trajectorySnapshot().family != Family::Motor) {
+            execution.fail(pnm::msg::ActionError::Busy);
+            return;
         }
         if (!execution.accept()) {
-            m_controller->releaseJob(goal.job); return;
+            m_controller->releaseJob(goal.job);
+            return;
         }
-        slot->emplace(Job{ goal.motor, goal.job, std::move(execution), finished, {}, std::move(cancellation) });
+        slot->emplace(Job{ .motor = goal.motor,
+                           .id = goal.job,
+                           .execution = std::move(execution),
+                           .finished = finished,
+                           .result = {},
+                           .cancellation = std::move(cancellation) });
         try {
             const auto motor{ id(goal.motor) };
             if (goal.motion == MotorMotion::Home) {
@@ -397,7 +443,8 @@ namespace io::motion
             }
         } catch (...) {
             m_controller->stop(id(goal.motor));
-            (*slot)->execution.abort({ MotorOutcome::Faulted, progress(goal.motor) });
+            (*slot)->execution.abort(
+              { .outcome = MotorOutcome::Faulted, .final_state = progress(goal.motor) });
             m_controller->releaseJob(goal.job);
             slot->reset();
         }
@@ -421,7 +468,8 @@ namespace io::motion
                     outcome = job->result.get();
                 } catch (...) {
                 }
-                const MotorResult result{ static_cast<MotorOutcome>(outcome), progress(job->motor) };
+                const MotorResult result{ .outcome = static_cast<MotorOutcome>(outcome),
+                                          .final_state = progress(job->motor) };
                 if (outcome == StepperMotor::Result::Completed) {
                     job->execution.succeed(result);
                 }
@@ -448,8 +496,8 @@ namespace io::motion
         const auto urgent{ pnm::msg::watch(m_urgent, wake) };
         const auto actions{ pnm::msg::watch(m_motions, wake) };
         const auto trajectories{ pnm::msg::watch(m_trajectories, wake) };
-        const auto trajectoryControl{pnm::msg::watch(m_trajectoryControl, wake)};
-        const auto programs{pnm::msg::watch(m_programs, wake)};
+        const auto trajectoryControl{ pnm::msg::watch(m_trajectoryControl, wake) };
+        const auto programs{ pnm::msg::watch(m_programs, wake) };
         const std::stop_callback cancellation{ stop, [this, &wake] {
             cancelCommand();
             wake();
@@ -457,7 +505,8 @@ namespace io::motion
         // Full ARM workflow peaked at 14,608 bytes; 20 KiB retains over
         // 25% headroom. Hosted Debug keeps its larger allowance.
         auto worker{ runtime::thread::create_jthread(
-          { .name = "motor commands", .priority = 2,
+          { .name = "motor commands",
+            .priority = 2,
             .stack_size = sizeof(void*) == 4 ? 20UZ * 1024UZ : 24UZ * 1024UZ },
           [this](std::stop_token token) { commandWorker(token); }) };
         const auto drainCommand{ [&] {
@@ -465,15 +514,19 @@ namespace io::motion
             worker.request_stop();
             m_commandNotification.signal();
             worker.join();
-            finishCommand(); finishProgramCommand();
+            finishCommand();
+            finishProgramCommand();
             std::scoped_lock lock{ m_commandMutex };
-            m_command.reset(); m_programCommand.reset();
+            m_command.reset();
+            m_programCommand.reset();
         } };
         auto feedback{ std::chrono::steady_clock::now() };
         try {
             while (!stop.stop_requested()) {
-                if(m_peerLost.exchange(false)){
-                    ++m_commandGeneration;cancelCommand();m_controller->connectionLost();
+                if (m_peerLost.exchange(false)) {
+                    ++m_commandGeneration;
+                    cancelCommand();
+                    m_controller->connectionLost();
                 }
                 m_trajectoryControl.poll();
                 m_urgent.poll();
@@ -481,7 +534,9 @@ namespace io::motion
                 dispatchPrograms();
                 dispatchJobs(false);
                 finishCommand();
-                if(m_peerStopping.load() && m_controller->trajectorySnapshot().family==Family::None)break;
+                if (m_peerStopping.load() && m_controller->trajectorySnapshot().family == Family::None) {
+                    break;
+                }
                 m_commands.poll();
                 m_trajectories.poll();
                 m_motions.poll();
@@ -503,13 +558,15 @@ namespace io::motion
             m_motions.close();
             m_commands.close();
             m_trajectories.close();
-            m_trajectoryControl.close(); m_programs.close();
+            m_trajectoryControl.close();
+            m_programs.close();
             m_urgent.close();
             throw;
         }
         m_commands.close();
         m_trajectories.close();
-        m_trajectoryControl.close(); m_programs.requestStop();
+        m_trajectoryControl.close();
+        m_programs.requestStop();
         m_urgent.close();
         m_motions.requestStop();
         m_controller->disable();

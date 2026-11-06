@@ -911,3 +911,25 @@ TEST_F(StepTest, PreparedGroupValidatesEveryAxisBeforeEmittingAnyPulse)
     hardware->advance(20000U);
     EXPECT_EQ(rises(0).size(), 5U);
 }
+
+TEST_F(StepTest, GrowingPreparationScratchPreservesAnotherAxesDmaBuffers)
+{
+    ASSERT_TRUE(generator->start());
+    ASSERT_TRUE(outputs[0]->prepare({ 10ms, 5us }, 10));
+    ASSERT_TRUE(generator->startPrepared({ 100us, std::nullopt, std::nullopt }));
+    hardware->advance(2000);
+    ASSERT_EQ(rises(0).size(), 1U);
+
+    // The first move needs 20 scratch entries; the second needs 512. Releasing
+    // the smaller scratch before growing must not disturb DMA-owned storage.
+    ASSERT_TRUE(outputs[1]->prepare({ 100us, 5us }, 600));
+    ASSERT_TRUE(generator->startPrepared({ std::nullopt, 100us, std::nullopt }));
+    hardware->advance(1'100'000);
+    ASSERT_EQ(rises(0).size(), 10U);
+    ASSERT_EQ(rises(1).size(), 600U);
+    for (unsigned i = 0; i < 10; ++i)
+        EXPECT_EQ(rises(0)[i], 1000U + i * 100000U);
+    for (unsigned i = 0; i < 600; ++i)
+        EXPECT_EQ(rises(1)[i], 3000U + i * 1000U);
+    EXPECT_TRUE(generator->status().counts_exact);
+}

@@ -11,8 +11,8 @@
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/display.hpp"
 #include "ui/cli/filesystem.hpp"
-#include "ui/cli/motor.hpp"
 #include "ui/cli/motion.hpp"
+#include "ui/cli/motor.hpp"
 #include "ui/cli/robot.hpp"
 #include "ui/cli/state.hpp"
 #include "ui/cli/utilities.hpp"
@@ -25,6 +25,19 @@
 
 namespace ui
 {
+    namespace
+    {
+        void reportFailure(const char* worker) noexcept
+        {
+            try {
+                throw;
+            } catch (const std::exception& error) {
+                std::fprintf(stderr, "UI %s failed: %s\n", worker, error.what());
+            } catch (...) {
+                std::fprintf(stderr, "UI %s failed: unknown exception\n", worker);
+            }
+        }
+    }
 #if defined(CORE_CM7)
     // A dedicated private stack preserves AXI heap for ICC/CLI. The linker
     // checks the DTCM budget; no runtime objects live in the SDRAM POD arena.
@@ -48,6 +61,16 @@ namespace ui
             m_systemState.setConnection(status);
             if (status.state == icc::ConnectionState::Failed) {
                 m_systemState.setLocal(app::State::Fault);
+                std::fprintf(stderr, "UI ICC failed: reason=%u\n", static_cast<unsigned>(status.reason));
+                if (const auto failure = m_bridge.failure()) {
+                    if (const auto* exception = std::get_if<std::exception_ptr>(&*failure)) {
+                        try {
+                            std::rethrow_exception(*exception);
+                        } catch (...) {
+                            reportFailure("ICC");
+                        }
+                    }
+                }
             }
             m_motors.setConnected(status.state == icc::ConnectionState::Connected);
             m_robot.setConnected(status.state == icc::ConnectionState::Connected);
@@ -128,6 +151,7 @@ namespace ui
             }
         } catch (...) {
             if (!m_stopSource.stop_requested()) {
+                reportFailure("state publication");
                 m_systemState.setLocal(app::State::Fault);
                 requestStop();
             }
@@ -150,6 +174,7 @@ namespace ui
             std::fprintf(stderr, "Log subscriber failed: %s\n", error.what());
             requestStop();
         } catch (...) {
+            reportFailure("log subscriber");
             m_systemState.setLocal(app::State::Fault);
             requestStop();
         }
@@ -194,6 +219,7 @@ namespace ui
         try {
             m_robot.run(m_stopSource.get_token());
         } catch (...) {
+            reportFailure("planner");
             m_systemState.setLocal(app::State::Fault);
             requestStop();
         }

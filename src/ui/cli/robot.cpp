@@ -72,21 +72,22 @@ namespace ui::cli::robot
                     return callback_failure("fixture must be 180 or archived; neither is a calibrated robot");
                 }
             }
-            for (auto name : { "start-shoulder", "start-elbow", "start-z" }) {
+            for (const auto* name : { "start-shoulder", "start-elbow", "start-z" }) {
                 if (args.flagCount(name) != 1 || !args.flagValue(name)) {
                     return callback_failure(std::string("--") + name + " is required exactly once");
                 }
             }
-            request.start = { number(*args.flagValue("start-shoulder")) * 1_deg,
-                              number(*args.flagValue("start-elbow")) * 1_deg,
-                              number(*args.flagValue("start-z")) * 1_mm };
-            const auto a{ number(args.require("a")) }, b{ number(args.require("b")) },
-              c{ number(args.require("c")) };
+            request.start = { .shoulder = number(*args.flagValue("start-shoulder")) * 1_deg,
+                              .elbow = number(*args.flagValue("start-elbow")) * 1_deg,
+                              .z = number(*args.flagValue("start-z")) * 1_mm };
+            const auto a{ number(args.require("a")) };
+            const auto b{ number(args.require("b")) };
+            const auto c{ number(args.require("c")) };
             if (kind == ui::motion::MoveKind::Joints) {
-                request.move.joints = { a * 1_deg, b * 1_deg, c * 1_mm };
+                request.move.joints = { .shoulder = a * 1_deg, .elbow = b * 1_deg, .z = c * 1_mm };
             }
             else {
-                request.move.target = { a * 1_mm, b * 1_mm, c * 1_mm };
+                request.move.target = { .x = a * 1_mm, .y = b * 1_mm, .z = c * 1_mm };
             }
             if (const auto speed{ args.flagValue("speed") }) {
                 request.move.speed = number(*speed);
@@ -147,7 +148,8 @@ namespace ui::cli::robot
                    "All previews require --start-shoulder <deg> --start-elbow <deg> --start-z <mm>.\n"
                    "--fixture 180|archived selects uncalibrated simulation geometry explicitly.\n"
                    "robot jobs [id] / robot cancel <id>\n"
-                   "Executable moves require the native simulation model or a verified physical configuration.\n";
+                   "Executable moves require the native simulation model or a verified physical "
+                   "configuration.\n";
             return 0;
         }
         [[
@@ -227,7 +229,8 @@ namespace ui::cli::robot
                 }
                 const auto& p{ job->plan };
                 out << std::format(
-                  "  {:.6f} s; {} / 512 segments; elbow={}; approximation bound={:.4f} mm; separate quantization bound={:.4f} mm\n",
+                  "  {:.6f} s; {} / 512 segments; elbow={}; approximation bound={:.4f} mm; separate "
+                  "quantization bound={:.4f} mm\n",
                   p.duration,
                   p.segments,
                   p.branch == ui::motion::ScaraKinematics::ElbowBranch::Positive ? "positive" : "negative",

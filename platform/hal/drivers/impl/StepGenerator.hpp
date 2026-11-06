@@ -70,6 +70,8 @@ namespace hal::util
         std::unique_ptr<SpliceWorkspace> m_splice;
         std::unique_ptr<RefillWorkspace> m_refill;
         std::atomic_flag m_splicing{};
+        // Caller owns m_splicing; scratch is never referenced by DMA.
+        auto reserveScratch(std::uint32_t entries) noexcept -> util::Result<>;
         struct Timing
         {
             std::uint32_t period;
@@ -110,7 +112,9 @@ namespace hal::util
         auto updateCounts(const StepSample& sample) noexcept -> void;
         auto deadline(std::uint32_t now) const noexcept -> std::uint32_t;
         auto guard(std::uint32_t now) noexcept -> void;
-        auto finish(step::State reason, bool send_notification, unsigned site = std::source_location::current().line()) noexcept -> void;
+        auto finish(step::State reason,
+                    bool send_notification,
+                    unsigned site = std::source_location::current().line()) noexcept -> void;
         auto notify() noexcept -> void;
         auto axisStatus(std::size_t index) const noexcept -> step::AxisStatus;
         static auto convertTiming(step::Timing timing) noexcept -> util::Result<Timing>;

@@ -141,43 +141,44 @@ lease expiry and the installed frontier before deceleration; deceleration durati
 is additional. Ordinary command responsiveness has a 200 ms objective, pending
 measurement of actual onset. No hardware fault path uses this relaxed objective.
 
-Short coordinated analyzer cases pass with no rejected replacements. The
-retained deadline-reproduction trace measures 17.621 ms preparation and 22.226 ms
-remaining at the final check. Full completion has 400 pulses per axis; an early
-controlled-stop capture has 187 on all three axes. These approximately 711-pulse/s captures do not qualify
-the 6,250-pulse/s ceiling. Normal reversal tests move clear of Z's active synthetic
-reference contact; returning onto that contact intentionally invokes the local
-fault path.
+Current short coordinated analyzer cases pass: full completion emits 400 pulses
+per axis and early controlled stopping emits 266 per axis, with 120–121 samples
+HIGH and at most one sample of inter-axis skew at 24 MHz. Independent raw commands
+emit 18/18/9 pulses. Physical ENABLE stays inactive. These approximately
+711-pulse/s cases do not qualify the 6,250-pulse/s ceiling.
 
-The application workflow covers homing cancellation/restart, simultaneous axes,
-coordinated reversal, jog, group stopping, three raw workers, buffered/blended
-successors and live raw speed replacement. Diagnostics are requested while raw
-workers are active to exercise peak action/stack memory, rather than only idle
-memory. Each raw/homing worker has 10 KiB on ARM, versus a measured 7,224-byte
-speed-replacement peak. The 20 KiB command worker accommodates its 14,608-byte
-measured peak; the 8 KiB executor accommodates 4,936 bytes. Raw/homing stack
-storage is reserved at motor construction and reused only after joining its
-predecessor. Repeated disable/init/move cycles therefore do not require large
-contiguous allocations from an already fragmented heap.
+The complete application overlap remains a qualification blocker: a continuous
+shoulder jog plus an independent elbow move can expire the ICC heartbeat. The UI
+reports the explicit failure and follows its existing shutdown policy. M4 remains
+alive; the observed cores are not in HardFault. The exact scheduling or blocking
+mechanism has not been isolated. A debugger sample inside reply serialization is
+not proof that serialization caused the delay.
 
-The final short workflow submits 36 jobs, including three disable/init/restart
-cycles after buffering and speed changes. Sampled IO heap availability remains
-at least 19,136 bytes; measured raw, command, executor and ICC stack headroom is
-29.4%, 28.7%, 39.7% and 40.4%, respectively. These are observed values, not
-worst-case guarantees. The subsequent raw analyzer capture runs without reset
-and verifies 18/18/9 pulses; the coordinated capture verifies 400 per axis with
-at most one 24 MHz sample of edge skew and inactive physical enable.
+Each raw/homing worker reserves its stack at motor construction and reuses it
+only after joining its predecessor: 10 KiB on ARM, 16 KiB on Linux. The command
+worker uses 20 KiB and the executor 8 KiB on ARM. These are allocations, not newly
+measured worst-case stack bounds. Current full-load CPU, stack and latency
+qualification remains incomplete.
 
-ICC action-event records store only their encoded bytes, bounded by the existing
-2,048-byte frame limit. Feedback capacity is reused, and terminal bytes remain
-owned until ACK or session teardown. The small error-terminal capacity is
-reserved at admission. Worker exceptions report the motor, failed stage and
-exception text from cold, thread-context code.
+Telemetry reads the generator-synchronized state without taking the motor's
+command mutex, so raw startup cannot stall the ICC context through that mutex.
+STEP scratch growth releases the previous temporary workspace before allocating
+a larger one. The splice guard serializes its users; active DMA buffers and
+installed sequence ownership remain separate. Allocation failure returns an
+explicit error without modifying an active channel. A register-model regression
+checks growth while a different axis is already emitting pulses.
 
-Current verification, firmware identities and capture checksums are recorded in
-`build/motion-baseline/raw-fix/verification.json`; its `reserved-*` directories
-contain the matching workflow and raw analyzer samples. Electrical fixtures
-inhibit physical motor enable. No adaptive staging is enabled.
+ICC action-event records store encoded bytes bounded by the 2,048-byte frame
+limit. Feedback capacity is reused and terminal bytes remain owned until ACK or
+session teardown. Worker exceptions identify the failed stage; allocation errors
+report Capacity. Interrupting an explicit client wait leaves the motion alive;
+stop notification is synchronized with the wait mutex to prevent a lost wakeup.
+Homing checks both stage deadlines and the overall program deadline.
+
+Current outcomes, hashes and limitations are recorded in
+[the motion review](../../../docs/motion-current-state/review.md) and its
+machine-readable evidence. Motor-disconnected fixtures use synthetic references
+and inhibit physical motor enable. No adaptive staging is enabled.
 
 The reusable D2 profile pool has nine 2,816-byte slots: a nominal profile and two
 stop banks per axis. It supports one coordinated group or three independent groups
