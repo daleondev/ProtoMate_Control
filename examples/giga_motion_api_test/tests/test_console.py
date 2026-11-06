@@ -1,6 +1,7 @@
 """Serial command matching must survive a delayed USB startup prompt."""
 import importlib.util
 import io
+import pytest
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location("motion_console", Path(__file__).parents[1] / "console.py")
@@ -29,7 +30,26 @@ def test_submit_ignores_stale_prompts():
 
 
 def test_command_error_still_fails():
-    import pytest
     console = module.Console(Port(b"> motion init\nerror: disable motors first\n> "), io.StringIO())
     with pytest.raises(RuntimeError, match="disable motors first"):
         console.command("motion init")
+
+
+@pytest.mark.parametrize('detail', ['lease expired', 'schedule replacement rejected by STEP backend',
+                                   'execution renewal deadline missed', 'future unrecognized error'])
+def test_stopped_with_an_error_cannot_pass_a_waveform_test(detail):
+    with pytest.raises(RuntimeError, match='Motion ended with an error'):
+        module.require_successful_motion(f'4: robot stopped; axes=7; {detail}; planned 0.938 s')
+
+
+@pytest.mark.parametrize('result', [
+    '2: robot completed; axes=7; planned 0.938 s; quantized endpoint (motor steps)=1,2,3',
+    '4: robot stopped; axes=7; planned 0.938 s'])
+def test_motion_without_terminal_error_is_accepted(result):
+    module.require_successful_motion(result)
+
+
+def test_expected_homing_cancellation_does_not_allow_other_stop_errors():
+    module.require_successful_motion('3: robot stopped; axes=7; cancelled', ('cancelled',))
+    with pytest.raises(RuntimeError):
+        module.require_successful_motion('3: robot stopped; axes=7; lease expired', ('cancelled',))

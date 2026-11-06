@@ -88,16 +88,33 @@ installed brake on M4. An M4 execution failure invokes the hardware guard and
 invalidates uncertain references; it is not a guaranteed controlled stop.
 
 The Linux workflow exercises the native simulated plant through the production
-CLI, ICC and controller. **Hardware application qualification is blocked at
-coordinated execution renewal.** The latest Release electrical-fixture check
-completed sequential homing, then stopped a 400-pulse-per-axis move after 80
-complete pulses per axis. The executor reported `RenewalLate`, four renewals,
-zero rejected splices and `invalid_argument` (22). This points to construction
-or validation of the next stopping schedule; it does not establish a CPU
-throughput limit. The captured pulses were 120–121 samples HIGH at 24 MHz,
-with at most one sample of inter-axis edge spread and ENABLE inactive throughout.
-The short test failed; endurance and further tuning were stopped.
-Evidence and image/bootstrap hashes are in `build/motion-baseline/`.
+CLI, ICC and controller. Brake construction preserves the incoming state and
+accepts only binary64 roundoff at acceleration limits (eight machine epsilons,
+relative to the limit). Exact captured-input, phase-boundary, scaling and
+out-of-limit regressions cover this numerical boundary.
+
+The Release electrical fixture completes the 400-pulse-per-axis joint move with
+44 successful renewals. **Hardware application qualification remains blocked by
+a STEP schedule-handoff timeout in a subsequent short check.** That failed job
+finished its installed stopping branch at 266 complete pulses per axis. Its
+target errno is **116 (`ETIMEDOUT` in newlib, not Linux's errno mapping)**;
+the exact cause of insufficient handoff lead time is not yet measured.
+The retained captures have 120–121 samples HIGH at 24 MHz, at most one sample of
+inter-axis skew and ENABLE inactive throughout. Clean pulses alone do not qualify
+a failed job: capture verdicts require both waveform and application success.
+
+The early explicit-stop capture ended at 134 pulses per axis but reported a
+spurious lease-expiry error during deceleration. Preservation of the accepted
+stop cause is now host-tested; its hardware recheck remains pending. Repeated
+synthetic homing uses reset-aware fixture pulse accounting. These contacts are
+not physical switch validation.
+
+Hardware investigation stopped at the handoff-timeout blocker; no endurance or
+further timing changes were attempted. Evidence is in
+`build/motion-baseline/stopping-fix-*`; `stopping-fix-firmware-sha256.json` records
+the tested pair and bootstraps. The board remains on the motor-disabled electrical
+fixture, pair `74344a64a803559e`. Subsequent diagnostic/cause-reporting changes
+are compiled and host-tested, not yet flashed.
 Prior isolated STEP captures do not qualify this full API. Approximate 100 ms
 interaction remains a measured usability objective, not a claimed bound.
 Powered mechanical acceptance requires calibrated limits and transmissions.

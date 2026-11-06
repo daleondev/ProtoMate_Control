@@ -3,6 +3,20 @@ import re
 import time
 
 
+def require_successful_motion(result, allowed_errors=()):
+    """A stopped shaft is not proof that the requested operation succeeded."""
+    fields = [field.strip() for field in result.split(';')]
+    if not re.fullmatch(r'\d+: (?:motor|robot|axis) (?:completed|stopped)', fields[0]):
+        raise RuntimeError('Unexpected motion outcome: ' + result)
+    for field in fields[1:]:
+        if field.startswith(('axes=', 'planned ', 'quantized endpoint (motor steps)=')):
+            continue
+        if field in allowed_errors:
+            continue
+        # All unrecognized fields are rejected, including future error codes.
+        raise RuntimeError('Motion ended with an error: ' + result)
+
+
 class Console:
     def __init__(self, port, log):
         self.port = port

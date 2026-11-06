@@ -10,7 +10,9 @@ import glob
 import gzip
 import hashlib
 import json
+import math
 from pathlib import Path
+import re
 import signal
 import subprocess
 import threading
@@ -18,7 +20,7 @@ import time
 
 import numpy as np
 import serial
-from console import Console
+from console import Console, require_successful_motion
 
 RATE = 24_000_000
 
@@ -73,7 +75,7 @@ class Waveform:
                         failures.append(f"M{axis+1}: driver low time below 2.5 us")
             axes.append(row)
         if all(len(r) == pulses for r in self.rises):
-            spread = int(np.ptp(np.array(self.rises), axis=0).max())
+            spread = int(np.ptp(np.array(self.rises), axis=0).max()) if pulses else 0
             if spread > 2:
                 failures.append("equal-progress axes are not synchronized")
         else:
@@ -86,7 +88,11 @@ class Waveform:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--stop-after', type=float,
+                        help='Request robot stop this many seconds after observing Running')
     args = parser.parse_args()
+    if args.stop_after is not None and (not math.isfinite(args.stop_after) or args.stop_after < 0):
+        parser.error('--stop-after must be finite and nonnegative')
     args.output.mkdir(parents=True, exist_ok=False)
     devices = glob.glob('/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_*')
     if len(devices) != 1:
@@ -95,16 +101,26 @@ def main():
     digest = hashlib.sha256()
     started = threading.Event()
     errors = []
+    expected_pulses = 400
     with serial.Serial(devices[0], 115200, timeout=.05, exclusive=True) as port, \
          (args.output/'console.log').open('w') as log, \
          (args.output/'sigrok.log').open('w') as capture_log:
         port.reset_input_buffer()
         cli = Console(port, log)
         cli.synchronize()
-        cli.command('motion disable')
-        cli.command('motion init')
-        cli.command('motion enable')
-        cli.wait(cli.submit('robot home'), timeout=35)
+        try:
+            cli.command('motion disable')
+            cli.command('motion init')
+            cli.command('motion enable')
+            require_successful_motion(cli.wait(cli.submit('robot home'), timeout=35))
+        except Exception as error:
+            try:
+                cli.command('motion disable')
+            finally:
+                (args.output/'result.json').write_text(json.dumps(dict(
+                  passed=False, failures=[f'Setup: {type(error).__name__}: {error}'],
+                  captured=False), indent=2)+'\n')
+            raise
         process = subprocess.Popen(['sigrok-cli', '--driver', 'fx2lafw', '--config', f'samplerate={RATE}',
           '--channels', 'D0,D1,D2,D3,D4,D5,D6,D7', '--continuous', '--output-format', 'binary'],
           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=capture_log)
@@ -131,11 +147,33 @@ def main():
             submitted = time.monotonic()
             job = cli.submit('robot move joints -9 -9 -.3125 --speed 1')
             acknowledged = time.monotonic()-submitted
-            result = cli.wait(job)
+            if args.stop_after is not None:
+                cli.wait(job, 'running')
+                time.sleep(args.stop_after)
+                stop_submitted = time.monotonic()
+                cli.command('robot stop')
+            result = cli.wait(job, 'stopped' if args.stop_after is not None else 'completed')
+            terminal_received = time.monotonic()
             after = cli.command('motor status all')
             time.sleep(.3)
+            if args.stop_after is not None:
+                cli.command('motion status')  # Drain queued terminal diagnostics.
+                log.flush()
+                counts = re.search(rf'Execution job {job} ended:.*?pulses=(\d+),(\d+),(\d+)',
+                                   (args.output/'console.log').read_text())
+                if not counts or len(set(counts.groups())) != 1:
+                    raise RuntimeError('Missing or unequal independent firmware pulse counts')
+                expected_pulses = int(counts[1])
+                if expected_pulses > 400:
+                    raise RuntimeError('Stopping branch exceeded the admitted path')
             (args.output/'application.json').write_text(json.dumps(dict(
-              job=job, submission_ack_seconds=acknowledged, result=result, before=before, after=after), indent=2))
+              job=job, submission_ack_seconds=acknowledged, result=result, before=before, after=after,
+              stop_after_seconds=args.stop_after,
+              stop_to_terminal_seconds=terminal_received-stop_submitted if args.stop_after is not None else None,
+              expected_pulses=expected_pulses), indent=2))
+            require_successful_motion(result)
+        except Exception as error:
+            errors.append(f"Application: {type(error).__name__}: {error}")
         finally:
             # Also stop the application if motion or capture verification fails.
             try:
@@ -146,9 +184,14 @@ def main():
                 process.send_signal(signal.SIGINT)
             process.wait(timeout=15)
             worker.join(timeout=10)
-        if errors or worker.is_alive() or process.returncode not in (0, -signal.SIGINT):
-            raise RuntimeError(f"Incomplete capture: {errors}, exit={process.returncode}")
-        result = waveform.result()
+        if worker.is_alive():
+            errors.append("Capture drain did not finish")
+        if process.returncode not in (0, -signal.SIGINT):
+            errors.append(f"Analyzer exit={process.returncode}")
+        result = waveform.result(expected_pulses)
+        result['expected_pulses'] = expected_pulses
+        result['failures'].extend(errors)
+        result['passed'] = not result['failures']
         result['sha256_raw'] = digest.hexdigest()
         (args.output/'result.json').write_text(json.dumps(result, indent=2)+'\n')
         print(json.dumps(result, indent=2))

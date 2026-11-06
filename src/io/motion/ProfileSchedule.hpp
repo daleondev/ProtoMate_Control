@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ProfileCrossing.hpp"
+#include "ScheduleFailure.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
 
 namespace io::motion
@@ -35,7 +36,8 @@ namespace io::motion
         ProfileSchedule(const ProfileSchedule& nominal, std::uint64_t cut, ::motion::Profile::Limits limits);
         ProfileSchedule(const ProfileSchedule&) = delete;
         ProfileSchedule& operator=(const ProfileSchedule&) = delete;
-        bool valid() const noexcept { return m_valid; }
+        bool valid() const noexcept { return m_failure == ScheduleFailure::None; }
+        ScheduleFailure failure() const noexcept { return m_failure; }
         std::uint64_t firstTick() const noexcept { return m_first; }
         std::uint64_t endTick() const noexcept { return m_end; }
         std::uint64_t cutTick() const noexcept { return m_cut; }
@@ -65,6 +67,6 @@ namespace io::motion
         unsigned m_count{}, m_prefix{};
         std::uint64_t m_first{}, m_cut{}, m_end{};
         std::chrono::nanoseconds m_maximum{};
-        bool m_valid{};
+        ScheduleFailure m_failure{ ScheduleFailure::InvalidSource };
     };
 }

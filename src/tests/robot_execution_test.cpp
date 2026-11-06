@@ -318,3 +318,16 @@ TEST(TrajectoryProtocol, CompactProgramRoundTripsInsideExistingPacket)
     EXPECT_EQ(decoded->program.progress.distance,1.);
     EXPECT_EQ(decoded->job,42U);
 }
+TEST(TrajectoryProtocol, ExecutionFailuresRemainDistinctAcrossTheBridge)
+{
+    namespace t = motion::trajectory;
+    for (unsigned code=unsigned(t::Error::ExecutionDeadline); code<=unsigned(t::Error::SpliceRejected); ++code) {
+        t::Reply reply;
+        reply.error = t::Error(code);
+        const auto decoded=t::decodeReply(t::encode(reply));
+        ASSERT_TRUE(decoded) << code;
+        EXPECT_EQ(decoded->error, reply.error);
+        EXPECT_NE(t::name(reply.error), "invalid error");
+        EXPECT_NE(t::name(reply.error), t::name(t::Error::Timing));
+    }
+}

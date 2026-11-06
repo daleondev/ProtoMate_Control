@@ -1,6 +1,7 @@
 set(bench_sources Bench.cpp Kernels.cpp Communication.cpp Trace.cpp Pulses.cpp Lifecycles.cpp Isolation.cpp CompactExpand.cpp FastControl.cpp FixedBench.cpp ProfileBench.cpp ExecutorBench.cpp)
 target_sources(${PROJECT_NAME} PRIVATE ${bench_sources}
     ${PROJECT_SOURCE_DIR}/src/io/motion/Executor.cpp
+    ${PROJECT_SOURCE_DIR}/src/io/motion/ExecutorDiagnostic.cpp
     ${PROJECT_SOURCE_DIR}/src/io/motion/ProfileSchedule.cpp
     ${PROJECT_SOURCE_DIR}/src/ui/motion/AxisConversion.cpp
     ${PROJECT_SOURCE_DIR}/src/ui/motion/ScaraKinematics.cpp

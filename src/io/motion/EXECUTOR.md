@@ -111,6 +111,20 @@ an earlier completed or cancelled job cannot stop unrelated current motors.
 
 ## Resources and verification
 
+Execution errors retain their stage. `motion jobs <id>` distinguishes a renewal
+deadline, STEP handoff deadline, rejected brake state, brake outside the admitted
+path, scaling/crossing failure and still-owned schedule storage. Homing timeout
+is distinct from cancellation. Once a controlled stop is accepted, later lease
+expiry during deceleration does not overwrite its cause.
+
+The executor retains the first failed construction's cut tick, axis/common-progress
+scope, position/velocity/acceleration, limits and remaining distance after releasing
+its schedule banks. Controller logs print binary64 inputs with 17 significant
+digits for replay. Handoff/deadline logs include build/splice maxima and the target's
+errno. Formatting happens in thread context, never in the STEP interrupt; failure
+capture itself allocates nothing. Diagnostic formatting/storage remains outside
+the timing-critical code budget where possible.
+
 The reusable D2 profile pool has nine 2,816-byte slots: a nominal profile and two
 stop banks per axis. It supports one coordinated group or three independent groups
 without allocating three copies of the entire pool. M7 planning and POD job history

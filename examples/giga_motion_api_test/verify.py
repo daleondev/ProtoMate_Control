@@ -7,7 +7,7 @@ from pathlib import Path
 import time
 
 import serial
-from console import Console
+from console import Console, require_successful_motion
 
 
 def main():
@@ -34,6 +34,8 @@ def main():
         def finished(job, expected="completed"):
             result = cli.wait(job, expected, timeout=40)
             results.append(dict(job=job, terminal=result))
+            if expected in ('completed', 'stopped'):
+                require_successful_motion(result, ('cancelled',) if expected == 'stopped' else ())
 
         try:
             cli.command("motion disable")

@@ -5,6 +5,7 @@
 #include "common/motion/OperatingEnvelope.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 #include <atomic>
+#include "FixturePosition.hpp"
 
 // Readable over SWD, independent of logging and dynamic allocation. This probe
 // executes from internal SRAM: the region under test must not supply its own
@@ -73,8 +74,7 @@ public:
 };
 struct Fixture {
     std::array<std::shared_ptr<Input>,3> inputs{std::make_shared<Input>(),std::make_shared<Input>(),std::make_shared<Input>()};
-    std::array<std::int64_t,3> physical{};
-    std::array<std::uint64_t,3> accounted{};
+    std::array<motion_fixture::Position,3> positions{};
     std::shared_ptr<hal::IStepGenerator> generator=hal::core::create_stepper_generator();
     std::unique_ptr<io::motion::Controller> create(std::shared_ptr<pnm::log::ISink> sink,std::pmr::memory_resource* memory){
         const io::motion::Controller::Configuration config{{{3_deg,1.8_deg,16},{3_deg,1.8_deg,16},{3_deg,1.8_deg,8}}};
@@ -86,11 +86,9 @@ struct Fixture {
         // homing contacts. It is not feedback or evidence of mechanical motion.
         if(!generator->setProgressCallback([this](const hal::step::Status& s) noexcept {
             for(unsigned i=0;i<3;++i){
-                if(s.axes[i]==hal::step::State::Running && !s.pulses[i])accounted[i]=0;
-                const auto delta=s.pulses[i]-accounted[i];accounted[i]=s.pulses[i];
                 const bool forward=i==0?(GPIOJ->IDR&GPIO_PIN_8):i==1?(GPIOD->IDR&GPIO_PIN_13):(GPIOH->IDR&GPIO_PIN_13);
-                physical[i]+=forward?std::int64_t(delta):-std::int64_t(delta);
-                inputs[i]->update(physical[i]>=32);
+                positions[i].observe(s.pulses[i], forward);
+                inputs[i]->update(positions[i].physical>=32);
             }
         }))throw std::runtime_error("fixture callback unavailable");
         return controller;

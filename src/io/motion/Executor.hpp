@@ -36,7 +36,9 @@ namespace io::motion
             Cancelled,
             LeaseExpired,
             RenewalLate,
-            Hardware
+            Hardware,
+            ScheduleRejected,
+            SpliceRejected
         };
         struct Axis
         {
@@ -54,6 +56,15 @@ namespace io::motion
             ::motion::Profile::Limits progress_limits{};
             bool rolling{};
         };
+        struct Diagnostic
+        {
+            ScheduleFailure failure{};
+            std::uint8_t axis{ 3 }; // 0..2: axis; 3: common progress.
+            std::uint64_t cut{};
+            ::motion::Profile::State state{};
+            ::motion::Profile::Limits limits{};
+            double remaining{}, brake_distance{};
+        };
         struct Status
         {
             State state{};
@@ -65,6 +76,7 @@ namespace io::motion
             bool counts_exact{ true };
             std::uint32_t maximum_build_us{}, maximum_splice_us{};
             int last_error{};
+            Diagnostic diagnostic{};
         };
         using Prepare = std::function<bool(unsigned, bool, std::shared_ptr<const hal::step::Sequence>)>;
         Executor(std::shared_ptr<hal::IStepGenerator> generator, Prepare prepare,
@@ -99,6 +111,8 @@ namespace io::motion
             std::optional<ProfileSchedule> schedule;
         };
         bool build(unsigned bank, std::uint64_t cut);
+        bool failed(ScheduleFailure failure, std::uint64_t cut, unsigned axis = 3,
+                    double brake_distance = -1) noexcept;
         std::optional<std::uint64_t> elapsed(std::uint32_t tick) noexcept;
         bool prepareProfiles(const Command& command);
         std::array<std::shared_ptr<const hal::step::TimedSequence>, 3> sequences(unsigned bank) const;

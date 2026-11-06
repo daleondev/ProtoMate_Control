@@ -74,19 +74,14 @@ namespace io::motion
             !m_progress->brakingToRest(cut / 1e7)) {
             const auto state = m_progress->at(cut / 1e7);
             sharedBrake = ::motion::Profile::brake(state.velocity, state.acceleration, m_progressLimits);
-            if (!sharedBrake || state.position + sharedBrake->distance() >
-                m_progress->distance() + 1e-9) {
-                m_status.last_error = int(std::errc::invalid_argument);
-                return false;
-            }
+            if (!sharedBrake) return failed(ScheduleFailure::BrakeState, cut);
+            if (state.position + sharedBrake->distance() > m_progress->distance() + 1e-9)
+                return failed(ScheduleFailure::BrakeOutsidePath, cut, 3, sharedBrake->distance());
         }
         for (unsigned i = 0; i < 3; ++i) {
             if (!m_nominal[i] || m_completed[i]) continue;
             auto& storage = m_banks[bank][i];
-            if (storage.use_count() != 1) {
-                m_status.last_error = int(std::errc::device_or_resource_busy);
-                return false;
-            }
+            if (storage.use_count() != 1) return failed(ScheduleFailure::BankInUse, cut, i);
             auto& slot = storage->schedule;
             if (cut >= m_nominal[i]->end)
                 slot.emplace(m_nominal[i]);
@@ -94,13 +89,10 @@ namespace io::motion
                 const auto scaledBrake = sharedBrake
                   ? sharedBrake->scaled(m_nominal[i]->profile.distance() / m_progress->distance())
                   : std::optional<::motion::Profile>{};
-                if (sharedBrake && !scaledBrake) return false;
+                if (sharedBrake && !scaledBrake) return failed(ScheduleFailure::BrakeScaling, cut, i);
                 slot.emplace(m_nominal[i], cut, m_limits[i], scaledBrake ? &*scaledBrake : nullptr);
             }
-            if (!slot->valid()) {
-                m_status.last_error = int(std::errc::invalid_argument);
-                return false;
-            }
+            if (!slot->valid()) return failed(slot->failure(), cut, i);
         }
         return true;
     }
@@ -128,6 +120,7 @@ namespace io::motion
                 mask |= 1U << i;
             }
         releaseSchedules();
+        m_status = { .id = command.id };
         m_mask = mask;
         m_rolling=command.rolling;
         struct Rollback
@@ -426,7 +419,7 @@ namespace io::motion
         const auto bank = 1U - m_bank;
         const auto building = std::chrono::steady_clock::now();
         if (!build(bank, nextCut)) {
-            brake(Reason::RenewalLate);
+            brake(Reason::ScheduleRejected);
             return;
         }
         const auto prepared = std::chrono::steady_clock::now();
@@ -448,7 +441,7 @@ namespace io::motion
             ++m_status.rejected_renewals;
             if (r.error() == std::errc::resource_unavailable_try_again)
                 return;
-            brake(Reason::RenewalLate);
+            brake(Reason::SpliceRejected);
             return;
         }
         m_bank = bank;

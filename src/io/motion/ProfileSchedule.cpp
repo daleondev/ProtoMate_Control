@@ -40,7 +40,7 @@ namespace io::motion
         m_first = rollingBase(*m_source,m_source->end);
         m_end = m_source->end;
         m_maximum = m_source->maximum;
-        m_valid = true;
+        m_failure = ScheduleFailure::None;
     }
     ProfileSchedule::ProfileSchedule(const ProfileSchedule& nominal,
                                      std::uint64_t cut,
@@ -48,7 +48,7 @@ namespace io::motion
       : ProfileSchedule(nominal.m_source, cut, limits)
     {
         if (!nominal.valid() || nominal.m_brake)
-            m_valid = false;
+            m_failure = ScheduleFailure::InvalidSource;
     }
     ProfileSchedule::ProfileSchedule(Source source,
                                      std::uint64_t cut,
@@ -56,8 +56,12 @@ namespace io::motion
                                      const ::motion::Profile* shared_brake)
       : m_source(std::move(source)), m_cut(cut)
     {
-        if (!m_source || !m_source->valid || cut >= m_source->end)
+        if (!m_source || !m_source->valid)
             return;
+        if (cut >= m_source->end) {
+            m_failure = ScheduleFailure::InvalidCut;
+            return;
+        }
         const auto& nominal = *m_source;
         const auto& original = nominal.profile;
         const auto state = original.at(cut / FREQUENCY);
@@ -69,7 +73,7 @@ namespace io::motion
             m_first = rollingBase(nominal,cut);
             m_end = nominal.end;
             m_maximum = nominal.maximum;
-            m_valid = true;
+            m_failure = ScheduleFailure::None;
             return;
         }
         m_prefix = unsigned(std::floor(state.position));
@@ -82,28 +86,38 @@ namespace io::motion
         if (m_prefix < nominal.count && m_source->crossing.next(m_prefix + 1, cursor) <= cut)
             ++m_prefix;
         const double rawFraction = state.position - m_prefix;
-        if (rawFraction < -1e-9 || rawFraction > 1 + 1e-9)
+        if (rawFraction < -1e-9 || rawFraction > 1 + 1e-9) {
+            m_failure = ScheduleFailure::FractionalBoundary;
             return;
+        }
         const double fraction = std::clamp(rawFraction, 0., 1.);
         m_brake = shared_brake ? std::optional{*shared_brake}
                               : ::motion::Profile::brake(state.velocity, state.acceleration, limits);
-        if (!m_brake || m_brake->duration() <= 0 ||
-            (!nominal.rolling && cut / FREQUENCY + m_brake->duration() > ::motion::operating::MAX_PROGRAM_SECONDS))
+        if (!m_brake) {
+            m_failure = ScheduleFailure::BrakeState;
             return;
+        }
+        if (m_brake->duration() <= 0 ||
+            (!nominal.rolling && cut / FREQUENCY + m_brake->duration() > ::motion::operating::MAX_PROGRAM_SECONDS)) {
+            m_failure = ScheduleFailure::BrakeDuration;
+            return;
+        }
         m_braking.emplace(*m_brake, fraction);
-        if (!m_braking->valid())
+        if (!m_braking->valid()) {
+            m_failure = ScheduleFailure::BrakeCrossing;
             return;
+        }
         m_count = m_prefix + unsigned(std::floor(m_brake->distance() + fraction));
         m_first = rollingBase(nominal,cut);
         m_end = cut + std::uint64_t(std::ceil(m_brake->duration() * FREQUENCY));
         m_maximum = nominal.maximum + std::chrono::nanoseconds(std::uint64_t(m_end - cut) * 100);
-        m_valid = true;
+        m_failure = ScheduleFailure::None;
     }
     std::optional<std::int64_t> ProfileSchedule::commonPrefix(
       const hal::step::Sequence& previous) const noexcept
     {
         const auto* other = dynamic_cast<const ProfileSchedule*>(&previous);
-        if (!other || !m_valid || !other->m_valid || !(m_source->profile == other->m_source->profile))
+        if (!other || !valid() || !other->valid() || !(m_source->profile == other->m_source->profile))
             return {};
         return std::int64_t(
                  std::min(m_braking ? m_cut : m_end, other->m_braking ? other->m_cut : other->m_end)) -
@@ -129,7 +143,7 @@ namespace io::motion
     }
     hal::util::Result<std::uint32_t> ProfileSchedule::risingTick(hal::step::PulseCount pulse) const noexcept
     {
-        if (!m_valid || pulse >= m_count)
+        if (!valid() || pulse >= m_count)
             return invalid();
         if (!timeBase() && !pulse && (!m_braking || m_prefix))
             return 0;
@@ -149,7 +163,7 @@ namespace io::motion
     hal::util::Result<> ProfileSchedule::generate(hal::step::PulseCount first,
                                                   std::span<hal::step::Timing> target) const noexcept
     {
-        if (!m_valid || first > m_count || target.size() > m_count - first)
+        if (!valid() || first > m_count || target.size() > m_count - first)
             return invalid();
         if (target.empty())
             return {};

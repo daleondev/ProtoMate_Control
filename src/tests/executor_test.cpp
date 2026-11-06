@@ -1,6 +1,7 @@
 #include "hal/drivers/impl/StepGenerator.hpp"
 #include "hal/tests/fixtures/SimulatedStepHardware.hpp"
 #include "io/motion/ProfileSchedule.hpp"
+#include "../../examples/giga_motion_api_test/FixturePosition.hpp"
 #include <gtest/gtest.h>
 
 namespace
@@ -53,9 +54,117 @@ namespace
         }
     };
 }
+TEST(MotionFixture, CounterResetDoesNotMoveTheSyntheticReferenceSwitch)
+{
+    motion_fixture::Position position;
+    position.observe(32, true);
+    ASSERT_EQ(position.physical, 32);
+    position.observe(0, false); // clear in Idle after forward homing.
+    EXPECT_EQ(position.physical, 32);
+    position.observe(400, false);
+    EXPECT_EQ(position.physical, -368);
+    position.observe(400, false); // A repeated status must not count twice.
+    position.observe(0, true); // next forward seek.
+    EXPECT_EQ(position.physical, -368);
+    position.observe(400, true);
+    EXPECT_EQ(position.physical, 32);
+    position.observe(0, false);
+    position.observe(1, false);
+    EXPECT_EQ(position.physical, 31); // contact releases after one backoff step.
+}
 TEST(ProfileSchedule, RejectsEmptyWithoutInvalidNumericConversions)
 {
-    EXPECT_FALSE(Schedule(motion::Profile{}).valid());
+    const Schedule empty(motion::Profile{});
+    EXPECT_FALSE(empty.valid());
+    EXPECT_EQ(empty.failure(), io::motion::ScheduleFailure::InvalidSource);
+}
+TEST(ProfileSchedule, ReportsDistinctStoppingConstructionFailures)
+{
+    const auto source = std::make_shared<Schedule::Nominal>(*motion::Profile::create(10000, limits));
+    ASSERT_TRUE(source->valid);
+    const Schedule beyond(source, source->end, limits);
+    EXPECT_EQ(beyond.failure(), io::motion::ScheduleFailure::InvalidCut);
+    auto invalidLimits = limits;
+    invalidLimits.jerk = 0;
+    const Schedule rejected(source, 600'000, invalidLimits);
+    EXPECT_EQ(rejected.failure(), io::motion::ScheduleFailure::BrakeState);
+    const motion::Profile empty;
+    const Schedule duration(source, 600'000, limits, &empty);
+    EXPECT_EQ(duration.failure(), io::motion::ScheduleFailure::BrakeDuration);
+    EXPECT_EQ(Schedule(source, 600'000, limits).failure(), io::motion::ScheduleFailure::None);
+}
+TEST(ProfileBrake, ReplaysCapturedOneUlpAccelerationAtStoppingBoundary)
+{
+    // GIGA diagnostic: robot move joints -9 -9 -.3125 --speed 1,
+    // renewal cut 1,420,551 on the 10 MHz timeline. The analytic phase state
+    // is one representable double above its configured acceleration limit.
+    const motion::Profile::Limits captured{1.7777777777768662, 7.1111111111068084,
+                                         7.1111111111068084, 56.888888888849216};
+    constexpr double velocity = .56572515555517222;
+    constexpr double acceleration = 7.1111111111068093;
+    ASSERT_EQ(acceleration, std::nextafter(captured.acceleration, INFINITY));
+    const auto brake = motion::Profile::brake(velocity, acceleration, captured);
+    ASSERT_TRUE(brake);
+    EXPECT_DOUBLE_EQ(brake->at(0).velocity, velocity);
+    EXPECT_DOUBLE_EQ(brake->at(0).acceleration, acceleration);
+    EXPECT_LE(brake->distance(), .9728672097090203);
+    EXPECT_NEAR(brake->at(brake->duration()).velocity, 0, 1e-12);
+    EXPECT_NEAR(brake->at(brake->duration()).acceleration, 0, 1e-12);
+}
+TEST(ProfileBrake, RoundoffAllowanceIsRelativeAndDoesNotPermitRealLimitViolations)
+{
+    for (double scale : {1e-12, 1., 400., 1e12}) {
+        const motion::Profile::Limits l{20*scale, 7*scale, 5*scale, 56*scale};
+        for (double sign : {-1., 1.}) {
+            const double bound = sign > 0 ? l.acceleration : l.deceleration;
+            const double adjacent = sign * std::nextafter(bound, INFINITY);
+            const auto brake = motion::Profile::brake(2*scale, adjacent, l);
+            ASSERT_TRUE(brake) << scale << ", sign=" << sign;
+            EXPECT_DOUBLE_EQ(brake->at(0).acceleration, adjacent);
+            EXPECT_FALSE(motion::Profile::brake(2*scale, sign*bound*(1+1e-12), l));
+            EXPECT_FALSE(motion::Profile::brake(2*scale, sign*bound*1.01, l));
+        }
+    }
+    EXPECT_FALSE(motion::Profile::brake(1, NAN, limits));
+    EXPECT_FALSE(motion::Profile::brake(1, INFINITY, limits));
+    EXPECT_FALSE(motion::Profile::brake(-1, 0, limits));
+}
+TEST(ProfileSchedule, CapturedLimitsRemainValidAcrossPhaseJoinsAndAxisScaling)
+{
+    const motion::Profile::Limits l{1.7777777777768662, 7.1111111111068084,
+                                  7.1111111111068084, 56.888888888849216};
+    const auto law = motion::Profile::create(1., l);
+    ASSERT_TRUE(law);
+    std::vector<std::uint64_t> cuts{1'420'550, 1'420'551, 1'420'552};
+    double time{};
+    const auto description = law->description();
+    for (const auto& phase : std::span(description.phases).first(description.size)) {
+        time += phase.duration;
+        const auto tick = std::uint64_t(std::llround(time*1e7));
+        for (int delta=-1; delta<=1; ++delta) {
+            const auto cut = tick+delta;
+            if (cut && cut < std::ceil(law->duration()*1e7)) cuts.push_back(cut);
+        }
+    }
+    for (const double scale : {1., 400., 1600., 6250.}) {
+        const auto scaled = law->scaled(scale);
+        ASSERT_TRUE(scaled);
+        const auto source = std::make_shared<Schedule::Nominal>(*scaled);
+        ASSERT_TRUE(source->valid);
+        for (const auto cut : cuts) {
+            const auto state = law->at(cut/1e7);
+            const auto brake = motion::Profile::brake(state.velocity, state.acceleration, l);
+            const bool nominalTail = law->brakingToRest(cut/1e7);
+            ASSERT_TRUE(nominalTail || brake) << cut;
+            const auto axisBrake = !nominalTail ? brake->scaled(scale) : std::nullopt;
+            ASSERT_TRUE(nominalTail || axisBrake) << cut;
+            const Schedule schedule(source, cut,
+              {l.velocity*scale,l.acceleration*scale,l.deceleration*scale,l.jerk*scale},
+              axisBrake ? &*axisBrake : nullptr);
+            EXPECT_TRUE(schedule.valid()) << cut << ", scale=" << scale
+                                          << ", failure=" << unsigned(schedule.failure());
+        }
+    }
 }
 TEST(ProfileSchedule, BanksShareAndRetainTheImmutableNominal)
 {
@@ -138,6 +247,94 @@ TEST_F(ExecutorTest, LateOrDifferentPrefixRejectsEveryAxisWithoutMutation)
 }
 
 #include "io/motion/Executor.hpp"
+TEST_F(ExecutorTest, RetainedBankReportsStorageFailureInsteadOfMissedDeadline)
+{
+    gen->stop();
+    ASSERT_TRUE(gen->start());
+    std::shared_ptr<const hal::step::Sequence> retained;
+    io::motion::Executor exec(gen, [&](unsigned i, bool, std::shared_ptr<const hal::step::Sequence> s) {
+        if (i==0) retained=s;
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command command{.id=1};
+    command.axes[0].profile=nominal->profile().description();
+    command.axes[0].limits=limits;
+    ASSERT_TRUE(exec.submit(command));
+    for (unsigned ms=0; ms<1000 && exec.active(); ++ms) {
+        hw->advance(10'000);
+        exec.renew(command.id);
+        exec.service();
+    }
+    const auto status=exec.status();
+    EXPECT_EQ(status.state, io::motion::Executor::State::Stopped);
+    EXPECT_EQ(status.reason, io::motion::Executor::Reason::ScheduleRejected);
+    EXPECT_EQ(status.last_error, int(std::errc::device_or_resource_busy));
+    EXPECT_EQ(status.diagnostic.failure, io::motion::ScheduleFailure::BankInUse);
+    EXPECT_EQ(status.diagnostic.axis, 0U);
+    EXPECT_GT(status.diagnostic.cut, status.stopping_at);
+    EXPECT_GT(status.diagnostic.state.position, 0);
+    EXPECT_LT(status.pulses[0], 10000U);
+    retained.reset();
+    ++command.id;
+    ASSERT_TRUE(exec.prepare(command));
+    EXPECT_EQ(exec.status().diagnostic.failure, io::motion::ScheduleFailure::None);
+    exec.abort();
+}
+TEST_F(ExecutorTest, CapturedProgramCompletesAndStopsWithOneCommonTimeline)
+{
+    gen->stop();
+    ASSERT_TRUE(gen->start());
+    io::motion::Executor exec(gen, [&](unsigned i, bool, std::shared_ptr<const hal::step::Sequence> s) {
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command command;
+    command.progress_limits = {1.7777777777768662, 7.1111111111068084,
+                               7.1111111111068084, 56.888888888849216};
+    const auto law = motion::Profile::create(1., command.progress_limits);
+    ASSERT_TRUE(law);
+    command.progress = law->description();
+    for (auto& axis : command.axes) {
+        axis.profile = law->scaled(400)->description();
+        axis.limits = {400*command.progress_limits.velocity, 400*command.progress_limits.acceleration,
+                       400*command.progress_limits.deceleration, 400*command.progress_limits.jerk};
+    }
+    for (const unsigned stopAt : {0U, 80U, 160U, 450U, 750U}) {
+        hw->edges.clear();
+        ++command.id;
+        ASSERT_TRUE(exec.submit(command));
+        std::uint64_t frontier{};
+        for (unsigned ms=1; ms<1500 && exec.active(); ++ms) {
+            hw->advance(10'000);
+            if (ms==stopAt) {
+                frontier=exec.status().stopping_at;
+                ASSERT_TRUE(exec.stop(command.id));
+            } else if (!stopAt || ms<stopAt) {
+                ASSERT_TRUE(exec.renew(command.id));
+            }
+            exec.service();
+        }
+        const auto status=exec.status();
+        ASSERT_EQ(status.state, stopAt ? io::motion::Executor::State::Stopped : io::motion::Executor::State::Completed)
+          << stopAt << ": failure=" << unsigned(status.diagnostic.failure);
+        EXPECT_EQ(status.reason, stopAt ? io::motion::Executor::Reason::Cancelled : io::motion::Executor::Reason::None);
+        EXPECT_EQ(status.diagnostic.failure, io::motion::ScheduleFailure::None);
+        unsigned count=400;
+        if (stopAt && !law->brakingToRest(frontier/1e7)) {
+            const auto state=law->at(frontier/1e7);
+            const auto brake=motion::Profile::brake(state.velocity,state.acceleration,command.progress_limits);
+            ASSERT_TRUE(brake);
+            count=unsigned(std::floor(400*(state.position+brake->distance())));
+        }
+        ASSERT_EQ(rises(0).size(), count);
+        EXPECT_EQ(rises(0), rises(1));
+        EXPECT_EQ(rises(0), rises(2));
+        std::array<std::uint64_t,3> previous{};
+        for (const auto& edge : hw->edges) {
+            if (edge.high) previous[edge.axis]=edge.tick;
+            else EXPECT_EQ(edge.tick-previous[edge.axis], 50U);
+        }
+    }
+}
 TEST_F(ExecutorTest, RenewedFirstPulseIncludesDmaPrefetch)
 {
     gen->stop();

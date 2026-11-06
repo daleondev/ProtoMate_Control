@@ -487,6 +487,83 @@ TEST(MotionController, AbortingOneMotorDoesNotReuseAReleasedRobotGroupMask)
     EXPECT_EQ(second.get(), Motor::Result::Stopped);
 }
 
+TEST(MotionController, HomingTimeoutIsNotReportedAsUserCancellation)
+{
+    namespace tr = motion::trajectory;
+    Hardware hardware;
+    Controller controller{CONFIGURATION, hardware.factory()};
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    tr::Request request{.operation=tr::Operation::Acquire,
+      .boot=controller.trajectorySnapshot().boot, .configuration=1};
+    request.family=motion::Family::Axis; request.axes=1; request.job=75;
+    const auto reservation=controller.control(request);
+    ASSERT_EQ(reservation.error, tr::Error::None);
+    request.operation=tr::Operation::Prepare;
+    request.session=reservation.session;
+    request.expected_position=reservation.position;
+    request.axis_revisions=reservation.axis_revisions;
+    request.program.kind=tr::ProgramKind::Home;
+    request.program.home_order={0,1,2};
+    for (auto& home:request.program.home) home={5,.5,.1};
+    ASSERT_EQ(controller.prepareProgram(request).error, tr::Error::None);
+    std::promise<tr::Update> completed;
+    auto result=completed.get_future();
+    ASSERT_EQ(controller.startProgram({request.boot,request.session,request.job},
+      [&](const auto& update){completed.set_value(update);}), tr::Error::None);
+    ASSERT_EQ(result.wait_for(2s), std::future_status::ready);
+    const auto terminal=result.get();
+    EXPECT_EQ(terminal.state, motion::JobState::Stopped);
+    EXPECT_EQ(terminal.error, tr::Error::HomingTimeout);
+    EXPECT_FALSE(controller.motor(Id::Motor1).isReferenced());
+}
+
+TEST(MotionController, AcceptedStopKeepsItsCauseAfterTheOwnershipLeaseExpires)
+{
+    namespace tr=motion::trajectory;
+    Hardware hw;
+    Controller controller{CONFIGURATION,hw.factory()};
+    releaseSwitches(); controller.initializeDrivers(); controller.enable();
+    auto input=hal::gpio::simulated_input({hal::gpio::Port::E,7});
+    auto homing=controller.reference(Id::Motor1,10_rpm,2_rpm,2_s);
+    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()>0_rpm;}));
+    input->setSimulatedLevel(Level::High);
+    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()<0_rpm;}));
+    input->setSimulatedLevel(Level::Low);
+    ASSERT_TRUE(waitUntil([&]{return controller.motor(Id::Motor1).setpointVelocity()>0_rpm;}));
+    input->setSimulatedLevel(Level::High);
+    ASSERT_EQ(homing.get(),Motor::Result::Completed);
+    tr::Request r{.operation=tr::Operation::Acquire,.boot=controller.trajectorySnapshot().boot,.configuration=1};
+    r.family=motion::Family::Axis; r.axes=1; r.job=76;
+    const auto acquired=controller.control(r);
+    ASSERT_EQ(acquired.error,tr::Error::None);
+    r.operation=tr::Operation::Prepare; r.session=acquired.session;
+    r.expected_position=acquired.position; r.axis_revisions=acquired.axis_revisions;
+    r.program.displacement[0]=-100; r.program.limits[0]=acquired.capabilities.limits[0];
+    r.program.progress_limits={.5,1,1,10};
+    r.program.progress=motion::Profile::create(1,r.program.progress_limits)->description();
+    ASSERT_EQ(controller.prepareProgram(r).error,tr::Error::None);
+    std::promise<tr::Update> completed;
+    auto result=completed.get_future();
+    ASSERT_EQ(controller.startProgram({r.boot,r.session,r.job},
+      [&](const auto& update){completed.set_value(update);}),tr::Error::None);
+    auto renewal=r; renewal.operation=tr::Operation::Renew; renewal.renew_jobs[0]=r.job;
+    const auto start=std::chrono::steady_clock::now();
+    while(std::chrono::steady_clock::now()-start<400ms) {
+        ASSERT_EQ(controller.control(renewal).error,tr::Error::None);
+        std::this_thread::sleep_for(20ms);
+    }
+    r.operation=tr::Operation::Stop;
+    ASSERT_EQ(controller.control(r).error,tr::Error::None);
+    EXPECT_EQ(result.wait_for(300ms),std::future_status::timeout); // Brake outlives lease.
+    ASSERT_EQ(result.wait_for(2s),std::future_status::ready);
+    const auto terminal=result.get();
+    EXPECT_EQ(terminal.state,motion::JobState::Stopped);
+    EXPECT_EQ(terminal.error,tr::Error::None);
+    EXPECT_EQ(controller.executionStatus(r.job).reason,io::motion::Executor::Reason::Cancelled);
+}
+
 TEST(MotionController, CompilationLeavesAdmissionUnlockedAndCancellationCannotArm)
 {
     namespace tr=motion::trajectory;

@@ -175,7 +175,7 @@ namespace motion::trajectory
                                     "velocity limit",
                                     "acceleration limit",
                                     "jerk limit",
-                                    "timing",
+                                    "timing/duration outside supported range",
                                     "protocol",
                                     "checksum",
                                     "out of order",
@@ -191,7 +191,20 @@ namespace motion::trajectory
                                     "starved",
                                     "cancelled",
                                     "too late",
-                                    "no stopping path" };
+                                    "no stopping path",
+                                    "execution renewal deadline missed",
+                                    "stopping schedule: invalid source/cut",
+                                    "stopping schedule: inconsistent fractional boundary",
+                                    "stopping schedule: braking state rejected",
+                                    "stopping schedule: invalid/excessive duration",
+                                    "stopping schedule: pulse crossing rejected",
+                                    "stopping schedule: brake exceeds admitted path",
+                                    "stopping schedule: axis scaling rejected",
+                                    "stopping schedule: storage still owned",
+                                    "homing timed out before stable reference contact",
+                                    "STEP schedule handoff deadline missed",
+                                    "schedule replacement rejected by STEP backend" };
+        static_assert(names.size() == unsigned(Error::SpliceRejected) + 1);
         const auto n{ static_cast<unsigned>(e) };
         return n < names.size() ? names[n] : "invalid error";
     }
@@ -460,7 +473,7 @@ namespace motion::trajectory
             Reply v;v.acknowledgement=true;
             const auto version=r.integer<std::uint16_t>();v.error=Error(r.integer<std::uint8_t>());
             v.boot=r.integer<std::uint64_t>();v.generation=r.integer<std::uint64_t>();
-            if(version!=VERSION || v.error>Error::NoStoppingPath)return std::unexpected(Error::Protocol);
+            if(version!=VERSION || v.error>Error::SpliceRejected)return std::unexpected(Error::Protocol);
             if(!r.finish())return std::unexpected(Error::Checksum);
             return v;
         }
@@ -495,7 +508,7 @@ namespace motion::trajectory
         for (auto& n : v.owners) n = r.integer<std::uint64_t>();
         for (auto& n : v.axis_revisions) n = r.integer<std::uint64_t>();
         if (v.family > Family::Robot) return std::unexpected(Error::Protocol);
-        if (v.error > Error::NoStoppingPath || v.state > State::Unknown || v.referenced > 7 ||
+        if (v.error > Error::SpliceRejected || v.state > State::Unknown || v.referenced > 7 ||
             v.capabilities.version != VERSION) {
             return std::unexpected(Error::Protocol);
         }

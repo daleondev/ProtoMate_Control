@@ -349,10 +349,18 @@ std::optional<motion::Profile> motion::Profile::brake(double velocity,
                                                       double acceleration,
                                                       Limits limits) noexcept
 {
+    // Analytic phase evaluation/scaling can place an at-limit acceleration a
+    // few binary64 ulps above its limit. Preserve the incoming state (C2 join),
+    // allowing only arithmetic roundoff, not the broader admission tolerance.
+    const auto exceeds = [](double value, double limit) {
+        return value > limit && value - limit >
+          8 * std::numeric_limits<double>::epsilon() * limit;
+    };
     if (!std::isfinite(velocity) || velocity < 0 || !std::isfinite(acceleration) ||
         !std::isfinite(limits.deceleration) || limits.deceleration <= 0 ||
         !std::isfinite(limits.acceleration) || limits.acceleration <= 0 || !std::isfinite(limits.jerk) ||
-        limits.jerk <= 0 || acceleration > limits.acceleration || -acceleration > limits.deceleration) {
+        limits.jerk <= 0 || exceeds(acceleration, limits.acceleration) ||
+        exceeds(-acceleration, limits.deceleration)) {
         return {};
     }
     Profile result{};

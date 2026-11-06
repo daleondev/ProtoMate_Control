@@ -17,6 +17,8 @@ target_sources(proto_io_motion
         TrajectorySession.cpp
         Executor.hpp
         Executor.cpp
+        ExecutorDiagnostic.cpp
+        ScheduleFailure.hpp
         ProfileSchedule.hpp
         ProfileSchedule.cpp
         ProfileCrossing.hpp

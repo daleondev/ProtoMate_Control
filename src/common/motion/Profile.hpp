@@ -46,6 +46,8 @@ namespace motion
                                              double start_acceleration = 0.0,
                                              double end_velocity = 0.0) noexcept;
         // Finite monotone braking continuation, preserving initial acceleration.
+        // Limit comparisons allow only binary64 arithmetic roundoff; the
+        // incoming state is not clamped, preserving continuity at the join.
         static std::optional<Profile> brake(double velocity, double acceleration, Limits limits) noexcept;
         State at(double time) const noexcept;
         bool brakingToRest(double time) const noexcept;

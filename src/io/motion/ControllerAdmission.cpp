@@ -11,6 +11,42 @@ namespace io::motion
     using F = ::motion::Family;
     using J = ::motion::JobState;
 
+    namespace
+    {
+        tr::Error scheduleError(ScheduleFailure failure)
+        {
+            switch (failure) {
+            case ScheduleFailure::InvalidSource:
+            case ScheduleFailure::InvalidCut: return tr::Error::StopSource;
+            case ScheduleFailure::FractionalBoundary: return tr::Error::StopBoundary;
+            case ScheduleFailure::BrakeState: return tr::Error::StopState;
+            case ScheduleFailure::BrakeDuration: return tr::Error::StopDuration;
+            case ScheduleFailure::BrakeCrossing: return tr::Error::StopCrossing;
+            case ScheduleFailure::BrakeOutsidePath: return tr::Error::StopOutsidePath;
+            case ScheduleFailure::BrakeScaling: return tr::Error::StopScaling;
+            case ScheduleFailure::BankInUse: return tr::Error::ScheduleInUse;
+            case ScheduleFailure::None: return tr::Error::NoStoppingPath;
+            }
+            return tr::Error::Unknown;
+        }
+        void reportScheduleFailure(std::uint64_t job, const Executor::Status& status)
+        {
+            const auto& d = status.diagnostic;
+            if (d.failure == ScheduleFailure::None) return;
+            pnm::log::error("Motion job {}: {}; scope={} (0/1/2=axis, 3=progress), cut={} ticks; {}",
+              job, tr::name(scheduleError(d.failure)), d.axis, d.cut,
+              status.state == Executor::State::Idle ? "preparation rejected; outputs not armed" : "prior stopping branch retained");
+            // 17 digits preserve the binary64 inputs for deterministic replay.
+            // Separate bounded records fit the ICC log payload without truncation.
+            pnm::log::error("Motion job {} state: p={:.17g} v={:.17g} a={:.17g}",
+              job, d.state.position, d.state.velocity, d.state.acceleration);
+            pnm::log::error("Motion job {} limits: v={:.17g} a={:.17g} d={:.17g} j={:.17g}",
+              job, d.limits.velocity, d.limits.acceleration, d.limits.deceleration, d.limits.jerk);
+            pnm::log::error("Motion job {} remaining={:.17g} brake={:.17g} frontier={} errno={}",
+              job, d.remaining, d.brake_distance, status.stopping_at, status.last_error);
+        }
+    }
+
     void Controller::connectionLost()
     {
         std::scoped_lock lock{m_mutex};
@@ -238,7 +274,11 @@ namespace io::motion
               [this](unsigned i, bool forward, std::shared_ptr<const hal::step::Sequence> sequence) {
                   return m_motors[i]->prepareCoordinated(forward, std::move(sequence));
               }, m_profileMemory);
-            if (!compiled->prepare(command, false)) return fail(tr::Error::NoStoppingPath);
+            if (!compiled->prepare(command, false)) {
+                const auto status = compiled->status();
+                reportScheduleFailure(request.job, status);
+                return fail(scheduleError(status.diagnostic.failure));
+            }
         }
         lock.lock();
         owner = m_ownership.find(request.job);
@@ -315,9 +355,19 @@ namespace io::motion
                 if (status.state == Executor::State::Faulted) { update.state=J::Faulted; update.error=tr::Error::Fault; }
                 else if (status.state == Executor::State::Stopped) {
                     update.state=J::Stopped;
-                    if (status.reason==Executor::Reason::RenewalLate) update.error=tr::Error::Timing;
+                    if (status.reason==Executor::Reason::RenewalLate) update.error=tr::Error::ExecutionDeadline;
                     else if (status.reason==Executor::Reason::LeaseExpired) update.error=tr::Error::LeaseExpired;
+                    else if (status.reason==Executor::Reason::ScheduleRejected)
+                        update.error=scheduleError(status.diagnostic.failure);
+                    else if (status.reason==Executor::Reason::SpliceRejected)
+                        update.error=status.last_error==int(std::errc::timed_out)
+                          ? tr::Error::SpliceDeadline : tr::Error::SpliceRejected;
                 }
+                reportScheduleFailure(g.job, status);
+                if (status.reason==Executor::Reason::RenewalLate || status.reason==Executor::Reason::SpliceRejected)
+                    pnm::log::error("Motion job {}: {}; elapsed={} frontier={} ticks, build_max={} us splice_max={} us, target_errno={}",
+                      g.job, tr::name(update.error), status.elapsed, status.stopping_at,
+                      status.maximum_build_us, status.maximum_splice_us, status.last_error);
                 pnm::log::debug("Execution job {} ended: state={} reason={} pulses={},{},{} elapsed={} frontier={} renewals={} rejected={} error={} hal_site={} exec_site={}",
                   g.job, unsigned(status.state), unsigned(status.reason), status.pulses[0],status.pulses[1],status.pulses[2],
                   status.elapsed,status.stopping_at,status.renewals,status.rejected_renewals,status.last_error,motion_debug_fault_line,motion_debug_executor_abort);

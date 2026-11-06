@@ -19,7 +19,8 @@ namespace io::motion
             try{result=g.home_result.get();}catch(...){}
             m_motors[motor]->stopAndWait();
             if(result!=StepperMotor::Result::Completed&&g.error==tr::Error::None)
-                g.error=result==StepperMotor::Result::Faulted?tr::Error::Fault:tr::Error::Cancelled;
+                g.error=result==StepperMotor::Result::Faulted?tr::Error::Fault:
+                  result==StepperMotor::Result::TimedOut?tr::Error::HomingTimeout:tr::Error::Cancelled;
             ++g.home_stage;
         }
         if(g.error!=tr::Error::None){g.home_finished=true;return;}

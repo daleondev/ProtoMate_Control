@@ -331,11 +331,14 @@ namespace io::motion
                             if (g.mask & (1U<<i)) m_motors[i]->invalidateReference();
                     } else {
                         if (g.managed) {
-                            const auto* owner = m_ownership.find(g.job);
+                            auto* owner = m_ownership.find(g.job);
                             if (!owner || now >= owner->deadline || owner->state == ::motion::JobState::Stopping ||
                                 now >= g.timeout) {
-                                g.executor->stop(g.executor->status().id);
-                                if (owner && now >= owner->deadline) g.error = ::motion::trajectory::Error::LeaseExpired;
+                                if (g.executor->stop(g.executor->status().id) && owner) {
+                                    if (now >= owner->deadline && owner->state != ::motion::JobState::Stopping)
+                                        g.error = ::motion::trajectory::Error::LeaseExpired;
+                                    owner->state = ::motion::JobState::Stopping;
+                                }
                             } else g.executor->renew(g.executor->status().id);
                         }
                         g.executor->service();

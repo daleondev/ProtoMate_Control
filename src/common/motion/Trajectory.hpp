@@ -55,7 +55,19 @@ namespace motion::trajectory
         Starved,
         Cancelled,
         TooLate,
-        NoStoppingPath
+        NoStoppingPath,
+        ExecutionDeadline,
+        StopSource,
+        StopBoundary,
+        StopState,
+        StopDuration,
+        StopCrossing,
+        StopOutsidePath,
+        StopScaling,
+        ScheduleInUse,
+        HomingTimeout,
+        SpliceDeadline,
+        SpliceRejected
     };
     std::string_view name(Error error) noexcept;
     enum class State : std::uint8_t
