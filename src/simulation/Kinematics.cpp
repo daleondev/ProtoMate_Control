@@ -1,4 +1,5 @@
 #include "Kinematics.hpp"
+#include "common/motion/VisualGeometry.hpp"
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <numbers>
@@ -46,21 +47,16 @@ namespace simulation
     }
     glm::dmat4 Kinematics::relativeFrame(const Profile& p, unsigned axis, double joint)
     {
-        if (!std::isfinite(joint) || axis >= 3)
-            throw std::invalid_argument{ "invalid mechanical coordinate" };
-        if (axis < 2) {
-            const glm::dvec3 origin{
-                axis == 0 ? glm::dvec3{ 0, 0, cad::J1_FRAME_Z_MM }
-                          : glm::dvec3{ p.geometry_mm[0], 0, cad::J2_FRAME_Z_MM - cad::J1_FRAME_Z_MM }
-            };
-            return glm::rotate(glm::translate(glm::dmat4{ 1 }, origin),
-                               std::remainder(joint, 2 * std::numbers::pi),
-                               glm::dvec3{ 0, 0, 1 });
-        }
-        return glm::translate(glm::dmat4{ 1 },
-                              glm::dvec3{ p.geometry_mm[1] + p.geometry_mm[2],
-                                          0,
-                                          cad::CARRIAGE_FRAME_Z_MM - cad::J2_FRAME_Z_MM + joint });
+        const std::array<double, 3> lengths{ p.geometry_mm[0] / 1000,
+                                             p.geometry_mm[1] / 1000,
+                                             p.geometry_mm[2] / 1000 };
+        const auto f = ::motion::visual::relative(axis, axis == 2 ? joint / 1000 : joint, lengths);
+        return glm::rotate(
+          glm::translate(
+            glm::dmat4{ 1 },
+            glm::dvec3{ f.translation[0] * 1000, f.translation[1] * 1000, f.translation[2] * 1000 }),
+          f.yaw,
+          glm::dvec3{ 0, 0, 1 });
     }
     std::array<glm::dmat4, 4> Kinematics::frames(const Profile& p, const std::array<double, 3>& q)
     {

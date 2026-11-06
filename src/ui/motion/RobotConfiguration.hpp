@@ -4,8 +4,8 @@
 #include "ScaraKinematics.hpp"
 #include "common/motion/Trajectory.hpp"
 #include <array>
-#include <optional>
 #include <functional>
+#include <optional>
 
 namespace ui::motion
 {
@@ -68,8 +68,8 @@ namespace ui::motion
     // Deliberately empty until this machine's mechanics have been calibrated.
     // Simulation fixtures are never substituted for a missing physical config.
     [[nodiscard]] std::optional<RobotConfiguration> boardRobotConfiguration();
-    using ConfigurationProvider = std::function<std::optional<RobotConfiguration>(
-      const ::motion::trajectory::Capabilities&)>;
+    using ConfigurationProvider =
+      std::function<std::optional<RobotConfiguration>(const ::motion::trajectory::Capabilities&)>;
     // Composition installs the native plant's profile before application workers
     // start. Hardware retains its explicit commissioning configuration.
     void setSimulationConfigurationProvider(ConfigurationProvider provider);
@@ -82,10 +82,16 @@ namespace ui::motion
     class RobotModel final
     {
       public:
-        enum class Scope { Axes, Robot };
-        RobotModel(RobotConfiguration configuration, ::motion::trajectory::Capabilities hardware,
+        enum class Scope
+        {
+            Axes,
+            Robot
+        };
+        RobotModel(RobotConfiguration configuration,
+                   ::motion::trajectory::Capabilities hardware,
                    Scope scope = Scope::Robot);
         [[nodiscard]] const RobotConfiguration& configuration() const noexcept { return m_configuration; }
+        [[nodiscard]] bool hasKinematics() const noexcept { return m_kinematics.has_value(); }
         [[nodiscard]] const ScaraKinematics& kinematics() const { return m_kinematics.value(); }
         [[nodiscard]] const auto& hardware() const noexcept { return m_hardware; }
         [[nodiscard]] RobotError physicalAdmission() const noexcept;

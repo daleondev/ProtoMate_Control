@@ -29,6 +29,10 @@ namespace ui::cli::state
             else {
                 output << "Unavailable\n";
             }
+            output << "ICC: " << pnm::meta::enumeration::enumerator_name(snapshot.connection.state) << " ("
+                   << pnm::meta::enumeration::enumerator_name(snapshot.connection.reason) << ")\n";
+            if (snapshot.failure[0])
+                output << "Cause: " << snapshot.failure.data() << '\n';
             return output ? CallbackResult{ 0 } : callback_failure("cannot write command output");
         }
     }

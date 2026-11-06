@@ -50,6 +50,7 @@ namespace ui::gui::scene3d
     {
         std::array<Node, MAX_NODES> nodes{};
         unsigned count{};
+        bool groundGrid{};
         bool valid() const noexcept;
     };
     struct Camera

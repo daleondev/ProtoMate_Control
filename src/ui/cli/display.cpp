@@ -15,7 +15,7 @@ namespace ui::cli::display
             return gui.bars() ? CallbackResult{ 0 }
                               : callback_failure("GUI unavailable or request queue full");
         }
-        [[ = "Return to the shared GUI showcase."_fs,
+        [[ = "Return to the robot Home screen."_fs,
            = Name{ "display gui"_fs } ]] auto showcase(ui::gui::Controller& gui,
                                                        const Arguments&,
                                                        std::ostream&) -> CallbackResult
@@ -35,6 +35,19 @@ namespace ui::cli::display
             if (error != std::errc{} || end != text.data() + text.size() || !gui.scene(triangles)) {
                 return callback_failure("Expected 500, 2000 or 5000; GUI must be available");
             }
+            return 0;
+        }
+        [[
+            = "Full-detail robot camera test (synthetic camera only, no motor commands)."_fs,
+            = Name{ "display robot-test"_fs },
+            = Arg{ .name = "fps"_fs, .description = "5, 2 or 1"_fs }
+        ]] auto robotTest(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult
+        {
+            unsigned rate{};
+            const auto text = args.require("fps");
+            const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), rate);
+            if (error != std::errc{} || end != text.data() + text.size() || !gui.robotRate(rate))
+                return callback_failure("Expected 5, 2 or 1; return to normal with display gui");
             return 0;
         }
         [[

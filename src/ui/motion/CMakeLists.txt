@@ -6,6 +6,7 @@ target_sources(proto_ui_motion INTERFACE
     Client.cpp
     ClientPrograms.cpp
     ClientHistory.cpp
+    ClientControls.cpp
     Axis.hpp
     AxisConversion.hpp
     AxisConversion.cpp
@@ -14,6 +15,7 @@ target_sources(proto_ui_motion INTERFACE
     Planner.cpp
     Robot.cpp
     RobotExecution.cpp
+    RobotPresentation.cpp
 )
 
 target_link_libraries(proto_ui_motion INTERFACE runtime::runtime pneumo::coroutines)

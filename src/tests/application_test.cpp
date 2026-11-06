@@ -165,18 +165,22 @@ namespace
         EXPECT_EQ(apps.io.connectionStatus().reason, icc::ConnectionReason::PeerStopped);
     }
 
-    TEST(ApplicationLifecycle, IoStopWakesUi)
+    TEST(ApplicationLifecycle, IoStopLeavesUiAvailableAsFaultDisplay)
     {
         Applications apps;
         apps.start();
         ASSERT_TRUE(apps.connected());
         apps.io.requestStop();
+        ASSERT_TRUE(wait_until(
+          [&] { return apps.ui.connectionStatus().reason == icc::ConnectionReason::PeerStopped; }));
+        EXPECT_EQ(apps.ui.state(), app::State::Fault);
+        apps.ui.requestStop();
         apps.ui.join();
         apps.io.join();
         EXPECT_EQ(apps.ui.connectionStatus().reason, icc::ConnectionReason::PeerStopped);
         EXPECT_EQ(apps.io.state(), app::State::Stopped);
-        EXPECT_EQ(apps.ui.state(), app::State::Stopped);
-        EXPECT_EQ(apps.ui.systemState().combined, app::State::Stopped);
+        EXPECT_EQ(apps.ui.state(), app::State::Fault);
+        EXPECT_EQ(apps.ui.systemState().combined, app::State::Fault);
     }
 
     TEST(ApplicationLifecycle, ConsoleEofStopsUiAndItsPeer)
@@ -197,11 +201,13 @@ namespace
         apps.start();
         ASSERT_TRUE(apps.connected());
         apps.endpoints[0]->close();
-        ASSERT_TRUE(wait_until([&]{return apps.io.connectionStatus().state==icc::ConnectionState::Failed;}));
+        ASSERT_TRUE(
+          wait_until([&] { return apps.io.connectionStatus().state == icc::ConnectionState::Failed; }));
         // IO keeps its local executor alive after link loss to finish braking
         // and retain torque; explicit application shutdown is a separate action.
         EXPECT_EQ(apps.io.state(), app::State::Fault);
         apps.io.requestStop();
+        apps.ui.requestStop();
         apps.io.join();
         apps.ui.join();
         EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Failed);
@@ -215,7 +221,8 @@ namespace
     {
         Applications apps;
         apps.io.start();
-        ASSERT_TRUE(wait_until([&]{return apps.io.connectionStatus().state==icc::ConnectionState::Failed;}));
+        ASSERT_TRUE(
+          wait_until([&] { return apps.io.connectionStatus().state == icc::ConnectionState::Failed; }));
         apps.io.requestStop();
         apps.io.join();
         EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Failed);
@@ -230,6 +237,7 @@ namespace
         apps.io.requestStop();
         apps.ui.requestStop();
         apps.io.requestStop();
+        apps.ui.requestStop();
         apps.io.join();
         apps.ui.join();
         apps.io.join();

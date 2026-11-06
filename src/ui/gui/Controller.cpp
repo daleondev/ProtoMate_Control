@@ -157,8 +157,11 @@ namespace ui::gui
         touchgfx::Texts texts;
         struct Assets
         {
-            Assets()
+            Assets(touchgfx::Texts& texts, ApplicationFontProvider& fonts)
             {
+                touchgfx::TypedText::registerTexts(&texts);
+                touchgfx::Texts::setLanguage(EN);
+                touchgfx::FontManager::setFontProvider(&fonts);
                 touchgfx::Bitmap::registerBitmapDatabase(BitmapDatabase::getInstance(),
                                                          BitmapDatabase::getInstanceSize());
             }
@@ -168,13 +171,11 @@ namespace ui::gui
           : dma{ hal::core::create_graphics(), stop }
           , touch{ owner }
           , port{ owner, dma, lcd, touch, stop }
-          , frontend{ owner.m_scene }
+          , assets{ texts, fonts }
+          , frontend{ owner.m_scene, owner.m_backend }
         {
             touchgfx_paint_link();
             os::prepare(stop);
-            touchgfx::TypedText::registerTexts(&texts);
-            touchgfx::Texts::setLanguage(EN);
-            touchgfx::FontManager::setFontProvider(&fonts);
             port.initialize();
             port.setFrameBufferStartAddresses(
               owner.m_display->framebuffer(0).data(), owner.m_display->framebuffer(1).data(), nullptr);
@@ -195,6 +196,14 @@ namespace ui::gui
         }
         ~Engine() { os::finish(); }
     };
+    void Controller::DeleteEngine::operator()(Engine* engine) const
+    {
+#if defined(CORE_CM7)
+        std::destroy_at(engine);
+#else
+        delete engine;
+#endif
+    }
     Controller::Controller() = default;
     Controller::~Controller() = default;
     Status Controller::status() const
@@ -216,6 +225,10 @@ namespace ui::gui
         m_requests[(m_head + m_count++) % m_requests.size()] = request;
         m_notification.signal();
         return true;
+    }
+    bool Controller::robotRate(unsigned fps)
+    {
+        return (fps == 1 || fps == 2 || fps == 5) && enqueue({ Command::Rate, fps });
     }
     bool Controller::bars() { return enqueue({ Command::Bars, 0 }); }
     bool Controller::showcase() { return enqueue({ Command::Showcase, 0 }); }
@@ -249,6 +262,9 @@ namespace ui::gui
             }
             else if (request.command == Command::Scene) {
                 engine.frontend.scene(request.value);
+            }
+            else if (request.command == Command::Rate) {
+                engine.frontend.rate(request.value);
             }
             else if (!m_display->backlight(request.value)) {
                 m_renderFailed = true;
@@ -288,7 +304,14 @@ namespace ui::gui
         }, this });
         bool closed{};
         try {
-            m_engine = std::make_unique<Engine>(*this, stop);
+#if defined(CORE_CM7)
+            // CPU-only widgets/port metadata. No DMA reads this storage: pixels
+            // remain in SDRAM. Linker reserves it separately from ITCM code.
+            alignas(32) __attribute__((section(".gui_internal"))) static std::byte storage[sizeof(Engine)];
+            m_engine.reset(std::construct_at(reinterpret_cast<Engine*>(storage), *this, stop));
+#else
+            m_engine.reset(new Engine(*this, stop));
+#endif
             {
                 std::scoped_lock lock{ m_mutex };
                 m_status.state = State::Running;
@@ -310,7 +333,25 @@ namespace ui::gui
                 if (state.vsyncs != lastSync) {
                     lastSync = state.vsyncs;
                     lastFrame = std::chrono::steady_clock::now();
+                    if (m_engine->frontend.model().ticks % 10 == 0) {
+                        const auto rendering = m_scene.status();
+                        char diagnostics[192];
+                        std::snprintf(diagnostics,
+                                      sizeof(diagnostics),
+                                      "LTDC %lu frames · underruns %lu · DMA errors %lu\n3D %lu frames · "
+                                      "last %.1f ms · replaced %lu",
+                                      (unsigned long)state.presentations,
+                                      (unsigned long)state.underruns,
+                                      (unsigned long)m_engine->dma.errors(),
+                                      (unsigned long)rendering.presented,
+                                      rendering.lastRenderUs / 1000.,
+                                      (unsigned long)rendering.replaced);
+                        m_engine->frontend.graphics(diagnostics);
+                    }
                     m_engine->port.frame();
+                    if (m_engine->frontend.brightnessChanged())
+                        static_cast<void>(
+                          m_display->backlight(static_cast<unsigned>(m_engine->frontend.model().values[11])));
                     state = m_display->state();
                     if (!illuminated && state.presentations && !m_renderFailed) {
                         static_cast<void>(m_display->backlight(10));
@@ -353,6 +394,8 @@ namespace ui::gui
                 ++m_status.renderFailures;
             }
         }
+        if (m_backend)
+            m_backend->release();
         m_display->setCallback({});
         m_display->shutdown(); // aborts pending ownership before engine/buffers disappear
         m_scene.stopAndWait();
@@ -422,6 +465,12 @@ namespace ui::gui
                 m_status.touchY = point.y;
                 m_status.touchTime = std::chrono::steady_clock::now();
             }
+            if (m_backend)
+                m_backend->input({ point.active,
+                                   bool(report) && !report->cancelled,
+                                   int(point.x),
+                                   int(point.y),
+                                   std::chrono::steady_clock::now() });
             m_touchNotification.waitUntil(std::chrono::steady_clock::now() +
                                           (ready ? (point.active ? 8ms : touch->idlePeriod()) : 1000ms));
         }

@@ -164,6 +164,9 @@ namespace ui::motion
         auto job = createLocked(Family::Motor, std::uint8_t(1U << unsigned(goal.motor)));
         job->info.motor = goal.motor;
         job->info.motion = goal.motion;
+        job->info.requested = { { goal.position, 0, 0 },
+                                goal.motion == MotorMotion::Home ? RequestSpace::Home : RequestSpace::Shaft,
+                                goal.motion == MotorMotion::Relative };
         goal.job = job->info.id;
         const std::weak_ptr<Job> weak{ job };
         try {
@@ -270,8 +273,15 @@ namespace ui::motion
                 }
                 retireJobsLocked();
             }
+            serviceControls();
             renewJobs();
-            m_notification->waitUntil(m_nextRenew);
+            auto deadline = m_nextRenew;
+            {
+                std::scoped_lock lock{ m_mutex };
+                if (m_inputJob)
+                    deadline = std::min(deadline, m_inputDeadline);
+            }
+            m_notification->waitUntil(deadline);
         }
         std::array<std::optional<std::stop_source>, 8> cancel;
         unsigned count{};
@@ -307,5 +317,6 @@ namespace ui::motion
         for (unsigned i = 0; i < count; ++i) {
             cancel[i]->request_stop();
         }
+        serviceControls();
     }
 }

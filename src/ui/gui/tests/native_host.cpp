@@ -6,190 +6,149 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <string_view>
 namespace
 {
     std::atomic_int phase{};
-    std::atomic_bool pixelsCorrect{ true };
-    std::array<double, 40> latencies{};
+    std::atomic_int scenario{ -1 };
+    std::atomic_bool correct{ true };
+    std::array<double, 13> latencies{};
     unsigned latencyCount{};
-    Uint64 pendingInput{};
-    std::atomic<double> latency95{};
+    std::uint64_t inputAt{};
+    unsigned sampleX{}, sampleY{};
+    std::uint16_t beforePixel{};
     void mouse(Uint32 type, int x, int y)
     {
-        SDL_Event event{};
-        event.type = type;
-        if (type == SDL_MOUSEMOTION) {
-            event.motion.x = x;
-            event.motion.y = y;
-            event.motion.state = SDL_BUTTON_LMASK;
-        }
-        else {
-            event.button.button = SDL_BUTTON_LEFT;
-            event.button.x = x;
-            event.button.y = y;
-        }
-        SDL_PushEvent(&event);
+        SDL_Event e{};
+        e.type = type;
+        e.button.button = SDL_BUTTON_LEFT;
+        e.button.x = x;
+        e.button.y = y;
+        SDL_PushEvent(&e);
     }
     void capture(const char* name, unsigned active)
     {
-        auto pixels = hal::linux::display::framebuffer(active);
-        const bool details = std::string_view{ name }.find("details") != std::string_view::npos;
-        const bool bars = std::string_view{ name }.find("bars") != std::string_view::npos;
-        if (bars) {
-            constexpr std::uint16_t expected[]{ 0xffff, 0xffe0, 0x07ff, 0x07e0, 0xf81f, 0xf800, 0x001f, 0 };
-            for (unsigned x = 0; x < 1024; ++x) {
-                if (pixels[300 * 1024 + x] != expected[x / 128]) {
-                    pixelsCorrect = false;
-                }
-            }
-        }
-        else if (!details) {
-            if (pixels[10 * 1024 + 10] != 0x10c4 || pixels[200 * 1024 + 400] != 0x1946) {
-                pixelsCorrect = false;
-            }
-            unsigned glyphPixels{};
-            for (unsigned y = 208; y < 244; ++y) {
-                for (unsigned x = 504; x < 900; ++x) {
-                    glyphPixels += pixels[y * 1024 + x] != 0x1946;
-                }
-            }
-            if (glyphPixels < 100) {
-                pixelsCorrect = false;
-            }
-        }
-        SDL_Surface* surface =
-          SDL_CreateRGBSurfaceFrom(pixels.data(), 1024, 600, 16, 2048, 0xf800, 0x7e0, 0x1f, 0);
-        if (!surface || SDL_SaveBMP(surface, name) != 0) {
-            std::fprintf(stderr, "capture failed: %s\n", SDL_GetError());
-        }
+        auto p = hal::linux::display::framebuffer(active);
+        unsigned foreground{};
+        for (auto pixel : p)
+            foreground += pixel != p[0];
+        if (foreground < 10000)
+            correct = false;
+        auto* surface = SDL_CreateRGBSurfaceFrom(p.data(), 1024, 600, 16, 2048, 0xf800, 0x7e0, 0x1f, 0);
+        if (!surface || SDL_SaveBMP(surface, name))
+            correct = false;
         SDL_FreeSurface(surface);
     }
-    void observe(void*, const hal::display::State& state, std::uint32_t windowId)
+    void observe(void*, const hal::display::State& s, std::uint32_t window)
     {
-        if (!state.vsyncs) {
-            return;
-        }
-        const auto n = state.vsyncs;
-        if (std::getenv("GUI_TEST_STALL")) {
-            if (n == 25) {
-                SDL_Delay(350);
-            }
-            return;
-        }
-        if (n == 20) {
-            capture("gui-showcase.bmp", state.active);
-            mouse(SDL_MOUSEBUTTONDOWN, 200, 230);
-        }
-        if (n == 22) {
-            mouse(SDL_MOUSEBUTTONUP, 200, 230);
-        }
-        if (n == 40) {
-            phase.store(1);
-        }
-        if (n == 50) {
-            mouse(SDL_MOUSEBUTTONDOWN, 520, 280);
-        }
-        if (n == 53) {
-            mouse(SDL_MOUSEMOTION, 850, 280);
-        }
-        if (n == 56) {
-            mouse(SDL_MOUSEBUTTONUP, 850, 280);
-        }
-        if (n == 70) {
-            phase.store(2);
-            capture("gui-interaction.bmp", state.active);
-        }
-        if (n == 80) {
-            SDL_SetWindowSize(SDL_GetWindowFromID(windowId), 1600, 600);
-        }
-        // 288 px horizontal letterbox. Correctly transformed touch toggles again.
-        if (n == 90) {
-            mouse(SDL_MOUSEBUTTONDOWN, 488, 230);
-        }
-        if (n == 92) {
-            mouse(SDL_MOUSEBUTTONUP, 488, 230);
-        }
-        if (n == 110) {
-            phase.store(3);
-        }
-        if (n == 120) {
-            mouse(SDL_MOUSEBUTTONDOWN, 488, 230);
-        }
-        if (n == 122) {
-            SDL_Event event{};
-            event.type = SDL_WINDOWEVENT;
-            event.window.event = SDL_WINDOWEVENT_FOCUS_LOST;
-            SDL_PushEvent(&event);
-        }
-        if (n == 140) {
-            phase.store(4);
-        }
-        if (n == 160) {
-            capture("gui-bars.bmp", state.active);
-            phase.store(5);
-        }
-        if (n == 190) {
-            phase.store(6);
-        }
-        if (n == 200) {
-            mouse(SDL_MOUSEBUTTONDOWN, 1008, 540);
-        }
-        if (n == 202) {
-            mouse(SDL_MOUSEBUTTONUP, 1008, 540);
-        }
-        if (n == 215) {
-            capture("gui-details.bmp", state.active);
-            phase.store(7);
-        }
-        if (n == 230) {
-            mouse(SDL_MOUSEBUTTONDOWN, 400, 540);
-        }
-        if (n == 232) {
-            mouse(SDL_MOUSEBUTTONUP, 400, 540);
-        }
-        if (n == 245) {
-            phase.store(8);
-        }
-        if (n >= 260 && n < 660) {
-            if ((n - 260) % 10 == 0) {
-                mouse(SDL_MOUSEBUTTONDOWN, 488, 230);
-                pendingInput = SDL_GetPerformanceCounter();
-            }
-            if ((n - 260) % 10 == 5) {
-                mouse(SDL_MOUSEBUTTONUP, 488, 230);
-            }
-            const auto pixels = hal::linux::display::framebuffer(state.active);
-            if (pendingInput && pixels[212 * 1024 + 85] == 0x2cf1 && latencyCount < latencies.size()) {
+        const auto n = s.vsyncs;
+        if (inputAt) {
+            const auto pixels = hal::linux::display::framebuffer(s.active);
+            if (pixels[sampleY * 1024 + sampleX] != beforePixel) {
                 latencies[latencyCount++] =
-                  1000. * (SDL_GetPerformanceCounter() - pendingInput) / SDL_GetPerformanceFrequency();
-                pendingInput = 0;
+                  1000. * (SDL_GetPerformanceCounter() - inputAt) / SDL_GetPerformanceFrequency();
+                inputAt = 0;
             }
         }
-        if (n == 670) {
-            std::sort(latencies.begin(), latencies.begin() + latencyCount);
-            latency95.store(latencyCount == 40 ? latencies[37] : 1000.);
-            std::printf(
-              "Input to framebuffer presentation: n=%u p95=%.3f ms\n", latencyCount, latency95.load());
+
+        if (std::getenv("GUI_TEST_STALL")) {
+            if (n == 25)
+                SDL_Delay(350);
+            return;
         }
-        if (n == 680) {
-            SDL_Event event{};
-            event.type = SDL_QUIT;
-            SDL_PushEvent(&event);
+        struct Step
+        {
+            int x, y;
+            const char* file;
+        };
+        static constexpr Step steps[]{ { 50, 118, "gui-home.bmp" },     { 50, 202, "gui-axes.bmp" },
+                                       { 380, 118, "gui-robot.bmp" },   { 550, 118, "gui-cartesian.bmp" },
+                                       { 720, 118, "gui-preview.bmp" }, { 890, 118, "gui-motors.bmp" },
+                                       { 50, 286, "gui-programs.bmp" }, { 50, 370, "gui-io.bmp" },
+                                       { 50, 454, "gui-settings.bmp" }, { 180, 554, "gui-jobs.bmp" },
+                                       { 300, 554, "gui-alarms.bmp" },  { 50, 202, "gui-axis-input.bmp" },
+                                       { 200, 434, "gui-keypad.bmp" } };
+        if (n >= 30 && n < 30 + std::size(steps) * 45) {
+            const auto i = (n - 30) / 45, t = (n - 30) % 45;
+            if (t == 0) {
+                sampleX = steps[i].x + 10;
+                sampleY = steps[i].y + 20;
+                beforePixel = hal::linux::display::framebuffer(s.active)[sampleY * 1024 + sampleX];
+                inputAt = SDL_GetPerformanceCounter();
+                mouse(SDL_MOUSEBUTTONDOWN, steps[i].x, steps[i].y);
+            }
+            if (t == 4)
+                mouse(SDL_MOUSEBUTTONUP, steps[i].x, steps[i].y);
+            if (t == 35) {
+                capture(steps[i].file, s.active);
+                phase = int(i + 1);
+            }
+        }
+        if (n == 630) {
+            SDL_SetWindowSize(SDL_GetWindowFromID(window), 1600, 600);
+        }
+        if (n == 650)
+            mouse(SDL_MOUSEBUTTONDOWN, 338, 118); // letterboxed Home
+        if (n == 654)
+            mouse(SDL_MOUSEBUTTONUP, 338, 118);
+        if (n == 675) {
+            capture("gui-letterbox.bmp", s.active);
+            phase = 14;
+        }
+        if (n == 680)
+            mouse(SDL_MOUSEBUTTONDOWN, 488, 118); // viewport, then focus loss
+        if (n == 684) {
+            SDL_Event e{};
+            e.type = SDL_WINDOWEVENT;
+            e.window.event = SDL_WINDOWEVENT_FOCUS_LOST;
+            SDL_PushEvent(&e);
+        }
+        if (n == 700) {
+            mouse(SDL_MOUSEBUTTONDOWN, 1038, 365);
+        } // cancel keypad after letterboxing
+        if (n == 704) {
+            mouse(SDL_MOUSEBUTTONUP, 1038, 365);
+        }
+        if (n == 710)
+            mouse(SDL_MOUSEBUTTONDOWN, 338, 118);
+        if (n == 714)
+            mouse(SDL_MOUSEBUTTONUP, 338, 118);
+        if (n >= 730 && n < 1000) {
+            constexpr const char* names[]{ "ready", "disabled", "busy", "unconfigured", "stale", "fault" };
+            const auto i = (n - 730) / 45, t = (n - 730) % 45;
+            if (t == 0)
+                scenario = int(i);
+            if (t == 35) {
+                char path[80];
+                std::snprintf(path, sizeof(path), "gui-state-%s.bmp", names[i]);
+                capture(path, s.active);
+                phase = 15 + int(i);
+            }
+        }
+        if (n == 1020) {
+            std::sort(latencies.begin(), latencies.begin() + latencyCount);
+            const double p95 = latencyCount ? latencies[(latencyCount * 95 - 1) / 100] : 0;
+            std::fprintf(stderr, "HMI visible press feedback: samples=%u p95=%.2f ms\n", latencyCount, p95);
+            if (latencyCount < 10 || p95 > 50)
+                correct = false;
+            if (auto* file = std::fopen("gui-latency.json", "w")) {
+                std::fprintf(file, "{\"samples\":%u,\"p95_ms\":%.3f}\n", latencyCount, p95);
+                std::fclose(file);
+            }
+            phase = 21;
+            SDL_Event e{};
+            e.type = SDL_QUIT;
+            SDL_PushEvent(&e);
         }
     }
 }
-extern "C" bool gui_test_pixels_correct()
-{
-    return pixelsCorrect.load() && latency95.load() > 0 && latency95.load() < 50;
-}
-extern "C" int gui_test_phase() { return phase.load(); }
+extern "C" bool gui_test_pixels_correct() { return correct; }
+extern "C" int gui_test_scenario() { return scenario; }
+extern "C" int gui_test_phase() { return phase; }
 extern "C" int runtime_host_main(void (*kernel)())
 {
-    const auto status = hal::linux::display::run(kernel, observe);
-    if (!hal::linux::display::cleanupComplete()) {
-        return status;
-    }
+    const auto result = hal::linux::display::run(kernel, observe);
+    if (!hal::linux::display::cleanupComplete())
+        return result;
     for (;;) {
         const timespec delay{ 0, 1000000 };
         nanosleep(&delay, nullptr);

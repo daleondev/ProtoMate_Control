@@ -37,6 +37,11 @@ namespace ui::motion
 #endif
     }
     Client::~Client() = default;
+    void Client::describe(std::uint64_t id, Requested request)
+    {
+        std::scoped_lock lock{ m_mutex };
+        findLocked(id)->info.requested = request;
+    }
     void Client::setPlannedDuration(std::uint64_t id, double seconds)
     {
         std::scoped_lock lock{ m_mutex };

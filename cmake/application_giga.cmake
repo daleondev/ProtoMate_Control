@@ -8,6 +8,7 @@ set(RUNTIME_STORAGE_REQUIRED OFF)
 set(BUILD_TESTING OFF)
 set(GIGA_GUI_MEMORY "")
 set(GIGA_GUI_SECTIONS "")
+set(GIGA_GUI_INTERNAL_SECTION "")
 if(STM32_CORE STREQUAL "CM4")
     set(THREADX_ARCH cortex_m4)
     set(application_role io)
@@ -42,7 +43,9 @@ else()
     set(GIGA_CODE_LENGTH 4M)
     set(GIGA_VECTOR_ORIGIN 0x20000000)
     set(GIGA_FAST_ORIGIN 0x00000000)
-    set(GIGA_FAST_LENGTH 64K)
+    # Keep CPU-only GUI bookkeeping out of AXI SRAM's nearly full general heap.
+    # The lower ITCM half retains the renderer's existing <=24 KiB code budget.
+    set(GIGA_FAST_LENGTH 32K)
     set(GIGA_TCM_ORIGIN 0x20000800)
     set(GIGA_TCM_LENGTH 110K)
     set(GIGA_RAM_ORIGIN 0x24000000)
@@ -61,6 +64,7 @@ else()
         # Campaign experiment: PC samples were distributed across runtime dispatch.
         # Measure instruction-RAM placement without changing normal firmware.
         set(giga_m7_fast_limit 65536)
+        set(GIGA_FAST_LENGTH 64K)
         foreach(object backend.cpp tls.cpp Kernels.cpp CompactExpand.cpp FastControl.cpp FixedBench.cpp)
             string(APPEND GIGA_FAST_OBJECTS " */${object}.obj(.text* .rodata*) *:${object}.obj(.text* .rodata*)")
         endforeach()
@@ -70,6 +74,18 @@ else()
         endforeach()
     endif()
     set(GIGA_GUI_MEMORY "GUI (rw) : ORIGIN = 0xC0600000, LENGTH = 2M")
+    if(GIGA_MOTION_BENCH)
+        # This explicit benchmark variant already reserves all ITCM for code.
+        set(giga_gui_metadata_region RAM)
+    else()
+        string(APPEND GIGA_GUI_MEMORY "\n    GUI_INTERNAL (rw) : ORIGIN = 0x00008000, LENGTH = 32K")
+        set(giga_gui_metadata_region GUI_INTERNAL)
+    endif()
+    set(GIGA_GUI_INTERNAL_SECTION ".gui_internal (NOLOAD) : ALIGN(32) {
+      __gui_internal_start = .; KEEP(*(.gui_internal)) . = ALIGN(32);
+      __gui_internal_end = .;
+    } >${giga_gui_metadata_region}
+    ASSERT(SIZEOF(.gui_internal) <= 24576, \"GUI bookkeeping exceeds 24 KiB\")")
     # Owner initializes every pixel/depth word before use. No bootstrap clear,
     # heap, general C++ objects or M4 SDRAM code overlap in this reservation.
     set(GIGA_GUI_SECTIONS ".gui_sdram (NOLOAD) : ALIGN(32) {

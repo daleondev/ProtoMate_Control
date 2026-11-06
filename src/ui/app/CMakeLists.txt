@@ -4,7 +4,9 @@ add_library(proto::ui::app ALIAS proto_ui_app)
 target_sources(proto_ui_app
     INTERFACE
         Application.hpp
-        Application.cpp 
+        Application.cpp
+        GuiBackend.hpp
+        GuiBackend.cpp
         SystemState.hpp
         SystemState.cpp
 )

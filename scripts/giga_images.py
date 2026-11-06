@@ -16,7 +16,7 @@ MAGIC = 0x41474947
 VERSION = 1
 MAX_SEGMENTS = 16
 MANIFEST_SIZE = 624
-ZERO_SECTIONS = {'.bss', '.tbss', '.dtcm_bss', '.StepDmaSection'}
+ZERO_SECTIONS = {'.bss', '.tbss', '.dtcm_bss', '.gui_internal', '.StepDmaSection'}
 
 
 class Elf:

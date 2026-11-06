@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GuiBackend.hpp"
 #include "SystemState.hpp"
 #include "common/app/Application.hpp"
 #include "common/icc/bridge/Bridge.hpp"
@@ -85,6 +86,7 @@ namespace ui
         logging::Subscriber m_logs;
         motion::Client m_motors;
         motion::Robot m_robot;
+        GuiBackend m_guiBackend;
         gui::Controller m_gui;
         std::mutex m_mutex;
         bool m_started{};

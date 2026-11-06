@@ -1,11 +1,14 @@
 #include "hal/linux/DisplayHost.hpp"
 #include <ctime>
 #include <tx_api.h>
+extern "C" void hmi_native_observe(void*, const hal::display::State&, std::uint32_t);
+extern "C" void hmi_native_close();
 // Native SDL cleanup precedes process-wide C++ destruction. The latter must
 // execute on the ThreadX application thread because our runtime owns std::mutex.
 extern "C" int runtime_host_main(void (*kernel)())
 {
-    const auto status{ hal::linux::display::run(kernel) };
+    const auto status{ hal::linux::display::run(kernel, hmi_native_observe) };
+    hmi_native_close();
     if (!hal::linux::display::cleanupComplete()) {
         return status;
     }

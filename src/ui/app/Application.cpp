@@ -52,21 +52,31 @@ namespace ui
       , m_logs{ m_bus, cli::writeLog }
       , m_motors{ m_bus }
       , m_robot{ m_bus, m_motors }
+      , m_guiBackend{ m_bus, m_motors, m_robot, m_systemState }
     {
+        m_gui.backend(m_guiBackend);
         hal::console::initialize();
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
         m_bridge.registerActions<icc::Actions>(icc::ActionProvider::UI);
         m_bridge.setConnectionCallback([this](icc::ConnectionStatus status) {
             m_systemState.setConnection(status);
-            if (status.state == icc::ConnectionState::Failed) {
+            m_guiBackend.connection(status);
+            if (status.state == icc::ConnectionState::Failed ||
+                (status.reason == icc::ConnectionReason::PeerStopped && !m_stopSource.stop_requested())) {
                 m_systemState.setLocal(app::State::Fault);
                 std::fprintf(stderr, "UI ICC failed: reason=%u\n", static_cast<unsigned>(status.reason));
                 if (const auto failure = m_bridge.failure()) {
                     if (const auto* exception = std::get_if<std::exception_ptr>(&*failure)) {
                         try {
                             std::rethrow_exception(*exception);
+                        } catch (const std::exception& error) {
+                            m_systemState.setFailure(error.what());
+                            m_guiBackend.connection(status, error.what());
+                            std::fprintf(stderr, "ICC exception: %s\n", error.what());
                         } catch (...) {
+                            m_systemState.setFailure("non-standard exception");
+                            m_guiBackend.connection(status, "non-standard exception");
                             reportFailure("ICC");
                         }
                     }
@@ -74,10 +84,8 @@ namespace ui
             }
             m_motors.setConnected(status.state == icc::ConnectionState::Connected);
             m_robot.setConnected(status.state == icc::ConnectionState::Connected);
-            if (status.state == icc::ConnectionState::Failed ||
-                status.reason == icc::ConnectionReason::PeerStopped) {
-                requestStop();
-            }
+            // Keep the fault display/CLI alive. M4 independently enforces its
+            // loss-of-owner stop; losing ICC is not proof that hardware stopped.
         });
 
         runtime::thread::publish_attributes({ .name = "ui.logging", .priority = 20, .stack_size = 8192U });
@@ -182,6 +190,11 @@ namespace ui
 
     void Application::guiThread()
     {
+        // start() holds this lock while creating every worker and starting ICC.
+        // Do not let the higher-priority GUI's initialization preempt that setup.
+        {
+            std::scoped_lock lock{ m_mutex };
+        }
         if (m_gui.run(m_stopSource.get_token())) {
             requestStop();
         }

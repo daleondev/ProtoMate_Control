@@ -1,6 +1,7 @@
 #pragma once
 #include "hal/devices/itf/IDisplay.hpp"
 #include "hal/devices/itf/ITouch.hpp"
+#include "hmi/Backend.hpp"
 #include "runtime/synchronization/Notification.hpp"
 #include "scene3d/RenderService.hpp"
 #include <array>
@@ -39,6 +40,8 @@ namespace ui::gui
     {
       public:
         Controller();
+        void backend(hmi::Backend& value) { m_backend = &value; }
+        bool robotRate(unsigned fps);
         ~Controller();
         Controller(const Controller&) = delete;
         Controller& operator=(const Controller&) = delete;
@@ -56,12 +59,18 @@ namespace ui::gui
 
       private:
         struct Engine;
+        struct DeleteEngine
+        {
+            void operator()(Engine*) const;
+        };
+        hmi::Backend* m_backend{};
         enum class Command
         {
             Bars,
             Showcase,
             Backlight,
-            Scene
+            Scene,
+            Rate
         };
         struct Request
         {
@@ -77,7 +86,7 @@ namespace ui::gui
         unsigned m_head{}, m_count{};
         runtime::Notification m_notification, m_touchNotification;
         std::shared_ptr<hal::device::IDisplay> m_display;
-        std::unique_ptr<Engine> m_engine;
+        std::unique_ptr<Engine, DeleteEngine> m_engine;
         bool m_renderFailed{};
         scene3d::RenderService m_scene;
     };

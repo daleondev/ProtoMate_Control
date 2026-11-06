@@ -132,16 +132,18 @@ class ManifestTests(unittest.TestCase):
             base, vector, stack = (0x90100000,0x10000000,0x30048000) if core == 4 else (0x90400000,0x20000000,0x20020000)
             data=bytearray(0x300)
             data[:16]=b'\x7fELF\x01\x01\x01'+bytes(9)
-            struct.pack_into('<HHIIIIIHHHHHH',data,16,2,40,1,base+65,52,0x200,0,52,32,2,40,4,3)
+            struct.pack_into('<HHIIIIIHHHHHH',data,16,2,40,1,base+65,52,0x200,0,52,32,2,40,5 if core==7 else 4,3)
             struct.pack_into('<8I',data,52,1,0x100,vector,base,64,64,4,4)
             struct.pack_into('<8I',data,84,1,0x140,base+64,base+64,64,64,5,4)
             struct.pack_into('<II',data,0x100,stack,base+65)
             data[0x140:0x142]=b'\x70\x47' # Thumb BX LR
-            names=b'\0.isr_vector\0.text\0.shstrtab\0'
+            names=b'\0.isr_vector\0.text\0.shstrtab\0.gui_internal\0'
             data[0x180:0x180+len(names)]=names
             struct.pack_into('<10I',data,0x228,1,1,2,vector,0x100,64,0,0,4,0)
             struct.pack_into('<10I',data,0x250,13,1,6,base+64,0x140,64,0,0,4,0)
             struct.pack_into('<10I',data,0x278,19,3,0,0,0x180,len(names),0,0,1,0)
+            if core==7:
+                struct.pack_into('<10I',data,0x2a0,names.index(b'.gui_internal'),8,3,0x8000,0,22528,0,0,32,0)
             path=Path(self.directory.name)/f'm{core}.elf';path.write_bytes(data)
             return path
         io,ui=fixture(4),fixture(7)
@@ -149,6 +151,7 @@ class ManifestTests(unittest.TestCase):
         self.assertTrue(self.valid(data))
         self.assertEqual(m4[-32:], m7[-32:])
         self.assertEqual(m4[-32:].hex(), metadata['pair_id'])
+        self.assertIn({'load':0,'run':0x8000,'size':22528,'flags':2},metadata['images'][1]['segments'])
         for payload, info in zip([m4,m7], metadata['images']):
             self.assertEqual(zlib.crc32(payload), info['crc'])
             self.assertLessEqual(len(info['segments']), 16)

@@ -245,6 +245,7 @@ namespace ui::motion
     {
         const std::stop_callback cancellation{ stop, [this] { m_changed.signal(); } };
         while (!stop.stop_requested()) {
+            refreshPresentationModel(stop);
             if (executePending(stop)) {
                 continue;
             }

@@ -4,6 +4,7 @@
 #include "common/icc/bridge/ConnectionHealth.hpp"
 #include "hal/devices/itf/ILed.hpp"
 
+#include <array>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -22,10 +23,13 @@ namespace ui
             std::optional<app::State> io;
             app::State combined{ app::State::Starting };
             bool io_fresh{};
+            icc::ConnectionStatus connection{};
+            std::array<char, 96> failure{};
         };
 
         SystemState(std::shared_ptr<hal::device::ILed> red, std::shared_ptr<hal::device::ILed> green);
         void setLocal(app::State state, Clock::time_point now = Clock::now());
+        void setFailure(const char* text);
         void setConnection(icc::ConnectionStatus status, Clock::time_point now = Clock::now());
         void receiveIo(app::State state, Clock::time_point now = Clock::now());
         void refresh(Clock::time_point now = Clock::now());

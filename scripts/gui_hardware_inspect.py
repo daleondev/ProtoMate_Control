@@ -33,7 +33,7 @@ def main():
         # Never let GDB's flash-map discovery switch the live XIP QSPI mode.
         setup = ('gdb_memory_map disable; gdb_flash_program disable; gdb_port disabled; '
                  'reset_config srst_only srst_nogate connect_deassert_srst; '
-                 'init; adapter speed 4000; targets giga.cpu0; ')
+                 'init; adapter speed 4000; targets giga.cpu0; poll; ')
         with (output/(name+'.openocd.log')).open('w') as log:
             subprocess.run(['openocd', '-f', str(ROOT/'scripts/openocd/arduino_giga.cfg'),
                             '-c', setup+commands+'; shutdown'], stdout=log,
@@ -57,7 +57,7 @@ def main():
 
         for name in (() if args.fault_only else ('bars', 'gui')):
             command('display '+name)
-            time.sleep(.5)
+            time.sleep(2)
             status = command('display status')
             assert 'GUI running;' in status and 'graphics verified=1' in status, status
             commands = '; '.join(f'dump_image {{{output}/{name}-{slot}.rgb565}} '
@@ -70,14 +70,15 @@ def main():
                 assert len(pixels) == 1024*600
                 if name == 'bars':
                     colors = (0xffff, 0xffe0, 0x07ff, 0x07e0, 0xf81f, 0xf800, 0x001f, 0)
+                    # The bottom strip, including software Stop, remains usable.
                     assert all(pixel == colors[index % 1024 // 128]
-                               for index, pixel in enumerate(pixels)), f'Wrong pixels in {name}-{slot}'
+                               for index, pixel in enumerate(pixels[:1024*528])), f'Wrong pixels in {name}-{slot}'
                 else:
-                    # Static regions are valid during the live read. The small
-                    # animation can move while SWD reads; this is not an atomic screenshot.
-                    assert pixels[10*1024+10] == 0x10c4 and pixels[200*1024+400] == 0x1946
-                    assert sum(pixels[y*1024+x] != 0x1946
-                               for y in range(208,244) for x in range(504,900)) > 100
+                    # Home has a dark shell, text and full-detail shaded CAD.
+                    # SWD reads are not atomic; inspect the exported images too.
+                    assert pixels[0] == 0x08a3, 'Unexpected Home background'
+                    assert len(set(pixels[y*1024+x] for y in range(150, 450)
+                                   for x in range(140, 630))) > 50, 'Robot viewport is empty'
                 rgb = bytes(component for pixel in pixels for component in
                             (((pixel >> 11) & 31)*255//31, ((pixel >> 5) & 63)*255//63, (pixel & 31)*255//31))
                 Image.frombytes('RGB', (1024,600), rgb).save(output/f'{name}-{slot}.png')

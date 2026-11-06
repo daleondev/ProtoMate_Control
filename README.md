@@ -21,7 +21,8 @@ and console. M7 mounts persistent internal-flash storage at `/flash`; M4 does
 not mount the volume. Both runtimes include filesystem support.
 Motor construction leaves all drivers disabled; initialization, enabling and
 motion are explicit CLI operations. Display/touch bring-up uses `display`
-commands. A shared TouchGFX showcase runs on M7 and Linux; application-specific GUI screens remain future work.
+commands. The shared TouchGFX robot HMI opens Home on M7 and Linux, using the same
+motion client and job history as the CLI. See the [HMI guide](docs/gui/hmi/README.md).
 
 ## Motion API: motors, axes and robot
 
@@ -530,22 +531,13 @@ reap children and close pipes even when assertions fail.
 
 ## Shared TouchGFX GUI
 
-`proto::ui::gui` owns a 1024×600 RGB565 frontend shared by GIGA M7 and Linux.
-M4 does not link TouchGFX. No robot commands or GUI-specific ICC contracts are
-introduced. The showcase exercises text, buttons, a slider, transparency and a
-small animated region; its Framework details / Back navigation demonstrates
-transitions between two permanently allocated views and presenters.
+`proto::ui::gui` provides the robot HMI on GIGA M7 and Linux. **Home is the
+normal startup screen**, with the full prepared robot model, telemetry, motion
+readiness and shared jobs. Axis, robot, preview and raw-motor pages use the same
+Client/Robot/ICC implementation as the CLI. Programs and presets remain empty.
 
-```mermaid
-flowchart TB
-    A[ui::Application] --> C[gui::Controller]
-    C --> MVP[Model / Presenters / Views / Components]
-    MVP --> T[TouchGFX 4.27.0]
-    T --> P[Port + GraphicsDMA + OSWrappers]
-    P --> H[HAL display / graphics / cached touch]
-    H --> G[GIGA: LTDC + DMA2D + ST1633i]
-    H --> L[Linux: native SDL display + software graphics]
-```
+See the [HMI operating and architecture guide](docs/gui/hmi/README.md) and
+[verification status](docs/gui/hmi/verification.md). M4 does not link TouchGFX.
 
 ### SDK and assets
 
@@ -592,12 +584,12 @@ the 6 MiB independent GUI-assets partition remains reserved.
 ### Workers, ownership and shutdown
 
 The application owns `gui::Controller` and three workers using its shared stop token:
-GUI priority **8 / 16 KiB stack**, touch priority **7 / 8 KiB**, and the experimental
-3D renderer priority **16 / 16 KiB**. The renderer sleeps when its benchmark is hidden. ICC remains higher
+GUI priority **8 / 16 KiB stack**, touch priority **7 / 8 KiB**, and the
+3D renderer priority **16 / 16 KiB**. The renderer sleeps when Home is hidden. ICC remains higher
 priority. Widgets are accessed only by the GUI worker. CLI commands submit to an
 8-entry request queue; overflow is counted and rejected. `status()` returns a
 thread-safe snapshot. There are no application-owned allocations during the
-showcase's steady-state rendering or screen transitions.
+frontend's steady-state rendering or page transitions.
 
 GIGA framebuffers are non-cacheable SDRAM at `0xC0000000` and `0xC0200000`,
 1,228,800 bytes each. LTDC reload completion transfers ownership at vertical
@@ -634,30 +626,21 @@ ThreadX scheduler ends with the process.
 
 ### Adding screens
 
-Use [`frontend/Frontend.hpp`](src/ui/gui/frontend/Frontend.hpp) as the working
-template: a `touchgfx::View<Presenter>` owns widgets and bounded Unicode buffers;
-a presenter updates the shared Model, and the Model holds presentation values.
-Add the view and presenter as bounded members of `Frontend`, bind them once, and
-choose them in `handlePendingScreenTransition()`. Do not call `switchScreen()`
-from `handleTickEvent()`: that runs while the engine owns its framebuffer lock.
-The Details screen is the minimal example, including setup and a return action.
-
-Theme tokens and reusable Button/Slider components define colors, typography,
-spacing, touch size, focus/pressed/disabled states and animation duration. Touch
-targets are at least 56 pixels high. Invalidate only changed regions. Extend the
-text catalog and regenerate assets for new text; keep wildcard buffers bounded.
-Future ICC subscriptions/services should deliver bounded values to the Model
-through the GUI owner. They must neither touch widgets in callbacks nor block the
-rendering thread waiting for remote work.
+The HMI reuses one bounded page area rather than retaining a widget tree for
+every screen. Add a page to `hmi::Page`, map intent in `Presenter`, and compose it
+from the shared `Control`, `Panel` and `Label` components in `View`. Extend the
+portable Backend contract only for real application functionality. The adapter
+belongs to `ui::Application`; widgets must not block on ICC or manipulate drivers.
+Text uses bounded Unicode buffers and explicit font-measured wrapping. Callbacks
+publish bounded values; only the GUI worker draws or changes widgets.
 
 ### Shaded 3D performance prototype — acceptance gate not met
 
 [`scene3d`](src/ui/gui/scene3d) is the first-stage implementation of the 3D
-viewport plan. **It is a benchmark foundation, not the completed interactive
-viewport.** The 640×400 shaded workload does not meet the GIGA requirement of
+viewport. The generic maximum-rate benchmark remains a characterization workload. The 640×400 shaded workload does not meet the GIGA requirement of
 20 newly presented images/s at 2,000 triangles and produces LTDC underruns.
-The normal 2D showcase remains the startup screen. Only `display scene` enables
-this experimental workload; return with `display gui`.
+Home uses the complete robot at a lower, bounded 2 fps cadence. `display scene`
+explicitly enables the generic benchmark; `display gui` restores Home.
 
 ```text
 display scene 500
@@ -706,12 +689,12 @@ Prepared robot visual assets live in
 links retain their original metre/Z-up frames and colours, with 36,376 triangles
 instead of the CAD exports' 623,292. The reproducible Blender workflow removes
 cosmetic inserts and hidden surfaces and checks simplification error. Original
-CAD, collision and switch-contact assets remain unchanged. Build the opt-in
-`scene3d-robot-assets` target on Linux or M7; link `proto::ui::gui::robot_assets`
+CAD, collision and switch-contact assets remain unchanged. Normal Linux/M7 builds generate
+`scene3d-robot-assets` and link `proto::ui::gui::robot_assets`
 and set the node material's `useMeshMaterial` to use its embedded colours.
 [Matched view comparisons](docs/robot/visuals) document the visual review.
-This prepares the assets; it does not enable a live robot widget or resolve
-the viewport's hardware performance limitation described below.
+The HMI uses these full-detail assets. Lowering display cadence does not establish
+the original high-rate benchmark target described below.
 
 The linker reserves **1,536,000 bytes** at `0xC0600000`: two 640×400 RGB565 images
 and one 16-bit depth buffer, all cache-line aligned. Pixels are initialized before
@@ -735,7 +718,7 @@ python3 scripts/scene3d_hardware_check.py --seconds 15
 ```
 
 The script records counters and CLI/ICC diagnostics under
-`build/scene3d-validation`, restores the normal showcase, and returns exit code
+`build/scene3d-validation`, restores Home, and returns exit code
 2 when the gate is not met. No motor command is sent. The established DMA2D
 dead-time remains **16**.
 
@@ -765,9 +748,9 @@ Host regressions cover deterministic shaded output, depth/occlusion,
 hierarchy, near-plane/viewport clipping, invalid input, latest-only scheduling,
 immutable displayed images, stalled handoff, visibility changes and stopping.
 The existing Linux GUI interaction, presentation-timeout and X11 tests also pass.
-Orbit/zoom/reset controls, the reusable public `Viewport3D` widget, 10-minute 3D
-endurance/latency acceptance and STEP-under-3D-load validation are deferred at
-the failed performance gate. Physical-panel validation remains separate.
+The HMI supplies orbit/zoom/reset and the reusable viewport at the separate,
+full-detail low-rate operating envelope documented above. The original high-rate
+benchmark acceptance and powered/physical-panel validation remain separate.
 
 ### Verification
 
@@ -795,37 +778,21 @@ fill/copy/conversion/blend results and guard pixels at odd offsets and widths.
 `graphics verified=1` in `display status` confirms it completed successfully.
 The hardware scripts require pyserial (and Pillow for exported PNGs), keep motors
 disabled, and write artifacts under `build/`. The inspection script reads both
-framebuffer slots, checks every color-bar pixel and static showcase regions,
-then masks LTDC interrupts. It requires a bounded GUI fault, zero backlight duty
-and working CLI/ICC before resetting both cores. Its live showcase readback is
-not an atomic screenshot of the moving indicator.
+framebuffer slots, checks color-bar pixels above the persistent Stop strip and
+Home image content, then masks LTDC interrupts. It requires a bounded GUI fault, zero backlight duty
+and working CLI/ICC before resetting both cores. Live SWD readback is not an atomic screenshot; inspect the exported images too.
 
-The normal GIGA **Release** 2D showcase passes a 30-second panel-free regression
-with the 3D worker idle:
-
-| Check | Result |
-| --- | --- |
-| LTDC framebuffer deliveries | 1,805; 59.86 presentations/s |
-| Render work completed within one display period | 99.94% of measured frames |
-| LTDC underruns / transfer errors / DMA errors | 0 / 0 / 0 |
-| ICC/controller health | Ready throughout; IO diagnostic services exercised |
-| Heap growth over the run | 40 bytes |
-| GUI / touch stack headroom | 86.20% / 93.60% with 16 / 8 KiB stacks |
-
-Performance acceptance uses Release. Debug remains usable for development but
-presents the full application showcase at roughly 53 Hz. These are framebuffer
-delivery rates, not observations of a physical panel. The current regression
-and matching manifest are in `build/scene3d-validation/normal-gui/`. Linux deterministic input
-has approximately **34 ms p95** event-to-framebuffer-presentation latency in the
-dummy backend; tests cover both that backend and SDL's real X11/Mesa path when
-`xvfb-run` is installed. All **52 tests** pass in both Debug and Release host suites, and closing
-via CLI or the window releases the application workers and SDL resources.
+Current HMI results and image-specific limits are recorded in
+[HMI verification](docs/gui/hmi/verification.md). The old showcase's frame-rate
+numbers do not qualify the robot HMI. Normal idle pages use dirty-region redraws;
+3D presentations are counted separately from GUI ticks and LTDC scanout.
 
 **Physical panel validation remains pending:** supply/reset timing at the panel,
 visible RGB ordering/orientation, pixel-clock phase, tearing, backlight response,
 ST1633i communication/coordinates and independent supply sequencing. Rendering
 and LTDC presentation counts measured without a panel do not establish any of
-those properties. No application-specific screens or robot GUI behavior are included.
+those properties. The robot HMI is implemented and exercised in Linux; physical
+display/touch and calibrated, powered robot acceptance remain separate.
 
 ## Linux sanitizer checks
 
@@ -1773,7 +1740,7 @@ processed-job acceptance and first-board fit/electrical/display testing remain p
 The [hardware review](hardware/display/manufacturing/REVIEW.md) identifies open
 RGB timing and supply-transient qualification; fabrication readiness does not
 mean the complete display interface has been electrically qualified.
-The GUI starts automatically. Backlight stays off until the adapter reports stable supplies, panel sequencing completes and a valid framebuffer is scanned, then starts at 10%. Rendering continues without panel power. `display bars` selects the diagnostic pattern; `display gui` returns to the showcase. `display backlight 0..100` controls the 1 kHz PWM. `display touch` reports cached primary-contact coordinates, availability and age, without performing I²C transactions. `display status` reports rendering/presentation counters, deadlines, transfer errors and queue overflow. Missing touch does not prevent rendering, CLI or ICC operation. Device logic lives above `IRgbOutput`, `IGraphics` and `II2c`; STM32 drivers own the peripherals.
+The GUI starts automatically. Backlight stays off until the adapter reports stable supplies, panel sequencing completes and a valid framebuffer is scanned, then starts at 10%. Rendering continues without panel power. `display bars` selects the diagnostic pattern; `display gui` returns to Home. `display backlight 0..100` controls the 1 kHz PWM. `display touch` reports cached primary-contact coordinates, availability and age, without performing I²C transactions. `display status` reports rendering/presentation counters, deadlines, transfer errors and queue overflow. Missing touch does not prevent rendering, CLI or ICC operation. Device logic lives above `IRgbOutput`, `IGraphics` and `II2c`; STM32 drivers own the peripherals.
 
 USB-C uses USB_OTG_FS PA11/PA12, device-only CDC with VBUS sensing disabled and
 ST USB Device middleware matching Cube H7 V1.13.0. Open the CDC port (`/dev/ttyACM*`
@@ -1807,13 +1774,14 @@ compatibility. No application filesystem writes to XIP flash.
 | 0x10000000 | 2 KiB M4 vectors; remaining 192 KiB SRAM1/SRAM2 instruction alias for motion, runtime and ICC code/constants |
 | 0x30030800 / 0x30046000 | 86 KiB M4 data/DMA; 8 KiB M4 MSP |
 | 0x24000000 / 0x24040000 | 256 KiB M7 data/heap; 256 KiB M4 unwind metadata/heap |
-| 0x00000000 | 64 KiB M7 ITCM, `.itcm` sections |
+| 0x00000000 | 32 KiB M7 ITCM code; renderer cap 24 KiB |
+| 0x00008000 | 32 KiB CPU-only GUI metadata; 24 KiB enforced allocation cap, execute-never |
 | 0x20000000 | M7 vectors (2 KiB), `.dtcm`/`.dtcm_bss` working data (110 KiB) |
 | 0x2001C000 / 0x2001E000 | 8 KiB bootstrap scratch; 8 KiB M7 MSP |
 | 0x38000000 / 0x3800F000 | 60 KiB ICC reservation; 4 KiB boot handoff |
 | 0xC0000000 / 0xC0200000 | Two 2 MiB framebuffer slots; each uses 1,228,800 bytes |
 | 0xC0400000 | 2 MiB reserved M4 ordinary application code with `GIGA_M4_SDRAM_CODE` |
-| 0xC0600000 | 2 MiB future large UI buffers |
+| 0xC0600000 | 2 MiB 3D colour/depth buffers and bounded planning storage |
 
 The onboard SDRAM is 8 MiB AS4C4M16SA-6BIN, bank 1, 16-bit, four banks, **12 row
 bits / 8 column bits**, 100 MHz, CAS3; timings 2/7/5/7/3/2/2, refresh count 1542.
@@ -1832,7 +1800,11 @@ The bootstrap copies these records and both image validators enforce M4 ownershi
 of the region. M7 CPU-only filesystem metadata, startup/reaper stacks and console
 rings occupy `.dtcm`/`.dtcm_bss`; USB FS copies through its FIFO and its DMA-capable
 Cube buffers remain in AXI SRAM. The general M7 heap remains in AXI SRAM. Both copy
-and zero tables cover these DTCM sections.
+and zero tables cover these DTCM sections. The normal HMI reserves the upper
+32 KiB of ITCM for CPU-only GUI metadata, with a 24 KiB enforced allocation cap
+and an explicit bootstrap zero record. It is execute-never; DMA never accesses
+this region. The motion benchmark variant retains its separate all-ITCM-code
+layout. Renderer code remains bounded to 24 KiB in normal builds.
 
 MPU is configured before M7 caches. A low-priority, no-access/XN region blocks
 unused external addresses (`0x60000000..0xDFFFFFFF`); higher-priority regions

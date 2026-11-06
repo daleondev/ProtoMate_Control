@@ -33,6 +33,33 @@ namespace ui::gui::scene3d
                          { c.target.x, c.target.y, c.target.z },
                          { 0, 0, 1 });
         engine.setLightDirection({ -.4f, .6f, -1 });
+        if (frame.scene->groundGrid) {
+            tgx::fMat4 identity;
+            identity.setIdentity();
+            engine.setModelMatrix(identity);
+            engine.setCulling(0);
+            engine.setMaterial(tgx::RGBf(.12f, .18f, .22f), 1.f, 0.f, 0.f, 0);
+            const tgx::fVec3 normal{ 0, 0, 1 };
+            for (int i = -6; i <= 8; ++i) {
+                const float t = float(i) * .1f, h = .0004f, z = -.003f;
+                engine.drawQuad({ t - h, -.6f, z },
+                                { t + h, -.6f, z },
+                                { t + h, .8f, z },
+                                { t - h, .8f, z },
+                                &normal,
+                                &normal,
+                                &normal,
+                                &normal);
+                engine.drawQuad({ -.6f, t - h, z },
+                                { .8f, t - h, z },
+                                { .8f, t + h, z },
+                                { -.6f, t + h, z },
+                                &normal,
+                                &normal,
+                                &normal,
+                                &normal);
+            }
+        }
         engine.setCulling(1);
         std::array<tgx::fMat4, MAX_NODES> world{};
         for (unsigned i{ 0 }; i < frame.scene->count; ++i) {

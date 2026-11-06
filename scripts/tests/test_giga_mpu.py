@@ -21,7 +21,7 @@ class MpuTests(unittest.TestCase):
                        MPU_ACCESS_SHAREABLE=1,MPU_ACCESS_CACHEABLE=1,MPU_ACCESS_NOT_CACHEABLE=0,
                        MPU_ACCESS_BUFFERABLE=1,MPU_ACCESS_NOT_BUFFERABLE=0,
                        MPU_REGION_NO_ACCESS=0,MPU_REGION_SIZE_4GB=31,MPU_REGION_FULL_ACCESS=3,MPU_REGION_PRIV_RO_URO=6,MPU_PRIVILEGED_DEFAULT=4,MPU_HFNMI_PRIVDEF=6)
-        for name,size in [('64KB',65536),('128KB',131072),('256KB',262144),('512KB',524288),('2MB',2097152),('8MB',8388608),('16MB',16777216)]:
+        for name,size in [('32KB',32768),('64KB',65536),('128KB',131072),('256KB',262144),('512KB',524288),('2MB',2097152),('8MB',8388608),('16MB',16777216)]:
             constants['MPU_REGION_SIZE_'+name]=size
         header='#include <stdint.h>\ntypedef struct {'+''.join('uint32_t '+n+';' for n in FIELDS)+'} MPU_Region_InitTypeDef;\n'
         header+='\n'.join(f'#define {name} {value}u' for name,value in constants.items())
@@ -31,7 +31,7 @@ class MpuTests(unittest.TestCase):
             'void HAL_MPU_ConfigRegion(MPU_Region_InitTypeDef* r){regions[r->Number]=*r;}\n'
             'void HAL_MPU_Disable(void){}\nvoid HAL_MPU_Enable(uint32_t v){control=v;}\n')
         cls.libraries={}
-        for variant,definitions in [('m4',['CORE_CM4']),('m7',['CORE_CM7']),('helper',['CORE_CM7','GIGA_MEMORY_HELPER'])]:
+        for variant,definitions in [('m4',['CORE_CM4']),('m7',['CORE_CM7']),('helper',['CORE_CM7','GIGA_MEMORY_HELPER']),('bench',['CORE_CM7','GIGA_MOTION_BENCH'])]:
             output=directory/(variant+'.so')
             subprocess.run(['cc','-Wall','-Wextra','-Werror','-shared','-fPIC',*['-D'+d for d in definitions],
                             '-I'+str(directory),'-I'+str(ROOT/'platform'),str(ROOT/'platform/boot/giga/mpu.c'),str(directory/'record.c'),'-o',str(output)],check=True)
@@ -73,6 +73,11 @@ class MpuTests(unittest.TestCase):
         r=self.regions('m7')[8]
         self.assertEqual((r.BaseAddress,r.Size,r.AccessPermission,r.IsCacheable,r.DisableExec),(0x08180000,512*1024,3,0,1))
         self.assertEqual(self.regions('m4')[8].Enable,0)
+    def test_gui_metadata_does_not_overlap_executable_itcm(self):
+        r=self.regions('m7')[9]
+        self.assertEqual((r.BaseAddress,r.Size,r.AccessPermission,r.DisableExec),(0x8000,32768,3,1))
+        for variant in ('m4','helper','bench'):
+            self.assertEqual(self.regions(variant)[9].Enable,0)
     def test_ecc_probes_keep_mpu_attributes_at_fault_priority(self):
         for variant in ['m7','helper']:
             self.regions(variant)

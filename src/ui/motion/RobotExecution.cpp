@@ -94,6 +94,32 @@ namespace ui::motion
             throw std::runtime_error("planning queue full");
         }
         const auto id = m_client->create(request.family, request.axes);
+        Client::Requested description;
+        description.relative = request.relative;
+        if (request.kind == ExecutionRequest::Kind::Home)
+            description.space = Client::RequestSpace::Home;
+        else if (request.kind == ExecutionRequest::Kind::Jog) {
+            description.space = Client::RequestSpace::Jog;
+            description.values[0] = request.speed;
+        }
+        else if (request.family == ::motion::Family::Axis) {
+            description.space =
+              request.axes == 4 ? Client::RequestSpace::Linear : Client::RequestSpace::Rotary;
+            description.values[0] = request.distance;
+        }
+        else if (request.move.kind == MoveKind::Joints) {
+            description.space = Client::RequestSpace::Joints;
+            description.values = { request.move.joints.shoulder.get(),
+                                   request.move.joints.elbow.get(),
+                                   request.move.joints.z.get() };
+        }
+        else {
+            description.space = Client::RequestSpace::Point;
+            description.values = { request.move.target.x.get(),
+                                   request.move.target.y.get(),
+                                   request.move.target.z.get() };
+        }
+        m_client->describe(id, description);
         *slot = { .request = request, .id = id };
         m_changed.signal();
         return id;

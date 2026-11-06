@@ -2,27 +2,37 @@ include(${PROJECT_SOURCE_DIR}/cmake/touchgfx.cmake)
 add_subdirectory(scene3d)
 add_library(proto_ui_gui STATIC
     Controller.hpp Controller.cpp util/FrameTimer.hpp
-    frontend/Theme.hpp frontend/Model.hpp
+    hmi/Backend.hpp hmi/Model.hpp hmi/Presenter.hpp hmi/Presenter.cpp
+    hmi/View.hpp hmi/View.cpp hmi/Viewport.hpp hmi/Viewport.cpp hmi/Widgets.hpp hmi/Widgets.cpp
     frontend/Frontend.hpp frontend/Frontend.cpp
     frontend/Components.hpp frontend/Components.cpp
+    scene3d/Robot.hpp scene3d/Robot.cpp
     integration/OS.hpp integration/OS.cpp
     integration/GraphicsDMA.hpp integration/GraphicsDMA.cpp
     scene3d/RenderService.hpp scene3d/RenderService.cpp)
 add_library(proto::ui::gui ALIAS proto_ui_gui)
 target_include_directories(proto_ui_gui PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(proto_ui_gui PUBLIC runtime::runtime platform::hal PRIVATE touchgfx::support pneumo::logging)
-target_link_libraries(proto_ui_gui PUBLIC proto::ui::gui::scene3d)
+target_link_libraries(proto_ui_gui PUBLIC proto::ui::gui::scene3d PRIVATE proto::ui::gui::robot_assets)
 add_dependencies(proto_ui_gui gui-assets)
 # Rendering must be optimized even in Debug; preserve symbols.
 target_compile_options(proto_ui_gui PRIVATE -O2)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_sources(${PROTOMATE_CONTROLLER_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/integration/Host.cpp)
+    add_library(gui_automation_native OBJECT tests/automation_host.cpp)
+    target_include_directories(gui_automation_native PRIVATE ${PROJECT_SOURCE_DIR}/platform ${PROJECT_SOURCE_DIR}/src)
+    target_link_libraries(gui_automation_native PRIVATE PkgConfig::SDL2)
+    target_sources(${PROTOMATE_CONTROLLER_TARGET} PRIVATE $<TARGET_OBJECTS:gui_automation_native>
+ ${CMAKE_CURRENT_SOURCE_DIR}/integration/Host.cpp)
 endif()
 
 if(STM32_CORE STREQUAL "CM7")
     target_compile_options(proto_ui_gui PRIVATE -fno-rtti)
 endif()
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_executable(hmi_tests tests/hmi_test.cpp)
+    target_link_libraries(hmi_tests PRIVATE proto::ui::gui touchgfx::support GTest::gtest_main)
+    runtime_attach(hmi_tests)
+    add_test(NAME gui.hmi COMMAND hmi_tests)
     add_executable(gui_port_tests tests/graphics_test.cpp)
     target_link_libraries(gui_port_tests PRIVATE proto::ui::gui GTest::gtest_main touchgfx::engine)
     runtime_attach(gui_port_tests)
@@ -43,7 +53,13 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(NAME gui.integration COMMAND gui_integration_tests)
     add_test(NAME gui.presentation_timeout COMMAND gui_integration_tests)
     set_tests_properties(gui.presentation_timeout PROPERTIES TIMEOUT 10 ENVIRONMENT "SDL_VIDEODRIVER=dummy;GUI_TEST_STALL=1")
-    set_tests_properties(gui.integration PROPERTIES TIMEOUT 20 ENVIRONMENT "SDL_VIDEODRIVER=dummy")
+    set_tests_properties(gui.integration PROPERTIES TIMEOUT 35 ENVIRONMENT "SDL_VIDEODRIVER=dummy")
+    set_tests_properties(gui.integration PROPERTIES FIXTURES_SETUP hmi_frames)
+    add_test(NAME gui.screenshots COMMAND ${Python3_EXECUTABLE} -m pytest -q -ra
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_screenshots.py
+        -o cache_dir=${PROJECT_BINARY_DIR}/pytest-cache/hmi)
+    set_tests_properties(gui.screenshots PROPERTIES FIXTURES_REQUIRED hmi_frames TIMEOUT 20
+        ENVIRONMENT "HMI_CAPTURE_DIR=${CMAKE_CURRENT_BINARY_DIR}")
     find_program(XVFB_RUN xvfb-run)
     if(XVFB_RUN)
         add_test(NAME gui.x11 COMMAND ${XVFB_RUN} -a -s "-screen 0 1600x900x24"

@@ -1,5 +1,6 @@
 #include "SystemState.hpp"
 
+#include <cstdio>
 #include <stdexcept>
 #include <utility>
 
@@ -40,6 +41,12 @@ namespace ui
         update(now);
     }
 
+    void SystemState::setFailure(const char* text)
+    {
+        std::scoped_lock lock{ m_mutex };
+        std::snprintf(m_snapshot.failure.data(), m_snapshot.failure.size(), "%s", text);
+    }
+
     void SystemState::setConnection(icc::ConnectionStatus status, Clock::time_point now)
     {
         std::scoped_lock lock{ m_mutex };
@@ -52,6 +59,7 @@ namespace ui
             }
         }
         m_connection = status;
+        m_snapshot.connection = status;
         if (status.state == icc::ConnectionState::Failed) {
             m_fault = true;
         }
