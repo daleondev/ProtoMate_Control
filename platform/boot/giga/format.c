@@ -19,10 +19,10 @@ static int within(uint32_t address, uint32_t size, uint32_t begin, uint32_t leng
 static int destination(unsigned core, uint32_t address, uint32_t size, uint32_t flags)
 {
     if (!core) {
-        return within(address, size, 0x10000000, 192 * 1024) ||
-               within(address, size, 0x30030000, 88 * 1024) ||
+        return within(address, size, 0x10000000, 194 * 1024) ||
+               within(address, size, 0x30030800, 86 * 1024) ||
                within(address, size, 0x24040000, 256 * 1024) ||
-               ((flags & GIGA_RAM_DEBUG) && within(address, size, 0xC0400000, 2 * 1024 * 1024));
+               ((flags & GIGA_M4_SDRAM_CODE) && within(address, size, 0xC0400000, 2 * 1024 * 1024));
     }
     /* Keep bootstrap scratch (0x2001C000) and both MSP stacks intact. */
     return within(address, size, 0, 64 * 1024) || within(address, size, 0x20000000, 112 * 1024) ||
@@ -40,7 +40,7 @@ int giga_manifest_valid(const GigaManifest* m)
         const uint32_t limit = core ? 4u * 1024 * 1024 : 3u * 1024 * 1024;
         if (im->storage != base || im->size <= sizeof(m->pair_id) || im->size > limit ||
             im->segment_count == 0 || im->segment_count > GIGA_MAX_SEGMENTS ||
-            (im->flags & ~GIGA_RAM_DEBUG) || (core && im->flags) || !(im->entry & 1u) ||
+            (im->flags & ~GIGA_M4_SDRAM_CODE) || (core && im->flags) || !(im->entry & 1u) ||
             im->vectors != (core ? 0x20000000u : 0x10000000u) ||
             im->stack != (core ? 0x20020000u : 0x30048000u)) {
             return 0;

@@ -126,7 +126,8 @@ def test_motion_feedback_homing_fault_and_shutdown(simulator, tmp_path, spawn):
             assert all(int(b['time_ns'])>int(a['time_ns']) for a,b in zip(contact,contact[1:])),contact
             contacts[(port,pin)]=contact
         first_home=int(contacts[('E',4)][0]['time_ns'])
-        for pin,count in [(2,160),(3,160)]:
+        # The operating envelope keeps M2 at 1/16 and selects 1/8 on M3.
+        for pin,count in [(2,160),(3,80)]:
             signal=[edge for edge in edges if edge["port"]=="A" and int(edge["pin"])==pin and int(edge['time_ns'])<first_home]
             assert len(signal)==count*2, (pin,len(signal))
             for rising,falling in zip(signal[::2],signal[1::2]):

@@ -18,6 +18,26 @@ from capture import RATE
 from run import ROOT, transact
 
 
+def executor_screening(reports, load):
+    """Capacity screen only; passing is not full motion qualification."""
+    io = next(r for r in reports if r.get('core') == 4)
+    utilization = io['cpu_10ms_ticks'] * 10000 / io['wall_us']
+    margin = 24 * io['refill_budget_ticks'] / io['refill_cycles'] if io['refill_cycles'] else 0
+    failures = []
+    if margin < 2:
+        failures.append('refill margin below 2x')
+    if any(r['minimum_stack_permill'] < 250 for r in reports):
+        failures.append('registered-thread stack headroom below 25%')
+    if load:
+        if utilization > .9:
+            failures.append('M4 sustained CPU utilization above 90% target')
+        if io['auxiliary'] * 1000 < .95 * io['elapsed_us']:
+            failures.append('synthetic reservation ran fewer than 95% of its periods')
+    return dict(scope='capacity screen; not full application qualification',
+                m4_utilization=utilization, minimum_refill_margin=margin,
+                failures=failures, passed=not failures)
+
+
 class Edges:
     def __init__(self):
         self.offset = 0
@@ -108,6 +128,10 @@ def main():
     parser.add_argument('--profile-shape',choices=['scaled','equal'],default='scaled')
     parser.add_argument('--profile-half',type=int,choices=[64,128,256],default=64)
     parser.add_argument('--executor-cycles',type=int)
+    parser.add_argument('--executor-rate',type=int,choices=[6250,12500],default=6250,
+                        help='Expected compiled envelope; verified against firmware case metadata')
+    parser.add_argument('--startup-mask',type=int,choices=range(1,8))
+    parser.add_argument('--startup-immutable',action='store_true')
     parser.add_argument('--executor-traffic',choices=['normal','flood'],default='normal')
     parser.add_argument('--executor-stop', type=int, choices=[1,2,3], default=0)
     parser.add_argument('--stop-at',type=int,default=150)
@@ -131,8 +155,8 @@ def main():
             parser.error('executor cycles must be 1..1000 and used alone')
         args.profile_cycles=args.executor_cycles
         args.profile_shape=args.executor_shape
-        args.profile_rate=12500
-        args.profile_half=32
+        args.profile_rate=args.executor_rate
+        args.profile_half=64
         command=f'executor {args.executor_cycles} {args.stop_at if args.executor_stop else 0} {args.executor_stop} {args.load} {dict(equal=0,scaled=1,unequal=2)[args.executor_shape]} {int(args.executor_traffic=="flood")}'
         if args.load not in (0,20):
             parser.error('executor load must be 0 or 20')
@@ -141,6 +165,11 @@ def main():
         if args.executor_stop and not 10 <= args.stop_at <= 500:
             parser.error('captured stops use 10..500 ms; pre-start cancellation is a host regression')
         timeout=args.executor_cycles*.8+30
+    if args.startup_mask or args.startup_immutable:
+        if not args.startup_mask or not args.executor_cycles or args.executor_cycles>20 or args.executor_stop or args.load:
+            parser.error('startup needs a mask, 1..20 executor cycles, --load 0 and no stop injection')
+        args.profile_shape='scaled'
+        command=f'startup {args.startup_mask} {int(args.startup_immutable)} {args.executor_cycles}'
     args.output.mkdir(parents=True, exist_ok=False)
     if args.executor_stop:
         from executor_capture import ExecutorEdges
@@ -150,10 +179,11 @@ def main():
         analyzer = UnequalEdges(args.executor_cycles, args.profile_rate, 'unequal')
     elif args.profile_cycles:
         from profile_capture import ProfileEdges
-        analyzer = ProfileEdges(args.profile_cycles,args.profile_rate,args.profile_shape)
+        analyzer = ProfileEdges(args.profile_cycles,args.profile_rate,args.profile_shape,args.startup_mask or 7)
     else:
         analyzer = Edges()
     configuration = dict(seconds=None if args.profile_cycles else args.seconds, load_setting=args.load,
+                         startup_mask=args.startup_mask, startup_immutable=args.startup_immutable,
                          executor_traffic=args.executor_traffic if args.executor_cycles else None,
                          executor_cycles=args.executor_cycles, profile_cycles=args.profile_cycles, profile_rate=args.profile_rate if args.profile_cycles else None,
                          profile_shape=args.profile_shape if args.profile_cycles else None,
@@ -211,8 +241,13 @@ def main():
     assert len(reports) == 2 and all(r['errors'] == 0 for r in reports), reports
     assert all(s['underruns']==0 and s['errors']==0 for s in before+after), (before,after)
     if args.executor_cycles:
+        cases=[r for r in evidence['firmware'] if r.get('test')=='case']
+        assert cases and all(r['rate']==args.executor_rate for r in cases), cases
         assert all(r['icc_state'] == 2 and r['icc_reason'] == 0 for r in reports), reports
         io = next(r for r in reports if r['core'] == 4)
+        screening = executor_screening(reports, args.load)
+        (args.output/'screening.json').write_text(json.dumps(screening, indent=2)+'\n')
+        assert screening['passed'], screening
         if args.load:
             # The fixed-work producer must actually execute its nominal 1 kHz
             # work budget, rather than obtain a pass by being starved itself.

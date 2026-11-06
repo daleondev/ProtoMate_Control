@@ -4,11 +4,16 @@ add_library(proto::ui::motion ALIAS proto_ui_motion)
 target_sources(proto_ui_motion INTERFACE
     Client.hpp
     Client.cpp
+    ClientPrograms.cpp
+    ClientHistory.cpp
+    Axis.hpp
+    AxisConversion.hpp
     AxisConversion.cpp
     ScaraKinematics.cpp
     RobotConfiguration.cpp
     Planner.cpp
     Robot.cpp
+    RobotExecution.cpp
 )
 
 target_link_libraries(proto_ui_motion INTERFACE runtime::runtime pneumo::coroutines)

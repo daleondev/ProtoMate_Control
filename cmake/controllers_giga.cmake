@@ -13,11 +13,15 @@ foreach(role io ui)
     if(GIGA_MOTION_BENCH)
         set(preset giga-${role}-motion-bench-${configuration})
     endif()
-    if(GIGA_M4_RAM_DEBUG AND role STREQUAL "io")
-        set(preset giga-io-ram-debug)
+    if(GIGA_MOTION_API_TEST)
+        set(preset giga-${role}-motion-api-${configuration})
+    endif()
+    set(core_options)
+    if(role STREQUAL "io")
+        list(APPEND core_options -DGIGA_M4_SDRAM_CODE=${GIGA_M4_SDRAM_CODE})
     endif()
     add_custom_target(${role}-controller
-        COMMAND ${CMAKE_COMMAND} --preset ${preset}
+        COMMAND ${CMAKE_COMMAND} --preset ${preset} ${core_options}
         COMMAND ${CMAKE_COMMAND} --build --preset ${preset}
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         COMMENT "Building ${role} controller (${CMAKE_BUILD_TYPE})"
@@ -40,8 +44,9 @@ if(GIGA_MOTION_BENCH)
     set(io_build giga-io-motion-bench-${configuration})
     set(ui_build giga-ui-motion-bench-${configuration})
 endif()
-if(GIGA_M4_RAM_DEBUG)
-    set(io_build giga-io-ram-debug)
+if(GIGA_MOTION_API_TEST)
+    set(io_build giga-io-motion-api-${configuration})
+    set(ui_build giga-ui-motion-api-${configuration})
 endif()
 file(GENERATE OUTPUT ${PROJECT_BINARY_DIR}/firmware-paths.json CONTENT
     "{\"io\":\"${PROJECT_SOURCE_DIR}/build/${io_build}\",\"ui\":\"${PROJECT_SOURCE_DIR}/build/${ui_build}\"}\n")

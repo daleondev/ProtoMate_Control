@@ -117,14 +117,14 @@
             "name": "giga-io-ram-debug",
             "inherits": "giga-io-debug",
             "cacheVariables": {
-                "GIGA_M4_RAM_DEBUG": true
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
             "name": "giga-ram-debug",
             "inherits": "giga-debug",
             "cacheVariables": {
-                "GIGA_M4_RAM_DEBUG": true
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
@@ -188,6 +188,48 @@
             "inherits": "giga-release",
             "cacheVariables": {
                 "GIGA_MOTION_BENCH": true
+            }
+        },
+        {
+            "name": "giga-io-motion-api-debug",
+            "inherits": "giga-io-debug",
+            "cacheVariables": {
+                "GIGA_MOTION_API_TEST": true
+            }
+        },
+        {
+            "name": "giga-ui-motion-api-debug",
+            "inherits": "giga-ui-debug",
+            "cacheVariables": {
+                "GIGA_MOTION_API_TEST": true
+            }
+        },
+        {
+            "name": "giga-motion-api-debug",
+            "inherits": "giga-debug",
+            "cacheVariables": {
+                "GIGA_MOTION_API_TEST": true
+            }
+        },
+        {
+            "name": "giga-io-motion-api-release",
+            "inherits": "giga-io-release",
+            "cacheVariables": {
+                "GIGA_MOTION_API_TEST": true
+            }
+        },
+        {
+            "name": "giga-ui-motion-api-release",
+            "inherits": "giga-ui-release",
+            "cacheVariables": {
+                "GIGA_MOTION_API_TEST": true
+            }
+        },
+        {
+            "name": "giga-motion-api-release",
+            "inherits": "giga-release",
+            "cacheVariables": {
+                "GIGA_MOTION_API_TEST": true
             }
         }
     ],
@@ -278,6 +320,30 @@
         {
             "name": "giga-motion-bench-release",
             "configurePreset": "giga-motion-bench-release"
+        },
+        {
+            "name": "giga-io-motion-api-debug",
+            "configurePreset": "giga-io-motion-api-debug"
+        },
+        {
+            "name": "giga-ui-motion-api-debug",
+            "configurePreset": "giga-ui-motion-api-debug"
+        },
+        {
+            "name": "giga-motion-api-debug",
+            "configurePreset": "giga-motion-api-debug"
+        },
+        {
+            "name": "giga-io-motion-api-release",
+            "configurePreset": "giga-io-motion-api-release"
+        },
+        {
+            "name": "giga-ui-motion-api-release",
+            "configurePreset": "giga-ui-motion-api-release"
+        },
+        {
+            "name": "giga-motion-api-release",
+            "configurePreset": "giga-motion-api-release"
         }
     ],
     "testPresets": [

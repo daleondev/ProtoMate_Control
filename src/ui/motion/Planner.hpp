@@ -66,6 +66,9 @@ namespace ui::motion
         [[nodiscard]] std::expected<PlanSummary, RobotError> compile(PathState start = {},
                                                                      double override = 1,
                                                                      bool stopping = false);
+        [[nodiscard]] std::expected<::motion::trajectory::FiniteProgram, RobotError>
+          finite(double acceleration = 1, double deceleration = 1, double jerk = 1,
+                 double* estimated_seconds = nullptr) const;
         [[nodiscard]] std::span<const ::motion::trajectory::Segment> segments() const noexcept;
         [[nodiscard]] PathState pathAt(double seconds) const noexcept;
         [[nodiscard]] const Move& command() const noexcept { return m_move; }
@@ -99,6 +102,7 @@ namespace ui::motion
         std::stop_token m_stop;
         Workspace* m_workspace;
         Move m_move;
+        ::motion::trajectory::Counts m_start{};
         JointPosition m_seed{};
         ScaraKinematics::ElbowBranch m_branch{};
         std::array<::motion::Polynomial, 3> m_cartesian{};

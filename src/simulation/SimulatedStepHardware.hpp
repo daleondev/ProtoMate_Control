@@ -21,6 +21,7 @@ namespace hal::util
         StepBuffers memory{};
         StepSample registers{};
         std::array<std::uint32_t, 3> entries{};
+        std::array<std::uint32_t, 3> prefetched{};
         std::array<bool, 3> active{}, high{}, hold_dma{}, pending_dma{};
         std::vector<Edge> edges;
         std::function<void()> interrupt;

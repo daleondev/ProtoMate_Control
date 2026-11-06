@@ -4,11 +4,16 @@ namespace io::motion
 {
     namespace
     {
+        std::uint64_t rollingBase(const ProfileSchedule::Nominal& n,std::uint64_t cut)
+        {
+            constexpr std::uint64_t chunk=300'000'000;
+            return n.first+(n.rolling && cut>=3*chunk ? ((cut-2*chunk)/chunk)*chunk : 0);
+        }
         auto invalid() { return std::unexpected(std::make_error_code(std::errc::invalid_argument)); }
         constexpr double FREQUENCY = 10'000'000.;
     }
-    ProfileSchedule::Nominal::Nominal(const ::motion::Profile& value, std::uint32_t half)
-      : profile(value), crossing(profile), half_pulses(half)
+    ProfileSchedule::Nominal::Nominal(const ::motion::Profile& value, std::uint32_t half, bool roll)
+      : profile(value), crossing(profile, 0, roll), half_pulses(half), rolling(roll)
     {
         if (!crossing.valid())
             return;
@@ -17,7 +22,7 @@ namespace io::motion
             return;
         ProfileCrossing::Cursor cursor;
         first = crossing.next(1, cursor);
-        end = std::uint32_t(std::ceil(profile.duration() * FREQUENCY));
+        end = std::uint64_t(std::ceil(profile.duration() * FREQUENCY));
         maximum = std::chrono::nanoseconds(
           std::uint64_t(std::ceil(profile.maximumStepInterval(1) * FREQUENCY) + 4) * 100);
         valid = first != 0;
@@ -32,13 +37,13 @@ namespace io::motion
         if (!m_source || !m_source->valid)
             return;
         m_count = m_source->count;
-        m_first = m_source->first;
+        m_first = rollingBase(*m_source,m_source->end);
         m_end = m_source->end;
         m_maximum = m_source->maximum;
         m_valid = true;
     }
     ProfileSchedule::ProfileSchedule(const ProfileSchedule& nominal,
-                                     std::uint32_t cut,
+                                     std::uint64_t cut,
                                      ::motion::Profile::Limits limits)
       : ProfileSchedule(nominal.m_source, cut, limits)
     {
@@ -46,8 +51,9 @@ namespace io::motion
             m_valid = false;
     }
     ProfileSchedule::ProfileSchedule(Source source,
-                                     std::uint32_t cut,
-                                     ::motion::Profile::Limits limits)
+                                     std::uint64_t cut,
+                                     ::motion::Profile::Limits limits,
+                                     const ::motion::Profile* shared_brake)
       : m_source(std::move(source)), m_cut(cut)
     {
         if (!m_source || !m_source->valid || cut >= m_source->end)
@@ -58,19 +64,9 @@ namespace io::motion
         // If the certified original trajectory is already braking all the way
         // to rest, retain that exact tail. Re-solving its final ramp can turn
         // a zero endpoint velocity into a tiny negative rounding residual.
-        double phaseStart{};
-        bool alreadyBraking = state.acceleration < 0;
-        const auto description = original.description();
-        for (unsigned i = 0; i < description.size; ++i) {
-            const auto& p = description.phases[i];
-            if (phaseStart + p.duration > cut / FREQUENCY &&
-                (p.acceleration > 1e-8 || p.acceleration + p.jerk * p.duration > 1e-8))
-                alreadyBraking = false;
-            phaseStart += p.duration;
-        }
-        if (alreadyBraking) {
+        if (original.brakingToRest(cut / FREQUENCY)) {
             m_count = nominal.count;
-            m_first = nominal.first;
+            m_first = rollingBase(nominal,cut);
             m_end = nominal.end;
             m_maximum = nominal.maximum;
             m_valid = true;
@@ -89,15 +85,17 @@ namespace io::motion
         if (rawFraction < -1e-9 || rawFraction > 1 + 1e-9)
             return;
         const double fraction = std::clamp(rawFraction, 0., 1.);
-        m_brake = ::motion::Profile::brake(state.velocity, state.acceleration, limits);
-        if (!m_brake || m_brake->duration() <= 0 || cut / FREQUENCY + m_brake->duration() > 10)
+        m_brake = shared_brake ? std::optional{*shared_brake}
+                              : ::motion::Profile::brake(state.velocity, state.acceleration, limits);
+        if (!m_brake || m_brake->duration() <= 0 ||
+            (!nominal.rolling && cut / FREQUENCY + m_brake->duration() > ::motion::operating::MAX_PROGRAM_SECONDS))
             return;
         m_braking.emplace(*m_brake, fraction);
         if (!m_braking->valid())
             return;
         m_count = m_prefix + unsigned(std::floor(m_brake->distance() + fraction));
-        m_first = nominal.first;
-        m_end = cut + std::uint32_t(std::ceil(m_brake->duration() * FREQUENCY));
+        m_first = rollingBase(nominal,cut);
+        m_end = cut + std::uint64_t(std::ceil(m_brake->duration() * FREQUENCY));
         m_maximum = nominal.maximum + std::chrono::nanoseconds(std::uint64_t(m_end - cut) * 100);
         m_valid = true;
     }
@@ -105,7 +103,7 @@ namespace io::motion
       const hal::step::Sequence& previous) const noexcept
     {
         const auto* other = dynamic_cast<const ProfileSchedule*>(&previous);
-        if (!other || !m_valid || !other->m_valid || !(m_source->profile == other->m_source->profile) || m_first != other->m_first)
+        if (!other || !m_valid || !other->m_valid || !(m_source->profile == other->m_source->profile))
             return {};
         return std::int64_t(
                  std::min(m_braking ? m_cut : m_end, other->m_braking ? other->m_cut : other->m_end)) -
@@ -121,7 +119,7 @@ namespace io::motion
     {
         return std::max(m_maximum, std::chrono::nanoseconds(40'000));
     }
-    std::uint32_t ProfileSchedule::absoluteTick(unsigned pulse,
+    std::uint64_t ProfileSchedule::absoluteTick(unsigned pulse,
                                                 ProfileCrossing::Cursor& nominal,
                                                 ProfileCrossing::Cursor& brake) const noexcept
     {
@@ -133,13 +131,13 @@ namespace io::motion
     {
         if (!m_valid || pulse >= m_count)
             return invalid();
-        if (!pulse && (!m_braking || m_prefix))
+        if (!timeBase() && !pulse && (!m_braking || m_prefix))
             return 0;
         ProfileCrossing::Cursor a, b;
         const auto tick = absoluteTick(unsigned(pulse), a, b);
-        if (tick < m_first)
+        if (tick < m_first || tick-m_first>=0x3FFFFFFFULL)
             return invalid();
-        return tick - m_first;
+        return std::uint32_t(tick - m_first);
     }
     hal::util::Result<hal::step::Timing> ProfileSchedule::timing(hal::step::PulseCount pulse) const noexcept
     {

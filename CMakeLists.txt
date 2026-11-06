@@ -4,7 +4,14 @@ cmake_minimum_required(VERSION 3.22)
 option(GIGA_BUILD_BOTH "Build both GIGA controller applications" OFF)
 option(GIGA_MOTION_BENCH "Build the isolated dual-core motion architecture benchmark" OFF)
 option(GIGA_STEP_BENCH "Build the isolated dual-core STEP hardware bench" OFF)
-if(GIGA_MOTION_BENCH AND (GIGA_STEP_BENCH OR GIGA_M4_RAM_DEBUG))
+# Preserve existing build-directory settings while migrating the option name.
+if(DEFINED GIGA_M4_RAM_DEBUG AND NOT DEFINED GIGA_M4_SDRAM_CODE)
+    set(GIGA_M4_SDRAM_CODE "${GIGA_M4_RAM_DEBUG}" CACHE BOOL
+        "Copy ordinary M4 application code from QSPI into its reserved SDRAM region")
+endif()
+option(GIGA_M4_SDRAM_CODE
+    "Copy ordinary M4 application code from QSPI into its reserved SDRAM region" OFF)
+if(GIGA_MOTION_BENCH AND (GIGA_STEP_BENCH OR GIGA_M4_SDRAM_CODE))
     message(FATAL_ERROR "Motion benchmark requires its own paired preset")
 endif()
 if(GIGA_BUILD_BOTH)

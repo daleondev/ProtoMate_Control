@@ -86,10 +86,10 @@ class ManifestTests(unittest.TestCase):
         # SRAM2's lower half belongs to instruction RAM. Its 0x3002xxxx
         # alias must not also accept a data segment and overwrite loaded code.
         for address, size, expected in [
-                (0x10020000, 64, True), (0x1002FFC0, 64, True),
-                (0x1002FFC0, 65, False), (0x10030000, 64, False),
+                (0x10020000, 64, True), (0x100307C0, 64, True),
+                (0x100307C0, 65, False), (0x10030800, 64, False),
                 (0x30020000, 64, False), (0x3002FFC0, 64, False),
-                (0x30030000, 64, True), (0x30045FC0, 64, True),
+                (0x30030000, 64, False), (0x300307FF, 1, False), (0x30030800, 64, True), (0x30045FC0, 64, True),
                 (0x30045FC0, 65, False), (0x30046000, 64, False)]:
             words = manifest()
             words[18] = 2

@@ -1,4 +1,5 @@
 #pragma once
+#include <source_location>
 
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
@@ -37,6 +38,8 @@ namespace hal::util
         auto status() noexcept -> step::Status override;
         auto setProgressCallback(ProgressCallback callback) -> util::Result<> override;
         util::Result<Timeline> timeline() noexcept override;
+        util::Result<> setRefillNotification(RefillNotification callback) override;
+        void preparePending() noexcept override;
         util::Result<> splice(const std::array<std::shared_ptr<const step::TimedSequence>, 3>& sequences,
                               std::uint32_t preserve_until) override;
         // Called by DMA/TIM7 IRQs and API operations; Linux uses virtual IRQs.
@@ -63,7 +66,9 @@ namespace hal::util
 
       private:
         struct SpliceWorkspace;
+        struct RefillWorkspace;
         std::unique_ptr<SpliceWorkspace> m_splice;
+        std::unique_ptr<RefillWorkspace> m_refill;
         std::atomic_flag m_splicing{};
         struct Timing
         {
@@ -87,6 +92,8 @@ namespace hal::util
             std::uint8_t target{};
             bool terminal{};
             bool finished{ true };
+            bool refill_pending{};
+            std::uint32_t refill_tick{}, refill_budget{};
         };
         struct Observed
         {
@@ -98,14 +105,12 @@ namespace hal::util
           const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays) noexcept -> util::Result<>;
         auto armPrepared(const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays,
                          const StepSample& origin) noexcept -> util::Result<>;
-        auto prepareAxisBuffers(std::size_t index, std::chrono::nanoseconds delay) noexcept -> util::Result<>;
-        auto rebaseAxisBuffers(std::size_t index, const StepSample& origin) noexcept -> void;
         auto fill(std::size_t index, unsigned buffer) noexcept -> bool;
         auto observe(std::size_t index, const StepSample& sample) const noexcept -> Observed;
         auto updateCounts(const StepSample& sample) noexcept -> void;
         auto deadline(std::uint32_t now) const noexcept -> std::uint32_t;
         auto guard(std::uint32_t now) noexcept -> void;
-        auto finish(step::State reason, bool send_notification) noexcept -> void;
+        auto finish(step::State reason, bool send_notification, unsigned site = std::source_location::current().line()) noexcept -> void;
         auto notify() noexcept -> void;
         auto axisStatus(std::size_t index) const noexcept -> step::AxisStatus;
         static auto convertTiming(step::Timing timing) noexcept -> util::Result<Timing>;
@@ -117,6 +122,8 @@ namespace hal::util
         step::Status m_status;
         step::Status m_notified;
         ProgressCallback m_callback;
+        RefillNotification m_refillNotification;
+        std::atomic_flag m_preparing{};
         struct CompletionListener
         {
             const void* owner{};

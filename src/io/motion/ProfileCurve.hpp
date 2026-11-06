@@ -36,7 +36,18 @@ namespace io::motion::profile_util
         {
         }
         double time(double position) const noexcept { return m_profile.timeAt(position); }
-        bool crossed(std::uint32_t ticks, double target) const noexcept
+        std::optional<std::uint64_t> cruiseCrossing(double target) const noexcept
+        {
+            for(unsigned i=0;i<m_phases.size;++i){
+                if(i+1<m_phases.size && target>m_phases.phases[i+1].position)continue;
+                const auto& p=m_phases.phases[i];
+                if(p.acceleration==0 && p.jerk==0 && p.velocity>0)
+                    return std::uint64_t(std::ceil(m_starts[i]*TICKS_PER_SECOND+(target-p.position)*m_ticksPerStep[i]));
+                break;
+            }
+            return {};
+        }
+        bool crossed(std::uint64_t ticks, double target) const noexcept
         {
             // At a zero-velocity endpoint, rounded position evaluation can
             // equal the terminal value several ticks too early. The analytic
@@ -54,7 +65,7 @@ namespace io::motion::profile_util
             }
             return position(ticks) >= target;
         }
-        double position(std::uint32_t ticks) const noexcept
+        double position(std::uint64_t ticks) const noexcept
         {
             // Use the timer's exact integer divisor. Multiplying by the rounded
             // reciprocal can move an exact phase boundary one ULP to its left.

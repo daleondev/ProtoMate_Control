@@ -32,6 +32,23 @@ namespace
     };
 }
 
+TEST(RobotConfiguration, AxisConversionDoesNotRequireRobotGeometry)
+{
+    const auto h = hardware();
+    auto config = ui::motion::simulationConfiguration(h);
+    const ui::motion::RobotModel complete{ config, h };
+    config.geometry.first_arm_length = 0_mm;
+    config.geometry.second_arm_length = 0_mm;
+    config.feed = 0_mm_s;
+    config.workspace_minimum = {};
+    config.workspace_maximum = {};
+    const ui::motion::RobotModel axes{ config, h, ui::motion::RobotModel::Scope::Axes };
+    EXPECT_EQ(axes.toMotors({ 10_deg, 80_deg, 20_mm }),
+              complete.toMotors({ 10_deg, 80_deg, 20_mm }));
+    EXPECT_THROW((ui::motion::RobotModel{ config, h }), std::invalid_argument);
+    EXPECT_THROW(static_cast<void>(axes.kinematics()), std::bad_optional_access);
+}
+
 TEST(RobotPolynomial, HermitePreservesSixBoundaryConditions)
 {
     const motion::KinematicState a{ 12, 3, -2 }, b{ -8, -4, 5 };
@@ -139,6 +156,46 @@ TEST(RobotWire, ReplyAndExplicitSerializationAdapterRoundTrip)
     EXPECT_EQ(decoded->position, reply.position);
     EXPECT_DOUBLE_EQ(decoded->boundary[0].velocity, 3);
     EXPECT_EQ(decoded->capabilities.hardware_fingerprint, tr::fingerprint(decoded->capabilities));
+}
+
+TEST(RobotWire, LeaseAcknowledgementIsCompactVersionedAndChecksummed)
+{
+    tr::Reply value{.boot=123,.generation=456};value.acknowledgement=true;
+    auto packet=tr::encode(value);
+    EXPECT_LE(packet.size,32);
+    auto decoded=tr::decodeReply(packet);
+    ASSERT_TRUE(decoded);
+    EXPECT_TRUE(decoded->acknowledgement);
+    EXPECT_EQ(decoded->boot,123);EXPECT_EQ(decoded->generation,456);
+    packet.bytes[5]^=std::byte{1};
+    EXPECT_EQ(tr::decodeReply(packet).error(),tr::Error::Checksum);
+}
+
+TEST(RobotPlanner, RoundedSmallMovePreservesConfiguredDynamics)
+{
+    Fixture f;
+    tr::Positions target{1200.6,1200,1200};
+    const auto destination=f.model.toJoints(target);
+    ASSERT_EQ(f.planner.prepare({.joints=destination},f.origin),tr::Error::None);
+    const auto finite=f.planner.finite();
+    ASSERT_TRUE(finite)<<tr::name(finite.error());
+    EXPECT_EQ(finite->displacement[0],1);
+    const auto limits=f.model.motorLimits()[0];
+    EXPECT_LE(finite->progress_limits.velocity,limits.velocity);
+    EXPECT_LE(finite->progress_limits.acceleration,limits.acceleration);
+    EXPECT_LE(finite->progress_limits.deceleration,limits.deceleration);
+    EXPECT_LE(finite->progress_limits.jerk,limits.jerk);
+}
+
+TEST(RobotPlanner, LongFiniteRejectionReportsEstimatedDuration)
+{
+    Fixture f;
+    ASSERT_EQ(f.planner.prepare({.joints={10_deg,80_deg,40_mm},.speed=.0001},f.origin),tr::Error::None);
+    double seconds{};
+    const auto finite=f.planner.finite(1,1,1,&seconds);
+    ASSERT_FALSE(finite);
+    EXPECT_EQ(finite.error(),tr::Error::Timing);
+    EXPECT_GT(seconds,90);
 }
 TEST(RobotTrajectory, LimitsIncludeInteriorExtremaAndAllFiniteFields)
 {
@@ -276,7 +333,7 @@ TEST(RobotPlanner, RejectsUnsafeInteriorEvenWhenEndpointsAreReachable)
     const auto error = f.planner.prepare({ .kind = ui::motion::MoveKind::Linear, .target = pose }, f.origin);
     EXPECT_NE(error, tr::Error::None);
 }
-TEST(RobotPlanner, RejectsResolutionBelowToleranceAndInvalidOverride)
+TEST(RobotPlanner, ApproximationToleranceIsIndependentOfStepQuantization)
 {
     auto c = ui::motion::simulationConfiguration(hardware());
     c.path_tolerance = 0.001_mm;
@@ -284,7 +341,11 @@ TEST(RobotPlanner, RejectsResolutionBelowToleranceAndInvalidOverride)
     auto arena = std::make_unique<ui::motion::Planner::Workspace>();
     ui::motion::Planner planner{ model, *arena };
     EXPECT_EQ(planner.prepare({ .joints = { 10_deg, 80_deg, 40_mm } }, { 1200, 1200, 1200 }),
-              tr::Error::PathTolerance);
+              tr::Error::None);
+    const auto plan = planner.compile();
+    ASSERT_TRUE(plan) << tr::name(plan.error());
+    EXPECT_GT(plan->quantization_bound, plan->path_error_bound);
+    EXPECT_DOUBLE_EQ(plan->path_error_bound, c.path_tolerance.get());
     Fixture f;
     ASSERT_EQ(f.planner.prepare({ .joints = { 10_deg, 80_deg, 40_mm } }, f.origin), tr::Error::None);
     EXPECT_FALSE(f.planner.compile({}, 1.1));

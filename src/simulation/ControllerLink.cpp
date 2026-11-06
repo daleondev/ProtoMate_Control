@@ -5,6 +5,7 @@
 #include "runtime/thread.hpp"
 #include "simulation/Client.hpp"
 #include "ui/cli/Parser.hpp"
+#include "ui/motion/RobotConfiguration.hpp"
 #include <cmath>
 #include <map>
 #include <ostream>
@@ -35,9 +36,46 @@ namespace simulation
             bridge.registerServices<Catalog>(Provider::Controller);
             bridge.start();
             active_bus = &bus;
+            ui::motion::setSimulationConfigurationProvider([](const auto& hardware)
+              -> std::optional<ui::motion::RobotConfiguration> {
+                if (!active_bus) return {};
+                auto call=active_bus->service<^^Catalog::control>().request(
+                  Packet{.operation=Operation::Configuration},std::chrono::seconds(3));
+                auto response=call.get();
+                if (!response || response->status || response->size!=160) return {};
+                std::array<double,20> v{};
+                for (unsigned i=0;i<v.size();++i) v[i]=std::bit_cast<double>(get(response->data,i*8,8));
+                using namespace pnm::units;
+                using namespace pnm::units::literals;
+                auto c=ui::motion::simulationConfiguration(hardware,true);
+                for (unsigned i=0;i<2;++i) {
+                    c.rotary[i].motor_revolutions_per_axis_revolution=v[i];
+                    c.rotary[i].direction=static_cast<ui::motion::AxisDirection>(unsigned(v[10+i]));
+                    c.rotary[i].axis_reference=Angle::create(v[17+i]);
+                    c.rotary_dynamics[i]={20_deg/1_s,100_deg_s2,100_deg_s2,1000_deg_s3};
+                }
+                c.linear.travel_per_output_revolution=v[3]*1_mm;
+                c.linear.motor_revolutions_per_output_revolution=v[2];
+                c.linear.direction=static_cast<ui::motion::AxisDirection>(unsigned(v[12]));
+                c.linear.axis_reference=Distance::create(v[19]);
+                c.linear_dynamics={4_mm_s,20_mm_s2,20_mm_s2,200_mm_s3};
+                c.geometry.first_arm_length=v[13]*1_mm;
+                c.geometry.second_arm_length=v[14]*1_mm;
+                c.geometry.tool_offset={v[15]*1_mm,0_mm,v[16]*1_mm};
+                c.geometry.limits=ui::motion::ScaraKinematics::JointLimits{
+                  {-105_deg,-150_deg,0_mm},
+                  {Angle::create(v[17]),Angle::create(v[18]),Distance::create(v[19])}};
+                c.workspace_minimum={-600_mm,-600_mm,v[16]*1_mm};
+                c.workspace_maximum={600_mm,600_mm,v[16]*1_mm+Distance::create(v[19])};
+                c.path_tolerance=.1_mm;
+                for (unsigned i=0;i<3;++i)
+                    c.homing[i]={true,true,i==2?180_rpm:60_rpm,5_rpm,90_s};
+                return c;
+              });
         }
         ~Impl()
         {
+            ui::motion::setSimulationConfigurationProvider({});
             active_bus = nullptr;
             bridge.stop(std::chrono::milliseconds{ 100 });
         }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Polynomial.hpp"
+#include "Profile.hpp"
+#include "Motor.hpp"
 #include <array>
 #include <cstdint>
 #include <expected>
@@ -10,10 +12,10 @@
 
 namespace motion::trajectory
 {
-    inline constexpr std::uint16_t VERSION{ 1 };
+    inline constexpr std::uint16_t VERSION{ 2 };
     inline constexpr std::uint32_t TICK_NS{ 100 };
     inline constexpr std::uint64_t CHECKPOINT_TICKS{ 200'000 }; // 20 ms
-    inline constexpr std::uint64_t COMMIT_HORIZON_TICKS{ 100'000 };
+    inline constexpr std::uint64_t COMMIT_HORIZON_TICKS{ 400'000 };
     inline constexpr std::uint64_t LOOKAHEAD_TICKS{ 5'000'000 };
     inline constexpr std::uint64_t LEASE_TICKS{ 2'500'000 };
     inline constexpr std::size_t UPLOAD_SEGMENTS{ 4 };
@@ -86,7 +88,8 @@ namespace motion::trajectory
         Renew,
         Initialize,
         Enable,
-        Home
+        Home,
+        Prepare
     };
     enum class Branch : std::uint8_t
     {
@@ -125,6 +128,33 @@ namespace motion::trajectory
         std::uint16_t capacity{ IO_SEGMENTS };
         bool coordinated_execution{};
     };
+    // One normalized, rest-to-rest progress law. Motor displacements are
+    // quantized once on UI; IO validates them against the reservation snapshot.
+    enum class ProgramKind : std::uint8_t { Finite, Home, Jog };
+    struct HomeStage { double seek_rpm{}, latch_rpm{}, timeout{}; };
+    struct FiniteProgram
+    {
+        Profile::Description progress{};
+        Profile::Limits progress_limits{};
+        Counts displacement{};
+        std::array<Limits, 3> limits{};
+        double timeout{};
+        ProgramKind kind{};
+        std::array<HomeStage, 3> home{};
+        std::array<std::uint8_t, 3> home_order{0,1,2};
+    };
+    struct Run
+    {
+        std::uint64_t boot{}, session{}, job{};
+    };
+    struct Update
+    {
+        std::uint64_t job{};
+        JobState state{};
+        Error error{};
+        Counts position{};
+        bool counts_exact{true};
+    };
     struct Request
     {
         Operation operation{ Operation::Inspect };
@@ -136,6 +166,13 @@ namespace motion::trajectory
         Branch branch{ Branch::Continuation };
         bool final{};
         std::array<Segment, UPLOAD_SEGMENTS> segments{};
+        Family family{};
+        std::uint8_t axes{};
+        std::uint64_t job{};
+        std::array<std::uint64_t, 3> axis_revisions{};
+        // Renew batches include all active jobs, including raw buffered jobs.
+        std::array<std::uint64_t, 8> renew_jobs{};
+        FiniteProgram program{}; // Encoded only for Prepare.
     };
     struct Reply
     {
@@ -150,6 +187,10 @@ namespace motion::trajectory
         Counts position{};
         MotorStates boundary{};
         double path{};
+        Family family{};
+        std::array<std::uint64_t, 3> owners{}, axis_revisions{};
+        // Lease acknowledgements do not repeat the full mechanical snapshot.
+        bool acknowledgement{};
     };
 
     // One explicit, versioned little-endian codec for all inter-core trajectory

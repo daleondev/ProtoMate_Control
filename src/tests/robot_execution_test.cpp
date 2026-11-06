@@ -261,3 +261,60 @@ TEST_F(RobotSession, BoundsCheckpointAndRejectsOldBootOrGeneration)
     r.generation = 2;
     EXPECT_EQ(session.request(r).error, tr::Error::Stale);
 }
+
+#include "io/motion/Ownership.hpp"
+TEST(MotionOwnership, FamiliesExcludeBeforePlanningAndBufferedRawJobsRetainOwnership)
+{
+    io::motion::Ownership ownership;
+    const auto now = io::motion::Ownership::Clock::now();
+    using F = motion::Family;
+    using E = motion::trajectory::Error;
+    EXPECT_EQ(ownership.acquire(1,F::Motor,1,1,now).error, E::None);
+    EXPECT_EQ(ownership.acquire(2,F::Motor,1,1,now).error, E::None);
+    EXPECT_EQ(ownership.acquire(3,F::Motor,2,1,now).error, E::None);
+    EXPECT_EQ(ownership.acquire(4,F::Axis,4,1,now).error, E::Busy);
+    EXPECT_EQ(ownership.acquire(4,F::Robot,7,1,now).error, E::Busy);
+    ownership.release(1);
+    EXPECT_EQ(ownership.owners()[0], 2U);
+    ownership.release(2); ownership.release(3);
+    EXPECT_EQ(ownership.acquire(4,F::Axis,1,1,now).error, E::None);
+    EXPECT_EQ(ownership.acquire(5,F::Axis,2,1,now).error, E::None);
+    EXPECT_EQ(ownership.acquire(6,F::Axis,4,1,now).error, E::None);
+    const auto busy = ownership.acquire(7,F::Axis,2,1,now);
+    EXPECT_EQ(busy.error, E::Busy); EXPECT_EQ(busy.busy_job, 5U);
+}
+TEST(MotionOwnership, ExpiredLeaseCannotBeRevivedAndStoppingKeepsItsReservation)
+{
+    io::motion::Ownership ownership;
+    const auto now = io::motion::Ownership::Clock::now();
+    ASSERT_EQ(ownership.acquire(1,motion::Family::Robot,7,1,now).error, motion::trajectory::Error::None);
+    EXPECT_FALSE(ownership.renew(1, now + std::chrono::milliseconds(250)));
+    ownership.find(1)->state = motion::JobState::Stopping;
+    EXPECT_FALSE(ownership.renew(1, now + std::chrono::milliseconds(100)));
+    EXPECT_EQ(ownership.acquire(2,motion::Family::Axis,1,1,now).error, motion::trajectory::Error::Busy);
+    const auto revisions = ownership.revisions();
+    ownership.release(1);
+    for (unsigned i=0;i<3;++i) EXPECT_EQ(ownership.revisions()[i], revisions[i]+1);
+    EXPECT_EQ(ownership.acquire(2,motion::Family::Axis,1,1,now).error, motion::trajectory::Error::None);
+}
+TEST(TrajectoryProtocol, CompactProgramRoundTripsInsideExistingPacket)
+{
+    namespace t = motion::trajectory;
+    t::Request request;
+    request.operation = t::Operation::Prepare;
+    request.family = motion::Family::Robot; request.axes=7;
+    request.job=42; request.boot=7; request.session=9;
+    request.axis_revisions={8,9,10}; request.expected_position={12,13,14};
+    request.program.displacement={4000,-2000,0};
+    request.program.progress_limits={1,10,10,100};
+    request.program.progress=motion::Profile::create(1,request.program.progress_limits)->description();
+    const auto encoded=t::encode(request);
+    ASSERT_LT(encoded.size,t::Packet::CAPACITY);
+    const auto decoded=t::decodeRequest(encoded);
+    ASSERT_TRUE(decoded);
+    EXPECT_EQ(decoded->program.displacement,request.program.displacement);
+    EXPECT_EQ(decoded->axis_revisions,request.axis_revisions);
+    EXPECT_EQ(decoded->program.progress.size,request.program.progress.size);
+    EXPECT_EQ(decoded->program.progress.distance,1.);
+    EXPECT_EQ(decoded->job,42U);
+}

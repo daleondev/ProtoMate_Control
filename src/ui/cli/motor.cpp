@@ -86,6 +86,10 @@ namespace ui::cli::motor
             switch (state) {
                 case Submitting:
                     return "submitting";
+                case Planning: return "planning";
+                case Preparing: return "preparing";
+                case Running: return "running";
+                case Stopping: return "stopping";
                 case Accepted:
                     return "accepted (running or queued)";
                 case Completed:

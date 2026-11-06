@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Planner.hpp"
+#include "Client.hpp"
 #include "runtime/synchronization/Notification.hpp"
 #include <memory>
 #include <mutex>
@@ -9,6 +10,7 @@
 
 namespace ui::motion
 {
+    template<class Position> class Axis;
     // Application-owned planning entry point. CLI submission never performs
     // kinematics or curve subdivision on the input/ICC threads.
     class Robot final
@@ -47,6 +49,38 @@ namespace ui::motion
             CartesianPosition tcp{};
         };
         explicit Robot(pnm::msg::Bus& bus);
+        Robot(pnm::msg::Bus& bus, Client& client);
+        struct Dynamics
+        {
+            double speed{.25}, acceleration{1}, deceleration{1}, jerk{1};
+        };
+        struct ExecutionRequest
+        {
+            enum class Kind : std::uint8_t { Finite, Home, Jog };
+            ::motion::Family family{::motion::Family::Robot};
+            Kind kind{};
+            std::uint8_t axes{7};
+            Move move;
+            bool relative{};
+            Dynamics dynamics;
+            // Axis values are SI joint units (rad/m, rad/s or m/s, etc.).
+            double distance{}, speed{}, acceleration{}, deceleration{}, jerk{}, timeout{};
+            double duration{1};
+            bool continuous{};
+        };
+        std::uint64_t submit(ExecutionRequest request);
+        RobotModel model(std::stop_token stop = {}, RobotModel::Scope scope = RobotModel::Scope::Robot);
+        Axis<pnm::units::Angle> shoulder();
+        Axis<pnm::units::Angle> elbow();
+        Axis<pnm::units::Distance> z();
+        std::uint64_t moveRel(JointPosition distance, Dynamics dynamics, pnm::units::Time timeout = {});
+        std::uint64_t moveAbs(JointPosition position, Dynamics dynamics, pnm::units::Time timeout = {});
+        std::uint64_t moveRel(CartesianPosition distance, Dynamics dynamics, pnm::units::Time timeout = {});
+        std::uint64_t moveAbs(CartesianPosition position, Dynamics dynamics, pnm::units::Time timeout = {});
+        std::uint64_t home();
+        void stop();
+        void stopAxis(unsigned joint);
+
         ~Robot();
         Robot(const Robot&) = delete;
         Robot& operator=(const Robot&) = delete;
@@ -67,6 +101,8 @@ namespace ui::motion
         {
             Planner::Workspace workspace;
             std::array<Slot, ::motion::trajectory::COMMANDS> slots;
+            struct Pending { ExecutionRequest request; std::uint64_t id{}; };
+            std::array<Pending, 8> pending{};
         };
         static_assert(std::is_trivially_copyable_v<Arena>);
         static_assert(sizeof(Arena) <= 256 * 1024);
@@ -76,9 +112,13 @@ namespace ui::motion
         };
         static std::unique_ptr<Arena, ReleaseArena> reserveArena();
         Job calculate(PreviewRequest request, std::uint64_t id, std::stop_token stop);
+        void execute(ExecutionRequest request, std::uint64_t id, std::stop_token stop);
+        bool executePending(std::stop_token stop);
+        Client* m_client{};
         pnm::msg::Service<::motion::trajectory::Packet, ::motion::trajectory::Packet> m_service;
         std::unique_ptr<Arena, ReleaseArena> m_arena;
         mutable std::mutex m_mutex;
+        std::array<std::uint8_t,3> m_motorForJoint{0,1,2};
         runtime::Notification m_changed;
         std::uint64_t m_next{ 1 };
         // Cancellation state stays in internal RAM, outside the POD SDRAM arena.

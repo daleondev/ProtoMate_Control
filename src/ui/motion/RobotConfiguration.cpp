@@ -29,6 +29,16 @@ namespace ui::motion
     }
 
     std::optional<RobotConfiguration> boardRobotConfiguration() { return std::nullopt; }
+    namespace { ConfigurationProvider simulationProvider; }
+    void setSimulationConfigurationProvider(ConfigurationProvider provider)
+    {
+        simulationProvider = std::move(provider);
+    }
+    std::optional<RobotConfiguration> executionConfiguration(const tr::Capabilities& hardware)
+    {
+        if (simulationProvider) return simulationProvider(hardware);
+        return boardRobotConfiguration();
+    }
 
     RobotConfiguration simulationConfiguration(const tr::Capabilities& hardware, bool archived)
     {
@@ -60,26 +70,28 @@ namespace ui::motion
         c.joint_blend_tolerance = { 1_deg, 1_deg, 1_mm };
         c.homing_order = { 2, 0, 1 };
         for (auto& h : c.homing) {
-            h = { true, true, 5_rpm, 0.5_rpm, 5_deg, 720_deg, 30_s };
+            h = { true, true, 5_rpm, 0.5_rpm, 30_s };
         }
         return c;
     }
 
-    RobotModel::RobotModel(RobotConfiguration c, tr::Capabilities h)
+    RobotModel::RobotModel(RobotConfiguration c, tr::Capabilities h, Scope scope)
       : m_configuration{ c }
       , m_hardware{ h }
       , m_rotary{ RotaryAxisConversion(c.rotary[0]), RotaryAxisConversion(c.rotary[1]) }
       , m_linear{ c.linear }
-      , m_kinematics{ c.geometry }
     {
         require(h.version == tr::VERSION && h.tick_ns == tr::TICK_NS && c.expected_hardware != 0 &&
                 c.expected_hardware == h.hardware_fingerprint &&
                 h.hardware_fingerprint == tr::fingerprint(h));
         require(permutation(c.motor_for_joint) && permutation(c.homing_order) &&
                 c.geometry.limits.has_value());
+        if(scope==Scope::Robot) {
+        m_kinematics.emplace(c.geometry);
         require(positive(c.feed.get()) && positive(c.path_tolerance.get()) &&
                 positive(c.blend_tolerance.get()));
         require(c.work.yaw.isFinite());
+        }
         require(h.capacity >= 2 && h.capacity <= tr::IO_SEGMENTS && h.high_ticks > 0 &&
                 h.minimum_period_ticks > h.high_ticks && h.direction_setup_ticks > 0 &&
                 h.direction_hold_ticks > 0);
@@ -88,6 +100,7 @@ namespace ui::motion
                     l.minimum >= -tr::MAX_POSITION && l.maximum <= tr::MAX_POSITION && positive(l.velocity) &&
                     positive(l.acceleration) && positive(l.deceleration) && positive(l.jerk));
         }
+        if(scope==Scope::Robot) {
         for (double v : joints(c.joint_blend_tolerance)) {
             require(positive(v));
         }
@@ -97,6 +110,9 @@ namespace ui::motion
         auto low{ coordinates(c.workspace_minimum) }, high{ coordinates(c.workspace_maximum) };
         for (unsigned i{ 0 }; i < 3; ++i) {
             require(std::isfinite(low[i]) && std::isfinite(high[i]) && low[i] < high[i]);
+        }
+        }
+        for(unsigned i=0;i<3;++i) {
             require(positive(h.step_radians[i]) && std::isfinite(h.reference_steps[i]));
         }
         for (unsigned j{ 0 }; j < 3; ++j) {
@@ -113,8 +129,7 @@ namespace ui::motion
             const auto& home{ c.homing[j] };
             if (home.configured) {
                 require(positive(home.seek.get()) && positive(home.latch.get()) && home.latch < home.seek &&
-                        positive(home.backoff.get()) && positive(home.maximum_travel.get()) &&
-                        home.maximum_travel > home.backoff && positive(home.timeout.get()));
+                        positive(home.timeout.get()));
             }
         }
         for (const auto& l : jointLimits()) {
@@ -287,8 +302,6 @@ namespace ui::motion
             add(home.positive);
             add(home.seek.get());
             add(home.latch.get());
-            add(home.backoff.get());
-            add(home.maximum_travel.get());
             add(home.timeout.get());
         }
         for (const auto& l : jointLimits()) {

@@ -835,3 +835,23 @@ TEST(CliParser, RejectsMalformedCommandPathsAndReservedHelpPaths)
 }
 
 // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+
+TEST(CliParser, DynamicRegistrationOwnsMetadataAfterCallerDestruction)
+{
+    ui::cli::Parser parser;
+    {
+        ui::cli::Command command{.name="dynamic command", .description=std::string(100,'x'),
+          .arguments={{"argument", "temporary argument description"}},
+          .flags={{"option", {}, "temporary flag description", "value"}},
+          .callback=[](const ui::cli::Arguments& args,std::ostream& output)->ui::cli::CallbackResult {
+              output<<args.require("argument")<<args.flagValue("option").value_or("");return 0;
+          }};
+        ASSERT_TRUE(parser.registerCommand(std::move(command)));
+    }
+    for(int i=0;i<40;++i) ASSERT_TRUE(parser.registerCommand({.name="extra"+std::to_string(i),
+      .description="",.arguments={},.flags={},.callback=[](const auto&,std::ostream&)->ui::cli::CallbackResult{return 0;}}));
+    std::ostringstream output;
+    ASSERT_TRUE(parser.execute("dynamic command a --option b",output));
+    EXPECT_EQ(output.str(),"ab");
+    EXPECT_NE(parser.help("dynamic command").find("temporary flag description"),std::string::npos);
+}

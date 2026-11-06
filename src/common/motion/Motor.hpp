@@ -7,6 +7,13 @@
 
 namespace motion
 {
+    enum class Family : std::uint8_t { None, Motor, Axis, Robot };
+    enum class JobState : std::uint8_t
+    {
+        Submitting, Planning, Preparing, Running, Stopping,
+        Completed, Stopped, Rejected, Faulted, Unknown
+    };
+    constexpr bool terminal(JobState state) noexcept { return state >= JobState::Completed; }
     // ICC values describe motor shafts only: degrees, rpm, degrees/s^2,
     // degrees/s^3 and seconds. No HAL types or mechanical conversions cross ICC.
     enum class MotorId : std::uint8_t
@@ -55,7 +62,7 @@ namespace motion
         Index
     };
 
-    inline constexpr std::chrono::milliseconds MOTOR_STATE_PERIOD{ 20 };
+    inline constexpr std::chrono::milliseconds MOTOR_STATE_PERIOD{ 50 };
     inline constexpr std::chrono::milliseconds MOTOR_STATE_MAX_AGE{ 500 };
 
     struct MotorState
@@ -86,6 +93,9 @@ namespace motion
         // the cores' steady clocks need not share an epoch.
         std::uint64_t sampled_at_us{};
         std::array<MotorState, 3> motors{};
+        Family family{};
+        std::array<std::uint64_t, 3> owners{}, revisions{};
+        std::uint64_t configuration{}, boot{};
     };
 
     struct MotorDefaults
@@ -111,6 +121,7 @@ namespace motion
         MotorBuffer buffer{ MotorBuffer::Aborting };
         // A stop/recovery invalidates submissions made from an earlier snapshot.
         std::uint64_t commandGeneration{};
+        std::uint64_t job{};
     };
 
     struct MotorProgress
@@ -123,5 +134,6 @@ namespace motion
     {
         MotorOutcome outcome{ MotorOutcome::Rejected };
         MotorProgress final_state;
+        std::uint64_t busy_job{};
     };
 }

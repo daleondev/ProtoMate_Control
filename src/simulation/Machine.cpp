@@ -343,7 +343,10 @@ namespace simulation
                         const auto lead = hal::util::step_distance(m_step.registers.tick, cut);
                         if (q.arguments[5] > UINT32_MAX || lead < 20'000 || lead >= hal::util::STEP_HORIZON)
                             r.status = EINVAL;
-                        for (unsigned i = 0; i < m_step.entries[axis]; ++i) {
+                        // A parked, LOW channel may rebase its pulse buffers
+                        // before a future Arm. Active DMA still protects every
+                        // already committed entry, including its prefetched word.
+                        for (unsigned i = 0; m_step.active[axis] && i < m_step.entries[axis]; ++i) {
                             const auto previous = m_step.memory[axis][bank][i];
                             const auto replacement = std::uint32_t(get(bytes, i * 4, 4));
                             if (previous != replacement && (!future(previous) || !future(replacement)))
@@ -500,6 +503,32 @@ namespace simulation
                     if (!m_power)
                         m_pending_step = {};
                     break;
+                case Operation::Configuration: {
+                    // Calibration of the simulated geometry, independent of the
+                    // controller's commanded/reference positions.
+                    std::array<double,20> values{};
+                    for (unsigned i=0;i<3;++i) {
+                        values[i]=m_profile.ratio[i];
+                        values[4+i]=m_profile.axis_reference[i];
+                        values[7+i]=m_profile.shaft_reference[i];
+                        values[10+i]=double(m_profile.direction[i]);
+                        values[13+i]=m_profile.geometry_mm[i];
+                        double low=i==0?110.:i==1?50.:25.;
+                        double high=i==0?115.:i==1?60.:35.;
+                        for (unsigned n=0;n<40;++n) {
+                            const double mid=(low+high)*.5;
+                            const double q=i<2?mid*std::numbers::pi/180.:mid;
+                            if (ContactSensors::contact(m_profile,i,q,m_profile.sensor_operate_deflection_deg[i])) high=mid;
+                            else low=mid;
+                        }
+                        values[17+i]=i<2?high*std::numbers::pi/180.:high/1000.;
+                    }
+                    values[3]=m_profile.z_mm_per_revolution;
+                    values[16]=cad::REST_TCP_Z_MM;
+                    for (unsigned i=0;i<values.size();++i) put(r.data,i*8,std::bit_cast<std::uint64_t>(values[i]),8);
+                    r.size=values.size()*8;
+                    break;
+                }
                 case Operation::State: {
                     const auto s{ snapshot() };
                     r.arguments[0] = s.references;

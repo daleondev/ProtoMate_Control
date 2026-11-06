@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <pneumo/logging.hpp>
 
 namespace io::motion
 {
@@ -54,23 +55,35 @@ namespace io::motion
       , m_motions{ bus.action<^^icc::Actions::io_motor_motion>().serveDeferred(
           [this](const MotorGoal& goal, Execution execution) { admit(goal, std::move(execution)); },
           { .max_goals = 8 }) }
-      , m_trajectories{ bus.service<^^icc::Services::io_trajectory>().serve(
+      , m_trajectories{ bus.service<^^icc::Services::io_trajectory>().serveDeferred(
+          [this](const ::motion::trajectory::Packet& packet, ProgramReply reply) {
+              deferProgram(packet, std::move(reply));
+          }, { .max_pending = 2 }) }
+      , m_trajectoryControl{bus.service<^^icc::Services::io_trajectory_control>().serve(
           [this](const ::motion::trajectory::Packet& packet) { return trajectory(packet); },
-          { .max_pending = 2 }) }
+          {.max_pending=4})}
+      , m_programs{bus.action<^^icc::Actions::io_motion>().serveDeferred(
+          [this](const ::motion::trajectory::Run& run, ProgramExecution execution) {
+              admitProgram(run, std::move(execution));
+          }, {.max_goals=3})}
     {
     }
 
     ::motion::trajectory::Packet Server::trajectory(const ::motion::trajectory::Packet& packet)
     {
         namespace tr = ::motion::trajectory;
-        auto result{ m_controller->trajectorySnapshot() };
+        const auto decoded = tr::decodeRequest(packet);
+        if (!decoded) return tr::encode(tr::Reply{.error=decoded.error()});
+        const auto op = decoded->operation;
+        if (op != tr::Operation::Stop && op != tr::Operation::Abort &&
+            op != tr::Operation::Renew && op != tr::Operation::Release)
+            return tr::encode(tr::Reply{.error=tr::Error::Protocol});
+        auto result = m_controller->control(*decoded);
+        if(result.error==tr::Error::None && (op==tr::Operation::Stop || op==tr::Operation::Abort)) {
+            ++m_commandGeneration;
+            discardQueuedCommands();
+        }
         result.generation = m_commandGeneration;
-        const auto request{ tr::decodeRequest(packet) };
-        result.error = !request                                       ? request.error()
-                       : request->operation == tr::Operation::Inspect ? tr::Error::None
-                                                                      : tr::Error::Unsupported;
-        // No upload/control request is routed to independent diagnostic motors.
-        // Execution remains unavailable until the group HAL is implemented.
         return tr::encode(result);
     }
 
@@ -92,6 +105,11 @@ namespace io::motion
                                  .count();
         result.enabled = m_controller->enabled();
         result.ready = m_controller->ready();
+        const auto ownership = m_controller->trajectorySnapshot();
+        result.boot = ownership.boot;
+        result.family = ownership.family; result.owners = ownership.owners;
+        result.revisions = ownership.axis_revisions;
+        result.configuration = ownership.capabilities.hardware_fingerprint;
         for (std::size_t i{}; i < result.motors.size(); ++i) {
             const auto& motor{ m_controller->motor(static_cast<Controller::MotorId>(i)) };
             auto& state{ result.motors[i] };
@@ -159,7 +177,7 @@ namespace io::motion
                 case MotorOperation::Stop:
                     ++m_commandGeneration;
                     cancelCommand();
-                    m_controller->stop(value.motor == MotorId::All ? std::nullopt
+                    m_controller->abort(value.motor == MotorId::All ? std::nullopt
                                                                    : std::optional{ id(value.motor) });
                     discardQueuedCommands();
                     break;
@@ -216,7 +234,7 @@ namespace io::motion
         bool busy{};
         {
             std::scoped_lock lock{ m_commandMutex };
-            busy = static_cast<bool>(m_command);
+            busy = bool(m_command) || bool(m_programCommand);
         }
         if (busy) {
             reply.fail(pnm::msg::ServiceError::Busy);
@@ -255,10 +273,12 @@ namespace io::motion
     void Server::cancelCommand()
     {
         std::shared_ptr<Command> command;
+        std::shared_ptr<ProgramCommand> program;
         {
             std::scoped_lock lock{ m_commandMutex };
-            command = m_command;
+            command = m_command; program = m_programCommand;
         }
+        if (program) program->stop.request_stop();
         if (command) {
             command->stop.request_stop();
         }
@@ -279,12 +299,28 @@ namespace io::motion
         const std::stop_callback wake{ stop, [this] { m_commandNotification.signal(); } };
         while (!stop.stop_requested() && !m_stop.stop_requested()) {
             std::shared_ptr<Command> command;
+            std::shared_ptr<ProgramCommand> program;
             {
                 std::scoped_lock lock{ m_commandMutex };
+                if (m_programCommand && !m_programCommand->started) {
+                    program = m_programCommand; program->started = true;
+                }
                 if (m_command && !m_command->started) {
                     command = m_command;
                     command->started = true;
                 }
+            }
+            if (program) {
+                pnm::log::debug("Preparing job {}",program->request.job);
+                const auto began=std::chrono::steady_clock::now();
+                try { program->result = ::motion::trajectory::encode(
+                    m_controller->prepareProgram(program->request, program->stop.get_token())); }
+                catch (...) { program->result = ::motion::trajectory::encode(
+                    ::motion::trajectory::Reply{.error=::motion::trajectory::Error::Fault}); }
+                pnm::log::debug("Prepared job {} in {} us",program->request.job,
+                  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()-began).count());
+                program->done.store(true); m_notification->signal();
+                continue;
             }
             if (!command) {
                 m_commandNotification.waitUntil(std::chrono::steady_clock::time_point::max());
@@ -324,10 +360,19 @@ namespace io::motion
             finished->ready.store(true);
             notification->signal();
         } };
-        if (!execution.accept()) {
-            return;
+        if (goal.job) {
+            const auto owner = m_controller->reserveMotor(goal.job, id(goal.motor));
+            if (owner.error != ::motion::trajectory::Error::None) {
+                execution.reject({.outcome=MotorOutcome::Rejected,.final_state=progress(goal.motor),.busy_job=owner.busy_job}); return;
+            }
+        } else if (m_controller->trajectorySnapshot().family != Family::None &&
+                   m_controller->trajectorySnapshot().family != Family::Motor) {
+            execution.fail(pnm::msg::ActionError::Busy); return;
         }
-        slot->emplace(Job{ goal.motor, std::move(execution), finished, {}, std::move(cancellation) });
+        if (!execution.accept()) {
+            m_controller->releaseJob(goal.job); return;
+        }
+        slot->emplace(Job{ goal.motor, goal.job, std::move(execution), finished, {}, std::move(cancellation) });
         try {
             const auto motor{ id(goal.motor) };
             if (goal.motion == MotorMotion::Home) {
@@ -353,6 +398,7 @@ namespace io::motion
         } catch (...) {
             m_controller->stop(id(goal.motor));
             (*slot)->execution.abort({ MotorOutcome::Faulted, progress(goal.motor) });
+            m_controller->releaseJob(goal.job);
             slot->reset();
         }
     }
@@ -385,6 +431,7 @@ namespace io::motion
                 else {
                     job->execution.abort(result);
                 }
+                m_controller->releaseJob(job->id);
                 job.reset();
             }
             else if (feedback) {
@@ -401,31 +448,44 @@ namespace io::motion
         const auto urgent{ pnm::msg::watch(m_urgent, wake) };
         const auto actions{ pnm::msg::watch(m_motions, wake) };
         const auto trajectories{ pnm::msg::watch(m_trajectories, wake) };
+        const auto trajectoryControl{pnm::msg::watch(m_trajectoryControl, wake)};
+        const auto programs{pnm::msg::watch(m_programs, wake)};
         const std::stop_callback cancellation{ stop, [this, &wake] {
             cancelCommand();
             wake();
         } };
+        // ARM finite preparation peaked at 11,020 bytes; 16 KiB preserves
+        // more than 25% headroom. Hosted Debug keeps its larger allowance.
         auto worker{ runtime::thread::create_jthread(
-          { .name = "motor commands", .priority = 16, .stack_size = 16UZ * 1024UZ },
+          { .name = "motor commands", .priority = 2,
+            .stack_size = sizeof(void*) == 4 ? 16UZ * 1024UZ : 24UZ * 1024UZ },
           [this](std::stop_token token) { commandWorker(token); }) };
         const auto drainCommand{ [&] {
             cancelCommand();
             worker.request_stop();
             m_commandNotification.signal();
             worker.join();
-            finishCommand();
+            finishCommand(); finishProgramCommand();
             std::scoped_lock lock{ m_commandMutex };
-            m_command.reset();
+            m_command.reset(); m_programCommand.reset();
         } };
         auto feedback{ std::chrono::steady_clock::now() };
         try {
             while (!stop.stop_requested()) {
+                if(m_peerLost.exchange(false)){
+                    ++m_commandGeneration;cancelCommand();m_controller->connectionLost();
+                }
+                m_trajectoryControl.poll();
                 m_urgent.poll();
+                finishProgramCommand();
+                dispatchPrograms();
                 dispatchJobs(false);
                 finishCommand();
+                if(m_peerStopping.load() && m_controller->trajectorySnapshot().family==Family::None)break;
                 m_commands.poll();
                 m_trajectories.poll();
                 m_motions.poll();
+                m_programs.poll();
                 const auto now{ std::chrono::steady_clock::now() };
                 dispatchJobs(now >= feedback);
                 if (now >= feedback) {
@@ -443,16 +503,20 @@ namespace io::motion
             m_motions.close();
             m_commands.close();
             m_trajectories.close();
+            m_trajectoryControl.close(); m_programs.close();
             m_urgent.close();
             throw;
         }
         m_commands.close();
         m_trajectories.close();
+        m_trajectoryControl.close(); m_programs.requestStop();
         m_urgent.close();
         m_motions.requestStop();
         m_controller->disable();
         drainCommand();
         dispatchJobs(false);
+        dispatchPrograms();
+        m_programs.close();
         m_motions.close();
     }
 }

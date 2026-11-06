@@ -22,9 +22,10 @@ def reference_ticks(speed):
 
 
 class ProfileEdges(Edges):
-    def __init__(self,cycles,rate,shape='scaled'):
+    def __init__(self,cycles,rate,shape='scaled',mask=7):
         super().__init__()
         self.cycles=cycles; self.rate=rate; self.shape=shape
+        self.mask=mask
         self.profile_rises=[[],[],[]]
     def consume(self,data):
         values=np.frombuffer(data,dtype=np.uint8)
@@ -46,6 +47,9 @@ class ProfileEdges(Edges):
         assert not self.failures
         axes=[]; origins=[]
         for axis,ratio in enumerate((1.,1.,1.) if self.shape=='equal' else (1.,.8,.5)):
+            if not self.mask & (1<<axis):
+                assert self.count[axis]==self.falls[axis]==0
+                continue
             reference=reference_ticks(self.rate*ratio)
             expected=len(reference)*self.cycles
             assert self.count[axis]==self.falls[axis]==expected,(axis,self.count,self.falls,expected)

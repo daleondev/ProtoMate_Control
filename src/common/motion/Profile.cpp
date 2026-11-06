@@ -440,3 +440,28 @@ std::optional<motion::Profile> motion::Profile::fromDescription(const Descriptio
     result.m_endVelocity = value.end_velocity;
     return result;
 }
+
+std::optional<motion::Profile> motion::Profile::scaled(double scale) const noexcept
+{
+    if (!std::isfinite(scale) || scale <= 0) return {};
+    auto d = description();
+    d.distance *= scale;
+    d.end_velocity *= scale;
+    for (unsigned i = 0; i < d.size; ++i) {
+        auto& p = d.phases[i];
+        p.position *= scale; p.velocity *= scale;
+        p.acceleration *= scale; p.jerk *= scale;
+    }
+    return fromDescription(d);
+}
+
+bool motion::Profile::brakingToRest(double time) const noexcept
+{
+    if (m_endVelocity != 0 || at(time).acceleration >= 0) return false;
+    for (unsigned i=0;i<m_size;++i) {
+        const auto& p=m_phases[i];
+        if (p.start+p.duration>time &&
+            (p.state.acceleration>1e-8 || p.state.acceleration+p.jerk*p.duration>1e-8)) return false;
+    }
+    return true;
+}

@@ -15,18 +15,18 @@ if(STM32_CORE STREQUAL "CM4")
     set(GIGA_FLASH_LENGTH 3M)
     set(GIGA_CODE_ORIGIN 0x90100000)
     set(GIGA_CODE_LENGTH 3M)
-    if(GIGA_M4_RAM_DEBUG)
+    if(GIGA_M4_SDRAM_CODE)
         set(GIGA_CODE_ORIGIN 0xC0400000)
         set(GIGA_CODE_LENGTH 2M)
     endif()
     set(GIGA_VECTOR_ORIGIN 0x10000000)
     set(GIGA_FAST_ORIGIN 0x10000800)
-    # SRAM1 plus 64 KiB of SRAM2: motion and ICC hot code share the instruction alias.
-    set(GIGA_FAST_LENGTH 190K)
-    set(GIGA_TCM_ORIGIN 0x30030000)
+    # SRAM1 plus 66 KiB of SRAM2: worker preparation and IRQ paths remain in RAM.
+    set(GIGA_FAST_LENGTH 192K)
+    set(GIGA_TCM_ORIGIN 0x30030800)
     set(GIGA_TCM_LENGTH 0)
-    set(GIGA_RAM_ORIGIN 0x30030000)
-    set(GIGA_RAM_LENGTH 88K)
+    set(GIGA_RAM_ORIGIN 0x30030800)
+    set(GIGA_RAM_LENGTH 86K)
     set(GIGA_STACK_ORIGIN 0x30046000)
     set(GIGA_HEAP_REGION HEAP)
     # Exception-unwind records are data, not instruction-fetch hot paths.
@@ -71,7 +71,7 @@ else()
     endif()
     set(GIGA_GUI_MEMORY "GUI (rw) : ORIGIN = 0xC0600000, LENGTH = 2M")
     # Owner initializes every pixel/depth word before use. No bootstrap clear,
-    # heap, general C++ objects or M4 RAM-debug overlap in this reservation.
+    # heap, general C++ objects or M4 SDRAM code overlap in this reservation.
     set(GIGA_GUI_SECTIONS ".gui_sdram (NOLOAD) : ALIGN(32) {
       __gui_sdram_start = .; *(.gui_sdram .gui_sdram.*) . = ALIGN(32);
       __gui_sdram_end = .;
@@ -197,7 +197,7 @@ if(STM32_CORE STREQUAL "CM4" AND NOT GIGA_MOTION_BENCH AND NOT GIGA_STEP_BENCH)
         LINKER:--undefined=_ZN2io6motion10Controller7executeERKNS0_8Executor7CommandE
         LINKER:--undefined=_ZN2io6motion10Controller14renewExecutionEy
         LINKER:--undefined=_ZN2io6motion10Controller13stopExecutionEy
-        LINKER:--undefined=_ZNK2io6motion10Controller15executionStatusEv)
+        LINKER:--undefined=_ZNK2io6motion10Controller15executionStatusEy)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${application_role}-controller)
@@ -210,7 +210,7 @@ if(GIGA_MOTION_BENCH)
 else()
     target_compile_definitions(${PROJECT_NAME} PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=8192U)
 endif()
-if(STM32_CORE STREQUAL "CM4" AND GIGA_M4_RAM_DEBUG)
+if(STM32_CORE STREQUAL "CM4" AND GIGA_M4_SDRAM_CODE)
     set(GIGA_CODE_MEMORY "CODE (rx) : ORIGIN = 0xC0400000, LENGTH = 2M")
     set(GIGA_CODE_ALIAS "")
 else()
@@ -223,6 +223,9 @@ string(REPLACE ".text." ".ARM.extab.text." GIGA_FAST_EXTAB "${GIGA_FAST_EXTAB}")
 string(REPLACE ".text." ".ARM.exidx.text." GIGA_FAST_EXIDX "${GIGA_FAST_EXIDX}")
 set(GIGA_BENCH_SECTIONS "")
 set(GIGA_BENCH_MEMORY "")
+if(GIGA_MOTION_API_TEST)
+    add_compile_definitions(GIGA_MOTION_API_TEST=1)
+endif()
 if(GIGA_MOTION_BENCH)
     add_compile_definitions(GIGA_MOTION_BENCH=1)
     if(STM32_CORE STREQUAL "CM4")

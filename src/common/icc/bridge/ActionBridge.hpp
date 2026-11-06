@@ -97,7 +97,7 @@ namespace icc
         struct OutgoingGoal
         {
             std::uint64_t id{};
-            std::optional<Frame> request;
+            std::unique_ptr<Frame> request;
             std::function<bool()> pending, cancelled;
             std::function<void()> cancel, cancel_before_submission;
             std::function<Clock::duration()> remaining;
@@ -230,7 +230,7 @@ namespace icc
                 auto timer{ wakeAfter(owned->remainingAcceptanceTime()) };
                 m_outgoingGoals.push_back({
                   .id = id,
-                  .request = std::move(frame),
+                  .request = std::make_unique<Frame>(std::move(frame)),
                   .pending = [owned] { return owned->pending(); },
                   .cancelled = [owned] { return owned->cancelRequested(); },
                   .cancel = [owned] { owned->requestCancel(); },

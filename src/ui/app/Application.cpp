@@ -12,6 +12,7 @@
 #include "ui/cli/display.hpp"
 #include "ui/cli/filesystem.hpp"
 #include "ui/cli/motor.hpp"
+#include "ui/cli/motion.hpp"
 #include "ui/cli/robot.hpp"
 #include "ui/cli/state.hpp"
 #include "ui/cli/utilities.hpp"
@@ -37,7 +38,7 @@ namespace ui
           pnm::msg::SubscriptionOptions::latestOnly()) }
       , m_logs{ m_bus, cli::writeLog }
       , m_motors{ m_bus }
-      , m_robot{ m_bus }
+      , m_robot{ m_bus, m_motors }
     {
         hal::console::initialize();
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
@@ -176,6 +177,7 @@ namespace ui
             cli::utilities::setup(parser, m_bus, m_stopSource.get_token());
             cli::motor::setup(parser, m_motors, m_stopSource.get_token());
             cli::robot::setup(parser, m_robot);
+            cli::motion::setup(parser, m_motors, m_robot, m_stopSource.get_token());
             cli::run(parser, m_stopSource.get_token());
         } catch (const std::exception& error) {
             m_systemState.setLocal(app::State::Fault);

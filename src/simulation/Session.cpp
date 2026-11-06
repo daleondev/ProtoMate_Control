@@ -159,7 +159,7 @@ namespace simulation
             q.session = shared.session;
             q.sequence = 0;
             // Simulator controls never masquerade as HAL register writes.
-            if (q.operation != Operation::State && q.operation != Operation::Fault &&
+            if (q.operation != Operation::State && q.operation != Operation::Configuration && q.operation != Operation::Fault &&
                 q.operation != Operation::Power && q.operation != Operation::Hello)
                 return Packet{ .operation = q.operation, .status = EINVAL };
             return machine.execute(q);

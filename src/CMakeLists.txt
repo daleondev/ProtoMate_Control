@@ -21,10 +21,13 @@ if(DEFINED STM32_CORE)
 
     add_subdirectory(${application_role})
 
-    target_sources(${PROJECT_NAME} 
-        PRIVATE 
-            ${CMAKE_CURRENT_SOURCE_DIR}/${application_role}/main.cpp
-    )
+    if(GIGA_MOTION_API_TEST)
+        target_sources(${PROJECT_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/examples/giga_motion_api_test/${application_role}.cpp
+            ${PROJECT_SOURCE_DIR}/examples/giga_motion_api_test/Trace.cpp)
+    else()
+        target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${application_role}/main.cpp)
+    endif()
 
     target_link_libraries(${PROJECT_NAME} 
         PRIVATE 

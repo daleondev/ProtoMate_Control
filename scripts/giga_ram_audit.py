@@ -54,7 +54,7 @@ while todo:
  n=todo.pop()
  if n in seen or n not in funcs:continue
  seen.add(n);f=funcs[n]
- if not 0x10000000 <= f['address'] < 0x10030000:outside.append((n,f['address']))
+ if not 0x10000000 <= f['address'] < 0x10030800:outside.append((n,f['address']))
  todo.extend(f['calls'])
 
 # Virtual dispatch reads these tables before entering the concrete RAM methods.
@@ -67,7 +67,7 @@ for line in symbols.splitlines():
  for cls in vtable_classes:
   if line.endswith('vtable for '+cls):
    address=int(line.split()[0],16);vtables[cls]=address
-   if not 0x10000000 <= address < 0x10030000:outside.append(('vtable for '+cls,address))
+   if not 0x10000000 <= address < 0x10030800:outside.append(('vtable for '+cls,address))
 for required in ['DMA1_Stream0_IRQHandler','DMA1_Stream3_IRQHandler','TIM7_IRQHandler',
                  'TIM3_IRQHandler','TIM6_DAC_IRQHandler','TIM5_IRQHandler','HardFault_Handler',
                  'SysTick_Handler','_tx_execution_thread_enter','_tx_execution_thread_exit']:
@@ -83,7 +83,7 @@ for prefix in icc_prefixes:
  if not matches:raise SystemExit('Missing ICC hot entry point: '+prefix)
  for n in matches:
   address=funcs[n]['address'];icc_hot[labels[n]]=hex(address)
-  if not 0x10000000 <= address < 0x10030000:outside.append((n,address))
+  if not 0x10000000 <= address < 0x10030800:outside.append((n,address))
 report=dict(elf=str(args.elf), roots=[labels[n] for n in sorted(set(roots))],
             functions=len(seen), outside_ram=[dict(symbol=labels.get(n,n),address=hex(a)) for n,a in outside],
             vtables={n:hex(a) for n,a in vtables.items()}, icc_hot=icc_hot,

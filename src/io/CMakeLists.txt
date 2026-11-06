@@ -23,3 +23,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     set_property(SOURCE main.cpp TARGET_DIRECTORY ${PROJECT_NAME} APPEND PROPERTY
         COMPILE_OPTIONS $<$<CONFIG:Debug>:-Os>)
 endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    # These cold-side entry points instantiate telemetry/ICC serializers. M4 has
+    # no QSPI instruction cache: retain inlining instead of -Os helper chains.
+    set_property(SOURCE app/Application.cpp motion/Server.cpp motion/ServerPrograms.cpp
+        motion/ControllerAdmission.cpp motion/ControllerSetup.cpp APPEND PROPERTY COMPILE_OPTIONS -O2)
+endif()

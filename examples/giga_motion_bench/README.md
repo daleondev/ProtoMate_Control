@@ -5,8 +5,9 @@ ThreadX runtime, ICC channel/transport/bridge, GUI and STEP backend, with motor
 enable held **HIGH (inactive)**. It does not expose experimental trajectories through
 the production motion service. See [measured gates and limitations](../../docs/motion-architecture/README.md).
 
-The initial production-executor target is **3 × 12.5 kHz**, with unchanged 5 ms
-admission and 20 ms adjustment-onset targets. The 100 kHz constant-output and
+The current candidate is **3 × 6.25 kHz**, with **50 ms** acknowledgement and
+**100 ms** adjustment-onset targets. Qualification stopped at the capacity screen;
+a passing waveform is not a production release. The 100 kHz constant-output and
 kernel fixtures remain stress/characterization cases. Passing a finite profile
 does not qualify stream-loss stopping or live retiming.
 
@@ -68,7 +69,9 @@ Use `run.py --output … 'command' …`; commands finish with `[motion-bench] DO
 | `fast rate count fixture` | Native bounded command path; fixture 0 alone, 1 ordinary ICC flood, 2 additionally 3 × 100 kHz STEP and fixed-work M4 load |
 | `stopping rate count method` | Full three-axis stopping timestamp cost; method 0 reference inversion, 1 bounded fixed-point evaluator |
 | `profile rate cycles load [shape] [half]` | Finite jerk-limited profiles, ≤25 kHz; shape 0 scaled / 1 equal peaks; half 64/128/256 pulses, default 64 |
-| `executor cycles injection_ms mode load [shape] [traffic]` | Production finite executor, 12.5 kHz peak and 32-pulse halves; mode 0 completes / 1 cancels / 2 stops keepalives / 3 stalls its worker for 700 ms; load 0/20; shape 0 equal / 1 scaled peaks / 2 unequal durations; traffic 0 normal / 1 flood |
+| `executor cycles injection_ms mode load [shape] [traffic]` | Production finite executor, 6.25 kHz peak and 64-pulse halves; mode 0 completes / 1 cancels / 2 stops keepalives / 3 stalls its worker for 700 ms; load 0/20; shape 0 equal / 1 scaled peaks / 2 unequal durations; traffic 0 normal / 1 flood |
+| `startup mask immutable cycles` | Focused first-pulse fixture: axis bitmask 1–7, immutable 0/1, 1–20 cycles; pauses GUI animation and extra traffic, retains heartbeat |
+| `gui` | Restore the GUI showcase after startup screening |
 | `pulses rate count load` | Three simultaneous constant-rate outputs, GUI + service traffic, load setting 0/10/20/40 |
 | `status` | GUI presentation / underrun / error counters |
 | `reset` | Coordinated firmware restart; serial disconnects |
@@ -119,10 +122,12 @@ boundary failure.
 ## Production executor fixture
 
 See [the executor API and ownership contract](../../src/io/motion/EXECUTOR.md).
-The current 12.5 kHz hardware attempt failed on M3 pulse width. Qualification is
-stopped; the commands below are reproduction instructions, not passed acceptance
-cases. The [result ledger](../../docs/motion-architecture/executor-results.json)
-identifies the captured image and incomplete gates.
+The first-pulse mismatch is fixed. The worker-based 12.5 kHz screen failed refill
+margin and CPU targets; the single 6.25 kHz fallback passed the waveform/refill check
+but measured 93.0% M4 utilization against the ≤90% target. Qualification is stopped.
+The [result ledger](../../docs/motion-architecture/executor-results.json) identifies
+captured images and incomplete gates. Commands below are reproduction instructions,
+not authorization to resume endurance or evidence of full application acceptance.
 This fixture exercises the actual production evaluator, executor and HAL; it does
 not instantiate powered motor drivers or qualify the future ICC trajectory service.
 Preparation and start are measured separately. The M4 executor runs at priority 1,
@@ -138,15 +143,18 @@ accepted production traffic budget. Reset before entering this fixture if
 a previous transport experiment selected different ICC priorities.
 
 ```sh
-python3 examples/giga_motion_bench/capture_stream.py --output build/executor-full --executor-cycles 1000 --load 20
-python3 examples/giga_motion_bench/capture_stream.py --output build/executor-scaled --executor-cycles 10 --executor-shape scaled --load 20
-python3 examples/giga_motion_bench/capture_stream.py --output build/executor-unequal --executor-cycles 10 --executor-shape unequal --load 20
-python3 examples/giga_motion_bench/capture_stream.py --output build/executor-stop --executor-cycles 1 --executor-stop 1 --stop-at 60 --load 20
-python3 examples/giga_motion_bench/capture_stream.py --output build/executor-lease --executor-cycles 1 --executor-stop 2 --stop-at 250 --load 20
-python3 examples/giga_motion_bench/capture_stream.py --output build/executor-stall --executor-cycles 1 --executor-stop 3 --stop-at 60 --load 20
+# Short screens first; never launch endurance while these gates fail.
+python3 examples/giga_motion_bench/capture_stream.py --output build/startup-m3 --executor-cycles 3 --startup-mask 4 --load 0
+python3 examples/giga_motion_bench/capture_stream.py --output build/startup-all --executor-cycles 3 --startup-mask 7 --load 0
+# Add --startup-immutable for the immutable comparison.
+python3 examples/giga_motion_bench/run.py --output build/restore-showcase.jsonl gui
+python3 examples/giga_motion_bench/capture_stream.py --output build/executor-short --executor-cycles 3 --load 20
+# Expected rate is compiled into the image, not selected by this flag:
+# --executor-rate 12500 verifies an explicitly built 12.5 kHz candidate.
 ```
 
-The production renewal interval is 7 ms with a 20 ms nominal frontier. M4
+The candidate renewal interval is 20 ms with a 40 ms nominal frontier and 40 ms
+producer lease. Physical DMA halves contain 64 pulses; their duration varies with speed. M4
 worker priorities are motion 1, reserved benchmark work 2, ICC notification 3 and
 ICC dispatch 4. The dispatch/notification ordering prevents ordinary traffic from
 starving its own wakeups; renewal work must also leave these workers CPU time.
@@ -157,9 +165,17 @@ glue part of the timing workload.
 
 Each output directory is new. The capture compares the full waveform against an
 independent polynomial reference, including fractional stopping endpoints. It
-checks ENABLE separately, with no glitch filtering. Mode 3 stalls the owner thread;
-it deliberately leaves STEP interrupts running. Lost-interrupt cessation is a
-separate hardware-guard regression. A debugger halt can expire the ICC session;
+checks ENABLE separately, with no glitch filtering. `screening.json` separately
+checks ≥2× refill margin, ≥25% registered-thread stack headroom, nominal work-period
+coverage and the ≤90% M4 CPU target. It is written before rejecting a failed screen.
+Older captures' `result.json` files predate the CPU gate: consult their appended
+`screening.json` and the current ledger, without modifying original raw evidence.
+
+Mode 2 stops producer keepalives while M4 refill continues. Mode 3 stalls that
+refill worker too: it must cause guard cessation, not promise a controlled brake.
+The existing controlled-stop waveform oracle does not qualify this fault mode;
+a fault-aware capture assertion remains pending. Lost-interrupt cessation is also
+a separate hardware-guard regression. A debugger halt can expire the ICC session;
 reset both cores before continuing after SWD inspection.
 
 ## Captures and host tests
@@ -217,11 +233,13 @@ retains any ENABLE failure; it never turns a rejected capture into `result.json`
   refill. Their ratio, `24 * ticks / cycles`, measures each refill against its
   applicable deadline. Taking the longest interrupt from a slow phase and dividing
   the shortest high-speed deadline by it is a separate, conservative bound.
-  The counter includes service/refill/callback time; storing the counter itself
-  follows the timestamp. Neither margin includes future IPC, retiming or stopping
-  preparation. Two 64-pulse halves contain 5.12 ms at 25 kHz; the production executor uses
-  two 32-pulse halves for the same 5.12 ms at 12.5 kHz. At lower speed
-  they span longer, so this is **not** a globally bounded commitment horizon.
+  The legacy `profile` counter includes ISR service/refill/callback time. In the
+  worker-based `executor`, it includes notification delay, calculation and bounded
+  publication, measured from the IRQ's refill request through worker completion.
+  Its deadline remains the guard that was armed before that request. Neither is
+  a bound on the whole future M7 motion transaction. Two 64-pulse halves contain
+  20.48 ms at 6.25 kHz, or 10.24 ms at 12.5 kHz. At lower speed they span longer:
+  this is **not** a globally bounded commitment horizon.
 
 `profile` uses `processing` for prepare/start cost, `scheduling` for one-time
 profile/coefficient construction, `received`/`value`/`checksum` for M1/M2/M3

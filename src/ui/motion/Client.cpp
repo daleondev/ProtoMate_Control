@@ -34,15 +34,20 @@ namespace ui::motion
     }
 
     Client::Client(pnm::msg::Bus& bus)
-      : m_commands{ bus.service<^^icc::Services::io_motor>() }
+      : m_history{reserveHistory()}
+      , m_commands{ bus.service<^^icc::Services::io_motor>() }
       , m_urgent{ bus.service<^^icc::Services::io_motor_stop>() }
       , m_motions{ bus.action<^^icc::Actions::io_motor_motion>() }
+      , m_trajectory{bus.service<^^icc::Services::io_trajectory>()}
+      , m_control{bus.service<^^icc::Services::io_trajectory_control>()}
+      , m_programs{bus.action<^^icc::Actions::io_motion>()}
       , m_stateSubscription{ bus.topic<^^icc::Topics::io_motor_state>().subscribe(
           [this](const MotorSnapshot& value) {
               std::scoped_lock lock{ m_mutex };
               if (!m_connected || m_stopped || (m_state && value.sequence <= m_state->sequence)) {
                   return;
               }
+              m_boot = value.boot;
               m_state = value;
               m_receivedAt = std::chrono::steady_clock::now();
               // An older sample can arrive after a newer command acknowledgement.
@@ -50,17 +55,31 @@ namespace ui::motion
           },
           pnm::msg::SubscriptionOptions::latestOnly()) }
     {
-        m_jobs.reserve(32);
+        m_jobs.reserve(8);
     }
 
     void Client::setConnected(bool connected)
     {
-        std::scoped_lock lock{ m_mutex };
-        if (m_connected != connected) {
-            m_state.reset();
-            m_commandGeneration.reset();
+        std::array<std::optional<std::stop_source>,8> cancel;
+        unsigned count{};
+        {
+            std::scoped_lock lock{m_mutex};
+            if(m_connected!=connected){m_state.reset();m_commandGeneration.reset();}
+            m_connected=connected;
+            if(!connected){
+                m_boot=0;
+                for(const auto& job:m_jobs)if(!terminal(job->info.state)){
+                    job->info.state=JobState::Unknown;job->info.error=::motion::trajectory::Error::Unknown;
+                    if(count<cancel.size())cancel[count++]=job->stop;
+                    if(job->handle)job->handle->requestCancel();
+                    if(job->program)job->program->requestCancel();
+                }
+                m_jobChanged.notify_all();
+            }
         }
-        m_connected = connected;
+        // Stop callbacks can re-enter the client/planner; never invoke them under its mutex.
+        for(unsigned i=0;i<count;++i)cancel[i]->request_stop();
+        m_notification->signal();
     }
 
     MotorSnapshot Client::state() const
@@ -113,6 +132,9 @@ namespace ui::motion
     std::uint64_t Client::submit(MotorGoal goal, std::stop_token stop)
     {
         std::scoped_lock lock{ m_mutex };
+        if (goal.motor >= MotorId::All) {
+            throw std::invalid_argument("motor must be m1, m2 or m3");
+        }
         if (m_stopped || stop.stop_requested()) {
             throw std::runtime_error("UI controller is stopping");
         }
@@ -125,23 +147,13 @@ namespace ui::motion
         // IO authoritatively checks readiness and the stop generation. Cached
         // display state must not admit a move or delay one after an acknowledgement.
         goal.commandGeneration = *m_commandGeneration;
-        if (m_jobs.size() == 32) {
-            const auto completed{ std::ranges::find_if(m_jobs,
-                                                       [](const auto& job) { return !job->handle; }) };
-            if (completed == m_jobs.end()) {
-                throw std::runtime_error("motor job registry is full");
-            }
-            m_jobs.erase(completed);
-        }
-        auto job{ std::make_shared<Job>() };
-        job->info = { .id = m_nextId++, .motor = goal.motor, .motion = goal.motion, .progress = {} };
-        const std::weak_ptr<Job> weak{ job };
-        // Reserve ownership before sending; nothing after a successful submission
-        // may silently drop the only handle and cancel its motion.
-        m_jobs.push_back(job);
+        auto job = createLocked(Family::Motor, std::uint8_t(1U<<unsigned(goal.motor)));
+        job->info.motor = goal.motor; job->info.motion = goal.motion;
+        goal.job = job->info.id;
+        const std::weak_ptr<Job> weak{job};
         try {
             job->handle.emplace(m_motions.sendGoal(goal, { .accept_timeout = 3s }, { .on_accepted = [weak] {
-                if (auto current{ weak.lock() }) {
+                if (auto current{ weak.lock() }; current && current->info.state == JobState::Submitting) {
                     current->info.state = JobState::Accepted;
                 }
             }, .on_feedback = [weak](const MotorProgress& progress) {
@@ -158,6 +170,8 @@ namespace ui::motion
                         return;
                     }
                     current->info.progress = result->value.final_state;
+                    current->info.busy_job=result->value.busy_job;
+                    if(result->value.busy_job)current->info.error=::motion::trajectory::Error::Busy;
                     if (result->status == pnm::msg::ActionStatus::Rejected) {
                         current->info.state = JobState::Rejected;
                         return;
@@ -203,10 +217,12 @@ namespace ui::motion
     {
         std::scoped_lock lock{ m_mutex };
         std::vector<JobInfo> result{};
-        result.reserve(m_jobs.size());
+        result.reserve(m_jobs.size()+m_history->count);
+        for(unsigned i=0;i<m_history->count;++i)result.push_back(m_history->jobs[i]);
         for (const auto& job : m_jobs) {
             result.push_back(job->info);
         }
+        std::ranges::sort(result,{},&JobInfo::id);
         return result;
     }
 
@@ -222,16 +238,31 @@ namespace ui::motion
                 std::scoped_lock lock{ m_mutex };
                 for (const auto& job : m_jobs) {
                     if (job->handle && job->handle->poll()) {
-                        job->readiness = {};
-                        job->handle.reset();
+                        job->readiness = {}; job->handle.reset(); m_jobChanged.notify_all();
+                    }
+                    if (job->program && job->program->poll()) {
+                        job->readiness = {}; job->program.reset();
+                        job->reservation = 0; m_jobChanged.notify_all();
                     }
                 }
+                retireJobsLocked();
             }
-            m_notification->waitUntil(std::chrono::steady_clock::time_point::max());
+            renewJobs();
+            m_notification->waitUntil(m_nextRenew);
         }
+        std::array<std::optional<std::stop_source>,8> cancel;
+        unsigned count{};
+        {
         std::scoped_lock lock{ m_mutex };
         m_stopped = true;
+        m_renewalReady = {}; m_renewal.reset();
         for (const auto& job : m_jobs) {
+            if(!terminal(job->info.state) && count<cancel.size())cancel[count++]=job->stop;
+            if (job->program) {
+                job->program->requestCancel();
+                if (!job->program->poll()) job->info.state = JobState::Unknown;
+                job->readiness = {}; job->program.reset();
+            }
             if (job->handle) {
                 job->handle->requestCancel();
                 // A cancellation request is not proof of a stopped motor.
@@ -242,5 +273,8 @@ namespace ui::motion
                 job->handle.reset();
             }
         }
+        m_jobChanged.notify_all();
+        }
+        for(unsigned i=0;i<count;++i)cancel[i]->request_stop();
     }
 }

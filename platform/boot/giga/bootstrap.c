@@ -144,7 +144,7 @@ void giga_start(void)
     if (h->magic != GIGA_HANDOFF_MAGIC || !(h->m4_entry & 1u)) {
         giga_fail(0x401);
     }
-    giga_configure_mpu(h->m4_flags & GIGA_RAM_DEBUG);
+    giga_configure_mpu(h->m4_flags & GIGA_M4_SDRAM_CODE);
     prepare_jump(h->m4_vectors);
     giga_jump(h->m4_entry, h->m4_stack);
 #else

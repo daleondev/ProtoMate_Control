@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1320" viewBox="0 0 1800 1320" role="img" aria-labelledby="title desc">
+<title id="title">What is actually stopping us now?</title>
+<desc id="desc">The latest GIGA workflow fails while creating the next homing worker. The exact resource failure is not isolated.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#566B7B"/></marker></defs>
+<rect x="0" y="0" width="1800" height="1320" rx="0" fill="#F5F8FB"/>
+<text x="60" y="53" font-family="DejaVu Sans" font-size="19" font-weight="700" text-anchor="start" fill="#566B7B">PROTOMATE  /  CURRENT IMPLEMENTATION</text>
+<text x="60" y="110" font-family="DejaVu Sans" font-size="43" font-weight="700" text-anchor="start" fill="#183044">What is actually stopping us now?</text>
+<text x="60" y="156" font-family="DejaVu Sans" font-size="23" font-weight="400" text-anchor="start" fill="#566B7B">The latest GIGA workflow fails while creating the next homing worker. The exact resource failure is not isolated.</text>
+<text x="1740" y="61" font-family="DejaVu Sans" font-size="22" font-weight="700" text-anchor="end" fill="#566B7B">04 / 04</text>
+<path d="M60,183 L1740,183" fill="none" stroke="#D7E1E9" stroke-width="2"/>
+<rect x="60" y="225" width="390" height="192" rx="14" fill="#ECF7F0" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="82" y="264" font-family="DejaVu Sans" font-size="25" font-weight="700" text-anchor="start" fill="#28724D">1</text>
+<text x="123" y="264" font-family="DejaVu Sans" font-size="26" font-weight="700" text-anchor="start" fill="#28724D">Job prepared</text>
+<text x="82" y="315.0" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">IO accepted preparation.</text>
+<text x="82" y="344.4" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">Preparation took 8 ms.</text>
+<rect x="490" y="225" width="390" height="192" rx="14" fill="#ECF7F0" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="512" y="264" font-family="DejaVu Sans" font-size="25" font-weight="700" text-anchor="start" fill="#28724D">2</text>
+<text x="553" y="264" font-family="DejaVu Sans" font-size="26" font-weight="700" text-anchor="start" fill="#28724D">M3 homed</text>
+<text x="512" y="315.0" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">Seek, back off, re-latch.</text>
+<text x="512" y="344.4" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">Reference was established.</text>
+<rect x="920" y="225" width="390" height="192" rx="14" fill="#FFF0F1" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="942" y="264" font-family="DejaVu Sans" font-size="25" font-weight="700" text-anchor="start" fill="#B63B43">3</text>
+<text x="983" y="264" font-family="DejaVu Sans" font-size="26" font-weight="700" text-anchor="start" fill="#B63B43">M1 worker failed</text>
+<text x="942" y="315.0" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">“No more processes”</text>
+<text x="942" y="344.4" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">Thread creation returned</text>
+<text x="942" y="373.8" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">EAGAIN.</text>
+<rect x="1350" y="225" width="390" height="192" rx="14" fill="#FFF0F1" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="1372" y="264" font-family="DejaVu Sans" font-size="25" font-weight="700" text-anchor="start" fill="#B63B43">4</text>
+<text x="1413" y="264" font-family="DejaVu Sans" font-size="26" font-weight="700" text-anchor="start" fill="#B63B43">Robot job faulted</text>
+<text x="1372" y="315.0" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">Sequence stopped.</text>
+<text x="1372" y="344.4" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">M2 was not reached.</text>
+<path d="M455,321 L481,321" fill="none" stroke="#566B7B" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M885,321 L911,321" fill="none" stroke="#566B7B" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M1315,321 L1341,321" fill="none" stroke="#566B7B" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="60" y="456" font-family="DejaVu Sans" font-size="22" font-weight="400" text-anchor="start" fill="#566B7B">Motors were disconnected; reference inputs were simulated. This is software / electrical evidence, not mechanical homing.</text>
+<rect x="60" y="488" width="882" height="501" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="84" y="531" font-family="DejaVu Sans" font-size="29" font-weight="700" text-anchor="start" fill="#007D78">Observed pressure: M4 runtime heap</text>
+<text x="84" y="570" font-family="DejaVu Sans" font-size="22" font-weight="400" text-anchor="start" fill="#566B7B">Snapshot taken after the failure · capacity 248,920 B</text>
+<rect x="84" y="599" width="834" height="47" rx="23.5" fill="#D7E1E9"/>
+<rect x="84" y="599" width="753.5350152659489" height="47" rx="23.5" fill="#007D78"/>
+<text x="106" y="631" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#FFFFFF">224,904 B used · 90.4%</text>
+<text x="84" y="689" font-family="DejaVu Sans" font-size="30" font-weight="700" text-anchor="start" fill="#007D78">24,016 B free in total</text>
+<text x="84" y="726" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">15 free blocks · largest usable block was not reported</text>
+<path d="M84,753 L918,753" fill="none" stroke="#D7E1E9" stroke-width="2"/>
+<text x="84" y="794" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#183044">Starting a homing worker requires</text>
+<rect x="84" y="816" width="365" height="84" rx="14" fill="#EAF7F4" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="106" y="851.0" font-family="DejaVu Sans" font-size="26" font-weight="700" text-anchor="start" fill="#007D78">16 KiB stack</text>
+<text x="466" y="867" font-family="DejaVu Sans" font-size="32" font-weight="700" text-anchor="start" fill="#566B7B">+</text>
+<rect x="505" y="816" width="413" height="84" rx="14" fill="#EAF7F4" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="527" y="851.0" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">Control / TLS allocations</text>
+<text x="84" y="939.0" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#566B7B">Total free memory alone does not establish whether this allocation sequence</text>
+<text x="84" y="968.4" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#566B7B">could succeed at the instant of failure.</text>
+<rect x="978" y="488" width="762" height="501" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="1002" y="531" font-family="DejaVu Sans" font-size="29" font-weight="700" text-anchor="start" fill="#183044">Known vs. still unproven</text>
+<text x="1002" y="579" font-family="DejaVu Sans" font-size="19" font-weight="700" text-anchor="start" fill="#B63B43">KNOWN</text>
+<text x="1002" y="617.0" font-family="DejaVu Sans" font-size="23" font-weight="400" text-anchor="start" fill="#183044">The full robot homing sequence is broken on GIGA. Homing</text>
+<text x="1002" y="649.2" font-family="DejaVu Sans" font-size="23" font-weight="400" text-anchor="start" fill="#183044">workers are created dynamically; EAGAIN can come from</text>
+<text x="1002" y="681.4" font-family="DejaVu Sans" font-size="23" font-weight="400" text-anchor="start" fill="#183044">several runtime creation paths.</text>
+<text x="1002" y="743" font-family="DejaVu Sans" font-size="19" font-weight="700" text-anchor="start" fill="#A8680C">NOT ESTABLISHED</text>
+<text x="1002" y="780.0" font-family="DejaVu Sans" font-size="23" font-weight="400" text-anchor="start" fill="#183044">Which allocation or ThreadX operation failed. Heap</text>
+<text x="1002" y="812.2" font-family="DejaVu Sans" font-size="23" font-weight="400" text-anchor="start" fill="#183044">fragmentation is a hypothesis, not a confirmed diagnosis.</text>
+<path d="M1002,862 L1716,862" fill="none" stroke="#D7E1E9" stroke-width="2"/>
+<text x="1002" y="903.0" font-family="DejaVu Sans" font-size="22" font-weight="400" text-anchor="start" fill="#566B7B">Internal code/data regions are also tight: M4 fast code is 99.32%</text>
+<text x="1002" y="933.8" font-family="DejaVu Sans" font-size="22" font-weight="400" text-anchor="start" fill="#566B7B">full; static data/DMA is 96.11% full.</text>
+<rect x="60" y="1021" width="540" height="146" rx="14" fill="#ECF7F0" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="82" y="1056.0" font-family="DejaVu Sans" font-size="26" font-weight="700" text-anchor="start" fill="#28724D">Linux · passed</text>
+<text x="82" y="1100.5" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">Motion API workflow passed.</text>
+<text x="82" y="1128.85" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">72 additional regression tests passed.</text>
+<rect x="630" y="1021" width="540" height="146" rx="14" fill="#FFF5DF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="652" y="1056.0" font-family="DejaVu Sans" font-size="26" font-weight="700" text-anchor="start" fill="#A8680C">GIGA · partial</text>
+<text x="652" y="1100.5" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">M3 homing completed.</text>
+<text x="652" y="1128.85" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">Full robot sequence failed.</text>
+<rect x="1200" y="1021" width="540" height="146" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="1222" y="1056.0" font-family="DejaVu Sans" font-size="26" font-weight="700" text-anchor="start" fill="#566B7B">Not yet qualified</text>
+<text x="1222" y="1100.5" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">Sustained 3-axis application timing,</text>
+<text x="1222" y="1128.85" font-family="DejaVu Sans" font-size="21" font-weight="400" text-anchor="start" fill="#183044">full recovery and powered mechanics.</text>
+<rect x="60" y="1188" width="1680" height="48" rx="8" fill="#FFF0F1"/>
+<text x="900" y="1220" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="middle" fill="#B63B43">Current state: not a working, qualified motion baseline. Simulation success does not close the hardware failure.</text>
+<path d="M60,1260 L1740,1260" fill="none" stroke="#D7E1E9" stroke-width="2"/>
+<text x="60" y="1288" font-family="DejaVu Sans" font-size="17" font-weight="400" text-anchor="start" fill="#566B7B">2026-11-06  •  Last flashed Release test pair: bbe50064864223d7  •  Not a qualified production release</text>
+<text x="60" y="1310" font-family="DejaVu Sans" font-size="14" font-weight="400" text-anchor="start" fill="#566B7B">Evidence: motion-api-home-live18.log; motion-api-build30.log; motion-final-workflow.log; motion-final-ctest.log; runtime thread creation.</text>
+<metadata>{&quot;date&quot;: &quot;2026-11-06&quot;, &quot;test_image_pair&quot;: &quot;bbe50064864223d7d906544ed10550a2d163b644c5289ad1b89529614cce9610&quot;, &quot;evidence_sha256&quot;: {&quot;/tmp/motion-api-home-live18.log&quot;: &quot;3bd10b52294dc6a5800e16227906e33537255f71552d3f88eef966bee42bc96a&quot;, &quot;/tmp/motion-api-build30.log&quot;: &quot;b3680fefd2fba7fa9be0e9c8df835672c105a3ad219936bdbceff0db52a02837&quot;, &quot;/tmp/motion-final-workflow.log&quot;: &quot;df393a03205bda4c078ecee75121c2a43a35c0c4eb246e8153c6c986a025f258&quot;, &quot;/tmp/motion-final-ctest.log&quot;: &quot;6417540d6643a926ea6a6db4e0c58cabb48ee415961e4f5ae9400fdfb79816ef&quot;, &quot;platform/runtime/libstdcxx/backend.cpp&quot;: &quot;febe2a537e5268afe5cf551cdcf06962d8f0b42968c93ae442a546528434e32b&quot;}, &quot;scope&quot;: &quot;Read-only inspection; diagrams only. Current source and last flashed test image distinguished.&quot;}</metadata></svg>

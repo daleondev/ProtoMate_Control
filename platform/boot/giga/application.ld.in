@@ -68,7 +68,7 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >CODE AT>FLASH
 
-  /* Keep data reads out of FMC even in RAM-debug. ES0445 2.7.3 forbids
+  /* Keep ordinary data reads out of FMC when M4 code executes in SDRAM. ES0445 2.7.3 forbids
      unaligned FMC reads; prebuilt libc/C++ routines can make those accesses
      to strings and exception metadata. Only instructions move to SDRAM. */
   .rodata :

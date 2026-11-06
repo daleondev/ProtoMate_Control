@@ -56,7 +56,8 @@ namespace io::motion
                      std::shared_ptr<hal::device::IStepperDriver> driver,
                      std::shared_ptr<hal::device::IMotorFeedback> feedback = {},
                      hal::device::IStepperDriver::FaultCallback shutdown = {},
-                     std::shared_ptr<pnm::log::ISink> log_sink = {});
+                     std::shared_ptr<pnm::log::ISink> log_sink = {},
+                     std::shared_ptr<hal::IDigitalInput> reference_input = {});
         hal::device::IStepperDriver& driver() noexcept { return *m_driver; }
         const hal::device::IStepperDriver& driver() const noexcept { return *m_driver; }
         ~StepperMotor();

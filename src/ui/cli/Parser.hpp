@@ -8,10 +8,12 @@ namespace ui::gui
 #include "pneumo/meta.hpp"
 
 #include <concepts>
+#include <array>
 #include <expected>
 #include <functional>
 #include <iosfwd>
 #include <meta>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -59,6 +61,10 @@ namespace ui::cli
     {
         void setup(Parser& parser, ui::motion::Robot& robot);
     }
+    namespace motion
+    {
+        void setup(Parser&, ui::motion::Client&, ui::motion::Robot&, std::stop_token);
+    }
     namespace motor
     {
         void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
@@ -78,6 +84,21 @@ namespace ui::cli
         std::optional<char> short_name;
         std::string description;
         std::optional<std::string> value_name;
+    };
+
+    // Borrowed metadata used by reflected commands: all strings and arrays
+    // have static storage in flash. Dynamic Command registrations remain owning.
+    struct ArgumentView {
+        std::string_view name;
+        std::string_view description;
+        bool optional{};
+        bool variadic{};
+    };
+    struct FlagView {
+        std::string_view name;
+        std::optional<char> short_name;
+        std::string_view description;
+        std::optional<std::string_view> value_name;
     };
 
     class Arguments
@@ -101,14 +122,14 @@ namespace ui::cli
             std::optional<std::string> value;
         };
 
-        Arguments(std::span<const ArgumentSpec> specifications,
+        Arguments(std::span<const ArgumentView> specifications,
                   std::span<const std::string> values,
-                  std::span<const FlagSpec> flag_specifications,
+                  std::span<const FlagView> flag_specifications,
                   std::span<const ParsedFlag> flags) noexcept;
 
-        std::span<const ArgumentSpec> m_specifications;
+        std::span<const ArgumentView> m_specifications;
         std::span<const std::string> m_values;
-        std::span<const FlagSpec> m_flagSpecifications;
+        std::span<const FlagView> m_flagSpecifications;
         std::span<const ParsedFlag> m_flags;
     };
 
@@ -201,6 +222,14 @@ namespace ui::cli
         Callback callback;
     };
 
+    struct CommandView {
+        std::string_view name;
+        std::string_view description;
+        std::span<const ArgumentView> arguments;
+        std::span<const FlagView> flags;
+        Callback callback;
+    };
+
     enum class ExecutionError : std::uint8_t
     {
         None,
@@ -225,6 +254,9 @@ namespace ui::cli
       public:
         [[nodiscard]] auto registerCommand(Command command) -> std::expected<void, std::string>;
 
+        // Metadata must outlive the parser; intended for compile-time catalogs.
+        [[nodiscard]] auto registerStaticCommand(CommandView command) -> std::expected<void, std::string>;
+
         [[nodiscard]] auto contains(std::string_view command_name) const noexcept -> bool;
 
         [[nodiscard]] auto execute(std::string_view line, std::ostream& output) const -> ExecutionResult;
@@ -241,15 +273,23 @@ namespace ui::cli
         friend void filesystem::setup(Parser& parser);
         friend void utilities::setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);
         friend void robot::setup(Parser& parser, ui::motion::Robot& robot);
+        friend void motion::setup(Parser&, ui::motion::Client&, ui::motion::Robot&, std::stop_token);
         friend void motor::setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
 
         struct Executor;
-        [[nodiscard]] auto find(std::string_view name) const noexcept -> const Command*;
+        [[nodiscard]] auto find(std::string_view name) const noexcept -> const CommandView*;
 
-        std::vector<Command> m_commands;
+        struct OwnedCommand {
+            Command command;
+            std::vector<ArgumentView> arguments;
+            std::vector<FlagView> flags;
+        };
+        std::vector<std::unique_ptr<OwnedCommand>> m_ownedCommands;
+        std::vector<CommandView> m_commands;
         std::once_flag m_filesystemRegistration;
         std::once_flag m_utilitiesRegistration;
         std::once_flag m_motorRegistration;
+        std::once_flag m_motionRegistration;
         std::once_flag m_robotRegistration;
         std::once_flag m_displayRegistration;
         std::once_flag m_stateRegistration;
@@ -348,43 +388,53 @@ namespace ui::cli
             constexpr auto name{ std::meta::identifier_of(CommandFunction) };
             constexpr auto description{ std::meta::extract<DescriptionType>(annotations[0]) };
 
-            Command cmd{ .name = std::string(name),
-                         .description = std::string(description),
-                         .arguments = {},
-                         .flags = {},
-                         .callback = bind([:CommandFunction:]) };
-
-            // Clang synthesizes reserved __N/__range identifiers for expansion statements.
-            // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
-            template for (constexpr auto annotation :
-                          std::span(annotations.data() + 1, annotations.size() - 1))
-            {
-                // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
-                using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
-                static_assert(util::IsName<Type> || util::IsArg<Type> || util::IsFlag<Type>,
-                              "Invalid type for secondary annotation!");
-
-                if constexpr (util::IsName<Type>) {
-                    constexpr auto name_override{ std::meta::extract<Type>(annotation) };
-                    static_assert(!name_override.name.empty(), "Command name must not be empty.");
-                    cmd.name = std::string(name_override.name);
+            // Build the immutable metadata once at compile time. The runtime
+            // registration stores just views and the bound callback.
+            constexpr auto static_name = [=] {
+                auto result = name;
+                template for (constexpr auto annotation : std::span(annotations.data()+1,annotations.size()-1)) {
+                    using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
+                    if constexpr (util::IsName<Type>) {
+                        constexpr auto value = std::meta::extract<Type>(annotation);
+                        result = std::define_static_string(std::string_view(value.name));
+                    }
                 }
-                else if constexpr (util::IsArg<Type>) {
-                    constexpr auto arg{ std::meta::extract<Type>(annotation) };
-                    cmd.arguments.emplace_back(
-                      std::string(arg.name), std::string(arg.description), arg.optional, arg.variadic);
+                return result;
+            }();
+            static constexpr auto arguments = [=] {
+                std::array<ArgumentView,annotations.size()> result{};
+                std::size_t count{};
+                template for (constexpr auto annotation : std::span(annotations.data()+1,annotations.size()-1)) {
+                    using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
+                    static_assert(util::IsName<Type> || util::IsArg<Type> || util::IsFlag<Type>);
+                    if constexpr (util::IsArg<Type>) {
+                        constexpr auto value = std::meta::extract<Type>(annotation);
+                        result[count++] = { std::define_static_string(std::string_view(value.name)),
+                          std::define_static_string(std::string_view(value.description)), value.optional, value.variadic };
+                    }
                 }
-                else if constexpr (util::IsFlag<Type>) {
-                    constexpr auto flag{ std::meta::extract<Type>(annotation) };
-                    cmd.flags.emplace_back(
-                      std::string(flag.name),
-                      flag.short_name == '\0' ? std::nullopt : std::optional<char>{ flag.short_name },
-                      std::string(flag.description),
-                      flag.value_name.empty() ? std::nullopt : std::optional<std::string>{ flag.value_name });
+                return std::pair{result,count};
+            }();
+            static constexpr auto flags = [=] {
+                std::array<FlagView,annotations.size()> result{};
+                std::size_t count{};
+                template for (constexpr auto annotation : std::span(annotations.data()+1,annotations.size()-1)) {
+                    using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
+                    if constexpr (util::IsFlag<Type>) {
+                        constexpr auto value = std::meta::extract<Type>(annotation);
+                        result[count++] = { std::define_static_string(std::string_view(value.name)),
+                          value.short_name == '\0' ? std::nullopt : std::optional<char>{value.short_name},
+                          std::define_static_string(std::string_view(value.description)),
+                          value.value_name.empty() ? std::nullopt : std::optional<std::string_view>{
+                            std::define_static_string(std::string_view(value.value_name))} };
+                    }
                 }
-            }
-
-            auto registration{ parser.registerCommand(std::move(cmd)) };
+                return std::pair{result,count};
+            }();
+            auto registration = parser.registerStaticCommand({ .name = static_name,
+              .description = std::define_static_string(std::string_view(description)),
+              .arguments = std::span{arguments.first}.first(arguments.second),
+              .flags = std::span{flags.first}.first(flags.second), .callback = bind([:CommandFunction:]) });
             if (!registration) {
                 throw std::runtime_error{ registration.error() };
             }

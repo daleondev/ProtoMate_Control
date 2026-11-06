@@ -75,6 +75,9 @@ namespace hal
             virtual std::chrono::nanoseconds maximumPeriod() const noexcept = 0;
             virtual std::uint32_t bufferPulses() const noexcept { return 256; }
             virtual std::optional<std::int64_t> endTickOffset() const noexcept { return {}; }
+            // Rolling schedules can advance their timestamp origin while retaining
+            // cumulative pulse ordinals. Splice publishes the origin atomically.
+            virtual std::uint64_t timeBase() const noexcept { return 0; }
             virtual std::uint32_t initialOffset() const noexcept { return 0; }
             virtual util::Result<Timing> timing(PulseCount zero_based_pulse) const noexcept = 0;
             // Batch evaluation may reuse local inversion work; the trajectory
@@ -231,6 +234,13 @@ namespace hal
         {
             return std::unexpected(std::make_error_code(std::errc::not_supported));
         }
+        // One thread owns refill preparation. Install/remove while all axes
+        // are stopped. The notification may run in an IRQ and only wakes that
+        // thread; preparePending() evaluates sequences with interrupts enabled.
+        using RefillNotification = std::function<void()>;
+        [[nodiscard]] virtual util::Result<> setRefillNotification(RefillNotification)
+        { return std::unexpected(std::make_error_code(std::errc::not_supported)); }
+        virtual void preparePending() noexcept {}
         // Thread context only. Atomically replace the selected timed sequences.
         // Changed edges must be strictly after preserve_until; that boundary
         // must still be >= 2 ms away when publishing. Preparation runs outside

@@ -94,7 +94,9 @@ namespace icc
             std::uint64_t id{};
             Lane lane{ Lane::Normal };
             bool cancel_sent{};
-            std::optional<OutgoingFrame> request;
+            // Release encoded bytes on submission; a deferred call only needs
+            // correlation/cancellation state while waiting for its response.
+            std::unique_ptr<OutgoingFrame> request;
             std::function<bool()> pending;
             std::function<Clock::duration()> remaining;
             std::function<void(std::span<const std::byte>, std::optional<ServiceError>)> finish;
@@ -223,7 +225,7 @@ namespace icc
                 m_outgoingCalls.push_back({
                   .id = id,
                   .lane = lane,
-                  .request = std::move(frame),
+                  .request = std::make_unique<OutgoingFrame>(std::move(frame)),
                   .pending = [owned] { return owned->pending(); },
                   .remaining = [owned] { return owned->remainingTime(); },
                   .finish =

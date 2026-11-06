@@ -1,5 +1,6 @@
 #include "Application.hpp"
 #include "io/motion/ProfileMemory.hpp"
+#include "common/motion/OperatingEnvelope.hpp"
 #include "common/icc/catalog/actions.hpp"
 #include "common/icc/catalog/services.hpp"
 #include "common/icc/catalog/topics.hpp"
@@ -15,17 +16,18 @@ namespace io
         // Motor-shaft units, retaining the previous application's placeholder
         // reference coordinates until the mechanics are calibrated.
         constexpr motion::Controller::Configuration MOTOR_CONFIGURATION{
-            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16U },
-            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16U },
-            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, 16U }
+            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, ::motion::operating::MICROSTEPS[0] },
+            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, ::motion::operating::MICROSTEPS[1] },
+            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, ::motion::operating::MICROSTEPS[2] }
         };
     }
 
-    Application::Application(icc::ITransport& transport)
+    Application::Application(icc::ITransport& transport, ControllerFactory controller_factory)
       : m_bridge{ m_bus, m_iccContext, transport }
       , m_stateTopic{ m_bus.topic<^^icc::Topics::io_controller_state>() }
       , m_logSink{ std::make_shared<logging::Sink>(m_bus) }
       , m_diagnostics{ m_bus }
+      , m_controllerFactory{ std::move(controller_factory) }
     {
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::IO);
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::IO);
@@ -36,7 +38,7 @@ namespace io
             }
             if (status.state == icc::ConnectionState::Failed ||
                 status.reason == icc::ConnectionReason::PeerStopped) {
-                requestStop();
+                if(m_motorServer)m_motorServer->peerLost(status.reason==icc::ConnectionReason::PeerStopped);
             }
         });
 
@@ -62,8 +64,10 @@ namespace io
         try {
             // Static storage maps to M4 local D2 SRAM, unlike the AXI heap.
             static motion::ProfileMemory profileMemory;
-            m_motion = std::make_unique<motion::Controller>(
-              MOTOR_CONFIGURATION, motion::Controller::DriverFactory{}, m_logSink, &profileMemory);
+            m_motion = m_controllerFactory ? m_controllerFactory(m_logSink, &profileMemory)
+              : std::make_unique<motion::Controller>(
+                  MOTOR_CONFIGURATION, motion::Controller::DriverFactory{}, m_logSink, &profileMemory);
+            m_controllerFactory = {};
             m_motorServer = std::make_unique<motion::Server>(m_bus, *m_motion);
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
             m_threads.start(*this, "io");
@@ -146,6 +150,7 @@ namespace io
         }
         try {
             m_motorServer->run(m_stopSource.get_token());
+            requestStop();
         } catch (const std::exception& error) {
             m_state.fail();
             pnm::log::error(m_logSink, "Motor service failed: {}", error.what());

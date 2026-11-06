@@ -23,8 +23,8 @@ namespace hal::util
         Enqueued,
         Completed
     };
-#if defined(GIGA_MOTION_BENCH)
-    // Benchmark supplies the recorder. No dependency on application contracts;
+#if defined(GIGA_MOTION_BENCH) || defined(GIGA_MOTION_API_TEST)
+    // Test images supply the recorder. No dependency on application contracts;
     // normal firmware compiles the hooks away entirely.
     void intercoreTrace(InterCoreStage stage,
                         unsigned lane = 0,

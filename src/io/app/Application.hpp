@@ -23,7 +23,9 @@ namespace io
       public:
         // Construction initializes logging; application workers start in start().
         // The endpoint must outlive the application.
-        explicit Application(icc::ITransport& transport);
+        using ControllerFactory = std::function<std::unique_ptr<motion::Controller>(
+          std::shared_ptr<pnm::log::ISink>, std::pmr::memory_resource*)>;
+        explicit Application(icc::ITransport& transport, ControllerFactory controller_factory = {});
         ~Application();
         Application(const Application&) = delete;
         Application& operator=(const Application&) = delete;
@@ -48,10 +50,15 @@ namespace io
         // Measured ARM housekeeping peaks are below 3 KiB. Hosted Debug uses
         // wider C++ frames and retains its 16 KiB allowance.
         static constexpr std::size_t HOUSEKEEPING_STACK_SIZE =
-          sizeof(void*) == 4 ? 8UZ * 1024UZ : 16UZ * 1024UZ;
-        static constexpr runtime::thread::Definition ICC_THREAD{ .priority = 4, .stack_size = 32UZ * 1024UZ };
-        static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14,
-                                                                         .stack_size = HOUSEKEEPING_STACK_SIZE };
+          sizeof(void*) == 4 ? 4UZ * 1024UZ : 16UZ * 1024UZ;
+        // ARM ICC high-water mark: 11,876 bytes. Keep 24 KiB for dispatch
+        // nesting while leaving room for three simultaneous motor workers.
+        static constexpr runtime::thread::Definition ICC_THREAD{
+            .priority = 4, .stack_size = sizeof(void*) == 4 ? 24UZ * 1024UZ : 32UZ * 1024UZ };
+        // Bounded trajectory decode/response adds ~8 KiB to the service call
+        // chain; this is separate from the preparation worker's stack.
+        static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 3,
+                                                                         .stack_size = 16UZ * 1024UZ };
         static constexpr runtime::thread::Definition DIAGNOSTIC_THREAD{ .priority = 20,
                                                                         .stack_size = HOUSEKEEPING_STACK_SIZE };
 
@@ -73,6 +80,7 @@ namespace io
         bool m_stopping{};
         std::stop_source m_stopSource;
         // Created on start; shared enable remains off until explicitly requested.
+        ControllerFactory m_controllerFactory;
         std::unique_ptr<motion::Controller> m_motion;
         std::unique_ptr<motion::Server> m_motorServer;
         // Destroy/join workers before any of the state their entries access.

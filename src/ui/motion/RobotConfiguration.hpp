@@ -5,6 +5,7 @@
 #include "common/motion/Trajectory.hpp"
 #include <array>
 #include <optional>
+#include <functional>
 
 namespace ui::motion
 {
@@ -26,10 +27,11 @@ namespace ui::motion
     };
     struct HomeConfiguration
     {
+        // Positive-direction seek, release and slow re-latch. The timeout bounds
+        // the whole operation; this API does not provide a travel-distance limit.
         bool configured{};
         bool positive{};
         pnm::units::AngularVelocity seek{}, latch{};
-        pnm::units::Angle backoff{}, maximum_travel{};
         pnm::units::Time timeout{};
     };
     struct WorkFrame
@@ -56,6 +58,7 @@ namespace ui::motion
         CartesianPosition workspace_minimum{}, workspace_maximum{};
         WorkFrame work{};
         pnm::units::Velocity feed{};
+        // Numerical approximation only; step quantization is reported separately.
         pnm::units::Distance path_tolerance{}, blend_tolerance{};
         JointPosition joint_blend_tolerance{};
         std::array<std::uint8_t, 3> homing_order{ 0, 1, 2 };
@@ -65,6 +68,13 @@ namespace ui::motion
     // Deliberately empty until this machine's mechanics have been calibrated.
     // Simulation fixtures are never substituted for a missing physical config.
     [[nodiscard]] std::optional<RobotConfiguration> boardRobotConfiguration();
+    using ConfigurationProvider = std::function<std::optional<RobotConfiguration>(
+      const ::motion::trajectory::Capabilities&)>;
+    // Composition installs the native plant's profile before application workers
+    // start. Hardware retains its explicit commissioning configuration.
+    void setSimulationConfigurationProvider(ConfigurationProvider provider);
+    [[nodiscard]] std::optional<RobotConfiguration> executionConfiguration(
+      const ::motion::trajectory::Capabilities& hardware);
     [[nodiscard]] RobotConfiguration simulationConfiguration(
       const ::motion::trajectory::Capabilities& hardware,
       bool archived_geometry = false);
@@ -72,9 +82,11 @@ namespace ui::motion
     class RobotModel final
     {
       public:
-        RobotModel(RobotConfiguration configuration, ::motion::trajectory::Capabilities hardware);
+        enum class Scope { Axes, Robot };
+        RobotModel(RobotConfiguration configuration, ::motion::trajectory::Capabilities hardware,
+                   Scope scope = Scope::Robot);
         [[nodiscard]] const RobotConfiguration& configuration() const noexcept { return m_configuration; }
-        [[nodiscard]] const ScaraKinematics& kinematics() const noexcept { return m_kinematics; }
+        [[nodiscard]] const ScaraKinematics& kinematics() const { return m_kinematics.value(); }
         [[nodiscard]] const auto& hardware() const noexcept { return m_hardware; }
         [[nodiscard]] RobotError physicalAdmission() const noexcept;
         [[nodiscard]] std::uint64_t fingerprint() const noexcept;
@@ -96,7 +108,7 @@ namespace ui::motion
         ::motion::trajectory::Capabilities m_hardware;
         std::array<RotaryAxisConversion, 2> m_rotary;
         LinearAxisConversion m_linear;
-        ScaraKinematics m_kinematics;
+        std::optional<ScaraKinematics> m_kinematics;
         std::array<double, 3> m_scale{}, m_offset{};
     };
 }

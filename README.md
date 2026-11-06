@@ -21,68 +21,78 @@ and console. M7 mounts persistent internal-flash storage at `/flash`; M4 does
 not mount the volume. Both runtimes include filesystem support.
 Motor construction leaves all drivers disabled; initialization, enabling and
 motion are explicit CLI operations. Display/touch bring-up uses `display`
-commands. A shared TouchGFX showcase runs on M7 and Linux; robot planning and application-specific screens remain future work.
+commands. A shared TouchGFX showcase runs on M7 and Linux; application-specific GUI screens remain future work.
 
-## Motion architecture qualification
+## Motion API: motors, axes and robot
 
-The dedicated paired `giga-motion-bench-debug` / `giga-motion-bench-release`
-images measure raw ICC, coroutine transport, full messaging, planning/interpolation
-and the STEP backend while keeping motor enable inactive. They do not expose
-experimental coordinated motion through the production application.
+M7 owns the motion client, bounded job history, axis conversion and robot planning.
+M4 owns admission, driver state, execution and local stopping. CLI commands are
+asynchronous: a returned job ID means submitted; `motion jobs <id>` reports IO
+acceptance and the eventual result. Returning to the prompt does not cancel a move.
 
-The coordinated-motion qualification target is **12.5 kHz per axis**.
-The command-admission target remains **5 ms**, and adjustment onset remains
-**20 ms**. Exact counts, trajectory limits and local stopping after stream loss
-remain required. The bounded hardware attempt at this rate **failed**: M3 produced
-one measured 7.88–7.92 µs high interval per move instead of the required 5 µs.
-Counts were exact, but this does not qualify the executor. Further qualification
-stopped and normal firmware was restored. The Controller enforces the 12.5 kHz cap;
-that cap is not a claim that the complete motion path has passed acceptance.
+| Control | Units | Commands |
+|---|---|---|
+| `motor` | Shaft degrees / rpm | Existing raw moves, homing, dynamics and buffering |
+| `axis` | Shoulder/elbow degrees; Z mm | `status`, `move`, `moveto`, `home`, `jog`, `stop` |
+| `robot` | Joint coordinates or Cartesian mm | `status`, `home`, `move joints`, `moveto joints`, `move point`, `moveto point`, `stop` |
+| `motion` | Shared lifecycle/jobs | `init`, `enable`, `disable`, `status`, `jobs`, `wait`, `cancel`, `stop`, `abort` |
 
-Raw transfer and constant-frequency STEP capability are distinct from trajectory
-preparation, command admission and validated stopping after stream loss. The measured gates,
-firmware identifiers, distributions and remaining qualification work are in
-[the motion architecture report](docs/motion-architecture/README.md).
-[Build, capture and fixture instructions](examples/giga_motion_bench/README.md)
-make the measurements repeatable.
+`motion init` leaves drivers disabled. Initialize and enable explicitly, then home
+before absolute/axis/robot motion. Execution requires the native simulator's
+mechanical configuration or a verified physical configuration. The physical
+configuration is deliberately unset. Preview fixtures are never substituted for it.
 
-## Finite motion executor on M4
+Examples after homing:
 
-`io::motion::Controller` now exposes `prepareExecution`, `startExecution`,
-`renewExecution`, `stopExecution` and `executionStatus`. `execute` combines
-preparation and start. Preparation validates complete value-only profiles while
-STEP is idle; start arms their common epoch. Drivers must already be initialized,
-enabled and the participating motors referenced. No method enables drivers implicitly.
+```text
+axis move shoulder -5 --speed 10
+axis jog z -1 --duration 1
+robot moveto joints 30 30 10 --speed 0.25
+robot move point -1 -1 0
+motion jobs
+motion wait 4 --timeout 10
+motion cancel 4
+```
 
-The executor accepts one bounded command for up to three axes: rest-to-rest,
-monotone profiles in **microsteps**, fixed direction per axis, at most **12.5 kHz**,
-**10 seconds** and **1,000,000 steps** per profile. Omit an axis's profile to leave
-it stationary. Profiles can have different durations. Independent motor commands
-remain available when this executor is not reserving the axes.
+Axis dynamics are deg/s, deg/s², deg/s³ or mm/s, mm/s², mm/s³. Zero/omitted values
+select configured defaults. Robot `--speed`, `--accel`, `--decel` and `--jerk` are
+factors of configured limits in (0,1]; zero selects defaults. Speed defaults to
+0.25. Cartesian point moves interpolate **joints**, so their TCP paths can curve.
+Straight Cartesian paths remain previews; blending, live override and hold/resume
+are not exposed as executable robot features.
 
-Every installed schedule contains a nominal prefix followed by a complete local
-jerk-limited brake. The M4 worker advances the prefix through guarded DMA splices;
-its frontier is at most **20 ms** ahead of the sampled execution time. Cancellation
-stops renewal. Loss of a **20 ms command lease**, or a delayed worker, leaves the
-already installed brake executable without the producer. Braking duration depends
-on velocity, acceleration and configured limits; it is not a promise to reach rest
-within 20 ms. A keepalive cannot restart a stopped command. Fault/limit responses
-remain immediate stops, with explicit recovery and renewed referencing.
+M4 atomically excludes command families. Raw motor commands can coexist under
+existing per-motor buffering rules; axis jobs may run on separate axes; a robot
+job reserves all three. Families cannot mix. Reservations start before executable
+planning and last through deceleration and cleanup. Busy results identify the
+owner. Configuration/state revisions are checked again before starting; stale
+plans emit no pulses. Read-only status and previews remain available.
 
-The priority-1 worker uses a 16 KiB stack, wakes at 1 ms intervals while active,
-attempts renewal every 7 ms, and uses two reusable schedule banks sharing immutable
-nominal profiles in a reusable 25,408-byte local-SRAM pool. Heap staging storage
-is released when idle. DMA uses 32-pulse halves, a four-half
-preparation workspace and a 2 ms publication guard. Trajectory evaluation and
-stopping preparation are bounded; no per-renewal allocation or per-pulse thread
-notification is introduced. IRQs continue to refill hardware-timed STEP data.
+`motion jobs` retains 32 execution records. Waiting explicitly does not transfer
+ownership; a wait timeout leaves the motion running. `axis stop` also stops the
+whole group if that axis belongs to a robot job. Axis/robot stops decelerate with
+holding torque retained. Raw `motor stop` remains an immediate abort; abort and
+disable invalidate affected references. No stop or reconnect resumes motion.
 
-This local execution API is implemented but **not hardware-qualified**. The full Robot/ICC
-trajectory protocol, Cartesian admission, streaming, blends, live retiming,
-hold/resume and a qualified end-to-end command latency remain subsequent work.
-The existing trajectory service therefore still advertises
-`coordinated_execution = false`. Existing direct motor CLI commands retain their
-own execution path. [API, measured limits and verification evidence](src/io/motion/EXECUTOR.md).
+The configured ceiling is **6,250 pulses/s on each axis**, with microsteps
+**16 / 16 / 8**. Joint/point moves share one normalized profile and one scaled
+stopping-progress profile. Endpoints are quantized once, and completely zero
+moves do not arm outputs. Finite programs, including stopping continuations, are
+limited to **90 seconds**. Continuous jog uses rolling timing toward the actual
+soft-limit boundary; the default timed jog requests deceleration after one second.
+
+Two deadlines serve different purposes: the UI ownership lease is **250 ms**,
+renewed in one batch every **50 ms**; local M4 execution maintenance uses a
+**20 ms** renewal and **40 ms** committed frontier. UI loss selects an already
+installed brake on M4. An M4 execution failure invokes the hardware guard and
+invalidates uncertain references; it is not a guaranteed controlled stop.
+
+The Linux workflow exercises the native simulated plant through the production
+CLI, ICC and controller. Hardware application qualification is in progress;
+prior isolated STEP captures do not qualify this full API. Approximate 100 ms
+interaction remains a measured usability objective, not a claimed bound.
+Powered mechanical acceptance requires calibrated limits and transmissions.
+[Executor architecture and verification](src/io/motion/EXECUTOR.md).
 
 ## Native Linux robot simulation
 
@@ -117,7 +127,7 @@ adapter; the partition addresses and erase geometry are defined in one place.
 | `src/common/` | Shared contracts, motion profiles, application lifecycle concept, ICC bridge and transports |
 | `src/io/` | M4 entry point, IO application, motor ownership and motion execution |
 | `src/simulation/` | Native hardware process, machine models, independent SDL/OpenGL viewer and tests |
-| `src/ui/` | M7 entry point, UI application, CLI and shared GUI; future planning |
+| `src/ui/` | M7 entry point, UI application, CLI, shared GUI, axis conversion and robot planning |
 
 Each firmware compiles only its own application target, `proto::io` or
 `proto::ui`. Both use `proto::common`. These are compiled static libraries;
@@ -183,10 +193,12 @@ and `disable()` also removes enable and invalidates references. Driver faults
 immediately drop shared enable; a diagnostic worker cancels and joins all motion.
 Recovery requires explicit initialization and enabling. IO shutdown disables the
 motors before draining ICC. Motor settings live in `io/app/Application.cpp`:
-1.8° full steps, 16 microsteps and placeholder 135° shaft reference coordinates.
+1.8° full steps, 16/16/8 microsteps for M1/M2/M3 and placeholder 135° shaft
+reference coordinates. These shaft placeholders do not supply a calibrated axis
+or robot configuration.
 
 The motor service dispatcher handles urgent stop/disable requests and telemetry.
-One bounded command worker (priority 16, 16 KiB stack) executes ordinary services;
+One bounded command worker (priority 2, 16 KiB ARM stack) executes ordinary services and program preparation;
 additional ordinary requests return `Busy` while it is occupied. UART verification
 and initialization run outside the controller admission lock, and enable settling
 is cancellable. Stop invalidates pending initialization/enable work and queued
@@ -201,7 +213,8 @@ application-owned `ui::motion::Client`; only IO owns the physical controller.
 
 M7 exposes the CLI through **USB-C CDC** (no UART bridge). Use `help` or
 `help <command>`. Available commands are `pwd`, `cd`, `ls`, `touch`, `mkdir`,
-`rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack`, `heap`, `state` and `motor`.
+`rmdir`, `rm`, `cp`, `mv`, `cat`, `echo`, `grep`, `time`, `stack`, `heap`, `state`,
+`display`, `motor`, `motion`, `axis` and `robot`.
 Quoting, wildcard expansion, pipes and `>`/`>>` redirection are supported.
 For example, `echo "hello world" | grep world` and `time "heap io"`.
 `heap ui` / `stack ui` inspect UI locally; `heap io` / `stack io` request IO's
@@ -233,8 +246,8 @@ motor disable
 - `motor home <motor> [--seek 5] [--latch 0.5] [--timeout 30]` seeks, releases and slowly re-latches the reference switch.
 - `motor speed <motor> <rpm>` replans the uncommitted remainder of an active move. It can be rejected once all remaining pulses are already scheduled.
 - `motor defaults <motor> [--accel <deg/s²>] [--decel <deg/s²>] [--jerk <deg/s³>]` reads/updates idle motor defaults in RAM.
-- `motor stop [motor|all]` aborts the selected motor and its buffered successor while retaining holding torque. Other motors continue.
-- `motor jobs [id]` reports the most recent 32 jobs. Returning from a CLI command does not cancel its job.
+- `motor stop [motor|all]` aborts the selected motor and its buffered successor while retaining holding torque and invalidating its reference. Other independent motors continue; targeting a current robot group aborts that whole group.
+- `motor jobs [id]` uses the shared execution-job registry. `motion jobs [id]` shows all command families; returning from a CLI command does not cancel its job.
 
 Moves accept `--accel`, `--decel`, `--jerk` (zero selects the motor default),
 `--timeout` (seconds, zero means unlimited) and `--buffer` (`aborting`, `buffered`,
@@ -242,7 +255,8 @@ Moves accept `--accel`, `--decel`, `--jerk` (zero selects the motor default),
 have one queued successor. A configured default jerk of zero selects a trapezoid.
 `accepted` includes queued/executing work; only a terminal result confirms its outcome.
 INDEX feedback is labelled as a pseudo measurement of driver phase.
-No mechanical axis conversions, kinematics or synchronized moves are exposed.
+Axis conversion and coordinated positioning are exposed through `axis` and `robot`,
+with the family exclusion and configuration requirements described above.
 
 Linux uses ncursesw with separate logs, line editing and command history when
 attached to a terminal. Redirected input/output, `TERM=dumb`, or
@@ -262,19 +276,25 @@ The shared message catalogs live in `src/common/icc/catalog/`:
 
 Both applications register all three catalogs in their constructors using their
 own IO/UI role. `Topics::io_logs` carries IO log text to UI. `Topics::io_motor_state`
-publishes all three motor states at up to 50 Hz, including while idle or disabled.
+publishes all three motor states at up to 20 Hz, including while idle or disabled.
 Both the bridge and UI subscription use latest-only delivery. `Services::io_memory`
 provides memory diagnostics. `Services::io_motor` carries initialization,
 enable, speed and default-setting requests. `Services::io_motor_stop` reserves
 urgent transport capacity for stop/disable. `Actions::io_motor_motion` carries
-individual moves and homing, with periodic feedback and terminal results. Shared
-motor payloads live in `src/common/motion/Motor.hpp` and serialize through Pneumo.
+raw individual moves and homing, with periodic feedback and terminal results.
+`Services::io_trajectory` handles authoritative snapshots, reservations and bounded
+program preparation. `Services::io_trajectory_control` uses the urgent lane for
+batched lease renewal, stop, abort and reservation release. `Actions::io_motion`
+starts a prepared axis/robot program and retains its lifecycle through cleanup.
+Shared motor payloads live in `src/common/motion/Motor.hpp`; compact versioned
+program packets live in `src/common/motion/Trajectory.hpp`. Both use the existing
+ICC bridge rather than a separate motion transport.
 
 `motor status` and `motor driver status` read UI's latest snapshot without a
 service request. Missing telemetry, disconnection and samples older than 500 ms
 produce explicit errors. Freshness uses UI's local receive clock; the snapshot's
 IO timestamp is informational, and its increasing sequence rejects duplicate or
-out-of-order samples. The worker waits 20 ms after publishing; blocking IO or ICC
+out-of-order samples. The worker waits 50 ms after publishing; blocking IO or ICC
 processing can extend the interval. It does not catch up missed publications in
 a tight loop that would starve diagnostics and logging. Command replies contain the outcome, `commandGeneration`
 and operation-specific values (motion defaults or the scheduled speed-change
@@ -286,7 +306,8 @@ and joins stay outside the ICC context. Controller completion callbacks only
 wake this worker. UI's application worker caches telemetry and dispatches action callbacks for
 `ui::motion::Client`, retaining its job handles until completion. Services and
 action admission time out after three seconds; execution uses the requested
-motion timeout. No request is automatically retried. `commandGeneration`
+motion timeout. Lease renewals have a shorter 150 ms service timeout and only
+one renewal request may be outstanding. No request is automatically retried. `commandGeneration`
 rejects submissions overtaken by a stop, disable or initialization. Acknowledgements
 update UI's generation immediately, so subsequent moves do not wait for telemetry;
 older snapshots cannot roll it back. IO validates admission against its current
@@ -332,14 +353,17 @@ a thread-context operation, not an ISR-safe or allocation-free API.
 | Thread in each GIGA image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
 | ThreadX timer worker | 0 | Port default |
-| `io.iccThread` | 4 | 32 KiB |
-| `intercore.notify` | 3 | 8 KiB |
+| `io.iccThread` | 4 | 24 KiB (32 KiB on Linux) |
+| `intercore.notify` | 3 | 2 KiB (8 KiB on Linux) |
 | `ui.iccThread` | 4 | 32 KiB |
 | `ui.cliThread` | 5 | 16 KiB (64 KiB on Linux) |
-| `io.applicationThread` / `ui.applicationThread` | 14 | 8 / 16 KiB |
+| M4 motion executor | 1 | 16 KiB |
+| M4 command/preparation worker | 2 | 16 KiB (24 KiB on Linux) |
+| `io.applicationThread` | 3 | 16 KiB |
+| `ui.applicationThread` | 6 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
-| M4 motion diagnostics | 18 | 8 KiB |
-| `io.diagnosticThread` (heap/stack service) | 20 | 8 KiB |
+| M4 motion diagnostics | 18 | 6 KiB (8 KiB on Linux) |
+| `io.diagnosticThread` (heap/stack service) | 20 | 4 KiB (16 KiB on Linux) |
 | `ui.logThread` | 20 | 8 KiB |
 | Runtime cleanup/reaper | 31 | 2 KiB |
 
@@ -1489,31 +1513,42 @@ board and analyzer connected, all three STEP inputs read HIGH for approximately
 Fit the specified external STEP pull-downs and enable pull-up before repeating
 the reset capture; firmware cannot maintain GPIO output drive while reset is
 asserted. The capture and transitions are recorded in
-`build/giga-step-results/reset-results.json`. Normal Debug firmware is restored;
-IO heap/stack services and disabled-motor status work over USB/ICC.
-The shared GUI foundation is described above. M7 robot previews are described
-below; coordinated robot execution, application-specific screens and EtherCAT
-robot integration remain unfinished. Use the GIGA KiCad wiring; Nucleo connector
-numbers do not apply.
+`build/giga-step-results/reset-results.json`. These bench results do not qualify
+the new integrated motion API; its application-level hardware checks are in
+progress. Application-specific screens and EtherCAT robot integration remain
+future work. Use the GIGA KiCad wiring; Nucleo connector numbers do not apply.
 
-### Robot planning foundation — execution not yet implemented
+### Robot planning and execution
 
-`src/ui/motion/Robot` is an application-owned asynchronous preview API. Its M7
-worker handles typed motor/axis conversions, SCARA FK/IK, joint interpolation,
-Cartesian endpoint positioning and straight Cartesian paths. Point positioning
-uses joint interpolation, so its TCP path may curve. Linear positioning
-preserves the selected elbow branch and certifies an adaptive quintic joint
-approximation and its retimed motor trajectory against continuous bounds.
-Subdivisions and storage are bounded; exceeding them rejects the preview.
+`src/ui/motion/Robot` owns one asynchronous M7 planning worker for executable
+axis/robot requests and independent previews. Executable joint and Cartesian
+point commands compile into one compact normalized profile with signed per-axis
+pulse counts. M4 validates the reservation, hardware configuration, relevant
+state revisions and limits before binding outputs or accepting the execution
+action. The three axes share progress and a scaled stopping profile.
 
-`boardRobotConfiguration()` deliberately returns no configuration. No calibrated
-mechanical parameters have been supplied. The `180` and `archived` fixtures
-explicitly select uncalibrated simulation geometry and never permit physical
-robot execution. IO electrical step resolution is queried over ICC before a
-preview; configuration fingerprints and positive finite dynamics are checked.
+A Cartesian point command selects a destination and follows joint interpolation;
+its TCP path may curve. Straight Cartesian paths use bounded adaptive quintic
+subdivision for previews only. Preview certification reports numerical path
+approximation separately from step quantization; neither establishes mechanical
+accuracy. Blends, live override, hold/resume and continuous toolpath execution
+remain future work.
+
+`boardRobotConfiguration()` deliberately returns no configuration until physical
+transmissions, limits, homing coordinates and robot geometry are calibrated.
+Executable Linux motion obtains its configuration from the native simulator's
+mechanical model. The `180` and `archived` preview fixtures are explicitly
+uncalibrated and cannot authorize physical execution. Axis operations require
+conversions and limits but do not require robot link geometry.
+
+Homing reuses the motor's positive-direction seek, release, debounce and slow
+re-latch sequence. Configuration supplies seek/latch speeds, overall timeout and
+robot homing order. Negative-direction homing is explicitly rejected. Only
+successfully completed stages establish references; cancellation prevents the
+next robot stage from starting. A timeout is not a calibrated travel-limit
+measurement.
 
 ```text
-robot
 robot preview joints 10 80 40 --fixture 180 --start-shoulder 0 --start-elbow 68.7549354 --start-z 30
 robot preview point 235 178 35 --fixture 180 --start-shoulder 0 --start-elbow 68.7549354 --start-z 30
 robot preview linear 235 178 35 --fixture 180 --start-shoulder 0 --start-elbow 68.7549354 --start-z 30
@@ -1521,70 +1556,50 @@ robot jobs 1
 robot cancel 1
 ```
 
-Rotary positions use degrees; Cartesian/Z positions use millimetres. Linear
-`--feed` uses mm/s and `--speed` is a fraction in `(0, 1]`. Every preview requires
-an explicit starting pose. `robot jobs` reports duration, selected branch,
-quantized endpoint, conservative path-error budget, motor dynamic bounds and
-segment consumption. It reports a planning result, not mechanical accuracy.
-The 64 retained jobs are independent previews, not an executable motion queue.
-Cancelling an active preview cancels its pending ICC inspection and cooperatively
-interrupts planning and pulse validation. Disconnect does the same while retaining
-an `Unknown` outcome; reconnect never replays the cancelled work. Per-job stop
-state stays in internal RAM, outside the POD planning arena.
+`robot jobs` / `robot cancel` address preview jobs. Executable commands use
+`motion jobs` / `motion cancel`, including commands submitted through the raw
+motor interface. The preview history has 64 records; execution history has 32.
+Previews require an explicit starting pose and report duration, selected elbow
+branch, requested/quantized endpoint, approximation and quantization budgets,
+dynamic bounds and storage consumption. Cancelling a preview interrupts its
+inspection and numerical work; no preview generates STEP output.
 
-The worker runs at priority 15, below ICC, CLI, touch and state dispatch. Its
-256 KiB POD planning arena occupies the existing M7 UI SDRAM region. Its 24 KiB
-stack has a separate, linker-checked DTCM reservation; allocating this stack
-from the general heap exhausted ICC startup allocations on hardware. Runtime
-thread attributes support explicitly borrowed aligned stack storage, retained
-until join completes. Thread-control objects remain in ordinary private RAM.
-No shared ICC-memory layout is changed.
+The M7 planner runs at priority 15 with a dedicated 24 KiB DTCM stack and a
+256 KiB POD arena in UI SDRAM. Planning state and execution history reuse this
+reserved arena; new motion buffers do not depend on the general UI heap. M4 uses
+one execution worker and a shared nine-slot profile pool for one coordinated
+group or three independent axis groups. Driver operations and preparation run
+outside ICC dispatch. Initial profile compilation releases the controller lock;
+final binding rechecks admission before hardware changes.
 
-The shared trajectory library provides versioned little-endian serialization,
-CRC checking, fixed-width fields, conservative polynomial validation and an
-allocation-free pulse-time iterator. Four segments fit a full ICC frame below
-2,048 bytes. The isolated IO session model tests staged uploads, duplicates,
-generation checks, stopping tails and atomic commit rejection with a fake
-executor. It is **not connected to the physical STEP engine**. The production
-`io_trajectory` service permits inspection and returns `Unsupported` for every
-mutating operation. It advertises `coordinated_execution=false`.
+The versioned `io_trajectory` contract supports authoritative inspection,
+reservation and finite/jog/homing preparation. Its capability snapshot advertises
+the implemented coordinated executor. Urgent controls renew ownership or stop
+work; `io_motion` owns accepted execution through its terminal result. The older
+segmented upload/session model remains algorithm-test infrastructure and is not
+the executable Cartesian toolpath API.
 
-| Requested implementation stage | Current acceptance status |
+| Capability | Current implementation and verification |
 | --- | --- |
-| Configuration, conversions, FK/IK and previews | Implemented foundation; mathematical and onboard preview tests pass |
-| Transfer, ownership and group scheduling | Finite local executor and axis exclusivity implemented; Robot/ICC transaction-to-executor commit path pending |
-| Coordinated positioning and configured homing | Not implemented through the robot API |
-| Cartesian lines, blends and lookahead | Line/curve previews implemented; queued blends and execution lookahead pending |
-| Jog, hold/resume, stop, override and fallback selection | Finite executor cancellation and local brake implemented; robot-level jog, resume and override pending |
-| Integrated qualification | Finite executor has separate electrical and host regression coverage; integrated Robot/ICC and physical commissioning pending |
+| Conversions, FK/IK and previews | Implemented; host mathematical and API coverage |
+| Family exclusion, reservations and jobs | Implemented; controller and simulator regressions |
+| Independent axes and coordinated joint/point moves | Connected through production CLI/ICC to the executor; native simulator workflows pass |
+| Sequential homing, timed/continuous jog and controlled stops | Implemented; simulator checks include homing → stop → homing and group stopping |
+| Cartesian lines, blends, lookahead, hold/resume and override | Preview/numerical infrastructure only; executable features remain future work |
+| GIGA application qualification | In progress; no full application timing or endurance acceptance claimed |
+| Powered mechanics | Pending physical calibration and commissioning |
 
-The existing independent raw-motor commands remain available. They must not be
-treated as the new coordinated execution path. In particular, their fixed DMA
-pulse buffering does not establish the requested 10 ms immutable horizon.
-No robot motion, homing, jog, blend, watchdog-reset safety or powered mechanical
-accuracy is qualified by the preview tests.
+Run the complete simulator workflow with:
 
-Hardware verification on 2026-11-03 used the Atmel-ICE and a 24 MHz analyzer,
-with motor power disconnected and only the three STEP channels attached:
+```sh
+python3 -m pytest src/simulation/tests/test_motion_api.py --simulator build/debug-linux/Application
+```
 
-- All nine existing STEP bench cases passed, including 100,000 pulses on each
-  channel under combined load, deliberate underrun, wrap and variable periods.
-  Worst combined-load service time was 145,379 M4 cycles (605.75 µs), a 4.23×
-  margin against that bench's 2.56 ms refill deadline. DIR and enable were not
-  captured. This margin does not qualify a future coordinated executor.
-- Normal Debug pair `fb07c430eccba773` passed joint, endpoint and linear previews,
-  missing-configuration and unreachable-target rejection, and 30 further
-  previews with GUI/ICC/USB traffic. Heap growth was 24 bytes after warm-up;
-  planner stack headroom was 39.05%. All drivers remained disabled in status.
-- A concurrent three-second capture contained 72,000,000 samples with all three
-  STEP channels LOW. It verifies that previews do not generate motion.
-
-Reproduce the preview stress with
-`python3 scripts/robot_hardware_check.py --rounds 30`. Raw captures, manifests and
-console logs are in `build/robot-verification/`; the compact result is retained
-in `docs/robot-motion/verification-20261103.json`. The complete Linux CTest suite
-passes 55/55 targets; robot math, protocol/API and runtime stack tests also pass
-with ASan/UBSan. Both GIGA configurations build, with the M4 RAM audit passing.
+The workflow checks independently observed simulated joint/TCP coordinates,
+concurrent axes, quantized endpoints, timed/continuous jog, command-family
+rejection, controlled group stopping, explicit waits and bounded execution
+history. Standalone STEP benchmarks and preview captures remain useful subsystem
+evidence, but cannot substitute for the integrated GIGA motion tests.
 
 ### Clocks and ownership
 
@@ -1638,7 +1653,8 @@ The STEP backend forces OC inactive before switching GPIOs into timer AF mode.
 | ESC reset | D65 | PH9, open-drain, released |
 
 Retain the established voltage-conversion circuits and shared TMC UART wiring.
-M2/M3 addresses are 0/1, microstepping is 1/16 and stealthChop is the default.
+M2/M3 UART addresses are 0/1; microstepping is 1/16 for M2 and 1/8 for M3.
+M1 retains 1/16 on the DM542T DIP switches. StealthChop is the TMC2209 default.
 The [motor perfboard KiCad project](hardware/perfboard/README.md) provides the
 GIGA wiring schematic, hand-soldering layout and complete harness table. Power
 the GIGA through USB-C or the display shield’s protected VIN supply; the perfboard
@@ -1720,15 +1736,15 @@ compatibility. No application filesystem writes to XIP flash.
 | --- | --- |
 | 0x08000000 / 0x08100000 | One 128 KiB sector per internal M7/M4 bootstrap |
 | 0x08180000–0x081FFFFF | 512 KiB persistent storage, bank 2 sectors 4–7; M7 owner |
-| 0x10000000 | 2 KiB M4 vectors; remaining 190 KiB SRAM1/SRAM2 instruction alias for motion, runtime and ICC code/constants |
-| 0x30030000 / 0x30046000 | 88 KiB M4 data/DMA; 8 KiB M4 MSP |
+| 0x10000000 | 2 KiB M4 vectors; remaining 192 KiB SRAM1/SRAM2 instruction alias for motion, runtime and ICC code/constants |
+| 0x30030800 / 0x30046000 | 86 KiB M4 data/DMA; 8 KiB M4 MSP |
 | 0x24000000 / 0x24040000 | 256 KiB M7 data/heap; 256 KiB M4 unwind metadata/heap |
 | 0x00000000 | 64 KiB M7 ITCM, `.itcm` sections |
 | 0x20000000 | M7 vectors (2 KiB), `.dtcm`/`.dtcm_bss` working data (110 KiB) |
 | 0x2001C000 / 0x2001E000 | 8 KiB bootstrap scratch; 8 KiB M7 MSP |
 | 0x38000000 / 0x3800F000 | 60 KiB ICC reservation; 4 KiB boot handoff |
 | 0xC0000000 / 0xC0200000 | Two 2 MiB framebuffer slots; each uses 1,228,800 bytes |
-| 0xC0400000 | 2 MiB M4 RAM-debug code |
+| 0xC0400000 | 2 MiB reserved M4 ordinary application code with `GIGA_M4_SDRAM_CODE` |
 | 0xC0600000 | 2 MiB future large UI buffers |
 
 The onboard SDRAM is 8 MiB AS4C4M16SA-6BIN, bank 1, 16-bit, four banks, **12 row
@@ -1738,12 +1754,12 @@ This industrial part specifies 4096 refreshes per 64 ms; use the
 FMC initialization enables its GPIO D/E/F/G/H clocks itself, since bootstrap
 does not run the application's general GPIO initialization. GPIOH carries
 SDRAM clock-enable, chip-select and write-enable.
-M4's 0x10000000 code range aliases SRAM1 and the first 64 KiB of SRAM2;
+M4's 0x10000000 code range aliases SRAM1 and the first 66 KiB of SRAM2;
 it is not additional RAM. The linker and both image validators exclude the
 corresponding data alias from application data segments. Frequently executed ICC
 bridge/transport code resides here so UI QSPI reads do not stall those instruction
 fetches. M4's separate 256 KiB AXI allocation begins with the RAM code's exception
-unwind metadata (13,816 bytes in normal Release); its heap starts after that data.
+unwind metadata (13,892 bytes in normal Release); its heap starts after that data.
 The bootstrap copies these records and both image validators enforce M4 ownership
 of the region. M7 CPU-only filesystem metadata, startup/reaper stacks and console
 rings occupy `.dtcm`/`.dtcm_bss`; USB FS copies through its FIFO and its DMA-capable
@@ -1756,8 +1772,9 @@ explicitly map the installed QSPI/SDRAM. This prevents speculative M7 accesses
 to unused FMC banks from stalling SDRAM and underrunning LTDC, as described in
 [ST AN4861](https://www.st.com/resource/en/application_note/an4861-introduction-to-lcdtft-display-controller-ltdc-on-stm32-mcus-stmicroelectronics.pdf).
 The remaining attributes are: ICC and framebuffers normal/non-cacheable/XN;
-QSPI read-only executable; internal file storage non-cacheable/XN; private RAM/heaps XN; UI SDRAM cacheable/XN; M4 debug
-SDRAM normal executable. Future DMA users of cacheable UI buffers must clean
+QSPI read-only executable; internal file storage non-cacheable/XN; private RAM/heaps XN; UI SDRAM cacheable/XN;
+M4 code SDRAM normal, non-cacheable and executable only when its image manifest enables it.
+Future DMA users of cacheable UI buffers must clean
 before DMA reads and invalidate after DMA writes, with exclusive 32-byte-aligned
 cache-line ownership. Current DMA2D framebuffers are non-cacheable and require
 only the existing publication barriers. Future ITCM kernels should avoid C++
@@ -1766,7 +1783,7 @@ Bootstrap enters after hardware reset and invalidates retained cache contents
 without cleaning them, preventing old dirty lines from overwriting a newly
 downloaded RAM helper. M7 enables caches after memory initialization. M4 inherits
 its final MPU setup from the internal stub: disabling the MPU while executing
-the RAM-debug image would make SDRAM instruction fetches non-executable.
+an SDRAM-code image would make its instruction fetches non-executable.
 
 M7 waits for M4 to park before requesting D2 SRAM clocks; its clock requests
 would otherwise keep D2CKRDY asserted. M4 enables SEVONPEND so the HSEM event can
@@ -1858,6 +1875,17 @@ cmake --build --preset giga-debug
 # and giga-io-ram-debug.
 ```
 
+`GIGA_M4_SDRAM_CODE=ON` selects the reserved 2 MiB SDRAM region for ordinary M4
+instructions in either Debug or Release. QSPI remains the persistent image
+storage, and the same bootstrap validates and copies the code before starting
+M4. Timing-critical code remains in internal instruction SRAM. This option is
+currently opt-in while the application motion workload is being qualified.
+For example, configure the existing paired test with
+`cmake --preset giga-motion-api-release -DGIGA_M4_SDRAM_CODE=ON`.
+Combined builds pass the selection to their normal IO child preset; it does not
+substitute another application or drop a test fixture. The `giga-ram-debug`
+preset is a Debug convenience for the same mechanism, not a separate runtime.
+
 Per-core directories contain ELF, BIN, HEX, MAP and separate `.debug` symbols,
 internal bootstrap images, memory percentages and M4 RAM audit reports. The M7
 build also produces `memory-helper.elf`. Combined builds produce `images/io.bin`,
@@ -1925,15 +1953,16 @@ arm-none-eabi-gdb build/giga-ui-debug/ui-controller.elf
 # A second GDB loads the matching io-controller.elf and connects to :3334.
 ```
 
-Keep automatic GDB flash-map probing disabled for a live XIP application:
-probing `stmqspi` changes the QSPI mode while both cores execute from it. After
+Keep automatic GDB flash-map probing disabled for a live application:
+probing `stmqspi` changes the QSPI mode while M7 code and both cores' constants
+can still be read from it. After
 detaching, explicitly resume any core left halted. A deliberate core halt will
 trigger the existing ICC connection-loss policy; reset both cores afterwards.
 
 Use `monitor giga_halt_both` before reset/maintenance; flash with the script,
 not GDB `load`. Ordinary M4 XIP code cannot use FPB hardware breakpoints at
-0x90xxxxxx. `giga-ram-debug` stores the image in QSPI but executes its ordinary
-code in SDRAM at 0xC0400000, permitting **software** breakpoints after bootstrap
+0x90xxxxxx. `GIGA_M4_SDRAM_CODE=ON` stores the image in QSPI but executes its ordinary
+M4 code in SDRAM at 0xC0400000, permitting **software** breakpoints after bootstrap
 has copied it. Read-only data and exception metadata remain in QSPI: prebuilt
 libc/C++ routines can use unaligned reads that FMC does not support
 ([ES0445 §2.7.3](https://www.st.com/resource/en/errata_sheet/es0445-stm32h745xig-stm32h755xi-stm32h747xig-stm32h757xi-device-errata-stmicroelectronics.pdf)).
@@ -1983,7 +2012,7 @@ Use this checklist for subsequent regression and load tests:
 
 The GIGA schematic/pinout and local MCU/panel references are in
 [`docs/arduino_giga_r1_wifi`](docs/arduino_giga_r1_wifi) and
-[`docs/display`](docs/display). Shared trajectory previews run on M7;
-independent motor profile generation remains on M4 for now. Its bounded
+[`docs/display`](docs/display). Axis/robot planning and trajectory previews run on M7;
+raw motor profile generation and all physical execution remain on M4. Its bounded
 execution contract and ICC services/actions/topics remain separate from the
 physical transport and the GUI.

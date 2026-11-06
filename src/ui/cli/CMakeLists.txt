@@ -18,6 +18,8 @@ target_sources(proto_ui_cli INTERFACE
     state.cpp
     motor.hpp 
     motor.cpp
+    motion.hpp
+    motion.cpp
     robot.cpp
 )
 

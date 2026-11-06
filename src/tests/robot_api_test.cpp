@@ -1,12 +1,15 @@
 #include "common/icc/bridge/Bridge.hpp"
 #include "common/icc/catalog/services.hpp"
+#include "common/icc/catalog/actions.hpp"
 #include "common/icc/examples/ContextThread.hpp"
 #include "common/icc/transport/InProcessTransport.hpp"
 #include "runtime/thread.hpp"
 #include "ui/cli/Parser.hpp"
 #include "ui/cli/robot.hpp"
+#include "ui/cli/motion.hpp"
 #include "ui/motion/Robot.hpp"
 #include <gtest/gtest.h>
+#include <future>
 #include <numbers>
 #include <sstream>
 
@@ -234,4 +237,154 @@ TEST(RobotCancellation, DisconnectCancelsActiveRequestWithoutReplayOnReconnect)
     std::this_thread::sleep_for(20ms);
     EXPECT_EQ(service.poll(), 0U);
     EXPECT_EQ(robot.job(*job)->state, Robot::JobState::Unknown);
+}
+
+TEST(MotionCancellation, RobotStopCancelsPreparationWithoutWaitingForTelemetry)
+{
+    pnm::msg::Bus bus;
+    ui::motion::Client client{ bus };
+    Robot robot{ bus, client };
+    client.setConnected(true);
+    robot.setConnected(true);
+    const auto robotJob = robot.home();
+    const auto axisJob = client.create(motion::Family::Axis, 1);
+    ui::cli::Parser parser;
+    ui::cli::motion::setup(parser, client, robot, {});
+    std::ostringstream output;
+    EXPECT_TRUE(parser.execute("robot stop", output)) << output.str();
+    EXPECT_TRUE(client.cancellation(robotJob).stop_requested());
+    EXPECT_FALSE(client.cancellation(axisJob).stop_requested());
+    const auto jobs = client.jobs();
+    ASSERT_EQ(jobs.size(), 2U);
+    EXPECT_EQ(jobs[0].state, ui::motion::Client::JobState::Stopping);
+    EXPECT_EQ(jobs[1].state, ui::motion::Client::JobState::Submitting);
+}
+
+TEST(MotionCancellation, QueuedAcceptanceCannotUndoAnAlreadyRequestedStop)
+{
+    using Client = ui::motion::Client;
+    using Execution = pnm::msg::ActionExecution<motion::MotorProgress, motion::MotorResult>;
+    pnm::msg::Bus bus;
+    Client client{ bus };
+    client.setConnected(true);
+    auto commands = bus.service<^^icc::Services::io_motor>().serve(
+      [](const motion::MotorRequest&) { return motion::MotorResponse{ .message = {}, .commandGeneration = 1 }; });
+    auto initialized = std::async(std::launch::async, [&] {
+        return client.request({ .operation = motion::MotorOperation::Initialize });
+    });
+    ASSERT_TRUE(waitUntil([&] { return commands.poll() != 0; }));
+    ASSERT_TRUE(initialized.get().ok);
+    std::optional<Execution> execution;
+    auto actions = bus.action<^^icc::Actions::io_motor_motion>().serveDeferred(
+      [&](const motion::MotorGoal&, Execution value) { execution.emplace(std::move(value)); });
+    const auto job = client.submit({ .position = 1, .velocity = 5 });
+    ASSERT_EQ(actions.poll(), 1U);
+    ASSERT_TRUE(execution);
+    ASSERT_TRUE(execution->accept());
+    ASSERT_TRUE(execution->feedback({ .position = 123 }));
+    client.cancel(job);
+    // Acceptance is already queued, but callbacks have not been dispatched yet.
+    std::jthread worker([&](std::stop_token stop) { client.run(stop); });
+    ASSERT_TRUE(waitUntil([&] { return client.jobs().front().progress.position == 123; }));
+    EXPECT_EQ(client.jobs().front().state, Client::JobState::Stopping);
+    ASSERT_TRUE(execution->cancelled({ .outcome = motion::MotorOutcome::Stopped, .final_state = {} }));
+    EXPECT_TRUE(waitUntil([&] { return client.jobs().front().state == Client::JobState::Stopped; }));
+}
+
+TEST(MotionAdmission, AcquireUsesTheKnownBootAndReturnsOneAuthoritativeSnapshot)
+{
+    pnm::msg::Bus bus;
+    ui::motion::Client client{ bus };
+    client.setConnected(true);
+    std::vector<tr::Operation> operations;
+    auto service = bus.service<^^icc::Services::io_trajectory>().serve([&](const tr::Packet& packet) {
+        const auto request = tr::decodeRequest(packet);
+        EXPECT_TRUE(request);
+        tr::Reply reply{ .boot = 7 };
+        if (request) {
+            operations.push_back(request->operation);
+            if (request->operation == tr::Operation::Acquire) {
+                EXPECT_EQ(request->boot, 7U);
+                reply.session = 42;
+                reply.position = { 10, 20, 30 };
+            }
+        }
+        return tr::encode(reply);
+    });
+    auto inspection = std::async(std::launch::async, [&] { return client.inspect(); });
+    ASSERT_TRUE(waitUntil([&] { service.poll(); return inspection.wait_for(0ms) == std::future_status::ready; }));
+    EXPECT_EQ(inspection.get().boot, 7U);
+    const auto job = client.create(motion::Family::Axis, 1);
+    auto admission = std::async(std::launch::async, [&] { return client.acquire(job, 123); });
+    ASSERT_TRUE(waitUntil([&] { service.poll(); return admission.wait_for(0ms) == std::future_status::ready; }));
+    const auto result = admission.get();
+    EXPECT_EQ(result.session, 42U);
+    EXPECT_EQ(result.position, (tr::Counts{ 10, 20, 30 }));
+    EXPECT_EQ(operations, (std::vector{ tr::Operation::Inspect, tr::Operation::Acquire }));
+}
+
+TEST(MotionLease, ValidatesAcknowledgementsWithoutClaimingThatFailedRenewalsStoppedMotion)
+{
+    enum class Response { Corrupt, WrongBoot, WrongVersion, FullSnapshot, Rejected, ServiceFailure, Valid };
+    pnm::msg::Bus bus;
+    ui::motion::Client client{ bus };
+    client.setConnected(true);
+    std::atomic response{ Response::Corrupt };
+    auto trajectory = bus.service<^^icc::Services::io_trajectory>().serve([](const tr::Packet& packet) {
+        const auto request = tr::decodeRequest(packet);
+        EXPECT_TRUE(request);
+        tr::Reply reply{ .boot = 17, .session = 5 };
+        return tr::encode(reply);
+    });
+    auto control = bus.service<^^icc::Services::io_trajectory_control>().serve([&](const tr::Packet& packet) {
+        const auto request = tr::decodeRequest(packet);
+        EXPECT_TRUE(request);
+        EXPECT_EQ(request->operation, tr::Operation::Renew);
+        EXPECT_EQ(request->boot, 17U);
+        tr::Reply reply{ .boot = 17, .acknowledgement = true };
+        const auto selected = response.load();
+        if (selected == Response::ServiceFailure) throw std::runtime_error("test service failure");
+        if (selected == Response::WrongBoot) reply.boot = 18;
+        if (selected == Response::Rejected) reply.error = tr::Error::LeaseExpired;
+        if (selected == Response::FullSnapshot) reply.acknowledgement = false;
+        auto encoded = tr::encode(reply);
+        if (selected == Response::Corrupt) encoded.bytes[4] ^= std::byte{1};
+        if (selected == Response::WrongVersion) encoded.bytes[1] ^= std::byte{1};
+        return encoded;
+    });
+    std::jthread server([&](std::stop_token stop) {
+        while(!stop.stop_requested()) {
+            trajectory.poll();
+            control.poll();
+            std::this_thread::sleep_for(1ms);
+        }
+    });
+    const auto job = client.create(motion::Family::Axis, 1);
+    ASSERT_EQ(client.acquire(job, 123).error, tr::Error::None);
+    std::jthread worker([&](std::stop_token stop) { client.run(stop); });
+    const std::array cases{
+      std::pair{Response::Corrupt, tr::Error::Checksum},
+      std::pair{Response::WrongBoot, tr::Error::Stale},
+      std::pair{Response::WrongVersion, tr::Error::Protocol},
+      std::pair{Response::FullSnapshot, tr::Error::Protocol},
+      std::pair{Response::Rejected, tr::Error::LeaseExpired},
+      std::pair{Response::ServiceFailure, tr::Error::Unknown}};
+    for(const auto& [reply, error]:cases) {
+        const auto failures=client.leaseStatus().failures;
+        response=reply;
+        ASSERT_TRUE(waitUntil([&] {
+            const auto status=client.leaseStatus();
+            return status.failures>failures && status.error==error;
+        }));
+        EXPECT_EQ(client.jobs().front().state, ui::motion::Client::JobState::Planning);
+        EXPECT_EQ(client.leaseStatus().acknowledgements, 0U);
+    }
+    EXPECT_TRUE(client.leaseStatus().transport_error);
+    response=Response::Valid;
+    ASSERT_TRUE(waitUntil([&] {return client.leaseStatus().acknowledgements>0;}));
+    const auto status=client.leaseStatus();
+    EXPECT_EQ(status.error, tr::Error::None);
+    EXPECT_FALSE(status.transport_error);
+    EXPECT_TRUE(status.last_acknowledgement);
+    EXPECT_EQ(client.jobs().front().state, ui::motion::Client::JobState::Planning);
 }

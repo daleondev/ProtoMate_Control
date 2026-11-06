@@ -25,13 +25,25 @@
 extern "C" std::uint32_t giga_motion_bench_buffer_edges;
 extern "C" volatile std::uint32_t giga_motion_bench_refill_ticks;
 extern "C" std::uint32_t giga_motion_bench_refill_index[3];
+extern "C" volatile std::uint32_t giga_motion_bench_worst_refill_cycles;
+extern "C" volatile std::uint32_t giga_motion_bench_worst_budget_ticks;
 // Debugger-readable screening counters: completed axis, scratch capacity,
 // changed revision, expanded queued prefix, turnover/TC, target mismatch.
 extern "C" { std::uint32_t giga_motion_bench_splice_retries[6]{}; }
+// Last startup per axis: origin, armed compare, DMA first word, replacement
+// tick, old compare, new compare, new first word, DMA reload performed.
+extern "C" { std::array<std::array<std::uint32_t, 8>, 3> giga_motion_bench_startup{}; }
 #endif
 
+extern "C" { unsigned motion_debug_fault_line{}; }
 namespace hal::util
 {
+    struct StepGenerator::RefillWorkspace
+    {
+        std::array<step::Timing, STEP_BUFFER_EDGES / 2> timings;
+        std::array<std::uint32_t, STEP_BUFFER_EDGES> edges;
+        std::array<std::uint32_t, STEP_BUFFER_EDGES / 2> periods;
+    };
     struct StepGenerator::SpliceWorkspace
     {
         struct Channel
@@ -192,6 +204,7 @@ namespace hal::util
     auto StepGenerator::splice(const std::array<std::shared_ptr<const step::TimedSequence>, 3>& sequences,
                                std::uint32_t preserve_until) -> util::Result<>
     {
+        preparePending();
         if (m_splicing.test_and_set())
             return fail(std::errc::device_or_resource_busy);
         struct Unlock
@@ -244,6 +257,8 @@ namespace hal::util
                 // this is not a failure of the remaining axes' installed paths.
                 if (a.finished)
                     return retry(0);
+                if (a.refill_pending)
+                    return retry(4);
                 if (!a.sequence)
                     return fail(std::errc::operation_not_permitted);
                 if (a.entries > work.capacity)
@@ -254,7 +269,10 @@ namespace hal::util
                 w.base = a.completed_pulses;
                 w.entries = a.entries;
                 w.target = a.target;
-                w.origin = a.first_rise;
+                if(sequences[i]->timeBase()<a.sequence->timeBase() ||
+                   sequences[i]->timeBase()-a.sequence->timeBase()>=STEP_HORIZON)
+                    return fail(std::errc::invalid_argument);
+                w.origin = step_add(a.first_rise,std::uint32_t(sequences[i]->timeBase()-a.sequence->timeBase()));
                 w.next = a.next_rise;
                 w.terminal = a.terminal;
                 w.generated = a.generated;
@@ -359,6 +377,7 @@ namespace hal::util
                 w.tails[half] = { w.generated, w.next, w.last, w.terminal };
             }
         }
+        preparePending(); // DMA may have consumed a half during replacement calculation.
         {
             STEP_LOCK;
             StepSample sample;
@@ -388,6 +407,7 @@ namespace hal::util
                                              step_distance(preserve_until, tick) < STEP_HORIZON);
             };
             std::array<std::uint32_t, 3> compares{};
+            std::array<bool, 3> restart{};
             // Validate ALL axes before changing ANY DMA-owned word.
             for (unsigned i = 0; i < 3; ++i) {
                 if (!sequences[i])
@@ -397,19 +417,21 @@ namespace hal::util
                 const auto& channel = sample.channels[i];
                 if (a.finished || a.revision != w.revision)
                     return retry(2);
+                if (a.refill_pending)
+                    return retry(4);
                 if (w.unchanged) {
                     // DMA may have advanced while the immutable replacement
                     // was prepared. No DMA word changes on this path: certify
                     // the CURRENT queued prefix, rather than requiring the
                     // original snapshot's buffer to remain active.
                     if (a.terminal || !w.prefix || *w.prefix < 0 ||
-                        std::uint64_t(*w.prefix) < step_distance(a.first_rise, a.next_rise) ||
+                        std::uint64_t(*w.prefix) < step_distance(w.origin, a.next_rise) ||
                         sequences[i]->count() < a.generated)
                         return retry(3);
                     continue;
                 }
                 if (a.completed_pulses < w.base || a.completed_pulses - w.base > w.entries ||
-                    channel.transfer_complete || channel.remaining > w.entries)
+                    channel.transfer_complete || channel.remaining == 0 || channel.remaining > w.entries)
                     return retry(4);
                 w.shift = unsigned((a.completed_pulses - w.base) / (w.entries / 2));
                 if (channel.target != (w.target ^ (w.shift & 1U)))
@@ -419,6 +441,18 @@ namespace hal::util
                 if (compares[i] != channel.compare &&
                     (!mutableEdge(compares[i]) || !mutableEdge(channel.compare)))
                     return fail(std::errc::invalid_argument);
+                // Direct-mode DMA has already fetched the NEXT memory word,
+                // even before the first compare. Publishing RAM cannot replace
+                // that word (RM0399 16.3.3). In a protected LOW interval we can
+                // rebase the prepared buffers to the next pulse, then re-arm
+                // LOW and reload the FIFO without losing emitted-step counts.
+                const auto prefetched = m_hardware->buffers()[i][a.target][used];
+                if (prefetched != w.edges[w.shift][used]) {
+                    restart[i] = !channel.high && used % 2U == 0 && w.shift < 2 &&
+                                 mutableEdge(compares[i]) && mutableEdge(channel.compare);
+                    if (!restart[i])
+                        return retry(5);
+                }
                 for (unsigned b = 0; b < 2; ++b)
                     for (unsigned n = 0; n < w.entries; ++n) {
                         const auto old = m_hardware->buffers()[i][a.target ^ b][n];
@@ -433,7 +467,57 @@ namespace hal::util
                     continue;
                 auto& a = m_axes[i];
                 const auto& w = work.axes[i];
+                a.first_rise=w.origin;
                 if (w.unchanged) {
+                    a.sequence = sequences[i];
+                    a.requested = sequences[i]->count();
+                    a.end_tick = endTick(a.sequence.get(), a.first_rise);
+                    ++a.revision;
+                    continue;
+                }
+                if (restart[i]) {
+                    // This channel is LOW and its next edge is beyond the
+                    // protected frontier. Park DMA before rebasing its buffer
+                    // indices; published past entries may then be reused.
+                    const auto parked=m_hardware->stopAxis(i);
+                    if(parked.channels[i].high || !parked.running || parked.error) {
+                        finish(step::State::Underrun,true);
+                        return fail(std::errc::io_error);
+                    }
+                    const auto consumed = w.shift * w.entries + w.entries - sample.channels[i].remaining;
+#if defined(GIGA_MOTION_BENCH)
+                    if (w.base == 0 && consumed == 0) {
+                        auto& trace = giga_motion_bench_startup[i];
+                        trace[3] = sample.tick; trace[4] = sample.channels[i].compare;
+                        trace[5] = compares[i]; trace[6] = w.edges[0][0]; trace[7] = 1;
+                    }
+#endif
+                    a.completed_pulses = w.base + consumed / 2;
+                    a.generated = a.completed_pulses;
+                    a.target = 0;
+                    a.next_rise = compares[i];
+                    a.terminal = a.generated == sequences[i]->count();
+                    for (unsigned b = 0; b < 2; ++b)
+                        for (unsigned n = 0; n < w.entries; n += 2) {
+                            auto& data = m_hardware->buffers()[i][b];
+                            if (a.terminal) {
+                                data[n] = data[n + 1] = STEP_PARK;
+                                continue;
+                            }
+                            const auto source = consumed + b * w.entries + n;
+                            const auto half = source / w.entries, offset = source % w.entries;
+                            data[n] = w.edges[half][offset];
+                            data[n + 1] = w.edges[half][offset + 1];
+                            a.periods[b][n / 2] = w.periods[half][offset / 2];
+                            a.last_fall = data[n];
+                            a.next_rise = step_add(a.next_rise, a.periods[b][n / 2]);
+                            a.terminal = ++a.generated == sequences[i]->count();
+                        }
+                    m_hardware->publish();
+                    if (!m_hardware->arm(i, compares[i], a.entries)) {
+                        finish(step::State::Underrun, true);
+                        return fail(std::errc::timed_out);
+                    }
                     a.sequence = sequences[i];
                     a.requested = sequences[i]->count();
                     a.end_tick = endTick(a.sequence.get(), a.first_rise);
@@ -656,6 +740,108 @@ namespace hal::util
         }
         return true;
     }
+    auto StepGenerator::setRefillNotification(RefillNotification callback) -> util::Result<>
+    {
+        // Fixed allocation at registration, not during motion or under PRIMASK.
+        if (callback && !m_refill)
+            m_refill = std::make_unique<RefillWorkspace>();
+        STEP_LOCK;
+        if (m_inCallback || std::ranges::any_of(m_axes, [](const auto& a) { return !a.finished; }))
+            return fail(std::errc::device_or_resource_busy);
+        m_refillNotification.swap(callback);
+        return {};
+    }
+    void StepGenerator::preparePending() noexcept
+    {
+        if (m_preparing.test_and_set())
+            return;
+        struct Unlock { std::atomic_flag& flag; ~Unlock() { flag.clear(); } } unlock{m_preparing};
+        // Worker-owned bounded staging, never visible to DMA until committed.
+        if (!m_refill) return;
+        auto& timings = m_refill->timings;
+        auto& edges = m_refill->edges;
+        auto& periods = m_refill->periods;
+        for (unsigned i = 0; i < 3; ++i) {
+            std::shared_ptr<const step::Sequence> sequence;
+            std::optional<step::PulseCount> requested;
+            std::uint64_t revision{}, generated{}, original_generated{};
+            std::uint32_t entries{}, next{}, last{};
+            unsigned target{};
+            bool terminal{};
+            {
+                STEP_LOCK;
+                service();
+                auto& a = m_axes[i];
+                if (!m_refillNotification || !a.refill_pending || a.finished)
+                    continue;
+                sequence = a.sequence; requested = a.requested;
+                revision = a.revision; generated = original_generated = a.generated;
+                entries = a.entries; next = a.next_rise; last = a.last_fall;
+                target = a.target; terminal = a.terminal;
+                if (!sequence)
+                    for (unsigned p = 0; p < entries / 2; ++p) {
+                        if (requested && generated + p >= *requested) break;
+                        const auto t = a.timings[a.timings.size() == 1 ? 0 : generated + p];
+                        timings[p] = {std::chrono::nanoseconds(std::uint64_t(t.period) * STEP_TICK_NS),
+                                      std::chrono::nanoseconds(std::uint64_t(t.high) * STEP_TICK_NS)};
+                    }
+            }
+            bool valid = true;
+            if (sequence && !terminal) {
+                const auto count = std::min<step::PulseCount>(entries / 2, *requested - generated);
+                valid = bool(sequence->generate(generated, std::span(timings).first(count)));
+            }
+            const auto maximum = sequence ? sequence->maximumPeriod() : std::chrono::nanoseconds::max();
+            for (unsigned n = 0; valid && n < entries; n += 2) {
+                if (terminal) { edges[n] = edges[n + 1] = STEP_PARK; periods[n / 2] = 0; continue; }
+                const auto t = convertTiming(timings[n / 2]);
+                if (!t || timings[n / 2].period > maximum || t->period > STEP_HORIZON / entries) {
+                    valid = false; break;
+                }
+                periods[n / 2] = t->period;
+                last = step_add(next, t->high); next = step_add(next, t->period);
+                terminal = requested && ++generated == *requested;
+                if (!requested) ++generated;
+                edges[n] = last; edges[n + 1] = terminal ? STEP_PARK : next;
+            }
+            {
+                STEP_LOCK;
+                service();
+                auto& a = m_axes[i];
+                if (a.finished || !a.refill_pending || a.revision != revision ||
+                    a.target != target || a.generated != original_generated)
+                    continue; // A stop/replacement won while the worker calculated.
+                const auto before = m_hardware->sample();
+                const auto lead = step_distance(before.tick, a.last_fall);
+                // Copy is bounded; the old guard remains armed throughout it.
+                if (!valid || !before.running || before.error || lead < 1'000 || lead >= STEP_HORIZON) {
+                    finish(step::State::Underrun, true); return;
+                }
+                std::copy_n(edges.begin(), entries, m_hardware->buffers()[i][1U - target].begin());
+                std::copy_n(periods.begin(), entries / 2, a.periods[1U - target].begin());
+                m_hardware->publish();
+                const auto after = m_hardware->sample();
+                if (!after.running || after.error || after.channels[i].target != target ||
+                    after.channels[i].transfer_complete) {
+                    finish(step::State::Underrun, true); return;
+                }
+                a.generated = generated; a.next_rise = next; a.last_fall = last;
+                a.terminal = terminal; a.refill_pending = false;
+#if defined(GIGA_MOTION_BENCH)
+                // Complete refill transaction: notification delay, computation
+                // and publication, measured on the common 10 MHz timeline.
+                const auto elapsed = step_distance(a.refill_tick, after.tick) * 24U;
+                if (!giga_motion_bench_worst_refill_cycles ||
+                    std::uint64_t(elapsed) * giga_motion_bench_worst_budget_ticks >
+                    std::uint64_t(giga_motion_bench_worst_refill_cycles) * a.refill_budget) {
+                    giga_motion_bench_worst_refill_cycles = elapsed;
+                    giga_motion_bench_worst_budget_ticks = a.refill_budget;
+                }
+#endif
+                guard(after.tick);
+            }
+        }
+    }
     auto StepGenerator::start() noexcept -> util::Result<>
     {
         STEP_LOCK;
@@ -675,6 +861,7 @@ namespace hal::util
         m_status = {};
         for (std::size_t i{ 0 }; i < m_axes.size(); ++i) {
             m_axes[i].finished = true;
+            m_axes[i].refill_pending = false;
             m_listeners[i].notified = true;
             m_progressListeners[i].active = false;
             m_status.axes[i] =
@@ -712,6 +899,7 @@ namespace hal::util
         const auto first{ step_add(
           sample.tick, static_cast<std::uint32_t>((delay.count() + STEP_TICK_NS - 1U) / STEP_TICK_NS)) };
         axis.generated = axis.completed_pulses = 0U;
+        axis.refill_pending = false;
         axis.target = 0U;
         axis.terminal = axis.requested && *axis.requested == 0;
         const auto longest{ axis.sequence
@@ -779,68 +967,6 @@ namespace hal::util
         m_notified = m_status;
         return {};
     }
-    auto StepGenerator::prepareAxisBuffers(std::size_t index, std::chrono::nanoseconds delay) noexcept
-      -> util::Result<>
-    {
-        auto& axis{ m_axes[index] };
-        axis.generated = axis.completed_pulses = 0U;
-        axis.target = 0U;
-        axis.terminal = axis.requested && *axis.requested == 0;
-        std::uint32_t longest{};
-        if (axis.sequence) {
-            const auto timing{ convertTiming(
-              { .period = axis.sequence->maximumPeriod(),
-                .high_time = std::chrono::nanoseconds{ STEP_MIN_PHASE * STEP_TICK_NS } }) };
-            if (!timing) {
-                return std::unexpected(timing.error());
-            }
-            longest = timing->period;
-        }
-        else {
-            longest = std::ranges::max(axis.timings, {}, &Timing::period).period;
-        }
-        axis.entries =
-          2U * std::min<std::uint32_t>(
-#if defined(GIGA_MOTION_BENCH)
-                 std::clamp<std::uint32_t>(giga_motion_bench_buffer_edges, 4U, STEP_BUFFER_EDGES) / 2U,
-#else
-                 axis.sequence
-                   ? std::clamp<std::uint32_t>(axis.sequence->bufferPulses(), 1U, STEP_BUFFER_EDGES / 2U)
-                   : STEP_BUFFER_EDGES / 2U,
-#endif
-                 STEP_HORIZON / (2U * longest));
-        if (axis.requested && *axis.requested != 0 && *axis.requested < axis.entries / 2U &&
-            (!axis.sequence || !axis.sequence->endTickOffset())) {
-            axis.entries = static_cast<std::uint32_t>(*axis.requested * 2U);
-        }
-        axis.next_rise = static_cast<std::uint32_t>((delay.count() + STEP_TICK_NS - 1U) / STEP_TICK_NS);
-        axis.first_rise = axis.next_rise;
-        axis.next_rise = step_add(axis.next_rise, axis.sequence ? axis.sequence->initialOffset() : 0);
-        axis.last_fall = axis.next_rise;
-        axis.end_tick.reset();
-        if (!fill(index, 0U) || !fill(index, 1U)) {
-            return fail(std::errc::invalid_argument);
-        }
-        ++axis.revision;
-        return {};
-    }
-
-    auto StepGenerator::rebaseAxisBuffers(std::size_t index, const StepSample& origin) noexcept -> void
-    {
-        auto& axis{ m_axes[index] };
-        for (auto& buffer : m_hardware->buffers()[index]) {
-            for (std::size_t j{}; j < axis.entries; ++j) {
-                if (buffer[j] != STEP_PARK) {
-                    buffer[j] = step_add(origin.tick, buffer[j]);
-                }
-            }
-        }
-        axis.next_rise = step_add(origin.tick, axis.next_rise);
-        axis.first_rise = step_add(origin.tick, axis.first_rise);
-        axis.end_tick = endTick(axis.sequence.get(), axis.first_rise);
-        axis.last_fall = step_add(origin.tick, axis.last_fall);
-    }
-
     auto StepGenerator::validateDelays(
       const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays) noexcept -> util::Result<>
     {
@@ -864,50 +990,135 @@ namespace hal::util
     auto StepGenerator::startPrepared(
       const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays) noexcept -> util::Result<>
     {
-        if (auto result{ validateDelays(delays) }; !result) {
-            return result;
+        if (auto result = validateDelays(delays); !result) return result;
+        preparePending();
+        if (m_splicing.test_and_set()) return fail(std::errc::device_or_resource_busy);
+        struct Unlock { std::atomic_flag& flag; ~Unlock() { flag.clear(); } } unlock{m_splicing};
+        // Use the same bounded scratch as schedule replacement. Never calculate
+        // crossings with interrupts disabled or write buffers owned by DMA.
+        std::array<std::optional<step::PulseCount>, 3> requested;
+        std::array<std::uint64_t, 3> revisions{};
+        std::array<std::uint32_t, 3> sizes{};
+        std::uint32_t capacity = 2;
+        {
+            STEP_LOCK;
+            if (m_inCallback) return fail(std::errc::device_or_resource_busy);
+            service();
+            if (m_status.state != step::State::Running)
+                return fail(std::errc::operation_not_permitted);
+            for (unsigned i = 0; i < 3; ++i) {
+                if (!delays[i]) continue;
+                const auto& a = m_axes[i];
+                if (!a.finished) return fail(std::errc::device_or_resource_busy);
+                if (!a.sequence && a.timings.empty()) return fail(std::errc::operation_not_permitted);
+                revisions[i] = a.revision;
+                requested[i] = a.requested;
+                const auto maximum = a.sequence
+                  ? convertTiming({a.sequence->maximumPeriod(), std::chrono::nanoseconds{STEP_MIN_PHASE * STEP_TICK_NS}})
+                  : util::Result<Timing>{std::ranges::max(a.timings, {}, &Timing::period)};
+                if (!maximum) return std::unexpected(maximum.error());
+                const auto window = a.sequence
+                  ? std::clamp<std::uint32_t>(a.sequence->bufferPulses(), 1U, STEP_BUFFER_EDGES / 2U)
+                  : STEP_BUFFER_EDGES / 2U;
+                sizes[i] = 2 * std::min<std::uint32_t>(window, STEP_HORIZON / (2 * maximum->period));
+#if defined(GIGA_MOTION_BENCH)
+                sizes[i] = 2 * std::min(
+                  std::clamp<std::uint32_t>(giga_motion_bench_buffer_edges, 4U, STEP_BUFFER_EDGES) / 2U,
+                  STEP_HORIZON / (2 * maximum->period));
+#endif
+                if (requested[i] && *requested[i] && *requested[i] < sizes[i] / 2 &&
+                    (!a.sequence || !a.sequence->endTickOffset()))
+                    sizes[i] = std::uint32_t(*requested[i] * 2);
+                capacity = std::max(capacity, sizes[i]);
+            }
+        }
+        try {
+            if (!m_splice || m_splice->capacity < capacity)
+                m_splice = std::make_unique<SpliceWorkspace>(capacity);
+        } catch (...) { return fail(std::errc::not_enough_memory); }
+        auto& work = *m_splice;
+        struct Retire {
+            SpliceWorkspace& work;
+            ~Retire() { for (auto& a : work.axes) a.previous.reset(); }
+        } retire{work};
+        for (unsigned i = 0; i < 3; ++i) {
+            if (!delays[i]) continue;
+            auto& w = work.axes[i];
+            w.entries = sizes[i]; w.generated = 0;
+            w.first = std::uint32_t((delays[i]->count() + STEP_TICK_NS - 1) / STEP_TICK_NS);
+            w.terminal = requested[i] && *requested[i] == 0;
+            {
+                STEP_LOCK;
+                const auto& a = m_axes[i];
+                if (!a.finished || a.revision != revisions[i])
+                    return fail(std::errc::operation_canceled);
+                w.previous = a.sequence;
+            }
+            w.next = step_add(w.first, w.previous ? w.previous->initialOffset() : 0);
+            w.last = w.next;
+            const auto maximum = w.previous ? w.previous->maximumPeriod() : std::chrono::nanoseconds::max();
+            for (unsigned half = 0; half < 2; ++half) {
+                const auto count = requested[i]
+                  ? std::min<step::PulseCount>(w.entries / 2, *requested[i] - w.generated)
+                  : w.entries / 2;
+                if (w.previous) {
+                    if (!w.previous->generate(w.generated, std::span(work.timings).first(count)))
+                        return fail(std::errc::invalid_argument);
+                } else {
+                    STEP_LOCK;
+                    const auto& a = m_axes[i];
+                    if (!a.finished || a.revision != revisions[i])
+                        return fail(std::errc::operation_canceled);
+                    for (unsigned n = 0; n < count; ++n) {
+                        const auto t = a.timings[a.timings.size() == 1 ? 0 : w.generated + n];
+                        work.timings[n] = {std::chrono::nanoseconds(std::uint64_t(t.period) * STEP_TICK_NS),
+                                           std::chrono::nanoseconds(std::uint64_t(t.high) * STEP_TICK_NS)};
+                    }
+                }
+                for (unsigned n = 0; n < w.entries; n += 2) {
+                    if (w.terminal) {
+                        w.edges[half][n] = w.edges[half][n+1] = STEP_PARK;
+                        w.periods[half][n/2] = 0;
+                        continue;
+                    }
+                    const auto t = convertTiming(work.timings[n/2]);
+                    if (!t || work.timings[n/2].period > maximum || t->period > STEP_HORIZON / w.entries)
+                        return fail(std::errc::invalid_argument);
+                    w.periods[half][n/2] = t->period;
+                    w.last = step_add(w.next, t->high); w.next = step_add(w.next, t->period);
+                    ++w.generated;
+                    w.terminal = requested[i] && w.generated == *requested[i];
+                    w.edges[half][n] = w.last;
+                    w.edges[half][n+1] = w.terminal ? STEP_PARK : w.next;
+                }
+                // Let an already-running independent axis refill during a slow
+                // initial calculation. Its DMA and deadlines never pause.
+                preparePending();
+            }
         }
         STEP_LOCK;
-        if (m_inCallback) {
-            return fail(std::errc::device_or_resource_busy);
-        }
         service();
-        if (m_status.state != step::State::Running) {
-            return fail(std::errc::operation_not_permitted);
-        }
-        for (std::size_t i{}; i < m_axes.size(); ++i) {
-            if (!delays[i]) {
-                continue;
+        if (m_status.state != step::State::Running) return fail(std::errc::operation_canceled);
+        for (unsigned i = 0; i < 3; ++i)
+            if (delays[i] && (!m_axes[i].finished || m_axes[i].revision != revisions[i]))
+                return fail(std::errc::operation_canceled);
+        const auto origin = m_hardware->sample();
+        if (!origin.running || origin.error) return fail(std::errc::io_error);
+        for (unsigned i = 0; i < 3; ++i) {
+            if (!delays[i]) continue;
+            auto& a = m_axes[i]; auto& w = work.axes[i];
+            for (unsigned half = 0; half < 2; ++half) {
+                for (unsigned n = 0; n < w.entries; ++n)
+                    m_hardware->buffers()[i][half][n] = w.edges[half][n] == STEP_PARK
+                      ? STEP_PARK : step_add(origin.tick, w.edges[half][n]);
+                std::copy_n(w.periods[half].begin(), w.entries/2, a.periods[half].begin());
             }
-            if (!m_axes[i].finished) {
-                return fail(std::errc::device_or_resource_busy);
-            }
-            if (m_axes[i].timings.empty() && !m_axes[i].sequence) {
-                return fail(std::errc::operation_not_permitted);
-            }
-        }
-        // Generate relative timestamps first: trajectory inversion can take
-        // appreciable time, especially in a debug build, and must not consume
-        // the common start lead time.
-        for (std::size_t i{}; i < m_axes.size(); ++i) {
-            const auto delay{ delays[i] };
-            if (!delay) {
-                continue;
-            }
-            if (auto result{ prepareAxisBuffers(i, *delay) }; !result) {
-                return result;
-            }
-        }
-        const auto origin{ m_hardware->sample() };
-        if (!origin.running || origin.error) {
-            finish(step::State::Underrun, true);
-            return fail(std::errc::io_error);
-        }
-        for (std::size_t i{}; i < m_axes.size(); ++i) {
-            if (!delays[i]) {
-                continue;
-            }
-            rebaseAxisBuffers(i, origin);
+            a.generated = w.generated; a.completed_pulses = 0;
+            a.refill_pending = false; a.target = 0; a.terminal = w.terminal;
+            a.entries = w.entries; a.next_rise = step_add(origin.tick, w.next);
+            a.first_rise = step_add(origin.tick, w.first); a.last_fall = step_add(origin.tick, w.last);
+            a.end_tick = endTick(a.sequence.get(), a.first_rise);
+            ++a.revision;
         }
         m_hardware->publish();
         return armPrepared(delays, origin);
@@ -937,6 +1148,11 @@ namespace hal::util
                 return fail(std::errc::timed_out);
             }
             m_axes[i].finished = false;
+#if defined(GIGA_MOTION_BENCH)
+            giga_motion_bench_startup[i] = {
+              origin.tick, step_add(first, m_axes[i].sequence ? m_axes[i].sequence->initialOffset() : 0),
+              m_hardware->buffers()[i][0][0], 0, 0, 0, 0, 0 };
+#endif
             m_listeners[i].notified = false;
             m_status.pulses[i] = 0U;
             m_status.periods[i] = {};
@@ -967,6 +1183,7 @@ namespace hal::util
             return { .state = step::State::DmaError, .pulses = 0U, .counts_exact = false };
         }
         if (!m_inCallback) {
+            ++m_axes[index].revision; // Also cancels an initial preparation outside the lock.
             service();
             if (!m_axes[index].finished) {
                 const auto sample{ m_hardware->stopAxis(index) };
@@ -1030,8 +1247,14 @@ namespace hal::util
                     // Read before refilling: a just-completed buffer can still
                     // own the latest pulse until the next rising edge. Retain
                     // its period when subsequent samples see that same count.
-                    const auto period{ axis.periods[((pulses - 1U) / (axis.entries / 2U)) % 2U]
-                                                   [(pulses - 1U) % (axis.entries / 2U)] };
+                    // A LOW-gap DMA reload rebases bank zero at an arbitrary
+                    // pulse ordinal. Bank indexing is relative to that base,
+                    // not to the command's original pulse zero.
+                    const auto half = axis.entries / 2U;
+                    const auto offset = pulses > axis.completed_pulses
+                                          ? pulses - axis.completed_pulses - 1U
+                                          : std::uint64_t(half * 2U - 1U);
+                    const auto period{ axis.periods[axis.target ^ ((offset / half) & 1U)][offset % half] };
                     m_status.periods[i] = std::chrono::nanoseconds{ std::uint64_t{ period } * STEP_TICK_NS };
                 }
                 m_status.pulses[i] = pulses;
@@ -1071,8 +1294,9 @@ namespace hal::util
           std::ranges::any_of(m_axes, [](const Axis& axis) { return !axis.finished && axis.terminal; }));
         m_hardware->guard(deadline(now));
     }
-    auto StepGenerator::finish(step::State reason, bool send_notification) noexcept -> void
+    auto StepGenerator::finish(step::State reason, bool send_notification, unsigned site) noexcept -> void
     {
+        if(reason==step::State::Underrun || reason==step::State::DmaError) motion_debug_fault_line=site;
         const auto sample{ m_hardware->stop() };
         if (m_status.state != step::State::Running) {
             return;
@@ -1251,7 +1475,7 @@ namespace hal::util
             }
             // More than one completed block means the previous deadline was
             // missed. Never try to recover by silently restarting a stream.
-            if (observed.blocks != 1U ||
+            if (observed.blocks != 1U || axis.refill_pending ||
                 axis.completed_pulses > std::numeric_limits<std::uint64_t>::max() - (axis.entries / 2U) ||
                 (!axis.requested &&
                  axis.generated > std::numeric_limits<std::uint64_t>::max() - (axis.entries / 2U))) {
@@ -1272,6 +1496,13 @@ namespace hal::util
             axis.completed_pulses += axis.entries / 2U;
             axis.target = sample.channels[i].target;
             m_hardware->acknowledge(i);
+            if (m_refillNotification) {
+                axis.refill_pending = true;
+                axis.refill_tick = sample.tick;
+                axis.refill_budget = step_distance(sample.tick, axis.last_fall);
+                m_refillNotification();
+                continue;
+            }
             if (!fill(i, 1U - axis.target)) {
                 finish(step::State::DmaError, true);
                 return;

@@ -132,19 +132,22 @@ namespace ui::cli::robot
     namespace commands
     {
         [[
-            = "Robot planning previews and configuration diagnostics"_fs,
+            = "Robot execution, planning previews and configuration diagnostics"_fs,
             = Name{ "robot"_fs }
         ]] static CallbackResult overview(Robot&, const Arguments&, std::ostream& out)
         {
-            out << "robot preview joints <shoulder-deg> <elbow-deg> <z-mm>\n"
+            out << "robot home / robot status / robot stop\n"
+                   "robot move|moveto joints <shoulder-deg> <elbow-deg> <z-mm>\n"
+                   "robot move|moveto point <x-mm> <y-mm> <z-mm>  Joint interpolation; TCP may curve\n"
+                   "motion jobs [id] / motion wait <id> / motion cancel <id> track execution.\n"
+                   "robot preview joints <shoulder-deg> <elbow-deg> <z-mm>\n"
                    "robot preview point <x-mm> <y-mm> <z-mm>   Joint move to Cartesian endpoint; TCP may "
                    "curve\n"
                    "robot preview linear <x-mm> <y-mm> <z-mm>  Straight TCP path\n"
                    "All previews require --start-shoulder <deg> --start-elbow <deg> --start-z <mm>.\n"
                    "--fixture 180|archived selects uncalibrated simulation geometry explicitly.\n"
                    "robot jobs [id] / robot cancel <id>\n"
-                   "Physical robot execution is unavailable: calibrated configuration and coordinated HAL "
-                   "are pending.\n";
+                   "Executable moves require the native simulation model or a verified physical configuration.\n";
             return 0;
         }
         [[
@@ -224,7 +227,7 @@ namespace ui::cli::robot
                 }
                 const auto& p{ job->plan };
                 out << std::format(
-                  "  {:.6f} s; {} / 512 segments; elbow={}; error bound={:.4f} mm (quantization {:.4f} mm)\n",
+                  "  {:.6f} s; {} / 512 segments; elbow={}; approximation bound={:.4f} mm; separate quantization bound={:.4f} mm\n",
                   p.duration,
                   p.segments,
                   p.branch == ui::motion::ScaraKinematics::ElbowBranch::Positive ? "positive" : "negative",

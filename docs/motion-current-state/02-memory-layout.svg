@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1320" viewBox="0 0 1800 1320" role="img" aria-labelledby="title desc">
+<title id="title">Memory: storage, execution and working space</title>
+<desc id="desc">Logical allocations, not to scale. RAM usage below belongs to the last flashed test image.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#566B7B"/></marker></defs>
+<rect x="0" y="0" width="1800" height="1320" rx="0" fill="#F5F8FB"/>
+<text x="60" y="53" font-family="DejaVu Sans" font-size="19" font-weight="700" text-anchor="start" fill="#566B7B">PROTOMATE  /  CURRENT IMPLEMENTATION</text>
+<text x="60" y="110" font-family="DejaVu Sans" font-size="43" font-weight="700" text-anchor="start" fill="#183044">Memory: storage, execution and working space</text>
+<text x="60" y="156" font-family="DejaVu Sans" font-size="23" font-weight="400" text-anchor="start" fill="#566B7B">Logical allocations, not to scale. RAM usage below belongs to the last flashed test image.</text>
+<text x="1740" y="61" font-family="DejaVu Sans" font-size="22" font-weight="700" text-anchor="end" fill="#566B7B">02 / 04</text>
+<path d="M60,183 L1740,183" fill="none" stroke="#D7E1E9" stroke-width="2"/>
+<rect x="60" y="216" width="520" height="728" rx="14" fill="#EAF7F4" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="84" y="257" font-family="DejaVu Sans" font-size="29" font-weight="700" text-anchor="start" fill="#007D78">M4 private RAM</text>
+<rect x="640" y="216" width="520" height="728" rx="14" fill="#EDF4FE" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="664" y="257" font-family="DejaVu Sans" font-size="29" font-weight="700" text-anchor="start" fill="#245EA8">M7 private RAM</text>
+<rect x="1220" y="216" width="520" height="728" rx="14" fill="#FFF5DF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="1244" y="257" font-family="DejaVu Sans" font-size="29" font-weight="700" text-anchor="start" fill="#A8680C">Shared / external RAM</text>
+<text x="84" y="301" font-family="DejaVu Sans" font-size="25" font-weight="700" text-anchor="start" fill="#007D78">D2 SRAM · 288 KiB total</text>
+<text x="84" y="331" font-family="DejaVu Sans Mono" font-size="16" font-weight="400" text-anchor="start" fill="#566B7B">Code alias 0x10000000 = physical 0x30000000</text>
+<rect x="84" y="351" width="472" height="58" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="106" y="386.0" font-family="DejaVu Sans" font-size="21" font-weight="700" text-anchor="start" fill="#007D78">2 KiB vectors · 0x10000000</text>
+<rect x="84" y="419" width="472" height="117" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="104" y="451" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">192 KiB fast code + constants</text>
+<text x="104" y="482" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x10000800 · 195,280 B linked</text>
+<rect x="104" y="502" width="432" height="13" rx="6.5" fill="#D7E1E9"/>
+<rect x="104" y="502" width="429.08203125" height="13" rx="6.5" fill="#007D78"/>
+<rect x="84" y="547" width="472" height="99" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="104" y="578" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">86 KiB data + DMA buffers</text>
+<text x="104" y="607" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x30030800 · 84,640 B linked</text>
+<rect x="104" y="623" width="432" height="10" rx="5.0" fill="#D7E1E9"/>
+<rect x="104" y="623" width="415.20348837209303" height="10" rx="5.0" fill="#007D78"/>
+<rect x="84" y="658" width="472" height="57" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="106" y="693.0" font-family="DejaVu Sans" font-size="19" font-weight="700" text-anchor="start" fill="#007D78">8 KiB interrupt stack · 0x30046000</text>
+<rect x="84" y="738" width="472" height="140" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="104" y="771" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#007D78">AXI heap region · 256 KiB</text>
+<text x="104" y="803" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x24040000 → 0x24080000</text>
+<text x="104" y="834.0" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#183044">Unwind metadata precedes the heap.</text>
+<text x="104" y="860.6" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#183044">Actual allocator capacity: 248,920 B.</text>
+<text x="84" y="919" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#566B7B">The SRAM alias is not additional memory.</text>
+<rect x="664" y="288" width="472" height="107" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="684" y="320" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#245EA8">ITCM · 64 KiB</text>
+<text x="684" y="351" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x00000000 · 16,088 B linked</text>
+<rect x="684" y="369" width="432" height="10" rx="5.0" fill="#D7E1E9"/>
+<rect x="684" y="369" width="106.048828125" height="10" rx="5.0" fill="#245EA8"/>
+<rect x="664" y="410" width="472" height="185" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="684" y="442" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#245EA8">DTCM · 128 KiB</text>
+<text x="684" y="475" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x20000000: vectors, 2 KiB</text>
+<text x="684" y="503" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x20000800: data, 110 KiB</text>
+<text x="684" y="531" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x2001C000: gap, 8 KiB</text>
+<text x="684" y="559" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x2001E000: interrupt stack, 8 KiB</text>
+<rect x="664" y="612" width="472" height="143" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="684" y="644" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#245EA8">AXI private region · 256 KiB</text>
+<text x="684" y="676" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x24000000 → 0x24040000</text>
+<text x="684" y="707.0" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#183044">Static data and ordinary heap.</text>
+<text x="684" y="733.6" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#183044">Actual heap capacity: 234,336 B.</text>
+<rect x="664" y="775" width="472" height="103" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="686" y="810.0" font-family="DejaVu Sans" font-size="21" font-weight="700" text-anchor="start" fill="#245EA8">Thread stacks use RAM too</text>
+<text x="686" y="848.25" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#183044">Most workers allocate stacks from their core’s</text>
+<text x="686" y="872.55" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#183044">heap. The planner has a static DTCM stack.</text>
+<text x="664" y="919" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#566B7B">An 8 KiB interrupt stack is not a thread pool.</text>
+<rect x="1244" y="288" width="472" height="119" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="1264" y="321" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#A8680C">SRAM4 · 64 KiB</text>
+<text x="1264" y="351" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x38000000 · ICC reserve: 60 KiB</text>
+<text x="1264" y="378" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#183044">49,312 B used; final 4 KiB: boot handoff</text>
+<text x="1244" y="446" font-family="DejaVu Sans" font-size="25" font-weight="700" text-anchor="start" fill="#A8680C">External SDRAM · 8 MiB</text>
+<rect x="1244" y="467" width="472" height="103" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="1264" y="499" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#A8680C">Framebuffers · 4 MiB reserved</text>
+<text x="1264" y="530" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0xC0000000 · non-cacheable</text>
+<text x="1264" y="555" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#183044">Two images, 1,228,800 B each</text>
+<rect x="1244" y="583" width="472" height="103" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="1264" y="615" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">M4 ordinary code · 2 MiB</text>
+<text x="1264" y="646" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0xC0400000 · 600,984 B linked</text>
+<text x="1264" y="671" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#566B7B">Enabled in this flashed test configuration</text>
+<rect x="1244" y="699" width="472" height="159" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="1264" y="731" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#245EA8">UI working arena · 2 MiB</text>
+<text x="1264" y="762" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0xC0600000 · cacheable</text>
+<text x="1264" y="793" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#183044">3D colour/depth buffers: 1,500 KiB</text>
+<text x="1264" y="822" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#183044">Planning arena: 256 KiB</text>
+<rect x="1264" y="837" width="432" height="9" rx="4.5" fill="#D7E1E9"/>
+<rect x="1264" y="837" width="370.40625" height="9" rx="4.5" fill="#245EA8"/>
+<text x="1244" y="893.0" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#566B7B">Spare SDRAM does not automatically enlarge</text>
+<text x="1244" y="919.6" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#566B7B">either private heap.</text>
+<rect x="60" y="974" width="520" height="262" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="84" y="1017" font-family="DejaVu Sans" font-size="27" font-weight="700" text-anchor="start" fill="#7353A6">Internal flash · 2 MiB</text>
+<text x="84" y="1059" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">M7 bootstrap: 0x08000000 · 128 KiB</text>
+<text x="84" y="1095" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">M4 bootstrap: 0x08100000 · 128 KiB</text>
+<text x="84" y="1131" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">File storage:  0x08180000 · 512 KiB</text>
+<text x="84" y="1180.0" font-family="DejaVu Sans" font-size="20" font-weight="400" text-anchor="start" fill="#566B7B">Bootstrap initializes memory and copies RAM</text>
+<text x="84" y="1208.0" font-family="DejaVu Sans" font-size="20" font-weight="400" text-anchor="start" fill="#566B7B">sections before starting both applications.</text>
+<rect x="640" y="974" width="1100" height="262" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
+<text x="664" y="1017" font-family="DejaVu Sans" font-size="27" font-weight="700" text-anchor="start" fill="#7353A6">External QSPI flash · 16 MiB · images survive power-off</text>
+<rect x="664" y="1041" width="62.75" height="44" rx="4" fill="#566B7B"/>
+<text x="695.375" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">1</text>
+<rect x="729.75" y="1041" width="194.25" height="44" rx="4" fill="#007D78"/>
+<text x="826.875" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">M4 · 3 MiB</text>
+<rect x="927.0" y="1041" width="260.0" height="44" rx="4" fill="#245EA8"/>
+<text x="1057.0" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">M7 · 4 MiB</text>
+<rect x="1190.0" y="1041" width="391.5" height="44" rx="4" fill="#7353A6"/>
+<text x="1385.75" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">Assets · 6 MiB</text>
+<rect x="1584.5" y="1041" width="62.75" height="44" rx="4" fill="#566B7B"/>
+<text x="1615.875" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">1</text>
+<rect x="1650.25" y="1041" width="62.75" height="44" rx="4" fill="#566B7B"/>
+<text x="1681.625" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">1</text>
+<text x="664" y="1121" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90000000 · Factory area · 1 MiB</text>
+<text x="1200" y="1121" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x90800000 · Future assets · 6 MiB</text>
+<text x="664" y="1157" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90100000 · M4 image · 3 MiB</text>
+<text x="1200" y="1157" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x90E00000 · Manifest / scratch · 1 MiB</text>
+<text x="664" y="1193" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90400000 · M7 image · 4 MiB</text>
+<text x="1200" y="1193" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x90F00000 · Factory area · 1 MiB</text>
+<path d="M60,1260 L1740,1260" fill="none" stroke="#D7E1E9" stroke-width="2"/>
+<text x="60" y="1288" font-family="DejaVu Sans" font-size="17" font-weight="400" text-anchor="start" fill="#566B7B">2026-11-06  •  Last flashed Release test pair: bbe50064864223d7  •  Not a qualified production release</text>
+<text x="60" y="1310" font-family="DejaVu Sans" font-size="14" font-weight="400" text-anchor="start" fill="#566B7B">Sources: cmake/application_giga.cmake; boot linker/manifest; build30 linked sizes. Heap capacity excludes linker/runtime metadata.</text>
+<metadata>{&quot;date&quot;: &quot;2026-11-06&quot;, &quot;test_image_pair&quot;: &quot;bbe50064864223d7d906544ed10550a2d163b644c5289ad1b89529614cce9610&quot;, &quot;evidence_sha256&quot;: {&quot;cmake/application_giga.cmake&quot;: &quot;72399552b62a1dc979f950775025d05ea0e96ed6e5e0381aa7dea3b3a932b9d4&quot;, &quot;platform/boot/giga/application.ld.in&quot;: &quot;30d690c7016dee6ecd3c5ad4b73dfd02712e110464eb165114c8ab2e7f243bab&quot;, &quot;build/giga-motion-api-release/images/manifest.json&quot;: &quot;6d3a922c64f65f38636eb32103cf0ab1ef0728d8fd61e1bf3c99ec8ed3972174&quot;, &quot;/tmp/motion-api-build30.log&quot;: &quot;b3680fefd2fba7fa9be0e9c8df835672c105a3ad219936bdbceff0db52a02837&quot;}, &quot;scope&quot;: &quot;Read-only inspection; diagrams only. Current source and last flashed test image distinguished.&quot;}</metadata></svg>

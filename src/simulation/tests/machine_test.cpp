@@ -329,4 +329,10 @@ TEST_F(SimulationMachine, FutureSpliceRequiresGuardAndPreservesNearEdges)
     EXPECT_EQ(publish(Operation::PublishFuture,{100'050,120'000,120'050,hal::util::STEP_PARK},90'000).status,0U);
     EXPECT_NE(command(Operation::Retarget,{0,99'000,110'000}).status,0U);
     EXPECT_EQ(command(Operation::Retarget,{0,101'000,90'000}).status,0U);
+    // Rebasing consumed entries is illegal while DMA owns the bank, but is
+    // safe after parking in LOW and before arming a later rising edge.
+    EXPECT_NE(publish(Operation::PublishFuture,{150'050,160'000,160'050,hal::util::STEP_PARK},130'000).status,0U);
+    ASSERT_EQ(command(Operation::StopAxis,{0}).status,0U);
+    ASSERT_EQ(publish(Operation::PublishFuture,{150'050,160'000,160'050,hal::util::STEP_PARK},130'000).status,0U);
+    ASSERT_EQ(command(Operation::Arm,{0,150'000,4}).status,0U);
 }

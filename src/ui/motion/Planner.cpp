@@ -87,13 +87,11 @@ namespace ui::motion
         m_pieces = 0;
         m_segments = 0;
         m_move = move;
+        m_start = counts;
         if (!std::isfinite(move.speed) || move.speed <= 0 || move.speed > 1 || !move.feed.isFinite() ||
             move.feed.get() < 0 || !move.blend.isFinite() || move.blend.get() < 0 ||
             move.kind > MoveKind::CartesianCurve || move.frame > CoordinateFrame::Work) {
             return RobotError::InvalidInput;
-        }
-        if (m_model->quantizationBound() >= m_model->configuration().path_tolerance.get()) {
-            return RobotError::PathTolerance;
         }
         tr::Positions start{};
         for (unsigned i{ 0 }; i < 3; ++i) {
@@ -397,7 +395,7 @@ namespace ui::motion
                     deviation2 += bound * bound;
                 }
                 const double available{
-                    (m_model->configuration().path_tolerance.get() - m_model->quantizationBound()) * 0.45
+                    m_model->configuration().path_tolerance.get() * 0.45
                 };
                 if (std::sqrt(deviation2) > available) {
                     proven = false;
@@ -464,6 +462,55 @@ namespace ui::motion
         scalar.deceleration /= stretch * stretch;
         scalar.jerk /= stretch * stretch * stretch;
         return scalar;
+    }
+
+    std::expected<tr::FiniteProgram, RobotError> Planner::finite(double acceleration, double deceleration,
+                                                                  double jerk, double* estimated_seconds) const
+    {
+        if(estimated_seconds)*estimated_seconds=0;
+        if (!m_prepared || (m_move.kind != MoveKind::Joints && m_move.kind != MoveKind::Point) || m_pieces!=1)
+            return std::unexpected(RobotError::Unsupported);
+        for (auto factor : {acceleration,deceleration,jerk})
+            if (!std::isfinite(factor) || factor<=0 || factor>1) return std::unexpected(RobotError::InvalidInput);
+        tr::FiniteProgram out;
+        out.limits=m_model->motorLimits();
+        std::array<double,3> target{};
+        for (unsigned i=0;i<3;++i) target[i]=m_workspace->pieces[0].joints[i].at(1);
+        const auto motors=m_model->toMotors(m_model->joints(target));
+        bool moving{};
+        for (unsigned i=0;i<3;++i) {
+            const auto count=tr::quantize(motors[i]);
+            if (!count) return std::unexpected(count.error());
+            out.displacement[i]=*count-m_start[i];
+            moving |= out.displacement[i]!=0;
+        }
+        if (!moving) return out;
+        tr::Positions first{},last{};
+        for(unsigned i=0;i<3;++i){first[i]=m_start[i];last[i]=first[i]+out.displacement[i];}
+        const auto qa=m_model->joints(m_model->toJoints(first));
+        const auto qb=m_model->joints(m_model->toJoints(last));
+        std::array<P,3> quantizedPath{};
+        for(unsigned i=0;i<3;++i)quantizedPath[i].coefficients={qa[i],qb[i]-qa[i]};
+        unsigned certificationBudget=8192;
+        if(const auto error=certify(quantizedPath,nullptr,0,1,0,certificationBudget);error!=RobotError::None)
+            return std::unexpected(error);
+        // Exact linear joint interpolation needs no sampled/quintic expansion.
+        // Every axis follows this one scalar law and its one stopping branch.
+        auto limits=scalarLimits(1);
+        // Rounding a short displacement upward must not increase its physical
+        // dynamics above the axis limits used for the unquantized plan.
+        for(unsigned i=0;i<3;++i)if(const auto d=std::abs(double(out.displacement[i]));d>0){
+            limits.velocity=std::min(limits.velocity,out.limits[i].velocity*m_move.speed/d);
+            limits.acceleration=std::min(limits.acceleration,out.limits[i].acceleration/d);
+            limits.deceleration=std::min(limits.deceleration,out.limits[i].deceleration/d);
+            limits.jerk=std::min(limits.jerk,out.limits[i].jerk/d);
+        }
+        limits.acceleration*=acceleration; limits.deceleration*=deceleration; limits.jerk*=jerk;
+        const auto law=::motion::Profile::create(1.,limits);
+        if(law && estimated_seconds)*estimated_seconds=law->duration();
+        if (!law || law->duration()>90.) return std::unexpected(RobotError::Timing);
+        out.progress=law->description(); out.progress_limits=limits;
+        return out;
     }
 
     Planner::JointState Planner::jointAt(double s, double velocity, double acceleration) const
@@ -656,7 +703,7 @@ namespace ui::motion
                 squared += bound * bound;
             }
             const double available{
-                (m_model->configuration().path_tolerance.get() - m_model->quantizationBound()) * 0.45
+                m_model->configuration().path_tolerance.get() * 0.45
             };
             if (std::sqrt(squared) <= available) {
                 continue;

@@ -1,5 +1,6 @@
 #pragma once
 #include "ProfileCurve.hpp"
+#include "common/motion/OperatingEnvelope.hpp"
 #include <bit>
 #include <limits>
 
@@ -11,13 +12,14 @@ namespace io::motion
     class ProfileCrossing
     {
       public:
-        explicit ProfileCrossing(const ::motion::Profile& profile, double offset = 0)
+        explicit ProfileCrossing(const ::motion::Profile& profile, double offset = 0, bool rolling = false)
           : m_reference(profile)
           , m_offset(offset)
         {
             const auto description = profile.description();
             if (!std::isfinite(offset) || offset < 0 || offset > 1 || !description.size ||
-                !std::isfinite(profile.duration()) || profile.duration() <= 0 || profile.duration() > 10 ||
+                !std::isfinite(profile.duration()) || profile.duration() <= 0 ||
+                profile.duration() > (rolling ? 1e6 : ::motion::operating::MAX_PROGRAM_SECONDS) ||
                 !std::isfinite(description.distance) || description.distance <= 0 ||
                 description.distance > 1'000'000) {
                 m_valid = false;
@@ -26,7 +28,7 @@ namespace io::motion
             m_offsetQ = std::llround(offset * profile_util::Q);
             m_pulses = unsigned(std::floor(description.distance + offset));
             m_count = description.size;
-            m_end = std::uint32_t(std::ceil(profile.duration() * 1e7));
+            m_end = std::uint64_t(std::ceil(profile.duration() * 1e7));
             // A zero-velocity endpoint is ill-conditioned for root finding:
             // roundoff a few ulps above an integer otherwise advances its last
             // edge by microseconds. Keep the floor-based count, but place an
@@ -43,13 +45,20 @@ namespace io::motion
             for (unsigned i = 0; i < m_count; ++i) {
                 auto& p = m_phases[i];
                 const auto& original = description.phases[i];
-                p.origin = std::uint32_t(std::ceil(start * 1e7));
-                p.end = std::uint32_t(std::floor((start + original.duration) * 1e7));
+                p.origin = std::uint64_t(std::ceil(start * 1e7));
+                p.end = std::uint64_t(std::floor((start + original.duration) * 1e7));
                 const auto length = p.end >= p.origin ? p.end - p.origin : 0;
                 p.shift = std::max(1U, unsigned(std::bit_width(length)));
                 if (p.shift > 30) {
-                    m_valid = false;
-                    return;
+                    if(!rolling || original.acceleration!=0 || original.jerk!=0 || original.velocity<=0){
+                        m_valid=false;return;
+                    }
+                    // Long jog cruises use the same affine reference predicate.
+                    // Their acceleration/deceleration phases retain fixed-point evaluation.
+                    p.longLinear=true;p.shift=1;m_long=true;
+                    p.coefficients[0]=std::llround(original.position*profile_util::Q);
+                    start+=original.duration;
+                    continue;
                 }
                 const auto seconds = double(std::uint32_t{ 1 } << p.shift) / profile_util::TICKS_PER_SECOND;
                 const auto state = profile.at(p.origin / profile_util::TICKS_PER_SECOND);
@@ -92,16 +101,17 @@ namespace io::motion
           , m_pulses(other.m_pulses)
           , m_end(other.m_end)
           , m_terminal(other.m_terminal)
+          , m_long(other.m_long)
           , m_valid(other.m_valid)
         {
         }
         bool valid() const noexcept { return m_valid; }
         struct Cursor
         {
-            std::uint32_t previous{}, interval{ 100 };
+            std::uint64_t previous{}, interval{ 100 };
             unsigned evaluations{}, fallbacks{}, phase{};
         };
-        std::uint32_t next(unsigned ordinal) noexcept
+        std::uint64_t next(unsigned ordinal) noexcept
         {
             const auto tick = next(ordinal, m_cursor);
             if (!tick)
@@ -110,7 +120,7 @@ namespace io::motion
             fallbacks = m_cursor.fallbacks;
             return tick;
         }
-        std::uint32_t next(unsigned ordinal, Cursor& cursor) const noexcept
+        std::uint64_t next(unsigned ordinal, Cursor& cursor) const noexcept
         {
             if (!m_valid || !ordinal || ordinal > m_pulses) {
                 return 0;
@@ -123,6 +133,9 @@ namespace io::motion
                 cursor.previous = m_end;
                 return m_end;
             }
+            if(m_long) if(const auto tick=m_reference.cruiseCrossing(double(ordinal)-m_offset)) {
+                cursor.interval=*tick-cursor.previous;cursor.previous=*tick;return *tick;
+            }
             if (m_offset == 0) {
                 for (unsigned i = 0; i < m_count; ++i) {
                     const auto& phase = m_phases[i];
@@ -130,18 +143,18 @@ namespace io::motion
                         continue;
                     const auto tick = std::int64_t(phase.origin) +
                                       (std::int64_t(ordinal) - phase.linearPosition) * phase.linearPeriod;
-                    if (tick > phase.origin && tick <= phase.end) {
+                    if (tick > std::int64_t(phase.origin) && tick <= std::int64_t(phase.end)) {
                         // Exact inverse of the same certified integer affine
                         // predicate used below; no root search or rounding.
-                        cursor.interval = std::uint32_t(tick) - cursor.previous;
-                        cursor.previous = std::uint32_t(tick);
+                        cursor.interval = std::uint64_t(tick) - cursor.previous;
+                        cursor.previous = std::uint64_t(tick);
                         cursor.phase = i;
-                        return std::uint32_t(tick);
+                        return std::uint64_t(tick);
                     }
                 }
             }
             const auto target = (std::int64_t(ordinal) << 32) - m_offsetQ;
-            std::uint32_t lo = cursor.previous, hi = m_end;
+            std::uint64_t lo = cursor.previous, hi = m_end;
             auto candidate = std::clamp(cursor.previous + cursor.interval, lo, hi);
             if (!cursor.previous) {
                 // Seed a new DMA batch near the target phase rather than at
@@ -181,7 +194,7 @@ namespace io::motion
                     // A sub-tick correction truncates to zero. Clamping it to
                     // the narrowed integer bracket avoids a needless jump to
                     // the middle of a long remaining phase.
-                    guess = std::uint32_t(std::clamp(proposed, std::int64_t(lo), std::int64_t(hi - 1)));
+                    guess = std::uint64_t(std::clamp(proposed, std::int64_t(lo), std::int64_t(hi - 1)));
                 }
                 candidate = guess;
             }
@@ -196,9 +209,10 @@ namespace io::motion
         {
             std::array<std::int64_t, 4> coefficients{};
             std::int64_t error{};
-            std::uint32_t origin{}, end{};
-            unsigned shift{};
-            std::uint32_t linearPeriod{};
+            std::uint64_t origin{}, end{};
+            std::uint32_t linearPeriod : 24 {};
+            std::uint32_t shift : 7 {};
+            std::uint32_t longLinear : 1 {};
             std::int32_t linearPosition{};
         };
         struct Value
@@ -225,7 +239,7 @@ namespace io::motion
         {
             return (a >> 32) * std::int64_t(b) + std::int64_t((std::uint64_t(std::uint32_t(a)) * b) >> 32);
         }
-        Value evaluate(std::uint32_t tick, Cursor& cursor) const noexcept
+        Value evaluate(std::uint64_t tick, Cursor& cursor) const noexcept
         {
             ++cursor.evaluations;
             unsigned i = cursor.phase;
@@ -238,25 +252,27 @@ namespace io::motion
                 ++i;
             cursor.phase = i;
             const auto& p = m_phases[i];
-            const auto delta = tick >= p.origin ? tick - p.origin : 0;
+            if(p.longLinear)return {std::llround(m_reference.position(tick)*profile_util::Q),i};
+            const auto delta = std::uint32_t(tick >= p.origin ? tick - p.origin : 0);
             const auto u = delta << (32 - p.shift);
             const auto& c = p.coefficients;
             return { c[0] + multiply(c[1] + multiply(c[2] + multiply(c[3], u), u), u), i };
         }
-        static std::int64_t derivative(std::uint32_t tick, const Phase& p) noexcept
+        static std::int64_t derivative(std::uint64_t tick, const Phase& p) noexcept
         {
-            const auto u = (tick >= p.origin ? tick - p.origin : 0) << (32 - p.shift);
+            if(p.longLinear)return 0;
+            const auto u = std::uint32_t(tick >= p.origin ? tick - p.origin : 0) << (32 - p.shift);
             const auto& c = p.coefficients;
             return c[1] + multiply(2 * c[2] + multiply(3 * c[3], u), u);
         }
-        bool crossed(std::uint32_t tick,
+        bool crossed(std::uint64_t tick,
                      std::int64_t target,
                      Value value,
                      Cursor& cursor,
                      unsigned ordinal) const noexcept
         {
             const auto& p = m_phases[value.phase];
-            if (tick >= p.origin && tick <= p.end) {
+            if (!p.longLinear && tick >= p.origin && tick <= p.end) {
                 // The reference's affine crossing is exactly integer arithmetic
                 // in this case. Avoid a software-double fallback at every edge
                 // of a grid-aligned cruise (400/500/800 ticks in our fixture).
@@ -277,7 +293,9 @@ namespace io::motion
         std::array<Phase, ::motion::Profile::MAX_PHASES> m_phases{};
         unsigned m_count{}, m_pulses{};
         Cursor m_cursor;
-        std::uint32_t m_end{}, m_terminal{};
+        std::uint64_t m_end{};
+        std::uint32_t m_terminal{};
+        bool m_long{};
         bool m_valid{ true };
     };
 }

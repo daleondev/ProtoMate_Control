@@ -3,6 +3,7 @@
 #include "hal/drivers/factory/gpio.hpp"
 #include "hal/drivers/util/StepHardware.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
+#include <bit>
 #include "io/motion/Executor.hpp"
 #include "io/motion/ProfileMemory.hpp"
 
@@ -10,6 +11,7 @@ extern "C" volatile std::uint32_t giga_step_irq_cycles_max;
 extern "C" std::uint32_t giga_motion_bench_buffer_edges;
 extern "C" volatile std::uint32_t giga_motion_bench_worst_refill_cycles;
 extern "C" volatile std::uint32_t giga_motion_bench_worst_budget_ticks;
+extern "C" std::array<std::array<std::uint32_t, 8>, 3> giga_motion_bench_startup;
 
 namespace motion_bench
 {
@@ -27,6 +29,8 @@ namespace motion_bench
             UINT oldPriority{};
             tx_thread_priority_change(tx_thread_identify(), 1, &oldPriority);
             static auto generator = hal::core::create_stepper_generator();
+            if (!generator->setRefillNotification([] {}))
+                hal::panic("executor refill ownership");
 
             static std::array<std::shared_ptr<hal::IDigitalOutput>, 3> directions;
             static std::array<std::shared_ptr<hal::IStepOutput>, 3> axes;
@@ -47,6 +51,8 @@ namespace motion_bench
                     axes[axis] = generator->output(hal::step::Axis(axis));
                 if (!directions[axis])
                     directions[axis] = hal::core::create_stepper_direction_output(hal::core::MotorId(axis));
+                if (r.startup_mask && !(r.startup_mask & (1U << axis)))
+                    continue;
                 constexpr double rate = io::motion::Executor::MAX_PRODUCTION_RATE;
                 command.axes[axis].limits = { rate, rate * 10, rate * 10, rate * 100 };
                 const auto ratio = r.lane == 1 ? std::array{ 1., .8, .5 }[axis] : 1.;
@@ -58,7 +64,8 @@ namespace motion_bench
                 const auto count = r.lane == 2 ? std::array{ .4, .2, .048 }[axis] * rate : .4 * rate * ratio;
                 command.axes[axis].profile = motion::Profile::create(count, limits)->description();
             }
-            const auto nominal = motion::Profile::fromDescription(*command.axes[0].profile);
+            const auto selected = unsigned(std::countr_zero(r.startup_mask ? r.startup_mask : 7U));
+            const auto nominal = motion::Profile::fromDescription(*command.axes[selected].profile);
             const auto firstTick = std::uint32_t(std::ceil(nominal->timeAt(1) * 1e7));
             std::atomic_uint loadPeriods{};
             std::jthread load;
@@ -90,12 +97,13 @@ namespace motion_bench
                         std::this_thread::sleep_until(next);
                     }
                 });
-            // Same 32-pulse halves as the production executor. Future edges
+            // Same physical halves as the production executor. Future edges
             // remain replaceable through the guarded time-based splice.
             giga_motion_bench_buffer_edges = 2 * io::motion::Executor::DMA_HALF_PULSES;
             giga_step_irq_cycles_max = 0;
             giga_motion_bench_worst_refill_cycles = 0;
             giga_motion_bench_worst_budget_ticks = 0;
+            giga_motion_bench_startup = {};
             release(shared.armed, acquire(shared.sequence));
             const auto started = now();
             for (unsigned repetition = 0; repetition < r.count; ++repetition) {
@@ -105,6 +113,40 @@ namespace motion_bench
                 const auto prepare = now();
                 if (!generator->start())
                     hal::panic("executor timebase");
+                if (r.immutable) {
+                    std::array<std::optional<std::chrono::nanoseconds>, 3> delays;
+                    for (unsigned axis = 0; axis < 3; ++axis) {
+                        if (!axes[axis]->clear()) hal::panic("startup clear");
+                        if (!command.axes[axis].profile) continue;
+                        auto source = std::make_shared<io::motion::ProfileSchedule::Nominal>(
+                          *motion::Profile::fromDescription(*command.axes[axis].profile),
+                          io::motion::Executor::DMA_HALF_PULSES);
+                        auto sequence = std::make_shared<io::motion::ProfileSchedule>(source);
+                        if (!axes[axis]->prepareSequence(sequence)) hal::panic("startup prepare");
+                        delays[axis] = 5ms + std::chrono::nanoseconds(std::uint64_t(source->first) * 100);
+                    }
+                    if (!generator->startPrepared(delays)) hal::panic("startup start");
+                    const auto deadline = std::chrono::steady_clock::now() + 1s;
+                    while (std::chrono::steady_clock::now() < deadline) {
+                        generator->preparePending();
+                        const auto s = generator->status();
+                        if (s.state != hal::step::State::Running ||
+                            std::ranges::none_of(s.axes, [](auto state) { return state == hal::step::State::Running; }))
+                            break;
+                        std::this_thread::sleep_for(1ms);
+                    }
+                    const auto s = generator->status();
+                    if (!s.counts_exact || s.state != hal::step::State::Running) ++report.errors;
+                    for (unsigned axis = 0; axis < 3; ++axis) {
+                        const auto count = command.axes[axis].profile ? std::uint64_t(command.axes[axis].profile->distance) : 0;
+                        if (s.pulses[axis] != count) ++report.errors;
+                    }
+                    report.received += s.pulses[0]; report.value += s.pulses[1]; report.checksum += s.pulses[2];
+                    ++report.sent;
+                    if (report.errors) break;
+                    std::this_thread::sleep_for(10ms);
+                    continue;
+                }
                 if (!executor->prepare(command)) {
                     ++report.errors;
                     break;
@@ -154,7 +196,7 @@ namespace motion_bench
                 for (unsigned axis = 0; axis < 3; ++axis)
                     if (!status.counts_exact ||
                         (!r.direction &&
-                         status.pulses[axis] != std::uint64_t(command.axes[axis].profile->distance)))
+                         status.pulses[axis] != (command.axes[axis].profile ? std::uint64_t(command.axes[axis].profile->distance) : 0)))
                         ++report.errors;
                 report.received += status.pulses[0];
                 report.value += status.pulses[1];
@@ -177,7 +219,9 @@ namespace motion_bench
             // cycles versus 10 MHz ticks left until the armed guard deadline.
             report.refill_cycles = giga_motion_bench_worst_refill_cycles;
             report.refill_budget_ticks = giga_motion_bench_worst_budget_ticks;
+            report.startup = giga_motion_bench_startup;
             static_cast<void>(generator->stop());
+            static_cast<void>(generator->setRefillNotification({}));
             for (auto& axis : axes)
                 static_cast<void>(axis->clear());
             giga_motion_bench_buffer_edges = 512;
@@ -193,8 +237,8 @@ namespace motion_bench
             const auto start = now();
             auto nextLog = start;
             while (acquire(shared.done) != acquire(shared.sequence)) {
-                state.publish(std::string(r.traffic ? 512 : 256, 's'));
-                if (r.traffic || reached(nextLog)) {
+                if (!r.startup_mask) state.publish(std::string(r.traffic ? 512 : 256, 's'));
+                if (!r.startup_mask && (r.traffic || reached(nextLog))) {
                     log.publish(std::string(r.traffic ? 480 : 128, 'b'));
                     nextLog = now() + 100'000;
                 }

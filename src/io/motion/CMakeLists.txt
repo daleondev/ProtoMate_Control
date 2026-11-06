@@ -7,8 +7,13 @@ target_sources(proto_io_motion
         Limits.hpp
         Controller.hpp
         Controller.cpp
+    ControllerSetup.cpp
+        ControllerAdmission.cpp
+        ControllerHoming.cpp
+        Ownership.hpp
         Server.hpp
         Server.cpp
+        ServerPrograms.cpp
         TrajectorySession.cpp
         Executor.hpp
         Executor.cpp

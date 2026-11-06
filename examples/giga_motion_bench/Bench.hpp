@@ -40,7 +40,7 @@ namespace motion_bench
     {
         Operation operation{};
         std::uint32_t fixture{}, bytes{ 32 }, rate{ 1000 }, count{ 1000 }, direction{}, lane{}, start{},
-          trace{}, traffic{};
+          trace{}, traffic{}, startup_mask{}, immutable{};
     };
     struct Report
     {
@@ -49,6 +49,7 @@ namespace motion_bench
           maximum_backlog{}, heap_used{}, heap_free{}, stack_free{}, stack_size{}, cpu_ticks{}, wall_us{},
           minimum_stack_permill{}, refill_cycles{}, refill_budget_ticks{}, executor_build_us{}, executor_splice_us{}, executor_error{}, executor_cut{}, executor_reason{}, executor_request{}, icc_state{}, icc_reason{};
         std::uint64_t checksum{};
+        std::array<std::array<std::uint32_t, 8>, 3> startup{};
         std::array<char, 32> minimum_stack_thread{};
     };
     struct Shared

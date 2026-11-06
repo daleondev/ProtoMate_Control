@@ -59,6 +59,7 @@ struct DMA_Stream_TypeDef
     } CR;
     uint32_t FCR{}, NDTR{};
     std::uintptr_t PAR{}, M0AR{}, M1AR{};
+    uint32_t prefetched{}, reload_count{};
 };
 inline std::array<DMA_Stream_TypeDef, 4> dma_streams;
 inline auto* DMA1_Stream0 = &dma_streams[0];
@@ -78,6 +79,15 @@ inline DMA_TypeDef dma;
 inline auto* DMA1 = &dma;
 inline void DMA_Stream_TypeDef::Control::operator=(uint32_t next)
 {
+    if (!(value & 1U) && (next & 1U)) {
+        for (auto& stream : dma_streams) {
+            if (this == &stream.CR) {
+                stream.reload_count = stream.NDTR;
+                const auto source = (next & (1U << 19)) ? stream.M1AR : stream.M0AR;
+                stream.prefetched = *reinterpret_cast<const uint32_t*>(source);
+            }
+        }
+    }
     // RM0399 15.3.15/16: software interruption also raises TCIF. It does
     // not imply that NDTR reached zero or that a double buffer completed.
     if ((value & 1U) && !(next & 1U)) {

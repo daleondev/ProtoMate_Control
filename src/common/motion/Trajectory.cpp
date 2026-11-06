@@ -324,11 +324,42 @@ namespace motion::trajectory
         for (std::size_t i{ 0 }; i < r.count; ++i) {
             write(w, r.segments[i]);
         }
+        w.integer(std::uint8_t(r.family));
+        w.integer(r.axes);
+        w.integer(r.job);
+        for (auto n : r.axis_revisions) w.integer(n);
+        if (r.operation == Operation::Renew)
+            for (auto n : r.renew_jobs) w.integer(n);
+        if (r.operation == Operation::Prepare) {
+            const auto& p = r.program;
+            if (p.progress.size > Profile::MAX_PHASES) throw std::length_error("profile phases");
+            w.integer(std::uint8_t(p.progress.size));
+            w.number(p.progress.distance); w.number(p.progress.end_velocity);
+            for (unsigned i = 0; i < p.progress.size; ++i) {
+                const auto& phase = p.progress.phases[i];
+                for (auto x : {phase.duration, phase.jerk, phase.position, phase.velocity, phase.acceleration})
+                    w.number(x);
+            }
+            for (auto x : {p.progress_limits.velocity, p.progress_limits.acceleration,
+                           p.progress_limits.deceleration, p.progress_limits.jerk}) w.number(x);
+            for (auto n : p.displacement) w.integer(n);
+            for (const auto& l : p.limits) write(w, l);
+            w.number(p.timeout);
+            w.integer(std::uint8_t(p.kind));
+            if (p.kind == ProgramKind::Home) {
+                for (const auto& h:p.home) {w.number(h.seek_rpm);w.number(h.latch_rpm);w.number(h.timeout);}
+                for (auto i:p.home_order) w.integer(i);
+            }
+        }
         return w.finish();
     }
     Packet encode(const Reply& r)
     {
         Writer w{};
+        if(r.acknowledgement){
+            w.integer(std::uint8_t{3});w.integer(VERSION);w.integer(std::uint8_t(r.error));
+            w.integer(r.boot);w.integer(r.generation);return w.finish();
+        }
         w.integer(std::uint8_t{ 2 });
         w.integer(std::uint8_t(r.error));
         w.integer(std::uint8_t(r.state));
@@ -349,6 +380,9 @@ namespace motion::trajectory
             write(w, s);
         }
         w.number(r.path);
+        w.integer(std::uint8_t(r.family));
+        for (auto n : r.owners) w.integer(n);
+        for (auto n : r.axis_revisions) w.integer(n);
         return w.finish();
     }
     std::expected<Request, Error> decodeRequest(const Packet& p) noexcept
@@ -376,12 +410,39 @@ namespace motion::trajectory
         v.count = r.integer<std::uint8_t>();
         v.branch = Branch(r.integer<std::uint8_t>());
         v.final = r.boolean();
-        if (v.count > UPLOAD_SEGMENTS || v.operation > Operation::Home || v.branch > Branch::Stopping ||
+        if (v.count > UPLOAD_SEGMENTS || v.operation > Operation::Prepare || v.branch > Branch::Stopping ||
             v.version != VERSION) {
             return std::unexpected(Error::Protocol);
         }
         for (std::size_t i{ 0 }; i < v.count; ++i) {
             v.segments[i] = readSegment(r);
+        }
+        v.family = Family(r.integer<std::uint8_t>());
+        v.axes = r.integer<std::uint8_t>();
+        v.job = r.integer<std::uint64_t>();
+        for (auto& n : v.axis_revisions) n = r.integer<std::uint64_t>();
+        if (v.family > Family::Robot || v.axes > 7) return std::unexpected(Error::Protocol);
+        if (v.operation == Operation::Renew)
+            for (auto& n : v.renew_jobs) n = r.integer<std::uint64_t>();
+        if (v.operation == Operation::Prepare) {
+            auto& p = v.program;
+            p.progress.size = r.integer<std::uint8_t>();
+            if (p.progress.size > Profile::MAX_PHASES || v.count) return std::unexpected(Error::Protocol);
+            p.progress.distance = r.number(); p.progress.end_velocity = r.number();
+            for (unsigned i = 0; i < p.progress.size; ++i) {
+                auto& phase = p.progress.phases[i];
+                phase = {r.number(), r.number(), r.number(), r.number(), r.number()};
+            }
+            p.progress_limits = {r.number(), r.number(), r.number(), r.number()};
+            for (auto& n : p.displacement) n = r.integer<std::int64_t>();
+            for (auto& l : p.limits) l = readLimits(r);
+            p.timeout = r.number();
+            p.kind = ProgramKind(r.integer<std::uint8_t>());
+            if (p.kind > ProgramKind::Jog) return std::unexpected(Error::Protocol);
+            if (p.kind == ProgramKind::Home) {
+                for (auto& h:p.home) h={r.number(),r.number(),r.number()};
+                for (auto& i:p.home_order) i=r.integer<std::uint8_t>();
+            }
         }
         if (!r.finish()) {
             return std::unexpected(Error::Checksum);
@@ -394,7 +455,16 @@ namespace motion::trajectory
             return std::unexpected(Error::Protocol);
         }
         Reader r{ p };
-        if (r.integer<std::uint8_t>() != 2) {
+        const auto kind=r.integer<std::uint8_t>();
+        if(kind==3){
+            Reply v;v.acknowledgement=true;
+            const auto version=r.integer<std::uint16_t>();v.error=Error(r.integer<std::uint8_t>());
+            v.boot=r.integer<std::uint64_t>();v.generation=r.integer<std::uint64_t>();
+            if(version!=VERSION || v.error>Error::NoStoppingPath)return std::unexpected(Error::Protocol);
+            if(!r.finish())return std::unexpected(Error::Checksum);
+            return v;
+        }
+        if (kind != 2) {
             return std::unexpected(Error::Protocol);
         }
         Reply v{};
@@ -421,6 +491,10 @@ namespace motion::trajectory
             s = readState(r);
         }
         v.path = r.number();
+        v.family = Family(r.integer<std::uint8_t>());
+        for (auto& n : v.owners) n = r.integer<std::uint64_t>();
+        for (auto& n : v.axis_revisions) n = r.integer<std::uint64_t>();
+        if (v.family > Family::Robot) return std::unexpected(Error::Protocol);
         if (v.error > Error::NoStoppingPath || v.state > State::Unknown || v.referenced > 7 ||
             v.capabilities.version != VERSION) {
             return std::unexpected(Error::Protocol);

@@ -72,10 +72,8 @@ namespace
             auto& stream = dma_streams[i];
             if (!(stream.CR & DMA_SxCR_EN) || (i < 3 && hold_dma[i]))
                 return;
-            const unsigned offset = (stream.CR & DMA_SxCR_MINC) ? lengths[i] - stream.NDTR : 0;
-            auto* source =
-              reinterpret_cast<const uint32_t*>((stream.CR & DMA_SxCR_CT) ? stream.M1AR : stream.M0AR);
-            *reinterpret_cast<volatile uint32_t*>(stream.PAR) = source[offset];
+            lengths[i] = stream.reload_count;
+            *reinterpret_cast<volatile uint32_t*>(stream.PAR) = stream.prefetched;
             --stream.NDTR;
             if (stream.NDTR == 0) {
                 dma.LISR |= 0x20U << shifts[i];
@@ -88,6 +86,12 @@ namespace
             }
             else if (stream.NDTR == lengths[i] / 2U && (stream.CR & DMA_SxCR_HTIE)) {
                 dma.LISR |= 0x10U << shifts[i];
+            }
+            if (stream.CR & DMA_SxCR_EN) {
+                const unsigned offset = (stream.CR & DMA_SxCR_MINC) ? lengths[i] - stream.NDTR : 0;
+                const auto* source = reinterpret_cast<const uint32_t*>(
+                  (stream.CR & DMA_SxCR_CT) ? stream.M1AR : stream.M0AR);
+                stream.prefetched = source[offset];
             }
         }
         void advance(std::uint64_t ticks)
@@ -176,6 +180,63 @@ TEST_F(RegisterTest, ConfiguresRealAdapterForIndependentWordDmaAndHardwareGuard)
     EXPECT_EQ(dma_streams[3].PAR, reinterpret_cast<std::uintptr_t>(&timer.CR1));
     EXPECT_EQ(dma_streams[3].NDTR, 1U);
     EXPECT_FALSE(dma_streams[3].CR & DMA_SxCR_DBM);
+}
+
+namespace
+{
+    // The old stopping path places its first edge 29 ticks after the renewed
+    // path. This is the measured M3 startup discrepancy, independent of planner.
+    class StartupSequence final : public hal::step::TimedSequence
+    {
+      public:
+        explicit StartupSequence(std::uint32_t offset, bool empty = false)
+          : m_offset(offset), m_empty(empty) {}
+        hal::step::PulseCount count() const noexcept override { return m_empty ? 0 : 3; }
+        std::chrono::nanoseconds maximumPeriod() const noexcept override { return 1ms; }
+        std::uint32_t initialOffset() const noexcept override { return m_offset; }
+        std::optional<std::int64_t> endTickOffset() const noexcept override { return 100'000; }
+        hal::util::Result<std::uint32_t> risingTick(hal::step::PulseCount i) const noexcept override
+        { return m_offset + std::uint32_t(i) * 10'000; }
+        hal::util::Result<hal::step::Timing> timing(hal::step::PulseCount) const noexcept override
+        { return hal::step::Timing{1ms, 5us}; }
+      private:
+        std::uint32_t m_offset;
+        bool m_empty;
+    };
+}
+
+TEST_F(RegisterTest, RenewalReloadsPrefetchedFirstFallingEdge)
+{
+    ASSERT_TRUE(engine->start());
+    ASSERT_TRUE(axes[2]->prepareSequence(std::make_shared<StartupSequence>(29)));
+    ASSERT_TRUE(engine->startPrepared({ std::nullopt, std::nullopt, 5ms }));
+    EXPECT_EQ(dma_streams[2].prefetched, 50'079U);
+    std::array<std::shared_ptr<const hal::step::TimedSequence>, 3> replacement;
+    replacement[2] = std::make_shared<StartupSequence>(0);
+    ASSERT_TRUE(engine->splice(replacement, 30'000));
+    EXPECT_EQ(timer.CCR4, 50'000U);
+    EXPECT_EQ(dma_streams[2].prefetched, 50'050U);
+    advance(200'000);
+    ASSERT_EQ(rising[2].size(), 3U);
+    ASSERT_EQ(falling[2].size(), 3U);
+    for (unsigned i = 0; i < 3; ++i)
+        EXPECT_EQ(falling[2][i] - rising[2][i], 50U);
+}
+
+TEST_F(RegisterTest, EmptyStoppingScheduleCanIntroduceFirstPulseWithoutCachedPark)
+{
+    ASSERT_TRUE(engine->start());
+    ASSERT_TRUE(axes[2]->prepareSequence(std::make_shared<StartupSequence>(0, true)));
+    ASSERT_TRUE(engine->startPrepared({ std::nullopt, std::nullopt, 5ms }));
+    EXPECT_EQ(dma_streams[2].prefetched, hal::util::STEP_PARK);
+    std::array<std::shared_ptr<const hal::step::TimedSequence>, 3> replacement;
+    replacement[2] = std::make_shared<StartupSequence>(0);
+    ASSERT_TRUE(engine->splice(replacement, 30'000));
+    advance(200'000);
+    ASSERT_EQ(rising[2].size(), 3U);
+    ASSERT_EQ(falling[2].size(), 3U);
+    for (unsigned i = 0; i < 3; ++i)
+        EXPECT_EQ(falling[2][i] - rising[2][i], 50U);
 }
 
 TEST_F(RegisterTest, PendingCompareUsesTheConfiguredGigaPinsOnAllAxes)

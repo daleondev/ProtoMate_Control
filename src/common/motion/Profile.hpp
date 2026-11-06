@@ -34,6 +34,9 @@ namespace motion
             double distance{}, end_velocity{};
         };
         Description description() const noexcept;
+        // Preserve phase times and multiply all kinematic coordinates by a
+        // positive scale (e.g. normalized progress -> an axis's microsteps).
+        std::optional<Profile> scaled(double scale) const noexcept;
         bool operator==(const Profile&) const = default;
         static std::optional<Profile> fromDescription(const Description& value) noexcept;
 
@@ -45,6 +48,7 @@ namespace motion
         // Finite monotone braking continuation, preserving initial acceleration.
         static std::optional<Profile> brake(double velocity, double acceleration, Limits limits) noexcept;
         State at(double time) const noexcept;
+        bool brakingToRest(double time) const noexcept;
         struct TimeHint
         {
             double seconds;

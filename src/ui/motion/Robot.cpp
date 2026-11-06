@@ -14,7 +14,7 @@ namespace ui::motion
 #if defined(CORE_CM7)
         // Raw, explicitly initialized POD storage. No startup access to SDRAM,
         // no heap/mutex/runtime objects in the reserved motion region.
-        alignas(32) __attribute__((section(".motion_sdram"))) std::byte arenaStorage[256 * 1024];
+        alignas(32) __attribute__((section(".motion_sdram"))) std::byte arenaStorage[248 * 1024];
         std::atomic_bool arenaClaimed{};
 #endif
         bool terminal(Robot::JobState state)
@@ -25,6 +25,7 @@ namespace ui::motion
     std::unique_ptr<Robot::Arena, Robot::ReleaseArena> Robot::reserveArena()
     {
 #if defined(CORE_CM7)
+        static_assert(sizeof(Arena)<=sizeof(arenaStorage));
         if (arenaClaimed.exchange(true)) {
             throw std::logic_error("robot planning arena already owned");
         }
@@ -48,6 +49,7 @@ namespace ui::motion
       , m_arena{ reserveArena() }
     {
     }
+    Robot::Robot(pnm::msg::Bus& bus, Client& client) : Robot(bus) { m_client=&client; }
     Robot::~Robot() = default; // Application joins the planning worker first.
     void Robot::setConnected(bool connected)
     {
@@ -237,6 +239,7 @@ namespace ui::motion
     {
         const std::stop_callback cancellation{ stop, [this] { m_changed.signal(); } };
         while (!stop.stop_requested()) {
+            if (executePending(stop)) continue;
             PreviewRequest request{};
             std::uint64_t id{ 0 };
             std::stop_source jobStop{ std::nostopstate };

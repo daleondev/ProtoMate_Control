@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Executor.hpp"
+#include "Ownership.hpp"
 #include "StepperMotor.hpp"
 #include "common/motion/Trajectory.hpp"
 #include "hal/core/core.hpp"
@@ -29,13 +30,21 @@ namespace io::motion
         using DriverFactory = std::function<Drivers(const std::array<std::size_t, 3>&,
                                                     const std::shared_ptr<hal::IDigitalOutput>&)>;
 
+        struct Hardware {
+            std::shared_ptr<hal::IDigitalOutput> enable;
+            std::shared_ptr<hal::IStepGenerator> generator;
+            std::array<std::shared_ptr<hal::IDigitalInput>,3> references{};
+        };
+        // Omitted hardware uses the core catalog; test composition can substitute
+        // only external devices while retaining the real timer/DMA implementation.
         // Creates motors/feedback and a diagnostic worker, but neither configures
         // drivers nor starts the STEP timebase nor energizes the motors.
         // The optional sink is shared by all motor workers.
         explicit Controller(const Configuration& configuration,
                             const DriverFactory& driver_factory = {},
                             std::shared_ptr<pnm::log::ISink> log_sink = {},
-                            std::pmr::memory_resource* profile_memory = std::pmr::get_default_resource());
+                            std::pmr::memory_resource* profile_memory = std::pmr::get_default_resource(),
+                            const Hardware* hardware = nullptr);
         ~Controller();
         Controller(const Controller&) = delete;
         Controller& operator=(const Controller&) = delete;
@@ -47,11 +56,20 @@ namespace io::motion
         // Failure leaves the controller disabled and rejects motion until recovery.
         void initializeDrivers(std::stop_token stop = {});
         void enable(std::stop_token stop = {}); // Verification/settling is cancellable.
+        void abort(std::optional<MotorId> motor = std::nullopt);
+        void connectionLost();
         void disable();                         // Stops/joins all work and invalidates references.
         void stop(std::optional<MotorId> motor = std::nullopt); // Retains holding torque.
         [[nodiscard]] bool enabled() const noexcept;
         [[nodiscard]] bool ready() const;
         [[nodiscard]] ::motion::trajectory::Reply trajectorySnapshot() const;
+        ::motion::trajectory::Reply control(const ::motion::trajectory::Request& request);
+        ::motion::trajectory::Reply prepareProgram(const ::motion::trajectory::Request& request,
+                                                   std::stop_token stop = {});
+        ::motion::trajectory::Error startProgram(const ::motion::trajectory::Run& run,
+          std::function<void(::motion::trajectory::Update)> completed);
+        void releaseJob(std::uint64_t job);
+        Ownership::Admission reserveMotor(std::uint64_t job, MotorId motor);
 
         // Inspection only: command submission goes through the controller so it
         // can serialize admission against disable, recovery and shared faults.
@@ -92,17 +110,25 @@ namespace io::motion
         hal::util::Result<> startExecution(std::uint64_t id);
         bool renewExecution(std::uint64_t id);
         bool stopExecution(std::uint64_t id);
-        Executor::Status executionStatus() const;
+        Executor::Status executionStatus(std::uint64_t id = 0) const;
 
       private:
+        struct Group;
         StepperMotor& axis(MotorId id) const;
         bool driversReady() const noexcept;
         bool canMoveLocked() const;
+        bool velocityAllowed(MotorId motor, pnm::units::AngularVelocity velocity) const;
         void stopLocked(std::optional<MotorId> motor = std::nullopt);
         void invalidateReferencesLocked();
         void handleFaultsLocked();
         void monitorDrivers(const std::stop_token& stop);
         void executeMotions(std::stop_token stop);
+        ::motion::trajectory::Reply trajectorySnapshotLocked() const;
+        void initializeCapabilities();
+        hal::util::Result<> prepareExecutionLocked(const Executor::Command& command, bool owned);
+        void finishProgramsLocked();
+        void serviceHomeLocked(Group& group);
+        void stopProgramsLocked(std::uint8_t mask, bool abort);
 
         std::shared_ptr<hal::IDigitalOutput> m_enable;
         std::shared_ptr<hal::IStepGenerator> m_generator;
@@ -117,12 +143,31 @@ namespace io::motion
         std::uint64_t m_controlEpoch{};
         bool m_enabling{};
         Configuration m_configuration;
+        ::motion::trajectory::Capabilities m_capabilities;
         std::pmr::memory_resource* m_profileMemory;
-        bool m_initialized{};
+        bool m_initialized{}, m_admissionLost{};
         bool m_faultHandled{};
         std::array<std::unique_ptr<StepperMotor>, 3> m_motors;
-        std::unique_ptr<Executor> m_executor;
-        std::uint8_t m_executionMask{};
+        struct Group
+        {
+            std::unique_ptr<Executor> executor;
+            std::uint64_t job{};
+            std::uint8_t mask{}, moving{};
+            bool managed{}, zero{}, started{}, notified{};
+            double duration{};
+            ::motion::trajectory::Error error{};
+            std::chrono::steady_clock::time_point timeout{std::chrono::steady_clock::time_point::max()};
+            std::function<void(::motion::trajectory::Update)> completed;
+            bool homing{}, home_finished{};
+            std::array<::motion::trajectory::HomeStage, 3> home{};
+            std::array<std::uint8_t, 3> home_order{};
+            unsigned home_stage{};
+            std::future<StepperMotor::Result> home_result;
+            std::atomic_bool home_ready{};
+        };
+        std::array<Group, 3> m_groups;
+        Ownership m_ownership;
+        std::uint64_t m_lastExecution{}, m_boot{1};
         std::jthread m_executionWorker;
         std::jthread m_driverWorker;
     };

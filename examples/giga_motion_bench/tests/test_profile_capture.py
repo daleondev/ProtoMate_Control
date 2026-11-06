@@ -12,6 +12,7 @@ def waveform(defect=None,shape='scaled'):
         ticks=reference_ticks(speed)
         rises=np.rint(np.ceil(ticks)*2.39966).astype(np.int64)+10000
         if defect=='timing' and axis==0:rises[1000]+=12
+        if defect=='origin' and axis==2:rises+=12
         events[rises]^=1<<axis
         events[rises+120]^=1<<axis
     result=np.bitwise_xor.accumulate(events)|8
@@ -27,7 +28,7 @@ def test_reference_boundaries():
     assert ticks[-1]==6_000_000
 
 
-@pytest.mark.parametrize('defect',[None,'timing','enable','extra'])
+@pytest.mark.parametrize('defect',[None,'timing','origin','enable','extra'])
 @pytest.mark.parametrize('shape',['equal','scaled'])
 def test_shaped_capture_acceptance(defect,shape):
     samples=waveform(defect,shape)

@@ -290,9 +290,9 @@ namespace
 
 namespace ui::cli
 {
-    Arguments::Arguments(std::span<const ArgumentSpec> specifications,
+    Arguments::Arguments(std::span<const ArgumentView> specifications,
                          std::span<const std::string> values,
-                         std::span<const FlagSpec> flag_specifications,
+                         std::span<const FlagView> flag_specifications,
                          std::span<const ParsedFlag> flags) noexcept
       : m_specifications{ specifications }
       , m_values{ values }
@@ -309,14 +309,14 @@ namespace ui::cli
 
     auto Arguments::get(std::string_view name) const noexcept -> std::optional<std::string_view>
     {
-        const auto specification{ std::ranges::find(m_specifications, name, &ArgumentSpec::name) };
+        const auto specification{ std::ranges::find(m_specifications, name, &ArgumentView::name) };
         if (specification == m_specifications.end()) {
             return std::nullopt;
         }
 
         const auto index{ static_cast<std::size_t>(specification - m_specifications.begin()) };
         std::size_t value_index{ index };
-        const auto variadic{ std::ranges::find(m_specifications, true, &ArgumentSpec::variadic) };
+        const auto variadic{ std::ranges::find(m_specifications, true, &ArgumentView::variadic) };
         if (variadic != m_specifications.end() && std::cmp_less(variadic - m_specifications.begin(), index)) {
             const std::size_t trailing_specifications{ m_specifications.size() - index };
             if (m_values.size() < trailing_specifications) {
@@ -339,7 +339,7 @@ namespace ui::cli
 
     auto Arguments::hasFlag(std::string_view name) const noexcept -> bool
     {
-        const auto specification{ std::ranges::find(m_flagSpecifications, name, &FlagSpec::name) };
+        const auto specification{ std::ranges::find(m_flagSpecifications, name, &FlagView::name) };
         if (specification == m_flagSpecifications.end()) {
             return false;
         }
@@ -351,7 +351,7 @@ namespace ui::cli
 
     auto Arguments::flagCount(std::string_view name) const noexcept -> std::size_t
     {
-        const auto specification{ std::ranges::find(m_flagSpecifications, name, &FlagSpec::name) };
+        const auto specification{ std::ranges::find(m_flagSpecifications, name, &FlagView::name) };
         if (specification == m_flagSpecifications.end()) {
             return 0U;
         }
@@ -362,7 +362,7 @@ namespace ui::cli
 
     auto Arguments::flagValue(std::string_view name) const noexcept -> std::optional<std::string_view>
     {
-        const auto specification{ std::ranges::find(m_flagSpecifications, name, &FlagSpec::name) };
+        const auto specification{ std::ranges::find(m_flagSpecifications, name, &FlagView::name) };
         if (specification == m_flagSpecifications.end()) {
             return std::nullopt;
         }
@@ -378,7 +378,7 @@ namespace ui::cli
 
     namespace
     {
-        auto validate_arguments(std::span<const ArgumentSpec> arguments) -> std::expected<void, std::string>
+        auto validate_arguments(std::span<const ArgumentView> arguments) -> std::expected<void, std::string>
         {
             bool optional_seen{};
             bool variadic_seen{};
@@ -388,18 +388,18 @@ namespace ui::cli
                     return std::unexpected(
                       "argument name must contain only letters, digits, '_', '-' or '.'");
                 }
-                if (std::ranges::count(arguments, argument.name, &ArgumentSpec::name) != 1) {
-                    return std::unexpected("duplicate argument name: " + argument.name);
+                if (std::ranges::count(arguments, argument.name, &ArgumentView::name) != 1) {
+                    return std::unexpected("duplicate argument name: " + std::string(argument.name));
                 }
                 if (!argument.optional && optional_seen) {
                     return std::unexpected("required argument follows an optional argument: " +
-                                           argument.name);
+                                           std::string(argument.name));
                 }
                 if (argument.variadic && variadic_seen) {
                     return std::unexpected("command has more than one variadic argument");
                 }
                 if (variadic_seen && argument.optional) {
-                    return std::unexpected("optional argument follows a variadic argument: " + argument.name);
+                    return std::unexpected("optional argument follows a variadic argument: " + std::string(argument.name));
                 }
                 optional_seen = optional_seen || argument.optional;
                 variadic_seen = variadic_seen || argument.variadic;
@@ -407,27 +407,27 @@ namespace ui::cli
 
             return {};
         }
-        auto validate_flags(std::span<const FlagSpec> flags) -> std::expected<void, std::string>
+        auto validate_flags(std::span<const FlagView> flags) -> std::expected<void, std::string>
         {
             for (const auto& flag : flags) {
                 if (!valid_name(flag.name)) {
                     return std::unexpected("flag name must contain only letters, digits, '_', '-' or '.'");
                 }
-                if (std::ranges::count(flags, flag.name, &FlagSpec::name) != 1) {
-                    return std::unexpected("duplicate flag name: " + flag.name);
+                if (std::ranges::count(flags, flag.name, &FlagView::name) != 1) {
+                    return std::unexpected("duplicate flag name: " + std::string(flag.name));
                 }
                 if (flag.short_name) {
                     if (std::isalnum(static_cast<unsigned char>(*flag.short_name)) == 0) {
                         return std::unexpected("short flag name must be a letter or digit: " +
                                                std::string{ *flag.short_name });
                     }
-                    if (std::ranges::count(flags, flag.short_name, &FlagSpec::short_name) != 1) {
+                    if (std::ranges::count(flags, flag.short_name, &FlagView::short_name) != 1) {
                         return std::unexpected("duplicate short flag name: -" +
                                                std::string{ *flag.short_name });
                     }
                 }
                 if (flag.value_name && !valid_name(*flag.value_name)) {
-                    return std::unexpected("flag value name is invalid: " + *flag.value_name);
+                    return std::unexpected("flag value name is invalid: " + std::string(*flag.value_name));
                 }
             }
 
@@ -437,6 +437,28 @@ namespace ui::cli
 
     auto Parser::registerCommand(Command command) -> std::expected<void, std::string>
     {
+        auto owned = std::make_unique<OwnedCommand>();
+        owned->command = std::move(command);
+        for (const auto& arg : owned->command.arguments)
+            owned->arguments.push_back({arg.name, arg.description, arg.optional, arg.variadic});
+        for (const auto& flag : owned->command.flags)
+            owned->flags.push_back({flag.name, flag.short_name, flag.description,
+              flag.value_name ? std::optional<std::string_view>{*flag.value_name} : std::nullopt});
+        CommandView view{owned->command.name, owned->command.description, owned->arguments,
+                         owned->flags, std::move(owned->command.callback)};
+        m_ownedCommands.push_back(std::move(owned));
+        try {
+            auto result = registerStaticCommand(std::move(view));
+            if (!result) m_ownedCommands.pop_back();
+            return result;
+        } catch (...) {
+            m_ownedCommands.pop_back();
+            throw;
+        }
+    }
+
+    auto Parser::registerStaticCommand(CommandView command) -> std::expected<void, std::string>
+    {
         if (!valid_command_name(command.name)) {
             return std::unexpected("command path must contain valid names separated by single spaces");
         }
@@ -444,10 +466,10 @@ namespace ui::cli
             return std::unexpected("'help' is reserved by the CLI");
         }
         if (find(command.name) != nullptr) {
-            return std::unexpected("command is already registered: " + command.name);
+            return std::unexpected("command is already registered: " + std::string(command.name));
         }
         if (!command.callback) {
-            return std::unexpected("command callback is missing: " + command.name);
+            return std::unexpected("command callback is missing: " + std::string(command.name));
         }
 
         if (auto result{ validate_arguments(command.arguments) }; !result) {
@@ -461,9 +483,9 @@ namespace ui::cli
         return {};
     }
 
-    auto Parser::find(std::string_view name) const noexcept -> const Command*
+    auto Parser::find(std::string_view name) const noexcept -> const CommandView*
     {
-        const auto command{ std::ranges::find(m_commands, name, &Command::name) };
+        const auto command{ std::ranges::find(m_commands, name, &CommandView::name) };
         return command == m_commands.end() ? nullptr : &*command;
     }
 
@@ -474,7 +496,7 @@ namespace ui::cli
 
     auto Parser::usage(std::string_view command_name) const -> std::string
     {
-        const Command* const command{ find(command_name) };
+        const CommandView* const command{ find(command_name) };
         if (command == nullptr) {
             return {};
         }
@@ -509,7 +531,7 @@ namespace ui::cli
 
     namespace
     {
-        void print_arguments(std::ostream& output, std::span<const ArgumentSpec> arguments)
+        void print_arguments(std::ostream& output, std::span<const ArgumentView> arguments)
         {
             if (!arguments.empty()) {
                 output << "Arguments:\n";
@@ -525,7 +547,7 @@ namespace ui::cli
                 }
             }
         }
-        void print_flags(std::ostream& output, std::span<const FlagSpec> flags)
+        void print_flags(std::ostream& output, std::span<const FlagView> flags)
         {
             if (!flags.empty()) {
                 output << "Flags:\n";
@@ -557,7 +579,7 @@ namespace ui::cli
                 return "Usage: help [command]\nShow all commands or detailed help for one command.\n";
             }
 
-            const Command* const command{ find(*command_name) };
+            const CommandView* const command{ find(*command_name) };
             if (command == nullptr) {
                 return "unknown command '" + std::string{ *command_name } + "'\n";
             }
@@ -592,11 +614,11 @@ namespace ui::cli
             std::vector<std::string> values;
             std::vector<Arguments::ParsedFlag> flags;
         };
-        static auto shortFlag(std::span<const FlagSpec> flags, char name)
+        static auto shortFlag(std::span<const FlagView> flags, char name)
         {
             return std::ranges::find_if(flags, [name](const auto& flag) { return flag.short_name == name; });
         }
-        static auto parseLongFlag(std::span<const FlagSpec> flags,
+        static auto parseLongFlag(std::span<const FlagView> flags,
                                   std::span<const std::string> tokens,
                                   std::size_t& index,
                                   ParsedArguments& result) -> std::expected<void, std::string>
@@ -605,7 +627,7 @@ namespace ui::cli
             const auto separator{ option.find('=', 2U) };
             const auto name{ option.substr(
               2U, separator == std::string_view::npos ? std::string_view::npos : separator - 2U) };
-            const auto specification{ std::ranges::find(flags, name, &FlagSpec::name) };
+            const auto specification{ std::ranges::find(flags, name, &FlagView::name) };
             if (specification == flags.end()) {
                 return std::unexpected("unknown flag '--" + std::string{ name } + "'");
             }
@@ -618,18 +640,18 @@ namespace ui::cli
                     value = tokens[index];
                 }
                 else {
-                    return std::unexpected("flag '--" + specification->name + "' requires <" +
+                    return std::unexpected("flag '--" + std::string(specification->name) + "' requires <" +
                                            *specification->value_name + ">");
                 }
             }
             else if (separator != std::string_view::npos) {
-                return std::unexpected("flag '--" + specification->name + "' does not accept a value");
+                return std::unexpected("flag '--" + std::string(specification->name) + "' does not accept a value");
             }
             result.flags.push_back({ .specification = static_cast<std::size_t>(specification - flags.begin()),
                                      .value = std::move(value) });
             return {};
         }
-        static auto parseShortFlags(std::span<const FlagSpec> flags,
+        static auto parseShortFlags(std::span<const FlagView> flags,
                                     std::span<const std::string> tokens,
                                     std::size_t& index,
                                     ParsedArguments& result) -> std::expected<void, std::string>
@@ -663,7 +685,7 @@ namespace ui::cli
             }
             return {};
         }
-        static auto parseArguments(const Command& command, std::span<const std::string> tokens)
+        static auto parseArguments(const CommandView& command, std::span<const std::string> tokens)
           -> std::expected<ParsedArguments, std::string>
         {
             ParsedArguments result{};
@@ -714,7 +736,7 @@ namespace ui::cli
         }
         struct CommandMatch
         {
-            const Command* command{};
+            const CommandView* command{};
             std::string name;
             std::size_t argument_begin{ 1U };
         };
@@ -733,13 +755,13 @@ namespace ui::cli
             }
             return result;
         }
-        static auto invokeCommand(const Command& command, const Arguments& arguments, CommandIO& io)
+        static auto invokeCommand(const CommandView& command, const Arguments& arguments, CommandIO& io)
           -> ExecutionResult
         {
             try {
                 CallbackResult callback_result{ command.callback(arguments, io) };
                 if (!callback_result) {
-                    std::string message{ "command '" + command.name + "' failed" };
+                    std::string message{ "command '" + std::string(command.name) + "' failed" };
                     if (!callback_result.error().message.empty()) {
                         message += ": ";
                         message += callback_result.error().message;
@@ -759,13 +781,13 @@ namespace ui::cli
                 return {
                     .error = ExecutionError::CallbackFailed,
                     .exit_code = 1,
-                    .message = "command '" + command.name + "' failed: " + exception.what(),
+                    .message = "command '" + std::string(command.name) + "' failed: " + exception.what(),
                 };
             } catch (...) {
                 return {
                     .error = ExecutionError::CallbackFailed,
                     .exit_code = 1,
-                    .message = "command '" + command.name + "' failed with an unknown exception",
+                    .message = "command '" + std::string(command.name) + "' failed with an unknown exception",
                 };
             }
         }
@@ -803,8 +825,8 @@ namespace ui::cli
                          .message = parsed.error() + "; usage: " + parser.usage(command->name) };
             }
             const auto required{ static_cast<std::size_t>(
-              std::ranges::count(command->arguments, false, &ArgumentSpec::optional)) };
-            const bool variadic{ std::ranges::any_of(command->arguments, &ArgumentSpec::variadic) };
+              std::ranges::count(command->arguments, false, &ArgumentView::optional)) };
+            const bool variadic{ std::ranges::any_of(command->arguments, &ArgumentView::variadic) };
             if (parsed->values.size() < required ||
                 (!variadic && parsed->values.size() > command->arguments.size())) {
                 return { .error = ExecutionError::InvalidArguments,

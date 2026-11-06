@@ -31,6 +31,7 @@ namespace hal::util
         }
         high[axis] = pending_dma[axis] = false;
         entries[axis] = count;
+        prefetched[axis] = memory[axis][0][0];
         registers.channels[axis] = { .compare = first, .remaining = count };
         active[axis] = true;
         return true;
@@ -113,14 +114,18 @@ namespace hal::util
         }
         auto& channel{ registers.channels[axis] };
         pending_dma[axis] = false;
-        channel.compare = memory[axis][channel.target][entries[axis] - channel.remaining];
+        // Direct mode still prefetches one word when enabled (RM0399 16.3.3).
+        // A subsequent RAM edit does not change that cached transfer.
+        channel.compare = prefetched[axis];
         --channel.remaining;
         if (channel.remaining == 0U) {
             channel.remaining = entries[axis];
             channel.target ^= 1U;
             channel.transfer_complete = true;
+            prefetched[axis] = memory[axis][channel.target][0];
             return true;
         }
+        prefetched[axis] = memory[axis][channel.target][entries[axis] - channel.remaining];
         return channel.remaining == entries[axis] / 2U;
     }
 

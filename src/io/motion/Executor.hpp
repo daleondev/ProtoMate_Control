@@ -1,6 +1,8 @@
 #pragma once
+#include <source_location>
 
 #include "ProfileSchedule.hpp"
+#include "common/motion/OperatingEnvelope.hpp"
 #include <functional>
 #include <memory_resource>
 
@@ -13,13 +15,11 @@ namespace io::motion
     {
       public:
         // Initial production ceiling; numerical/HAL stress tests may use 25 kHz.
-        static constexpr std::uint32_t MAX_PRODUCTION_RATE = 12'500;
-        static constexpr std::uint32_t DMA_HALF_PULSES = 32;
-        static constexpr std::uint32_t HORIZON = 200'000;     // 20 ms
-        // Rebuilding faster consumes the M4 time needed to dispatch ICC during
-        // three-axis cruise. The 20 ms frontier retains the same stop bound.
-        static constexpr std::uint32_t RENEW_PERIOD = 70'000; // 7 ms
-        static constexpr std::uint32_t LEASE = 200'000;       // 20 ms
+        static constexpr std::uint32_t MAX_PRODUCTION_RATE = ::motion::operating::STEP_RATE;
+        static constexpr std::uint32_t DMA_HALF_PULSES = 64;
+        static constexpr std::uint32_t HORIZON = ::motion::operating::COMMIT_TICKS;
+        static constexpr std::uint32_t RENEW_PERIOD = ::motion::operating::CHECKPOINT_TICKS;
+        static constexpr std::uint32_t LEASE = ::motion::operating::LEASE_TICKS;
         enum class State : std::uint8_t
         {
             Idle,
@@ -48,6 +48,11 @@ namespace io::motion
         {
             std::uint64_t id{};
             std::array<Axis, 3> axes{};
+            // When present, every participating profile is a positive scaling
+            // of this common progress law. Its braking law is solved once.
+            std::optional<::motion::Profile::Description> progress{};
+            ::motion::Profile::Limits progress_limits{};
+            bool rolling{};
         };
         struct Status
         {
@@ -55,7 +60,8 @@ namespace io::motion
             Reason reason{};
             std::uint64_t id{};
             std::array<std::uint64_t, 3> pulses{};
-            std::uint32_t elapsed{}, stopping_at{}, renewals{}, rejected_renewals{};
+            std::uint64_t elapsed{}, stopping_at{};
+            std::uint32_t renewals{}, rejected_renewals{};
             bool counts_exact{ true };
             std::uint32_t maximum_build_us{}, maximum_splice_us{};
             int last_error{};
@@ -68,7 +74,9 @@ namespace io::motion
         Executor& operator=(const Executor&) = delete;
         // Preparation is explicitly outside the short final admission step.
         // It validates all profiles and constructs the initial stopping path.
-        hal::util::Result<> prepare(const Command& command);
+        hal::util::Result<> prepare(const Command& command, bool bind_outputs = true);
+        // Bind a precompiled program only after final admission under Controller.
+        hal::util::Result<> bind();
         hal::util::Result<> start(std::uint64_t id);
         hal::util::Result<> submit(const Command& command);
         bool reserved() const noexcept { return active() || m_status.state == State::Prepared; }
@@ -76,7 +84,7 @@ namespace io::motion
         // stopped command. Call service at least every millisecond while active.
         bool renew(std::uint64_t id);
         bool stop(std::uint64_t id);
-        void abort() noexcept; // Immediate local fault response, not a brake.
+        void abort(unsigned site=std::source_location::current().line()) noexcept; // Immediate local fault response, not a brake.
         bool recover();        // Explicit stopped-only recovery after HAL reinitialization.
         void service();
         Status status() const noexcept { return m_status; }
@@ -86,11 +94,13 @@ namespace io::motion
         }
 
       private:
-        struct Bank
+        struct Slot
         {
-            std::array<std::optional<ProfileSchedule>, 3> schedules;
+            std::optional<ProfileSchedule> schedule;
         };
-        bool build(unsigned bank, std::uint32_t cut);
+        bool build(unsigned bank, std::uint64_t cut);
+        std::optional<std::uint64_t> elapsed(std::uint32_t tick) noexcept;
+        bool prepareProfiles(const Command& command);
         std::array<std::shared_ptr<const hal::step::TimedSequence>, 3> sequences(unsigned bank) const;
         void brake(Reason reason) noexcept;
         void releaseSchedules() noexcept;
@@ -100,12 +110,18 @@ namespace io::motion
         Prepare m_prepare;
         std::pmr::memory_resource* m_memory;
         std::array<ProfileSchedule::Source, 3> m_nominal;
-        std::array<std::shared_ptr<Bank>, 2> m_banks;
+        std::array<std::array<std::shared_ptr<Slot>, 3>, 2> m_banks;
         std::array<::motion::Profile::Limits, 3> m_limits{};
+        std::optional<::motion::Profile> m_progress;
+        ::motion::Profile::Limits m_progressLimits{};
+        std::uint8_t m_mask{};
         Status m_status;
         std::uint64_t m_lastId{};
-        std::uint32_t m_origin{}, m_next{}, m_lease{};
+        std::uint32_t m_origin{}, m_lastTick{};
+        std::uint64_t m_next{}, m_lease{}, m_elapsed{};
+        bool m_clockStarted{}, m_rolling{};
         unsigned m_bank{};
-        bool m_final{};
+        bool m_final{}, m_outputsBound{};
+        std::array<bool, 3> m_forward{};
     };
 }

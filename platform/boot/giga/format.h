@@ -8,7 +8,8 @@
 #define GIGA_MAX_SEGMENTS 16u
 #define GIGA_COPY 1u
 #define GIGA_ZERO 2u
-#define GIGA_RAM_DEBUG 1u
+/* Manifest flag bit 0: unchanged wire value; permits the M4 SDRAM code segment. */
+#define GIGA_M4_SDRAM_CODE 1u
 #define GIGA_HANDOFF_ADDRESS 0x3800F000u
 #define GIGA_HANDOFF_MAGIC 0x47424F54u
 #define GIGA_MAINTENANCE_TEST_SDRAM 1u

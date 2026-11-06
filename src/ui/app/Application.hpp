@@ -42,7 +42,8 @@ namespace ui
         friend class runtime::ThreadGroup;
         // Priorities are local to this application's scheduler.
         static constexpr runtime::thread::Definition ICC_THREAD{ .priority = 4, .stack_size = 32UZ * 1024UZ };
-        static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 14,
+        // Job dispatch and the 50 ms ownership lease must run ahead of rendering.
+        static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 6,
                                                                          .stack_size = 16UZ * 1024UZ };
         static constexpr runtime::thread::Definition LOG_THREAD{ .priority = 20, .stack_size = 8UZ * 1024UZ };
 #if defined(HAL_PLATFORM_LINUX)

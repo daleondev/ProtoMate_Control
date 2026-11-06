@@ -138,9 +138,44 @@ TEST_F(ExecutorTest, LateOrDifferentPrefixRejectsEveryAxisWithoutMutation)
 }
 
 #include "io/motion/Executor.hpp"
+TEST_F(ExecutorTest, RenewedFirstPulseIncludesDmaPrefetch)
+{
+    gen->stop();
+    ASSERT_TRUE(gen->start());
+    io::motion::Executor exec(gen, [&](unsigned i, bool, std::shared_ptr<const hal::step::Sequence> s) {
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command command{ .id = 1 };
+    for (unsigned i = 0; i < 3; ++i) {
+        const auto rate = std::array{ 12500., 10000., 6250. }[i];
+        command.axes[i].limits = { rate, rate * 10, rate * 10, rate * 100 };
+        command.axes[i].profile = motion::Profile::create(.4 * rate, command.axes[i].limits)->description();
+    }
+    ASSERT_TRUE(exec.submit(command));
+    for (unsigned t = 0; t < 700 && exec.active(); ++t) {
+        hw->advance(10'000);
+        exec.renew(command.id);
+        exec.service();
+    }
+    ASSERT_EQ(exec.status().state, io::motion::Executor::State::Completed);
+    std::array<std::uint64_t, 3> rise{};
+    std::array<unsigned, 3> counts{};
+    for (const auto& edge : hw->edges) {
+        if (edge.high) {
+            rise[edge.axis] = edge.tick;
+            ++counts[edge.axis];
+        }
+        else {
+            EXPECT_EQ(edge.tick - rise[edge.axis], 50U)
+              << "axis=" << edge.axis << " pulse=" << counts[edge.axis];
+        }
+    }
+    EXPECT_EQ(counts, (std::array<unsigned, 3>{ 5000, 4000, 2500 }));
+}
 TEST_F(ExecutorTest, ProductionExecutorRenewsToFullCompletion)
 {
     gen->stop();
+    ASSERT_TRUE(gen->setRefillNotification([] {}));
     ASSERT_TRUE(gen->start());
     io::motion::Executor exec(gen, [&](unsigned i, bool, std::shared_ptr<const hal::step::Sequence> s) {
         return bool(out[i]->prepareSequence(std::move(s)));
@@ -151,7 +186,7 @@ TEST_F(ExecutorTest, ProductionExecutorRenewsToFullCompletion)
         a.limits = limits;
     }
     ASSERT_TRUE(exec.submit(command));
-    EXPECT_EQ(hw->entries[0], 64U); // 32 pulses, two compare events each. // Initial short brake must not shrink steady-state DMA capacity.
+    EXPECT_EQ(hw->entries[0], 128U); // Initial short brake must not shrink steady-state DMA capacity.
     for (unsigned t = 0; t < 800 && exec.active(); ++t) {
         hw->advance(10'000);
         if (t % 5 == 0) {
@@ -163,10 +198,10 @@ TEST_F(ExecutorTest, ProductionExecutorRenewsToFullCompletion)
     auto status = exec.status();
     EXPECT_EQ(status.state, io::motion::Executor::State::Completed)
       << unsigned(status.reason) << " at " << status.elapsed;
-    EXPECT_GT(status.renewals, 80U);
+    EXPECT_EQ(status.renewals, 28U); // 20 ms renewals until the 600 ms endpoint is covered.
     EXPECT_EQ(status.pulses, (std::array<std::uint64_t, 3>{ 10000, 10000, 10000 }));
 }
-TEST_F(ExecutorTest, ProductionExecutorLostRenewalBrakesWithoutFurtherWorkerCalls)
+TEST_F(ExecutorTest, LegacyInterruptRefillFinishesBrakeWithoutExecutorWorker)
 {
     gen->stop();
     ASSERT_TRUE(gen->start());
@@ -185,7 +220,8 @@ TEST_F(ExecutorTest, ProductionExecutorLostRenewalBrakesWithoutFurtherWorkerCall
         exec.service();
     }
     const auto cut = exec.status().stopping_at;
-    // M4 execution worker and M7 producer both disappear; IRQs still run.
+    // Compatibility mode without a refill notifier. Production uses the worker;
+    // its disappearance is a guard fault, tested separately below.
     hw->advance(8'000'000);
     exec.service();
     EXPECT_EQ(exec.status().state, io::motion::Executor::State::Stopped);
@@ -766,10 +802,10 @@ TEST_F(ExecutorTest, AxisCompletingBeforeSpliceRequestsARefreshedSnapshot)
 TEST(ProfileMemory, BoundedAlignedAndReusableWithoutHeapFallback)
 {
     io::motion::ProfileMemory memory;
-    std::array<void*, 5> slots;
+    std::array<void*, 9> slots;
     for (unsigned cycle = 0; cycle < 10; ++cycle) {
         for (unsigned i = 0; i < slots.size(); ++i) {
-            const auto size = i < 2 ? 8400U : 2800U;
+            const auto size = 2800U;
             slots[i] = memory.allocate(size, 32);
             EXPECT_EQ(reinterpret_cast<std::uintptr_t>(slots[i]) % 32, 0U);
             for (unsigned j = 0; j < i; ++j)
@@ -778,7 +814,7 @@ TEST(ProfileMemory, BoundedAlignedAndReusableWithoutHeapFallback)
         EXPECT_THROW((void)memory.allocate(8400, 32), std::bad_alloc);
         EXPECT_THROW((void)memory.allocate(2800, 32), std::bad_alloc);
         for (unsigned i = 0; i < slots.size(); ++i)
-            memory.deallocate(slots[i], i < 2 ? 8400U : 2800U, 32);
+            memory.deallocate(slots[i], 2800U, 32);
     }
     EXPECT_THROW((void)memory.allocate(9000, 32), std::bad_alloc);
     EXPECT_THROW((void)memory.allocate(100, 64), std::bad_alloc);
@@ -848,4 +884,360 @@ TEST(ProfileSchedule, NearlyWholeStepOffsetRetainsTheActualSlowCrossing)
     EXPECT_EQ(tick, 1001U);
     EXPECT_TRUE(reference.crossed(tick, 1 - offset));
     EXPECT_FALSE(reference.crossed(tick - 1, 1 - offset));
+}
+
+TEST_F(ExecutorTest, WorkerRefillsWithoutCallingTheSequenceFromInterrupts)
+{
+    gen->stop();
+    bool interrupt{}, requested{};
+    ASSERT_TRUE(gen->setRefillNotification([&] { requested = true; }));
+    hw->interrupt = [&] { interrupt = true; gen->service(); interrupt = false; };
+    ASSERT_TRUE(gen->start());
+    class Checked final : public hal::step::Sequence {
+      public:
+        const bool& interrupt;
+        mutable unsigned calls{};
+        explicit Checked(const bool& in) : interrupt(in) {}
+        hal::step::PulseCount count() const noexcept override { return 300; }
+        std::uint32_t bufferPulses() const noexcept override { return 32; }
+        std::chrono::nanoseconds maximumPeriod() const noexcept override { return 80us; }
+        hal::util::Result<hal::step::Timing> timing(hal::step::PulseCount) const noexcept override {
+            EXPECT_FALSE(interrupt); ++calls;
+            return hal::step::Timing{80us, 5us};
+        }
+    };
+    auto sequence = std::make_shared<Checked>(interrupt);
+    ASSERT_TRUE(out[0]->prepareSequence(sequence));
+    ASSERT_TRUE(out[0]->start(5ms));
+    for (unsigned t = 0; t < 400; ++t) {
+        hw->advance(1000);
+        if (requested) { requested = false; gen->preparePending(); }
+    }
+    EXPECT_EQ(out[0]->status().state, hal::step::State::Completed);
+    EXPECT_EQ(rises(0).size(), 300U);
+    EXPECT_EQ(sequence->calls, 300U);
+    std::uint64_t rise{};
+    for (const auto& edge : hw->edges) {
+        if (edge.high) rise = edge.tick;
+        else EXPECT_EQ(edge.tick - rise, 50U);
+    }
+    gen->stop();
+    ASSERT_TRUE(gen->setRefillNotification({}));
+    hw->interrupt = [this] { gen->service(); };
+}
+
+TEST_F(ExecutorTest, MissingRefillWorkerTripsGuardInsteadOfReplayingAStaleBuffer)
+{
+    gen->stop();
+    ASSERT_TRUE(gen->setRefillNotification([] {}));
+    ASSERT_TRUE(gen->start());
+    auto source = std::make_shared<Schedule::Nominal>(*motion::Profile::create(5000, limits), 32);
+    auto sequence = std::make_shared<Schedule>(source);
+    ASSERT_TRUE(out[0]->prepareSequence(sequence));
+    ASSERT_TRUE(out[0]->start(5ms));
+    hw->advance(10'000'000);
+    EXPECT_EQ(gen->status().state, hal::step::State::Underrun);
+    EXPECT_LE(rises(0).size(), 64U);
+    gen->stop();
+    ASSERT_TRUE(gen->setRefillNotification({}));
+}
+
+TEST_F(ExecutorTest, ProducerLossKeepsWorkerAliveToFinishTheInstalledBrake)
+{
+    gen->stop();
+    ASSERT_TRUE(gen->setRefillNotification([] {}));
+    ASSERT_TRUE(gen->start());
+    io::motion::Executor exec(gen, [&](unsigned i, bool, std::shared_ptr<const hal::step::Sequence> s) {
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command command{.id = 1};
+    for (auto& axis : command.axes) {
+        axis.profile = nominal->profile().description(); axis.limits = limits;
+    }
+    ASSERT_TRUE(exec.submit(command));
+    for (unsigned ms = 0; ms < 1000 && exec.active(); ++ms) {
+        hw->advance(10'000);
+        if (ms < 250) { ASSERT_TRUE(exec.renew(command.id)); }
+        exec.service();
+    }
+    ASSERT_EQ(exec.status().state, io::motion::Executor::State::Stopped);
+    EXPECT_EQ(exec.status().reason, io::motion::Executor::Reason::LeaseExpired);
+    EXPECT_LT(exec.status().stopping_at, 3'500'000U); // Starts braking within 100 ms of producer loss.
+    const Schedule brake(*nominal, exec.status().stopping_at, limits);
+    ASSERT_TRUE(brake.valid());
+    for (unsigned axis = 0; axis < 3; ++axis) {
+        EXPECT_EQ(rises(axis).size(), brake.count());
+        EXPECT_FALSE(hw->high[axis]);
+    }
+    EXPECT_FALSE(exec.renew(command.id));
+    EXPECT_FALSE(exec.start(command.id));
+}
+
+TEST_F(ExecutorTest, IndependentGroupsShareStorageAndAbortingOneLeavesOthersRunning)
+{
+    gen->stop();
+    ASSERT_TRUE(gen->start());
+    hw->edges.clear();
+    io::motion::ProfileMemory memory;
+    std::array<std::unique_ptr<io::motion::Executor>, 3> groups;
+    for (unsigned i = 0; i < 3; ++i) {
+        groups[i] = std::make_unique<io::motion::Executor>(gen,
+          [&](unsigned n, bool, std::shared_ptr<const hal::step::Sequence> s) {
+              return bool(out[n]->prepareSequence(std::move(s)));
+          }, &memory);
+        io::motion::Executor::Command c{.id = i + 1};
+        c.axes[i].limits = {6250, 62500, 62500, 625000};
+        c.axes[i].profile = motion::Profile::create(2500, c.axes[i].limits)->description();
+        ASSERT_TRUE(groups[i]->submit(c));
+    }
+    for (unsigned ms = 0; ms < 1000; ++ms) {
+        hw->advance(10'000);
+        if (ms == 100) groups[0]->abort();
+        for (unsigned i = 0; i < 3; ++i) {
+            if (groups[i]->active()) groups[i]->renew(i + 1);
+            groups[i]->service();
+        }
+    }
+    EXPECT_EQ(groups[0]->status().state, io::motion::Executor::State::Faulted);
+    EXPECT_LT(rises(0).size(), 2500U);
+    for (unsigned i = 1; i < 3; ++i) {
+        EXPECT_EQ(groups[i]->status().state, io::motion::Executor::State::Completed);
+        EXPECT_EQ(rises(i).size(), 2500U);
+    }
+}
+
+TEST_F(ExecutorTest, CoordinatedGroupUsesCommonProgressForNominalAndStopping)
+{
+    gen->stop();
+    ASSERT_TRUE(gen->start());
+    hw->edges.clear();
+    io::motion::ProfileMemory memory;
+    io::motion::Executor exec(gen,
+      [&](unsigned i, bool, std::shared_ptr<const hal::step::Sequence> s) {
+          return bool(out[i]->prepareSequence(std::move(s)));
+      }, &memory);
+    io::motion::Executor::Command c{.id = 1};
+    c.progress_limits = {1., 10., 10., 100.};
+    const auto law = motion::Profile::create(1., c.progress_limits);
+    ASSERT_TRUE(law);
+    c.progress = law->description();
+    const std::array<double, 3> distances{4000, 2000, 1000};
+    for (unsigned i = 0; i < 3; ++i) {
+        const auto d = distances[i];
+        c.axes[i].limits = {d, d*10, d*10, d*100};
+        c.axes[i].profile = law->scaled(d)->description();
+    }
+    ASSERT_TRUE(exec.submit(c));
+    std::uint32_t frontier{};
+    for (unsigned ms = 0; ms < 1500 && exec.active(); ++ms) {
+        hw->advance(10'000);
+        if (ms == 250) {
+            frontier = exec.status().stopping_at;
+            ASSERT_TRUE(exec.stop(c.id));
+        } else if (ms < 250) { ASSERT_TRUE(exec.renew(c.id)); }
+        exec.service();
+    }
+    ASSERT_EQ(exec.status().state, io::motion::Executor::State::Stopped);
+    const auto state = law->at(frontier / 1e7);
+    const auto brake = motion::Profile::brake(state.velocity, state.acceleration, c.progress_limits);
+    ASSERT_TRUE(brake);
+    const auto end = state.position + brake->distance();
+    for (unsigned i = 0; i < 3; ++i)
+        EXPECT_EQ(rises(i).size(), std::uint64_t(std::floor(end * distances[i])));
+    // All axes use the same epoch: coincident integer crossings agree exactly.
+    const auto a = rises(0), b = rises(1), d = rises(2);
+    for (unsigned n = 0; n < d.size(); ++n) {
+        EXPECT_EQ(d[n], b[2*n+1]);
+        EXPECT_EQ(d[n], a[4*n+3]);
+    }
+}
+
+TEST(ProfileSchedule, LongFiniteProgramRetainsReferenceCrossings)
+{
+    const motion::Profile::Limits slow{100, 1000, 1000, 10000};
+    const auto p = motion::Profile::create(8800, slow);
+    ASSERT_TRUE(p);
+    ASSERT_GT(p->duration(), 88.);
+    ASSERT_LT(p->duration(), 90.);
+    Schedule sequence(*p);
+    ASSERT_TRUE(sequence.valid());
+    io::motion::profile_util::Curve reference(*p);
+    for (unsigned n = 0; n < 8800; ++n) {
+        const auto offset = sequence.risingTick(n);
+        ASSERT_TRUE(offset);
+        const auto tick = sequence.firstTick() + *offset;
+        EXPECT_TRUE(reference.crossed(tick, n+1));
+        EXPECT_FALSE(reference.crossed(tick-1, n+1));
+    }
+    const auto tooLong = motion::Profile::create(9000, slow);
+    ASSERT_TRUE(tooLong);
+    EXPECT_FALSE(Schedule(*tooLong).valid());
+}
+
+TEST_F(ExecutorTest, ShortAxisMoveRenewsThroughFinalDeceleration)
+{
+    gen->stop(); ASSERT_TRUE(gen->start()); hw->edges.clear();
+    io::motion::Executor exec(gen,[&](unsigned i,bool,std::shared_ptr<const hal::step::Sequence> s){
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command c{.id=1};
+    constexpr double count=222;
+    c.axes[0].limits={888.8888888889,4444.4444444444,4444.4444444444,44444.4444444444};
+    c.progress_limits={c.axes[0].limits.velocity/count,c.axes[0].limits.acceleration/count,
+                      c.axes[0].limits.deceleration/count,c.axes[0].limits.jerk/count};
+    const auto law=motion::Profile::create(1,c.progress_limits);
+    ASSERT_TRUE(law);c.progress=law->description();c.axes[0].profile=law->scaled(count)->description();
+    ASSERT_TRUE(exec.submit(c));
+    for(unsigned ms=0;ms<2000&&exec.active();++ms){
+        hw->advance(10000);exec.renew(1);exec.service();
+    }
+    const auto s=exec.status();
+    EXPECT_EQ(s.state,io::motion::Executor::State::Completed)<<unsigned(s.reason)<<" "<<s.last_error<<" "<<s.stopping_at;
+    EXPECT_EQ(rises(0).size(),222U);
+}
+
+TEST_F(ExecutorTest, ThreeAxisApplicationMoveReachesCommonTerminalEdge)
+{
+    gen->stop(); ASSERT_TRUE(gen->setRefillNotification([]{}));ASSERT_TRUE(gen->start());hw->edges.clear();
+    io::motion::Executor exec(gen,[&](unsigned i,bool,std::shared_ptr<const hal::step::Sequence> s){
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command c{.id=1};
+    const std::array<double,3> counts{3462,919,25380};
+    c.progress_limits={5120/25380./1.25,25600/25380./1.5625,25600/25380./1.5625,256000/25380./1.953125};
+    const auto law=motion::Profile::create(1,c.progress_limits);ASSERT_TRUE(law);
+    c.progress=law->description();
+    for(unsigned i=0;i<3;++i){c.axes[i].profile=law->scaled(counts[i])->description();
+        c.axes[i].limits={6250,25600,25600,256000};}
+    ASSERT_TRUE(exec.submit(c));
+    for(unsigned ms=0;ms<10000&&exec.active();++ms){hw->advance(10000);exec.renew(1);exec.service();}
+    const auto s=exec.status();
+    EXPECT_EQ(s.state,io::motion::Executor::State::Completed)<<unsigned(s.reason)<<" "<<s.last_error<<" "<<s.stopping_at;
+    for(unsigned i=0;i<3;++i)EXPECT_EQ(rises(i).size(),unsigned(counts[i]));
+    gen->stop();ASSERT_TRUE(gen->setRefillNotification({}));
+}
+
+TEST_F(ExecutorTest, RollingJogRebasesWithoutRestOrCountLossAcrossTimerWrap)
+{
+    gen->stop();ASSERT_TRUE(gen->setRefillNotification([]{}));ASSERT_TRUE(gen->start());hw->edges.clear();
+    io::motion::ProfileMemory memory;
+    io::motion::Executor exec(gen,[&](unsigned i,bool,std::shared_ptr<const hal::step::Sequence> s){
+        return bool(out[i]->prepareSequence(std::move(s)));
+    },&memory);
+    io::motion::Executor::Command c{.id=1};c.rolling=true;
+    c.progress_limits={.002,.02,.02,.2};
+    const auto law=motion::Profile::create(1,c.progress_limits);ASSERT_TRUE(law);
+    c.progress=law->description();c.axes[0].profile=law->scaled(50000)->description();
+    c.axes[0].limits={100,1000,1000,10000};
+    ASSERT_TRUE(exec.submit(c));
+    std::uint64_t frontier{};
+    for(unsigned ms=0;ms<455000&&exec.active();ms+=5){
+        hw->advance(50000);
+        if(ms==450000){frontier=exec.status().stopping_at;ASSERT_TRUE(exec.stop(1));}
+        else if(ms<450000){ASSERT_TRUE(exec.renew(1))<<ms<<" "<<unsigned(exec.status().reason)<<" "<<exec.status().last_error;}
+        exec.service();
+    }
+    const auto s=exec.status();
+    ASSERT_EQ(s.state,io::motion::Executor::State::Stopped)<<unsigned(s.reason)<<" "<<s.last_error;
+    ASSERT_GT(frontier,std::uint64_t(hal::util::STEP_PARK));
+    const auto state=law->at(frontier/1e7);
+    const auto brake=motion::Profile::brake(state.velocity,state.acceleration,c.progress_limits);ASSERT_TRUE(brake);
+    EXPECT_EQ(rises(0).size(),std::uint64_t(std::floor((state.position+brake->distance())*50000)));
+    const auto edges=rises(0);
+    for(unsigned n=20;n+20<edges.size();++n)EXPECT_EQ(edges[n]-edges[n-1],100000U)<<n;
+    gen->stop();ASSERT_TRUE(gen->setRefillNotification({}));
+}
+
+TEST(ProfileSchedule, ExtendedJogCrossingsAgreeWithReferenceIncludingFinalRamp)
+{
+    const auto profile=motion::Profile::create(50000,{100,1000,1000,10000});ASSERT_TRUE(profile);
+    io::motion::ProfileCrossing crossing(*profile,0,true);ASSERT_TRUE(crossing.valid());
+    io::motion::profile_util::Curve reference(*profile);
+    io::motion::ProfileCrossing::Cursor cursor;
+    for(unsigned n=1;n<=50000;++n){
+        const auto tick=crossing.next(n,cursor);
+        EXPECT_TRUE(reference.crossed(tick,n))<<n;
+        EXPECT_FALSE(reference.crossed(tick-1,n))<<n;
+    }
+}
+
+TEST_F(ExecutorTest, SlowLowCountAxisRetainsItsFinalPulseAndCompletion)
+{
+    gen->stop(); ASSERT_TRUE(gen->start()); hw->edges.clear();
+    io::motion::Executor exec(gen,[&](unsigned i,bool,std::shared_ptr<const hal::step::Sequence> s){
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command c{.id=1};
+    constexpr double count=22;
+    c.axes[1].limits={22.2222222222222,4444.4444444444,4444.4444444444,44444.4444444444};
+    c.progress_limits={c.axes[1].limits.velocity/count,c.axes[1].limits.acceleration/count,
+                      c.axes[1].limits.deceleration/count,c.axes[1].limits.jerk/count};
+    const auto law=motion::Profile::create(1,c.progress_limits);
+    ASSERT_TRUE(law);c.progress=law->description();c.axes[1].profile=law->scaled(count)->description();
+    for(unsigned n=1;n<=10;++n){
+        c.id=n;ASSERT_TRUE(exec.submit(c));
+        for(unsigned ms=0;ms<2000&&exec.active();++ms){hw->advance(10000);exec.renew(n);exec.service();}
+        ASSERT_EQ(exec.status().state,io::motion::Executor::State::Completed)<<n<<" "<<unsigned(exec.status().reason);
+        EXPECT_EQ(exec.status().pulses[1],22U);
+    }
+}
+
+TEST_F(ExecutorTest, CompletionNotificationDefersBusyCleanupWithoutFaulting)
+{
+    gen->stop(); ASSERT_TRUE(gen->start()); hw->edges.clear();
+    io::motion::Executor exec(gen,[&](unsigned i,bool,std::shared_ptr<const hal::step::Sequence> s){
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command c{.id=1};
+    c.axes[0].limits={100,1000,1000,10000};
+    c.axes[0].profile=motion::Profile::create(10,c.axes[0].limits)->description();
+    bool attempted{};
+    progress=[&]{
+        if(out[0]->status().state==hal::step::State::Completed && exec.active()){
+            attempted=true;exec.service();
+            EXPECT_NE(exec.status().state,io::motion::Executor::State::Faulted);
+        }
+    };
+    ASSERT_TRUE(exec.submit(c));
+    for(unsigned ms=0;ms<1000&&exec.active();++ms){hw->advance(10000);exec.renew(1);exec.service();}
+    progress={};
+    EXPECT_TRUE(attempted);
+    EXPECT_EQ(exec.status().state,io::motion::Executor::State::Completed);
+    EXPECT_EQ(exec.status().pulses[0],10U);
+}
+
+TEST_F(ExecutorTest, DetachedCompilationCannotArmOrClearAnotherOwnersOutput)
+{
+    gen->stop(); ASSERT_TRUE(gen->start()); hw->edges.clear();
+    unsigned bound{};
+    auto exec=std::make_unique<io::motion::Executor>(gen,
+      [&](unsigned i,bool,std::shared_ptr<const hal::step::Sequence> s){
+          ++bound;return bool(out[i]->prepareSequence(std::move(s)));
+      });
+    io::motion::Executor::Command c{.id=1};
+    c.axes[0].limits={100,1000,1000,10000};
+    c.axes[0].profile=motion::Profile::create(10,c.axes[0].limits)->description();
+    ASSERT_TRUE(exec->prepare(c,false));
+    EXPECT_EQ(bound,0U);
+    EXPECT_FALSE(exec->start(1));
+    // Cancellation released the reservation; another owner can use the axis.
+    ASSERT_TRUE(out[0]->prepareSequence(nominal));
+    ASSERT_TRUE(out[0]->start());
+    exec.reset();
+    EXPECT_EQ(out[0]->status().state,hal::step::State::Running);
+    out[0]->stop();
+}
+TEST_F(ExecutorTest, DetachedCompilationBindsOnlyAfterFinalAdmission)
+{
+    gen->stop(); ASSERT_TRUE(gen->start());
+    io::motion::Executor exec(gen,[&](unsigned i,bool,std::shared_ptr<const hal::step::Sequence> s){
+        return bool(out[i]->prepareSequence(std::move(s)));
+    });
+    io::motion::Executor::Command c{.id=1};
+    c.axes[0].limits={100,1000,1000,10000};
+    c.axes[0].profile=motion::Profile::create(10,c.axes[0].limits)->description();
+    ASSERT_TRUE(exec.prepare(c,false));ASSERT_TRUE(exec.bind());ASSERT_TRUE(exec.start(1));
+    for(unsigned ms=0;ms<1000&&exec.active();++ms){hw->advance(10000);exec.renew(1);exec.service();}
+    EXPECT_EQ(exec.status().state,io::motion::Executor::State::Completed);
+    EXPECT_EQ(exec.status().pulses[0],10U);
 }

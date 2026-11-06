@@ -34,14 +34,15 @@ namespace io::motion
                                std::shared_ptr<hal::device::IStepperDriver> driver,
                                std::shared_ptr<hal::device::IMotorFeedback> feedback,
                                hal::device::IStepperDriver::FaultCallback shutdown,
-                               std::shared_ptr<pnm::log::ISink> log_sink)
+                               std::shared_ptr<pnm::log::ISink> log_sink,
+                               std::shared_ptr<hal::IDigitalInput> reference_input)
       : m_id{ id }
       , m_referenceSwitchPosition{ reference_switch_position }
       , m_fullStepAngle{ full_step_angle }
       , m_microsteps{ microsteps }
       , m_stepOutput{ hal::core::create_stepper_step_output(step_generator, id) }
       , m_dirOutput{ hal::core::create_stepper_direction_output(id) }
-      , m_referenceSwitchInput{ hal::core::create_reference_limit_switch(id) }
+      , m_referenceSwitchInput{ reference_input ? std::move(reference_input) : hal::core::create_reference_limit_switch(id) }
       , m_feedback{ feedback ? std::move(feedback)
                              : hal::core::create_motor_feedback(
                                  id,

@@ -34,7 +34,7 @@ static void region(uint32_t number,
 #endif
     HAL_MPU_ConfigRegion(&r);
 }
-void giga_configure_mpu(uint32_t ram_debug)
+void giga_configure_mpu(uint32_t m4_sdram_code)
 {
     HAL_MPU_Disable();
 #if defined(CORE_CM7)
@@ -57,7 +57,7 @@ void giga_configure_mpu(uint32_t ram_debug)
     region(0, 0x38000000, MPU_REGION_SIZE_64KB, 0, 0, MPU_REGION_FULL_ACCESS);
     region(1, 0x90000000, MPU_REGION_SIZE_16MB, 1, 1, MPU_REGION_PRIV_RO_URO);
     region(2, 0xC0000000, MPU_REGION_SIZE_8MB, 0, 0, MPU_REGION_FULL_ACCESS);
-    region(3, 0xC0400000, MPU_REGION_SIZE_2MB, ram_debug, 0, MPU_REGION_FULL_ACCESS);
+    region(3, 0xC0400000, MPU_REGION_SIZE_2MB, m4_sdram_code, 0, MPU_REGION_FULL_ACCESS);
     region(4, 0xC0600000, MPU_REGION_SIZE_2MB, 0, 1, MPU_REGION_FULL_ACCESS);
     /* The maintenance helper executes here without any flash dependency. */
 #if defined(GIGA_MEMORY_HELPER)

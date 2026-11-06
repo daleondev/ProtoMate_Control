@@ -22,6 +22,8 @@ namespace icc
         // Versioned, explicitly serialized trajectory capabilities/admission.
         [[= ServiceProvider::IO]] pnm::msg::Service<motion::trajectory::Packet, motion::trajectory::Packet>
           io_trajectory;
+        [[ = ServiceProvider::IO, = Lane::Urgent ]]
+        pnm::msg::Service<motion::trajectory::Packet, motion::trajectory::Packet> io_trajectory_control;
 
         [[= ServiceProvider::IO]] pnm::msg::Service<diagnostics::MemoryQuery, diagnostics::MemorySnapshot>
           io_memory;

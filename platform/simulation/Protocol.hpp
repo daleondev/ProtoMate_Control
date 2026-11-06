@@ -52,7 +52,8 @@ namespace simulation
         PwmStart,
         PwmStop,
         Retarget,
-        PublishFuture
+        PublishFuture,
+        Configuration
     };
     enum class Fault : std::uint32_t
     {
@@ -120,7 +121,7 @@ namespace simulation
             throw std::invalid_argument{ "simulation protocol version/length" };
         Packet packet{};
         const auto op{ get(in, 4, 4) };
-        if (op > std::to_underlying(Operation::PublishFuture))
+        if (op > std::to_underlying(Operation::Configuration))
             throw std::invalid_argument{ "simulation operation" };
         packet.operation = static_cast<Operation>(op);
         packet.status = static_cast<std::uint32_t>(get(in, 8, 4));

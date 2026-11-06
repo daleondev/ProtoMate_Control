@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 void giga_safe_outputs(void);
-void giga_configure_mpu(uint32_t ram_debug);
+void giga_configure_mpu(uint32_t m4_sdram_code);
 void giga_release_m4(void);
 void giga_memories_initialize(void);
 void giga_qspi_initialize(void);

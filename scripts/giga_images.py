@@ -49,9 +49,9 @@ class Elf:
         raise ValueError(f'Allocated section at {address:#x} lacks a load segment')
 
 
-def destination(core, address, length, ram_debug):
-    regions = ([(0x10000000, 192 << 10), (0x30030000, 88 << 10), (0x24040000, 256 << 10)] +
-               ([(0xC0400000, 2 << 20)] if ram_debug else [])) if core == 4 else [
+def destination(core, address, length, m4_sdram_code):
+    regions = ([(0x10000000, 194 << 10), (0x30030800, 86 << 10), (0x24040000, 256 << 10)] +
+               ([(0xC0400000, 2 << 20)] if m4_sdram_code else [])) if core == 4 else [
                    (0, 64 << 10), (0x20000000, 112 << 10), (0x24000000, 256 << 10)]
     return any(start <= address and address + length <= start + size for start, size in regions)
 
@@ -60,7 +60,7 @@ def image(path, core):
     elf = Elf(path)
     base, limit = (0x90100000, 3 << 20) if core == 4 else (0x90400000, 4 << 20)
     vectors, stack = (0x10000000, 0x30048000) if core == 4 else (0x20000000, 0x20020000)
-    ram_debug = core == 4 and 0xC0400000 <= elf.entry < 0xC0600000
+    m4_sdram_code = core == 4 and 0xC0400000 <= elf.entry < 0xC0600000
     chunks, records = [], []
     vector_contents = None
     for name, s in elf.sections:
@@ -91,7 +91,7 @@ def image(path, core):
     records.sort(key=lambda r: r[1])
     merged = []
     for load, run, size, flags in records:
-        if not destination(core, run, size, ram_debug):
+        if not destination(core, run, size, m4_sdram_code):
             raise ValueError(f'RAM section outside ownership: {run:#x}+{size}')
         if merged:
             previous = merged[-1]
@@ -113,10 +113,10 @@ def image(path, core):
         payload[address - base:address - base + len(data)] = data
         previous_end = address + len(data)
     metadata = dict(core=core, storage=base, size=len(payload), crc=zlib.crc32(payload),
-                    entry=elf.entry, vectors=vectors, stack=stack, flags=int(ram_debug),
+                    entry=elf.entry, vectors=vectors, stack=stack, flags=int(m4_sdram_code),
                     segments=[dict(load=r[0], run=r[1], size=r[2], flags=r[3]) for r in merged])
     descriptor = struct.pack('<8I', base, len(payload), metadata['crc'], elf.entry,
-                             vectors, stack, len(merged), int(ram_debug))
+                             vectors, stack, len(merged), int(m4_sdram_code))
     descriptor += b''.join(struct.pack('<4I', *record) for record in merged)
     descriptor += bytes(16 * (MAX_SEGMENTS - len(merged)))
     return bytes(payload), descriptor, metadata
