@@ -16,7 +16,6 @@ namespace io::motion
 {
     namespace
     {
-        constexpr std::size_t MOTION_WORKER_STACK_SIZE{ 16384U };
         // Cleanup must finish even after a driver failure, including during stack unwinding.
         void report_cleanup_failure(const hal::util::Result<>& result, const char* message) noexcept
         {
@@ -191,85 +190,6 @@ namespace io::motion
         return m_motionDefaults;
     }
 
-    std::future<StepperMotor::Result> StepperMotor::submitMove(pnm::units::Angle position,
-                                                               pnm::units::AngularVelocity velocity,
-                                                               Defaults dynamics,
-                                                               BufferMode mode,
-                                                               pnm::units::Time timeout,
-                                                               bool relative)
-    {
-        const auto epoch{ m_abortEpoch.load() };
-        const auto rejected{ [this] {
-            util::Completion<Result> promise{};
-            m_lastCompletion = promise;
-            promise.setValue(Result::Rejected);
-            return promise.getFuture();
-        } };
-        const auto now{ std::chrono::steady_clock::now() };
-        if (!m_driver->status().ready || !position.isFinite() || !timingFor(velocity) ||
-            !timeout.isFinite() || timeout < 0_s ||
-            timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2 ||
-            !dynamics.acceleration.isFinite() || dynamics.acceleration < 0_rad_s2 ||
-            !dynamics.deceleration.isFinite() || dynamics.deceleration < 0_rad_s2 ||
-            !dynamics.jerk.isFinite() || dynamics.jerk < 0_rad_s3 || mode < BufferMode::Aborting ||
-            mode > BufferMode::BlendingHigh || (!relative && !isReferenced())) {
-            return rejected();
-        }
-        std::scoped_lock worker_lock{ m_workerMutex };
-        {
-            std::scoped_lock lock{ m_queueMutex };
-            if (dynamics.acceleration == 0_rad_s2) {
-                dynamics.acceleration = m_motionDefaults.acceleration;
-            }
-            if (dynamics.deceleration == 0_rad_s2) {
-                dynamics.deceleration = m_motionDefaults.deceleration;
-            }
-            if (dynamics.jerk == 0_rad_s3) {
-                dynamics.jerk = m_motionDefaults.jerk;
-            }
-        }
-        auto command{ std::make_shared<Command>(Command{ .position = position,
-                                                         .velocity = velocity,
-                                                         .dynamics = dynamics,
-                                                         .mode = mode,
-                                                         .timeout = timeout,
-                                                         .relative = relative,
-                                                         .completion = {},
-                                                         .epoch = epoch }) };
-        m_lastCompletion = command->completion;
-        auto future{ command->completion.getFuture() };
-        if (mode != BufferMode::Aborting) {
-            std::scoped_lock lock{ m_queueMutex };
-            if (m_busy) {
-                if (m_homing || m_pending) {
-                    command->completion.setValue(Result::Rejected);
-                    return future;
-                }
-                m_pending = command;
-                m_events->notification.signal();
-                return future;
-            }
-        }
-        if (m_worker.joinable()) {
-            static_cast<void>(m_worker.request_stop());
-            m_worker.join();
-        }
-        {
-            std::scoped_lock lock{ m_queueMutex };
-            m_busy = true;
-            m_homing = false;
-        }
-        try {
-            m_worker = runtime::thread::create_jthread(
-              { .name = "motion", .stack_size = MOTION_WORKER_STACK_SIZE },
-              [this, command](const std::stop_token& stop) { runCommands(command, stop); });
-        } catch (...) {
-            command->completion.setException(std::current_exception());
-            finishQueue(Result::Faulted);
-        }
-        return future;
-    }
-
     class StepperMotor::CommandRunner
     {
         using Count = hal::step::PulseCount;
@@ -292,6 +212,7 @@ namespace io::motion
                 while (m_command && runCommand()) {
                 }
             } catch (...) {
+                m_motor->reportFailure("raw motion execution");
                 if (m_update) {
                     m_update->completion.set_value(
                       std::unexpected(std::make_error_code(std::errc::not_enough_memory)));
@@ -958,50 +879,6 @@ namespace io::motion
             m_velocityRequest.reset();
         }
         m_busy = m_homing = false;
-    }
-
-    std::future<StepperMotor::Result> StepperMotor::startMotion(std::function<Result(std::stop_token)> task)
-    {
-        const auto epoch{ m_abortEpoch.load() };
-        std::scoped_lock lock{ m_workerMutex };
-        if (m_worker.joinable()) {
-            static_cast<void>(m_worker.request_stop());
-            m_worker.join();
-        }
-        util::Completion<Result> completion{};
-        m_lastCompletion = completion;
-        auto future{ completion.getFuture() };
-        {
-            std::scoped_lock queue_lock{ m_queueMutex };
-            m_busy = m_homing = true;
-        }
-        try {
-            // Homing keeps packaged_task/call_once frames alive through motion and
-            // formatted debug logging. The default 4 KiB stack is too small on ARM
-            // and corrupts the thread's TLS/control block before cancellation ends.
-            m_worker = runtime::thread::create_jthread(
-              { .name = "homing", .stack_size = MOTION_WORKER_STACK_SIZE },
-              [this, task = std::move(task), completion, epoch](const std::stop_token& stop) mutable {
-                m_runEpoch = epoch;
-                Result result{ Result::Faulted };
-                try {
-                    result = task(stop);
-                } catch (...) {
-                    result = Result::Faulted;
-                }
-                finishQueue(Result::Stopped);
-                completion.setValue(result);
-                // Publish completion before waking the coordinator, including when
-                // homing ended without another STEP or GPIO callback.
-                if (auto* notification{ m_events->group_notification.load() }) {
-                    notification->signal();
-                }
-            });
-        } catch (...) {
-            finishQueue(Result::Faulted);
-            throw;
-        }
-        return future;
     }
 
     StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity seek_velocity,

@@ -39,7 +39,9 @@ def test_axis_and_robot_workflow(simulator, tmp_path, spawn):
 
     def submit(value):
         result = command(value)
-        return int(re.search(r"job (\d+)", result)[1])
+        matches = re.findall(r"^Submitted (?:motion|motor) job (\d+);", result, re.MULTILINE)
+        assert len(matches) == 1, result
+        return int(matches[0])
 
     def wait(job, state="completed", timeout=100):
         end = time.monotonic() + timeout
@@ -117,7 +119,7 @@ def test_axis_and_robot_workflow(simulator, tmp_path, spawn):
         continuous = submit("axis jog shoulder -0.2 --continuous")
         wait(continuous, "running")
         raw = command("motor move m2 5 --speed 10")
-        raw_id = int(re.search(r"job (\d+)", raw, re.IGNORECASE)[1])
+        raw_id = int(re.search(r"^Submitted motor job (\d+);", raw, re.MULTILINE)[1])
         wait(raw_id, "rejected")
         rejected = submit("robot move joints -1 -1 -1")
         busy = wait(rejected, "rejected")

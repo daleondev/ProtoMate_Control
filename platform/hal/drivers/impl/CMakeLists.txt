@@ -7,6 +7,8 @@ target_sources(hal_drivers_impl
         ${CMAKE_CURRENT_SOURCE_DIR}/StepGenerator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/StepOutput.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/StepOutput.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../util/StepTrace.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../util/StepTrace.cpp
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")

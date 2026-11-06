@@ -454,11 +454,11 @@ namespace io::motion
             cancelCommand();
             wake();
         } };
-        // ARM finite preparation peaked at 11,020 bytes; 16 KiB preserves
-        // more than 25% headroom. Hosted Debug keeps its larger allowance.
+        // Full ARM workflow peaked at 14,608 bytes; 20 KiB retains over
+        // 25% headroom. Hosted Debug keeps its larger allowance.
         auto worker{ runtime::thread::create_jthread(
           { .name = "motor commands", .priority = 2,
-            .stack_size = sizeof(void*) == 4 ? 16UZ * 1024UZ : 24UZ * 1024UZ },
+            .stack_size = sizeof(void*) == 4 ? 20UZ * 1024UZ : 24UZ * 1024UZ },
           [this](std::stop_token token) { commandWorker(token); }) };
         const auto drainCommand{ [&] {
             cancelCommand();

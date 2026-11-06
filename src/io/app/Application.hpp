@@ -51,10 +51,10 @@ namespace io
         // wider C++ frames and retains its 16 KiB allowance.
         static constexpr std::size_t HOUSEKEEPING_STACK_SIZE =
           sizeof(void*) == 4 ? 4UZ * 1024UZ : 16UZ * 1024UZ;
-        // ARM ICC high-water mark: 11,876 bytes. Keep 24 KiB for dispatch
-        // nesting while leaving room for three simultaneous motor workers.
+        // ARM ICC high-water mark: 12,064 bytes; 20 KiB retains over 40%
+        // headroom while budgeting three independent 10 KiB motor workers.
         static constexpr runtime::thread::Definition ICC_THREAD{
-            .priority = 4, .stack_size = sizeof(void*) == 4 ? 24UZ * 1024UZ : 32UZ * 1024UZ };
+            .priority = 4, .stack_size = sizeof(void*) == 4 ? 20UZ * 1024UZ : 32UZ * 1024UZ };
         // Bounded trajectory decode/response adds ~8 KiB to the service call
         // chain; this is separate from the preparation worker's stack.
         static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 3,

@@ -204,6 +204,7 @@ namespace io::motion
         bool interrupted(const std::stop_token& stop) const noexcept;
 
         void finishQueue(Result result) noexcept;
+        void reportFailure(const char* stage) const noexcept;
 
         std::optional<hal::step::Timing> timingFor(pnm::units::AngularVelocity velocity) const noexcept;
 
@@ -228,6 +229,15 @@ namespace io::motion
 
         mutable std::mutex m_mutex;
         std::mutex m_workerMutex;
+        // Reserve all three stacks at construction. Allocating a large stack
+        // on every move fails after small action/job allocations fragment the
+        // heap, even when the total free space is sufficient. The predecessor
+        // is always joined before this storage is reused.
+        // Live velocity replacement needs over 7 KiB on ARM. 10 KiB
+        // preserves measured headroom above 25% without three 16 KiB stacks.
+        static constexpr std::size_t WORKER_STACK_BYTES = sizeof(void*) == 4 ? 10240U : 16384U;
+        std::unique_ptr<std::byte[]> m_workerStack{
+          std::make_unique_for_overwrite<std::byte[]>(WORKER_STACK_BYTES) };
         std::jthread m_worker;
         mutable std::mutex m_queueMutex;
         Defaults m_motionDefaults;

@@ -1,10 +1,39 @@
 #include "Frame.hpp"
 
+#include <algorithm>
 #include <limits>
 #include <utility>
 
 namespace icc::util
 {
+    StoredFrame::StoredFrame(std::size_t reserve)
+    {
+        if (reserve > MAX_FRAME_BYTES) throw std::length_error("Invalid retained frame capacity");
+        m_bytes.reserve(reserve);
+    }
+    StoredFrame::StoredFrame(const OutgoingFrame& frame) { *this = frame; }
+    StoredFrame& StoredFrame::operator=(const OutgoingFrame& frame)
+    {
+        if (frame.size == 0 || frame.size > MAX_FRAME_BYTES)
+            throw std::length_error("Invalid retained frame size");
+        m_bytes.resize(frame.size);
+        std::copy_n(frame.bytes.begin(), frame.size, m_bytes.begin());
+        return *this;
+    }
+    OutgoingFrame StoredFrame::copy() const noexcept
+    {
+        OutgoingFrame frame{};
+        frame.size = m_bytes.size();
+        std::ranges::copy(m_bytes, frame.bytes.begin());
+        return frame;
+    }
+    OutgoingFrame StoredFrame::take() noexcept
+    {
+        auto frame = copy();
+        reset();
+        return frame;
+    }
+
     namespace
     {
         constexpr unsigned BYTE_BITS{ 8 };

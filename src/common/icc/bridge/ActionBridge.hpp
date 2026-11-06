@@ -112,7 +112,10 @@ namespace icc
         struct Events
         {
             bool accepted{}, acceptance_pending{}, encoding_failed{}, terminal_sent{};
-            std::optional<Frame> feedback, terminal;
+            util::StoredFrame feedback;
+            // Keep enough capacity for an error terminal even if encoding the
+            // result runs out of memory. Its bytes survive until peer ACK.
+            util::StoredFrame terminal{ 64 };
         };
         struct IncomingGoal
         {
@@ -132,7 +135,7 @@ namespace icc
         struct Rejection
         {
             std::uint64_t id{};
-            Frame terminal;
+            util::StoredFrame terminal;
             bool sent{};
         };
 

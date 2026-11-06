@@ -50,7 +50,9 @@ class Console:
         deadline = time.monotonic() + timeout
         while True:
             result = self.prompt(max(0, deadline - time.monotonic()))
-            if command in (line.strip() for line in result.splitlines()):
+            # Logging can precede the echo on the same physical line. Match
+            # its line ending, while still rejecting unrelated/stale prompts.
+            if any(line.rstrip().endswith(command) for line in result.splitlines()):
                 break
             if time.monotonic() >= deadline:
                 raise TimeoutError(f"No response to {command}")
@@ -60,10 +62,12 @@ class Console:
 
     def submit(self, command):
         result = self.command(command)
-        match = re.search(r"job (\d+)", result, re.IGNORECASE)
-        if not match:
-            raise RuntimeError("Missing job acknowledgement: " + result)
-        return int(match[1])
+        # Asynchronous diagnostics may mention a previous job before this
+        # command's acknowledgement. Only the CLI's Submitted line owns its ID.
+        matches = re.findall(r"^Submitted (?:motion|motor) job (\d+);", result, re.MULTILINE)
+        if len(matches) != 1:
+            raise RuntimeError("Missing or ambiguous job acknowledgement: " + result)
+        return int(matches[0])
 
     def wait(self, job, expected="completed", timeout=90):
         deadline = time.monotonic() + timeout

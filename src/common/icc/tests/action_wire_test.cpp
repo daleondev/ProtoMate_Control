@@ -6,6 +6,47 @@
 #include <chrono>
 #include <vector>
 
+TEST(StoredActionFrame, CopiesOnlyEncodedBytesAndRetainsTerminalUntilAcknowledged)
+{
+    using namespace icc::util;
+    auto frame = encode_frame(FrameKind::ActionResult, {}, 42, std::uint32_t{123});
+    StoredFrame saved{64};
+    EXPECT_FALSE(saved);
+    saved = frame;
+    frame.bytes.fill(std::byte{0}); // No alias to the producer's scratch frame.
+    const auto first = saved.copy();
+    const auto second = saved.copy();
+    EXPECT_TRUE(saved);
+    EXPECT_EQ(first.size, second.size);
+    EXPECT_EQ(first.bytes, second.bytes);
+    const auto decoded = decode_frame(std::span(first.bytes).first(first.size));
+    EXPECT_EQ(decoded.id, 42);
+    std::uint32_t value{};
+    ASSERT_TRUE(pnm::utils::memory::deserialize(decoded.payload, value));
+    EXPECT_EQ(value, 123);
+    EXPECT_EQ(saved.take().bytes, first.bytes);
+    EXPECT_FALSE(saved);
+    saved = second;
+    saved.reset();
+    EXPECT_FALSE(saved);
+}
+
+TEST(StoredActionFrame, FullFramesAndInvalidSizesDoNotEscapeTheBound)
+{
+    using namespace icc::util;
+    OutgoingFrame frame{};
+    frame.size = MAX_FRAME_BYTES;
+    frame.bytes.fill(std::byte{0x5a});
+    StoredFrame saved = frame;
+    EXPECT_EQ(saved.copy().bytes, frame.bytes);
+    frame.size = MAX_FRAME_BYTES + 1;
+    EXPECT_THROW(saved = frame, std::length_error);
+    EXPECT_EQ(saved.copy().size, MAX_FRAME_BYTES); // Failed update preserves value.
+    frame.size = 0;
+    EXPECT_THROW(saved = frame, std::length_error);
+    EXPECT_THROW(StoredFrame{MAX_FRAME_BYTES + 1}, std::length_error);
+}
+
 namespace
 {
     using namespace std::chrono_literals;

@@ -2,6 +2,7 @@
 #include <pneumo/logging.hpp>
 #include <algorithm>
 #include <cmath>
+#include "hal/drivers/util/StepTrace.hpp"
 
 extern "C" unsigned motion_debug_fault_line;
 extern "C" unsigned motion_debug_executor_abort;
@@ -13,6 +14,27 @@ namespace io::motion
 
     namespace
     {
+#if defined(GIGA_MOTION_API_TEST)
+        void reportStepTrace(std::uint64_t job)
+        {
+            namespace st=hal::util::step_trace;
+            const auto worst=st::worst(job),last=st::last(job);
+            pnm::log::debug("STEPTRACE mark_calibration={} ticks / 32 calls",st::markCost());
+            for (const auto& t:std::array{worst,last}) {
+                if (!t.sequence) continue;
+                pnm::log::debug("STEPTRACE seq={} job={} origin={} boundary={} cut={} site={} lead={} errno={} mask={} end={}",
+                  t.sequence,t.job,t.origin,t.boundary,t.cut,t.site,t.lead,t.error,t.present,t.finished);
+                pnm::log::debug("STEPTRACE {} ticks={},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                  t.sequence,t.ticks[0],t.ticks[1],t.ticks[2],t.ticks[3],t.ticks[4],t.ticks[5],
+                  t.ticks[6],t.ticks[7],t.ticks[8],t.ticks[9],t.ticks[10],t.ticks[11],t.ticks[12],t.ticks[13],
+                  t.ticks[14],t.ticks[15],t.ticks[16],t.ticks[17]);
+                pnm::log::debug("STEPTRACE {} generated={},{},{} copied={},{},{} entries={},{},{} pointer_only={}",
+                  t.sequence,t.generated[0],t.generated[1],t.generated[2],t.copied[0],t.copied[1],t.copied[2],
+                  t.entries[0],t.entries[1],t.entries[2],t.unchanged);
+                if (worst.sequence==last.sequence) break;
+            }
+        }
+#endif
         tr::Error scheduleError(ScheduleFailure failure)
         {
             switch (failure) {
@@ -351,6 +373,9 @@ namespace io::motion
                 else if(g.error!=tr::Error::None)update.state=J::Stopped;
             } else if (!g.zero) {
                 const auto status = g.executor->status();
+#if defined(GIGA_MOTION_API_TEST)
+                reportStepTrace(status.id);
+#endif
                 update.counts_exact = status.counts_exact;
                 if (status.state == Executor::State::Faulted) { update.state=J::Faulted; update.error=tr::Error::Fault; }
                 else if (status.state == Executor::State::Stopped) {

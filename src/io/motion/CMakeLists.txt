@@ -25,12 +25,13 @@ target_sources(proto_io_motion
         ProfileCurve.hpp
         ProfileMemory.hpp
         StepperMotor.hpp
-        StepperMotor.cpp 
+        StepperMotor.cpp
+        StepperMotorCommands.cpp
         Sequence.hpp
-        Sequence.cpp 
+        Sequence.cpp
 )
 
-target_link_libraries(proto_io_motion 
+target_link_libraries(proto_io_motion
     INTERFACE
         platform::hal
 )

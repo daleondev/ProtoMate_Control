@@ -86,7 +86,8 @@ namespace io::motion
             throw std::runtime_error("motion refill worker unavailable");
         try {
             m_executionWorker = runtime::thread::create_jthread(
-              { .name = "motion executor", .priority = 1, .stack_size = 16384U },
+              { .name = "motion executor", .priority = 1,
+                .stack_size = sizeof(void*) == 4 ? 8192U : 16384U },
               [this](std::stop_token stop) { executeMotions(stop); });
         } catch (...) {
             static_cast<void>(m_generator->setRefillNotification({}));

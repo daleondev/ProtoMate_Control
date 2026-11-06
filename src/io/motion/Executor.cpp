@@ -1,5 +1,6 @@
 #include "Executor.hpp"
 #include "hal/drivers/util/StepHardware.hpp"
+#include "hal/drivers/util/StepTrace.hpp"
 #include <stdexcept>
 
 extern "C" {unsigned motion_debug_executor_abort{};}
@@ -120,6 +121,7 @@ namespace io::motion
                 mask |= 1U << i;
             }
         releaseSchedules();
+        STEP_TRACE(calibrate());
         m_status = { .id = command.id };
         m_mask = mask;
         m_rolling=command.rolling;
@@ -418,11 +420,16 @@ namespace io::motion
         const auto nextCut = elapsed + HORIZON;
         const auto bank = 1U - m_bank;
         const auto building = std::chrono::steady_clock::now();
+        STEP_TRACE(begin(m_status.id, m_origin,
+          hal::util::step_add(m_origin,std::uint32_t(m_status.stopping_at % hal::util::STEP_PARK)),
+          std::uint32_t(nextCut % hal::util::STEP_PARK)));
         if (!build(bank, nextCut)) {
+            STEP_TRACE(finish(m_status.last_error));
             brake(Reason::ScheduleRejected);
             return;
         }
         const auto prepared = std::chrono::steady_clock::now();
+        STEP_TRACE(mark(hal::util::step_trace::Built));
         m_status.maximum_build_us = std::max(
           m_status.maximum_build_us,
           std::uint32_t(std::chrono::duration_cast<std::chrono::microseconds>(prepared - building).count()));
@@ -431,6 +438,7 @@ namespace io::motion
             if (m_completed[i])
                 replacement[i].reset();
         const auto r = m_generator->splice(replacement, hal::util::step_add(m_origin, std::uint32_t(m_status.stopping_at % hal::util::STEP_PARK)));
+        STEP_TRACE(finish(r ? 0 : r.error().value()));
         m_status.maximum_splice_us =
           std::max(m_status.maximum_splice_us,
                    std::uint32_t(std::chrono::duration_cast<std::chrono::microseconds>(

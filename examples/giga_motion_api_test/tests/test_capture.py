@@ -30,6 +30,22 @@ def test_complete_synchronized_pulses_across_chunks():
     assert check(samples())['passed']
 
 
+def test_independent_commands_keep_counts_and_width_checks_without_common_start():
+    data = np.full(1000, 8, dtype=np.uint8)
+    data[100:220] |= 1
+    data[500:620] |= 1
+    data[300:420] |= 2
+    data[700:820] |= 4
+    waveform = capture.Waveform()
+    waveform.consume(data.tobytes())
+    assert waveform.result([2, 1, 1], synchronized=False)['passed']
+    assert not waveform.result([2, 2, 1], synchronized=False)['passed']
+    data[820:840] |= 4
+    waveform = capture.Waveform()
+    waveform.consume(data.tobytes())
+    assert not waveform.result([2, 1, 1], synchronized=False)['passed']
+
+
 @pytest.mark.parametrize('defect', ['first_width', 'skew', 'enable', 'missing', 'unfinished'])
 def test_every_waveform_failure_is_retained(defect):
     data = samples()

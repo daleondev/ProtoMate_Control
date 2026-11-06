@@ -1,5 +1,6 @@
 #include "hal/drivers/impl/StepGenerator.hpp"
 #include "hal/drivers/impl/StepOutput.hpp"
+#include "hal/drivers/util/StepTrace.hpp"
 
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/stm32/InterruptGuard.hpp"
@@ -204,7 +205,9 @@ namespace hal::util
     auto StepGenerator::splice(const std::array<std::shared_ptr<const step::TimedSequence>, 3>& sequences,
                                std::uint32_t preserve_until) -> util::Result<>
     {
+        STEP_TRACE(mark(step_trace::Enter));
         preparePending();
+        STEP_TRACE(mark(step_trace::RefilledBefore));
         if (m_splicing.test_and_set())
             return fail(std::errc::device_or_resource_busy);
         struct Unlock
@@ -285,6 +288,7 @@ namespace hal::util
             if (!selected)
                 return fail(std::errc::invalid_argument);
         }
+        STEP_TRACE(mark(step_trace::Snapshot));
         // Use the pointer-only path only when every participating axis is
         // covered. Mixing it with another axis's expensive buffer generation
         // can let DMA refill beyond the certified prefix before publication,
@@ -312,6 +316,7 @@ namespace hal::util
                 }
             }
         }
+        STEP_TRACE(mark(step_trace::Certificate));
         // Expensive evaluation and conversion take place with interrupts enabled.
         for (unsigned i = 0; i < 3; ++i) {
             if (!sequences[i])
@@ -321,6 +326,7 @@ namespace hal::util
             w.unchanged = unchanged;
             if (w.unchanged)
                 continue;
+            STEP_TRACE(mark(step_trace::Axis0 + 3*i));
             if (sequence.count() < w.base)
                 return fail(std::errc::invalid_argument);
             const auto count = std::min<std::uint64_t>(w.entries * 2, sequence.count() - w.base);
@@ -342,8 +348,10 @@ namespace hal::util
                     ++copied;
                 }
             }
+            STEP_TRACE(work(i, unsigned(count-copied),copied,w.entries));
             if (!sequence.generate(w.base + copied, std::span(work.timings).subspan(copied, count - copied)))
                 return fail(std::errc::invalid_argument);
+            STEP_TRACE(mark(step_trace::Generated0 + 3*i));
             w.first = w.next = count ? step_add(w.origin, *start) : STEP_PARK;
             w.last = count ? w.first : w.origin;
             w.generated = w.base;
@@ -376,8 +384,10 @@ namespace hal::util
                 }
                 w.tails[half] = { w.generated, w.next, w.last, w.terminal };
             }
+            STEP_TRACE(mark(step_trace::Staged0 + 3*i));
         }
         preparePending(); // DMA may have consumed a half during replacement calculation.
+        STEP_TRACE(mark(step_trace::RefilledAfter));
         {
             STEP_LOCK;
             StepSample sample;
@@ -400,8 +410,11 @@ namespace hal::util
                     break;
             }
             const auto lead = step_distance(sample.tick, preserve_until);
-            if (lead < 20'000 || lead >= STEP_HORIZON)
+            STEP_TRACE(mark(step_trace::FinalSample));
+            if (lead < 20'000 || lead >= STEP_HORIZON) {
+                STEP_TRACE(failure(step_trace::LeadTime,lead));
                 return fail(std::errc::timed_out);
+            }
             const auto mutableEdge = [preserve_until](std::uint32_t tick) {
                 return tick == STEP_PARK || (step_distance(preserve_until, tick) > 0 &&
                                              step_distance(preserve_until, tick) < STEP_HORIZON);
@@ -515,6 +528,7 @@ namespace hal::util
                         }
                     m_hardware->publish();
                     if (!m_hardware->arm(i, compares[i], a.entries)) {
+                        STEP_TRACE(failure(step_trace::Arm,step_distance(sample.tick,compares[i])));
                         finish(step::State::Underrun, true);
                         return fail(std::errc::timed_out);
                     }
@@ -545,6 +559,7 @@ namespace hal::util
                 ++a.revision;
             }
             m_hardware->spliceWindow({});
+            STEP_TRACE(mark(step_trace::Published));
             const auto after = m_hardware->sample();
             if (step_distance(after.tick, preserve_until) >= STEP_HORIZON || after.error) {
                 // A violated publication budget is a local hardware fault, not

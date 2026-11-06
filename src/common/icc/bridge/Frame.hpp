@@ -8,6 +8,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace icc::util
 {
@@ -47,6 +48,24 @@ namespace icc::util
         std::array<std::byte, MAX_FRAME_BYTES> bytes{};
         std::size_t size{};
     };
+
+    // Pending action events retain only their encoded bytes. Reserving two
+    // maximum-size frames for every live action exhausts the M4 heap long
+    // before the bounded goal count is reached. Reuse capacity for feedback.
+    class StoredFrame
+    {
+      public:
+        explicit StoredFrame(std::size_t reserve = 0);
+        StoredFrame(const OutgoingFrame& frame);
+        StoredFrame& operator=(const OutgoingFrame& frame);
+        explicit operator bool() const noexcept { return !m_bytes.empty(); }
+        void reset() noexcept { m_bytes.clear(); }
+        OutgoingFrame copy() const noexcept;
+        OutgoingFrame take() noexcept;
+      private:
+        std::vector<std::byte> m_bytes;
+    };
+    static_assert(sizeof(StoredFrame) <= 4 * sizeof(void*));
 
     // Owns the decoded name, but borrows the payload from the receive buffer.
     // Dispatch must finish before that buffer is reused.

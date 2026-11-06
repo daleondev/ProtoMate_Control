@@ -52,6 +52,10 @@ def main():
             elbow = submit("axis move elbow -1")
             finished(shoulder)
             finished(elbow)
+            # Homing leaves Z on its active reference contact. Give the later
+            # back-and-forth moves clearance so their return leg does not
+            # deliberately trigger the controller's positive-direction inhibit.
+            finished(submit("axis move z -.1"))
             for sign in (-1, 1, -1, 1):
                 finished(submit(f"robot move joints {sign} {sign} {sign * .01} --speed 1"))
 
@@ -74,6 +78,29 @@ def main():
             raw = [submit(f"motor move m{i} -2 --speed 10") for i in (1, 2, 3)]
             for job in raw:
                 finished(job)
+            # Exercise action-record/worker peak memory after the trajectory
+            # history has warmed the allocator. Short moves alone miss this.
+            for mode in ("buffered", "blending-high"):
+                raw = [submit(f"motor move m{i} -18 --speed 5") for i in (1, 2, 3)]
+                raw.append(submit(f"motor move m1 -18 --speed 5 --buffer {mode}"))
+                cli.command("stack io")
+                cli.command("heap io")
+                for job in raw:
+                    finished(job)
+                cli.command("stack io")
+            speed_change = submit("motor move m1 -90 --speed 5")
+            cli.command("motor speed m1 7")
+            finished(speed_change)
+            cli.command("stack io")
+            # Restart after the action history and allocator are populated.
+            # A fresh-boot raw test misses fragmented large stack allocations.
+            for _ in range(3):
+                cli.command("motion disable")
+                cli.command("motion init")
+                cli.command("motion enable")
+                raw = [submit(f"motor move m{i} -2 --speed 10") for i in (1, 2, 3)]
+                for job in raw:
+                    finished(job)
             cli.command("motion stop")
             for command in ("motion status", "motor status all", "heap io", "stack io", "heap ui"):
                 cli.command(command)

@@ -298,7 +298,10 @@ TEST_F(ExecutorTest, CapturedProgramCompletesAndStopsWithOneCommonTimeline)
         axis.limits = {400*command.progress_limits.velocity, 400*command.progress_limits.acceleration,
                        400*command.progress_limits.deceleration, 400*command.progress_limits.jerk};
     }
-    for (const unsigned stopAt : {0U, 80U, 160U, 450U, 750U}) {
+    // Exercise either side of renewal and initial stop boundaries as well as
+    // acceleration, cruise and deceleration. Counts come from the independent
+    // profile/brake evaluation below, not from the executor's reported count.
+    for (const unsigned stopAt : {0U, 39U, 40U, 41U, 79U, 80U, 81U, 160U, 450U, 750U}) {
         hw->edges.clear();
         ++command.id;
         ASSERT_TRUE(exec.submit(command));
@@ -395,7 +398,7 @@ TEST_F(ExecutorTest, ProductionExecutorRenewsToFullCompletion)
     auto status = exec.status();
     EXPECT_EQ(status.state, io::motion::Executor::State::Completed)
       << unsigned(status.reason) << " at " << status.elapsed;
-    EXPECT_EQ(status.renewals, 28U); // 20 ms renewals until the 600 ms endpoint is covered.
+    EXPECT_EQ(status.renewals, 13U); // 40 ms renewals + 80 ms frontier cover the 600 ms endpoint.
     EXPECT_EQ(status.pulses, (std::array<std::uint64_t, 3>{ 10000, 10000, 10000 }));
 }
 TEST_F(ExecutorTest, LegacyInterruptRefillFinishesBrakeWithoutExecutorWorker)
@@ -1159,7 +1162,10 @@ TEST_F(ExecutorTest, ProducerLossKeepsWorkerAliveToFinishTheInstalledBrake)
     }
     ASSERT_EQ(exec.status().state, io::motion::Executor::State::Stopped);
     EXPECT_EQ(exec.status().reason, io::motion::Executor::Reason::LeaseExpired);
-    EXPECT_LT(exec.status().stopping_at, 3'500'000U); // Starts braking within 100 ms of producer loss.
+    // This tests the local executor keepalive, not the application's 250 ms UI
+    // ownership lease. Expiry must select an already installed stop boundary.
+    EXPECT_LT(exec.status().stopping_at, 2'500'000U +
+              io::motion::Executor::LEASE + io::motion::Executor::HORIZON);
     const Schedule brake(*nominal, exec.status().stopping_at, limits);
     ASSERT_TRUE(brake.valid());
     for (unsigned axis = 0; axis < 3; ++axis) {

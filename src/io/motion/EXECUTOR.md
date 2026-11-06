@@ -57,9 +57,9 @@ hold/resume remain future work.
 | Microsteps M1 / M2 / M3 | 16 / 16 / 8 |
 | Finite duration, including stopping continuation | 90 s |
 | UI ownership lease / batched renewal | 250 ms / 50 ms |
-| Local execution renewal / committed frontier | 20 ms / 40 ms |
+| Local execution renewal / committed frontier | 40 ms / 80 ms |
 | DMA half | 64 pulses |
-| Execution worker priority / stack | 1 / 16 KiB |
+| Execution worker priority / stack | 1 / 8 KiB (16 KiB on Linux) |
 
 `io_trajectory` serves inspection, ownership acquisition and program preparation;
 `io_trajectory_control` carries batched renewals and stop/abort/release on the
@@ -125,6 +125,60 @@ errno. Formatting happens in thread context, never in the STEP interrupt; failur
 capture itself allocates nothing. Diagnostic formatting/storage remains outside
 the timing-critical code budget where possible.
 
+The electrical test image additionally records brake construction, refills,
+per-axis crossing generation/staging and final publication against TIM2's 10 MHz
+clock. Its fixed eight-record ring allocates nothing during execution. Terminal
+logs emit the last and slowest retained transaction, not the worst transaction
+over an entire job. Ordinary firmware compiles out these trace hooks. The trace
+calibration is reported with the results; the current test image measured about
+3.28 microseconds per mark including the calibration loop.
+
+The current 40 ms renewal / 80 ms stopping frontier gives roughly 40 ms between
+renewal becoming due and the protected boundary. Keep the 2 ms publication guard;
+worker servicing and the local 40 ms keepalive remain independent of replacement
+cadence. The UI ownership lease is still 250 ms. A lost UI may therefore wait for
+lease expiry and the installed frontier before deceleration; deceleration duration
+is additional. Ordinary command responsiveness has a 200 ms objective, pending
+measurement of actual onset. No hardware fault path uses this relaxed objective.
+
+Short coordinated analyzer cases pass with no rejected replacements. The
+retained deadline-reproduction trace measures 17.621 ms preparation and 22.226 ms
+remaining at the final check. Full completion has 400 pulses per axis; an early
+controlled-stop capture has 187 on all three axes. These approximately 711-pulse/s captures do not qualify
+the 6,250-pulse/s ceiling. Normal reversal tests move clear of Z's active synthetic
+reference contact; returning onto that contact intentionally invokes the local
+fault path.
+
+The application workflow covers homing cancellation/restart, simultaneous axes,
+coordinated reversal, jog, group stopping, three raw workers, buffered/blended
+successors and live raw speed replacement. Diagnostics are requested while raw
+workers are active to exercise peak action/stack memory, rather than only idle
+memory. Each raw/homing worker has 10 KiB on ARM, versus a measured 7,224-byte
+speed-replacement peak. The 20 KiB command worker accommodates its 14,608-byte
+measured peak; the 8 KiB executor accommodates 4,936 bytes. Raw/homing stack
+storage is reserved at motor construction and reused only after joining its
+predecessor. Repeated disable/init/move cycles therefore do not require large
+contiguous allocations from an already fragmented heap.
+
+The final short workflow submits 36 jobs, including three disable/init/restart
+cycles after buffering and speed changes. Sampled IO heap availability remains
+at least 19,136 bytes; measured raw, command, executor and ICC stack headroom is
+29.4%, 28.7%, 39.7% and 40.4%, respectively. These are observed values, not
+worst-case guarantees. The subsequent raw analyzer capture runs without reset
+and verifies 18/18/9 pulses; the coordinated capture verifies 400 per axis with
+at most one 24 MHz sample of edge skew and inactive physical enable.
+
+ICC action-event records store only their encoded bytes, bounded by the existing
+2,048-byte frame limit. Feedback capacity is reused, and terminal bytes remain
+owned until ACK or session teardown. The small error-terminal capacity is
+reserved at admission. Worker exceptions report the motor, failed stage and
+exception text from cold, thread-context code.
+
+Current verification, firmware identities and capture checksums are recorded in
+`build/motion-baseline/raw-fix/verification.json`; its `reserved-*` directories
+contain the matching workflow and raw analyzer samples. Electrical fixtures
+inhibit physical motor enable. No adaptive staging is enabled.
+
 The reusable D2 profile pool has nine 2,816-byte slots: a nominal profile and two
 stop banks per axis. It supports one coordinated group or three independent groups
 without allocating three copies of the entire pool. M7 planning and POD job history
@@ -144,5 +198,5 @@ Hardware acceptance must record the actual application firmware hashes, analyzer
 captures, command/stop latency, refill margin, CPU use and stack/heap headroom.
 Prior standalone benchmark measurements are not substituted for this evidence.
 No ten-minute application qualification is claimed until the short cases pass.
-The configured 6,250-pulse/s ceiling and approximately 100 ms interaction objective
+The configured 6,250-pulse/s ceiling and approximately 200 ms interaction objective
 are not, by themselves, measured guarantees for the complete GIGA application.

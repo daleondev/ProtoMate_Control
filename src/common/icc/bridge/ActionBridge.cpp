@@ -195,7 +195,7 @@ namespace icc
         for (auto& rejection : m_rejections) {
             if (!rejection.sent) {
                 rejection.sent = true;
-                return rejection.terminal;
+                return rejection.terminal.copy();
             }
         }
         // Rotate between active providers; a busy feedback source cannot starve
@@ -208,11 +208,11 @@ namespace icc
                 return util::make_frame(Kind::ActionAccepted, {}, goal.id, 0);
             }
             if (events.feedback) {
-                return std::exchange(events.feedback, std::nullopt);
+                return events.feedback.take();
             }
             if (events.terminal && !events.terminal_sent) {
                 events.terminal_sent = true;
-                return events.terminal; // Retain a copy until peer acknowledgement.
+                return events.terminal.copy(); // Retain until peer acknowledgement.
             }
         }
         for (auto& goal : m_outgoingGoals) {

@@ -3,6 +3,7 @@
 #include "Polynomial.hpp"
 #include "Profile.hpp"
 #include "Motor.hpp"
+#include "OperatingEnvelope.hpp"
 #include <array>
 #include <cstdint>
 #include <expected>
@@ -14,8 +15,8 @@ namespace motion::trajectory
 {
     inline constexpr std::uint16_t VERSION{ 2 };
     inline constexpr std::uint32_t TICK_NS{ 100 };
-    inline constexpr std::uint64_t CHECKPOINT_TICKS{ 200'000 }; // 20 ms
-    inline constexpr std::uint64_t COMMIT_HORIZON_TICKS{ 400'000 };
+    inline constexpr std::uint64_t CHECKPOINT_TICKS{ operating::CHECKPOINT_TICKS };
+    inline constexpr std::uint64_t COMMIT_HORIZON_TICKS{ operating::COMMIT_TICKS };
     inline constexpr std::uint64_t LOOKAHEAD_TICKS{ 5'000'000 };
     inline constexpr std::uint64_t LEASE_TICKS{ 2'500'000 };
     inline constexpr std::size_t UPLOAD_SEGMENTS{ 4 };

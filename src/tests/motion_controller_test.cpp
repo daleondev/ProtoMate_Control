@@ -201,6 +201,37 @@ namespace
           controller.motor(Id::Motor3).setpointPosition().get<pnm::units::AngleUnits::deg>(), -1.125, 0.0001);
     }
 
+    TEST(MotionController, ThreeRawWorkersCanFinishRestartAndCancelIndependently)
+    {
+        Hardware hardware;
+        Controller controller{ CONFIGURATION, hardware.factory() };
+        releaseSwitches();
+        controller.initializeDrivers();
+        controller.enable();
+        for (unsigned run = 0; run < 3; ++run) {
+            std::array<std::future<Motor::Result>, 3> jobs;
+            for (unsigned axis = 0; axis < jobs.size(); ++axis)
+                jobs[axis] = controller.moveRel(static_cast<Id>(axis), -2.25_deg, 5_rpm);
+            for (auto& job : jobs) {
+                ASSERT_EQ(job.wait_for(2s), std::future_status::ready);
+                EXPECT_EQ(job.get(), Motor::Result::Completed);
+            }
+        }
+        std::array<std::future<Motor::Result>, 3> jobs;
+        for (unsigned axis = 0; axis < jobs.size(); ++axis)
+            jobs[axis] = controller.moveRel(static_cast<Id>(axis), -90_deg, 5_rpm);
+        controller.stop();
+        for (auto& job : jobs) {
+            ASSERT_EQ(job.wait_for(2s), std::future_status::ready);
+            EXPECT_EQ(job.get(), Motor::Result::Stopped);
+        }
+        for (unsigned axis = 0; axis < jobs.size(); ++axis) {
+            auto job = controller.moveRel(static_cast<Id>(axis), -1.125_deg, 5_rpm);
+            ASSERT_EQ(job.wait_for(2s), std::future_status::ready);
+            EXPECT_EQ(job.get(), Motor::Result::Completed);
+        }
+    }
+
     TEST(MotionController, FaultDisablesAllMotorsCancelsPendingWorkAndDoesNotAutoRecover)
     {
         Hardware hardware;

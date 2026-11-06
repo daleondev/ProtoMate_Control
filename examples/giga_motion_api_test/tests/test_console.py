@@ -29,10 +29,35 @@ def test_submit_ignores_stale_prompts():
     assert port.sent == [b"robot home\r\n"]
 
 
+def test_submit_does_not_use_previous_job_from_async_diagnostics():
+    port = Port(b"[IO] Debug: Execution job 8 ended: state=4\n"
+                b"axis move z -.1\nSubmitted motion job 9; IO acceptance is pending.\n> ")
+    console = module.Console(port, io.StringIO())
+    assert console.submit("axis move z -.1") == 9
+
+
 def test_command_error_still_fails():
     console = module.Console(Port(b"> motion init\nerror: disable motors first\n> "), io.StringIO())
     with pytest.raises(RuntimeError, match="disable motors first"):
         console.command("motion init")
+
+
+def test_status_echo_interleaved_with_homing_log():
+    # Captured from the GIGA: the echo interrupts an in-progress log write.
+    port = Port(b"[IO] Debug: Motor 3 reference: seeking at 5 rmotion jobs 5\n"
+                b"5: robot completed; axes=7\n> pm\n")
+    console = module.Console(port, io.StringIO())
+    assert console.wait(5) == "5: robot completed; axes=7"
+    assert port.sent == [b"motion jobs 5\r\n"]
+
+
+def test_interleaved_echo_does_not_accept_another_job():
+    port = Port(b"[IO] Debug: motion jobs 50\n50: robot completed; axes=7\n> "
+                b"motion jobs 5\n5: robot running; axes=7\n> ")
+    console = module.Console(port, io.StringIO())
+    response = console.command("motion jobs 5")
+    assert "5: robot running" in response
+    assert "50: robot completed" not in response
 
 
 @pytest.mark.parametrize('detail', ['lease expired', 'schedule replacement rejected by STEP backend',

@@ -83,7 +83,9 @@ soft-limit boundary; the default timed jog requests deceleration after one secon
 
 Two deadlines serve different purposes: the UI ownership lease is **250 ms**,
 renewed in one batch every **50 ms**; local M4 execution maintenance uses a
-**20 ms** renewal and **40 ms** committed frontier. UI loss selects an already
+**40 ms** renewal and **80 ms** committed frontier. The execution worker still
+services refills and stops every millisecond; its local keepalive remains 40 ms.
+UI loss selects an already
 installed brake on M4. An M4 execution failure invokes the hardware guard and
 invalidates uncertain references; it is not a guaranteed controlled stop.
 
@@ -93,30 +95,44 @@ accepts only binary64 roundoff at acceleration limits (eight machine epsilons,
 relative to the limit). Exact captured-input, phase-boundary, scaling and
 out-of-limit regressions cover this numerical boundary.
 
-The Release electrical fixture completes the 400-pulse-per-axis joint move with
-44 successful renewals. **Hardware application qualification remains blocked by
-a STEP schedule-handoff timeout in a subsequent short check.** That failed job
-finished its installed stopping branch at 266 complete pulses per axis. Its
-target errno is **116 (`ETIMEDOUT` in newlib, not Linux's errno mapping)**;
-the exact cause of insufficient handoff lead time is not yet measured.
-The retained captures have 120–121 samples HIGH at 24 MHz, at most one sample of
-inter-axis skew and ENABLE inactive throughout. Clean pulses alone do not qualify
-a failed job: capture verdicts require both waveform and application success.
+The **40/80 ms scheduling configuration passes the short coordinated electrical
+checks**: the deadline reproduction, full completion and early/late controlled
+stops. All four analyzer captures have exact counts (400 or 266 per axis),
+120–121 samples HIGH at 24 MHz, at most one sample of inter-axis skew and ENABLE
+inactive throughout. None reports a rejected replacement. Later stops reach the
+original 400-pulse endpoint; the early stop verifies a shortened path at 266.
+The deadline-reproduction capture's slowest retained replacement takes 17.621 ms
+and has 22.226 ms remaining at the final check, against the unchanged 2 ms guard.
+These are instrumented elapsed times including preemption, not a worst-case bound.
 
-The early explicit-stop capture ended at 134 pulses per axis but reported a
-spurious lease-expiry error during deceleration. Preservation of the accepted
-stop cause is now host-tested; its hardware recheck remains pending. Repeated
-synthetic homing uses reset-aware fixture pulse accounting. These contacts are
-not physical switch validation.
+The application workflow also passes homing → stop → homing, independent axes,
+coordinated reversals, continuous/timed jog, command-family exclusion and group
+stopping. Its reversal test explicitly clears Z's reference contact first; a
+return onto that active contact correctly faults the group. **Full hardware
+qualification remains incomplete:** subsequent raw `motor move` commands fault
+on M2 and M3, with their cause not yet isolated. No further motion or rate tests
+were run after that failure. The captured motion-executor stack peak is
+4,936/16,380 bytes; the motor-command worker reaches 14,608/16,380 bytes and needs
+review. That high-water mark alone does not establish the raw-fault cause.
 
-Hardware investigation stopped at the handoff-timeout blocker; no endurance or
-further timing changes were attempted. Evidence is in
-`build/motion-baseline/stopping-fix-*`; `stopping-fix-firmware-sha256.json` records
-the tested pair and bootstraps. The board remains on the motor-disabled electrical
-fixture, pair `74344a64a803559e`. Subsequent diagnostic/cause-reporting changes
-are compiled and host-tested, not yet flashed.
-Prior isolated STEP captures do not qualify this full API. Approximate 100 ms
-interaction remains a measured usability objective, not a claimed bound.
+Test-image diagnostics retain eight bounded timing records, with no allocation
+or logging during replacement. Terminal logs report the last and slowest retained
+transaction; this is not a whole-job maximum. The serial test driver also handles
+command echoes interleaved with logs. Repeated synthetic homing uses reset-aware
+fixture pulse accounting; it does not validate physical contacts.
+
+Evidence, firmware hashes, phase analysis and both workflow failures are retained
+in `build/motion-baseline/renewal40`. The board remains on the **motor-disabled
+electrical fixture, pair `3bc0f20bd5838127`**, with drivers disabled and the same
+40/80 ms scheduling constants as production source. Adaptive staging is not used.
+Nine host CTest suites/workflows and 17 Python checks pass. No endurance or
+higher-rate hardware qualification is claimed. The coordinated captures peak at
+approximately 711 pulses/s per axis; the 6,250 ceiling remains unqualified here.
+The ordinary interaction objective is **approximately 200 ms to start changing
+motion**, not to reach rest. Captured UI submission acknowledgements take
+50–151 ms; these do not measure IO acceptance or stop-onset latency. Those latency
+bounds remain to be established. Prior isolated STEP captures do not qualify this
+full API.
 Powered mechanical acceptance requires calibrated limits and transmissions.
 [Executor architecture and verification](src/io/motion/EXECUTOR.md).
 
@@ -379,12 +395,13 @@ a thread-context operation, not an ISR-safe or allocation-free API.
 | Thread in each GIGA image | ThreadX priority (lower is higher) | Stack |
 | --- | --- | --- |
 | ThreadX timer worker | 0 | Port default |
-| `io.iccThread` | 4 | 24 KiB (32 KiB on Linux) |
+| `io.iccThread` | 4 | 20 KiB (32 KiB on Linux) |
 | `intercore.notify` | 3 | 2 KiB (8 KiB on Linux) |
 | `ui.iccThread` | 4 | 32 KiB |
 | `ui.cliThread` | 5 | 16 KiB (64 KiB on Linux) |
-| M4 motion executor | 1 | 16 KiB |
-| M4 command/preparation worker | 2 | 16 KiB (24 KiB on Linux) |
+| M4 motion executor | 1 | 8 KiB (16 KiB on Linux) |
+| M4 command/preparation worker | 2 | 20 KiB (24 KiB on Linux) |
+| M4 raw motion/homing worker (up to three) | 16 | 10 KiB (16 KiB on Linux) |
 | `io.applicationThread` | 3 | 16 KiB |
 | `ui.applicationThread` | 6 | 16 KiB |
 | Runtime main/application entry | 15 | 8 KiB |
@@ -1612,7 +1629,7 @@ the executable Cartesian toolpath API.
 | Independent axes and coordinated joint/point moves | Connected through production CLI/ICC to the executor; native simulator workflows pass |
 | Sequential homing, timed/continuous jog and controlled stops | Implemented; simulator checks include homing → stop → homing and group stopping |
 | Cartesian lines, blends, lookahead, hold/resume and override | Preview/numerical infrastructure only; executable features remain future work |
-| GIGA application qualification | Blocked: the short coordinated move selects its stopping branch after 80/400 pulses per axis; no endurance acceptance claimed |
+| GIGA application qualification | Short 40/80 ms application workflow passes, including raw concurrent/buffered moves and live speed changes. No full-rate or endurance acceptance claimed |
 | Powered mechanics | Pending physical calibration and commissioning |
 
 Run the complete simulator workflow with:
@@ -1624,7 +1641,24 @@ python3 -m pytest src/simulation/tests/test_motion_api.py --simulator build/debu
 The workflow checks independently observed simulated joint/TCP coordinates,
 concurrent axes, quantized endpoints, timed/continuous jog, command-family
 rejection, controlled group stopping, explicit waits and bounded execution
-history. Standalone STEP benchmarks and preview captures remain useful subsystem
+history. The motor-disabled electrical fixture runs
+`python3 examples/giga_motion_api_test/verify.py --output <new-directory>`;
+this additionally checks concurrent raw workers, buffered/blended successors,
+live speed changes and diagnostics while motion is active. Run it after a fresh
+board reset: its synthetic homing timeout is sized for the initial fixture pose.
+Use `capture.py --raw --output <new-directory>` for independent raw STEP counts;
+that relative-motion test needs no homing.
+
+Raw/homing worker stacks are reserved once at motor construction, at 10 KiB each
+on M4. A worker joins before reusing its stack, so repeated commands do not need
+large allocations from a fragmented heap. Command preparation has 20 KiB;
+the execution worker has 8 KiB. Cold worker admission and exception diagnostics
+live in `StepperMotorCommands.cpp`, outside the instruction-RAM execution path.
+Incoming ICC actions retain only their actual encoded feedback/result bytes,
+with the same 2,048-byte frame limit and terminal retention until acknowledgement.
+They do not reserve two maximum-size frames for every pending action.
+
+Standalone STEP benchmarks and preview captures remain useful subsystem
 evidence, but cannot substitute for the integrated GIGA motion tests.
 
 ### Clocks and ownership
