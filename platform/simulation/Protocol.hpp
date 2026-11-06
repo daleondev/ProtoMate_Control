@@ -10,7 +10,7 @@
 
 namespace simulation
 {
-    inline constexpr std::uint32_t VERSION{ 2 };
+    inline constexpr std::uint32_t VERSION{ 3 };
     inline constexpr std::size_t FRAME_BYTES{ 2048 }, PAYLOAD_BYTES{ 1536 };
     enum class Operation : std::uint32_t
     {

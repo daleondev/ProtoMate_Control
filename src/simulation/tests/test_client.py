@@ -5,7 +5,7 @@ import subprocess
 import pytest
 
 
-@pytest.mark.parametrize("case", ["deferred", "corrupt", "reply", "startup"])
+@pytest.mark.parametrize("case", ["deferred", "corrupt", "reply", "startup", "scheduling"])
 def test_client_mailbox(launcher, client_probe, tmp_path, case):
     result = subprocess.run(
         [launcher, client_probe, str(tmp_path), case, "200" if case == "startup" else "0"],

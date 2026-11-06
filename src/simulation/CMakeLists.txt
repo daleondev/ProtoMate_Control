@@ -71,6 +71,11 @@ if(BUILD_TESTING)
     target_link_libraries(protomate_simulation_gtest PUBLIC Threads::Threads)
     add_library(protomate_simulation_gtest_main STATIC ${googletest_SOURCE_DIR}/googletest/src/gtest_main.cc)
     target_link_libraries(protomate_simulation_gtest_main PUBLIC protomate_simulation_gtest)
+    add_executable(protomate_simulation_display_clock_tests tests/display_clock_test.cpp)
+    target_link_libraries(protomate_simulation_display_clock_tests PRIVATE
+        protomate_simulation_gtest_main hal_linux_display PkgConfig::SDL2)
+    add_test(NAME simulation.display_clock COMMAND protomate_simulation_display_clock_tests)
+    set_tests_properties(simulation.display_clock PROPERTIES TIMEOUT 15 ENVIRONMENT "SDL_VIDEODRIVER=dummy")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     execute_process(COMMAND ${Python3_EXECUTABLE} -c "import pytest"
         RESULT_VARIABLE SIM_PYTEST_STATUS OUTPUT_QUIET ERROR_QUIET)

@@ -115,14 +115,18 @@ command lock, a native display-mutex preemption deadlock, and an unnecessary
 peak allocation when STEP scratch storage grows. Preparation/start failures now
 retain their stage and allocation failures report capacity exhaustion. The
 native simulator caches mechanical configuration before starting live transport.
+Its clock waits for interrupt-woken controller work to suspend before advancing
+the next event, and simulated display refresh uses that same clock. This prevents
+instrumentation overhead from starving homing behind repeated periodic wakeups.
 
 The ordinary interaction objective remains approximately **200 ms to start
 changing motion**, not to reach rest. The current captures establish pulse
 behavior, not a worst-case admission/stop-onset bound or maximum-rate endurance.
-ASan/UBSan component checks and complete native workflows are reported separately:
-the two instrumented native workflows still time out without a sanitizer memory
-error report. Lint findings also remain; a successful parse is not a clean lint
-result. See the [current review](docs/motion-current-state/review.md) for exact
+The complete native motion workflows pass with ASan/UBSan, including
+homing → stop → homing and checks for unwanted seek pulses after switch contact.
+This functional simulation does not qualify hardware scheduling or timing.
+Lint findings remain; a successful parse is not a clean lint result.
+See the [current review](docs/motion-current-state/review.md) for exact
 build, test, firmware and capture evidence.
 
 Powered mechanical acceptance requires calibrated limits and transmissions.

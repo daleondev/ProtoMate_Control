@@ -25,7 +25,10 @@ namespace simulation
         std::uint64_t session{};
         alignas(64) std::uint64_t time_ns{}, server_heartbeat{}, client_heartbeat{},
           encoder_count{}, epoch_ns{};
-        alignas(64) std::uint32_t closed{}, irq_sequence{}, irq_ack{}, irq_flags{}, client_ready{};
+        alignas(64) std::uint32_t closed{}, irq_sequence{}, irq_ack{}, irq_flags{}, client_ready{},
+          idle_epoch{};
+        // idle_epoch = irq_sequence + 1 after all runnable work has suspended.
+        // Its initial zero cannot authorize the first advance (sequence zero).
         std::array<std::uint32_t, 176> gpio{};
         std::array<std::uint32_t, 32> step_sample{};
         std::array<std::array<std::uint32_t, 8>, 18> timers{};

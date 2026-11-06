@@ -16,6 +16,10 @@ namespace simulation::client
 {
     namespace
     {
+        // Read by the native scheduler while its ThreadX mutex is held. Never
+        // lazily initialize the connection or call a ThreadX API from that hook.
+        std::atomic<SharedMemory*> schedulerMemory{};
+        static_assert(decltype(schedulerMemory)::is_always_lock_free);
         struct Connection
         {
             std::unique_ptr<Mapping> mapping;
@@ -70,6 +74,7 @@ namespace simulation::client
                     acknowledged_fd = fds[4];
                     mapping = std::move(checked);
                     close(fds[0]);
+                    schedulerMemory.store(&mapping->memory(), std::memory_order_release);
                     release(mapping->memory().client_heartbeat, hostNow());
                     release(mapping->memory().client_ready, 1U);
                 } catch (...) {
@@ -92,6 +97,14 @@ namespace simulation::client
                 std::fputs("simulation: hardware connection lost; execution counts are unknown\n", stderr);
             if (c.mapping)
                 release(c.mapping->memory().closed, 1U);
+        }
+    }
+    void schedulerIdle() noexcept
+    {
+        if (auto* shared{ schedulerMemory.load(std::memory_order_acquire) }) {
+            const auto sequence{ acquire(shared->irq_sequence) };
+            if (sequence == acquire(shared->irq_ack))
+                release(shared->idle_epoch, sequence + 1U);
         }
     }
     bool connected() noexcept { return connection().mapping != nullptr; }
@@ -165,7 +178,10 @@ namespace simulation::client
             return result;
         }
     }
-    bool publishBank(unsigned axis, unsigned bank, std::span<const std::byte> bytes, std::optional<std::uint32_t> cut) noexcept
+    bool publishBank(unsigned axis,
+                     unsigned bank,
+                     std::span<const std::byte> bytes,
+                     std::optional<std::uint32_t> cut) noexcept
     {
         static_assert(sizeof(hal::util::StepBuffer) <= BULK_BYTES);
         auto& c{ connection() };
@@ -182,7 +198,9 @@ namespace simulation::client
         std::copy(bytes.begin(), bytes.end(), shared.bulk[slot].begin());
         const auto generation{ acquire(shared.bulk_generation[slot]) + 1U };
         release(shared.bulk_generation[slot], generation);
-        return command(cut ? Operation::PublishFuture : Operation::Publish, { axis, bank, slot, generation, checksum(bytes), cut.value_or(0) }).status == 0;
+        return command(cut ? Operation::PublishFuture : Operation::Publish,
+                       { axis, bank, slot, generation, checksum(bytes), cut.value_or(0) })
+                 .status == 0;
     }
     Packet command(Operation operation, std::array<std::uint64_t, 8> arguments) noexcept
     {
@@ -268,6 +286,7 @@ namespace simulation::client
         }
     }
 }
+extern "C" void protomate_sim_scheduler_idle() { simulation::client::schedulerIdle(); }
 extern "C" int protomate_sim_wait_interrupt()
 {
     using namespace simulation;

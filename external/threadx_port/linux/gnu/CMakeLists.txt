@@ -54,6 +54,11 @@ string(REPLACE "void    *_tx_linux_timer_interrupt(void *p)\n{" "extern int prot
 string(REPLACE "        clock_gettime(CLOCK_REALTIME, &ts);" "        if (protomate_sim_wait_interrupt) {\n            int flags = protomate_sim_wait_interrupt();\n            if (flags >= 0) {\n                _tx_thread_context_save();\n                if (flags & 1) _tx_timer_interrupt();\n                protomate_sim_dispatch_interrupt();\n                protomate_sim_ack_interrupt();\n                _tx_thread_context_restore();\n                continue;\n            }\n        }\n        clock_gettime(CLOCK_REALTIME, &ts);" sim_port "${sim_port}")
 file(WRITE "${TX_LINUX_INITIALIZE_LOW_LEVEL_SOURCE}" "${sim_port}")
 
+file(READ "${TX_LINUX_THREAD_SCHEDULE_SOURCE}" sim_schedule)
+string(REPLACE "VOID   _tx_thread_schedule(VOID)" "extern void protomate_sim_scheduler_idle(void) __attribute__((weak));\nVOID   _tx_thread_schedule(VOID)" sim_schedule "${sim_schedule}")
+string(REPLACE "                /* Unlock linux mutex. */" "                /* Publish quiescence only after all interrupt-woken work ran. */\n                if (_tx_thread_execute_ptr == TX_NULL && _tx_thread_system_state == 0 && protomate_sim_scheduler_idle)\n                    protomate_sim_scheduler_idle();\n\n                /* Unlock linux mutex. */" sim_schedule "${sim_schedule}")
+file(WRITE "${TX_LINUX_THREAD_SCHEDULE_SOURCE}" "${sim_schedule}")
+
 target_sources(${PROJECT_NAME}
     PRIVATE
     # {{BEGIN_TARGET_SOURCES}}

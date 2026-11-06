@@ -44,6 +44,8 @@ namespace hal::linux::display
         unsigned head{}, count{}, drops{}, duty{};
         Pointer last{};
         bool enabled{}, leased{};
+        Clock peripheralClock{};
+        std::uint64_t nextVsync{};
         std::atomic_bool finished{}, cleaned{};
         std::atomic_int exitStatus{};
         std::uint64_t nowNs()
@@ -58,12 +60,12 @@ namespace hal::linux::display
             const auto left{ (w - WIDTH * scale) * .5 }, top{ (h - HEIGHT * scale) * .5 };
             const auto px{ scale > 0 ? (x - left) / scale : -1 };
             const auto py{ scale > 0 ? (y - top) / scale : -1 };
+            Lock lock{};
             Pointer point{ down && px >= 0 && py >= 0 && px < WIDTH && py < HEIGHT,
                            static_cast<std::uint16_t>(std::clamp(px, 0., double(WIDTH - 1))),
                            static_cast<std::uint16_t>(std::clamp(py, 0., double(HEIGHT - 1))),
-                           nowNs(),
+                           peripheralClock ? peripheralClock() : nowNs(),
                            cancelled || px < 0 || py < 0 || px >= WIDTH || py >= HEIGHT };
-            Lock lock{};
             // Keep press/release edges; coalesce consecutive drag coordinates.
             if (count && input[(head + count - 1) % input.size()].down == point.down) {
                 input[(head + count - 1) % input.size()] = point;
@@ -90,13 +92,15 @@ namespace hal::linux::display
         Lock lock{};
         return enabled;
     }
-    bool acquire() noexcept
+    bool acquire(Clock clock) noexcept
     {
         Lock lock{};
         if (!enabled || leased) {
             return false;
         }
         leased = true;
+        peripheralClock = clock;
+        nextVsync = clock ? clock() : nowNs();
         state = {};
         head = count = drops = duty = 0;
         last = {};
@@ -109,6 +113,7 @@ namespace hal::linux::display
     {
         Lock lock{};
         leased = false;
+        peripheralClock = nullptr;
         state.pending.reset();
         duty = 0;
     }
@@ -234,7 +239,9 @@ namespace hal::linux::display
                 bool updated{};
                 {
                     Lock lock{};
-                    if (leased) {
+                    const auto peripheralNow{ peripheralClock ? peripheralClock() : now };
+                    if (leased && peripheralNow >= nextVsync) {
+                        nextVsync = peripheralNow + 16666667;
                         ++state.vsyncs;
                         if (state.pending) {
                             const auto slot{ *state.pending };

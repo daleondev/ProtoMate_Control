@@ -2,9 +2,9 @@
 
 The short electrical cases and normal Linux workflow pass. **The complete GIGA
 motion API is not qualified:** concurrent continuous jog and independent-axis
-motion can expire the ICC heartbeat. The two native sanitizer workflows also
-remain unresolved. Passing unit tests and isolated pulse captures do not remove
-these blockers.
+motion can expire the ICC heartbeat. The native sanitizer workflows pass after
+correcting simulator event scheduling. That host-only correction does not resolve
+the separate GIGA scheduling blocker.
 
 ## Implementation and regression coverage
 
@@ -18,6 +18,8 @@ these blockers.
 | Failure reporting | STEP prepare/start errors retain their stage; server allocation failures report Capacity. UI connection failures print the reason and available exception text before shutdown. |
 | Native display synchronization | The native mutex masks ThreadX's suspension signal until unlock, preventing suspension of its owner while another managed thread waits on that mutex. It does not call ThreadX while holding the native lock. |
 | Native model configuration | Mechanical configuration is cached before starting live simulation transport; a request no longer triggers the expensive CAD geometry calculation. |
+| Native scheduling | ISR acknowledgement is followed by a sequence-bound scheduler-idle handshake. The next device event waits for runnable controller work to suspend. This prevents periodic wakeups from starving homing under instrumentation. |
+| Native display clock | VSYNC and pointer timestamps share the simulated peripheral clock; the SDL event pump remains on wall time. Dedicated regressions cover paused clocks, presentation ownership and clock restart. |
 | Static analysis and formatting | Safe mechanical lint fixes and formatting were applied to changed C++ files. Configuration hashing uses canonical serialization without a potentially throwing packet allocation. Remaining lint findings are retained, not suppressed. |
 
 No operating envelope, ownership deadline, heartbeat deadline, motor resolution
@@ -29,23 +31,29 @@ The machine-readable [review record](review.json) contains final outcomes,
 firmware identities, evidence paths and hashes. Raw captures and full logs are
 retained under `build/motion-review` and the paths recorded there.
 
-- **Normal Linux:** all 73 CTest suites/workflows pass, including the complete
+- **Normal Linux:** all 74 CTest suites/workflows pass, including the complete
   native motion API and simulator integration.
 - **GIGA:** normal Debug and Release build successfully; the Release link audit
   finds zero out-of-RAM targets among 63 roots, 172 reachable functions, seven
   vtables and 20 selected ICC entry points. This is a bounded audit, not proof of
   every possible indirect call or execution-time bound.
-- **Sanitizers:** 71 of 73 suites pass. `simulation.motion_api` fails a simulator
-  status request; `simulation.integration` fails to complete raw homing within
-  its workflow deadline. Neither emits a sanitizer memory-error report. Their
-  underlying cause is not fully established; instrumentation overhead alone
-  has not been proven to explain them.
+- **Sanitizers:** all 74 suites pass, including `simulation.motion_api` and
+  `simulation.integration`, without extending deadlines or disabling memory
+  checks. The debugger confirmed that the reference callback had run, but its
+  ready homing worker was starved by repeated higher-priority periodic work.
+  The simulator now drains that work before advancing virtual time. A trace
+  regression checks for unwanted forward pulses after each switch activation.
+  Virtual CPU execution time is not a measured Cortex-M execution bound.
 - **Lint:** a full project scan was followed by a scan of all changed production
   translation units and their platform contexts: **70/70 parsed, zero blocked,
   1,899 unique findings remaining**. These include 632 initialization-style,
   421 magic-number, 230 missing-brace and 60 narrowing-conversion findings.
   Findings in included project headers are counted too. Parsing coverage does
   not mean a zero-warning result; the lint command exits unsuccessfully.
+  A focused correctness scan of the four changed simulator/display translation
+  units parses all four and reports seven remaining diagnostics (parameter
+  interchangeability, conversions, a decrement in a condition and intentional
+  shared-memory padding). No new lint suppression was added.
 - **Formatting:** changed C++ sources pass `clang-format --dry-run --Werror`;
   `git diff --check` passes. Vendor submodules were not changed.
 
@@ -112,7 +120,9 @@ margin remain unqualified while the concurrent-motion blocker is open.
   [execution/stop/lease](uml/07-execution-stop-and-lease.puml),
   [raw motor path](uml/08-raw-motor-motion.puml),
   [homing lifecycle](uml/09-homing-lifecycle.puml),
-  [concurrent-motion blocker](uml/10-concurrent-motion-blocker.puml).
+  [concurrent-motion blocker](uml/10-concurrent-motion-blocker.puml),
+  [native simulation time handoff](uml/11-native-simulation-time.puml)
+  ([rendered diagram](uml/11-native-simulation-time.svg)).
 
 The figures describe current source behavior and the normal Release memory map.
 Their SVG metadata records supporting source hashes. PlantUML sources are retained

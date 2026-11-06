@@ -1,0 +1,46 @@
+@startuml
+!include style.iuml
+title Native simulation · one clock, completed interrupt handoff
+caption Linux functional verification; this does not model Cortex-M execution time.
+footer Source: Session.cpp; simulation/Client.cpp; ThreadX Linux scheduler hook; DisplayHost.cpp.
+autonumber
+box "Native simulator process" #EDF4FE
+participant "Session / Machine" as P
+end box
+boundary "Shared-memory\nIRQ sequence + idle epoch" as Q #FFF5DF
+box "Controller process" #EAF7F4
+participant "Interrupt thread" as I
+participant "ThreadX scheduler" as S
+participant "Homing worker" as H
+participant "GUI / other workers" as G
+end box
+
+P -> P : advance to next event only when prior work is idle
+P -> Q : publish reference input, IRQ flags and sequence N
+Q -> I : eventfd wake
+I -> I : reference callback latches activation
+I -> S : notify homing worker
+I -> Q : acknowledge IRQ N
+note over P,Q
+  IRQ acknowledgement does not authorize more virtual time.
+  The notified homing worker must get a chance to run.
+end note
+I -> S : leave interrupt context
+S -> H : dispatch ready worker in priority order
+H -> Q : HAL transaction: stop STEP; hold virtual time
+Q -> P : process register requests
+P --> H : output stopped, exact count available
+H -> S : wait for debounce / next event
+S -> G : dispatch remaining runnable work
+G -> S : suspend until notification / simulated deadline
+S -> Q : no runnable threads, no ISR: idle_epoch = N + 1
+Q --> P : matching IRQ acknowledgement and idle epoch
+P -> P : next event may advance virtual time
+
+note over P,G #FFF5DF
+  ThreadX ticks, STEP, feedback and display VSYNC share virtual time.
+  SDL input pumping and native peer watchdogs remain on wall time.
+  Slow host computation stretches wall duration instead of starving a worker
+  behind repeated simulated timer interrupts. GIGA firmware is unchanged.
+end note
+@enduml

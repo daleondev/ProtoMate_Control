@@ -210,7 +210,12 @@ namespace simulation
                 throw std::runtime_error{ "controller heartbeat timeout" };
             }
             const bool outstanding{ acquire(shared.irq_sequence) != acquire(shared.irq_ack) };
-            if (ready && !outstanding && !machine.leased() && wall >= next_wall) {
+            // ISR acknowledgement alone does not mean the woken application
+            // workers have run. Advancing again while they are still runnable
+            // can starve low-priority homing under instrumentation. Time advances
+            // only after the scheduler has drained this interrupt's ready work.
+            const bool idle{ acquire(shared.idle_epoch) == acquire(shared.irq_sequence) + 1U };
+            if (ready && !outstanding && idle && !machine.leased() && wall >= next_wall) {
                 machine.advance(next_tick - machine.time());
                 auto flags{ machine.takeInterrupt() };
                 if (machine.time() == next_tick) {

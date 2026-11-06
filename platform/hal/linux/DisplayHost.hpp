@@ -19,7 +19,10 @@ namespace hal::linux::display
     void completed(int status) noexcept;
     bool cleanupComplete() noexcept;
     bool available() noexcept;
-    bool acquire() noexcept;
+    // Optional peripheral clock. It must be native-thread safe and remain valid
+    // until release(); the SDL event pump always retains its wall-clock pacing.
+    using Clock = std::uint64_t (*)() noexcept;
+    bool acquire(Clock clock = nullptr) noexcept;
     void release() noexcept;
     std::span<std::uint16_t> framebuffer(unsigned slot) noexcept;
     bool submit(unsigned slot) noexcept;

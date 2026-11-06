@@ -125,6 +125,21 @@ def test_motion_feedback_homing_fault_and_shutdown(simulator, tmp_path, spawn):
             assert [e['level'] for e in contact][:4]==['1','0','1','0'],contact
             assert all(int(b['time_ns'])>int(a['time_ns']) for a,b in zip(contact,contact[1:])),contact
             contacts[(port,pin)]=contact
+        # A reference IRQ must let the homing worker stop the seek before time
+        # advances again, not merely mark it runnable behind periodic work.
+        for reference, step_pin, direction in [
+                (('E', 4), 0, ('J', 8)),
+                (('E', 5), 2, ('D', 13)),
+                (('B', 2), 3, ('H', 13))]:
+            for press in contacts[reference][:4:2]:
+                pressed = int(press['time_ns'])
+                reverse = next(int(e['time_ns']) for e in edges
+                               if (e['port'], int(e['pin'])) == direction
+                               and e['level'] == '0' and int(e['time_ns']) >= pressed)
+                overshoot = [e for e in edges if e['port'] == 'A'
+                             and int(e['pin']) == step_pin and e['level'] == '1'
+                             and pressed < int(e['time_ns']) < reverse]
+                assert not overshoot, (reference, press, overshoot[:5])
         first_home=int(contacts[('E',4)][0]['time_ns'])
         # The operating envelope keeps M2 at 1/16 and selects 1/8 on M3.
         for pin,count in [(2,160),(3,80)]:

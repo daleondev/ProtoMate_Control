@@ -1,7 +1,9 @@
 #include "simulation/Client.hpp"
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <string_view>
+#include <thread>
 
 int main(int argc, char** argv)
 {
@@ -11,6 +13,25 @@ int main(int argc, char** argv)
         return !client::connected() && client::failed() ? 0 : 1;
     if (!client::connected() || client::failed())
         return 2;
+    if (mode == "scheduling") {
+        // A slow runnable controller must finish handling the current virtual
+        // instant before more timer interrupts wake higher-priority work.
+        std::this_thread::sleep_for(std::chrono::milliseconds{ 2 });
+        const auto simulated{ client::now() };
+        const auto wall{ hostNow() };
+        while (hostNow() - wall < 50'000'000ULL) {
+            if (client::now() != simulated)
+                return 10;
+        }
+        // Register requests remain serviced while logical time is held.
+        if (client::command(Operation::Hello).status || client::now() != simulated)
+            return 11;
+        std::this_thread::sleep_for(std::chrono::milliseconds{ 10 });
+        if (client::now() < simulated + 10'000'000ULL)
+            return 12;
+        std::puts("PASS: simulation client regression");
+        return 0;
+    }
     client::Transaction transaction{};
     if (mode == "deferred") {
         client::setStepCallback([] {

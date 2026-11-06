@@ -1,12 +1,18 @@
 {
   "date": "2026-11-06",
   "status": "qualification_blocked",
-  "base_commit": "c76b294f86c2bb7ec766deb4af509b290dc80f3a",
+  "base_commit": "5e3eea84aecad974ff23de91ce9ae62485982988",
   "source_sha256": {
+    "external/threadx_port/linux/gnu/CMakeLists.txt": "6a2eea95d27e951013a2d5906ac959b9a7968456c7fc0a253b38d05856418bf5",
     "platform/hal/drivers/impl/StepGenerator.cpp": "f2cb93557b3ef35e04aa26bbdb390681f444c54782eb70d38563a32251bb5a27",
     "platform/hal/drivers/impl/StepGenerator.hpp": "6c00014fdfb721ab11e5b135638eaa1e46c6b45157cfbda17cba7e8ebb42cc62",
-    "platform/hal/linux/DisplayHost.cpp": "f5976c4ef35b5c9191636ccbb6439eba33c3f6037aa966613ced90b93c729d6b",
+    "platform/hal/drivers/impl/linux/RgbOutput.cpp": "54d8c0f273194d7e2420d0c0a67b1748c414faff377f9dd28734ac94d502c450",
+    "platform/hal/linux/DisplayHost.cpp": "e0026da97845e85c0fbebf8e479c89d1e373bab554c706bf13f75849797ca4d7",
+    "platform/hal/linux/DisplayHost.hpp": "3dd596348ce40c48ea104cefefbc408e3217e296efae2dd57e81a8d306ab2687",
     "platform/hal/tests/step_model/step_generator_test.cpp": "77a64b7659cd50ab3285ea48cf5ed3f6773b0938023f3a314083ed0951340139",
+    "platform/simulation/Client.cpp": "6d16bcca799674a27c70d7ea2b851bf0ae08eb44c1c12d24cf4dc63d71838e20",
+    "platform/simulation/Protocol.hpp": "29d925d22e96fe6a008fc1580eb63fb19c3a0e508cd014b8323308861d6a767c",
+    "platform/simulation/SharedMemory.hpp": "f73ce630733c27223a4f33d489210404ee76caa2d93b83cbfadc72c910d7e0fc",
     "src/common/motion/Polynomial.cpp": "12e89f77d33b7aa62c5251b8ad111b21ac1572364d55b74a197d4b420bbd8423",
     "src/common/motion/Profile.cpp": "751ecd1f755311def290e29da3585c6c939ba85f72f78f57920ad6b3678c79bd",
     "src/common/motion/PulseCursor.cpp": "5cf4ce4d43aa1cba7b4de2cdebf81f6f562ec70230359e37b88f75e3ebbdc550",
@@ -30,10 +36,15 @@
     "src/io/motion/StepperMotor.hpp": "aa3275fd099f1733bf45059098244c472916e357ebb5b22710bc6d879e27b4b3",
     "src/io/motion/StepperMotorCommands.cpp": "38257dbc4c1abefd06f725f8fdf64c98ed72bfd9335e6918771ff5af0e1fa5bd",
     "src/io/motion/TrajectorySession.cpp": "0e254d729659403be98dec335e081139af904ef4d9418a4777b4e58ed9d18e53",
+    "src/simulation/CMakeLists.txt": "cb7ae1c6987fa0513482e5bba79a0d0a2aeca6cec0d11c2d5deeac296ea4b6f2",
     "src/simulation/Machine.cpp": "8a870b5079cce9b5bfb8c3055d6541ea58cb9d4c6bc66ba18cc441f3fa114fd8",
     "src/simulation/Machine.hpp": "6733aa61c4746e0879a0d9f4a9b7d23fcaeaf107882ad9717ba48e5b9b711968",
-    "src/simulation/Session.cpp": "4eab3ef1f87ad1ccd44ae8e95d7ce038bab8659a12e24163d9f861ee9a6e770f",
+    "src/simulation/Session.cpp": "14724ae48dfbb4980c9a234f7a7fd96c4883d6311d62f8a87ff9f708b97368c3",
     "src/simulation/Session.hpp": "f5e56f7c78fc44b817777c8a65ff7eb69054e2ee907268c6de1bbd330a43b32f",
+    "src/simulation/tests/client_probe.cpp": "a089e179869a52a83132dc896898afeb3e381d914ea53473c810fa3de4059158",
+    "src/simulation/tests/display_clock_test.cpp": "a8faaf8b5556fffc4b99a1834f97fa93f94dee7cd32d157ba9dc37e996f860da",
+    "src/simulation/tests/test_client.py": "7dd675a90be30537c7e5d8ff424543ccc8cf58254a7cfb244bf9595fc2879230",
+    "src/simulation/tests/test_integration.py": "e8610d942a62122fbedbd0b726cc27d05b45891a781641f79fd8cb0cf5ead6b3",
     "src/tests/motion_controller_test.cpp": "cb154dddc381209b08940c759af147e1bb7803e48efb1fece19fa7c24f8f763e",
     "src/tests/motor_cli_test.cpp": "1fe1514bc993790db2e091fbd9fb879ef702edccf16c788b9f010b22f7b07977",
     "src/ui/app/Application.cpp": "e368b001eb58bbaf2595aa3713aa62f2abb05256f3227de471c7906e5de17a8e",
@@ -102,23 +113,22 @@
     }
   },
   "normal_linux": {
-    "path": "build/motion-review/verification/final-tests.log",
-    "sha256": "3efb86e5325166db4ce13092ccffef91bf7c4c599ad37912b692f62d898aeeb1",
-    "total": 73,
-    "passed": 73,
+    "path": "build/homing-review/verification/debug-tests.log",
+    "sha256": "76141f0d7460b15340a671cf17e68021a4999cf43d2d1f77c23f02419368fa70",
+    "total": 74,
+    "passed": 74,
     "failed": [],
-    "sanitizer_memory_report": false
+    "sanitizer_memory_report": false,
+    "seconds": 223.24
   },
   "asan_ubsan": {
-    "path": "build/motion-review/verification/final-asan-tests.log",
-    "sha256": "d25ef1362f2544dce07d063a27f5b0c275e61bbf722dc6f2c649707aeb98418b",
-    "total": 73,
-    "passed": 71,
-    "failed": [
-      "simulation.motion_api",
-      "simulation.integration"
-    ],
-    "sanitizer_memory_report": false
+    "path": "build/homing-review/verification/asan-tests.log",
+    "sha256": "f2374de0737b32d618f8adcc92a5b6c4fdad01c3bb90f690f5195bb9c13d8c95",
+    "total": 74,
+    "passed": 74,
+    "failed": [],
+    "sanitizer_memory_report": false,
+    "seconds": 365.72
   },
   "clang_tidy": {
     "status": "findings_remain",
@@ -131,7 +141,16 @@
     "blocked": 0,
     "tool_failures": 0,
     "unique_findings": 1899,
-    "context": "all changed production translation units and their platform contexts after a full 386-unit scan"
+    "context": "all changed production translation units and their platform contexts after a full 386-unit scan",
+    "focused_followup": {
+      "path": "build/homing-review-lint/clang-tidy/report.json",
+      "sha256": "384666645c831f5eacb743124dc0b8cf38432cd8243f37d837ac3fed0a1ef7b3",
+      "translation_units": 4,
+      "parsed": 4,
+      "blocked": 0,
+      "remaining_findings": 7,
+      "checks": "clang-analyzer-*,bugprone-*"
+    }
   },
   "formatting": {
     "changed_cpp": "pass",
@@ -494,10 +513,6 @@
       "hardfault_observed": false
     },
     {
-      "issue": "Two instrumented native workflows fail: simulator status request and raw homing completion timing",
-      "root_cause": "not isolated; no ASan/UBSan memory diagnostic"
-    },
-    {
       "issue": "Lint findings remain; see report"
     }
   ],
@@ -508,5 +523,24 @@
     "full-load CPU and stack margin",
     "physical DIR setup/hold in current analyzer pin arrangement",
     "physical switches and powered mechanical behavior"
-  ]
+  ],
+  "native_simulation_fix": {
+    "cause": "The reference callback woke the homing worker, but repeated higher-priority work starved it while the parent advanced virtual time. Display VSYNC also used wall time instead of the simulated clock.",
+    "scheduling": "After ISR acknowledgement, wait for a matching scheduler-idle epoch before the next device event. Register requests and native peer watchdogs remain available.",
+    "display": "VSYNC and pointer timestamps use the peripheral clock; SDL pumps events on wall time.",
+    "protocol_version": 3,
+    "firmware_changed": false,
+    "priorities_or_timeouts_relaxed": false,
+    "regressions": [
+      "Runnable work holds simulated time while HAL requests remain serviced",
+      "Paused/restarted display clock and pointer timestamps",
+      "No forward seek pulses after first/second contact on all three motors",
+      "Unchanged complete native motion API and raw-driver workflows"
+    ],
+    "scope": "Functional Linux simulation only; not hardware execution-time or refill-margin qualification.",
+    "debugger_stack": {
+      "path": "build/homing-review/verification/gdb-homing-stacks.log",
+      "sha256": "1c5ceaecce466804d050e8662f38fb8eea92df4c927f079156670bb8b1d8c1b2"
+    }
+  }
 }

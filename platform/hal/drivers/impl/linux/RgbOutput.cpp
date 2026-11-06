@@ -1,5 +1,6 @@
 #include "RgbOutput.hpp"
 #include "hal/linux/DisplayHost.hpp"
+#include "simulation/Client.hpp"
 #include <algorithm>
 #include <tx_api.h>
 namespace hal
@@ -7,7 +8,11 @@ namespace hal
     RgbOutput::~RgbOutput() { shutdown(); }
     auto RgbOutput::initialize() -> util::Result<>
     {
-        if (!m_initialized && !linux::display::acquire()) {
+        // The emulated peripherals and ThreadX tick share simulation time.
+        // Wall-clock VSYNC would continually wake the GUI while slow/instrumented
+        // simulation time stands still, starving lower-priority motion workers.
+        const auto clock{ simulation::client::connected() ? simulation::client::now : nullptr };
+        if (!m_initialized && !linux::display::acquire(clock)) {
             return std::unexpected(std::make_error_code(std::errc::no_such_device));
         }
         m_initialized = true;

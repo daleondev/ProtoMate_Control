@@ -162,9 +162,19 @@ device time; callbacks run in the ThreadX interrupt context. Callback writes
 use a fixed batch and are drained after callbacks return, before time advances.
 The clock steps to the next device event, including timer rollover, DMA bank
 transitions, PWM transitions and feedback edges; 1 ms clock ticks feed ThreadX.
-It is paced against host time, slowing down under host load rather than dropping
-hardware edges. It is not a cycle-accurate Cortex-M scheduler or a hardware
-refill-deadline certification tool. Hardware qualification remains separate.
+After each interrupt, the scheduler must report that all runnable controller
+work has suspended before the next event advances time. An ISR acknowledgement
+alone is insufficient: its callbacks may just have woken a homing worker.
+The acknowledgement carries the interrupt sequence, so an old idle report cannot
+authorize a new advance. Register requests remain available during this wait.
+
+The controller's simulated display VSYNC and input timestamps use this same
+clock. SDL event pumping remains on wall time, so the window stays responsive.
+Slow rendering or sanitizer instrumentation slows the whole virtual machine
+instead of flooding it with higher-priority periodic work. The simulator models
+functional ordering, not Cortex-M execution time or worst-case latency; hardware
+refill and fault-response qualification remain separate. No firmware priorities
+or motion deadlines are changed by this host scheduling policy.
 
 Host-monotonic heartbeats operate independently of device time and detect a
 stopped peer even during a time lease. Disconnect stops native STEP output and
