@@ -122,6 +122,38 @@ namespace runtime
                 char name[32]{};
             };
 
+            // Retain the exact failure for debugger inspection without logging or
+            // allocating on an already resource-constrained error path. A later
+            // successful creation deliberately does not erase this evidence.
+            enum class ThreadCreationStage : std::uint32_t
+            {
+                None, ControlAllocation, StackAllocation, LifecycleMutex, CompletionSemaphore, ThreadX
+            };
+            struct ThreadCreationFailure
+            {
+                std::uint32_t count{};
+                ThreadCreationStage stage{};
+                UINT status{};
+                std::size_t requested_bytes{};
+                char name[24]{};
+            };
+            volatile ThreadCreationFailure thread_creation_failure{};
+
+            void record_thread_creation_failure(ThreadCreationStage stage, UINT status,
+                                                std::size_t requested_bytes, std::string_view name) noexcept
+            {
+                const ULONG posture{ tx_interrupt_control(TX_INT_DISABLE) };
+                thread_creation_failure.stage = stage;
+                thread_creation_failure.status = status;
+                thread_creation_failure.requested_bytes = requested_bytes;
+                for (std::size_t i = 0; i < sizeof(thread_creation_failure.name); ++i) {
+                    thread_creation_failure.name[i] = i < name.size() && i + 1 < sizeof(thread_creation_failure.name)
+                                                       ? name[i] : '\0';
+                }
+                thread_creation_failure.count = thread_creation_failure.count + 1U;
+                static_cast<void>(tx_interrupt_control(posture));
+            }
+
             static_assert(offsetof(ThreadControl, thread) == 0U);
             static_assert((STACK_ALIGNMENT & (STACK_ALIGNMENT - 1U)) == 0U);
             static_assert(alignof(std::max_align_t) >= STACK_ALIGNMENT);
@@ -807,6 +839,8 @@ namespace runtime
 
             auto* control{ new (std::nothrow) ThreadControl{} };
             if (control == nullptr) {
+                record_thread_creation_failure(ThreadCreationStage::ControlAllocation, 0U,
+                                               sizeof(ThreadControl), attributes.name);
                 return EAGAIN;
             }
             control->owns_stack = attributes.stack_storage == nullptr;
@@ -815,6 +849,8 @@ namespace runtime
                 ? ::operator new[](static_cast<std::size_t>(normalized_stack_size), std::nothrow)
                 : attributes.stack_storage;
             if (control->stack == nullptr) {
+                record_thread_creation_failure(ThreadCreationStage::StackAllocation, 0U,
+                                               normalized_stack_size, attributes.name);
                 delete control;
                 return EAGAIN;
             }
@@ -840,14 +876,20 @@ namespace runtime
                                                 converted_name.data()));
             }
 
-            if (tx_mutex_create(&control->lifecycle_mutex, lifecycle_mutex_name, TX_INHERIT) != TX_SUCCESS) {
+            const UINT mutex_status{ tx_mutex_create(&control->lifecycle_mutex, lifecycle_mutex_name, TX_INHERIT) };
+            if (mutex_status != TX_SUCCESS) {
+                record_thread_creation_failure(ThreadCreationStage::LifecycleMutex, mutex_status,
+                                               sizeof(TX_MUTEX), attributes.name);
                 if (control->owns_stack) {
                     ::operator delete[](control->stack);
                 }
                 delete control;
                 return EAGAIN;
             }
-            if (tx_semaphore_create(&control->completion, completion_name, 0U) != TX_SUCCESS) {
+            const UINT semaphore_status{ tx_semaphore_create(&control->completion, completion_name, 0U) };
+            if (semaphore_status != TX_SUCCESS) {
+                record_thread_creation_failure(ThreadCreationStage::CompletionSemaphore, semaphore_status,
+                                               sizeof(TX_SEMAPHORE), attributes.name);
                 static_cast<void>(tx_mutex_delete(&control->lifecycle_mutex));
                 if (control->owns_stack) {
                     ::operator delete[](control->stack);
@@ -869,6 +911,8 @@ namespace runtime
                                                 TX_NO_TIME_SLICE,
                                                 TX_AUTO_START) };
             if (status != TX_SUCCESS) {
+                record_thread_creation_failure(ThreadCreationStage::ThreadX, status,
+                                               normalized_stack_size, attributes.name);
                 unregister_thread(control);
                 static_cast<void>(tx_semaphore_delete(&control->completion));
                 static_cast<void>(tx_mutex_delete(&control->lifecycle_mutex));

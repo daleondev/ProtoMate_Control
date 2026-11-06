@@ -9,6 +9,13 @@ class Console:
         self.log = log
         self.pending = b""
 
+    def synchronize(self):
+        """Discard an old prompt before starting a new command/response exchange."""
+        self.port.reset_input_buffer()
+        self.pending = b""
+        self.port.write(b"\r\n")
+        self.prompt()
+
     def prompt(self, timeout=10):
         deadline = time.monotonic() + timeout
         while b"> " not in self.pending:
@@ -24,7 +31,15 @@ class Console:
 
     def command(self, command, timeout=10):
         self.port.write((command + "\r\n").encode())
-        result = self.prompt(timeout)
+        # USB reconnect can deliver a delayed initial prompt after the input
+        # buffer was cleared. Pair the response with the CLI's command echo.
+        deadline = time.monotonic() + timeout
+        while True:
+            result = self.prompt(max(0, deadline - time.monotonic()))
+            if command in (line.strip() for line in result.splitlines()):
+                break
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"No response to {command}")
         if "error:" in result.lower() or "[panic]" in result:
             raise RuntimeError(command + "\n" + result)
         return result

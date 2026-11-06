@@ -3,6 +3,13 @@
 #if !defined(GIGA_APPLICATION) && defined(CORE_CM7)
 void giga_peripheral_clocks_initialize(void)
 {
+    /* ES0445 2.3.14: M4 byte/half-word reads through FMC can return wrong
+       data after AHB-to-AXI conversion. This also affects TBB branch tables
+       inside SDRAM code. Only M7 can access this register; apply the documented
+       read-increment override before releasing M4 or accessing external RAM.
+       RM0399: AXI_INI1_FN_MOD_AHB bit 0 = RD_INC_OVERRIDE. */
+    SET_BIT(GPV->AXI_INI1_FN_MOD_AHB, 1UL);
+    __DSB();
     /* GPIO timing specifications for the RGB bus require the compensation
        cell. Its reference is CSI; neither is a fallback system clock. */
     __HAL_RCC_CSI_ENABLE();

@@ -88,8 +88,17 @@ installed brake on M4. An M4 execution failure invokes the hardware guard and
 invalidates uncertain references; it is not a guaranteed controlled stop.
 
 The Linux workflow exercises the native simulated plant through the production
-CLI, ICC and controller. Hardware application qualification is in progress;
-prior isolated STEP captures do not qualify this full API. Approximate 100 ms
+CLI, ICC and controller. **Hardware application qualification is blocked at
+coordinated execution renewal.** The latest Release electrical-fixture check
+completed sequential homing, then stopped a 400-pulse-per-axis move after 80
+complete pulses per axis. The executor reported `RenewalLate`, four renewals,
+zero rejected splices and `invalid_argument` (22). This points to construction
+or validation of the next stopping schedule; it does not establish a CPU
+throughput limit. The captured pulses were 120–121 samples HIGH at 24 MHz,
+with at most one sample of inter-axis edge spread and ENABLE inactive throughout.
+The short test failed; endurance and further tuning were stopped.
+Evidence and image/bootstrap hashes are in `build/motion-baseline/`.
+Prior isolated STEP captures do not qualify this full API. Approximate 100 ms
 interaction remains a measured usability objective, not a claimed bound.
 Powered mechanical acceptance requires calibrated limits and transmissions.
 [Executor architecture and verification](src/io/motion/EXECUTOR.md).
@@ -1586,7 +1595,7 @@ the executable Cartesian toolpath API.
 | Independent axes and coordinated joint/point moves | Connected through production CLI/ICC to the executor; native simulator workflows pass |
 | Sequential homing, timed/continuous jog and controlled stops | Implemented; simulator checks include homing → stop → homing and group stopping |
 | Cartesian lines, blends, lookahead, hold/resume and override | Preview/numerical infrastructure only; executable features remain future work |
-| GIGA application qualification | In progress; no full application timing or endurance acceptance claimed |
+| GIGA application qualification | Blocked: the short coordinated move selects its stopping branch after 80/400 pulses per axis; no endurance acceptance claimed |
 | Powered mechanics | Pending physical calibration and commissioning |
 
 Run the complete simulator workflow with:
@@ -1885,6 +1894,16 @@ For example, configure the existing paired test with
 Combined builds pass the selection to their normal IO child preset; it does not
 substitute another application or drop a test fixture. The `giga-ram-debug`
 preset is a Debug convenience for the same mechanism, not a separate runtime.
+
+M7's internal bootstrap sets `AXI_INI1_FN_MOD_AHB.RD_INC_OVERRIDE` before
+releasing M4. This is ST's workaround for incorrect M4 byte/half-word FMC reads
+([ES0445 §2.3.14](https://www.st.com/resource/en/errata_sheet/es0445-stm32h745xig-stm32h755xi-stm32h747xig-stm32h757xi-device-errata-stmicroelectronics.pdf)).
+It matters even when ordinary constants remain in QSPI: compiler-generated
+`TBB` branch tables can reside inside SDRAM instructions. The electrical fixture
+checks byte and half-word reads against 1,024 aligned words from that code region
+before creating the application. The separate prohibition on unaligned FMC
+accesses still applies. Updating application images alone does not install this
+bootstrap correction; use the combined flash command below.
 
 Per-core directories contain ELF, BIN, HEX, MAP and separate `.debug` symbols,
 internal bootstrap images, memory percentages and M4 RAM audit reports. The M7

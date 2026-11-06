@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 namespace ui::motion
@@ -19,6 +20,17 @@ namespace ui::motion
             }
         }
         bool positive(double n) { return std::isfinite(n) && n > 0; }
+        double stepBoundary(double offset, double scaled) noexcept
+        {
+            const double value = offset + scaled;
+            const double integer = std::round(value);
+            // Cancelled affine terms can put an exact integer boundary a few
+            // floating-point ulps below that integer. Correct only that numeric
+            // roundoff, never round a genuinely fractional soft limit outward.
+            const double tolerance = 8 * std::numeric_limits<double>::epsilon() *
+                                     (std::abs(offset) + std::abs(scaled) + 1);
+            return std::abs(value - integer) <= tolerance ? integer : value;
+        }
         bool permutation(const std::array<std::uint8_t, 3>& indices)
         {
             auto copy{ indices };
@@ -125,6 +137,13 @@ namespace ui::motion
                 m_offset[j] = m_linear.toMotorPosition(0_m).get() / h.step_radians[m];
                 m_scale[j] = m_linear.toMotorDisplacement(1_m).get() / h.step_radians[m];
             }
+            // IO transmits integer pulse coordinates. The physical homing datum
+            // need not be an integer multiple of a microstep: preserve that
+            // datum by translating the grid, rather than shifting the joint
+            // position (and potentially placing it beyond its soft limit).
+            const auto reference = tr::quantize(h.reference_steps[m]);
+            require(reference.has_value());
+            m_offset[j] += double(*reference) - h.reference_steps[m];
             require(std::isfinite(m_offset[j]) && positive(std::abs(m_scale[j])));
             const auto& home{ c.homing[j] };
             if (home.configured) {
@@ -223,7 +242,8 @@ namespace ui::motion
             auto& m{ result[m_configuration.motor_for_joint[j]] };
             const auto& q{ joints[j] };
             const double scale{ std::abs(m_scale[j]) };
-            const double a{ m_offset[j] + m_scale[j] * q.minimum }, b{ m_offset[j] + m_scale[j] * q.maximum };
+            const double a{ stepBoundary(m_offset[j], m_scale[j] * q.minimum) },
+                         b{ stepBoundary(m_offset[j], m_scale[j] * q.maximum) };
             m.minimum = std::max(m.minimum, std::min(a, b));
             m.maximum = std::min(m.maximum, std::max(a, b));
             m.velocity = q.velocity * scale;

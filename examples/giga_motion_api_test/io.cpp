@@ -6,9 +6,40 @@
 #include "hal/stm32/InterruptGuard.hpp"
 #include <atomic>
 
+// Readable over SWD, independent of logging and dynamic allocation. This probe
+// executes from internal SRAM: the region under test must not supply its own
+// control flow. It exercises ES0445 2.3.14's byte/half-word FMC read case.
+extern "C" {
+extern std::uint32_t _etext;
+volatile std::uint32_t motion_api_sdram_words{}, motion_api_sdram_byte_errors{},
+                      motion_api_sdram_halfword_errors{};
+}
+
 namespace {
 using namespace pnm::units::literals;
 using Level=hal::gpio::Level;
+
+__attribute__((section(".fast.fmc_probe"), noinline))
+bool verify_sdram_reads() noexcept {
+    const auto entry = reinterpret_cast<std::uintptr_t>(&_etext);
+    if (entry < 0xC0400000U || entry >= 0xC0600000U) return true;
+    const auto* words = reinterpret_cast<const volatile std::uint32_t*>(0xC0400000U);
+    const auto* bytes = reinterpret_cast<const volatile std::uint8_t*>(words);
+    const auto* halves = reinterpret_cast<const volatile std::uint16_t*>(words);
+    std::uint32_t byte_errors{}, halfword_errors{};
+    for (unsigned i = 0; i < 1024; ++i) {
+        const auto word = words[i];
+        for (unsigned j = 0; j < 4; ++j)
+            byte_errors += bytes[4*i+j] != ((word >> (8*j)) & 0xffU);
+        for (unsigned j = 0; j < 2; ++j)
+            halfword_errors += halves[2*i+j] != ((word >> (16*j)) & 0xffffU);
+    }
+    motion_api_sdram_byte_errors = byte_errors;
+    motion_api_sdram_halfword_errors = halfword_errors;
+    motion_api_sdram_words = 1024;
+    return byte_errors == 0 && halfword_errors == 0;
+}
+
 class Enable final : public hal::IDigitalOutput {
     std::shared_ptr<hal::IDigitalOutput> pin=hal::core::create_steppers_enable_output();
     std::atomic<Level> logical{Level::High};
@@ -67,6 +98,7 @@ struct Fixture {
 };
 }
 int main(){
+    if (!verify_sdram_reads()) hal::panic("M4 SDRAM subword read verification failed");
     Fixture fixture;
     icc::InterCoreTransport transport{hal::core::create_intercore_channel()};
     auto application=std::make_unique<io::Application>(transport,[&](auto sink,auto* memory){return fixture.create(sink,memory);});

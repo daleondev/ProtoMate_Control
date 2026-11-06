@@ -49,6 +49,69 @@ TEST(RobotConfiguration, AxisConversionDoesNotRequireRobotGeometry)
     EXPECT_THROW(static_cast<void>(axes.kinematics()), std::bad_optional_access);
 }
 
+TEST(RobotConfiguration, FractionalHomingDatumPreservesThePulseGridAndSoftLimits)
+{
+    auto h = hardware();
+    h.step_radians[2] *= 2; // M3 uses 1/8 microsteps.
+    for (unsigned i = 0; i < 3; ++i)
+        h.reference_steps[i] = (3_deg).get() / h.step_radians[i];
+    h.hardware_fingerprint = tr::fingerprint(h);
+    auto c = ui::motion::simulationConfiguration(h);
+    for (auto& rotary : c.rotary) {
+        rotary.motor_revolutions_per_axis_revolution = 5;
+        rotary.axis_reference = 70_deg;
+    }
+    c.linear.travel_per_output_revolution = 1.25_mm;
+    c.linear.axis_reference = 20_mm;
+    c.geometry.limits = ui::motion::ScaraKinematics::JointLimits{
+        {-100_deg, 10_deg, 0_mm}, {70_deg, 70_deg, 20_mm}};
+    const ui::motion::RobotModel model{c, h};
+    tr::Counts home{};
+    for (unsigned i = 0; i < 3; ++i) home[i] = *tr::quantize(h.reference_steps[i]);
+    const auto q = model.toJoints({double(home[0]), double(home[1]), double(home[2])});
+    EXPECT_NEAR(q.shoulder.get(), (70_deg).get(), 1e-12);
+    EXPECT_NEAR(q.elbow.get(), (70_deg).get(), 1e-12);
+    EXPECT_NEAR(q.z.get(), (20_mm).get(), 1e-12);
+    auto workspace = std::make_unique<ui::motion::Planner::Workspace>();
+    ui::motion::Planner planner{model, *workspace};
+    ASSERT_EQ(planner.prepare({.joints={61_deg,61_deg,19.6875_mm}}, home), tr::Error::None);
+    const auto finite = planner.finite(1, 1, 1);
+    ASSERT_TRUE(finite);
+    for (unsigned i = 0; i < 3; ++i) {
+        EXPECT_EQ(finite->displacement[i], -400);
+        EXPECT_LE(home[i], finite->limits[i].maximum);
+        EXPECT_GE(home[i] - 400, finite->limits[i].minimum);
+    }
+}
+
+TEST(RobotConfiguration, NegativeAndHalfStepDatumsKeepTheirConfiguredJointPosition)
+{
+    for (double reference : {-26.6666666667, -13.5, -.5, .5, 13.5, 26.6666666667}) {
+        auto h = hardware();
+        h.reference_steps.fill(reference);
+        h.hardware_fingerprint = tr::fingerprint(h);
+        const auto c = ui::motion::simulationConfiguration(h);
+        const ui::motion::RobotModel model{c, h};
+        const double count = *tr::quantize(reference);
+        const auto q = model.toJoints({count, count, count});
+        EXPECT_NEAR(q.shoulder.get(), c.rotary[0].axis_reference.get(), 1e-12);
+        EXPECT_NEAR(q.elbow.get(), c.rotary[1].axis_reference.get(), 1e-12);
+        EXPECT_NEAR(q.z.get(), c.linear.axis_reference.get(), 1e-12);
+    }
+}
+
+TEST(RobotConfiguration, GenuineFractionalSoftLimitIsNotRoundedOutward)
+{
+    auto h = hardware();
+    h.reference_steps.fill(.25);
+    h.hardware_fingerprint = tr::fingerprint(h);
+    auto c = ui::motion::simulationConfiguration(h);
+    c.geometry.limits->maximum.shoulder = c.rotary[0].axis_reference +
+        Angle::create(.25 * h.step_radians[0] / c.rotary[0].motor_revolutions_per_axis_revolution);
+    const ui::motion::RobotModel model{c, h};
+    EXPECT_NEAR(model.motorLimits()[0].maximum, .25, 1e-12);
+}
+
 TEST(RobotPolynomial, HermitePreservesSixBoundaryConditions)
 {
     const motion::KinematicState a{ 12, 3, -2 }, b{ -8, -4, 5 };

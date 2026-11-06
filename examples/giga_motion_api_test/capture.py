@@ -100,6 +100,8 @@ def main():
          (args.output/'sigrok.log').open('w') as capture_log:
         port.reset_input_buffer()
         cli = Console(port, log)
+        cli.synchronize()
+        cli.command('motion disable')
         cli.command('motion init')
         cli.command('motion enable')
         cli.wait(cli.submit('robot home'), timeout=35)
@@ -135,6 +137,11 @@ def main():
             (args.output/'application.json').write_text(json.dumps(dict(
               job=job, submission_ack_seconds=acknowledged, result=result, before=before, after=after), indent=2))
         finally:
+            # Also stop the application if motion or capture verification fails.
+            try:
+                cli.command('motion disable')
+            except (RuntimeError, TimeoutError, serial.SerialException) as error:
+                errors.append(f"Disable was not confirmed: {error}")
             if process.poll() is None:
                 process.send_signal(signal.SIGINT)
             process.wait(timeout=15)
