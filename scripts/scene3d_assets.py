@@ -41,7 +41,7 @@ def sphere_obj(path, sectors, bands):
     path.write_text('\n'.join(lines)+'\n')
 
 
-def convert(tgx, source, output, name):
+def convert(tgx, source, output, name, quantization_padding=2e-4):
     import numpy as np
     sys.path.insert(0, str(tgx / 'tools'))
     from _internal.modules.mesh_pipeline.obj_loader import load_obj
@@ -49,6 +49,7 @@ def convert(tgx, source, output, name):
     from _internal.modules.mesh_pipeline.preprocess import preprocess_mesh
     from _internal.modules.mesh_pipeline.meshlets import build_meshlets, MeshletBuildOptions
     from _internal.modules.mesh_pipeline.exporter import export_mesh3dv2_header
+    from _internal.modules.mesh_pipeline.watertight import Mesh3Dv2WatertightOptions
     mesh = load_obj(source)
     if not len(mesh.triangles) or len(mesh.triangles) > 65535:
         raise ValueError('Mesh needs 1..65535 triangles')
@@ -70,12 +71,23 @@ def convert(tgx, source, output, name):
     meshlets = build_meshlets(mesh, MeshletBuildOptions(target_vertices=30, max_triangles=64))
     result = export_mesh3dv2_header(mesh, meshlets, name=name, use_lkh=False,
                                    texture_symbols={}, emissive_texture_symbols={},
-                                   header_filename=output.name, single_header=False)
+                                   header_filename=output.name, single_header=False,
+                                   watertight_options=Mesh3Dv2WatertightOptions(
+                                       bbox_padding=quantization_padding))
     output.write_text(result.header)
     output.with_suffix('.cpp').write_text(result.source)
     lo, hi = mesh.bounding_box()
-    report = dict(result.stats.__dict__, name=name, minimum=lo.tolist(), maximum=hi.tolist(), textures=0)
+    report = dict(result.stats.__dict__, name=name, minimum=lo.tolist(), maximum=hi.tolist(), textures=0,
+                  quantization_padding=quantization_padding)
     output.with_suffix('.json').write_text(json.dumps(report, indent=2)+'\n')
+    def vector(values):
+        return '{ ' + ', '.join(f'{float(v):.9e}f' for v in values) + ' }'
+    output.with_name(name + '_asset.hpp').write_text(
+        '#pragma once\n#include "' + output.name + '"\n'
+        '#include "ui/gui/scene3d/Scene.hpp"\n'
+        'namespace ui::gui::scene3d::assets {\n'
+        f'inline constexpr Mesh {name}{{ &::{name}, {len(mesh.triangles)}, '
+        '{ ' + vector(lo) + ', ' + vector(hi) + ' } };\n}\n')
     print(f'{name}: {len(mesh.triangles)} triangles, {len(meshlets)} meshlets, '
           f'{result.stats.static_bytes} bytes, no textures', flush=True)
 
@@ -86,18 +98,22 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--input', type=Path)
     parser.add_argument('--name', default='model')
+    parser.add_argument('--quantization-padding', type=float, default=2e-4,
+                        help='Relative bounding-box padding for watertight quantization')
     parser.add_argument('--benchmark', action='store_true')
     args = parser.parse_args()
+    if not math.isfinite(args.quantization_padding) or not 0 < args.quantization_padding < .1:
+        parser.error('quantization-padding must be finite and in (0, 0.1)')
     args.output.mkdir(parents=True, exist_ok=True)
     if args.benchmark:
         for name, sectors, bands in [('low', 10, 6), ('medium', 20, 11), ('high', 25, 21)]:
             source = args.output / (name+'.obj')
             sphere_obj(source, sectors, bands)
-            convert(args.tgx.resolve(), source, args.output/(name+'.h'), name)
+            convert(args.tgx.resolve(), source, args.output/(name+'.h'), name, args.quantization_padding)
     else:
         if not args.input:
             parser.error('--input is required without --benchmark')
-        convert(args.tgx.resolve(), args.input, args.output/(args.name+'.h'), args.name)
+        convert(args.tgx.resolve(), args.input, args.output/(args.name+'.h'), args.name, args.quantization_padding)
 
 
 if __name__ == '__main__':

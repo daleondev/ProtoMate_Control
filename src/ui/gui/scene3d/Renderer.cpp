@@ -66,7 +66,8 @@ namespace ui::gui::scene3d
                                n.material.diffuse,
                                .08f,
                                16);
-            engine.drawMesh(static_cast<const tgx::Mesh3Dv2<tgx::RGB565>*>(n.mesh->data), false);
+            engine.drawMesh(static_cast<const tgx::Mesh3Dv2<tgx::RGB565>*>(n.mesh->data),
+                            n.material.useMeshMaterial);
         }
         if (timings) {
             timings->clearUs =

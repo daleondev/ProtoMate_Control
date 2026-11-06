@@ -37,6 +37,8 @@ namespace ui::gui::scene3d
     {
         std::uint32_t color{ 0x54dbc3 };
         float ambient{ .25f }, diffuse{ .7f };
+        // Opt in to OBJ/MTL colours without a separate node for each material.
+        bool useMeshMaterial{ false };
     };
     struct Node
     {

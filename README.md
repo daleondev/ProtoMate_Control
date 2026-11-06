@@ -701,6 +701,18 @@ bounds and storage sizes. The benchmark's three assets are generated
 incrementally by CMake into `build/<preset>/generated/scene3d`; assets are linked
 into M7's existing QSPI image. There is no texture conversion or storage.
 
+Prepared robot visual assets live in
+[`src/ui/gui/assets/robot`](src/ui/gui/assets/robot/README.md): the four rigid
+links retain their original metre/Z-up frames and colours, with 36,376 triangles
+instead of the CAD exports' 623,292. The reproducible Blender workflow removes
+cosmetic inserts and hidden surfaces and checks simplification error. Original
+CAD, collision and switch-contact assets remain unchanged. Build the opt-in
+`scene3d-robot-assets` target on Linux or M7; link `proto::ui::gui::robot_assets`
+and set the node material's `useMeshMaterial` to use its embedded colours.
+[Matched view comparisons](docs/robot/visuals) document the visual review.
+This prepares the assets; it does not enable a live robot widget or resolve
+the viewport's hardware performance limitation described below.
+
 The linker reserves **1,536,000 bytes** at `0xC0600000`: two 640×400 RGB565 images
 and one 16-bit depth buffer, all cache-line aligned. Pixels are initialized before
 publication; arbitrary C++ objects stay in internal RAM. Existing HAL cache

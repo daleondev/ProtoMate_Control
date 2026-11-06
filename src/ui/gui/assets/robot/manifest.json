@@ -1,0 +1,406 @@
+{
+  "generator_sha256": "58fdab5017eb2d3b4a5d919ffa473845c0db1cefd5cef52bd182eb5c2fb0fc6e",
+  "blender": "4.0.2",
+  "units": "metres",
+  "up": "Z",
+  "ratio": 0.12,
+  "surface_error_mm": 0.75,
+  "links": {
+    "base_link": {
+      "triangles": 11519,
+      "vertices": 6348,
+      "materials": 20,
+      "minimum": [
+        -0.15742462873458862,
+        -0.11500000208616257,
+        0.0
+      ],
+      "maximum": [
+        0.10500000417232513,
+        0.11500000208616257,
+        0.1981000155210495
+      ],
+      "sha256": "8c4853a9fdfe91a059a04ae98941e43d4762364c2864df254b971b22fdd3bc40",
+      "mtl_sha256": "6758e3a714211da24a2b24b63d5b74cbe4c79ffeb95efefcb095f95f4860f04e",
+      "source_sha256": "bc3f42010f481681d7b9b848116a9eab95eeb009640e77276b85e8f8e7ed7782",
+      "original_triangles": 177618,
+      "hidden_triangles_removed": 2337,
+      "max_sampled_surface_error_mm": 0.74676115764305,
+      "omitted_insert_bodies": [
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:1 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:1 / K\u00f6rper1",
+          "triangles": 8240
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:2 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:3 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:4 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:5 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:6 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:7 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:8 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:2 / K\u00f6rper1",
+          "triangles": 8240
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:3 / K\u00f6rper1",
+          "triangles": 8240
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:4 / K\u00f6rper1",
+          "triangles": 8240
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:5 / K\u00f6rper1",
+          "triangles": 8240
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:6 / K\u00f6rper1",
+          "triangles": 8240
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:7 / K\u00f6rper1",
+          "triangles": 8240
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:8 / K\u00f6rper1",
+          "triangles": 8240
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_Home_J1_-1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_Home_J1_1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_Tension_M4x8.1 carriage pull insert - BRASS:1 / Ruthex M4 tensioner insert",
+          "triangles": 6408
+        }
+      ]
+    },
+    "link_1": {
+      "triangles": 8446,
+      "vertices": 4456,
+      "materials": 15,
+      "minimum": [
+        -0.07024315744638443,
+        -0.07119713723659515,
+        0.0020000000949949026
+      ],
+      "maximum": [
+        0.24515175819396973,
+        0.07119713723659515,
+        0.29500001668930054
+      ],
+      "sha256": "2907961ac0b6480301889045a1edb40dc5aa2c0e2642ccd824b668549f24eafc",
+      "mtl_sha256": "50b116c08d9865b09834eb152b47c267406bc74c97e8e3287af91347c4264eb7",
+      "source_sha256": "fea77d8892ac0188e40475c4e0504795cc200baf99323af43a20cee2987804fd",
+      "original_triangles": 54834,
+      "hidden_triangles_removed": 676,
+      "max_sampled_surface_error_mm": 0.7421287009492517,
+      "omitted_insert_bodies": [
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_Home_J2_-1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_Home_J2_1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992
+        }
+      ]
+    },
+    "link_2": {
+      "triangles": 13506,
+      "vertices": 7645,
+      "materials": 21,
+      "minimum": [
+        -0.03999999910593033,
+        -0.04704999923706055,
+        -0.3089999854564667
+      ],
+      "maximum": [
+        0.3353999853134155,
+        0.07354167103767395,
+        0.04700000211596489
+      ],
+      "sha256": "e703341570405960a4d572c713c46325687020cabf1738d8b35a17c9ddc05e64",
+      "mtl_sha256": "4ab1847985274695b0cbe302925aad00b421a27dd2e269d8a71062b309c58a84",
+      "source_sha256": "a662926cfdd9baa6781f3e7ed90538a31c7665ae4134a5878d6da155cac8de32",
+      "original_triangles": 324056,
+      "hidden_triangles_removed": 3744,
+      "max_sampled_surface_error_mm": 0.7334865513257682,
+      "omitted_insert_bodies": [
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:1 / K\u00f6rper1",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):1 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:2 / K\u00f6rper1",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:3 / K\u00f6rper1",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:4 / K\u00f6rper1",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:5 / K\u00f6rper1",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:6 / K\u00f6rper1",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:7 / K\u00f6rper1",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:8 / K\u00f6rper1",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):2 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):3 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):4 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):5 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):6 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):7 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):8 / K\u00f6rper1",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_Tension_M4x8.1 carriage pull insert - BRASS (1):1 / Ruthex M4 tensioner insert",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (1)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (2)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (3)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (4)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (5)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (6)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (7)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (8)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (9)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (10)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (11)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (12)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (13)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (14)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (15)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (16)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (17)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (18)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (19)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (20)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (21)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (22)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (23)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M4 insert",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M4 insert (1)",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M4 insert (2)",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+RX_Home_Z_-1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+RX_Home_Z_1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992
+        }
+      ]
+    },
+    "link_3": {
+      "triangles": 2905,
+      "vertices": 1570,
+      "materials": 6,
+      "minimum": [
+        -0.05100000649690628,
+        -0.04399999976158142,
+        -0.2800000309944153
+      ],
+      "maximum": [
+        0.025088248774409294,
+        0.04769999906420708,
+        -0.024998793378472328
+      ],
+      "sha256": "f492aea132e06bf9606e32ee9a2cd0f66350dcb7baa9d3dada46e812762899d6",
+      "mtl_sha256": "22dce1dc1afe5eae3a6a8bca2e526a339194a05ff1848ad87d9f3b90130a4153",
+      "source_sha256": "73156845c254780d249781007989fb94809db1e2721cc3ebaffb6cc3c41da24f",
+      "original_triangles": 66784,
+      "hidden_triangles_removed": 751,
+      "max_sampled_surface_error_mm": 0.6423717713914812,
+      "omitted_insert_bodies": [
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M3 insert",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M3 insert (1)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M3 insert (2)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M3 insert (3)",
+          "triangles": 5682
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert (1)",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert (2)",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert (3)",
+          "triangles": 6408
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert (4)",
+          "triangles": 6408
+        }
+      ]
+    }
+  }
+}
