@@ -1,0 +1,59 @@
+' Shared appearance only. No code generation.
+' Render from this directory:
+' JAVA_TOOL_OPTIONS=-Djava.awt.headless=true plantuml -tsvg *.puml
+' JAVA_TOOL_OPTIONS=-Djava.awt.headless=true plantuml -tpng *.puml
+skinparam backgroundColor #F5F8FB
+skinparam defaultFontName DejaVu Sans
+skinparam defaultFontSize 15
+skinparam titleFontSize 25
+skinparam titleFontColor #183044
+skinparam captionFontColor #566B7B
+skinparam footerFontColor #566B7B
+skinparam footerFontSize 11
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #566B7B
+skinparam ArrowThickness 1.4
+skinparam BoxPadding 12
+skinparam maxMessageSize 300
+skinparam sequence {
+  ArrowColor #566B7B
+  LifeLineBorderColor #AABAC6
+  LifeLineBackgroundColor #FFFFFF
+  ParticipantBorderColor #B9CCD9
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantFontColor #183044
+  ActorBorderColor #566B7B
+  ActorFontColor #183044
+  GroupBorderColor #B9CCD9
+  GroupBackgroundColor #EDF2F7
+  GroupHeaderFontColor #183044
+  DividerBackgroundColor #E7EEF4
+  DividerBorderColor #B9CCD9
+  ReferenceBackgroundColor #EDF2F7
+  ReferenceBorderColor #B9CCD9
+}
+skinparam note {
+  BackgroundColor #FFF5DF
+  BorderColor #D7C69E
+  FontColor #183044
+}
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #B9CCD9
+  FontColor #183044
+  AttributeFontColor #566B7B
+  BackgroundColor<<UI>> #EDF4FE
+  BorderColor<<UI>> #245EA8
+  BackgroundColor<<IO>> #EAF7F4
+  BorderColor<<IO>> #007D78
+  BackgroundColor<<wire>> #FFF5DF
+  BorderColor<<wire>> #A8680C
+}
+skinparam package {
+  Style rectangle
+  BorderColor #AABAC6
+  FontColor #183044
+  FontSize 19
+}
+hide footbox

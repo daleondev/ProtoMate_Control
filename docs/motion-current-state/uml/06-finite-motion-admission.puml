@@ -1,0 +1,109 @@
+@startuml
+!include style.iuml
+' Sources: RobotExecution.cpp; ClientPrograms.cpp; ServerPrograms.cpp;
+' ControllerAdmission.cpp. Lifelines represent objects, not one thread per object.
+title Axis / robot finite move · reservation, planning and start
+caption Source-level successful path plus rejection gates. This is not a hardware qualification claim.
+footer ICC lifeline = both bridges + transports + queues; it is not an additional application class.
+autonumber
+actor "CLI caller" as CLI
+box "M7 · UI" #EDF4FE
+participant "Robot\nplanning worker" as R
+participant "Client\njob registry" as C
+end box
+boundary "Serialized ICC\nnormal lane" as W #FFF5DF
+box "M4 · IO" #EAF7F4
+participant "Server\ndispatch + command worker" as S
+participant "Controller\n+ Ownership" as O
+participant "Executor" as E
+participant "STEP HAL\nTIM2 / DMA" as H
+end box
+
+CLI -> R : submit(ExecutionRequest)\nAxis facade or Robot move
+R -> C : create(family, selected axes)
+C --> R : job ID
+R -> R : enqueue planning request; notify
+R --> CLI : job ID immediately
+note over CLI,C #EDF4FE
+  Returning to the prompt does not destroy the job.
+  Robot.run() performs planning on its dedicated worker.
+end note
+
+== Acquire an authoritative starting state ==
+R -> C : inspect() / model validation
+C -> W : io/trajectory: Inspect
+W -> S : request ready; notify IO dispatcher
+S -> O : control(Inspect)
+O --> S : boot ID, capabilities, positions, references
+S --> W : Reply
+W --> C : decoded reply
+C --> R : model / hardware capabilities
+R -> C : acquire(job, configuration fingerprint, axes)
+C -> W : io/trajectory: Acquire
+W -> S : dispatch deferred service
+S -> O : control(Acquire)
+O -> O : atomic family / axis admission
+alt Busy, stale boot, unavailable hardware or invalid configuration
+  O --> S : error + busy job when applicable
+  S --> W : rejection
+  W --> C : mark Rejected
+  C --> R : stop planning this request
+else Reservation obtained
+  O --> S : token + commanded positions + axis revisions
+  S --> W : authoritative reservation snapshot
+  W --> C : store boot / token with job
+  C --> R : snapshot
+  note over C,O
+    Client.run() renews active ownership every 50 ms.
+    M4 expires an unrenewed lease after 250 ms.
+  end note
+  R -> R : convert units, validate path, quantize endpoint\ncompile one normalized progress profile
+  note right of R #EDF4FE
+    FiniteProgram contains profile description,
+    signed displacements and axis limits.
+    Cartesian point moves interpolate in joint space.
+  end note
+
+  == Prepare locally on M4; outputs are not started ==
+  R -> C : execute(job, reservation, FiniteProgram)
+  C -> W : io/trajectory: Prepare\nboot + token + configuration + positions + revisions
+  W -> S : deferProgram(): queue bounded command
+  S -> O : [command worker] prepareProgram()
+  O -> O : verify lease, revisions, positions, references, limits
+  O -> E : prepare(command, bind_outputs=false)
+  note over O,E #EAF7F4
+    Numerical preparation runs outside Controller's mutex.
+    Reservation keeps the selected axes owned.
+  end note
+  E -> E : validate progress; build nominal + stopping schedules
+  E --> O : prepared or error
+  O -> O : reacquire mutex; revalidate epoch / reservation / axes
+  alt Preparation fails, is cancelled, or becomes stale
+    O --> S : explicit rejection; no start
+    S --> W : deferred Reply
+    W --> C : reject job; request reservation Release
+  else Preparation remains valid
+    O -> E : bind() via StepperMotor::prepareCoordinated()
+    E -> H : bind per-axis schedules / DIR; stage initial buffers
+    O --> S : Staged
+    S --> W : finishProgramCommand(): deferred Reply
+    W --> C : preparation succeeded
+
+    == Run is a separate action ==
+    C -> W : io/motion goal: Run{boot, token, job}
+    W -> S : admitProgram(Run, execution)
+    S -> O : startProgram(Run, completion callback)
+    O -> O : final ownership / revision / hardware checks
+    O -> E : start(token)
+    E -> H : start prepared outputs on common timeline
+    O --> S : success
+    S --> W : action accept()
+    W --> C : on_accepted → Running
+    note over C,H #FFF5DF
+      In the current code, startProgram() precedes action acceptance.
+      A STEP edge may occur before the UI receives acceptance.
+      Zero-displacement programs complete without arming outputs.
+    end note
+  end
+end
+@enduml

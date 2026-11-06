@@ -1,0 +1,142 @@
+@startuml
+!include style.iuml
+' Sources: src/{ui,io}/app/Application.hpp; src/{ui,io}/motion/*.hpp;
+' src/common/icc/bridge/Bridge.hpp; src/common/icc/catalog/*.hpp.
+' Relations are selected from the current source, not a proposed redesign.
+title Motion classes across the M7 / M4 boundary
+caption Selected classes and responsibilities; separate instances and address spaces on each core.
+footer 2026-11-06 | Current source structure; hardware qualification remains incomplete.
+top to bottom direction
+hide empty members
+hide circle
+skinparam linetype polyline
+skinparam nodesep 28
+skinparam ranksep 40
+
+package "M7 · UI application" #EDF4FE {
+  class "ui::Application" as UA <<UI>> {
+    bus : pnm::msg::Bus
+    iccContext : pnm::coro::Context
+    shared application stop source
+  }
+  class "ui::motion::Client" as Client <<UI>> {
+    jobs + retained action handles
+    history : 32 entries
+    +submit(MotorGoal)
+    +acquire() / execute() / cancel()
+    +run() : dispatch + lease renewals
+  }
+  class "ui::motion::Robot" as Robot <<UI>> {
+    bounded planning queue + workspace
+    +submit(ExecutionRequest)
+    +run() : planning worker
+  }
+  class "Axis<Angle | Distance>" as Axis <<UI>> {
+    robot : Robot&
+    joint index
+    +moveRel() / moveAbs() / home() / jog()
+  }
+  class "ui::motion::Planner" as Planner <<UI>> {
+    RobotModel + workspace references
+    +prepare(move, start)
+    +finite() : FiniteProgram
+  }
+  class "icc::Bridge\nM7 instance" as UB <<UI>> {
+    TopicBridge / ServiceBridge / ActionBridge
+    bus + coroutine context are borrowed
+    transport : ITransport&
+  }
+  UA *-- Client
+  UA *-- Robot
+  UA *-[norank]- UB
+  Axis --> Robot : forwards submission
+  Robot --> Client : borrows; jobs survive planning
+  Robot ..> Planner : creates on planning worker
+  Client .[norank].> UB : local bus endpoints\n(no direct Bridge call)
+}
+
+package "M4 · IO application" #EAF7F4 {
+  class "io::Application" as IA <<IO>> {
+    bus : pnm::msg::Bus
+    iccContext : pnm::coro::Context
+    shared application stop source
+  }
+  class "icc::Bridge\nM4 instance" as IB <<IO>> {
+    TopicBridge / ServiceBridge / ActionBridge
+    bus + coroutine context are borrowed
+    transport : ITransport&
+  }
+  class "io::motion::Server" as Server <<IO>> {
+    deferred services + action providers
+    command worker + completion records
+    +run() / admitProgram() / dispatchPrograms()
+  }
+  class "io::motion::Controller" as Controller <<IO>> {
+    one execution worker
+    groups[3] + driver monitoring
+    +control() / prepareProgram() / startProgram()
+    +moveRel() / moveAbs() / reference()
+  }
+  class "Ownership" as Owner <<IO>> {
+    family + axis masks + job IDs
+    reservation tokens + revisions + lease deadlines
+  }
+  class "StepperMotor" as Motor <<IO>> {
+    raw moves + buffered successor + homing
+    stepOutput : IStepOutput
+    driver : IStepperDriver
+    feedback : IMotorFeedback
+    reference input + DIR output
+  }
+  class "Executor" as Exec <<IO>> {
+    finite / jog program execution
+    shared progress and installed stopping branch
+    +prepare() / bind() / start() / service()
+    +renew() / stop() / abort()
+  }
+  class "ProfileSchedule" as Schedule <<IO>> {
+    TimedSequence implementation
+    nominal profile + optional braking suffix
+    +generate() : pulse timings
+  }
+  interface "hal::IStepGenerator" as Generator {
+    shared timer / DMA backend
+    +preparePending() / splice()
+    per-axis IStepOutput handles
+  }
+  IA *-[norank]- IB
+  IA *-- Server
+  IA *-- Controller
+  IB --> Server : dispatch via private bus
+  Server --> Controller : borrowed pointer; authoritative commands
+  Controller *-- Owner
+  Controller "1" *-- "3" Motor
+  Controller "1" *-- "0..3" Exec : owned by groups
+  Exec *-- Schedule : immutable schedule banks
+  Exec --> Generator : shared backend
+  Controller --> Generator : owns shared handle / refill worker
+  Exec --> Motor : prepare callback\nsets DIR and binds output
+}
+
+UB <-[#A8680C,dashed,norank]-> IB : Serialized frames only\nSRAM4 + HSEM
+
+
+UB -[hidden]down-> UA
+IB -[hidden]down-> IA
+UB -[hidden]right-> IB
+
+legend bottom left
+  |= UML relation |= Meaning |
+  | filled diamond | owns / controls lifetime |
+  | solid arrow | local reference or interaction; bus mediation is labelled |
+  | dotted arrow | dependency or serialized wire interaction, as labelled |
+  No pointer, callback, future or C++ object is shared across the core boundary.
+  Both builds compile the same contracts; each application owns its private objects.
+  Axis forwards to Robot. Raw/homing use StepperMotor; finite axis/robot programs use Executor.
+  Robot jobs reserve all axes. Motor / Axis / Robot command families exclude each other.
+  Each Bridge uses a local InterCoreTransport; no cross-core method calls occur.
+  Contracts: common/icc/catalog/{services,actions,topics}.hpp
+  Normal: io/trajectory, io/motion, io/motor/motion. Urgent: io/trajectory/control, io/motor/stop.
+  State/log topics: io/motor/state, io/controller/state, io/logs.
+endlegend
+@enduml

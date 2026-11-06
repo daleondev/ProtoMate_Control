@@ -1,0 +1,80 @@
+@startuml
+!include style.iuml
+' Sources: Client.cpp; Server.cpp::admit/dispatchJobs; Controller.cpp;
+' StepperMotor.cpp; Sequence.hpp; common/icc/catalog/actions.hpp.
+title Raw motor command · the StepperMotor worker path
+caption Existing motor commands bypass Robot/Planner and the coordinated Executor program path.
+footer This diagram describes current source behavior. Action acceptance and successful execution are distinct events.
+autonumber
+actor "CLI" as CLI
+box "M7 · UI" #EDF4FE
+participant "Client\nretained job / action" as C
+end box
+boundary "Serialized ICC" as W #FFF5DF
+box "M4 · IO" #EAF7F4
+participant "Server\nIO dispatcher" as S
+participant "Controller\n+ Ownership" as O
+participant "StepperMotor\nselected motor" as M
+participant "STEP HAL\nshared TIM2 / DMA" as H
+end box
+
+CLI -> C : submit(MotorGoal)\nshaft angle / rpm / dynamics / BufferMode
+C -> C : allocate job ID; retain PendingGoal
+C -> W : normal io/motor/motion goal
+C --> CLI : job ID; prompt returns
+W -> S : admit(goal, ActionExecution)
+S -> S : validate goal / command generation / readiness
+S -> O : reserveMotor(job, motor)
+O -> O : reject Axis / Robot ownership conflicts
+alt Rejected or capacity exhausted
+  O --> S : Busy owner / rejection
+  S --> W : rejected action
+  W --> C : terminal rejection
+else Motor family admitted
+  O --> S : ownership granted
+  S --> W : action accept()
+  W --> C : accepted callback
+  S -> O : moveRel() / moveAbs()\ncompletion observer
+  O -> M : submit to selected motor
+  alt New active move
+    M -> M : create motion worker\n16 KiB stack + runtime allocations
+  else Allowed buffered / blended successor
+    M -> M : apply existing bounded queue rules
+  end
+  M --> O : future<Result>
+  O --> S : future<Result> (local M4 object only)
+  note over S,M #FFF5DF
+    Raw action acceptance precedes launching the motor worker.
+    A later launch failure produces Faulted, not a successful move.
+  end note
+  M -> M : runCommands() / CommandRunner\nbuild Profile + Sequence
+  M -> H : configure / start selected IStepOutput
+  loop Until completion, stop or fault
+    H -> H : generate hardware STEP edges
+    H -->> M : progress / completion notification
+    M -> M : update accounting; wait for notification
+    S -> W : action feedback + latest motor-state topic
+    W --> C : dispatch progress / state
+  end
+  M -> M : stop active output; complete(current command)
+  M -->> S : completion observer sets ready flag + wakes server
+  par Motor worker continues
+    M -> M : take next buffered command\nor finishQueue() and return
+  else Server dispatches the completed job
+    S -> S : get ready future; determine result
+    S -> W : succeed / cancelled / abort
+    S -> O : releaseJob(job)
+    W --> C : terminal callback; keep history
+  end
+  note over S,M #FFF5DF
+    Current raw completion reports a command result before the
+    worker necessarily returns. Ordinary completion does not join it.
+    The sequential robot-homing path explicitly calls stopAndWait().
+  end note
+end
+note over O,H #EAF7F4
+  Other raw motors may run independently; same-motor buffering retains ownership.
+  Raw motor stop is immediate cessation, not the Executor's coordinated brake.
+  A raw stop targeting a robot-owned member aborts its whole group.
+end note
+@enduml

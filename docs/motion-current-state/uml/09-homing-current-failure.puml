@@ -1,0 +1,72 @@
+@startuml
+!include style.iuml
+' Source path: ControllerHoming.cpp; ServerPrograms.cpp; StepperMotor.cpp;
+' platform/runtime/libstdcxx/backend.cpp.
+' Observed run: /tmp/motion-api-home-live18.log
+' Test pair: bbe50064864223d7d906544ed10550a2d163b644c5289ad1b89529614cce9610
+' The allocation / ThreadX operation causing EAGAIN was not identified.
+title Robot homing · where the last GIGA run failed
+caption Last flashed test pair bbe50064864223d7; motors disconnected and synthetic reference inputs.
+footer Sequence is grounded in the log and current source. It does not identify the exact failing allocation or prove heap fragmentation.
+autonumber
+box "M7 · UI" #EDF4FE
+participant "Client\nrobot job" as C
+end box
+boundary "Serialized ICC" as W #FFF5DF
+box "M4 · IO" #EAF7F4
+participant "Server" as S
+participant "Controller\nexecution worker" as O
+participant "StepperMotor\nM3, then M1" as M
+participant "C++ thread runtime\nallocator + ThreadX" as T
+end box
+
+ref over C,O
+  Acquire Robot ownership → Prepare Home program → Run action.
+  Whole-robot ownership persists across all homing stages.
+end ref
+S -> O : startProgram(Run, completion callback)
+O -> O : mark group started; notify execution worker
+O --> S : success
+S --> W : accept action
+W --> C : Running
+
+== Stage 1 · M3 succeeds ==
+O -> O : serviceHomeLocked(group)
+O -> M : M3.reference(seek, latch, timeout)
+M -> T : create_jthread("homing", stack=16 KiB)
+T --> M : worker created
+M --> O : future<Result>
+O -> M : attach completion notification
+M -> M : seek first contact\nrelease / back off\nslow re-latch
+M -> M : set reference position; referenced=true
+M -->> O : completion sets home_ready; notify
+O -> O : future.get() → Completed
+O -> M : stopAndWait() for completed M3 worker
+M --> O : cleanup returned
+O -> O : advance to next configured homing stage
+
+== Stage 2 · M1 fails before homing can start ==
+O -> M : M1.reference(seek, latch, timeout)
+M -> T : create_jthread("homing", stack=16 KiB)
+T -[#B63B43]-> M : EAGAIN → exception "No more processes"
+M -[#B63B43]-> O : propagate worker-creation exception
+O -> O : catch exception; group.error=Fault\nhome_finished=true; log failure
+note over O,T #FFF0F1
+  Proven failure point: new homing worker creation.
+  Which allocation or ThreadX operation failed is not recorded.
+  Total free heap after failure: 24,016 B across 15 free blocks.
+  That snapshot does not prove a sufficiently large usable block
+  or establish fragmentation as the cause.
+end note
+O -> O : finishProgramsLocked() → Faulted update
+O -->> S : completion record + notification
+S -> S : dispatchPrograms()
+S -> W : abort(Faulted)
+S -> O : releaseJob(job)
+W --> C : terminal state = Faulted
+note over C,M #FFF5DF
+  M2 is never reached. M3 was reported referenced in this fixture.
+  The sequence is not a successful robot home.
+  Linux workflow success does not resolve this hardware/runtime failure.
+end note
+@enduml
