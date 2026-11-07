@@ -20,14 +20,14 @@
 <text x="106" y="386.0" font-family="DejaVu Sans" font-size="21" font-weight="700" text-anchor="start" fill="#007D78">2 KiB vectors · 0x10000000</text>
 <rect x="84" y="419" width="472" height="117" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="104" y="451" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">192 KiB fast code + constants</text>
-<text x="104" y="482" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x10000800 · 192,824 B linked</text>
+<text x="104" y="482" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x10000800 · 195,976 B linked</text>
 <rect x="104" y="502" width="432" height="13" rx="6.5" fill="#D7E1E9"/>
-<rect x="104" y="502" width="423.685546875" height="13" rx="6.5" fill="#007D78"/>
+<rect x="104" y="502" width="430.611328125" height="13" rx="6.5" fill="#007D78"/>
 <rect x="84" y="547" width="472" height="99" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="104" y="578" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">86 KiB data + DMA buffers</text>
-<text x="104" y="607" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x30030800 · 80,864 B linked</text>
+<text x="104" y="607" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x30030800 · 81,824 B linked</text>
 <rect x="104" y="623" width="432" height="10" rx="5.0" fill="#D7E1E9"/>
-<rect x="104" y="623" width="396.68023255813955" height="10" rx="5.0" fill="#007D78"/>
+<rect x="104" y="623" width="401.38953488372096" height="10" rx="5.0" fill="#007D78"/>
 <rect x="84" y="658" width="472" height="57" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="106" y="693.0" font-family="DejaVu Sans" font-size="19" font-weight="700" text-anchor="start" fill="#007D78">8 KiB interrupt stack · 0x30046000</text>
 <rect x="84" y="738" width="472" height="140" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
@@ -38,9 +38,9 @@
 <text x="84" y="919" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#566B7B">The SRAM alias is not additional memory.</text>
 <rect x="664" y="288" width="472" height="107" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="684" y="320" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#245EA8">ITCM · 64 KiB</text>
-<text x="684" y="351" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#183044">16,088 B code + 22,528 B GUI data</text>
+<text x="684" y="351" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#183044">16,088 B code + 24,000 B GUI data</text>
 <rect x="684" y="369" width="432" height="10" rx="5.0" fill="#D7E1E9"/>
-<rect x="684" y="369" width="254.548828125" height="10" rx="5.0" fill="#245EA8"/>
+<rect x="684" y="369" width="264.251953125" height="10" rx="5.0" fill="#245EA8"/>
 <rect x="664" y="410" width="472" height="185" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="684" y="442" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#245EA8">DTCM · 128 KiB</text>
 <text x="684" y="475" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x20000000: vectors, 2 KiB</text>
@@ -92,21 +92,19 @@
 <text x="695.375" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">1</text>
 <rect x="729.75" y="1041" width="194.25" height="44" rx="4" fill="#007D78"/>
 <text x="826.875" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">M4 · 3 MiB</text>
-<rect x="927.0" y="1041" width="260.0" height="44" rx="4" fill="#245EA8"/>
-<text x="1057.0" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">M7 · 4 MiB</text>
-<rect x="1190.0" y="1041" width="391.5" height="44" rx="4" fill="#7353A6"/>
-<text x="1385.75" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">Assets · 6 MiB</text>
+<rect x="927.0" y="1041" width="654.5" height="44" rx="4" fill="#245EA8"/>
+<text x="1254.25" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">M7 image + GUI assets · 10 MiB</text>
 <rect x="1584.5" y="1041" width="62.75" height="44" rx="4" fill="#566B7B"/>
 <text x="1615.875" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">1</text>
 <rect x="1650.25" y="1041" width="62.75" height="44" rx="4" fill="#566B7B"/>
 <text x="1681.625" y="1070" font-family="DejaVu Sans" font-size="18" font-weight="700" text-anchor="middle" fill="#FFFFFF">1</text>
 <text x="664" y="1121" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90000000 · Factory area · 1 MiB</text>
-<text x="1200" y="1121" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x90800000 · Future assets · 6 MiB</text>
+<text x="1200" y="1121" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">Code, meshes, fonts and images together</text>
 <text x="664" y="1157" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90100000 · M4 image · 3 MiB</text>
 <text x="1200" y="1157" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x90E00000 · Manifest / scratch · 1 MiB</text>
-<text x="664" y="1193" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90400000 · M7 image · 4 MiB</text>
+<text x="664" y="1193" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90400000 · M7 image · 10 MiB</text>
 <text x="1200" y="1193" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x90F00000 · Factory area · 1 MiB</text>
 <path d="M60,1260 L1740,1260" fill="none" stroke="#D7E1E9" stroke-width="2"/>
-<text x="60" y="1288" font-family="DejaVu Sans" font-size="17" font-weight="400" text-anchor="start" fill="#566B7B">Current source • Normal Release pair: b87bf16b221f8486 • Electrical tests do not establish mechanical qualification</text>
+<text x="60" y="1288" font-family="DejaVu Sans" font-size="17" font-weight="400" text-anchor="start" fill="#566B7B">Current source • Normal Release pair: d6c8f63c273bddd9 • Electrical tests do not establish mechanical qualification</text>
 <text x="60" y="1310" font-family="DejaVu Sans" font-size="14" font-weight="400" text-anchor="start" fill="#566B7B">Sources: cmake/application_giga.cmake; boot linker/manifest; normal Release manifest. Heap capacity excludes linker/runtime metadata.</text>
-<metadata>{&quot;date&quot;: &quot;2026-11-07&quot;, &quot;normal_release_pair&quot;: &quot;b87bf16b221f848619d34fd387c58a04881a00a714a867001ac68c8f0ee0b52b&quot;, &quot;evidence_sha256&quot;: {&quot;cmake/application_giga.cmake&quot;: &quot;75b9fb683732a54bc6fcebff6adc3738e2d48c9f331855a1f4bd5bc057ee6119&quot;, &quot;platform/boot/giga/application.ld.in&quot;: &quot;f5adaeacd58d4d157e3f314b64677d6cbbd5fef9a60752df60711a101a16ad24&quot;, &quot;build/giga-release/images/manifest.json&quot;: &quot;429f179e8a9e4de462447cc2519791dc4e52e21832a5944ba026a9e420fb86d6&quot;}, &quot;scope&quot;: &quot;Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.&quot;}</metadata></svg>
+<metadata>{&quot;date&quot;: &quot;2026-11-08&quot;, &quot;normal_release_pair&quot;: &quot;d6c8f63c273bddd91c2a7b584d6a33a21954b359742824ca6ea8bb686bb33c13&quot;, &quot;evidence_sha256&quot;: {&quot;cmake/application_giga.cmake&quot;: &quot;5f594f5e347ce178a676ee2d457d67f5d814225cf0469b6c40ca7d527f989367&quot;, &quot;platform/boot/giga/application.ld.in&quot;: &quot;2ec4fd3e5df4cfe66feb7d82c37e530c6cb1d98c59bbedbc186d4bc22d0e0692&quot;, &quot;build/giga-release/images/manifest.json&quot;: &quot;6fbe493c1b94dc27db6d14cc7a23c0d889bbf82da8c101a218dd21e7d304adff&quot;}, &quot;scope&quot;: &quot;Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.&quot;}</metadata></svg>

@@ -63,11 +63,49 @@ class ManifestTests(unittest.TestCase):
                    (15,0x90100040), (16,0x10000400), (17,0x30020000), (18,0), (18,17),
                    (19,2), (20,0x90000000), (20,0xFFFFFFFF), (21,0x38000000),
                    (21,0x24040000), (21,0x30046000), (22,0xFFFFFFFF), (22,0), (23,0),
-                   (84,0x90100000), (85,0x400001), (91,1), (93,0x2001C000),
+                   (84,0x90100000), (85,0xA00001), (91,1), (93,0x2001C000),
                    (93,0x24040000), (93,0x3800F000)]
         for index, value in changes:
             words = manifest(); words[index] = value
             self.assertFalse(self.valid(seal(words)), (index, hex(value)))
+
+    def test_m7_flash_extent_and_reserved_regions(self):
+        for size, expected in [(4 << 20, True), ((4 << 20) + 1, True),
+                               (10 << 20, True), ((10 << 20) + 1, False),
+                               (0xFFFFFFFF, False)]:
+            words = manifest(); words[85] = size
+            self.assertEqual(self.valid(seal(words)), expected, size)
+        # Entry and RAM load images can use the expanded area, but cannot touch
+        # the manifest, upper factory reserve or a different core's partition.
+        for address, expected in [(0x90800000, True), (0x90DFFFA0, True),
+                                  (0x90DFFFE0, False), (0x90E00000, False),
+                                  (0x90F00000, False), (0x90100000, False)]:
+            words = manifest(); words[85] = 10 << 20
+            words[87] = address | 1
+            words[92] = address  # 64-byte vector initialization record.
+            self.assertEqual(self.valid(seal(words)), expected, hex(address))
+
+    def test_packer_partition_bounds_include_pair_footer(self):
+        io = self.fixture(4)
+        ui = self.fixture(7, code_address=0x90800000)
+        _, payload, data, _ = images.pair(io, ui)
+        self.assertGreater(len(payload), 4 << 20)
+        self.assertTrue(self.valid(data))
+        for core, end in [(4, 0x90400000), (7, 0x90E00000)]:
+            with self.subTest(core=core):
+                paths = {4: self.fixture(4), 7: self.fixture(7)}
+                # 64 bytes of code + 32-byte pair footer exactly fit.
+                paths[core] = self.fixture(core, code_address=end - 96)
+                io_bytes, ui_bytes, data, _ = images.pair(paths[4], paths[7])
+                self.assertEqual(len(io_bytes if core == 4 else ui_bytes),
+                                 (3 if core == 4 else 10) << 20)
+                self.assertTrue(self.valid(data))
+                paths[core] = self.fixture(core, code_address=end - 64)
+                with self.assertRaisesRegex(ValueError, 'footer exceeds partition'):
+                    images.pair(paths[4], paths[7])
+                paths[core] = self.fixture(core, code_address=end - 63)
+                with self.assertRaisesRegex(ValueError, 'load address outside'):
+                    images.pair(paths[4], paths[7])
 
     def test_overlap_and_debug_region(self):
         words = manifest()
@@ -125,28 +163,31 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(valid(payload, len(payload), pair[::-1]))
         self.assertFalse(valid(bytes([255])+payload[1:], len(payload)))
 
-    def test_linked_images(self):
+    def fixture(self, core, code_address=None):
         # Self-contained ELF fixtures: tests must not race an independent
         # hardware linker or depend on artifacts from another build tree.
-        def fixture(core):
-            base, vector, stack = (0x90100000,0x10000000,0x30048000) if core == 4 else (0x90400000,0x20000000,0x20020000)
-            data=bytearray(0x300)
-            data[:16]=b'\x7fELF\x01\x01\x01'+bytes(9)
-            struct.pack_into('<HHIIIIIHHHHHH',data,16,2,40,1,base+65,52,0x200,0,52,32,2,40,5 if core==7 else 4,3)
-            struct.pack_into('<8I',data,52,1,0x100,vector,base,64,64,4,4)
-            struct.pack_into('<8I',data,84,1,0x140,base+64,base+64,64,64,5,4)
-            struct.pack_into('<II',data,0x100,stack,base+65)
-            data[0x140:0x142]=b'\x70\x47' # Thumb BX LR
-            names=b'\0.isr_vector\0.text\0.shstrtab\0.gui_internal\0'
-            data[0x180:0x180+len(names)]=names
-            struct.pack_into('<10I',data,0x228,1,1,2,vector,0x100,64,0,0,4,0)
-            struct.pack_into('<10I',data,0x250,13,1,6,base+64,0x140,64,0,0,4,0)
-            struct.pack_into('<10I',data,0x278,19,3,0,0,0x180,len(names),0,0,1,0)
-            if core==7:
-                struct.pack_into('<10I',data,0x2a0,names.index(b'.gui_internal'),8,3,0x8000,0,22528,0,0,32,0)
-            path=Path(self.directory.name)/f'm{core}.elf';path.write_bytes(data)
-            return path
-        io,ui=fixture(4),fixture(7)
+        base, vector, stack = (0x90100000,0x10000000,0x30048000) if core == 4 else (0x90400000,0x20000000,0x20020000)
+        code = base + 64 if code_address is None else code_address
+        entry = code | 1
+        data=bytearray(0x300)
+        data[:16]=b'\x7fELF\x01\x01\x01'+bytes(9)
+        struct.pack_into('<HHIIIIIHHHHHH',data,16,2,40,1,entry,52,0x200,0,52,32,2,40,5 if core==7 else 4,3)
+        struct.pack_into('<8I',data,52,1,0x100,vector,base,64,64,4,4)
+        struct.pack_into('<8I',data,84,1,0x140,code,code,64,64,5,4)
+        struct.pack_into('<II',data,0x100,stack,entry)
+        data[0x140:0x142]=b'\x70\x47' # Thumb BX LR
+        names=b'\0.isr_vector\0.text\0.shstrtab\0.gui_internal\0'
+        data[0x180:0x180+len(names)]=names
+        struct.pack_into('<10I',data,0x228,1,1,2,vector,0x100,64,0,0,4,0)
+        struct.pack_into('<10I',data,0x250,13,1,6,code,0x140,64,0,0,4,0)
+        struct.pack_into('<10I',data,0x278,19,3,0,0,0x180,len(names),0,0,1,0)
+        if core==7:
+            struct.pack_into('<10I',data,0x2a0,names.index(b'.gui_internal'),8,3,0x8000,0,22528,0,0,32,0)
+        path=Path(self.directory.name)/f'm{core}.elf';path.write_bytes(data)
+        return path
+
+    def test_linked_images(self):
+        io,ui=self.fixture(4),self.fixture(7)
         m4, m7, data, metadata = images.pair(io, ui)
         self.assertTrue(self.valid(data))
         self.assertEqual(m4[-32:], m7[-32:])

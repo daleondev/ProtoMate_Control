@@ -38,9 +38,10 @@ else()
     set(THREADX_ARCH cortex_m7)
     set(application_role ui)
     set(GIGA_FLASH_ORIGIN 0x90400000)
-    set(GIGA_FLASH_LENGTH 4M)
+    # Code, fonts, images and meshes share one image up to the manifest at 0x90E00000.
+    set(GIGA_FLASH_LENGTH 10M)
     set(GIGA_CODE_ORIGIN 0x90400000)
-    set(GIGA_CODE_LENGTH 4M)
+    set(GIGA_CODE_LENGTH 10M)
     set(GIGA_VECTOR_ORIGIN 0x20000000)
     set(GIGA_FAST_ORIGIN 0x00000000)
     # Keep CPU-only GUI bookkeeping out of AXI SRAM's nearly full general heap.

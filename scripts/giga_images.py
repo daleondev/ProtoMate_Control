@@ -16,6 +16,9 @@ MAGIC = 0x41474947
 VERSION = 1
 MAX_SEGMENTS = 16
 MANIFEST_SIZE = 624
+# Storage bounds include the matching-pair footer. M7 code and GUI assets share
+# one image; the manifest at 0x90E00000 and both factory areas remain separate.
+PARTITIONS = {4: (0x90100000, 3 << 20), 7: (0x90400000, 10 << 20)}
 ZERO_SECTIONS = {'.bss', '.tbss', '.dtcm_bss', '.gui_internal', '.StepDmaSection'}
 
 
@@ -58,7 +61,7 @@ def destination(core, address, length, m4_sdram_code):
 
 def image(path, core):
     elf = Elf(path)
-    base, limit = (0x90100000, 3 << 20) if core == 4 else (0x90400000, 4 << 20)
+    base, limit = PARTITIONS[core]
     vectors, stack = (0x10000000, 0x30048000) if core == 4 else (0x20000000, 0x20020000)
     m4_sdram_code = core == 4 and 0xC0400000 <= elf.entry < 0xC0600000
     chunks, records = [], []
@@ -134,7 +137,7 @@ def pair(m4, m7):
         return payload, descriptor
     io, io_descriptor = tag(io, io_descriptor, io_meta)
     ui, ui_descriptor = tag(ui, ui_descriptor, ui_meta)
-    if len(io) > 3 << 20 or len(ui) > 4 << 20:
+    if len(io) > PARTITIONS[4][1] or len(ui) > PARTITIONS[7][1]:
         raise ValueError('Image pair footer exceeds partition')
     body = pair_id + io_descriptor + ui_descriptor
     manifest = struct.pack('<4I', MAGIC, VERSION, MANIFEST_SIZE, zlib.crc32(body)) + body

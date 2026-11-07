@@ -2,12 +2,18 @@ from pathlib import Path
 from html import escape
 from PIL import ImageFont
 import hashlib, json
+import argparse
+
+parser = argparse.ArgumentParser(description='Regenerate current motion architecture figures')
+parser.add_argument('--figure', type=int, choices=range(1, 5), help='Update only this figure')
+args = parser.parse_args()
 
 OUT=Path(__file__).resolve().parent
 ROOT=OUT.parents[1]
 manifest=json.loads((ROOT/'build/giga-release/images/manifest.json').read_text())
 pair=manifest['pair_id'][:16]
 m4,m7=manifest['images']
+gui_internal=next(s['size'] for s in m7['segments'] if s['run']==0x8000)
 fast=next(s['size'] for s in m4['segments'] if s['run']==0x10000800)
 data_end=max(s['run']+s['size'] for s in m4['segments'] if 0x30030800<=s['run']<0x30046000)
 data=data_end-0x30030800
@@ -67,9 +73,11 @@ class Fig:
         self.text(60,1288,f'Current source • Normal Release pair: {pair} • Electrical tests do not establish mechanical qualification',17,C['muted'])
         self.text(60,1310,sources,14,C['muted'])
     def save(self,name,sources,proofs):
+        if args.figure and args.figure != self.num:
+            return
         self.footer(sources)
         hashes={p:hashlib.sha256(Path(p if p.startswith('/') else ROOT/p).read_bytes()).hexdigest() for p in proofs if Path(p if p.startswith('/') else ROOT/p).exists()}
-        self.s.append('<metadata>'+escape(json.dumps({'date':'2026-11-07','normal_release_pair':manifest['pair_id'],'evidence_sha256':hashes,'scope':'Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.'}))+'</metadata></svg>')
+        self.s.append('<metadata>'+escape(json.dumps({'date':'2026-11-08','normal_release_pair':manifest['pair_id'],'evidence_sha256':hashes,'scope':'Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.'}))+'</metadata></svg>')
         (OUT/(name+'.svg')).write_text('\n'.join(self.s))
 
 # 1 — private applications and shared serialized transport
@@ -143,8 +151,8 @@ f.text(84,919,'The SRAM alias is not additional memory.',19,C['muted'])
 # M7
 f.rect(664,288,472,107,C['white'],C['line'])
 f.text(684,320,'ITCM · 64 KiB',24,C['ui'],True)
-f.text(684,351,'16,088 B code + 22,528 B GUI data',18)
-f.bar(684,369,432,(16088+22528)/65536,'ui',10)
+f.text(684,351,f'16,088 B code + {gui_internal:,} B GUI data',18)
+f.bar(684,369,432,(16088+gui_internal)/65536,'ui',10)
 f.rect(664,410,472,185,C['white'],C['line'])
 f.text(684,442,'DTCM · 128 KiB',24,C['ui'],True)
 f.text(684,475,'0x20000000: vectors, 2 KiB',17,mono=True)
@@ -188,9 +196,9 @@ f.para(84,1180,'Bootstrap initializes memory and copies RAM sections before star
 f.rect(640,974,1100,262,C['white'],C['line'])
 f.text(664,1017,'External QSPI flash · 16 MiB · images survive power-off',27,C['purple'],True)
 x=664; width=1052
-for size,lab,co in [(1,'1','muted'),(3,'M4 · 3 MiB','io'),(4,'M7 · 4 MiB','ui'),(6,'Assets · 6 MiB','purple'),(1,'1','muted'),(1,'1','muted')]:
+for size,lab,co in [(1,'1','muted'),(3,'M4 · 3 MiB','io'),(10,'M7 image + GUI assets · 10 MiB','ui'),(1,'1','muted'),(1,'1','muted')]:
     ww=width*size/16;f.rect(x,1041,ww-3,44,C[co],r=4);f.text(x+(ww-3)/2,1070,lab,18,C['white'],True,anchor='middle');x+=ww
-rows=[('0x90000000 · Factory area · 1 MiB','0x90800000 · Future assets · 6 MiB'),('0x90100000 · M4 image · 3 MiB','0x90E00000 · Manifest / scratch · 1 MiB'),('0x90400000 · M7 image · 4 MiB','0x90F00000 · Factory area · 1 MiB')]
+rows=[('0x90000000 · Factory area · 1 MiB','Code, meshes, fonts and images together'),('0x90100000 · M4 image · 3 MiB','0x90E00000 · Manifest / scratch · 1 MiB'),('0x90400000 · M7 image · 10 MiB','0x90F00000 · Factory area · 1 MiB')]
 for i,(a,b) in enumerate(rows):f.text(664,1121+i*36,a,18,mono=True);f.text(1200,1121+i*36,b,17,mono=True)
 f.save('02-memory-layout','Sources: cmake/application_giga.cmake; boot linker/manifest; normal Release manifest. Heap capacity excludes linker/runtime metadata.', ['cmake/application_giga.cmake','platform/boot/giga/application.ld.in','build/giga-release/images/manifest.json'])
 
@@ -245,4 +253,4 @@ f.box(908,829,832,275,'Remaining verification gaps','All 79 Linux Debug suites p
 f.rect(60,1132,1680,104,C['white'],C['line'])
 f.para(84,1170,'Use the review report for exact test outcomes and capture hashes. No diagram claims that a passing short capture proves a full-rate or mechanically safe operating envelope.',1632,24,C['ink'])
 f.save('04-current-problems','Sources: Controller / Ownership / StepperMotor; OperatingEnvelope; review report and hardware captures.', ['src/io/motion/Controller.cpp','src/io/motion/ControllerAdmission.cpp','src/io/motion/StepperMotorCommands.cpp','src/common/motion/OperatingEnvelope.hpp','docs/motion-current-state/review.json'])
-print('Created four SVG figures in',OUT)
+print('Created', f'figure {args.figure}' if args.figure else 'four SVG figures', 'in', OUT)

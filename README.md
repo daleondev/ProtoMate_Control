@@ -606,8 +606,8 @@ text and image converters incrementally. SVG sources are rasterized with
 `rsvg-convert` first. Generated C++ stays in `build/.../generated/gui`. The font
 converter reports unsupported GPOS subtable 8; the selected Latin/German text
 is covered by the visual checks. More complex scripts need separate validation.
-Code/fonts/images currently share the M7 QSPI image and its normal manifest;
-the 6 MiB independent GUI-assets partition remains reserved.
+Code, fonts, images and meshes share one 10 MiB M7 QSPI image and its normal
+manifest. There is no separate GUI-assets partition or asset update procedure.
 
 ### Workers, ownership and shutdown
 
@@ -1805,10 +1805,16 @@ shutdown does not depend on USB or log delivery.
 | --- | ---: | --- |
 | 0x90000000 | 1 MiB | Preserved factory reserve |
 | 0x90100000 | 3 MiB | M4 executable and RAM load images |
-| 0x90400000 | 4 MiB | M7 executable and RAM load images |
-| 0x90800000 | 6 MiB | Future GUI assets |
+| 0x90400000 | 10 MiB | M7 executable, GUI assets and RAM load images |
 | 0x90E00000 | 1 MiB | Manifest / activation / maintenance |
 | 0x90F00000 | 1 MiB | Preserved factory wireless reserve |
+
+The M7 image ends before `0x90E00000`, including its 32-byte image-pair footer.
+The linker, packer and bootstrap validator enforce the 10 MiB allocation. Use
+the combined flash command so the bootstrap is updated with the applications;
+older bootstraps reject M7 images larger than 4 MiB. Images are programmed at
+their actual length, not padded to the partition size. This allocation does not
+change the RAM map or the internal-flash filesystem.
 
 The loader verifies AT25SF128A JEDEC 1F8901 and the SFDP signature, preserves
 status bits, enables volatile QE, then uses 0x6B quad-output, 24-bit addresses,

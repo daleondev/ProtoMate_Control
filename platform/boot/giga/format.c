@@ -36,8 +36,8 @@ int giga_manifest_valid(const GigaManifest* m)
     }
     for (unsigned core = 0; core < 2; ++core) {
         const GigaImage* im = &m->images[core];
-        const uint32_t base = core ? 0x90400000u : 0x90100000u;
-        const uint32_t limit = core ? 4u * 1024 * 1024 : 3u * 1024 * 1024;
+        const uint32_t base = core ? GIGA_M7_IMAGE_ADDRESS : GIGA_M4_IMAGE_ADDRESS;
+        const uint32_t limit = core ? GIGA_M7_IMAGE_SIZE : GIGA_M4_IMAGE_SIZE;
         if (im->storage != base || im->size <= sizeof(m->pair_id) || im->size > limit ||
             im->segment_count == 0 || im->segment_count > GIGA_MAX_SEGMENTS ||
             (im->flags & ~GIGA_M4_SDRAM_CODE) || (core && im->flags) || !(im->entry & 1u) ||
