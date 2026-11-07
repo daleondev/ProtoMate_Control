@@ -1,6 +1,7 @@
 #include "hal/drivers/impl/StepGenerator.hpp"
 #include "hal/drivers/impl/StepOutput.hpp"
 #include "hal/drivers/util/StepTrace.hpp"
+#include "profiling/Trace.h"
 
 #if defined(HAL_PLATFORM_STM32)
 #include "hal/stm32/InterruptGuard.hpp"
@@ -1406,6 +1407,10 @@ namespace hal::util
         }
         updateCounts(sample);
         const auto failure{ sample.error || !m_status.counts_exact ? step::State::DmaError : reason };
+        if (failure == step::State::Underrun || failure == step::State::DmaError) {
+            // Output inhibition precedes recording; tracing cannot postpone it.
+            profile_failure(PROFILE_MOTION_GUARD, 0x20000U | unsigned(failure), site, 0);
+        }
         for (std::size_t i{ 0 }; i < m_axes.size(); ++i) {
             if (m_axes[i].finished) {
                 continue;

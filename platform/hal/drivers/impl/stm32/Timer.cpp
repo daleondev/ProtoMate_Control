@@ -1,3 +1,4 @@
+#include "profiling/Trace.hpp"
 // CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
 // The line-specific exceptions below preserve the vendor register interface.
 #include "Timer.hpp"
@@ -308,6 +309,16 @@ namespace hal
     }
 }
 
-extern "C" void TIM5_IRQHandler() { hal::Timer::dispatchInterrupt(TIM5); }
+extern "C" void TIM5_IRQHandler()
+{
+    profiling::interruptEnter();
+    hal::Timer::dispatchInterrupt(TIM5);
+    profiling::interruptExit();
+}
 
-extern "C" void TIM8_BRK_TIM12_IRQHandler() { hal::Timer::dispatchInterrupt(TIM12); }
+extern "C" void TIM8_BRK_TIM12_IRQHandler()
+{
+    profiling::interruptEnter();
+    hal::Timer::dispatchInterrupt(TIM12);
+    profiling::interruptExit();
+}

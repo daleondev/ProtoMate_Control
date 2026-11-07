@@ -1,5 +1,7 @@
 #include "InterCoreChannel.hpp"
 #include "hal/util/InterCoreTrace.hpp"
+#include "profiling/Trace.h"
+#include "profiling/Trace.hpp"
 
 #include "hal/hal.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
@@ -94,6 +96,16 @@ namespace hal
         }
         util::intercoreTrace(util::InterCoreStage::PublishBegin, unsigned(lane), frame);
         auto result{ memory.push(1 - SIDE, frame, lane) };
+#if defined(PROTOMATE_PROFILING)
+        auto& q = memory.inbox[1U - SIDE][unsigned(lane)];
+        const auto used = std::atomic_ref(q.written).load() - std::atomic_ref(q.read).load();
+        profile_queue(unsigned(lane),
+                      std::min(used, q.CAPACITY),
+                      q.CAPACITY,
+                      !result && result.error() == IInterCoreChannel::Error::WouldBlock,
+                      0,
+                      0);
+#endif
         if (result) {
             util::intercoreTrace(util::InterCoreStage::Published, unsigned(lane), frame);
             notifyPeer();
@@ -109,6 +121,11 @@ namespace hal
             return std::unexpected(Error::Disconnected);
         }
         auto result{ memory.pop(SIDE, buffer, lane) };
+#if defined(PROTOMATE_PROFILING)
+        auto& q = memory.inbox[SIDE][unsigned(lane)];
+        const auto used = std::atomic_ref(q.written).load() - std::atomic_ref(q.read).load();
+        profile_queue(3U + unsigned(lane), std::min(used, q.CAPACITY), q.CAPACITY, 0, 0, 0);
+#endif
         if (result) {
             util::intercoreTrace(util::InterCoreStage::Received, unsigned(lane), buffer.first(*result));
         }
@@ -158,9 +175,19 @@ namespace hal
 }
 
 #if defined(CORE_CM4)
-extern "C" void HSEM2_IRQHandler() { HAL_HSEM_IRQHandler(); }
+extern "C" void HSEM2_IRQHandler()
+{
+    profiling::interruptEnter();
+    HAL_HSEM_IRQHandler();
+    profiling::interruptExit();
+}
 #else
-extern "C" void HSEM1_IRQHandler() { HAL_HSEM_IRQHandler(); }
+extern "C" void HSEM1_IRQHandler()
+{
+    profiling::interruptEnter();
+    HAL_HSEM_IRQHandler();
+    profiling::interruptExit();
+}
 #endif
 #if defined(GIGA_MOTION_BENCH)
 extern "C" void motion_bench_doorbell(std::uint32_t) noexcept;

@@ -1,4 +1,5 @@
 #include "Executor.hpp"
+#include "profiling/Trace.h"
 
 namespace io::motion
 {
@@ -12,6 +13,7 @@ namespace io::motion
         if (m_status.diagnostic.failure != ScheduleFailure::None) {
             return false;
         }
+        profile_failure(PROFILE_MOTION_GUARD, 0x10000U | unsigned(failure), axis, 0);
         const auto* profile = axis < 3 ? &m_nominal[axis]->profile : &*m_progress;
         const auto state = profile->at(cut / 1e7);
         m_status.diagnostic = { .failure = failure,

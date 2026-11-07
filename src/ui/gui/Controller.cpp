@@ -4,6 +4,7 @@
 #include "integration/GraphicsDMA.hpp"
 #include "integration/OS.hpp"
 #include "pneumo/logging.hpp"
+#include "profiling/Trace.hpp"
 #include "util/FrameTimer.hpp"
 #include <algorithm>
 #include <fonts/ApplicationFontProvider.hpp>
@@ -273,6 +274,7 @@ namespace ui::gui
     }
     bool Controller::waitPresentation(unsigned slot, std::stop_token stop)
     {
+        profiling::Scope measurement{ PROFILE_SITE_PRESENT, PROFILE_CAT_GRAPHICS };
         const auto deadline{ std::chrono::steady_clock::now() + 100ms };
         for (;;) {
             m_display->service();

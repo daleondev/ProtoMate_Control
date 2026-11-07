@@ -1,6 +1,7 @@
 #include "Graphics.hpp"
 #include "hal/drivers/util/Graphics.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
+#include "profiling/Trace.hpp"
 namespace
 {
     hal::Graphics* instance{};
@@ -39,9 +40,11 @@ namespace
 }
 extern "C" void DMA2D_IRQHandler()
 {
+    profiling::interruptEnter();
     if (instance) {
         instance->interrupt();
     }
+    profiling::interruptExit();
 }
 namespace hal
 {

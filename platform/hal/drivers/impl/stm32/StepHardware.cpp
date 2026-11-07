@@ -1,3 +1,4 @@
+#include "profiling/Trace.hpp"
 // CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
 // The line-specific exceptions below preserve the vendor register interface.
 #include "StepHardware.hpp"
@@ -539,14 +540,36 @@ namespace hal::stm32
     }
 }
 
-extern "C" void DMA1_Stream0_IRQHandler() { hal::stm32::step_interrupt(); }
-extern "C" void DMA1_Stream1_IRQHandler() { hal::stm32::step_interrupt(); }
-extern "C" void DMA1_Stream2_IRQHandler() { hal::stm32::step_interrupt(); }
-extern "C" void DMA1_Stream3_IRQHandler() { hal::stm32::step_interrupt(); }
+extern "C" void DMA1_Stream0_IRQHandler()
+{
+    profiling::interruptEnter();
+    hal::stm32::step_interrupt();
+    profiling::interruptExit();
+}
+extern "C" void DMA1_Stream1_IRQHandler()
+{
+    profiling::interruptEnter();
+    hal::stm32::step_interrupt();
+    profiling::interruptExit();
+}
+extern "C" void DMA1_Stream2_IRQHandler()
+{
+    profiling::interruptEnter();
+    hal::stm32::step_interrupt();
+    profiling::interruptExit();
+}
+extern "C" void DMA1_Stream3_IRQHandler()
+{
+    profiling::interruptEnter();
+    hal::stm32::step_interrupt();
+    profiling::interruptExit();
+}
 extern "C" void TIM7_IRQHandler()
 {
+    profiling::interruptEnter();
     TIM7
       ->SR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
       0U; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     hal::stm32::step_interrupt();
+    profiling::interruptExit();
 }

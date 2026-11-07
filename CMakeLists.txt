@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
 
 # This entry point orchestrates two independent compiler configurations.
+option(PROTOMATE_PROFILING "Enable bounded ThreadX/application trace recording" OFF)
+if(PROTOMATE_PROFILING)
+    add_compile_definitions(PROTOMATE_PROFILING=1)
+endif()
 option(GIGA_BUILD_BOTH "Build both GIGA controller applications" OFF)
 option(GIGA_MOTION_BENCH "Build the isolated dual-core motion architecture benchmark" OFF)
 option(GIGA_STEP_BENCH "Build the isolated dual-core STEP hardware bench" OFF)
@@ -13,6 +17,9 @@ option(GIGA_M4_SDRAM_CODE
     "Copy ordinary M4 application code from QSPI into its reserved SDRAM region" OFF)
 if(GIGA_MOTION_BENCH AND (GIGA_STEP_BENCH OR GIGA_M4_SDRAM_CODE))
     message(FATAL_ERROR "Motion benchmark requires its own paired preset")
+endif()
+if(PROTOMATE_PROFILING AND (GIGA_MOTION_BENCH OR GIGA_STEP_BENCH OR GIGA_M4_SDRAM_CODE OR GIGA_MOTION_API_TEST))
+    message(FATAL_ERROR "Profiling SDRAM reservations require the dedicated profiling presets")
 endif()
 if(GIGA_BUILD_BOTH)
     project(Controllers LANGUAGES NONE)
@@ -60,6 +67,7 @@ target_compile_options(${PROTOMATE_CONTROLLER_TARGET} PRIVATE
 target_compile_definitions(${PROTOMATE_CONTROLLER_TARGET} PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=8192U)
 
 add_subdirectory(external/pneumo)
+add_subdirectory(platform/profiling)
 add_subdirectory(platform/hal)
 add_subdirectory(platform/runtime)
 add_subdirectory(src)
@@ -76,6 +84,9 @@ if(BUILD_TESTING)
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/tests/test_clang_tidy.py)
     add_test(NAME tooling.memory_usage
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/cmake/tests/memory_usage_test.py)
+    add_test(NAME tooling.profiling
+        COMMAND ${Python3_EXECUTABLE} -m pytest -q ${PROJECT_SOURCE_DIR}/scripts/tests/test_profiling.py)
+    set_tests_properties(tooling.profiling PROPERTIES TIMEOUT 30)
     add_test(NAME boot.giga_images
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/tests/test_giga_images.py)
     add_test(NAME boot.giga_mpu

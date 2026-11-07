@@ -1,6 +1,8 @@
 #ifndef RUNTIME_THREADX_TX_USER_H
 #define RUNTIME_THREADX_TX_USER_H
 
+#include "profiling/ThreadX.h"
+
 /* Project-owned ThreadX configuration. Keep generated CubeMX headers free of
  * runtime policy so CubeMX regeneration cannot overwrite this integration. */
 

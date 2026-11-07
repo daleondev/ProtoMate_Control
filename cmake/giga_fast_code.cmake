@@ -1,6 +1,8 @@
 # Every source listed here is compiled with symbols and optimization even in
 # Debug, and its code/constants/unwind metadata are copied to instruction RAM.
 set(giga_fast_sources
+    platform/profiling/Recorder.c
+    platform/profiling/Native.c
     platform/hal/drivers/impl/StepGenerator.cpp
     platform/hal/drivers/impl/StepOutput.cpp
     platform/hal/drivers/impl/stm32/StepHardware.cpp

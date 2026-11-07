@@ -65,7 +65,7 @@ add_executable(step_stm32_tests
 target_include_directories(step_stm32_tests BEFORE PRIVATE
     step_model/fakes ${PROJECT_SOURCE_DIR}/platform)
 target_compile_definitions(step_stm32_tests PRIVATE HAL_PLATFORM_STM32)
-target_link_libraries(step_stm32_tests PRIVATE hal_register_gtest project_compiler_settings)
+target_link_libraries(step_stm32_tests PRIVATE hal_register_gtest project_compiler_settings platform::profiling_unavailable)
 add_test(NAME step_stm32 COMMAND step_stm32_tests)
 set_tests_properties(step_stm32 PROPERTIES TIMEOUT 30)
 

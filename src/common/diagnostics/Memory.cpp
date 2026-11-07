@@ -1,4 +1,5 @@
 #include "Memory.hpp"
+#include "profiling/Trace.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -127,5 +128,30 @@ namespace diagnostics
                 throw std::invalid_argument("Unknown memory diagnostic query");
         }
         return result;
+    }
+
+    void sampleProfilingMemory()
+    {
+        const auto heap = collect_heap();
+        profile_heap(static_cast<std::uint32_t>(heap.available), static_cast<std::uint32_t>(heap.used));
+#if defined(PROTOMATE_PROFILING)
+        if (profile_status().state != PROFILE_RECORDING)
+            return;
+        TX_INTERRUPT_SAVE_AREA
+        TX_DISABLE
+        auto* thread = _tx_thread_created_ptr;
+        const auto count = _tx_thread_created_count;
+        for (ULONG i = 0; thread != nullptr && i < count; ++i) {
+            ThreadInfo entry{};
+            copy_thread(*thread, entry);
+            profile_stack(reinterpret_cast<std::uintptr_t>(thread),
+                          entry.name.data(),
+                          entry.prio,
+                          entry.stack_size,
+                          entry.peak_stack_usage);
+            thread = thread->tx_thread_created_next;
+        }
+        TX_RESTORE
+#endif
     }
 }

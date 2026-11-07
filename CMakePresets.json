@@ -231,6 +231,34 @@
             "cacheVariables": {
                 "GIGA_MOTION_API_TEST": true
             }
+        },
+        {
+            "name": "giga-io-profile",
+            "inherits": "giga-io-release",
+            "cacheVariables": {
+                "PROTOMATE_PROFILING": true
+            }
+        },
+        {
+            "name": "giga-ui-profile",
+            "inherits": "giga-ui-release",
+            "cacheVariables": {
+                "PROTOMATE_PROFILING": true
+            }
+        },
+        {
+            "name": "giga-profile",
+            "inherits": "giga-release",
+            "cacheVariables": {
+                "PROTOMATE_PROFILING": true
+            }
+        },
+        {
+            "name": "profile-linux",
+            "inherits": "release-linux",
+            "cacheVariables": {
+                "PROTOMATE_PROFILING": true
+            }
         }
     ],
     "buildPresets": [
@@ -344,6 +372,22 @@
         {
             "name": "giga-motion-api-release",
             "configurePreset": "giga-motion-api-release"
+        },
+        {
+            "name": "giga-io-profile",
+            "configurePreset": "giga-io-profile"
+        },
+        {
+            "name": "giga-ui-profile",
+            "configurePreset": "giga-ui-profile"
+        },
+        {
+            "name": "giga-profile",
+            "configurePreset": "giga-profile"
+        },
+        {
+            "name": "profile-linux",
+            "configurePreset": "profile-linux"
         }
     ],
     "testPresets": [

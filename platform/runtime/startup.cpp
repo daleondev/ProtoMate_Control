@@ -1,10 +1,12 @@
 #include "hal/hal.hpp"
+#include "profiling/Trace.h"
 
 #include <tx_api.h>
 #include <tx_thread.h>
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 
@@ -50,7 +52,7 @@ namespace
     auto thread_stack_error_handler(TX_THREAD* thread) noexcept -> void
     {
         // Do not call libc or allocate on the already compromised stack.
-        static_cast<void>(thread);
+        profile_failure(PROFILE_STACK, 0, 0, reinterpret_cast<std::uintptr_t>(thread));
         Error_Handler();
     }
 
@@ -63,6 +65,7 @@ namespace
 #endif
 #endif
         hal::start_secondary_cores();
+        profile_initialize();
         int exit_status{};
         try {
             exit_status = __real_main(application_argc, application_argv);

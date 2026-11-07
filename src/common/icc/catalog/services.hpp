@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/diagnostics/Memory.hpp"
+#include "common/diagnostics/Profiling.hpp"
 #include "common/icc/transport/ITransport.hpp"
 #include "common/motion/Motor.hpp"
 #include "common/motion/Trajectory.hpp"
@@ -19,6 +20,8 @@ namespace icc
     // Shared application contracts. Both bridges register this catalog.
     struct Services
     {
+        [[= ServiceProvider::IO]] pnm::msg::Service<diagnostics::ProfileRequest, diagnostics::ProfileResponse>
+          io_profile;
         // Versioned, explicitly serialized trajectory capabilities/admission.
         [[= ServiceProvider::IO]] pnm::msg::Service<motion::trajectory::Packet, motion::trajectory::Packet>
           io_trajectory;

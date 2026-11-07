@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "profiling/Trace.hpp"
 #include <Renderer3D.h>
 #include <chrono>
 #include <cmath>
@@ -9,6 +10,7 @@ namespace ui::gui::scene3d
                 std::span<std::uint16_t> depth,
                 RenderTimings* timings) noexcept
     {
+        profiling::Scope measurement{ PROFILE_SITE_RENDER, PROFILE_CAT_GRAPHICS };
         if (!frame.scene || !frame.snapshot.valid(*frame.scene) || color.size() < PIXELS ||
             depth.size() < PIXELS) {
             return false;

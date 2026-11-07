@@ -1,4 +1,5 @@
 #include "TopicBridge.hpp"
+#include "profiling/Trace.h"
 
 #include <algorithm>
 
@@ -38,6 +39,14 @@ namespace icc
             if (m_outgoingTopics[index].lane != lane) {
                 continue;
             }
+#if defined(PROTOMATE_PROFILING)
+            const auto stats = m_outgoingTopics[index].statistics();
+            profile_subscription(
+              16 + unsigned(index),
+              unsigned(stats.queued),
+              unsigned(m_outgoingTopics[index].capacity),
+              static_cast<std::uint32_t>(std::min<std::uint64_t>(stats.dropped, UINT32_MAX)));
+#endif
             if (auto frame{ m_outgoingTopics[index].take() }) {
                 m_nextOutgoingTopic[static_cast<std::size_t>(lane)] = (index + 1) % m_outgoingTopics.size();
                 return frame;

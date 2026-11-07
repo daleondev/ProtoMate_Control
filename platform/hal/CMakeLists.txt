@@ -29,6 +29,7 @@ endif()
 
 target_link_libraries(hal
     PUBLIC
+        platform::profiling
         hal::core
         platform
         project_compiler_settings

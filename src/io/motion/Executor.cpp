@@ -1,6 +1,7 @@
 #include "Executor.hpp"
 #include "hal/drivers/util/StepHardware.hpp"
 #include "hal/drivers/util/StepTrace.hpp"
+#include "profiling/Trace.hpp"
 #include <stdexcept>
 
 extern "C" {
@@ -128,6 +129,7 @@ namespace io::motion
     }
     hal::util::Result<> Executor::prepare(const Command& command, bool bind_outputs)
     {
+        profiling::Scope measurement{ PROFILE_SITE_MOTION_PREPARE, PROFILE_CAT_MOTION };
         if (reserved()) {
             return fail(std::errc::device_or_resource_busy);
         }
@@ -328,6 +330,9 @@ namespace io::motion
     }
     bool Executor::renew(std::uint64_t id)
     {
+        profiling::Scope measurement{ PROFILE_SITE_MOTION_RENEW, PROFILE_CAT_MOTION };
+        profile_event(
+          PROFILE_CAT_MOTION, PROFILE_MOTION_JOB, std::uint32_t(id), std::uint32_t(id >> 32), 1, 0);
         if (id != m_status.id || m_status.state != State::Running) {
             return false;
         }

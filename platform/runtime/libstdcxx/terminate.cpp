@@ -1,4 +1,5 @@
 #include "hal/hal.hpp"
+#include "profiling/Trace.h"
 
 #include <exception>
 
@@ -6,6 +7,7 @@ namespace
 {
     [[noreturn]] auto runtime_terminate_handler() noexcept -> void
     {
+        profile_failure(PROFILE_FATAL, 0, 0, 0);
         const auto exception{ std::current_exception() };
         if (!exception) {
             hal::panic("Runtime terminated without an active exception");

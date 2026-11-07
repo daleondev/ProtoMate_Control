@@ -530,6 +530,20 @@ CTest's pytest runs write JUnit reports to `build/<preset>/test-results/`.
 Temporary media and copied executables are isolated per case; process fixtures
 reap children and close pipes even when assertions fail.
 
+## Firmware profiling
+
+The opt-in `giga-profile` build adds native ThreadX/TraceX recording, DWT scopes,
+application events, and bounded resource diagnostics on both cores. Trace buffers
+use dedicated external SDRAM; small accounting/failure state stays internal.
+Normal builds retain lightweight heap and first-failure diagnostics.
+
+Use `profile arm motion`, exercise the application, then `profile freeze`.
+`scripts/profile.py` exports frozen native traces, matched ELFs and a combined
+browser timeline through Atmel-ICE without resetting the board. See the
+[profiling guide](docs/profiling/README.md) for presets, memory ownership, event
+semantics, exact commands and measurement limitations. The logic analyzer stays
+separate from this framework.
+
 ## Shared TouchGFX GUI
 
 `proto::ui::gui` provides the robot HMI on GIGA M7 and Linux. **Home is the

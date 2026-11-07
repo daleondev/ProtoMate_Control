@@ -31,6 +31,7 @@ add_subdirectory(libstdcxx)
 
 target_link_libraries(runtime
     INTERFACE
+        platform::profiling
         runtime::synchronization
         runtime::libc
         runtime::libstdcxx

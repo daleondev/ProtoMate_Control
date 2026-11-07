@@ -1,4 +1,5 @@
 #include "QuadratureEncoder.hpp"
+#include "profiling/Trace.hpp"
 
 #include "hal/stm32/HalResult.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
@@ -174,12 +175,19 @@ namespace hal
     }
 }
 
-extern "C" void TIM3_IRQHandler() { hal::QuadratureEncoder::dispatchInterrupt(); }
+extern "C" void TIM3_IRQHandler()
+{
+    profiling::interruptEnter();
+    hal::QuadratureEncoder::dispatchInterrupt();
+    profiling::interruptExit();
+}
 
 extern "C" void TIM6_DAC_IRQHandler()
 {
+    profiling::interruptEnter();
     if ((TIM6->SR & TIM6->DIER & TIM_SR_UIF) != 0U) {
         TIM6->SR = ~TIM_SR_UIF;
         hal::QuadratureEncoder::dispatchTimebase();
     }
+    profiling::interruptExit();
 }

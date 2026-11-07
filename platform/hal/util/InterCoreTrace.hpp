@@ -1,4 +1,5 @@
 #pragma once
+#include "profiling/Trace.h"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -29,6 +30,13 @@ namespace hal::util
     void intercoreTrace(InterCoreStage stage,
                         unsigned lane = 0,
                         std::span<const std::byte> bytes = {}) noexcept;
+#elif defined(PROTOMATE_PROFILING)
+    inline void intercoreTrace(InterCoreStage stage,
+                               unsigned lane = 0,
+                               std::span<const std::byte> bytes = {}) noexcept
+    {
+        profile_event(PROFILE_CAT_SYSTEM, PROFILE_ICC_STAGE, unsigned(stage), lane, bytes.size(), 0);
+    }
 #else
     inline void intercoreTrace(InterCoreStage, unsigned = 0, std::span<const std::byte> = {}) noexcept {}
 #endif

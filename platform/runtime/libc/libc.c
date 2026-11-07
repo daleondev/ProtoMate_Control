@@ -1,3 +1,4 @@
+#include "profiling/Trace.h"
 #if defined(HAL_PLATFORM_LINUX)
 
 void runtime_libc_initialize(void)
@@ -326,6 +327,7 @@ void _tx_execution_thread_enter(void)
     }
     else {
         _impure_ptr = &_tx_thread_current_ptr->tx_thread_libc_reent;
+        profile_thread_switch((uintptr_t)_tx_thread_current_ptr, _tx_thread_current_ptr->tx_thread_priority);
         runtime_cpu_clock_thread_enter();
     }
 }
@@ -334,6 +336,7 @@ void _tx_execution_thread_enter(void)
 // NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
 void _tx_execution_thread_exit(void)
 {
+    profile_thread_switch(0, 0);
     runtime_cpu_clock_thread_exit();
     _impure_ptr = &_impure_data;
 }
@@ -342,10 +345,18 @@ void _tx_execution_thread_exit(void)
  * scheduler stays idle, extending DWT's 32-bit cycle counter across wraps. */
 // ThreadX execution-change ABI entry point.
 // NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
-void _tx_execution_isr_enter(void) { runtime_cpu_clock_sample(); }
+void _tx_execution_isr_enter(void)
+{
+    profile_irq_enter(__get_IPSR());
+    runtime_cpu_clock_sample();
+}
 
 // ThreadX execution-change ABI entry point.
 // NOLINTNEXTLINE(bugprone-reserved-identifier,readability-identifier-naming)
-void _tx_execution_isr_exit(void) { runtime_cpu_clock_sample(); }
+void _tx_execution_isr_exit(void)
+{
+    runtime_cpu_clock_sample();
+    profile_irq_exit(__get_IPSR());
+}
 
 #endif

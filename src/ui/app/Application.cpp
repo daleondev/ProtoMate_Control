@@ -13,6 +13,7 @@
 #include "ui/cli/filesystem.hpp"
 #include "ui/cli/motion.hpp"
 #include "ui/cli/motor.hpp"
+#include "ui/cli/profiling.hpp"
 #include "ui/cli/robot.hpp"
 #include "ui/cli/state.hpp"
 #include "ui/cli/utilities.hpp"
@@ -213,6 +214,7 @@ namespace ui
             cli::display::setup(parser, m_gui);
             cli::state::setup(parser, m_systemState);
             cli::utilities::setup(parser, m_bus, m_stopSource.get_token());
+            cli::profiling::setup(parser, m_bus, m_stopSource.get_token());
             cli::motor::setup(parser, m_motors, m_stopSource.get_token());
             cli::robot::setup(parser, m_robot);
             cli::motion::setup(parser, m_motors, m_robot, m_stopSource.get_token());

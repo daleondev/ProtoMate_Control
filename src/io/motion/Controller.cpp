@@ -1,5 +1,6 @@
 #include "Controller.hpp"
 #include "Limits.hpp"
+#include "profiling/Trace.h"
 #include "runtime/thread.hpp"
 #include <cmath>
 
@@ -248,6 +249,7 @@ namespace io::motion
         stopLocked();
         invalidateReferencesLocked();
         finishProgramsLocked();
+        profile_allow_arm(1);
     }
 
     void Controller::handleFaultsLocked()

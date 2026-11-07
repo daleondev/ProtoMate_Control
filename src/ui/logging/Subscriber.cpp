@@ -1,4 +1,5 @@
 #include "Subscriber.hpp"
+#include "common/diagnostics/Profiling.hpp"
 #include "common/icc/catalog/topics.hpp"
 #include "runtime/synchronization/Notification.hpp"
 
@@ -27,8 +28,17 @@ namespace ui::logging
         const auto ready{ pnm::msg::watch(m_subscription, [notification] { notification->signal(); }) };
         const std::stop_callback cancellation{ stop, [notification] { notification->signal(); } };
         while (!stop.stop_requested()) {
+            diagnostics::pollProfiling();
+#if defined(PROTOMATE_PROFILING)
+            const auto stats = m_subscription.statistics();
+            profile_subscription(
+              6,
+              unsigned(stats.queued),
+              unsigned(icc::LOG_SUBSCRIPTION.capacity),
+              static_cast<std::uint32_t>(std::min<std::uint64_t>(stats.dropped, UINT32_MAX)));
+#endif
             if (m_subscription.pollSome(1) == 0) {
-                notification->waitUntil(std::chrono::steady_clock::time_point::max());
+                notification->waitUntil(std::chrono::steady_clock::now() + std::chrono::milliseconds{ 100 });
             }
         }
     }

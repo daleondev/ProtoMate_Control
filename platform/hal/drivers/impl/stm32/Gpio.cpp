@@ -1,3 +1,4 @@
+#include "profiling/Trace.hpp"
 // CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
 // The line-specific exceptions below preserve the vendor register interface.
 #include "Gpio.hpp"
@@ -382,27 +383,56 @@ namespace
         }
     }
 }
-extern "C" void EXTI0_IRQHandler() { core_exti(GPIO_PIN_0); }
-extern "C" void EXTI1_IRQHandler() { core_exti(GPIO_PIN_1); }
-extern "C" void EXTI2_IRQHandler() { core_exti(GPIO_PIN_2); }
-extern "C" void EXTI3_IRQHandler() { core_exti(GPIO_PIN_3); }
-extern "C" void EXTI4_IRQHandler() { core_exti(GPIO_PIN_4); }
+extern "C" void EXTI0_IRQHandler()
+{
+    profiling::interruptEnter();
+    core_exti(GPIO_PIN_0);
+    profiling::interruptExit();
+}
+extern "C" void EXTI1_IRQHandler()
+{
+    profiling::interruptEnter();
+    core_exti(GPIO_PIN_1);
+    profiling::interruptExit();
+}
+extern "C" void EXTI2_IRQHandler()
+{
+    profiling::interruptEnter();
+    core_exti(GPIO_PIN_2);
+    profiling::interruptExit();
+}
+extern "C" void EXTI3_IRQHandler()
+{
+    profiling::interruptEnter();
+    core_exti(GPIO_PIN_3);
+    profiling::interruptExit();
+}
+extern "C" void EXTI4_IRQHandler()
+{
+    profiling::interruptEnter();
+    core_exti(GPIO_PIN_4);
+    profiling::interruptExit();
+}
 
 extern "C" void EXTI9_5_IRQHandler()
 {
+    profiling::interruptEnter();
     core_exti(GPIO_PIN_5);
     core_exti(GPIO_PIN_6);
     core_exti(GPIO_PIN_7);
     core_exti(GPIO_PIN_8);
     core_exti(GPIO_PIN_9);
+    profiling::interruptExit();
 }
 
 extern "C" void EXTI15_10_IRQHandler()
 {
+    profiling::interruptEnter();
     core_exti(GPIO_PIN_10);
     core_exti(GPIO_PIN_11);
     core_exti(GPIO_PIN_12);
     core_exti(GPIO_PIN_13);
     core_exti(GPIO_PIN_14);
     core_exti(GPIO_PIN_15);
+    profiling::interruptExit();
 }

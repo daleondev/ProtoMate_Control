@@ -8,19 +8,10 @@
 #include <tx_api.h>
 #include <tx_thread.h>
 
-/* Temporary qualification counters, sampled through SWD without halting. */
-uint64_t motion_debug_cpu_cycles[32];
-
 // C hooks share this counter; every read/update is protected by PRIMASK.
 // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 static runtime_cpu_clock_counter counter;
 static uint32_t counter_frequency;
-static void profile_update(uint32_t now)
-{
-    if(counter.running && _tx_thread_current_ptr && _tx_thread_current_ptr->tx_thread_priority<32)
-        motion_debug_cpu_cycles[_tx_thread_current_ptr->tx_thread_priority]+=(uint32_t)(now-counter.last_cycle);
-}
-
 // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 void runtime_cpu_clock_initialize(void)
 {
@@ -41,7 +32,7 @@ static void set_running(bool running)
     __disable_irq();
     // CMSIS intentionally addresses memory-mapped registers.
     // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
-    const uint32_t now=DWT->CYCCNT;profile_update(now);
+    const uint32_t now = DWT->CYCCNT;
     runtime_cpu_clock_update(&counter, now);
     counter.running = running;
     __set_PRIMASK(posture);
@@ -56,7 +47,7 @@ void runtime_cpu_clock_sample(void)
     __disable_irq();
     // CMSIS intentionally addresses memory-mapped registers.
     // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
-    const uint32_t now=DWT->CYCCNT;profile_update(now);
+    const uint32_t now = DWT->CYCCNT;
     runtime_cpu_clock_update(&counter, now);
     __set_PRIMASK(posture);
 }
@@ -74,7 +65,7 @@ clock_t _times(struct tms* value)
     __disable_irq();
     // CMSIS intentionally addresses memory-mapped registers.
     // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
-    const uint32_t now=DWT->CYCCNT;profile_update(now);
+    const uint32_t now = DWT->CYCCNT;
     runtime_cpu_clock_update(&counter, now);
     const runtime_cpu_clock_counter snapshot = counter;
     const uint32_t frequency = counter_frequency;

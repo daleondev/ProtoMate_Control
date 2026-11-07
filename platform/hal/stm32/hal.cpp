@@ -5,6 +5,7 @@
 #include "hal/stm32/FaultShutdown.hpp"
 #include "hal/stm32/HardwareSemaphore.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
+#include "profiling/Trace.h"
 
 #include <array>
 #include <atomic>
@@ -125,7 +126,13 @@ extern "C" [[noreturn]] __attribute__((weak)) void hal_panic_handler(const HalPa
 }
 
 extern "C" [[noreturn]] void hal_error_handler() noexcept { hal::panic("HAL initialization failed"); }
-extern "C" [[noreturn]] void hal_fault_handler(const char* fault) noexcept { hal::panic(fault); }
+extern "C" [[noreturn]] void hal_fault_handler(const char* fault) noexcept
+{
+    hal::stm32::shutdown_motion_on_fault();
+    profile_failure(
+      PROFILE_FATAL, __get_IPSR(), 0, reinterpret_cast<std::uintptr_t>(__builtin_return_address(0)));
+    hal::panic(fault);
+}
 extern "C" void Error_Handler() { hal_error_handler(); }
 extern "C" void HardFault_Handler() { hal_fault_handler("HardFault"); }
 extern "C" void MemManage_Handler() { hal_fault_handler("MemManage"); }

@@ -29,7 +29,7 @@ add_library(protomate_simulation_bridge STATIC
     ../common/icc/bridge/TopicBridge.cpp ../common/icc/bridge/ServiceBridge.cpp
     ../common/icc/bridge/ActionBridge.cpp ../common/icc/bridge/Frame.cpp)
 target_include_directories(protomate_simulation_bridge PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/platform)
-target_link_libraries(protomate_simulation_bridge PUBLIC project_compiler_settings pneumo::coroutines pneumo::messaging)
+target_link_libraries(protomate_simulation_bridge PUBLIC project_compiler_settings pneumo::coroutines pneumo::messaging platform::profiling_unavailable)
 add_library(protomate_simulation_session STATIC Session.cpp ControllerProcess.cpp)
 target_link_libraries(protomate_simulation_session PUBLIC protomate_simulation_machine protomate_simulation_bridge pneumo::messaging Threads::Threads)
 

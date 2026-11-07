@@ -67,3 +67,5 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ${PROJECT_SOURCE_DIR}/scripts/tests/test_robot_visuals.py
         -o cache_dir=${PROJECT_BINARY_DIR}/pytest-cache/robot_visuals)
 endif()
+
+target_include_directories(proto_scene3d_renderer PRIVATE ${PROJECT_SOURCE_DIR}/platform)

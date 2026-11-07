@@ -1,6 +1,7 @@
 #include "RgbOutput.hpp"
 #include "hal/stm32/HalResult.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
+#include "profiling/Trace.hpp"
 #include <algorithm>
 #include <exception>
 #include <utility>
@@ -10,9 +11,11 @@ namespace
 }
 extern "C" void LTDC_IRQHandler()
 {
+    profiling::interruptEnter();
     if (instance) {
         instance->interrupt();
     }
+    profiling::interruptExit();
 }
 namespace hal
 {

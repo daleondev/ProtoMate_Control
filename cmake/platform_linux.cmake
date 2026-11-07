@@ -3,6 +3,7 @@ set(THREADX_TOOLCHAIN gnu)
 set(THREADX_CUSTOM_PORT ${CMAKE_SOURCE_DIR}/external/threadx_port/linux/gnu)
 set(TX_USER_FILE ${PROJECT_SOURCE_DIR}/platform/runtime/tx_user.h)
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/threadx)
+target_include_directories(threadx PUBLIC ${PROJECT_SOURCE_DIR}/platform)
 target_link_libraries(threadx PRIVATE project_compiler_settings)
 
 set(FX_USER_FILE ${PROJECT_SOURCE_DIR}/platform/runtime/fx_user.h)
@@ -10,6 +11,12 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/external/filex)
 include(${PROJECT_SOURCE_DIR}/cmake/patch_filex.cmake)
 runtime_patch_filex()
 target_link_libraries(filex PRIVATE project_compiler_settings)
+if(PROTOMATE_PROFILING)
+    # FileX's vendor trace macros intentionally store pointer identity in the
+    # 32-bit ThreadX trace word, even on this 64-bit test host. Hardware exports
+    # use full 32-bit target addresses; suppress only this vendor diagnostic.
+    target_compile_options(filex PRIVATE -Wno-pointer-to-int-cast)
+endif()
 
 set(LX_USER_FILE ${PROJECT_SOURCE_DIR}/platform/runtime/lx_user.h)
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/levelx)

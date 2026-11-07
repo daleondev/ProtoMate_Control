@@ -57,4 +57,7 @@ namespace diagnostics
 
     // Thread context only. Collection and transport never format console output.
     [[nodiscard]] MemorySnapshot collectMemory(MemoryQuery query);
+    // Periodic recorder sampling: visit one thread at a time, without placing
+    // the full IPC response (32 thread records) on the collector's stack.
+    void sampleProfilingMemory();
 }

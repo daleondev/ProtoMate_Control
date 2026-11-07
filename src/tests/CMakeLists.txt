@@ -75,5 +75,6 @@ add_executable(proto_executor_tests executor_test.cpp ../io/motion/Executor.cpp
     ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/SimulatedStepHardware.cpp)
 target_include_directories(proto_executor_tests PRIVATE ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/platform)
 target_link_libraries(proto_executor_tests PRIVATE hal_register_gtest project_compiler_settings)
+target_link_libraries(proto_executor_tests PRIVATE platform::profiling_unavailable)
 add_test(NAME application.executor COMMAND proto_executor_tests)
 set_tests_properties(application.executor PROPERTIES TIMEOUT 30)

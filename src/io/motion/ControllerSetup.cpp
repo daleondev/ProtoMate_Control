@@ -1,5 +1,6 @@
 #include "Controller.hpp"
 #include "Limits.hpp"
+#include "profiling/Trace.h"
 #include <cmath>
 #include <stdexcept>
 #ifdef HAL_PLATFORM_STM32
@@ -152,6 +153,7 @@ namespace io::motion
 
     void Controller::enable(std::stop_token stop)
     {
+        profile_allow_arm(0);
         std::scoped_lock operation{ m_operationMutex };
         const std::stop_callback cancellation{ stop, [this] { m_controlNotification.signal(); } };
         std::uint64_t epoch{};

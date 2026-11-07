@@ -64,6 +64,7 @@ namespace icc
         {
             std::string name;
             Lane lane;
+            std::size_t capacity;
             std::move_only_function<std::optional<OutgoingFrame>()> take;
             std::function<pnm::msg::SubscriptionStatistics()> statistics;
             pnm::msg::ReadinessRegistration readiness;
@@ -204,6 +205,7 @@ namespace icc
         m_outgoingTopics.push_back({
           .name = std::string(topic),
           .lane = lane,
+          .capacity = options.capacity,
           .take = std::move(take),
           .statistics =
             [subscription, oversized] {

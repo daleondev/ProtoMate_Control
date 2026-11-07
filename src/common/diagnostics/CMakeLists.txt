@@ -3,6 +3,8 @@ add_library(proto::common::diagnostics ALIAS proto_common_diagnostics)
 
 target_sources(proto_common_diagnostics 
     INTERFACE
+        Profiling.hpp
+        Profiling.cpp
         Memory.hpp
         Memory.cpp
 )

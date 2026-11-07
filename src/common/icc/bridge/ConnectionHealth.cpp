@@ -1,4 +1,5 @@
 #include "ConnectionHealth.hpp"
+#include "profiling/Trace.h"
 
 #include <algorithm>
 #include <limits>
@@ -26,6 +27,10 @@ namespace icc
         if (m_status.exchange(value) == value) {
             return;
         }
+        profile_event(
+          PROFILE_CAT_SYSTEM, PROFILE_ICC_STATE, unsigned(value.state), unsigned(value.reason), 0, 0);
+        if (value.state == ConnectionState::Failed)
+            profile_failure(PROFILE_CONNECTION, unsigned(value.reason), 0, 0);
         // The immutable registration and its captured state outlive stop().
         // Throwing callbacks fail the connection; Bridge protects final cleanup.
         if (m_callback) {

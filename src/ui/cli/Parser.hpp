@@ -70,6 +70,11 @@ namespace ui::cli
         void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
     }
 
+    namespace profiling
+    {
+        void setup(Parser&, pnm::msg::Bus&, std::stop_token);
+    }
+
     struct ArgumentSpec
     {
         std::string name;
@@ -268,6 +273,7 @@ namespace ui::cli
           -> std::string;
 
       private:
+        friend void profiling::setup(Parser&, pnm::msg::Bus&, std::stop_token);
         friend void display::setup(Parser& parser, ui::gui::Controller& gui);
         friend void state::setup(Parser& parser, const SystemState& system);
         friend void filesystem::setup(Parser& parser);
@@ -293,6 +299,7 @@ namespace ui::cli
         std::once_flag m_robotRegistration;
         std::once_flag m_displayRegistration;
         std::once_flag m_stateRegistration;
+        std::once_flag m_profileRegistration;
     };
 
     template<size_t N1, size_t N2>

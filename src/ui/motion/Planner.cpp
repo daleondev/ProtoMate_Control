@@ -1,4 +1,5 @@
 #include "Planner.hpp"
+#include "profiling/Trace.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -80,6 +81,7 @@ namespace ui::motion
 
     RobotError Planner::prepare(const Move& move, const tr::Counts& counts)
     {
+        profiling::Scope measurement{ PROFILE_SITE_PLANNER, PROFILE_CAT_MOTION };
         m_prepared = false;
         if (m_stop.stop_requested()) {
             return RobotError::Cancelled;

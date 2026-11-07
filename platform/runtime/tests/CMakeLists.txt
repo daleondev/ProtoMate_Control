@@ -195,3 +195,12 @@ target_compile_definitions(runtime_flash_journal_tests PRIVATE RUNTIME_APPLICATI
 runtime_attach(runtime_flash_journal_tests)
 add_test(NAME runtime.flash_journal COMMAND runtime_flash_journal_tests)
 set_tests_properties(runtime.flash_journal PROPERTIES TIMEOUT 60)
+
+if(PROTOMATE_PROFILING)
+    add_executable(runtime_profiling_tests ../../profiling/tests/recorder_test.cpp)
+    target_link_libraries(runtime_profiling_tests PRIVATE platform::profiling GTest::gtest_main)
+    target_compile_definitions(runtime_profiling_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+    runtime_attach(runtime_profiling_tests)
+    add_test(NAME runtime.profiling COMMAND runtime_profiling_tests)
+    set_tests_properties(runtime.profiling PROPERTIES TIMEOUT 30)
+endif()

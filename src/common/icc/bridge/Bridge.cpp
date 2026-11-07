@@ -1,4 +1,5 @@
 #include "Bridge.hpp"
+#include "profiling/Trace.hpp"
 
 #include <stdexcept>
 #include <utility>
@@ -268,8 +269,15 @@ namespace icc
 
     void Bridge::dispatchIncomingFrame(std::span<const std::byte> bytes, Lane lane)
     {
+        profiling::Scope measurement{ PROFILE_SITE_ICC_DISPATCH };
         m_connection.checkDeadline();
         const auto frame{ util::decode_frame(bytes) };
+        profile_event(PROFILE_CAT_SYSTEM,
+                      PROFILE_ICC_FRAME,
+                      unsigned(frame.kind) | (unsigned(lane) << 8),
+                      std::uint32_t(frame.id),
+                      std::uint32_t(frame.id >> 32),
+                      1);
         if (lane == Lane::Background &&
             (frame.kind != util::FrameKind::Topic || bytes.size() > MAX_BACKGROUND_FRAME_BYTES)) {
             throw std::invalid_argument("Invalid background frame");
@@ -422,6 +430,19 @@ namespace icc
             // frame owns the storage throughout the await. A full transport
             // suspends this loop while the receive loop can continue running.
             const auto bytes{ std::span<const std::byte>(frame.bytes).first(frame.size) };
+#if defined(PROTOMATE_PROFILING)
+            std::uint64_t trace_id{};
+            if (bytes.size() >= util::HEADER_BYTES)
+                for (unsigned i = 0; i < 8; ++i)
+                    trace_id |= std::uint64_t(std::to_integer<unsigned>(bytes[4 + i])) << (i * 8);
+            profile_event(PROFILE_CAT_SYSTEM,
+                          PROFILE_ICC_FRAME,
+                          std::to_integer<unsigned>(bytes[1]) | (unsigned(lane) << 8),
+                          std::uint32_t(trace_id),
+                          std::uint32_t(trace_id >> 32),
+                          0);
+            profiling::Scope send_measurement{ PROFILE_SITE_ICC_SEND };
+#endif
             auto result{ co_await m_transport.send(bytes, lane, stop) };
             if (!result) {
                 if (result.error() == ITransport::Error::Cancelled && stop.stop_requested()) {
