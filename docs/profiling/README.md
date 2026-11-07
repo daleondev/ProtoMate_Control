@@ -192,9 +192,15 @@ each export. `profile.py decode --output <capture>` regenerates reports under
 `<capture>/decoded/`, preserving the original files and their hashes.
 
 The official TraceX source is available under `external/tracex`. Its viewer is
-Windows/.NET WPF. Wine is not installed on this workstation, so viewer operation
-under Wine is **not verified**. The native trace format and browser exporter are
-available independently; no custom live-streaming collector is required.
+Windows/.NET WPF. Wine is installed, but no TraceX viewer binary or dedicated
+viewer prefix is currently installed; a trusted official download is pending.
+The native trace format and Python/Perfetto exporter remain available without
+it. A future viewer should use **1 tick per microsecond** for our 1 MHz TIM5
+clock. Each native trace covers one core; the Perfetto export combines both.
+
+A separate Wine prefix separates application configuration, not host access.
+It is not a security sandbox. Verify the provenance of a replacement viewer
+before running it; no custom live-streaming collector is required.
 
 ## Controlled checks
 
@@ -302,6 +308,6 @@ percentile distribution.
 measurements, test counts and local artifact locations. Exact native captures,
 ELFs, source archives, manifests, hashes and host-test logs remain under
 `build/profiles/`. Normal Release firmware was restored and both cores were
-verified Ready, connected and fault-free, with motors disabled. The TraceX
-Windows viewer, powered motion and physical display behavior are not claimed
-as verified by this profiling campaign.
+verified Ready, connected and fault-free, with motors disabled. Powered motion
+and physical display behavior are not claimed as verified by this profiling
+campaign. The official Windows viewer remains to be obtained and verified.

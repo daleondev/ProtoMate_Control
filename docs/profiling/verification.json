@@ -735,7 +735,6 @@
   },
   "limitations": [
     "The 601-second health capture and final uncached-mailbox regression use individually identified image pairs. The final address/race changes were checked in the focused host regressions and 31-second hardware session.",
-    "Native TraceX viewer under Wine not tested; unmodified native buffers and browser timeline exported.",
     "No powered motion, logic-analyzer or physical-display qualification is claimed.",
     "Ten-second CPU samples are observations, not worst-case bounds."
   ],
@@ -1136,5 +1135,11 @@
     "build": "giga-release",
     "log": "build/profiles/final-normal-uart.log",
     "swd_health_log": "build/profiles/normal-health-status.log"
+  },
+  "tracex_viewer": {
+    "installed": false,
+    "status": "Awaiting a trusted official viewer download",
+    "native_trace_buffers_available": true,
+    "python_perfetto_export_available": true
   }
 }
