@@ -34,3 +34,6 @@
 [submodule "hardware/aisler-support"]
 	path = hardware/aisler-support
 	url = git@github.com:AislerHQ/aisler-support.git
+[submodule "external/tracex"]
+	path = external/tracex
+	url = https://github.com/eclipse-threadx/tracex.git
