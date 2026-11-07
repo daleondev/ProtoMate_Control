@@ -6,7 +6,7 @@ add_library(proto_ui_gui STATIC
     hmi/View.hpp hmi/View.cpp hmi/Viewport.hpp hmi/Viewport.cpp hmi/Widgets.hpp hmi/Widgets.cpp
     frontend/Frontend.hpp frontend/Frontend.cpp
     frontend/Components.hpp frontend/Components.cpp
-    scene3d/Robot.hpp scene3d/Robot.cpp
+    scene3d/Robot.hpp scene3d/Robot.cpp scene3d/DetailPolicy.hpp
     integration/OS.hpp integration/OS.cpp
     integration/GraphicsDMA.hpp integration/GraphicsDMA.cpp
     scene3d/RenderService.hpp scene3d/RenderService.cpp)
@@ -52,6 +52,8 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     runtime_attach(gui_integration_tests)
     add_test(NAME gui.integration COMMAND gui_integration_tests)
     add_test(NAME gui.presentation_timeout COMMAND gui_integration_tests)
+    add_test(NAME gui.detail COMMAND gui_integration_tests)
+    set_tests_properties(gui.detail PROPERTIES TIMEOUT 15 ENVIRONMENT "SDL_VIDEODRIVER=dummy;GUI_TEST_DETAIL=1")
     set_tests_properties(gui.presentation_timeout PROPERTIES TIMEOUT 10 ENVIRONMENT "SDL_VIDEODRIVER=dummy;GUI_TEST_STALL=1")
     set_tests_properties(gui.integration PROPERTIES TIMEOUT 35 ENVIRONMENT "SDL_VIDEODRIVER=dummy")
     set_tests_properties(gui.integration PROPERTIES FIXTURES_SETUP hmi_frames)

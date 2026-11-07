@@ -1,0 +1,617 @@
+{
+  "generator_sha256": "5318813d598698fb41d948ddf1dbee05d747a90bbe0566f3405cb41ddcf9a981",
+  "helper_sha256": "58fdab5017eb2d3b4a5d919ffa473845c0db1cefd5cef52bd182eb5c2fb0fc6e",
+  "blender": "4.0.2",
+  "units": "metres",
+  "up": "Z",
+  "triangles": 8000,
+  "voxel_mm": 2,
+  "omit_below_mm": 8,
+  "links": {
+    "base_link": {
+      "triangles": 2387,
+      "vertices": 1178,
+      "materials": 19,
+      "minimum": [
+        -0.15870046615600586,
+        -0.11490892618894577,
+        -9.330250350103597e-08
+      ],
+      "maximum": [
+        0.10503235459327698,
+        0.11463380604982376,
+        0.19861972332000732
+      ],
+      "sha256": "3bca863f1cdf8245af1d9a2fc0e5ed64ff7de2025837fc9f4e4016b5c4f615b4",
+      "mtl_sha256": "31df84c454451b42935fb3b5864c315f010ab4bf9568591a32d87a96ebcab8ff",
+      "source_sha256": "8c4853a9fdfe91a059a04ae98941e43d4762364c2864df254b971b22fdd3bc40",
+      "source_mtl_sha256": "6758e3a714211da24a2b24b63d5b74cbe4c79ffeb95efefcb095f95f4860f04e",
+      "cad_sha256": "bc3f42010f481681d7b9b848116a9eab95eeb009640e77276b85e8f8e7ed7782",
+      "hidden_triangles_removed": 13,
+      "original_triangles": 177618,
+      "omitted_bodies": [
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:1 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939232164154
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:1 / K\u00f6rper1",
+          "triangles": 8240,
+          "diameter_mm": 13.81814231148098
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:2 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939232164154
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:3 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939232164152
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:4 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939232164152
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:5 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939232164154
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:6 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939232164154
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:7 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939232164152
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M4 vendor insert - BRASS:8 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939232164152
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:2 / K\u00f6rper1",
+          "triangles": 8240,
+          "diameter_mm": 13.81814231148098
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:3 / K\u00f6rper1",
+          "triangles": 8240,
+          "diameter_mm": 13.818142619419385
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:4 / K\u00f6rper1",
+          "triangles": 8240,
+          "diameter_mm": 13.818142619419385
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:5 / K\u00f6rper1",
+          "triangles": 8240,
+          "diameter_mm": 13.81814203644998
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:6 / K\u00f6rper1",
+          "triangles": 8240,
+          "diameter_mm": 13.81814203644998
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:7 / K\u00f6rper1",
+          "triangles": 8240,
+          "diameter_mm": 13.818142344388393
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_M5 vendor insert - BRASS:8 / K\u00f6rper1",
+          "triangles": 8240,
+          "diameter_mm": 13.818142344388393
+        },
+        {
+          "name": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 2",
+          "triangles": 12,
+          "diameter_mm": 2.273763064173623
+        },
+        {
+          "name": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 3",
+          "triangles": 12,
+          "diameter_mm": 2.2737630325080542
+        },
+        {
+          "name": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 4",
+          "triangles": 12,
+          "diameter_mm": 2.2737629454277526
+        },
+        {
+          "name": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Switch plunger",
+          "triangles": 24,
+          "diameter_mm": 3.170173555375156
+        },
+        {
+          "name": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 7",
+          "triangles": 36,
+          "diameter_mm": 3.534119487510303
+        },
+        {
+          "name": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 8",
+          "triangles": 36,
+          "diameter_mm": 3.534119467137477
+        },
+        {
+          "name": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 9",
+          "triangles": 36,
+          "diameter_mm": 3.534119411112215
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_Home_J1_-1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992,
+          "diameter_mm": 8.637864457602513
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_Home_J1_1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992,
+          "diameter_mm": 8.637864457602513
+        },
+        {
+          "name": "SCARA J1 Rev B:1+RX_Tension_M4x8.1 carriage pull insert - BRASS:1 / Ruthex M4 tensioner insert",
+          "triangles": 6408,
+          "diameter_mm": 12.035941864864544
+        },
+        {
+          "name": "SCARA J1 Rev B:1+PKP_Connector_Opt:1+PKP_Klebeadapter_P5:1+P5_Stecker_und_Loetverbindungen:1+P5_Loetstellen:1 / K\u00f6rper1",
+          "triangles": 48,
+          "diameter_mm": 3.2978324856201087
+        },
+        {
+          "name": "SCARA J1 Rev B:1+PKP_Connector_Opt:1+PKP_Klebeadapter_P5:1+P5_Stecker_und_Loetverbindungen:1+P5_Loetstellen:1 / K\u00f6rper2",
+          "triangles": 48,
+          "diameter_mm": 3.2978324856201087
+        },
+        {
+          "name": "SCARA J1 Rev B:1+PKP_Connector_Opt:1+PKP_Klebeadapter_P5:1+P5_Stecker_und_Loetverbindungen:1+P5_Loetstellen:1 / K\u00f6rper3",
+          "triangles": 48,
+          "diameter_mm": 3.2978324856201087
+        },
+        {
+          "name": "SCARA J1 Rev B:1+PKP_Connector_Opt:1+PKP_Klebeadapter_P5:1+P5_Stecker_und_Loetverbindungen:1+P5_Loetstellen:1 / K\u00f6rper4",
+          "triangles": 48,
+          "diameter_mm": 3.2978324856201087
+        }
+      ],
+      "max_sampled_surface_error_mm": 17.82909967005253
+    },
+    "link_1": {
+      "triangles": 1835,
+      "vertices": 866,
+      "materials": 14,
+      "minimum": [
+        -0.0702691301703453,
+        -0.0708203911781311,
+        0.002280494896695018
+      ],
+      "maximum": [
+        0.24471808969974518,
+        0.07092184573411942,
+        0.29428207874298096
+      ],
+      "sha256": "b561c5e3318cbb0b7857dd5b82568f65f8c0a6408dfa9a032c816fd96a3b73df",
+      "mtl_sha256": "6027e0aa685191071077edfdbaee427673ac08029a3dff916200e68c48da30cd",
+      "source_sha256": "2907961ac0b6480301889045a1edb40dc5aa2c0e2642ccd824b668549f24eafc",
+      "source_mtl_sha256": "50b116c08d9865b09834eb152b47c267406bc74c97e8e3287af91347c4264eb7",
+      "cad_sha256": "fea77d8892ac0188e40475c4e0504795cc200baf99323af43a20cee2987804fd",
+      "hidden_triangles_removed": 5,
+      "original_triangles": 54834,
+      "omitted_bodies": [
+        {
+          "name": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 2",
+          "triangles": 12,
+          "diameter_mm": 2.2737634160131956
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 3",
+          "triangles": 12,
+          "diameter_mm": 2.2737633843476317
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 4",
+          "triangles": 12,
+          "diameter_mm": 2.2737632972673434
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Switch plunger",
+          "triangles": 24,
+          "diameter_mm": 3.170173492287145
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 7",
+          "triangles": 36,
+          "diameter_mm": 3.5341194196008567
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 8",
+          "triangles": 36,
+          "diameter_mm": 3.53411939922803
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 9",
+          "triangles": 36,
+          "diameter_mm": 3.5341193432027675
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_Home_J2_-1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992,
+          "diameter_mm": 8.637864670474158
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_Home_J2_1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992,
+          "diameter_mm": 8.637864670474157
+        }
+      ],
+      "max_sampled_surface_error_mm": 13.347761705517769
+    },
+    "link_2": {
+      "triangles": 2691,
+      "vertices": 1216,
+      "materials": 20,
+      "minimum": [
+        -0.04000215232372284,
+        -0.0453348271548748,
+        -0.30895742774009705
+      ],
+      "maximum": [
+        0.33493027091026306,
+        0.07416310906410217,
+        0.04833243042230606
+      ],
+      "sha256": "485ae80ab56621ec3b69ba35976236c5d530212e7ece84da0f158120083207c1",
+      "mtl_sha256": "6b8a07ec39811aea3933679a71e38af8e31c6e500ceca2a534eff6d072db197f",
+      "source_sha256": "e703341570405960a4d572c713c46325687020cabf1738d8b35a17c9ddc05e64",
+      "source_mtl_sha256": "4ab1847985274695b0cbe302925aad00b421a27dd2e269d8a71062b309c58a84",
+      "cad_sha256": "a662926cfdd9baa6781f3e7ed90538a31c7665ae4134a5878d6da155cac8de32",
+      "hidden_triangles_removed": 109,
+      "original_triangles": 324056,
+      "omitted_bodies": [
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:1 / K\u00f6rper1",
+          "triangles": 5682,
+          "diameter_mm": 8.637520510278067
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):1 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939242624478
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:2 / K\u00f6rper1",
+          "triangles": 5682,
+          "diameter_mm": 8.637520510278067
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:3 / K\u00f6rper1",
+          "triangles": 5682,
+          "diameter_mm": 8.637520510278067
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:4 / K\u00f6rper1",
+          "triangles": 5682,
+          "diameter_mm": 8.637520510278067
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:5 / K\u00f6rper1",
+          "triangles": 5682,
+          "diameter_mm": 8.637520510278067
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:6 / K\u00f6rper1",
+          "triangles": 5682,
+          "diameter_mm": 8.637520510278067
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:7 / K\u00f6rper1",
+          "triangles": 5682,
+          "diameter_mm": 8.637520510278067
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M3 vendor insert - BRASS:8 / K\u00f6rper1",
+          "triangles": 5682,
+          "diameter_mm": 8.637520510278067
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):2 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939242624478
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):3 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939242624474
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):4 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939242624474
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):5 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939242624478
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):6 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939242624474
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):7 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.03593924262448
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_M4 vendor insert - BRASS (1):8 / K\u00f6rper1",
+          "triangles": 6408,
+          "diameter_mm": 12.035939242624478
+        },
+        {
+          "name": "SCARA J2 Rev B Compact:1+RX_Tension_M4x8.1 carriage pull insert - BRASS (1):1 / Ruthex M4 tensioner insert",
+          "triangles": 6408,
+          "diameter_mm": 12.0359435754462
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert",
+          "triangles": 5682,
+          "diameter_mm": 8.637516954083463
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (1)",
+          "triangles": 5682,
+          "diameter_mm": 8.637516954083447
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (2)",
+          "triangles": 5682,
+          "diameter_mm": 8.637516954083447
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (3)",
+          "triangles": 5682,
+          "diameter_mm": 8.637522257665054
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (4)",
+          "triangles": 5682,
+          "diameter_mm": 8.637522257665054
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (5)",
+          "triangles": 5682,
+          "diameter_mm": 8.637522257665054
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (6)",
+          "triangles": 5682,
+          "diameter_mm": 8.637516954083447
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (7)",
+          "triangles": 5682,
+          "diameter_mm": 8.637517219262337
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (8)",
+          "triangles": 5682,
+          "diameter_mm": 8.637515676802344
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (9)",
+          "triangles": 5682,
+          "diameter_mm": 8.637515676802332
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (10)",
+          "triangles": 5682,
+          "diameter_mm": 8.637515676802332
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (11)",
+          "triangles": 5682,
+          "diameter_mm": 8.637520980384721
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (12)",
+          "triangles": 5682,
+          "diameter_mm": 8.637520980384721
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (13)",
+          "triangles": 5682,
+          "diameter_mm": 8.637520980384721
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (14)",
+          "triangles": 5682,
+          "diameter_mm": 8.637515676802332
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (15)",
+          "triangles": 5682,
+          "diameter_mm": 8.637515941981258
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (16)",
+          "triangles": 5682,
+          "diameter_mm": 8.637522062217831
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (17)",
+          "triangles": 5682,
+          "diameter_mm": 8.637522062217831
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (18)",
+          "triangles": 5682,
+          "diameter_mm": 8.637524714008928
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (19)",
+          "triangles": 5682,
+          "diameter_mm": 8.637524714008928
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (20)",
+          "triangles": 5682,
+          "diameter_mm": 8.637518967232783
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (21)",
+          "triangles": 5682,
+          "diameter_mm": 8.637518967232783
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (22)",
+          "triangles": 5682,
+          "diameter_mm": 8.63752161902483
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M3 insert (23)",
+          "triangles": 5682,
+          "diameter_mm": 8.63752161902483
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M4 insert",
+          "triangles": 6408,
+          "diameter_mm": 12.035937890674957
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M4 insert (1)",
+          "triangles": 6408,
+          "diameter_mm": 12.035937566404844
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z13 Ruthex stationary inserts - PURCHASE:1 / RX-M4 insert (2)",
+          "triangles": 6408,
+          "diameter_mm": 12.035937890674955
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 2",
+          "triangles": 12,
+          "diameter_mm": 2.273763048340839
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 3",
+          "triangles": 12,
+          "diameter_mm": 2.273763048340839
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 4",
+          "triangles": 12,
+          "diameter_mm": 2.2737629295949744
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Switch plunger",
+          "triangles": 24,
+          "diameter_mm": 3.1701735599175196
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 7",
+          "triangles": 36,
+          "diameter_mm": 3.5341194773239164
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 8",
+          "triangles": 36,
+          "diameter_mm": 3.5341194773239164
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Switch contact 9",
+          "triangles": 36,
+          "diameter_mm": 3.534119400925833
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+RX_Home_Z_-1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992,
+          "diameter_mm": 8.637864982636076
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+RX_Home_Z_1 M2.5x5.7 - BRASS:1 / Ruthex RX-M2.5x5.7",
+          "triangles": 5992,
+          "diameter_mm": 8.637864717467608
+        }
+      ],
+      "max_sampled_surface_error_mm": 9.340375661849976
+    },
+    "link_3": {
+      "triangles": 1001,
+      "vertices": 532,
+      "materials": 6,
+      "minimum": [
+        -0.051189810037612915,
+        -0.04398663714528084,
+        -0.2800000011920929
+      ],
+      "maximum": [
+        0.025117993354797363,
+        0.04785526916384697,
+        -0.025069044902920723
+      ],
+      "sha256": "7f76a02634eef9fd6a8fcc8db7b6fc3ca50403b08c58f599a3b72ec537269d70",
+      "mtl_sha256": "22dce1dc1afe5eae3a6a8bca2e526a339194a05ff1848ad87d9f3b90130a4153",
+      "source_sha256": "f492aea132e06bf9606e32ee9a2cd0f66350dcb7baa9d3dada46e812762899d6",
+      "source_mtl_sha256": "22dce1dc1afe5eae3a6a8bca2e526a339194a05ff1848ad87d9f3b90130a4153",
+      "cad_sha256": "73156845c254780d249781007989fb94809db1e2721cc3ebaffb6cc3c41da24f",
+      "hidden_triangles_removed": 7,
+      "original_triangles": 66784,
+      "omitted_bodies": [
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M3 insert",
+          "triangles": 5682,
+          "diameter_mm": 8.637517186408951
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M3 insert (1)",
+          "triangles": 5682,
+          "diameter_mm": 8.637516861766672
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M3 insert (2)",
+          "triangles": 5682,
+          "diameter_mm": 8.637521853561205
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M3 insert (3)",
+          "triangles": 5682,
+          "diameter_mm": 8.6375215289191
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert",
+          "triangles": 6408,
+          "diameter_mm": 12.035943769730645
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert (1)",
+          "triangles": 6408,
+          "diameter_mm": 12.03593722986004
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert (2)",
+          "triangles": 6408,
+          "diameter_mm": 12.035936026922611
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert (3)",
+          "triangles": 6408,
+          "diameter_mm": 12.035937752876578
+        },
+        {
+          "name": "SCARA J3 Rev B - Dual Rail 2040:1+Z20 Moving carriage and Dremel mount:1+Z28 Ruthex moving inserts - PURCHASE:1 / RX-M4 insert (4)",
+          "triangles": 6408,
+          "diameter_mm": 12.035936549939198
+        }
+      ],
+      "max_sampled_surface_error_mm": 12.44819164276123
+    }
+  }
+}

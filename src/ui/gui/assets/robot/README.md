@@ -17,6 +17,59 @@ The reduction is **94.16%**. This quality-preserving version is larger than the
 initial few-thousand-triangle aspiration. It is an asset preparation result,
 not qualification of the GIGA viewport's frame rate or display bandwidth.
 
+## Interactive detail
+
+The Home view uses a second set of four rigid-link meshes while the camera or
+reported joints change. After 500 ms without a visual change it requests one
+full-detail image, then waits. Both Linux and GIGA use this policy and the same
+640×400 renderer. Telemetry timestamps alone do not redraw an unchanged pose.
+
+| Link | Interactive triangles |
+| --- | ---: |
+| Fixed base | 2,387 |
+| Shoulder | 1,835 |
+| Elbow / stationary Z stage | 2,691 |
+| Moving Z carriage / tool | 1,001 |
+| **Total** | **7,914** |
+
+This removes 78.24% of the detailed model's triangles. The additional compiled
+assets occupy 196,280 bytes in QSPI; image/depth buffers and worker stacks are
+shared between detail levels. Only one frame renders at a time.
+
+`scripts/prepare_robot_interactive.py` uses Blender 4.0.2 to form a 2 mm voxel
+shell of each rigid link independently, then simplifies that shell and transfers
+source material colours. This intentionally removes small holes, chamfers and
+fasteners. A moving link is never merged with another link. The original local
+frames remain unchanged, and the cutter-tip geometry is retained separately.
+These are visual approximations, not replacement collision/calibration meshes.
+
+The 36 matched TGX views cover three articulated poses, including views from
+below. Their minimum silhouette intersection-over-union is **98.358%**;
+compiled vertex quantization adds less than 10 µm displacement. This sampled
+image comparison is not an all-view geometric error bound. The manifest records
+omitted bodies, source/output hashes and sampled surface differences. Small
+detail and close-up shading deliberately differ from full detail.
+
+[Comparison](../../../../../docs/robot/visuals/interactive/comparison.png) ·
+[Pose 1](../../../../../docs/robot/visuals/interactive/pose-0.png) ·
+[Pose 2](../../../../../docs/robot/visuals/interactive/pose-1.png) ·
+[Pose 3](../../../../../docs/robot/visuals/interactive/pose-2.png).
+
+```sh
+blender --background --factory-startup --python scripts/prepare_robot_interactive.py
+cmake --build --preset debug-linux --target scene3d_robot_tests
+python3 scripts/report_robot_interactive.py \
+  --binary build/debug-linux/src/ui/gui/scene3d/scene3d_robot_tests \
+  --compiled build/debug-linux/generated/scene3d/robot \
+  --output docs/robot/visuals/interactive
+```
+
+Normal incremental CMake builds consume the checked-in OBJ/MTL files; Blender
+is only required to regenerate them. `robotScene(RobotDetail::Interactive)` and
+`robotScene(RobotDetail::Full)` use the identical `robotSnapshot()` transforms.
+Runtime cadence and the remaining speed limitation are measured in
+[HMI verification](../../../../../docs/gui/hmi/verification.md).
+
 ## Coordinates and appearance
 
 - Metres, right-handed Z-up, original link origins. No automatic centering,
@@ -83,8 +136,7 @@ cmake --build --preset giga-ui-release --target scene3d-robot-assets
 
 Link `proto::ui::gui::robot_assets`. Generated data resides in
 `build/<preset>/generated/scene3d/robot`, never in the vendor submodule. The
-library is opt-in on hardware; these assets do not enable robot rendering or
-change the normal startup screen. M4 does not link them.
+GUI links both detail levels for Home; M4 does not link them.
 
 ```cpp
 #include "robot_link_1_asset.hpp"

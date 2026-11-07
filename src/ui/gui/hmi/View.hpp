@@ -15,7 +15,7 @@ namespace ui::gui::hmi
         void handleTickEvent() override;
         void diagnostics(bool enabled);
         void benchmark(unsigned triangles);
-        void rate(unsigned fps) { m_viewport.qualification(fps); }
+        void rate(unsigned fps, bool interactive) { m_viewport.qualification(fps, interactive); }
         bool brightnessChanged();
 
       private:

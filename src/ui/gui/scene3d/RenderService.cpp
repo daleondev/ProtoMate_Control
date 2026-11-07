@@ -83,6 +83,7 @@ namespace ui::gui::scene3d
                 ++m_status.acquired;
                 m_status.acquiredRevision = f.revision;
                 m_status.sourceTimeUs = f.sourceTimeUs;
+                m_status.acquiredTriangles = f.triangles;
                 result = Image{ pixels(*m_front), *m_front, f.revision, f.sourceTimeUs };
             }
         }
@@ -185,9 +186,13 @@ namespace ui::gui::scene3d
                     }
                     ++m_status.rendered;
                     m_status.completedRevision = frame.snapshot.revision;
+                    unsigned triangles{};
+                    for (unsigned i = 0; i < frame.scene->count; ++i)
+                        triangles += frame.scene->nodes[i].mesh->triangles;
+                    m_status.completedTriangles = triangles;
                     if (m_status.visible && generation == m_visibilityGeneration && !m_stop &&
                         !stop.stop_requested()) {
-                        m_frames[*slot] = { frame.snapshot.revision, frame.snapshot.sourceTimeUs };
+                        m_frames[*slot] = { frame.snapshot.revision, frame.snapshot.sourceTimeUs, triangles };
                         m_ready = slot;
                     }
                     else {

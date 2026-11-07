@@ -1,14 +1,18 @@
 #include "Robot.hpp"
 #include "common/motion/VisualGeometry.hpp"
 #include "robot_base_link_asset.hpp"
+#include "robot_interactive_base_link_asset.hpp"
+#include "robot_interactive_link_1_asset.hpp"
+#include "robot_interactive_link_2_asset.hpp"
+#include "robot_interactive_link_3_asset.hpp"
 #include "robot_link_1_asset.hpp"
 #include "robot_link_2_asset.hpp"
 #include "robot_link_3_asset.hpp"
 namespace ui::gui::scene3d
 {
-    const Scene& robotScene()
+    const Scene& robotScene(RobotDetail detail)
     {
-        static const Scene scene = [] {
+        static constexpr auto scenes = [] {
             Scene s{};
             s.count = 4;
             s.groundGrid = true;
@@ -18,9 +22,14 @@ namespace ui::gui::scene3d
             s.nodes[3] = { &assets::robot_link_3, 2 };
             for (unsigned i = 0; i < s.count; ++i)
                 s.nodes[i].material.useMeshMaterial = true;
-            return s;
+            auto interactive = s;
+            interactive.nodes[0].mesh = &assets::robot_interactive_base_link;
+            interactive.nodes[1].mesh = &assets::robot_interactive_link_1;
+            interactive.nodes[2].mesh = &assets::robot_interactive_link_2;
+            interactive.nodes[3].mesh = &assets::robot_interactive_link_3;
+            return std::array{ s, interactive };
         }();
-        return scene;
+        return scenes[detail == RobotDetail::Interactive ? 1 : 0];
     }
     SceneSnapshot robotSnapshot(const std::array<double, 3>& joints)
     {

@@ -96,15 +96,20 @@ replay, or resume. Explicit application shutdown still joins all workers.
   Disable discards pending ordinary GUI controls, including queued Enable.
 - `src/common/motion/VisualGeometry.hpp`: CAD link registration shared with the
   native simulator. No Assimp/OpenGL/native-process dependency enters M7.
-- `scene3d/Robot`: four immutable meshes, **36,376 triangles**, 640×400 RGB565.
+- `scene3d/Robot`: four links in two immutable detail levels: **36,376 triangles**
+  when settled and **7,914 triangles** while camera/joints change, both 640×400
+  RGB565. `DetailPolicy` requests one full-detail refinement after 500 ms without
+  changes. Linux and GIGA use identical meshes and switching; idle views do not
+  rerender. This changes visual geometry only, not motion/simulator geometry.
   The renderer retains the existing two image slots and depth buffer in SDRAM.
 
-Rendering defaults to **2 new 3D frames/s when pose or camera changes**. Hidden
+Interactive rendering has a **10 fps ceiling**, subject to adaptive pacing
+and measured rendering cost. Full detail has a 5 fps ceiling. Hidden
 viewports pause; a newer pending pose replaces the previous one. Two-dimensional
-controls run independently. No reduced mesh or lower-resolution fallback is used.
+controls run independently. No lower-resolution fallback is used.
 GUI/touch/render priorities and stacks remain 8/16 KiB, 7/8 KiB and 16/16 KiB.
 Frontend bookkeeping has fixed internal storage: the Model is in DTCM, and the
-22,528-byte engine/widget tree occupies `.gui_internal` in the upper half of ITCM
+22,944-byte engine/widget tree occupies `.gui_internal` in the upper half of ITCM
 (`0x00008000`, 32 KiB region with a 24 KiB allocation limit). This CPU-only region
 is execute-never; pixel buffers remain in DMA-accessible SDRAM. The lower ITCM
 half retains the existing renderer code and its 24 KiB code cap. The image
@@ -146,12 +151,14 @@ captures; it is absent from the GIGA firmware and carries no motion commands.
 Captures include a bounded, atomically copied presentation snapshot for checking
 the actual Model rather than inferring its values from requested destinations.
 
-The hardware screen uses `display robot-test 5`, then 2 and (only if required) 1,
+The hardware comparison uses `display robot-test 5` for full detail and
+`display robot-test 10 --interactive` for the lighter mesh,
 rotating a synthetic camera without commanding motor movement. `display gui`
 returns to normal Home. This diagnostic is explicitly injected camera input.
 The script retains counters, heap samples, stack high-water marks, console output
-and the firmware manifest. `scripts/gui_hardware_check.py` runs the same check
-for ten minutes at 2 fps. `scripts/hmi_output_capture.py` records STEP/enable with
+and the firmware manifest. `scripts/hmi_hardware_check.py --observe` measures
+health and throughput without treating the FPS ceiling as guaranteed delivery.
+`scripts/hmi_output_capture.py` records STEP/enable with
 the analyzer; its idle-output check is not a substitute for motion qualification. Physical
 ST1633i input is not established by this test.
 

@@ -5,8 +5,8 @@
 #include "integration/OS.hpp"
 #include "pneumo/logging.hpp"
 #include "profiling/Trace.hpp"
-#include "util/FrameTimer.hpp"
 #include "util/DirtyRegions.hpp"
+#include "util/FrameTimer.hpp"
 #include <algorithm>
 #include <fonts/ApplicationFontProvider.hpp>
 #include <images/BitmapDatabase.hpp>
@@ -219,9 +219,10 @@ namespace ui::gui
         m_notification.signal();
         return true;
     }
-    bool Controller::robotRate(unsigned fps)
+    bool Controller::robotRate(unsigned fps, bool interactive)
     {
-        return (fps == 1 || fps == 2 || fps == 5) && enqueue({ Command::Rate, fps });
+        return (fps == 1 || fps == 2 || fps == 5 || fps == 10) &&
+               enqueue({ Command::Rate, fps, interactive });
     }
     bool Controller::bars() { return enqueue({ Command::Bars, 0 }); }
     bool Controller::showcase() { return enqueue({ Command::Showcase, 0 }); }
@@ -257,7 +258,7 @@ namespace ui::gui
                 engine.frontend.scene(request.value);
             }
             else if (request.command == Command::Rate) {
-                engine.frontend.rate(request.value);
+                engine.frontend.rate(request.value, request.interactive);
             }
             else if (!m_display->backlight(request.value)) {
                 m_renderFailed = true;

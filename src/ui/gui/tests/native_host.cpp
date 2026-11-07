@@ -44,8 +44,11 @@ namespace
         if (inputAt) {
             const auto pixels = hal::linux::display::framebuffer(s.active);
             if (pixels[sampleY * 1024 + sampleX] != beforePixel) {
-                latencies[latencyCount++] =
-                  1000. * (SDL_GetPerformanceCounter() - inputAt) / SDL_GetPerformanceFrequency();
+                if (latencyCount < latencies.size())
+                    latencies[latencyCount++] =
+                      1000. * (SDL_GetPerformanceCounter() - inputAt) / SDL_GetPerformanceFrequency();
+                else
+                    correct = false;
                 inputAt = 0;
             }
         }
@@ -53,6 +56,32 @@ namespace
         if (std::getenv("GUI_TEST_STALL")) {
             if (n == 25)
                 SDL_Delay(350);
+            return;
+        }
+        if (std::getenv("GUI_TEST_DETAIL")) {
+            if (n == 30) {
+                mouse(SDL_MOUSEBUTTONDOWN, 400, 300);
+                phase = 1;
+            }
+            if (n > 30 && n <= 90) {
+                SDL_Event e{};
+                e.type = SDL_MOUSEMOTION;
+                e.motion.state = SDL_BUTTON_LMASK;
+                e.motion.x = 400 + int(n - 30);
+                e.motion.y = 300;
+                SDL_PushEvent(&e);
+            }
+            if (n == 91) {
+                mouse(SDL_MOUSEBUTTONUP, 460, 300);
+                phase = 2;
+            }
+            if (n == 180)
+                phase = 3;
+            if (n == 240) {
+                SDL_Event e{};
+                e.type = SDL_QUIT;
+                SDL_PushEvent(&e);
+            }
             return;
         }
         struct Step
@@ -125,8 +154,19 @@ namespace
             }
         }
         if (n == 1020) {
-            std::sort(latencies.begin(), latencies.begin() + latencyCount);
-            const double p95 = latencyCount ? latencies[(latencyCount * 95 - 1) / 100] : 0;
+            const auto count = std::min<std::size_t>(latencyCount, latencies.size());
+            // Only thirteen samples: bounded insertion sort avoids the large
+            // introsort machinery for this native test-side percentile.
+            for (std::size_t i = 1; i < count; ++i) {
+                const auto value = latencies[i];
+                auto j = i;
+                while (j && latencies[j - 1] > value) {
+                    latencies[j] = latencies[j - 1];
+                    --j;
+                }
+                latencies[j] = value;
+            }
+            const double p95 = count ? latencies[(count * 95 - 1) / 100] : 0;
             std::fprintf(stderr, "HMI visible press feedback: samples=%u p95=%.2f ms\n", latencyCount, p95);
             if (latencyCount < 10 || p95 > 50)
                 correct = false;

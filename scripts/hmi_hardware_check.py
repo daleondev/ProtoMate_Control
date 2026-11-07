@@ -18,7 +18,8 @@ def main():
     parser.add_argument('--port')
     parser.add_argument('--output', type=Path, default=Path('build/hmi-validation'))
     parser.add_argument('--seconds', type=int, default=12)
-    parser.add_argument('--rates', type=int, nargs='+', default=[5, 2, 1], choices=[1, 2, 5])
+    parser.add_argument('--rates', type=int, nargs='+', default=[5, 2, 1], choices=[1, 2, 5, 10])
+    parser.add_argument('--interactive', action='store_true', help='Measure the interactive-detail robot')
     parser.add_argument('--observe', action='store_true',
                         help='Measure adaptive pacing; require health but do not treat the FPS ceiling as a promised rate')
     parser.add_argument('--build', type=Path, default=Path('build/giga-release'))
@@ -66,7 +67,7 @@ def main():
             command('heap io')
             heap()  # Warm diagnostic allocations before measuring.
             for rate in args.rates:
-                command(f'display robot-test {rate}')
+                command(f'display robot-test {rate}' + (' --interactive' if args.interactive else ''))
                 time.sleep(3)
                 first = sample()
                 samples = [first]
@@ -83,6 +84,7 @@ def main():
                 rendered = last['scene']['rendered'] - first['scene']['rendered']
                 row = {
                     'requested_fps': rate,
+                    'detail': 'interactive' if args.interactive else 'full',
                     'actual_fps': (last['scene']['presented'] - first['scene']['presented']) / elapsed,
                     'render_us': (last['scene']['total us'] - first['scene']['total us']) / max(1, rendered),
                     'underruns': last['gui']['underruns'] - first['gui']['underruns'],

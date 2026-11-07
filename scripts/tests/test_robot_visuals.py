@@ -99,3 +99,55 @@ def test_review_matches_assets_and_quantization_preserves_geometry():
         # Quantization is a separate budget from visual simplification.
         assert mesh['watertight_max_displacement'] < .00002
         assert mesh['watertight_max_delta32'] < .0000001
+
+
+@pytest.mark.parametrize('name', prepare.LINKS)
+def test_interactive_assets_preserve_local_frames_and_provenance(name):
+    script = ROOT / 'scripts/prepare_robot_interactive.py'
+    spec = importlib.util.spec_from_file_location('prepare_robot_interactive', script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    directory = ASSETS / 'interactive'
+    manifest = json.loads((directory / 'manifest.json').read_text())
+    record = manifest['links'][name]
+    original = json.loads((ASSETS / 'manifest.json').read_text())['links'][name]
+    assert manifest['generator_sha256'] == sha(script)
+    assert manifest['helper_sha256'] == sha(SCRIPT)
+    assert manifest['units'] == 'metres' and manifest['up'] == 'Z'
+    assert record['source_sha256'] == sha(ASSETS / (name + '.obj'))
+    assert record['source_mtl_sha256'] == sha(ASSETS / (name + '.mtl'))
+    assert record['cad_sha256'] == sha(prepare.SOURCE / name / (name + '.dae'))
+    assert record['sha256'] == sha(directory / (name + '.obj'))
+    assert record['mtl_sha256'] == sha(directory / (name + '.mtl'))
+    bodies = module.read_obj(directory / (name + '.obj'))
+    points = np.asarray([v for b in bodies for v in b['vertices']])
+    normals = np.asarray([n for b in bodies for n in b['normals']])
+    assert np.isfinite(points).all() and np.isfinite(normals).all()
+    assert np.allclose(np.linalg.norm(normals, axis=1), 1, atol=2e-6)
+    assert sum(len(b['faces']) for b in bodies) == record['triangles'] < original['triangles']
+    for body in bodies:
+        vertices = np.asarray(body['vertices'])
+        tri = vertices[np.asarray(body['faces'])]
+        assert (np.linalg.norm(np.cross(tri[:, 1]-tri[:, 0], tri[:, 2]-tri[:, 0]), axis=1) > 1e-12).all()
+    for actual, key in [(points.min(axis=0), 'minimum'), (points.max(axis=0), 'maximum')]:
+        assert np.allclose(actual, record[key], atol=1e-8)
+        # The 2 mm voxel shell can move surface bounds by one voxel. Local
+        # frames and the cutter tip are retained; this is visual geometry only.
+        assert np.allclose(actual, original[key], atol=manifest['voxel_mm'] / 1000)
+    assert all(b['diameter_mm'] < manifest['omit_below_mm'] or 'RX_' in b['name'] or 'Ruthex' in b['name']
+               for b in record['omitted_bodies'])
+    assert sum(r['triangles'] for r in manifest['links'].values()) < 9000
+
+
+def test_interactive_review_matches_current_sources():
+    report = json.loads((ROOT / 'docs/robot/visuals/interactive/verification.json').read_text())
+    assert report['manifest_sha256'] == sha(ASSETS / 'interactive/manifest.json')
+    assert report['full_manifest_sha256'] == sha(ASSETS / 'manifest.json')
+    assert report['test_source_sha256'] == sha(ROOT / 'src/ui/gui/scene3d/tests/robot_assets_test.cpp')
+    assert report['renderer_sha256'] == sha(ROOT / 'src/ui/gui/scene3d/Renderer.cpp')
+    assert report['converter_sha256'] == sha(ROOT / 'scripts/scene3d_assets.py')
+    assert report['script_sha256'] == sha(ROOT / 'scripts/report_robot_interactive.py')
+    assert len(report['views']) == 36 and report['minimum_silhouette_iou'] > .98
+    for mesh in report['tgx'].values():
+        assert mesh['watertight_enabled'] and mesh['textures'] == 0
+        assert mesh['watertight_max_displacement'] < .00001

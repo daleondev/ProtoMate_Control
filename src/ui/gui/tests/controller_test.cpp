@@ -95,7 +95,22 @@ int main()
     auto scene = runtime::thread::create({ .name = "scene.test", .priority = 16, .stack_size = 16384 },
                                          [&] { gui.render3d(stop.get_token()); });
     const auto deadline = std::chrono::steady_clock::now() + 25s;
+    const bool detailTest = std::getenv("GUI_TEST_DETAIL");
+    bool interactive{}, refined{};
+    unsigned idleCount{};
     while (!stop.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+        if (detailTest) {
+            const auto state = gui.sceneStatus();
+            if (gui_test_phase() == 1 && state.acquiredTriangles && state.acquiredTriangles < 9000)
+                interactive = true;
+            if (gui_test_phase() >= 2 && state.acquiredTriangles == 36376)
+                refined = true;
+            if (gui_test_phase() == 3) {
+                if (!idleCount)
+                    idleCount = state.rendered;
+                passed &= state.rendered == idleCount;
+            }
+        }
         std::this_thread::sleep_for(5ms);
     }
     if (!stop.stop_requested()) {
@@ -106,6 +121,16 @@ int main()
     touch.join();
     scene.join();
     const auto s = gui.status();
+    if (detailTest) {
+        passed &= renderingPassed && interactive && refined && idleCount &&
+                  s.state == ui::gui::State::Stopped && !s.errors;
+        std::printf("LOD input test: interactive=%u refined=%u idle=%u %s\n",
+                    interactive,
+                    refined,
+                    idleCount,
+                    passed ? "PASS" : "FAIL");
+        return passed ? 0 : 1;
+    }
     passed &= gui_test_pixels_correct() && renderingPassed && gui_test_phase() == 21 &&
               s.state == ui::gui::State::Stopped && s.presented > 40 && s.queueOverflow == 1;
     std::printf("GUI test %s: frames=%u presentations=%u max_render_us=%u errors=%u\n",

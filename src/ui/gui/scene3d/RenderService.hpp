@@ -17,6 +17,7 @@ namespace ui::gui::scene3d
         std::uint64_t totalRenderUs{}, completedRevision{}, acquiredRevision{}, sourceTimeUs{};
         std::uint64_t presentedRevision{};
         std::uint32_t lastLatencyUs{}, maximumLatencyUs{};
+        unsigned completedTriangles{}, acquiredTriangles{};
     };
     struct Image
     {
@@ -49,6 +50,7 @@ namespace ui::gui::scene3d
         struct Completed
         {
             std::uint64_t revision{}, sourceTimeUs{};
+            unsigned triangles{};
         };
         std::array<Completed, 2> m_frames{};
     };

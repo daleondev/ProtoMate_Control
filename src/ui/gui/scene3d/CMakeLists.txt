@@ -14,28 +14,36 @@ add_custom_command(OUTPUT ${asset_dir}/low.cpp ${asset_dir}/medium.cpp ${asset_d
     VERBATIM COMMENT "Converting shaded 3D benchmark meshes (TGX, no textures)")
 add_custom_target(scene3d-assets DEPENDS ${asset_dir}/low.h ${asset_dir}/medium.h ${asset_dir}/high.h)
 # Offline-prepared visuals. Blender is only needed to regenerate the source
-# OBJ files, not for ordinary builds. These assets are opt-in on hardware.
+# OBJ files, not for ordinary builds. Both detail levels use the same converter.
 set(robot_asset_source "${PROJECT_SOURCE_DIR}/src/ui/gui/assets/robot")
 set(robot_asset_dir "${asset_dir}/robot")
 set(robot_asset_sources "")
-foreach(link base_link link_1 link_2 link_3)
-    set(quantization_padding 0.0002)
-    if(link STREQUAL "link_1")
-        # The default quantization lattice oscillates for this mesh. 0.1%
-        # padding converges while retaining shared-vertex seam protection.
-        set(quantization_padding 0.001)
-    endif()
-    add_custom_command(OUTPUT ${robot_asset_dir}/robot_${link}.cpp ${robot_asset_dir}/robot_${link}.h
-        ${robot_asset_dir}/robot_${link}_asset.hpp
-        BYPRODUCTS ${robot_asset_dir}/robot_${link}.json
-        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/scene3d_assets.py
-            --tgx ${PROJECT_SOURCE_DIR}/external/tgx --output ${robot_asset_dir}
-            --input ${robot_asset_source}/${link}.obj --name robot_${link}
-            --quantization-padding ${quantization_padding}
-        DEPENDS ${PROJECT_SOURCE_DIR}/scripts/scene3d_assets.py ${converter_sources}
-            ${robot_asset_source}/${link}.obj ${robot_asset_source}/${link}.mtl
-        VERBATIM COMMENT "Compiling robot visual ${link} (TGX, no textures)")
-    list(APPEND robot_asset_sources ${robot_asset_dir}/robot_${link}.cpp)
+foreach(variant full interactive)
+    foreach(link base_link link_1 link_2 link_3)
+        set(source_dir "${robot_asset_source}")
+        set(asset_name robot_${link})
+        if(variant STREQUAL "interactive")
+            set(source_dir "${robot_asset_source}/interactive")
+            set(asset_name robot_interactive_${link})
+        endif()
+        set(quantization_padding 0.0002)
+        if(link STREQUAL "link_1" AND variant STREQUAL "full")
+            # The default quantization lattice oscillates for this mesh. 0.1%
+            # padding converges while retaining shared-vertex seam protection.
+            set(quantization_padding 0.001)
+        endif()
+        add_custom_command(OUTPUT ${robot_asset_dir}/${asset_name}.cpp ${robot_asset_dir}/${asset_name}.h
+            ${robot_asset_dir}/${asset_name}_asset.hpp
+            BYPRODUCTS ${robot_asset_dir}/${asset_name}.json
+            COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/scene3d_assets.py
+                --tgx ${PROJECT_SOURCE_DIR}/external/tgx --output ${robot_asset_dir}
+                --input ${source_dir}/${link}.obj --name ${asset_name}
+                --quantization-padding ${quantization_padding}
+            DEPENDS ${PROJECT_SOURCE_DIR}/scripts/scene3d_assets.py ${converter_sources}
+                ${source_dir}/${link}.obj ${source_dir}/${link}.mtl
+            VERBATIM COMMENT "Compiling ${variant} robot visual ${link} (TGX, no textures)")
+        list(APPEND robot_asset_sources ${robot_asset_dir}/${asset_name}.cpp)
+    endforeach()
 endforeach()
 add_library(proto_scene3d_robot_assets STATIC EXCLUDE_FROM_ALL ${robot_asset_sources})
 add_library(proto::ui::gui::robot_assets ALIAS proto_scene3d_robot_assets)
@@ -57,7 +65,7 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     runtime_attach(scene3d_tests)
     add_test(NAME gui.scene3d.renderer COMMAND scene3d_tests)
     set_tests_properties(gui.scene3d.renderer PROPERTIES TIMEOUT 20)
-    add_executable(scene3d_robot_tests tests/robot_assets_test.cpp)
+    add_executable(scene3d_robot_tests tests/robot_assets_test.cpp Robot.cpp)
     target_link_libraries(scene3d_robot_tests PRIVATE proto::ui::gui::scene3d
         proto::ui::gui::robot_assets GTest::gtest_main)
     runtime_attach(scene3d_robot_tests)

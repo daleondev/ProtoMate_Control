@@ -1,4 +1,5 @@
 #include "runtime/thread.hpp"
+#include "ui/gui/scene3d/DetailPolicy.hpp"
 #include "ui/gui/scene3d/RenderService.hpp"
 #include <algorithm>
 #include <chrono>
@@ -81,6 +82,43 @@ TEST(RenderPacing, SamePolicyBoundsCadenceAndLeavesRestAfterExpensiveFrames)
     EXPECT_EQ(nextRender(start, start + 20ms, LIVE_MAX_FPS), start + 200ms);
     EXPECT_EQ(nextRender(start, start + 400ms, LIVE_MAX_FPS), start + 500ms);
     EXPECT_EQ(nextRender(start, start + 200ms, 2), start + 500ms);
+}
+
+TEST(RobotDetail, RendersOnChangeAndRefinesOnceAfterSettling)
+{
+    DetailPolicy policy;
+    const auto start = DetailPolicy::Clock::time_point{};
+    ASSERT_EQ(policy.request(start), RobotDetail::Full);
+    policy.submitted(RobotDetail::Full);
+    EXPECT_FALSE(policy.request(start + 10s));
+    policy.changed(start + 11s);
+    ASSERT_EQ(policy.request(start + 11s), RobotDetail::Interactive);
+    policy.submitted(RobotDetail::Interactive);
+    EXPECT_FALSE(policy.request(start + 11499ms));
+    EXPECT_EQ(policy.request(start + 11500ms), RobotDetail::Full);
+    // A rejected submission remains pending, including refinement.
+    EXPECT_EQ(policy.request(start + 12s), RobotDetail::Full);
+    policy.submitted(RobotDetail::Full);
+    EXPECT_FALSE(policy.request(start + 20s));
+    policy.invalidate(); // Reopening a hidden view recreates its released image.
+    EXPECT_EQ(policy.request(start + 20s), RobotDetail::Full);
+}
+
+TEST(RobotDetail, ContinuingChangesPostponeRefinementAndRestartAfterSettling)
+{
+    DetailPolicy policy;
+    const auto start = DetailPolicy::Clock::time_point{};
+    for (unsigned i = 0; i < 50; ++i) {
+        const auto now = start + i * 50ms;
+        policy.changed(now);
+        EXPECT_EQ(policy.request(now), RobotDetail::Interactive);
+        policy.submitted(RobotDetail::Interactive);
+        EXPECT_FALSE(policy.request(now + 49ms));
+    }
+    EXPECT_EQ(policy.request(start + 3s), RobotDetail::Full);
+    policy.submitted(RobotDetail::Full);
+    policy.changed(start + 4s);
+    EXPECT_EQ(policy.request(start + 4s), RobotDetail::Interactive);
 }
 
 TEST(SceneService, LatestPoseReplacesPendingWorkDuringPacingAndCancellationWakesImmediately)

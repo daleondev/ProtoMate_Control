@@ -41,7 +41,7 @@ namespace ui::gui
       public:
         Controller();
         void backend(hmi::Backend& value) { m_backend = &value; }
-        bool robotRate(unsigned fps);
+        bool robotRate(unsigned fps, bool interactive = false);
         ~Controller();
         Controller(const Controller&) = delete;
         Controller& operator=(const Controller&) = delete;
@@ -76,6 +76,7 @@ namespace ui::gui
         {
             Command command;
             unsigned value;
+            bool interactive{};
         };
         bool enqueue(Request request);
         bool waitPresentation(unsigned slot, std::stop_token stop);

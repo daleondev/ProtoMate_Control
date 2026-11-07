@@ -38,16 +38,17 @@ namespace ui::cli::display
             return 0;
         }
         [[
-            = "Full-detail robot camera test (synthetic camera only, no motor commands)."_fs,
+            = "Robot camera test (synthetic camera only, no motor commands)."_fs,
             = Name{ "display robot-test"_fs },
-            = Arg{ .name = "fps"_fs, .description = "5, 2 or 1"_fs }
+            = Arg{ .name = "fps"_fs, .description = "10, 5, 2 or 1"_fs },
+            = Flag{ .name = "interactive"_fs, .description = "Use the motion-detail mesh; default is full detail"_fs }
         ]] auto robotTest(ui::gui::Controller& gui, const Arguments& args, std::ostream&) -> CallbackResult
         {
             unsigned rate{};
             const auto text = args.require("fps");
             const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), rate);
-            if (error != std::errc{} || end != text.data() + text.size() || !gui.robotRate(rate))
-                return callback_failure("Expected 5, 2 or 1; return to normal with display gui");
+            if (error != std::errc{} || end != text.data() + text.size() || !gui.robotRate(rate, args.hasFlag("interactive")))
+                return callback_failure("Expected 10, 5, 2 or 1; return to normal with display gui");
             return 0;
         }
         [[
@@ -116,6 +117,8 @@ namespace ui::cli::display
             out << "3D grid us=" << r.gridUs << "; base us=" << r.nodeUs[0]
                 << "; shoulder us=" << r.nodeUs[1] << "; elbow us=" << r.nodeUs[2]
                 << "; tool us=" << r.nodeUs[3] << '\n';
+            out << "3D completed triangles=" << r.completedTriangles
+                << "; acquired triangles=" << r.acquiredTriangles << '\n';
             return 0;
         }
     }

@@ -22,7 +22,7 @@ namespace ui::gui
         {
             std::snprintf(m_model.graphics.data(), m_model.graphics.size(), "%s", text);
         }
-        void rate(unsigned fps) { m_view.rate(fps); }
+        void rate(unsigned fps, bool interactive) { m_view.rate(fps, interactive); }
         bool brightnessChanged() { return m_view.brightnessChanged(); }
         const hmi::Model& model() const { return m_model; }
 

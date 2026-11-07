@@ -656,15 +656,20 @@ publish bounded values; only the GUI worker draws or changes widgets.
 [`scene3d`](src/ui/gui/scene3d) is the first-stage implementation of the 3D
 viewport. The generic maximum-rate benchmark remains a characterization workload. The 640×400 shaded workload does not meet the GIGA requirement of
 20 newly presented images/s at 2,000 triangles and produces LTDC underruns.
-Home uses the complete robot with the **same adaptive pacing on Linux and GIGA**:
-a 5 fps ceiling, plus a rest interval of at least one quarter of the preceding
-render wall time (minimum 1 ms). This is a ceiling, not a promised hardware rate.
+Home uses **the same detail switching and adaptive pacing on Linux and GIGA**:
+camera/pose changes use a 7,914-triangle model with a 10 fps ceiling. After 500 ms
+without changes, it renders the original 36,376-triangle model once and returns
+to idle. Both use a rest interval of at least one quarter of the preceding
+render wall time (minimum 1 ms); full detail has a 5 fps ceiling. These are caps,
+not promised hardware rates. The measured GIGA camera workload gives 3.45 fps
+with interactive detail and 2.05 fps with full detail.
 Input/telemetry replaces the pending snapshot immediately; the worker samples the
 latest snapshot when it can render, without a separate 500 ms submission gate.
 An unchanged camera and joint pose submits no new render; newer telemetry
 timestamps alone do not redraw the model. Returning to Home requests one fresh
 image. Continuous rendering is reserved for animated diagnostic benchmarks.
-The displayed image remains immutable. Neither geometry nor resolution is reduced.
+The displayed image remains immutable. Resolution stays 640×400 in both modes;
+full-detail geometry, link registration and motion/feedback data are unchanged.
 `display scene` explicitly enables the generic benchmark; `display gui` restores Home.
 
 ```text
@@ -718,7 +723,10 @@ CAD, collision and switch-contact assets remain unchanged. Normal Linux/M7 build
 `scene3d-robot-assets` and link `proto::ui::gui::robot_assets`
 and set the node material's `useMeshMaterial` to use its embedded colours.
 [Matched view comparisons](docs/robot/visuals) document the visual review.
-The HMI uses these full-detail assets. Lowering display cadence does not establish
+The HMI restores these full-detail assets when the view settles. Its
+[interactive derivative](src/ui/gui/assets/robot/README.md#interactive-detail)
+removes small surface features during changes, preserving the rigid-link frames.
+Lowering display cadence does not establish
 the original high-rate benchmark target described below.
 
 The linker reserves **1,536,000 bytes** at `0xC0600000`: two 640×400 RGB565 images
@@ -750,10 +758,12 @@ The script records counters and CLI/ICC diagnostics under
 2 when the gate is not met. No motor command is sent. The established DMA2D
 dead-time remains **16**.
 
-Current full-detail performance and verification are recorded in
+Current performance for both detail levels and verification are recorded in
 [HMI verification](docs/gui/hmi/verification.md). The maximum-rate synthetic
 benchmark is separate from normal Home and remains unqualified at 20 fps.
-No framebuffer or mesh detail reduction is used to meet a cadence target.
+The interactive mesh is a visual derivative; collision and motion geometry do
+not change. [Matched images](docs/robot/visuals/interactive/comparison.png) show
+both levels at the same camera position.
 
 For a bounded measurement using normal adaptive pacing, without treating the
 requested ceiling as guaranteed throughput:
@@ -761,6 +771,9 @@ requested ceiling as guaranteed throughput:
 ```sh
 python3 scripts/hmi_hardware_check.py --rates 5 --seconds 60 --observe \
   --output build/gui-optimization/final
+# Same camera workload with the motion-detail mesh:
+python3 scripts/hmi_hardware_check.py --rates 10 --seconds 30 --observe \
+  --interactive --output build/robot-interactive/hardware/interactive
 ```
 
 The test rotates only the rendered model; it sends no motor commands and restores
@@ -771,8 +784,8 @@ Host regressions cover deterministic shaded output, depth/occlusion,
 hierarchy, near-plane/viewport clipping, invalid input, latest-only scheduling,
 immutable displayed images, stalled handoff, visibility changes and stopping.
 The existing Linux GUI interaction, presentation-timeout and X11 tests also pass.
-The HMI supplies orbit/zoom/reset and the reusable viewport at the separate,
-full-detail low-rate operating envelope documented above. The original high-rate
+The HMI supplies orbit/zoom/reset and the reusable viewport with the measured
+detail-dependent operating envelope documented above. The original high-rate
 benchmark acceptance and powered/physical-panel validation remain separate.
 
 ### Verification

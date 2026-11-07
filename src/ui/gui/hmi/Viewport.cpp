@@ -34,7 +34,7 @@ namespace ui::gui::hmi
             m_registered = true;
         }
         m_open = true;
-        m_dirty = true;
+        m_detail.invalidate();
         m_service.visible(true);
     }
     void Viewport::close()
@@ -55,34 +55,45 @@ namespace ui::gui::hmi
         m_pose.camera = camera;
         m_pose.sourceTimeUs = sourceUs;
         m_joints = joints;
-        m_dirty = true;
+        m_detail.changed(std::chrono::steady_clock::now());
     }
     void Viewport::zoom(float factor)
     {
-        m_pose.camera.distance = std::clamp(m_pose.camera.distance * factor, .4f, 2.f);
-        m_dirty = true;
+        const auto distance = std::clamp(m_pose.camera.distance * factor, .4f, 2.f);
+        if (distance != m_pose.camera.distance) {
+            m_pose.camera.distance = distance;
+            m_detail.changed(std::chrono::steady_clock::now());
+        }
     }
     void Viewport::reset()
     {
-        m_pose.camera = scene3d::robotSnapshot({}).camera;
-        m_dirty = true;
+        const auto camera = scene3d::robotSnapshot({}).camera;
+        if (m_pose.camera.yaw != camera.yaw || m_pose.camera.pitch != camera.pitch ||
+            m_pose.camera.distance != camera.distance) {
+            m_pose.camera = camera;
+            m_detail.changed(std::chrono::steady_clock::now());
+        }
     }
     void Viewport::rate(unsigned fps)
     {
-        if (fps == 1 || fps == 2 || fps == 5)
+        if (fps == 1 || fps == 2 || fps == 5 || fps == 10)
             m_fps = fps;
     }
     void Viewport::benchmark(unsigned triangles)
     {
         m_benchmark = triangles;
-        m_dirty = true;
+        m_detail.invalidate();
     }
     void Viewport::tick()
     {
         if (!m_open)
             return;
         const auto now = std::chrono::steady_clock::now();
-        if (m_dirty || m_benchmark || m_qualification) {
+        const auto request = m_detail.request(now);
+        if (request || m_benchmark || m_qualification) {
+            const auto detail = m_qualification ? (m_testInteractive ? scene3d::RobotDetail::Interactive
+                                                                     : scene3d::RobotDetail::Full)
+                                                : request.value_or(scene3d::RobotDetail::Full);
             const auto us =
               std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
             auto frame = m_pose;
@@ -95,9 +106,13 @@ namespace ui::gui::hmi
             if (m_benchmark)
                 frame = scene3d::benchmarkSnapshot(float(us % 60000000) / 1000000, m_revision, us);
             if (m_service.submit(
-                  { m_benchmark ? &scene3d::benchmarkScene(m_benchmark) : &scene3d::robotScene(), frame,
-                    m_benchmark ? 30U : m_qualification ? m_fps : scene3d::LIVE_MAX_FPS }))
-                m_dirty = false;
+                  { m_benchmark ? &scene3d::benchmarkScene(m_benchmark) : &scene3d::robotScene(detail),
+                    frame,
+                    m_benchmark                                   ? 30U
+                    : m_qualification                             ? m_fps
+                    : detail == scene3d::RobotDetail::Interactive ? scene3d::DetailPolicy::INTERACTIVE_MAX_FPS
+                                                                  : scene3d::LIVE_MAX_FPS }))
+                m_detail.submitted(detail);
         }
         if (const auto image = m_service.acquire()) {
             setBitmap(touchgfx::Bitmap(m_bitmaps[image->slot]));
@@ -113,8 +128,12 @@ namespace ui::gui::hmi
     {
         if (!m_dragging)
             return;
-        m_pose.camera.yaw -= event.getDeltaX() * .008f;
-        m_pose.camera.pitch = std::clamp(m_pose.camera.pitch + event.getDeltaY() * .008f, .05f, 1.45f);
-        m_dirty = true;
+        const auto yaw = m_pose.camera.yaw - event.getDeltaX() * .008f;
+        const auto pitch = std::clamp(m_pose.camera.pitch + event.getDeltaY() * .008f, .05f, 1.45f);
+        if (yaw != m_pose.camera.yaw || pitch != m_pose.camera.pitch) {
+            m_pose.camera.yaw = yaw;
+            m_pose.camera.pitch = pitch;
+            m_detail.changed(std::chrono::steady_clock::now());
+        }
     }
 }
