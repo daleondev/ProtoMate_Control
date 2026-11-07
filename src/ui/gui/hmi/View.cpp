@@ -9,7 +9,7 @@ namespace ui::gui::hmi
 {
     namespace
     {
-        constexpr const char* titles[]{ "ProtoMate",    "Axis control", "Robot motion", "Cartesian steps",
+        constexpr const char* titles[]{ "ProtoMate",    "Axis control", "Robot motion", "Cartesian jog",
                                         "Path preview", "Raw motors",   "Programs",     "Position presets",
                                         "I/O monitor",  "Settings",     "Motion jobs",  "Alarms & messages" };
     }
@@ -44,32 +44,30 @@ namespace ui::gui::hmi
             v.presenter->changed = true;
         }, this);
         constexpr const char* names[]{
-            "Home", "Move", "Programs", "I/O", "Settings", "Jobs", "Alarms", "STOP"
+            "Home", "Move", "Programs", "I/O", "Alarms", "Settings", "Jobs", "STOP"
         };
-        constexpr unsigned ids[]{ Home, Move, Programs, IO, Settings, Jobs, Alarms, GlobalStop };
+        constexpr unsigned ids[]{ Home, Move, Programs, IO, Alarms, Settings, Jobs, GlobalStop };
         for (unsigned i = 0; i < m_shell.size(); ++i) {
             auto& c = m_shell[i];
             c.configure(names[i], ids[i], [](void* p, unsigned id, bool down) {
                 static_cast<View*>(p)->presenter->act(id, down);
             }, this);
-            if (i < 5) {
-                c.layout(12, 82 + int(i) * 86, 80, 76);
+            if (i < 6) {
+                c.layout(12, 12 + int(i) * 96, 80, 92);
                 c.icon(i);
             }
             else
-                c.layout(i == 5 ? 112 : i == 6 ? 224 : 880, 534, i == 7 ? 128 : 104, 56);
+                c.layout(i == 6 ? 112 : 880, 534, i == 7 ? 128 : 104, 56);
             c.danger(i == 7);
             add(c);
         }
-        m_brand.setPosition(36, 28, 26, 26);
-        add(m_brand);
         m_title.setPosition(124, 25, 490, 40);
         m_title.large(true);
         add(m_title);
         m_health.setPosition(622, 28, 374, 28);
         m_health.align(touchgfx::RIGHT);
         add(m_health);
-        m_notice.setPosition(344, 545, 520, 38);
+        m_notice.setPosition(232, 545, 632, 38);
         add(m_notice);
         for (auto& c : m_controls)
             add(c);
@@ -115,11 +113,11 @@ namespace ui::gui::hmi
         const bool appeared = !c.isVisible();
         c.setVisible(true);
         c.layout(x, y, width, height);
-        c.held(id == JogMinus || id == JogPlus);
+        c.held(id == JogMinus || id == JogPlus || (id >= XMinus && id <= ZPlus));
         c.appearance(tint, radius, large);
         c.configure(text, id, [](void* p, unsigned action, bool down) {
             auto& self = *static_cast<View*>(p);
-            if (action == JogMinus || action == JogPlus)
+            if (action == JogMinus || action == JogPlus || (action >= XMinus && action <= ZPlus))
                 for (unsigned i = 0; i < self.m_controlCount; ++i) {
                     // The held controls are found by their actual current layout below.
                     auto& control = self.m_controls[i];
@@ -280,12 +278,12 @@ namespace ui::gui::hmi
     void View::refresh()
     {
         const auto& s = m_model.state;
-        for (unsigned i = 0; i < 5; ++i)
-            m_shell[i].selected(i == 0   ? m_model.page == Page::Home
-                                : i == 1 ? m_model.page >= Page::Axes && m_model.page <= Page::Motors
-                                : i == 2 ? m_model.page == Page::Programs
-                                : i == 3 ? m_model.page == Page::IO
-                                         : m_model.page == Page::Settings);
+        constexpr Page pages[]{
+            Page::Home, Page::Axes, Page::Programs, Page::IO, Page::Alarms, Page::Settings
+        };
+        for (unsigned i = 0; i < std::size(pages); ++i)
+            m_shell[i].selected(i == 1 ? m_model.page >= Page::Axes && m_model.page <= Page::Motors
+                                       : m_model.page == pages[i]);
         m_health.setColor(s.failed ? theme::RED : !s.fresh ? theme::AMBER : theme::GREEN);
         char text[96];
         constexpr const char* states[]{ "Starting", "Ready", "Stopping", "Stopped", "Fault" };
@@ -301,10 +299,9 @@ namespace ui::gui::hmi
         m_notice.text(s.failed || !s.fresh ? s.condition.data()
                       : m_model.notice[0]  ? m_model.notice.data()
                                            : s.condition.data());
-        m_viewport.annotationState(s.poseValid && (!m_model.feedback || s.feedbackValid),
-                                   s.fresh && !s.failed);
-        if (m_model.page == Page::Home && s.poseValid && s.fresh && (!m_model.feedback || s.feedbackValid)) {
-            m_viewport.pose(m_model.feedback ? s.feedback : s.commanded, s.receivedUs);
+        m_viewport.annotationState(s.poseValid && s.feedbackValid, s.fresh && !s.failed);
+        if (m_model.page == Page::Home && s.poseValid && s.fresh && !s.failed && s.feedbackValid) {
+            m_viewport.pose(s.feedback, s.receivedUs);
             m_livePose = true;
         }
     }

@@ -25,9 +25,8 @@ namespace ui::gui::hmi
             return;
         }
         if (m_model.page == Page::IO) {
-            control(IODigital, "Digital I/O", 112, 84, 288, true, m_model.ioTab == 0);
-            control(IODrivers, "Drivers & feedback", 416, 84, 288, true, m_model.ioTab == 1);
-            control(IOAnalog, "Analog", 720, 84, 288, true, m_model.ioTab == 2);
+            control(IODigital, "Digital I/O", 112, 84, 440, true, m_model.ioTab == 0);
+            control(IODrivers, "Drivers & feedback", 564, 84, 444, true, m_model.ioTab == 1);
             if (m_model.ioTab == 0) {
                 card(0, 112, 148, 440, 376);
                 card(1, 564, 148, 444, 376);
@@ -62,11 +61,9 @@ namespace ui::gui::hmi
                     m_labels[m_labelCount - 1].setColor(a.fault ? theme::RED : theme::MUTED);
                 }
                 lamp(584, 234, !usable ? theme::MUTED : s.enabled ? theme::GREEN : 0x405565);
-                label("Shared enable", 608, 224, 226);
+                label("Enable command", 608, 224, 226);
                 value(!usable ? "Unknown" : s.enabled ? "ON" : "OFF", 844, 224, 144);
                 m_labels[m_labelCount - 1].setColor(usable && s.enabled ? theme::GREEN : theme::MUTED);
-                label("Commanded output; energization is not measured.", 584, 274, 388, 72);
-                label("General-purpose outputs\nNot implemented", 584, 394, 388, 72);
             }
             else if (m_model.ioTab == 1) {
                 Table::Data d;
@@ -104,10 +101,6 @@ namespace ui::gui::hmi
                                           : "clear",
                               a.encoder ? "Encoder feedback" : "Driver-phase estimate");
                 label(t, 132, 464, 860, 48);
-            }
-            else {
-                label("Analog I/O", 160, 232, 800, 48, true);
-                label("Not implemented. No analog channels are configured.", 160, 300, 800, 72);
             }
             return;
         }

@@ -12,21 +12,22 @@ namespace ui::gui::hmi
     }
     void View::movePage()
     {
-        control(Axes, "Axes", 112, 84, 212, true, m_model.page == Page::Axes);
-        control(Robot, "Robot", 336, 84, 212, true, m_model.page == Page::Robot);
-        control(Cartesian, "Cartesian", 560, 84, 212, true, m_model.page == Page::Cartesian);
+        control(Axes, "Axes", 112, 84, 324, true, m_model.page == Page::Axes);
+        control(Cartesian, "Cartesian", 448, 84, 324, true, m_model.page == Page::Cartesian);
         control(More,
                 "More",
                 784,
                 84,
                 224,
                 true,
-                m_model.more || m_model.page == Page::Preview || m_model.page == Page::Motors);
+                m_model.more || m_model.page == Page::Robot || m_model.page == Page::Preview ||
+                  m_model.page == Page::Motors);
         if (m_model.more) {
-            card(0, 560, 148, 448, 248);
+            card(0, 560, 148, 448, 336);
             label("Advanced movement", 584, 168, 400, 36, true);
-            control(Preview, "Path preview", 584, 224, 400);
-            control(Motors, "Raw motors", 584, 300, 400);
+            control(Robot, "Robot move", 584, 224, 400);
+            control(Preview, "Path preview", 584, 300, 400);
+            control(Motors, "Raw motors", 584, 376, 400);
             return;
         }
         switch (m_model.page) {
@@ -52,8 +53,15 @@ namespace ui::gui::hmi
         for (unsigned i = 0; i < 3; ++i)
             control(Axis1 + i, axisNames[i], 120 + int(i) * 104, 156, 100, true, m_model.axis == i);
         char text[96];
-        std::snprintf(text, sizeof(text), "%.1f %s", axis.commanded, m_model.axis == 2 ? "mm" : "°");
-        label(s.poseValid ? text : "--", 132, 218, 284, 44, false, touchgfx::CENTER, Typography::Heading);
+        std::snprintf(text, sizeof(text), "%.1f %s", axis.feedback, m_model.axis == 2 ? "mm" : "°");
+        label(axis.referenced && axis.valid ? text : "--",
+              132,
+              218,
+              284,
+              44,
+              false,
+              touchgfx::CENTER,
+              Typography::Heading);
         constexpr touchgfx::BitmapId illustrations[]{ BITMAP_AXIS_SHOULDER_ID,
                                                       BITMAP_AXIS_ELBOW_ID,
                                                       BITMAP_AXIS_Z_ID };
@@ -129,7 +137,7 @@ namespace ui::gui::hmi
         if (m_model.page == Page::Cartesian) {
             card(0, 112, 148, 440, 376);
             card(1, 564, 148, 444, 376);
-            label("Point increments", 136, 166, 392, 36, true);
+            label("Hold to move", 136, 166, 392, 36, true);
             constexpr const char* names[]{ "X −", "X +", "Y −", "Y +", "Z −", "Z +" };
             constexpr std::uint32_t colors[]{ theme::X_AXIS, theme::Y_AXIS, theme::Z_AXIS };
             for (unsigned i = 0; i < 6; ++i)
@@ -148,7 +156,7 @@ namespace ui::gui::hmi
             control(StepLarge, "10 mm", 860, 220, 132, true, m_model.step == 10);
             field(10, "Speed factor", 580, 300, 412);
             label("Joint interpolation can curve the TCP path.", 588, 378, 392, 64);
-            label("Continuous Cartesian jog is unavailable.", 588, 454, 392, 64);
+            label("Hold repeats the step. Release to stop.", 588, 454, 392, 64);
             return;
         }
         card(0, 112, 148, 896, 376);

@@ -163,13 +163,12 @@ namespace ui::gui::hmi
     template class BasicLabel<48>;
     void Icon::draw(const touchgfx::Rect& area) const
     {
-        constexpr touchgfx::BitmapId icons[]{ BITMAP_NAV_HOME_ID,
-                                              BITMAP_NAV_MOVE_ID,
-                                              BITMAP_NAV_PROGRAM_ID,
-                                              BITMAP_NAV_IO_ID,
-                                              BITMAP_NAV_SETTINGS_ID };
+        constexpr touchgfx::BitmapId icons[]{
+            BITMAP_NAV_HOME_ID, BITMAP_NAV_MOVE_ID,   BITMAP_NAV_PROGRAM_ID,
+            BITMAP_NAV_IO_ID,   BITMAP_NAV_ALARMS_ID, BITMAP_NAV_SETTINGS_ID
+        };
         touchgfx::Image image;
-        image.setBitmap(touchgfx::Bitmap(icons[std::min(kind, 4U)]));
+        image.setBitmap(touchgfx::Bitmap(icons[std::min(kind, 5U)]));
         const auto origin = getAbsoluteRect();
         image.setXY(origin.x, origin.y);
         image.draw(area);
@@ -186,13 +185,12 @@ namespace ui::gui::hmi
     }
     void Control::alignLabel()
     {
-        const int top = m_icon.isVisible() ? 35 : 0;
-        const int height = std::min<int>(m_label.getTextHeight(), getHeight() - top - 4);
-        m_label.setPosition(m_icon.isVisible() ? 2 : 8,
-                            top + (getHeight() - top - height) / 2,
-                            getWidth() - (m_icon.isVisible() ? 4 : 16),
-                            height);
-        m_icon.setPosition((getWidth() - 26) / 2, 8, 26, 26);
+        const int iconGroup = m_icon.isVisible() ? 34 : 0; // 26 px icon + 8 px gap
+        const int height = std::min<int>(m_label.getTextHeight(), getHeight() - iconGroup - 4);
+        const int top = (getHeight() - iconGroup - height) / 2;
+        m_label.setPosition(
+          m_icon.isVisible() ? 2 : 8, top + iconGroup, getWidth() - (m_icon.isVisible() ? 4 : 16), height);
+        m_icon.setPosition((getWidth() - 26) / 2, top, 26, 26);
     }
     void Control::icon(unsigned kind)
     {

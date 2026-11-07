@@ -70,7 +70,8 @@ TEST(Hmi, HeldJogUsesTenPercentAndReleaseDoesNotWaitForAcceptance)
     BackendFixture b;
     m.backend = &b;
     m.page = Page::Axes;
-    m.continuous = true;
+    EXPECT_TRUE(m.continuous);
+    EXPECT_EQ(m.jogMode, 2U);
     m.state.axes[0].maxSpeed = 40;
     Presenter p{ m };
     p.act(JogMinus, true);
@@ -97,7 +98,7 @@ TEST(Hmi, RawAbortingReplacementNeedsConfirmation)
     EXPECT_EQ(b.submissions, 1U);
     EXPECT_TRUE(b.last.confirmed);
 }
-TEST(Hmi, CartesianButtonsAreFinitePointDestinations)
+TEST(Hmi, CartesianHoldUsesSupervisedFinitePointIncrements)
 {
     Model m;
     BackendFixture b;
@@ -111,6 +112,10 @@ TEST(Hmi, CartesianButtonsAreFinitePointDestinations)
     EXPECT_DOUBLE_EQ(b.last.position[0], 0);
     EXPECT_FALSE(b.last.continuous);
     EXPECT_DOUBLE_EQ(b.last.speed, .25);
+    EXPECT_EQ(b.holds, 1U);
+    EXPECT_EQ(b.submissions, 0U);
+    p.act(YMinus, false);
+    EXPECT_EQ(b.releases, 1U);
 }
 TEST(Hmi, ProgramsAndPresetsGenerateNoCommands)
 {

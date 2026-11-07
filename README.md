@@ -551,7 +551,7 @@ normal startup screen**, with the full prepared robot model, telemetry, motion
 readiness and shared jobs. Axis, robot, preview and raw-motor pages use the same
 Client/Robot/ICC implementation as the CLI. The interface names the joints **Axis 1, Axis 2 and Axis 3**. Programs and presets remain empty.
 
-The shared shell uses an 88-pixel navigation rail, centered controls and a persistent Stop. Home has frame-matched joint badges and one status card. Move separates Jog, Move To and Settings; I/O and diagnostics use aligned cards/tables. Orbit by dragging, zoom with the desktop wheel or a two-finger pinch, and use Reset View to restore the camera. Physical pinch input remains pending panel testing.
+The shared shell uses an 88-pixel, six-button navigation rail (including Alarms), centered controls and a persistent Stop. Home always uses estimated feedback, with frame-matched joint badges and one status card. Axis jogging defaults to Hold; Cartesian Hold repeats bounded point increments until released. Robot destination moves are under More, separate from non-executing path previews. Move separates Jog, Move To and Settings; I/O and diagnostics use aligned cards/tables. Orbit by dragging, zoom with the desktop wheel or a two-finger pinch, and use Reset View to restore the camera. Physical pinch input remains pending panel testing.
 
 See the [HMI operating and architecture guide](docs/gui/hmi/README.md) and
 [verification status](docs/gui/hmi/verification.md). M4 does not link TouchGFX.

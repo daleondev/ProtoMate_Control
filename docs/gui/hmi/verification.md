@@ -1,7 +1,7 @@
 # HMI modernization verification
 
 The normal Linux/GIGA UI uses the revised Home screen, **Axis 1/2/3** naming,
-centered controls, focused movement tabs, I/O cards and typed diagnostic tables.
+centered controls, a six-button sidebar including Alarms, focused movement tabs, I/O cards and typed diagnostic tables. Home always shows estimated feedback. Axis Hold is the default; Cartesian Hold repeats finite increments through the existing planner.
 The same 640×400 scene, 7,914-triangle interactive model and 36,376-triangle settled
 model run on both platforms. Idle poses do not rerender.
 
@@ -14,15 +14,15 @@ model run on both platforms. Idle poses do not rerender.
   switching, image ownership, robot rendering and source-asset checks.
 - The separate real **simulation.hmi** workflow passes in both builds. It uses
   the actual motion client, ICC and simulated plant: initialize without enable,
-  homing → stop → homing, coordinated and individual moves, held-jog cancellation,
+  homing → stop → homing, coordinated and individual moves, held-jog cancellation, Cartesian increment repetition, release and CLI-stop without replay,
   CLI/GUI exclusion, numeric cancellation, observed joint/TCP agreement and shutdown.
 - HAL architecture and simulated display-clock checks pass. The timer rollover
   test uses native monotonic time alongside the native simulated counter;
   production timing uses the unchanged runtime clock. Mixing native counter
   time with delayed hosted ThreadX ticks is not a valid rollover reference.
 - **52 reviewed screenshots** cover the pages/tabs and ready, disabled, busy,
-  unconfigured, stale and fault states. Five additional pixel tests check text
-  centering in tabs, large controls, multiline fields and keypad keys.
+  unconfigured, stale and fault states. Seven additional pixel tests check text
+  centering in tabs, large controls, multiline fields, keypad keys and sidebar icon/caption groups.
 - Pinch tests cover entry/exit, reordering, near-zero separation, jitter,
   exclusions and cancellation. Bounded wheel tests cover coordinates, fractions,
   age, overflow and exactly-once delivery. Native SDL tests cover ordinary and
@@ -33,84 +33,59 @@ model run on both platforms. Idle poses do not rerender.
   graphics counter values are excluded narrowly from the static goldens.
 - The detailed/interactive asset review retains 36 matched views with minimum
   silhouette IoU **98.358%**. Three static joint illustrations use the detailed
-  registered CAD and projected positive-direction guides; hashes/sizes match.
-- The 13-event Linux input samples measure **34.6–37.4 ms p95** visible feedback
-  across Debug/Release and dummy/X11. These are small software-input samples,
-  not a bound on physical touch or motion latency. A concurrent compilation run
-  reached 52 ms; final timing samples were taken without compilation load.
+  registered CAD and projected positive-direction guides. Each contains only the two connected links, with original stationary-link materials and a highlighted moving link; hashes/sizes match.
+- Linux native input-to-visible-feedback samples are retained in `verification.json`. These small samples do not establish a physical touch or motion-latency bound.
 - Linux and both GIGA cores build in Debug/Release. No clang-tidy or sanitizer
   campaign was run. Targeted formatting was applied to changed C++ files.
-
-Xvfb needs permission to create a local X11 socket. The sandboxed Debug X11
-launch could not start its server; the same test passed with that permission.
-Release's complete 14-suite GUI/simulator run passed together.
 
 ## Final image and resource budget
 
 Release pair programmed and verified:
 
 ```
-f8426633d516d3b1572071b6165192ae0014e6d737744c0e3d1d195cb06eb401
+b0e45da3cd90cc6c65600a82ac4c86a821188c99c9d578f2bd8afcb043cc6e1b
 ```
 
-M4 image: **1,149,828 bytes**. M7 image: **2,654,048 bytes**.
+M4 image: **1,149,828 bytes**. M7 image: **2,656,728 bytes**.
 
 | Resource | Allocation |
 |---|---:|
 | New compiled axis illustrations | 346,560 B QSPI |
-| New navigation icons | 13,520 B QSPI |
+| New navigation icons | 16,224 B QSPI |
 | Renderer hot code | 16,088 B ITCM |
-| Engine/widget storage | 24,032 / 24,576 B allowed |
+| Engine/widget storage | 24,000 / 24,576 B allowed |
 | M7 Release DTCM static data | 110,056 / 112,640 B |
 | Two 640×400 images plus depth | 1,536,000 B SDRAM |
 | Ordinary M7 heap capacity | 238,400 B |
 
 Fonts/icons/illustrations remain below the 1 MiB additional-asset budget.
 No framebuffer or worker stack was added. The existing GUI/touch/render stacks
-remain 16/8/16 KiB. Only **544 bytes** remain in the GUI bookkeeping allowance;
+remain 16/8/16 KiB. Only **576 bytes** remain in the GUI bookkeeping allowance;
 further widgets need an explicit budget, rather than unbounded page trees.
 
 ## Panel-free hardware verification
 
-The user verified USB cold startup during this pass; after the final badge-clearance adjustment, both controllers were restarted through SWD. Both reported Ready and
-ICC remained connected throughout the final 30.75-second synthetic camera run.
-This uses the same interactive camera workload as the approximately 3.45 fps
-baseline; model detail and resolution are unchanged.
+The final image was programmed, verified and started through the normal coordinated debugger reset. Both controllers reported Ready, and ICC stayed connected during the 12.65-second interactive-camera sample. A physical USB cold start was not repeated for this UI refinement.
 
 | Measurement | Final Release result |
 |---|---:|
-| Newly presented 3D images/s | 3.674 |
-| Mean render wall time | 202.60 ms |
+| Newly presented 3D images/s | 3.952 |
+| Mean render wall time | 199.45 ms |
 | LTDC underruns / DMA errors | 0 / 0 |
 | Renderer/input/command errors | 0 |
-| Heap use, minimum–maximum | 199,552–199,616 B |
-| Final minus initial heap use | −16 B |
-| GUI / renderer / touch free stack | 71.38% / 61.07% / 92.33% |
+| Heap use, minimum–maximum | 199,712–199,720 B |
+| Final minus initial heap use | +8 B |
+| GUI / renderer / touch free stack | 70.50% / 61.07% / 92.33% |
 
-This is a short measured comparison, not a guaranteed frame rate or endurance
-qualification. **3.67 fps remains visibly stepped animation.** Physical touch
-latency and visible panel output are unmeasured. The graphics table's frame-age
-value is source-to-presentation latency of the last presented frame, not an
-increasing idle-age clock.
+This short sample is a health check, not a guaranteed frame rate, memory-leak proof or endurance qualification. The live 3D view still has visibly stepped animation. Physical display/touch operation remains unverified.
 
-A separate 24 MHz, five-second analyzer capture of this exact image pair records
-120 million samples: all three STEP outputs LOW, enable HIGH/inactive, and zero
-transitions on all four channels. Both SDRAM slots also pass diagnostic-pattern and Home readback checks; the final idle Home images are identical. The saved [GIGA image](screens/giga-home.png) is a framebuffer readback, not a photograph of a physical display.
+A 24 MHz, three-second analyzer capture records 72 million samples: all three STEP outputs LOW, enable HIGH/inactive, and zero transitions. This verifies idle outputs during graphics work, not executing-motion timing.
 
-The analyzer capture verifies idle outputs under GUI load;
-it does not repeat motion execution qualification.
+Both SDRAM framebuffer slots passed the diagnostic-pattern and Home readback checks. The saved [GIGA image](screens/giga-home.png) is a framebuffer readback, not a photograph of a physical display.
 
-After flashing, one debugger reset left IO unavailable. One ordinary coordinated
-reset restored both cores; the subsequent physical USB cold start also passed.
-This was startup recovery, not evidence of a graphics-load heartbeat failure.
-The interrupted capture during the user's power cycle remains retained and was
-not counted as a passing test. No firmware change was needed for recovery.
-
-Raw final counters, firmware manifest and stack results:
-`build/hmi-modern/hardware/final-delivery`. The confirmed physical cold-start run is retained in `cold-release`. Analyzer samples and hash:
-`build/hmi-modern/hardware/delivery-idle`. Framebuffer readback:
-`build/hmi-modern/hardware/delivery-framebuffers`. Failed/interrupted attempts remain in
-`release` and `verified-release` alongside these results.
+Exact-image manifest, counters and stacks: `build/hmi-refinement/final-hardware`.
+Analyzer samples/hash: `build/hmi-refinement/final-idle`.
+Framebuffers: `build/hmi-refinement/final-framebuffers`.
 
 ## Reproduction and remaining qualification
 

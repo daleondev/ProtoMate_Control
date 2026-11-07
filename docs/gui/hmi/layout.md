@@ -6,10 +6,10 @@ names; those names are not presented as axis labels.
 
 | Region | Geometry |
 |---|---|
-| Navigation rail | x8 y8, 88×584 |
+| Navigation rail | x8 y8, 88×584; six 80×92 buttons, y12 + 96×index |
 | Title/status | x104 y8, 912×64 |
 | Page area | x104 y80, 912×444 |
-| Persistent Jobs / Alarms / notice / Stop | x104 y532, 912×60 |
+| Persistent Jobs / notice / Stop | x104 y532, 912×60 |
 | Native Home viewport | x104 y100, 640×400 |
 | Home status card | x752 y80, 264×444 |
 | Axis illustration card | x112 y148, 324×376 |
@@ -39,7 +39,7 @@ matrices used for that image. Completed-image metadata includes the projected
 anchors, values, revision and timestamp. The viewport places badges from this
 metadata, never from a newer telemetry sample. Invalid/off-screen anchors hide;
 bounded candidate placement keeps badges inside the viewport, avoids overlap and reserves the top controls and bottom Reset View area.
-The status card can show fresher telemetry, with scene age shown when relevant.
+The scene and status card always show estimated feedback. The status card can show fresher telemetry, with scene age shown when relevant. There is no commanded-pose toggle.
 
 ```mermaid
 flowchart LR
@@ -68,7 +68,7 @@ acquisition, independently of GUI rendering.
 Noto Sans uses 16/18/24/36-pixel fonts. Source SVG navigation icons and three
 304×190 CAD illustrations pass through the existing incremental asset pipeline.
 The illustration generator uses the detailed TGX model and registered joint
-origins, adds positive-motion guides, and records hashes in
+origins, isolates the two links connected by each axis, preserves the stationary link’s materials, highlights the moving link, adds positive-motion guides, and records hashes in
 `src/ui/gui/assets/axis-illustrations.json`:
 
 ```sh

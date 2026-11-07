@@ -286,7 +286,6 @@ namespace ui::gui::hmi
                 break;
             case IODigital:
             case IODrivers:
-            case IOAnalog:
                 m_model.ioTab = a - IODigital;
                 changed = true;
                 break;
@@ -396,7 +395,10 @@ namespace ui::gui::hmi
                 c.position[(a - XMinus) / 2] = (a % 2 == XMinus % 2 ? -1 : 1) * m_model.step;
                 c.speed = m_model.values[10];
                 c.acceleration = c.deceleration = c.jerk = 1;
-                send(c);
+                c.continuous = false; // Each held increment remains a finite, validated point move.
+                if (m_model.backend)
+                    m_model.report(
+                      m_model.backend->hold(c, holdX, holdY, holdWidth, holdHeight).message.data());
                 break;
             }
             case PreviewJoints:
@@ -422,10 +424,6 @@ namespace ui::gui::hmi
                 break;
             case ActiveSpeed:
                 send(command(Kind::MotorSpeed));
-                break;
-            case Feedback:
-                m_model.feedback = !m_model.feedback;
-                changed = true;
                 break;
             case ZoomIn:
                 cameraIn = true;

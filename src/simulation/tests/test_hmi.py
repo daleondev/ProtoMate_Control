@@ -122,7 +122,7 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         time.sleep(.5);click(880,490);interrupted=latest();wait(interrupted,('running',));click(940,560);wait(interrupted,('stopped',))
         click(880,490);home=latest();assert home>interrupted;wait(home)
         compare_presented_state(capture('home-referenced'));before_robot=joints()
-        click(50,200);click(440,118)
+        click(50,154);click(890,118);click(740,250)
         number(240,264,-.5);number(520,264,-.3);number(800,264,-.1)
         click(820,488);robot_job=latest();wait(robot_job)
         after_robot=joints()
@@ -131,22 +131,40 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         assert abs((after_robot[2]-before_robot[2])+.1)<.01,(before_robot,after_robot)
         compare_presented_state(capture('robot-motion'))
         before=joints()
-        click(50,200);click(572,330);step=latest();wait(step)
+        click(50,154);click(540,246);click(572,330);step=latest();wait(step)
         after=joints();assert abs(math.degrees(after[0]-before[0])+1)<.05,(before,after)
         capture('axis')
         click(912,246) # Hold mode
         input('down 572 330');jog=latest();wait(jog,('running',))
         input('focuslost');wait(jog,('stopped',));capture('jog-released');input('focusgained')
+        # Cartesian Hold repeats only completed increments and stops on release.
+        click(660,118)
+        before_cart=joints();previous=latest()
+        input('down 220 448') # Z minus, one mm per completed point move
+        first=latest();assert first>previous;wait(first)
+        end=time.monotonic()+12
+        while latest()==first:
+            assert time.monotonic()<end,'Held Cartesian increment did not repeat'
+            time.sleep(.1)
+        second=latest();input('up 220 448');wait(second,('stopped','completed'))
+        after_release=latest();time.sleep(.6);assert latest()==after_release
+        assert joints()[2]<before_cart[2]-.9,(before_cart,joints())
+        capture('cartesian-held')
+        # A CLI stop ends the held sequence too; do not retry while still pressed.
+        input('down 220 448');stopped=latest();wait(stopped,('running',))
+        command('motion stop');wait(stopped,('stopped',))
+        time.sleep(.6);assert latest()==stopped
+        input('up 220 448');click(50,154)
         # The same IO admission still excludes the GUI's axis from a raw CLI job.
         raw=command('motor move m2 -2 --speed 1');raw_id=int(re.search(r'Submitted motor job (\d+)',raw)[1]);wait(raw_id,('running','accepted'))
         click(540,246);click(572,330);rejected=latest();assert rejected>raw_id
         assert 'rejected' in wait(rejected,('rejected',))
         command('motor stop all');wait(raw_id,('stopped',))
         # Empty pages and numeric cancellation produce no new job.
-        last=latest();click(50,286);capture('programs-empty');assert latest()==last
-        click(50,200);click(720,182);click(650,320);capture('keypad');click(750,365);assert latest()==last
-        click(50,370);capture('io');click(50,454);capture('settings');click(300,560);capture('alarms')
-        input('size 1600 600');click(338,118);capture('letterbox-home')
+        last=latest();click(50,250);capture('programs-empty');assert latest()==last
+        click(50,154);click(720,182);click(650,320);capture('keypad');click(750,365);assert latest()==last
+        click(50,346);capture('io');click(50,538);capture('settings');click(50,442);capture('alarms')
+        input('size 1600 600');click(338,58);capture('letterbox-home')
         input('quit');assert proc.wait(10)==0,transcript.decode(errors='replace')[-2000:]
     finally:
         os.close(pipe);selector.close()

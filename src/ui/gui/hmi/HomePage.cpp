@@ -24,22 +24,19 @@ namespace ui::gui::hmi
         label("Axes (joints)", 768, 170, 232);
         char text[80];
         for (unsigned i = 0; i < 3; ++i) {
-            const bool valid = s.poseValid && (!m_model.feedback || s.axes[i].valid);
+            const bool valid = s.poseValid && s.axes[i].valid;
             const int y = 198 + int(i) * 56;
             button(Axis1 + i, "", 760, y, 248, 56, true, false, theme::SURFACE, 1);
             std::snprintf(text, sizeof(text), "Axis %u", i + 1);
             label(text, 792, y + 14, 80, 28);
             lamp(772, y + 23, !usable ? theme::MUTED : valid ? theme::GREEN : theme::AMBER);
-            std::snprintf(text,
-                          sizeof(text),
-                          valid ? "%.1f %s" : "--",
-                          m_model.feedback ? s.axes[i].feedback : s.axes[i].commanded,
-                          i == 2 ? "mm" : "°");
+            std::snprintf(
+              text, sizeof(text), valid ? "%.1f %s" : "--", s.axes[i].feedback, i == 2 ? "mm" : "°");
             value(text, 872, y + 14, 124);
         }
-        label(m_model.feedback ? "Estimated TCP" : "Commanded TCP", 768, 374, 232);
-        const auto& tcp = m_model.feedback ? s.feedbackTcp : s.tcp;
-        const bool valid = s.poseValid && (!m_model.feedback || s.feedbackValid);
+        label("Estimated TCP", 768, 374, 232);
+        const auto& tcp = s.feedbackTcp;
+        const bool valid = s.poseValid && s.feedbackValid;
         constexpr const char* coordinates[]{ "X", "Y", "Z" };
         for (unsigned i = 0; i < 3; ++i) {
             label(coordinates[i], 768, 402 + int(i) * 20, 32, 22, false, touchgfx::LEFT, Typography::Small);
@@ -56,16 +53,14 @@ namespace ui::gui::hmi
                 240,
                 usable && (action != Reference || s.robotConfigured),
                 true);
-        control(Feedback, m_model.feedback ? "Feedback" : "Commanded", 112, 82, 168);
         if (s.enabled)
             control(Disable, "Disable", 568, 82, 168, usable);
         control(ResetView, "Reset view", 568, 460, 168);
         const char* provenance =
           !s.poseValid ? (m_livePose ? "Frozen pose · reference invalid" : "Nominal CAD · reference required")
           : !s.fresh   ? "Frozen pose · telemetry stale"
-          : m_model.feedback
-            ? (s.feedbackValid ? "Encoder + INDEX estimates" : "Frozen pose · feedback invalid")
-            : "Commanded · not measured";
+          : s.feedbackValid ? "Encoder + INDEX estimates"
+                            : "Frozen pose · feedback invalid";
         const auto now = std::chrono::duration_cast<std::chrono::microseconds>(
                            std::chrono::steady_clock::now().time_since_epoch())
                            .count();

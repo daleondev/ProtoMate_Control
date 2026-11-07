@@ -28,16 +28,14 @@ flowchart LR
 ## Operating the interface
 
 - **Home:** initialize, then explicitly enable. Reference Robot runs the configured
-  homing sequence. Initialization never enables automatically. Select commanded
-  position or feedback, orbit by dragging, zoom with the mouse wheel or two-finger pinch, or reset the camera. Three badges track the joint locations in the displayed image and open the corresponding axis page.
-- **Move / Axes:** Axis 1/2 in degrees and Axis 3 in millimetres. Jog, Move To and Settings have separate tabs. Static CAD illustrations highlight the selected joint and positive direction. Move To selects relative/absolute positioning; editing alone never moves. Step buttons use 0.1/1/10 units. Settings exposes acceleration, deceleration, jerk and timeout; zero chooses the configured default. Timed jog defaults to one second. Continuous
-  jog requires holding its button; its initial speed is 10% of the axis limit.
-- **Move / Robot:** relative/absolute joint or Cartesian destinations. Speed is
+  homing sequence. Initialization never enables automatically. The scene, joint badges and TCP always use estimated feedback; unavailable feedback stays invalid. Orbit by dragging, zoom with the mouse wheel or two-finger pinch, or reset the camera. Three badges track the joint locations in the displayed image and open the corresponding axis page.
+- **Move / Axes:** Axis 1/2 in degrees and Axis 3 in millimetres. Jog, Move To and Settings have separate tabs. Static CAD illustrations show only the two links connected by that axis: the stationary link keeps its original materials and the moving link is highlighted, with a positive-direction guide. Move To selects relative/absolute positioning; editing alone never moves. Step buttons use 0.1/1/10 units. Settings exposes acceleration, deceleration, jerk and timeout; zero chooses the configured default. **Hold is the default jog mode.** Step and Timed remain selectable; Timed defaults to one second. Continuous
+  axis jog requires holding its button; its initial speed is 10% of the axis limit.
+- **More / Robot move:** relative/absolute joint or Cartesian destinations. Speed is
   a 0–1 factor, initially 0.25. Acceleration/deceleration/jerk factors apply to
   subsequent moves (zero selects 1). Cartesian destination moves interpolate
   joints; their TCP path can curve.
-- **XYZ steps:** discrete Cartesian destination increments. Continuous Cartesian
-  jogging is unavailable.
+- **Cartesian jog:** hold an X/Y/Z button to repeat the selected 0.1/1/10 mm point increment. The next increment starts only after the previous job completes. Release, leaving the button, navigation, input expiry, rejection or failure stops the gesture. These are discrete joint-interpolated point moves, not a smooth Cartesian velocity trajectory; no increments are queued ahead.
 - **More / Preview:** choose joints, point or straight line, then Calculate preview.
   Preview results have their own tab in Jobs. These buttons never execute a path.
 - **More / Raw motors:** shaft degrees/rpm, dynamics, timeout, homing latch speed,
@@ -48,13 +46,13 @@ flowchart LR
   are displayed in motor pulse counts. Cancellation requests stopping and does
   not mean the motor is already at rest.
 - **I/O:** read-only reference inputs, driver readiness, fault codes/warnings and
-  feedback source/validity. No general-purpose or analog controls are invented.
+  feedback source/validity. Only Digital I/O and Drivers & feedback are shown. Enable is the commanded output state, not a measurement of motor energization.
 - **Settings:** General, Robot and Diagnostics tabs. Heap/Stacks are typed, paginated UI/IO snapshots with right-aligned values and usage bars; Graphics shows UI counters. Fetch on entry, selection changes or Refresh. Linux identifies its shared runtime. Motor-default access remains available.
-- **Alarms:** active condition and eight bounded local messages. Acknowledging the
+- **Alarms (sidebar):** active condition and eight bounded local messages. Acknowledging the
   history cannot clear a hardware fault.
 - **Programs / Presets:** intentional empty pages; no commands are generated.
 
-The numeric keypad edits a form; Apply does not move anything. Global Stop is
+The numeric keypad edits a form; Apply does not move anything. Alarms has its own sidebar destination; Jobs and Global Stop remain in the bottom strip. Stop is
 available even in the keypad and confirmation dialog. Finite jobs continue when
 navigating; held jog does not. GUI and CLI obey the same motor/axis/robot exclusion.
 **Software Stop is not a physical emergency stop.** Ordinary axis/robot stopping
@@ -73,7 +71,7 @@ shows nominal CAD initially. Invalid or stale live data freezes the last pose;
 there is no extrapolation or silent fallback to commanded "actual" position.
 Controller readiness in the header is separate from motion readiness in the strip.
 
-A held gesture owns its job. Touch acquisition renews its input deadline only
+A held gesture owns its current job. Cartesian Hold advances to a new finite job only on successful completion; each increment appears in the same bounded execution history. Touch acquisition renews its input deadline only
 while the contact remains valid and inside the button. The client worker checks
 **200 ms** independently of rendering. Release, drag-out, focus loss, navigation,
 shutdown, an additional touch and failure request cancellation, including release before acceptance. Pinching only starts when both contacts begin inside the scene and outside its controls. Ending a pinch requires full release before orbit or badge taps resume. Wheel events retain their coordinates and expire after 100 ms; focus loss and navigation clear them.
@@ -107,7 +105,7 @@ viewports pause; a newer pending pose replaces the previous one. Two-dimensional
 controls run independently. No lower-resolution fallback is used.
 GUI/touch/render priorities and stacks remain 8/16 KiB, 7/8 KiB and 16/16 KiB.
 Frontend bookkeeping has fixed internal storage: the Model is in DTCM, and the
-24,032-byte engine/widget tree occupies `.gui_internal` in the upper half of ITCM
+24,000-byte engine/widget tree occupies `.gui_internal` in the upper half of ITCM
 (`0x00008000`, 32 KiB region with a 24 KiB allocation limit). This CPU-only region
 is execute-never; pixel buffers remain in DMA-accessible SDRAM. The lower ITCM
 half retains the existing renderer code and its 24 KiB code cap. The image

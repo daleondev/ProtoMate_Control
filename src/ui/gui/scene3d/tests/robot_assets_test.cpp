@@ -172,23 +172,42 @@ TEST(RobotVisuals, AxisIllustrationsUseTheRegisteredDetailedMesh)
         return;
     std::filesystem::create_directories(directory);
     std::vector<std::uint16_t> color(PIXELS), depth(PIXELS);
-    const Vec3 targets[]{ { 0, 0, .16f }, { .205f, 0, .34f }, { .5634f, 0, .20f } };
+    const Vec3 targets[]{ { .06f, 0, .18f }, { .25f, 0, .235f }, { .39f, 0, .235f } };
     for (unsigned axis = 0; axis < 3; ++axis) {
-        auto scene = robotScene();
+        const auto& full = robotScene();
+        Scene scene;
+        scene.count = 2;
+        scene.nodes[0] = full.nodes[axis];
+        scene.nodes[0].parent = -1;
+        scene.nodes[1] = full.nodes[axis + 1];
+        scene.nodes[1].parent = 0;
         scene.groundGrid = false;
-        for (unsigned n = 0; n < scene.count; ++n) {
-            scene.nodes[n].material.useMeshMaterial = false;
-            scene.nodes[n].material.color = n == axis + 1 ? 0x4b9de0 : 0x61717f;
-        }
+        // Preserve original materials on the stationary link; highlight only
+        // the child that moves around/along the selected joint.
+        scene.nodes[1].material.useMeshMaterial = false;
+        scene.nodes[1].material.color = 0x4b9de0;
+        ASSERT_TRUE(scene.nodes[0].material.useMeshMaterial);
+        ASSERT_EQ(scene.nodes[0].mesh, full.nodes[axis].mesh);
+        ASSERT_EQ(scene.nodes[1].mesh, full.nodes[axis + 1].mesh);
+        const auto nominal = robotSnapshot({});
         auto pose = robotSnapshot({});
+        pose.transforms = {};
+        // The nominal CAD registration has identity rotations. Accumulate the
+        // omitted ancestors so cropping does not change either link's origin.
+        for (unsigned n = 1; n <= axis; ++n) {
+            pose.transforms[0].translation.x += nominal.transforms[n].translation.x;
+            pose.transforms[0].translation.y += nominal.transforms[n].translation.y;
+            pose.transforms[0].translation.z += nominal.transforms[n].translation.z;
+        }
+        pose.transforms[1] = nominal.transforms[axis + 1];
         pose.camera.target = targets[axis];
-        pose.camera.distance = axis == 1 ? .60f : .75f;
+        pose.camera.distance = axis == 1 ? .95f : .85f;
         pose.camera.yaw = .65f;
         pose.camera.pitch = .3f;
         Frame frame{ &scene, pose };
         for (unsigned a = 0; a < 3; ++a) {
             const float angle = .4f + float(a) * .8f;
-            frame.anchors[a] = { int(axis + 1),
+            frame.anchors[a] = { 1,
                                  axis == 2 ? Vec3{ .07f, 0, -.14f + float(a) * .07f }
                                            : Vec3{ .085f * std::cos(angle), .085f * std::sin(angle), .02f },
                                  0 };

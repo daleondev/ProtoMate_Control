@@ -161,7 +161,7 @@ namespace
                 SDL_SetWindowSize(SDL_GetWindowFromID(window), 1600, 600);
             }
             if (n == 860)
-                wheel(1, 50, 300); // letterbox is not scene space
+                wheel(1, 50, 250); // letterbox is not scene space
             if (n == 960)
                 correct = correct && hash() == baseline;
             if (n == 970)
@@ -191,8 +191,8 @@ namespace
                 int x, y;
                 const char* name;
             };
-            static constexpr PageStep pages[]{ { 50, 118, "home" },
-                                               { 50, 202, "axis-jog" },
+            static constexpr PageStep pages[]{ { 50, 58, "home" },
+                                               { 50, 154, "axis-jog" },
                                                { 720, 182, "axis-move" },
                                                { 910, 182, "axis-settings" },
                                                { 274, 184, "axis-2" },
@@ -200,22 +200,23 @@ namespace
                                                { 544, 184, "axis-3-jog" },
                                                { 730, 248, "axis-timed" },
                                                { 910, 248, "axis-hold" },
-                                               { 440, 118, "robot" },
+                                               { 540, 248, "axis-step" },
+                                               { 890, 118, "more" },
+                                               { 740, 250, "robot" },
                                                { 840, 184, "robot-advanced" },
                                                { 840, 184, "robot-joints" },
                                                { 544, 184, "robot-point" },
                                                { 660, 118, "cartesian" },
                                                { 890, 118, "more" },
-                                               { 740, 250, "preview" },
+                                               { 740, 328, "preview" },
                                                { 840, 184, "preview-line" },
                                                { 890, 118, "more" },
-                                               { 740, 328, "motor-move" },
+                                               { 740, 404, "motor-move" },
                                                { 710, 184, "motor-home" },
                                                { 840, 184, "motor-defaults" },
-                                               { 50, 370, "io-digital" },
-                                               { 544, 118, "io-drivers" },
-                                               { 890, 118, "io-analog" },
-                                               { 50, 454, "settings-general" },
+                                               { 50, 346, "io-digital" },
+                                               { 780, 118, "io-drivers" },
+                                               { 50, 538, "settings-general" },
                                                { 544, 118, "settings-robot" },
                                                { 890, 118, "settings-heap" },
                                                { 920, 184, "settings-heap" },
@@ -225,7 +226,7 @@ namespace
                                                { 920, 490, "settings-io-stacks-next" },
                                                { 770, 184, "settings-graphics" },
                                                { 920, 490, "settings-graphics-next" },
-                                               { 50, 118, "home-return" } };
+                                               { 50, 58, "home-return" } };
             if (n >= 30 && n < 30 + std::size(pages) * 35) {
                 const auto i = (n - 30) / 35, t = (n - 30) % 35;
                 if (t == 0)
@@ -251,12 +252,12 @@ namespace
             int x, y;
             const char* file;
         };
-        static constexpr Step steps[]{ { 50, 118, "gui-home.bmp" },     { 50, 202, "gui-axes.bmp" },
-                                       { 440, 118, "gui-robot.bmp" },   { 660, 118, "gui-cartesian.bmp" },
+        static constexpr Step steps[]{ { 50, 58, "gui-home.bmp" },      { 50, 154, "gui-axes.bmp" },
+                                       { 890, 118, "gui-robot.bmp" },   { 660, 118, "gui-cartesian.bmp" },
                                        { 890, 118, "gui-preview.bmp" }, { 890, 118, "gui-motors.bmp" },
-                                       { 50, 286, "gui-programs.bmp" }, { 50, 370, "gui-io.bmp" },
-                                       { 50, 454, "gui-settings.bmp" }, { 180, 554, "gui-jobs.bmp" },
-                                       { 300, 554, "gui-alarms.bmp" },  { 50, 202, "gui-axis-input.bmp" },
+                                       { 50, 250, "gui-programs.bmp" }, { 50, 346, "gui-io.bmp" },
+                                       { 50, 538, "gui-settings.bmp" }, { 180, 554, "gui-jobs.bmp" },
+                                       { 50, 442, "gui-alarms.bmp" },   { 50, 154, "gui-axis-input.bmp" },
                                        { 720, 182, "gui-keypad.bmp" } };
         if (n >= 30 && n < 30 + std::size(steps) * 45) {
             const auto i = (n - 30) / 45, t = (n - 30) % 45;
@@ -269,10 +270,20 @@ namespace
             }
             if (t == 4)
                 mouse(SDL_MOUSEBUTTONUP, steps[i].x, steps[i].y);
-            if (t == 12 && (i == 4 || i == 5 || i == 12))
-                mouse(SDL_MOUSEBUTTONDOWN, i == 12 ? 650 : 740, i == 4 ? 250 : i == 5 ? 328 : 320);
-            if (t == 16 && (i == 4 || i == 5 || i == 12))
-                mouse(SDL_MOUSEBUTTONUP, i == 12 ? 650 : 740, i == 4 ? 250 : i == 5 ? 328 : 320);
+            if (t == 12 && (i == 2 || i == 4 || i == 5 || i == 12))
+                mouse(SDL_MOUSEBUTTONDOWN,
+                      i == 12 ? 650 : 740,
+                      i == 2   ? 250
+                      : i == 4 ? 328
+                      : i == 5 ? 404
+                               : 320);
+            if (t == 16 && (i == 2 || i == 4 || i == 5 || i == 12))
+                mouse(SDL_MOUSEBUTTONUP,
+                      i == 12 ? 650 : 740,
+                      i == 2   ? 250
+                      : i == 4 ? 328
+                      : i == 5 ? 404
+                               : 320);
             if (t == 35) {
                 capture(steps[i].file, s.active);
                 phase = int(i + 1);
@@ -282,9 +293,9 @@ namespace
             SDL_SetWindowSize(SDL_GetWindowFromID(window), 1600, 600);
         }
         if (n == 650)
-            mouse(SDL_MOUSEBUTTONDOWN, 338, 118); // letterboxed Home
+            mouse(SDL_MOUSEBUTTONDOWN, 338, 58); // letterboxed Home
         if (n == 654)
-            mouse(SDL_MOUSEBUTTONUP, 338, 118);
+            mouse(SDL_MOUSEBUTTONUP, 338, 58);
         if (n == 675) {
             capture("gui-letterbox.bmp", s.active);
             phase = 14;
@@ -308,9 +319,9 @@ namespace
             mouse(SDL_MOUSEBUTTONUP, 1038, 365);
         }
         if (n == 710)
-            mouse(SDL_MOUSEBUTTONDOWN, 338, 118);
+            mouse(SDL_MOUSEBUTTONDOWN, 338, 58);
         if (n == 714)
-            mouse(SDL_MOUSEBUTTONUP, 338, 118);
+            mouse(SDL_MOUSEBUTTONUP, 338, 58);
         if (n >= 730 && n < 1000) {
             constexpr const char* names[]{ "ready", "disabled", "busy", "unconfigured", "stale", "fault" };
             const auto i = (n - 730) / 45, t = (n - 730) % 45;

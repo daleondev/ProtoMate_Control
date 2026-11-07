@@ -70,7 +70,6 @@ namespace ui::gui::hmi
         std::array<Panel, 7> m_lamps;
         Viewport m_viewport;
         std::array<Control, 8> m_shell;
-        Icon m_brand;
         Label m_title, m_health, m_notice;
         std::array<Control, 24> m_controls;
         std::array<Label, 20> m_labels;
