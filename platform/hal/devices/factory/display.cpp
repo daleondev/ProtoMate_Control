@@ -42,6 +42,9 @@ namespace hal::device::display
             const auto point{ hal::linux::display::pointer() };
             TouchReport report{};
             report.cancelled = point.cancelled;
+            report.wheel = point.wheel;
+            report.pointerX = point.x;
+            report.pointerY = point.y;
             report.droppedReports = hal::linux::display::inputDrops();
             report.points[0] = { .active = point.down, .x = point.x, .y = point.y };
             return report;

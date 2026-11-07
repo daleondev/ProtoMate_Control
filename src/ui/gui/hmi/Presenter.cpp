@@ -52,7 +52,9 @@ namespace ui::gui::hmi
         m_model.page = page;
         m_model.keypad = false;
         m_model.confirmation = false;
-        m_model.tab = 0;
+        m_model.coordinates = 0;
+        m_model.more = m_model.advanced = false;
+        m_model.axisTab = m_model.motorTab = 0;
         m_model.jobOffset = 0;
         changed = true;
     }
@@ -91,6 +93,14 @@ namespace ui::gui::hmi
             m_model.watchedJob = outcome.job;
             m_model.watchedState = ~0U;
         }
+    }
+    void Presenter::requestDiagnostics()
+    {
+        if (m_model.diagnosticTab == 2)
+            return;
+        send(command(m_model.diagnosticTab == 1
+                       ? (m_model.diagnosticIO ? Kind::MemoryIOStack : Kind::MemoryUIStack)
+                       : (m_model.diagnosticIO ? Kind::MemoryIO : Kind::MemoryUI)));
     }
     void Presenter::act(unsigned a, bool pressed)
     {
@@ -171,6 +181,8 @@ namespace ui::gui::hmi
                 break;
             case Settings:
                 navigate(Page::Settings);
+                if (m_model.settingsTab == 2)
+                    requestDiagnostics();
                 break;
             case Jobs:
                 navigate(Page::Jobs);
@@ -193,12 +205,12 @@ namespace ui::gui::hmi
             case Presets:
                 navigate(Page::Presets);
                 break;
-            case Shoulder:
-            case Elbow:
-            case Z:
+            case Axis1:
+            case Axis2:
+            case Axis3:
                 if (m_model.backend)
                     m_model.backend->release();
-                m_model.axis = a - Shoulder;
+                m_model.axis = a - Axis1;
                 if (m_model.page == Page::Home)
                     navigate(Page::Axes);
                 changed = true;
@@ -228,6 +240,90 @@ namespace ui::gui::hmi
                 if (m_model.backend)
                     m_model.backend->release();
                 m_model.continuous = a == Continuous;
+                m_model.jogMode = a == Continuous ? 2 : 1;
+                changed = true;
+                break;
+            case More:
+                if (m_model.backend)
+                    m_model.backend->release();
+                m_model.more = !m_model.more;
+                changed = true;
+                break;
+            case Advanced:
+                if (m_model.backend)
+                    m_model.backend->release();
+                m_model.advanced = !m_model.advanced;
+                changed = true;
+                break;
+            case AxisPosition:
+                if (m_model.backend)
+                    m_model.backend->release();
+                m_model.axisTab = 1;
+                changed = true;
+                break;
+            case StepMode:
+                if (m_model.backend)
+                    m_model.backend->release();
+                m_model.jogMode = 0;
+                m_model.continuous = false;
+                changed = true;
+                break;
+            case MotorMoveTab:
+            case MotorHomeTab:
+            case MotorDefaultsTab:
+                if (m_model.backend)
+                    m_model.backend->release();
+                m_model.motorTab = a - MotorMoveTab;
+                changed = true;
+                break;
+            case SettingsGeneral:
+            case SettingsRobot:
+            case SettingsDiagnostics:
+                m_model.settingsTab = a - SettingsGeneral;
+                if (a == SettingsDiagnostics)
+                    requestDiagnostics();
+                changed = true;
+                break;
+            case IODigital:
+            case IODrivers:
+            case IOAnalog:
+                m_model.ioTab = a - IODigital;
+                changed = true;
+                break;
+            case Driver0:
+            case Driver1:
+            case Driver2:
+                m_model.driverDetail = a - Driver0;
+                changed = true;
+                break;
+            case DiagnosticUI:
+            case DiagnosticIO:
+                m_model.diagnosticIO = a == DiagnosticIO;
+                m_model.diagnosticOffset = 0;
+                requestDiagnostics();
+                changed = true;
+                break;
+            case DiagnosticHeap:
+            case DiagnosticStacks:
+            case DiagnosticGraphics:
+                m_model.diagnosticTab = a - DiagnosticHeap;
+                if (a == DiagnosticGraphics)
+                    m_model.diagnosticIO = false;
+                m_model.diagnosticOffset = 0;
+                requestDiagnostics();
+                changed = true;
+                break;
+            case DiagnosticRefresh:
+                requestDiagnostics();
+                changed = true;
+                break;
+            case DiagnosticPrevious:
+                m_model.diagnosticOffset = m_model.diagnosticOffset >= 6 ? m_model.diagnosticOffset - 6 : 0;
+                changed = true;
+                break;
+            case DiagnosticNext:
+                if (m_model.diagnosticOffset < 30)
+                    m_model.diagnosticOffset += 6;
                 changed = true;
                 break;
             case Initialize:
@@ -273,12 +369,12 @@ namespace ui::gui::hmi
                 break;
             }
             case Execute: {
-                Kind k = m_model.page == Page::Motors
-                           ? (m_model.absolute ? Kind::MotorAbsolute : Kind::MotorRelative)
-                         : m_model.page == Page::Axes
-                           ? (m_model.absolute ? Kind::AxisAbsolute : Kind::AxisRelative)
-                         : m_model.tab == 1 ? (m_model.absolute ? Kind::PointAbsolute : Kind::PointRelative)
-                                            : (m_model.absolute ? Kind::JointAbsolute : Kind::JointRelative);
+                Kind k =
+                  m_model.page == Page::Motors
+                    ? (m_model.absolute ? Kind::MotorAbsolute : Kind::MotorRelative)
+                  : m_model.page == Page::Axes ? (m_model.absolute ? Kind::AxisAbsolute : Kind::AxisRelative)
+                  : m_model.coordinates == 1 ? (m_model.absolute ? Kind::PointAbsolute : Kind::PointRelative)
+                                             : (m_model.absolute ? Kind::JointAbsolute : Kind::JointRelative);
                 auto c = command(k);
                 if (m_model.page == Page::Robot) {
                     c.speed = m_model.values[10];
@@ -306,13 +402,13 @@ namespace ui::gui::hmi
             case PreviewJoints:
             case PreviewPoint:
             case PreviewLine:
-                m_model.tab = a == PreviewJoints ? 0 : a == PreviewPoint ? 1 : 2;
+                m_model.coordinates = a == PreviewJoints ? 0 : a == PreviewPoint ? 1 : 2;
                 changed = true;
                 break;
             case RunPreview: {
-                auto c = command(m_model.tab == 0   ? Kind::PreviewJoint
-                                 : m_model.tab == 1 ? Kind::PreviewPoint
-                                                    : Kind::PreviewLine);
+                auto c = command(m_model.coordinates == 0   ? Kind::PreviewJoint
+                                 : m_model.coordinates == 1 ? Kind::PreviewPoint
+                                                            : Kind::PreviewLine);
                 c.speed = m_model.values[10];
                 send(c);
                 break;
@@ -374,11 +470,13 @@ namespace ui::gui::hmi
             case AxisDynamics:
                 if (m_model.backend)
                     m_model.backend->release();
-                m_model.tab = 1;
+                m_model.axisTab = 2;
                 changed = true;
                 break;
             case AxisJogPage:
-                m_model.tab = 0;
+                if (m_model.backend)
+                    m_model.backend->release();
+                m_model.axisTab = 0;
                 changed = true;
                 break;
             case AxisStop:

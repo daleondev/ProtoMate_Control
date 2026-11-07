@@ -16,6 +16,8 @@ namespace hal::device
         std::array<TouchPoint, 5> points{};
         bool cancelled{};
         std::uint32_t droppedReports{};
+        float wheel{}; // Relative desktop input, consumed once; zero on touch hardware.
+        std::uint16_t pointerX{}, pointerY{};
     };
     class ITouch
     {

@@ -1,6 +1,7 @@
 #include "Renderer.hpp"
 #include "profiling/Trace.hpp"
 #include <Renderer3D.h>
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 namespace ui::gui::scene3d
@@ -8,13 +9,16 @@ namespace ui::gui::scene3d
     bool render(const Frame& frame,
                 std::span<std::uint16_t> color,
                 std::span<std::uint16_t> depth,
-                RenderTimings* timings) noexcept
+                RenderTimings* timings,
+                std::array<ProjectedAnchor, 3>* annotations) noexcept
     {
         profiling::Scope measurement{ PROFILE_SITE_RENDER, PROFILE_CAT_GRAPHICS };
         if (!frame.scene || !frame.snapshot.valid(*frame.scene) || color.size() < PIXELS ||
             depth.size() < PIXELS) {
             return false;
         }
+        if (annotations)
+            *annotations = {};
         constexpr auto shaders{ tgx::SHADER_PERSPECTIVE | tgx::SHADER_ZBUFFER | tgx::SHADER_GOURAUD |
                                 tgx::SHADER_NOTEXTURE };
         using Engine = tgx::Renderer3D<tgx::RGB565, shaders, std::uint16_t, 1, 0>;
@@ -100,6 +104,24 @@ namespace ui::gui::scene3d
                 m = world[unsigned(n.parent)] * m;
             }
             engine.setModelMatrix(m);
+            if (annotations)
+                for (unsigned a = 0; a < frame.anchors.size(); ++a) {
+                    const auto& anchor = frame.anchors[a];
+                    if (anchor.node != int(i))
+                        continue;
+                    const tgx::fVec3 point{ anchor.point.x, anchor.point.y, anchor.point.z };
+                    const auto ndc = engine.modelToNDC(point);
+                    const bool visible = ndc.w > 0 && std::isfinite(ndc.w) && std::abs(ndc.x) <= 1 &&
+                                         std::abs(ndc.y) <= 1 && std::abs(ndc.z) <= 1;
+                    (*annotations)[a].value = anchor.value;
+                    (*annotations)[a].visible = visible;
+                    if (visible) {
+                        const auto pixel = engine.modelToImage(point);
+                        (*annotations)[a].x = static_cast<std::int16_t>(pixel.x);
+                        (*annotations)[a].y = static_cast<std::int16_t>(pixel.y);
+                    }
+                }
+
             const auto rgb{ n.material.color };
             engine.setMaterial(tgx::RGBf(float((rgb >> 16) & 255) / 255,
                                          float((rgb >> 8) & 255) / 255,

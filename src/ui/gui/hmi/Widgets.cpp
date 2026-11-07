@@ -1,10 +1,12 @@
 #include "Widgets.hpp"
+#include <BitmapDatabase.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <texts/TextKeysAndLanguages.hpp>
 #include <touchgfx/hal/HAL.hpp>
+#include <touchgfx/widgets/Image.hpp>
 namespace ui::gui::hmi
 {
     void Panel::draw(const touchgfx::Rect& area) const
@@ -37,7 +39,8 @@ namespace ui::gui::hmi
         paint(1, radiusValue, getWidth() - 2, getHeight() - 2 * radiusValue, color);
     }
     template<std::size_t Capacity>
-    BasicLabel<Capacity>::BasicLabel()
+    BasicLabel<Capacity>::BasicLabel(bool paintOnly)
+      : m_paintOnly{ paintOnly }
     {
         setWildcard(m_text.data());
         setTypedText(touchgfx::TypedText(T_CAPTIONVALUE));
@@ -45,15 +48,51 @@ namespace ui::gui::hmi
         setWideTextAction(touchgfx::WIDE_TEXT_NONE);
     }
     template<std::size_t Capacity>
+    void BasicLabel<Capacity>::typography()
+    {
+        constexpr touchgfx::TypedTextId ids[][3]{ { T_CAPTIONLEFT, T_CAPTIONCENTER, T_CAPTIONRIGHT },
+                                                  { T_BODYLEFT, T_BODYCENTER, T_BODYRIGHT },
+                                                  { T_HEADINGLEFT, T_HEADINGCENTER, T_HEADINGRIGHT },
+                                                  { T_SMALLLEFT, T_SMALLCENTER, T_SMALLRIGHT } };
+        const unsigned column = m_alignment == touchgfx::LEFT ? 0 : m_alignment == touchgfx::CENTER ? 1 : 2;
+        const auto id = ids[m_size][column];
+        if (getTypedText().getId() != id) {
+            damage();
+            setTypedText(touchgfx::TypedText(id));
+            m_wrapWidth = -1;
+            damage();
+        }
+    }
+    template<std::size_t Capacity>
+    void BasicLabel<Capacity>::style(Typography size, touchgfx::Alignment alignment)
+    {
+        m_size = unsigned(size);
+        m_alignment = alignment;
+        typography();
+    }
+    template<std::size_t Capacity>
+    void BasicLabel<Capacity>::align(touchgfx::Alignment value)
+    {
+        m_alignment = value;
+        typography();
+    }
+    template<std::size_t Capacity>
+    void BasicLabel<Capacity>::heading()
+    {
+        m_size = 2;
+        typography();
+    }
+    template<std::size_t Capacity>
+    void BasicLabel<Capacity>::small()
+    {
+        m_size = 3;
+        typography();
+    }
+    template<std::size_t Capacity>
     void BasicLabel<Capacity>::large(bool value)
     {
-        if (value == m_large)
-            return;
-        invalidate();
-        m_large = value;
-        m_wrapWidth = -1;
-        setTypedText(touchgfx::TypedText(value ? T_BODYVALUE : T_CAPTIONVALUE));
-        invalidate();
+        m_size = value ? 1 : 0;
+        typography();
     }
     template<std::size_t Capacity>
     void BasicLabel<Capacity>::text(const char* value)
@@ -114,118 +153,26 @@ namespace ui::gui::hmi
             previous = c;
         }
         if (next != m_text) {
-            invalidate();
+            damage();
             m_text = next;
             setTypedText(getTypedText());
-            invalidate();
+            damage();
         }
     }
-    template class BasicLabel<192>;
+    template class BasicLabel<96>;
     template class BasicLabel<48>;
     void Icon::draw(const touchgfx::Rect& area) const
     {
+        constexpr touchgfx::BitmapId icons[]{ BITMAP_NAV_HOME_ID,
+                                              BITMAP_NAV_MOVE_ID,
+                                              BITMAP_NAV_PROGRAM_ID,
+                                              BITMAP_NAV_IO_ID,
+                                              BITMAP_NAV_SETTINGS_ID };
+        touchgfx::Image image;
+        image.setBitmap(touchgfx::Bitmap(icons[std::min(kind, 4U)]));
         const auto origin = getAbsoluteRect();
-        // Union the original 2x2 line pixels, then emit horizontal runs. This
-        // preserves the icon exactly while avoiding one DMA transaction (and
-        // worker wakeup) per overlapping Bresenham pixel.
-        std::array<std::uint32_t, 26> rows{};
-        auto line = [&](int x, int y, int ex, int ey) {
-            int dx = std::abs(ex - x), sx = x < ex ? 1 : -1, dy = -std::abs(ey - y), sy = y < ey ? 1 : -1,
-                error = dx + dy;
-            for (;;) {
-                for (int py = y; py < y + 2; ++py)
-                    for (int px = x; px < x + 2; ++px)
-                        if (px >= 0 && px < 26 && py >= 0 && py < 26)
-                            rows[py] |= 1U << px;
-                if (x == ex && y == ey)
-                    break;
-                const int twice = 2 * error;
-                if (twice >= dy) {
-                    error += dy;
-                    x += sx;
-                }
-                if (twice <= dx) {
-                    error += dx;
-                    y += sy;
-                }
-            }
-        };
-        switch (kind) {
-            case 0:
-                line(1, 12, 12, 2);
-                line(12, 2, 23, 12);
-                line(5, 11, 5, 23);
-                line(5, 23, 19, 23);
-                line(19, 23, 19, 11);
-                line(10, 23, 10, 16);
-                line(10, 16, 14, 16);
-                line(14, 16, 14, 23);
-                break;
-            case 1:
-                line(2, 12, 22, 12);
-                line(12, 2, 12, 22);
-                line(2, 12, 6, 8);
-                line(2, 12, 6, 16);
-                line(22, 12, 18, 8);
-                line(22, 12, 18, 16);
-                line(12, 2, 8, 6);
-                line(12, 2, 16, 6);
-                line(12, 22, 8, 18);
-                line(12, 22, 16, 18);
-                break;
-            case 2:
-                for (int y : { 4, 12, 20 }) {
-                    line(2, y, 5, y);
-                    line(9, y, 23, y);
-                }
-                break;
-            case 3:
-                line(6, 2, 6, 22);
-                line(18, 2, 18, 22);
-                line(2, 7, 10, 7);
-                line(14, 17, 22, 17);
-                line(2, 5, 2, 9);
-                line(10, 5, 10, 9);
-                line(14, 15, 14, 19);
-                line(22, 15, 22, 19);
-                break;
-            default:
-                for (int i = 0; i < 8; ++i) {
-                    const float a = float(i) * .785398f;
-                    line(int(12 + 7 * std::cos(a)),
-                         int(12 + 7 * std::sin(a)),
-                         int(12 + 11 * std::cos(a)),
-                         int(12 + 11 * std::sin(a)));
-                }
-                line(8, 8, 16, 8);
-                line(16, 8, 16, 16);
-                line(16, 16, 8, 16);
-                line(8, 16, 8, 8);
-                break;
-        }
-        for (int y = 0; y < 26;) {
-            int end = y + 1;
-            while (end < 26 && rows[end] == rows[y])
-                ++end;
-            for (int x = 0; x < 26;) {
-                if (!(rows[y] & (1U << x))) {
-                    ++x;
-                    continue;
-                }
-                const int start = x;
-                while (x < 26 && (rows[y] & (1U << x)))
-                    ++x;
-                touchgfx::Rect r{ static_cast<int16_t>(start), static_cast<int16_t>(y),
-                                  static_cast<int16_t>(x - start), static_cast<int16_t>(end - y) };
-                r &= area;
-                if (!r.isEmpty()) {
-                    r.x += origin.x;
-                    r.y += origin.y;
-                    touchgfx::HAL::lcd().fillRect(r, 0xcbddeb, 255);
-                }
-            }
-            y = end;
-        }
+        image.setXY(origin.x, origin.y);
+        image.draw(area);
     }
     Control::Control()
     {
@@ -234,14 +181,25 @@ namespace ui::gui::hmi
         add(m_label);
         add(m_icon);
         m_icon.setVisible(false);
+        m_label.align(touchgfx::CENTER);
         layout(0, 0, 160);
+    }
+    void Control::alignLabel()
+    {
+        const int top = m_icon.isVisible() ? 35 : 0;
+        const int height = std::min<int>(m_label.getTextHeight(), getHeight() - top - 4);
+        m_label.setPosition(m_icon.isVisible() ? 2 : 8,
+                            top + (getHeight() - top - height) / 2,
+                            getWidth() - (m_icon.isVisible() ? 4 : 16),
+                            height);
+        m_icon.setPosition((getWidth() - 26) / 2, 8, 26, 26);
     }
     void Control::icon(unsigned kind)
     {
         m_icon.kind = kind;
-        m_icon.setPosition((getWidth() - 26) / 2, 7, 26, 26);
         m_icon.setVisible(true);
-        m_label.setPosition(8, 37, getWidth() - 16, 30);
+        m_label.small();
+        alignLabel();
     }
     void Control::layout(int x, int y, int width, int height)
     {
@@ -250,7 +208,8 @@ namespace ui::gui::hmi
         invalidate();
         setPosition(x, y, width, height);
         m_panel.setPosition(0, 0, width, height);
-        m_label.setPosition(8, (height - 28) / 2, width - 16, 30);
+        m_label.setWidth(width - (m_icon.isVisible() ? 4 : 16));
+        alignLabel();
         invalidate();
     }
     void Control::configure(const char* label, unsigned id, Callback cb, void* context)
@@ -260,9 +219,30 @@ namespace ui::gui::hmi
             refresh();
         }
         m_label.text(label);
+        alignLabel();
         m_id = id;
         m_callback = cb;
         m_context = context;
+    }
+    void Control::appearance(std::uint32_t color, unsigned radius, bool large)
+    {
+        tint(color);
+        rounded(radius);
+        m_label.style(large ? Typography::Heading : Typography::Caption, touchgfx::CENTER);
+    }
+    void Control::tint(std::uint32_t color)
+    {
+        if (m_tint != color) {
+            m_tint = color;
+            refresh();
+        }
+    }
+    void Control::rounded(unsigned radius)
+    {
+        if (m_panel.radius != radius) {
+            m_panel.radius = radius;
+            invalidate();
+        }
     }
     void Control::enabled(bool v)
     {
@@ -289,13 +269,16 @@ namespace ui::gui::hmi
     }
     void Control::refresh()
     {
-        m_panel.color = !m_enabled   ? 0x18232d
-                        : m_pressed  ? 0x164b7f
-                        : m_danger   ? 0x74333d
-                        : m_selected ? 0x154e8a
-                                     : 0x223443;
-        m_panel.border = m_selected ? 0x329fff : m_danger ? 0xb35762 : 0x3a5061;
-        m_label.setColor(m_enabled ? 0xe7eef5 : 0x718493);
+        m_panel.color = !m_enabled   ? theme::DISABLED
+                        : m_pressed  ? theme::PRESSED
+                        : m_danger   ? theme::DANGER
+                        : m_selected ? theme::SELECTED
+                        : m_tint     ? m_tint
+                                     : theme::CONTROL;
+        m_panel.border = m_selected ? theme::SELECTED_BORDER
+                         : m_danger ? theme::DANGER_BORDER
+                                    : theme::CONTROL_BORDER;
+        m_label.setColor(m_enabled ? theme::TEXT : theme::DISABLED_TEXT);
         invalidate();
     }
     void Control::handleClickEvent(const touchgfx::ClickEvent& e)

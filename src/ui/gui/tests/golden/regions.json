@@ -1,51 +1,9 @@
 {
-  "gui-home": {
-    "ignore": [
-      [
-        132,
-        112,
-        771,
-        511
-      ]
-    ],
-    "include": [
-      [
-        144,
-        112,
-        763,
-        151
-      ],
-      [
-        144,
-        452,
-        771,
-        507
-      ],
-      [
-        632,
-        308,
-        763,
-        363
-      ],
-      [
-        636,
-        372,
-        695,
-        427
-      ],
-      [
-        704,
-        372,
-        763,
-        427
-      ]
-    ]
-  },
-  "gui-axes": {
+  "gui-alarms": {
     "ignore": [],
     "include": []
   },
-  "gui-robot": {
+  "gui-axes": {
     "ignore": [],
     "include": []
   },
@@ -53,38 +11,47 @@
     "ignore": [],
     "include": []
   },
-  "gui-preview": {
-    "ignore": [],
-    "include": []
-  },
-  "gui-motors": {
-    "ignore": [],
-    "include": []
-  },
-  "gui-programs": {
-    "ignore": [],
-    "include": []
+  "gui-home": {
+    "ignore": [
+      [
+        104,
+        100,
+        743,
+        521
+      ]
+    ],
+    "include": [
+      [
+        112,
+        82,
+        279,
+        137
+      ],
+      [
+        568,
+        82,
+        735,
+        137
+      ],
+      [
+        568,
+        460,
+        735,
+        515
+      ],
+      [
+        120,
+        494,
+        420,
+        521
+      ]
+    ]
   },
   "gui-io": {
     "ignore": [],
     "include": []
   },
-  "gui-settings": {
-    "ignore": [
-      [
-        152,
-        366,
-        983,
-        429
-      ]
-    ],
-    "include": []
-  },
   "gui-jobs": {
-    "ignore": [],
-    "include": []
-  },
-  "gui-alarms": {
     "ignore": [],
     "include": []
   },
@@ -95,295 +62,483 @@
   "gui-letterbox": {
     "ignore": [
       [
-        132,
-        112,
-        771,
-        511
+        104,
+        100,
+        743,
+        521
       ]
     ],
     "include": [
       [
-        144,
         112,
-        763,
-        151
+        82,
+        279,
+        137
       ],
       [
-        144,
-        452,
-        771,
-        507
+        568,
+        82,
+        735,
+        137
       ],
       [
-        632,
-        308,
-        763,
-        363
+        568,
+        460,
+        735,
+        515
       ],
       [
-        636,
-        372,
-        695,
-        427
-      ],
-      [
-        704,
-        372,
-        763,
-        427
+        120,
+        494,
+        420,
+        521
       ]
     ]
   },
-  "gui-state-ready": {
+  "gui-motors": {
+    "ignore": [],
+    "include": []
+  },
+  "gui-preview": {
+    "ignore": [],
+    "include": []
+  },
+  "gui-programs": {
+    "ignore": [],
+    "include": []
+  },
+  "gui-robot": {
+    "ignore": [],
+    "include": []
+  },
+  "gui-settings": {
+    "ignore": [],
+    "include": []
+  },
+  "gui-state-busy": {
     "ignore": [
       [
-        132,
-        112,
-        771,
-        511
+        104,
+        100,
+        743,
+        521
       ]
     ],
     "include": [
       [
-        144,
         112,
-        763,
-        151
+        82,
+        279,
+        137
       ],
       [
-        144,
-        452,
-        771,
-        507
+        568,
+        82,
+        735,
+        137
       ],
       [
-        632,
-        308,
-        763,
-        363
+        568,
+        460,
+        735,
+        515
       ],
       [
-        636,
-        372,
-        695,
-        427
-      ],
-      [
-        704,
-        372,
-        763,
-        427
+        120,
+        494,
+        420,
+        521
       ]
     ]
   },
   "gui-state-disabled": {
     "ignore": [
       [
-        132,
-        112,
-        771,
-        511
+        104,
+        100,
+        743,
+        521
       ]
     ],
     "include": [
       [
-        144,
         112,
-        763,
-        151
+        82,
+        279,
+        137
       ],
       [
-        144,
-        452,
-        771,
-        507
+        568,
+        82,
+        735,
+        137
       ],
       [
-        632,
-        308,
-        763,
-        363
+        568,
+        460,
+        735,
+        515
       ],
       [
-        636,
-        372,
-        695,
-        427
-      ],
-      [
-        704,
-        372,
-        763,
-        427
-      ]
-    ]
-  },
-  "gui-state-busy": {
-    "ignore": [
-      [
-        132,
-        112,
-        771,
-        511
-      ]
-    ],
-    "include": [
-      [
-        144,
-        112,
-        763,
-        151
-      ],
-      [
-        144,
-        452,
-        771,
-        507
-      ],
-      [
-        632,
-        308,
-        763,
-        363
-      ],
-      [
-        636,
-        372,
-        695,
-        427
-      ],
-      [
-        704,
-        372,
-        763,
-        427
-      ]
-    ]
-  },
-  "gui-state-unconfigured": {
-    "ignore": [
-      [
-        132,
-        112,
-        771,
-        511
-      ]
-    ],
-    "include": [
-      [
-        144,
-        112,
-        763,
-        151
-      ],
-      [
-        144,
-        452,
-        771,
-        507
-      ],
-      [
-        632,
-        308,
-        763,
-        363
-      ],
-      [
-        636,
-        372,
-        695,
-        427
-      ],
-      [
-        704,
-        372,
-        763,
-        427
-      ]
-    ]
-  },
-  "gui-state-stale": {
-    "ignore": [
-      [
-        132,
-        112,
-        771,
-        511
-      ]
-    ],
-    "include": [
-      [
-        144,
-        112,
-        763,
-        151
-      ],
-      [
-        144,
-        452,
-        771,
-        507
-      ],
-      [
-        632,
-        308,
-        763,
-        363
-      ],
-      [
-        636,
-        372,
-        695,
-        427
-      ],
-      [
-        704,
-        372,
-        763,
-        427
+        120,
+        494,
+        420,
+        521
       ]
     ]
   },
   "gui-state-fault": {
     "ignore": [
       [
-        132,
-        112,
-        771,
-        511
+        104,
+        100,
+        743,
+        521
       ]
     ],
     "include": [
       [
-        144,
         112,
-        763,
-        151
+        82,
+        279,
+        137
       ],
       [
-        144,
-        452,
-        771,
-        507
+        568,
+        82,
+        735,
+        137
       ],
       [
-        632,
-        308,
-        763,
-        363
+        568,
+        460,
+        735,
+        515
       ],
       [
-        636,
-        372,
-        695,
-        427
-      ],
-      [
-        704,
-        372,
-        763,
-        427
+        120,
+        494,
+        420,
+        521
       ]
     ]
+  },
+  "gui-state-ready": {
+    "ignore": [
+      [
+        104,
+        100,
+        743,
+        521
+      ]
+    ],
+    "include": [
+      [
+        112,
+        82,
+        279,
+        137
+      ],
+      [
+        568,
+        82,
+        735,
+        137
+      ],
+      [
+        568,
+        460,
+        735,
+        515
+      ],
+      [
+        120,
+        494,
+        420,
+        521
+      ]
+    ]
+  },
+  "gui-state-stale": {
+    "ignore": [
+      [
+        104,
+        100,
+        743,
+        521
+      ]
+    ],
+    "include": [
+      [
+        112,
+        82,
+        279,
+        137
+      ],
+      [
+        568,
+        82,
+        735,
+        137
+      ],
+      [
+        568,
+        460,
+        735,
+        515
+      ],
+      [
+        120,
+        494,
+        420,
+        521
+      ]
+    ]
+  },
+  "gui-state-unconfigured": {
+    "ignore": [
+      [
+        104,
+        100,
+        743,
+        521
+      ]
+    ],
+    "include": [
+      [
+        112,
+        82,
+        279,
+        137
+      ],
+      [
+        568,
+        82,
+        735,
+        137
+      ],
+      [
+        568,
+        460,
+        735,
+        515
+      ],
+      [
+        120,
+        494,
+        420,
+        521
+      ]
+    ]
+  },
+  "page-axis-2": {
+    "ignore": [],
+    "include": []
+  },
+  "page-axis-3": {
+    "ignore": [],
+    "include": []
+  },
+  "page-axis-3-jog": {
+    "ignore": [],
+    "include": []
+  },
+  "page-axis-hold": {
+    "ignore": [],
+    "include": []
+  },
+  "page-axis-jog": {
+    "ignore": [],
+    "include": []
+  },
+  "page-axis-move": {
+    "ignore": [],
+    "include": []
+  },
+  "page-axis-settings": {
+    "ignore": [],
+    "include": []
+  },
+  "page-axis-timed": {
+    "ignore": [],
+    "include": []
+  },
+  "page-cartesian": {
+    "ignore": [],
+    "include": []
+  },
+  "page-home": {
+    "ignore": [
+      [
+        104,
+        100,
+        743,
+        521
+      ]
+    ],
+    "include": [
+      [
+        112,
+        82,
+        279,
+        137
+      ],
+      [
+        568,
+        82,
+        735,
+        137
+      ],
+      [
+        568,
+        460,
+        735,
+        515
+      ],
+      [
+        120,
+        494,
+        420,
+        521
+      ]
+    ]
+  },
+  "page-home-return": {
+    "ignore": [
+      [
+        104,
+        100,
+        743,
+        521
+      ]
+    ],
+    "include": [
+      [
+        112,
+        82,
+        279,
+        137
+      ],
+      [
+        568,
+        82,
+        735,
+        137
+      ],
+      [
+        568,
+        460,
+        735,
+        515
+      ],
+      [
+        120,
+        494,
+        420,
+        521
+      ]
+    ]
+  },
+  "page-io-analog": {
+    "ignore": [],
+    "include": []
+  },
+  "page-io-digital": {
+    "ignore": [],
+    "include": []
+  },
+  "page-io-drivers": {
+    "ignore": [],
+    "include": []
+  },
+  "page-more": {
+    "ignore": [],
+    "include": []
+  },
+  "page-motor-defaults": {
+    "ignore": [],
+    "include": []
+  },
+  "page-motor-home": {
+    "ignore": [],
+    "include": []
+  },
+  "page-motor-move": {
+    "ignore": [],
+    "include": []
+  },
+  "page-preview": {
+    "ignore": [],
+    "include": []
+  },
+  "page-preview-line": {
+    "ignore": [],
+    "include": []
+  },
+  "page-robot": {
+    "ignore": [],
+    "include": []
+  },
+  "page-robot-advanced": {
+    "ignore": [],
+    "include": []
+  },
+  "page-robot-joints": {
+    "ignore": [],
+    "include": []
+  },
+  "page-robot-point": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-general": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-graphics": {
+    "ignore": [
+      [
+        572,
+        254,
+        984,
+        457
+      ]
+    ],
+    "include": []
+  },
+  "page-settings-graphics-next": {
+    "ignore": [
+      [
+        572,
+        254,
+        984,
+        457
+      ]
+    ],
+    "include": []
+  },
+  "page-settings-heap": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-heap-next": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-io-heap": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-io-stacks": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-io-stacks-next": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-robot": {
+    "ignore": [],
+    "include": []
   }
 }

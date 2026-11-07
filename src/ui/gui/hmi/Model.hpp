@@ -24,7 +24,11 @@ namespace ui::gui::hmi
         Backend* backend{};
         Snapshot state{};
         Page page{ Page::Home };
-        unsigned axis{}, tab{}, jobOffset{}, buffer{};
+        unsigned axis{}, coordinates{}, jobOffset{}, buffer{};
+        unsigned axisTab{}, motorTab{}, settingsTab{}, ioTab{}, diagnosticTab{}, diagnosticOffset{},
+          driverDetail{};
+        unsigned jogMode{};
+        bool more{}, advanced{}, diagnosticIO{};
         bool feedback{ true }, continuous{}, absolute{}, previews{}, keypad{}, confirmation{};
         unsigned field{};
         std::array<double, 12> values{ 0, 0, 0, 0, 0, 0, 0, 0, 1, .5, .25, 10 };
@@ -32,7 +36,7 @@ namespace ui::gui::hmi
         double step{ 1 };
         Text<32> number{};
         Text<192> notice{};
-        Text<192> graphics{};
+        std::array<std::uint32_t, 8> graphics{};
         std::uint64_t watchedJob{};
         unsigned watchedState{ ~0U };
         std::array<Job, 4> jobs{};

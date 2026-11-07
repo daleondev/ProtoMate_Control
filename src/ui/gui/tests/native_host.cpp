@@ -84,18 +84,180 @@ namespace
             }
             return;
         }
+        if (std::getenv("GUI_TEST_WHEEL")) {
+            static std::uint64_t baseline{}, closer{};
+            static std::array<std::uint16_t, 640 * 300> closerPixels{};
+            const auto hash = [&] {
+                std::uint64_t h = 14695981039346656037ull;
+                auto p = hal::linux::display::framebuffer(s.active);
+                for (unsigned y = 150; y < 450; ++y)
+                    for (unsigned x = 104; x < 744; ++x) {
+                        h ^= p[y * 1024 + x];
+                        h *= 1099511628211ull;
+                    }
+                return h;
+            };
+            const auto wheel = [&](float delta, int x, int y, bool flipped = false) {
+                SDL_Event e{};
+                e.type = SDL_MOUSEWHEEL;
+                // SDL2-compat rewrites pushed precision from integer y. Fractional
+                // deltas are verified at the bounded handoff/recognizer boundary.
+                e.wheel.preciseY = delta;
+                e.wheel.y = int(delta);
+                e.wheel.direction = flipped ? SDL_MOUSEWHEEL_FLIPPED : SDL_MOUSEWHEEL_NORMAL;
+#if SDL_VERSION_ATLEAST(2, 26, 0)
+                e.wheel.mouseX = x;
+                e.wheel.mouseY = y;
+#else
+                SDL_WarpMouseInWindow(SDL_GetWindowFromID(window), x, y);
+#endif
+                SDL_PushEvent(&e);
+            };
+            if (n == 120)
+                baseline = hash();
+            if (n == 130)
+                wheel(1.f, 400, 300);
+            if (n == 240) {
+                closer = hash();
+                const auto pixels = hal::linux::display::framebuffer(s.active);
+                for (unsigned y = 0; y < 300; ++y)
+                    std::copy_n(pixels.begin() + (y + 150) * 1024 + 104, 640, closerPixels.begin() + y * 640);
+                correct = correct && closer != baseline;
+            }
+            if (n == 250)
+                wheel(-1.f, 400, 300);
+            if (n == 360)
+                correct = correct && hash() == baseline;
+            if (n == 370)
+                wheel(1, 800, 300); // status card must not zoom
+            if (n == 480)
+                correct = correct && hash() == baseline;
+            if (n == 490)
+                wheel(1.f, 400, 300, true);
+            if (n == 600)
+                correct = correct && hash() != baseline && hash() != closer;
+            if (n == 610)
+                wheel(-1.f, 400, 300, true);
+            if (n == 720)
+                correct = correct && hash() == baseline;
+            if (n == 730) {
+                SDL_Event e{};
+                e.type = SDL_WINDOWEVENT;
+                e.window.event = SDL_WINDOWEVENT_FOCUS_LOST;
+                SDL_PushEvent(&e);
+                // Leaving an already unfocused window must not restore focus.
+                e.window.event = SDL_WINDOWEVENT_LEAVE;
+                SDL_PushEvent(&e);
+            }
+            if (n == 740)
+                wheel(1, 400, 300);
+            if (n == 840)
+                correct = correct && hash() == baseline;
+            if (n == 850) {
+                SDL_Event e{};
+                e.type = SDL_WINDOWEVENT;
+                e.window.event = SDL_WINDOWEVENT_FOCUS_GAINED;
+                SDL_PushEvent(&e);
+                SDL_SetWindowSize(SDL_GetWindowFromID(window), 1600, 600);
+            }
+            if (n == 860)
+                wheel(1, 50, 300); // letterbox is not scene space
+            if (n == 960)
+                correct = correct && hash() == baseline;
+            if (n == 970)
+                wheel(1.f, 688, 300);
+            if (n == 1080) {
+                unsigned changed{};
+                const auto pixels = hal::linux::display::framebuffer(s.active);
+                for (unsigned y = 0; y < 300; ++y)
+                    for (unsigned x = 0; x < 640; ++x)
+                        changed += pixels[(y + 150) * 1024 + x + 104] != closerPixels[y * 640 + x];
+                // Repeated inverse float scales can differ by a few edge pixels.
+                // An additional scroll would change thousands, not <=32 /192000.
+                correct = correct && changed <= 32;
+                std::fprintf(stderr, "Letterboxed wheel round-trip: %u changed edge pixels\n", changed);
+                phase = 23;
+                SDL_Event e{};
+                e.type = SDL_QUIT;
+                SDL_PushEvent(&e);
+                std::fprintf(
+                  stderr, "Wheel, focus, letterboxing, exactly-once: %s\n", correct ? "PASS" : "FAIL");
+            }
+            return;
+        }
+        if (std::getenv("GUI_TEST_PAGES")) {
+            struct PageStep
+            {
+                int x, y;
+                const char* name;
+            };
+            static constexpr PageStep pages[]{ { 50, 118, "home" },
+                                               { 50, 202, "axis-jog" },
+                                               { 720, 182, "axis-move" },
+                                               { 910, 182, "axis-settings" },
+                                               { 274, 184, "axis-2" },
+                                               { 378, 184, "axis-3" },
+                                               { 544, 184, "axis-3-jog" },
+                                               { 730, 248, "axis-timed" },
+                                               { 910, 248, "axis-hold" },
+                                               { 440, 118, "robot" },
+                                               { 840, 184, "robot-advanced" },
+                                               { 840, 184, "robot-joints" },
+                                               { 544, 184, "robot-point" },
+                                               { 660, 118, "cartesian" },
+                                               { 890, 118, "more" },
+                                               { 740, 250, "preview" },
+                                               { 840, 184, "preview-line" },
+                                               { 890, 118, "more" },
+                                               { 740, 328, "motor-move" },
+                                               { 710, 184, "motor-home" },
+                                               { 840, 184, "motor-defaults" },
+                                               { 50, 370, "io-digital" },
+                                               { 544, 118, "io-drivers" },
+                                               { 890, 118, "io-analog" },
+                                               { 50, 454, "settings-general" },
+                                               { 544, 118, "settings-robot" },
+                                               { 890, 118, "settings-heap" },
+                                               { 920, 184, "settings-heap" },
+                                               { 920, 490, "settings-heap-next" },
+                                               { 270, 184, "settings-io-heap" },
+                                               { 590, 184, "settings-io-stacks" },
+                                               { 920, 490, "settings-io-stacks-next" },
+                                               { 770, 184, "settings-graphics" },
+                                               { 920, 490, "settings-graphics-next" },
+                                               { 50, 118, "home-return" } };
+            if (n >= 30 && n < 30 + std::size(pages) * 35) {
+                const auto i = (n - 30) / 35, t = (n - 30) % 35;
+                if (t == 0)
+                    mouse(SDL_MOUSEBUTTONDOWN, pages[i].x, pages[i].y);
+                if (t == 4)
+                    mouse(SDL_MOUSEBUTTONUP, pages[i].x, pages[i].y);
+                if (t == 28) {
+                    char path[96];
+                    std::snprintf(path, sizeof(path), "page-%s.bmp", pages[i].name);
+                    capture(path, s.active);
+                }
+            }
+            if (n == 30 + std::size(pages) * 35) {
+                phase = 22;
+                SDL_Event e{};
+                e.type = SDL_QUIT;
+                SDL_PushEvent(&e);
+            }
+            return;
+        }
         struct Step
         {
             int x, y;
             const char* file;
         };
         static constexpr Step steps[]{ { 50, 118, "gui-home.bmp" },     { 50, 202, "gui-axes.bmp" },
-                                       { 380, 118, "gui-robot.bmp" },   { 550, 118, "gui-cartesian.bmp" },
-                                       { 720, 118, "gui-preview.bmp" }, { 890, 118, "gui-motors.bmp" },
+                                       { 440, 118, "gui-robot.bmp" },   { 660, 118, "gui-cartesian.bmp" },
+                                       { 890, 118, "gui-preview.bmp" }, { 890, 118, "gui-motors.bmp" },
                                        { 50, 286, "gui-programs.bmp" }, { 50, 370, "gui-io.bmp" },
                                        { 50, 454, "gui-settings.bmp" }, { 180, 554, "gui-jobs.bmp" },
                                        { 300, 554, "gui-alarms.bmp" },  { 50, 202, "gui-axis-input.bmp" },
-                                       { 200, 434, "gui-keypad.bmp" } };
+                                       { 720, 182, "gui-keypad.bmp" } };
         if (n >= 30 && n < 30 + std::size(steps) * 45) {
             const auto i = (n - 30) / 45, t = (n - 30) % 45;
             if (t == 0) {
@@ -107,6 +269,10 @@ namespace
             }
             if (t == 4)
                 mouse(SDL_MOUSEBUTTONUP, steps[i].x, steps[i].y);
+            if (t == 12 && (i == 4 || i == 5 || i == 12))
+                mouse(SDL_MOUSEBUTTONDOWN, i == 12 ? 650 : 740, i == 4 ? 250 : i == 5 ? 328 : 320);
+            if (t == 16 && (i == 4 || i == 5 || i == 12))
+                mouse(SDL_MOUSEBUTTONUP, i == 12 ? 650 : 740, i == 4 ? 250 : i == 5 ? 328 : 320);
             if (t == 35) {
                 capture(steps[i].file, s.active);
                 phase = int(i + 1);
@@ -132,6 +298,10 @@ namespace
             SDL_PushEvent(&e);
         }
         if (n == 700) {
+            SDL_Event focus{};
+            focus.type = SDL_WINDOWEVENT;
+            focus.window.event = SDL_WINDOWEVENT_FOCUS_GAINED;
+            SDL_PushEvent(&focus);
             mouse(SDL_MOUSEBUTTONDOWN, 1038, 365);
         } // cancel keypad after letterboxing
         if (n == 704) {

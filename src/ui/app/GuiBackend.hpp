@@ -21,6 +21,7 @@ namespace ui
         gui::hmi::Outcome hold(const gui::hmi::Command&, int, int, int, int) override;
         void input(const gui::hmi::Input&) override;
         void release() override;
+        void diagnostics(unsigned, gui::hmi::DiagnosticPage&) override;
 
       private:
         void update(); // existing client worker
@@ -39,5 +40,9 @@ namespace ui
         bool m_memoryBusy{};
         pnm::msg::ReadinessRegistration m_memoryReady;
         std::uint64_t m_memoryOperation{};
+        diagnostics::MemorySnapshot m_memoryData{};
+        std::chrono::steady_clock::time_point m_memoryTime{};
+        bool m_memoryAvailable{}, m_memoryIO{};
+        gui::hmi::Text<96> m_memoryError{};
     };
 }

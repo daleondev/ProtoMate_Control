@@ -549,7 +549,9 @@ separate from this framework.
 `proto::ui::gui` provides the robot HMI on GIGA M7 and Linux. **Home is the
 normal startup screen**, with the full prepared robot model, telemetry, motion
 readiness and shared jobs. Axis, robot, preview and raw-motor pages use the same
-Client/Robot/ICC implementation as the CLI. Programs and presets remain empty.
+Client/Robot/ICC implementation as the CLI. The interface names the joints **Axis 1, Axis 2 and Axis 3**. Programs and presets remain empty.
+
+The shared shell uses an 88-pixel navigation rail, centered controls and a persistent Stop. Home has frame-matched joint badges and one status card. Move separates Jog, Move To and Settings; I/O and diagnostics use aligned cards/tables. Orbit by dragging, zoom with the desktop wheel or a two-finger pinch, and use Reset View to restore the camera. Physical pinch input remains pending panel testing.
 
 See the [HMI operating and architecture guide](docs/gui/hmi/README.md) and
 [verification status](docs/gui/hmi/verification.md). M4 does not link TouchGFX.
@@ -587,7 +589,7 @@ Both link with our GCC 16 runtime. Vendor support has separate compilation flags
 GUI rendering is optimized with `-O2` in Debug as well as Release, retaining symbols.
 
 Versioned assets are in [`src/ui/gui/assets`](src/ui/gui/assets): Noto Sans under
-OFL, three font sizes (18/24/36), bounded Latin/German glyphs, stable text IDs in
+OFL, four font sizes (16/18/24/36), bounded Latin/German glyphs, stable text IDs in
 `texts.xml`, SVG/PNG sources and `images.json`. `gui-assets` runs ST's Linux font,
 text and image converters incrementally. SVG sources are rasterized with
 `rsvg-convert` first. Generated C++ stays in `build/.../generated/gui`. The font
@@ -625,7 +627,7 @@ not overlap multiple DMA blits with CPU drawing. CRC is enabled in CubeMX.
 Touch acquisition resets/probes ST1633i, samples at 8 ms while pressed and wakes
 on EXTI12 from idle. Unavailable devices retry at a bounded rate. `sampleTouch()`
 reads the cached report only; it never performs I²C. One primary contact is tracked
-until release, native landscape coordinates are bounds-checked, and errors/stale
+until release for ordinary widgets; all five contacts remain available to the scene gesture recognizer. Native landscape coordinates are bounds-checked, and errors/stale
 reports cancel the contact. Weak MCU I²C pull-ups keep disconnected lines defined;
 the display adapter's external pull-ups remain required for connected operation.
 
@@ -648,7 +650,7 @@ every screen. Add a page to `hmi::Page`, map intent in `Presenter`, and compose 
 from the shared `Control`, `Panel` and `Label` components in `View`. Extend the
 portable Backend contract only for real application functionality. The adapter
 belongs to `ui::Application`; widgets must not block on ICC or manipulate drivers.
-Text uses bounded Unicode buffers and explicit font-measured wrapping. Callbacks
+Text uses bounded Unicode buffers, actual font metrics for centering and explicit font-measured wrapping. Page builders are split into HomePage, MovePage and MaintenancePage; the [layout guide](docs/gui/hmi/layout.md) records component and input rules. Callbacks
 publish bounded values; only the GUI worker draws or changes widgets.
 
 ### Shaded 3D performance prototype — acceptance gate not met
@@ -661,8 +663,7 @@ camera/pose changes use a 7,914-triangle model with a 10 fps ceiling. After 500 
 without changes, it renders the original 36,376-triangle model once and returns
 to idle. Both use a rest interval of at least one quarter of the preceding
 render wall time (minimum 1 ms); full detail has a 5 fps ceiling. These are caps,
-not promised hardware rates. The measured GIGA camera workload gives 3.45 fps
-with interactive detail and 2.05 fps with full detail.
+not promised hardware rates. The current measured GIGA camera workload is approximately 3.7 fps with interactive detail; this remains stepped animation. See the image-specific measurements in the HMI verification report. Full-detail rendering remains substantially slower.
 Input/telemetry replaces the pending snapshot immediately; the worker samples the
 latest snapshot when it can render, without a separate 500 ms submission gate.
 An unchanged camera and joint pose submits no new render; newer telemetry

@@ -1,8 +1,9 @@
 include(${PROJECT_SOURCE_DIR}/cmake/touchgfx.cmake)
 add_subdirectory(scene3d)
 add_library(proto_ui_gui STATIC
-    Controller.hpp Controller.cpp util/FrameTimer.hpp util/DirtyRegions.hpp
+    Controller.hpp Controller.cpp util/FrameTimer.hpp util/DirtyRegions.hpp util/WheelQueue.hpp
     hmi/Backend.hpp hmi/Model.hpp hmi/Presenter.hpp hmi/Presenter.cpp
+    hmi/Gestures.hpp hmi/Annotations.hpp hmi/Table.hpp hmi/Table.cpp hmi/HomePage.cpp hmi/MovePage.cpp hmi/MaintenancePage.cpp
     hmi/View.hpp hmi/View.cpp hmi/Viewport.hpp hmi/Viewport.cpp hmi/Widgets.hpp hmi/Widgets.cpp
     frontend/Frontend.hpp frontend/Frontend.cpp
     frontend/Components.hpp frontend/Components.cpp
@@ -53,10 +54,14 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(NAME gui.integration COMMAND gui_integration_tests)
     add_test(NAME gui.presentation_timeout COMMAND gui_integration_tests)
     add_test(NAME gui.detail COMMAND gui_integration_tests)
+    add_test(NAME gui.pages COMMAND gui_integration_tests)
+    add_test(NAME gui.wheel COMMAND gui_integration_tests)
+    set_tests_properties(gui.wheel PROPERTIES TIMEOUT 40 ENVIRONMENT "SDL_VIDEODRIVER=dummy;GUI_TEST_WHEEL=1")
+    set_tests_properties(gui.pages PROPERTIES TIMEOUT 45 ENVIRONMENT "SDL_VIDEODRIVER=dummy;GUI_TEST_PAGES=1")
     set_tests_properties(gui.detail PROPERTIES TIMEOUT 15 ENVIRONMENT "SDL_VIDEODRIVER=dummy;GUI_TEST_DETAIL=1")
     set_tests_properties(gui.presentation_timeout PROPERTIES TIMEOUT 10 ENVIRONMENT "SDL_VIDEODRIVER=dummy;GUI_TEST_STALL=1")
     set_tests_properties(gui.integration PROPERTIES TIMEOUT 35 ENVIRONMENT "SDL_VIDEODRIVER=dummy")
-    set_tests_properties(gui.integration PROPERTIES FIXTURES_SETUP hmi_frames)
+    set_tests_properties(gui.integration gui.pages PROPERTIES FIXTURES_SETUP hmi_frames)
     add_test(NAME gui.screenshots COMMAND ${Python3_EXECUTABLE} -m pytest -q -ra
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_screenshots.py
         -o cache_dir=${PROJECT_BINARY_DIR}/pytest-cache/hmi)

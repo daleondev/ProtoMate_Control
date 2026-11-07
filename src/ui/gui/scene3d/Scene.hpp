@@ -67,11 +67,24 @@ namespace ui::gui::scene3d
         std::uint64_t revision{}, sourceTimeUs{};
         bool valid(const Scene& scene) const noexcept;
     };
+    struct Anchor
+    {
+        int node{ -1 };
+        Vec3 point{};
+        float value{};
+    };
+    struct ProjectedAnchor
+    {
+        std::int16_t x{}, y{};
+        float value{};
+        bool visible{};
+    };
     struct Frame
     {
         const Scene* scene{};
         SceneSnapshot snapshot{};
         unsigned maximumFps{ LIVE_MAX_FPS };
+        std::array<Anchor, 3> anchors{};
     };
     Quaternion rotation(Vec3 axis, float radians) noexcept;
     const Scene& benchmarkScene(unsigned triangles) noexcept;

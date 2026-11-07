@@ -23,8 +23,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port')
     parser.add_argument('--fault-only', action='store_true', help='Skip already verified framebuffer captures')
+    parser.add_argument('--capture-only', action='store_true', help='Read framebuffers without injecting a fault/reset')
     parser.add_argument('--output', type=Path, default=ROOT/'build/gui-inspection')
     args = parser.parse_args()
+    if args.fault_only and args.capture_only:
+        parser.error('--fault-only and --capture-only are mutually exclusive')
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     port = args.port or str(next(Path('/dev/serial/by-id').glob('*STM32*')))
@@ -76,13 +79,16 @@ def main():
                 else:
                     # Home has a dark shell, text and full-detail shaded CAD.
                     # SWD reads are not atomic; inspect the exported images too.
-                    assert pixels[0] == 0x08a3, 'Unexpected Home background'
+                    assert pixels[0] == 0x10c4, 'Unexpected Home background'
                     assert len(set(pixels[y*1024+x] for y in range(150, 450)
                                    for x in range(140, 630))) > 50, 'Robot viewport is empty'
                 rgb = bytes(component for pixel in pixels for component in
                             (((pixel >> 11) & 31)*255//31, ((pixel >> 5) & 63)*255//63, (pixel & 31)*255//31))
                 Image.frombytes('RGB', (1024,600), rgb).save(output/f'{name}-{slot}.png')
             print(name, 'both framebuffer slots verified', flush=True)
+        if args.capture_only:
+            print('PASS; normal Home remains active', flush=True)
+            return
         # LTDC IER=0 simulates loss of both VSync and presentation completion.
         # The GUI must time out, release resources and turn backlight off while
         # USB and ICC stay usable. Recovery uses an ordinary dual-core reset.

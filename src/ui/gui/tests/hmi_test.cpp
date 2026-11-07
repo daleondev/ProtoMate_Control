@@ -142,7 +142,7 @@ TEST(Hmi, PreviewSelectionNeverSubmitsAndLineNeverExecutes)
     p.navigate(Page::Preview);
     p.act(PreviewLine, true);
     EXPECT_EQ(b.submissions, 0U);
-    EXPECT_EQ(m.tab, 2U);
+    EXPECT_EQ(m.coordinates, 2U);
     p.act(RunPreview, true);
     EXPECT_EQ(b.last.kind, Kind::PreviewLine);
     EXPECT_EQ(b.submissions, 1U);
@@ -268,4 +268,171 @@ TEST(Hmi, AllCartesianStepDirectionsAndJobCancellationHaveExplicitIdentity)
     p.act(Cancel1, true);
     EXPECT_EQ(b.last.kind, Kind::CancelPreview);
     EXPECT_EQ(b.last.job, 123U);
+}
+
+#include "ui/gui/hmi/Gestures.hpp"
+TEST(Gestures, PinchIsRelativeBoundedAndRequiresRelease)
+{
+    Gestures g;
+    hal::device::TouchReport r{};
+    r.points[0] = { true, 300, 250 };
+    EXPECT_FALSE(g.update(r, true, true).captured);
+    r.points[1] = { true, 400, 250 };
+    auto v = g.update(r, true, true);
+    EXPECT_TRUE(v.captured);
+    EXPECT_EQ(v.scale, 1);
+    r.points[1].x = 500;
+    v = g.update(r, true, true);
+    EXPECT_NEAR(v.scale, .5f, 1e-6);
+    r.points[1].active = false;
+    EXPECT_TRUE(g.update(r, true, true).captured);
+    EXPECT_TRUE(g.update(r, true, true).captured);
+    r.points[0].active = false;
+    EXPECT_FALSE(g.update(r, true, true).captured);
+    r.points[0].active = true;
+    EXPECT_FALSE(g.update(r, true, true).captured);
+}
+TEST(Gestures, ContactBegunOutsideCannotBecomeAPinch)
+{
+    Gestures g;
+    hal::device::TouchReport r{};
+    r.points[0] = { true, 40, 200 };
+    g.update(r, true, true);
+    r.points[0].x = 300;
+    r.points[1] = { true, 400, 200 };
+    EXPECT_TRUE(g.update(r, true, true).captured);
+    r.points[1].x = 500;
+    EXPECT_EQ(g.update(r, true, true).scale, 1);
+}
+TEST(Gestures, NearZeroJitterAndSlotReorderingDoNotJump)
+{
+    Gestures g;
+    hal::device::TouchReport r{};
+    r.points[0] = { true, 300, 250 };
+    r.points[1] = { true, 301, 250 };
+    EXPECT_EQ(g.update(r, true, true).scale, 1);
+    r.points[1].x = 400;
+    EXPECT_EQ(g.update(r, true, true).scale, 1);
+    r.points[1].x = 401;
+    EXPECT_EQ(g.update(r, true, true).scale, 1);
+    std::swap(r.points[0], r.points[1]);
+    EXPECT_EQ(g.update(r, true, true).scale, 1);
+    r.cancelled = true;
+    EXPECT_TRUE(g.update(r, true, true).captured);
+}
+TEST(Gestures, WheelOnlyZoomsVisibleViewportAndHonorsFocus)
+{
+    Gestures g;
+    hal::device::TouchReport r{};
+    r.pointerX = 300;
+    r.pointerY = 300;
+    r.wheel = .5f;
+    EXPECT_NEAR(g.update(r, true, true).scale, std::exp(-.06f), 1e-6);
+    r.wheel = -1;
+    EXPECT_GT(g.update(r, true, true).scale, 1);
+    r.pointerX = 800;
+    EXPECT_EQ(g.update(r, true, true).scale, 1);
+    r.pointerX = 300;
+    EXPECT_EQ(g.update(r, false, true).scale, 1);
+    EXPECT_EQ(g.update(r, true, false).scale, 1);
+}
+TEST(Hmi, ChangingModesAndTabsCancelsHeldInput)
+{
+    for (unsigned action : { AxisJogPage,
+                             AxisPosition,
+                             AxisDynamics,
+                             StepMode,
+                             Timed,
+                             Continuous,
+                             Axis1,
+                             Axis2,
+                             Axis3,
+                             More,
+                             Advanced }) {
+        Model m;
+        BackendFixture backend;
+        m.backend = &backend;
+        Presenter p{ m };
+        m.page = Page::Axes;
+        p.act(action, true);
+        EXPECT_EQ(backend.submissions, 0U);
+        EXPECT_GT(backend.releases, 0U);
+    }
+}
+
+#include "ui/gui/hmi/Annotations.hpp"
+TEST(Gestures, OverlayControlsNeverStartPinchOrWheelZoom)
+{
+    ui::gui::hmi::Gestures gesture;
+    hal::device::TouchReport report{};
+    const ui::gui::hmi::Gestures::Exclusion overlay{ 200, 200, 100, 56 };
+    report.pointerX = 220;
+    report.pointerY = 220;
+    report.wheel = 1;
+    EXPECT_EQ(gesture.update(report, true, true, { &overlay, 1 }).scale, 1);
+    report.points[0] = { .active = true, .x = 220, .y = 220 };
+    report.points[1] = { .active = true, .x = 350, .y = 220 };
+    EXPECT_TRUE(gesture.update(report, true, true, { &overlay, 1 }).captured);
+    report.points[1].x = 450;
+    EXPECT_EQ(gesture.update(report, true, true, { &overlay, 1 }).scale, 1);
+}
+TEST(Annotations, CrowdedAnchorsStayInsideAndDoNotOverlap)
+{
+    using namespace ui::gui;
+    for (int x : { 0, 320, 639 })
+        for (int y : { 0, 200, 399 }) {
+            std::array<scene3d::ProjectedAnchor, 3> anchors{};
+            for (auto& a : anchors)
+                a = { int16_t(x), int16_t(y), 12.5f, true };
+            const auto boxes = hmi::layoutBadges(anchors);
+            for (unsigned i = 0; i < 3; ++i) {
+                ASSERT_TRUE(anchors[i].visible);
+                EXPECT_GE(boxes[i].x, 0);
+                EXPECT_GE(boxes[i].y, 56); // below the scene's top controls
+                EXPECT_LE(boxes[i].right(), 640);
+                EXPECT_LE(boxes[i].bottom(), 356); // above Reset View
+                for (unsigned j = 0; j < i; ++j)
+                    EXPECT_FALSE(boxes[i].intersect(boxes[j]));
+            }
+        }
+}
+#include "ui/gui/util/WheelQueue.hpp"
+TEST(Gestures, WheelQueueKeepsCoordinatesAndConsumesEachDeltaOnce)
+{
+    ui::gui::util::WheelQueue q;
+    using namespace std::chrono_literals;
+    const auto now = ui::gui::util::WheelQueue::Clock::now();
+    hal::device::TouchReport r{};
+    r.wheel = .25;
+    r.pointerX = 900;
+    r.pointerY = 300;
+    ASSERT_TRUE(q.push(r, now));
+    r.pointerX = 400;
+    r.wheel = -.5;
+    ASSERT_TRUE(q.push(r, now));
+    q.consume(r, now + 1ms);
+    EXPECT_EQ(r.pointerX, 900);
+    EXPECT_EQ(r.wheel, .25);
+    q.consume(r, now + 2ms);
+    EXPECT_EQ(r.pointerX, 400);
+    EXPECT_EQ(r.wheel, -.5);
+    q.consume(r, now + 3ms);
+    EXPECT_EQ(r.wheel, 0);
+    r.wheel = 1;
+    ASSERT_TRUE(q.push(r, now));
+    q.consume(r, now + 101ms);
+    EXPECT_EQ(r.wheel, 0);
+    r.wheel = 1;
+    for (unsigned i = 0; i < 8; ++i)
+        ASSERT_TRUE(q.push(r, now));
+    EXPECT_FALSE(q.push(r, now));
+    EXPECT_EQ(q.dropped(), 1);
+    q.consume(r, now);
+    EXPECT_EQ(r.wheel, 0);
+    r.wheel = 1;
+    ASSERT_TRUE(q.push(r, now));
+    r.cancelled = true;
+    ASSERT_TRUE(q.push(r, now));
+    q.consume(r, now);
+    EXPECT_EQ(r.wheel, 0);
 }

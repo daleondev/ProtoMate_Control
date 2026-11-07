@@ -7,6 +7,8 @@ decisions. Physical calibration is deliberately required on the GIGA.
 
 ![Home after referencing in the real native simulator](screens/home-referenced.png)
 
+[All revised page examples](screens/modern-overview.png) · [GIGA framebuffer readback](screens/giga-home.png)
+
 ```mermaid
 flowchart LR
     CLI[CLI] --> C[Shared motion Client / job history]
@@ -27,11 +29,8 @@ flowchart LR
 
 - **Home:** initialize, then explicitly enable. Reference Robot runs the configured
   homing sequence. Initialization never enables automatically. Select commanded
-  position or feedback, orbit by dragging, zoom, or reset the camera.
-- **Move / Axes:** shoulder/elbow in degrees and Z in millimetres. Select relative
-  or absolute, edit the value, and press Move. Step buttons use 0.1/1/10 units.
-  Dynamics exposes speed, acceleration, deceleration, jerk and timeout; zero
-  chooses the configured default. Timed jog defaults to one second. Continuous
+  position or feedback, orbit by dragging, zoom with the mouse wheel or two-finger pinch, or reset the camera. Three badges track the joint locations in the displayed image and open the corresponding axis page.
+- **Move / Axes:** Axis 1/2 in degrees and Axis 3 in millimetres. Jog, Move To and Settings have separate tabs. Static CAD illustrations highlight the selected joint and positive direction. Move To selects relative/absolute positioning; editing alone never moves. Step buttons use 0.1/1/10 units. Settings exposes acceleration, deceleration, jerk and timeout; zero chooses the configured default. Timed jog defaults to one second. Continuous
   jog requires holding its button; its initial speed is 10% of the axis limit.
 - **Move / Robot:** relative/absolute joint or Cartesian destinations. Speed is
   a 0–1 factor, initially 0.25. Acceleration/deceleration/jerk factors apply to
@@ -39,9 +38,9 @@ flowchart LR
   joints; their TCP path can curve.
 - **XYZ steps:** discrete Cartesian destination increments. Continuous Cartesian
   jogging is unavailable.
-- **Preview:** choose joints, point or straight line, then Calculate preview.
+- **More / Preview:** choose joints, point or straight line, then Calculate preview.
   Preview results have their own tab in Jobs. These buttons never execute a path.
-- **Raw motors:** shaft degrees/rpm, dynamics, timeout, homing latch speed,
+- **More / Raw motors:** shaft degrees/rpm, dynamics, timeout, homing latch speed,
   buffering, active speed change and defaults. Replacing active work in Aborting
   mode requires confirmation. Abort stops immediately and invalidates references.
 - **Jobs:** the same bounded execution history as the CLI, plus separately labelled
@@ -50,8 +49,7 @@ flowchart LR
   not mean the motor is already at rest.
 - **I/O:** read-only reference inputs, driver readiness, fault codes/warnings and
   feedback source/validity. No general-purpose or analog controls are invented.
-- **Settings:** brightness, read-only configuration, UI/IO heap and stack queries,
-  graphics counters, and access to idle motor defaults.
+- **Settings:** General, Robot and Diagnostics tabs. Heap/Stacks are typed, paginated UI/IO snapshots with right-aligned values and usage bars; Graphics shows UI counters. Fetch on entry, selection changes or Refresh. Linux identifies its shared runtime. Motor-default access remains available.
 - **Alarms:** active condition and eight bounded local messages. Acknowledging the
   history cannot clear a hardware fault.
 - **Programs / Presets:** intentional empty pages; no commands are generated.
@@ -78,7 +76,7 @@ Controller readiness in the header is separate from motion readiness in the stri
 A held gesture owns its job. Touch acquisition renews its input deadline only
 while the contact remains valid and inside the button. The client worker checks
 **200 ms** independently of rendering. Release, drag-out, focus loss, navigation,
-shutdown and failure request cancellation, including release before acceptance.
+shutdown, an additional touch and failure request cancellation, including release before acceptance. Pinching only starts when both contacts begin inside the scene and outside its controls. Ending a pinch requires full release before orbit or badge taps resume. Wheel events retain their coordinates and expire after 100 ms; focus loss and navigation clear them.
 The existing M4 ownership lease and stopping behavior are unchanged.
 
 ICC failure latches a read-only fault display; telemetry becomes invalid and
@@ -109,7 +107,7 @@ viewports pause; a newer pending pose replaces the previous one. Two-dimensional
 controls run independently. No lower-resolution fallback is used.
 GUI/touch/render priorities and stacks remain 8/16 KiB, 7/8 KiB and 16/16 KiB.
 Frontend bookkeeping has fixed internal storage: the Model is in DTCM, and the
-22,944-byte engine/widget tree occupies `.gui_internal` in the upper half of ITCM
+24,032-byte engine/widget tree occupies `.gui_internal` in the upper half of ITCM
 (`0x00008000`, 32 KiB region with a 24 KiB allocation limit). This CPU-only region
 is execute-never; pixel buffers remain in DMA-accessible SDRAM. The lower ITCM
 half retains the existing renderer code and its 24 KiB code cap. The image
@@ -140,11 +138,10 @@ telemetry and independently observed plant state, retaining INDEX's electrical
 cycle resolution. The isolated frontend fixture supplies display states only; it is not
 used as evidence of motion execution.
 
-`gui.integration` captures every page and ready/disabled/busy/unconfigured/stale/
+`gui.integration` and `gui.pages` capture every page/tab and ready/disabled/busy/unconfigured/stale/
 fault variants. `gui.x11` additionally exercises the native SDL/Mesa path.
 The reviewed images live in `src/ui/gui/tests/golden`. `gui.screenshots` compares
-static pixels, excluding asynchronous renderer completion and changing diagnostic
-counters; overlays remain checked. Screenshots from these deterministic
+static pixels, excluding asynchronous renderer completion and changing diagnostic counters; fixed scene controls remain checked. Separate projection, ownership and gesture tests cover frame-matched badges and input. Screenshots from these deterministic
 presentation fixtures are labelled accordingly.
 `PROTOMATE_HMI_AUTOMATION` is an opt-in Linux-only FIFO for test mouse events and
 captures; it is absent from the GIGA firmware and carries no motion commands.
@@ -167,3 +164,5 @@ qualification. Physical panel interaction and powered calibrated motion remain
 separate work. The [motion review](../../motion-current-state/review.md) records
 the resolved ICC allocation defect and overlap regression. No deadline was
 relaxed to accommodate the HMI.
+
+The [layout/component guide](layout.md) records exact geometry, text alignment, snapshot ownership, input routing and asset regeneration.

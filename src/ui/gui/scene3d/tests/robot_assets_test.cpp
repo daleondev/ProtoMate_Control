@@ -164,3 +164,48 @@ TEST(RobotVisuals, InteractiveDetailPreservesRegistrationAndReviewedSilhouette)
     }
     std::printf("LOD triangles=%u minimum_silhouette_iou=%.6f\n", total, worst);
 }
+
+TEST(RobotVisuals, AxisIllustrationsUseTheRegisteredDetailedMesh)
+{
+    const auto* directory = std::getenv("SCENE3D_AXIS_DIR");
+    if (!directory)
+        return;
+    std::filesystem::create_directories(directory);
+    std::vector<std::uint16_t> color(PIXELS), depth(PIXELS);
+    const Vec3 targets[]{ { 0, 0, .16f }, { .205f, 0, .34f }, { .5634f, 0, .20f } };
+    for (unsigned axis = 0; axis < 3; ++axis) {
+        auto scene = robotScene();
+        scene.groundGrid = false;
+        for (unsigned n = 0; n < scene.count; ++n) {
+            scene.nodes[n].material.useMeshMaterial = false;
+            scene.nodes[n].material.color = n == axis + 1 ? 0x4b9de0 : 0x61717f;
+        }
+        auto pose = robotSnapshot({});
+        pose.camera.target = targets[axis];
+        pose.camera.distance = axis == 1 ? .60f : .75f;
+        pose.camera.yaw = .65f;
+        pose.camera.pitch = .3f;
+        Frame frame{ &scene, pose };
+        for (unsigned a = 0; a < 3; ++a) {
+            const float angle = .4f + float(a) * .8f;
+            frame.anchors[a] = { int(axis + 1),
+                                 axis == 2 ? Vec3{ .07f, 0, -.14f + float(a) * .07f }
+                                           : Vec3{ .085f * std::cos(angle), .085f * std::sin(angle), .02f },
+                                 0 };
+        }
+        std::array<ProjectedAnchor, 3> anchors{};
+        ASSERT_TRUE(render(frame, color, depth, nullptr, &anchors));
+        std::ofstream image(std::filesystem::path(directory) / ("axis-" + std::to_string(axis) + ".ppm"),
+                            std::ios::binary);
+        image << "P6\n640 400\n255\n";
+        for (auto p : color) {
+            const char rgb[]{ char(((p >> 11) & 31) * 255 / 31),
+                              char(((p >> 5) & 63) * 255 / 63),
+                              char((p & 31) * 255 / 31) };
+            image.write(rgb, 3);
+        }
+        std::ofstream points(std::filesystem::path(directory) / ("axis-" + std::to_string(axis) + ".txt"));
+        for (auto a : anchors)
+            points << a.x << ' ' << a.y << '\n';
+    }
+}

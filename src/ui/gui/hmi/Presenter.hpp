@@ -19,9 +19,9 @@ namespace ui::gui::hmi
         Preview,
         Motors,
         Presets,
-        Shoulder,
-        Elbow,
-        Z,
+        Axis1,
+        Axis2,
+        Axis3,
         StepSmall,
         StepMedium,
         StepLarge,
@@ -81,7 +81,31 @@ namespace ui::gui::hmi
         KeyApply,
         KeyCancel,
         Confirm,
-        Reject
+        Reject,
+        More = 300,
+        AxisPosition,
+        StepMode,
+        Advanced,
+        MotorMoveTab,
+        MotorHomeTab,
+        MotorDefaultsTab,
+        SettingsGeneral,
+        SettingsRobot,
+        SettingsDiagnostics,
+        IODigital,
+        IODrivers,
+        IOAnalog,
+        Driver0,
+        Driver1,
+        Driver2,
+        DiagnosticUI,
+        DiagnosticIO,
+        DiagnosticHeap,
+        DiagnosticStacks,
+        DiagnosticGraphics,
+        DiagnosticRefresh,
+        DiagnosticPrevious,
+        DiagnosticNext
     };
     class Presenter final : public touchgfx::Presenter
     {
@@ -95,6 +119,7 @@ namespace ui::gui::hmi
         void act(unsigned action, bool pressed);
         Command command(Kind kind) const;
         void send(Command command);
+        void requestDiagnostics();
         bool changed{};
         bool cameraReset{}, cameraIn{}, cameraOut{}, brightnessChanged{};
         int holdX{}, holdY{}, holdWidth{}, holdHeight{};

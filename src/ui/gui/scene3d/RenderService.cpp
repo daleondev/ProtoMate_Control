@@ -84,7 +84,7 @@ namespace ui::gui::scene3d
                 m_status.acquiredRevision = f.revision;
                 m_status.sourceTimeUs = f.sourceTimeUs;
                 m_status.acquiredTriangles = f.triangles;
-                result = Image{ pixels(*m_front), *m_front, f.revision, f.sourceTimeUs };
+                result = Image{ pixels(*m_front), *m_front, f.revision, f.sourceTimeUs, f.annotations };
             }
         }
         if (result) {
@@ -169,7 +169,8 @@ namespace ui::gui::scene3d
                 const auto began{ std::chrono::steady_clock::now() };
                 timer.start();
                 RenderTimings timings{};
-                const auto ok{ render(frame, buffers.color[*slot], buffers.depth, &timings) };
+                std::array<ProjectedAnchor, 3> annotations{};
+                const auto ok{ render(frame, buffers.color[*slot], buffers.depth, &timings, &annotations) };
                 const auto elapsed{ static_cast<std::uint32_t>(timer.elapsed().count()) };
                 {
                     std::scoped_lock lock{ m_mutex };
@@ -192,7 +193,9 @@ namespace ui::gui::scene3d
                     m_status.completedTriangles = triangles;
                     if (m_status.visible && generation == m_visibilityGeneration && !m_stop &&
                         !stop.stop_requested()) {
-                        m_frames[*slot] = { frame.snapshot.revision, frame.snapshot.sourceTimeUs, triangles };
+                        m_frames[*slot] = {
+                            frame.snapshot.revision, frame.snapshot.sourceTimeUs, triangles, annotations
+                        };
                         m_ready = slot;
                     }
                     else {

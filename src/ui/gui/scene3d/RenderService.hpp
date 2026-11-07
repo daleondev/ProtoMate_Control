@@ -24,6 +24,7 @@ namespace ui::gui::scene3d
         std::span<const std::uint16_t> pixels;
         unsigned slot{};
         std::uint64_t revision{}, sourceTimeUs{};
+        std::array<ProjectedAnchor, 3> annotations{};
     };
     class RenderService final
     {
@@ -51,6 +52,7 @@ namespace ui::gui::scene3d
         {
             std::uint64_t revision{}, sourceTimeUs{};
             unsigned triangles{};
+            std::array<ProjectedAnchor, 3> annotations{};
         };
         std::array<Completed, 2> m_frames{};
     };

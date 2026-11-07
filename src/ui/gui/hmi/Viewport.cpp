@@ -1,7 +1,13 @@
 #include "Viewport.hpp"
+#include "Annotations.hpp"
+#include "Widgets.hpp"
+#include "ui/gui/frontend/Theme.hpp"
 #include "ui/gui/scene3d/Robot.hpp"
 #include <algorithm>
+#include <cstdio>
+#include <numbers>
 #include <stdexcept>
+#include <touchgfx/hal/HAL.hpp>
 namespace ui::gui::hmi
 {
     Viewport::Viewport(scene3d::RenderService& service)
@@ -105,27 +111,121 @@ namespace ui::gui::hmi
                 frame.camera.yaw += float(us % 12000000) / 12000000 * 6.283185f;
             if (m_benchmark)
                 frame = scene3d::benchmarkSnapshot(float(us % 60000000) / 1000000, m_revision, us);
-            if (m_service.submit(
-                  { m_benchmark ? &scene3d::benchmarkScene(m_benchmark) : &scene3d::robotScene(detail),
-                    frame,
-                    m_benchmark                                   ? 30U
-                    : m_qualification                             ? m_fps
-                    : detail == scene3d::RobotDetail::Interactive ? scene3d::DetailPolicy::INTERACTIVE_MAX_FPS
-                                                                  : scene3d::LIVE_MAX_FPS }))
+            scene3d::Frame requestFrame{ m_benchmark ? &scene3d::benchmarkScene(m_benchmark)
+                                                     : &scene3d::robotScene(detail),
+                                         frame,
+                                         m_benchmark       ? 30U
+                                         : m_qualification ? m_fps
+                                         : detail == scene3d::RobotDetail::Interactive
+                                           ? scene3d::DetailPolicy::INTERACTIVE_MAX_FPS
+                                           : scene3d::LIVE_MAX_FPS };
+            if (!m_benchmark)
+                for (unsigned i = 0; i < 3; ++i)
+                    requestFrame.anchors[i] = {
+                        int(i + 1), {}, float(m_joints[i] * (i == 2 ? 1000. : 180. / std::numbers::pi))
+                    };
+            if (m_service.submit(requestFrame))
                 m_detail.submitted(detail);
         }
         if (const auto image = m_service.acquire()) {
             setBitmap(touchgfx::Bitmap(m_bitmaps[image->slot]));
+            m_annotations = image->annotations;
+            m_badges = layoutBadges(m_annotations);
+            m_sourceTimeUs = image->sourceTimeUs;
             setVisible(true);
             invalidate();
         }
     }
+    bool Viewport::posePending() const
+    {
+        for (unsigned i = 0; i < 3; ++i)
+            if (m_annotations[i].value != float(m_joints[i] * (i == 2 ? 1000. : 180. / std::numbers::pi)))
+                return true;
+        return false;
+    }
+    void Viewport::annotationState(bool valid, bool fresh)
+    {
+        if (m_valid != valid || m_fresh != fresh) {
+            m_valid = valid;
+            m_fresh = fresh;
+            for (auto rect : m_badges)
+                invalidateRect(rect);
+        }
+    }
+    void Viewport::draw(const touchgfx::Rect& area) const
+    {
+        touchgfx::Image::draw(area);
+        const auto origin = getAbsoluteRect();
+        auto fill = [&](touchgfx::Rect r, std::uint32_t color) {
+            r &= area;
+            if (!r.isEmpty()) {
+                r.x += origin.x;
+                r.y += origin.y;
+                touchgfx::HAL::lcd().fillRect(r, color, 255);
+            }
+        };
+        constexpr const char* names[]{ "Axis 1", "Axis 2", "Axis 3" };
+        for (unsigned i = 0; i < 3; ++i) {
+            const auto& a = m_annotations[i];
+            if (!a.visible)
+                continue;
+            const auto box = m_badges[i];
+            const int endX = box.x + box.width / 2, endY = box.y + box.height / 2;
+            fill({ int16_t(std::min<int>(a.x, endX)), a.y, int16_t(std::max(1, std::abs(a.x - endX))), 1 },
+                 theme::BORDER);
+            fill({ int16_t(endX),
+                   int16_t(std::min<int>(a.y, endY)),
+                   1,
+                   int16_t(std::max(1, std::abs(a.y - endY))) },
+                 theme::BORDER);
+            fill({ int16_t(a.x - 2), int16_t(a.y - 2), 5, 5 }, theme::ACCENT);
+            Panel panel;
+            panel.color = 0x192a36;
+            panel.radius = 8;
+            panel.setPosition(origin.x + box.x, origin.y + box.y, box.width, box.height);
+            auto clip = area & box;
+            clip.x -= box.x;
+            clip.y -= box.y;
+            if (!clip.isEmpty())
+                panel.draw(clip);
+            ControlLabel label{ true };
+            label.setPosition(origin.x + box.x + 6, origin.y + box.y + 4, box.width - 12, 48);
+            label.align(touchgfx::CENTER);
+            char text[48];
+            if (m_valid)
+                std::snprintf(
+                  text, sizeof(text), "%s\n%.1f %s", names[i], double(a.value), i == 2 ? "mm" : "°");
+            else
+                std::snprintf(text, sizeof(text), "%s\n--", names[i]);
+            label.text(text);
+            label.setColor(m_fresh ? theme::TEXT : theme::AMBER);
+            clip = area;
+            clip.x += origin.x;
+            clip.y += origin.y;
+            clip &= label.getRect();
+            clip.x -= label.getX();
+            clip.y -= label.getY();
+            if (!clip.isEmpty())
+                label.draw(clip);
+        }
+    }
     void Viewport::handleClickEvent(const touchgfx::ClickEvent& event)
     {
+        if (event.getType() == touchgfx::ClickEvent::RELEASED && m_pressedBadge >= 0 && m_select) {
+            const auto i = unsigned(m_pressedBadge);
+            if (m_badges[i].intersect({ event.getX(), event.getY(), 1, 1 }))
+                m_select(m_context, i);
+        }
         m_dragging = event.getType() == touchgfx::ClickEvent::PRESSED;
+        m_pressedBadge = -1;
+        if (m_dragging)
+            for (unsigned i = 0; i < 3; ++i)
+                if (m_annotations[i].visible && m_badges[i].intersect({ event.getX(), event.getY(), 1, 1 }))
+                    m_pressedBadge = int(i);
     }
     void Viewport::handleDragEvent(const touchgfx::DragEvent& event)
     {
+        m_pressedBadge = -1;
         if (!m_dragging)
             return;
         const auto yaw = m_pose.camera.yaw - event.getDeltaX() * .008f;

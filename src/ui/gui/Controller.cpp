@@ -34,9 +34,17 @@ namespace ui::gui
             void init() override {}
             bool sampleTouch(std::int32_t& x, std::int32_t& y) override
             {
-                const auto current{ owner.status() };
-                const bool invalid{ current.touchCancelled || !current.touchAvailable ||
-                                    std::chrono::steady_clock::now() - current.touchTime >= 100ms };
+                Status current;
+                hal::device::TouchReport report;
+                {
+                    std::scoped_lock lock{ owner.m_mutex };
+                    current = owner.m_status;
+                    report = owner.m_input;
+                    owner.m_wheel.consume(report, std::chrono::steady_clock::now());
+                }
+                bool invalid{ current.touchCancelled || !current.touchAvailable ||
+                              std::chrono::steady_clock::now() - current.touchTime >= 100ms };
+                invalid = owner.m_engine->frontend.input(report, !invalid) || invalid;
                 if (invalid && !cancelled) {
                     touchgfx::Application::getInstance()->handleClickEvent(
                       touchgfx::ClickEvent(touchgfx::ClickEvent::CANCEL, 0, 0));
@@ -44,7 +52,7 @@ namespace ui::gui
                 cancelled = invalid;
                 x = current.touchX;
                 y = current.touchY;
-                return current.touchAvailable && current.touchDown &&
+                return !invalid && current.touchAvailable && current.touchDown &&
                        std::chrono::steady_clock::now() - current.touchTime < 100ms;
             }
         };
@@ -70,9 +78,12 @@ namespace ui::gui
             void setTFTFrameBuffer(std::uint16_t* address) override
             {
                 const unsigned slot{ address == owner.m_display->framebuffer(0).data() ? 0U : 1U };
+                if (owner.m_display->state().closed)
+                    return;
                 if (stop.stop_requested() || !owner.m_display->requestPresent(slot) ||
                     !owner.waitPresentation(slot, stop)) {
-                    owner.m_renderFailed = true;
+                    if (!owner.m_display->state().closed)
+                        owner.m_renderFailed = true;
                 }
             }
             void configureInterrupts() override {} // display driver is the sole IRQ owner
@@ -330,18 +341,14 @@ namespace ui::gui
                     lastFrame = std::chrono::steady_clock::now();
                     if (m_engine->frontend.model().ticks % 10 == 0) {
                         const auto rendering = m_scene.status();
-                        char diagnostics[192];
-                        std::snprintf(diagnostics,
-                                      sizeof(diagnostics),
-                                      "LTDC %lu frames · underruns %lu · DMA errors %lu\n3D %lu frames · "
-                                      "last %.1f ms · replaced %lu",
-                                      (unsigned long)state.presentations,
-                                      (unsigned long)state.underruns,
-                                      (unsigned long)m_engine->dma.errors(),
-                                      (unsigned long)rendering.presented,
-                                      rendering.lastRenderUs / 1000.,
-                                      (unsigned long)rendering.replaced);
-                        m_engine->frontend.graphics(diagnostics);
+                        m_engine->frontend.graphics({ state.presentations,
+                                                      state.underruns,
+                                                      m_engine->dma.errors(),
+                                                      rendering.presented,
+                                                      rendering.lastRenderUs,
+                                                      rendering.replaced,
+                                                      rendering.lastLatencyUs,
+                                                      rendering.maximumRenderUs });
                     }
                     m_engine->port.frame();
                     if (m_engine->frontend.brightnessChanged())
@@ -415,6 +422,7 @@ namespace ui::gui
         }, this);
         bool ready{};
         std::optional<unsigned> primary{};
+        bool multiple{};
         while (!stop.stop_requested()) {
             if (!ready) {
                 ready = bool(touch->initialize());
@@ -448,26 +456,38 @@ namespace ui::gui
                 ready = false;
                 primary.reset();
             }
+            unsigned contacts{};
+            if (report)
+                for (const auto& p : report->points)
+                    contacts += p.active;
+            if (contacts > 1)
+                multiple = true;
+            if (!contacts)
+                multiple = false;
+            bool inputCancelled{};
             {
                 std::scoped_lock lock{ m_mutex };
+                m_input = report ? *report : hal::device::TouchReport{ .cancelled = true };
+                if (!m_wheel.push(m_input, std::chrono::steady_clock::now()))
+                    m_input.cancelled = true;
                 m_status.touchAvailable = bool(report);
                 m_status.touchDown = point.active;
-                m_status.touchCancelled = !report || report->cancelled;
+                m_status.touchCancelled = inputCancelled = m_input.cancelled;
                 if (report) {
-                    m_status.inputOverflow = report->droppedReports;
+                    m_status.inputOverflow = report->droppedReports + m_wheel.dropped();
                 }
                 m_status.touchX = point.x;
                 m_status.touchY = point.y;
                 m_status.touchTime = std::chrono::steady_clock::now();
             }
             if (m_backend)
-                m_backend->input({ point.active,
-                                   bool(report) && !report->cancelled,
+                m_backend->input({ point.active && !multiple,
+                                   bool(report) && !inputCancelled && !multiple,
                                    int(point.x),
                                    int(point.y),
                                    std::chrono::steady_clock::now() });
             m_touchNotification.waitUntil(std::chrono::steady_clock::now() +
-                                          (ready ? (point.active ? 8ms : touch->idlePeriod()) : 1000ms));
+                                          (ready ? (contacts ? 8ms : touch->idlePeriod()) : 1000ms));
         }
         touch->setCallback(nullptr, nullptr);
         {

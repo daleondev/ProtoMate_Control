@@ -12,5 +12,6 @@ namespace ui::gui::scene3d
     bool render(const Frame& frame,
                 std::span<std::uint16_t> color,
                 std::span<std::uint16_t> depth,
-                RenderTimings* timings = nullptr) noexcept;
+                RenderTimings* timings = nullptr,
+                std::array<ProjectedAnchor, 3>* annotations = nullptr) noexcept;
 }

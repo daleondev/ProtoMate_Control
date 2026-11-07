@@ -4,6 +4,7 @@
 #include "hmi/Backend.hpp"
 #include "runtime/synchronization/Notification.hpp"
 #include "scene3d/RenderService.hpp"
+#include "util/WheelQueue.hpp"
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -83,6 +84,8 @@ namespace ui::gui
         void commands(Engine& engine);
         mutable std::mutex m_mutex;
         Status m_status;
+        hal::device::TouchReport m_input;
+        util::WheelQueue m_wheel;
         std::array<Request, 8> m_requests{};
         unsigned m_head{}, m_count{};
         runtime::Notification m_notification, m_touchNotification;

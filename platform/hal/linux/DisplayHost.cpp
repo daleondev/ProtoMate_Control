@@ -54,7 +54,7 @@ namespace hal::linux::display
             clock_gettime(CLOCK_MONOTONIC, &now);
             return static_cast<std::uint64_t>(now.tv_sec) * 1000000000ULL + now.tv_nsec;
         }
-        void inputEvent(bool down, int x, int y, int w, int h, bool cancelled = false)
+        void inputEvent(bool down, int x, int y, int w, int h, bool cancelled = false, float wheel = 0)
         {
             const auto scale{ std::min(double(w) / WIDTH, double(h) / HEIGHT) };
             const auto left{ (w - WIDTH * scale) * .5 }, top{ (h - HEIGHT * scale) * .5 };
@@ -65,9 +65,15 @@ namespace hal::linux::display
                            static_cast<std::uint16_t>(std::clamp(px, 0., double(WIDTH - 1))),
                            static_cast<std::uint16_t>(std::clamp(py, 0., double(HEIGHT - 1))),
                            peripheralClock ? peripheralClock() : nowNs(),
-                           cancelled || px < 0 || py < 0 || px >= WIDTH || py >= HEIGHT };
+                           cancelled || px < 0 || py < 0 || px >= WIDTH || py >= HEIGHT,
+                           wheel };
             // Keep press/release edges; coalesce consecutive drag coordinates.
-            if (count && input[(head + count - 1) % input.size()].down == point.down) {
+            if (count && input[(head + count - 1) % input.size()].down == point.down &&
+                input[(head + count - 1) % input.size()].cancelled == point.cancelled &&
+                ((!point.wheel && !input[(head + count - 1) % input.size()].wheel) ||
+                 (point.x == input[(head + count - 1) % input.size()].x &&
+                  point.y == input[(head + count - 1) % input.size()].y))) {
+                point.wheel += input[(head + count - 1) % input.size()].wheel;
                 input[(head + count - 1) % input.size()] = point;
             }
             else if (count < input.size()) {
@@ -143,7 +149,9 @@ namespace hal::linux::display
             head = (head + 1) % input.size();
             --count;
         }
-        return last;
+        const auto result = last;
+        last.wheel = 0;
+        return result;
     }
     std::uint32_t inputDrops() noexcept
     {
@@ -205,7 +213,7 @@ namespace hal::linux::display
             return EXIT_FAILURE;
         }
         pthread_detach(thread); // ThreadX scheduler ends with the process, after application cleanup.
-        bool down{};
+        bool down{}, focused{ true };
         auto nextFrame{ nowNs() };
         while (!finished.load(std::memory_order_acquire)) {
             SDL_Event event{};
@@ -216,7 +224,7 @@ namespace hal::linux::display
                     Lock lock{};
                     state.closed = true;
                 }
-                if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+                if (focused && event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
                     down = true;
                     inputEvent(true, event.button.x, event.button.y, w, h);
                 }
@@ -224,14 +232,35 @@ namespace hal::linux::display
                     down = false;
                     inputEvent(false, event.button.x, event.button.y, w, h);
                 }
-                if (event.type == SDL_MOUSEMOTION && down) {
+                if (focused && event.type == SDL_MOUSEWHEEL) {
+                    int x{}, y{};
+#if SDL_VERSION_ATLEAST(2, 26, 0)
+                    x = event.wheel.mouseX;
+                    y = event.wheel.mouseY;
+#else
+                    SDL_GetMouseState(&x, &y);
+#endif
+                    inputEvent(down,
+                               x,
+                               y,
+                               w,
+                               h,
+                               false,
+                               event.wheel.preciseY *
+                                 (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.f : 1.f));
+                }
+                if (focused && event.type == SDL_MOUSEMOTION && down) {
                     inputEvent(true, event.motion.x, event.motion.y, w, h);
                 }
                 if (event.type == SDL_WINDOWEVENT && (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST ||
                                                       event.window.event == SDL_WINDOWEVENT_LEAVE)) {
+                    if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+                        focused = false;
                     down = false;
                     inputEvent(false, 0, 0, w, h, true);
                 }
+                if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+                    focused = true;
             }
             const auto now{ nowNs() };
             if (now >= nextFrame) {

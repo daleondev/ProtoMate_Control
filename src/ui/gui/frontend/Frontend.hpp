@@ -18,11 +18,9 @@ namespace ui::gui
         }
         void diagnostics(bool enabled) { m_view.diagnostics(enabled); }
         void scene(unsigned triangles) { m_view.benchmark(triangles); }
-        void graphics(const char* text)
-        {
-            std::snprintf(m_model.graphics.data(), m_model.graphics.size(), "%s", text);
-        }
+        void graphics(std::array<std::uint32_t, 8> value) { m_model.graphics = value; }
         void rate(unsigned fps, bool interactive) { m_view.rate(fps, interactive); }
+        bool input(const hal::device::TouchReport& report, bool valid) { return m_view.input(report, valid); }
         bool brightnessChanged() { return m_view.brightnessChanged(); }
         const hmi::Model& model() const { return m_model; }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/gui/frontend/Theme.hpp"
 #include <array>
 #include <cstdint>
 #include <span>
@@ -13,7 +14,7 @@ namespace ui::gui::hmi
     class Panel final : public touchgfx::Widget
     {
       public:
-        std::uint32_t color{ 0x192936 }, border{ 0x304352 };
+        std::uint32_t color{ theme::SURFACE }, border{ theme::BORDER };
         unsigned radius{ 10 };
         void draw(const touchgfx::Rect& area) const override;
         touchgfx::Rect getSolidRect() const override
@@ -24,20 +25,42 @@ namespace ui::gui::hmi
                      static_cast<std::int16_t>(getHeight() - radius * 2) };
         }
     };
+    enum class Typography
+    {
+        Caption,
+        Body,
+        Heading,
+        Small
+    };
     template<std::size_t Capacity>
     class BasicLabel final : public touchgfx::TextAreaWithOneWildcard
     {
       public:
-        BasicLabel();
+        // Temporary paint labels must not enqueue invalidation while the engine
+        // iterates its current damage list (badges/table cells use paintOnly).
+        explicit BasicLabel(bool paintOnly = false);
         void text(const char* value);
         void large(bool value);
+        void heading();
+        void small();
+        void align(touchgfx::Alignment value);
+        void style(Typography size, touchgfx::Alignment alignment);
+        touchgfx::Alignment getAlignment() const override { return m_alignment; }
 
       private:
         std::array<touchgfx::Unicode::UnicodeChar, Capacity> m_text{};
         int m_wrapWidth{ -1 };
-        bool m_large{};
+        bool m_paintOnly{};
+        void damage() const
+        {
+            if (!m_paintOnly)
+                invalidate();
+        }
+        void typography();
+        unsigned m_size{};
+        touchgfx::Alignment m_alignment{ touchgfx::LEFT };
     };
-    using Label = BasicLabel<192>;
+    using Label = BasicLabel<96>;
     using ControlLabel = BasicLabel<48>;
     class Icon final : public touchgfx::Widget
     {
@@ -51,24 +74,35 @@ namespace ui::gui::hmi
       public:
         using Callback = void (*)(void*, unsigned, bool);
         Control();
+        unsigned action() const { return m_id; }
         void configure(const char* label, unsigned id, Callback callback, void* context);
         void layout(int x, int y, int width, int height = 56);
         void enabled(bool value);
         void selected(bool value);
         void danger(bool value);
+        void tint(std::uint32_t color);
+        void appearance(std::uint32_t color, unsigned radius, bool large);
+        void rounded(unsigned radius);
         void held(bool value) { m_held = value; }
         void icon(unsigned kind);
+        void emphasis()
+        {
+            m_label.heading();
+            alignLabel();
+        }
         void handleClickEvent(const touchgfx::ClickEvent&) override;
         void handleDragEvent(const touchgfx::DragEvent&) override;
 
       private:
         void refresh();
+        void alignLabel();
         Panel m_panel;
         ControlLabel m_label;
         Icon m_icon;
         unsigned m_id{};
         Callback m_callback{};
         void* m_context{};
+        std::uint32_t m_tint{};
         bool m_enabled{ true }, m_selected{}, m_danger{}, m_pressed{}, m_held{};
     };
 }

@@ -21,7 +21,12 @@ namespace
         }
         return true;
     }
-    Frame request(unsigned n) { return { &benchmarkScene(2000), benchmarkSnapshot(float(n) * .1f, n, 0) }; }
+    Frame request(unsigned n)
+    {
+        Frame f{ &benchmarkScene(2000), benchmarkSnapshot(float(n) * .1f, n, n * 100) };
+        f.anchors[0] = { 0, {}, float(n) };
+        return f;
+    }
 }
 TEST(SceneService, LatestPendingAndImmutableFrontUntilReleased)
 {
@@ -38,6 +43,8 @@ TEST(SceneService, LatestPendingAndImmutableFrontUntilReleased)
     const auto front = service.acquire();
     ASSERT_TRUE(front);
     EXPECT_EQ(front->revision, 100U);
+    EXPECT_EQ(front->sourceTimeUs, 10000U);
+    EXPECT_EQ(front->annotations[0].value, 100);
     const std::vector saved(front->pixels.begin(), front->pixels.end());
     ASSERT_TRUE(service.submit(request(101)));
     ASSERT_TRUE(eventually([&] { return service.status().rendered == 2; }));
@@ -49,6 +56,8 @@ TEST(SceneService, LatestPendingAndImmutableFrontUntilReleased)
     const auto next = service.acquire();
     ASSERT_TRUE(next);
     EXPECT_EQ(next->revision, 101U);
+    EXPECT_EQ(next->annotations[0].value, 101);
+    EXPECT_EQ(front->annotations[0].value, 100);
     ASSERT_TRUE(eventually([&] { return service.status().rendered == 3; }));
     EXPECT_EQ(service.acquire()->revision, 103U);
     service.visible(false);

@@ -254,31 +254,13 @@ namespace ui
             else {
                 const auto data = diagnostics::collectMemory((*memory & 2U) ? diagnostics::MemoryQuery::Stack
                                                                             : diagnostics::MemoryQuery::Heap);
-                char message[160];
-                if (data.query == diagnostics::MemoryQuery::Heap)
-                    std::snprintf(message,
-                                  sizeof(message),
-                                  "UI heap: %llu used / %llu free bytes",
-                                  (unsigned long long)data.heap.used,
-                                  (unsigned long long)data.heap.available);
-                else {
-                    unsigned minimum = 100;
-                    for (unsigned i = 0; i < data.stack.count; ++i) {
-                        const auto& t = data.stack.threads[i];
-                        if (t.stack_size)
-                            minimum = std::min(
-                              minimum,
-                              100 - std::min(100U, unsigned(100ULL * t.peak_stack_usage / t.stack_size)));
-                    }
-                    std::snprintf(message,
-                                  sizeof(message),
-                                  "UI stacks: %u/%u threads; minimum headroom %u%%",
-                                  unsigned(data.stack.count),
-                                  unsigned(data.stack.total),
-                                  minimum);
-                }
-                outcome(m_memoryOperation, true, message);
+                outcome(m_memoryOperation, true, "UI diagnostics updated");
                 std::scoped_lock lock{ m_mutex };
+                m_memoryData = data;
+                m_memoryTime = std::chrono::steady_clock::now();
+                m_memoryAvailable = true;
+                m_memoryIO = false;
+                m_memoryError = {};
                 m_memoryBusy = false;
             }
         }
@@ -286,35 +268,70 @@ namespace ui
             auto data = m_memoryCall->get();
             m_memoryReady = {};
             m_memoryCall.reset();
-            char message[128];
-            if (data && data->query == diagnostics::MemoryQuery::Stack) {
-                unsigned minimum = 100;
-                for (unsigned i = 0; i < data->stack.count; ++i) {
-                    const auto& t = data->stack.threads[i];
-                    if (t.stack_size)
-                        minimum = std::min(
-                          minimum,
-                          100 - std::min(100U, unsigned(100ULL * t.peak_stack_usage / t.stack_size)));
-                }
-                std::snprintf(message,
-                              sizeof(message),
-                              "IO stacks: %u/%u threads; minimum headroom %u%%",
-                              unsigned(data->stack.count),
-                              unsigned(data->stack.total),
-                              minimum);
-            }
-            else if (data)
-                std::snprintf(message,
-                              sizeof(message),
-                              "IO heap: %llu used, %llu available bytes",
-                              (unsigned long long)data->heap.used,
-                              (unsigned long long)data->heap.available);
-            else
-                std::snprintf(
-                  message, sizeof(message), "IO memory request failed (%u)", unsigned(data.error()));
-            outcome(m_memoryOperation, bool(data), message);
+            outcome(
+              m_memoryOperation, bool(data), data ? "IO diagnostics updated" : "IO diagnostics unavailable");
             std::scoped_lock lock{ m_mutex };
+            m_memoryIO = true;
+            m_memoryAvailable = bool(data);
+            m_memoryError = {};
+            if (data) {
+                m_memoryData = *data;
+                m_memoryTime = std::chrono::steady_clock::now();
+            }
+            else
+                std::snprintf(m_memoryError.data(),
+                              m_memoryError.size(),
+                              "IO request failed (%u)",
+                              unsigned(data.error()));
             m_memoryBusy = false;
+        }
+    }
+    void GuiBackend::diagnostics(unsigned offset, hmi::DiagnosticPage& out)
+    {
+        std::scoped_lock lock{ m_mutex };
+        out = {};
+        out.busy = m_memoryBusy;
+        out.available = m_memoryAvailable;
+        out.io = m_memoryIO;
+        out.error = m_memoryError;
+        if (!out.available)
+            return;
+        out.ageMs = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
+                                                                          m_memoryTime)
+                      .count();
+        out.stacks = m_memoryData.query == diagnostics::MemoryQuery::Stack;
+        out.shared = m_memoryData.shared_runtime;
+        if (out.stacks) {
+            const auto& stacks = m_memoryData.stack;
+            out.total = std::min<unsigned>(stacks.count, stacks.threads.size());
+            out.omitted = stacks.total > out.total ? stacks.total - out.total : 0;
+            for (unsigned i = offset; i < out.total && out.count < out.rows.size(); ++i) {
+                auto& row = out.rows[out.count++];
+                const auto& t = stacks.threads[i];
+                std::snprintf(row.name.data(), row.name.size(), "%.*s", int(t.name.size()), t.name.data());
+                row.values = { t.prio, t.stack_size, t.current_stack_usage, t.peak_stack_usage };
+            }
+        }
+        else {
+            const auto& h = m_memoryData.heap;
+            constexpr const char* names[]{ "Capacity [B]",   "Reserved [B]",   "Used [B]",
+                                           "Available [B]",  "Releasable [B]", "Free blocks",
+                                           "Mapped regions", "Mapped [B]",     "Usage [%]" };
+            const auto capacity = h.capacity ? h.capacity : h.reserved;
+            const std::uint64_t values[]{
+                h.capacity,       h.reserved,     h.used,
+                h.available,      h.releasable,   h.free_blocks,
+                h.mapped_regions, h.mapped_bytes, capacity ? h.used * 100 / capacity : 0
+            };
+            out.total = 9;
+            out.allocator = unsigned(h.allocator);
+            out.capacity = capacity;
+            out.used = h.used;
+            for (unsigned i = offset; i < out.total && out.count < out.rows.size(); ++i) {
+                auto& row = out.rows[out.count++];
+                text(row.name, names[i]);
+                row.values[0] = values[i];
+            }
         }
     }
     hmi::Outcome GuiBackend::submit(const hmi::Command& c)

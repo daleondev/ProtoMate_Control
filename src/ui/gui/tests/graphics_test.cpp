@@ -125,12 +125,22 @@ TEST(FrameTimer, CountsMultipleHardwareWraps)
 {
     auto hardware = std::make_shared<hal::Timer>(hal::Timer::Configuration{ 1000000, 0, 9999 });
     ASSERT_TRUE(hardware->start());
-    ui::gui::util::FrameTimer timer(hardware);
-    const auto nativeTime = [] {
-        timespec t{};
-        EXPECT_EQ(clock_gettime(CLOCK_MONOTONIC, &t), 0);
-        return std::chrono::seconds{ t.tv_sec } + std::chrono::nanoseconds{ t.tv_nsec };
+    // The simulated counter advances on CLOCK_MONOTONIC, whereas hosted
+    // ThreadX ticks can fall behind native wall time during OS preemption.
+    // Use the counter's clock domain to test wrap reconstruction, as the two
+    // hardware clocks do on GIGA. This does not change the production timebase.
+    struct NativeClock
+    {
+        using time_point = std::chrono::time_point<NativeClock, std::chrono::nanoseconds>;
+        static time_point now()
+        {
+            timespec t{};
+            clock_gettime(CLOCK_MONOTONIC, &t);
+            return time_point{ std::chrono::seconds{ t.tv_sec } + std::chrono::nanoseconds{ t.tv_nsec } };
+        }
     };
+    ui::gui::util::BasicFrameTimer<NativeClock> timer(hardware);
+    const auto nativeTime = [] { return NativeClock::now().time_since_epoch(); };
     const auto beforeStart = nativeTime();
     timer.start();
     const auto afterStart = nativeTime();

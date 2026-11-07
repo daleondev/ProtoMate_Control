@@ -30,3 +30,30 @@ def test_reviewed_screen(name):
     if difference.getbbox():
         difference.save(directory / f"{name}-difference.png")
         pytest.fail(f"Reviewed layout changed: {name}; inspect {name}-difference.png")
+
+
+@pytest.mark.parametrize("name,box", [
+    ("page-axis-jog", (456, 156, 176, 56)),  # tab
+    ("page-axis-jog", (824, 284, 104, 104)),  # large circular control
+    ("page-axis-move", (456, 292, 544, 56)),  # two-line numeric field
+    ("gui-keypad", (200, 210, 120, 56)),
+    ("page-cartesian", (136, 226, 188, 76)),
+])
+def test_caption_ink_is_centered(name, box):
+    directory = os.environ.get("HMI_CAPTURE_DIR")
+    if not directory:
+        pytest.skip("Run through CTest gui.screenshots")
+    image = Image.open(Path(directory) / f"{name}.bmp").convert("RGB")
+    x, y, width, height = box
+    ink = []
+    for yy in range(8, height - 8):
+        for xx in range(8, width - 8):
+            pixel = image.getpixel((x + xx, y + yy))
+            if min(pixel) > 150 and max(pixel) - min(pixel) < 60:
+                ink.append((xx, yy))
+    assert ink, f"Missing caption in {name} {box}"
+    xs, ys = zip(*ink)
+    # Font side bearings/descenders are not symmetric; allow three pixels
+    # around the geometric centre while catching left-aligned or top-set text.
+    assert abs((min(xs) + max(xs)) / 2 - width / 2) <= 3
+    assert abs((min(ys) + max(ys)) / 2 - height / 2) <= 3

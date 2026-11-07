@@ -1,134 +1,137 @@
-# HMI verification
+# HMI modernization verification
 
-The normal Linux and GIGA UI opens the robot Home screen. Camera/joint changes
-use the **7,914-triangle interactive model**; after 500 ms without changes the
-view requests one **36,376-triangle full-detail frame**, then idles. Both platforms
-use the same models, 640×400 rendering surface, transforms and switching policy.
-The interval starts from the last visual change, not a telemetry timestamp.
-The final refinement still needs rendering time before it appears.
+The normal Linux/GIGA UI uses the revised Home screen, **Axis 1/2/3** naming,
+centered controls, focused movement tabs, I/O cards and typed diagnostic tables.
+The same 640×400 scene, 7,914-triangle interactive model and 36,376-triangle settled
+model run on both platforms. Idle poses do not rerender.
 
-## Software and visual checks
+![Reviewed layout overview — presentation fixtures](screens/modern-overview.png)
 
-- All **11 targeted GUI suites pass in Linux Debug and Release**, including
-  geometry, rendering, damage coverage, scheduling, presentation timeout,
-  screenshots, native X11 input and the new detail-switching test.
-- The real `simulation.hmi` workflow passes through the application client, ICC
-  and native plant. It exercises initialization without auto-enable, enabling,
-  homing → stop → homing, coordinated joint and axis moves, held-jog cancellation,
-  raw CLI/GUI family exclusion, keypad cancellation, letterboxing and shutdown.
-- The input-driven detail test drags the real TouchGFX viewport using SDL events,
-  observes interactive images, releases the pointer, verifies full-detail
-  refinement, then requires a stable render counter while idle.
-- Policy tests cover repeated pose changes, the 500 ms boundary, retrying a
-  rejected submission, reopening a hidden view and restarting movement after
-  refinement. Existing immutable-frame ownership and shutdown tests still pass.
-- **14 Python asset tests** verify source hashes, finite/valid geometry, unit
-  normals, local-coordinate bounds, omitted detail and the recorded review.
-- The 36 matched TGX renders cover three articulated poses and 12 camera angles,
-  including below/above views. Minimum silhouette intersection-over-union is
-  **98.358%**. All views were inspected; geometry guards remain intact. This is
-  sampled visual evidence, not an all-view geometric error guarantee.
-- Nineteen golden HMI screenshots still match. Fixtures for readiness/fault
-  presentation do not establish physical faults. Asynchronous 3D pixels remain
-  excluded from these UI goldens; the matched model renders check them separately.
-- The 13-event Linux Release sample gives about **38 ms** input-to-visible-feedback
-  p95. This is a small software-input sample, not a hardware touch or motion
-  admission measurement.
-- Linux Debug/Release and both GIGA cores in Debug/Release build. No clang-tidy
-  or sanitizers were run for this change.
+## Software and visual verification
 
-See the [matched model comparison](../../robot/visuals/interactive/comparison.png)
-and [all reviewed views and hashes](../../robot/visuals/interactive).
-The [asset workflow](../../../src/ui/gui/assets/robot/README.md#interactive-detail)
-records how the separate visual shell is generated. CAD, collision geometry,
-kinematics and the detailed model remain unchanged.
+- All **13 GUI suites pass in Linux Debug and Release**: presentation, native
+  X11, wheel/letterboxing/focus, pages, screenshots, gestures, graphics, detail
+  switching, image ownership, robot rendering and source-asset checks.
+- The separate real **simulation.hmi** workflow passes in both builds. It uses
+  the actual motion client, ICC and simulated plant: initialize without enable,
+  homing → stop → homing, coordinated and individual moves, held-jog cancellation,
+  CLI/GUI exclusion, numeric cancellation, observed joint/TCP agreement and shutdown.
+- HAL architecture and simulated display-clock checks pass. The timer rollover
+  test uses native monotonic time alongside the native simulated counter;
+  production timing uses the unchanged runtime clock. Mixing native counter
+  time with delayed hosted ThreadX ticks is not a valid rollover reference.
+- **52 reviewed screenshots** cover the pages/tabs and ready, disabled, busy,
+  unconfigured, stale and fault states. Five additional pixel tests check text
+  centering in tabs, large controls, multiline fields and keypad keys.
+- Pinch tests cover entry/exit, reordering, near-zero separation, jitter,
+  exclusions and cancellation. Bounded wheel tests cover coordinates, fractions,
+  age, overflow and exactly-once delivery. Native SDL tests cover ordinary and
+  flipped direction, focus loss followed by window exit, and letterboxing.
+- Joint badges carry the completed frame's projected anchors and values. Tests
+  retain metadata across replaced requests and immutable displayed frames;
+  collision tests check bounds/non-overlap. Asynchronous scene pixels and changing
+  graphics counter values are excluded narrowly from the static goldens.
+- The detailed/interactive asset review retains 36 matched views with minimum
+  silhouette IoU **98.358%**. Three static joint illustrations use the detailed
+  registered CAD and projected positive-direction guides; hashes/sizes match.
+- The 13-event Linux input samples measure **34.6–37.4 ms p95** visible feedback
+  across Debug/Release and dummy/X11. These are small software-input samples,
+  not a bound on physical touch or motion latency. A concurrent compilation run
+  reached 52 ms; final timing samples were taken without compilation load.
+- Linux and both GIGA cores build in Debug/Release. No clang-tidy or sanitizer
+  campaign was run. Targeted formatting was applied to changed C++ files.
 
-M1 encoder feedback remains distinct from M2/M3 INDEX estimates. The existing
-simulation pose checks independently compare commanded joints/TCP and feedback;
-INDEX resolution is not presented as precision mechanical feedback.
+Xvfb needs permission to create a local X11 socket. The sandboxed Debug X11
+launch could not start its server; the same test passed with that permission.
+Release's complete 14-suite GUI/simulator run passed together.
 
-## GIGA image and memory
+## Final image and resource budget
 
-Programmed and verified normal Release image pair:
+Release pair programmed and verified:
 
 ```
-7d6babb2c52284228096e168180e91245eb5455751b67b631a7f7829f9565c70
+f8426633d516d3b1572071b6165192ae0014e6d737744c0e3d1d195cb06eb401
 ```
 
-M4 image: **1,149,828 bytes**. M7 image: **2,257,724 bytes**.
-The board remains on normal Home with both cores Ready and ICC connected.
-A physical USB power cycle was not repeated in this pass.
+M4 image: **1,149,828 bytes**. M7 image: **2,654,048 bytes**.
 
 | Resource | Allocation |
 |---|---:|
-| Additional compiled interactive mesh assets, QSPI | 196,280 bytes |
-| Renderer hot code, ITCM | 16,088 bytes |
-| Engine/widgets, execute-never upper ITCM | 22,944 / 32,768 bytes |
-| M7 DTCM static data | 110,184 / 112,640 bytes |
-| Two 640×400 colour images plus depth, SDRAM | 1,536,000 bytes |
-| Ordinary M7 heap capacity | 238,400 bytes |
+| New compiled axis illustrations | 346,560 B QSPI |
+| New navigation icons | 13,520 B QSPI |
+| Renderer hot code | 16,088 B ITCM |
+| Engine/widget storage | 24,032 / 24,576 B allowed |
+| M7 Release DTCM static data | 110,056 / 112,640 B |
+| Two 640×400 images plus depth | 1,536,000 B SDRAM |
+| Ordinary M7 heap capacity | 238,400 B |
 
-Both detail levels share the existing render buffers and workers. No extra
-framebuffer, worker stack or heap reservation was added. Scene definitions are
-constant flash data. DTCM remains tight; further features need an explicit budget.
+Fonts/icons/illustrations remain below the 1 MiB additional-asset budget.
+No framebuffer or worker stack was added. The existing GUI/touch/render stacks
+remain 16/8/16 KiB. Only **544 bytes** remain in the GUI bookkeeping allowance;
+further widgets need an explicit budget, rather than unbounded page trees.
 
-## Panel-free hardware comparison
+## Panel-free hardware verification
 
-The two runs use the **same firmware**, synthetic rotating camera and normal
-GUI/ICC/USB diagnostics, with motors disconnected and no panel attached. The
-full-detail ceiling is 5 fps; the interactive ceiling is 10 fps. Both use adaptive
-pacing with a rest of one quarter of render wall time (minimum 1 ms). This rest
-policy is not a CPU-load measurement.
+The user verified USB cold startup during this pass; after the final badge-clearance adjustment, both controllers were restarted through SWD. Both reported Ready and
+ICC remained connected throughout the final 30.75-second synthetic camera run.
+This uses the same interactive camera workload as the approximately 3.45 fps
+baseline; model detail and resolution are unchanged.
 
-| Measurement | Full detail | Interactive detail |
-|---|---:|---:|
-| Triangles | 36,376 | 7,914 |
-| Observation window | 30.75 s | 30.70 s |
-| Newly presented 3D images/s | 2.049 | 3.453 |
-| Mean render wall time | 381.67 ms | 220.75 ms |
-| LTDC underruns / DMA errors | 0 / 0 | 0 / 0 |
-| Renderer/input/command errors | 0 | 0 |
-| ICC failures | 0 | 0 |
-| Heap use, minimum–maximum | 197,816–197,888 B | 197,864–197,904 B |
-| Final minus initial heap use | −32 B | −24 B |
-| Last sampled scene age | 587 ms | 384 ms |
+| Measurement | Final Release result |
+|---|---:|
+| Newly presented 3D images/s | 3.674 |
+| Mean render wall time | 202.60 ms |
+| LTDC underruns / DMA errors | 0 / 0 |
+| Renderer/input/command errors | 0 |
+| Heap use, minimum–maximum | 199,552–199,616 B |
+| Final minus initial heap use | −16 B |
+| GUI / renderer / touch free stack | 71.38% / 61.07% / 92.33% |
 
-The lighter model delivers approximately **1.69× the frame rate**, with **42%
-less render wall time**. It improves moving-view responsiveness, but **3.45 fps
-is still visibly stepped animation**. Neither 10 fps delivery nor a 100 ms 3D
-pose latency is established. The cadence caps are not promised throughput.
-These are bounded observations, not endurance qualification. Two-dimensional
-controls remain a separate rendering path.
+This is a short measured comparison, not a guaranteed frame rate or endurance
+qualification. **3.67 fps remains visibly stepped animation.** Physical touch
+latency and visible panel output are unmeasured. The graphics table's frame-age
+value is source-to-presentation latency of the last presented frame, not an
+increasing idle-age clock.
 
-Measured free stack headroom: **GUI 80.46%, renderer 62.05%, touch 92.82%**.
-A subsequent read-only check confirms Home uses the detailed model and its 3D
-render counter stays unchanged while idle. The full-detail image remains
-immutable until replaced. Hardware touch cannot be tested without the panel.
+A separate 24 MHz, five-second analyzer capture of this exact image pair records
+120 million samples: all three STEP outputs LOW, enable HIGH/inactive, and zero
+transitions on all four channels. Both SDRAM slots also pass diagnostic-pattern and Home readback checks; the final idle Home images are identical. The saved [GIGA image](screens/giga-home.png) is a framebuffer readback, not a photograph of a physical display.
 
-Raw counters, console logs, stack data and exact image manifests:
-`build/robot-interactive/hardware/{full,interactive}`; idle confirmation:
-`build/robot-interactive/hardware/idle.json`.
+The analyzer capture verifies idle outputs under GUI load;
+it does not repeat motion execution qualification.
 
-Reproduce the comparison without motor commands:
+After flashing, one debugger reset left IO unavailable. One ordinary coordinated
+reset restored both cores; the subsequent physical USB cold start also passed.
+This was startup recovery, not evidence of a graphics-load heartbeat failure.
+The interrupted capture during the user's power cycle remains retained and was
+not counted as a passing test. No firmware change was needed for recovery.
+
+Raw final counters, firmware manifest and stack results:
+`build/hmi-modern/hardware/final-delivery`. The confirmed physical cold-start run is retained in `cold-release`. Analyzer samples and hash:
+`build/hmi-modern/hardware/delivery-idle`. Framebuffer readback:
+`build/hmi-modern/hardware/delivery-framebuffers`. Failed/interrupted attempts remain in
+`release` and `verified-release` alongside these results.
+
+## Reproduction and remaining qualification
 
 ```sh
-python3 scripts/hmi_hardware_check.py --rates 5 --seconds 30 --observe \
-  --output build/robot-interactive/hardware/full
+cmake --build --preset debug-linux
+ctest --test-dir build/debug-linux -R 'gui\.|simulation.hmi' --output-on-failure
+cmake --build --preset giga-release
+python3 scripts/giga_program.py flash --build build/giga-release
+# After confirming both cores Ready, with motor power disconnected:
 python3 scripts/hmi_hardware_check.py --rates 10 --seconds 30 --observe \
-  --interactive --output build/robot-interactive/hardware/interactive
+  --interactive --output build/hmi-check
+python3 scripts/gui_hardware_inspect.py --capture-only --output build/hmi-framebuffers
+python3 scripts/hmi_output_capture.py --seconds 5 --output build/hmi-idle-outputs
 ```
 
-`--observe` checks rendering/connection health while reporting actual throughput;
-it does not pass a fixed-FPS requirement. Each script restores normal Home.
+`--observe` measures throughput and checks health; the configured FPS ceiling is
+not treated as promised performance. These checks do not establish motion pulse
+timing, powered mechanical accuracy or physical panel behavior. The motion engine,
+ICC deadlines, timer settings and interrupt priorities were not changed.
 
-## Remaining qualification
-
-Physical display power/reset timing, visible RGB/phase/orientation, touch input,
-supply sequencing and powered calibrated motion remain separate checks. No
-motor commands, timing changes, interrupt-priority changes or motion logic edits
-were made for this work. Hardware interrupt masking and analyzer tests were not
-repeated; host tests retain missing-completion and shutdown coverage.
-
-The separate ICC allocation fix and motor-disconnected motion overlap results
-remain in the [motion review](../../motion-current-state/review.md). GUI detail
-switching does not replace that execution qualification.
+Physical RGB appearance, touch/pinch on ST1633i, supply sequencing and powered
+calibrated motion remain separate first-panel/commissioning checks. Synthetic
+mouse/contact tests are not evidence of physical touch operation. The existing
+[motion review](../../motion-current-state/review.md) retains execution qualification.

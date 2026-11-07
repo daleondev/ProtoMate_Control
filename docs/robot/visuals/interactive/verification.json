@@ -1,8 +1,8 @@
 {
   "manifest_sha256": "6d17a06b2ed2b188ec9d1f5704b3f1db1a5e66a5783b895e41ad0af9ffb1955b",
   "full_manifest_sha256": "cbd8aeae9dffe0b96dd8ffbc60778382a66f6618b09cab83b8aa6297105d06a7",
-  "test_source_sha256": "da2deec265733d291ad47005cbc8d4da6df4b83eac501b496d5280a0d51d127e",
-  "renderer_sha256": "e5e73890cd70701b5d6bee7834abfbeba306960cd16212fc5f1f221168758d1a",
+  "test_source_sha256": "8a405035ba84c237c71138973528d251968d65265112ee07dffcb7da24a0ac35",
+  "renderer_sha256": "db227fe5befa0696a603a0cf116a904e692f163737f23d0b893cf0dfb2116115",
   "converter_sha256": "51e9811c71b85b6166fb8895a0818fa9b41a77d5aae45a8dee66bfc187174b91",
   "script_sha256": "952e521c2d4ee27b016cba5085c2ce4130251c216f8b0fe80a97a9797a104d5d",
   "minimum_silhouette_iou": 0.983577,

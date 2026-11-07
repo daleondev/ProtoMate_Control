@@ -95,6 +95,19 @@ namespace ui::gui::hmi
         Text<40> status{};
         Text<192> detail{};
     };
+    struct DiagnosticRow
+    {
+        Text<40> name{};
+        std::array<std::uint64_t, 4> values{};
+    };
+    struct DiagnosticPage
+    {
+        std::array<DiagnosticRow, 6> rows{};
+        unsigned count{}, total{}, omitted{}, allocator{};
+        bool available{}, busy{}, io{}, stacks{}, shared{};
+        std::uint64_t ageMs{}, capacity{}, used{};
+        Text<96> error{};
+    };
     struct Input
     {
         bool down{}, valid{};
@@ -112,5 +125,6 @@ namespace ui::gui::hmi
         virtual Outcome hold(const Command& command, int x, int y, int width, int height) = 0;
         virtual void input(const Input& input) = 0;
         virtual void release() = 0;
+        virtual void diagnostics(unsigned, DiagnosticPage& result) { result = {}; }
     };
 }

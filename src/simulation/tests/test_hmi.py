@@ -107,44 +107,44 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         assert len(rows)==3,out;return [float(j) for _,_,j in rows]
     try:
         prompt();time.sleep(1);capture('home-disabled')
-        click(200,480) # Initialize through GUI
+        click(880,490) # Initialize through GUI
         end=time.monotonic()+5
         while 'ready=1' not in command('motion status'):
             assert time.monotonic()<end,'GUI initialization did not reach IO'
             time.sleep(.1)
         assert 'enabled=0' in command('motion status')
         wait_controls(13) # initialized, connected and fresh; Enable is now actionable
-        click(340,480)
+        click(880,490)
         end=time.monotonic()+5
         while 'enabled=1' not in command('motion status'):
             assert time.monotonic()<end,'GUI enable did not reach IO'
             time.sleep(.1)
-        time.sleep(.5);click(520,480);interrupted=latest();wait(interrupted,('running',));click(940,560);wait(interrupted,('stopped',))
-        click(520,480);home=latest();assert home>interrupted;wait(home)
+        time.sleep(.5);click(880,490);interrupted=latest();wait(interrupted,('running',));click(940,560);wait(interrupted,('stopped',))
+        click(880,490);home=latest();assert home>interrupted;wait(home)
         compare_presented_state(capture('home-referenced'));before_robot=joints()
-        click(50,200);click(380,118)
+        click(50,200);click(440,118)
         number(240,264,-.5);number(520,264,-.3);number(800,264,-.1)
-        click(820,408);robot_job=latest();wait(robot_job)
+        click(820,488);robot_job=latest();wait(robot_job)
         after_robot=joints()
         assert abs(math.degrees(after_robot[0]-before_robot[0])+.5)<.05,(before_robot,after_robot)
         assert abs(math.degrees(after_robot[1]-before_robot[1])+.3)<.05,(before_robot,after_robot)
         assert abs((after_robot[2]-before_robot[2])+.1)<.01,(before_robot,after_robot)
         compare_presented_state(capture('robot-motion'))
         before=joints()
-        click(50,200);click(200,295);step=latest();wait(step)
+        click(50,200);click(572,330);step=latest();wait(step)
         after=joints();assert abs(math.degrees(after[0]-before[0])+1)<.05,(before,after)
         capture('axis')
-        click(700,370) # continuous mode
-        input('down 200 370');jog=latest();wait(jog,('running',))
-        input('focuslost');wait(jog,('stopped',));capture('jog-released')
+        click(912,246) # Hold mode
+        input('down 572 330');jog=latest();wait(jog,('running',))
+        input('focuslost');wait(jog,('stopped',));capture('jog-released');input('focusgained')
         # The same IO admission still excludes the GUI's axis from a raw CLI job.
         raw=command('motor move m2 -2 --speed 1');raw_id=int(re.search(r'Submitted motor job (\d+)',raw)[1]);wait(raw_id,('running','accepted'))
-        click(200,295);rejected=latest();assert rejected>raw_id
+        click(540,246);click(572,330);rejected=latest();assert rejected>raw_id
         assert 'rejected' in wait(rejected,('rejected',))
         command('motor stop all');wait(raw_id,('stopped',))
         # Empty pages and numeric cancellation produce no new job.
         last=latest();click(50,286);capture('programs-empty');assert latest()==last
-        click(50,200);click(200,435);capture('keypad');click(750,365);assert latest()==last
+        click(50,200);click(720,182);click(650,320);capture('keypad');click(750,365);assert latest()==last
         click(50,370);capture('io');click(50,454);capture('settings');click(300,560);capture('alarms')
         input('size 1600 600');click(338,118);capture('letterbox-home')
         input('quit');assert proc.wait(10)==0,transcript.decode(errors='replace')[-2000:]

@@ -16,8 +16,17 @@ namespace ui::gui::hmi
         void close();
         void pose(const std::array<double, 3>& joints, std::uint64_t sourceUs);
         void tick();
+        bool posePending() const;
+        std::uint64_t sourceTimeUs() const { return m_sourceTimeUs; }
         void zoom(float factor);
         void reset();
+        void annotationState(bool valid, bool fresh);
+        void selection(void (*cb)(void*, unsigned), void* context)
+        {
+            m_select = cb;
+            m_context = context;
+        }
+        void draw(const touchgfx::Rect&) const override;
         void rate(unsigned fps);
         void benchmark(unsigned triangles);
         void qualification(unsigned fps, bool interactive = false)
@@ -31,6 +40,12 @@ namespace ui::gui::hmi
         void handleDragEvent(const touchgfx::DragEvent&) override;
 
       private:
+        std::array<scene3d::ProjectedAnchor, 3> m_annotations{};
+        std::array<touchgfx::Rect, 3> m_badges{};
+        bool m_valid{}, m_fresh{};
+        int m_pressedBadge{ -1 };
+        void (*m_select)(void*, unsigned){};
+        void* m_context{};
         scene3d::RenderService& m_service;
         scene3d::SceneSnapshot m_pose;
         std::array<double, 3> m_joints{};
@@ -40,6 +55,6 @@ namespace ui::gui::hmi
         bool m_registered{}, m_open{}, m_dragging{}, m_testInteractive{};
         scene3d::DetailPolicy m_detail;
         unsigned m_benchmark{}, m_fps{ 2 };
-        std::uint64_t m_revision{};
+        std::uint64_t m_revision{}, m_sourceTimeUs{};
     };
 }

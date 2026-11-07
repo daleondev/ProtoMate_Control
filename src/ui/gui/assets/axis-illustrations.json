@@ -1,0 +1,68 @@
+{
+  "shoulder": {
+    "sha256": "da8a93fc3314b8ac6c5fb93443251d9b8ad90d16d75bb1260836476ef9ac7e70",
+    "size": [
+      304,
+      190
+    ],
+    "positive_direction": "joint-local positive Z rotation",
+    "projected_guide": [
+      [
+        380.0,
+        266.0
+      ],
+      [
+        369.0,
+        248.0
+      ],
+      [
+        332.0,
+        238.0
+      ]
+    ]
+  },
+  "elbow": {
+    "sha256": "f9454f96c1ed323f285b9eaab09f416a0318a29ff567461469ad56dcb50e99b7",
+    "size": [
+      304,
+      190
+    ],
+    "positive_direction": "joint-local positive Z rotation",
+    "projected_guide": [
+      [
+        400.0,
+        160.0
+      ],
+      [
+        383.0,
+        147.0
+      ],
+      [
+        335.0,
+        140.0
+      ]
+    ]
+  },
+  "z": {
+    "sha256": "7adee3ff704fba239a41b24f6a31ab8660bd100c6dfb18a913d680d7a7dc38df",
+    "size": [
+      304,
+      190
+    ],
+    "positive_direction": "joint-local +Z",
+    "projected_guide": [
+      [
+        363.0,
+        232.0
+      ],
+      [
+        364.0,
+        181.0
+      ],
+      [
+        365.0,
+        126.0
+      ]
+    ]
+  }
+}

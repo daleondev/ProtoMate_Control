@@ -41,8 +41,11 @@ namespace
         char name[800];
         std::snprintf(name, sizeof(name), "%s.json", path);
         if (auto* file = std::fopen(name, "w")) {
-            std::fprintf(file, "{\"flags\":%u,\"encoder_mask\":%u,\"controls\":%u,\"pose\":[",
-                         state, sources, controlState);
+            std::fprintf(file,
+                         "{\"flags\":%u,\"encoder_mask\":%u,\"controls\":%u,\"pose\":[",
+                         state,
+                         sources,
+                         controlState);
             for (unsigned i = 0; i < values.size(); ++i)
                 std::fprintf(file, "%s%.12g", i ? "," : "", values[i]);
             std::fputs("]}\n", file);
@@ -74,10 +77,11 @@ namespace
             SDL_PushEvent(&event);
             return;
         }
-        if (!std::strcmp(command, "focuslost")) {
+        if (!std::strcmp(command, "focuslost") || !std::strcmp(command, "focusgained")) {
             event.type = SDL_WINDOWEVENT;
             event.window.windowID = window;
-            event.window.event = SDL_WINDOWEVENT_FOCUS_LOST;
+            event.window.event =
+              !std::strcmp(command, "focuslost") ? SDL_WINDOWEVENT_FOCUS_LOST : SDL_WINDOWEVENT_FOCUS_GAINED;
             SDL_PushEvent(&event);
             return;
         }

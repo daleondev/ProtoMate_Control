@@ -6,6 +6,7 @@
     <Text Id="Subtitle" TypographyId="Body" Alignment="Left"><Translation Language="EN">A shared canvas for GIGA and Linux</Translation></Text>
     <Text Id="Button" TypographyId="Body" Alignment="Center"><Translation Language="EN">Pause animation</Translation></Text>
     <Text Id="BodyValue" TypographyId="Body" Alignment="Left"><Translation Language="EN">&lt;&gt;</Translation></Text>
+    <Text Id="HeadingValue" TypographyId="Heading" Alignment="Center"><Translation Language="EN">&lt;&gt;</Translation></Text>
     <Text Id="CaptionValue" TypographyId="Caption" Alignment="Left"><Translation Language="EN">&lt;&gt;</Translation></Text>
     <Text Id="Caption" TypographyId="Caption" Alignment="Left"><Translation Language="EN">1024 × 600 · RGB565 · TouchGFX 4.27</Translation></Text>
     <Text Id="DetailsTitle" TypographyId="Heading" Alignment="Left"><Translation Language="EN">A framework for what comes next</Translation></Text>
@@ -15,10 +16,23 @@ The model receives bounded data from future services.
 
 This page uses the Linux asset pipeline: SVG to ARGB8888.
 Latin text: Ä Ö Ü ä ö ü ß · 24°</Translation></Text>
+<Text Id="CaptionLeft" TypographyId="Caption" Alignment="Left"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="CaptionCenter" TypographyId="Caption" Alignment="Center"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="CaptionRight" TypographyId="Caption" Alignment="Right"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="BodyLeft" TypographyId="Body" Alignment="Left"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="BodyCenter" TypographyId="Body" Alignment="Center"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="BodyRight" TypographyId="Body" Alignment="Right"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="HeadingLeft" TypographyId="Heading" Alignment="Left"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="HeadingCenter" TypographyId="Heading" Alignment="Center"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="HeadingRight" TypographyId="Heading" Alignment="Right"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="SmallLeft" TypographyId="Small" Alignment="Left"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="SmallCenter" TypographyId="Small" Alignment="Center"><Translation Language="EN">&lt;&gt;</Translation></Text>
+<Text Id="SmallRight" TypographyId="Small" Alignment="Right"><Translation Language="EN">&lt;&gt;</Translation></Text>
   </TextGroup></Texts>
   <Typographies>
-    <Typography Id="Caption" Font="NotoSans-Regular.ttf" Size="18" Bpp="4" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÄÖÜäöüß°×·" IsVector="no" />
-    <Typography Id="Body" Font="NotoSans-Regular.ttf" Size="24" Bpp="4" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÄÖÜäöüß°×·" IsVector="no" />
-    <Typography Id="Heading" Font="NotoSans-Regular.ttf" Size="36" Bpp="4" Direction="LTR" FallbackCharacter="?" IsVector="no" />
+    <Typography Id="Caption" Font="NotoSans-Regular.ttf" Size="18" Bpp="4" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÄÖÜäöüß°×·−↑↓²³…" IsVector="no" />
+    <Typography Id="Body" Font="NotoSans-Regular.ttf" Size="24" Bpp="4" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÄÖÜäöüß°×·−↑↓²³…" IsVector="no" />
+    <Typography Id="Heading" Font="NotoSans-Regular.ttf" Size="36" Bpp="4" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters=" -+.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz°·−" IsVector="no" />
+    <Typography Id="Small" Font="NotoSans-Regular.ttf" Size="16" Bpp="4" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters=" !&quot;#$%&amp;'()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÄÖÜäöüß°×·−↑↓²³…" IsVector="no" />
   </Typographies>
 </TextDatabase>

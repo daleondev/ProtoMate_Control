@@ -11,6 +11,7 @@ namespace hal::linux::display
         std::uint16_t x{}, y{};
         std::uint64_t timeNs{};
         bool cancelled{};
+        float wheel{};
     };
     // All functions cross the native/ThreadX boundary through native-safe
     // bounded mailboxes only. run() must execute on the original OS thread.
