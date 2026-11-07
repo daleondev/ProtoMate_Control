@@ -22,6 +22,7 @@ def main():
     parser.add_argument('--port')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    args.output = args.output.resolve()
     if not 0 < args.interval <= args.seconds:
         parser.error('Require 0 < interval <= seconds')
     ports = [args.port] if args.port else glob.glob('/dev/serial/by-id/*STM32*')

@@ -691,7 +691,7 @@
           "cpu_accounted_running_percent": 98.63155893389549,
           "dwt_coverage_percent": 99.9962063889614,
           "thread_overflow": 0,
-          "minimum_thread_stack_headroom_percent": 0
+          "minimum_thread_stack_headroom_percent": null
         },
         "7": {
           "duration_s": 0.826438,
@@ -711,7 +711,7 @@
           "cpu_accounted_running_percent": 59.59433309980099,
           "dwt_coverage_percent": 99.9980508721364,
           "thread_overflow": 0,
-          "minimum_thread_stack_headroom_percent": 0
+          "minimum_thread_stack_headroom_percent": null
         }
       },
       "icc": {
@@ -999,6 +999,142 @@
       },
       "seconds": 10,
       "meaning": "Runtime thread-running share, including thread-context IRQs; not full CPU utilization. Asynchronous SWD samples add about millisecond-scale boundary uncertainty."
+    },
+    "cpu-normal": {
+      "image_pair": {
+        "format": 1,
+        "pair_id": "484ae4ae5c92c77f51cde7bede6be987500c26ffe697e5bba8030d5b3d161e4c",
+        "images": [
+          {
+            "core": 4,
+            "storage": 2416967680,
+            "size": 1149828,
+            "crc": 2588558235,
+            "entry": 2417178061,
+            "vectors": 268435456,
+            "stack": 805601280,
+            "flags": 0,
+            "segments": [
+              {
+                "load": 2416967680,
+                "run": 268435456,
+                "size": 664,
+                "flags": 1
+              },
+              {
+                "load": 2416968344,
+                "run": 268437504,
+                "size": 193264,
+                "flags": 1
+              },
+              {
+                "load": 2417161608,
+                "run": 604241920,
+                "size": 12764,
+                "flags": 1
+              },
+              {
+                "load": 2418075724,
+                "run": 805505024,
+                "size": 41752,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 805546776,
+                "size": 26960,
+                "flags": 2
+              },
+              {
+                "load": 0,
+                "run": 805573760,
+                "size": 12320,
+                "flags": 2
+              }
+            ]
+          },
+          {
+            "core": 7,
+            "storage": 2420113408,
+            "size": 2054624,
+            "crc": 1334175411,
+            "entry": 2420148505,
+            "vectors": 536870912,
+            "stack": 537001984,
+            "flags": 0,
+            "segments": [
+              {
+                "load": 2420114072,
+                "run": 0,
+                "size": 16088,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 32768,
+                "size": 22528,
+                "flags": 2
+              },
+              {
+                "load": 2420113408,
+                "run": 536870912,
+                "size": 664,
+                "flags": 1
+              },
+              {
+                "load": 2420130160,
+                "run": 536872960,
+                "size": 12864,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 536885824,
+                "size": 97320,
+                "flags": 2
+              },
+              {
+                "load": 2422164312,
+                "run": 603979776,
+                "size": 3176,
+                "flags": 1
+              },
+              {
+                "load": 2422167488,
+                "run": 603982976,
+                "size": 512,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 603983488,
+                "size": 20032,
+                "flags": 2
+              }
+            ]
+          }
+        ]
+      },
+      "cores": {
+        "4": {
+          "execution_cycles": 1942735668,
+          "elapsed_cycles": 2402160516,
+          "running_percent": 80.87451504843567
+        },
+        "7": {
+          "execution_cycles": 2407256909,
+          "elapsed_cycles": 4804314099,
+          "running_percent": 50.106151666916645
+        }
+      },
+      "seconds": 10,
+      "meaning": "Runtime thread-running share, including thread-context IRQs; not full CPU utilization. Asynchronous SWD samples add about millisecond-scale boundary uncertainty."
     }
+  },
+  "restored_firmware": {
+    "pair_id": "484ae4ae5c92c77f51cde7bede6be987500c26ffe697e5bba8030d5b3d161e4c",
+    "build": "giga-release",
+    "log": "build/profiles/final-normal-uart.log",
+    "swd_health_log": "build/profiles/normal-health-status.log"
   }
 }

@@ -257,3 +257,51 @@ ordinary Release ELFs with `--m4` and `--m7` to compare against normal firmware.
 
 After testing, restore ordinary firmware with `giga-release` and
 `python3 scripts/giga_program.py flash --build build/giga-release`.
+
+## Verification on 2026-11-07
+
+All 81 profiling-host and 80 normal-host CTest suites passed, including the
+six recorder cases and 16 Python decoder cases. GIGA profiling, ordinary
+Release and ordinary Debug builds passed. The M4 link audit found no required
+interrupt/motion call path outside instruction RAM.
+
+A 601-second GUI/CLI/ICC session completed with no allocation failures, link
+loss, LTDC underruns or DMA errors. Sampled minimum heap availability was
+44,328 bytes on M4 and 39,056 bytes on M7; minimum thread-stack headroom in
+that session was 42% and 38%. A further 31-second final-image check verified
+the uncached SWD mailbox and freeze/export behavior. The evidence records each
+image pair separately. Both cores also captured the deliberate impossible
+allocation, retained its first-cause record and continued running.
+
+The final 256-sample calibration measured one user-event insertion at:
+
+| Core | Mean | Observed maximum |
+|---|---:|---:|
+| M4 | 7.73 µs | 57.68 µs |
+| M7 | 0.41 µs | 6.53 µs |
+
+These include SDRAM/flash contention during the sample; they are not maximum
+execution-time guarantees. Ten-second samples of the existing runtime
+thread-running counters, with the ordinary Home screen active, gave:
+
+| Build / recording state | M4 | M7 |
+|---|---:|---:|
+| Ordinary Release | 80.87% | 50.11% |
+| Profiling image, frozen | 88.13% | 57.21% |
+| Profiling image, `motion` recording | 94.21% | 56.92% |
+
+The small M7 difference between frozen and recording is within variation
+between these short runs; it does not demonstrate a speedup. Even a frozen
+profiling build has instrumentation/kernel overhead. Use normal firmware as
+the baseline and do not transfer instrumented timing results directly to it.
+The retained rings contain only a small recent window at these event rates;
+there were too few paired ICC endpoints in the exports to claim a latency
+percentile distribution.
+
+[Verification record](verification.json) contains image IDs, memory and timing
+measurements, test counts and local artifact locations. Exact native captures,
+ELFs, source archives, manifests, hashes and host-test logs remain under
+`build/profiles/`. Normal Release firmware was restored and both cores were
+verified Ready, connected and fault-free, with motors disabled. The TraceX
+Windows viewer, powered motion and physical display behavior are not claimed
+as verified by this profiling campaign.
