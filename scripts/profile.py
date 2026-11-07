@@ -13,7 +13,7 @@ import zipfile
 
 from giga_program import ROOT, quote, run, symbols
 from giga_images import pair, MANIFEST_SIZE
-from profiling.decode import control, export, kernel_catalog
+from profiling.decode import control, export, kernel_catalog, validate_debug_address
 
 PRESETS = {'system': 0, 'motion': 1, 'graphics': 2, 'memory': 3}
 OPERATIONS = {'arm': 1, 'freeze': 2, 'calibrate': 3, 'allocation-failure': 4}
@@ -45,6 +45,7 @@ def main():
         for name in required:
             if name not in names[core]:
                 raise ValueError(f'M{core}: {name} absent; use a profiling image')
+        validate_debug_address(core, names[core]['protomate_profile'], 164)
     _, _, manifest, pair_metadata = pair(elfs[4], elfs[7])
     cores = [4,7] if args.core == 'all' else [int(args.core)]
     capture = args.capture if args.capture is not None else int(time.time()) & 0xffffffff

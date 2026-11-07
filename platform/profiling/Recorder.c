@@ -13,6 +13,11 @@
 #include <tx_trace.h>
 #endif
 
+#if defined(CORE_CM7)
+/* SWD is not coherent with M7's D-cache. Both the debugger mailbox and the
+ * frozen first-failure record must be visible without cache maintenance. */
+__attribute__((section(".dtcm.profile_control"), aligned(8)))
+#endif
 ProfileControl protomate_profile = { .magic = 0x50524631U,
                                      .version = 1,
                                      .status_size = sizeof(ProfileStatus),
@@ -584,17 +589,22 @@ void profile_service(void)
     const uint32_t now = profile_time_us();
     if (protomate_profile.status.state == PROFILE_RECORDING && now - last_anchor >= 1000000U) {
         const unsigned saved = lock();
-        account();
-        flush_accounting();
-        if (now < last_time)
-            ++protomate_profile_summary.anchor_epoch;
-        last_time = last_anchor = now;
-        profile_event(PROFILE_CAT_SYSTEM,
-                      PROFILE_ANCHOR,
-                      protomate_profile.status.capture,
-                      protomate_profile_summary.anchor_epoch,
-                      now,
-                      profile_cycles());
+        // A CLI freeze can preempt this worker between the fast check and
+        // taking the lock. Frozen summaries must remain immutable too.
+        const uint32_t sample_time = profile_time_us();
+        if (protomate_profile.status.state == PROFILE_RECORDING && sample_time - last_anchor >= 1000000U) {
+            account();
+            flush_accounting();
+            if (sample_time < last_time)
+                ++protomate_profile_summary.anchor_epoch;
+            last_time = last_anchor = sample_time;
+            profile_event(PROFILE_CAT_SYSTEM,
+                          PROFILE_ANCHOR,
+                          protomate_profile.status.capture,
+                          protomate_profile_summary.anchor_epoch,
+                          sample_time,
+                          profile_cycles());
+        }
         unlock(saved);
     }
 #endif

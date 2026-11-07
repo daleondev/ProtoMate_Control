@@ -37,6 +37,9 @@ internal counters; the existing diagnostic worker copies totals to SDRAM once
 per second and on ordinary freeze. No profiling worker or additional heap-backed
 buffer is created. Fatal/stack failure paths only update internal state and
 stop trace insertion; their CPU summary can be up to one sample interval old.
+The SWD control/failure mailbox and runtime CPU-sampling counter use uncached
+DTCM on M7 and uncached D2 SRAM on M4. The export tools reject symbols outside
+those regions; `volatile` alone would not make cacheable M7 RAM coherent with SWD.
 
 The profiling M4 image currently uses 196,568 of 196,608 bytes of instruction
 RAM (40 bytes remain). Adding more hot instrumentation requires another linked
@@ -184,6 +187,9 @@ Duration histograms have power-of-two microsecond buckets; the last bucket is
 open-ended. Do not treat a bucket edge as an exact percentile. Native ThreadX
 resume events mean a thread became runnable; event 4104 records the actual
 execution hook. Application duration bars can overlap those thread events.
+The kernel event-name catalog is copied from the pinned ThreadX header into
+each export. `profile.py decode --output <capture>` regenerates reports under
+`<capture>/decoded/`, preserving the original files and their hashes.
 
 The official TraceX source is available under `external/tracex`. Its viewer is
 Windows/.NET WPF. Wine is not installed on this workstation, so viewer operation
@@ -208,7 +214,8 @@ python3 scripts/profile.py export --output build/profiles/allocation-failure
 
 Calibration uses 256 bounded samples: site 62 measures the empty DWT pair and
 site 63 measures one user event. IRQs are masked for each individual sample,
-not the entire batch. Compare distributions and observed maxima. These do not
+not the entire batch. Compare cycle minima, means and observed maxima. These
+samples do not collect a microsecond histogram inside the probe. They do not
 measure every registry/object-creation cost or constitute a worst-case guarantee.
 The failure check requests an impossible allocation without changing motor state.
 
@@ -227,10 +234,26 @@ python3 scripts/profiling/verify_hardware.py --seconds 600 --output build/profil
 ```
 
 This checks GUI/ICC/CLI health, switches diagnostic display modes, compares
-command round trips with recording frozen/active, and exports the result. It
+command round trips with recording frozen/active, and exports the result. Those
+round trips include the host serial read timeout; they are not CPU timings. It
 does not initialize or enable drivers, generate motion, or use the analyzer.
 It requires zero existing display errors and a fresh output directory. A
 failed SWD operation preserves its OpenOCD log in `build/profiles/errors`.
+
+For an overhead comparison, sample the existing runtime counters with tracing
+frozen and active, using the same workload:
+
+```sh
+python3 scripts/profiling/sample_cpu.py --output build/profiles/cpu-frozen
+python3 scripts/profile.py arm --preset motion
+python3 scripts/profiling/sample_cpu.py --output build/profiles/cpu-recording
+python3 scripts/profile.py freeze
+```
+
+`sample_cpu.py` checks the image pair and uncached symbol locations and never
+halts or resets the cores. Its thread-running fraction is not an exclusive
+CPU-utilization measurement; boundary samples are asynchronous. Supply the
+ordinary Release ELFs with `--m4` and `--m7` to compare against normal firmware.
 
 After testing, restore ordinary firmware with `giga-release` and
 `python3 scripts/giga_program.py flash --build build/giga-release`.

@@ -125,3 +125,13 @@ def test_calibration_does_not_claim_a_microsecond_histogram():
     result = summary(data, dict(frequency_hz=240000000, started_us=0, frozen_us=20))
     assert result['sites'][0]['mean_us'] == 10
     assert result['sites'][0]['histogram'] is None
+
+
+def test_debugger_storage_must_be_uncached_and_fit_its_region():
+    from profiling.decode import validate_debug_address
+    validate_debug_address(4, 0x3003f000, 164)
+    validate_debug_address(7, 0x20000800, 164)
+    for core, address, size in [(7, 0x240003a8, 164), (7, 0x2001fff0, 164),
+                                (4, 0x24040000, 24), (7, 0x20000800, 0)]:
+        with pytest.raises(ValueError, match='uncached'):
+            validate_debug_address(core, address, size)

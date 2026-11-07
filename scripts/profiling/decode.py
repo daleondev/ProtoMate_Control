@@ -19,6 +19,13 @@ SITES = ['ICC send (including suspension)', 'ICC dispatch', 'motion prepare', 'm
 QUEUE_NAMES = ['TX normal', 'TX urgent', 'TX background', 'RX normal', 'RX urgent', 'RX background']
 
 
+def validate_debug_address(core, address, size):
+    """The GIGA's SWD mailbox/counters must not depend on M7 D-cache eviction."""
+    low, high = (0x30000000, 0x30048000) if core == 4 else (0x20000000, 0x20020000)
+    if core not in (4, 7) or not low <= address < address+size <= high:
+        raise ValueError(f'M{core}: debugger data at {address:#x} is outside uncached internal RAM; rebuild the firmware')
+
+
 def kernel_catalog(header):
     """Freeze names from the pinned kernel's event declarations, not its mask constants."""
     return {int(number): 'ThreadX '+name.lower().replace('_', ' ')

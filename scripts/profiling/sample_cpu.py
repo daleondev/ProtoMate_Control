@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT/'scripts'))
 from giga_program import run, quote, symbols
 from giga_images import pair, MANIFEST_SIZE
+from profiling.decode import validate_debug_address
 
 
 def main():
@@ -24,6 +25,8 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     elfs = {4: args.m4, 7: args.m7}
     names = {core: symbols(path) for core, path in elfs.items()}
+    for core in names:
+        validate_debug_address(core, names[core]['counter'], 24)
     _, _, manifest, images = pair(args.m4, args.m7)
     commands = ['reset_config srst_only srst_nogate connect_deassert_srst',
                 'gdb_port disabled', 'tcl_port disabled', 'telnet_port disabled', 'init',
