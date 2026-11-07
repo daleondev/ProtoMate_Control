@@ -14,7 +14,7 @@ namespace
     std::array<double, 13> latencies{};
     unsigned latencyCount{};
     std::uint64_t inputAt{};
-    unsigned sampleX{}, sampleY{};
+    unsigned sampleX{}, sampleY{}, sampleControl{};
     std::uint16_t beforePixel{};
     void mouse(Uint32 type, int x, int y)
     {
@@ -50,6 +50,8 @@ namespace
                 else
                     correct = false;
                 inputAt = 0;
+                std::fprintf(
+                  stderr, "Press sample %u: %.2f ms\n", sampleControl, latencies[latencyCount - 1]);
             }
         }
 
@@ -207,6 +209,10 @@ namespace
                                                { 840, 184, "robot-joints" },
                                                { 544, 184, "robot-point" },
                                                { 660, 118, "cartesian" },
+                                               { 540, 246, "cartesian-step" },
+                                               { 730, 246, "cartesian-timed" },
+                                               { 730, 182, "cartesian-moveto" },
+                                               { 910, 182, "cartesian-settings" },
                                                { 890, 118, "more" },
                                                { 740, 328, "preview" },
                                                { 840, 184, "preview-line" },
@@ -262,8 +268,12 @@ namespace
         if (n >= 30 && n < 30 + std::size(steps) * 45) {
             const auto i = (n - 30) / 45, t = (n - 30) % 45;
             if (t == 0) {
-                sampleX = steps[i].x + 10;
-                sampleY = steps[i].y + 20;
+                sampleControl = unsigned(i);
+                // Observe a background pixel, not white caption/icon ink that
+                // intentionally remains unchanged while the button is pressed.
+                const bool sidebar = steps[i].x < 96;
+                sampleX = sidebar ? 22 : steps[i].x + 10;
+                sampleY = sidebar ? steps[i].y : steps[i].y + 20;
                 beforePixel = hal::linux::display::framebuffer(s.active)[sampleY * 1024 + sampleX];
                 inputAt = SDL_GetPerformanceCounter();
                 mouse(SDL_MOUSEBUTTONDOWN, steps[i].x, steps[i].y);

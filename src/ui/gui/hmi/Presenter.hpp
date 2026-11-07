@@ -103,7 +103,10 @@ namespace ui::gui::hmi
         DiagnosticGraphics,
         DiagnosticRefresh,
         DiagnosticPrevious,
-        DiagnosticNext
+        DiagnosticNext,
+        CartesianJogPage,
+        CartesianPosition,
+        CartesianDynamics
     };
     class Presenter final : public touchgfx::Presenter
     {

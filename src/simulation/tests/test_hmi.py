@@ -102,6 +102,8 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
             assert not any(s in line for s in ('rejected','faulted','unknown;')),line
             time.sleep(.1)
         raise AssertionError(out)
+    def simulation_time():
+        return float(re.search(r'time=([\d.]+) s',command('sim status'))[1])
     def joints():
         out=command('sim status');rows=re.findall(r'm(\d) shaft=([-+\d.eE]+) deg; joint=([-+\d.eE]+)',out)
         assert len(rows)==3,out;return [float(j) for _,_,j in rows]
@@ -140,21 +142,47 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         # Cartesian Hold repeats only completed increments and stops on release.
         click(660,118)
         before_cart=joints();previous=latest()
-        input('down 220 448') # Z minus, one mm per completed point move
+        input('down 516 468') # Z minus, one mm per completed point move
         first=latest();assert first>previous;wait(first)
         end=time.monotonic()+12
         while latest()==first:
             assert time.monotonic()<end,'Held Cartesian increment did not repeat'
             time.sleep(.1)
-        second=latest();input('up 220 448');wait(second,('stopped','completed'))
+        second=latest();input('up 516 468');wait(second,('stopped','completed'))
         after_release=latest();time.sleep(.6);assert latest()==after_release
         assert joints()[2]<before_cart[2]-.9,(before_cart,joints())
         capture('cartesian-held')
         # A CLI stop ends the held sequence too; do not retry while still pressed.
-        input('down 220 448');stopped=latest();wait(stopped,('running',))
+        input('down 516 468');stopped=latest();wait(stopped,('running',))
         command('motion stop');wait(stopped,('stopped',))
         time.sleep(.6);assert latest()==stopped
-        input('up 220 448');click(50,154)
+        input('up 516 468')
+        # Step is a single selected displacement; Timed continues after release.
+        click(540,246);click(860,348)
+        before_step=joints();click(516,468);step=latest();wait(step)
+        assert abs(joints()[2]-before_step[2]+.1)<.01
+        time.sleep(.3);assert latest()==step
+        capture('cartesian-step')
+        click(730,246);number(860,416,2)
+        before_timed=joints();started=simulation_time();click(516,468);timed=latest()
+        wait(timed,('running','completed','stopped'))
+        # Controller deadlines use simulation time, which pauses while its
+        # ThreadX workers execute; wall-clock sleeps are not a deadline oracle.
+        end=time.monotonic()+20
+        while simulation_time()<started+2.3:
+            assert time.monotonic()<end,'Timed jog did not reach its simulated deadline'
+            time.sleep(.1)
+        timed_last=latest();wait(timed_last,('completed','stopped'),timeout=10)
+        time.sleep(.6);assert latest()==timed_last
+        assert joints()[2]<before_timed[2]-.1
+        capture('cartesian-timed')
+        # Cartesian Move To uses millimetres and the same authoritative planner.
+        click(730,182);number(900,320,-.1)
+        before_move=joints();click(620,488);move=latest();wait(move)
+        assert abs(joints()[2]-before_move[2]+.1)<.01
+        capture('cartesian-moveto')
+        click(910,182);capture('cartesian-settings')
+        click(50,154)
         # The same IO admission still excludes the GUI's axis from a raw CLI job.
         raw=command('motor move m2 -2 --speed 1');raw_id=int(re.search(r'Submitted motor job (\d+)',raw)[1]);wait(raw_id,('running','accepted'))
         click(540,246);click(572,330);rejected=latest();assert rejected>raw_id

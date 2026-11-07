@@ -182,6 +182,7 @@ namespace ui::gui::hmi
         m_icon.setVisible(false);
         m_label.align(touchgfx::CENTER);
         layout(0, 0, 160);
+        refresh();
     }
     void Control::alignLabel()
     {

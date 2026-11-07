@@ -70,7 +70,6 @@ TEST(Hmi, HeldJogUsesTenPercentAndReleaseDoesNotWaitForAcceptance)
     BackendFixture b;
     m.backend = &b;
     m.page = Page::Axes;
-    EXPECT_TRUE(m.continuous);
     EXPECT_EQ(m.jogMode, 2U);
     m.state.axes[0].maxSpeed = 40;
     Presenter p{ m };
@@ -98,19 +97,19 @@ TEST(Hmi, RawAbortingReplacementNeedsConfirmation)
     EXPECT_EQ(b.submissions, 1U);
     EXPECT_TRUE(b.last.confirmed);
 }
-TEST(Hmi, CartesianHoldUsesSupervisedFinitePointIncrements)
+TEST(Hmi, CartesianHoldSubmitsDirectionIndependentOfStepSize)
 {
     Model m;
     BackendFixture b;
     m.backend = &b;
     m.page = Page::Cartesian;
-    m.step = 1;
+    m.cartesianStep = 10;
     Presenter p{ m };
     p.act(YMinus, true);
-    EXPECT_EQ(b.last.kind, Kind::PointRelative);
+    EXPECT_EQ(b.last.kind, Kind::PointJog);
     EXPECT_DOUBLE_EQ(b.last.position[1], -1);
     EXPECT_DOUBLE_EQ(b.last.position[0], 0);
-    EXPECT_FALSE(b.last.continuous);
+    EXPECT_TRUE(b.last.continuous);
     EXPECT_DOUBLE_EQ(b.last.speed, .25);
     EXPECT_EQ(b.holds, 1U);
     EXPECT_EQ(b.submissions, 0U);
@@ -252,8 +251,9 @@ TEST(Hmi, AllCartesianStepDirectionsAndJobCancellationHaveExplicitIdentity)
         BackendFixture b;
         m.backend = &b;
         m.page = Page::Cartesian;
-        m.step = .1;
+        m.cartesianStep = .1;
         Presenter p{ m };
+        p.act(StepMode, true);
         p.act(XMinus + i, true);
         EXPECT_EQ(b.last.kind, Kind::PointRelative);
         for (unsigned axis = 0; axis < 3; ++axis)
@@ -440,4 +440,67 @@ TEST(Gestures, WheelQueueKeepsCoordinatesAndConsumesEachDeltaOnce)
     ASSERT_TRUE(q.push(r, now));
     q.consume(r, now);
     EXPECT_EQ(r.wheel, 0);
+}
+
+TEST(Hmi, CartesianTimedJogUsesDurationAndFactorsWithoutInputSupervision)
+{
+    Model m;
+    BackendFixture b;
+    m.backend = &b;
+    Presenter p{ m };
+    p.navigate(Page::Cartesian);
+    p.act(Timed, true);
+    m.cartesianStep = 10;
+    m.values[8] = 2.5;
+    m.values[10] = .2;
+    m.values[4] = .5;
+    p.act(ZPlus, true);
+    EXPECT_EQ(b.last.kind, Kind::PointJog);
+    EXPECT_DOUBLE_EQ(b.last.position[2], 1);
+    EXPECT_DOUBLE_EQ(b.last.duration, 2.5);
+    EXPECT_DOUBLE_EQ(b.last.speed, .2);
+    EXPECT_DOUBLE_EQ(b.last.acceleration, .5);
+    EXPECT_DOUBLE_EQ(b.last.deceleration, 1);
+    EXPECT_FALSE(b.last.continuous);
+    EXPECT_EQ(b.holds, 0U);
+    EXPECT_EQ(b.submissions, 1U);
+    EXPECT_EQ(m.jogMode, 2U);
+    p.act(StepSmall, true);
+    EXPECT_DOUBLE_EQ(m.cartesianStep, .1);
+    EXPECT_DOUBLE_EQ(m.step, 1);
+}
+TEST(Hmi, CartesianMoveToUsesPointCoordinatesAndSettings)
+{
+    Model m;
+    BackendFixture b;
+    m.backend = &b;
+    Presenter p{ m };
+    p.navigate(Page::Cartesian);
+    p.act(CartesianDynamics, true);
+    EXPECT_EQ(m.cartesianTab, 2U);
+    p.act(Field0 + 4, true);
+    std::snprintf(m.number.data(), m.number.size(), "2");
+    p.act(KeyApply, true);
+    EXPECT_TRUE(m.keypad);
+    p.act(KeyCancel, true);
+    p.act(CartesianPosition, true);
+    EXPECT_EQ(m.cartesianTab, 1U);
+    m.values[0] = -25;
+    m.values[1] = 200;
+    m.values[2] = 15;
+    m.values[5] = .6;
+    m.values[7] = 20;
+    p.act(Absolute, true);
+    p.act(Execute, true);
+    EXPECT_EQ(b.last.kind, Kind::PointAbsolute);
+    EXPECT_EQ(b.last.position, (std::array<double, 3>{ -25, 200, 15 }));
+    EXPECT_DOUBLE_EQ(b.last.speed, .25);
+    EXPECT_DOUBLE_EQ(b.last.deceleration, .6);
+    EXPECT_DOUBLE_EQ(b.last.timeout, 20);
+    p.act(Relative, true);
+    p.act(Execute, true);
+    EXPECT_EQ(b.last.kind, Kind::PointRelative);
+    p.act(CartesianJogPage, true);
+    EXPECT_EQ(m.cartesianTab, 0U);
+    EXPECT_GE(b.releases, 4U);
 }

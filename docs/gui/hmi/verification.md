@@ -1,7 +1,7 @@
 # HMI modernization verification
 
 The normal Linux/GIGA UI uses the revised Home screen, **Axis 1/2/3** naming,
-centered controls, a six-button sidebar including Alarms, focused movement tabs, I/O cards and typed diagnostic tables. Home always shows estimated feedback. Axis Hold is the default; Cartesian Hold repeats finite increments through the existing planner.
+centered controls, a six-button sidebar including Alarms, focused movement tabs, I/O cards and typed diagnostic tables. Home always shows estimated feedback. Axis and Cartesian Hold are the defaults. Cartesian exposes Jog (Step/Timed/Hold), Move To and Settings, with persistent estimated feedback X/Y/Z. Timed/Hold repeat bounded finite increments through the existing planner; Step size does not affect these modes.
 The same 640×400 scene, 7,914-triangle interactive model and 36,376-triangle settled
 model run on both platforms. Idle poses do not rerender.
 
@@ -14,13 +14,13 @@ model run on both platforms. Idle poses do not rerender.
   switching, image ownership, robot rendering and source-asset checks.
 - The separate real **simulation.hmi** workflow passes in both builds. It uses
   the actual motion client, ICC and simulated plant: initialize without enable,
-  homing → stop → homing, coordinated and individual moves, held-jog cancellation, Cartesian increment repetition, release and CLI-stop without replay,
+  homing → stop → homing, coordinated and individual moves, held-jog cancellation, Cartesian increment repetition, release and CLI-stop without replay, selected-distance Step, Timed expiry in controller time and Cartesian Move To,
   CLI/GUI exclusion, numeric cancellation, observed joint/TCP agreement and shutdown.
 - HAL architecture and simulated display-clock checks pass. The timer rollover
   test uses native monotonic time alongside the native simulated counter;
   production timing uses the unchanged runtime clock. Mixing native counter
   time with delayed hosted ThreadX ticks is not a valid rollover reference.
-- **52 reviewed screenshots** cover the pages/tabs and ready, disabled, busy,
+- **56 reviewed screenshots** cover the pages/tabs and ready, disabled, busy,
   unconfigured, stale and fault states. Seven additional pixel tests check text
   centering in tabs, large controls, multiline fields, keypad keys and sidebar icon/caption groups.
 - Pinch tests cover entry/exit, reordering, near-zero separation, jitter,
@@ -34,7 +34,7 @@ model run on both platforms. Idle poses do not rerender.
 - The detailed/interactive asset review retains 36 matched views with minimum
   silhouette IoU **98.358%**. Three static joint illustrations use the detailed
   registered CAD and projected positive-direction guides. Each contains only the two connected links, with original stationary-link materials and a highlighted moving link; hashes/sizes match.
-- Linux native input-to-visible-feedback samples are retained in `verification.json`. These small samples do not establish a physical touch or motion-latency bound.
+- Linux native input-to-visible-feedback samples are retained in `verification.json`. The sampler observes control background pixels, avoiding unchanged text/icon ink. X11 tests require local display-socket access outside the restricted sandbox. These small samples do not establish a physical touch or motion-latency bound.
 - Linux and both GIGA cores build in Debug/Release. No clang-tidy or sanitizer
   campaign was run. Targeted formatting was applied to changed C++ files.
 
@@ -43,10 +43,10 @@ model run on both platforms. Idle poses do not rerender.
 Release pair programmed and verified:
 
 ```
-b0e45da3cd90cc6c65600a82ac4c86a821188c99c9d578f2bd8afcb043cc6e1b
+ec10a0449dcdefa4b943a252893fd4cdde621899bec2d7ffd296c743ec3a0e8e
 ```
 
-M4 image: **1,149,828 bytes**. M7 image: **2,656,728 bytes**.
+M4 image: **1,149,828 bytes**. M7 image: **2,659,116 bytes**.
 
 | Resource | Allocation |
 |---|---:|
@@ -65,16 +65,16 @@ further widgets need an explicit budget, rather than unbounded page trees.
 
 ## Panel-free hardware verification
 
-The final image was programmed, verified and started through the normal coordinated debugger reset. Both controllers reported Ready, and ICC stayed connected during the 12.65-second interactive-camera sample. A physical USB cold start was not repeated for this UI refinement.
+The final image was programmed, verified and started through the normal coordinated debugger reset. Both controllers reported Ready, and ICC stayed connected during the 13.46-second interactive-camera sample. A physical USB cold start was not repeated for this UI refinement.
 
 | Measurement | Final Release result |
 |---|---:|
-| Newly presented 3D images/s | 3.952 |
-| Mean render wall time | 199.45 ms |
+| Newly presented 3D images/s | 3.865 |
+| Mean render wall time | 195.29 ms |
 | LTDC underruns / DMA errors | 0 / 0 |
 | Renderer/input/command errors | 0 |
 | Heap use, minimum–maximum | 199,712–199,720 B |
-| Final minus initial heap use | +8 B |
+| Final minus initial heap use | 0 B |
 | GUI / renderer / touch free stack | 70.50% / 61.07% / 92.33% |
 
 This short sample is a health check, not a guaranteed frame rate, memory-leak proof or endurance qualification. The live 3D view still has visibly stepped animation. Physical display/touch operation remains unverified.
@@ -83,9 +83,9 @@ A 24 MHz, three-second analyzer capture records 72 million samples: all three ST
 
 Both SDRAM framebuffer slots passed the diagnostic-pattern and Home readback checks. The saved [GIGA image](screens/giga-home.png) is a framebuffer readback, not a photograph of a physical display.
 
-Exact-image manifest, counters and stacks: `build/hmi-refinement/final-hardware`.
-Analyzer samples/hash: `build/hmi-refinement/final-idle`.
-Framebuffers: `build/hmi-refinement/final-framebuffers`.
+Exact-image manifest, counters and stacks: `build/hmi-cartesian/hardware`.
+Analyzer samples/hash: `build/hmi-cartesian/idle`.
+Framebuffers: `build/hmi-cartesian/framebuffers`.
 
 ## Reproduction and remaining qualification
 

@@ -28,6 +28,7 @@ namespace ui::gui::hmi
         void movePage();
         void axisPage();
         void robotPage();
+        void cartesianPage();
         void motorPage();
         void maintenancePage();
         void settingsPage();

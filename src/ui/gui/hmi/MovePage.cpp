@@ -135,28 +135,7 @@ namespace ui::gui::hmi
         const bool enabled =
           s.connected && s.fresh && !s.failed && s.robotConfigured && s.initialized && s.enabled;
         if (m_model.page == Page::Cartesian) {
-            card(0, 112, 148, 440, 376);
-            card(1, 564, 148, 444, 376);
-            label("Hold to move", 136, 166, 392, 36, true);
-            constexpr const char* names[]{ "X −", "X +", "Y −", "Y +", "Z −", "Z +" };
-            constexpr std::uint32_t colors[]{ theme::X_AXIS, theme::Y_AXIS, theme::Z_AXIS };
-            for (unsigned i = 0; i < 6; ++i)
-                button(XMinus + i,
-                       names[i],
-                       136 + int(i % 2) * 204,
-                       226 + int(i / 2) * 92,
-                       188,
-                       76,
-                       enabled,
-                       false,
-                       colors[i / 2]);
-            label("Step size", 588, 174, 392);
-            control(StepSmall, "0.1 mm", 580, 220, 132, true, m_model.step == .1);
-            control(StepMedium, "1 mm", 720, 220, 132, true, m_model.step == 1);
-            control(StepLarge, "10 mm", 860, 220, 132, true, m_model.step == 10);
-            field(10, "Speed factor", 580, 300, 412);
-            label("Joint interpolation can curve the TCP path.", 588, 378, 392, 64);
-            label("Hold repeats the step. Release to stop.", 588, 454, 392, 64);
+            cartesianPage();
             return;
         }
         card(0, 112, 148, 896, 376);
@@ -191,6 +170,89 @@ namespace ui::gui::hmi
             control(RunPreview, "Calculate", 712, 316, 280, s.connected && s.robotConfigured, true);
             label("Preview only · no motor movement", 128, 400, 864);
             control(TogglePreviews, "Preview results", 128, 460, 268);
+        }
+    }
+    void View::cartesianPage()
+    {
+        const auto& s = m_model.state;
+        const bool fresh = s.connected && s.fresh && !s.failed;
+        const bool enabled = fresh && s.robotConfigured && s.initialized && s.enabled && s.poseValid;
+        const bool positionValid = fresh && s.robotConfigured && s.poseValid && s.feedbackValid;
+        card(0, 112, 148, 324, 376);
+        card(1, 448, 148, 560, 376);
+        label("Estimated TCP", 132, 168, 284, 36, true, touchgfx::CENTER);
+        constexpr const char* coordinates[]{ "X", "Y", "Z" };
+        constexpr std::uint32_t colors[]{ theme::X_AXIS, theme::Y_AXIS, theme::Z_AXIS };
+        for (unsigned i = 0; i < 3; ++i) {
+            char text[40];
+            label(coordinates[i], 132, 226 + int(i) * 64, 32, 36, true);
+            std::snprintf(text, sizeof(text), positionValid ? "%.2f mm" : "--", s.feedbackTcp[i]);
+            label(text, 172, 222 + int(i) * 64, 244, 44, true, touchgfx::RIGHT);
+        }
+        const char* source = !fresh               ? "Feedback unavailable / stale"
+                             : !s.robotConfigured ? "Robot configuration required"
+                             : !s.poseValid       ? "Reference required"
+                             : !s.feedbackValid   ? "Feedback unavailable"
+                                                  : "Encoder + INDEX estimate";
+        label(source, 128, 420, 292, 40, false, touchgfx::LEFT, Typography::Small);
+        label("Joint interpolation; TCP path may curve.",
+              128,
+              468,
+              292,
+              48,
+              false,
+              touchgfx::LEFT,
+              Typography::Small);
+        control(CartesianJogPage, "Jog", 456, 156, 176, true, m_model.cartesianTab == 0);
+        control(CartesianPosition, "Move To", 640, 156, 176, true, m_model.cartesianTab == 1);
+        control(CartesianDynamics, "Settings", 824, 156, 176, true, m_model.cartesianTab == 2);
+        if (m_model.cartesianTab == 0) {
+            control(StepMode, "Step", 456, 220, 176, true, m_model.cartesianJogMode == 0);
+            control(Timed, "Timed", 640, 220, 176, true, m_model.cartesianJogMode == 1);
+            control(Continuous, "Hold", 824, 220, 176, true, m_model.cartesianJogMode == 2);
+            constexpr const char* names[]{ "X −", "X +", "Y −", "Y +", "Z −", "Z +" };
+            for (unsigned i = 0; i < 6; ++i)
+                button(XMinus + i,
+                       names[i],
+                       456 + int(i % 2) * 128,
+                       292 + int(i / 2) * 72,
+                       120,
+                       64,
+                       enabled,
+                       false,
+                       colors[i / 2]);
+            if (m_model.cartesianJogMode == 0) {
+                label("Step size", 728, 284, 264);
+                control(StepSmall, "0.1 mm", 720, 320, 280, true, m_model.cartesianStep == .1);
+                control(StepMedium, "1 mm", 720, 384, 280, true, m_model.cartesianStep == 1);
+                control(StepLarge, "10 mm", 720, 448, 280, true, m_model.cartesianStep == 10);
+            }
+            else {
+                field(10, "Speed factor", 720, 300, 280);
+                if (m_model.cartesianJogMode == 1)
+                    field(8, "Duration s", 720, 388, 280);
+                else
+                    label("Press and hold.\nRelease to stop.", 728, 388, 264, 72);
+            }
+        }
+        else if (m_model.cartesianTab == 1) {
+            control(Relative, "Relative", 456, 220, 264, true, !m_model.absolute);
+            control(Absolute, "Absolute", 736, 220, 264, true, m_model.absolute);
+            field(0, "X mm", 456, 292, 168);
+            field(1, "Y mm", 640, 292, 168);
+            field(2, "Z mm", 824, 292, 176);
+            field(10, "Speed factor", 456, 364, 544);
+            control(Execute, "Move", 456, 460, 360, enabled, true);
+            control(GlobalStop, "Stop", 832, 460, 168, fresh);
+        }
+        else {
+            field(4, "Acceleration factor", 456, 230, 264);
+            field(5, "Deceleration factor", 736, 230, 264);
+            field(6, "Jerk factor", 456, 302, 264);
+            field(7, "Timeout s", 736, 302, 264);
+            field(10, "Speed factor", 456, 374, 264);
+            label("Factors scale joint limits.\n0 uses defaults.", 736, 370, 264, 80);
+            label("Applies to the next movement.", 468, 464, 520, 40);
         }
     }
     void View::motorPage()

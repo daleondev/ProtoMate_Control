@@ -480,5 +480,21 @@
   "page-axis-step": {
     "ignore": [],
     "include": []
+  },
+  "page-cartesian-step": {
+    "ignore": [],
+    "include": []
+  },
+  "page-cartesian-timed": {
+    "ignore": [],
+    "include": []
+  },
+  "page-cartesian-moveto": {
+    "ignore": [],
+    "include": []
+  },
+  "page-cartesian-settings": {
+    "ignore": [],
+    "include": []
   }
 }

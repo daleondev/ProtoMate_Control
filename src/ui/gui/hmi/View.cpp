@@ -9,7 +9,7 @@ namespace ui::gui::hmi
 {
     namespace
     {
-        constexpr const char* titles[]{ "ProtoMate",    "Axis control", "Robot motion", "Cartesian jog",
+        constexpr const char* titles[]{ "ProtoMate",    "Axis control", "Robot motion", "Cartesian control",
                                         "Path preview", "Raw motors",   "Programs",     "Position presets",
                                         "I/O monitor",  "Settings",     "Motion jobs",  "Alarms & messages" };
     }
@@ -113,7 +113,8 @@ namespace ui::gui::hmi
         const bool appeared = !c.isVisible();
         c.setVisible(true);
         c.layout(x, y, width, height);
-        c.held(id == JogMinus || id == JogPlus || (id >= XMinus && id <= ZPlus));
+        c.held(id == JogMinus || id == JogPlus ||
+               (id >= XMinus && id <= ZPlus && m_model.cartesianJogMode == 2));
         c.appearance(tint, radius, large);
         c.configure(text, id, [](void* p, unsigned action, bool down) {
             auto& self = *static_cast<View*>(p);
@@ -256,8 +257,9 @@ namespace ui::gui::hmi
           m_model.field < 3
             ? (m_model.page == Page::Motors ? "Shaft degrees"
                : m_model.page == Page::Axes ? (m_model.axis == 2 ? "Millimetres" : "Axis degrees")
-               : m_model.coordinates == 0 && m_model.field < 2 ? "Joint degrees"
-                                                               : "Millimetres")
+               : m_model.page != Page::Cartesian && m_model.coordinates == 0 && m_model.field < 2
+                 ? "Joint degrees"
+                 : "Millimetres")
           : m_model.field == 11 ? "Brightness %"
           : m_model.field == 10 ? "Speed factor (0..1)"
                                 : "Motion parameter";

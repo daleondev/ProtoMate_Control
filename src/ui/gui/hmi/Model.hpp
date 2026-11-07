@@ -27,13 +27,14 @@ namespace ui::gui::hmi
         unsigned axis{}, coordinates{}, jobOffset{}, buffer{};
         unsigned axisTab{}, motorTab{}, settingsTab{}, ioTab{}, diagnosticTab{}, diagnosticOffset{},
           driverDetail{};
-        unsigned jogMode{ 2 };
+        unsigned jogMode{ 2 }, cartesianJogMode{ 2 }, cartesianTab{};
         bool more{}, advanced{}, diagnosticIO{};
-        bool continuous{ true }, absolute{}, previews{}, keypad{}, confirmation{};
+        bool absolute{}, previews{}, keypad{}, confirmation{};
         unsigned field{};
         std::array<double, 12> values{ 0, 0, 0, 0, 0, 0, 0, 0, 1, .5, .25, 10 };
         // position x/y/z; speed,a,d,j,timeout,duration,latch,factor,brightness.
         double step{ 1 };
+        double cartesianStep{ 1 };
         Text<32> number{};
         Text<192> notice{};
         std::array<std::uint32_t, 8> graphics{};

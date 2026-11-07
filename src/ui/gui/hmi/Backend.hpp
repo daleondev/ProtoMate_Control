@@ -25,6 +25,7 @@ namespace ui::gui::hmi
         JointAbsolute,
         PointRelative,
         PointAbsolute,
+        PointJog,
         RobotHome,
         PreviewJoint,
         PreviewPoint,

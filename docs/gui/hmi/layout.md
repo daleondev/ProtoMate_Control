@@ -14,6 +14,8 @@ names; those names are not presented as axis labels.
 | Home status card | x752 y80, 264×444 |
 | Axis illustration card | x112 y148, 324×376 |
 | Axis controls | x448 y148, 560×376 |
+| Cartesian estimated TCP | x112 y148, 324×376; feedback validity required |
+| Cartesian Jog / Move To / Settings | x448 y148, 560×376; same tab geometry as Axis |
 
 `View` owns the shell, keypad and one reusable collection of controls. Home,
 movement and maintenance page builders compose this storage; navigation does

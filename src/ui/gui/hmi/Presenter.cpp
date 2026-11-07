@@ -54,7 +54,7 @@ namespace ui::gui::hmi
         m_model.confirmation = false;
         m_model.coordinates = 0;
         m_model.more = m_model.advanced = false;
-        m_model.axisTab = m_model.motorTab = 0;
+        m_model.axisTab = m_model.motorTab = m_model.cartesianTab = 0;
         m_model.jobOffset = 0;
         changed = true;
     }
@@ -72,7 +72,8 @@ namespace ui::gui::hmi
                  .duration = v[8],
                  .latch = v[9],
                  .buffer = m_model.buffer,
-                 .continuous = m_model.continuous };
+                 .continuous =
+                   (m_model.page == Page::Cartesian ? m_model.cartesianJogMode : m_model.jogMode) == 2 };
     }
     void Presenter::send(Command c)
     {
@@ -149,7 +150,8 @@ namespace ui::gui::hmi
                 const bool signAllowed =
                   m_model.field < 3 || (m_model.page == Page::Motors && m_model.field == 3);
                 const bool factor =
-                  m_model.field == 10 || ((m_model.page == Page::Robot || m_model.page == Page::Preview) &&
+                  m_model.field == 10 || ((m_model.page == Page::Robot || m_model.page == Page::Preview ||
+                                           m_model.page == Page::Cartesian) &&
                                           m_model.field >= 4 && m_model.field <= 6);
                 if (!n || *end || !std::isfinite(v) || (!signAllowed && v < 0) ||
                     (factor && (v < 0 || v > 1 || (m_model.field == 10 && v == 0))) ||
@@ -216,15 +218,15 @@ namespace ui::gui::hmi
                 changed = true;
                 break;
             case StepSmall:
-                m_model.step = .1;
+                (m_model.page == Page::Cartesian ? m_model.cartesianStep : m_model.step) = .1;
                 changed = true;
                 break;
             case StepMedium:
-                m_model.step = 1;
+                (m_model.page == Page::Cartesian ? m_model.cartesianStep : m_model.step) = 1;
                 changed = true;
                 break;
             case StepLarge:
-                m_model.step = 10;
+                (m_model.page == Page::Cartesian ? m_model.cartesianStep : m_model.step) = 10;
                 changed = true;
                 break;
             case Relative:
@@ -239,8 +241,8 @@ namespace ui::gui::hmi
             case Continuous:
                 if (m_model.backend)
                     m_model.backend->release();
-                m_model.continuous = a == Continuous;
-                m_model.jogMode = a == Continuous ? 2 : 1;
+                (m_model.page == Page::Cartesian ? m_model.cartesianJogMode : m_model.jogMode) =
+                  a == Continuous ? 2 : 1;
                 changed = true;
                 break;
             case More:
@@ -261,11 +263,18 @@ namespace ui::gui::hmi
                 m_model.axisTab = 1;
                 changed = true;
                 break;
+            case CartesianJogPage:
+            case CartesianPosition:
+            case CartesianDynamics:
+                if (m_model.backend)
+                    m_model.backend->release();
+                m_model.cartesianTab = a - CartesianJogPage;
+                changed = true;
+                break;
             case StepMode:
                 if (m_model.backend)
                     m_model.backend->release();
-                m_model.jogMode = 0;
-                m_model.continuous = false;
+                (m_model.page == Page::Cartesian ? m_model.cartesianJogMode : m_model.jogMode) = 0;
                 changed = true;
                 break;
             case MotorMoveTab:
@@ -368,14 +377,15 @@ namespace ui::gui::hmi
                 break;
             }
             case Execute: {
-                Kind k =
-                  m_model.page == Page::Motors
-                    ? (m_model.absolute ? Kind::MotorAbsolute : Kind::MotorRelative)
-                  : m_model.page == Page::Axes ? (m_model.absolute ? Kind::AxisAbsolute : Kind::AxisRelative)
-                  : m_model.coordinates == 1 ? (m_model.absolute ? Kind::PointAbsolute : Kind::PointRelative)
-                                             : (m_model.absolute ? Kind::JointAbsolute : Kind::JointRelative);
+                Kind k = m_model.page == Page::Motors
+                           ? (m_model.absolute ? Kind::MotorAbsolute : Kind::MotorRelative)
+                         : m_model.page == Page::Axes
+                           ? (m_model.absolute ? Kind::AxisAbsolute : Kind::AxisRelative)
+                         : (m_model.page == Page::Cartesian || m_model.coordinates == 1)
+                           ? (m_model.absolute ? Kind::PointAbsolute : Kind::PointRelative)
+                           : (m_model.absolute ? Kind::JointAbsolute : Kind::JointRelative);
                 auto c = command(k);
-                if (m_model.page == Page::Robot) {
+                if (m_model.page == Page::Robot || m_model.page == Page::Cartesian) {
                     c.speed = m_model.values[10];
                     c.acceleration = c.acceleration == 0 ? 1 : c.acceleration;
                     c.deceleration = c.deceleration == 0 ? 1 : c.deceleration;
@@ -390,15 +400,21 @@ namespace ui::gui::hmi
             case YPlus:
             case ZMinus:
             case ZPlus: {
-                auto c = command(Kind::PointRelative);
+                const bool step = m_model.cartesianJogMode == 0;
+                auto c = command(step ? Kind::PointRelative : Kind::PointJog);
                 c.position = {};
-                c.position[(a - XMinus) / 2] = (a % 2 == XMinus % 2 ? -1 : 1) * m_model.step;
+                // Jog carries a direction. Only Step exposes a distance.
+                c.position[(a - XMinus) / 2] =
+                  (a % 2 == XMinus % 2 ? -1 : 1) * (step ? m_model.cartesianStep : 1.);
                 c.speed = m_model.values[10];
-                c.acceleration = c.deceleration = c.jerk = 1;
-                c.continuous = false; // Each held increment remains a finite, validated point move.
-                if (m_model.backend)
+                c.acceleration = c.acceleration == 0 ? 1 : c.acceleration;
+                c.deceleration = c.deceleration == 0 ? 1 : c.deceleration;
+                c.jerk = c.jerk == 0 ? 1 : c.jerk;
+                if (m_model.cartesianJogMode == 2 && m_model.backend)
                     m_model.report(
                       m_model.backend->hold(c, holdX, holdY, holdWidth, holdHeight).message.data());
+                else
+                    send(c);
                 break;
             }
             case PreviewJoints:

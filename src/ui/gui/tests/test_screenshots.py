@@ -37,7 +37,7 @@ def test_reviewed_screen(name):
     ("page-axis-jog", (824, 284, 104, 104)),  # large circular control
     ("page-axis-move", (456, 292, 544, 56)),  # two-line numeric field
     ("gui-keypad", (200, 210, 120, 56)),
-    ("page-cartesian", (136, 226, 188, 76)),
+    ("page-cartesian", (456, 292, 120, 64)),
     ("page-home", (12, 12, 80, 92)),  # icon and caption centered as one group
     ("page-home", (12, 492, 80, 92)),
 ])
