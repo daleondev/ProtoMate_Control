@@ -54,3 +54,22 @@ TEST(CliUtilities, TimeReportsCommandErrorsAndRejectsEmptyCommands)
     EXPECT_EQ(empty.error, ui::cli::ExecutionError::CallbackFailed);
     EXPECT_NE(empty.message.find("empty command"), std::string::npos);
 }
+
+TEST(CliUtilities, ResetRejectsIndividualControllersAndDoesNotExitTheHost)
+{
+    pnm::msg::Bus bus;
+    ui::cli::Parser parser;
+    ui::cli::utilities::setup(parser, bus);
+    for (const auto target : { "ui", "io", "unknown" }) {
+        std::ostringstream output;
+        const auto result = parser.execute(std::string{ "reset " } + target, output);
+        EXPECT_EQ(result.error, ui::cli::ExecutionError::CallbackFailed);
+        EXPECT_NE(result.message.find("Individual controller reset is not supported"), std::string::npos);
+        EXPECT_TRUE(output.str().empty());
+    }
+    std::ostringstream output;
+    const auto result = parser.execute("reset all", output);
+    EXPECT_EQ(result.error, ui::cli::ExecutionError::CallbackFailed);
+    EXPECT_NE(result.message.find("unavailable in Linux"), std::string::npos);
+    EXPECT_TRUE(parser.execute("echo still-running", output));
+}

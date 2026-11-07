@@ -4,6 +4,7 @@
 #include "common/diagnostics/Memory.hpp"
 #include "common/icc/catalog/services.hpp"
 #include "filesystem.hpp"
+#include "hal/hal.hpp"
 
 #include "pneumo/meta.hpp"
 
@@ -531,6 +532,27 @@ namespace ui::cli::utilities
                                         result.exit_code);
             }
             return result.exit_code;
+        }
+
+        [[
+            = "Immediately reset both controllers (hardware only); aborts motion and clears references."_fs,
+            = Arg{ .name = "controller"_fs,
+                   .description = "all; individual ui/io restarts are not supported"_fs }
+        ]] static auto reset(const Arguments& args, CommandIO& io) -> CallbackResult
+        {
+            if (args.require("controller") != "all") {
+                return callback_failure("Individual controller reset is not supported. Use 'reset all' to "
+                                        "restart both controllers.");
+            }
+            io.output << "Resetting both controllers; motion is aborted, references cleared, and motors "
+                         "remain disabled after restart.\n";
+            io.output.flush();
+            const auto result = hal::reset_system();
+            if (!result) {
+                return callback_failure(
+                  "Hardware reset is unavailable in Linux. Close and restart the simulation.");
+            }
+            return callback_failure("Hardware reset unexpectedly returned");
         }
 
         [[

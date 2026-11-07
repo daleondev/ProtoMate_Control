@@ -25,7 +25,6 @@ namespace ui
 
       private:
         void update(); // existing client worker
-        void serviceHold();
         gui::hmi::Outcome submitHeld(const gui::hmi::Command&, std::uint64_t gesture);
         void outcome(std::uint64_t id, bool ok, const char* text, std::uint64_t job = 0);
         motion::Client& m_client;
@@ -37,10 +36,8 @@ namespace ui
         gui::hmi::Snapshot m_state;
         std::uint64_t m_next{ 1 }, m_gesture{}, m_holdJob{};
         int m_x{}, m_y{}, m_width{}, m_height{};
-        bool m_holding{}, m_requiresInput{ true };
-        gui::hmi::Command m_heldCommand{};
+        bool m_holding{};
         std::chrono::steady_clock::time_point m_inputDeadline{};
-        std::optional<std::chrono::steady_clock::time_point> m_jogDeadline;
         std::optional<unsigned> m_memoryRequest;
         bool m_memoryBusy{};
         pnm::msg::ReadinessRegistration m_memoryReady;

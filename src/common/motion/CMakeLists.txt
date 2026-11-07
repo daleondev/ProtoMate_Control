@@ -8,6 +8,8 @@ target_sources(proto_common_motion
         Profile.hpp
         Profile.cpp
         Polynomial.cpp
+        ProgressPath.hpp
+        ProgressPath.cpp
         Trajectory.cpp
         PulseCursor.cpp
 )

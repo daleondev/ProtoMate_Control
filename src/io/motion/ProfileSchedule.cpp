@@ -12,13 +12,17 @@ namespace io::motion
         auto invalid() { return std::unexpected(std::make_error_code(std::errc::invalid_argument)); }
         constexpr double FREQUENCY = 10'000'000.;
     }
-    ProfileSchedule::Nominal::Nominal(const ::motion::Profile& value, std::uint32_t half, bool roll)
+    ProfileSchedule::Nominal::Nominal(const ::motion::Profile& value,
+                                      std::uint32_t half,
+                                      bool roll,
+                                      const ::motion::ProgressPath& mapped)
       : profile(value)
       , crossing(profile, 0, roll)
+      , path(mapped)
       , half_pulses(half)
       , rolling(roll)
     {
-        if (!crossing.valid()) {
+        if (!crossing.valid() || (path.size && !path.valid(profile.distance()))) {
             return;
         }
         count = unsigned(std::floor(profile.distance()));
@@ -26,11 +30,30 @@ namespace io::motion
             return;
         }
         ProfileCrossing::Cursor cursor;
-        first = crossing.next(1, cursor);
+        ::motion::ProgressPath::Cursor pathCursor;
+        first = crossing.atPosition(coordinate(1, pathCursor), cursor);
         end = std::uint64_t(std::ceil(profile.duration() * FREQUENCY));
         maximum = std::chrono::nanoseconds(
           std::uint64_t(std::ceil(profile.maximumStepInterval(1) * FREQUENCY) + 4) * 100);
+        if (path.size) {
+            const auto slope = path.range(1).minimum;
+            maximum = std::chrono::nanoseconds(
+              std::uint64_t(std::ceil((slope > 1e-8 ? profile.maximumStepInterval(profile.distance() / slope)
+                                                    : profile.duration()) *
+                                      FREQUENCY) +
+                            4) *
+              100);
+        }
         valid = first != 0;
+    }
+    double ProfileSchedule::Nominal::motorPosition(double coordinate) const noexcept
+    {
+        return path.size ? path.at(coordinate / profile.distance()) : coordinate;
+    }
+    double ProfileSchedule::Nominal::coordinate(unsigned pulse,
+                                                ::motion::ProgressPath::Cursor& cursor) const noexcept
+    {
+        return path.size ? path.crossing(pulse, cursor) * profile.distance() : double(pulse);
     }
     ProfileSchedule::ProfileSchedule(const ::motion::Profile& profile)
       : ProfileSchedule(std::make_shared<Nominal>(profile))
@@ -85,18 +108,22 @@ namespace io::motion
             m_failure = ScheduleFailure::None;
             return;
         }
-        m_prefix = unsigned(std::floor(state.position));
+        m_cutPosition = state.position;
+        m_prefix = unsigned(std::floor(nominal.motorPosition(state.position)));
+        ::motion::ProgressPath::Cursor pathCursor;
         // The integer-tick crossing predicate, not a rounded position, owns
         // the boundary. Correct at most the adjacent integer crossing.
         ProfileCrossing::Cursor cursor;
-        if (m_prefix && m_source->crossing.next(m_prefix, cursor) > cut) {
+        if (m_prefix &&
+            m_source->crossing.atPosition(nominal.coordinate(m_prefix, pathCursor), cursor) > cut) {
             --m_prefix;
         }
         cursor = {};
-        if (m_prefix < nominal.count && m_source->crossing.next(m_prefix + 1, cursor) <= cut) {
+        if (m_prefix < nominal.count &&
+            m_source->crossing.atPosition(nominal.coordinate(m_prefix + 1, pathCursor), cursor) <= cut) {
             ++m_prefix;
         }
-        const double rawFraction = state.position - m_prefix;
+        const double rawFraction = nominal.motorPosition(state.position) - m_prefix;
         if (rawFraction < -1e-9 || rawFraction > 1 + 1e-9) {
             m_failure = ScheduleFailure::FractionalBoundary;
             return;
@@ -113,12 +140,14 @@ namespace io::motion
             m_failure = ScheduleFailure::BrakeDuration;
             return;
         }
-        m_braking.emplace(*m_brake, fraction);
+        m_braking.emplace(*m_brake, nominal.path.size ? 0. : fraction);
         if (!m_braking->valid()) {
             m_failure = ScheduleFailure::BrakeCrossing;
             return;
         }
-        m_count = m_prefix + unsigned(std::floor(m_brake->distance() + fraction));
+        m_count = nominal.path.size
+                    ? unsigned(std::floor(nominal.motorPosition(state.position + m_brake->distance())))
+                    : m_prefix + unsigned(std::floor(m_brake->distance() + fraction));
         m_first = rollingBase(nominal, cut);
         m_end = cut + std::uint64_t(std::ceil(m_brake->duration() * FREQUENCY));
         m_maximum = nominal.maximum + std::chrono::nanoseconds((m_end - cut) * 100);
@@ -128,7 +157,8 @@ namespace io::motion
       const hal::step::Sequence& previous) const noexcept
     {
         const auto* other = dynamic_cast<const ProfileSchedule*>(&previous);
-        if (!other || !valid() || !other->valid() || !(m_source->profile == other->m_source->profile)) {
+        if (!other || !valid() || !other->valid() || !(m_source->profile == other->m_source->profile) ||
+            ((m_source->path.size || other->m_source->path.size) && m_source != other->m_source)) {
             return {};
         }
         return std::int64_t(
@@ -148,12 +178,16 @@ namespace io::motion
     }
     std::uint64_t ProfileSchedule::absoluteTick(unsigned pulse,
                                                 ProfileCrossing::Cursor& nominal,
-                                                ProfileCrossing::Cursor& brake) const noexcept
+                                                ProfileCrossing::Cursor& brake,
+                                                ::motion::ProgressPath::Cursor& path) const noexcept
     {
         if (m_braking && pulse >= m_prefix) {
-            return m_cut + m_braking->next(pulse - m_prefix + 1, brake);
+            return m_cut +
+                   (m_source->path.size
+                      ? m_braking->atPosition(m_source->coordinate(pulse + 1, path) - m_cutPosition, brake)
+                      : m_braking->next(pulse - m_prefix + 1, brake));
         }
-        return m_source->crossing.next(pulse + 1, nominal);
+        return m_source->crossing.atPosition(m_source->coordinate(pulse + 1, path), nominal);
     }
     hal::util::Result<std::uint32_t> ProfileSchedule::risingTick(hal::step::PulseCount pulse) const noexcept
     {
@@ -165,7 +199,8 @@ namespace io::motion
         }
         ProfileCrossing::Cursor a;
         ProfileCrossing::Cursor b;
-        const auto tick = absoluteTick(unsigned(pulse), a, b);
+        ::motion::ProgressPath::Cursor path;
+        const auto tick = absoluteTick(unsigned(pulse), a, b, path);
         if (tick < m_first || tick - m_first >= 0x3FFFFFFFULL) {
             return invalid();
         }
@@ -190,11 +225,12 @@ namespace io::motion
         }
         ProfileCrossing::Cursor nominal;
         ProfileCrossing::Cursor brake;
-        auto previous = absoluteTick(unsigned(first), nominal, brake);
+        ::motion::ProgressPath::Cursor path;
+        auto previous = absoluteTick(unsigned(first), nominal, brake, path);
         for (auto& entry : target) {
             ++first;
             const auto next =
-              first < m_count ? absoluteTick(unsigned(first), nominal, brake) : previous + 400;
+              first < m_count ? absoluteTick(unsigned(first), nominal, brake, path) : previous + 400;
             if (next < previous || next - previous < 400) {
                 return invalid();
             }

@@ -125,11 +125,11 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         click(880,490);home=latest();assert home>interrupted;wait(home)
         compare_presented_state(capture('home-referenced'));before_robot=joints()
         click(50,154);click(890,118);click(740,250)
-        number(240,264,-.5);number(520,264,-.3);number(800,264,-.1)
+        number(240,264,-4);number(520,264,-4);number(800,264,-.1)
         click(820,488);robot_job=latest();wait(robot_job)
         after_robot=joints()
-        assert abs(math.degrees(after_robot[0]-before_robot[0])+.5)<.05,(before_robot,after_robot)
-        assert abs(math.degrees(after_robot[1]-before_robot[1])+.3)<.05,(before_robot,after_robot)
+        assert abs(math.degrees(after_robot[0]-before_robot[0])+4)<.05,(before_robot,after_robot)
+        assert abs(math.degrees(after_robot[1]-before_robot[1])+4)<.05,(before_robot,after_robot)
         assert abs((after_robot[2]-before_robot[2])+.1)<.01,(before_robot,after_robot)
         compare_presented_state(capture('robot-motion'))
         before=joints()
@@ -139,20 +139,34 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         click(912,246) # Hold mode
         input('down 572 330');jog=latest();wait(jog,('running',))
         input('focuslost');wait(jog,('stopped',));capture('jog-released');input('focusgained')
-        # Cartesian Hold repeats only completed increments and stops on release.
+        # Cartesian Hold is ONE continuous path, stopped locally on release.
         click(660,118)
         before_cart=joints();previous=latest()
-        input('down 516 468') # Z minus, one mm per completed point move
-        first=latest();assert first>previous;wait(first)
-        end=time.monotonic()+12
-        while latest()==first:
-            assert time.monotonic()<end,'Held Cartesian increment did not repeat'
+        input('down 516 468') # Z minus
+        first=latest();assert first>previous;wait(first,('running',))
+        started=simulation_time();end=time.monotonic()+15
+        while simulation_time()<started+1.5:
+            assert time.monotonic()<end,'Cartesian hold did not advance'
+            assert latest()==first,'Continuous jog created another point-move job'
             time.sleep(.1)
-        second=latest();input('up 516 468');wait(second,('stopped','completed'))
+        input('up 516 468');wait(first,('stopped',))
         after_release=latest();time.sleep(.6);assert latest()==after_release
-        assert joints()[2]<before_cart[2]-.9,(before_cart,joints())
+        assert joints()[2]<before_cart[2]-.1,(before_cart,joints())
         capture('cartesian-held')
-        # A CLI stop ends the held sequence too; do not retry while still pressed.
+        # X/Y need changing joint ratios. Observe native plant TCP during a
+        # single held job, independently of UI feedback/INDEX estimates.
+        for x,y,selected in ((644,324,0),(516,396,1)):
+            out=command('sim status');origin=[float(v) for v in re.findall(r'TCP [XYZ]=([-+\d.eE]+)',out)]
+            input(f'down {x} {y}');cart=latest();wait(cart,('running',))
+            start_time=simulation_time();end=time.monotonic()+15
+            while simulation_time()<start_time+.7:
+                assert time.monotonic()<end
+                assert latest()==cart
+                values=[float(v) for v in re.findall(r'TCP [XYZ]=([-+\d.eE]+)',command('sim status'))]
+                for i in range(3):
+                    if i!=selected: assert abs(values[i]-origin[i])<.2,(origin,values)
+            input(f'up {x} {y}');wait(cart,('stopped',))
+        # A CLI stop ends the held job too; do not retry while still pressed.
         input('down 516 468');stopped=latest();wait(stopped,('running',))
         command('motion stop');wait(stopped,('stopped',))
         time.sleep(.6);assert latest()==stopped
@@ -172,7 +186,7 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         while simulation_time()<started+2.3:
             assert time.monotonic()<end,'Timed jog did not reach its simulated deadline'
             time.sleep(.1)
-        timed_last=latest();wait(timed_last,('completed','stopped'),timeout=10)
+        timed_last=latest();assert timed_last==timed;wait(timed_last,('completed','stopped'),timeout=10)
         time.sleep(.6);assert latest()==timed_last
         assert joints()[2]<before_timed[2]-.1
         capture('cartesian-timed')
@@ -185,8 +199,12 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         click(50,154)
         # The same IO admission still excludes the GUI's axis from a raw CLI job.
         raw=command('motor move m2 -2 --speed 1');raw_id=int(re.search(r'Submitted motor job (\d+)',raw)[1]);wait(raw_id,('running','accepted'))
-        click(540,246);click(572,330);rejected=latest();assert rejected>raw_id
-        assert 'rejected' in wait(rejected,('rejected',))
+        before_busy=joints()
+        click(540,246);click(572,330);rejected=latest()
+        # Fresh busy telemetry disables the GUI control; if admission raced
+        # telemetry, IO must reject it. Neither case may move Axis 1.
+        if rejected!=raw_id: assert 'rejected' in wait(rejected,('rejected',))
+        assert abs(joints()[0]-before_busy[0])<1e-9
         command('motor stop all');wait(raw_id,('stopped',))
         # Empty pages and numeric cancellation produce no new job.
         last=latest();click(50,250);capture('programs-empty');assert latest()==last

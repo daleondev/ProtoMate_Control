@@ -238,7 +238,6 @@ namespace ui
             }
             m_state = next;
         }
-        serviceHold();
         std::optional<unsigned> memory;
         {
             std::scoped_lock lock{ m_mutex };
@@ -499,10 +498,17 @@ namespace ui
                     reply.job = m_robot.submit(r);
                     break;
                 }
-                case PointJog:
-                    if (c.continuous)
-                        throw std::invalid_argument("Hold jog requires a supervised input gesture");
-                    return hold(c, 0, 0, 0, 0);
+                case PointJog: {
+                    motion::Robot::ExecutionRequest r;
+                    r.kind = motion::Robot::ExecutionRequest::Kind::CartesianJog;
+                    r.direction = c.position;
+                    r.dynamics = { c.speed, c.acceleration, c.deceleration, c.jerk };
+                    r.duration = c.duration;
+                    r.continuous = c.continuous;
+                    r.timeout = c.timeout;
+                    reply.job = m_robot.submit(r);
+                    break;
+                }
                 case RobotHome:
                     reply.job = m_robot.home();
                     break;
@@ -656,7 +662,10 @@ namespace ui
                     text(out.detail, "Reference procedure");
                     break;
                 case Space::Jog:
-                    text(out.detail, "Supervised jog; endpoint is soft limit, not final resting position");
+                    text(out.detail,
+                         j.family == ::motion::Family::Robot
+                           ? "Cartesian jog; stops at certified path boundary or on cancellation"
+                           : "Supervised jog; endpoint is soft limit, not final resting position");
                     break;
                 default:
                     break;
@@ -675,27 +684,6 @@ namespace ui
     }
     hmi::Outcome GuiBackend::hold(const hmi::Command& c, int x, int y, int w, int h)
     {
-        auto command = c;
-        const bool cartesian = c.kind == hmi::Kind::PointJog;
-        if (cartesian) {
-            unsigned directions{};
-            for (const double v : c.position)
-                directions += v == -1 || v == 1;
-            const bool directionValid = directions == 1 && std::ranges::all_of(c.position, [](double v) {
-                return v == 0 || v == -1 || v == 1;
-            });
-            if (!directionValid || !std::isfinite(c.duration) || !std::isfinite(c.timeout) ||
-                (!c.continuous && (c.duration <= 0 || c.duration > 86400)) || c.timeout < 0 ||
-                c.timeout > 86400) {
-                hmi::Outcome result;
-                text(result.message, "Invalid jog direction or duration (maximum 24 hours)");
-                return result;
-            }
-            // A bounded 1 mm point increment, independent of the Step selector.
-            // Each successor still passes through the normal planner/admission path.
-            command.kind = hmi::Kind::PointRelative;
-            command.continuous = false;
-        }
         release();
         std::uint64_t gesture{};
         {
@@ -706,21 +694,9 @@ namespace ui
             m_y = y;
             m_width = w;
             m_height = h;
-            m_heldCommand = command;
-            m_requiresInput = !cartesian || c.continuous;
-            const auto now = std::chrono::steady_clock::now();
-            m_inputDeadline = now + std::chrono::milliseconds{ 200 };
-            m_jogDeadline.reset();
-            if (cartesian) {
-                double seconds = c.continuous ? c.timeout : c.duration;
-                if (c.timeout > 0 && seconds > c.timeout)
-                    seconds = c.timeout;
-                if (seconds > 0)
-                    m_jogDeadline = now + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-                                            std::chrono::duration<double>{ seconds });
-            }
+            m_inputDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds{ 200 };
         }
-        return submitHeld(command, gesture);
+        return submitHeld(c, gesture);
     }
     hmi::Outcome GuiBackend::submitHeld(const hmi::Command& c, std::uint64_t gesture)
     {
@@ -729,12 +705,10 @@ namespace ui
         {
             std::scoped_lock lock{ m_mutex };
             const auto now = std::chrono::steady_clock::now();
-            abandoned = !m_holding || gesture != m_gesture || (m_requiresInput && now >= m_inputDeadline) ||
-                        (m_jogDeadline && now >= *m_jogDeadline);
+            abandoned = !m_holding || gesture != m_gesture || now >= m_inputDeadline;
             if (!abandoned && result.accepted) {
                 m_holdJob = result.job;
-                if (m_requiresInput)
-                    m_client.superviseJog(result.job);
+                m_client.superviseJog(result.job);
             }
             else if (gesture == m_gesture)
                 m_holding = false;
@@ -743,53 +717,10 @@ namespace ui
             m_client.cancelAsync(result.job);
         return result;
     }
-    void GuiBackend::serviceHold()
-    {
-        std::uint64_t job{}, gesture{};
-        hmi::Command command;
-        {
-            std::scoped_lock lock{ m_mutex };
-            // Axis jog is one continuous job. Cartesian hold repeats only a
-            // successfully completed point increment, never a stopped/rejected job.
-            if (!m_holding || m_heldCommand.kind != hmi::Kind::PointRelative || !m_holdJob)
-                return;
-            job = m_holdJob;
-            gesture = m_gesture;
-            command = m_heldCommand;
-        }
-        std::optional<motion::Client::JobState> state;
-        std::array<motion::Client::JobInfo, 4> jobs;
-        for (unsigned offset = 0; offset < 40 && !state; offset += jobs.size()) {
-            const auto count = m_client.copyJobs(offset, jobs);
-            for (unsigned i = 0; i < count; ++i)
-                if (jobs[i].id == job)
-                    state = jobs[i].state;
-            if (count < jobs.size())
-                break;
-        }
-        {
-            std::scoped_lock lock{ m_mutex };
-            if (!m_holding || gesture != m_gesture || job != m_holdJob)
-                return;
-            const auto now = std::chrono::steady_clock::now();
-            if ((m_requiresInput && now >= m_inputDeadline) || (m_jogDeadline && now >= *m_jogDeadline) ||
-                !state || *state >= motion::Client::JobState::Stopped) {
-                m_holding = false;
-                m_holdJob = 0;
-                m_client.releaseJogInput();
-                m_client.cancelAsync(job);
-                return;
-            }
-            if (*state != motion::Client::JobState::Completed)
-                return;
-            m_holdJob = 0; // Claim the next submission; input/release can still cancel it.
-        }
-        submitHeld(command, gesture);
-    }
     void GuiBackend::input(const hmi::Input& input)
     {
         std::scoped_lock lock{ m_mutex };
-        if (!m_holding || !m_requiresInput)
+        if (!m_holding)
             return;
         const auto now = std::chrono::steady_clock::now();
         const bool stop = now >= m_inputDeadline || !input.valid || !input.down || input.x < m_x ||

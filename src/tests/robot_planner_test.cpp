@@ -463,3 +463,72 @@ TEST(RobotPlanner, RetimingCartesianCurveKeepsOriginalGeometry)
         time += s.ticks * tr::TICK_SECONDS;
     }
 }
+
+TEST(RobotPlanner, CartesianJogUsesContinuousCertifiedGeometryAndFitsTransport)
+{
+    Fixture f;
+    for (auto direction : { std::array{ -1., 0., 0. }, std::array{ 0., 1., 0. }, std::array{ 0., 0., 1. } }) {
+        const auto program = f.planner.cartesianJog(f.origin, direction, .1);
+        ASSERT_TRUE(program) << tr::name(program.error());
+        const auto law = motion::Profile::fromDescription(program->progress);
+        ASSERT_TRUE(law);
+        tr::Request request;
+        request.operation = tr::Operation::Prepare;
+        request.program = *program;
+        const auto packet = tr::encode(request);
+        EXPECT_LE(packet.size, tr::Packet::CAPACITY);
+        const auto decoded = tr::decodeRequest(packet);
+        ASSERT_TRUE(decoded);
+        ASSERT_EQ(decoded->program.kind, tr::ProgramKind::CartesianJog);
+        const auto start = f.model.kinematics().forward(f.model.toJoints({ 1200, 1200, 1200 }));
+        ASSERT_TRUE(start);
+        const auto initial =
+          std::array{ start->position.x.get(), start->position.y.get(), start->position.z.get() };
+        for (unsigned k = 0; k <= 1000; ++k) {
+            tr::Positions positions{};
+            for (unsigned i = 0; i < 3; ++i) {
+                const auto& p = decoded->program.path[i];
+                positions[i] = 1200 + (program->displacement[i] < 0 ? -1 : 1) * p.at(k / 1000.);
+                if (p.size) {
+                    const auto b = p.dynamicBounds(program->progress_limits);
+                    EXPECT_LE(b[0], program->limits[i].velocity);
+                    EXPECT_LE(b[1],
+                              std::min(program->limits[i].acceleration, program->limits[i].deceleration));
+                    EXPECT_LE(b[2], program->limits[i].jerk);
+                }
+            }
+            const auto fk = f.model.kinematics().forward(f.model.toJoints(positions));
+            ASSERT_TRUE(fk);
+            const auto xyz = std::array{ fk->position.x.get(), fk->position.y.get(), fk->position.z.get() };
+            for (unsigned i = 0; i < 3; ++i) {
+                if (!direction[i])
+                    EXPECT_NEAR(xyz[i], initial[i], .0003);
+                else
+                    EXPECT_GE(direction[i] * (xyz[i] - initial[i]), -1e-6);
+            }
+        }
+    }
+}
+TEST(TrajectoryProtocol, LargestCartesianJogProgramFitsAndRoundTrips)
+{
+    tr::Request request;
+    request.operation = tr::Operation::Prepare;
+    auto& p = request.program;
+    p.kind = tr::ProgramKind::CartesianJog;
+    p.displacement = { 100, 200, -300 };
+    p.progress.size = motion::Profile::MAX_PHASES;
+    for (unsigned axis = 0; axis < 3; ++axis) {
+        auto& path = p.path[axis];
+        path.size = motion::ProgressPath::CAPACITY;
+        for (unsigned i = 0; i < path.size; ++i) {
+            path.ends[i] = (i + 1) / 4.;
+            path.curves[i] = { { 25. * axis * i, 25. * axis } };
+        }
+    }
+    const auto packet = tr::encode(request);
+    EXPECT_LE(packet.size, tr::Packet::CAPACITY);
+    const auto result = tr::decodeRequest(packet);
+    ASSERT_TRUE(result);
+    EXPECT_EQ(result->program.progress.size, motion::Profile::MAX_PHASES);
+    EXPECT_EQ(result->program.path[2].curves[3].coefficients, p.path[2].curves[3].coefficients);
+}

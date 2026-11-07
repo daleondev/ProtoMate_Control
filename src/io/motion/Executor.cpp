@@ -254,11 +254,24 @@ namespace io::motion
                     }
                 }
             }
+            const auto& path = command.axes[i].path;
+            if (path.size) {
+                if (!m_progress || !path.valid(p->distance()))
+                    return false;
+                const auto bounds = path.dynamicBounds(command.progress_limits);
+                const auto limits = command.axes[i].limits;
+                if (!std::ranges::all_of(bounds, [](double v) { return std::isfinite(v) && v >= 0; }) ||
+                    bounds[0] > limits.velocity * (1 + 1e-8) ||
+                    bounds[1] > std::min(limits.acceleration, limits.deceleration) * (1 + 1e-8) ||
+                    bounds[2] > limits.jerk * (1 + 1e-8))
+                    return false;
+            }
             m_nominal[i] = std::allocate_shared<ProfileSchedule::Nominal>(
               std::pmr::polymorphic_allocator<ProfileSchedule::Nominal>{ m_memory },
               *p,
               DMA_HALF_PULSES,
-              m_rolling);
+              m_rolling,
+              command.axes[i].path);
             if (!m_nominal[i]->valid) {
                 return false;
             }

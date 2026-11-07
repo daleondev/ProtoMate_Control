@@ -138,6 +138,7 @@ namespace ui::cli::robot
         ]] static CallbackResult overview(Robot&, const Arguments&, std::ostream& out)
         {
             out << "robot home / robot status / robot stop\n"
+                   "robot jog x+|x-|y+|y-|z+|z- [--speed fraction] [--duration seconds|--continuous]\n"
                    "robot move|moveto joints <shoulder-deg> <elbow-deg> <z-mm>\n"
                    "robot move|moveto point <x-mm> <y-mm> <z-mm>  Joint interpolation; TCP may curve\n"
                    "motion jobs [id] / motion wait <id> / motion cancel <id> track execution.\n"

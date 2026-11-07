@@ -502,12 +502,12 @@ namespace io::motion
             cancelCommand();
             wake();
         } };
-        // Full ARM workflow peaked at 14,608 bytes; 20 KiB retains over
-        // 25% headroom. Hosted Debug keeps its larger allowance.
+        // Cartesian path admission peaked at 18,496 bytes on ARM. 28 KiB
+        // retains over 35% measured headroom; Linux has a separate ABI budget.
         auto worker{ runtime::thread::create_jthread(
           { .name = "motor commands",
             .priority = 2,
-            .stack_size = sizeof(void*) == 4 ? 20UZ * 1024UZ : 24UZ * 1024UZ },
+            .stack_size = sizeof(void*) == 4 ? 28UZ * 1024UZ : 24UZ * 1024UZ },
           [this](std::stop_token token) { commandWorker(token); }) };
         const auto drainCommand{ [&] {
             cancelCommand();

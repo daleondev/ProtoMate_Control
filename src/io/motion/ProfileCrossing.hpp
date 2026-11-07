@@ -30,6 +30,8 @@ namespace io::motion
             m_pulses = unsigned(std::floor(description.distance + offset));
             m_count = description.size;
             m_end = std::uint64_t(std::ceil(profile.duration() * 1e7));
+            m_distance = profile.distance();
+            m_endAtRest = description.end_velocity == 0;
             // A zero-velocity endpoint is ill-conditioned for root finding:
             // roundoff a few ulps above an integer otherwise advances its last
             // edge by microseconds. Keep the floor-based count, but place an
@@ -98,6 +100,8 @@ namespace io::motion
         ProfileCrossing(const ProfileCrossing& other, const ::motion::Profile& profile)
           : m_reference(other.m_reference, profile)
           , m_offset(other.m_offset)
+          , m_distance(other.m_distance)
+          , m_endAtRest(other.m_endAtRest)
           , m_offsetQ(other.m_offsetQ)
           , m_phases(other.m_phases)
           , m_count(other.m_count)
@@ -126,9 +130,27 @@ namespace io::motion
         }
         std::uint64_t next(unsigned ordinal, Cursor& cursor) const noexcept
         {
-            if (!m_valid || !ordinal || ordinal > m_pulses) {
+            if (!ordinal || ordinal > m_pulses)
+                return 0;
+            return atPosition(double(ordinal), cursor);
+        }
+        std::uint64_t atPosition(double ordinal, Cursor& cursor) const noexcept
+        {
+            if (!m_valid || !std::isfinite(ordinal) || ordinal <= 0) {
                 return 0;
             }
+            // A mapped stopping endpoint can differ by a few ulps after
+            // inverse-path evaluation and subtraction of its cut position.
+            // Keep the independently determined count, and place this crossing
+            // at rest just like the integer endpoint case below.
+            const auto endpoint = m_distance + m_offset;
+            if (m_endAtRest && std::abs(ordinal - endpoint) <=
+                                 32 * std::numeric_limits<double>::epsilon() * std::max(1., endpoint)) {
+                cursor.previous = m_end;
+                return m_end;
+            }
+            if (ordinal > endpoint)
+                return 0;
             if (ordinal == 1 && m_offset == 1.) {
                 cursor.previous = 1;
                 return 1;
@@ -144,7 +166,7 @@ namespace io::motion
                     return *tick;
                 }
             }
-            if (m_offset == 0) {
+            if (m_offset == 0 && ordinal == std::floor(ordinal)) {
                 for (unsigned i = 0; i < m_count; ++i) {
                     const auto& phase = m_phases[i];
                     if (!phase.linearPeriod) {
@@ -162,7 +184,7 @@ namespace io::motion
                     }
                 }
             }
-            const auto target = (std::int64_t(ordinal) << 32) - m_offsetQ;
+            const auto target = std::llround(ordinal * profile_util::Q) - m_offsetQ;
             std::uint64_t lo = cursor.previous;
             std::uint64_t hi = m_end;
             auto candidate = std::clamp(cursor.previous + cursor.interval, lo, hi);
@@ -290,14 +312,14 @@ namespace io::motion
                      std::int64_t target,
                      Value value,
                      Cursor& cursor,
-                     unsigned ordinal) const noexcept
+                     double ordinal) const noexcept
         {
             const auto& p = m_phases[value.phase];
             if (!p.longLinear && tick >= p.origin && tick <= p.end) {
                 // The reference's affine crossing is exactly integer arithmetic
                 // in this case. Avoid a software-double fallback at every edge
                 // of a grid-aligned cruise (400/500/800 ticks in our fixture).
-                if (p.linearPeriod && m_offset == 0) {
+                if (p.linearPeriod && m_offset == 0 && ordinal == std::floor(ordinal)) {
                     return std::int64_t(tick) >=
                            std::int64_t(p.origin) + (((target >> 32) - p.linearPosition) * p.linearPeriod);
                 }
@@ -312,7 +334,8 @@ namespace io::motion
             return m_reference.crossed(tick, double(ordinal) - m_offset);
         }
         profile_util::Curve m_reference;
-        double m_offset{};
+        double m_offset{}, m_distance{};
+        bool m_endAtRest{};
         std::int64_t m_offsetQ{};
         std::array<Phase, ::motion::Profile::MAX_PHASES> m_phases{};
         unsigned m_count{}, m_pulses{};

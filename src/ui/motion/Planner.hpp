@@ -70,6 +70,13 @@ namespace ui::motion
           finite(double acceleration = 1, double deceleration = 1, double jerk = 1,
                  double* estimated_seconds = nullptr) const;
         [[nodiscard]] std::span<const ::motion::trajectory::Segment> segments() const noexcept;
+        [[nodiscard]] std::expected<::motion::trajectory::FiniteProgram, RobotError> cartesianJog(
+          const ::motion::trajectory::Counts& start,
+          std::array<double, 3> direction,
+          double speed,
+          double acceleration = 1,
+          double deceleration = 1,
+          double jerk = 1);
         [[nodiscard]] PathState pathAt(double seconds) const noexcept;
         [[nodiscard]] const Move& command() const noexcept { return m_move; }
         // Validate a motor-space segment continuously, including workspace and
@@ -79,6 +86,10 @@ namespace ui::motion
           const std::array<::motion::Polynomial, 3>* reference = nullptr) const;
 
       private:
+        [[nodiscard]] std::expected<::motion::trajectory::FiniteProgram, RobotError> pathProgram(
+          double acceleration,
+          double deceleration,
+          double jerk);
         using JointState = std::array<::motion::KinematicState, 3>;
         [[nodiscard]] std::expected<JointState, RobotError> inverseAt(double s) const;
         [[nodiscard]] RobotError build(double from, double to, unsigned depth);

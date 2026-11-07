@@ -88,6 +88,14 @@ namespace hal
 #endif
     }
 
+    auto reset_system() noexcept -> util::Result<>
+    {
+        stm32::shutdown_motion_on_fault();
+        // SYSRESETREQ resets the entire H747. CPU-only WWDG reset is explicitly
+        // not guaranteed in RM0399 9.7.36; never use it for individual restarts.
+        NVIC_SystemReset();
+    }
+
     [[noreturn]] void panic(const char* message, std::source_location location) noexcept
     {
         panic(message, nullptr, location);

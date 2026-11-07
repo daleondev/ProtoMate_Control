@@ -70,6 +70,7 @@ set_tests_properties(application.robot_api PROPERTIES TIMEOUT 45)
 add_executable(proto_executor_tests executor_test.cpp ../io/motion/Executor.cpp
     ../io/motion/ExecutorDiagnostic.cpp
     ../io/motion/ProfileSchedule.cpp ../common/motion/Profile.cpp
+    ../common/motion/ProgressPath.cpp ../common/motion/Polynomial.cpp
     ${PROJECT_SOURCE_DIR}/platform/hal/drivers/impl/StepGenerator.cpp
     ${PROJECT_SOURCE_DIR}/platform/hal/drivers/impl/StepOutput.cpp
     ${PROJECT_SOURCE_DIR}/platform/hal/tests/fixtures/SimulatedStepHardware.cpp)

@@ -69,6 +69,10 @@ string(APPEND GIGA_FAST_OBJECTS " *libc_a-memcpy.o(.text* .rodata*)")
 
 string(APPEND GIGA_FAST_OBJECTS " *stm32h7xx_hal_gpio.c.obj(.text* .rodata*)")
 set(giga_fast_functions
+    # Only evaluation/inversion is time-critical; admission and certification remain in QSPI.
+    _ZNK6motion12ProgressPath2atEdj
+    _ZNK6motion12ProgressPath8crossingEdRNS0_6CursorE
+    _ZNK6motion10Polynomial2atEdj*
     memcpy memmove memcmp memset ceil sqrt cbrt __ieee754_sqrt __errno
     floor llround
     malloc free _malloc_r _free_r __malloc_lock __malloc_unlock

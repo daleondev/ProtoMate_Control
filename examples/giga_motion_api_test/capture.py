@@ -93,10 +93,14 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--stop-after', type=float,
                         help='Request robot stop this many seconds after observing Running')
+    parser.add_argument('--cartesian', choices=('x+', 'x-', 'y+', 'y-', 'z+', 'z-'),
+                        help='One continuous Cartesian jog, timed for 2 s unless --stop-after is set')
     parser.add_argument('--raw', action='store_true', help='Capture three independent raw motor commands')
     parser.add_argument('--overlap', action='store_true',
                         help='Capture continuous shoulder jog alongside an independent elbow move')
     args = parser.parse_args()
+    if args.cartesian and (args.raw or args.overlap):
+        parser.error('--cartesian is a separate test')
     if args.overlap and (args.raw or args.stop_after is not None):
         parser.error('--overlap is a separate test')
     if args.raw and args.stop_after is not None:
@@ -124,6 +128,8 @@ def main():
             cli.command('motion enable')
             if not args.raw:
                 require_successful_motion(cli.wait(cli.submit('robot home'), timeout=35))
+                if args.cartesian:
+                    require_successful_motion(cli.wait(cli.submit('robot move joints -10 -10 -1 --speed .5')))
         except Exception as error:
             try:
                 cli.command('motion disable')
@@ -156,7 +162,10 @@ def main():
                 raise RuntimeError(f"Capture failed to start: {errors}")
             before = cli.command('motor status all')
             submitted = time.monotonic()
-            if args.overlap:
+            if args.cartesian:
+                mode='--continuous' if args.stop_after is not None else '--duration 2'
+                job=cli.submit(f'robot jog {args.cartesian} --speed .25 {mode}')
+            elif args.overlap:
                 job = cli.submit('axis jog shoulder -.2 --continuous')
                 cli.wait(job, 'running')
                 other = cli.submit('axis move elbow -1')
@@ -173,7 +182,7 @@ def main():
                 time.sleep(args.stop_after)
                 stop_submitted = time.monotonic()
                 cli.command('robot stop')
-            result = cli.wait(job, 'stopped' if args.overlap or args.stop_after is not None else 'completed')
+            result = cli.wait(job, 'stopped' if args.cartesian or args.overlap or args.stop_after is not None else 'completed')
             if args.raw:
                 for other in jobs[1:]:
                     require_successful_motion(cli.wait(other))
@@ -192,7 +201,20 @@ def main():
                     raise RuntimeError('Missing shoulder-only terminal pulse accounting')
                 # -1 elbow degree, 5:1 transmission, 1.8-degree/16 motor step.
                 expected_pulses = [int(counts[1]), 44, 0]
-            if args.stop_after is not None:
+            if args.cartesian:
+                cli.command('motion status')
+                log.flush()
+                counts=re.search(rf'Execution job {job} ended:.*?pulses=(\d+),(\d+),(\d+)',
+                                 (args.output/'console.log').read_text())
+                if not counts: raise RuntimeError('Missing terminal pulse accounting')
+                expected_pulses=list(map(int,counts.groups()))
+                if not any(expected_pulses): raise RuntimeError('Cartesian jog emitted no pulses')
+                before_angles=list(map(float,re.findall(r'm\d: position=([-+\d.eE]+)',before)))
+                after_angles=list(map(float,re.findall(r'm\d: position=([-+\d.eE]+)',after)))
+                if len(before_angles)!=3 or len(after_angles)!=3: raise RuntimeError('Missing position accounting')
+                observed=[round(abs(b-a)/step) for a,b,step in zip(before_angles,after_angles,(.1125,.1125,.225))]
+                if observed!=expected_pulses: raise RuntimeError('Position disagrees with pulse counts')
+            elif args.stop_after is not None:
                 cli.command('motion status')  # Drain queued terminal diagnostics.
                 log.flush()
                 counts = re.search(rf'Execution job {job} ended:.*?pulses=(\d+),(\d+),(\d+)',
@@ -224,7 +246,7 @@ def main():
             errors.append("Capture drain did not finish")
         if process.returncode not in (0, -signal.SIGINT):
             errors.append(f"Analyzer exit={process.returncode}")
-        result = waveform.result(expected_pulses, synchronized=not (args.raw or args.overlap))
+        result = waveform.result(expected_pulses, synchronized=not (args.raw or args.overlap or args.cartesian))
         result['expected_pulses'] = expected_pulses
         result['failures'].extend(errors)
         result['passed'] = not result['failures']

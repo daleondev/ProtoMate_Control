@@ -195,7 +195,9 @@ namespace ui::gui::hmi
                              : !s.feedbackValid   ? "Feedback unavailable"
                                                   : "Encoder + INDEX estimate";
         label(source, 128, 420, 292, 40, false, touchgfx::LEFT, Typography::Small);
-        label("Joint interpolation; TCP path may curve.",
+        label(m_model.cartesianTab == 0 && m_model.cartesianJogMode != 0
+                ? "Straight jog; stops at certified boundary."
+                : "Joint interpolation; TCP path may curve.",
               128,
               468,
               292,

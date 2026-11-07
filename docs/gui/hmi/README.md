@@ -35,8 +35,8 @@ flowchart LR
   a 0–1 factor, initially 0.25. Acceleration/deceleration/jerk factors apply to
   subsequent moves (zero selects 1). Cartesian destination moves interpolate
   joints; their TCP path can curve.
-- **Cartesian:** estimated feedback X/Y/Z stays visible in Jog, Move To and Settings. **Step** makes one selected 0.1/1/10 mm point move. **Timed** starts on a tap and requests stopping after the selected duration (one second by default). **Hold** is the default and runs while the direction button is pressed. Timed/Hold use bounded 1 mm increments independent of the Step selector, with no step-size control in those modes. Each successor starts only after successful completion; rejection, cancellation or failure ends the sequence. Release/input expiry also stops Hold. Changing page, tab, mode or editing a field stops either repeating sequence. These are discrete joint-interpolated moves, not smooth Cartesian velocity trajectories.
-- **Cartesian / Move To:** relative or absolute X/Y/Z in millimetres and speed factor. Editing never starts motion. **Settings** supplies acceleration/deceleration/jerk factors, timeout and speed factor for subsequent movements; zero dynamics selects configured limits, while speed must be greater than zero. Timed/Hold timeout bounds the entire sequence. Timed duration is checked on the existing client worker, independently of rendering; it requests stopping, so deceleration may finish later. The current M4 ownership lease remains in force.
+- **Cartesian:** estimated feedback X/Y/Z stays visible in Jog, Move To and Settings. **Step** makes one selected 0.1/1/10 mm point move using joint interpolation. **Timed** and **Hold** execute one smooth, straight Cartesian path with a shared jerk-limited progress profile. Timed requests deceleration on M4 after the selected duration (one second by default); Hold stops on release/input expiry. Each gesture owns one job, with no repeated point-move submissions or intervening stops. Speed is a factor of configured feed, additionally limited by joint dynamics. The path ends at the first certified workspace/joint/singularity or monotone-representation boundary; it never automatically restarts.
+- **Cartesian / Move To:** relative or absolute X/Y/Z in millimetres and speed factor; these remain joint-interpolated destination moves. Editing never starts motion. **Settings** supplies acceleration/deceleration/jerk factors, timeout and speed for subsequent movements. Zero dynamics selects configured limits, while speed must be positive. Timed/Hold timeout requests local deceleration; reaching rest can take longer. Hold cancels on navigation or editing; a submitted Timed jog continues until its IO deadline or explicit Stop, like other finite commands. M4 ownership leases remain unchanged.
 - **More / Preview:** choose joints, point or straight line, then Calculate preview.
   Preview results have their own tab in Jobs. These buttons never execute a path.
 - **More / Raw motors:** shaft degrees/rpm, dynamics, timeout, homing latch speed,
@@ -72,7 +72,7 @@ shows nominal CAD initially. Invalid or stale live data freezes the last pose;
 there is no extrapolation or silent fallback to commanded "actual" position.
 Controller readiness in the header is separate from motion readiness in the strip.
 
-A held gesture owns its current job. Cartesian Hold advances to a new finite job only on successful completion; each increment appears in the same bounded execution history. Touch acquisition renews its input deadline only
+A held gesture owns one execution job, including Cartesian Hold. Touch acquisition renews its input deadline only
 while the contact remains valid and inside the button. The client worker checks
 **200 ms** independently of rendering. Release, drag-out, focus loss, navigation,
 shutdown, an additional touch and failure request cancellation, including release before acceptance. Pinching only starts when both contacts begin inside the scene and outside its controls. Ending a pinch requires full release before orbit or badge taps resume. Wheel events retain their coordinates and expire after 100 ms; focus loss and navigation clear them.
@@ -165,3 +165,63 @@ the resolved ICC allocation defect and overlap regression. No deadline was
 relaxed to accommodate the HMI.
 
 The [layout/component guide](layout.md) records exact geometry, text alignment, snapshot ownership, input routing and asset regeneration.
+
+## Continuous Cartesian jogging
+
+M7 certifies the selected base-frame X/Y/Z ray with the existing IK/path planner.
+The version-3 trajectory packet carries at most four C2 quintic joint pieces,
+shared progress timing and quantized motor endpoints. The complete program fits
+in the existing 1536-byte packet. M4 independently validates monotonicity, joins,
+position and dynamic bounds; its existing executor inverts those curves for STEP
+crossings and uses one shared progress brake. Stop, input expiry and UI loss need
+no additional planning message. Geometry is certified before admission; numerical
+approximation, endpoint quantization and physical calibration remain separate.
+
+The current fixed-DIR backend stops before a joint reversal or a path requiring
+more than four pieces. It does not continue by issuing another job. Step and Move
+To retain their documented curved joint-interpolation behavior.
+
+CLI access to the same implementation:
+
+```text
+robot jog x+ --speed .1 --duration 2
+robot jog z- --speed .1 --continuous
+robot stop
+```
+
+The nominal profiles retain their geometry in three 3072-byte fixed slots; six
+2816-byte slots hold shared-source stopping banks. This adds 768 bytes to the
+previous fixed IO pool, without introducing per-pulse allocation. Only path
+sampling/inversion and polynomial evaluation join the existing internal-RAM hot
+code; admission and geometry validation stay in QSPI.
+
+Verification uses the actual GUI/client/ICC/native-plant workflow, including
+single-job X/Y/Z holds, release/focus-loss cancellation, timed stopping, independent
+TCP observations and GUI/CLI ownership exclusion. The motor-disconnected GIGA
+electrical fixture also passed timed X+ (65/3/0 pulses), timed Y− (111/222/0) and
+released Z− (0/0/986). The 24 MHz analyzer verified exact counts, 5 µs STEP highs,
+valid low intervals and continuously inactive enable. These are electrical and
+simulation results, not powered mechanical qualification.
+
+The ARM command worker measured an 18,496-byte stack high-water mark, so its
+budget is now 28 KiB; the final X-jog run used 18,432/28,668 usable bytes. The
+planning and execution worker peaks were 18,024/24,572 bytes and 4,976/8,188 bytes
+respectively. After that run, UI/IO heaps had 33,208/34,336 bytes available. These measurements cover
+the tested cases, not a proof of worst-case usage. Raw captures, console logs and
+resource samples are retained in `build/cartesian-continuous-hardware/`.
+
+`reset all` was checked through USB CLI: both controllers returned Ready with ICC
+connected, motion disabled and an empty job history. Enable stayed inactive across
+the reset. The strict no-STEP-HIGH reset capture **failed**: each analyzer STEP channel
+was HIGH for roughly 0.35 ms during GPIO reset. Firmware inhibition before reset
+cannot replace external reset-state bias; the user confirmed that the three STEP
+pull-downs were not fitted. Rechecking reset waveforms with those resistors fitted
+remains a separate hardware task. This result is separate from the passing
+motion captures and is retained in the `reset-all` capture directory.
+
+Normal Release image pair `d6c8f63c273bddd91c2a7b584d6a33a21954b359742824ca6ea8bb686bb33c13`
+is restored. Both controllers report Ready, ICC Connected, motion disabled and no
+jobs; GUI diagnostics report zero LTDC underruns, DMA errors or render failures.
+Linux and GIGA Debug/Release builds pass. Targeted motion/CLI suites pass in both
+host configurations; the full Release simulator HMI workflow and all 63 reviewed
+screenshot/alignment checks pass. No lint or sanitizer campaign was run.

@@ -98,7 +98,8 @@ namespace ui::motion
         description.relative = request.relative;
         if (request.kind == ExecutionRequest::Kind::Home)
             description.space = Client::RequestSpace::Home;
-        else if (request.kind == ExecutionRequest::Kind::Jog) {
+        else if ((request.kind == ExecutionRequest::Kind::Jog ||
+                  request.kind == ExecutionRequest::Kind::CartesianJog)) {
             description.space = Client::RequestSpace::Jog;
             description.values[0] = request.speed;
         }
@@ -221,6 +222,36 @@ namespace ui::motion
                                      .timeout = h.timeout.get() };
             }
             m_client->execute(id, snapshot, mechanics.fingerprint(), home, stop);
+            return;
+        }
+        if (request.kind == ExecutionRequest::Kind::CartesianJog) {
+            if (request.family != ::motion::Family::Robot || request.axes != 7 ||
+                !std::isfinite(request.duration) || !std::isfinite(request.timeout) || request.timeout < 0 ||
+                (!request.continuous && request.duration <= 0)) {
+                m_client->reject(id, tr::Error::InvalidInput);
+                return;
+            }
+            Planner planner(mechanics, m_arena->workspace, stop);
+            auto program = planner.cartesianJog(snapshot.position,
+                                                request.direction,
+                                                request.dynamics.speed,
+                                                request.dynamics.acceleration,
+                                                request.dynamics.deceleration,
+                                                request.dynamics.jerk);
+            if (!program) {
+                m_client->reject(id, program.error());
+                return;
+            }
+            program->timeout = request.continuous ? request.timeout : request.duration;
+            if (request.timeout > 0 && program->timeout > request.timeout)
+                program->timeout = request.timeout;
+            const auto profile = ::motion::Profile::fromDescription(program->progress);
+            m_client->setPlannedDuration(id, profile ? profile->duration() : 0);
+            if (stop.stop_requested()) {
+                m_client->reject(id, tr::Error::Cancelled);
+                return;
+            }
+            m_client->execute(id, snapshot, mechanics.fingerprint(), *program, stop);
             return;
         }
         const bool jogging = request.kind == ExecutionRequest::Kind::Jog;

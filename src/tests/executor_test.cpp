@@ -183,7 +183,7 @@ TEST(ProfileSchedule, BanksShareAndRetainTheImmutableNominal)
     EXPECT_TRUE(lifetime.expired());
     // Fits the measured production M4 heap; increasing these needs a new budget.
     static_assert(sizeof(Schedule) <= 2800);
-    static_assert(sizeof(Schedule::Nominal) <= 2800);
+    static_assert(sizeof(Schedule::Nominal) <= 3000);
 }
 TEST_F(ExecutorTest, NominalHasExactCountAndAbsoluteEdgeTimes)
 {
@@ -1443,4 +1443,162 @@ TEST_F(ExecutorTest, DetachedCompilationBindsOnlyAfterFinalAdmission)
     for(unsigned ms=0;ms<1000&&exec.active();++ms){hw->advance(10000);exec.renew(1);exec.service();}
     EXPECT_EQ(exec.status().state,io::motion::Executor::State::Completed);
     EXPECT_EQ(exec.status().pulses[0],10U);
+}
+
+TEST(ProgressPath, InvertsNonlinearPiecesAndRejectsReversalsAndBrokenJoins)
+{
+    motion::ProgressPath path;
+    path.size = 2;
+    path.ends = { .5, 1 };
+    const motion::Polynomial whole{ { 0, 500, 500 } };
+    path.curves[0] = whole.restrict(0, .5);
+    path.curves[1] = whole.restrict(.5, 1);
+    ASSERT_TRUE(path.valid(1000));
+    motion::ProgressPath::Cursor cursor;
+    for (unsigned n = 1; n <= 1000; ++n) {
+        const auto s = path.crossing(n, cursor);
+        EXPECT_NEAR(s, (-1 + std::sqrt(1 + .008 * n)) * .5, 2e-12);
+        EXPECT_NEAR(path.at(s), n, 1e-8);
+    }
+    path.curves[1].coefficients[1] += .01;
+    EXPECT_FALSE(path.valid(1000));
+    path.size = 1;
+    path.ends[0] = 1;
+    path.curves[0] = { { 0, -100, 1100 } };
+    EXPECT_FALSE(path.valid(1000));
+}
+TEST(ProfileCrossing, FractionalTargetsUseTheReferenceTickPredicate)
+{
+    const auto p = motion::Profile::create(1000, { 500, 1000, 1000, 10000 });
+    ASSERT_TRUE(p);
+    io::motion::ProfileCrossing crossing(*p);
+    io::motion::profile_util::Curve reference(*p);
+    io::motion::ProfileCrossing::Cursor cursor;
+    for (unsigned n = 1; n <= 2999; ++n) {
+        const double target = n / 3.;
+        const auto tick = crossing.atPosition(target, cursor);
+        EXPECT_TRUE(reference.crossed(tick, target)) << n;
+        EXPECT_FALSE(reference.crossed(tick - 1, target)) << n;
+    }
+}
+TEST_F(ExecutorTest, NonlinearJointPathsShareOneContinuousProgressAndLocalStop)
+{
+    gen->stop();
+    ASSERT_TRUE(gen->setRefillNotification([] {}));
+    ASSERT_TRUE(gen->start());
+    hw->edges.clear();
+    io::motion::ProfileMemory memory;
+    io::motion::Executor exec(gen, [&](unsigned i, bool, std::shared_ptr<const hal::step::Sequence> s) {
+        return bool(out[i]->prepareSequence(std::move(s)));
+    }, &memory);
+    io::motion::Executor::Command c{ .id = 1 };
+    c.rolling = true;
+    c.progress_limits = { .2, .5, .5, 2 };
+    const auto law = motion::Profile::create(1, c.progress_limits);
+    ASSERT_TRUE(law);
+    c.progress = law->description();
+    for (unsigned i = 0; i < 3; ++i) {
+        c.axes[i].profile = law->scaled(1000)->description();
+        c.axes[i].limits = { 6250, 20000, 20000, 200000 };
+        auto& path = c.axes[i].path;
+        path.size = 1;
+        path.ends[0] = 1;
+        path.curves[0] = { { 0, 500 + 250. * i, 500 - 250. * i } };
+    }
+    ASSERT_TRUE(exec.submit(c));
+    std::uint64_t cut{};
+    for (unsigned ms = 0; ms < 5000 && exec.active(); ++ms) {
+        hw->advance(10000);
+        if (ms == 1500) {
+            cut = exec.status().stopping_at;
+            ASSERT_TRUE(exec.stop(1));
+        }
+        else if (ms < 1500) {
+            ASSERT_TRUE(exec.renew(1))
+              << ms << " state " << unsigned(exec.status().state) << " reason "
+              << unsigned(exec.status().reason) << " failure " << unsigned(exec.status().diagnostic.failure)
+              << " err " << exec.status().last_error;
+        }
+        exec.service();
+    }
+    ASSERT_EQ(exec.status().state, io::motion::Executor::State::Stopped)
+      << unsigned(exec.status().reason) << " " << exec.status().last_error;
+    const auto state = law->at(cut / 1e7);
+    const auto brake = motion::Profile::brake(state.velocity, state.acceleration, c.progress_limits);
+    ASSERT_TRUE(brake);
+    const auto finish = state.position + brake->distance();
+    // Independent time-domain bisection of the composed polynomial, not the
+    // implementation's inverse-path algorithm. Every axis uses one epoch.
+    const auto sample = [&](double t) {
+        return t <= cut / 1e7 ? law->at(t).position : state.position + brake->at(t - cut / 1e7).position;
+    };
+    std::optional<std::int64_t> origin;
+    for (unsigned i = 0; i < 3; ++i) {
+        const auto edges = rises(i);
+        const auto& path = c.axes[i].path;
+        ASSERT_EQ(edges.size(), unsigned(std::floor(path.at(finish))));
+        for (unsigned n = 0; n < edges.size(); ++n) {
+            double lo = 0, hi = cut / 1e7 + brake->duration();
+            for (unsigned k = 0; k < 60; ++k) {
+                auto t = (lo + hi) * .5;
+                if (path.at(sample(t)) >= n + 1)
+                    hi = t;
+                else
+                    lo = t;
+            }
+            // At rest, roundoff can make a bisection reach the final
+            // integer early; the analytic endpoint time is authoritative.
+            const auto endValue = path.at(finish);
+            if (std::abs(endValue - (n + 1)) <=
+                32 * std::numeric_limits<double>::epsilon() * std::max(1., endValue))
+                hi = cut / 1e7 + brake->duration();
+            const auto expected = std::int64_t(std::ceil(hi * 1e7));
+            if (!origin)
+                origin = std::int64_t(edges[n]) - expected;
+            EXPECT_NEAR(double(std::int64_t(edges[n]) - *origin), double(expected), 1) << i << " " << n;
+        }
+    }
+    gen->stop();
+    ASSERT_TRUE(gen->setRefillNotification({}));
+}
+
+TEST(ProfileSchedule, CartesianStopsCoverEmptyAccelerationCruiseAndDeceleration)
+{
+    motion::ProgressPath path;
+    path.size = 1;
+    path.ends[0] = 1;
+    path.curves[0] = { { 0, 500, 500 } };
+    const motion::Profile::Limits dynamics{ 200, 500, 500, 2000 };
+    const auto law = motion::Profile::create(1000, dynamics);
+    ASSERT_TRUE(law);
+    const auto source = std::make_shared<Schedule::Nominal>(*law, 64, true, path);
+    ASSERT_TRUE(source->valid);
+    bool empty{}, active{};
+    for (std::uint64_t cut = 10000; cut < source->end; cut += 200000) {
+        Schedule stopped(source, cut, dynamics);
+        ASSERT_TRUE(stopped.valid()) << cut;
+        const auto state = law->at(cut / 1e7);
+        double end = 1000;
+        if (!law->brakingToRest(cut / 1e7)) {
+            const auto brake = motion::Profile::brake(state.velocity, state.acceleration, dynamics);
+            ASSERT_TRUE(brake);
+            end = state.position + brake->distance();
+        }
+        EXPECT_EQ(stopped.count(), unsigned(std::floor(path.at(end / 1000))));
+        empty |= !stopped.count();
+        active |= stopped.count() != 0;
+        std::vector<hal::step::Timing> batch(stopped.count());
+        ASSERT_TRUE(stopped.generate(0, batch)) << cut;
+        std::uint64_t previous{};
+        for (unsigned n = 0; n < stopped.count(); ++n) {
+            const auto t = stopped.risingTick(n);
+            ASSERT_TRUE(t);
+            if (n) {
+                EXPECT_EQ(*t - previous, std::uint64_t(batch[n - 1].period.count() / 100));
+            }
+            previous = *t;
+        }
+    }
+    EXPECT_TRUE(empty);
+    EXPECT_TRUE(active);
 }

@@ -444,6 +444,37 @@ namespace ui::cli::motion
             return submit(c, r, out);
         }
         [[
+            = "Straight Cartesian jog; one path and local deceleration, default 1 second"_fs,
+            = Name{ "robot jog"_fs },
+            = Arg{ .name = "direction"_fs, .description = "x+, x-, y+, y-, z+ or z- in the base frame"_fs },
+            = Flag{ .name = "speed"_fs,
+                    .description = "Configured feed fraction (0,1], default .1"_fs,
+                    .value_name = "factor"_fs },
+            = Flag{ .name = "duration"_fs,
+                    .description = "Seconds before local deceleration"_fs,
+                    .value_name = "seconds"_fs },
+            = Flag{ .name = "continuous"_fs,
+                    .description = "Until stop, certified path boundary or lease expiry"_fs }
+        ]] static CallbackResult cartesianJog(Context& c, const Arguments& a, std::ostream& out)
+        {
+            const auto direction = a.require("direction");
+            if (direction.size() != 2 ||
+                (direction[0] != 'x' && direction[0] != 'y' && direction[0] != 'z') ||
+                (direction[1] != '+' && direction[1] != '-'))
+                return callback_failure("direction must be x+, x-, y+, y-, z+ or z-");
+            Request r;
+            r.kind = Request::Kind::CartesianJog;
+            r.direction[direction[0] - 'x'] = direction[1] == '+' ? 1. : -1.;
+            r.dynamics.speed = option(a, "speed", .1);
+            r.duration = option(a, "duration", 1);
+            r.continuous = a.hasFlag("continuous");
+            if (a.flagCount("continuous") > 1 || (r.continuous && a.hasFlag("duration")))
+                return callback_failure("choose --duration or --continuous");
+            if (r.dynamics.speed <= 0 || r.dynamics.speed > 1 || (!r.continuous && r.duration <= 0))
+                return callback_failure("speed factor must be (0,1]; duration must be positive");
+            return submit(c, r, out);
+        }
+        [[
             = "Seek, release and slow re-latch the axis"_fs,
             = Name{ "axis home"_fs },
             = AXIS

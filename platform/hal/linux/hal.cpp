@@ -13,6 +13,11 @@
 namespace hal
 {
     void start_secondary_cores() noexcept {}
+
+    auto reset_system() noexcept -> util::Result<>
+    {
+        return std::unexpected(std::make_error_code(std::errc::operation_not_supported));
+    }
 }
 
 namespace

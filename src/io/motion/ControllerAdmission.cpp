@@ -402,7 +402,10 @@ namespace io::motion
         }
         const auto& program = request.program;
         if (!std::isfinite(program.timeout) || program.timeout < 0 ||
-            program.timeout > (program.kind == tr::ProgramKind::Jog ? 1e6 : 90)) {
+            program.timeout >
+              ((program.kind == tr::ProgramKind::Jog || program.kind == tr::ProgramKind::CartesianJog)
+                 ? 1e6
+                 : 90)) {
             return fail(tr::Error::InvalidInput);
         }
         if (program.kind == tr::ProgramKind::Home) {
@@ -445,15 +448,19 @@ namespace io::motion
             result.state = tr::State::Staged;
             return result;
         }
-        if (program.kind != tr::ProgramKind::Finite && program.kind != tr::ProgramKind::Jog) {
+        if (program.kind != tr::ProgramKind::Finite && program.kind != tr::ProgramKind::Jog &&
+            program.kind != tr::ProgramKind::CartesianJog) {
             return fail(tr::Error::Unsupported);
         }
         if (program.kind == tr::ProgramKind::Jog && owner->family != F::Axis) {
             return fail(tr::Error::InvalidInput);
         }
+        if (program.kind == tr::ProgramKind::CartesianJog && (owner->family != F::Robot || owner->axes != 7))
+            return fail(tr::Error::InvalidInput);
         bool moving{};
         Executor::Command command{};
-        command.rolling = program.kind == tr::ProgramKind::Jog;
+        command.rolling =
+          program.kind == tr::ProgramKind::Jog || program.kind == tr::ProgramKind::CartesianJog;
         command.id = owner->token; // Monotonic IO identity, independent of UI restarts.
         for (unsigned i = 0; i < 3; ++i) {
             const auto d = program.displacement[i];
@@ -479,6 +486,25 @@ namespace io::motion
                 result.position[i] > l.maximum || double(result.position[i]) + double(d) < l.minimum ||
                 double(result.position[i]) + double(d) > l.maximum) {
                 return fail(tr::Error::PositionLimit);
+            }
+            if (program.kind == tr::ProgramKind::CartesianJog) {
+                const auto& path = program.path[i];
+                if (!d && path.size)
+                    return fail(tr::Error::InvalidInput);
+                if (d) {
+                    if (!path.valid(std::abs(double(d))))
+                        return fail(tr::Error::InvalidInput);
+                    const auto b = path.dynamicBounds(program.progress_limits);
+                    if (!std::ranges::all_of(b, [](double v) { return std::isfinite(v) && v >= 0; }))
+                        return fail(tr::Error::InvalidInput);
+                    if (b[0] > l.velocity * (1 + 1e-8))
+                        return fail(tr::Error::VelocityLimit);
+                    if (b[1] > std::min(l.acceleration, l.deceleration) * (1 + 1e-8))
+                        return fail(tr::Error::AccelerationLimit);
+                    if (b[2] > l.jerk * (1 + 1e-8))
+                        return fail(tr::Error::JerkLimit);
+                    command.axes[i].path = path;
+                }
             }
             if (!d) {
                 continue;

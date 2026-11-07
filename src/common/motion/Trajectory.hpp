@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Polynomial.hpp"
-#include "Profile.hpp"
 #include "Motor.hpp"
 #include "OperatingEnvelope.hpp"
+#include "Polynomial.hpp"
+#include "Profile.hpp"
+#include "ProgressPath.hpp"
 #include <array>
 #include <cstdint>
 #include <expected>
@@ -13,7 +14,7 @@
 
 namespace motion::trajectory
 {
-    inline constexpr std::uint16_t VERSION{ 2 };
+    inline constexpr std::uint16_t VERSION{ 3 };
     inline constexpr std::uint32_t TICK_NS{ 100 };
     inline constexpr std::uint64_t CHECKPOINT_TICKS{ operating::CHECKPOINT_TICKS };
     inline constexpr std::uint64_t COMMIT_HORIZON_TICKS{ operating::COMMIT_TICKS };
@@ -143,7 +144,13 @@ namespace motion::trajectory
     };
     // One normalized, rest-to-rest progress law. Motor displacements are
     // quantized once on UI; IO validates them against the reservation snapshot.
-    enum class ProgramKind : std::uint8_t { Finite, Home, Jog };
+    enum class ProgramKind : std::uint8_t
+    {
+        Finite,
+        Home,
+        Jog,
+        CartesianJog
+    };
     struct HomeStage { double seek_rpm{}, latch_rpm{}, timeout{}; };
     struct FiniteProgram
     {
@@ -155,6 +162,7 @@ namespace motion::trajectory
         ProgramKind kind{};
         std::array<HomeStage, 3> home{};
         std::array<std::uint8_t, 3> home_order{0,1,2};
+        std::array<ProgressPath, 3> path{};
     };
     struct Run
     {

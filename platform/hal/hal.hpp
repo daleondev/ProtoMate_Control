@@ -10,6 +10,7 @@
 
 #ifdef __cplusplus
 
+#include "hal/util/Result.hpp"
 #include <source_location>
 
 namespace hal
@@ -19,6 +20,11 @@ namespace hal
     // Called once after this core's runtime services have initialized. Keep
     // secondary cores parked until potentially slow storage recovery is done.
     auto start_secondary_cores() noexcept -> void;
+
+    // Terminal whole-device reset; inhibits motor outputs before resetting both
+    // CPUs. Returns an error only on platforms without a hardware reset (Linux).
+    // This is an immediate abort, not a controlled deceleration or per-core reset.
+    auto reset_system() noexcept -> util::Result<>;
 
     [[noreturn]] auto panic(const char* message,
                             std::source_location location = std::source_location::current()) noexcept -> void;

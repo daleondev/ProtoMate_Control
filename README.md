@@ -368,6 +368,17 @@ records under the local ThreadX interrupt lock, without allocation or formatting
 On Linux both controllers share the process allocator and ThreadX kernel; the
 output explicitly labels that scope even when the request travels through ICC.
 
+`reset all` immediately aborts motion and resets the complete GIGA, including both
+controllers. STEP/enable outputs are inhibited before reset; startup leaves motors
+disabled and references must be established again. During reset itself, GPIOs are
+inputs: external STEP pull-downs and the disable-state enable bias remain required.
+USB CDC disconnects during
+reboot. This is **not** a controlled stop: use `motion stop` first when deceleration
+is required. Individual `reset ui` / `reset io` requests are rejected without any
+reset. ST does not guarantee CPU-only watchdog reset (RM0399 §9.7.36), and our ICC
+transport currently requires coordinated startup. Linux reports hardware reset as
+unsupported; close and restart the simulation instead.
+
 IO's Pneumo sink publishes already formatted records on `io/logs`; UI adds an
 `[IO]` prefix and writes them directly to the console without logging them again.
 Original timestamps and levels remain intact. Each record is limited to 384 bytes
@@ -551,7 +562,7 @@ normal startup screen**, with the full prepared robot model, telemetry, motion
 readiness and shared jobs. Axis, robot, preview and raw-motor pages use the same
 Client/Robot/ICC implementation as the CLI. The interface names the joints **Axis 1, Axis 2 and Axis 3**. Programs and presets remain empty.
 
-The shared shell uses an 88-pixel, six-button navigation rail (including Alarms), centered controls and a persistent Stop. Home always uses estimated feedback, with frame-matched joint badges and one status card. Axis and Cartesian jogging default to Hold. Cartesian has Step, Timed and Hold modes, persistent estimated X/Y/Z, and Move To / Settings tabs; Timed/Hold repeat bounded point increments. Robot destination moves are under More, separate from non-executing path previews. Move separates Jog, Move To and Settings; I/O and diagnostics use aligned cards/tables. Orbit by dragging, zoom with the desktop wheel or a two-finger pinch, and use Reset View to restore the camera. Physical pinch input remains pending panel testing.
+The shared shell uses an 88-pixel, six-button navigation rail (including Alarms), centered controls and a persistent Stop. Home always uses estimated feedback, with frame-matched joint badges and one status card. Axis and Cartesian jogging default to Hold. Cartesian has Step, Timed and Hold modes, persistent estimated X/Y/Z, and Move To / Settings tabs; Timed/Hold use one continuous Cartesian path with local M4 deceleration; they stop at the certified path boundary or on cancellation. Robot destination moves are under More, separate from non-executing path previews. Move separates Jog, Move To and Settings; I/O and diagnostics use aligned cards/tables. Orbit by dragging, zoom with the desktop wheel or a two-finger pinch, and use Reset View to restore the camera. Physical pinch input remains pending panel testing.
 
 See the [HMI operating and architecture guide](docs/gui/hmi/README.md) and
 [verification status](docs/gui/hmi/verification.md). M4 does not link TouchGFX.

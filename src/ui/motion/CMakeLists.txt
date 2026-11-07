@@ -13,6 +13,7 @@ target_sources(proto_ui_motion INTERFACE
     ScaraKinematics.cpp
     RobotConfiguration.cpp
     Planner.cpp
+    PlannerJog.cpp
     Robot.cpp
     RobotExecution.cpp
     RobotPresentation.cpp

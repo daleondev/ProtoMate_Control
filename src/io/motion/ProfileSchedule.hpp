@@ -2,6 +2,7 @@
 
 #include "ProfileCrossing.hpp"
 #include "ScheduleFailure.hpp"
+#include "common/motion/ProgressPath.hpp"
 #include "hal/drivers/itf/IStepGenerator.hpp"
 
 namespace io::motion
@@ -16,11 +17,17 @@ namespace io::motion
         // only the stopping continuation is stored separately in each bank.
         struct Nominal final
         {
-            explicit Nominal(const ::motion::Profile& value, std::uint32_t half_pulses = 64, bool rolling = false);
+            explicit Nominal(const ::motion::Profile& value,
+                             std::uint32_t half_pulses = 64,
+                             bool rolling = false,
+                             const ::motion::ProgressPath& path = {});
             Nominal(const Nominal&) = delete;
             Nominal& operator=(const Nominal&) = delete;
             ::motion::Profile profile;
             ProfileCrossing crossing;
+            ::motion::ProgressPath path;
+            double motorPosition(double coordinate) const noexcept;
+            double coordinate(unsigned pulse, ::motion::ProgressPath::Cursor& cursor) const noexcept;
             unsigned count{};
             std::uint32_t half_pulses;
             std::uint64_t first{}, end{};
@@ -60,12 +67,14 @@ namespace io::motion
       private:
         std::uint64_t absoluteTick(unsigned pulse,
                                    ProfileCrossing::Cursor& nominal,
-                                   ProfileCrossing::Cursor& brake) const noexcept;
+                                   ProfileCrossing::Cursor& brake,
+                                   ::motion::ProgressPath::Cursor& path) const noexcept;
         Source m_source;
         std::optional<::motion::Profile> m_brake;
         std::optional<ProfileCrossing> m_braking;
         unsigned m_count{}, m_prefix{};
         std::uint64_t m_first{}, m_cut{}, m_end{};
+        double m_cutPosition{};
         std::chrono::nanoseconds m_maximum{};
         ScheduleFailure m_failure{ ScheduleFailure::InvalidSource };
     };

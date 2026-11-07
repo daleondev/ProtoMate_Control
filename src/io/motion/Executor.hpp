@@ -45,6 +45,7 @@ namespace io::motion
             std::optional<::motion::Profile::Description> profile;
             ::motion::Profile::Limits limits{};
             bool forward{};
+            ::motion::ProgressPath path{};
         };
         struct Command
         {

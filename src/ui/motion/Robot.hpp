@@ -61,7 +61,8 @@ namespace ui::motion
             {
                 Finite,
                 Home,
-                Jog
+                Jog,
+                CartesianJog
             };
             ::motion::Family family{ ::motion::Family::Robot };
             Kind kind{};
@@ -73,6 +74,7 @@ namespace ui::motion
             double distance{}, speed{}, acceleration{}, deceleration{}, jerk{}, timeout{};
             double duration{ 1 };
             bool continuous{};
+            std::array<double, 3> direction{};
         };
         std::uint64_t submit(ExecutionRequest request);
         RobotModel model(std::stop_token stop = {}, RobotModel::Scope scope = RobotModel::Scope::Robot);

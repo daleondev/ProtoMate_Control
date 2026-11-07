@@ -397,6 +397,31 @@ namespace motion::trajectory
             }
             w.number(p.timeout);
             w.integer(std::uint8_t(p.kind));
+            if (p.kind == ProgramKind::CartesianJog) {
+                unsigned size{}, mask{};
+                std::array<double, ProgressPath::CAPACITY> ends{};
+                for (unsigned axis = 0; axis < 3; ++axis) {
+                    const auto& path = p.path[axis];
+                    if (path.size > ProgressPath::CAPACITY)
+                        throw std::length_error("path pieces");
+                    if (!path.size)
+                        continue;
+                    if (size && (path.size != size || path.ends != ends))
+                        throw std::invalid_argument("path knots must be shared");
+                    size = path.size;
+                    ends = path.ends;
+                    mask |= 1U << axis;
+                }
+                w.integer(std::uint8_t(size));
+                w.integer(std::uint8_t(mask));
+                for (unsigned i = 0; i < size; ++i)
+                    w.number(ends[i]);
+                for (const auto& path : p.path)
+                    if (path.size)
+                        for (unsigned i = 0; i < size; ++i)
+                            for (auto c : path.curves[i].coefficients)
+                                w.number(c);
+            }
             if (p.kind == ProgramKind::Home) {
                 for (const auto& h : p.home) {
                     w.number(h.seek_rpm);
@@ -523,8 +548,26 @@ namespace motion::trajectory
             }
             p.timeout = r.number();
             p.kind = ProgramKind(r.integer<std::uint8_t>());
-            if (p.kind > ProgramKind::Jog) {
+            if (p.kind > ProgramKind::CartesianJog) {
                 return std::unexpected(Error::Protocol);
+            }
+            if (p.kind == ProgramKind::CartesianJog) {
+                const auto size = r.integer<std::uint8_t>(), mask = r.integer<std::uint8_t>();
+                if (size > ProgressPath::CAPACITY || mask > 7 || (size == 0) != (mask == 0))
+                    return std::unexpected(Error::Protocol);
+                std::array<double, ProgressPath::CAPACITY> ends{};
+                for (unsigned i = 0; i < size; ++i)
+                    ends[i] = r.number();
+                for (unsigned axis = 0; axis < 3; ++axis) {
+                    auto& path = p.path[axis];
+                    if (!(mask & (1U << axis)))
+                        continue;
+                    path.size = size;
+                    path.ends = ends;
+                    for (unsigned i = 0; i < size; ++i)
+                        for (auto& c : path.curves[i].coefficients)
+                            c = r.number();
+                }
             }
             if (p.kind == ProgramKind::Home) {
                 for (auto& h : p.home) {
