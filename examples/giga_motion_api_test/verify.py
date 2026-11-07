@@ -13,7 +13,11 @@ from console import Console, require_successful_motion
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--overlap-cycles", type=int, default=1,
+                        help="Repeat jog + independent move/stop to exercise ICC allocation peaks")
     args = parser.parse_args()
+    if not 1 <= args.overlap_cycles <= 32:
+        parser.error("--overlap-cycles must be between 1 and 32")
     args.output.mkdir(parents=True, exist_ok=False)
     ports = glob.glob('/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_*')
     if len(ports) != 1:
@@ -59,13 +63,21 @@ def main():
             for sign in (-1, 1, -1, 1):
                 finished(submit(f"robot move joints {sign} {sign} {sign * .01} --speed 1"))
 
-            jog = submit("axis jog shoulder -.2 --continuous")
-            cli.wait(jog, "running", timeout=10)
-            finished(submit("motor move m2 -1 --speed 10"), "rejected")
-            finished(submit("robot move joints -1 -1 -.01"), "rejected")
-            finished(submit("axis move elbow -1"))
-            cli.command("axis stop shoulder")
-            finished(jog, "stopped")
+            for cycle in range(args.overlap_cycles):
+                jog = submit("axis jog shoulder -.2 --continuous")
+                cli.wait(jog, "running", timeout=10)
+                finished(submit("motor move m2 -1 --speed 10"), "rejected")
+                finished(submit("robot move joints -1 -1 -.01"), "rejected")
+                # Vary the admission phase against periodic maintenance/ICC.
+                time.sleep((cycle % 8) * .01)
+                finished(submit("axis move elbow -1"))
+                cli.command("axis stop shoulder")
+                finished(jog, "stopped")
+                state = cli.command("state")
+                if "ICC: Connected (None)" not in state or "Combined: Ready" not in state:
+                    raise RuntimeError("Overlap lost controller health: " + state)
+            cli.command("heap io")
+            cli.command("stack io")
 
             group = submit("robot move joints -20 -20 -2 --speed .5")
             cli.wait(group, "running", timeout=10)

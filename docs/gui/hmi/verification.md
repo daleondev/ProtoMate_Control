@@ -3,7 +3,8 @@
 The normal firmware opens the robot Home screen on Linux and GIGA M7. This
 qualification covers the HMI, its existing motion API integration, the native
 simulated plant and panel-free rendering. It does **not** certify powered robot
-motion or the separate concurrent-motion heartbeat defect.
+motion. The separate ICC allocation fix and motor-disconnected overlap checks
+are recorded in the [motion review](../../motion-current-state/review.md).
 
 ## Software and visual checks
 
@@ -121,7 +122,6 @@ is `140e1c7a8337b15c80e5d2a649936025abb651874d833db815616b853c0f183a`.
 The Smartwin panel/adapter, ST1633i touch, visible color/phase/orientation,
 supply sequencing and powered calibrated motion remain first-hardware checks.
 Missing driver/calibration inputs on the disconnected GIGA are reported, not
-replaced with simulation fixtures. The separate concurrent-motion heartbeat
-defect remains open; no deadlines were weakened and this HMI run does not close
-that issue. Interactive motion workflows and GUI/CLI ownership were qualified
+replaced with simulation fixtures. The concurrent-motion ICC allocation defect is fixed and checked separately
+in the motion review; no deadlines were weakened. Interactive motion workflows and GUI/CLI ownership were qualified
 in Linux, rather than claimed as powered robot acceptance.

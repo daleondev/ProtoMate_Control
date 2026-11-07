@@ -198,42 +198,30 @@ namespace icc
         }
     }
 
-    pnm::coro::Task<std::optional<Bridge::OutgoingFrame>> Bridge::nextOutgoingFrame(Lane lane,
-                                                                                    std::stop_token stop)
+    bool Bridge::nextOutgoingFrame(Lane lane, OutgoingFrame& outgoing)
     {
-        while (!stop.stop_requested()) {
-            if (m_shutdownRequested.load()) {
-                beginShutdown();
-            }
-            m_connection.checkDeadline();
-            if (lane != Lane::Background && m_connection.ready()) {
-                m_services.poll();
-                m_actions.poll();
-            }
-            if (m_shutdownRequested.load() && m_actions.drained() && !m_actionSending[0] &&
-                !m_actionSending[1]) {
-                if (m_connection.goodbyeSent()) {
-                    m_stopSource.request_stop();
-                    co_return std::nullopt;
-                }
-                m_connection.requestGoodbye();
-                m_outgoingWakeup->signal(Lane::Urgent).notify();
-            }
-            if (auto frame{ takeReadyFrame(lane) }) {
-                co_return frame;
-            }
-
-            if (!(co_await m_outgoingWakeup->signal(lane).ready.wait(stop))) {
-                if (stop.stop_requested()) {
-                    co_return std::nullopt;
-                }
-                throw std::runtime_error("Bridge outgoing notification failed");
-            }
-            // Rescan after clearing the signal. A publication racing this clear
-            // either remains in its subscription or supplies the next wakeup.
-            m_outgoingWakeup->signal(lane).pending.clear();
+        if (m_shutdownRequested.load()) {
+            beginShutdown();
         }
-        co_return std::nullopt;
+        m_connection.checkDeadline();
+        if (lane != Lane::Background && m_connection.ready()) {
+            m_services.poll();
+            m_actions.poll();
+        }
+        if (m_shutdownRequested.load() && m_actions.drained() && !m_actionSending[0] &&
+            !m_actionSending[1]) {
+            if (m_connection.goodbyeSent()) {
+                m_stopSource.request_stop();
+                return false;
+            }
+            m_connection.requestGoodbye();
+            m_outgoingWakeup->signal(Lane::Urgent).notify();
+        }
+        if (auto frame{ takeReadyFrame(lane) }) {
+            outgoing = std::move(*frame);
+            return true;
+        }
+        return false;
     }
 
     std::optional<Bridge::OutgoingFrame> Bridge::takeReadyFrame(Lane lane)
@@ -404,20 +392,36 @@ namespace icc
 
     pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> Bridge::sendLoop(Lane lane, std::stop_token stop)
     {
+        // One frame per sender, allocated with the long-lived loop at startup.
+        // A Task<optional<OutgoingFrame>> helper used to allocate another 4 KiB
+        // on every message, including heartbeats, exhausting M4's motion budget.
+        OutgoingFrame frame;
         while (!stop.stop_requested()) {
-            // Suspends until a message, lifecycle event or deadline provides work.
-            auto frame{ co_await nextOutgoingFrame(lane, stop) };
-            if (!frame || stop.stop_requested()) {
+            if (!nextOutgoingFrame(lane, frame)) {
+                if (stop.stop_requested()) {
+                    break;
+                }
+                if (!(co_await m_outgoingWakeup->signal(lane).ready.wait(stop))) {
+                    if (stop.stop_requested()) {
+                        break;
+                    }
+                    throw std::runtime_error("Bridge outgoing notification failed");
+                }
+                // Rescan after clearing the signal. A publication racing this
+                // clear remains queued or supplies the next wakeup.
+                m_outgoingWakeup->signal(lane).pending.clear();
+                continue;
+            }
+            if (stop.stop_requested()) {
                 break;
             }
-
-            if (frame->size > frame->bytes.size()) {
+            if (frame.size > frame.bytes.size()) {
                 throw std::length_error("Outgoing bridge frame exceeds its buffer");
             }
 
             // frame owns the storage throughout the await. A full transport
             // suspends this loop while the receive loop can continue running.
-            const auto bytes{ std::span<const std::byte>(frame->bytes).first(frame->size) };
+            const auto bytes{ std::span<const std::byte>(frame.bytes).first(frame.size) };
             auto result{ co_await m_transport.send(bytes, lane, stop) };
             if (!result) {
                 if (result.error() == ITransport::Error::Cancelled && stop.stop_requested()) {
@@ -425,7 +429,7 @@ namespace icc
                 }
                 co_return std::unexpected(result.error());
             }
-            m_connection.sent(static_cast<util::FrameKind>(frame->bytes[1]));
+            m_connection.sent(static_cast<util::FrameKind>(frame.bytes[1]));
             m_actionSending[static_cast<std::size_t>(lane)] = false;
             if (m_shutdownRequested.load()) {
                 m_outgoingWakeup->notify();

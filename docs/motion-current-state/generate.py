@@ -69,7 +69,7 @@ class Fig:
     def save(self,name,sources,proofs):
         self.footer(sources)
         hashes={p:hashlib.sha256(Path(p if p.startswith('/') else ROOT/p).read_bytes()).hexdigest() for p in proofs if Path(p if p.startswith('/') else ROOT/p).exists()}
-        self.s.append('<metadata>'+escape(json.dumps({'date':'2026-11-06','normal_release_pair':manifest['pair_id'],'evidence_sha256':hashes,'scope':'Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.'}))+'</metadata></svg>')
+        self.s.append('<metadata>'+escape(json.dumps({'date':'2026-11-07','normal_release_pair':manifest['pair_id'],'evidence_sha256':hashes,'scope':'Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.'}))+'</metadata></svg>')
         (OUT/(name+'.svg')).write_text('\n'.join(self.s))
 
 # 1 — private applications and shared serialized transport
@@ -143,8 +143,8 @@ f.text(84,919,'The SRAM alias is not additional memory.',19,C['muted'])
 # M7
 f.rect(664,288,472,107,C['white'],C['line'])
 f.text(684,320,'ITCM · 64 KiB',24,C['ui'],True)
-f.text(684,351,'0x00000000 · 16,088 B linked',18,mono=True)
-f.bar(684,369,432,16088/65536,'ui',10)
+f.text(684,351,'16,088 B code + 22,528 B GUI data',18)
+f.bar(684,369,432,(16088+22528)/65536,'ui',10)
 f.rect(664,410,472,185,C['white'],C['line'])
 f.text(684,442,'DTCM · 128 KiB',24,C['ui'],True)
 f.text(684,475,'0x20000000: vectors, 2 KiB',17,mono=True)
@@ -239,9 +239,9 @@ f=Fig(4,'Motion baseline: evidence and remaining limits','Software correctness, 
 f.box(60,220,812,262,'Admission and ownership','One exclusive Motor / Axis / Robot family. Reservations include preparation and cleanup. Protocol, configuration, session, axis revisions and positions are checked before outputs are armed.','io','iol',ts=29,bs=24)
 f.box(908,220,832,262,'Execution and stopping','M4 maintains immutable schedules with an installed brake. Explicit stop and lease loss select that branch locally. Abort / guard inhibition are separate fault paths and can invalidate referencing.','ui','uil',ts=29,bs=24)
 f.box(60,510,812,291,'Memory remains a constraint','M4 fast code and D2 data are close to their linker limits. Each raw/homing worker reuses its reserved stack after joining. Command and executor stacks are budgeted separately; no steady-state motion buffers use the UI heap.','shared','sharedl',ts=29,bs=24)
-f.box(908,510,832,291,'Open blocker: concurrent jog + axis move','The GIGA application can lose its ICC heartbeat during this overlap. UI reports the reason and shuts down; IO applies local loss handling. No HardFault was observed. The underlying scheduling / blocking mechanism is not yet isolated.','red','redl',ts=28,bs=23)
-f.box(60,829,812,275,'Electrical captures pass','Raw: 18 / 18 / 9 pulses. Coordinated: 400 each. Controlled stop: 266 each. HIGH time: 5.00–5.04 µs. Coordinated skew: at most 42 ns. ENABLE remains inactive. These short tests peak near 711 pulses/s.','io','iol',ts=28,bs=23)
-f.box(908,829,832,275,'Remaining verification gaps','Native ASan/UBSan workflows pass with synchronized virtual time and scheduler handoff. This is not a hardware timing proof. Lint findings remain. The 6,250-pulse/s ceiling, worst-case latency and powered mechanics remain unqualified.','purple','purplel',ts=28,bs=23)
+f.box(908,510,832,291,'Concurrent motion: ICC allocation fixed','Each sender reuses one startup-allocated frame. No 4,228-byte coroutine is allocated for each heartbeat. Repeated overlapping jog / move / stop tests pass without deadline changes. On link failure the UI stays read-only and preserves uncertainty.','io','iol',ts=28,bs=23)
+f.box(60,829,812,275,'Overlap capture passes','Shoulder jog: 9 pulses; independent elbow move: 44; Z: 0. HIGH time: 5.00–5.04 µs. Exact terminal counts agree; ENABLE stays inactive. Earlier synchronized captures pass too. These are short, low-rate electrical checks.','io','iol',ts=28,bs=23)
+f.box(908,829,832,275,'Remaining verification gaps','All 79 Linux Debug suites pass, including the real HMI and simulated motion workflow. Lint and sanitizers were not rerun for this correction. The 6,250-pulse/s ceiling, worst-case latency and powered mechanics remain unqualified.','purple','purplel',ts=28,bs=23)
 f.rect(60,1132,1680,104,C['white'],C['line'])
 f.para(84,1170,'Use the review report for exact test outcomes and capture hashes. No diagram claims that a passing short capture proves a full-rate or mechanically safe operating envelope.',1632,24,C['ink'])
 f.save('04-current-problems','Sources: Controller / Ownership / StepperMotor; OperatingEnvelope; review report and hardware captures.', ['src/io/motion/Controller.cpp','src/io/motion/ControllerAdmission.cpp','src/io/motion/StepperMotorCommands.cpp','src/common/motion/OperatingEnvelope.hpp','docs/motion-current-state/review.json'])

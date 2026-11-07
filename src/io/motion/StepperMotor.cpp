@@ -775,8 +775,14 @@ namespace io::motion
         std::scoped_lock lock{ m_mutex };
         m_events->reference_activated.store(false);
         m_events->reference_released.store(false);
-        if (!m_driver->status().ready || !isReferenced() || (forward && referenceSwitchActive()) ||
-            !m_stepOutput->prepareSequence(std::move(sequence))) {
+        if (!m_driver->status().ready || !isReferenced() || (forward && referenceSwitchActive())) {
+            pnm::log::warn("Motor {} coordinated preparation: driver/reference readiness failed",
+                           static_cast<unsigned>(m_id) + 1);
+            return false;
+        }
+        if (const auto result = m_stepOutput->prepareSequence(std::move(sequence)); !result) {
+            pnm::log::warn("Motor {} coordinated STEP preparation failed: errno={}",
+                           static_cast<unsigned>(m_id) + 1, result.error().value());
             return false;
         }
         m_motionSign = forward ? 1.0 : -1.0;

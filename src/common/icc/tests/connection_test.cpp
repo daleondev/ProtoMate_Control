@@ -14,6 +14,24 @@
 
 namespace
 {
+    std::atomic_bool record_large_allocations{};
+    std::atomic_uint large_allocations{};
+}
+
+// GNU/Linux size_t overload, wrapped only in this test executable. Observe,
+// rather than reject, allocations so a failure still tears down normally.
+static_assert(sizeof(std::size_t) == 8);
+extern "C" void* __real__Znwm(std::size_t size);
+extern "C" void* __wrap__Znwm(std::size_t size)
+{
+    if (record_large_allocations.load() && size >= icc::util::MAX_FRAME_BYTES) {
+        ++large_allocations;
+    }
+    return __real__Znwm(size);
+}
+
+namespace
+{
     using namespace std::chrono_literals;
     using State = icc::ConnectionState;
     using Reason = icc::ConnectionReason;
@@ -189,6 +207,31 @@ namespace
         EXPECT_EQ(uiEvents.size(), 2U);
         EXPECT_FALSE(io.failure());
         EXPECT_FALSE(ui.failure());
+    }
+
+    TEST_F(ConnectionTest, HeartbeatTrafficDoesNotAllocateFullFrameStorageAfterStartup)
+    {
+        connect();
+        large_allocations = 0;
+        record_large_allocations = true;
+        struct Reset
+        {
+            ~Reset() { record_large_allocations = false; }
+        } reset;
+        // Ensure linker wrapping is active; a missing hook must not produce
+        // a false pass for the coroutine allocation regression.
+        void* probe = ::operator new(icc::util::MAX_FRAME_BYTES);
+        *static_cast<volatile std::byte*>(probe) = std::byte{ 1 };
+        ::operator delete(probe);
+        ASSERT_EQ(large_allocations.load(), 1U);
+        large_allocations = 0;
+        drive(300ms);
+        record_large_allocations = false;
+        EXPECT_EQ(large_allocations.load(), 0U);
+        EXPECT_GE(ioTransport.heartbeats, 5U);
+        EXPECT_GE(uiTransport.heartbeats, 5U);
+        EXPECT_EQ(io.connectionStatus().state, State::Connected);
+        EXPECT_EQ(ui.connectionStatus().state, State::Connected);
     }
 
     TEST_F(ConnectionTest, AbsentPeerTimesOutAndFailsQueuedWork)

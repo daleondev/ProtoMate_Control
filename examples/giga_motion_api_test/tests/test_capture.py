@@ -46,6 +46,18 @@ def test_independent_commands_keep_counts_and_width_checks_without_common_start(
     assert not waveform.result([2, 1, 1], synchronized=False)['passed']
 
 
+def test_overlap_requires_the_unused_axis_to_stay_inactive():
+    data = samples()
+    data &= 251  # Shoulder/elbow only, ENABLE remains inactive-high.
+    waveform = capture.Waveform()
+    waveform.consume(data.tobytes())
+    assert waveform.result([2, 2, 0], synchronized=False)['passed']
+    data[700:820] |= 4
+    waveform = capture.Waveform()
+    waveform.consume(data.tobytes())
+    assert not waveform.result([2, 2, 0], synchronized=False)['passed']
+
+
 @pytest.mark.parametrize('defect', ['first_width', 'skew', 'enable', 'missing', 'unfinished'])
 def test_every_waveform_failure_is_retained(defect):
     data = samples()

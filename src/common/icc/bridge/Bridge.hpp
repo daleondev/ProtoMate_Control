@@ -158,8 +158,8 @@ namespace icc
                                       bool* running);
         pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> sendLoop(Lane lane, std::stop_token stop);
         pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> receiveLoop(Lane lane, std::stop_token stop);
-        // Rotate this lane's ready frames, suspending when all are idle.
-        pnm::coro::Task<std::optional<OutgoingFrame>> nextOutgoingFrame(Lane lane, std::stop_token stop);
+        // Fill the sender-owned frame; sendLoop suspends when this lane is idle.
+        bool nextOutgoingFrame(Lane lane, OutgoingFrame& outgoing);
         std::optional<OutgoingFrame> takeReadyFrame(Lane lane);
         std::optional<OutgoingFrame> takeFrame(Lane lane, std::size_t helper);
         void dispatchIncomingFrame(std::span<const std::byte> bytes, Lane lane);

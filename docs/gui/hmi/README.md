@@ -156,6 +156,7 @@ the analyzer; its idle-output check is not a substitute for motion qualification
 ST1633i input is not established by this test.
 
 See [verification status](verification.md) for measured results and remaining
-qualification. Physical panel interaction, powered calibrated motion, and the
-existing concurrent-motion heartbeat defect remain separate work. No deadline
-was relaxed to accommodate the HMI.
+qualification. Physical panel interaction and powered calibrated motion remain
+separate work. The [motion review](../../motion-current-state/review.md) records
+the resolved ICC allocation defect and overlap regression. No deadline was
+relaxed to accommodate the HMI.

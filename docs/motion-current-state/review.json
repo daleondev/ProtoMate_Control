@@ -1,546 +1,230 @@
 {
-  "date": "2026-11-06",
-  "status": "qualification_blocked",
-  "base_commit": "5e3eea84aecad974ff23de91ce9ae62485982988",
+  "date": "2026-11-07",
+  "status": "icc_overlap_fixed_and_verified",
   "source_sha256": {
-    "external/threadx_port/linux/gnu/CMakeLists.txt": "6a2eea95d27e951013a2d5906ac959b9a7968456c7fc0a253b38d05856418bf5",
-    "platform/hal/drivers/impl/StepGenerator.cpp": "f2cb93557b3ef35e04aa26bbdb390681f444c54782eb70d38563a32251bb5a27",
-    "platform/hal/drivers/impl/StepGenerator.hpp": "6c00014fdfb721ab11e5b135638eaa1e46c6b45157cfbda17cba7e8ebb42cc62",
-    "platform/hal/drivers/impl/linux/RgbOutput.cpp": "54d8c0f273194d7e2420d0c0a67b1748c414faff377f9dd28734ac94d502c450",
-    "platform/hal/linux/DisplayHost.cpp": "e0026da97845e85c0fbebf8e479c89d1e373bab554c706bf13f75849797ca4d7",
-    "platform/hal/linux/DisplayHost.hpp": "3dd596348ce40c48ea104cefefbc408e3217e296efae2dd57e81a8d306ab2687",
-    "platform/hal/tests/step_model/step_generator_test.cpp": "77a64b7659cd50ab3285ea48cf5ed3f6773b0938023f3a314083ed0951340139",
-    "platform/simulation/Client.cpp": "6d16bcca799674a27c70d7ea2b851bf0ae08eb44c1c12d24cf4dc63d71838e20",
-    "platform/simulation/Protocol.hpp": "29d925d22e96fe6a008fc1580eb63fb19c3a0e508cd014b8323308861d6a767c",
-    "platform/simulation/SharedMemory.hpp": "f73ce630733c27223a4f33d489210404ee76caa2d93b83cbfadc72c910d7e0fc",
-    "src/common/motion/Polynomial.cpp": "12e89f77d33b7aa62c5251b8ad111b21ac1572364d55b74a197d4b420bbd8423",
-    "src/common/motion/Profile.cpp": "751ecd1f755311def290e29da3585c6c939ba85f72f78f57920ad6b3678c79bd",
-    "src/common/motion/PulseCursor.cpp": "5cf4ce4d43aa1cba7b4de2cdebf81f6f562ec70230359e37b88f75e3ebbdc550",
-    "src/common/motion/Trajectory.cpp": "ae2c01219523d19e60ae60585e24ad78a996fe5d18d7990884e800b9a8cca58c",
-    "src/io/motion/Controller.cpp": "444540aa333c6aed458ff233c47fd9ae3b11987c0d49a030c529e34a5458007d",
-    "src/io/motion/Controller.hpp": "cda84a9409f5fc070ef47db290691e9b12ca5b36f4e0f5f0c55d86067294e7e7",
-    "src/io/motion/ControllerAdmission.cpp": "f9c47bbfbc2a508335f56bfe9389fd45e1bc74ad783ca4b26ad4e679dafa1cad",
-    "src/io/motion/ControllerHoming.cpp": "e3ec02ea64061aba4dce910ffce6aff6daf75ce40bbadff0e40155737dc58057",
-    "src/io/motion/ControllerSetup.cpp": "8c75d090766dd298bdffeceb6937e7e74ea9c4f6ceb039f6118b65e80856b659",
-    "src/io/motion/Executor.cpp": "4aabb7f96dfef7ae124cc42e13cc13e576d7f011b20440db2f2251e436ae44f2",
-    "src/io/motion/ExecutorDiagnostic.cpp": "e584ea7391c04c639e1bdaf2c97d516fe0783969616f59b2b06a431ca755e5e6",
-    "src/io/motion/Ownership.hpp": "9fdb23ff8a71da8231b2397543b8e0732f1135bd1daf53a546afc6d74e09302a",
-    "src/io/motion/ProfileCrossing.hpp": "87caf329909e12e20b39315ab3295f7565af57839b31f656c53bb358d334d6f0",
-    "src/io/motion/ProfileCurve.hpp": "c4ced9d3d970c06920b8b450d3e5af8e189d79c38abf4e00c43d0a971930e51b",
-    "src/io/motion/ProfileMemory.hpp": "9e03e323eeaa8b55723754fdebc5bec6e8dcdd267e61a92853eb8d33c8aeb143",
-    "src/io/motion/ProfileSchedule.cpp": "242e2c8f18a9d595d07775edf96a78aa32717898429b2e4dc8ec0995ea55227a",
-    "src/io/motion/Server.cpp": "fbe659341d3e3bc899b9abbd623327a3619c344312728515abe5bf10f5149eb0",
-    "src/io/motion/Server.hpp": "9824d50a7d515b484b0a086207840ad453a695b291460af8cdf0822be15e5c48",
-    "src/io/motion/ServerPrograms.cpp": "f1a86dc90b7968177c4dbb0fadca8611f3fd2921e3e399eec9b185c0d63e986f",
-    "src/io/motion/StepperMotor.cpp": "559d8c3162e020fb9d1bed7975b2cb4a522fcf77790ff31575e887c5456c8f40",
-    "src/io/motion/StepperMotor.hpp": "aa3275fd099f1733bf45059098244c472916e357ebb5b22710bc6d879e27b4b3",
-    "src/io/motion/StepperMotorCommands.cpp": "38257dbc4c1abefd06f725f8fdf64c98ed72bfd9335e6918771ff5af0e1fa5bd",
-    "src/io/motion/TrajectorySession.cpp": "0e254d729659403be98dec335e081139af904ef4d9418a4777b4e58ed9d18e53",
-    "src/simulation/CMakeLists.txt": "cb7ae1c6987fa0513482e5bba79a0d0a2aeca6cec0d11c2d5deeac296ea4b6f2",
-    "src/simulation/Machine.cpp": "8a870b5079cce9b5bfb8c3055d6541ea58cb9d4c6bc66ba18cc441f3fa114fd8",
-    "src/simulation/Machine.hpp": "6733aa61c4746e0879a0d9f4a9b7d23fcaeaf107882ad9717ba48e5b9b711968",
-    "src/simulation/Session.cpp": "14724ae48dfbb4980c9a234f7a7fd96c4883d6311d62f8a87ff9f708b97368c3",
-    "src/simulation/Session.hpp": "f5e56f7c78fc44b817777c8a65ff7eb69054e2ee907268c6de1bbd330a43b32f",
-    "src/simulation/tests/client_probe.cpp": "a089e179869a52a83132dc896898afeb3e381d914ea53473c810fa3de4059158",
-    "src/simulation/tests/display_clock_test.cpp": "a8faaf8b5556fffc4b99a1834f97fa93f94dee7cd32d157ba9dc37e996f860da",
-    "src/simulation/tests/test_client.py": "7dd675a90be30537c7e5d8ff424543ccc8cf58254a7cfb244bf9595fc2879230",
-    "src/simulation/tests/test_integration.py": "e8610d942a62122fbedbd0b726cc27d05b45891a781641f79fd8cb0cf5ead6b3",
-    "src/tests/motion_controller_test.cpp": "cb154dddc381209b08940c759af147e1bb7803e48efb1fece19fa7c24f8f763e",
-    "src/tests/motor_cli_test.cpp": "1fe1514bc993790db2e091fbd9fb879ef702edccf16c788b9f010b22f7b07977",
-    "src/ui/app/Application.cpp": "e368b001eb58bbaf2595aa3713aa62f2abb05256f3227de471c7906e5de17a8e",
-    "src/ui/cli/Console.cpp": "9f30077ada868f864ca7dcb2a47c44a58dd55e3b4525a8bfb5829017a2799831",
-    "src/ui/cli/Parser.cpp": "1d9f34bcdf7d7d71df59a2d31ce8d5f16c6c557b68ee2520ce19eba4aed1f254",
-    "src/ui/cli/motion.cpp": "6fb598d8f1f3d692b3cb37de07cc743ee83a1531d91c25acf07be4eac7a02090",
-    "src/ui/cli/motor.cpp": "dd275e458a5896dc8e8c4b2bec1b8af0d0859d4cce795808a8858851748491a4",
-    "src/ui/cli/robot.cpp": "fd9c99fc78fce50a42559e2feab5665cedf178f6242b893591a5fc0032e8d834",
-    "src/ui/cli/utilities.cpp": "909b136d70333cc8603740d2b32f908879ba27c485a97ab9786a9cbb2b4aabef",
-    "src/ui/motion/Client.cpp": "81d516e842ab8997bbe63360290f6817a6f46697b6f201b683b37e279b27f64f",
-    "src/ui/motion/ClientHistory.cpp": "d8cdc259ebeba0ae222fc61635c10bd73165a313bdae11a9861db9d2a7d5adca",
-    "src/ui/motion/ClientPrograms.cpp": "278acd5ba76b7d304aa0f777792dabd1854b09245b8ab1be74ef626218f6e076",
-    "src/ui/motion/Planner.cpp": "4a6875ac74eaef11ad4fe97cf1157be3fb9c5e6b36f3e1db6a2ac63334c28c95",
-    "src/ui/motion/Robot.cpp": "fefb45ba31ad9fcf06c9c727fff0b71d05158a92ceb18905a089188f614c4abd",
-    "src/ui/motion/RobotConfiguration.cpp": "3dfa1837e97f9f5238a6de61be5f9296d6c435ada91889b38e4ac930c3f968b9",
-    "src/ui/motion/RobotExecution.cpp": "278e24be70ab184a7f8fed1b084188db7318166c277eda5892aacd65b13ab2cf"
+    "examples/giga_motion_api_test/capture.py": "9b693b4da1d2b2df549e03e10e6e802e46605bf4f0a906d95675512c75c8c160",
+    "examples/giga_motion_api_test/tests/test_capture.py": "cf39f69a93ff5984c8541e090018e5506a94bd5d401e3317cebb798392542389",
+    "examples/giga_motion_api_test/verify.py": "8def1afd02af184014486c11ce0be8bce95e4f51abf48991ca4e2969b62570e4",
+    "src/common/icc/bridge/Bridge.cpp": "f1a40ea4334631cde352fd50b01433827e084f82c08fce5dd1a0695573ca4c3a",
+    "src/common/icc/bridge/Bridge.hpp": "b43c64bd6eec0c36a66cca8ee6b694f607083fc53e332e15f9b0e4b4a664ceb3",
+    "src/common/icc/tests/CMakeLists.txt": "bb8ce25a17f7c4aab631b48c9d6d7bdab745f64702bd810e5172856e99594c79",
+    "src/common/icc/tests/connection_test.cpp": "1f9c51aa8bc00734829dfad609849e0d271ef6d189d07d9bbb80f0724c785322",
+    "src/io/motion/ControllerAdmission.cpp": "dcaf7d36d9a40c0cc8678477ce2e9a8e49ee55e8dcb47bb2ab12c85eb250b792",
+    "src/io/motion/StepperMotor.cpp": "1105f8f5c6900bf2e468b12c6dbd1927037e1d8296f12878abbbcde947a2b3e1"
   },
-  "firmware": {
-    "normal_release": {
-      "pair_id": "3be44ebcaf67864741adde5ace388d4a574d74e336fb7eb20d657fe511e9ae4e",
-      "manifest": {
-        "path": "build/giga-release/images/manifest.json",
-        "sha256": "217fd39980d5c1fd80e038e3f7564c42982c817e15fbcd279c911fc9a38cdad1"
-      },
-      "io_image": {
-        "path": "build/giga-release/images/io.bin",
-        "sha256": "a96865956532fedaab3b27cbebbcfbd77ebc047b3cf44e1d6cb29f6d31092b3a"
-      },
-      "ui_image": {
-        "path": "build/giga-release/images/ui.bin",
-        "sha256": "eb53fe130a381b9b86bf16d2981bf473b501d8c1714440f8894a1af65c53b2f5"
-      },
-      "m4_cold_code": "QSPI"
+  "cause": {
+    "type": "std::bad_alloc",
+    "core": "M4",
+    "worker": "Io.iccThread",
+    "requested_bytes": 4228,
+    "caller": "icc::Bridge::nextOutgoingFrame",
+    "lane": "Urgent",
+    "secondary_ui_failure": "HeartbeatTimeout",
+    "backtrace": {
+      "path": "build/icc-overlap/diagnostic/first-throw2.txt",
+      "sha256": "2bb64621cbef4960b55687bb41e4eafd6f704bb369f5c37a1f1a062a4c14df8a"
     },
-    "normal_debug": {
-      "pair_id": "53bb15ae36b1bda1ba6a0013e94e9f65be74702297bf10c7d93fc257208cf444",
+    "retained_exception": {
+      "path": "build/icc-overlap/diagnostic/bridge-failure.txt",
+      "sha256": "ed6e377c7db643e2d9cfd6ef54b7d56536b9802c60e0c0489c653ff9250e01ae"
+    }
+  },
+  "fix": {
+    "sender": "One persistent frame per long-lived send coroutine; synchronous frame selection; borrow until transport completion",
+    "deadlines_changed": false,
+    "priorities_changed": false,
+    "step_backend_changed": false,
+    "operating_limits_changed": false
+  },
+  "software": {
+    "linux_debug_ctest": {
+      "passed": 79,
+      "total": 79,
+      "log": {
+        "path": "build/icc-overlap/linux-ctest.log",
+        "sha256": "122932606766ade6a5c857583a5795a36657dc6b95ca5bbdf533e19f0f70bd09"
+      }
+    },
+    "capture_pytest": {
+      "passed": 20,
+      "total": 20
+    },
+    "giga_debug": {
+      "pair_id": "b21826fe0e25ac69e3718b93d7426c7def9a28d359c2a85291e9855e1832838e",
       "manifest": {
         "path": "build/giga-debug/images/manifest.json",
-        "sha256": "bb4bf3d2430f757b8ec36e9a12d80fb500c07b8c12a150d5f3eece7c78d71b98"
-      },
-      "io_image": {
-        "path": "build/giga-debug/images/io.bin",
-        "sha256": "cc460c8d66041bc5fa8f58fdb11290dca9fc763aaa3bf84c2b69ba2fdc46053e"
-      },
-      "ui_image": {
-        "path": "build/giga-debug/images/ui.bin",
-        "sha256": "aa1a9e0cd1b44a89646ae810f5049e4a0e9acb2d460af6eb087b4d323ff7ae07"
-      },
-      "m4_cold_code": "see debug build cache"
+        "sha256": "6a330063be1dcf7b195c6fc8d272569a504277b5704adec967c9105392143293"
+      }
     },
-    "electrical_fixture": {
-      "pair_id": "577bb371223b0d69f807dc1f24883412411b0454b40f7996e712e36892e17398",
+    "giga_release": {
+      "pair_id": "b87bf16b221f848619d34fd387c58a04881a00a714a867001ac68c8f0ee0b52b",
+      "manifest": {
+        "path": "build/giga-release/images/manifest.json",
+        "sha256": "429f179e8a9e4de462447cc2519791dc4e52e21832a5944ba026a9e420fb86d6"
+      }
+    },
+    "ram_audit": {
+      "path": "build/icc-overlap/ram-audit.json",
+      "sha256": "df2d59b9c64f0635a1cfe464864262e41638dd5c150453c64a84b54d5112c221"
+    },
+    "lint_sanitizers_run": false,
+    "allocation_regression": {
+      "passed": true,
+      "log": {
+        "path": "build/icc-overlap/allocation-test.log",
+        "sha256": "4af3e70235ff9d2b52114fe491952cb548199b76ff3e5ad4298374c95949dbca"
+      }
+    }
+  },
+  "hardware": {
+    "motors_disconnected": true,
+    "enable_physically_inhibited": true,
+    "reference_inputs": "synthetic",
+    "cold_code": "M4 SDRAM fixture; normal Release QSPI",
+    "fixture": {
+      "pair_id": "15131d746fe890d17a586e2a726e3861b852e403e36fd92707618b5ea4dbeffa",
       "manifest": {
         "path": "build/giga-motion-api-release/images/manifest.json",
-        "sha256": "8961e63985751af4cdf76e4e38cd8d351f1a37753b43bd98e71a9a177a093fe0"
-      },
-      "io_image": {
-        "path": "build/giga-motion-api-release/images/io.bin",
-        "sha256": "38e813e63a3885d37dcde712773f4ff33d1f124df8138c187fca798f832897fe"
-      },
-      "ui_image": {
-        "path": "build/giga-motion-api-release/images/ui.bin",
-        "sha256": "fdab37952f817f43a4bed3d2c510335a9ae521759f235c4d9183130e0a8fda1b"
-      },
-      "m4_cold_code": "SDRAM"
-    }
-  },
-  "normal_linux": {
-    "path": "build/homing-review/verification/debug-tests.log",
-    "sha256": "76141f0d7460b15340a671cf17e68021a4999cf43d2d1f77c23f02419368fa70",
-    "total": 74,
-    "passed": 74,
-    "failed": [],
-    "sanitizer_memory_report": false,
-    "seconds": 223.24
-  },
-  "asan_ubsan": {
-    "path": "build/homing-review/verification/asan-tests.log",
-    "sha256": "f2374de0737b32d618f8adcc92a5b6c4fdad01c3bb90f690f5195bb9c13d8c95",
-    "total": 74,
-    "passed": 74,
-    "failed": [],
-    "sanitizer_memory_report": false,
-    "seconds": 365.72
-  },
-  "clang_tidy": {
-    "status": "findings_remain",
-    "report": {
-      "path": "build/motion-review-final-lint/clang-tidy/report.json",
-      "sha256": "240cbc44caf05f8f02d4dea9db9458e41f81a1d98d203dde7891daadb1f80a09"
+        "sha256": "abee4652326e47a0aff317be6989e157c6a297f587aa7471ca9baffc9f7ff3b8"
+      }
     },
-    "translation_units": 70,
-    "parsed": 70,
-    "blocked": 0,
-    "tool_failures": 0,
-    "unique_findings": 1899,
-    "context": "all changed production translation units and their platform contexts after a full 386-unit scan",
-    "focused_followup": {
-      "path": "build/homing-review-lint/clang-tidy/report.json",
-      "sha256": "384666645c831f5eacb743124dc0b8cf38432cd8243f37d837ac3fed0a1ef7b3",
-      "translation_units": 4,
-      "parsed": 4,
-      "blocked": 0,
-      "remaining_findings": 7,
-      "checks": "clang-analyzer-*,bugprone-*"
-    }
-  },
-  "formatting": {
-    "changed_cpp": "pass",
-    "git_diff_check": "pass"
-  },
-  "ram_audit": {
-    "elf": "build/giga-io-release/io-controller.elf",
-    "roots": [
-      "BusFault_Handler",
-      "DMA1_Stream0_IRQHandler",
-      "DMA1_Stream1_IRQHandler",
-      "DMA1_Stream2_IRQHandler",
-      "DMA1_Stream3_IRQHandler",
-      "EXTI0_IRQHandler",
-      "EXTI15_10_IRQHandler",
-      "EXTI1_IRQHandler",
-      "EXTI2_IRQHandler",
-      "EXTI3_IRQHandler",
-      "EXTI4_IRQHandler",
-      "EXTI9_5_IRQHandler",
-      "HardFault_Handler",
-      "MemManage_Handler",
-      "PendSV_Handler",
-      "SysTick_Handler",
-      "TIM3_IRQHandler",
-      "TIM5_IRQHandler",
-      "TIM6_DAC_IRQHandler",
-      "TIM7_IRQHandler",
-      "UsageFault_Handler",
-      "(anonymous namespace)::thread_stack_error_handler(TX_THREAD_STRUCT*)",
-      "io::motion::StepperMotor::accountFeedback(hal::device::IMotorFeedback::Sample const&)",
-      "io::motion::StepperMotor::accountProgress(hal::step::AxisStatus const&)",
-      "hal::GpioOutput::write(hal::gpio::Level)",
-      "hal::(anonymous namespace)::now()",
-      "hal::stm32::StepHardware::finishAxis(unsigned int)",
-      "hal::stm32::StepHardware::acknowledge(unsigned int)",
-      "hal::stm32::StepHardware::completionWatch(bool)",
-      "hal::stm32::StepHardware::stop()",
-      "hal::stm32::StepHardware::guard(unsigned long)",
-      "hal::stm32::StepHardware::sample()",
-      "hal::stm32::StepHardware::buffers()",
-      "hal::stm32::StepHardware::publish()",
-      "hal::stm32::StepHardware::pin_mode(unsigned int, bool)",
-      "hal::stm32::StepHardware::stopAxis(unsigned int)",
-      "hal::device::IndexFeedback::invalidate()",
-      "hal::device::IndexFeedback::motion(bool, bool, std::chrono::duration<long long, std::ratio<1ll, 1000000000ll> >)",
-      "hal::device::QuadratureEncoderFeedback::invalidate()",
-      "hal::device::QuadratureEncoderFeedback::motion(bool, bool, std::chrono::duration<long long, std::ratio<1ll, 1000000000ll> >)",
-      "io::motion::ProfileSchedule::maximumPeriod() const",
-      "io::motion::ProfileSchedule::count() const",
-      "io::motion::ProfileSchedule::timing(unsigned long long) const",
-      "io::motion::ProfileSchedule::generate(unsigned long long, std::span<hal::step::Timing, 4294967295u>) const",
-      "io::motion::Sequence::maximumPeriod() const",
-      "io::motion::Sequence::count() const",
-      "io::motion::Sequence::timing(unsigned long long) const",
-      "io::motion::Sequence::generate(unsigned long long, std::span<hal::step::Timing, 4294967295u>) const",
-      "hal::step::Sequence::generate(unsigned long long, std::span<hal::step::Timing, 4294967295u>) const",
-      "hal::GpioInput::read() const",
-      "void std::__polyfunc::_Base_invoker<true, void>::_S_call_storage<io::motion::Controller::Controller(std::array<io::motion::Controller::MotorConfiguration, 3u> const&, std::function<std::array<std::shared_ptr<hal::device::IStepperDriver>, 3u> (std::array<unsigned int, 3u> const&, std::shared_ptr<hal::IDigitalOutput> const&)> const&, std::shared_ptr<pnm::log::ISink>, std::pmr::memory_resource*, io::motion::Controller::Hardware const*)::{lambda()#1}&>(std::__polyfunc::_Storage const&)",
-      "void std::__polyfunc::_Base_invoker<true, void>::_S_call_storage<io::motion::StepperMotor::StepperMotor(hal::motor::Id, pnm::units::Angle, pnm::units::Angle, unsigned int, std::shared_ptr<hal::IStepGenerator> const&, std::shared_ptr<hal::device::IStepperDriver>, std::shared_ptr<hal::device::IMotorFeedback>, std::move_only_function<void () noexcept>, std::shared_ptr<pnm::log::ISink>, std::shared_ptr<hal::IDigitalInput>)::{lambda()#1}&>(std::__polyfunc::_Storage const&)",
-      "void std::__polyfunc::_Base_invoker<true, void, hal::gpio::Level>::_S_call_storage<io::motion::StepperMotor::StepperMotor(hal::motor::Id, pnm::units::Angle, pnm::units::Angle, unsigned int, std::shared_ptr<hal::IStepGenerator> const&, std::shared_ptr<hal::device::IStepperDriver>, std::shared_ptr<hal::device::IMotorFeedback>, std::move_only_function<void () noexcept>, std::shared_ptr<pnm::log::ISink>, std::shared_ptr<hal::IDigitalInput>)::{lambda(hal::gpio::Level)#1}&>(std::__polyfunc::_Storage const&, hal::gpio::Level)",
-      "void std::__polyfunc::_Base_invoker<true, void, hal::gpio::Level>::_S_call_storage<hal::device::IndexFeedback::IndexFeedback(std::shared_ptr<hal::IDigitalInput>, pnm::units::Angle, unsigned int, std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::duration<long long, std::ratio<1ll, 1000000000ll> > > (*)() noexcept)::{lambda(hal::gpio::Level)#1}&>(std::__polyfunc::_Storage const&, hal::gpio::Level)",
-      "void std::__polyfunc::_Base_invoker<true, void, hal::gpio::Level>::_S_call_storage<hal::device::util::DriverFaultMonitor::DriverFaultMonitor(std::shared_ptr<hal::IDigitalInput>)::{lambda(hal::gpio::Level)#1}&>(std::__polyfunc::_Storage const&, hal::gpio::Level)",
-      "void std::__polyfunc::_Base_invoker<true, void, hal::IQuadratureEncoder::Sample const&>::_S_call_storage<hal::device::QuadratureEncoderFeedback::subscribe()::{lambda(hal::IQuadratureEncoder::Sample const&)#1}&>(std::__polyfunc::_Storage const&, hal::IQuadratureEncoder::Sample const&)",
-      "void std::__polyfunc::_Base_invoker<true, void, hal::step::AxisStatus const&>::_S_call_storage<io::motion::StepperMotor::StepperMotor(hal::motor::Id, pnm::units::Angle, pnm::units::Angle, unsigned int, std::shared_ptr<hal::IStepGenerator> const&, std::shared_ptr<hal::device::IStepperDriver>, std::shared_ptr<hal::device::IMotorFeedback>, std::move_only_function<void () noexcept>, std::shared_ptr<pnm::log::ISink>, std::shared_ptr<hal::IDigitalInput>)::{lambda(hal::step::AxisStatus const&)#1}&>(std::__polyfunc::_Storage const&, hal::step::AxisStatus const&)",
-      "void std::__polyfunc::_Base_invoker<true, void, hal::device::IMotorFeedback::Sample const&>::_S_call_storage<io::motion::StepperMotor::StepperMotor(hal::motor::Id, pnm::units::Angle, pnm::units::Angle, unsigned int, std::shared_ptr<hal::IStepGenerator> const&, std::shared_ptr<hal::device::IStepperDriver>, std::shared_ptr<hal::device::IMotorFeedback>, std::move_only_function<void () noexcept>, std::shared_ptr<pnm::log::ISink>, std::shared_ptr<hal::IDigitalInput>)::{lambda(hal::device::IMotorFeedback::Sample const&)#1}&>(std::__polyfunc::_Storage const&, hal::device::IMotorFeedback::Sample const&)",
-      "std::chrono::_V2::steady_clock::now()",
-      "_tx_execution_isr_enter",
-      "_tx_execution_isr_exit",
-      "_tx_execution_thread_enter",
-      "_tx_execution_thread_exit"
+    "repeat_runs": [
+      {
+        "path": "build/icc-overlap/fixed-boot1",
+        "overlaps": 16,
+        "passed": true,
+        "lease_acks": 804,
+        "lease_failures": 0,
+        "pair_prefix": "4216523f17883099",
+        "console": {
+          "path": "build/icc-overlap/fixed-boot1/console.log",
+          "sha256": "62d4cbd598452dfdf95c6ecccb4fe603f39dd6b2eb1f24019167ac79cd16f628"
+        },
+        "results": {
+          "path": "build/icc-overlap/fixed-boot1/results.json",
+          "sha256": "e5bdd83a3f4800939b7d8e10d49ba36f7d6d00051af1fff13af0f885c4261f1c"
+        }
+      },
+      {
+        "path": "build/icc-overlap/fixed-boot3",
+        "overlaps": 16,
+        "passed": true,
+        "lease_acks": 808,
+        "lease_failures": 0,
+        "pair_prefix": "15131d746fe890d1",
+        "console": {
+          "path": "build/icc-overlap/fixed-boot3/console.log",
+          "sha256": "712d6b241533e5ac79cc7eb4fc82275ef3a07a6b11ab2a4359a74bd333bdf4dc"
+        },
+        "results": {
+          "path": "build/icc-overlap/fixed-boot3/results.json",
+          "sha256": "93e120cbd7779b4bd25bc9c32902995371ded41be189b9934a1aaf218f18f682"
+        }
+      }
     ],
-    "functions": 172,
-    "outside_ram": [],
-    "vtables": {
-      "hal::stm32::StepHardware": "0x10007bcc",
-      "hal::GpioInput": "0x10008c0c",
-      "hal::GpioOutput": "0x10008c24",
-      "hal::device::IndexFeedback": "0x1000a3e4",
-      "hal::device::QuadratureEncoderFeedback": "0x1000abc4",
-      "io::motion::Sequence": "0x1001326c",
-      "io::motion::ProfileSchedule": "0x100155cc"
-    },
-    "icc_hot": {
-      "icc::Bridge::sendLoop(icc::Bridge::_ZN3icc6Bridge8sendLoopEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .actor]": "0x1001e06c",
-      "icc::Bridge::sendLoop(hal::intercore::Lane, std::stop_token)": "0x1001e488",
-      "icc::Bridge::sendLoop(icc::Bridge::_ZN3icc6Bridge8sendLoopEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .destroy]": "0x1001e9cc",
-      "icc::Bridge::receiveLoop(icc::Bridge::_ZN3icc6Bridge11receiveLoopEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .actor]": "0x1001cad8",
-      "icc::Bridge::receiveLoop(hal::intercore::Lane, std::stop_token)": "0x1001cf3c",
-      "icc::Bridge::receiveLoop(icc::Bridge::_ZN3icc6Bridge11receiveLoopEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .destroy]": "0x1001d018",
-      "icc::Bridge::healthLoop(icc::Bridge::_ZN3icc6Bridge10healthLoopESt10stop_token.Frame*) [clone .actor]": "0x1001d5e0",
-      "icc::Bridge::healthLoop(std::stop_token)": "0x1001d8fc",
-      "icc::Bridge::healthLoop(icc::Bridge::_ZN3icc6Bridge10healthLoopESt10stop_token.Frame*) [clone .destroy]": "0x1001d9b8",
-      "icc::Bridge::nextOutgoingFrame(icc::Bridge::_ZN3icc6Bridge17nextOutgoingFrameEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .actor]": "0x1001dc20",
-      "icc::Bridge::nextOutgoingFrame(hal::intercore::Lane, std::stop_token)": "0x1001df7c",
-      "icc::Bridge::nextOutgoingFrame(icc::Bridge::_ZN3icc6Bridge17nextOutgoingFrameEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .destroy]": "0x1001e9dc",
-      "icc::Bridge::dispatchIncomingFrame(std::span<std::byte const, 4294967295u>, hal::intercore::Lane)": "0x1001c6e0",
-      "icc::InterCoreTransport::send(icc::InterCoreTransport::_ZN3icc18InterCoreTransport4sendESt4spanIKSt4byteLj4294967295EEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .actor]": "0x10024c70",
-      "icc::InterCoreTransport::send(std::span<std::byte const, 4294967295u>, hal::intercore::Lane, std::stop_token)": "0x10024f28",
-      "icc::InterCoreTransport::send(icc::InterCoreTransport::_ZN3icc18InterCoreTransport4sendESt4spanIKSt4byteLj4294967295EEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .destroy]": "0x10025050",
-      "icc::InterCoreTransport::receive(icc::InterCoreTransport::_ZN3icc18InterCoreTransport7receiveESt4spanISt4byteLj4294967295EEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .actor]": "0x10025304",
-      "icc::InterCoreTransport::receive(std::span<std::byte, 4294967295u>, hal::intercore::Lane, std::stop_token)": "0x100255e4",
-      "icc::InterCoreTransport::receive(icc::InterCoreTransport::_ZN3icc18InterCoreTransport7receiveESt4spanISt4byteLj4294967295EEN3hal9intercore4LaneESt10stop_token.Frame*) [clone .destroy]": "0x1002570c",
-      "icc::InterCoreTransport::wakeWaiters()": "0x10024a7c"
-    },
-    "indirect_calls": {
-      "io::motion::StepperMotor::accountProgress(hal::step::AxisStatus const&)": [
-        "1000cbf8:\t4798      \tblx\tr3",
-        "1000ccd8:\t4798      \tblx\tr3"
-      ],
-      "hal::util::StepGenerator::fill(unsigned int, unsigned int)": [
-        "10000e7a:\t4798      \tblx\tr3",
-        "10000e8c:\t4798      \tblx\tr3",
-        "10000f3a:\t47b8      \tblx\tr7",
-        "10000f5e:\t47b0      \tblx\tr6"
-      ],
-      "hal::util::StepGenerator::guard(unsigned long)": [
-        "10001462:\t47a8      \tblx\tr5",
-        "1000147c:\t4718      \tbx\tr3"
-      ],
-      "hal::util::StepGenerator::finish(hal::step::State, bool, unsigned int)": [
-        "10001900:\t4798      \tblx\tr3"
-      ],
-      "hal::util::StepGenerator::notify()": [
-        "10001794:\t4798      \tblx\tr3",
-        "1000182a:\t4798      \tblx\tr3",
-        "10001842:\t4798      \tblx\tr3"
-      ],
-      "hal::util::StepGenerator::service()": [
-        "10001a70:\t4798      \tblx\tr3",
-        "10001b5a:\t4798      \tblx\tr3",
-        "10001b88:\t4798      \tblx\tr3",
-        "10001ba6:\t4798      \tblx\tr3",
-        "10001bb2:\t4798      \tblx\tr3",
-        "10001c82:\t4798      \tblx\tr3",
-        "10001c8e:\t4798      \tblx\tr3"
-      ],
-      "hal::util::EncoderSampler::publish(hal::IQuadratureEncoder::Sample const&)": [
-        "10007cf6:\t4718      \tbx\tr3"
-      ],
-      "hal::Timer::dispatchInterrupt(TIM_TypeDef*)": [
-        "10009206:\t4718      \tbx\tr3"
-      ],
-      "hal::device::IndexFeedback::invalidate()": [
-        "1000a252:\t4798      \tblx\tr3"
-      ],
-      "hal::device::IndexFeedback::State::edge(hal::gpio::Level)": [
-        "10009ee0:\t4798      \tblx\tr3"
-      ],
-      "hal::device::IndexFeedback::State::publish(std::chrono::time_point<std::chrono::_V2::steady_clock, std::chrono::duration<long long, std::ratio<1ll, 1000000000ll> > >)": [
-        "10009aec:\t47c0      \tblx\tr8"
-      ],
-      "hal::device::IndexFeedback::motion(bool, bool, std::chrono::duration<long long, std::ratio<1ll, 1000000000ll> >)": [
-        "1000a0ca:\t4798      \tblx\tr3"
-      ],
-      "hal::device::QuadratureEncoderFeedback::State::sample(hal::IQuadratureEncoder::Sample const&)": [
-        "1000a690:\t4798      \tblx\tr3"
-      ],
-      "hal::device::util::DriverFaultMonitor::State::fail(hal::device::IStepperDriver::Fault, std::error_code) [clone .isra.0]": [
-        "1000b69c:\t4798      \tblx\tr3"
-      ],
-      "hal::GpioInput::dispatchEdge(unsigned short)": [
-        "100089f6:\t4798      \tblx\tr3"
-      ],
-      "void std::__polyfunc::_Base_invoker<true, void>::_S_call_storage<io::motion::Controller::Controller(std::array<io::motion::Controller::MotorConfiguration, 3u> const&, std::function<std::array<std::shared_ptr<hal::device::IStepperDriver>, 3u> (std::array<unsigned int, 3u> const&, std::shared_ptr<hal::IDigitalOutput> const&)> const&, std::shared_ptr<pnm::log::ISink>, std::pmr::memory_resource*, io::motion::Controller::Hardware const*)::{lambda()#1}&>(std::__polyfunc::_Storage const&)": [
-        "10011234:\t4798      \tblx\tr3"
-      ],
-      "void std::__polyfunc::_Base_invoker<true, void>::_S_call_storage<io::motion::StepperMotor::StepperMotor(hal::motor::Id, pnm::units::Angle, pnm::units::Angle, unsigned int, std::shared_ptr<hal::IStepGenerator> const&, std::shared_ptr<hal::device::IStepperDriver>, std::shared_ptr<hal::device::IMotorFeedback>, std::move_only_function<void () noexcept>, std::shared_ptr<pnm::log::ISink>, std::shared_ptr<hal::IDigitalInput>)::{lambda()#1}&>(std::__polyfunc::_Storage const&)": [
-        "1000bc2e:\t4798      \tblx\tr3"
-      ],
-      "_tx_event_flags_set": [
-        "1002b654:\t4798      \tblx\tr3"
-      ],
-      "_tx_thread_stack_error_handler": [
-        "1002c2e6:\t4798      \tblx\tr3"
-      ]
-    }
-  },
-  "captures": {
-    "raw-capture": {
+    "capture": {
       "result": {
         "passed": true,
         "failures": [],
         "sample_rate": 24000000,
-        "samples": 27614720,
+        "samples": 51867648,
         "axes": [
           {
             "axis": 1,
-            "rises": 18,
-            "falls": 18,
-            "high_min_samples": 120,
-            "high_max_samples": 120,
-            "low_min_samples": 81133
-          },
-          {
-            "axis": 2,
-            "rises": 18,
-            "falls": 18,
-            "high_min_samples": 120,
-            "high_max_samples": 121,
-            "low_min_samples": 81132
-          },
-          {
-            "axis": 3,
             "rises": 9,
             "falls": 9,
             "high_min_samples": 120,
             "high_max_samples": 120,
-            "low_min_samples": 162386
+            "low_min_samples": 2699508
+          },
+          {
+            "axis": 2,
+            "rises": 44,
+            "falls": 44,
+            "high_min_samples": 120,
+            "high_max_samples": 121,
+            "low_min_samples": 86194
+          },
+          {
+            "axis": 3,
+            "rises": 0,
+            "falls": 0
           }
         ],
         "enable_low_samples": 0,
         "maximum_rising_edge_spread_samples": null,
         "expected_pulses": [
-          18,
-          18,
-          9
+          9,
+          44,
+          0
         ],
-        "sha256_raw": "4bed10c2918ca40480a872e469c9d8e8e94a3aa6244e9a7ed84ae20139b6b520"
+        "sha256_raw": "045735c269a7d150bacd5a8f5c5ac3b59eb79f45f432cb2017811a9b79adf73e"
       },
       "result_file": {
-        "path": "build/motion-review/hardware/raw-capture/result.json",
-        "sha256": "eb975d4263abae83b198ea6c0fb201033ef8c030155b9b9d484d2d566908318f"
+        "path": "build/icc-overlap/logic-overlap/result.json",
+        "sha256": "c3413a9d17c58de311bed0de009a4ceb02761af994ca1ec9be42a0d028afd11b"
       },
       "console": {
-        "path": "build/motion-review/hardware/raw-capture/console.log",
-        "sha256": "6f5dcc06c4df16390bcf132fde3fa9c90a7499eae5668e87f98bb0fb3c96d144"
+        "path": "build/icc-overlap/logic-overlap/console.log",
+        "sha256": "56368fde5a8cf6152229c1d11abdf5d9c50d655175089d6ca5c54334fc526e86"
       },
       "compressed_samples": {
-        "path": "build/motion-review/hardware/raw-capture/logic.bin.gz",
-        "sha256": "f4e0a835f3b064699db92a2f17891b8d3ecb2c26c77fdc03ac4d697c162cf1d9"
-      }
-    },
-    "coordinated-capture": {
-      "result": {
-        "passed": true,
-        "failures": [],
-        "sample_rate": 24000000,
-        "samples": 45624320,
-        "axes": [
-          {
-            "axis": 1,
-            "rises": 400,
-            "falls": 400,
-            "high_min_samples": 120,
-            "high_max_samples": 121,
-            "low_min_samples": 33624
-          },
-          {
-            "axis": 2,
-            "rises": 400,
-            "falls": 400,
-            "high_min_samples": 120,
-            "high_max_samples": 121,
-            "low_min_samples": 33624
-          },
-          {
-            "axis": 3,
-            "rises": 400,
-            "falls": 400,
-            "high_min_samples": 120,
-            "high_max_samples": 121,
-            "low_min_samples": 33624
-          }
-        ],
-        "enable_low_samples": 0,
-        "maximum_rising_edge_spread_samples": 1,
-        "expected_pulses": 400,
-        "sha256_raw": "9c7cf97577fa736351a7b965536a05b2b78716e764329fda80b97c05b85feca5"
-      },
-      "result_file": {
-        "path": "build/motion-review/hardware/coordinated-capture/result.json",
-        "sha256": "9368ddf477067d71fc333b5492e39603a8b876fdcf85a5884075fd3ea96a5f9c"
-      },
-      "console": {
-        "path": "build/motion-review/hardware/coordinated-capture/console.log",
-        "sha256": "91583fe62f774eef621954eddf75671f17aa8138e460ca8517d5b1f5f42d43c6"
-      },
-      "compressed_samples": {
-        "path": "build/motion-review/hardware/coordinated-capture/logic.bin.gz",
-        "sha256": "73a9630dffedec8060b00ff4d014f17377af7cb04e2756faf13297e1b19059b7"
-      }
-    },
-    "controlled-stop-capture": {
-      "result": {
-        "passed": true,
-        "failures": [],
-        "sample_rate": 24000000,
-        "samples": 41542144,
-        "axes": [
-          {
-            "axis": 1,
-            "rises": 266,
-            "falls": 266,
-            "high_min_samples": 120,
-            "high_max_samples": 121,
-            "low_min_samples": 33626
-          },
-          {
-            "axis": 2,
-            "rises": 266,
-            "falls": 266,
-            "high_min_samples": 120,
-            "high_max_samples": 121,
-            "low_min_samples": 33626
-          },
-          {
-            "axis": 3,
-            "rises": 266,
-            "falls": 266,
-            "high_min_samples": 120,
-            "high_max_samples": 121,
-            "low_min_samples": 33626
-          }
-        ],
-        "enable_low_samples": 0,
-        "maximum_rising_edge_spread_samples": 1,
-        "expected_pulses": 266,
-        "sha256_raw": "93d5d55571ef450df64d8cc7a41ab4596456d878b4800e8f15941e424bc57f52"
-      },
-      "result_file": {
-        "path": "build/motion-review/hardware/controlled-stop-capture/result.json",
-        "sha256": "ae949d04dba4d5a404c64f8596908e6d2999c798a4a55ef9ed7b38fd4f16f201"
-      },
-      "console": {
-        "path": "build/motion-review/hardware/controlled-stop-capture/console.log",
-        "sha256": "d1416cb04b07f8021ed86ce7ff0150aec2714339c27f3926067d0e9295154267"
-      },
-      "compressed_samples": {
-        "path": "build/motion-review/hardware/controlled-stop-capture/logic.bin.gz",
-        "sha256": "375a74fcb8bfe08602f9968b35515211f572488a5449dfc571db88a2f72dfb91"
+        "path": "build/icc-overlap/logic-overlap/logic.bin.gz",
+        "sha256": "fa602eb7f968c2f3f9d702d4044a5c556d99fcb4a7aec01aa871914e7b8b594e"
       }
     }
   },
-  "hardware_after_testing": {
-    "normal_release_restored": true,
-    "post_flash_console": {
-      "path": "build/motion-review/hardware/normal-release-console.log",
-      "sha256": "a7012e3d94dbcc1567d2503be79e2cdd94d7fd3018a728c8eff6ec3dad446324"
+  "resources": {
+    "final_fixture_terminal_io_heap_available": 33328,
+    "normal_idle_heap_available": {
+      "io": 45680,
+      "ui": 44880
     },
+    "heap_minimum_measured": false,
+    "io_stacks": {
+      "command": {
+        "peak": 17792,
+        "capacity": 20476
+      },
+      "icc": {
+        "peak": 12104,
+        "capacity": 20476
+      }
+    },
+    "m4_fast": {
+      "used": 192824,
+      "capacity": 196608
+    },
+    "m4_data": {
+      "used": 80864,
+      "capacity": 88064
+    }
+  },
+  "restored": {
+    "normal_release": true,
     "ui": "Ready",
     "io": "Ready",
-    "motor_enabled": false,
-    "motion_ready": false,
+    "icc": "Connected",
+    "motion_enabled": false,
     "family": "none",
-    "heap_available_bytes": {
-      "io": 32920,
-      "ui": 30840
+    "dma_errors": 0,
+    "render_failures": 0,
+    "console": {
+      "path": "build/icc-overlap/normal-release-console.log",
+      "sha256": "e1a2d302b4788df77ef47377fb8c376e12cb0ffc23c6af2e584e24d969a6b7bf"
     },
-    "scope": "idle read-only inspection; no driver initialization"
+    "flash": {
+      "path": "build/icc-overlap/normal-restore.log",
+      "sha256": "25fb4c6a54418da94144d889f6fd8aa73c7ba531c5cd08f4583d6c7d942c18ae"
+    },
+    "ltdc_underruns": 0
   },
-  "unresolved": [
-    {
-      "issue": "ICC heartbeat expiry during continuous shoulder jog plus independent elbow move",
-      "console": {
-        "path": "build/motion-review/hardware/application-reason/console.log",
-        "sha256": "9bdbd487950d484c5a8a609f0c0b61bed0c0abebf2c4ee9b734aa3fbaf053800"
-      },
-      "root_cause": "not isolated",
-      "hardfault_observed": false
-    },
-    {
-      "issue": "Lint findings remain; see report"
-    }
-  ],
   "not_qualified": [
-    "6250 pulses/s full application",
-    "endurance",
-    "worst-case admission/stop-onset latency",
-    "full-load CPU and stack margin",
-    "physical DIR setup/hold in current analyzer pin arrangement",
-    "physical switches and powered mechanical behavior"
-  ],
-  "native_simulation_fix": {
-    "cause": "The reference callback woke the homing worker, but repeated higher-priority work starved it while the parent advanced virtual time. Display VSYNC also used wall time instead of the simulated clock.",
-    "scheduling": "After ISR acknowledgement, wait for a matching scheduler-idle epoch before the next device event. Register requests and native peer watchdogs remain available.",
-    "display": "VSYNC and pointer timestamps use the peripheral clock; SDL pumps events on wall time.",
-    "protocol_version": 3,
-    "firmware_changed": false,
-    "priorities_or_timeouts_relaxed": false,
-    "regressions": [
-      "Runnable work holds simulated time while HAL requests remain serviced",
-      "Paused/restarted display clock and pointer timestamps",
-      "No forward seek pulses after first/second contact on all three motors",
-      "Unchanged complete native motion API and raw-driver workflows"
-    ],
-    "scope": "Functional Linux simulation only; not hardware execution-time or refill-margin qualification.",
-    "debugger_stack": {
-      "path": "build/homing-review/verification/gdb-homing-stacks.log",
-      "sha256": "1c5ceaecce466804d050e8662f38fb8eea92df4c927f079156670bb8b1d8c1b2"
-    }
-  }
+    "6250 pulses/s maximum workload",
+    "worst-case admission/stop/refill latency",
+    "new endurance or cold USB startup qualification",
+    "powered calibrated motion and physical switches",
+    "physical DIR setup/hold in this analyzer arrangement",
+    "25% command-worker stack headroom (measured headroom about 13%)"
+  ]
 }

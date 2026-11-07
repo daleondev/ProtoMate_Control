@@ -1,48 +1,54 @@
 @startuml
 !include style.iuml
-title Concurrent motion · reproduced GIGA communication failure
-caption Motor-disconnected application fixture; this is an unresolved qualification blocker.
-footer Temporal sequence from console records; the exact blocking / scheduling mechanism is not yet established.
+title Concurrent motion · independent jobs and persistent ICC buffers
+caption Motor-disconnected application fixture; physical commissioning remains separate.
+footer Heartbeat 100 ms / deadline 500 ms and ownership lease 250 ms are unchanged.
 autonumber
 actor CLI
 box "M7 · UI" #EDF4FE
 participant "Client / Planner" as C
-participant "ICC Bridge / Application" as U
+participant "ICC sender" as U
 end box
 boundary "Shared-memory transport" as T #FFF5DF
 box "M4 · IO" #EAF7F4
-participant "ICC / Server" as S
-participant "Controller / Executor" as E
+participant "ICC sender / receiver" as S
+participant "Server / Controller" as E
+participant "Executor / timer DMA" as D
 end box
+note over U,S
+  Each lane's long-lived send coroutine owns one frame buffer.
+  A synchronous helper fills it; transport borrows its span.
+  Reuse waits for send completion. No full-frame coroutine
+  is allocated for each message or heartbeat.
+end note
 CLI -> C : axis jog shoulder -.2 --continuous
 C -> U : acquire, prepare, run
-U -> T : serialized messages
+U -> T : serialized request
 T -> S : deliver
-S -> E : start rolling shoulder program
+S -> E : admit Axis-family job
+E -> D : rolling shoulder program + installed brake
 E --> C : Running (through ICC)
 CLI -> C : axis move elbow -1
-C -> U : acquire / prepare / run independent axis
-U -> T : serialized messages
-T -> S : deliver
-S -> E : start independent elbow program
-E --> C : Running (through ICC)
-note over U,E #FFF5DF
-  Both jobs are legal members of the Axis family.
-  Heartbeats and ownership renewals must remain serviceable.
-end note
-U -> U : peer heartbeat deadline expires
-U -> U : report "Peer heartbeat expired"\nrequest application shutdown
-U --x C : ownership renewal can no longer complete
-C -> C : retain uncertainty about remote execution
-E -> E : apply local ownership / link-loss handling
-note over S,E #FFF5DF
-  No HardFault observed; M4 remains alive.
-  A short debugger sample found command serialization active,
-  but does not prove that serialization caused the timeout.
-end note
-note over CLI,E #FFF0F1
-  Passing isolated raw / coordinated waveform captures do not
-  qualify this overlap. Do not claim complete application readiness.
-  No relaxation of heartbeat or ownership deadlines was applied.
+C -> S : independent-axis acquire / prepare / run (via ICC)
+S -> E : validate reservation and revisions
+E -> D : elbow program; shoulder continues
+loop while motion is active
+  U -> S : urgent heartbeat (via transport)
+  S --> U : acknowledgement using persistent sender buffer
+  C -> E : ownership renewal (via urgent service)
+  E -> D : local schedule maintenance
+end
+D --> E : elbow completed; exact pulse count
+E --> C : terminal result; release elbow ownership
+CLI -> C : axis stop shoulder
+C -> E : urgent controlled stop (via ICC)
+E -> D : select installed stopping continuation
+D --> E : shoulder stopped
+E --> C : terminal result; release shoulder ownership
+note over CLI,D #EAF7F4
+  Repeated overlap / stop / restart and analyzer checks pass.
+  The new host test forbids full-frame allocations during
+  heartbeat traffic after startup. This is not a maximum-rate
+  or powered-mechanics qualification.
 end note
 @enduml

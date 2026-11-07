@@ -94,7 +94,11 @@ def main():
     parser.add_argument('--stop-after', type=float,
                         help='Request robot stop this many seconds after observing Running')
     parser.add_argument('--raw', action='store_true', help='Capture three independent raw motor commands')
+    parser.add_argument('--overlap', action='store_true',
+                        help='Capture continuous shoulder jog alongside an independent elbow move')
     args = parser.parse_args()
+    if args.overlap and (args.raw or args.stop_after is not None):
+        parser.error('--overlap is a separate test')
     if args.raw and args.stop_after is not None:
         parser.error('--raw and --stop-after are separate tests')
     if args.stop_after is not None and (not math.isfinite(args.stop_after) or args.stop_after < 0):
@@ -152,7 +156,13 @@ def main():
                 raise RuntimeError(f"Capture failed to start: {errors}")
             before = cli.command('motor status all')
             submitted = time.monotonic()
-            if args.raw:
+            if args.overlap:
+                job = cli.submit('axis jog shoulder -.2 --continuous')
+                cli.wait(job, 'running')
+                other = cli.submit('axis move elbow -1')
+                require_successful_motion(cli.wait(other))
+                cli.command('axis stop shoulder')
+            elif args.raw:
                 jobs = [cli.submit(f'motor move m{i} -2 --speed 10') for i in (1, 2, 3)]
                 job = jobs[0]
             else:
@@ -163,13 +173,25 @@ def main():
                 time.sleep(args.stop_after)
                 stop_submitted = time.monotonic()
                 cli.command('robot stop')
-            result = cli.wait(job, 'stopped' if args.stop_after is not None else 'completed')
+            result = cli.wait(job, 'stopped' if args.overlap or args.stop_after is not None else 'completed')
             if args.raw:
                 for other in jobs[1:]:
                     require_successful_motion(cli.wait(other))
             terminal_received = time.monotonic()
             after = cli.command('motor status all')
             time.sleep(.3)
+            if args.overlap:
+                state = cli.command('state')
+                if 'ICC: Connected (None)' not in state or 'Combined: Ready' not in state:
+                    raise RuntimeError('Overlap lost controller health: ' + state)
+                cli.command('motion status')
+                log.flush()
+                counts = re.search(rf'Execution job {job} ended:.*?pulses=(\d+),(\d+),(\d+)',
+                                   (args.output/'console.log').read_text())
+                if not counts or int(counts[1]) == 0 or int(counts[2]) or int(counts[3]):
+                    raise RuntimeError('Missing shoulder-only terminal pulse accounting')
+                # -1 elbow degree, 5:1 transmission, 1.8-degree/16 motor step.
+                expected_pulses = [int(counts[1]), 44, 0]
             if args.stop_after is not None:
                 cli.command('motion status')  # Drain queued terminal diagnostics.
                 log.flush()
@@ -202,7 +224,7 @@ def main():
             errors.append("Capture drain did not finish")
         if process.returncode not in (0, -signal.SIGINT):
             errors.append(f"Analyzer exit={process.returncode}")
-        result = waveform.result(expected_pulses, synchronized=not args.raw)
+        result = waveform.result(expected_pulses, synchronized=not (args.raw or args.overlap))
         result['expected_pulses'] = expected_pulses
         result['failures'].extend(errors)
         result['passed'] = not result['failures']

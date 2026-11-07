@@ -1,10 +1,19 @@
 # Current motion-control review
 
-The short electrical cases and normal Linux workflow pass. **The complete GIGA
-motion API is not qualified:** concurrent continuous jog and independent-axis
-motion can expire the ICC heartbeat. The native sanitizer workflows pass after
-correcting simulator event scheduling. That host-only correction does not resolve
-the separate GIGA scheduling blocker.
+The concurrent shoulder-jog / independent-elbow communication failure is fixed.
+The captured exception was **`std::bad_alloc` in the IO urgent sender**, requesting
+4,228 bytes in `Bridge::nextOutgoingFrame`. This terminated the IO bridge; the UI
+subsequently reported a heartbeat timeout. It was not evidence of inadequate
+STEP throughput or a reason to relax deadlines.
+
+Each lane now reuses its startup-allocated sender buffer. The frame-selection
+helper is synchronous, and the long-lived sender coroutine waits for work and
+transport completion. No maximum-size return value crosses another coroutine
+promise on every message. Transport still borrows a span until send completion.
+
+See [the machine-readable verification record](review.json) for exact
+firmware identities, logs and capture hashes. Maximum-rate and powered mechanical
+qualification remain separate.
 
 ## Implementation and regression coverage
 
@@ -15,7 +24,7 @@ the separate GIGA scheduling blocker.
 | Explicit job wait | Stop-token notification uses the wait mutex to avoid a lost wakeup. Interrupting `motion wait` does not cancel its motion. Shutdown cannot report an unfinished job as completed. |
 | Raw motion telemetry | Position/velocity reads use generator-synchronized state without waiting on the motor command mutex. A test holds startup inside that mutex and verifies telemetry remains responsive. |
 | STEP scratch storage | Growing temporary preparation storage releases the old workspace before allocating the replacement. Active DMA buffers remain separate. A register-model test verifies exact edges while growing scratch for another axis. |
-| Failure reporting | STEP prepare/start errors retain their stage; server allocation failures report Capacity. UI connection failures print the reason and available exception text before shutdown. |
+| Failure reporting | Preparation logs identify readiness changes, reference inhibition and STEP binding failures; STEP preparation includes the underlying errno. Server allocation failures report Capacity. UI connection failure leaves a read-only fault screen with uncertain jobs marked Unknown. |
 | Native display synchronization | The native mutex masks ThreadX's suspension signal until unlock, preventing suspension of its owner while another managed thread waits on that mutex. It does not call ThreadX while holding the native lock. |
 | Native model configuration | Mechanical configuration is cached before starting live simulation transport; a request no longer triggers the expensive CAD geometry calculation. |
 | Native scheduling | ISR acknowledgement is followed by a sequence-bound scheduler-idle handshake. The next device event waits for runnable controller work to suspend. This prevents periodic wakeups from starving homing under instrumentation. |
@@ -25,91 +34,76 @@ the separate GIGA scheduling blocker.
 No operating envelope, ownership deadline, heartbeat deadline, motor resolution
 or thread priority was relaxed as a result of these checks.
 
-## Verification
+## Verification of the ICC correction
 
-The machine-readable [review record](review.json) contains final outcomes,
-firmware identities, evidence paths and hashes. Raw captures and full logs are
-retained under `build/motion-review` and the paths recorded there.
-
-- **Normal Linux:** all 74 CTest suites/workflows pass, including the complete
+- Normal GIGA Debug and Release builds pass. The Release linked-code audit finds
+  zero out-of-RAM targets among 63 roots, 172 reachable functions, seven vtables
+  and 18 selected ICC entry points. This remains a bounded audit.
+- All **79 Linux Debug CTest suites/workflows pass**, including the real HMI,
   native motion API and simulator integration.
-- **GIGA:** normal Debug and Release build successfully; the Release link audit
-  finds zero out-of-RAM targets among 63 roots, 172 reachable functions, seven
-  vtables and 20 selected ICC entry points. This is a bounded audit, not proof of
-  every possible indirect call or execution-time bound.
-- **Sanitizers:** all 74 suites pass, including `simulation.motion_api` and
-  `simulation.integration`, without extending deadlines or disabling memory
-  checks. The debugger confirmed that the reference callback had run, but its
-  ready homing worker was starved by repeated higher-priority periodic work.
-  The simulator now drains that work before advancing virtual time. A trace
-  regression checks for unwanted forward pulses after each switch activation.
-  Virtual CPU execution time is not a measured Cortex-M execution bound.
-- **Lint:** a full project scan was followed by a scan of all changed production
-  translation units and their platform contexts: **70/70 parsed, zero blocked,
-  1,899 unique findings remaining**. These include 632 initialization-style,
-  421 magic-number, 230 missing-brace and 60 narrowing-conversion findings.
-  Findings in included project headers are counted too. Parsing coverage does
-  not mean a zero-warning result; the lint command exits unsuccessfully.
-  A focused correctness scan of the four changed simulator/display translation
-  units parses all four and reports seven remaining diagnostics (parameter
-  interchangeability, conversions, a decrement in a condition and intentional
-  shared-memory padding). No new lint suppression was added.
-- **Formatting:** changed C++ sources pass `clang-format --dry-run --Werror`;
-  `git diff --check` passes. Vendor submodules were not changed.
+- ICC transport, service/action lifecycle, urgency, background traffic and
+  connection tests pass. A new allocation regression observes `operator new`
+  during heartbeats and requires **zero full-frame allocations after startup**.
+- Controller and executor tests pass; 20 pytest capture/console checks pass.
+- Two complete motor-disconnected application runs each include **16 repeated
+  jog + independent-axis overlaps**, varied submission timing, controlled stops,
+  restart, family-exclusion rejection, homing → stop → homing, coordinated moves,
+  raw buffered/blended commands, speed changes and disable/reinitialize cycles.
+  Final lease diagnostics report 804 and 808 acknowledgements, respectively,
+  with **zero renewal failures**. No automatic replay or deadline changes.
+- A separate fresh-start analyzer run captures the overlap itself. The final
+  source-matched fixture is `15131d746fe890d1`; the first screening fixture
+  `4216523f17883099` additionally logged STEP binding diagnostics.
+- Lint and sanitizers were not rerun for this targeted correction.
 
-### Disconnected-motor logic-analyzer results
+### Motor-disconnected overlap capture
 
-The dedicated application fixture inhibits physical enable and uses synthetic
-reference inputs. The 24 MHz analyzer observes STEP1/2/3 and ENABLE. All three
-captures start and end with STEP low and have zero active-enable samples.
+| Output | Rising / falling edges | HIGH samples at 24 MHz |
+|---|---:|---:|
+| Shoulder / M1 | 9 / 9 | 120 |
+| Elbow / M2 | 44 / 44 | 120–121 |
+| Z / M3 | 0 / 0 | — |
 
-| Test | Emitted pulses M1 / M2 / M3 | HIGH samples | Maximum inter-axis rising-edge spread |
-|---|---:|---:|---:|
-| Independent raw commands | 18 / 18 / 9 | 120–121 | Not a synchronized command |
-| Coordinated completion | 400 / 400 / 400 | 120–121 | 1 sample |
-| Early controlled stop | 266 / 266 / 266 | 120–121 | 1 sample |
+Terminal pulse accounting agrees. Every STEP output starts and ends LOW;
+ENABLE stays inactive in all 51,867,648 samples. HIGH time is 5.000–5.042 µs,
+including analyzer sampling uncertainty. These independent motions are not
+expected to have coincident edges. The capture does not verify DIR wiring,
+maximum-rate throughput, physical switches or powered motion.
 
-At 24 MHz, one sample is 41.67 ns; observed HIGH time is 5.000–5.042 µs. This
-includes analyzer sampling uncertainty. No independent timebase calibration was
-performed in this review. The coordinated tests peak near 711 pulses/s, not the
-configured 6,250-pulse/s ceiling. DIR wiring/setup/hold was not captured in this
-pin arrangement. No maximum-rate, endurance, powered-motion or physical-switch
-qualification is claimed.
+The fixture uses real timer/DMA, runtime, ICC, CLI and HMI, with synthetic driver
+and reference inputs and physical enable held inactive. Its M4 cold code runs
+in SDRAM for debugging; normal Release uses QSPI. Timing-critical code remains
+in internal RAM in both images.
 
-The fixture uses SDRAM for M4 cold code. Normal Release uses QSPI for that code;
-both retain timing-critical paths in internal RAM. The capture fixture and normal
-firmware have different image identities, recorded in the review JSON.
+### Reproducing the checks
 
-### Unresolved application failure
+With the fixture flashed, motors disconnected, and a fresh reset:
 
-After homing, a continuous shoulder jog at -0.2 degrees/s together with an
-independent elbow move of -1 degree can produce `Peer heartbeat expired` on UI.
-Both commands are legal members of the Axis family. The UI follows its existing
-shutdown policy; M4 remains alive and handles ownership/link loss locally. No
-HardFault was observed. Loss of communication is not itself proof of an exact
-physical stopped position.
+```sh
+python3 examples/giga_motion_api_test/verify.py --overlap-cycles 16 --output build/overlap-check
+# Reset before this separate capture so synthetic homing starts near its contacts.
+python3 examples/giga_motion_api_test/capture.py --overlap --output build/overlap-capture
+```
 
-A debugger sample caught the M4 command worker serializing a reply while ICC
-was ready. That sample does **not** isolate the cause. The missing evidence is
-which execution/locking interval prevents heartbeat service for the required
-window. No further endurance run is useful until that short failure is resolved.
-The [failure sequence diagram](uml/10-concurrent-motion-blocker.puml) explicitly
-separates observation from inference.
+Analyzer: D0 → A7, D1 → D3, D2 → D2, D3 → D15, and common GND.
 
-## Current hardware and memory state
+## Resource limits and remaining qualification
 
-Normal Release pair **`3be44ebcaf678647`** is restored and verified. Read-only
-post-flash commands report combined/UI/IO Ready, `enabled=0`, no active family and
-no owning jobs. Motion `ready=0` is expected without initialized physical drivers;
-controller readiness is not motor readiness. The checks did not initialize or
-energize drivers.
+Normal Release pair **`b87bf16b221f8486`** is restored and verified: UI/IO Ready,
+ICC connected, motion disabled and no owning jobs. The Home renderer reports zero
+LTDC underruns, DMA errors and render failures. Idle heap snapshots show 45,680
+bytes available on IO and 44,880 on UI. These are not workload minima. M4 fast code uses
+192,824 / 196,608 bytes and static D2 data 80,864 / 88,064 bytes. No runtime,
+STEP interrupt priority, timer, communication deadline or motor limit changed.
 
-The idle heap snapshots report 32,920 bytes available on IO and 30,840 bytes on UI.
-They are snapshots after startup/diagnostics, not minimum headroom under motion.
-Normal Release uses 193,656 of 196,608 bytes in M4's fast-code region and 80,832
-of 88,064 bytes in its D2 data region. The fast-code budget remains tight.
-Full-workload CPU utilization, stack headroom, stop-onset latency and replenishment
-margin remain unqualified while the concurrent-motion blocker is open.
+In the final repeated-motion run, the IO heap had 33,328 bytes available at the
+terminal diagnostic sample. This is **not a minimum-free-watermark measurement**.
+The ICC worker peaked at 12,104 / 20,476 stack bytes; the motor command worker
+peaked at 17,792 / 20,476 bytes. The latter has only about 13% measured headroom,
+so additional command stack demand requires budgeting. No stack overflow was
+observed. The configured 6,250-pulse/s ceiling, worst-case latency, sustained
+maximum-load headroom and powered calibrated mechanics are not established by
+these short regression runs.
 
 ## Figures and sources
 
@@ -120,7 +114,7 @@ margin remain unqualified while the concurrent-motion blocker is open.
   [execution/stop/lease](uml/07-execution-stop-and-lease.puml),
   [raw motor path](uml/08-raw-motor-motion.puml),
   [homing lifecycle](uml/09-homing-lifecycle.puml),
-  [concurrent-motion blocker](uml/10-concurrent-motion-blocker.puml),
+  [concurrent motion and ICC buffers](uml/10-concurrent-motion-blocker.puml),
   [native simulation time handoff](uml/11-native-simulation-time.puml)
   ([rendered diagram](uml/11-native-simulation-time.svg)).
 
@@ -134,16 +128,11 @@ Reproduce the software checks from the project root:
 ```sh
 cmake --build --preset debug-linux
 ctest --test-dir build/debug-linux --output-on-failure
-cmake --build --preset sanitize-linux
-ctest --preset sanitize-linux
 cmake --build --preset giga-debug
 cmake --build --preset giga-release
 python3 scripts/giga_ram_audit.py build/giga-io-release/io-controller.elf
-python3 scripts/clang_tidy.py --build-dir build/debug-linux
 ```
 
-The sanitizer preset supplies the hosted ThreadX signal-stack setting. Native
-X11 tests require local display/socket permissions. The current failures above
-are not excluded by these commands. Electrical captures use
+Native X11 tests require local display/socket permissions. Electrical captures use
 `examples/giga_motion_api_test/capture.py` with the dedicated disabled-enable
 fixture; normal firmware must not be substituted for that fixture.

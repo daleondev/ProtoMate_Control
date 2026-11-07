@@ -20,14 +20,14 @@
 <text x="106" y="386.0" font-family="DejaVu Sans" font-size="21" font-weight="700" text-anchor="start" fill="#007D78">2 KiB vectors · 0x10000000</text>
 <rect x="84" y="419" width="472" height="117" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="104" y="451" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">192 KiB fast code + constants</text>
-<text x="104" y="482" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x10000800 · 193,656 B linked</text>
+<text x="104" y="482" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x10000800 · 192,824 B linked</text>
 <rect x="104" y="502" width="432" height="13" rx="6.5" fill="#D7E1E9"/>
-<rect x="104" y="502" width="425.513671875" height="13" rx="6.5" fill="#007D78"/>
+<rect x="104" y="502" width="423.685546875" height="13" rx="6.5" fill="#007D78"/>
 <rect x="84" y="547" width="472" height="99" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="104" y="578" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">86 KiB data + DMA buffers</text>
-<text x="104" y="607" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x30030800 · 80,832 B linked</text>
+<text x="104" y="607" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x30030800 · 80,864 B linked</text>
 <rect x="104" y="623" width="432" height="10" rx="5.0" fill="#D7E1E9"/>
-<rect x="104" y="623" width="396.5232558139535" height="10" rx="5.0" fill="#007D78"/>
+<rect x="104" y="623" width="396.68023255813955" height="10" rx="5.0" fill="#007D78"/>
 <rect x="84" y="658" width="472" height="57" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="106" y="693.0" font-family="DejaVu Sans" font-size="19" font-weight="700" text-anchor="start" fill="#007D78">8 KiB interrupt stack · 0x30046000</text>
 <rect x="84" y="738" width="472" height="140" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
@@ -38,9 +38,9 @@
 <text x="84" y="919" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#566B7B">The SRAM alias is not additional memory.</text>
 <rect x="664" y="288" width="472" height="107" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="684" y="320" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#245EA8">ITCM · 64 KiB</text>
-<text x="684" y="351" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x00000000 · 16,088 B linked</text>
+<text x="684" y="351" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#183044">16,088 B code + 22,528 B GUI data</text>
 <rect x="684" y="369" width="432" height="10" rx="5.0" fill="#D7E1E9"/>
-<rect x="684" y="369" width="106.048828125" height="10" rx="5.0" fill="#245EA8"/>
+<rect x="684" y="369" width="254.548828125" height="10" rx="5.0" fill="#245EA8"/>
 <rect x="664" y="410" width="472" height="185" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="684" y="442" font-family="DejaVu Sans" font-size="24" font-weight="700" text-anchor="start" fill="#245EA8">DTCM · 128 KiB</text>
 <text x="684" y="475" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x20000000: vectors, 2 KiB</text>
@@ -107,6 +107,6 @@
 <text x="664" y="1193" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90400000 · M7 image · 4 MiB</text>
 <text x="1200" y="1193" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x90F00000 · Factory area · 1 MiB</text>
 <path d="M60,1260 L1740,1260" fill="none" stroke="#D7E1E9" stroke-width="2"/>
-<text x="60" y="1288" font-family="DejaVu Sans" font-size="17" font-weight="400" text-anchor="start" fill="#566B7B">Current source • Normal Release pair: 3be44ebcaf678647 • Electrical tests do not establish mechanical qualification</text>
+<text x="60" y="1288" font-family="DejaVu Sans" font-size="17" font-weight="400" text-anchor="start" fill="#566B7B">Current source • Normal Release pair: b87bf16b221f8486 • Electrical tests do not establish mechanical qualification</text>
 <text x="60" y="1310" font-family="DejaVu Sans" font-size="14" font-weight="400" text-anchor="start" fill="#566B7B">Sources: cmake/application_giga.cmake; boot linker/manifest; normal Release manifest. Heap capacity excludes linker/runtime metadata.</text>
-<metadata>{&quot;date&quot;: &quot;2026-11-06&quot;, &quot;normal_release_pair&quot;: &quot;3be44ebcaf67864741adde5ace388d4a574d74e336fb7eb20d657fe511e9ae4e&quot;, &quot;evidence_sha256&quot;: {&quot;cmake/application_giga.cmake&quot;: &quot;72399552b62a1dc979f950775025d05ea0e96ed6e5e0381aa7dea3b3a932b9d4&quot;, &quot;platform/boot/giga/application.ld.in&quot;: &quot;67f180f550d986969ff69f0455e75358b38f9a9f8dc4366934d0a8972dea115d&quot;, &quot;build/giga-release/images/manifest.json&quot;: &quot;217fd39980d5c1fd80e038e3f7564c42982c817e15fbcd279c911fc9a38cdad1&quot;}, &quot;scope&quot;: &quot;Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.&quot;}</metadata></svg>
+<metadata>{&quot;date&quot;: &quot;2026-11-07&quot;, &quot;normal_release_pair&quot;: &quot;b87bf16b221f848619d34fd387c58a04881a00a714a867001ac68c8f0ee0b52b&quot;, &quot;evidence_sha256&quot;: {&quot;cmake/application_giga.cmake&quot;: &quot;75b9fb683732a54bc6fcebff6adc3738e2d48c9f331855a1f4bd5bc057ee6119&quot;, &quot;platform/boot/giga/application.ld.in&quot;: &quot;f5adaeacd58d4d157e3f314b64677d6cbbd5fef9a60752df60711a101a16ad24&quot;, &quot;build/giga-release/images/manifest.json&quot;: &quot;429f179e8a9e4de462447cc2519791dc4e52e21832a5944ba026a9e420fb86d6&quot;}, &quot;scope&quot;: &quot;Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.&quot;}</metadata></svg>

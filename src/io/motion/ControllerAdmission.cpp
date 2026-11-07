@@ -351,9 +351,10 @@ namespace io::motion
         auto result = trajectorySnapshotLocked();
         result.job = request.job;
         result.session = request.session;
-        const auto fail = [&](tr::Error error) {
+        const auto fail = [&](tr::Error error, std::string_view detail = {}) {
             result.error = error;
-            pnm::log::warn("Motion preparation {} rejected: {}", request.job, tr::name(error));
+            pnm::log::warn("Motion preparation {} rejected: {}{}{}", request.job, tr::name(error),
+                           detail.empty() ? "" : "; ", detail);
             return result;
         };
         if (request.version != tr::VERSION) {
@@ -397,7 +398,7 @@ namespace io::motion
             return fail(tr::Error::Unreferenced);
         }
         if (!result.enabled || !result.counts_exact || !m_initialized || m_enabling || !driversReady()) {
-            return fail(tr::Error::Fault);
+            return fail(tr::Error::Fault, "driver/STEP readiness failed before compilation");
         }
         const auto& program = request.program;
         if (!std::isfinite(program.timeout) || program.timeout < 0 ||
@@ -533,7 +534,7 @@ namespace io::motion
             return fail(tr::Error::Stale);
         }
         if (m_admissionLost || !m_initialized || m_enabling || !enabled() || !driversReady()) {
-            return fail(tr::Error::Fault);
+            return fail(tr::Error::Fault, "driver/admission readiness changed during compilation");
         }
         for (unsigned i = 0; i < 3; ++i) {
             if (owner->axes & (1U << i)) {
@@ -542,7 +543,7 @@ namespace io::motion
                 }
                 if (!m_motors[i]->isReferenced() ||
                     (program.displacement[i] > 0 && m_motors[i]->referenceSwitchActive())) {
-                    return fail(tr::Error::Fault);
+                    return fail(tr::Error::Fault, "reference invalid or motion towards active switch");
                 }
             }
         }
@@ -560,7 +561,7 @@ namespace io::motion
                 motor->m_events->group_notification.store(&m_executionNotification);
             }
             if (!compiled->bind()) {
-                return fail(tr::Error::Fault);
+                return fail(tr::Error::Fault, "STEP output binding failed");
             }
             slot->executor = std::move(compiled);
             slot->moving = 0;

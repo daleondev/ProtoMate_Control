@@ -45,6 +45,8 @@ endif()
 
 add_executable(proto_common_icc_connection_tests connection_test.cpp)
 target_link_libraries(proto_common_icc_connection_tests PRIVATE proto::common GTest::gtest_main)
+# Observe coroutine allocations in this Linux-only regression executable.
+target_link_options(proto_common_icc_connection_tests PRIVATE "LINKER:--wrap=_Znwm")
 add_test(NAME application.icc.connection COMMAND proto_common_icc_connection_tests)
 set_tests_properties(application.icc.connection PROPERTIES TIMEOUT 30)
 if(COMMAND runtime_attach)

@@ -103,12 +103,13 @@ HIGH time is 120–121 samples at 24 MHz; coordinated rising-edge skew is at mos
 one sample. Physical ENABLE remains inactive throughout. These captures peak
 near 711 pulses/s and do **not** qualify the configured 6,250-pulse/s ceiling.
 
-**Full hardware application qualification is blocked:** a continuous shoulder
-jog overlapping an independent elbow move can expire the ICC heartbeat. The UI
-now reports the explicit connection failure before shutting down; M4 remains
-alive and applies local loss handling. No HardFault was observed in that failure.
-The precise scheduling/blocking mechanism remains unresolved. Neither heartbeat
-nor ownership deadlines have been relaxed to conceal it.
+The concurrent jog/independent-axis ICC failure is fixed. The M4 urgent sender
+was exhausting the heap when allocating a 4,228-byte temporary coroutine for
+another outgoing frame; UI then reported the missing heartbeat. Each sender now
+reuses one persistent frame allocated at startup. A host allocation regression
+and repeated application-level overlaps verify the fix. Heartbeat, ownership
+and motion deadlines are unchanged. See the [current review](docs/motion-current-state/review.md)
+for firmware identities, capture results and the remaining physical qualification.
 
 The review fixes an overall homing deadline, missing preparation-version
 validation, an interrupted-wait wakeup race, telemetry waiting on raw startup's
