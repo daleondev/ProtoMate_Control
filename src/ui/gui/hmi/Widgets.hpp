@@ -34,6 +34,8 @@ namespace ui::gui::hmi
 
       private:
         std::array<touchgfx::Unicode::UnicodeChar, Capacity> m_text{};
+        int m_wrapWidth{ -1 };
+        bool m_large{};
     };
     using Label = BasicLabel<192>;
     using ControlLabel = BasicLabel<48>;

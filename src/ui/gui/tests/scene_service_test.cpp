@@ -74,3 +74,46 @@ TEST(SceneService, StopDuringRenderingAndRestartVisibility)
     EXPECT_FALSE(service.status().running);
     EXPECT_FALSE(service.status().failed);
 }
+
+TEST(RenderPacing, SamePolicyBoundsCadenceAndLeavesRestAfterExpensiveFrames)
+{
+    const auto start = std::chrono::steady_clock::time_point{};
+    EXPECT_EQ(nextRender(start, start + 20ms, LIVE_MAX_FPS), start + 200ms);
+    EXPECT_EQ(nextRender(start, start + 400ms, LIVE_MAX_FPS), start + 500ms);
+    EXPECT_EQ(nextRender(start, start + 200ms, 2), start + 500ms);
+}
+
+TEST(SceneService, LatestPoseReplacesPendingWorkDuringPacingAndCancellationWakesImmediately)
+{
+    RenderService service;
+    service.visible(true);
+    auto worker = runtime::thread::create_jthread({ .priority = 16, .stack_size = 16384 },
+                                                  [&](std::stop_token stop) { service.run(stop); });
+    auto first = request(1);
+    first.maximumFps = 1;
+    ASSERT_TRUE(service.submit(first));
+    ASSERT_TRUE(eventually([&] { return service.status().rendered == 1; }));
+    ASSERT_TRUE(service.acquire());
+    for (unsigned i = 2; i <= 8; ++i) {
+        auto next = request(i);
+        next.maximumFps = 1;
+        ASSERT_TRUE(service.submit(next));
+    }
+    ASSERT_TRUE(eventually([&] { return service.status().rendered == 2; }));
+    ASSERT_EQ(service.acquire()->revision, 8U);
+    const auto start = std::chrono::steady_clock::now();
+    worker.request_stop();
+    worker.join();
+    EXPECT_LT(std::chrono::steady_clock::now() - start, 100ms);
+}
+
+TEST(SceneService, RejectsInvalidPacing)
+{
+    RenderService service;
+    service.visible(true);
+    auto frame = request(1);
+    frame.maximumFps = 0;
+    EXPECT_FALSE(service.submit(frame));
+    frame.maximumFps = 31;
+    EXPECT_FALSE(service.submit(frame));
+}

@@ -6,6 +6,7 @@
 #include "pneumo/logging.hpp"
 #include "profiling/Trace.hpp"
 #include "util/FrameTimer.hpp"
+#include "util/DirtyRegions.hpp"
 #include <algorithm>
 #include <fonts/ApplicationFontProvider.hpp>
 #include <images/BitmapDatabase.hpp>
@@ -78,23 +79,11 @@ namespace ui::gui
             void enableInterrupts() override {}
             void disableInterrupts() override {}
             void enableLCDControllerInterrupt() override {}
-            std::array<touchgfx::Rect, 16> dirty{};
-            unsigned dirtyCount{};
+            util::DirtyRegions dirty;
             void flushFrameBuffer(const touchgfx::Rect& region) override
             {
                 HAL::flushFrameBuffer(region);
-                auto clipped{ region };
-                clipped.restrictTo(1024, 600);
-                if (clipped.isEmpty()) {
-                    return;
-                }
-                if (dirtyCount < dirty.size()) {
-                    dirty[dirtyCount++] = clipped;
-                }
-                else {
-                    dirty[0] = { 0, 0, 1024, 600 };
-                    dirtyCount = 1;
-                }
+                dirty.add(region);
             }
             bool beginFrame() override
             {
@@ -121,14 +110,17 @@ namespace ui::gui
                     // Reload has completed: the former scanout buffer is now
                     // exclusively ours. Keep only changed regions synchronized.
                     timer.start();
-                    for (unsigned i{ 0 }; i < dirtyCount && !owner.m_renderFailed; ++i) {
+                    profiling::Scope synchronization{ PROFILE_SITE_GUI_SYNC, PROFILE_CAT_GRAPHICS };
+                    for (const auto& region : dirty.regions()) {
+                        if (owner.m_renderFailed)
+                            break;
                         owner.m_renderFailed = !graphics.copyRegion(owner.m_display->framebuffer(active),
                                                                     owner.m_display->framebuffer(previous),
-                                                                    dirty[i]);
+                                                                    region);
                     }
                     synchronizeUs = timer.elapsed().count();
                     micros += synchronizeUs;
-                    dirtyCount = 0;
+                    dirty.clear();
                 }
                 std::scoped_lock lock{ owner.m_mutex };
                 ++owner.m_status.frames;

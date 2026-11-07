@@ -1,4 +1,5 @@
 #pragma once
+#include "RenderPacing.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -70,6 +71,7 @@ namespace ui::gui::scene3d
     {
         const Scene* scene{};
         SceneSnapshot snapshot{};
+        unsigned maximumFps{ LIVE_MAX_FPS };
     };
     Quaternion rotation(Vec3 axis, float radians) noexcept;
     const Scene& benchmarkScene(unsigned triangles) noexcept;

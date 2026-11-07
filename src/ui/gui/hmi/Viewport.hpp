@@ -38,6 +38,5 @@ namespace ui::gui::hmi
         bool m_registered{}, m_open{}, m_dirty{ true }, m_dragging{};
         unsigned m_benchmark{}, m_fps{ 2 };
         std::uint64_t m_revision{};
-        std::chrono::steady_clock::time_point m_next{};
     };
 }

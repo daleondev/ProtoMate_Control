@@ -12,7 +12,8 @@ namespace ui::gui::scene3d
     {
         bool running{}, visible{}, failed{};
         std::uint32_t rendered{}, acquired{}, presented{}, replaced{}, rejected{}, discarded{};
-        std::uint32_t lastRenderUs{}, maximumRenderUs{}, clearUs{}, geometryUs{};
+        std::uint32_t lastRenderUs{}, maximumRenderUs{}, clearUs{}, geometryUs{}, gridUs{};
+        std::array<std::uint32_t, 4> nodeUs{};
         std::uint64_t totalRenderUs{}, completedRevision{}, acquiredRevision{}, sourceTimeUs{};
         std::uint64_t presentedRevision{};
         std::uint32_t lastLatencyUs{}, maximumLatencyUs{};

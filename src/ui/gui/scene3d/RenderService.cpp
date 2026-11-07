@@ -32,11 +32,13 @@ namespace ui::gui::scene3d
     }
     bool RenderService::submit(const Frame& frame)
     {
-        if (!frame.scene || !frame.snapshot.valid(*frame.scene)) {
+        if (!frame.scene || !frame.snapshot.valid(*frame.scene) || !frame.maximumFps ||
+            frame.maximumFps > 30) {
             std::scoped_lock lock{ m_mutex };
             ++m_status.rejected;
             return false;
         }
+        bool wake{};
         {
             std::scoped_lock lock{ m_mutex };
             if (m_stop || m_status.failed || !m_status.visible) {
@@ -45,10 +47,12 @@ namespace ui::gui::scene3d
             if (m_hasPending) {
                 ++m_status.replaced;
             }
+            wake = !m_hasPending;
             m_pending = frame;
             m_hasPending = true;
         }
-        m_changed.signal();
+        if (wake)
+            m_changed.signal();
         return true;
     }
     void RenderService::visible(bool value)
@@ -171,6 +175,8 @@ namespace ui::gui::scene3d
                     m_status.lastRenderUs = elapsed;
                     m_status.clearUs = timings.clearUs;
                     m_status.geometryUs = timings.geometryUs;
+                    m_status.gridUs = timings.gridUs;
+                    m_status.nodeUs = timings.nodeUs;
                     m_status.maximumRenderUs = std::max(m_status.maximumRenderUs, elapsed);
                     m_status.totalRenderUs += elapsed;
                     if (!ok) {
@@ -190,8 +196,7 @@ namespace ui::gui::scene3d
                 }
                 // A bounded rate and at least one tick off also let lower
                 // priority logging workers run when rendering is overloaded.
-                next = std::max(began + std::chrono::microseconds{ 33333 },
-                                std::chrono::steady_clock::now() + std::chrono::milliseconds{ 1 });
+                next = nextRender(began, std::chrono::steady_clock::now(), frame.maximumFps);
             }
         } catch (...) {
             std::scoped_lock lock{ m_mutex };

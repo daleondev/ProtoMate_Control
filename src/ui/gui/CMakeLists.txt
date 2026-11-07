@@ -1,7 +1,7 @@
 include(${PROJECT_SOURCE_DIR}/cmake/touchgfx.cmake)
 add_subdirectory(scene3d)
 add_library(proto_ui_gui STATIC
-    Controller.hpp Controller.cpp util/FrameTimer.hpp
+    Controller.hpp Controller.cpp util/FrameTimer.hpp util/DirtyRegions.hpp
     hmi/Backend.hpp hmi/Model.hpp hmi/Presenter.hpp hmi/Presenter.cpp
     hmi/View.hpp hmi/View.cpp hmi/Viewport.hpp hmi/Viewport.cpp hmi/Widgets.hpp hmi/Widgets.cpp
     frontend/Frontend.hpp frontend/Frontend.cpp

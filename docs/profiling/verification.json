@@ -1137,9 +1137,31 @@
     "swd_health_log": "build/profiles/normal-health-status.log"
   },
   "tracex_viewer": {
-    "installed": false,
-    "status": "Awaiting a trusted official viewer download",
+    "installed": true,
+    "status": "User-built TraceX 6.4.1.0: M4 and M7 capture opening/rendering and M4 sequential/time-view switching verified under Wine",
+    "archive": "apps/TraceX-self-built.zip",
+    "archive_sha256": "5157a6cda84d1b452f652952723bb44ad9c916b6511caf9e49e66ba7dafcaa0c",
+    "viewer_sha256": "a0261bb5d3395a4b94c64f6786b3ef1ebc846b8e0e759d0efc2c34c5ca15766d",
+    "launcher": "apps/tracex-self-built/run.sh",
+    "wine_version": "11.19",
+    "dotnet_framework": "4.8",
+    "vc_runtime_x86": "14.44.35211.00",
+    "rendering": "Mesa llvmpipe; WPF DisableHWAcceleration=0",
+    "microseconds_per_tick": 1,
+    "clamav": {
+      "version": "1.5.4",
+      "scanned_files": 16,
+      "detections": 0,
+      "log": "build/tracex-self-built-check/clamav.log"
+    },
+    "verification_directory": "build/tracex-self-built-check",
+    "default_wine_and_existing_associations_unchanged": true,
+    "supplied_viewer_files_unchanged": true,
     "native_trace_buffers_available": true,
-    "python_perfetto_export_available": true
+    "python_perfetto_export_available": true,
+    "limitations": [
+      "Smoke check only; not every viewer feature validated",
+      "User-built executable, not an officially distributed signed release"
+    ]
   }
 }

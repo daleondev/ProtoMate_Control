@@ -43,7 +43,7 @@ set_target_properties(proto_scene3d_robot_assets PROPERTIES CXX_STANDARD 20 CXX_
 target_link_libraries(proto_scene3d_robot_assets PUBLIC tgx::engine)
 target_include_directories(proto_scene3d_robot_assets PUBLIC ${robot_asset_dir} ${PROJECT_SOURCE_DIR}/src)
 add_custom_target(scene3d-robot-assets DEPENDS proto_scene3d_robot_assets)
-add_library(proto_scene3d_renderer STATIC Scene.hpp Scene.cpp Renderer.hpp Renderer.cpp Benchmark.cpp
+add_library(proto_scene3d_renderer STATIC Scene.hpp Scene.cpp RenderPacing.hpp Renderer.hpp Renderer.cpp Benchmark.cpp
     ${asset_dir}/low.cpp ${asset_dir}/medium.cpp ${asset_dir}/high.cpp)
 add_library(proto::ui::gui::scene3d ALIAS proto_scene3d_renderer)
 set_target_properties(proto_scene3d_renderer PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED YES)

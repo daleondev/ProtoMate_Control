@@ -113,6 +113,9 @@ namespace ui::cli::display
                 << "; completed revision=" << r.completedRevision
                 << "; acquired revision=" << r.acquiredRevision << "; replaced=" << r.replaced
                 << "; rejected=" << r.rejected << '\n';
+            out << "3D grid us=" << r.gridUs << "; base us=" << r.nodeUs[0]
+                << "; shoulder us=" << r.nodeUs[1] << "; elbow us=" << r.nodeUs[2]
+                << "; tool us=" << r.nodeUs[3] << '\n';
             return 0;
         }
     }

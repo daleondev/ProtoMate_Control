@@ -5,7 +5,8 @@ namespace ui::gui::scene3d
 {
     struct RenderTimings
     {
-        std::uint32_t clearUs{}, geometryUs{};
+        std::uint32_t clearUs{}, geometryUs{}, gridUs{};
+        std::array<std::uint32_t, 4> nodeUs{};
     };
     // No hardware, TouchGFX, thread or allocation dependency.
     bool render(const Frame& frame,

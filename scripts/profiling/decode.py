@@ -15,7 +15,10 @@ EVENT_NAMES = {4096: 'capture', 4097: 'clock anchor', 4098: 'failure', 4099: 'al
                4104: 'scheduled thread', 4120: 'ICC stage', 4121: 'ICC state',
                4122: 'ICC frame', 4140: 'motion stage', 4141: 'motion job', 4160: 'graphics'}
 SITES = ['ICC send (including suspension)', 'ICC dispatch', 'motion prepare', 'motion renewal',
-         '3D render', 'frame presentation wait', 'planner']
+         '3D render', 'frame presentation wait', 'planner',
+         '3D color/depth clear', '3D ground grid', '3D base mesh', '3D shoulder mesh',
+         '3D elbow mesh', '3D tool mesh', '3D other mesh',
+         'GUI DMA completion wait', 'GUI buffer synchronization', 'GUI widget reconciliation']
 QUEUE_NAMES = ['TX normal', 'TX urgent', 'TX background', 'RX normal', 'RX urgent', 'RX background']
 
 

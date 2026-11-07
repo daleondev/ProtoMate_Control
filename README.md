@@ -609,8 +609,10 @@ frontend's steady-state rendering or page transitions.
 GIGA framebuffers are non-cacheable SDRAM at `0xC0000000` and `0xC0200000`,
 1,228,800 bytes each. LTDC reload completion transfers ownership at vertical
 blank; a timeout never makes a pending buffer reusable. The port records dirty
-regions and copies them from the completed frame into the released buffer using
-DMA2D, preserving unchanged pixels without copying the whole screen each frame. One HAL driver owns LTDC IRQ 10; another owns
+regions, combines overlapping/contained damage, and copies them from the completed
+frame into the released buffer using DMA2D. The bounded 16-region list merges the
+least expensive pair on overflow instead of falling back to a full-screen copy.
+Unchanged pixels remain synchronized. One HAL driver owns LTDC IRQ 10; another owns
 DMA2D IRQ 11. Graphics transfers support RGB565 fill/copy and RGB565/ARGB8888
 conversion/blending, with software fallback for unsupported engine operations.
 Solid-color alpha fills also use DMA2D. DMA callbacks notify the GUI worker;
@@ -654,8 +656,16 @@ publish bounded values; only the GUI worker draws or changes widgets.
 [`scene3d`](src/ui/gui/scene3d) is the first-stage implementation of the 3D
 viewport. The generic maximum-rate benchmark remains a characterization workload. The 640×400 shaded workload does not meet the GIGA requirement of
 20 newly presented images/s at 2,000 triangles and produces LTDC underruns.
-Home uses the complete robot at a lower, bounded 2 fps cadence. `display scene`
-explicitly enables the generic benchmark; `display gui` restores Home.
+Home uses the complete robot with the **same adaptive pacing on Linux and GIGA**:
+a 5 fps ceiling, plus a rest interval of at least one quarter of the preceding
+render wall time (minimum 1 ms). This is a ceiling, not a promised hardware rate.
+Input/telemetry replaces the pending snapshot immediately; the worker samples the
+latest snapshot when it can render, without a separate 500 ms submission gate.
+An unchanged camera and joint pose submits no new render; newer telemetry
+timestamps alone do not redraw the model. Returning to Home requests one fresh
+image. Continuous rendering is reserved for animated diagnostic benchmarks.
+The displayed image remains immutable. Neither geometry nor resolution is reduced.
+`display scene` explicitly enables the generic benchmark; `display gui` restores Home.
 
 ```text
 display scene 500
@@ -721,7 +731,10 @@ paths use approximately **16 KiB ITCM**, with an enforced 24 KiB cap.
 `display status` reports render/completion/presentation revisions, overwritten
 requests, frame latency, render wall time, bitmap transfer time and GUI-buffer
 resynchronization. Render wall time includes higher-priority GUI/ICC work;
-clear/geometry sub-timings have the runtime clock's millisecond resolution.
+clear/grid/per-mesh sub-timings have the runtime clock's millisecond resolution.
+Profiling builds additionally record DWT scopes for these stages, GUI widget
+updates, DMA completion waits and buffer synchronization. DWT scope durations
+include preemption; use TraceX scheduling alongside them.
 The benchmark deliberately places its image at odd coordinates `(49,137)`.
 
 Reproduce the panel-free performance gate with normal Release firmware:
@@ -737,27 +750,22 @@ The script records counters and CLI/ICC diagnostics under
 2 when the gate is not met. No motor command is sent. The established DMA2D
 dead-time remains **16**.
 
-Measured on the GIGA at 480 MHz with normal GUI/ICC activity, motor power off,
-and no panel, using the final Release image and 15-second measurement windows:
+Current full-detail performance and verification are recorded in
+[HMI verification](docs/gui/hmi/verification.md). The maximum-rate synthetic
+benchmark is separate from normal Home and remains unqualified at 20 fps.
+No framebuffer or mesh detail reduction is used to meet a cadence target.
 
-| Triangles | New 3D presentations/s | Render wall time | Bitmap transfer | Buffer resynchronization | LTDC underruns |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 500 | 11.15 | 75.6 ms | 20.6 ms | 23.6 ms | 251 |
-| 2,000 | 10.30 | 84.4 ms | 19.7 ms | 24.1 ms | 216 |
-| 5,000 | 9.27 | 93.9 ms | 20.3 ms | 23.1 ms | 184 |
+For a bounded measurement using normal adaptive pacing, without treating the
+requested ceiling as guaranteed throughput:
 
-These durations overlap: render wall time includes preemption while the GUI
-transfers images. They must not be added together as independent CPU costs.
-The GUI and renderer retain **85.6% and 64.2% stack headroom**, respectively;
-both controllers remain Ready and DMA reports no transfer errors. The measured
-memory/transfer cost prevents accepting the current viewport configuration.
-Reaching the target needs a smaller rendering surface or a more substantial
-change to the rendering/composition pipeline; simply budgeting triangles is
-insufficient. The raw final counters are in `build/scene3d-validation`.
-SWD readback of both display framebuffers confirms the shaded image at the odd
-widget coordinates (317 distinct RGB565 colours, 75,796 non-background viewport
-pixels in the captured frame). Captures are `frame-0.png` and `frame-1.png` in
-that directory. This verifies memory output, not a physical display.
+```sh
+python3 scripts/hmi_hardware_check.py --rates 5 --seconds 60 --observe \
+  --output build/gui-optimization/final
+```
+
+The test rotates only the rendered model; it sends no motor commands and restores
+Home. It checks display/ICC health, heap change and stack headroom. Ordinary tests
+without `--observe` retain the fixed-rate qualification gate.
 
 Host regressions cover deterministic shaded output, depth/occlusion,
 hierarchy, near-plane/viewport clipping, invalid input, latest-only scheduling,

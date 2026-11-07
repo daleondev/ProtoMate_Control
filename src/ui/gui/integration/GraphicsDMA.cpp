@@ -1,5 +1,6 @@
 #include "GraphicsDMA.hpp"
 #include "hal/drivers/util/Graphics.hpp"
+#include "profiling/Trace.hpp"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -91,6 +92,7 @@ namespace ui::gui
     }
     bool GraphicsDMA::execute(const hal::graphics::Transfer& transfer)
     {
+        profiling::Scope measurement{ PROFILE_SITE_GUI_DMA, PROFILE_CAT_GRAPHICS };
         m_done.store(false, std::memory_order_release);
         const std::stop_callback cancellation{ m_stop, [this] { m_completion.signal(); } };
         const auto result{ m_graphics->submit(

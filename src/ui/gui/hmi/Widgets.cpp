@@ -47,7 +47,13 @@ namespace ui::gui::hmi
     template<std::size_t Capacity>
     void BasicLabel<Capacity>::large(bool value)
     {
+        if (value == m_large)
+            return;
+        invalidate();
+        m_large = value;
+        m_wrapWidth = -1;
         setTypedText(touchgfx::TypedText(value ? T_BODYVALUE : T_CAPTIONVALUE));
+        invalidate();
     }
     template<std::size_t Capacity>
     void BasicLabel<Capacity>::text(const char* value)
@@ -55,6 +61,9 @@ namespace ui::gui::hmi
         std::array<touchgfx::Unicode::UnicodeChar, Capacity> source{}, next{};
         touchgfx::Unicode::fromUTF8(
           reinterpret_cast<const std::uint8_t*>(value), source.data(), source.size() - 1);
+        if (m_wrapWidth == getWidth() && source == m_text)
+            return;
+        m_wrapWidth = getWidth();
         // Explicit bounded wrapping avoids the SDK engine's wildcard word-wrap
         // truncation. Measure the actual font, not an estimated character width.
         const auto* font = getTypedText().getFont();
@@ -116,17 +125,18 @@ namespace ui::gui::hmi
     void Icon::draw(const touchgfx::Rect& area) const
     {
         const auto origin = getAbsoluteRect();
+        // Union the original 2x2 line pixels, then emit horizontal runs. This
+        // preserves the icon exactly while avoiding one DMA transaction (and
+        // worker wakeup) per overlapping Bresenham pixel.
+        std::array<std::uint32_t, 26> rows{};
         auto line = [&](int x, int y, int ex, int ey) {
             int dx = std::abs(ex - x), sx = x < ex ? 1 : -1, dy = -std::abs(ey - y), sy = y < ey ? 1 : -1,
                 error = dx + dy;
             for (;;) {
-                touchgfx::Rect r{ static_cast<int16_t>(x), static_cast<int16_t>(y), 2, 2 };
-                r &= area;
-                if (!r.isEmpty()) {
-                    r.x += origin.x;
-                    r.y += origin.y;
-                    touchgfx::HAL::lcd().fillRect(r, 0xcbddeb, 255);
-                }
+                for (int py = y; py < y + 2; ++py)
+                    for (int px = x; px < x + 2; ++px)
+                        if (px >= 0 && px < 26 && py >= 0 && py < 26)
+                            rows[py] |= 1U << px;
                 if (x == ex && y == ey)
                     break;
                 const int twice = 2 * error;
@@ -193,6 +203,29 @@ namespace ui::gui::hmi
                 line(8, 16, 8, 8);
                 break;
         }
+        for (int y = 0; y < 26;) {
+            int end = y + 1;
+            while (end < 26 && rows[end] == rows[y])
+                ++end;
+            for (int x = 0; x < 26;) {
+                if (!(rows[y] & (1U << x))) {
+                    ++x;
+                    continue;
+                }
+                const int start = x;
+                while (x < 26 && (rows[y] & (1U << x)))
+                    ++x;
+                touchgfx::Rect r{ static_cast<int16_t>(start), static_cast<int16_t>(y),
+                                  static_cast<int16_t>(x - start), static_cast<int16_t>(end - y) };
+                r &= area;
+                if (!r.isEmpty()) {
+                    r.x += origin.x;
+                    r.y += origin.y;
+                    touchgfx::HAL::lcd().fillRect(r, 0xcbddeb, 255);
+                }
+            }
+            y = end;
+        }
     }
     Control::Control()
     {
@@ -212,12 +245,20 @@ namespace ui::gui::hmi
     }
     void Control::layout(int x, int y, int width, int height)
     {
+        if (getX() == x && getY() == y && getWidth() == width && getHeight() == height)
+            return;
+        invalidate();
         setPosition(x, y, width, height);
         m_panel.setPosition(0, 0, width, height);
         m_label.setPosition(8, (height - 28) / 2, width - 16, 30);
+        invalidate();
     }
     void Control::configure(const char* label, unsigned id, Callback cb, void* context)
     {
+        if (id != m_id && m_pressed) {
+            m_pressed = false;
+            refresh();
+        }
         m_label.text(label);
         m_id = id;
         m_callback = cb;

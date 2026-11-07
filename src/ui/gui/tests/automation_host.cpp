@@ -18,12 +18,12 @@ namespace
     std::array<char, 1024> line{};
     unsigned used{};
     std::atomic_bool observing{};
-    std::atomic_uint generation{}, flags{}, feedbackSources{};
+    std::atomic_uint generation{}, flags{}, feedbackSources{}, controls{};
     std::array<std::atomic<double>, 12> pose{};
     void capturePresentation(const char* path)
     {
         std::array<double, 12> values{};
-        unsigned state{}, sources{};
+        unsigned state{}, sources{}, controlState{};
         bool coherent{};
         for (unsigned attempt = 0; attempt < 8 && !coherent; ++attempt) {
             const auto before = generation.load();
@@ -33,6 +33,7 @@ namespace
                 values[i] = pose[i].load();
             state = flags.load();
             sources = feedbackSources.load();
+            controlState = controls.load();
             coherent = before == generation.load() && before != 0;
         }
         if (!coherent)
@@ -40,7 +41,8 @@ namespace
         char name[800];
         std::snprintf(name, sizeof(name), "%s.json", path);
         if (auto* file = std::fopen(name, "w")) {
-            std::fprintf(file, "{\"flags\":%u,\"encoder_mask\":%u,\"pose\":[", state, sources);
+            std::fprintf(file, "{\"flags\":%u,\"encoder_mask\":%u,\"controls\":%u,\"pose\":[",
+                         state, sources, controlState);
             for (unsigned i = 0; i < values.size(); ++i)
                 std::fprintf(file, "%s%.12g", i ? "," : "", values[i]);
             std::fputs("]}\n", file);
@@ -148,5 +150,7 @@ extern "C" void hmi_observe_presentation(const ui::gui::hmi::Snapshot* snapshot)
             (unsigned(snapshot->fresh) << 2);
     feedbackSources = unsigned(snapshot->axes[0].encoder) | (unsigned(snapshot->axes[1].encoder) << 1) |
                       (unsigned(snapshot->axes[2].encoder) << 2);
+    controls = unsigned(snapshot->initialized) | (unsigned(snapshot->enabled) << 1) |
+               (unsigned(snapshot->connected) << 2) | (unsigned(snapshot->fresh) << 3);
     generation.fetch_add(1);
 }

@@ -19,6 +19,8 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('build/hmi-validation'))
     parser.add_argument('--seconds', type=int, default=12)
     parser.add_argument('--rates', type=int, nargs='+', default=[5, 2, 1], choices=[1, 2, 5])
+    parser.add_argument('--observe', action='store_true',
+                        help='Measure adaptive pacing; require health but do not treat the FPS ceiling as a promised rate')
     parser.add_argument('--build', type=Path, default=Path('build/giga-release'))
     args = parser.parse_args()
     if args.seconds < 2:
@@ -88,9 +90,11 @@ def main():
                     'heap_growth': last['heap_used'] - first['heap_used'],
                     'samples': samples,
                 }
-                row['passed'] = (row['actual_fps'] >= rate * .9 and row['underruns'] == 0
+                row['healthy'] = (row['actual_fps'] > 0 and row['underruns'] == 0
                                  and row['dma_errors'] == 0 and not last['scene']['failed']
                                  and row['heap_growth'] <= 1024)
+                row['passed'] = row['healthy'] and (args.observe or row['actual_fps'] >= rate * .9)
+                row['mode'] = 'adaptive observation' if args.observe else 'fixed-rate qualification'
                 rows.append(row)
                 print(json.dumps(row), flush=True)
                 (args.output / 'screening.json').write_text(json.dumps(rows, indent=2) + '\n')

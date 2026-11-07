@@ -23,8 +23,11 @@ namespace ui::gui::scene3d
         Engine engine{ { WIDTH, HEIGHT }, &image, depth.data() };
         engine.setShaders(shaders);
         const auto clearStart{ std::chrono::steady_clock::now() };
-        image.fillScreen(tgx::RGB565(std::uint16_t{ 0x10c4 }));
-        engine.clearZbuffer();
+        {
+            profiling::Scope clear{ PROFILE_SITE_RENDER_CLEAR, PROFILE_CAT_GRAPHICS };
+            image.fillScreen(tgx::RGB565(std::uint16_t{ 0x10c4 }));
+            engine.clearZbuffer();
+        }
         const auto geometryStart{ std::chrono::steady_clock::now() };
         const auto& c{ frame.snapshot.camera };
         const auto horizontal{ c.distance * std::cos(c.pitch) };
@@ -35,7 +38,9 @@ namespace ui::gui::scene3d
                          { c.target.x, c.target.y, c.target.z },
                          { 0, 0, 1 });
         engine.setLightDirection({ -.4f, .6f, -1 });
+        const auto gridStart = std::chrono::steady_clock::now();
         if (frame.scene->groundGrid) {
+            profiling::Scope grid{ PROFILE_SITE_RENDER_GRID, PROFILE_CAT_GRAPHICS };
             tgx::fMat4 identity;
             identity.setIdentity();
             engine.setModelMatrix(identity);
@@ -62,9 +67,17 @@ namespace ui::gui::scene3d
                                 &normal);
             }
         }
+        if (timings)
+            timings->gridUs = std::chrono::duration_cast<std::chrono::microseconds>(
+                                std::chrono::steady_clock::now() - gridStart)
+                                .count();
         engine.setCulling(1);
         std::array<tgx::fMat4, MAX_NODES> world{};
         for (unsigned i{ 0 }; i < frame.scene->count; ++i) {
+            const auto nodeStart = std::chrono::steady_clock::now();
+            profiling::Scope node{ i < 4 ? PROFILE_SITE_RENDER_NODE0 + i
+                                         : unsigned(PROFILE_SITE_RENDER_OTHER),
+                                   PROFILE_CAT_GRAPHICS };
             const auto& n{ frame.scene->nodes[i] };
             const auto& t{ frame.snapshot.transforms[i] };
             const auto& q{ t.rotation };
@@ -97,6 +110,10 @@ namespace ui::gui::scene3d
                                16);
             engine.drawMesh(static_cast<const tgx::Mesh3Dv2<tgx::RGB565>*>(n.mesh->data),
                             n.material.useMeshMaterial);
+            if (timings && i < timings->nodeUs.size())
+                timings->nodeUs[i] = std::chrono::duration_cast<std::chrono::microseconds>(
+                                       std::chrono::steady_clock::now() - nodeStart)
+                                       .count();
         }
         if (timings) {
             timings->clearUs =

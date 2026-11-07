@@ -43,6 +43,18 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         time.sleep(.8)
         p=tmp_path/(name+'.bmp');input(f'capture {p}');assert p.exists() and p.stat().st_size>100000
         return json.loads(p.with_suffix('.bmp.json').read_text())
+    def wait_controls(expected):
+        # IO acknowledgement can precede the UI's 20 Hz presentation snapshot.
+        # Clicking a still-disabled control must not enqueue a future motion.
+        end=time.monotonic()+5
+        for attempt in range(100):
+            path=tmp_path/f'controls-{attempt}.bmp'
+            input(f'capture {path}')
+            metadata=path.with_suffix('.bmp.json')
+            if metadata.exists() and json.loads(metadata.read_text())['controls']==expected:
+                return
+            assert time.monotonic()<end,'GUI controls did not receive authoritative readiness'
+        raise AssertionError('GUI readiness capture limit exceeded')
     def compare_presented_state(snapshot):
         out=command('sim status')
         actual=[float(v) for v in re.findall(r'joint=([-+\d.eE]+)',out)]
@@ -101,6 +113,7 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
             assert time.monotonic()<end,'GUI initialization did not reach IO'
             time.sleep(.1)
         assert 'enabled=0' in command('motion status')
+        wait_controls(13) # initialized, connected and fresh; Enable is now actionable
         click(340,480)
         end=time.monotonic()+5
         while 'enabled=1' not in command('motion status'):

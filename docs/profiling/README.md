@@ -140,6 +140,12 @@ Stable user event IDs live in `platform/profiling/Trace.h`:
 Instrument thread work with `profiling::Scope{site, category}`. Scopes started
 outside recording or spanning a rearm do not enter the new capture. Elapsed DWT
 cycles **include preemption**; they are not exclusive function CPU time.
+Graphics sites include color/depth clearing, grid rendering, the first four meshes
+and remaining meshes, widget reconciliation, DMA completion waits and framebuffer
+synchronization. Their IDs are appended to the existing site catalog, preserving
+older captures. Mesh times include transformation, lighting and rasterization;
+read-only DWT PC samples can distinguish hot functions within them.
+
 Scopes spanning a complete DWT revolution are counted as invalid. DWT wraps in
 about 17.9 s on M4 and 8.95 s on M7. Extended CPU totals use frequent runtime/IRQ
 samples, so they can cover longer sessions.
@@ -191,12 +197,23 @@ The kernel event-name catalog is copied from the pinned ThreadX header into
 each export. `profile.py decode --output <capture>` regenerates reports under
 `<capture>/decoded/`, preserving the original files and their hashes.
 
-The official TraceX source is available under `external/tracex`. Its viewer is
-Windows/.NET WPF. Wine is installed, but no TraceX viewer binary or dedicated
-viewer prefix is currently installed; a trusted official download is pending.
-The native trace format and Python/Perfetto exporter remain available without
-it. A future viewer should use **1 tick per microsecond** for our 1 MHz TIM5
-clock. Each native trace covers one core; the Perfetto export combines both.
+The official TraceX source is available under `external/tracex`. The locally
+installed viewer is the user's Windows build supplied as
+`apps/TraceX-self-built.zip`, running in the dedicated
+`apps/tracex-self-built/wineprefix` with Wine 11.19, .NET Framework 4.8 and the
+x86 Visual C++ runtime 14.44.35211. Its launcher keeps Wine's configuration,
+desktop integration and caches separate from the default Wine installation.
+It uses Mesa software rendering with WPF's normal rendering path enabled.
+
+```sh
+apps/tracex-self-built/run.sh build/profiles/release-check/capture/m4.trx
+apps/tracex-self-built/run.sh build/profiles/release-check/capture/m7.trx
+```
+
+Both recorded cores opened and rendered successfully; M4 sequential/time-view
+switching was also checked. The viewer preference is **1 microsecond per tick**
+for our 1 MHz TIM5 clock. Each native trace covers one core; the Python/Perfetto
+export combines both and remains available without the Windows viewer.
 
 A separate Wine prefix separates application configuration, not host access.
 It is not a security sandbox. Verify the provenance of a replacement viewer
@@ -310,4 +327,5 @@ ELFs, source archives, manifests, hashes and host-test logs remain under
 `build/profiles/`. Normal Release firmware was restored and both cores were
 verified Ready, connected and fault-free, with motors disabled. Powered motion
 and physical display behavior are not claimed as verified by this profiling
-campaign. The official Windows viewer remains to be obtained and verified.
+campaign. The user-built Windows viewer passed the Wine smoke checks described
+above; this is not an exhaustive validation of every viewer feature.

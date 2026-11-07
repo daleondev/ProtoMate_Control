@@ -35,7 +35,6 @@ namespace ui::gui::hmi
         }
         m_open = true;
         m_dirty = true;
-        m_next = {};
         m_service.visible(true);
     }
     void Viewport::close()
@@ -83,7 +82,7 @@ namespace ui::gui::hmi
         if (!m_open)
             return;
         const auto now = std::chrono::steady_clock::now();
-        if ((m_dirty || m_benchmark || m_qualification) && now >= m_next) {
+        if (m_dirty || m_benchmark || m_qualification) {
             const auto us =
               std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
             auto frame = m_pose;
@@ -96,9 +95,9 @@ namespace ui::gui::hmi
             if (m_benchmark)
                 frame = scene3d::benchmarkSnapshot(float(us % 60000000) / 1000000, m_revision, us);
             if (m_service.submit(
-                  { m_benchmark ? &scene3d::benchmarkScene(m_benchmark) : &scene3d::robotScene(), frame }))
+                  { m_benchmark ? &scene3d::benchmarkScene(m_benchmark) : &scene3d::robotScene(), frame,
+                    m_benchmark ? 30U : m_qualification ? m_fps : scene3d::LIVE_MAX_FPS }))
                 m_dirty = false;
-            m_next = now + std::chrono::milliseconds{ 1000 / (m_benchmark ? 30 : m_fps) };
         }
         if (const auto image = m_service.acquire()) {
             setBitmap(touchgfx::Bitmap(m_bitmaps[image->slot]));
