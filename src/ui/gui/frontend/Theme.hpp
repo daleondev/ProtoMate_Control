@@ -3,6 +3,7 @@
 namespace ui::gui::theme
 {
     inline constexpr std::uint32_t BACKGROUND{ 0x101820 }, SURFACE{ 0x192a36 }, BORDER{ 0x354956 };
+    inline constexpr std::uint32_t LABEL{ 0xe7eef5 };
     inline constexpr std::uint32_t TEXT{ 0xedf3f8 }, MUTED{ 0x98adba }, ACCENT{ 0x2587f4 };
     inline constexpr std::uint32_t PRESSED{ 0x164b7f }, DISABLED{ 0x18232d };
     inline constexpr std::uint32_t CONTROL{ 0x223443 }, SELECTED{ 0x1269ce }, CONTROL_BORDER{ 0x3a5061 },

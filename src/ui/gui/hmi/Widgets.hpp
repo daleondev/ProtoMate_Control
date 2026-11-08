@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend.hpp"
 #include "ui/gui/frontend/Theme.hpp"
 #include <array>
 #include <cstdint>
@@ -11,6 +12,12 @@
 
 namespace ui::gui::hmi
 {
+    constexpr std::uint32_t severityColor(Severity severity)
+    {
+        return severity == Severity::Error     ? theme::RED
+               : severity == Severity::Warning ? theme::AMBER
+                                               : theme::ACCENT;
+    }
     class Panel final : public touchgfx::Widget
     {
       public:

@@ -44,7 +44,7 @@ namespace ui::gui::hmi
     {
         setWildcard(m_text.data());
         setTypedText(touchgfx::TypedText(T_CAPTIONVALUE));
-        setColor(0xe7eef5);
+        setColor(theme::LABEL);
         setWideTextAction(touchgfx::WIDE_TEXT_NONE);
     }
     template<std::size_t Capacity>

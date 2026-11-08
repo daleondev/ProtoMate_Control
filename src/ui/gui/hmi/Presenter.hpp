@@ -106,7 +106,8 @@ namespace ui::gui::hmi
         DiagnosticNext,
         CartesianJogPage,
         CartesianPosition,
-        CartesianDynamics
+        CartesianDynamics,
+        ToggleInfo
     };
     class Presenter final : public touchgfx::Presenter
     {
@@ -118,6 +119,7 @@ namespace ui::gui::hmi
         void tick();
         void navigate(Page page);
         void act(unsigned action, bool pressed);
+        void key(char key);
         Command command(Kind kind) const;
         void send(Command command);
         void requestDiagnostics();

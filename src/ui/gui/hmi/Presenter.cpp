@@ -1,4 +1,5 @@
 #include "Presenter.hpp"
+#include "NumericField.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -13,7 +14,7 @@ namespace ui::gui::hmi
         m_model.backend->read(m_model.state);
         if (m_model.state.outcome.operation != m_model.lastOperation) {
             m_model.lastOperation = m_model.state.outcome.operation;
-            m_model.report(m_model.state.outcome.message.data());
+            m_model.report(m_model.state.outcome.message.data(), m_model.state.outcome.severity);
         }
         if (m_model.watchedJob && !m_model.previews) {
             m_model.jobCount = m_model.backend->jobs(0, m_model.jobs, false);
@@ -27,7 +28,7 @@ namespace ui::gui::hmi
                                   (unsigned long long)job.id,
                                   job.status.data(),
                                   job.detail.data());
-                    m_model.report(line);
+                    m_model.report(line, job.severity);
                     if (job.terminal)
                         m_model.watchedJob = 0;
                 }
@@ -78,7 +79,7 @@ namespace ui::gui::hmi
     void Presenter::send(Command c)
     {
         if (!m_model.backend) {
-            m_model.report("Motion backend unavailable");
+            m_model.report("Motion backend unavailable", Severity::Error);
             return;
         }
         if ((c.kind == Kind::MotorRelative || c.kind == Kind::MotorAbsolute || c.kind == Kind::MotorHome) &&
@@ -89,7 +90,7 @@ namespace ui::gui::hmi
             return;
         }
         const auto outcome = m_model.backend->submit(c);
-        m_model.report(outcome.message.data());
+        m_model.report(outcome.message.data(), outcome.accepted ? outcome.severity : Severity::Warning);
         if (outcome.accepted && outcome.job && m_model.page != Page::Preview) {
             m_model.watchedJob = outcome.job;
             m_model.watchedState = ~0U;
@@ -102,6 +103,27 @@ namespace ui::gui::hmi
         send(command(m_model.diagnosticTab == 1
                        ? (m_model.diagnosticIO ? Kind::MemoryIOStack : Kind::MemoryUIStack)
                        : (m_model.diagnosticIO ? Kind::MemoryIO : Kind::MemoryUI)));
+    }
+    void Presenter::key(char key)
+    {
+        if (!m_model.keypad)
+            return;
+        if (key >= '0' && key <= '9')
+            act(Key0 + key - '0', true);
+        else if (key == '.' || key == ',')
+            act(KeyDot, true);
+        else if ((key == '-' && m_model.number[0] != '-') || (key == '+' && m_model.number[0] == '-'))
+            act(KeySign, true);
+        else if (key == '\b')
+            act(KeyBack, true);
+        else if (key == '\n')
+            act(KeyApply, true);
+        else if (key == '\x1b')
+            act(KeyCancel, true);
+        else if (key == '\x7f') {
+            m_model.number.fill(0);
+            changed = true;
+        }
     }
     void Presenter::act(unsigned a, bool pressed)
     {
@@ -116,12 +138,16 @@ namespace ui::gui::hmi
                 m_model.backend->release();
             m_model.field = a - Field0;
             m_model.keypad = true;
-            std::snprintf(
-              m_model.number.data(), m_model.number.size(), "%.6g", m_model.values[m_model.field]);
+            m_model.number.fill(0);
+            if (++m_model.editorRevision == 0)
+                ++m_model.editorRevision;
             changed = true;
             return;
         }
         if (a >= Key0 && a <= KeyCancel) {
+            if (!m_model.keypad)
+                return;
+            const auto rules = NumericField::forModel(m_model);
             auto& text = m_model.number;
             const auto n = std::strlen(text.data());
             if (a <= Key9 && n + 1 < text.size()) {
@@ -132,7 +158,7 @@ namespace ui::gui::hmi
                 text[n] = '.';
                 text[n + 1] = 0;
             }
-            else if (a == KeySign) {
+            else if (a == KeySign && rules.signedValue()) {
                 if (text[0] == '-')
                     std::memmove(text.data(), text.data() + 1, n);
                 else if (n + 1 < text.size()) {
@@ -142,27 +168,19 @@ namespace ui::gui::hmi
             }
             else if (a == KeyBack && n)
                 text[n - 1] = 0;
-            else if (a == KeyCancel)
+            else if (a == KeyCancel) {
+                text.fill(0);
                 m_model.keypad = false;
+            }
             else if (a == KeyApply) {
-                char* end{};
-                const double v = std::strtod(text.data(), &end);
-                const bool signAllowed =
-                  m_model.field < 3 || (m_model.page == Page::Motors && m_model.field == 3);
-                const bool factor =
-                  m_model.field == 10 || ((m_model.page == Page::Robot || m_model.page == Page::Preview ||
-                                           m_model.page == Page::Cartesian) &&
-                                          m_model.field >= 4 && m_model.field <= 6);
-                if (!n || *end || !std::isfinite(v) || (!signAllowed && v < 0) ||
-                    (factor && (v < 0 || v > 1 || (m_model.field == 10 && v == 0))) ||
-                    (m_model.field == 11 && v > 100))
-                    m_model.report("Invalid value: check units, sign and range");
-                else {
-                    m_model.values[m_model.field] = v;
+                if (const auto value = rules.parse(text.data())) {
+                    m_model.values[m_model.field] = *value;
                     m_model.keypad = false;
                     if (m_model.field == 11)
                         brightnessChanged = true;
                 }
+                else
+                    m_model.report("Invalid value: check the field range", Severity::Warning);
             }
             changed = true;
             return;
@@ -369,9 +387,11 @@ namespace ui::gui::hmi
                 c.speed = (a == JogMinus ? -1 : 1) * (m_model.values[3] > 0
                                                         ? m_model.values[3]
                                                         : .1 * m_model.state.axes[m_model.axis].maxSpeed);
-                if (c.continuous && m_model.backend)
-                    m_model.report(
-                      m_model.backend->hold(c, holdX, holdY, holdWidth, holdHeight).message.data());
+                if (c.continuous && m_model.backend) {
+                    const auto result = m_model.backend->hold(c, holdX, holdY, holdWidth, holdHeight);
+                    m_model.report(result.message.data(),
+                                   result.accepted ? result.severity : Severity::Warning);
+                }
                 else
                     send(c);
                 break;
@@ -410,9 +430,11 @@ namespace ui::gui::hmi
                 c.acceleration = c.acceleration == 0 ? 1 : c.acceleration;
                 c.deceleration = c.deceleration == 0 ? 1 : c.deceleration;
                 c.jerk = c.jerk == 0 ? 1 : c.jerk;
-                if (m_model.cartesianJogMode == 2 && m_model.backend)
-                    m_model.report(
-                      m_model.backend->hold(c, holdX, holdY, holdWidth, holdHeight).message.data());
+                if (m_model.cartesianJogMode == 2 && m_model.backend) {
+                    const auto result = m_model.backend->hold(c, holdX, holdY, holdWidth, holdHeight);
+                    m_model.report(result.message.data(),
+                                   result.accepted ? result.severity : Severity::Warning);
+                }
                 else
                     send(c);
                 break;
@@ -510,8 +532,13 @@ namespace ui::gui::hmi
             case MemoryIO:
                 send(command(Kind::MemoryIO));
                 break;
+            case ToggleInfo:
+                m_model.showInfo = !m_model.showInfo;
+                changed = true;
+                break;
             case Acknowledge:
                 m_model.messageCount = 0;
+                m_model.notice.fill(0);
                 m_model.report("Messages acknowledged locally; active faults remain");
                 changed = true;
                 break;

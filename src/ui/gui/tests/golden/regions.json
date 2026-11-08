@@ -496,5 +496,17 @@
   "page-cartesian-settings": {
     "ignore": [],
     "include": []
+  },
+  "keyboard-value": {
+    "ignore": [],
+    "include": []
+  },
+  "messages-all": {
+    "ignore": [],
+    "include": []
+  },
+  "messages-filtered": {
+    "ignore": [],
+    "include": []
   }
 }

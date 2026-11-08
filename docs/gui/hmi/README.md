@@ -53,7 +53,25 @@ flowchart LR
   history cannot clear a hardware fault.
 - **Programs / Presets:** intentional empty pages; no commands are generated.
 
-The numeric keypad edits a form; Apply does not move anything. Alarms has its own sidebar destination; Jobs and Global Stop remain in the bottom strip. Stop is
+Numeric fields open with an empty editor; Cancel preserves the previous form value.
+The sign key is enabled only for signed fields, a second decimal separator is blocked,
+and Apply is disabled for empty, malformed or out-of-range values. The editor shows
+its permitted range: configured joint limits/speed, positive raw-motor speeds and
+homing seek/latch ordering, positive jog durations, nonnegative dynamics, factors
+and brightness. Zero selects defaults only where supported. Complete commands
+still undergo authoritative motion admission; editing never starts motion.
+
+In Linux simulation, type digits and a decimal point (or comma), use `-`/`+` for
+the sign, Backspace to remove a digit, Delete to clear, Enter to Apply and Escape
+to Cancel. Keyboard input applies only to the open numeric editor. Closing the
+editor discards pending keys; focus loss or input overflow cancels editing. No
+keyboard motion shortcuts are installed. GIGA continues to use the touch keypad.
+
+Alarms/messages use **blue Info, yellow Warning and red Error**, with text severity
+labels as well as color. **Info: shown/hidden** filters the bounded recent-message
+history without hiding warnings, errors or the current controller condition.
+Local acknowledgement clears message history, not the underlying fault.
+ Alarms has its own sidebar destination; Jobs and Global Stop remain in the bottom strip. Stop is
 available even in the keypad and confirmation dialog. Finite jobs continue when
 navigating; held jog does not. GUI and CLI obey the same motor/axis/robot exclusion.
 **Software Stop is not a physical emergency stop.** Ordinary axis/robot stopping

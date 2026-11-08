@@ -1,4 +1,5 @@
 #include "common/motion/VisualGeometry.hpp"
+#include "ui/gui/hmi/NumericField.hpp"
 #include "ui/gui/hmi/Presenter.hpp"
 #include <gtest/gtest.h>
 #include <numbers>
@@ -503,4 +504,169 @@ TEST(Hmi, CartesianMoveToUsesPointCoordinatesAndSettings)
     p.act(CartesianJogPage, true);
     EXPECT_EQ(m.cartesianTab, 0U);
     EXPECT_GE(b.releases, 4U);
+}
+
+TEST(Hmi, NumericEditorStartsEmptyAndCancelPreservesTheForm)
+{
+    Model m;
+    Presenter p{ m };
+    m.values[0] = 42.5;
+    p.act(Field0, true);
+    EXPECT_STREQ(m.number.data(), "");
+    const auto session = m.editorRevision;
+    p.key('1');
+    p.key('2');
+    p.key('\x1b');
+    EXPECT_FALSE(m.keypad);
+    EXPECT_DOUBLE_EQ(m.values[0], 42.5);
+    p.act(Field0, true);
+    EXPECT_NE(m.editorRevision, session);
+    EXPECT_STREQ(m.number.data(), "");
+    p.key('\n');
+    EXPECT_TRUE(m.keypad);
+    EXPECT_DOUBLE_EQ(m.values[0], 42.5);
+}
+TEST(Hmi, KeyboardUsesTheSameRulesAndNeverSubmitsMotion)
+{
+    Model m;
+    BackendFixture b;
+    m.backend = &b;
+    Presenter p{ m };
+    m.page = Page::Robot;
+    p.act(Field0 + 10, true);
+    p.key('-');
+    p.key('0');
+    p.key(',');
+    p.key('2');
+    p.key('5');
+    EXPECT_STREQ(m.number.data(), "0.25");
+    p.key('\b');
+    p.key('3');
+    p.key('\n');
+    EXPECT_FALSE(m.keypad);
+    EXPECT_DOUBLE_EQ(m.values[10], .23);
+    p.key('9');
+    p.key('\n'); // closed modal ignores further input
+    EXPECT_DOUBLE_EQ(m.values[10], .23);
+    EXPECT_EQ(b.submissions, 0U);
+    p.act(Field0, true);
+    for (char k : std::string_view{ "-12.5" })
+        p.key(k);
+    p.key('-'); // minus sets sign, it does not toggle a typed negative back to positive
+    EXPECT_STREQ(m.number.data(), "-12.5");
+    p.key('\x7f');
+    EXPECT_STREQ(m.number.data(), "");
+    for (char k : std::string_view{ "-2.5" })
+        p.key(k);
+    p.key('\n');
+    EXPECT_DOUBLE_EQ(m.values[0], -2.5);
+}
+TEST(Hmi, FieldValidationChecksNumericSyntaxLimitsAndDefaults)
+{
+    Model m;
+    m.page = Page::Axes;
+    m.state.configured = m.state.fresh = true;
+    m.state.axes[0] = { .commanded = 20, .minimum = -100, .maximum = 100, .maxSpeed = 30 };
+    m.field = 0;
+    auto r = NumericField::forModel(m);
+    EXPECT_TRUE(r.parse("80"));
+    EXPECT_FALSE(r.parse("80.01"));
+    EXPECT_TRUE(r.parse("-120"));
+    EXPECT_FALSE(r.parse("-120.01"));
+    m.absolute = true;
+    r = NumericField::forModel(m);
+    EXPECT_TRUE(r.parse("100"));
+    EXPECT_FALSE(r.parse("101"));
+    for (const auto* text : { "", "-", ".", "-.", "nan", "inf", "0x10", "1e2", " 1", "1.2.3" })
+        EXPECT_FALSE(r.parse(text)) << text;
+    m.page = Page::Preview;
+    m.absolute = false; // previews are destinations regardless of the move-page selection
+    r = NumericField::forModel(m);
+    EXPECT_TRUE(r.parse("100"));
+    EXPECT_FALSE(r.parse("-101"));
+    m.page = Page::Axes;
+    m.field = 3;
+    r = NumericField::forModel(m);
+    EXPECT_TRUE(r.parse("0"));
+    EXPECT_TRUE(r.parse("30"));
+    EXPECT_FALSE(r.parse("31"));
+    EXPECT_FALSE(r.parse("-1"));
+    for (unsigned f : { 4U, 5U, 6U }) {
+        m.field = f;
+        r = NumericField::forModel(m);
+        EXPECT_TRUE(r.parse("0"));
+        EXPECT_FALSE(r.parse("-1"));
+        m.page = Page::Robot;
+        r = NumericField::forModel(m);
+        EXPECT_TRUE(r.parse("1"));
+        EXPECT_FALSE(r.parse("1.01"));
+        m.page = Page::Axes;
+    }
+    m.field = 8;
+    r = NumericField::forModel(m);
+    EXPECT_FALSE(r.parse("0"));
+    EXPECT_TRUE(r.parse(".1"));
+    EXPECT_FALSE(r.parse("1000001"));
+    m.field = 11;
+    r = NumericField::forModel(m);
+    EXPECT_TRUE(r.parse("0"));
+    EXPECT_TRUE(r.parse("100"));
+    EXPECT_FALSE(r.parse("100.01"));
+    m.page = Page::Motors;
+    m.motorTab = 1;
+    m.values[3] = 10;
+    m.values[9] = .5;
+    m.field = 3;
+    r = NumericField::forModel(m);
+    EXPECT_FALSE(r.parse("0"));
+    EXPECT_FALSE(r.parse("-1"));
+    EXPECT_FALSE(r.parse(".5"));
+    EXPECT_TRUE(r.parse("1"));
+    m.field = 9;
+    r = NumericField::forModel(m);
+    EXPECT_FALSE(r.parse("0"));
+    EXPECT_FALSE(r.parse("10"));
+    EXPECT_TRUE(r.parse(".5"));
+    m.field = 7;
+    r = NumericField::forModel(m);
+    EXPECT_FALSE(r.parse("0"));
+    EXPECT_TRUE(r.parse("10"));
+    m.motorTab = 2;
+    for (unsigned f : { 4U, 5U }) {
+        m.field = f;
+        r = NumericField::forModel(m);
+        EXPECT_FALSE(r.parse("0"));
+        EXPECT_TRUE(r.parse("1"));
+    }
+}
+TEST(Hmi, MessageSeverityAndInfoFilterSurviveRingWrap)
+{
+    Model m;
+    Presenter p{ m };
+    for (unsigned i = 0; i < 10; ++i) {
+        char text[32];
+        std::snprintf(text, sizeof(text), "Info %u", i);
+        m.report(text);
+    }
+    m.report("Busy", Severity::Warning);
+    m.report("Fault", Severity::Error);
+    m.report("Ready");
+    EXPECT_EQ(m.visibleMessage(0)->severity, Severity::Info);
+    p.act(ToggleInfo, true);
+    ASSERT_NE(m.visibleMessage(0), nullptr);
+    EXPECT_STREQ(m.visibleMessage(0)->text.data(), "Fault");
+    EXPECT_EQ(m.visibleMessage(0)->severity, Severity::Error);
+    EXPECT_STREQ(m.visibleMessage(1)->text.data(), "Busy");
+    EXPECT_EQ(m.visibleMessage(2), nullptr);
+    p.navigate(Page::Home);
+    p.navigate(Page::Alarms);
+    EXPECT_FALSE(m.showInfo);
+    p.act(ToggleInfo, true);
+    EXPECT_STREQ(m.visibleMessage(0)->text.data(), "Ready");
+    EXPECT_NE(m.visibleMessage(7), nullptr);
+    EXPECT_EQ(m.visibleMessage(8), nullptr);
+    m.state.failed = true;
+    p.act(Acknowledge, true);
+    EXPECT_TRUE(m.state.failed);
+    EXPECT_EQ(m.messageCount, 1U);
 }

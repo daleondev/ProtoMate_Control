@@ -13,6 +13,17 @@ namespace
     std::atomic_bool correct{ true };
     std::array<double, 13> latencies{};
     unsigned latencyCount{};
+    std::atomic_bool editorOpen{};
+    std::atomic<double> editorValue{};
+    std::atomic<std::uint64_t> editorText{};
+    std::uint64_t textHash(const char* text)
+    {
+        std::uint64_t result{};
+        for (; *text; ++text)
+            result = result * 131 + static_cast<unsigned char>(*text);
+        return result;
+    }
+
     std::uint64_t inputAt{};
     unsigned sampleX{}, sampleY{}, sampleControl{};
     std::uint16_t beforePixel{};
@@ -55,6 +66,133 @@ namespace
             }
         }
 
+        if (std::getenv("GUI_TEST_MESSAGES")) {
+            if (n == 30)
+                scenario = 1;
+            if (n == 60)
+                scenario = 2;
+            if (n == 80)
+                mouse(SDL_MOUSEBUTTONDOWN, 50, 442);
+            if (n == 84)
+                mouse(SDL_MOUSEBUTTONUP, 50, 442);
+            if (n == 110)
+                capture("messages-all.bmp", s.active);
+            if (n == 120)
+                mouse(SDL_MOUSEBUTTONDOWN, 850, 204);
+            if (n == 124)
+                mouse(SDL_MOUSEBUTTONUP, 850, 204);
+            if (n == 150) {
+                capture("messages-filtered.bmp", s.active);
+                phase = 25;
+                SDL_Event e{};
+                e.type = SDL_QUIT;
+                SDL_PushEvent(&e);
+            }
+            return;
+        }
+        if (std::getenv("GUI_TEST_KEYBOARD")) {
+            const auto key = [window](SDL_Keycode code) {
+                SDL_Event e{};
+                e.type = SDL_KEYDOWN;
+                e.key.windowID = window;
+                e.key.state = SDL_PRESSED;
+                e.key.keysym.sym = code;
+                if (SDL_PushEvent(&e) != 1)
+                    correct = false;
+            };
+            const auto text = [&](const char* value) {
+                for (; *value; ++value)
+                    key(SDL_Keycode(*value));
+            };
+            const auto focus = [](Uint8 event) {
+                SDL_Event e{};
+                e.type = SDL_WINDOWEVENT;
+                e.window.event = event;
+                SDL_PushEvent(&e);
+            };
+            const auto expect = [&](bool open, const char* value, double applied) {
+                const bool ok = editorOpen == open && editorText == textHash(value) && editorValue == applied;
+                if (!ok)
+                    std::fprintf(stderr,
+                                 "Keyboard check failed at frame %llu: open=%d value=%.3f text=%llu\n",
+                                 (unsigned long long)n,
+                                 int(editorOpen.load()),
+                                 editorValue.load(),
+                                 (unsigned long long)editorText.load());
+                if (!ok)
+                    correct = false;
+            };
+            if (n == 30)
+                mouse(SDL_MOUSEBUTTONDOWN, 50, 154);
+            if (n == 34)
+                mouse(SDL_MOUSEBUTTONUP, 50, 154);
+            if (n == 50)
+                mouse(SDL_MOUSEBUTTONDOWN, 720, 182);
+            if (n == 54)
+                mouse(SDL_MOUSEBUTTONUP, 720, 182);
+            if (n == 70 || n == 150 || n == 220 || n == 300)
+                mouse(SDL_MOUSEBUTTONDOWN, 650, 320);
+            if (n == 74 || n == 154 || n == 224 || n == 304)
+                mouse(SDL_MOUSEBUTTONUP, 650, 320);
+            if (n == 85) {
+                expect(true, "", 0);
+                key(SDLK_KP_MINUS);
+                key(SDLK_KP_1);
+                key(SDLK_KP_2);
+                key(SDLK_KP_COMMA);
+                key(SDLK_KP_5);
+            }
+            if (n == 100) {
+                expect(true, "-12.5", 0);
+                key(SDLK_BACKSPACE);
+                text("3");
+            }
+            if (n == 115) {
+                expect(true, "-12.3", 0);
+                capture("keyboard-value.bmp", s.active);
+                key(SDLK_RETURN);
+            }
+            if (n == 135)
+                expect(false, "-12.3", -12.3);
+            if (n == 165) {
+                expect(true, "", -12.3);
+                text("9");
+                key(SDLK_ESCAPE);
+                text("7");
+                key(SDLK_RETURN);
+            }
+            if (n == 190) {
+                expect(false, "", -12.3);
+                key(SDLK_RETURN);
+            }
+            if (n == 235) {
+                expect(true, "", -12.3);
+                text("42");
+                focus(SDL_WINDOWEVENT_FOCUS_LOST);
+            }
+            if (n == 250) {
+                expect(false, "", -12.3);
+                focus(SDL_WINDOWEVENT_FOCUS_GAINED);
+            }
+            if (n == 315) {
+                expect(true, "", -12.3);
+                text("123456789012345678901234567890");
+                text("1234567890");
+                key(SDLK_RETURN);
+            }
+            if (n == 340) {
+                expect(false, "", -12.3);
+                if (hal::linux::display::inputDrops() == 0)
+                    correct = false;
+                phase = 24;
+                SDL_Event e{};
+                e.type = SDL_QUIT;
+                SDL_PushEvent(&e);
+                std::fprintf(
+                  stderr, "Native keyboard editing/cancel/focus/overflow: %s\n", correct ? "PASS" : "FAIL");
+            }
+            return;
+        }
         if (std::getenv("GUI_TEST_STALL")) {
             if (n == 25)
                 SDL_Delay(350);
@@ -384,4 +522,11 @@ extern "C" int runtime_host_main(void (*kernel)())
         const timespec delay{ 0, 1000000 };
         nanosleep(&delay, nullptr);
     }
+}
+
+extern "C" void hmi_observe_editor(bool open, const char* text, double value)
+{
+    editorOpen = open;
+    editorText = textHash(text);
+    editorValue = value;
 }

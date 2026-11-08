@@ -1,4 +1,5 @@
 #include "View.hpp"
+#include "NumericField.hpp"
 #include "profiling/Trace.hpp"
 #include "ui/gui/frontend/Theme.hpp"
 #include <algorithm>
@@ -253,29 +254,22 @@ namespace ui::gui::hmi
             control(Confirm, "Replace motion", 552, 352, 240);
             return;
         }
-        const char* unit =
-          m_model.field < 3
-            ? (m_model.page == Page::Motors ? "Shaft degrees"
-               : m_model.page == Page::Axes ? (m_model.axis == 2 ? "Millimetres" : "Axis degrees")
-               : m_model.page != Page::Cartesian && m_model.coordinates == 0 && m_model.field < 2
-                 ? "Joint degrees"
-                 : "Millimetres")
-          : m_model.field == 11 ? "Brightness %"
-          : m_model.field == 10 ? "Speed factor (0..1)"
-                                : "Motion parameter";
-        label(unit, 160, 98, 800);
+        const auto rules = NumericField::forModel(m_model);
+        label(rules.name, 160, 98, 800);
         label(m_model.number.data(), 200, 145, 660, 44, true, touchgfx::CENTER);
         for (unsigned i = 0; i < 9; ++i) {
             char n[]{ char('1' + i), 0 };
             control(Key0 + i + 1, n, 200 + int(i % 3) * 136, 210 + int(i / 3) * 64, 120);
         }
-        control(KeySign, "+ / -", 200, 402, 120);
+        control(KeySign, "+ / -", 200, 402, 120, rules.signedValue());
         control(Key0, "0", 336, 402, 120);
-        control(KeyDot, ".", 472, 402, 120);
+        control(KeyDot, ".", 472, 402, 120, !std::strchr(m_model.number.data(), '.'));
         control(KeyBack, "Delete", 660, 210, 200);
         control(KeyCancel, "Cancel", 660, 338, 200);
-        control(KeyApply, "Apply", 660, 402, 200);
-        label("Apply changes the form. It never starts motion.", 200, 480, 680);
+        control(KeyApply, "Apply", 660, 402, 200, rules.parse(m_model.number.data()).has_value());
+        char hint[128]{};
+        rules.describe(hint);
+        label(hint, 160, 480, 820);
     }
     void View::refresh()
     {
@@ -298,6 +292,8 @@ namespace ui::gui::hmi
                       : s.connected && !s.fresh ? "IO telemetry stale"
                       : s.connected             ? text
                                                 : "Awaiting IO connection");
+        m_notice.setColor(m_model.notice[0] && s.fresh && !s.failed ? severityColor(m_model.noticeSeverity)
+                                                                    : theme::LABEL);
         m_notice.text(s.failed || !s.fresh ? s.condition.data()
                       : m_model.notice[0]  ? m_model.notice.data()
                                            : s.condition.data());

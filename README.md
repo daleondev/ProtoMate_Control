@@ -564,6 +564,11 @@ Client/Robot/ICC implementation as the CLI. The interface names the joints **Axi
 
 The shared shell uses an 88-pixel, six-button navigation rail (including Alarms), centered controls and a persistent Stop. Home always uses estimated feedback, with frame-matched joint badges and one status card. Axis and Cartesian jogging default to Hold. Cartesian has Step, Timed and Hold modes, persistent estimated X/Y/Z, and Move To / Settings tabs; Timed/Hold use one continuous Cartesian path with local M4 deceleration; they stop at the certified path boundary or on cancellation. Robot destination moves are under More, separate from non-executing path previews. Move separates Jog, Move To and Settings; I/O and diagnostics use aligned cards/tables. Orbit by dragging, zoom with the desktop wheel or a two-finger pinch, and use Reset View to restore the camera. Physical pinch input remains pending panel testing.
 
+Alarms/messages distinguish blue Info, yellow Warning and red Error, with an Info
+visibility toggle. Numeric editors open empty and validate each field before Apply.
+Linux supports keyboard entry, Enter/Escape and Backspace/Delete inside the editor;
+keyboard input never starts motion. See the guide for field and cancellation behavior.
+
 See the [HMI operating and architecture guide](docs/gui/hmi/README.md) and
 [verification status](docs/gui/hmi/verification.md). M4 does not link TouchGFX.
 

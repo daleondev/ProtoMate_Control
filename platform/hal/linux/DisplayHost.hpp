@@ -29,6 +29,9 @@ namespace hal::linux::display
     bool submit(unsigned slot) noexcept;
     hal::display::State snapshot() noexcept;
     Pointer pointer() noexcept;
+    // Numeric editor session (zero means closed). A new session discards old
+    // keys. Focus loss/overflow cancels the editor rather than applying partial input.
+    unsigned keyboard(std::uint32_t session, std::span<char> output) noexcept;
     std::uint32_t inputDrops() noexcept;
     void brightness(unsigned percent) noexcept;
 }

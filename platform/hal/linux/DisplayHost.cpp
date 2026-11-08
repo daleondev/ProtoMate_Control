@@ -43,6 +43,10 @@ namespace hal::linux::display
         std::array<Pointer, 32> input{};
         unsigned head{}, count{}, drops{}, duty{};
         Pointer last{};
+        std::array<char, 32> keys{};
+        unsigned keyCount{};
+        std::uint32_t keySession{};
+        bool keyCancelled{};
         bool enabled{}, leased{};
         Clock peripheralClock{};
         std::uint64_t nextVsync{};
@@ -86,6 +90,21 @@ namespace hal::linux::display
                 input[0] = { .cancelled = true }; // fail released
             }
         }
+        void keyEvent(char key)
+        {
+            Lock lock{};
+            if (!keySession || keyCancelled)
+                return;
+            if (key == '\x1b' || keyCount == keys.size()) {
+                if (keyCount == keys.size())
+                    ++drops;
+                keys[0] = '\x1b';
+                keyCount = 1;
+                keyCancelled = true;
+            }
+            else
+                keys[keyCount++] = key;
+        }
         void* kernelEntry(void* argument)
         {
             (*static_cast<void (**)()>(argument))();
@@ -109,6 +128,8 @@ namespace hal::linux::display
         nextVsync = clock ? clock() : nowNs();
         state = {};
         head = count = drops = duty = 0;
+        keyCount = keySession = 0;
+        keyCancelled = false;
         last = {};
         for (auto& buffer : buffers) {
             std::ranges::fill(buffer, 0);
@@ -119,6 +140,7 @@ namespace hal::linux::display
     {
         Lock lock{};
         leased = false;
+        keyCount = keySession = 0;
         peripheralClock = nullptr;
         state.pending.reset();
         duty = 0;
@@ -157,6 +179,20 @@ namespace hal::linux::display
     {
         Lock lock{};
         return drops;
+    }
+    unsigned keyboard(std::uint32_t session, std::span<char> output) noexcept
+    {
+        Lock lock{};
+        if (keySession != session) {
+            keySession = session;
+            keyCount = 0;
+            keyCancelled = false;
+        }
+        const auto n = std::min(keyCount, unsigned(output.size()));
+        std::copy_n(keys.begin(), n, output.begin());
+        std::move(keys.begin() + n, keys.begin() + keyCount, keys.begin());
+        keyCount -= n;
+        return n;
     }
     void brightness(unsigned percent) noexcept
     {
@@ -220,6 +256,37 @@ namespace hal::linux::display
             int w{}, h{};
             SDL_GetWindowSize(window, &w, &h);
             while (SDL_PollEvent(&event)) {
+                if (focused && event.type == SDL_KEYDOWN &&
+                    !(event.key.keysym.mod & (KMOD_CTRL | KMOD_ALT | KMOD_GUI))) {
+                    const auto key = event.key.keysym.sym;
+                    // Numeric editors need ASCII keys only; do not also consume
+                    // TEXTINPUT, which would insert each physical key twice.
+                    const bool shifted = event.key.keysym.mod & KMOD_SHIFT;
+                    if (!shifted && key >= SDLK_0 && key <= SDLK_9)
+                        keyEvent(char('0' + key - SDLK_0));
+                    else if (key >= SDLK_KP_1 && key <= SDLK_KP_9)
+                        keyEvent(char('1' + key - SDLK_KP_1));
+                    else if (key == SDLK_KP_0)
+                        keyEvent('0');
+                    else if (key == SDLK_KP_PERIOD || (!shifted && key == SDLK_PERIOD))
+                        keyEvent('.');
+                    else if (key == SDLK_KP_COMMA || (!shifted && key == SDLK_COMMA))
+                        keyEvent(',');
+                    else if (key == SDLK_KP_MINUS || (!shifted && key == SDLK_MINUS))
+                        keyEvent('-');
+                    else if (key == SDLK_KP_PLUS || key == SDLK_PLUS || (shifted && key == SDLK_EQUALS))
+                        keyEvent('+');
+                    else if (key == SDLK_BACKSPACE)
+                        keyEvent('\b');
+                    else if (!event.key.repeat) {
+                        if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
+                            keyEvent('\n');
+                        else if (key == SDLK_ESCAPE)
+                            keyEvent('\x1b');
+                        else if (key == SDLK_DELETE)
+                            keyEvent('\x7f');
+                    }
+                }
                 if (event.type == SDL_QUIT) {
                     Lock lock{};
                     state.closed = true;
@@ -254,8 +321,10 @@ namespace hal::linux::display
                 }
                 if (event.type == SDL_WINDOWEVENT && (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST ||
                                                       event.window.event == SDL_WINDOWEVENT_LEAVE)) {
-                    if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+                    if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
                         focused = false;
+                        keyEvent('\x1b');
+                    }
                     down = false;
                     inputEvent(false, 0, 0, w, h, true);
                 }

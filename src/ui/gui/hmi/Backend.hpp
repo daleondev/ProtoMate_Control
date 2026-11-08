@@ -8,6 +8,12 @@ namespace ui::gui::hmi
 {
     template<unsigned N>
     using Text = std::array<char, N>;
+    enum class Severity : std::uint8_t
+    {
+        Info,
+        Warning,
+        Error
+    };
     enum class Kind : std::uint8_t
     {
         Initialize,
@@ -59,6 +65,7 @@ namespace ui::gui::hmi
         std::uint64_t operation{}, job{};
         bool accepted{};
         Text<160> message{};
+        Severity severity{ Severity::Info };
     };
     struct Axis
     {
@@ -95,6 +102,7 @@ namespace ui::gui::hmi
         std::array<double, 3> endpoint{};
         Text<40> status{};
         Text<192> detail{};
+        Severity severity{ Severity::Info };
     };
     struct DiagnosticRow
     {

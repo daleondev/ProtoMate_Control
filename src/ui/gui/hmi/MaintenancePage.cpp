@@ -133,16 +133,38 @@ namespace ui::gui::hmi
             return;
         }
         if (m_model.page == Page::Alarms) {
-            label(s.condition.data(), 136, 112, 856, 76, true);
-            m_labels[m_labelCount - 1].setColor(s.failed ? theme::RED : theme::AMBER);
-            for (unsigned i = 0; i < std::min(m_model.messageCount, 4U); ++i) {
-                card(1 + i, 128, 196 + int(i) * 58, 864, 52);
-                label(m_model.messages[(m_model.messageCount - 1 - i) % 8].data(),
-                      136,
-                      200 + int(i) * 58,
-                      856,
-                      52);
+            const auto severity =
+              s.failed || std::ranges::any_of(s.axes, [](const Axis& a) { return a.fault; }) ? Severity::Error
+              : !s.connected || !s.fresh || !s.configured || !s.initialized || !s.enabled ||
+                  std::ranges::any_of(s.axes, [](const Axis& a) { return a.warning || !a.referenced; })
+                ? Severity::Warning
+                : Severity::Info;
+            label(s.condition.data(), 136, 104, 856, 68, true);
+            m_labels[m_labelCount - 1].setColor(severityColor(severity));
+            control(ToggleInfo,
+                    m_model.showInfo ? "Info: shown" : "Info: hidden",
+                    768,
+                    176,
+                    224,
+                    true,
+                    m_model.showInfo);
+            label("Recent messages", 136, 188, 600);
+            for (unsigned i = 0; i < 4; ++i) {
+                const auto* message = m_model.visibleMessage(i);
+                if (!message)
+                    break;
+                card(1 + i, 128, 240 + int(i) * 50, 864, 46);
+                const auto color = severityColor(message->severity);
+                const auto* name = message->severity == Severity::Error     ? "ERROR"
+                                   : message->severity == Severity::Warning ? "WARN"
+                                                                            : "INFO";
+                label(name, 140, 242 + int(i) * 50, 72, 42);
+                m_labels[m_labelCount - 1].setColor(color);
+                label(message->text.data(), 220, 242 + int(i) * 50, 760, 42);
+                m_labels[m_labelCount - 1].setColor(color);
             }
+            if (!m_model.visibleMessage(0))
+                label(m_model.showInfo ? "No messages" : "No warnings or errors", 136, 290, 832);
             control(Acknowledge, "Acknowledge messages", 128, 460, 352);
             label("Hardware faults remain active until resolved.", 500, 468, 488, 48);
             return;

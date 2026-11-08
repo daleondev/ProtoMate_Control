@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 namespace ui::gui::hmi
@@ -29,8 +30,9 @@ namespace ui::gui::hmi
           driverDetail{};
         unsigned jogMode{ 2 }, cartesianJogMode{ 2 }, cartesianTab{};
         bool more{}, advanced{}, diagnosticIO{};
-        bool absolute{}, previews{}, keypad{}, confirmation{};
+        bool absolute{}, previews{}, keypad{}, confirmation{}, showInfo{ true };
         unsigned field{};
+        std::uint32_t editorRevision{};
         std::array<double, 12> values{ 0, 0, 0, 0, 0, 0, 0, 0, 1, .5, .25, 10 };
         // position x/y/z; speed,a,d,j,timeout,duration,latch,factor,brightness.
         double step{ 1 };
@@ -42,20 +44,40 @@ namespace ui::gui::hmi
         unsigned watchedState{ ~0U };
         std::array<Job, 4> jobs{};
         unsigned jobCount{};
-        std::array<Text<160>, 8> messages{};
+        struct Message
+        {
+            Text<160> text{};
+            Severity severity{ Severity::Info };
+        };
+        std::array<Message, 8> messages{};
+        Severity noticeSeverity{ Severity::Info };
         unsigned messageCount{};
         std::uint64_t lastOperation{};
         std::uint32_t ticks{}, interactions{};
         // Kept for CLI graphics diagnostic compatibility.
         unsigned value{ 42 };
         bool animating{};
-        void report(const char* text)
+        void report(const char* text, Severity severity = Severity::Info)
         {
-            if (std::strncmp(notice.data(), text, notice.size()) == 0)
+            if (!*text ||
+                (noticeSeverity == severity && std::strncmp(notice.data(), text, notice.size()) == 0))
                 return;
             std::snprintf(notice.data(), notice.size(), "%s", text);
+            noticeSeverity = severity;
             auto& slot = messages[messageCount++ % messages.size()];
-            std::snprintf(slot.data(), slot.size(), "%s", text);
+            std::snprintf(slot.text.data(), slot.text.size(), "%s", text);
+            slot.severity = severity;
+        }
+        const Message* visibleMessage(unsigned index) const
+        {
+            for (unsigned i = 0; i < std::min(messageCount, unsigned(messages.size())); ++i) {
+                const auto& message = messages[(messageCount - 1 - i) % messages.size()];
+                if (!showInfo && message.severity == Severity::Info)
+                    continue;
+                if (index-- == 0)
+                    return &message;
+            }
+            return nullptr;
         }
     };
 }

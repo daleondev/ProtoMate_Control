@@ -94,6 +94,7 @@ namespace ui
         // gets a new presentation revision so late responses remain visible.
         m_state.outcome.operation = m_next++;
         m_state.outcome.accepted = ok;
+        m_state.outcome.severity = ok ? hmi::Severity::Info : hmi::Severity::Error;
         m_state.outcome.job = job;
         std::snprintf(m_state.outcome.message.data(),
                       m_state.outcome.message.size(),
@@ -583,6 +584,8 @@ namespace ui
                 out = {};
                 out.id = id;
                 out.preview = true;
+                out.severity = j->state == motion::Robot::JobState::Rejected ? hmi::Severity::Warning
+                                                                             : hmi::Severity::Info;
                 out.state = unsigned(j->state);
                 out.terminal = j->state >= motion::Robot::JobState::Preview;
                 out.seconds = j->plan.duration;
@@ -611,6 +614,12 @@ namespace ui
             out.id = j.id;
             out.busy = j.busy_job;
             out.state = unsigned(j.state);
+            out.severity =
+              j.state == motion::Client::JobState::Faulted || j.state == motion::Client::JobState::Unknown
+                ? hmi::Severity::Error
+              : j.state == motion::Client::JobState::TimedOut || j.state == motion::Client::JobState::Rejected
+                ? hmi::Severity::Warning
+                : hmi::Severity::Info;
             out.axes = j.axes;
             out.family = unsigned(j.family);
             out.terminal = j.state >= motion::Client::JobState::Completed;

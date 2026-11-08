@@ -16,9 +16,21 @@ class ScreenFixture final : public ui::gui::hmi::Backend
   public:
     void read(ui::gui::hmi::Snapshot& s) override
     {
-        const int n = std::max(0, gui_test_scenario());
+        const bool messages = std::getenv("GUI_TEST_MESSAGES");
+        const int n = messages ? 0 : std::max(0, gui_test_scenario());
+
         s = {};
         s.sequence = unsigned(n + 2);
+        if (messages) {
+            const auto index = std::clamp(gui_test_scenario(), 0, 2);
+            constexpr const char* texts[]{ "Connected to IO",
+                                           "Motion rejected: Axis 1 is busy",
+                                           "Driver fault: reference must be renewed" };
+            s.outcome.operation = index + 1;
+            s.outcome.accepted = index == 0;
+            s.outcome.severity = static_cast<ui::gui::hmi::Severity>(index);
+            std::snprintf(s.outcome.message.data(), s.outcome.message.size(), "%s", texts[index]);
+        }
         s.simulation = true;
         s.connected = n >= 0;
         s.fresh = n >= 0 && n < 4;
@@ -185,6 +197,16 @@ int main()
                     passed ? "PASS" : "FAIL");
         return passed ? 0 : 1;
     }
+    if (std::getenv("GUI_TEST_MESSAGES"))
+        return renderingPassed && gui_test_pixels_correct() && gui_test_phase() == 25 &&
+                   s.state == ui::gui::State::Stopped && !s.errors
+                 ? 0
+                 : 1;
+    if (std::getenv("GUI_TEST_KEYBOARD"))
+        return renderingPassed && gui_test_pixels_correct() && gui_test_phase() == 24 &&
+                   s.state == ui::gui::State::Stopped && !s.errors
+                 ? 0
+                 : 1;
     if (std::getenv("GUI_TEST_WHEEL"))
         return renderingPassed && gui_test_pixels_correct() && gui_test_phase() == 23 &&
                    s.state == ui::gui::State::Stopped && !s.errors
