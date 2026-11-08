@@ -1,5 +1,6 @@
 #include "Controller.hpp"
 #include "Limits.hpp"
+#include "pneumo/logging.hpp"
 #include "profiling/Trace.h"
 #include "runtime/thread.hpp"
 #include <cmath>
@@ -40,7 +41,8 @@ namespace io::motion
         // Validate the complete configuration before installing any callbacks.
         for (const auto& config : configuration) {
             if (!config.reference_position.isFinite() || !config.full_step_angle.isFinite() ||
-                config.full_step_angle <= 0_deg || config.microsteps == 0) {
+                config.full_step_angle <= 0_deg || config.microsteps == 0 ||
+                config.reference_direction > StepperMotor::Direction::Backward) {
                 throw std::invalid_argument("invalid motor configuration");
             }
         }
@@ -78,7 +80,8 @@ namespace io::motion
                 m_executionNotification.signal();
             },
                                                          log_sink,
-                                                         hardware ? hardware->references[i] : nullptr);
+                                                         hardware ? hardware->references[i] : nullptr,
+                                                         config.reference_direction);
         }
         m_driverWorker = runtime::thread::create_jthread(
           // Physical TMC diagnostics peaked below 3.5 KiB; retain over 40%
@@ -265,6 +268,16 @@ namespace io::motion
         }
         if (!m_faulted.load() || m_faultHandled) {
             return;
+        }
+        if (std::ranges::any_of(m_motors, [](const auto& m) { return m->m_events->limit_fault.load(); })) {
+            for (auto& motor : m_motors)
+                motor->m_events->limit_fault.store(true);
+            try {
+                pnm::log::error("Hard limit: all motion inhibited, references invalidated; clear the switch, "
+                                "initialize and reference again");
+            } catch (...) {
+                // Fault cleanup must not depend on diagnostic allocation.
+            }
         }
         m_enable->write(hal::gpio::Level::High);
         m_ownership.invalidate();

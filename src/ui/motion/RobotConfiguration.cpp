@@ -91,8 +91,12 @@ namespace ui::motion
         c.blend_tolerance = 1_mm;
         c.joint_blend_tolerance = { .shoulder = 1_deg, .elbow = 1_deg, .z = 1_mm };
         c.homing_order = { 2, 0, 1 };
-        for (auto& h : c.homing) {
-            h = { .configured = true, .positive = true, .seek = 5_rpm, .latch = 0.5_rpm, .timeout = 30_s };
+        for (unsigned i = 0; i < c.homing.size(); ++i) {
+            c.homing[i] = { .configured = true,
+                            .positive = bool(hardware.reference_forward_mask & (1U << i)),
+                            .seek = 5_rpm,
+                            .latch = 0.5_rpm,
+                            .timeout = 30_s };
         }
         return c;
     }
@@ -161,6 +165,12 @@ namespace ui::motion
                 require(positive(home.seek.get()) && positive(home.latch.get()) && home.latch < home.seek &&
                         positive(home.timeout.get()));
             }
+        }
+        if (c.neutral_position) {
+            const auto q = joints(*c.neutral_position);
+            const auto limits = jointLimits();
+            for (unsigned j = 0; j < 3; ++j)
+                require(std::isfinite(q[j]) && q[j] >= limits[j].minimum && q[j] <= limits[j].maximum);
         }
         for (const auto& l : jointLimits()) {
             require(std::isfinite(l.minimum) && std::isfinite(l.maximum) && l.minimum < l.maximum &&
@@ -326,6 +336,10 @@ namespace ui::motion
                 add(n);
             }
         }
+        add(m_configuration.neutral_position.has_value());
+        if (m_configuration.neutral_position)
+            for (auto q : joints(*m_configuration.neutral_position))
+                add(q);
         add(m_configuration.work.yaw.get());
         add(m_configuration.path_tolerance.get());
         add(static_cast<unsigned>(m_configuration.purpose));

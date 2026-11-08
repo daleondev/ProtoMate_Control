@@ -87,12 +87,14 @@ def test_motion_feedback_homing_fault_and_shutdown(simulator, tmp_path, spawn):
             wait_for(f"motor jobs {job}","completed",100)
             wait_for(f"motor status m{axis}","referenced=yes")
             homed=physical()[axis-1]
-            low,high=[(112,114),(55,57),(29,31)][axis-1]
+            # Final homing position is beyond the RELEASE threshold, not at
+            # the contact datum. Axis 3's modeled lever has ~0.83 mm hysteresis.
+            low,high=[(-106,-104),(-103,-101),(28.9,29.1)][axis-1]
             joint=homed[1]*180/math.pi if axis<3 else homed[1]
             assert low<joint<high,(axis,homed)
             # IO assigns its configured 135-degree coordinate; mechanics must not teleport.
             assert abs(homed[0]-135)>100,(axis,homed)
-            distance=-45 if axis<3 else -360
+            distance=45 if axis<3 else -360
             result=command(f"motor move m{axis} {distance} --speed 30")
             job=re.search(r"job (\d+)",result).group(1)
             wait_for(f"motor jobs {job}","completed")
@@ -111,6 +113,30 @@ def test_motion_feedback_homing_fault_and_shutdown(simulator, tmp_path, spawn):
         time.sleep(0.15)
         command("motor stop")
         wait_for("motor jobs", "stopped")
+        # Outside homing the same real cam is a hard limit, regardless of
+        # motion family. It also inhibits another independently moving motor.
+        limited=[]
+        for axis,distance,speed in [(1,-90,30),(2,90,3)]:
+            reply=command(f"motor move m{axis} {distance} --speed {speed}")
+            limited.append(re.search(r"job (\d+)",reply).group(1))
+        wait_for("motor driver status", "Drivers: disabled")
+        for job in limited:
+            end=time.monotonic()+5
+            while True:
+                state=command(f"motor jobs {job}")
+                if "faulted" in state or "stopped" in state:break
+                assert "completed" not in state and time.monotonic()<end,state
+                time.sleep(.1)
+        assert "references=1" in command("sim status")
+        assert command("motor status all").count("referenced=no")==3
+        # Simulate manually clearing the cam with power inhibited. Clearing and
+        # reinitializing alone must not authorize motion without re-referencing.
+        command("sim fault m1 slip 60")
+        command("sim fault m1 clear")
+        command("motor driver init")
+        command("motor enable")
+        reply=command("motor move m1 1 --speed 10")
+        wait_for(f"motor jobs {re.search(r'job (\d+)',reply).group(1)}", "faulted")
         command("motor disable")
         process.stdin.close()
         exit_code = process.wait(15)
@@ -135,7 +161,7 @@ def test_motion_feedback_homing_fault_and_shutdown(simulator, tmp_path, spawn):
                 pressed = int(press['time_ns'])
                 reverse = next(int(e['time_ns']) for e in edges
                                if (e['port'], int(e['pin'])) == direction
-                               and e['level'] == '0' and int(e['time_ns']) >= pressed)
+                               and e['level'] == ('0' if step_pin == 3 else '1') and int(e['time_ns']) >= pressed)
                 overshoot = [e for e in edges if e['port'] == 'A'
                              and int(e['pin']) == step_pin and e['level'] == '1'
                              and pressed < int(e['time_ns']) < reverse]

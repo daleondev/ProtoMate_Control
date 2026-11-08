@@ -74,23 +74,25 @@ def test_axis_and_robot_workflow(simulator, tmp_path, spawn):
         command("motion stop")
         wait(interrupted, "stopped")
         home = submit("robot home")
-        wait(home)
+        # Full home now includes final switch release and sequential neutral
+        # positioning. Rendering can make virtual time slower than wall time.
+        wait(home, timeout=180)
         homed = actual()
-        assert 112 < math.degrees(homed[0][1]) < 114
-        assert 55 < math.degrees(homed[1][1]) < 57
-        assert 29 < homed[2][1] < 31
-        a = submit("axis move shoulder -5")
-        b = submit("axis move elbow -5")
+        assert abs(math.degrees(homed[0][1])) < .03
+        assert abs(math.degrees(homed[1][1]) + 60) < .03
+        assert abs(homed[2][1] - 15) < .01
+        a = submit("axis move shoulder 5")
+        b = submit("axis move elbow 5")
         wait(a)
         wait(b)
         moved = actual()
-        assert abs(math.degrees(moved[0][1] - homed[0][1]) + 5) < .03
-        assert abs(math.degrees(moved[1][1] - homed[1][1]) + 5) < .03
-        coordinated = submit("robot moveto joints 30 30 10 --speed 1")
+        assert abs(math.degrees(moved[0][1] - homed[0][1]) - 5) < .03
+        assert abs(math.degrees(moved[1][1] - homed[1][1]) - 5) < .03
+        coordinated = submit("robot moveto joints 30 -30 10 --speed 1")
         wait(coordinated)
         final = actual()
         assert abs(math.degrees(final[0][1]) - 30) < .05, final
-        assert abs(math.degrees(final[1][1]) - 30) < .05, final
+        assert abs(math.degrees(final[1][1]) + 30) < .05, final
         assert abs(final[2][1] - 10) < .01, final
         command("axis status")
         command("robot status")

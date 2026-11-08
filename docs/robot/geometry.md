@@ -5,8 +5,8 @@ visual groups in `src/simulation/assets/robot/`. These are **nominal CAD
 measurements, not calibration of the assembled robot**. `geometry.json` records
 source SHA-256 hashes, all 372 STEP body bounds, all 372 visual body bounds,
 selected analytic cylinders, assembly references, registration checks, and
-verbatim relevant product descriptions. The measurements themselves do not use collision STLs. Native simulation uses
-the supplied moving collision STLs separately for switch contacts.
+verbatim relevant product descriptions. The measurements themselves do not use collision STLs. Native simulation uses separate CAD-derived rotary cam bodies and the supplied
+Axis 3 collision STL for switch contacts.
 
 Reproduce with FreeCAD 1.1 / OpenCascade 7.9 installed:
 
@@ -131,15 +131,16 @@ flexion axes, also retained in `geometry.json` and `cad::LEVER_ROOTS_MM`:
 | Z | (321.6, 50.2, −108.900388) | −X |
 
 Native homing now uses collisions between each extracted lever and the next
-moving link's supplied collision STL. Parent-relative transforms follow actual
+moving link's extracted rotary cam body (Axis 1/2) or supplied collision STL
+(Axis 3). Parent-relative transforms follow actual
 converted motor motion. The free and nominally deflected lever must both be
 contacted to activate; backing clear releases the contact. The real controller
 reads those transitions through its normal NC inputs.
 
 CAD gives neither electrical actuation travel nor hysteresis. The simulator
 therefore uses explicit, adjustable **assumptions**: 2° rigid lever flexion and
-0.05 mm clearance for release. The collision STL bounds are approximately
-0.25 mm wider than the visual models. Neither the derived contact angles nor
+0.05 mm clearance for release. Rotary cam geometry now uses exact visual CAD
+surfaces; the Axis 3 collision STL remains an approximate envelope. Neither the derived contact angles nor
 controller homing coordinates are physically calibrated switch positions.
 The switch model does not imply general rigid-body dynamics or collision safety.
 

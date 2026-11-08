@@ -23,6 +23,7 @@ namespace io::motion
             pnm::units::Angle reference_position;
             pnm::units::Angle full_step_angle;
             std::size_t microsteps{};
+            StepperMotor::Direction reference_direction{ StepperMotor::Direction::Forward };
         };
         using Configuration = std::array<MotorConfiguration, 3>;
         using Drivers = std::array<std::shared_ptr<hal::device::IStepperDriver>, 3>;
@@ -159,7 +160,9 @@ namespace io::motion
             ::motion::trajectory::Error error{};
             std::chrono::steady_clock::time_point timeout{ std::chrono::steady_clock::time_point::max() };
             std::function<void(::motion::trajectory::Update)> completed;
-            bool homing{}, home_finished{};
+            bool homing{}, home_finished{}, home_to_neutral{};
+            ::motion::trajectory::Counts home_neutral{};
+            std::array<::motion::trajectory::Limits, 3> home_limits{};
             std::array<::motion::trajectory::HomeStage, 3> home{};
             std::array<std::uint8_t, 3> home_order{};
             unsigned home_stage{};

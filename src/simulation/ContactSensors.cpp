@@ -69,6 +69,37 @@ namespace simulation
         return clearance(p, axis, joint, 0) == 0 &&
                (deflection == 0 || clearance(p, axis, joint, deflection) == 0);
     }
+    ContactSensors::Boundary ContactSensors::boundary(const Profile& p, unsigned axis, bool positive)
+    {
+        p.validate();
+        if (axis >= 3 || (axis == 2 && !positive))
+            throw std::invalid_argument{ "no CAD cam on this axis side" };
+        const double step = (positive ? 1. : -1.) * (axis < 2 ? std::numbers::pi / 180. : 1.);
+        const auto operated = [&](double distance) {
+            return contact(p, axis, distance * step, p.sensor_operate_deflection_deg[axis]);
+        };
+        if (operated(0) || clearance(p, axis, 0, 0) <= p.sensor_release_clearance_mm[axis])
+            throw std::runtime_error{ "CAD zero must be clear of both cams" };
+        unsigned end = 1;
+        for (; end <= 180 && !operated(end); ++end) {
+        }
+        if (end > 180)
+            throw std::runtime_error{ "CAD cam not found within supported travel" };
+        const auto bisect = [&](auto predicate) {
+            double low = 0, high = end;
+            for (unsigned iteration = 0; iteration < 40; ++iteration) {
+                const double middle = (low + high) * .5;
+                if (predicate(middle))
+                    high = middle;
+                else
+                    low = middle;
+            }
+            return high * step;
+        };
+        return { bisect(operated), bisect([&](double distance) {
+            return clearance(p, axis, distance * step, 0) <= p.sensor_release_clearance_mm[axis];
+        }) };
+    }
     bool ContactSensors::update(unsigned axis, double joint)
     {
         if (axis >= 3 || !std::isfinite(joint))

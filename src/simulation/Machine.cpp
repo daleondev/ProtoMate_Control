@@ -50,17 +50,16 @@ namespace simulation
             values[7 + i] = profile.shaft_reference[i];
             values[10 + i] = double(profile.direction[i]);
             values[13 + i] = profile.geometry_mm[i];
-            double low = i == 0 ? 110. : i == 1 ? 50. : 25.;
-            double high = i == 0 ? 115. : i == 1 ? 60. : 35.;
-            for (unsigned n = 0; n < 40; ++n) {
-                const double mid = (low + high) * .5;
-                const double q = i < 2 ? mid * std::numbers::pi / 180. : mid;
-                if (ContactSensors::contact(profile, i, q, profile.sensor_operate_deflection_deg[i]))
-                    high = mid;
-                else
-                    low = mid;
-            }
-            values[17 + i] = i < 2 ? high * std::numbers::pi / 180. : high / 1000.;
+            const auto upper = ContactSensors::boundary(profile, i, true);
+            const auto lower =
+              i < 2 ? ContactSensors::boundary(profile, i, false) : ContactSensors::Boundary{};
+            const auto units = i < 2 ? 1. : 1000.;
+            values[17 + i] = upper.operate / units;
+            values[20 + i] = lower.operate / units;
+            // Soft endpoints lie inside actuation and outside the final homing
+            // release. Keep the switch datum separate from usable travel.
+            values[23 + i] = (lower.operate + lower.release) / (2. * units);
+            values[26 + i] = (upper.operate + upper.release) / (2. * units);
         }
         values[3] = profile.z_mm_per_revolution;
         values[16] = cad::REST_TCP_Z_MM;

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Extract the named free switch levers into native contact meshes, without FreeCAD.
+"""Extract named switch levers and rotary cam bodies without FreeCAD.
 
 All inputs remain unchanged. --check verifies generated assets and source hashes.
-The neighboring collision STLs are union meshes with no named sensor components;
-we therefore retain the exact free lever surfaces from each parent DAE.
+The simplified whole-link collision STLs bridge voids between rotary cams.
+Use the exact lever and cam-body surfaces, retaining their original local frames.
 """
 import argparse
 import hashlib
@@ -22,15 +22,15 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def extract(path):
+def extract(path, body="/ Spring lever - supplier free position"):
     source = path.read_bytes()
     root = ET.fromstring(source)
     if root.find('c:asset/c:unit', NS).get('meter') != '1' or root.findtext('c:asset/c:up_axis', namespaces=NS) != 'Z_UP':
         raise ValueError(f'{path}: expected metre/Z_UP Fusion export')
     nodes = [n for n in root.findall('c:library_visual_scenes/c:visual_scene/c:node', NS)
-             if '/ Spring lever - supplier free position' in n.get('name', '')]
+             if body in n.get('name', '')]
     if len(nodes) != 1:
-        raise ValueError(f'{path}: expected exactly one named switch lever')
+        raise ValueError(f'{path}: expected exactly one named contact body')
     node = nodes[0]
     if any(node.find('c:' + t, NS) is not None for t in ('matrix', 'translate', 'rotate', 'scale', 'node')):
         raise ValueError('Expected baked parent-link coordinates')
@@ -54,7 +54,7 @@ def extract(path):
             triangles.append([points[3*v + j] for v in vertices[i:i+3] for j in range(3)])
     if not triangles:
         raise ValueError('No lever triangles')
-    data = b'Fusion free spring lever, metres/Z-up, same parent frame'.ljust(80, b'\0') + struct.pack('<I', len(triangles))
+    data = b'Fusion contact body, metres/Z-up, original link frame'.ljust(80, b'\0') + struct.pack('<I', len(triangles))
     for triangle in triangles:
         data += struct.pack('<12fH', 0, 0, 0, *triangle, 0)
     return data, {'source': str(path.relative_to(ROOT)), 'sha256': sha(source), 'body': node.get('name'),
@@ -70,7 +70,15 @@ def main():
     for name, parent, moving in [('j1', 'base_link', 'link_1'), ('j2', 'link_1', 'link_2'), ('z', 'link_2', 'link_3')]:
         data, source = extract(ASSETS / parent / f'{parent}.dae')
         collision = ASSETS / moving / f'{moving}_collision.stl'
-        source['moving_collision'] = {'path': str(collision.relative_to(ROOT)), 'sha256': sha(collision.read_bytes())}
+        if name != 'z':
+            body = ('/ Rigid continuous thrust backing and Link1 saddle' if name == 'j1'
+                    else 'J2-03 Rotating lower bearing housing and Link2 sleeve - PRINT:1 / Bearing deck ring')
+            cam_data, cam_source = extract(ASSETS / moving / f'{moving}.dae', body)
+            collision = ASSETS / 'sensors' / f'{name}_cams.stl'
+            outputs[collision] = cam_data
+            source['cam_source'] = cam_source
+        collision_data = outputs.get(collision) or collision.read_bytes()
+        source['moving_collision'] = {'path': str(collision.relative_to(ROOT)), 'sha256': sha(collision_data)}
         outputs[ASSETS / 'sensors' / f'{name}_lever.stl'] = data
         metadata[name] = source
     outputs[ASSETS / 'sensors/sources.json'] = (json.dumps(metadata, indent=2) + '\n').encode()
@@ -81,7 +89,7 @@ def main():
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
-    print('PASS: three named CAD levers and moving collision STL fingerprints' if args.check else 'Generated three CAD lever meshes and source fingerprints')
+    print('PASS: CAD lever/cam source and contact mesh fingerprints' if args.check else 'Generated CAD lever/cam meshes and source fingerprints')
 
 
 if __name__ == '__main__':

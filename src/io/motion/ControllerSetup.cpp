@@ -24,8 +24,11 @@ namespace io::motion
     void Controller::initializeCapabilities()
     {
         namespace tr = ::motion::trajectory;
+        m_capabilities.reference_forward_mask = 0;
         for (unsigned i = 0; i < 3; ++i) {
             const auto step = m_configuration[i].full_step_angle.get() / m_configuration[i].microsteps;
+            if (m_configuration[i].reference_direction == StepperMotor::Direction::Forward)
+                m_capabilities.reference_forward_mask |= 1U << i;
             m_capabilities.step_radians[i] = step;
             m_capabilities.reference_steps[i] = m_configuration[i].reference_position.get() / step;
             m_capabilities.limits[i] = { .minimum = -tr::MAX_POSITION,
@@ -195,7 +198,9 @@ namespace io::motion
                     // Do not overwrite an alarm ISR's disable write with our enable.
                     const hal::stm32::InterruptGuard guard{};
 #endif
-                    permitted = !m_faulted.load() && driversReady();
+                    permitted = !m_faulted.load() && driversReady() &&
+                                std::ranges::none_of(
+                                  m_motors, [](const auto& motor) { return motor->referenceSwitchActive(); });
                     if (permitted) {
                         m_enable->write(hal::gpio::Level::Low);
                     }
@@ -203,7 +208,8 @@ namespace io::motion
                 if (!permitted || !enabled() || !driversReady()) {
                     m_faulted.store(true);
                     handleFaultsLocked();
-                    throw std::runtime_error("driver verification failed before enable");
+                    throw std::runtime_error(
+                      "enable rejected: driver fault or active limit switch; clear switches before homing");
                 }
             }
             const auto deadline{ std::chrono::steady_clock::now() + ENABLE_SETTLING_TIME };
@@ -350,7 +356,7 @@ namespace io::motion
             if (motor.m_busy || motor.m_homing || motor.m_pending) {
                 return fail(std::errc::device_or_resource_busy);
             }
-            if (!motor.isReferenced() || (a.forward && motor.referenceSwitchActive())) {
+            if (!motor.isReferenced() || motor.referenceSwitchActive()) {
                 return fail(std::errc::operation_not_permitted);
             }
             for (const auto& g : m_groups) {

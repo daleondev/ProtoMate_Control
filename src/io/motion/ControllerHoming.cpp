@@ -31,7 +31,7 @@ namespace io::motion
             if (!g.home_ready.load()) {
                 return;
             }
-            const auto motor = g.home_order[g.home_stage];
+            const auto motor = g.home_order[g.home_stage % 3];
             auto result = StepperMotor::Result::Faulted;
             try {
                 result = g.home_result.get();
@@ -39,7 +39,9 @@ namespace io::motion
             }
             m_motors[motor]->stopAndWait();
             if (result != StepperMotor::Result::Completed && g.error == tr::Error::None) {
-                g.error = result == StepperMotor::Result::Faulted    ? tr::Error::Fault
+                g.error = result == StepperMotor::Result::Faulted ? tr::Error::Fault
+                          : result == StepperMotor::Result::Rejected
+                            ? (g.home_stage < 3 ? tr::Error::ReferenceActive : tr::Error::Configuration)
                           : result == StepperMotor::Result::TimedOut ? tr::Error::HomingTimeout
                                                                      : tr::Error::Cancelled;
             }
@@ -49,19 +51,38 @@ namespace io::motion
             g.home_finished = true;
             return;
         }
-        while (g.home_stage < 3 && !(g.mask & (1U << g.home_order[g.home_stage]))) {
+        while (g.home_stage < 3 && !(g.mask & (1U << g.home_order[g.home_stage % 3]))) {
             ++g.home_stage;
         }
-        if (g.home_stage == 3) {
+        if (g.home_stage == (g.home_to_neutral ? 6U : 3U)) {
             g.home_finished = true;
             return;
         }
-        auto& motor = *m_motors[g.home_order[g.home_stage]];
-        const auto& parameters = g.home[g.home_order[g.home_stage]];
+        auto& motor = *m_motors[g.home_order[g.home_stage % 3]];
+        const auto& parameters = g.home[g.home_order[g.home_stage % 3]];
         g.home_ready = false;
         try {
-            g.home_result = motor.reference(
-              parameters.seek_rpm * 1_rpm, parameters.latch_rpm * 1_rpm, parameters.timeout * 1_s);
+            if (g.home_stage < 3) {
+                g.home_result = motor.reference(
+                  parameters.seek_rpm * 1_rpm, parameters.latch_rpm * 1_rpm, parameters.timeout * 1_s);
+            }
+            else {
+                const auto index = g.home_order[g.home_stage % 3];
+                const auto& limits = g.home_limits[index];
+                const auto position = motor.setpointPosition() / motor.m_stepAngle;
+                if (!motor.isReferenced() || position < limits.minimum || position > limits.maximum) {
+                    g.error = tr::Error::PositionLimit;
+                    g.home_finished = true;
+                    return;
+                }
+                g.home_result = motor.moveAbs(motor.m_stepAngle * double(g.home_neutral[index]),
+                                              motor.m_stepAngle * limits.velocity / 1_s,
+                                              motor.m_stepAngle * limits.acceleration / 1_s / 1_s,
+                                              motor.m_stepAngle * limits.deceleration / 1_s / 1_s,
+                                              motor.m_stepAngle * limits.jerk / 1_s / 1_s / 1_s,
+                                              BufferMode::Aborting,
+                                              90_s);
+            }
             motor.m_lastCompletion.then([this, &g] {
                 g.home_ready = true;
                 m_executionNotification.signal();
@@ -72,7 +93,7 @@ namespace io::motion
             try {
                 pnm::log::error("Homing job {} could not start motor {}: {}",
                                 g.job,
-                                unsigned(g.home_order[g.home_stage]) + 1U,
+                                unsigned(g.home_order[g.home_stage % 3]) + 1U,
                                 error.what());
             } catch (...) {
             } // A low-memory failure must not depend on logging.
@@ -82,7 +103,7 @@ namespace io::motion
             try {
                 pnm::log::error("Homing job {} could not start motor {}: unknown exception",
                                 g.job,
-                                unsigned(g.home_order[g.home_stage]) + 1U);
+                                unsigned(g.home_order[g.home_stage % 3]) + 1U);
             } catch (...) {
             }
         }

@@ -293,6 +293,9 @@ namespace
                                         std::make_shared<Driver>(),
                                         std::make_shared<Driver>() };
         } };
+        for (const auto pin : { 7, 8, 10 })
+            hal::gpio::simulated_input({ hal::gpio::Port::E, static_cast<std::uint8_t>(pin) })
+              ->setSimulatedLevel(hal::gpio::Level::Low);
         controller.initializeDrivers();
         io::motion::Server server{ bus, controller };
         auto enabling{ bus.service<^^icc::Services::io_motor>().request(
@@ -441,10 +444,13 @@ namespace
         input->setSimulatedLevel(hal::gpio::Level::Low);
         ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
         input->setSimulatedLevel(hal::gpio::Level::High);
+        ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() < 0_rpm; }));
+        input->setSimulatedLevel(hal::gpio::Level::Low);
         ASSERT_TRUE(waitUntil([&] { return jobIs(1, State::Completed); }));
         EXPECT_TRUE(controller.motor(Id::Motor1).isReferenced());
-        EXPECT_NEAR(position(Id::Motor1), 135, 0.0001);
-        // Moving away from an active reference input is permitted.
+        EXPECT_LE(position(Id::Motor1), 135);
+        EXPECT_GT(position(Id::Motor1), 130.5);
+        // Homing releases the switch without erasing the latched reference coordinate.
         ASSERT_TRUE(command("motor moveto m1 130.5 --speed 5"));
         ASSERT_TRUE(waitUntil([&] { return jobIs(2, State::Completed); }));
         EXPECT_NEAR(position(Id::Motor1), 130.5, 0.0001);

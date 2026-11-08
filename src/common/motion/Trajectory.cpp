@@ -157,6 +157,7 @@ namespace motion::trajectory
             w.integer(c.direction_hold_ticks);
             w.integer(c.capacity);
             w.integer(std::uint8_t(c.coordinated_execution));
+            w.integer(c.reference_forward_mask);
         }
         Capabilities readCapabilities(Reader& r)
         {
@@ -179,6 +180,7 @@ namespace motion::trajectory
             c.direction_hold_ticks = r.integer<std::uint32_t>();
             c.capacity = r.integer<std::uint16_t>();
             c.coordinated_execution = r.boolean();
+            c.reference_forward_mask = r.integer<std::uint8_t>();
             return c;
         }
         bool near(double a, double b, double absolute) noexcept
@@ -228,10 +230,11 @@ namespace motion::trajectory
                                     "stopping schedule: brake exceeds admitted path",
                                     "stopping schedule: axis scaling rejected",
                                     "stopping schedule: storage still owned",
-                                    "homing timed out before stable reference contact",
+                                    "homing or neutral return timed out",
                                     "STEP schedule handoff deadline missed",
-                                    "schedule replacement rejected by STEP backend" };
-        static_assert(names.size() == unsigned(Error::SpliceRejected) + 1);
+                                    "schedule replacement rejected by STEP backend",
+                                    "limit switch active; clear it before homing" };
+        static_assert(names.size() == unsigned(Error::ReferenceActive) + 1);
         const auto n{ static_cast<unsigned>(e) };
         return n < names.size() ? names[n] : "invalid error";
     }
@@ -431,6 +434,9 @@ namespace motion::trajectory
                 for (auto i : p.home_order) {
                     w.integer(i);
                 }
+                w.integer(std::uint8_t(p.home_to_neutral));
+                for (auto n : p.home_neutral)
+                    w.integer(n);
             }
         }
         return w.finish();
@@ -576,6 +582,12 @@ namespace motion::trajectory
                 for (auto& i : p.home_order) {
                     i = r.integer<std::uint8_t>();
                 }
+                const auto neutral = r.integer<std::uint8_t>();
+                if (neutral > 1)
+                    return std::unexpected(Error::InvalidInput);
+                p.home_to_neutral = neutral != 0;
+                for (auto& n : p.home_neutral)
+                    n = r.integer<std::int64_t>();
             }
         }
         if (!r.finish()) {
@@ -597,7 +609,7 @@ namespace motion::trajectory
             v.error = Error(r.integer<std::uint8_t>());
             v.boot = r.integer<std::uint64_t>();
             v.generation = r.integer<std::uint64_t>();
-            if (version != VERSION || v.error > Error::SpliceRejected) {
+            if (version != VERSION || v.error > Error::ReferenceActive) {
                 return std::unexpected(Error::Protocol);
             }
             if (!r.finish()) {
@@ -642,8 +654,8 @@ namespace motion::trajectory
         if (v.family > Family::Robot) {
             return std::unexpected(Error::Protocol);
         }
-        if (v.error > Error::SpliceRejected || v.state > State::Unknown || v.referenced > 7 ||
-            v.capabilities.version != VERSION) {
+        if (v.error > Error::ReferenceActive || v.state > State::Unknown || v.referenced > 7 ||
+            v.capabilities.version != VERSION || v.capabilities.reference_forward_mask > 7) {
             return std::unexpected(Error::Protocol);
         }
         if (!r.finish()) {

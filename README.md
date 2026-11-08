@@ -34,7 +34,7 @@ acceptance and the eventual result. Returning to the prompt does not cancel a mo
 | Control | Units | Commands |
 |---|---|---|
 | `motor` | Shaft degrees / rpm | Existing raw moves, homing, dynamics and buffering |
-| `axis` | Shoulder/elbow degrees; Z mm | `status`, `move`, `moveto`, `home`, `jog`, `stop` |
+| `axis` | Axis 1/2 degrees; Axis 3 mm | `status`, `move`, `moveto`, `home`, `jog`, `stop` |
 | `robot` | Joint coordinates or Cartesian mm | `status`, `home`, `move joints`, `moveto joints`, `move point`, `moveto point`, `stop` |
 | `motion` | Shared lifecycle/jobs | `init`, `enable`, `disable`, `status`, `jobs`, `wait`, `cancel`, `stop`, `abort` |
 
@@ -48,7 +48,7 @@ Examples after homing:
 ```text
 axis move shoulder -5 --speed 10
 axis jog z -1 --duration 1
-robot moveto joints 30 30 10 --speed 0.25
+robot moveto joints 30 -30 10 --speed 0.25
 robot move point -1 -1 0
 motion jobs
 motion wait 4 --timeout 10
@@ -283,7 +283,7 @@ motor disable
 - `motor enable` / `motor disable` operate the shared enable; disabling stops work and invalidates references.
 - `motor move <motor> <degrees> --speed <rpm>` submits a relative move.
 - `motor moveto <motor> <degrees> --speed <rpm>` requires successful homing.
-- `motor home <motor> [--seek 5] [--latch 0.5] [--timeout 30]` seeks, releases and slowly re-latches the reference switch.
+- `motor home <motor> [--seek 5] [--latch 0.5] [--timeout 30]` seeks, releases, slowly re-latches and finally releases the switch again, retaining the coordinate established at the latch.
 - `motor speed <motor> <rpm>` replans the uncommitted remainder of an active move. It can be rejected once all remaining pulses are already scheduled.
 - `motor defaults <motor> [--accel <deg/s²>] [--decel <deg/s²>] [--jerk <deg/s³>]` reads/updates idle motor defaults in RAM.
 - `motor stop [motor|all]` aborts the selected motor and its buffered successor while retaining holding torque and invalidating its reference. Other independent motors continue; targeting a current robot group aborts that whole group.
@@ -1612,12 +1612,46 @@ mechanical model. The `180` and `archived` preview fixtures are explicitly
 uncalibrated and cannot authorize physical execution. Axis operations require
 conversions and limits but do not require robot link geometry.
 
-Homing reuses the motor's positive-direction seek, release, debounce and slow
-re-latch sequence. Configuration supplies seek/latch speeds, overall timeout and
-robot homing order. Negative-direction homing is explicitly rejected. Only
-successfully completed stages establish references; cancellation prevents the
-next robot stage from starting. A timeout is not a calibrated travel-limit
-measurement.
+Homing seeks **backward on Axis 1/2 and forward on Axis 3**. Direction is part
+of the IO capability fingerprint; UI configuration must agree. It rejects an
+already-active switch, seeks contact, releases, slowly re-latches, then backs
+clear again. The slow latch establishes the reference coordinate; the final
+release displacement is counted normally. Debounce and the overall timeout apply
+to every phase. Failed/cancelled stages remain unreferenced.
+
+There is no cam-side tracking. Outside homing, either rotary cam activating its
+switch immediately inhibits the shared enable. Worker cleanup aborts all motion
+and invalidates all references. Clear the switch/check wiring, initialize the
+drivers, enable, and reference again. Clearing the input or re-enabling alone
+does not restore ordinary raw-motion permission. Cancelling homing while a
+switch remains pressed also invokes the hard-limit shutdown, without waiting
+for another GPIO edge. Active switches also prevent
+enabling. A timeout is not a calibrated travel-limit measurement.
+
+Full `robot home` owns all axes through referencing **Axis 3 → Axis 1 → Axis 2**
+and a sequential return in that same order to the configured neutral pose.
+The native simulator defines that pose as **Axis 1 = 0°, Axis 2 = −60°,
+Axis 3 = 15 mm**: a bent arm rather than a straight-arm singularity. Neutral
+moves use 25% of configured axis velocity and configured acceleration/jerk.
+Completion is reported only after arrival; stopping/cancellation prevents later
+stages. Individual axis/raw homing only references and releases its switch.
+Physical robot configuration must supply a verified neutral pose before full
+robot homing is available; simulator coordinates are not physical calibration.
+
+Native rotary contact geometry uses the actual two-cam bodies extracted from the
+CAD, not the coarse whole-link collision hulls. Nominal actuation bounds are
+Axis 1 **−105.588° / +113.460°**, Axis 2 **−102.911° / +114.666°**. Operational
+soft limits sit inside these contacts, halfway between each actuation/release
+coordinate; homing retains the separate contact datum. See the
+[simulator contact model](src/simulation/README.md) for assumptions.
+
+Verification (2026-11-08): 13 targeted Release/Linux suites pass, including
+`simulation.hmi`, `simulation.motion_api` and `simulation.integration`. They cover
+neutral arrival against native plant state, cancellation/ownership, both cams,
+final switch release, hard-limit inhibition of concurrent motors and recovery
+that requires re-referencing. GIGA M4/M7 Debug and Release compile/link cleanly.
+These changes have not been flashed or tested with powered mechanics; the
+physical calibration remains unset.
 
 ```text
 robot preview joints 10 80 40 --fixture 180 --start-shoulder 0 --start-elbow 68.7549354 --start-z 30

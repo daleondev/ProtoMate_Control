@@ -14,7 +14,7 @@
 
 namespace motion::trajectory
 {
-    inline constexpr std::uint16_t VERSION{ 3 };
+    inline constexpr std::uint16_t VERSION{ 4 };
     inline constexpr std::uint32_t TICK_NS{ 100 };
     inline constexpr std::uint64_t CHECKPOINT_TICKS{ operating::CHECKPOINT_TICKS };
     inline constexpr std::uint64_t COMMIT_HORIZON_TICKS{ operating::COMMIT_TICKS };
@@ -69,7 +69,8 @@ namespace motion::trajectory
         ScheduleInUse,
         HomingTimeout,
         SpliceDeadline,
-        SpliceRejected
+        SpliceRejected,
+        ReferenceActive
     };
     std::string_view name(Error error) noexcept;
     enum class State : std::uint8_t
@@ -141,6 +142,7 @@ namespace motion::trajectory
           direction_hold_ticks{ 50 };
         std::uint16_t capacity{ IO_SEGMENTS };
         bool coordinated_execution{};
+        std::uint8_t reference_forward_mask{ 7 }; // motor-coordinate homing direction, bits M1..M3
     };
     // One normalized, rest-to-rest progress law. Motor displacements are
     // quantized once on UI; IO validates them against the reservation snapshot.
@@ -151,7 +153,10 @@ namespace motion::trajectory
         Jog,
         CartesianJog
     };
-    struct HomeStage { double seek_rpm{}, latch_rpm{}, timeout{}; };
+    struct HomeStage
+    {
+        double seek_rpm{}, latch_rpm{}, timeout{};
+    };
     struct FiniteProgram
     {
         Profile::Description progress{};
@@ -161,7 +166,9 @@ namespace motion::trajectory
         double timeout{};
         ProgramKind kind{};
         std::array<HomeStage, 3> home{};
-        std::array<std::uint8_t, 3> home_order{0,1,2};
+        std::array<std::uint8_t, 3> home_order{ 0, 1, 2 };
+        bool home_to_neutral{};
+        Counts home_neutral{};
         std::array<ProgressPath, 3> path{};
     };
     struct Run
@@ -174,7 +181,7 @@ namespace motion::trajectory
         JobState state{};
         Error error{};
         Counts position{};
-        bool counts_exact{true};
+        bool counts_exact{ true };
     };
     struct Request
     {

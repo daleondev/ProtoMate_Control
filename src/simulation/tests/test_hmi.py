@@ -63,7 +63,7 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         actual[2]/=1000 # native CLI reports Z in mm; HMI model uses SI
         assert snapshot['flags']==7,snapshot
         assert snapshot['encoder_mask']==1,snapshot
-        # The native fusion-cad-v3 plant uses 5:1 rotary reductions and a
+        # The native fusion-cad-v4 plant uses 5:1 rotary reductions and a
         # 1.25 mm lead. Commanded endpoints agree within reference/grid rounding.
         for shown,real,tolerance in zip(snapshot['pose'][:3],actual,(.0004,.0004,.000002)):
             assert abs(shown-real)<tolerance,(snapshot,actual)
@@ -122,7 +122,8 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
             assert time.monotonic()<end,'GUI enable did not reach IO'
             time.sleep(.1)
         time.sleep(.5);click(880,490);interrupted=latest();wait(interrupted,('running',));click(940,560);wait(interrupted,('stopped',))
-        click(880,490);home=latest();assert home>interrupted;wait(home)
+        # Include final switch clearance and the full sequential neutral return.
+        click(880,490);home=latest();assert home>interrupted;wait(home,timeout=180)
         compare_presented_state(capture('home-referenced'));before_robot=joints()
         click(50,154);click(890,118);click(740,250)
         number(240,264,-4);number(520,264,-4);number(800,264,-.1)

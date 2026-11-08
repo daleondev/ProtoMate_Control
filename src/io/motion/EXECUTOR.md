@@ -73,11 +73,20 @@ destination or repeatedly accelerate from rest. The M4 deadline requests braking
 after one second by default; `--continuous` removes that deadline but retains the
 soft limit, ownership lease and local fault protection.
 
-Homing uses the existing positive-direction seek, release and slower re-latch,
-with switch debounce and one overall timeout. Robot homing retains all-axis
-ownership across its configured order. Cancellation prevents the next stage;
-only completed stages establish references. Negative-direction homing is rejected,
-and the timeout must not be described as a measured physical travel limit.
+Homing uses the IO-configured seek direction (Axis 1/2 backward, Axis 3 forward),
+release, slow re-latch and a final release. The latch establishes the coordinate;
+subsequent clearance motion is accounted normally. Active inputs reject entry.
+Either cam activating outside homing inhibits shared enable, aborts all work and
+requires re-referencing after disabled-state recovery. No cam-side identity is
+tracked. A cancelled recovery does not clear that requirement.
+
+Robot homing retains all-axis ownership across its configured order and the
+subsequent sequential neutral return, encoded in the same bounded home program.
+The native configuration uses 0° / −60° / 15 mm and Axis 3 → Axis 1 → Axis 2 for
+both phases. Neutral moves use configured limits at 25% velocity. Cancellation
+prevents later stages; only completed reference stages establish references.
+The timeout is not a measured physical travel limit. Physical neutral/reference
+coordinates require a verified robot configuration.
 
 ## Scheduling and stopping
 

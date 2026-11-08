@@ -156,15 +156,37 @@ TEST_F(SimulationMachine, EncoderCoordinateAndEnable)
 
 TEST_F(SimulationMachine, GeometryReferenceAndDisconnectedContact)
 {
-    // Geometry-derived contact at 60 degrees on J2; 45 degrees is clear.
+    // Actual Axis 2 cam operates near 115 degrees; 100 degrees is clear.
     command(Operation::Fault,
-            { 1, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(300.0) });
+            { 1, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(575.0) });
     ASSERT_TRUE((acquire(shared.gpio[REF_PINS[1]]) == 1)) << "collision activates reference";
     command(Operation::Fault,
             { 1, std::to_underlying(Fault::ShaftSlip), std::bit_cast<std::uint64_t>(-75.0) });
     ASSERT_TRUE((acquire(shared.gpio[REF_PINS[1]]) == 0)) << "moving away from the lever releases reference";
     command(Operation::Fault, { 1, std::to_underlying(Fault::ReferenceDisconnected) });
     ASSERT_TRUE((acquire(shared.gpio[REF_PINS[1]]) == 1)) << "NC disconnected contact is active";
+}
+
+TEST_F(SimulationMachine, SoftLimitsAndReferenceDatumsRemainSeparate)
+{
+    const Profile profile{};
+    const auto values = Machine::configuration(profile);
+    ContactSensors contacts{ profile };
+    for (unsigned i = 0; i < 3; ++i) {
+        const double units = i < 2 ? 1. : 1000.;
+        const auto upper = ContactSensors::boundary(profile, i, true);
+        EXPECT_DOUBLE_EQ(values[17 + i] * units, upper.operate);
+        EXPECT_LT(values[26 + i] * units, upper.operate);
+        EXPECT_GT(values[26 + i] * units, upper.release);
+        EXPECT_FALSE(contacts.update(i, values[26 + i] * units));
+        if (i < 2) {
+            const auto lower = ContactSensors::boundary(profile, i, false);
+            EXPECT_DOUBLE_EQ(values[20 + i], lower.operate);
+            EXPECT_GT(values[23 + i], lower.operate);
+            EXPECT_LT(values[23 + i], lower.release);
+            EXPECT_FALSE(contacts.update(i, values[23 + i]));
+        }
+    }
 }
 
 TEST_F(SimulationMachine, TimerWrapAndInterrupt)
@@ -315,24 +337,36 @@ TEST_F(SimulationMachine, DisconnectDisablesPlant)
 
 TEST_F(SimulationMachine, FutureSpliceRequiresGuardAndPreservesNearEdges)
 {
-    command(Operation::Reset); command(Operation::Start,{hal::util::STEP_PARK});
-    const auto publish=[&](Operation operation,std::array<std::uint32_t,4> values,std::uint32_t cut) {
-        for(unsigned i=0;i<values.size();++i) put(shared.bulk[0],i*4,values[i],4);
-        release(shared.bulk_generation[0],1U);
-        return command(operation,{0,0,0,1,checksum(std::span(shared.bulk[0]).first(sizeof(hal::util::StepBuffer))),cut});
+    command(Operation::Reset);
+    command(Operation::Start, { hal::util::STEP_PARK });
+    const auto publish = [&](Operation operation, std::array<std::uint32_t, 4> values, std::uint32_t cut) {
+        for (unsigned i = 0; i < values.size(); ++i)
+            put(shared.bulk[0], i * 4, values[i], 4);
+        release(shared.bulk_generation[0], 1U);
+        return command(
+          operation,
+          { 0, 0, 0, 1, checksum(std::span(shared.bulk[0]).first(sizeof(hal::util::StepBuffer))), cut });
     };
-    const std::array<std::uint32_t,4> original{100'050,110'000,110'050,hal::util::STEP_PARK};
-    ASSERT_EQ(publish(Operation::Publish,original,0).status,0U);
-    ASSERT_EQ(command(Operation::Arm,{0,100'000,4}).status,0U);
-    EXPECT_EQ(publish(Operation::Publish,original,0).status,EBUSY);
-    EXPECT_NE(publish(Operation::PublishFuture,{100'050,120'000,120'050,hal::util::STEP_PARK},125'000).status,0U);
-    EXPECT_EQ(publish(Operation::PublishFuture,{100'050,120'000,120'050,hal::util::STEP_PARK},90'000).status,0U);
-    EXPECT_NE(command(Operation::Retarget,{0,99'000,110'000}).status,0U);
-    EXPECT_EQ(command(Operation::Retarget,{0,101'000,90'000}).status,0U);
+    const std::array<std::uint32_t, 4> original{ 100'050, 110'000, 110'050, hal::util::STEP_PARK };
+    ASSERT_EQ(publish(Operation::Publish, original, 0).status, 0U);
+    ASSERT_EQ(command(Operation::Arm, { 0, 100'000, 4 }).status, 0U);
+    EXPECT_EQ(publish(Operation::Publish, original, 0).status, EBUSY);
+    EXPECT_NE(
+      publish(Operation::PublishFuture, { 100'050, 120'000, 120'050, hal::util::STEP_PARK }, 125'000).status,
+      0U);
+    EXPECT_EQ(
+      publish(Operation::PublishFuture, { 100'050, 120'000, 120'050, hal::util::STEP_PARK }, 90'000).status,
+      0U);
+    EXPECT_NE(command(Operation::Retarget, { 0, 99'000, 110'000 }).status, 0U);
+    EXPECT_EQ(command(Operation::Retarget, { 0, 101'000, 90'000 }).status, 0U);
     // Rebasing consumed entries is illegal while DMA owns the bank, but is
     // safe after parking in LOW and before arming a later rising edge.
-    EXPECT_NE(publish(Operation::PublishFuture,{150'050,160'000,160'050,hal::util::STEP_PARK},130'000).status,0U);
-    ASSERT_EQ(command(Operation::StopAxis,{0}).status,0U);
-    ASSERT_EQ(publish(Operation::PublishFuture,{150'050,160'000,160'050,hal::util::STEP_PARK},130'000).status,0U);
-    ASSERT_EQ(command(Operation::Arm,{0,150'000,4}).status,0U);
+    EXPECT_NE(
+      publish(Operation::PublishFuture, { 150'050, 160'000, 160'050, hal::util::STEP_PARK }, 130'000).status,
+      0U);
+    ASSERT_EQ(command(Operation::StopAxis, { 0 }).status, 0U);
+    ASSERT_EQ(
+      publish(Operation::PublishFuture, { 150'050, 160'000, 160'050, hal::util::STEP_PARK }, 130'000).status,
+      0U);
+    ASSERT_EQ(command(Operation::Arm, { 0, 150'000, 4 }).status, 0U);
 }

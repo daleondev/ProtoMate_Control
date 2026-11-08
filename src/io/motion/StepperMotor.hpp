@@ -57,7 +57,8 @@ namespace io::motion
                      std::shared_ptr<hal::device::IMotorFeedback> feedback = {},
                      hal::device::IStepperDriver::FaultCallback shutdown = {},
                      std::shared_ptr<pnm::log::ISink> log_sink = {},
-                     std::shared_ptr<hal::IDigitalInput> reference_input = {});
+                     std::shared_ptr<hal::IDigitalInput> reference_input = {},
+                     Direction reference_direction = Direction::Forward);
         hal::device::IStepperDriver& driver() noexcept { return *m_driver; }
         const hal::device::IStepperDriver& driver() const noexcept { return *m_driver; }
         ~StepperMotor();
@@ -102,6 +103,7 @@ namespace io::motion
                                       pnm::units::Time timeout = DEFAULT_REFERENCE_TIMEOUT);
         bool isReferenced() const noexcept;
         bool referenceSwitchActive() const noexcept;
+        Direction referenceDirection() const noexcept { return m_referenceDirection; }
         void invalidateReference() noexcept;
 
         // Immediate abort (no deceleration ramp), also cancels queued commands.
@@ -146,7 +148,9 @@ namespace io::motion
 
         struct MotionEvents
         {
+            hal::device::IStepperDriver::FaultCallback shutdown;
             runtime::Notification notification;
+            std::atomic_bool referenced{}, referencing{}, limit_fault{};
             std::atomic_bool reference_activated;
             std::atomic_bool reference_released;
             std::atomic_uint32_t reference_changes;
@@ -171,8 +175,7 @@ namespace io::motion
                              std::optional<hal::step::PulseCount> count = std::nullopt,
                              std::optional<hal::gpio::Level> switch_target = std::nullopt);
 
-        Result waitForMotion(bool toward_reference,
-                             std::optional<hal::gpio::Level> switch_target,
+        Result waitForMotion(std::optional<hal::gpio::Level> switch_target,
                              std::chrono::steady_clock::time_point deadline,
                              const std::stop_token& stop);
 
@@ -214,6 +217,7 @@ namespace io::motion
 
         hal::core::MotorId m_id;
         pnm::units::Angle m_referenceSwitchPosition;
+        const Direction m_referenceDirection;
         pnm::units::Angle m_fullStepAngle;
         size_t m_microsteps;
         pnm::units::Angle m_stepAngle;
@@ -250,8 +254,6 @@ namespace io::motion
         double m_motionSign{ 1.0 };
         hal::step::PulseCount m_accountedPulses{ 0U };
 
-        std::atomic_bool m_referenced{ false };
-        std::atomic_bool m_referencing{ false };
         std::atomic<pnm::units::Angle> m_position{ 0_deg };
         std::atomic<pnm::units::AngularVelocity> m_velocity{ 0_rpm };
         std::atomic_bool m_feedbackHealthy{ false };

@@ -40,7 +40,7 @@ namespace simulation
         void execute(Machine& machine, std::stop_token stop);
         void publishSnapshot(const Machine& machine);
         const SessionOptions m_options;
-        const std::array<double, 20> m_configuration;
+        const MechanicalConfiguration m_configuration;
         Mapping m_mapping;
         ControllerProcess m_process;
         std::array<int, 4> m_events{ -1, -1, -1, -1 };

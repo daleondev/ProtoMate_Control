@@ -10,8 +10,11 @@
 
 namespace simulation
 {
-    inline constexpr std::uint32_t VERSION{ 3 };
+    inline constexpr std::uint32_t VERSION{ 4 };
     inline constexpr std::size_t FRAME_BYTES{ 2048 }, PAYLOAD_BYTES{ 1536 };
+    // Ratios, lead, native origins/directions, geometry, cam contact datums and separate usable soft
+    // endpoints.
+    using MechanicalConfiguration = std::array<double, 29>;
     enum class Operation : std::uint32_t
     {
         Hello,

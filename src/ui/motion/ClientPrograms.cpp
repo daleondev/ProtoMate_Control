@@ -195,7 +195,9 @@ namespace ui::motion
         }
         const std::weak_ptr<Job> weak = job;
         for (unsigned i = 0; i < 3; ++i) {
-            job->info.endpoint[i] = reservation.position[i] + program.displacement[i];
+            job->info.endpoint[i] = program.kind == tr::ProgramKind::Home && program.home_to_neutral
+                                      ? program.home_neutral[i]
+                                      : reservation.position[i] + program.displacement[i];
         }
         job->program.emplace(m_programs.sendGoal(
           { reservation.boot, reservation.session, id }, { .accept_timeout = 3s }, { .on_accepted = [weak] {

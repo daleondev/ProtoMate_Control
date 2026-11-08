@@ -353,8 +353,11 @@ namespace io::motion
         result.session = request.session;
         const auto fail = [&](tr::Error error, std::string_view detail = {}) {
             result.error = error;
-            pnm::log::warn("Motion preparation {} rejected: {}{}{}", request.job, tr::name(error),
-                           detail.empty() ? "" : "; ", detail);
+            pnm::log::warn("Motion preparation {} rejected: {}{}{}",
+                           request.job,
+                           tr::name(error),
+                           detail.empty() ? "" : "; ",
+                           detail);
             return result;
         };
         if (request.version != tr::VERSION) {
@@ -416,6 +419,8 @@ namespace io::motion
             }
             for (unsigned i = 0; i < 3; ++i) {
                 if (owner->axes & (1U << i)) {
+                    if (m_motors[i]->referenceSwitchActive())
+                        return fail(tr::Error::ReferenceActive);
                     const auto& h = program.home[i];
                     if (!std::isfinite(h.seek_rpm) || !std::isfinite(h.latch_rpm) ||
                         !std::isfinite(h.timeout) || h.seek_rpm <= 0 || h.latch_rpm <= 0 ||
@@ -423,6 +428,25 @@ namespace io::motion
                         !velocityAllowed(MotorId(i), h.seek_rpm * 1_rpm)) {
                         return fail(tr::Error::InvalidInput);
                     }
+                }
+            }
+            if (program.home_to_neutral) {
+                if (owner->family != F::Robot || owner->axes != 7)
+                    return fail(tr::Error::InvalidInput);
+                for (unsigned i = 0; i < 3; ++i) {
+                    const auto& l = program.limits[i];
+                    const auto& hw = result.capabilities.limits[i];
+                    for (auto value :
+                         { l.minimum, l.maximum, l.velocity, l.acceleration, l.deceleration, l.jerk })
+                        if (!std::isfinite(value))
+                            return fail(tr::Error::InvalidInput);
+                    if (l.minimum >= l.maximum || l.minimum < hw.minimum || l.maximum > hw.maximum ||
+                        l.velocity <= 0 || l.velocity > hw.velocity || l.acceleration <= 0 ||
+                        l.acceleration > hw.acceleration || l.deceleration <= 0 ||
+                        l.deceleration > hw.deceleration || l.jerk <= 0 || l.jerk > hw.jerk)
+                        return fail(tr::Error::Configuration);
+                    if (program.home_neutral[i] < l.minimum || program.home_neutral[i] > l.maximum)
+                        return fail(tr::Error::PositionLimit);
                 }
             }
             auto* slot = std::ranges::find_if(
@@ -438,6 +462,9 @@ namespace io::motion
             slot->home_stage = 0;
             slot->home_ready = false;
             slot->home = program.home;
+            slot->home_to_neutral = program.home_to_neutral;
+            slot->home_neutral = program.home_neutral;
+            slot->home_limits = program.limits;
             slot->home_order = program.home_order;
             slot->started = slot->notified = slot->zero = false;
             slot->duration = program.timeout;
@@ -567,8 +594,7 @@ namespace io::motion
                 if (request.axis_revisions[i] != m_ownership.revisions()[i]) {
                     return fail(tr::Error::Stale);
                 }
-                if (!m_motors[i]->isReferenced() ||
-                    (program.displacement[i] > 0 && m_motors[i]->referenceSwitchActive())) {
+                if (!m_motors[i]->isReferenced() || m_motors[i]->referenceSwitchActive()) {
                     return fail(tr::Error::Fault, "reference invalid or motion towards active switch");
                 }
             }

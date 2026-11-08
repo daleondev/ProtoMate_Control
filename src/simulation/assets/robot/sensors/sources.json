@@ -4,10 +4,17 @@
     "sha256": "bc3f42010f481681d7b9b848116a9eab95eeb009640e77276b85e8f8e7ed7782",
     "body": "SCARA J1 Rev B:1+J1-HOME Limit_Switch PCB module - PURCHASED:1 / Spring lever - supplier free position",
     "triangles": 112,
-    "output_sha256": "9cea112788605c0eedc6f39f108ac507f7551ef7a39a0654d8fcb7b7730f5104",
+    "output_sha256": "59e9ef8bba0d3967368ac85d606e9992455566bf9cd51db1f9d3b853f29cacc1",
+    "cam_source": {
+      "source": "src/simulation/assets/robot/link_1/link_1.dae",
+      "sha256": "fea77d8892ac0188e40475c4e0504795cc200baf99323af43a20cee2987804fd",
+      "body": "SCARA J1 Rev B:1+B18 Rigid Link1 saddle and thrust backing with cap seat - PRINT:1 / Rigid continuous thrust backing and Link1 saddle",
+      "triangles": 3676,
+      "output_sha256": "88227e37b5f18a7c205f4638f42d52d31426c3c2c284836928a5d26acd47fd6d"
+    },
     "moving_collision": {
-      "path": "src/simulation/assets/robot/link_1/link_1_collision.stl",
-      "sha256": "3119b5020f0ad2f9bd1acac930a2c1241e8af8bb083844ebf5f313d729090185"
+      "path": "src/simulation/assets/robot/sensors/j1_cams.stl",
+      "sha256": "88227e37b5f18a7c205f4638f42d52d31426c3c2c284836928a5d26acd47fd6d"
     }
   },
   "j2": {
@@ -15,10 +22,17 @@
     "sha256": "fea77d8892ac0188e40475c4e0504795cc200baf99323af43a20cee2987804fd",
     "body": "SCARA J2 Rev B Compact:1+J2-HOME Limit_Switch PCB module - PURCHASED:1 / Spring lever - supplier free position",
     "triangles": 112,
-    "output_sha256": "ddaa9baaa398f41acf631caf363d93d48e801527c4e8274a4a6add3182f3bee0",
+    "output_sha256": "fa1907fd96986208cc7fa7e77d6cccbd413a6bc488a193281ad066032c12638e",
+    "cam_source": {
+      "source": "src/simulation/assets/robot/link_2/link_2.dae",
+      "sha256": "a662926cfdd9baa6781f3e7ed90538a31c7665ae4134a5878d6da155cac8de32",
+      "body": "SCARA J2 Rev B Compact:1+J2-03 Rotating lower bearing housing and Link2 sleeve - PRINT:1 / Bearing deck ring",
+      "triangles": 3552,
+      "output_sha256": "af60b351fcb60208aa6271f3f755a128d36238df53b01e62ba5f045961fe5da2"
+    },
     "moving_collision": {
-      "path": "src/simulation/assets/robot/link_2/link_2_collision.stl",
-      "sha256": "b8842e7e7fedd0ffa4b5f2a3b45e2ae3f621f47ab366f7008e8450b882ee15c3"
+      "path": "src/simulation/assets/robot/sensors/j2_cams.stl",
+      "sha256": "af60b351fcb60208aa6271f3f755a128d36238df53b01e62ba5f045961fe5da2"
     }
   },
   "z": {
@@ -26,7 +40,7 @@
     "sha256": "a662926cfdd9baa6781f3e7ed90538a31c7665ae4134a5878d6da155cac8de32",
     "body": "SCARA J3 Rev B - Dual Rail 2040:1+Z-HOME Limit_Switch PCB module - PURCHASED:1 / Spring lever - supplier free position",
     "triangles": 112,
-    "output_sha256": "192092699ed107a2c6e0404a5af137c37544e9ae12ac40cd3a231538a9cdbe93",
+    "output_sha256": "8f0e9923fd959f55cf85fdc5ab9c110aa151276fd61f9dd521e4a241abc818dd",
     "moving_collision": {
       "path": "src/simulation/assets/robot/link_3/link_3_collision.stl",
       "sha256": "6f6a28d96312103a0f150f915b69903a216740b15bbc91771e40c25a40ff7199"

@@ -7,7 +7,7 @@ namespace simulation
 {
     struct Profile
     {
-        static constexpr const char* NAME{ "fusion-cad-v3" };
+        static constexpr const char* NAME{ "fusion-cad-v4" };
         std::array<double, 3> geometry_mm{ cad::LINK_LENGTHS_MM };
         std::array<double, 3> ratio{ cad::MOTOR_REDUCTION };
         double z_mm_per_revolution{ cad::SCREW_LEAD_MM };

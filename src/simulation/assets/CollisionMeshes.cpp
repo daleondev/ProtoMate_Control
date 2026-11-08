@@ -4,10 +4,10 @@ namespace simulation::assets
     namespace
     {
         constinit const unsigned char LINK1[]{
-#embed "robot/link_1/link_1_collision.stl"
+#embed "robot/sensors/j1_cams.stl"
         };
         constinit const unsigned char LINK2[]{
-#embed "robot/link_2/link_2_collision.stl"
+#embed "robot/sensors/j2_cams.stl"
         };
         constinit const unsigned char LINK3[]{
 #embed "robot/link_3/link_3_collision.stl"

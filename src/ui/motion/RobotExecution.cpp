@@ -212,14 +212,34 @@ namespace ui::motion
             }
             for (unsigned i = 0; i < 3; ++i) {
                 const auto& h = mechanics.configuration().homing[i];
-                if ((request.axes & (1U << i)) && (!h.configured || !h.positive)) {
+                const auto motor = mechanics.configuration().motor_for_joint[i];
+                if ((request.axes & (1U << i)) &&
+                    (!h.configured ||
+                     h.positive != bool(mechanics.hardware().reference_forward_mask & (1U << motor)))) {
                     m_client->reject(id, tr::Error::Configuration);
                     return;
                 }
-                const auto motor = mechanics.configuration().motor_for_joint[i];
                 home.home[motor] = { .seek_rpm = h.seek.get<pnm::units::AngularVelocityUnits::rpm>(),
                                      .latch_rpm = h.latch.get<pnm::units::AngularVelocityUnits::rpm>(),
                                      .timeout = h.timeout.get() };
+            }
+            if (request.family == ::motion::Family::Robot) {
+                if (!mechanics.configuration().neutral_position || request.axes != 7) {
+                    m_client->reject(id, tr::Error::Configuration);
+                    return;
+                }
+                home.home_to_neutral = true;
+                home.limits = mechanics.motorLimits();
+                const auto neutral = mechanics.toMotors(*mechanics.configuration().neutral_position);
+                for (unsigned i = 0; i < 3; ++i) {
+                    const auto target = tr::quantize(neutral[i]);
+                    if (!target) {
+                        m_client->reject(id, target.error());
+                        return;
+                    }
+                    home.home_neutral[i] = *target;
+                    home.limits[i].velocity *= .25;
+                }
             }
             m_client->execute(id, snapshot, mechanics.fingerprint(), home, stop);
             return;

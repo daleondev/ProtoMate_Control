@@ -124,6 +124,7 @@ namespace
     {
         Hardware hardware;
         Controller controller{ CONFIGURATION, hardware.factory() };
+        releaseSwitches();
         static_assert(std::is_same_v<decltype(controller.motor(Id::Motor1)), const Motor&>);
         static_assert(std::is_same_v<decltype(controller.motor(Id::Motor1).driver()),
                                      const hal::device::IStepperDriver&>);
@@ -157,6 +158,7 @@ namespace
     {
         Hardware hardware;
         Controller controller{ CONFIGURATION, hardware.factory() };
+        releaseSwitches();
         hardware.drivers[1]->fail_initialization = true;
         EXPECT_THROW(controller.initializeDrivers(), std::runtime_error);
         EXPECT_FALSE(controller.ready());
@@ -383,8 +385,11 @@ TEST(MotionController, PreparedExecutorOwnsAxesAndTracksPositionThroughCompletio
     input->setSimulatedLevel(Level::Low);
     ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
     input->setSimulatedLevel(Level::High);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() < 0_rpm; }));
+    input->setSimulatedLevel(Level::Low);
     ASSERT_EQ(homing.wait_for(2s), std::future_status::ready);
     ASSERT_EQ(homing.get(), Motor::Result::Completed);
+    const auto homed = controller.motor(Id::Motor1).setpointPosition();
     auto tooFast = command;
     tooFast.axes[0].limits.velocity = io::motion::Executor::MAX_PRODUCTION_RATE + 1.;
     const auto rejected = controller.prepareExecution(tooFast);
@@ -404,8 +409,9 @@ TEST(MotionController, PreparedExecutorOwnsAxesAndTracksPositionThroughCompletio
     const auto status = controller.executionStatus();
     EXPECT_EQ(status.state, io::motion::Executor::State::Completed);
     EXPECT_EQ(status.pulses[0], 100U);
-    EXPECT_NEAR(
-      controller.motor(Id::Motor1).setpointPosition().get<pnm::units::AngleUnits::deg>(), 123.75, 1e-8);
+    EXPECT_NEAR((controller.motor(Id::Motor1).setpointPosition() - homed).get<pnm::units::AngleUnits::deg>(),
+                -11.25,
+                1e-8);
     EXPECT_EQ(controller.motor(Id::Motor1).setpointVelocity(), 0_rpm);
     EXPECT_TRUE(controller.enabled());
     command.id = 2;
@@ -661,6 +667,8 @@ TEST(MotionController, AcceptedStopKeepsItsCauseAfterTheOwnershipLeaseExpires)
     input->setSimulatedLevel(Level::Low);
     ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
     input->setSimulatedLevel(Level::High);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() < 0_rpm; }));
+    input->setSimulatedLevel(Level::Low);
     ASSERT_EQ(homing.get(), Motor::Result::Completed);
     tr::Request r{ .operation = tr::Operation::Acquire,
                    .boot = controller.trajectorySnapshot().boot,
@@ -739,6 +747,8 @@ TEST(MotionController, CompilationLeavesAdmissionUnlockedAndCancellationCannotAr
     input->setSimulatedLevel(Level::Low);
     ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
     input->setSimulatedLevel(Level::High);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() < 0_rpm; }));
+    input->setSimulatedLevel(Level::Low);
     ASSERT_EQ(homing.get(), Motor::Result::Completed);
     tr::Request r{ .operation = tr::Operation::Acquire,
                    .boot = controller.trajectorySnapshot().boot,
@@ -746,6 +756,7 @@ TEST(MotionController, CompilationLeavesAdmissionUnlockedAndCancellationCannotAr
     r.family = motion::Family::Axis;
     r.axes = 1;
     r.job = 44;
+    const auto homed = controller.motor(Id::Motor1).setpointPosition();
     const auto acquired = controller.control(r);
     ASSERT_EQ(acquired.error, tr::Error::None);
     r.operation = tr::Operation::Prepare;
@@ -778,7 +789,7 @@ TEST(MotionController, CompilationLeavesAdmissionUnlockedAndCancellationCannotAr
     EXPECT_EQ(result.error, tr::Error::Stale);
     EXPECT_EQ(controller.trajectorySnapshot().family, motion::Family::None);
     EXPECT_EQ(controller.motor(Id::Motor1).setpointVelocity(), 0_rpm);
-    EXPECT_EQ(controller.motor(Id::Motor1).setpointPosition(), 135_deg);
+    EXPECT_EQ(controller.motor(Id::Motor1).setpointPosition(), homed);
 }
 
 TEST(MotionController, OverallHomingDeadlineStopsBeforeStartingTheNextAxis)
@@ -851,4 +862,187 @@ TEST(MotionController, PreparationRejectsWrongProtocolVersionBeforeStaging)
     EXPECT_EQ(controller.prepareProgram(request).error, tr::Error::Protocol);
     EXPECT_EQ(controller.motor(Id::Motor1).setpointPosition(), 0_deg);
     controller.releaseJob(request.job);
+}
+
+TEST(MotionController, ReverseHomingReleasesTheSwitchAndPreservesTheLatchedDatum)
+{
+    Hardware hardware;
+    auto configuration = CONFIGURATION;
+    configuration[0].reference_direction = Motor::Direction::Backward;
+    Controller controller{ configuration, hardware.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    auto& motor = controller.motor(Id::Motor1);
+    auto input = hal::gpio::simulated_input({ hal::gpio::Port::E, 7 });
+    ASSERT_NE(input, nullptr);
+    auto home = controller.reference(Id::Motor1, 10_rpm, 2_rpm, 3_s);
+    ASSERT_TRUE(waitUntil([&] { return motor.setpointVelocity() < 0_rpm; }));
+    input->setSimulatedLevel(Level::High);
+    ASSERT_TRUE(waitUntil([&] { return motor.setpointVelocity() > 0_rpm; }));
+    input->setSimulatedLevel(Level::Low);
+    ASSERT_TRUE(waitUntil([&] { return motor.setpointVelocity() < 0_rpm; }));
+    input->setSimulatedLevel(Level::High);
+    ASSERT_TRUE(waitUntil([&] { return motor.setpointVelocity() > 0_rpm; }));
+    EXPECT_EQ(home.wait_for(0s), std::future_status::timeout);
+    ASSERT_TRUE(waitUntil([&] { return motor.setpointPosition() > 135_deg; }));
+    input->setSimulatedLevel(Level::Low);
+    ASSERT_EQ(home.wait_for(2s), std::future_status::ready);
+    ASSERT_EQ(home.get(), Motor::Result::Completed);
+    EXPECT_TRUE(motor.isReferenced());
+    EXPECT_FALSE(motor.referenceSwitchActive());
+    EXPECT_GT(motor.setpointPosition(), 135_deg);
+    EXPECT_TRUE(controller.enabled());
+    auto moved = controller.moveRel(Id::Motor1, 1_deg, 10_rpm);
+    ASSERT_EQ(moved.wait_for(2s), std::future_status::ready);
+    EXPECT_EQ(moved.get(), Motor::Result::Completed);
+}
+
+TEST(MotionController, EitherDirectionLimitImmediatelyInhibitsAllMotorsAndLatchesReferenceRequirement)
+{
+    for (const auto direction : { -1., 1. }) {
+        Hardware hardware;
+        Controller controller{ CONFIGURATION, hardware.factory() };
+        releaseSwitches();
+        controller.initializeDrivers();
+        controller.enable();
+        auto input = hal::gpio::simulated_input({ hal::gpio::Port::E, 7 });
+        auto first = controller.moveRel(Id::Motor1, direction * 90_deg, 10_rpm);
+        auto second = controller.moveRel(Id::Motor2, -90_deg, 10_rpm);
+        ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() != 0_rpm; }));
+        input->setSimulatedLevel(Level::High);
+        EXPECT_EQ(hardware.enableLevel(), Level::High); // Callback, no diagnostic-worker wait.
+        EXPECT_FALSE(controller.motor(Id::Motor1).isReferenced());
+        ASSERT_EQ(first.wait_for(2s), std::future_status::ready);
+        ASSERT_EQ(second.wait_for(2s), std::future_status::ready);
+        EXPECT_NE(first.get(), Motor::Result::Completed);
+        EXPECT_NE(second.get(), Motor::Result::Completed);
+        EXPECT_EQ(controller.reference(Id::Motor1).get(), Motor::Result::Rejected);
+        EXPECT_THROW(controller.enable(), std::exception);
+        input->setSimulatedLevel(Level::Low);
+        controller.initializeDrivers();
+        controller.enable();
+        // Merely clearing the input and re-enabling does not restore permission.
+        EXPECT_EQ(controller.moveRel(Id::Motor1, 1_deg, 10_rpm).get(), Motor::Result::Faulted);
+        EXPECT_FALSE(controller.motor(Id::Motor1).isReferenced());
+        // Abandoning recovery halfway must not bypass the re-reference requirement.
+        auto recovery = controller.reference(Id::Motor1, 10_rpm, 2_rpm, 2_s);
+        ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
+        controller.stop(Id::Motor1);
+        EXPECT_EQ(recovery.get(), Motor::Result::Stopped);
+        EXPECT_EQ(controller.moveRel(Id::Motor1, -1_deg, 10_rpm).get(), Motor::Result::Faulted);
+    }
+}
+
+TEST(MotionController, RobotHomeRetainsOwnershipThroughNeutralReturnAndCanCancelThatReturn)
+{
+    namespace tr = motion::trajectory;
+    for (const bool cancel_return : { false, true }) {
+        Hardware hardware;
+        // Outlive controller teardown even if an assertion interrupts the test.
+        std::promise<tr::Update> completed;
+        auto terminal = completed.get_future();
+        Controller controller{ CONFIGURATION, hardware.factory() };
+        releaseSwitches();
+        controller.initializeDrivers();
+        controller.enable();
+        tr::Request request{ .operation = tr::Operation::Acquire,
+                             .boot = controller.trajectorySnapshot().boot,
+                             .configuration = 1 };
+        request.family = motion::Family::Robot;
+        request.axes = 7;
+        request.job = 90;
+        const auto acquired = controller.control(request);
+        ASSERT_EQ(acquired.error, tr::Error::None);
+        request.session = acquired.session;
+        request.axis_revisions = acquired.axis_revisions;
+        request.expected_position = acquired.position;
+        request.operation = tr::Operation::Prepare;
+        auto& program = request.program;
+        program.kind = tr::ProgramKind::Home;
+        program.home_order = { 2, 0, 1 };
+        program.home_to_neutral = true;
+        program.home_neutral = { 1280, 1280, 80 };
+        program.limits = acquired.capabilities.limits;
+        for (auto& limits : program.limits)
+            limits.velocity = 200;
+        for (auto& parameters : program.home)
+            parameters = { 10, 2, 3 };
+        ASSERT_EQ(controller.prepareProgram(request).error, tr::Error::None);
+        auto renewal = request;
+        renewal.operation = tr::Operation::Renew;
+        renewal.renew_jobs[0] = request.job;
+        std::jthread lease{ [&](std::stop_token stop) {
+            while (!stop.stop_requested()) {
+                controller.control(renewal);
+                std::this_thread::sleep_for(20ms);
+            }
+        } };
+        ASSERT_EQ(controller.startProgram({ request.boot, request.session, request.job },
+                                          [&](const auto& update) { completed.set_value(update); }),
+                  tr::Error::None);
+        constexpr std::array<std::uint8_t, 3> pins{ 7, 8, 10 };
+        for (const auto index : program.home_order) {
+            auto& motor = controller.motor(Id(index));
+            auto input = hal::gpio::simulated_input({ hal::gpio::Port::E, pins[index] });
+            ASSERT_TRUE(waitUntil([&] { return motor.setpointVelocity() > 0_rpm; }));
+            input->setSimulatedLevel(Level::High);
+            ASSERT_TRUE(waitUntil([&] { return motor.setpointVelocity() < 0_rpm; }));
+            input->setSimulatedLevel(Level::Low);
+            ASSERT_TRUE(waitUntil([&] { return motor.setpointVelocity() > 0_rpm; }));
+            input->setSimulatedLevel(Level::High);
+            ASSERT_TRUE(waitUntil([&] { return motor.setpointVelocity() < 0_rpm; }));
+            input->setSimulatedLevel(Level::Low);
+        }
+        ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor3).setpointVelocity() > 0_rpm; }));
+        EXPECT_EQ(terminal.wait_for(0s), std::future_status::timeout);
+        EXPECT_EQ(controller.trajectorySnapshot().family, motion::Family::Robot);
+        auto competing = request;
+        competing.operation = tr::Operation::Acquire;
+        competing.family = motion::Family::Axis;
+        competing.axes = 1;
+        competing.job = 91;
+        EXPECT_EQ(controller.control(competing).error, tr::Error::Busy);
+        if (cancel_return) {
+            request.operation = tr::Operation::Stop;
+            ASSERT_EQ(controller.control(request).error, tr::Error::None);
+        }
+        ASSERT_EQ(terminal.wait_for(3s), std::future_status::ready);
+        const auto result = terminal.get();
+        EXPECT_EQ(result.state, cancel_return ? motion::JobState::Stopped : motion::JobState::Completed);
+        for (unsigned i = 0; i < 3; ++i) {
+            auto& motor = controller.motor(Id(i));
+            EXPECT_EQ(motor.setpointVelocity(), 0_rpm);
+            EXPECT_TRUE(motor.isReferenced());
+            if (!cancel_return) {
+                EXPECT_NEAR(motor.setpointPosition().get<pnm::units::AngleUnits::deg>(),
+                            double(program.home_neutral[i]) * .1125,
+                            1e-8);
+            }
+            else if (i != 2) {
+                EXPECT_LT(motor.setpointPosition(), 135_deg); // Later neutral stages never started.
+            }
+        }
+    }
+}
+
+TEST(MotionController, CancellingHomingOnAHeldSwitchBecomesAHardLimitWithoutAnotherEdge)
+{
+    Hardware hardware;
+    Controller controller{ CONFIGURATION, hardware.factory() };
+    releaseSwitches();
+    controller.initializeDrivers();
+    controller.enable();
+    auto input = hal::gpio::simulated_input({ hal::gpio::Port::E, 7 });
+    auto homing = controller.reference(Id::Motor1, 10_rpm, 2_rpm, 3_s);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() > 0_rpm; }));
+    input->setSimulatedLevel(Level::High);
+    ASSERT_TRUE(waitUntil([&] { return controller.motor(Id::Motor1).setpointVelocity() < 0_rpm; }));
+    EXPECT_TRUE(controller.enabled()); // Still in the legitimate homing backoff.
+    controller.stop(Id::Motor1);
+    ASSERT_EQ(homing.wait_for(2s), std::future_status::ready);
+    EXPECT_EQ(homing.get(), Motor::Result::Stopped);
+    EXPECT_EQ(hardware.enableLevel(), Level::High);
+    EXPECT_FALSE(controller.motor(Id::Motor1).isReferenced());
+    EXPECT_THROW(controller.enable(), std::exception);
 }

@@ -30,7 +30,7 @@ namespace simulation
     class Machine
     {
       public:
-        using Configuration = std::array<double, 20>;
+        using Configuration = MechanicalConfiguration;
         static Configuration configuration(const Profile& profile);
         explicit Machine(SharedMemory& memory,
                          Profile profile = {},

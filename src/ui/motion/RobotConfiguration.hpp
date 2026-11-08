@@ -27,7 +27,7 @@ namespace ui::motion
     };
     struct HomeConfiguration
     {
-        // Positive-direction seek, release and slow re-latch. The timeout bounds
+        // Motor-coordinate seek direction, release and slow re-latch. The timeout bounds
         // the whole operation; this API does not provide a travel-distance limit.
         bool configured{};
         bool positive{};
@@ -63,6 +63,8 @@ namespace ui::motion
         JointPosition joint_blend_tolerance{};
         std::array<std::uint8_t, 3> homing_order{ 0, 1, 2 };
         std::array<HomeConfiguration, 3> homing{};
+        // Robot homing includes a sequential, bounded return after every axis is referenced.
+        std::optional<JointPosition> neutral_position;
     };
 
     // Deliberately empty until this machine's mechanics have been calibrated.

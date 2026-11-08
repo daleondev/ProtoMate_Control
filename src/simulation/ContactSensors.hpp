@@ -13,6 +13,12 @@ namespace simulation
         // Geometry oracle for verification and diagnostics. No command/homing state.
         static double clearance(const Profile&, unsigned axis, double joint, double lever_deflection_degrees);
         static bool contact(const Profile&, unsigned axis, double joint, double lever_deflection_degrees);
+        struct Boundary
+        {
+            double operate{}, release{}; // Radians for rotary axes, millimetres for Axis 3.
+        };
+        // First cam encountered from the CAD zero, on the requested side.
+        static Boundary boundary(const Profile&, unsigned axis, bool positive);
 
       private:
         Profile m_profile;

@@ -149,23 +149,10 @@ TEST_P(ContactAxisTest, GeometryHysteresisCachingAndRepeatability)
     const unsigned axis{ GetParam() };
     {
         const auto coordinate{ [&](double v) { return axis < 2 ? v * std::numbers::pi / 180 : v; } };
-        const auto boundary{ [&](double deflection) {
-            double lo{ axis == 0 ? 110.0 : axis == 1 ? 50.0 : 25.0 };
-            double hi{ axis == 0 ? 115.0 : axis == 1 ? 60.0 : 35.0 };
-            EXPECT_TRUE((ContactSensors::clearance(profile, axis, coordinate(lo), 0) > .05 &&
-                         ContactSensors::contact(profile, axis, coordinate(hi), 2)))
-              << "geometry brackets first home contact";
-            for (unsigned i{}; i < 30; ++i) {
-                const double mid{ (lo + hi) / 2 };
-                if (deflection < 0 ? ContactSensors::clearance(profile, axis, coordinate(mid), 0) <= .05
-                                   : ContactSensors::contact(profile, axis, coordinate(mid), deflection))
-                    hi = mid;
-                else
-                    lo = mid;
-            }
-            return (lo + hi) / 2;
-        } };
-        const double operate{ boundary(2) }, release{ boundary(-1) }, between{ (operate + release) / 2 };
+        const auto bounds = ContactSensors::boundary(profile, axis, true);
+        const double scale = axis < 2 ? 180 / std::numbers::pi : 1;
+        const double operate = bounds.operate * scale, release = bounds.release * scale;
+        const double between = (operate + release) / 2;
         ASSERT_TRUE((operate > release + .0001)) << "lever deflection creates physical release hysteresis";
         ASSERT_TRUE((!contacts.update(axis, coordinate(between)))) << "not yet operated on approach";
         ASSERT_TRUE((contacts.update(axis, coordinate(operate + .001)))) << "operated by collision geometry";
@@ -203,6 +190,50 @@ TEST(ContactSensorsTest, DisplacedGeometryRemovesContact)
     const Profile profile{};
     Profile displaced{ profile };
     displaced.geometry_mm[0] += 1000;
-    ASSERT_TRUE((!ContactSensors::contact(displaced, 1, 60 * std::numbers::pi / 180, 2)))
+    ASSERT_TRUE((ContactSensors::contact(profile, 1, 115 * std::numbers::pi / 180, 2)));
+    ASSERT_TRUE((!ContactSensors::contact(displaced, 1, 115 * std::numbers::pi / 180, 2)))
       << "moving the joint away removes contact; no fixed angle shortcut";
+}
+
+TEST(ContactSensorsTest, LinkHullMustNotFillTheEmptySpaceBetweenAxis2Cams)
+{
+    const Profile profile{};
+    for (const double angle : { -47., 56. })
+        EXPECT_FALSE(ContactSensors::contact(profile, 1, angle * std::numbers::pi / 180, 2));
+    for (const double angle : { -103., 115. })
+        EXPECT_TRUE(ContactSensors::contact(profile, 1, angle * std::numbers::pi / 180, 2));
+}
+
+TEST(ContactSensorsTest, BothRotaryCamsBoundTheConnectedTravelInterval)
+{
+    const Profile profile{};
+    for (unsigned axis = 0; axis < 2; ++axis) {
+        const auto lower = ContactSensors::boundary(profile, axis, false);
+        const auto upper = ContactSensors::boundary(profile, axis, true);
+        EXPECT_LT(lower.operate, lower.release);
+        EXPECT_GT(upper.operate, upper.release);
+        EXPECT_LT(lower.release, 0);
+        EXPECT_GT(upper.release, 0);
+        std::printf("Axis %u: lower operate %.9f / release %.9f deg; upper operate %.9f / release %.9f deg\n",
+                    axis + 1,
+                    lower.operate * 180 / std::numbers::pi,
+                    lower.release * 180 / std::numbers::pi,
+                    upper.operate * 180 / std::numbers::pi,
+                    upper.release * 180 / std::numbers::pi);
+        ContactSensors sensors{ profile };
+        for (const auto side : { false, true }) {
+            const auto boundary = side ? upper : lower;
+            const double outward = side ? 1e-5 : -1e-5;
+            EXPECT_FALSE(sensors.update(axis, 0));
+            EXPECT_TRUE(sensors.update(axis, boundary.operate + outward));
+            EXPECT_TRUE(sensors.update(axis, (boundary.operate + boundary.release) * .5));
+            EXPECT_FALSE(sensors.update(axis, boundary.release - outward));
+            EXPECT_TRUE(sensors.update(axis, boundary.operate + outward));
+        }
+        for (unsigned n = 1; n < 100; ++n) {
+            const double q = lower.release + (upper.release - lower.release) * n / 100.;
+            EXPECT_FALSE(
+              ContactSensors::contact(profile, axis, q, profile.sensor_operate_deflection_deg[axis]));
+        }
+    }
 }

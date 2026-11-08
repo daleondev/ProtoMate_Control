@@ -34,9 +34,11 @@ namespace io::motion
                                std::shared_ptr<hal::device::IMotorFeedback> feedback,
                                hal::device::IStepperDriver::FaultCallback shutdown,
                                std::shared_ptr<pnm::log::ISink> log_sink,
-                               std::shared_ptr<hal::IDigitalInput> reference_input)
+                               std::shared_ptr<hal::IDigitalInput> reference_input,
+                               Direction reference_direction)
       : m_id{ id }
       , m_referenceSwitchPosition{ reference_switch_position }
+      , m_referenceDirection{ reference_direction }
       , m_fullStepAngle{ full_step_angle }
       , m_microsteps{ microsteps }
       , m_stepOutput{ hal::core::create_stepper_step_output(step_generator, id) }
@@ -56,7 +58,7 @@ namespace io::motion
         // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-vararg,modernize-use-std-print,readability-simplify-boolean-expr)
 
         if (!reference_switch_position.isFinite() || !full_step_angle.isFinite() ||
-            full_step_angle <= 0_deg || microsteps == 0U) {
+            full_step_angle <= 0_deg || microsteps == 0U || reference_direction > Direction::Backward) {
             throw std::invalid_argument("invalid reference position, step angle or microstep count");
         }
         m_stepAngle = m_fullStepAngle / static_cast<double>(m_microsteps);
@@ -65,11 +67,12 @@ namespace io::motion
             throw std::runtime_error("motor board resource is unavailable");
         }
 
+        m_events->shutdown = std::move(shutdown);
         try {
-            m_driver->setFaultCallback([this, shutdown = std::move(shutdown)]() mutable noexcept {
-                m_referenced.store(false);
-                if (shutdown) {
-                    shutdown(); // Central shared-enable shutdown, ISR-safe.
+            m_driver->setFaultCallback([this]() noexcept {
+                m_events->referenced.store(false);
+                if (m_events->shutdown) {
+                    m_events->shutdown(); // Central shared-enable shutdown, ISR-safe.
                 }
                 m_events->notification.signal();
                 if (auto* notification{ m_events->group_notification.load() }) {
@@ -93,6 +96,12 @@ namespace io::motion
             m_referenceSwitchInput->setEdgeCallback([events = m_events](hal::gpio::Level level) noexcept {
                 if (level == hal::gpio::Level::High) {
                     events->reference_activated.store(true);
+                    if (!events->referencing.load()) {
+                        events->referenced.store(false);
+                        events->limit_fault.store(true);
+                        if (events->shutdown)
+                            events->shutdown(); // Immediate shared-enable inhibition; cleanup in workers.
+                    }
                 }
                 else {
                     events->reference_released.store(true);
@@ -401,14 +410,14 @@ namespace io::motion
             }
             {
                 std::scoped_lock lock{ m_motor->m_mutex };
-                if (!m_motor->m_driver->status().ready) {
+                if (!m_motor->m_driver->status().ready || m_motor->m_events->limit_fault.load()) {
                     return Result::Faulted;
                 }
                 if (m_motor->interrupted(m_stop)) {
                     return Result::Stopped;
                 }
-                if (m_sign > 0.0 && (m_motor->m_events->reference_activated.load() ||
-                                     m_motor->m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
+                if ((m_motor->m_events->reference_activated.load() ||
+                     m_motor->m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
                     return Result::Rejected;
                 }
                 m_motor->m_dirOutput->write(m_sign > 0.0 ? hal::gpio::Level::High : hal::gpio::Level::Low);
@@ -518,8 +527,8 @@ namespace io::motion
             auto result{ Result::Stopped };
             while (true) {
                 const auto status{ m_motor->m_stepOutput->status() };
-                if (!m_motor->m_driver->status().ready || !status.counts_exact || status.state == Underrun ||
-                    status.state == DmaError) {
+                if (!m_motor->m_driver->status().ready || m_motor->m_events->limit_fault.load() ||
+                    !status.counts_exact || status.state == Underrun || status.state == DmaError) {
                     result = Result::Faulted;
                     break;
                 }
@@ -529,7 +538,7 @@ namespace io::motion
                     break;
                 }
                 if (m_motor->interrupted(m_stop) || status.state == Stopped ||
-                    (m_sign > 0.0 && m_motor->m_events->reference_activated.load())) {
+                    m_motor->m_events->reference_activated.load()) {
                     break;
                 }
                 if (status.state != Running || (!m_command->relative && !m_motor->isReferenced())) {
@@ -551,7 +560,7 @@ namespace io::motion
         {
             m_resolved = false;
             m_motor->m_wakeAtPulse.store(std::numeric_limits<Count>::max());
-            if (!m_motor->m_driver->status().ready) {
+            if (!m_motor->m_driver->status().ready || m_motor->m_events->limit_fault.load()) {
                 complete(Result::Faulted);
                 return false;
             }
@@ -652,7 +661,7 @@ namespace io::motion
         });
     }
 
-    bool StepperMotor::isReferenced() const noexcept { return m_referenced.load(); }
+    bool StepperMotor::isReferenced() const noexcept { return m_events->referenced.load(); }
 
     bool StepperMotor::referenceSwitchActive() const noexcept
     {
@@ -661,7 +670,7 @@ namespace io::motion
 
     void StepperMotor::invalidateReference() noexcept
     {
-        m_referenced.store(false);
+        m_events->referenced.store(false);
         m_feedback->invalidate();
     }
 
@@ -712,7 +721,7 @@ namespace io::motion
     {
         m_feedbackReferenceLost.store(sample.reference_lost);
         if (sample.reference_lost) {
-            m_referenced.store(false);
+            m_events->referenced.store(false);
             if (auto* notification{ m_events->group_notification.load() }) {
                 notification->signal();
             }
@@ -741,7 +750,7 @@ namespace io::motion
             m_accountedPulses = status.pulses;
         }
         else {
-            m_referenced.store(false);
+            m_events->referenced.store(false);
         }
 
         m_velocity.store(status.state == hal::step::State::Running && status.period.count() > 0
@@ -775,14 +784,15 @@ namespace io::motion
         std::scoped_lock lock{ m_mutex };
         m_events->reference_activated.store(false);
         m_events->reference_released.store(false);
-        if (!m_driver->status().ready || !isReferenced() || (forward && referenceSwitchActive())) {
+        if (!m_driver->status().ready || !isReferenced() || referenceSwitchActive()) {
             pnm::log::warn("Motor {} coordinated preparation: driver/reference readiness failed",
                            static_cast<unsigned>(m_id) + 1);
             return false;
         }
         if (const auto result = m_stepOutput->prepareSequence(std::move(sequence)); !result) {
             pnm::log::warn("Motor {} coordinated STEP preparation failed: errno={}",
-                           static_cast<unsigned>(m_id) + 1, result.error().value());
+                           static_cast<unsigned>(m_id) + 1,
+                           result.error().value());
             return false;
         }
         m_motionSign = forward ? 1.0 : -1.0;
@@ -792,7 +802,7 @@ namespace io::motion
 
     bool StepperMotor::coordinatedBlocked() const noexcept
     {
-        return m_motionSign > 0.0 && (m_events->reference_activated.load() || referenceSwitchActive());
+        return m_events->reference_activated.load() || referenceSwitchActive();
     }
 
     void StepperMotor::requestStop() noexcept
@@ -903,157 +913,6 @@ namespace io::motion
         m_busy = m_homing = false;
     }
 
-    StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity seek_velocity,
-                                                        pnm::units::AngularVelocity latch_velocity,
-                                                        pnm::units::Time timeout,
-                                                        const std::stop_token& stop)
-    {
-        const auto motor_id{ static_cast<unsigned>(m_id) + 1U };
-        const auto now{ std::chrono::steady_clock::now() };
-        if (!m_driver->status().ready || !timingFor(seek_velocity) || !timingFor(latch_velocity) ||
-            latch_velocity >= seek_velocity || !timeout.isFinite() || timeout <= 0_s ||
-            timeout >= (std::chrono::steady_clock::time_point::max() - now) / 2) {
-            pnm::log::debug(logSink(pnm::log::Level::Debug),
-                            "Motor {} reference rejected: invalid seek/latch speeds or overall timeout",
-                            motor_id);
-            return Result::Rejected;
-        }
-
-        m_referencing.store(true);
-        m_referenced.store(false);
-        struct FinishReferencing
-        {
-            std::atomic_bool& flag;
-            explicit FinishReferencing(std::atomic_bool& value)
-              : flag{ value }
-            {
-            }
-            FinishReferencing(const FinishReferencing&) = delete;
-            FinishReferencing& operator=(const FinishReferencing&) = delete;
-            FinishReferencing(FinishReferencing&&) = delete;
-            FinishReferencing& operator=(FinishReferencing&&) = delete;
-            ~FinishReferencing() { flag.store(false); }
-        } finish{ m_referencing };
-
-        const auto deadline{ now + timeout.toChrono<std::chrono::steady_clock::duration>() };
-        const std::stop_callback cancellation{ stop, [this] { m_events->notification.signal(); } };
-        const auto seek{ [&](Direction direction, pnm::units::AngularVelocity speed, hal::gpio::Level level) {
-            if (interrupted(stop)) {
-                return Result::Stopped;
-            }
-            const auto remaining{ deadline - std::chrono::steady_clock::now() };
-            if (remaining <= std::chrono::steady_clock::duration::zero()) {
-                return Result::TimedOut;
-            }
-            return performMotion(direction, speed, pnm::units::Time{ remaining }, stop, std::nullopt, level);
-        } };
-
-        using enum hal::gpio::Level;
-        if (m_referenceSwitchInput->read() != High) {
-            pnm::log::debug(logSink(pnm::log::Level::Debug),
-                            "Motor {} reference: seeking first contact Forward at {} rpm",
-                            motor_id,
-                            seek_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
-            const auto first{ seek(Direction::Forward, seek_velocity, High) };
-            if (first != Result::Completed) {
-                return first;
-            }
-        }
-        else {
-            pnm::log::debug(
-              logSink(pnm::log::Level::Debug), "Motor {} reference: switch already active", motor_id);
-        }
-
-        pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: confirming first contact (10 ms stable HIGH)",
-                        motor_id);
-        auto result{ waitReferenceLevel(High, deadline, stop) };
-        if (result != Result::Completed) {
-            return result;
-        }
-
-        pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: backing off Backward at {} rpm until release",
-                        motor_id,
-                        seek_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
-        result = seek(Direction::Backward, seek_velocity, Low);
-        if (result != Result::Completed) {
-            return result;
-        }
-
-        pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: confirming release (10 ms stable LOW)",
-                        motor_id);
-        result = waitReferenceLevel(Low, deadline, stop);
-        if (result != Result::Completed) {
-            return result;
-        }
-
-        pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: seeking second contact Forward at {} rpm",
-                        motor_id,
-                        latch_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
-        result = seek(Direction::Forward, latch_velocity, High);
-        if (result != Result::Completed) {
-            return result;
-        }
-
-        pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: confirming second contact (10 ms stable HIGH)",
-                        motor_id);
-        result = waitReferenceLevel(High, deadline, stop);
-        if (result != Result::Completed) {
-            return result;
-        }
-
-        pnm::log::debug(logSink(pnm::log::Level::Debug),
-                        "Motor {} reference: applying switch position {} deg",
-                        motor_id,
-                        m_referenceSwitchPosition.get<pnm::units::AngleUnits::deg>());
-        return applyReferencePosition(stop);
-    }
-
-    StepperMotor::Result StepperMotor::waitReferenceLevel(hal::gpio::Level level,
-                                                          std::chrono::steady_clock::time_point deadline,
-                                                          const std::stop_token& stop)
-    {
-        constexpr auto settle_time{ 10ms };
-        std::optional<std::chrono::steady_clock::time_point> stable_since{};
-        auto changes{ m_events->reference_changes.load() };
-        while (true) {
-            if (!m_driver->status().ready) {
-                return Result::Faulted;
-            }
-            if (interrupted(stop)) {
-                return Result::Stopped;
-            }
-
-            const auto now{ std::chrono::steady_clock::now() };
-            if (now >= deadline) {
-                return Result::TimedOut;
-            }
-
-            const auto current_changes{ m_events->reference_changes.load() };
-            const auto current_level{ m_referenceSwitchInput->read() };
-            if (current_changes != changes || current_level != level) {
-                stable_since.reset();
-            }
-
-            if (!stable_since && current_level == level) {
-                stable_since = now;
-            }
-
-            changes = current_changes;
-            if (stable_since && now >= *stable_since + settle_time &&
-                m_events->reference_changes.load() == current_changes) {
-                return Result::Completed;
-            }
-
-            static_cast<void>(m_events->notification.waitUntil(
-              stable_since ? std::min(deadline, *stable_since + settle_time) : deadline));
-        }
-    }
-
     StepperMotor::Result StepperMotor::applyReferencePosition(const std::stop_token& stop)
     {
         std::scoped_lock lock{ m_mutex };
@@ -1080,13 +939,13 @@ namespace io::motion
 
         m_position.store(m_referenceSwitchPosition);
         m_velocity.store(0_rpm);
-        m_referenced.store(true);
+        m_events->referenced.store(true);
         // Do not overwrite a counter-fault callback racing with this commit. INDEX
         // may remain unavailable after homing without invalidating the switch datum.
         if (m_feedbackReferenceLost.load() || !m_driver->status().ready) {
-            m_referenced.store(false);
+            m_events->referenced.store(false);
         }
-        return m_referenced.load() ? Result::Completed : Result::Faulted;
+        return m_events->referenced.load() ? Result::Completed : Result::Faulted;
     }
 
     StepperMotor::Result StepperMotor::performMotion(Direction direction,
@@ -1130,7 +989,6 @@ namespace io::motion
 
         m_events->reference_activated.store(false);
         m_events->reference_released.store(false);
-        const bool toward_reference{ direction == Direction::Forward };
 
         if (!m_stepOutput->prepare(*timing, count)) {
             pnm::log::warn(logSink(pnm::log::Level::Warn), "Motor move rejected: invalid timing");
@@ -1151,9 +1009,8 @@ namespace io::motion
                 return Result::Completed;
             }
 
-            if (!switch_target && toward_reference &&
-                (m_events->reference_activated.load() ||
-                 m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
+            if (!switch_target && (m_events->reference_activated.load() ||
+                                   m_referenceSwitchInput->read() == hal::gpio::Level::High)) {
                 pnm::log::warn(logSink(pnm::log::Level::Warn),
                                "Motor move rejected: reference limit switch active");
                 return Result::Rejected;
@@ -1170,7 +1027,7 @@ namespace io::motion
 
         auto result{ Result::Stopped };
         try {
-            result = waitForMotion(toward_reference, switch_target, deadline, stop);
+            result = waitForMotion(switch_target, deadline, stop);
         } catch (...) {
             static_cast<void>(m_stepOutput->stop());
             throw;
@@ -1197,14 +1054,13 @@ namespace io::motion
                 (*switch_target == hal::gpio::Level::High ? m_events->reference_activated.load()
                                                           : m_events->reference_released.load()));
     }
-    StepperMotor::Result StepperMotor::waitForMotion(bool toward_reference,
-                                                     std::optional<hal::gpio::Level> switch_target,
+    StepperMotor::Result StepperMotor::waitForMotion(std::optional<hal::gpio::Level> switch_target,
                                                      std::chrono::steady_clock::time_point deadline,
                                                      const std::stop_token& stop)
     {
         auto result{ Result::Stopped };
         while (true) {
-            if (!switch_target && toward_reference && m_events->reference_activated.load()) {
+            if (!switch_target && m_events->reference_activated.load()) {
                 break;
             }
             const auto status{ m_stepOutput->status() };
