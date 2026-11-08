@@ -25,7 +25,8 @@ target_include_directories(protomate_simulation_machine PUBLIC ${PROJECT_SOURCE_
 target_link_libraries(protomate_simulation_machine PUBLIC project_compiler_settings protomate_simulation_contacts)
 
 add_library(protomate_simulation_bridge STATIC
-    ../common/icc/bridge/Bridge.cpp ../common/icc/bridge/ConnectionHealth.cpp
+    ../common/icc/bridge/Bridge.cpp ../common/icc/bridge/BridgeLifecycle.cpp
+    ../common/icc/bridge/ConnectionHealth.cpp
     ../common/icc/bridge/TopicBridge.cpp ../common/icc/bridge/ServiceBridge.cpp
     ../common/icc/bridge/ActionBridge.cpp ../common/icc/bridge/Frame.cpp)
 target_include_directories(protomate_simulation_bridge PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/platform)

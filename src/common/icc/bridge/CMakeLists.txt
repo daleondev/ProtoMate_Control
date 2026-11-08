@@ -6,6 +6,7 @@ target_sources(proto_common_icc_bridge
         Catalog.hpp
         Bridge.hpp
         Bridge.cpp
+        BridgeLifecycle.cpp
         ConnectionHealth.hpp
         ConnectionHealth.cpp
         TopicBridge.hpp

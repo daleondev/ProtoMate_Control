@@ -496,6 +496,23 @@ compiler upgrade use `cmake --preset <preset> --fresh` and rebuild cleanly.
 Use `-DBUILD_TESTING=OFF` when configuring Linux to build the template without
 fetching or building test dependencies.
 
+Pneumo's `stdexec` branch enables sender/receiver integration through
+`pneumo::coroutines` (`PNM_CORO_ENABLE_EXECUTION=ON`). CMake fetches its pinned
+stdexec headers; every coroutine consumer, including the native simulator,
+inherits the same configuration. Existing ICC workers continue to drive their
+own contexts; this does not introduce a thread pool or change the wire protocol.
+Use `pnm::coro::asSender(context, factory)` and `pnm::coro::execution::when_all`
+to compose asynchronous operations, forwarding the factory's stop token to
+service requests. Domain failures such as `Busy` remain result values.
+`application.icc.services` tests composition, out-of-order responses and
+cancellation across the serialized bridge on our ThreadX runtime.
+
+Native coroutine awaitables retain their original frame and reference results
+instead of going through an allocating sender adapter. On M4, bridge
+startup/teardown lives in `BridgeLifecycle.cpp` in QSPI; dispatch and lane loops
+remain in instruction RAM and are checked by the linked-image audit. Motion
+buffers and RAM-region boundaries are unchanged for this integration.
+
 All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
 settings apply these flags to new module targets as well.

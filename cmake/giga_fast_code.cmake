@@ -22,6 +22,8 @@ set(giga_fast_sources
     src/io/motion/ProfileSchedule.cpp
     src/io/motion/Executor.cpp
     src/common/motion/Profile.cpp
+    # BridgeLifecycle.cpp stays in QSPI; construction/start/teardown do not run
+    # in the steady-state transfer path. Keep dispatch and lane loops in RAM.
     src/common/icc/bridge/Bridge.cpp
     src/common/icc/bridge/ConnectionHealth.cpp
     src/common/icc/bridge/TopicBridge.cpp
