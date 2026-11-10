@@ -1,5 +1,5 @@
 #pragma once
-#include "stm32h7xx_hal.h"
+#include "hal/hal.hpp"
 #define BOARD_ENABLE_PORT GPIOC
 #define BOARD_ENABLE_PIN GPIO_PIN_7
 #define BOARD_STEP_PORT GPIOA

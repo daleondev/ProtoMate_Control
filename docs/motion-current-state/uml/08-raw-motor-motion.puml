@@ -49,6 +49,8 @@ else Motor family admitted
   end note
   M -> M : runCommands() / CommandRunner\nbuild Profile + Sequence
   M -> H : configure / start selected IStepOutput
+  H -> H : compute initial edges in bounded batches\ninterrupts enabled; existing DMA keeps running
+  H -> H : bounded publication\nrecheck revision / cancellation; establish arm origin
   note over M,H #FFF5DF
     Telemetry reads generator-synchronized state without taking the
     motor command mutex. Startup cannot block ICC through that mutex.

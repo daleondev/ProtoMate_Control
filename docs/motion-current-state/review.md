@@ -1,6 +1,63 @@
 # Current motion-control review
 
-## 2026-11-10 cleanup screening
+## 2026-11-11 completed cleanup and regression
+
+The reported lint findings, raw-startup interruption bug and M4 QSPI execution
+bottleneck are corrected. The current normal firmware uses SDRAM for ordinary M4
+code; this is not a claim that the previous QSPI placement became fast enough.
+Motion, heartbeat and ownership deadlines and interrupt priorities were retained.
+
+- Clang-tidy: **430/430 production compilation contexts parsed, zero findings,
+  blockers or tool failures**. Unit tests remain excluded. The record combines
+  the strict full run with affected-file rechecks after the final fixes.
+- Linux Debug/Release, GIGA M4/M7 Debug/Release, profiling and the electrical
+  fixture build without compiler warnings. **85/85 normal and 85/85
+  ASan/UBSan/LSan suites pass** on the final application source.
+- The GUI cleanup exposed a name collision between local display-size constants
+  and TouchGFX base-class statics. The constructor now receives the intended
+  1024×600 dimensions; a separate integration assertion guards the configuration.
+  Input, wheel zoom, keyboard, golden screenshots and native OpenGL tests pass.
+- Initial raw pulse preparation runs in bounded batches with interrupts enabled.
+  Publication checks revision/cancellation and samples its arm origin afterward.
+  The STM32 register model and application-level buffering tests pass.
+- Normal M4 code uses `0xC0480000` with a 1536 KiB limit. The lower 512 KiB is
+  separately reserved for profiling and marked execute-never. The linked audit
+  checks 62 roots and 182 reachable functions, with none outside internal RAM.
+  The fixture independently verifies 1,024 words of actual SDRAM code through
+  byte/halfword accesses, with zero mismatches and the active manifest checked.
+- The motor-disconnected workflow passes all 44 submissions, including expected
+  Busy rejections, homing → stop → homing, three independent-axis overlap cycles,
+  coordinated stopping, jog, simultaneous raw workers, buffering/blending,
+  active speed changes and repeated disabled initialization/restart.
+- At 24 MHz, final captures verify raw **800/800/400**, coordinated
+  **400/400/400**, and early controlled-stop **266/266/266** pulses. High times
+  are 120–121 samples; coordinated rising edges differ by at most one sample.
+  ENABLE remains inactive HIGH throughout. A later stop finished at the original
+  400-pulse endpoint; that capture is retained separately.
+- Normal Release pair **6bb2cd35b1b7e73a** is restored. Both cores report Ready,
+  ICC is connected and the GUI reports zero underruns, DMA errors or render
+  failures. The manual cold-power-cycle result is recorded separately below.
+
+The final workflow measured at least 29% IO thread-stack headroom: the executor
+peaked at 5,000/8,188 bytes, command worker at 13,468/28,668 bytes, and raw/homing
+workers at 7,144/10,236 bytes. These are observed high-water marks, not worst-case
+proofs. Normal M4 fast code has 3,360 bytes free; profiling leaves only **56 bytes**,
+so further instrumentation/code additions need deliberate placement and size
+budgeting. M4 D2 data uses 82,016/88,064 bytes.
+
+The host-observed maximum CLI submission acknowledgement was 751 ms in the verbose
+fixture workflow. That measurement includes USB reads and queued logging and is
+not one-way ICC latency or motion-change latency. These short regressions do not
+qualify maximum-rate endurance, worst-case response time, powered mechanics or
+the physical panel. STEP reset pull-downs still need to be fitted externally.
+
+See the [current machine-readable verification record](../motion-cleanup-2026-11-11.json)
+for source hashes, firmware identities, measurements and retained failures.
+The sections below are historical results, not open defects in this source state.
+
+**Manual cold startup passed:** after the confirmed USB power cycle, both cores report Ready and ICC is connected. The GUI graphics self-test passes with zero underruns, DMA errors or render failures. Motors remain disabled and unreferenced; disconnected reference inputs are reported active/open.
+
+## Earlier 2026-11-10 cleanup screening
 
 Two focused corrections have now passed short application-level checks; final
 lint/build/sanitizer qualification is still in progress.
@@ -97,7 +154,7 @@ qualification remain separate.
 | Native model configuration | Mechanical configuration is cached before starting live simulation transport; a request no longer triggers the expensive CAD geometry calculation. |
 | Native scheduling | ISR acknowledgement is followed by a sequence-bound scheduler-idle handshake. The next device event waits for runnable controller work to suspend. This prevents periodic wakeups from starving homing under instrumentation. |
 | Native display clock | VSYNC and pointer timestamps share the simulated peripheral clock; the SDL event pump remains on wall time. Dedicated regressions cover paused clocks, presentation ownership and clock restart. |
-| Static analysis and formatting | Safe mechanical lint fixes and formatting were applied to changed C++ files. Configuration hashing uses canonical serialization without a potentially throwing packet allocation. Remaining lint findings are retained, not suppressed. |
+| Static analysis and formatting | Safe mechanical lint fixes and formatting were applied to changed C++ files. Configuration hashing uses canonical serialization without a potentially throwing packet allocation. All production lint contexts now pass; the final record retains the original failures and clean rechecks. |
 
 No operating envelope, ownership deadline, heartbeat deadline, motor resolution
 or thread priority was relaxed as a result of these checks.

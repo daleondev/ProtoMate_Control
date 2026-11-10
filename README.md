@@ -127,7 +127,8 @@ behavior, not a worst-case admission/stop-onset bound or maximum-rate endurance.
 The complete native motion workflows pass with ASan/UBSan, including
 homing → stop → homing and checks for unwanted seek pulses after switch contact.
 This functional simulation does not qualify hardware scheduling or timing.
-Lint findings remain; a successful parse is not a clean lint result.
+Clang-tidy is clean across all 430 production compilation contexts (Linux, M4
+and M7), with no parse blockers; unit tests remain excluded.
 See the [current review](docs/motion-current-state/review.md) for exact
 build, test, firmware and capture evidence.
 
@@ -409,7 +410,7 @@ a thread-context operation, not an ISR-safe or allocation-free API.
 | `ui.iccThread` | 4 | 32 KiB |
 | `ui.cliThread` | 5 | 16 KiB (64 KiB on Linux) |
 | M4 motion executor | 1 | 8 KiB (16 KiB on Linux) |
-| M4 command/preparation worker | 2 | 20 KiB (24 KiB on Linux) |
+| M4 command/preparation worker | 2 | 28 KiB (24 KiB on Linux) |
 | M4 raw motion/homing worker (up to three) | 16 | 10 KiB (16 KiB on Linux) |
 | `io.applicationThread` | 3 | 16 KiB |
 | `ui.applicationThread` | 6 | 16 KiB |
@@ -1729,7 +1730,7 @@ the executable Cartesian toolpath API.
 | Independent axes and coordinated joint/point moves | Connected through production CLI/ICC to the executor; native simulator workflows pass |
 | Sequential homing, timed/continuous jog and controlled stops | Implemented; simulator checks include homing → stop → homing and group stopping |
 | Cartesian lines, blends, lookahead, hold/resume and override | Preview/numerical infrastructure only; executable features remain future work |
-| GIGA application qualification | Short coordinated/stop/overlap captures pass with M4 SDRAM code. The current complete buffered-raw workflow and QSPI admission do not pass; see the integration record. No full-rate or endurance acceptance claimed |
+| GIGA application qualification | The complete short application workflow passes with M4 SDRAM code, including buffered raw moves and independent-axis overlaps. QSPI execution is not qualified; normal firmware now also uses SDRAM for ordinary M4 code. No full-rate or endurance acceptance claimed |
 | Powered mechanics | Pending physical calibration and commissioning |
 
 Run the complete simulator workflow with:
@@ -1748,20 +1749,21 @@ live speed changes and diagnostics while motion is active. Run it after a fresh
 board reset: its synthetic homing timeout is sized for the initial fixture pose.
 The fixture defines a neutral pose at 69°, 69°, 19.9 mm and starts 256 pulses
 away from its synthetic contacts, allowing cancellation before contact. These
-are test coordinates, not physical calibration. Its presets explicitly select
-M4 SDRAM code placement, matching the previous successful motion qualification;
-normal firmware presets still use QSPI. Do not infer QSPI motion qualification
-from these fixture results.
+are test coordinates, not physical calibration. Both fixture and normal firmware presets select M4 SDRAM code placement;
+QSPI holds the persistent images. The STEP/IRQ call paths remain in internal
+instruction SRAM. These checks do not qualify ordinary M4 execution from QSPI.
 Use `capture.py --raw --output <new-directory>` for independent raw STEP counts;
 that relative-motion test needs no homing. Add `--raw-degrees 90` to exercise
 full initial DMA buffers (800/800/400 pulses). Raw startup computes relative
-edges first and samples the arm origin after filling, so slow initial profile
-evaluation cannot consume the requested lead time. The hardware arm check still
+edges in bounded batches with interrupts available and samples the arm origin
+after filling. Publication rechecks cancellation and axis revision, so slow
+initial preparation neither consumes the requested lead nor masks active-axis
+refill interrupts. The hardware arm check still
 rejects insufficient lead during publication; no deadline was relaxed.
 
 Raw/homing worker stacks are reserved once at motor construction, at 10 KiB each
 on M4. A worker joins before reusing its stack, so repeated commands do not need
-large allocations from a fragmented heap. Command preparation has 20 KiB;
+large allocations from a fragmented heap. Command preparation has 28 KiB;
 the execution worker has 8 KiB. Cold worker admission and exception diagnostics
 live in `StepperMotorCommands.cpp`, outside the instruction-RAM execution path.
 Incoming ICC actions retain only their actual encoded feedback/result bytes,
@@ -2063,7 +2065,7 @@ storage, and the same bootstrap validates and copies the code before starting
 M4. Timing-critical code remains in internal instruction SRAM. This option is
 enabled in normal firmware and the electrical motion fixtures. QSPI instruction
 fetches on the uncached M4 exceeded the unchanged command/lease budgets; the
-SDRAM application screening passes. The lower 512 KiB remains reserved for
+SDRAM application workflow passes. The lower 512 KiB remains reserved for
 both cores' profiling data. For example, configure the paired test with
 `cmake --preset giga-motion-api-release -DGIGA_M4_SDRAM_CODE=ON`.
 Combined builds pass the selection to their normal IO child preset; it does not

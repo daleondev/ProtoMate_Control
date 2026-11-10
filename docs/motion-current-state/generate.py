@@ -77,7 +77,7 @@ class Fig:
             return
         self.footer(sources)
         hashes={p:hashlib.sha256(Path(p if p.startswith('/') else ROOT/p).read_bytes()).hexdigest() for p in proofs if Path(p if p.startswith('/') else ROOT/p).exists()}
-        self.s.append('<metadata>'+escape(json.dumps({'date':'2026-11-10','normal_release_pair':manifest['pair_id'],'evidence_sha256':hashes,'scope':'Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.'}))+'</metadata></svg>')
+        self.s.append('<metadata>'+escape(json.dumps({'date':'2026-11-11','normal_release_pair':manifest['pair_id'],'evidence_sha256':hashes,'scope':'Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.'}))+'</metadata></svg>')
         (OUT/(name+'.svg')).write_text('\n'.join(self.s))
 
 # 1 — private applications and shared serialized transport
@@ -240,17 +240,17 @@ f.para(956,986,'A fast stack does not place the planner’s functions in ITCM.',
 f.rect(60,1091,1680,145,C['sharedl'],C['line'])
 f.text(84,1132,'Important configuration distinction',27,C['shared'],True)
 f.para(84,1175,'Normal Debug, Release and profiling builds enable M4 SDRAM code, as does the electrical fixture. The first 512 KiB of this SDRAM allocation remains profiling data, execute-never. Linked audits check internal-RAM interrupt paths; they are not timing guarantees.',1632,23)
-f.save('03-function-placement','Sources: cmake/giga_fast_code.cmake; application_giga.cmake; linked ELF symbols / manifest; CMake cache for flashed test pair.', ['cmake/giga_fast_code.cmake','cmake/application_giga.cmake','CMakeLists.txt','build/giga-io-release/CMakeCache.txt','build/giga-release/images/manifest.json','build/motion-review/ram-audit.json'])
+f.save('03-function-placement','Sources: cmake/giga_fast_code.cmake; application_giga.cmake; linked ELF symbols / manifest; CMake cache for flashed test pair.', ['cmake/giga_fast_code.cmake','cmake/application_giga.cmake','CMakeLists.txt','build/giga-io-release/CMakeCache.txt','build/giga-release/images/manifest.json','build/giga-io-release/ram-audit.json'])
 
 # 4 — evidence and remaining limits, never historical failures presented as current
 f=Fig(4,'Motion baseline: evidence and remaining limits','Software correctness, electrical timing and mechanical qualification are separate questions.')
 f.box(60,220,812,262,'Admission and ownership','One exclusive Motor / Axis / Robot family. Reservations include preparation and cleanup. Protocol, configuration, session, axis revisions and positions are checked before outputs are armed.','io','iol',ts=29,bs=24)
 f.box(908,220,832,262,'Execution and stopping','M4 maintains immutable schedules with an installed brake. Explicit stop and lease loss select that branch locally. Abort / guard inhibition are separate fault paths and can invalidate referencing.','ui','uil',ts=29,bs=24)
-f.box(60,510,812,291,'Memory remains a constraint','M4 fast code and D2 data are close to their linker limits. Each raw/homing worker reuses its reserved stack after joining. Command and executor stacks are budgeted separately; no steady-state motion buffers use the UI heap.','shared','sharedl',ts=29,bs=24)
-f.box(908,510,832,291,'Concurrent motion: ICC allocation fixed','Senders reuse their frame buffers. M4 admission/dispatch now run from SDRAM after traces identified QSPI stalls. Short overlap tests pass without deadline changes; final cleanup qualification is recorded separately.','io','iol',ts=28,bs=23)
-f.box(60,829,812,275,'Startup correction: screening','Initial DMA calculations run with interrupts available in bounded batches. Publication rechecks cancellation and revision. Earlier screening passed raw 800/800/400 pulses and coordinated starts; final source retesting remains pending.','io','iol',ts=28,bs=23)
-f.box(908,829,832,275,'Remaining verification gaps','Source cleanup is in progress. Previous 85/85 normal and sanitizer suite results do not qualify the latest edits. Final lint, linked-memory audits and electrical checks must use the same source revision. Powered mechanics remain separate.','purple','purplel',ts=28,bs=23)
+f.box(60,510,812,291,'Memory remains a constraint','Normal M4 fast code has 3,360 B free; the profiling build has only 56 B. Raw/homing workers reuse 10 KiB stacks. Commands have 28 KiB and the executor 8 KiB. The short IO workflow retained at least 29% measured stack headroom.','shared','sharedl',ts=29,bs=24)
+f.box(908,510,832,291,'Concurrent motion: ICC allocation fixed','Senders reuse their frame buffers. M4 admission/dispatch now run from SDRAM after traces identified QSPI stalls. Independent-axis overlaps and the complete buffered-raw workflow pass without deadline or priority changes.','io','iol',ts=28,bs=23)
+f.box(60,829,812,275,'Startup and stopping: verified','Initial DMA calculations run with interrupts available in bounded batches; publication rechecks cancellation/revision. Final captures pass raw 800/800/400, coordinated 400/400/400 and early stop 266/266/266, with enable inactive.','io','iol',ts=28,bs=23)
+f.box(908,829,832,275,'Verification scope','Clang-tidy: 430/430 contexts, zero findings. Internal-RAM call-path audit passes. Full host and sanitizer outcomes are recorded in the current review. Short electrical tests do not qualify maximum-rate endurance, powered mechanics or the physical panel.','purple','purplel',ts=28,bs=23)
 f.rect(60,1132,1680,104,C['white'],C['line'])
 f.para(84,1170,'Use the review report for exact test outcomes and capture hashes. No diagram claims that a passing short capture proves a full-rate or mechanically safe operating envelope.',1632,24,C['ink'])
-f.save('04-current-problems','Sources: Controller / Ownership / StepperMotor; OperatingEnvelope; review report and hardware captures.', ['src/io/motion/Controller.cpp','src/io/motion/ControllerAdmission.cpp','src/io/motion/StepperMotorCommands.cpp','src/common/motion/OperatingEnvelope.hpp','docs/motion-current-state/review.json'])
+f.save('04-current-problems','Sources: Controller / Ownership / StepperMotor; OperatingEnvelope; review report and hardware captures.', ['src/io/motion/Controller.cpp','src/io/motion/ControllerAdmission.cpp','src/io/motion/StepperMotorCommands.cpp','src/common/motion/OperatingEnvelope.hpp','docs/motion-cleanup-2026-11-11.json'])
 print('Created', f'figure {args.figure}' if args.figure else 'four SVG figures', 'in', OUT)

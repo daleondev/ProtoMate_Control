@@ -23,8 +23,11 @@ using Level=hal::gpio::Level;
 __attribute__((section(".fast.fmc_probe"), noinline))
 bool verify_sdram_reads() noexcept {
     const auto entry = reinterpret_cast<std::uintptr_t>(&_etext);
-    if (entry < 0xC0400000U || entry >= 0xC0600000U) return true;
-    const auto* words = reinterpret_cast<const volatile std::uint32_t*>(0xC0400000U);
+    constexpr std::uintptr_t code_begin = 0xC0480000U;
+    if (entry < code_begin || entry >= 0xC0600000U) return true;
+    // The preceding 512 KiB now belongs to profiling. Probe populated code,
+    // not that potentially all-zero reserve, when checking the FMC workaround.
+    const auto* words = reinterpret_cast<const volatile std::uint32_t*>(code_begin);
     const auto* bytes = reinterpret_cast<const volatile std::uint8_t*>(words);
     const auto* halves = reinterpret_cast<const volatile std::uint16_t*>(words);
     std::uint32_t byte_errors{}, halfword_errors{};

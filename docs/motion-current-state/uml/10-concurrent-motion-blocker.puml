@@ -20,6 +20,8 @@ note over U,S
   A synchronous helper fills it; transport borrows its span.
   Reuse waits for send completion. No full-frame coroutine
   is allocated for each message or heartbeat.
+  M4 ordinary dispatch/admission executes from SDRAM.
+  STEP/IRQ and bounded transport hot paths remain in internal SRAM.
 end note
 CLI -> C : axis jog shoulder -.2 --continuous
 C -> U : acquire, prepare, run

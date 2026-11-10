@@ -1,0 +1,919 @@
+{
+  "date": "2026-11-11",
+  "status": "Clean static analysis and functional/electrical regression; physical qualification remains separate",
+  "source": {
+    "path": "build/cleanup-validation-2026-11-10/source-final.json",
+    "sha256": "fbd48235968852e4c8ddd41452e37ae41b810ceba1bca11c7d0751ac7cf96f0f",
+    "head": "0e238e2c0f5f3b52a185d91c3c88e8ada2a3c44f",
+    "pneumo": "f7afee9f06984e647792a9016b579ee00f0d2dde"
+  },
+  "fixes": [
+    "Resolve all production clang-tidy diagnostics without disabling checks or excluding production compilation contexts.",
+    "Calculate initial raw STEP buffers in interruptible bounded batches; publish only after revision/cancellation checks and rebase the common arm time.",
+    "Run normal M4 admission and ordinary code in SDRAM; retain complete STEP/IRQ paths in internal SRAM; reserve the lower 512 KiB separately for profiling.",
+    "Use bounded GUI text formatting and explicit ownership/lifetime helpers; fix GL context attribute ordering and shader failure cleanup.",
+    "Fix the TouchGFX constructor constant-name collision and independently assert its 1024x600 configured canvas in integration tests.",
+    "Update benchmark examples for the current API and point the SDRAM erratum probe at populated code, not the profiling reserve."
+  ],
+  "builds": [
+    "Linux Debug",
+    "Linux Release",
+    "ASan/UBSan/LSan Linux",
+    "GIGA Debug M4/M7",
+    "GIGA Release M4/M7",
+    "GIGA profiling M4/M7",
+    "GIGA electrical fixture Release"
+  ],
+  "lint": {
+    "parsed": 430,
+    "total": 430,
+    "findings": 0,
+    "blockers": 0,
+    "tool_failures": 0,
+    "scope": [
+      "src",
+      "platform/hal",
+      "platform/runtime",
+      "platform/simulation"
+    ],
+    "unit_tests_excluded": true,
+    "evidence": {
+      "path": "build/cleanup-validation-2026-11-10/lint-final.json",
+      "sha256": "6c8c51a2043153bc273392afae298753bdc3f8ede4304c11a1333e0def2f85cc"
+    },
+    "method": "Full strict run plus clean affected-file rechecks; provenance retained in report"
+  },
+  "tests": {
+    "normal": {
+      "passed": 85,
+      "total": 85,
+      "path": "build/cleanup-validation-2026-11-10/logs/protomate-cleanup-final-tests34.log",
+      "sha256": "f9cd2d8618a0ccb121b093f740830e28bc6c571e7eb1404e981ea5be0303771f"
+    },
+    "asan_ubsan_lsan": {
+      "passed": 85,
+      "total": 85,
+      "path": "build/cleanup-validation-2026-11-10/logs/protomate-cleanup-sanitizer-tests33.log",
+      "sha256": "2bfb465c3e82827781dd16c1769a5433e2ded8ae691efccdbef6fc0b29e26e50"
+    },
+    "model_visuals": {
+      "views": 36,
+      "minimum_silhouette_iou": 0.983577,
+      "evidence": {
+        "path": "docs/robot/visuals/interactive/verification.json",
+        "sha256": "95091e3ec0e35f9ffb9b589fc88089b981e5462e00e6520adf62a35167563d52"
+      }
+    }
+  },
+  "firmware": {
+    "release": {
+      "pair_id": "6bb2cd35b1b7e73a839d1a8d0b3dc59b112b9ea7e7627c46a7e32b2d0700ab44",
+      "images": [
+        {
+          "core": 4,
+          "storage": 2416967680,
+          "size": 1215644,
+          "crc": 3803277554,
+          "entry": 3225947725,
+          "vectors": 268435456,
+          "stack": 805601280,
+          "flags": 1,
+          "segments": [
+            {
+              "load": 2416967680,
+              "run": 268435456,
+              "size": 664,
+              "flags": 1
+            },
+            {
+              "load": 2416968344,
+              "run": 268437504,
+              "size": 193248,
+              "flags": 1
+            },
+            {
+              "load": 2417161592,
+              "run": 604241920,
+              "size": 12104,
+              "flags": 1
+            },
+            {
+              "load": 2418140580,
+              "run": 805505024,
+              "size": 42712,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 805547736,
+              "size": 39304,
+              "flags": 2
+            },
+            {
+              "load": 2417173696,
+              "run": 3225944064,
+              "size": 672008,
+              "flags": 1
+            }
+          ]
+        },
+        {
+          "core": 7,
+          "storage": 2420113408,
+          "size": 2728468,
+          "crc": 2868397406,
+          "entry": 2420148505,
+          "vectors": 536870912,
+          "stack": 537001984,
+          "flags": 0,
+          "segments": [
+            {
+              "load": 2420114072,
+              "run": 0,
+              "size": 16088,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 32768,
+              "size": 24000,
+              "flags": 2
+            },
+            {
+              "load": 2420113408,
+              "run": 536870912,
+              "size": 664,
+              "flags": 1
+            },
+            {
+              "load": 2420130160,
+              "run": 536872960,
+              "size": 12864,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 536885824,
+              "size": 97256,
+              "flags": 2
+            },
+            {
+              "load": 2422838076,
+              "run": 603979776,
+              "size": 3256,
+              "flags": 1
+            },
+            {
+              "load": 2422841332,
+              "run": 603983040,
+              "size": 512,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 603983552,
+              "size": 20096,
+              "flags": 2
+            }
+          ]
+        }
+      ]
+    },
+    "debug": {
+      "pair_id": "6b099d7a4f8b7df72b042e267595299e42cd24632d25c9f4bbce36297cdff22e",
+      "images": [
+        {
+          "core": 4,
+          "storage": 2416967680,
+          "size": 1367572,
+          "crc": 4146698839,
+          "entry": 2417177677,
+          "vectors": 268435456,
+          "stack": 805601280,
+          "flags": 0,
+          "segments": [
+            {
+              "load": 2416967680,
+              "run": 268435456,
+              "size": 664,
+              "flags": 1
+            },
+            {
+              "load": 2416968344,
+              "run": 268437504,
+              "size": 193584,
+              "flags": 1
+            },
+            {
+              "load": 2417161928,
+              "run": 604241920,
+              "size": 12056,
+              "flags": 1
+            },
+            {
+              "load": 2418292508,
+              "run": 805505024,
+              "size": 42712,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 805547736,
+              "size": 39304,
+              "flags": 2
+            }
+          ]
+        },
+        {
+          "core": 7,
+          "storage": 2420113408,
+          "size": 2935496,
+          "crc": 3283272331,
+          "entry": 2420148637,
+          "vectors": 536870912,
+          "stack": 537001984,
+          "flags": 0,
+          "segments": [
+            {
+              "load": 2420114072,
+              "run": 0,
+              "size": 16088,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 32768,
+              "size": 24000,
+              "flags": 2
+            },
+            {
+              "load": 2420113408,
+              "run": 536870912,
+              "size": 664,
+              "flags": 1
+            },
+            {
+              "load": 2420130160,
+              "run": 536872960,
+              "size": 12872,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 536885856,
+              "size": 97272,
+              "flags": 2
+            },
+            {
+              "load": 2423045072,
+              "run": 603979776,
+              "size": 3288,
+              "flags": 1
+            },
+            {
+              "load": 2423048360,
+              "run": 603983072,
+              "size": 512,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 603983584,
+              "size": 20128,
+              "flags": 2
+            }
+          ]
+        }
+      ]
+    },
+    "profile": {
+      "pair_id": "fc471182277c11c8d55821204df9df5c3c5787704eb9579a67dd813c8afb4ca3",
+      "images": [
+        {
+          "core": 4,
+          "storage": 2416967680,
+          "size": 1223244,
+          "crc": 151411714,
+          "entry": 3225950733,
+          "vectors": 268435456,
+          "stack": 805601280,
+          "flags": 1,
+          "segments": [
+            {
+              "load": 2416967680,
+              "run": 268435456,
+              "size": 664,
+              "flags": 1
+            },
+            {
+              "load": 2416971344,
+              "run": 268437504,
+              "size": 196552,
+              "flags": 1
+            },
+            {
+              "load": 2417167896,
+              "run": 604241920,
+              "size": 12244,
+              "flags": 1
+            },
+            {
+              "load": 2418148180,
+              "run": 805505024,
+              "size": 42712,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 805547736,
+              "size": 27604,
+              "flags": 2
+            },
+            {
+              "load": 0,
+              "run": 805575360,
+              "size": 12320,
+              "flags": 2
+            },
+            {
+              "load": 2416968344,
+              "run": 3225944064,
+              "size": 3000,
+              "flags": 1
+            },
+            {
+              "load": 2417180140,
+              "run": 3225947072,
+              "size": 673152,
+              "flags": 1
+            }
+          ]
+        },
+        {
+          "core": 7,
+          "storage": 2420113408,
+          "size": 2737352,
+          "crc": 1935809368,
+          "entry": 2420151405,
+          "vectors": 536870912,
+          "stack": 537001984,
+          "flags": 0,
+          "segments": [
+            {
+              "load": 2420116948,
+              "run": 0,
+              "size": 16088,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 32768,
+              "size": 24000,
+              "flags": 2
+            },
+            {
+              "load": 2420113408,
+              "run": 536870912,
+              "size": 664,
+              "flags": 1
+            },
+            {
+              "load": 2420133040,
+              "run": 536872960,
+              "size": 12864,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 536885824,
+              "size": 97256,
+              "flags": 2
+            },
+            {
+              "load": 2422846960,
+              "run": 603979776,
+              "size": 3256,
+              "flags": 1
+            },
+            {
+              "load": 2422850216,
+              "run": 603983040,
+              "size": 512,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 603983552,
+              "size": 20736,
+              "flags": 2
+            }
+          ]
+        }
+      ]
+    },
+    "fixture": {
+      "pair_id": "4baa973028a9d0116b789ffe39134f2bdfb90dde0b90e07f94a948615e2bae8a",
+      "images": [
+        {
+          "core": 4,
+          "storage": 2416967680,
+          "size": 1223324,
+          "crc": 1468334841,
+          "entry": 3225947725,
+          "vectors": 268435456,
+          "stack": 805601280,
+          "flags": 1,
+          "segments": [
+            {
+              "load": 2416967680,
+              "run": 268435456,
+              "size": 664,
+              "flags": 1
+            },
+            {
+              "load": 2416968344,
+              "run": 268437504,
+              "size": 193712,
+              "flags": 1
+            },
+            {
+              "load": 2417162056,
+              "run": 604241920,
+              "size": 12072,
+              "flags": 1
+            },
+            {
+              "load": 2418148196,
+              "run": 805505024,
+              "size": 42776,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 805547800,
+              "size": 32384,
+              "flags": 2
+            },
+            {
+              "load": 0,
+              "run": 805580192,
+              "size": 12320,
+              "flags": 2
+            },
+            {
+              "load": 2417174128,
+              "run": 3225944064,
+              "size": 677208,
+              "flags": 1
+            }
+          ]
+        },
+        {
+          "core": 7,
+          "storage": 2420113408,
+          "size": 2729580,
+          "crc": 1513776277,
+          "entry": 2420148505,
+          "vectors": 536870912,
+          "stack": 537001984,
+          "flags": 0,
+          "segments": [
+            {
+              "load": 2420114072,
+              "run": 0,
+              "size": 16088,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 32768,
+              "size": 24000,
+              "flags": 2
+            },
+            {
+              "load": 2420113408,
+              "run": 536870912,
+              "size": 664,
+              "flags": 1
+            },
+            {
+              "load": 2420130160,
+              "run": 536872960,
+              "size": 12864,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 536885824,
+              "size": 97256,
+              "flags": 2
+            },
+            {
+              "load": 2422839188,
+              "run": 603979776,
+              "size": 3256,
+              "flags": 1
+            },
+            {
+              "load": 2422842444,
+              "run": 603983040,
+              "size": 512,
+              "flags": 1
+            },
+            {
+              "load": 0,
+              "run": 603983552,
+              "size": 24192,
+              "flags": 2
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "hardware": {
+    "motor_power": "disconnected",
+    "panel": "absent",
+    "workflow": {
+      "passed": true,
+      "jobs_submitted": 44,
+      "overlap_cycles": 3,
+      "firmware_pair_prefix": "3aabaf1fc7cacc40",
+      "evidence": {
+        "path": "build/cleanup-validation-2026-11-10/final-workflow33/results.json",
+        "sha256": "ec3fcb46204f85685bc07ad720cd02fc84e09c9c69ace524fc2d74e9421ede17"
+      },
+      "includes": [
+        "homing cancellation/restart",
+        "independent axes",
+        "family exclusion",
+        "coordinated stop",
+        "jog",
+        "simultaneous raw workers",
+        "buffering/blending",
+        "active speed replacement",
+        "disable/init/enable restart"
+      ]
+    },
+    "captures": {
+      "raw": {
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 68676608,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 800,
+              "falls": 800,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 44873
+            },
+            {
+              "axis": 2,
+              "rises": 800,
+              "falls": 800,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 44873
+            },
+            {
+              "axis": 3,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 89867
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": null,
+          "expected_pulses": [
+            800,
+            800,
+            400
+          ],
+          "sha256_raw": "ff45363de1049106ce333349ec013a1a5bf88dbd514b1cd8ad083762abb103bf"
+        },
+        "evidence": {
+          "result.json": {
+            "path": "build/cleanup-validation-2026-11-10/final-raw34/result.json",
+            "sha256": "bf9b5b6b36871a1cf17c4047db815747c40536756a4877dcbcf67bed630e8ba4"
+          },
+          "application.json": {
+            "path": "build/cleanup-validation-2026-11-10/final-raw34/application.json",
+            "sha256": "0e3fbdd96f09bd7c83710f2571aa2258600772b8b784d1c1e6a95a48998ce690"
+          },
+          "console.log": {
+            "path": "build/cleanup-validation-2026-11-10/final-raw34/console.log",
+            "sha256": "0fe62d95b06e4c7ba0fc2ada2830b3dbcb0f0ebd7ceb14be6707bcb846e72ea1"
+          },
+          "logic.bin.gz": {
+            "path": "build/cleanup-validation-2026-11-10/final-raw34/logic.bin.gz",
+            "sha256": "0100b1f70999164fb08cd0b18bdeb00f87f8956107725d285d5e104b80dc2b80"
+          }
+        }
+      },
+      "coordinated": {
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 48025600,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            },
+            {
+              "axis": 2,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            },
+            {
+              "axis": 3,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": 1,
+          "expected_pulses": 400,
+          "sha256_raw": "e0f145a9970b399a01ea51abb672240cd69ffcc1ec7471e82ebb8b48701f4794"
+        },
+        "evidence": {
+          "result.json": {
+            "path": "build/cleanup-validation-2026-11-10/final-coordinated34b/result.json",
+            "sha256": "e6dc0a425d024ff2ea02f44d8cd4abff2ca813367989dde9a16fd62d9ea8cd17"
+          },
+          "application.json": {
+            "path": "build/cleanup-validation-2026-11-10/final-coordinated34b/application.json",
+            "sha256": "39412fc30db94acff9d756ff31c78c308efecb395d67d3a23aeafcdce5113a51"
+          },
+          "console.log": {
+            "path": "build/cleanup-validation-2026-11-10/final-coordinated34b/console.log",
+            "sha256": "73a7675e4d1a961434c4cc470240015ef62b34d5b3a0502413a0070f23b824af"
+          },
+          "logic.bin.gz": {
+            "path": "build/cleanup-validation-2026-11-10/final-coordinated34b/logic.bin.gz",
+            "sha256": "09c6cf4a54d018cfd6a7ce96d6bf5377d6e0f397ea30e6c557043a8f84b5e035"
+          }
+        }
+      },
+      "late_stop": {
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 46824960,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            },
+            {
+              "axis": 2,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            },
+            {
+              "axis": 3,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": 1,
+          "expected_pulses": 400,
+          "sha256_raw": "ad5e6cf634c199b9b371a0eeec7f8df319452880f99c9e18374caf5f5cc3459a"
+        },
+        "evidence": {
+          "result.json": {
+            "path": "build/cleanup-validation-2026-11-10/final-stop34/result.json",
+            "sha256": "6cff48963a234cb30b840088e987d9ada77a843088d2dd33b1f2349118ef5114"
+          },
+          "application.json": {
+            "path": "build/cleanup-validation-2026-11-10/final-stop34/application.json",
+            "sha256": "03be58a198b4036c4e02e18b4b61c97adc9e8946a35c933e171692659a969eb4"
+          },
+          "console.log": {
+            "path": "build/cleanup-validation-2026-11-10/final-stop34/console.log",
+            "sha256": "200089879061075ca168e9cd04e35268f51cf561c7d27a097ff122a2cf79b006"
+          },
+          "logic.bin.gz": {
+            "path": "build/cleanup-validation-2026-11-10/final-stop34/logic.bin.gz",
+            "sha256": "5d2292d6f11c279a5fe279e8428d8f9e2112bc55c1da30994229e1fe860cdb2f"
+          }
+        }
+      },
+      "early_stop": {
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 45624320,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 266,
+              "falls": 266,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33626
+            },
+            {
+              "axis": 2,
+              "rises": 266,
+              "falls": 266,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33626
+            },
+            {
+              "axis": 3,
+              "rises": 266,
+              "falls": 266,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33626
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": 1,
+          "expected_pulses": 266,
+          "sha256_raw": "fa7f4b0fda767acae5ba4b571703b5c1675895cb4167bb72054c579840325005"
+        },
+        "evidence": {
+          "result.json": {
+            "path": "build/cleanup-validation-2026-11-10/final-early-stop34/result.json",
+            "sha256": "2b5527a6e163130f957c766f60d5b315ef144dfca77bdf319db2b3da5d673a7b"
+          },
+          "application.json": {
+            "path": "build/cleanup-validation-2026-11-10/final-early-stop34/application.json",
+            "sha256": "b65cda9d2a807cb171e44ea51bb691c21e46f643db25378aa86d9fed7b26dfb8"
+          },
+          "console.log": {
+            "path": "build/cleanup-validation-2026-11-10/final-early-stop34/console.log",
+            "sha256": "a3fbdfab210606c855f270f51965ce4ddf3635a3dde2707c78669d17cda8375a"
+          },
+          "logic.bin.gz": {
+            "path": "build/cleanup-validation-2026-11-10/final-early-stop34/logic.bin.gz",
+            "sha256": "58a94a02a3aceb3f86ecae764ab872f826d770ac5db0de5c07db4b04eff27a31"
+          }
+        }
+      }
+    },
+    "capture_fixture_note": "Pair 4baa973028a9d011 has the same application as the workflow image; only the fixture startup probe address changed to 0xC0480000.",
+    "sdram_probe": {
+      "words": 1024,
+      "byte_errors": 0,
+      "halfword_errors": 0,
+      "manifest_verified": true,
+      "evidence": {
+        "path": "build/cleanup-validation-2026-11-10/final-sdram-probe.log",
+        "sha256": "9e34cfc3069674d3a1fb6bd48d1c9b176a1507aff921ae2b7260055f704c5ec3"
+      }
+    },
+    "normal_release_restored": true,
+    "normal_startup": {
+      "path": "build/cleanup-validation-2026-11-10/normal-release-gui.log",
+      "sha256": "3ae39c1b86204748127768fbd24cee68ea1020765247db745e5e25f472b4bb1f"
+    },
+    "cold_start": {
+      "status": "passed",
+      "evidence": {
+        "path": "build/cleanup-validation-2026-11-10/normal-release-cold-start.log",
+        "sha256": "66cf8bba9caa04487369b8eb80a34c39df0eae382a3ff1386587ba20e7bcad51"
+      }
+    }
+  },
+  "memory": {
+    "io_workflow_stacks": {
+      "System Timer Thread": {
+        "priority": 0,
+        "capacity_bytes": 1020,
+        "peak_bytes": 172,
+        "headroom_percent": 83.1
+      },
+      "Motion executor Thread": {
+        "priority": 1,
+        "capacity_bytes": 8188,
+        "peak_bytes": 5000,
+        "headroom_percent": 38.9
+      },
+      "Motor commands Thread": {
+        "priority": 2,
+        "capacity_bytes": 28668,
+        "peak_bytes": 13468,
+        "headroom_percent": 53.0
+      },
+      "Intercore.notify Thread": {
+        "priority": 3,
+        "capacity_bytes": 2044,
+        "peak_bytes": 548,
+        "headroom_percent": 73.2
+      },
+      "Io.applicationThread Thread": {
+        "priority": 3,
+        "capacity_bytes": 16380,
+        "peak_bytes": 11620,
+        "headroom_percent": 29.1
+      },
+      "Io.iccThread Thread": {
+        "priority": 4,
+        "capacity_bytes": 20476,
+        "peak_bytes": 12104,
+        "headroom_percent": 40.9
+      },
+      "Application Thread": {
+        "priority": 15,
+        "capacity_bytes": 8188,
+        "peak_bytes": 2456,
+        "headroom_percent": 70.0
+      },
+      "Motion diagnostics Thread": {
+        "priority": 18,
+        "capacity_bytes": 6140,
+        "peak_bytes": 868,
+        "headroom_percent": 85.9
+      },
+      "Io.logging Thread": {
+        "priority": 20,
+        "capacity_bytes": 8188,
+        "peak_bytes": 1176,
+        "headroom_percent": 85.6
+      },
+      "Io.diagnosticThread Thread": {
+        "priority": 20,
+        "capacity_bytes": 4092,
+        "peak_bytes": 2688,
+        "headroom_percent": 34.3
+      },
+      "std reaper": {
+        "priority": 31,
+        "capacity_bytes": 2044,
+        "peak_bytes": 216,
+        "headroom_percent": 89.4
+      },
+      "Motion Thread": {
+        "priority": 16,
+        "capacity_bytes": 10236,
+        "peak_bytes": 7144,
+        "headroom_percent": 30.2
+      }
+    },
+    "normal_m4_fast_bytes": 193248,
+    "m4_fast_capacity_bytes": 196608,
+    "profile_m4_fast_bytes": 196552,
+    "profile_m4_fast_free_bytes": 56,
+    "m4_data_bytes": 82016,
+    "m4_data_capacity_bytes": 88064,
+    "m4_ordinary_code_base": "0xC0480000",
+    "m4_ordinary_code_bytes": 672008,
+    "m4_ordinary_code_capacity_bytes": 1572864,
+    "irq_audit": {
+      "roots": 62,
+      "reachable_functions": 182,
+      "outside_internal_ram": 0,
+      "evidence": {
+        "path": "build/cleanup-validation-2026-11-10/release-ram-audit.json",
+        "sha256": "a77026f4cbc944f557f7b49bc98a7e4e57c432fa34cc675ae3e7cc256a1cb51e"
+      }
+    }
+  },
+  "limits": [
+    "Short electrical regressions do not establish sustained 6250-pulse/s qualification or a worst-case command-response bound.",
+    "Host-observed CLI acknowledgement includes USB reads and queued logging; the workflow maximum was 751 ms and is not a one-way ICC latency measurement.",
+    "Profiling build has only 56 bytes of fast-code headroom; future code additions require an explicit placement/size budget.",
+    "QSPI-only M4 execution remains unqualified; the normal presets now use SDRAM.",
+    "Powered mechanical commissioning, missing STEP pull-downs and physical display/touch validation remain separate."
+  ],
+  "failure_retention": [
+    "Initial GUI regressions are retained in normal-tests31; fixed canvas/name lookup passes final regressions.",
+    "Initial X11 sandbox failures were rerun with the required local-socket access.",
+    "Capture attempted before USB re-enumeration did not run motion; final-coordinated34b is the successful capture.",
+    "Late stop reached the nominal 400-pulse endpoint; early-stop capture independently verifies 266 pulses per axis."
+  ]
+}

@@ -221,7 +221,7 @@ namespace ui
                               std::chrono::microseconds{ us - result.received_us })
                               .count();
         }
-        if (result.age_ms > TELEMETRY_STALE.count()) {
+        if (std::cmp_greater(result.age_ms, TELEMETRY_STALE.count())) {
             result.fresh = false;
             if (!result.failed) {
                 text(result.condition, "Telemetry stale: pose frozen; motion unavailable");

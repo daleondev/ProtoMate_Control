@@ -20,14 +20,14 @@
 <text x="106" y="386.0" font-family="DejaVu Sans" font-size="21" font-weight="700" text-anchor="start" fill="#007D78">2 KiB vectors · 0x10000000</text>
 <rect x="84" y="419" width="472" height="117" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="104" y="451" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">192 KiB fast code + constants</text>
-<text x="104" y="482" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x10000800 · 195,976 B linked</text>
+<text x="104" y="482" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x10000800 · 193,248 B linked</text>
 <rect x="104" y="502" width="432" height="13" rx="6.5" fill="#D7E1E9"/>
-<rect x="104" y="502" width="430.611328125" height="13" rx="6.5" fill="#007D78"/>
+<rect x="104" y="502" width="424.6171875" height="13" rx="6.5" fill="#007D78"/>
 <rect x="84" y="547" width="472" height="99" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="104" y="578" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">86 KiB data + DMA buffers</text>
-<text x="104" y="607" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x30030800 · 81,824 B linked</text>
+<text x="104" y="607" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x30030800 · 82,016 B linked</text>
 <rect x="104" y="623" width="432" height="10" rx="5.0" fill="#D7E1E9"/>
-<rect x="104" y="623" width="401.38953488372096" height="10" rx="5.0" fill="#007D78"/>
+<rect x="104" y="623" width="402.3313953488372" height="10" rx="5.0" fill="#007D78"/>
 <rect x="84" y="658" width="472" height="57" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="106" y="693.0" font-family="DejaVu Sans" font-size="19" font-weight="700" text-anchor="start" fill="#007D78">8 KiB interrupt stack · 0x30046000</text>
 <rect x="84" y="738" width="472" height="140" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
@@ -67,9 +67,9 @@
 <text x="1264" y="530" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0xC0000000 · non-cacheable</text>
 <text x="1264" y="555" font-family="DejaVu Sans" font-size="19" font-weight="400" text-anchor="start" fill="#183044">Two images, 1,228,800 B each</text>
 <rect x="1244" y="583" width="472" height="103" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
-<text x="1264" y="615" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">M4 RAM-debug code · 2 MiB</text>
-<text x="1264" y="646" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0xC0400000 · optional debug image</text>
-<text x="1264" y="671" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#566B7B">Normal Release uses QSPI for cold code</text>
+<text x="1264" y="615" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#007D78">M4 code + profiling · 2 MiB</text>
+<text x="1264" y="646" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0xC0480000 · code: 1536 KiB</text>
+<text x="1264" y="671" font-family="DejaVu Sans" font-size="18" font-weight="400" text-anchor="start" fill="#566B7B">0xC0400000 · profiling: 512 KiB</text>
 <rect x="1244" y="699" width="472" height="159" rx="14" fill="#FFFFFF" stroke="#D7E1E9" stroke-width="1.5"/>
 <text x="1264" y="731" font-family="DejaVu Sans" font-size="23" font-weight="700" text-anchor="start" fill="#245EA8">UI working arena · 2 MiB</text>
 <text x="1264" y="762" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0xC0600000 · cacheable</text>
@@ -105,6 +105,6 @@
 <text x="664" y="1193" font-family="DejaVu Sans Mono" font-size="18" font-weight="400" text-anchor="start" fill="#183044">0x90400000 · M7 image · 10 MiB</text>
 <text x="1200" y="1193" font-family="DejaVu Sans Mono" font-size="17" font-weight="400" text-anchor="start" fill="#183044">0x90F00000 · Factory area · 1 MiB</text>
 <path d="M60,1260 L1740,1260" fill="none" stroke="#D7E1E9" stroke-width="2"/>
-<text x="60" y="1288" font-family="DejaVu Sans" font-size="17" font-weight="400" text-anchor="start" fill="#566B7B">Current source • Normal Release pair: d6c8f63c273bddd9 • Electrical tests do not establish mechanical qualification</text>
+<text x="60" y="1288" font-family="DejaVu Sans" font-size="17" font-weight="400" text-anchor="start" fill="#566B7B">Current source • Normal Release pair: 6bb2cd35b1b7e73a • Electrical tests do not establish mechanical qualification</text>
 <text x="60" y="1310" font-family="DejaVu Sans" font-size="14" font-weight="400" text-anchor="start" fill="#566B7B">Sources: cmake/application_giga.cmake; boot linker/manifest; normal Release manifest. Heap capacity excludes linker/runtime metadata.</text>
-<metadata>{&quot;date&quot;: &quot;2026-11-08&quot;, &quot;normal_release_pair&quot;: &quot;d6c8f63c273bddd91c2a7b584d6a33a21954b359742824ca6ea8bb686bb33c13&quot;, &quot;evidence_sha256&quot;: {&quot;cmake/application_giga.cmake&quot;: &quot;5f594f5e347ce178a676ee2d457d67f5d814225cf0469b6c40ca7d527f989367&quot;, &quot;platform/boot/giga/application.ld.in&quot;: &quot;2ec4fd3e5df4cfe66feb7d82c37e530c6cb1d98c59bbedbc186d4bc22d0e0692&quot;, &quot;build/giga-release/images/manifest.json&quot;: &quot;6fbe493c1b94dc27db6d14cc7a23c0d889bbf82da8c101a218dd21e7d304adff&quot;}, &quot;scope&quot;: &quot;Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.&quot;}</metadata></svg>
+<metadata>{&quot;date&quot;: &quot;2026-11-11&quot;, &quot;normal_release_pair&quot;: &quot;6bb2cd35b1b7e73a839d1a8d0b3dc59b112b9ea7e7627c46a7e32b2d0700ab44&quot;, &quot;evidence_sha256&quot;: {&quot;cmake/application_giga.cmake&quot;: &quot;37993fd89c74966baa7821943a6591985715190d9c2bded01c26f9a0bf6f35f5&quot;, &quot;platform/boot/giga/application.ld.in&quot;: &quot;2ec4fd3e5df4cfe66feb7d82c37e530c6cb1d98c59bbedbc186d4bc22d0e0692&quot;, &quot;build/giga-release/images/manifest.json&quot;: &quot;84b9e54173efa6e3cdb2eb5fc038fe91a5644f2d433cea530a0177395e1b7f22&quot;}, &quot;scope&quot;: &quot;Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.&quot;}</metadata></svg>

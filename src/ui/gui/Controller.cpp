@@ -24,7 +24,7 @@ namespace ui::gui
     using namespace std::chrono_literals;
     namespace
     {
-        constexpr unsigned DISPLAY_WIDTH{ 1024 }, DISPLAY_HEIGHT{ 600 }, DIAGNOSTIC_FRAMES{ 10 },
+        constexpr unsigned CANVAS_WIDTH{ 1024 }, CANVAS_HEIGHT{ 600 }, DIAGNOSTIC_FRAMES{ 10 },
           BRIGHTNESS_FIELD{ 11 }, STARTUP_BRIGHTNESS{ 10 };
 #if defined(CORE_CM7)
         constexpr unsigned STORAGE_ALIGNMENT{ 32 };
@@ -98,7 +98,7 @@ namespace ui::gui
                  touchgfx::LCD& lcd,
                  Touch& touch,
                  std::stop_token token)
-              : HAL{ dma, lcd, touch, DISPLAY_WIDTH, DISPLAY_HEIGHT }
+              : HAL{ dma, lcd, touch, CANVAS_WIDTH, CANVAS_HEIGHT }
               , owner{ controller }
               , stop{ std::move(token) }
             {
@@ -476,7 +476,7 @@ namespace ui::gui
             }
             // Panel coordinates are landscape/native; reject, never wrap,
             // out-of-range data. Rotation belongs here if hardware changes.
-            if (point.x >= DISPLAY_WIDTH || point.y >= DISPLAY_HEIGHT) {
+            if (point.x >= CANVAS_WIDTH || point.y >= CANVAS_HEIGHT) {
                 point.active = false;
             }
         }

@@ -1,8 +1,8 @@
 #include "Bench.hpp"
 #include "BrakeCrossing.hpp"
+#include "CompactRuns.hpp"
 #include "Crossing.hpp"
 #include "FastCrossing.hpp"
-#include "CompactRuns.hpp"
 #include "common/motion/Profile.hpp"
 #include "common/motion/PulseCursor.hpp"
 #include "ui/motion/Planner.hpp"
@@ -30,17 +30,23 @@ namespace motion_bench
     static void executeKernel(const Request& request, Report& report)
     {
         using namespace pnm::units::literals;
-        if (request.fixture == 21 || request.fixture == 22 || request.fixture == 24) { fixedKernel(request, report); return; }
-        if (request.fixture >= 5 && request.fixture <= 7)
+        if (request.fixture == 21 || request.fixture == 22 || request.fixture == 24) {
+            fixedKernel(request, report);
+            return;
+        }
+        if (request.fixture >= 5 && request.fixture <= 7) {
             workspace = {};
+        }
         const auto cap = capabilities();
         tr::Segment segment{ .ticks = 10'000'000 };
-        for (auto& p : segment.motors)
+        for (auto& p : segment.motors) {
             p.coefficients = { 0, request.fixture == 9 ? 100000. : 50000. };
+        }
         if (request.fixture == 8) {
             segment.ticks = 100'000'000;
-            for (auto& p : segment.motors)
+            for (auto& p : segment.motors) {
                 p.coefficients = { 0, 2000, -2000 };
+            }
         }
         tr::PulseCursor cursor{ cap, { 0, 0, 0 } };
         if (cursor.append(segment) != tr::Error::None) {
@@ -55,12 +61,14 @@ namespace motion_bench
         __attribute__((section(".motion_bench_buffers"), aligned(32))) static std::array<std::uint32_t, 6000>
           prepared;
         if (request.fixture == 19 || request.fixture == 20) {
-            __attribute__((section(".motion_bench_runs"), aligned(32))) static std::array<compact::Program, 3> programs;
+            __attribute__((section(".motion_bench_runs"), aligned(32))) static std::array<compact::Program, 3>
+              programs;
             const auto prepare = [&] {
                 report.value = report.received = report.rejected = 0;
                 for (unsigned axis = 0; axis < 3; ++axis) {
                     const auto speed = 100000. - axis * 5000.;
-                    const auto profile = motion::Profile::brake(speed, 0, { speed, speed * 10, speed * 10, speed * 100 });
+                    const auto profile =
+                      motion::Profile::brake(speed, 0, { speed, speed * 10, speed * 10, speed * 100 });
                     if (!profile || !compact::compile(compact::Curve(*profile), programs[axis])) {
                         ++report.errors;
                         return false;
@@ -71,8 +79,9 @@ namespace motion_bench
                 }
                 return true;
             };
-            if (request.fixture == 20 && !prepare())
+            if (request.fixture == 20 && !prepare()) {
                 return;
+            }
             const auto start = now();
             for (unsigned i = 0; i < request.count; ++i) {
                 const auto before = now();
@@ -85,14 +94,17 @@ namespace motion_bench
                 else {
                     for (unsigned axis = 0; axis < 3; ++axis) {
                         const auto first = (i * 251) % (programs[axis].pulses - 256);
-                        if (!compact::expand(programs[axis], first, std::span(prepared).subspan(axis * 256, 256)))
+                        if (!compact::expand(
+                              programs[axis], first, std::span(prepared).subspan(axis * 256, 256))) {
                             ++report.errors;
+                        }
                     }
                 }
                 report.processing.add(now() - before);
                 ++report.sent;
-                if (request.fixture == 20)
+                if (request.fixture == 20) {
                     report.checksum += prepared[(i * 173) % 768];
+                }
             }
             report.elapsed = now() - start;
             return;
@@ -104,7 +116,8 @@ namespace motion_bench
                 for (unsigned axis = 0; axis < 3; ++axis) {
                     const auto maximum = request.fixture == 23 ? double(request.rate) : 100000.;
                     const auto profile =
-                      motion::Profile::brake(maximum * (1 - axis * .05), 1234 * maximum / 100000.,
+                      motion::Profile::brake(maximum * (1 - axis * .05),
+                                             1234 * maximum / 100000.,
                                              { maximum, maximum * 10, maximum * 10, maximum * 100 });
                     if (!profile) {
                         ++report.errors;
@@ -153,8 +166,9 @@ namespace motion_bench
                     }
                 }
                 report.processing.add(now() - before);
-                for (unsigned i = 0; i < 3 * pulses; ++i)
+                for (unsigned i = 0; i < 3 * pulses; ++i) {
                     report.checksum += prepared[i];
+                }
                 report.sent += 3 * pulses;
             }
             report.elapsed = now() - started;
@@ -168,15 +182,17 @@ namespace motion_bench
                 case 0: {
                     auto p = motion::Profile::create(10000, { 100000, 1e6, 1e6, 1e7 });
                     ok = p.has_value();
-                    if (p)
+                    if (p) {
                         report.value = static_cast<std::uint32_t>(p->duration() * 1e6);
+                    }
                     break;
                 }
                 case 1: {
                     auto p = motion::Profile::brake(90000, 1234, { 100000, 1e6, 1e6, 1e7 });
                     ok = p.has_value();
-                    if (p)
+                    if (p) {
                         report.value = static_cast<std::uint32_t>(p->duration() * 1e6);
+                    }
                     break;
                 }
                 case 2:
@@ -231,7 +247,7 @@ namespace motion_bench
                 case 5:
                 case 6:
                 case 7: {
-                    ui::motion::RobotModel model{ ui::motion::simulationConfiguration(cap), cap };
+                    ui::motion::RobotModel model{ ui::motion::simulation_configuration(cap), cap };
                     ui::motion::Planner planner{ model, workspace };
                     ui::motion::Move move{ .joints = { 10_deg, 80_deg, 40_mm } };
                     if (request.fixture >= 6) {
@@ -258,8 +274,9 @@ namespace motion_bench
                     ok = false;
             }
             report.processing.add(now() - before);
-            if (!ok)
+            if (!ok) {
                 ++report.errors;
+            }
             ++report.sent;
         }
         report.elapsed = now() - started;
@@ -271,11 +288,12 @@ namespace motion_bench
         // production executor profiles own the limited local D2 SRAM instead.
         // M7 retains its reserved stack, without taking space from the UI heap.
         constexpr std::size_t stackSize = (SIDE == 0 ? 20 : 24) * 1024;
-        alignas(32) __attribute__((section(".bss.motion_bench_stack")))
-          static std::byte uiStack[SIDE == 0 ? 1 : stackSize];
+        alignas(32) __attribute__((
+          section(".bss.motion_bench_stack"))) static std::byte uiStack[SIDE == 0 ? 1 : stackSize];
         std::unique_ptr<std::byte[]> ioStack;
-        if constexpr (SIDE == 0)
+        if constexpr (SIDE == 0) {
             ioStack = std::make_unique<std::byte[]>(stackSize);
+        }
         auto* stack = SIDE == 0 ? ioStack.get() : uiStack;
         auto worker =
           runtime::thread::create({ .name = "bench.kernel",
@@ -287,8 +305,9 @@ namespace motion_bench
         report.stack_size = stackSize;
         auto words = std::span(reinterpret_cast<const std::uint32_t*>(stack), stackSize / 4);
         for (auto word : words) {
-            if (word != 0xefefefefU)
+            if (word != 0xefefefefU) {
                 break;
+            }
             report.stack_free += 4;
         }
     }

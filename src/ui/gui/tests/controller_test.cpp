@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <stop_token>
 #include <thread>
+#include <touchgfx/hal/HAL.hpp>
 #include <tx_api.h>
 extern "C" int gui_test_phase();
 extern "C" int gui_test_scenario();
@@ -192,6 +193,16 @@ int main()
     rendering.join();
     touch.join();
     scene.join();
+    // Resolve the configured canvas independently of the derived HAL constructor.
+    // A base-class static with the same name as a local constant once supplied
+    // zero dimensions, leaving the engine alive but unable to render or hit-test.
+    if (touchgfx::HAL::DISPLAY_WIDTH != 1024 || touchgfx::HAL::DISPLAY_HEIGHT != 600) {
+        std::fprintf(stderr,
+                     "GUI canvas mismatch: %u x %u\n",
+                     touchgfx::HAL::DISPLAY_WIDTH,
+                     touchgfx::HAL::DISPLAY_HEIGHT);
+        return 1;
+    }
     const auto s = gui.status();
     if (detailTest) {
         passed &= renderingPassed && interactive && refined && idleCount &&
