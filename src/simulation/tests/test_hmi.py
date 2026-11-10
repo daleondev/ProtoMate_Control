@@ -8,7 +8,7 @@ import subprocess
 import time
 
 
-def test_hmi_motion_workflow(simulator,tmp_path,spawn):
+def test_hmi_motion_workflow(simulator,tmp_path,spawn,wall_time_factor):
     fifo=tmp_path/'input.fifo';os.mkfifo(fifo)
     pipe=os.open(fifo,os.O_RDWR|os.O_NONBLOCK)
     proc=spawn([simulator,'--headless'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,
@@ -94,7 +94,7 @@ def test_hmi_motion_workflow(simulator,tmp_path,spawn):
         output=command('motion jobs');ids=re.findall(r'^(\d+):',output,re.M);assert ids,output
         return max(map(int,ids))
     def wait(job,states=('completed',),timeout=90):
-        end=time.monotonic()+timeout
+        end=time.monotonic()+timeout*wall_time_factor
         while time.monotonic()<end:
             out=command(f'motion jobs {job}')
             line=next((x for x in out.splitlines() if x.startswith(f'{job}: ')),out)

@@ -178,6 +178,21 @@ class PartialLintTests(unittest.TestCase):
             self.assertEqual(len(selected), 1)
             self.assertIn("-DPRODUCTION", selected[0]["arguments"])
 
+    def test_adjacent_test_target_recompilation_is_excluded(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = tidy.ROOT / "src/ui/gui/scene3d/Robot.cpp"
+            entries = [{"directory": str(root), "file": str(source),
+                        "arguments": ["g++", "-D" + label, "-c", str(source), "-o", str(root / obj)]}
+                       for label, obj in (
+                           ("TEST", "src/ui/gui/scene3d/CMakeFiles/scene3d_robot_tests.dir/Robot.cpp.o"),
+                           ("PRODUCTION", "src/ui/gui/CMakeFiles/proto_ui_gui.dir/scene3d/Robot.cpp.o"))]
+            (root / "compile_commands.json").write_text(json.dumps(entries))
+            tidy.prepare_database(root, root / "lint")
+            selected = json.loads((root / "lint/analysis.json").read_text())
+            self.assertEqual(len(selected), 1)
+            self.assertIn("-DPRODUCTION", selected[0]["arguments"])
+
     def test_cross_compiler_headers_exclude_gcc_builtins(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

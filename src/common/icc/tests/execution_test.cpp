@@ -181,4 +181,44 @@ namespace
         EXPECT_FALSE(io.failure());
         EXPECT_FALSE(ui.failure());
     }
+
+    TEST_F(ExecutionTest, ProviderShutdownCompletesComposedCallsAndAllowsExplicitReplacement)
+    {
+        auto provider{ serve() };
+        pnm::coro::co_spawn(uiContext, [this](auto&) -> pnm::coro::Task<void> {
+            try {
+                results = co_await ex::when_all(request("first"), request("second"));
+            } catch (...) {
+                error = std::current_exception();
+            }
+        });
+        drain();
+        ASSERT_EQ(provider.poll(), 2U);
+        ASSERT_EQ(replies.size(), 2U);
+        provider.close();
+        drain();
+        ASSERT_FALSE(error);
+        ASSERT_TRUE(results);
+        for (const auto& result : { std::get<0>(*results), std::get<1>(*results) }) {
+            EXPECT_EQ(result, std::unexpected(pnm::msg::ServiceError::Unavailable));
+        }
+        EXPECT_FALSE(replies[0].respond("late first response"));
+        EXPECT_FALSE(replies[1].respond("late second response"));
+
+        // Only a new explicit request may run after replacing the provider.
+        auto replacement{ serve() };
+        Completion completion;
+        auto operation{ ex::connect(request("new request"), Receiver{ &completion, {} }) };
+        ex::start(operation);
+        drain();
+        ASSERT_EQ(replacement.poll(), 1U);
+        ASSERT_EQ(replies.size(), 3U);
+        EXPECT_TRUE(replies[2].respond("new response"));
+        drain();
+        ASSERT_TRUE(completion.result);
+        EXPECT_EQ(*completion.result, "new response");
+        EXPECT_EQ(completion.deliveries, 1U);
+        EXPECT_FALSE(io.failure());
+        EXPECT_FALSE(ui.failure());
+    }
 }

@@ -32,9 +32,9 @@ namespace
     static_assert(!std::default_initializable<ui::Application>);
 
     template<typename Predicate>
-    bool wait_until(Predicate predicate)
+    bool wait_until(Predicate predicate, std::chrono::milliseconds timeout = 2s)
     {
-        const auto deadline = std::chrono::steady_clock::now() + 2s;
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
         while (!predicate() && std::chrono::steady_clock::now() < deadline) {
             std::this_thread::sleep_for(1ms);
         }
@@ -221,8 +221,9 @@ namespace
     {
         Applications apps;
         apps.io.start();
-        ASSERT_TRUE(
-          wait_until([&] { return apps.io.connectionStatus().state == icc::ConnectionState::Failed; }));
+        ASSERT_TRUE(wait_until([&] {
+            return apps.io.connectionStatus().state == icc::ConnectionState::Failed;
+        }, icc::ConnectionOptions::DEFAULT_STARTUP_TIMEOUT + 1s));
         apps.io.requestStop();
         apps.io.join();
         EXPECT_EQ(apps.io.connectionStatus().state, icc::ConnectionState::Failed);

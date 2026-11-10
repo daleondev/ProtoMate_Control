@@ -88,7 +88,10 @@ struct Fixture {
             for(unsigned i=0;i<3;++i){
                 const bool forward=i==0?(GPIOJ->IDR&GPIO_PIN_8):i==1?(GPIOD->IDR&GPIO_PIN_13):(GPIOH->IDR&GPIO_PIN_13);
                 positions[i].observe(s.pulses[i], forward);
-                inputs[i]->update(positions[i].physical>=32);
+                // Leave enough initial seek travel for a UART-observed
+                // Running -> Stop request before contact. Cancelling on an
+                // active contact now correctly latches the hard-limit fault.
+                inputs[i]->update(positions[i].physical>=256);
             }
         }))throw std::runtime_error("fixture callback unavailable");
         return controller;

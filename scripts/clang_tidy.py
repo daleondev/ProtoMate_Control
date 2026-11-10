@@ -59,7 +59,8 @@ def configure_database(output, name, arguments):
         raise ValueError(f"CMake configuration {name} failed:\n{result.stdout}")
     if name == "stm32-ui":
         # Analysis needs the same generated assets as compilation, not stubs.
-        assets = subprocess.run(["cmake", "--build", str(build), "--target", "gui-assets", "scene3d-assets"],
+        assets = subprocess.run(["cmake", "--build", str(build), "--target", "gui-assets", "scene3d-assets",
+                                 "scene3d-robot-assets"],
                                 cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         (output / f"assets-{name}.log").write_text(assets.stdout)
         if assets.returncode:
@@ -152,6 +153,11 @@ def prepare_database(build, output, extra_databases=(), arm_includes=()):
             if object_file:
                 relative_output = Path(os.path.relpath(Path(entry["directory"]) / object_file, directory))
                 if {"test", "tests"}.intersection(relative_output.parts):
+                    continue
+                # Some tests live beside the library CMakeLists and recompile
+                # production sources (for example scene3d_robot_tests). Their
+                # target directory, rather than the source path, identifies them.
+                if any(re.search(r"(?:^|_)tests?\.dir$", part) for part in relative_output.parts):
                     continue
             # runtime_attach also compiles this hook into tests and examples.
             # Analyze its actual Application configuration once per platform.

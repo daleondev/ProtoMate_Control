@@ -56,9 +56,8 @@ def main():
             elbow = submit("axis move elbow -1")
             finished(shoulder)
             finished(elbow)
-            # Homing leaves Z on its active reference contact. Give the later
-            # back-and-forth moves clearance so their return leg does not
-            # deliberately trigger the controller's positive-direction inhibit.
+            # Add clearance beyond the fixture's neutral pose for the later
+            # back-and-forth moves and hard-limit checks.
             finished(submit("axis move z -.1"))
             for sign in (-1, 1, -1, 1):
                 finished(submit(f"robot move joints {sign} {sign} {sign * .01} --speed 1"))

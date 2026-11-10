@@ -194,7 +194,8 @@
             "name": "giga-io-motion-api-debug",
             "inherits": "giga-io-debug",
             "cacheVariables": {
-                "GIGA_MOTION_API_TEST": true
+                "GIGA_MOTION_API_TEST": true,
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
@@ -208,14 +209,16 @@
             "name": "giga-motion-api-debug",
             "inherits": "giga-debug",
             "cacheVariables": {
-                "GIGA_MOTION_API_TEST": true
+                "GIGA_MOTION_API_TEST": true,
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
             "name": "giga-io-motion-api-release",
             "inherits": "giga-io-release",
             "cacheVariables": {
-                "GIGA_MOTION_API_TEST": true
+                "GIGA_MOTION_API_TEST": true,
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
@@ -229,7 +232,8 @@
             "name": "giga-motion-api-release",
             "inherits": "giga-release",
             "cacheVariables": {
-                "GIGA_MOTION_API_TEST": true
+                "GIGA_MOTION_API_TEST": true,
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {

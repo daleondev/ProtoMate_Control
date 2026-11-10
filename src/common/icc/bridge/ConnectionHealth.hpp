@@ -39,13 +39,17 @@ namespace icc
         ConnectionReason reason{ ConnectionReason::None };
         bool operator==(const ConnectionStatus&) const = default;
     };
-    // Require 0 < heartbeat < timeout <= 24 hours. Defaults suit the control link.
+    // Startup may include cold-flash constructors on the slower peer. Once
+    // connected, only timeout governs heartbeat loss; startup grants no motion.
+    // Require 0 < heartbeat < timeout <= 24 hours and 0 < startup_timeout <= 24 hours.
     struct ConnectionOptions
     {
         static constexpr std::chrono::milliseconds DEFAULT_HEARTBEAT{ 100 };
         static constexpr std::chrono::milliseconds DEFAULT_TIMEOUT{ 500 };
+        static constexpr std::chrono::milliseconds DEFAULT_STARTUP_TIMEOUT{ 5000 };
         std::chrono::milliseconds heartbeat{ DEFAULT_HEARTBEAT };
         std::chrono::milliseconds timeout{ DEFAULT_TIMEOUT };
+        std::chrono::milliseconds startup_timeout{ DEFAULT_STARTUP_TIMEOUT };
     };
     using ConnectionCallback = std::function<void(ConnectionStatus)>;
 

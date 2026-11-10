@@ -104,8 +104,8 @@ namespace
         std::array<std::shared_ptr<icc::InProcessTransport>, 2> endpoints{ icc::InProcessTransport::pair() };
         FaultTransport ioTransport{ *endpoints[0] }, uiTransport{ *endpoints[1] };
         std::vector<icc::ConnectionStatus> ioEvents, uiEvents;
-        icc::Bridge io{ ioBus, ioContext, ioTransport, { 20ms, 120ms } };
-        icc::Bridge ui{ uiBus, uiContext, uiTransport, { 20ms, 120ms } };
+        icc::Bridge io{ ioBus, ioContext, ioTransport, { 20ms, 120ms, 120ms } };
+        icc::Bridge ui{ uiBus, uiContext, uiTransport, { 20ms, 120ms, 120ms } };
 
         void SetUp() override
         {
@@ -166,10 +166,52 @@ namespace
         const icc::ConnectionOptions defaults;
         EXPECT_EQ(defaults.heartbeat, 100ms);
         EXPECT_EQ(defaults.timeout, 500ms);
+        EXPECT_EQ(defaults.startup_timeout, 5s);
         EXPECT_EQ(io.connectionStatus(), icc::ConnectionStatus{});
         EXPECT_TRUE(ioEvents.empty());
         EXPECT_THROW((icc::Bridge{ ioBus, ioContext, ioTransport, { 0ms, 500ms } }), std::invalid_argument);
         EXPECT_THROW((icc::Bridge{ ioBus, ioContext, ioTransport, { 100ms, 100ms } }), std::invalid_argument);
+        EXPECT_THROW((icc::Bridge{ ioBus, ioContext, ioTransport, { 100ms, 500ms, 0ms } }),
+                     std::invalid_argument);
+        EXPECT_THROW((icc::Bridge{ ioBus, ioContext, ioTransport, { 100ms, 500ms, 25h } }),
+                     std::invalid_argument);
+    }
+
+    TEST(ConnectionStartup, SlowPeerStartupDoesNotExtendTheConnectedHeartbeatDeadline)
+    {
+        pnm::msg::Bus io_bus, ui_bus;
+        pnm::coro::Context io_context, ui_context;
+        auto endpoints{ icc::InProcessTransport::pair() };
+        FaultTransport io_transport{ *endpoints[0] }, ui_transport{ *endpoints[1] };
+        const icc::ConnectionOptions options{ 20ms, 120ms, 500ms };
+        icc::Bridge io{ io_bus, io_context, io_transport, options };
+        icc::Bridge ui{ ui_bus, ui_context, ui_transport, options };
+        const auto pump{ [&] {
+            while (io_context.poll() + ui_context.poll()) {
+            }
+        } };
+        const auto drive{ [&](auto duration) {
+            const auto until{ std::chrono::steady_clock::now() + duration };
+            do {
+                pump();
+                std::this_thread::sleep_for(1ms);
+            } while (std::chrono::steady_clock::now() < until);
+            pump();
+        } };
+        ui.start();
+        drive(180ms); // Longer than the active-link timeout, but still startup.
+        EXPECT_EQ(ui.connectionStatus().state, State::Connecting);
+        io.start();
+        pump();
+        EXPECT_EQ(io.connectionStatus().state, State::Connected);
+        EXPECT_EQ(ui.connectionStatus().state, State::Connected);
+        io_transport.dropAcknowledgements = true;
+        drive(180ms);
+        EXPECT_EQ(ui.connectionStatus(), (icc::ConnectionStatus{ State::Failed, Reason::HeartbeatTimeout }));
+        endpoints[0]->close();
+        pump();
+        io.stop();
+        ui.stop();
     }
 
     TEST_F(ConnectionTest, QueuedCommandsWaitForThePeerHandshake)

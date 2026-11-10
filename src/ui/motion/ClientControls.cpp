@@ -49,9 +49,8 @@ namespace ui::motion
                     call->readiness = {};
                     call->handle.reset();
                 }
-            m_disable.emplace();
-            m_disable->request = value;
-            m_disable->completion = std::move(completion);
+            m_disable.emplace(ControlCall{
+              .request = value, .completion = std::move(completion), .handle = {}, .readiness = {} });
             m_notification->signal();
             return true;
         }
@@ -59,9 +58,8 @@ namespace ui::motion
             return false;
         for (auto& slot : m_calls)
             if (!slot) {
-                slot.emplace();
-                slot->request = value;
-                slot->completion = std::move(completion);
+                slot.emplace(ControlCall{
+                  .request = value, .completion = std::move(completion), .handle = {}, .readiness = {} });
                 m_notification->signal();
                 return true;
             }

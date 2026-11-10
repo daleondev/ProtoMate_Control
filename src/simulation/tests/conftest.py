@@ -10,6 +10,8 @@ def pytest_addoption(parser):
     for name in ("simulator", "controller", "launcher", "client-probe", "storage-probe"):
         group.addoption(f"--{name}", help=f"Path to the built {name} executable")
     group.addoption("--nm", default="nm", help="Symbol inspection tool")
+    group.addoption("--wall-time-factor", type=int, default=1, choices=(1, 3),
+                    help="Host wait budget multiplier for instrumented workflows; never changes simulated time")
     group.addoption("--native-test", action="append", default=[],
                     help="Native GoogleTest executable to audit for runtime isolation")
 
@@ -21,6 +23,11 @@ def binary(request, name):
     path = Path(value).resolve()
     assert path.is_file(), f"Executable does not exist: {path}"
     return str(path)
+
+
+@pytest.fixture
+def wall_time_factor(request):
+    return request.config.getoption("wall_time_factor")
 
 
 @pytest.fixture

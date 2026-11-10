@@ -7,7 +7,7 @@ import subprocess
 import time
 
 
-def test_axis_and_robot_workflow(simulator, tmp_path, spawn):
+def test_axis_and_robot_workflow(simulator, tmp_path, spawn, wall_time_factor):
     proc = spawn([simulator, "--headless"], stdin=subprocess.PIPE,
                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                  env={**os.environ, "SDL_VIDEODRIVER": "dummy"})
@@ -44,7 +44,7 @@ def test_axis_and_robot_workflow(simulator, tmp_path, spawn):
         return int(matches[0])
 
     def wait(job, state="completed", timeout=100):
-        end = time.monotonic() + timeout
+        end = time.monotonic() + timeout * wall_time_factor
         while time.monotonic() < end:
             result = command(f"motion jobs {job}")
             lines=[line for line in result.splitlines() if line.startswith(f"{job}: ")]

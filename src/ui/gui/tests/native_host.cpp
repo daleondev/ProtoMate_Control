@@ -497,10 +497,24 @@ namespace
             }
             const double p95 = count ? latencies[(count * 95 - 1) / 100] : 0;
             std::fprintf(stderr, "HMI visible press feedback: samples=%u p95=%.2f ms\n", latencyCount, p95);
-            if (latencyCount < 10 || p95 > 50)
+            // Sanitizers qualify memory/lifetime correctness. Their overhead
+            // must not be interpreted as normal-build interaction performance.
+#if defined(GUI_TEST_INSTRUMENTED)
+            constexpr bool qualifyLatency = false;
+            std::fprintf(
+              stderr,
+              "Instrumented run: latency recorded, performance qualification deferred to normal build\n");
+#else
+            constexpr bool qualifyLatency = true;
+#endif
+            if (latencyCount < 10 || (qualifyLatency && p95 > 50))
                 correct = false;
             if (auto* file = std::fopen("gui-latency.json", "w")) {
-                std::fprintf(file, "{\"samples\":%u,\"p95_ms\":%.3f}\n", latencyCount, p95);
+                std::fprintf(file,
+                             "{\"samples\":%u,\"p95_ms\":%.3f,\"performance_qualified\":%s}\n",
+                             latencyCount,
+                             p95,
+                             qualifyLatency && p95 <= 50 ? "true" : "false");
                 std::fclose(file);
             }
             phase = 21;

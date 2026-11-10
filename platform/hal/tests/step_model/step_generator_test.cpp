@@ -831,6 +831,42 @@ TEST_F(StepTest, AnalyticTailReplacementPreservesCommittedEdgesAndChangesFiniteE
     EXPECT_FALSE(hardware->high[0]);
 }
 
+TEST_F(StepTest, RawStartupComputesItsLeadAfterSlowInitialGenerationAcrossRollover)
+{
+    class SlowSequence final : public hal::step::Sequence
+    {
+      public:
+        hal::util::SimulatedStepHardware* clock{};
+        mutable bool delayed{};
+        hal::step::PulseCount count() const noexcept override { return 3; }
+        std::chrono::nanoseconds maximumPeriod() const noexcept override { return 100us; }
+        hal::util::Result<hal::step::Timing> timing(hal::step::PulseCount) const noexcept override
+        {
+            if (!delayed) {
+                delayed = true;
+                clock->advance(400); // 40 us of preparation, exceeding the requested 10 us lead.
+            }
+            return hal::step::Timing{ 100us, 5us };
+        }
+    };
+    auto sequence{ std::make_shared<SlowSequence>() };
+    sequence->clock = hardware;
+    ASSERT_TRUE(outputs[0]->prepareSequence(sequence));
+    ASSERT_TRUE(generator->start());
+    hardware->advance(hal::util::STEP_PARK - 200ULL);
+    ASSERT_TRUE(outputs[0]->start(10us));
+    const auto first{ hardware->elapsed + 100U };
+    hardware->advance(5000U);
+    EXPECT_EQ(rises(0), (std::vector<std::uint64_t>{ first, first + 1000U, first + 2000U }));
+    EXPECT_EQ(outputs[0]->status().state, State::Completed);
+    EXPECT_EQ(outputs[0]->pulseCount(), 3U);
+    ASSERT_EQ(hardware->edges.size(), 6U);
+    for (unsigned pulse{}; pulse < 3; ++pulse) {
+        EXPECT_EQ(hardware->edges[2 * pulse + 1].tick - hardware->edges[2 * pulse].tick, 50U);
+    }
+    EXPECT_FALSE(hardware->high[0]);
+}
+
 TEST_F(StepTest, AnalyticCursorRejectsOldRefillsAndRunsAndImpossiblePeriods)
 {
     const auto sequence{ std::make_shared<AnalyticSequence>() };

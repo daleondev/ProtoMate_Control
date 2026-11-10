@@ -496,22 +496,32 @@ compiler upgrade use `cmake --preset <preset> --fresh` and rebuild cleanly.
 Use `-DBUILD_TESTING=OFF` when configuring Linux to build the template without
 fetching or building test dependencies.
 
-Pneumo's `stdexec` branch enables sender/receiver integration through
-`pneumo::coroutines` (`PNM_CORO_ENABLE_EXECUTION=ON`). CMake fetches its pinned
+Pneumo uses stdexec as its required execution backend through
+`pneumo::coroutines`. CMake fetches its pinned
 stdexec headers; every coroutine consumer, including the native simulator,
 inherits the same configuration. Existing ICC workers continue to drive their
 own contexts; this does not introduce a thread pool or change the wire protocol.
 Use `pnm::coro::asSender(context, factory)` and `pnm::coro::execution::when_all`
 to compose asynchronous operations, forwarding the factory's stop token to
 service requests. Domain failures such as `Busy` remain result values.
-`application.icc.services` tests composition, out-of-order responses and
-cancellation across the serialized bridge on our ThreadX runtime.
+`application.icc.services` tests composition, out-of-order responses,
+cancellation and provider shutdown/replacement across the serialized bridge on
+our ThreadX runtime. These tests are always built; the obsolete optional
+`PNM_CORO_ENABLE_EXECUTION` switch is no longer used.
 
 Native coroutine awaitables retain their original frame and reference results
 instead of going through an allocating sender adapter. On M4, bridge
 startup/teardown lives in `BridgeLifecycle.cpp` in QSPI; dispatch and lane loops
 remain in instruction RAM and are checked by the linked-image audit. Motion
 buffers and RAM-region boundaries are unchanged for this integration.
+
+The [2026-11-10 integration record](docs/pneumo-integration-2026-11-10.json)
+contains the build identities, lint results, sanitizer results and analyzer
+captures. Software regressions pass, but this is **not a full hardware release
+qualification**: QSPI motion admission and concurrent buffered raw startup still
+failed in this campaign. The five passing electrical captures use the documented
+SDRAM fixture. The detailed motion limitations are recorded in the
+[current review](docs/motion-current-state/review.md).
 
 All project C/C++ sources in `src/` and `platform/`, including tests, compile
 with `-Wall -Wextra -Wpedantic` in both Debug and Release builds. Directory
@@ -879,6 +889,11 @@ The test preset sets `ASAN_OPTIONS=use_sigaltstack=0` because the ThreadX Linux
 port owns its threads' alternate signal stacks. Instrumented builds also reserve
 at least 1 MiB of native stack per simulated thread for sanitizer overhead;
 firmware stack sizes are unchanged. Memory and leak checking remain enabled.
+Instrumented simulator workflows receive three times the host wall-time wait
+budget, since geometric queries and rendering run more slowly; simulated time,
+motion limits and controller deadlines are unchanged. GUI input latency is still
+recorded, but its 50 ms performance assertion applies only to uninstrumented
+builds. All interaction, pixel, ownership and shutdown checks remain active.
 LeakSanitizer needs permission to inspect process threads; run these tests outside
 a ptrace-restricted sandbox. These checks exercise simulated
 hardware; STM32 behavior requires separate hardware validation.
@@ -1463,9 +1478,15 @@ remain local and retain their native timeout. `Connected` means both peers have
 completed the version-compatible handshake; it does not validate application
 catalogs, motor configuration or physical hardware readiness.
 
-Connection monitoring defaults to a 100 ms heartbeat and a 500 ms deadline;
-pass `ConnectionOptions{.heartbeat = 100ms, .timeout = 500ms}` as the fourth
-constructor argument to configure them. Only a fresh acknowledgement of the
+Connection monitoring defaults to a 100 ms heartbeat and a 500 ms active-link
+deadline, with a separate 5 s initial handshake allowance. The GIGA's M4 Debug
+application constructs its workers from cold QSPI more slowly than M7; the
+measured startup hello arrived about 730 ms after M7 began waiting. The startup
+allowance applies only before `Connected` and does not extend motion leases,
+queued service deadlines or the active heartbeat deadline.
+Pass `ConnectionOptions{.heartbeat = 100ms, .timeout = 500ms, .startup_timeout = 5s}`
+as the fourth constructor argument to configure these independently.
+Only a fresh acknowledgement of the
 outstanding heartbeat refreshes the deadline. Incoming publications, peer
 heartbeats and repeated old acknowledgements cannot conceal a broken outgoing
 path. One outstanding challenge and one coalesced reply bound control storage.
@@ -1708,7 +1729,7 @@ the executable Cartesian toolpath API.
 | Independent axes and coordinated joint/point moves | Connected through production CLI/ICC to the executor; native simulator workflows pass |
 | Sequential homing, timed/continuous jog and controlled stops | Implemented; simulator checks include homing → stop → homing and group stopping |
 | Cartesian lines, blends, lookahead, hold/resume and override | Preview/numerical infrastructure only; executable features remain future work |
-| GIGA application qualification | Short 40/80 ms application workflow passes, including raw concurrent/buffered moves and live speed changes. No full-rate or endurance acceptance claimed |
+| GIGA application qualification | Short coordinated/stop/overlap captures pass with M4 SDRAM code. The current complete buffered-raw workflow and QSPI admission do not pass; see the integration record. No full-rate or endurance acceptance claimed |
 | Powered mechanics | Pending physical calibration and commissioning |
 
 Run the complete simulator workflow with:
@@ -1725,8 +1746,18 @@ history. The motor-disabled electrical fixture runs
 this additionally checks concurrent raw workers, buffered/blended successors,
 live speed changes and diagnostics while motion is active. Run it after a fresh
 board reset: its synthetic homing timeout is sized for the initial fixture pose.
+The fixture defines a neutral pose at 69°, 69°, 19.9 mm and starts 256 pulses
+away from its synthetic contacts, allowing cancellation before contact. These
+are test coordinates, not physical calibration. Its presets explicitly select
+M4 SDRAM code placement, matching the previous successful motion qualification;
+normal firmware presets still use QSPI. Do not infer QSPI motion qualification
+from these fixture results.
 Use `capture.py --raw --output <new-directory>` for independent raw STEP counts;
-that relative-motion test needs no homing.
+that relative-motion test needs no homing. Add `--raw-degrees 90` to exercise
+full initial DMA buffers (800/800/400 pulses). Raw startup computes relative
+edges first and samples the arm origin after filling, so slow initial profile
+evaluation cannot consume the requested lead time. The hardware arm check still
+rejects insufficient lead during publication; no deadline was relaxed.
 
 Raw/homing worker stacks are reserved once at motor construction, at 10 KiB each
 on M4. A worker joins before reusing its stack, so repeated commands do not need
@@ -2029,7 +2060,8 @@ cmake --build --preset giga-debug
 instructions in either Debug or Release. QSPI remains the persistent image
 storage, and the same bootstrap validates and copies the code before starting
 M4. Timing-critical code remains in internal instruction SRAM. This option is
-currently opt-in while the application motion workload is being qualified.
+currently opt-in for normal firmware while the application motion workload is
+being qualified. The electrical motion fixture presets select it explicitly.
 For example, configure the existing paired test with
 `cmake --preset giga-motion-api-release -DGIGA_M4_SDRAM_CODE=ON`.
 Combined builds pass the selection to their normal IO child preset; it does not

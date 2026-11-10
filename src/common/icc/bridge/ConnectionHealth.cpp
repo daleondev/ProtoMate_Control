@@ -13,8 +13,11 @@ namespace icc
       : m_options{ options }
     {
         if (options.heartbeat <= std::chrono::milliseconds::zero() || options.timeout <= options.heartbeat ||
-            options.timeout > std::chrono::days{ 1 }) {
-            throw std::invalid_argument("Connection requires 0 < heartbeat < timeout <= 24 hours");
+            options.timeout > std::chrono::days{ 1 } ||
+            options.startup_timeout <= std::chrono::milliseconds::zero() ||
+            options.startup_timeout > std::chrono::days{ 1 }) {
+            throw std::invalid_argument(
+              "Connection requires 0 < heartbeat < timeout <= 24 hours and 0 < startup timeout <= 24 hours");
         }
     }
 
@@ -45,7 +48,7 @@ namespace icc
 
     void ConnectionHealth::begin()
     {
-        m_deadline = Clock::now() + m_options.timeout;
+        m_deadline = Clock::now() + m_options.startup_timeout;
         transition({ .state = ConnectionState::Connecting });
     }
 

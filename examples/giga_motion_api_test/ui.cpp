@@ -14,6 +14,9 @@ int main(){
         c.linear_dynamics={4_mm_s,30_mm_s2,30_mm_s2,300_mm_s3};
         for(auto& d:c.rotary_dynamics)d={20_deg/1_s,100_deg_s2,100_deg_s2,1000_deg_s3};
         c.geometry.limits=ui::motion::ScaraKinematics::JointLimits{{-100_deg,10_deg,0_mm},{70_deg,70_deg,20_mm}};
+        // Robot homing now includes moving clear of all reference contacts.
+        // Keep this synthetic pose close enough for the bounded fixture seek.
+        c.neutral_position=ui::motion::JointPosition{69_deg,69_deg,19.9_mm};
         c.workspace_minimum={-600_mm,-600_mm,0_mm};c.workspace_maximum={600_mm,600_mm,20_mm};
         for(auto& home:c.homing){home.seek=5_rpm;home.latch=.5_rpm;home.timeout=10_s;}
         return std::optional{c};

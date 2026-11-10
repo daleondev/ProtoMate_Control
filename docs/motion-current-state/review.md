@@ -1,5 +1,40 @@
 # Current motion-control review
 
+## 2026-11-10 pneumo integration follow-up
+
+This follow-up does **not** establish a complete hardware release. The previous
+urgent-sender allocation correction below remains in place, and three overlap
+cycles plus a separate analyzer capture pass with the updated pneumo.
+
+- Linux: 85/85 normal and 85/85 ASan/UBSan/LSan suites pass. After the final
+  STEP correction, all six directly affected suites pass again in both builds,
+  including the complete simulator motion workflow.
+- Clang-tidy parses 426/426 translation units with no compiler blockers or tool
+  failures. It still reports 6,650 findings; lint is not clean.
+- Raw startup formerly sampled its arm timestamp before initial DMA calculation.
+  A rollover regression reproduced the expired lead. Rebasing after calculation
+  fixes it, and the analyzer verifies an isolated 800-pulse move.
+- Five electrical captures pass: three short raw moves (18/18/9 pulses), the
+  isolated long move (800/0/0), coordinated motion (400/400/400), controlled stop
+  (287/287/287), and overlap (10/44/0). Enable remains inactive. Coordinated
+  rising edges differ by at most one 24 MHz sample.
+- **Open:** the full concurrent buffered-raw workflow reports an M1 startup I/O
+  error. Raw initial-buffer calculation still masks interrupts; starvation of
+  an active axis's guard is the leading explanation, requiring a timing trace.
+  The isolated startup correction does not resolve that scheduling problem.
+- **Open:** ordinary M4 code executing from QSPI failed reservation renewal and
+  later heartbeat monitoring during motion preparation. The electrical fixture
+  explicitly uses the SDRAM placement from the earlier successful qualification.
+  Passing it does not qualify QSPI motion. No motion lease, active heartbeat or
+  interrupt priority was relaxed.
+
+The bounded hardware investigation stops at these blockers. Worker-based raw
+preparation and QSPI scheduling need a separate focused correction before a
+complete motion release. Failures are retained alongside passing results in the
+[integration record](../pneumo-integration-2026-11-10.json).
+
+## Earlier urgent-sender allocation correction
+
 The concurrent shoulder-jog / independent-elbow communication failure is fixed.
 The captured exception was **`std::bad_alloc` in the IO urgent sender**, requesting
 4,228 bytes in `Bridge::nextOutgoingFrame`. This terminated the IO bridge; the UI

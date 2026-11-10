@@ -963,8 +963,10 @@ namespace hal::util
             finish(step::State::Underrun, true);
             return fail(std::errc::io_error);
         }
-        const auto first{ step_add(
-          sample.tick, static_cast<std::uint32_t>((delay.count() + STEP_TICK_NS - 1U) / STEP_TICK_NS)) };
+        // Build relative timestamps first. Evaluating a raw profile can take
+        // longer than its startup lead, so preparation must not consume that
+        // lead before the first compare has even been armed.
+        const auto first{ static_cast<std::uint32_t>((delay.count() + STEP_TICK_NS - 1U) / STEP_TICK_NS) };
         axis.generated = axis.completed_pulses = 0U;
         axis.refill_pending = false;
         axis.target = 0U;
@@ -999,13 +1001,29 @@ namespace hal::util
         if (!fill(index, 0U) || !fill(index, 1U)) {
             return fail(std::errc::invalid_argument);
         }
+        const auto origin{ m_hardware->sample() };
+        if (!origin.running || origin.error) {
+            finish(step::State::Underrun, true);
+            return fail(std::errc::io_error);
+        }
+        for (auto& buffer : m_hardware->buffers()[index]) {
+            for (std::uint32_t entry{}; entry < axis.entries; ++entry) {
+                if (buffer[entry] != STEP_PARK) {
+                    buffer[entry] = step_add(origin.tick, buffer[entry]);
+                }
+            }
+        }
+        axis.next_rise = step_add(origin.tick, axis.next_rise);
+        axis.first_rise = step_add(origin.tick, first);
+        axis.last_fall = step_add(origin.tick, axis.last_fall);
+        axis.end_tick = endTick(axis.sequence.get(), axis.first_rise);
         ++axis.revision;
         m_hardware->publish();
         // First compare is still parked until arm validates its remaining lead.
         if (!m_hardware->arm(index,
                              axis.requested == 0
                                ? STEP_PARK
-                               : step_add(first, axis.sequence ? axis.sequence->initialOffset() : 0),
+                               : step_add(axis.first_rise, axis.sequence ? axis.sequence->initialOffset() : 0),
                              axis.entries)) {
             service();
             return fail(std::errc::timed_out);

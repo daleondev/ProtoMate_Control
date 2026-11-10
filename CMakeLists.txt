@@ -48,6 +48,12 @@ elseif(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 include(CTest)
+# Instrumentation changes host execution cost, not controller timing. Keep
+# wall-time watchdogs and performance qualification separate in test harnesses.
+set(PROTOMATE_TEST_INSTRUMENTED OFF)
+if(CMAKE_CXX_FLAGS MATCHES "-fsanitize=[^ ]*(address|undefined)")
+    set(PROTOMATE_TEST_INSTRUMENTED ON)
+endif()
 option(RUNTIME_STORAGE_REQUIRED "Require a mounted FileX volume in host tests" OFF)
 add_library(project_compiler_settings INTERFACE)
 target_compile_features(project_compiler_settings INTERFACE cxx_std_26)

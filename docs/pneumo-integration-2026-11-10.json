@@ -1,0 +1,921 @@
+{
+  "date": "2026-11-10",
+  "status": "Partial hardware qualification; not a clean release gate",
+  "source": {
+    "parent_commit": "4138fddf4dafebc29ddec6e4088c8f10850c7710",
+    "pneumo_commit": "f7afee9f06984e647792a9016b579ee00f0d2dde",
+    "stdexec_commit": "00648922a30caa7872c6dae372018ee13a2b545f",
+    "working_tree_changes": true,
+    "changed_file_sha256": {
+      "CMakeLists.txt": "216d0bc1d37edc365a41a4bb768a3c13b65bd5cd20104ad6cb147aed66f5421e",
+      "CMakePresets.json": "44d1afcaafb010eff4838efb3371685497812623697eb783c12d69c775d8b933",
+      "README.md": "55aa806a2f40bdc456b1e61e7120193355a6a951b345bb72b36bf50e53bf80bf",
+      "docs/motion-current-state/review.md": "1598b7e67c620be15af7d2ca0ebf3221be9401fc33772d5ddadeee051750269c",
+      "examples/giga_motion_api_test/capture.py": "5f4d1663c688b3ae2c7b2d43e3b47238e3ae8671e8bf0b12b4b5b660b6a5f24b",
+      "examples/giga_motion_api_test/io.cpp": "da6bfdb7c146f066183d99a378ac500e2a49d56a47a8d70d2aec651bafc12e1d",
+      "examples/giga_motion_api_test/ui.cpp": "58fdccdb4e159d4827486cf555edd92286669e9844d21433f462f57edbf08a81",
+      "examples/giga_motion_api_test/verify.py": "f0833aef85ec562840b074c61e29610680b1e2da1fad5749124fecc070373a5c",
+      "platform/hal/drivers/impl/StepGenerator.cpp": "30592a9d1ace0fb1218e68af0563750036e2727c3adceedd26d4bdc9f554fbca",
+      "platform/hal/tests/step_model/step_generator_test.cpp": "9435a9fd07c63601b9e5ae52908b0b47071fe6def3fd02d3791379c370d4076e",
+      "scripts/clang_tidy.py": "21ebf2422989f6eebc9079d81816a8c48fa303430c6cca2f035c6fdae6d46cc4",
+      "scripts/tests/test_clang_tidy.py": "76deddf72c72ff9d72f09c5557624ea307c8a37740f0715358d86a8dfb72b395",
+      "src/common/icc/bridge/ConnectionHealth.cpp": "674649a4376d90e7c8d180a94ca51a3ee1e1289e7e37cd18f241123bbb5ab3c9",
+      "src/common/icc/bridge/ConnectionHealth.hpp": "9d6c440937312c6aaf2e001d378ee39827e58a7e82687006051d8b57a5372b7a",
+      "src/common/icc/tests/CMakeLists.txt": "a4a1a9d64fcb2c3e05d9b40888cc5c922c479ee3545ac57b9be96758039f75f8",
+      "src/common/icc/tests/connection_test.cpp": "072a1f9ee6831c0db4046af125ed1537e11879d2ae3e77cc597208d89b8d4998",
+      "src/common/icc/tests/execution_test.cpp": "c95210af8b46e71cc7640fb4ff315e23e46c2eea60d7059559440d0444d61cc1",
+      "src/simulation/CMakeLists.txt": "cdab966c28959b52e92a26cf9645f5dfee4756cc468a0e69c3210d0bccfd48a4",
+      "src/simulation/tests/conftest.py": "2dbbc142c94ee115c69f8c3aa86f5eaed6991dddd4e02a344fab72c892aa04b0",
+      "src/simulation/tests/test_hmi.py": "234745550d86f6d85b65d00bf9a4a41e12f1bfcf11f12deb19287a77f11028eb",
+      "src/simulation/tests/test_motion_api.py": "b7a55a6223d22ba01209daebc7c3de84ae1ca0025c2722b3f90679bdc5634656",
+      "src/tests/application_test.cpp": "4e4db3c04eb7e43261b52c7c9fbb81d28669abe8834672f590f5f0dcaf4c6e36",
+      "src/ui/gui/CMakeLists.txt": "7e6b5f1748b9cbd6f1957a1903b8ebd4a87dbac1cc6da26b9dbd0acf10792ee2",
+      "src/ui/gui/tests/native_host.cpp": "eb80c0690686c71f71d0eafd55ebed41b95d68fb57b461c011e2eaa97ab59d32",
+      "src/ui/motion/ClientControls.cpp": "71973f407f83d9fe789204d720068583878982199f587c64bb147ac4ee905895"
+    }
+  },
+  "fixes": [
+    "Make the ICC stdexec integration tests unconditional with pneumo mandatory execution support.",
+    "Separate the initial 5 s handshake allowance from the unchanged 500 ms active heartbeat timeout; cold M4 Debug hello was measured about 730 ms after UI startup.",
+    "Exercise deferred provider shutdown, late replies and explicit replacement through composed senders on the serialized bridge.",
+    "Restore full clang-tidy parsing using real generated assets, exclude test-target recompilations, and explicitly initialize the private optional control-call aggregate.",
+    "Rebase raw STEP startup timestamps after initial buffer calculation; preserve the hardware arm deadline check. A failing rollover model now passes.",
+    "Update the electrical fixture for required neutral homing and enough initial switch clearance for cancellation; explicitly select its previously qualified M4 SDRAM code placement.",
+    "Separate sanitizer host watchdog budgets from simulated controller deadlines and normal-build UI latency qualification."
+  ],
+  "software_validation": {
+    "builds": [
+      "Linux Debug",
+      "Linux Release",
+      "GIGA M4/M7 Debug",
+      "GIGA M4/M7 Release",
+      "GIGA electrical fixture Release (M4 SDRAM)"
+    ],
+    "complete_host_suite": {
+      "passed": 85,
+      "total": 85,
+      "log": "build/pneumo-validation-2026-11-10/linux-tests.log"
+    },
+    "complete_asan_ubsan_lsan_suite": {
+      "passed": 85,
+      "total": 85,
+      "log": "build/pneumo-validation-2026-11-10/sanitizer-tests.log"
+    },
+    "final_backend_change": {
+      "host_suites": 6,
+      "sanitizer_suites": 6,
+      "all_passed": true,
+      "includes": "HAL, STM32 STEP model, motion controller, robot execution/API and full native motion workflow",
+      "register_model_cases": 46,
+      "reproducer_failed_before_fix": true,
+      "logs": [
+        "build/pneumo-validation-2026-11-10/final-step-host-tests.log",
+        "build/pneumo-validation-2026-11-10/final-step-sanitizer-tests.log",
+        "build/pneumo-validation-2026-11-10/step-regression-after.log"
+      ]
+    },
+    "pneumo_messaging_coroutines_execution": {
+      "passed": 296,
+      "total": 296
+    },
+    "python_tooling": {
+      "passed": 43,
+      "subtests": 4
+    },
+    "lint": {
+      "coverage": "complete",
+      "translation_units": 426,
+      "blocked": 0,
+      "tool_failures": 0,
+      "findings": 6650,
+      "gate_passed": false,
+      "report": "build/pneumo-validation-2026-11-10/lint-final.json",
+      "largest_groups": {
+        "cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers": 2347,
+        "protomate-brace-initialization": 1137,
+        "readability-braces-around-statements": 947,
+        "readability-identifier-naming": 353,
+        "bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions": 182,
+        "readability-math-missing-parentheses": 166,
+        "modernize-use-designated-initializers": 133,
+        "readability-avoid-nested-conditional-operator": 94,
+        "cppcoreguidelines-pro-type-vararg": 91,
+        "readability-named-parameter": 81
+      }
+    }
+  },
+  "hardware": {
+    "motors_disconnected": true,
+    "physical_enable_forced_inactive_in_fixture": true,
+    "analyzer_hz": 24000000,
+    "firmware": {
+      "normal-debug": {
+        "format": 1,
+        "pair_id": "87292614b74765c0b65bfb40b72bf207c99d08fe56237ec81e73ff133cbcaf2a",
+        "images": [
+          {
+            "core": 4,
+            "storage": 2416967680,
+            "size": 1362148,
+            "crc": 2920427736,
+            "entry": 2417176781,
+            "vectors": 268435456,
+            "stack": 805601280,
+            "flags": 0,
+            "segments": [
+              {
+                "load": 2416967680,
+                "run": 268435456,
+                "size": 664,
+                "flags": 1
+              },
+              {
+                "load": 2416968344,
+                "run": 268437504,
+                "size": 192656,
+                "flags": 1
+              },
+              {
+                "load": 2417161000,
+                "run": 604241920,
+                "size": 12120,
+                "flags": 1
+              },
+              {
+                "load": 2418287148,
+                "run": 805505024,
+                "size": 42648,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 805547672,
+                "size": 39304,
+                "flags": 2
+              }
+            ]
+          },
+          {
+            "core": 7,
+            "storage": 2420113408,
+            "size": 2927760,
+            "crc": 13865969,
+            "entry": 2420148637,
+            "vectors": 536870912,
+            "stack": 537001984,
+            "flags": 0,
+            "segments": [
+              {
+                "load": 2420114072,
+                "run": 0,
+                "size": 16088,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 32768,
+                "size": 24000,
+                "flags": 2
+              },
+              {
+                "load": 2420113408,
+                "run": 536870912,
+                "size": 664,
+                "flags": 1
+              },
+              {
+                "load": 2420130160,
+                "run": 536872960,
+                "size": 12872,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 536885856,
+                "size": 97272,
+                "flags": 2
+              },
+              {
+                "load": 2423037336,
+                "run": 603979776,
+                "size": 3288,
+                "flags": 1
+              },
+              {
+                "load": 2423040624,
+                "run": 603983072,
+                "size": 512,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 603983584,
+                "size": 20128,
+                "flags": 2
+              }
+            ]
+          }
+        ]
+      },
+      "normal-release": {
+        "format": 1,
+        "pair_id": "890194edb7b61da62171608dd7e3a8e46c9856e5318e65641a613f18e0d70515",
+        "images": [
+          {
+            "core": 4,
+            "storage": 2416967680,
+            "size": 1210820,
+            "crc": 1735491625,
+            "entry": 2417176397,
+            "vectors": 268435456,
+            "stack": 805601280,
+            "flags": 0,
+            "segments": [
+              {
+                "load": 2416967680,
+                "run": 268435456,
+                "size": 664,
+                "flags": 1
+              },
+              {
+                "load": 2416968344,
+                "run": 268437504,
+                "size": 192184,
+                "flags": 1
+              },
+              {
+                "load": 2417160528,
+                "run": 604241920,
+                "size": 12164,
+                "flags": 1
+              },
+              {
+                "load": 2418135820,
+                "run": 805505024,
+                "size": 42648,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 805547672,
+                "size": 39304,
+                "flags": 2
+              }
+            ]
+          },
+          {
+            "core": 7,
+            "storage": 2420113408,
+            "size": 2714412,
+            "crc": 228432568,
+            "entry": 2420148505,
+            "vectors": 536870912,
+            "stack": 537001984,
+            "flags": 0,
+            "segments": [
+              {
+                "load": 2420114072,
+                "run": 0,
+                "size": 16088,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 32768,
+                "size": 24000,
+                "flags": 2
+              },
+              {
+                "load": 2420113408,
+                "run": 536870912,
+                "size": 664,
+                "flags": 1
+              },
+              {
+                "load": 2420130160,
+                "run": 536872960,
+                "size": 12864,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 536885824,
+                "size": 97256,
+                "flags": 2
+              },
+              {
+                "load": 2422824020,
+                "run": 603979776,
+                "size": 3256,
+                "flags": 1
+              },
+              {
+                "load": 2422827276,
+                "run": 603983040,
+                "size": 512,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 603983552,
+                "size": 20096,
+                "flags": 2
+              }
+            ]
+          }
+        ]
+      },
+      "motion-sdram": {
+        "format": 1,
+        "pair_id": "6ca200ee77d0839401d2c6b42257766f63e0e5248188331d7883cc4ceab2c8cf",
+        "images": [
+          {
+            "core": 4,
+            "storage": 2416967680,
+            "size": 1218512,
+            "crc": 231569688,
+            "entry": 3225423437,
+            "vectors": 268435456,
+            "stack": 805601280,
+            "flags": 1,
+            "segments": [
+              {
+                "load": 2416967680,
+                "run": 268435456,
+                "size": 664,
+                "flags": 1
+              },
+              {
+                "load": 2416968344,
+                "run": 268437504,
+                "size": 192616,
+                "flags": 1
+              },
+              {
+                "load": 2417160960,
+                "run": 604241920,
+                "size": 12132,
+                "flags": 1
+              },
+              {
+                "load": 2418143448,
+                "run": 805505024,
+                "size": 42712,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 805547736,
+                "size": 32384,
+                "flags": 2
+              },
+              {
+                "load": 0,
+                "run": 805580128,
+                "size": 12320,
+                "flags": 2
+              },
+              {
+                "load": 2417173092,
+                "run": 3225419776,
+                "size": 675040,
+                "flags": 1
+              }
+            ]
+          },
+          {
+            "core": 7,
+            "storage": 2420113408,
+            "size": 2715532,
+            "crc": 2602776308,
+            "entry": 2420148505,
+            "vectors": 536870912,
+            "stack": 537001984,
+            "flags": 0,
+            "segments": [
+              {
+                "load": 2420114072,
+                "run": 0,
+                "size": 16088,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 32768,
+                "size": 24000,
+                "flags": 2
+              },
+              {
+                "load": 2420113408,
+                "run": 536870912,
+                "size": 664,
+                "flags": 1
+              },
+              {
+                "load": 2420130160,
+                "run": 536872960,
+                "size": 12864,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 536885824,
+                "size": 97256,
+                "flags": 2
+              },
+              {
+                "load": 2422825140,
+                "run": 603979776,
+                "size": 3256,
+                "flags": 1
+              },
+              {
+                "load": 2422828396,
+                "run": 603983040,
+                "size": 512,
+                "flags": 1
+              },
+              {
+                "load": 0,
+                "run": 603983552,
+                "size": 24192,
+                "flags": 2
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "unresolved": [
+      {
+        "id": "qspi-motion-admission",
+        "result": "failed",
+        "evidence": [
+          "motion-workflow-fixed/console.log",
+          "motion-workflow-warm/console.log",
+          "fixture-m4-fault.log"
+        ],
+        "detail": "With M4 ordinary code in QSPI, reservation renewal failed and a later attempt lost the heartbeat. No CPU fault was recorded. The SDRAM fixture passes these admission cases; normal QSPI motion is not qualified. Deadlines and priorities were not relaxed."
+      },
+      {
+        "id": "concurrent-raw-preparation",
+        "result": "failed",
+        "evidence": [
+          "motion-workflow-step-fixed/console.log"
+        ],
+        "detail": "During concurrent raw/buffered startup, M1 start reported I/O error. Initial raw buffer calculation still masks interrupts; starvation of an already running axis hardware guard is the leading explanation, not yet isolated by a timing trace. The full short workflow did not pass; do not infer qualification from passing isolated captures."
+      }
+    ],
+    "initial_fixture_failures": [
+      "Missing neutral_position rejected before motion; corrected test configuration.",
+      "Cancellation occurred on an active synthetic switch and correctly latched a hard-limit fault; moved the synthetic initial contact farther away."
+    ],
+    "initial_analyzer_failure": "FX2 firmware upload re-enumerated USB and captured zero samples; retry used the enumerated analyzer. Both results retained.",
+    "normal_firmware_restored": true,
+    "physical_limits": [
+      "No powered mechanical qualification",
+      "No physical display/touch qualification",
+      "DIR lines not captured",
+      "Reset-state STEP bias remains external wiring work",
+      "No endurance or maximum-rate qualification in this campaign"
+    ],
+    "captures": [
+      {
+        "case": "raw-ready",
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 26414080,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 18,
+              "falls": 18,
+              "high_min_samples": 120,
+              "high_max_samples": 120,
+              "low_min_samples": 81133
+            },
+            {
+              "axis": 2,
+              "rises": 18,
+              "falls": 18,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 81132
+            },
+            {
+              "axis": 3,
+              "rises": 9,
+              "falls": 9,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 162386
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": null,
+          "expected_pulses": [
+            18,
+            18,
+            9
+          ],
+          "sha256_raw": "cc6c30d743f468b7aa2358eaf864f044d4932db00d4abf3e415684db31bbc25e"
+        },
+        "application": {
+          "job": 1,
+          "submission_ack_seconds": 0.4027976990000752,
+          "result": "1: motor completed; axes=1",
+          "before": "motor status all\nDrivers: enabled | controller: ready\nm1: position=0.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    shaft encoder: position=0.0000 deg  velocity=0.000 rpm\nm2: position=0.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=0.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "after": "motor status all\nDrivers: enabled | controller: ready\nm1: position=-2.0250 deg  velocity=0.000 rpm  referenced=no  switch=released\n    shaft encoder: position=0.0000 deg  velocity=0.000 rpm\nm2: position=-2.0250 deg  velocity=0.000 rpm  referenced=no  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=-2.0250 deg  velocity=0.000 rpm  referenced=no  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "stop_after_seconds": null,
+          "stop_to_terminal_seconds": null,
+          "expected_pulses": [
+            18,
+            18,
+            9
+          ]
+        },
+        "directory": "build/pneumo-validation-2026-11-10/capture-raw-ready"
+      },
+      {
+        "case": "raw-long",
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 55229440,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 800,
+              "falls": 800,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 44873
+            },
+            {
+              "axis": 2,
+              "rises": 0,
+              "falls": 0
+            },
+            {
+              "axis": 3,
+              "rises": 0,
+              "falls": 0
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": null,
+          "expected_pulses": [
+            800,
+            0,
+            0
+          ],
+          "sha256_raw": "70522596649bb50c098fa8d39d2726bae0d5513e73fc393689aabc6db13bf364"
+        },
+        "application": {
+          "job": 1,
+          "submission_ack_seconds": 0.1007708150000326,
+          "result": "1: motor completed; axes=1",
+          "before": "motor status all\nDrivers: enabled | controller: ready\nm1: position=0.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    shaft encoder: position=0.0000 deg  velocity=0.000 rpm\nm2: position=0.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=0.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "after": "motor status all\nDrivers: enabled | controller: ready\nm1: position=-90.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    shaft encoder: position=0.0000 deg  velocity=0.000 rpm\nm2: position=0.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=0.0000 deg  velocity=0.000 rpm  referenced=no  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "stop_after_seconds": null,
+          "stop_to_terminal_seconds": null,
+          "expected_pulses": [
+            800,
+            0,
+            0
+          ]
+        },
+        "directory": "build/pneumo-validation-2026-11-10/capture-raw-long"
+      },
+      {
+        "case": "coordinated",
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 48025600,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            },
+            {
+              "axis": 2,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            },
+            {
+              "axis": 3,
+              "rises": 400,
+              "falls": 400,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": 1,
+          "expected_pulses": 400,
+          "sha256_raw": "913e59895c10f89867b9ab1781fbcec4ba10c26f358c8c19f080761b59937df3"
+        },
+        "application": {
+          "job": 2,
+          "submission_ack_seconds": 0.10068058599972574,
+          "result": "2: robot completed; axes=7; planned 0.938 s; quantized endpoint (motor steps)=-417,-417,-515",
+          "before": "motor status all\nDrivers: enabled | controller: ready\nm1: position=-1.9500 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    shaft encoder: position=3.0000 deg  velocity=0.000 rpm\nm2: position=-1.9500 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=-25.8000 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "after": "motor status all\nDrivers: enabled | controller: ready\nm1: position=-46.9500 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    shaft encoder: position=3.0000 deg  velocity=0.000 rpm\nm2: position=-46.9500 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=-115.8000 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "stop_after_seconds": null,
+          "stop_to_terminal_seconds": null,
+          "expected_pulses": 400
+        },
+        "directory": "build/pneumo-validation-2026-11-10/capture-coordinated"
+      },
+      {
+        "case": "controlled-stop",
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 42022400,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 287,
+              "falls": 287,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            },
+            {
+              "axis": 2,
+              "rises": 287,
+              "falls": 287,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            },
+            {
+              "axis": 3,
+              "rises": 287,
+              "falls": 287,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 33624
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": 1,
+          "expected_pulses": 287,
+          "sha256_raw": "f111208a98cc37a69b1bb2f5026d0e2b7c14988ea8a90e4a7cd8f4ca2eb8eeeb"
+        },
+        "application": {
+          "job": 2,
+          "submission_ack_seconds": 0.1006461560000389,
+          "result": "2: robot stopped; axes=7; planned 0.938 s",
+          "before": "motor status all\nDrivers: enabled | controller: ready\nm1: position=-1.9500 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    shaft encoder: position=3.0000 deg  velocity=0.000 rpm\nm2: position=-1.9500 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=-25.8000 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "after": "motor status all\nDrivers: enabled | controller: ready\nm1: position=-34.2375 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    shaft encoder: position=3.0000 deg  velocity=0.000 rpm\nm2: position=-34.2375 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=-90.3750 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "stop_after_seconds": 0.2,
+          "stop_to_terminal_seconds": 0.6522689490002449,
+          "expected_pulses": 287
+        },
+        "directory": "build/pneumo-validation-2026-11-10/capture-controlled-stop"
+      },
+      {
+        "case": "overlap",
+        "result": {
+          "passed": true,
+          "failures": [],
+          "sample_rate": 24000000,
+          "samples": 55469568,
+          "axes": [
+            {
+              "axis": 1,
+              "rises": 10,
+              "falls": 10,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 2699506
+            },
+            {
+              "axis": 2,
+              "rises": 44,
+              "falls": 44,
+              "high_min_samples": 120,
+              "high_max_samples": 121,
+              "low_min_samples": 86193
+            },
+            {
+              "axis": 3,
+              "rises": 0,
+              "falls": 0
+            }
+          ],
+          "enable_low_samples": 0,
+          "maximum_rising_edge_spread_samples": null,
+          "expected_pulses": [
+            10,
+            44,
+            0
+          ],
+          "sha256_raw": "80004904b5735a6646f4698f28fabb35d283c0e41990f88b15b580ef28ed6892"
+        },
+        "application": {
+          "job": 2,
+          "submission_ack_seconds": 1.50541143800001,
+          "result": "2: axis stopped; axes=1; planned 845.016 s",
+          "before": "motor status all\nDrivers: enabled | controller: ready\nm1: position=-1.9500 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    shaft encoder: position=3.0000 deg  velocity=0.000 rpm\nm2: position=-1.9500 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=-25.8000 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "after": "motor status all\nDrivers: enabled | controller: ready\nm1: position=-3.0750 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    shaft encoder: position=3.0000 deg  velocity=0.000 rpm\nm2: position=-6.9000 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\nm3: position=-25.8000 deg  velocity=0.000 rpm  referenced=yes  switch=released\n    driver INDEX (pseudo): feedback unavailable\n",
+          "stop_after_seconds": null,
+          "stop_to_terminal_seconds": null,
+          "expected_pulses": [
+            10,
+            44,
+            0
+          ]
+        },
+        "directory": "build/pneumo-validation-2026-11-10/capture-overlap"
+      }
+    ],
+    "partial_workflow": {
+      "directory": "build/pneumo-validation-2026-11-10/motion-workflow-step-fixed",
+      "passed": false,
+      "completed_before_failure": [
+        "homing cancellation and rehome to neutral",
+        "independent axes",
+        "coordinated moves",
+        "family exclusion",
+        "three jog/independent-axis overlaps",
+        "controlled group stop",
+        "timed jog",
+        "three short raw moves"
+      ],
+      "failure": "M1 raw startup I/O error during concurrent buffered raw work; no final workflow pass"
+    },
+    "observed_motion_stack_headroom": {
+      "System Timer Thread": {
+        "priority": 0,
+        "capacity": 1020,
+        "peak": 172,
+        "headroom": 0.8313725490196078
+      },
+      "Motion executor Thread": {
+        "priority": 1,
+        "capacity": 8188,
+        "peak": 4968,
+        "headroom": 0.3932584269662921
+      },
+      "Motor commands Thread": {
+        "priority": 2,
+        "capacity": 28668,
+        "peak": 18528,
+        "headroom": 0.3537044788614483
+      },
+      "Intercore.notify Thread": {
+        "priority": 3,
+        "capacity": 2044,
+        "peak": 548,
+        "headroom": 0.7318982387475539
+      },
+      "Io.applicationThread Thread": {
+        "priority": 3,
+        "capacity": 16380,
+        "peak": 11620,
+        "headroom": 0.29059829059829057
+      },
+      "Io.iccThread Thread": {
+        "priority": 4,
+        "capacity": 20476,
+        "peak": 12104,
+        "headroom": 0.408868919710881
+      },
+      "Application Thread": {
+        "priority": 15,
+        "capacity": 8188,
+        "peak": 2540,
+        "headroom": 0.6897899364924279
+      },
+      "Motion diagnostics Thread": {
+        "priority": 18,
+        "capacity": 6140,
+        "peak": 876,
+        "headroom": 0.857328990228013
+      },
+      "Io.logging Thread": {
+        "priority": 20,
+        "capacity": 8188,
+        "peak": 4016,
+        "headroom": 0.5095261358085003
+      },
+      "Io.diagnosticThread Thread": {
+        "priority": 20,
+        "capacity": 4092,
+        "peak": 2688,
+        "headroom": 0.343108504398827
+      },
+      "std reaper": {
+        "priority": 31,
+        "capacity": 2044,
+        "peak": 208,
+        "headroom": 0.898238747553816
+      },
+      "Motion Thread": {
+        "priority": 16,
+        "capacity": 10236,
+        "peak": 4496,
+        "headroom": 0.5607659241891364
+      }
+    },
+    "startup_and_hmi": {
+      "debug-hmi-fixed": {
+        "screening": [
+          {
+            "requested_fps": 10,
+            "detail": "interactive",
+            "actual_fps": 2.8063656584966936,
+            "render_us": 250989.91428571427,
+            "underruns": 0,
+            "dma_errors": 0,
+            "heap_growth": 0,
+            "healthy": true,
+            "passed": true,
+            "mode": "adaptive observation"
+          }
+        ],
+        "stack": {
+          "Ui.touchThread Thread": 0.8529555446995604,
+          "Ui.guiThread Thread": 0.6800976800976801,
+          "Ui.renderThread Thread": 0.6078144078144079
+        },
+        "image_pair": "3fccc8694dcb40bce97e18a12940a89f3583cf2ac15be859a44d32dde82852c8",
+        "directory": "build/pneumo-validation-2026-11-10/debug-hmi-fixed"
+      },
+      "release-hmi": {
+        "screening": [
+          {
+            "requested_fps": 10,
+            "detail": "interactive",
+            "actual_fps": 3.920899689981731,
+            "render_us": 194090.84,
+            "underruns": 0,
+            "dma_errors": 0,
+            "heap_growth": -72,
+            "healthy": true,
+            "passed": true,
+            "mode": "adaptive observation"
+          }
+        ],
+        "stack": {
+          "Ui.touchThread Thread": 0.9233023937469468,
+          "Ui.guiThread Thread": 0.7050061050061049,
+          "Ui.renderThread Thread": 0.6107448107448108
+        },
+        "image_pair": "7e81a7919e40ef4e391e920d219afed492c576aa9a9a68de9ffcafcb13e49054",
+        "directory": "build/pneumo-validation-2026-11-10/release-hmi"
+      },
+      "final-release-hmi": {
+        "screening": [
+          {
+            "requested_fps": 10,
+            "detail": "interactive",
+            "actual_fps": 3.847516121352256,
+            "render_us": 196780.74390243902,
+            "underruns": 0,
+            "dma_errors": 0,
+            "heap_growth": -40,
+            "healthy": true,
+            "passed": true,
+            "mode": "adaptive observation"
+          }
+        ],
+        "stack": {
+          "Ui.touchThread Thread": 0.9233023937469468,
+          "Ui.guiThread Thread": 0.7050061050061049,
+          "Ui.renderThread Thread": 0.6107448107448108
+        },
+        "image_pair": "890194edb7b61da62171608dd7e3a8e46c9856e5318e65641a613f18e0d70515",
+        "directory": "build/pneumo-validation-2026-11-10/final-release-hmi"
+      }
+    },
+    "capture_timing_note": "Capture script acknowledgement timing is wall time through the serial harness; raw-all includes three submissions and overlap includes the other job and stop. These fields are not isolated admission latency measurements.",
+    "restored_pair_id": "890194edb7b61da62171608dd7e3a8e46c9856e5318e65641a613f18e0d70515",
+    "cold_start_final": {
+      "passed": true,
+      "user_confirmed_physical_power_cycle": true,
+      "state": "state\nCombined: Ready (green)\nUI: Ready\nIO: Ready (fresh)\nICC: Connected (None)\n",
+      "motion": "motion status\nready=0 enabled=0 family=none owners=0,0,0 configuration=18061088256716029856\nlease acknowledgements=0 failures=0 last error=none (diagnostic only; IO owns lease expiry)\n",
+      "gui": "display status\nGUI running; rendered=1068; presented=4; buffer=0; max render=127418 us; late=4; underruns=0; errors=0; queue overflow=0; graphics verified=1; interactions=0; value=42; animating=0\nDMA errors=0; render failures=0; input overflow=0\nGUI draw us=561; synchronization us=0\nGUI total draw us=1448121; total sync us=78573; image transfer us=18000; image transfers=18\n3D running=1; visible=1; failed=0; rendered=1; acquired=1; presented=1; presented revision=1; latency us=605000; max latency us=605000; last us=469170; max us=469170; clear us=14000; geometry us=450000; total us=469170; completed revision=1; acquired revision=1; replaced=0; rejected=0\n3D grid us=30000; base us=106000; shoulder us=130000; elbow us=157000; tool us=25000\n3D completed triangles=36376; acquired triangles=36376\n",
+      "log": "build/pneumo-validation-2026-11-10/final-cold-start.log"
+    }
+  },
+  "artifacts": "build/pneumo-validation-2026-11-10"
+}

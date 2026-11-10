@@ -96,6 +96,10 @@ def main():
     parser.add_argument('--cartesian', choices=('x+', 'x-', 'y+', 'y-', 'z+', 'z-'),
                         help='One continuous Cartesian jog, timed for 2 s unless --stop-after is set')
     parser.add_argument('--raw', action='store_true', help='Capture three independent raw motor commands')
+    parser.add_argument('--raw-degrees', type=int, choices=(2, 90), default=2,
+                        help='Raw shaft displacement; 90 degrees exercises full initial DMA buffers')
+    parser.add_argument('--raw-axis', choices=('all', 'm1', 'm2', 'm3'), default='all',
+                        help='Select an isolated raw startup or concurrent raw axes')
     parser.add_argument('--overlap', action='store_true',
                         help='Capture continuous shoulder jog alongside an independent elbow move')
     args = parser.parse_args()
@@ -105,6 +109,10 @@ def main():
         parser.error('--overlap is a separate test')
     if args.raw and args.stop_after is not None:
         parser.error('--raw and --stop-after are separate tests')
+    if args.raw_degrees != 2 and not args.raw:
+        parser.error('--raw-degrees requires --raw')
+    if args.raw_axis != 'all' and not args.raw:
+        parser.error('--raw-axis requires --raw')
     if args.stop_after is not None and (not math.isfinite(args.stop_after) or args.stop_after < 0):
         parser.error('--stop-after must be finite and nonnegative')
     args.output.mkdir(parents=True, exist_ok=False)
@@ -115,7 +123,10 @@ def main():
     digest = hashlib.sha256()
     started = threading.Event()
     errors = []
-    expected_pulses = [18, 18, 9] if args.raw else 400
+    expected_pulses = ([18, 18, 9] if args.raw_degrees == 2 else [800, 800, 400]) if args.raw else 400
+    raw_axes = (1, 2, 3) if args.raw_axis == 'all' else (int(args.raw_axis[1]),)
+    if args.raw:
+        expected_pulses = [count if i in raw_axes else 0 for i, count in enumerate(expected_pulses, 1)]
     with serial.Serial(devices[0], 115200, timeout=.05, exclusive=True) as port, \
          (args.output/'console.log').open('w') as log, \
          (args.output/'sigrok.log').open('w') as capture_log:
@@ -172,7 +183,7 @@ def main():
                 require_successful_motion(cli.wait(other))
                 cli.command('axis stop shoulder')
             elif args.raw:
-                jobs = [cli.submit(f'motor move m{i} -2 --speed 10') for i in (1, 2, 3)]
+                jobs = [cli.submit(f'motor move m{i} -{args.raw_degrees} --speed 10') for i in raw_axes]
                 job = jobs[0]
             else:
                 job = cli.submit('robot move joints -9 -9 -.3125 --speed 1')
