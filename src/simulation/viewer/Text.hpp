@@ -4,7 +4,10 @@
 #include <vector>
 namespace simulation::viewer
 {
-    inline std::array<unsigned, 7> glyph(char c)
+    inline constexpr unsigned GLYPH_ROWS{ 7 }, GLYPH_COLUMNS{ 5 }, CHARACTER_ADVANCE{ 6 }, LINE_ADVANCE{ 10 };
+    // Each literal is one five-bit raster row, not an algorithm parameter.
+    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+    inline std::array<unsigned, GLYPH_ROWS> glyph(char c)
     {
         switch (c) {
             case 'A':
@@ -93,28 +96,37 @@ namespace simulation::viewer
                 return {};
         }
     }
-    inline std::vector<Vertex> textVertices(std::string_view text, float x, float y, float scale)
+    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+    inline std::vector<Vertex> text_vertices(std::string_view text, float x, float y, float scale)
     {
         std::vector<Vertex> result{};
         const auto left{ x };
         for (char c : text) {
             if (c == '\n') {
                 x = left;
-                y += 10 * scale;
+                y += LINE_ADVANCE * scale;
                 continue;
             }
-            if (c >= 'a' && c <= 'z')
+            if (c >= 'a' && c <= 'z') {
                 c = static_cast<char>(c - 'a' + 'A');
+            }
             const auto rows{ glyph(c) };
-            for (unsigned row{}; row < 7; ++row)
-                for (unsigned col{}; col < 5; ++col)
-                    if (rows[row] & (1U << (4 - col))) {
-                        const glm::vec3 a{ x + col * scale, y + row * scale, 0 }, b{ a.x + scale, a.y, 0 },
-                          c0{ a.x + scale, a.y + scale, 0 }, d{ a.x, a.y + scale, 0 };
-                        for (auto p : { a, b, c0, a, c0, d })
+            for (unsigned row{}; row < GLYPH_ROWS; ++row) {
+                for (unsigned col{}; col < GLYPH_COLUMNS; ++col) {
+                    if (rows[row] & (1U << (GLYPH_COLUMNS - 1 - col))) {
+                        const glm::vec3 a{ x + (static_cast<float>(col) * scale),
+                                           y + (static_cast<float>(row) * scale),
+                                           0 };
+                        const glm::vec3 b{ a[0] + scale, a[1], 0 };
+                        const glm::vec3 c0{ a[0] + scale, a[1] + scale, 0 };
+                        const glm::vec3 d{ a[0], a[1] + scale, 0 };
+                        for (auto p : { a, b, c0, a, c0, d }) {
                             result.push_back({ p, { 0, 0, 1 } });
+                        }
                     }
-            x += 6 * scale;
+                }
+            }
+            x += CHARACTER_ADVANCE * scale;
         }
         return result;
     }

@@ -30,7 +30,7 @@ namespace motion::trajectory
       private:
         struct Axis
         {
-            std::array<double, 7> divisions{};
+            std::array<double, Polynomial::DEGREE + 2> divisions{};
             std::size_t count{}, interval{};
             std::optional<Pulse> pending;
             std::uint64_t last_tick{};

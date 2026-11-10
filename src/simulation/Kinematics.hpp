@@ -12,9 +12,9 @@ namespace simulation
       public:
         explicit Kinematics(const Profile& profile);
         std::array<double, 3> joints(const std::array<double, 3>& shaft_degrees) const;
-        static std::array<double, 3> tcp(const Profile&, const std::array<double, 3>& joints);
-        static glm::dmat4 relativeFrame(const Profile&, unsigned axis, double joint);
-        static std::array<glm::dmat4, 4> frames(const Profile&, const std::array<double, 3>& joints);
+        static std::array<double, 3> tcp(const Profile& /*p*/, const std::array<double, 3>& q);
+        static glm::dmat4 relativeFrame(const Profile& /*p*/, unsigned axis, double joint);
+        static std::array<glm::dmat4, 4> frames(const Profile& /*p*/, const std::array<double, 3>& q);
 
       private:
         std::array<ui::motion::RotaryAxisConversion, 2> m_rotary;

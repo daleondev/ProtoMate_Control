@@ -22,7 +22,7 @@ set(giga_fast_sources
     src/io/motion/ProfileSchedule.cpp
     src/io/motion/Executor.cpp
     src/common/motion/Profile.cpp
-    # BridgeLifecycle.cpp stays in QSPI; construction/start/teardown do not run
+    # BridgeLifecycle.cpp uses ordinary CODE RAM; construction/start/teardown do not run
     # in the steady-state transfer path. Keep dispatch and lane loops in RAM.
     src/common/icc/bridge/Bridge.cpp
     src/common/icc/bridge/ConnectionHealth.cpp
@@ -71,7 +71,7 @@ string(APPEND GIGA_FAST_OBJECTS " *libc_a-memcpy.o(.text* .rodata*)")
 
 string(APPEND GIGA_FAST_OBJECTS " *stm32h7xx_hal_gpio.c.obj(.text* .rodata*)")
 set(giga_fast_functions
-    # Only evaluation/inversion is time-critical; admission and certification remain in QSPI.
+    # Only evaluation/inversion is time-critical; admission and certification use ordinary CODE.
     _ZNK6motion12ProgressPath2atEdj
     _ZNK6motion12ProgressPath8crossingEdRNS0_6CursorE
     _ZNK6motion10Polynomial2atEdj*

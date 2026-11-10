@@ -52,6 +52,8 @@ namespace
     auto thread_stack_error_handler(TX_THREAD* thread) noexcept -> void
     {
         // Do not call libc or allocate on the already compromised stack.
+        // Linker startup table describes physical memory ranges.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         profile_failure(PROFILE_STACK, 0, 0, reinterpret_cast<std::uintptr_t>(thread));
         Error_Handler();
     }

@@ -24,6 +24,10 @@ namespace motion::trajectory
     inline constexpr std::size_t IO_SEGMENTS{ 256 };
     inline constexpr std::size_t UI_SEGMENTS{ 512 };
     inline constexpr std::size_t COMMANDS{ 64 };
+    inline constexpr std::size_t IO_SEGMENT_BYTES{ 64UZ * 1024 };
+    inline constexpr std::uint32_t MINIMUM_PERIOD_TICKS{ 100 };
+    inline constexpr std::uint32_t HIGH_TICKS{ 50 };
+    inline constexpr std::uint32_t DIRECTION_MARGIN_TICKS{ 50 };
     inline constexpr double MAX_POSITION{ 1e9 };
     inline constexpr double TICK_SECONDS{ TICK_NS * 1e-9 };
 
@@ -128,7 +132,7 @@ namespace motion::trajectory
         double path_begin{}, path_end{};
         [[nodiscard]] MotorStates at(double u) const noexcept;
     };
-    static_assert(sizeof(Segment) * IO_SEGMENTS <= 64 * 1024);
+    static_assert(sizeof(Segment) * IO_SEGMENTS <= IO_SEGMENT_BYTES);
 
     struct Capabilities
     {
@@ -138,11 +142,13 @@ namespace motion::trajectory
         std::array<double, 3> reference_steps{};
         std::array<Limits, 3> limits{};
         std::uint64_t hardware_fingerprint{};
-        std::uint32_t minimum_period_ticks{ 100 }, high_ticks{ 50 }, direction_setup_ticks{ 50 },
-          direction_hold_ticks{ 50 };
+        std::uint32_t minimum_period_ticks{ MINIMUM_PERIOD_TICKS }, high_ticks{ HIGH_TICKS },
+          direction_setup_ticks{ DIRECTION_MARGIN_TICKS }, direction_hold_ticks{ DIRECTION_MARGIN_TICKS };
         std::uint16_t capacity{ IO_SEGMENTS };
         bool coordinated_execution{};
-        std::uint8_t reference_forward_mask{ 7 }; // motor-coordinate homing direction, bits M1..M3
+        std::uint8_t reference_forward_mask{
+            ALL_AXES_MASK
+        }; // motor-coordinate homing direction, bits M1..M3
     };
     // One normalized, rest-to-rest progress law. Motor displacements are
     // quantized once on UI; IO validates them against the reservation snapshot.
@@ -199,7 +205,7 @@ namespace motion::trajectory
         std::uint64_t job{};
         std::array<std::uint64_t, 3> axis_revisions{};
         // Renew batches include all active jobs, including raw buffered jobs.
-        std::array<std::uint64_t, 8> renew_jobs{};
+        std::array<std::uint64_t, MOTOR_JOB_CAPACITY> renew_jobs{};
         FiniteProgram program{}; // Encoded only for Prepare.
     };
     struct Reply
@@ -231,14 +237,14 @@ namespace motion::trajectory
     };
     [[nodiscard]] Packet encode(const Request& request);
     [[nodiscard]] Packet encode(const Reply& reply);
-    [[nodiscard]] std::expected<Request, Error> decodeRequest(const Packet& packet) noexcept;
-    [[nodiscard]] std::expected<Reply, Error> decodeReply(const Packet& packet) noexcept;
-    [[nodiscard]] std::uint32_t checksum(std::span<const std::byte> bytes) noexcept;
+    [[nodiscard]] std::expected<Request, Error> decode_request(const Packet& packet) noexcept;
+    [[nodiscard]] std::expected<Reply, Error> decode_reply(const Packet& packet) noexcept;
+    [[nodiscard]] std::uint32_t checksum(std::span<const std::byte> data) noexcept;
     [[nodiscard]] std::uint64_t fingerprint(const Capabilities& capabilities) noexcept;
     [[nodiscard]] Error validate(const Segment& segment, const std::array<Limits, 3>& limits) noexcept;
     [[nodiscard]] bool continuous(const MotorStates& a, const MotorStates& b) noexcept;
-    [[nodiscard]] bool atRest(const MotorStates& state) noexcept;
-    [[nodiscard]] std::expected<std::int64_t, Error> quantize(double steps) noexcept;
+    [[nodiscard]] bool at_rest(const MotorStates& state) noexcept;
+    [[nodiscard]] std::expected<std::int64_t, Error> quantize(double position) noexcept;
 }
 
 namespace pnm::utils::memory
@@ -246,8 +252,8 @@ namespace pnm::utils::memory
     template<>
     struct SerializationAdapter<motion::trajectory::Packet>
     {
-        static std::size_t bufferSize(const motion::trajectory::Packet& value);
-        static void serialize(const motion::trajectory::Packet& value, std::span<std::byte> output);
-        static void deserialize(std::span<const std::byte> input, motion::trajectory::Packet& value);
+        static std::size_t bufferSize(const motion::trajectory::Packet& p);
+        static void serialize(const motion::trajectory::Packet& p, std::span<std::byte> output);
+        static void deserialize(std::span<const std::byte> input, motion::trajectory::Packet& p);
     };
 }

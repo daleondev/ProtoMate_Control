@@ -37,7 +37,7 @@ namespace ui
         [[nodiscard]] icc::ConnectionStatus connectionStatus() const;
         [[nodiscard]] app::State state() const { return m_systemState.snapshot().ui; }
         [[nodiscard]] SystemState::Snapshot systemState() const { return m_systemState.snapshot(); }
-        void installLogSink();
+        static void installLogSink();
 
       private:
         friend class runtime::ThreadGroup;
@@ -59,10 +59,16 @@ namespace ui
         static constexpr runtime::thread::Definition TOUCH_THREAD{ .priority = 7,
                                                                    .stack_size = 8UZ * 1024UZ };
 #if defined(CORE_CM7)
-        alignas(32) static std::byte s_plannerStack[24UZ * 1024UZ];
+        static constexpr std::size_t PLANNER_STACK_ALIGNMENT{ 32 }, PLANNER_STACK_BYTES{ 24UZ * 1024UZ };
+        struct alignas(PLANNER_STACK_ALIGNMENT) PlannerStack
+        {
+            std::array<std::byte, PLANNER_STACK_BYTES> bytes{};
+        };
+        static PlannerStack s_plannerStack;
         static constexpr runtime::thread::Definition PLANNER_THREAD{ .priority = 15,
                                                                      .stack_size = sizeof(s_plannerStack),
-                                                                     .stack_storage = s_plannerStack };
+                                                                     .stack_storage =
+                                                                       s_plannerStack.bytes.data() };
 #else
         static constexpr runtime::thread::Definition PLANNER_THREAD{ .priority = 15,
                                                                      .stack_size = 64UZ * 1024UZ };

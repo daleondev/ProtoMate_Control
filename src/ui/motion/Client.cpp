@@ -12,7 +12,7 @@ namespace ui::motion
     {
         using namespace std::chrono_literals;
         using namespace ::motion;
-        const char* serviceError(pnm::msg::ServiceError error)
+        const char* service_error(pnm::msg::ServiceError error)
         {
             using enum pnm::msg::ServiceError;
             switch (error) {
@@ -51,16 +51,16 @@ namespace ui::motion
               m_state = value;
               m_receivedAt = std::chrono::steady_clock::now();
               // An older sample can arrive after a newer command acknowledgement.
-              m_commandGeneration = std::max(m_commandGeneration.value_or(0), value.commandGeneration);
+              m_commandGeneration = std::max(m_commandGeneration.value_or(0), value.command_generation);
           },
           pnm::msg::SubscriptionOptions::latestOnly()) }
     {
-        m_jobs.reserve(8);
+        m_jobs.reserve(MAX_JOBS);
     }
 
     void Client::setConnected(bool connected)
     {
-        std::array<std::optional<std::stop_source>, 8> cancel;
+        std::array<std::optional<std::stop_source>, MAX_JOBS> cancel{};
         unsigned count{};
         {
             std::scoped_lock lock{ m_mutex };
@@ -90,8 +90,10 @@ namespace ui::motion
             }
         }
         // Stop callbacks can re-enter the client/planner; never invoke them under its mutex.
-        for (unsigned i = 0; i < count; ++i) {
-            cancel[i]->request_stop();
+        for (auto& source : cancel) {
+            if (source) {
+                source->request_stop();
+            }
         }
         m_notification->signal();
     }
@@ -112,7 +114,7 @@ namespace ui::motion
         return *m_state;
     }
 
-    MotorResponse Client::request(const MotorRequest& value, std::stop_token stop)
+    MotorResponse Client::request(const MotorRequest& value, const std::stop_token& stop)
     {
         if (stop.stop_requested()) {
             throw std::runtime_error("UI controller is stopping");
@@ -125,16 +127,16 @@ namespace ui::motion
         }
         const bool urgent{ value.operation == MotorOperation::Stop ||
                            value.operation == MotorOperation::Disable };
-        auto call{ (urgent ? m_urgent : m_commands).request(value, 3s) };
+        auto call{ (urgent ? m_urgent : m_commands).request(value, REQUEST_TIMEOUT) };
         const std::stop_callback cancellation{ stop, [&call] { call.cancel(); } };
         auto result{ call.get() };
         if (!result) {
-            throw std::runtime_error(serviceError(result.error()));
+            throw std::runtime_error(service_error(result.error()));
         }
         {
             std::scoped_lock lock{ m_mutex };
             if (m_connected && !m_stopped) {
-                m_commandGeneration = std::max(m_commandGeneration.value_or(0), result->commandGeneration);
+                m_commandGeneration = std::max(m_commandGeneration.value_or(0), result->command_generation);
             }
         }
         if (!result->ok) {
@@ -143,7 +145,71 @@ namespace ui::motion
         return std::move(*result);
     }
 
-    std::uint64_t Client::submit(MotorGoal goal, std::stop_token stop)
+    namespace
+    {
+        void motor_result(Client::JobInfo& info, const pnm::msg::ActionResult<MotorResult>& result)
+        {
+            using JobState = Client::JobState;
+            if (!result) {
+                info.state = result.error() == pnm::msg::ActionError::Rejected ||
+                                 result.error() == pnm::msg::ActionError::Busy
+                               ? JobState::Rejected
+                               : JobState::Unknown;
+                return;
+            }
+            info.progress = result->value.final_state;
+            info.busy_job = result->value.busy_job;
+            if (result->value.busy_job) {
+                info.error = ::motion::trajectory::Error::Busy;
+            }
+            if (result->status == pnm::msg::ActionStatus::Rejected) {
+                info.state = JobState::Rejected;
+                return;
+            }
+            if (result->status == pnm::msg::ActionStatus::Cancelled) {
+                info.state = JobState::Stopped;
+                return;
+            }
+            switch (result->value.outcome) {
+                case MotorOutcome::Completed:
+                    info.state = JobState::Completed;
+                    break;
+                case MotorOutcome::Stopped:
+                    info.state = JobState::Stopped;
+                    break;
+                case MotorOutcome::TimedOut:
+                    info.state = JobState::TimedOut;
+                    break;
+                case MotorOutcome::Rejected:
+                    info.state = JobState::Rejected;
+                    break;
+                case MotorOutcome::Faulted:
+                    info.state = JobState::Faulted;
+                    break;
+                default:
+                    info.state = JobState::Unknown;
+                    break;
+            }
+        }
+    }
+    pnm::msg::ActionCallbacks<MotorProgress, MotorResult> Client::motorCallbacks(
+      const std::weak_ptr<Job>& weak)
+    {
+        return { .on_accepted = [weak] {
+            if (auto current{ weak.lock() }; current && current->info.state == JobState::Submitting) {
+                current->info.state = JobState::Accepted;
+            }
+        }, .on_feedback = [weak](const MotorProgress& progress) {
+            if (auto current{ weak.lock() }) {
+                current->info.progress = progress;
+            }
+        }, .on_result = [weak](pnm::msg::ActionResult<MotorResult> result) {
+            if (auto current{ weak.lock() }) {
+                motor_result(current->info, result);
+            }
+        } };
+    }
+    std::uint64_t Client::submit(MotorGoal goal, const std::stop_token& stop)
     {
         std::scoped_lock lock{ m_mutex };
         if (goal.motor >= MotorId::All) {
@@ -160,68 +226,19 @@ namespace ui::motion
         }
         // IO authoritatively checks readiness and the stop generation. Cached
         // display state must not admit a move or delay one after an acknowledgement.
-        goal.commandGeneration = *m_commandGeneration;
-        auto job = createLocked(Family::Motor, std::uint8_t(1U << unsigned(goal.motor)));
+        goal.command_generation = *m_commandGeneration;
+        auto job{ createLocked(Family::Motor, std::uint8_t(1U << unsigned(goal.motor))) };
         job->info.motor = goal.motor;
         job->info.motion = goal.motion;
-        job->info.requested = { { goal.position, 0, 0 },
-                                goal.motion == MotorMotion::Home ? RequestSpace::Home : RequestSpace::Shaft,
-                                goal.motion == MotorMotion::Relative };
+        job->info.requested = { .values = { goal.position, 0, 0 },
+                                .space =
+                                  goal.motion == MotorMotion::Home ? RequestSpace::Home : RequestSpace::Shaft,
+                                .relative = goal.motion == MotorMotion::Relative };
         goal.job = job->info.id;
         const std::weak_ptr<Job> weak{ job };
         try {
-            job->handle.emplace(m_motions.sendGoal(goal, { .accept_timeout = 3s }, { .on_accepted = [weak] {
-                if (auto current{ weak.lock() }; current && current->info.state == JobState::Submitting) {
-                    current->info.state = JobState::Accepted;
-                }
-            }, .on_feedback = [weak](const MotorProgress& progress) {
-                if (auto current{ weak.lock() }) {
-                    current->info.progress = progress;
-                }
-            }, .on_result = [weak](pnm::msg::ActionResult<MotorResult> result) {
-                if (auto current{ weak.lock() }) {
-                    if (!result) {
-                        current->info.state = result.error() == pnm::msg::ActionError::Rejected ||
-                                                  result.error() == pnm::msg::ActionError::Busy
-                                                ? JobState::Rejected
-                                                : JobState::Unknown;
-                        return;
-                    }
-                    current->info.progress = result->value.final_state;
-                    current->info.busy_job = result->value.busy_job;
-                    if (result->value.busy_job) {
-                        current->info.error = ::motion::trajectory::Error::Busy;
-                    }
-                    if (result->status == pnm::msg::ActionStatus::Rejected) {
-                        current->info.state = JobState::Rejected;
-                        return;
-                    }
-                    if (result->status == pnm::msg::ActionStatus::Cancelled) {
-                        current->info.state = JobState::Stopped;
-                        return;
-                    }
-                    switch (result->value.outcome) {
-                        case MotorOutcome::Completed:
-                            current->info.state = JobState::Completed;
-                            break;
-                        case MotorOutcome::Stopped:
-                            current->info.state = JobState::Stopped;
-                            break;
-                        case MotorOutcome::TimedOut:
-                            current->info.state = JobState::TimedOut;
-                            break;
-                        case MotorOutcome::Rejected:
-                            current->info.state = JobState::Rejected;
-                            break;
-                        case MotorOutcome::Faulted:
-                            current->info.state = JobState::Faulted;
-                            break;
-                        default:
-                            current->info.state = JobState::Unknown;
-                            break;
-                    }
-                }
-            } }));
+            job->handle.emplace(
+              m_motions.sendGoal(goal, { .accept_timeout = REQUEST_TIMEOUT }, motorCallbacks(weak)));
             job->readiness =
               pnm::msg::watch(*job->handle, [notification = m_notification] { notification->signal(); });
         } catch (...) {
@@ -238,7 +255,7 @@ namespace ui::motion
         std::scoped_lock lock{ m_mutex };
         std::vector<JobInfo> result{};
         result.reserve(m_jobs.size() + m_history->count);
-        for (unsigned i = 0; i < m_history->count; ++i) {
+        for (unsigned i{ 0 }; i < m_history->count; ++i) {
             result.push_back(m_history->jobs[i]);
         }
         for (const auto& job : m_jobs) {
@@ -248,42 +265,9 @@ namespace ui::motion
         return result;
     }
 
-    void Client::run(std::stop_token stop)
+    void Client::shutdownJobs()
     {
-        const auto ready{ pnm::msg::watch(m_stateSubscription,
-                                          [notification = m_notification] { notification->signal(); }) };
-        const std::stop_callback cancellation{ stop,
-                                               [notification = m_notification] { notification->signal(); } };
-        while (!stop.stop_requested()) {
-            m_stateSubscription.pollSome(1);
-            {
-                std::scoped_lock lock{ m_mutex };
-                for (const auto& job : m_jobs) {
-                    if (job->handle && job->handle->poll()) {
-                        job->readiness = {};
-                        job->handle.reset();
-                        m_jobChanged.notify_all();
-                    }
-                    if (job->program && job->program->poll()) {
-                        job->readiness = {};
-                        job->program.reset();
-                        job->reservation = 0;
-                        m_jobChanged.notify_all();
-                    }
-                }
-                retireJobsLocked();
-            }
-            serviceControls();
-            renewJobs();
-            auto deadline = m_nextRenew;
-            {
-                std::scoped_lock lock{ m_mutex };
-                if (m_inputJob)
-                    deadline = std::min(deadline, m_inputDeadline);
-            }
-            m_notification->waitUntil(deadline);
-        }
-        std::array<std::optional<std::stop_source>, 8> cancel;
+        std::array<std::optional<std::stop_source>, MAX_JOBS> cancel{};
         unsigned count{};
         {
             std::scoped_lock lock{ m_mutex };
@@ -314,9 +298,49 @@ namespace ui::motion
             }
             m_jobChanged.notify_all();
         }
-        for (unsigned i = 0; i < count; ++i) {
-            cancel[i]->request_stop();
+        for (auto& source : cancel) {
+            if (source) {
+                source->request_stop();
+            }
         }
+    }
+    void Client::run(const std::stop_token& stop)
+    {
+        const auto ready{ pnm::msg::watch(m_stateSubscription,
+                                          [notification = m_notification] { notification->signal(); }) };
+        const std::stop_callback cancellation{ stop,
+                                               [notification = m_notification] { notification->signal(); } };
+        while (!stop.stop_requested()) {
+            m_stateSubscription.pollSome(1);
+            {
+                std::scoped_lock lock{ m_mutex };
+                for (const auto& job : m_jobs) {
+                    if (job->handle && job->handle->poll()) {
+                        job->readiness = {};
+                        job->handle.reset();
+                        m_jobChanged.notify_all();
+                    }
+                    if (job->program && job->program->poll()) {
+                        job->readiness = {};
+                        job->program.reset();
+                        job->reservation = 0;
+                        m_jobChanged.notify_all();
+                    }
+                }
+                retireJobsLocked();
+            }
+            serviceControls();
+            renewJobs();
+            auto deadline{ m_nextRenew };
+            {
+                std::scoped_lock lock{ m_mutex };
+                if (m_inputJob) {
+                    deadline = std::min(deadline, m_inputDeadline);
+                }
+            }
+            m_notification->waitUntil(deadline);
+        }
+        shutdownJobs();
         serviceControls();
     }
 }

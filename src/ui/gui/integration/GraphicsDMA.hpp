@@ -10,6 +10,11 @@ namespace ui::gui
     class GraphicsDMA final : public touchgfx::DMA_Interface
     {
       public:
+        GraphicsDMA(const GraphicsDMA&) = delete;
+        auto operator=(const GraphicsDMA&) -> GraphicsDMA& = delete;
+        GraphicsDMA(GraphicsDMA&&) = delete;
+        auto operator=(GraphicsDMA&&) -> GraphicsDMA& = delete;
+
         GraphicsDMA(std::shared_ptr<hal::IGraphics> graphics, std::stop_token stop);
         ~GraphicsDMA() override;
         touchgfx::BlitOperations getBlitCaps() override;
@@ -31,7 +36,7 @@ namespace ui::gui
         void setupDataFill(const touchgfx::BlitOp& operation) override { addToQueue(operation); }
 
       private:
-        bool execute(const hal::graphics::Transfer& transfer);
+        bool performTransfer(const hal::graphics::Transfer& transfer);
         touchgfx::BlitOp m_storage{};
         touchgfx::LockFreeDMA_Queue m_queue;
         std::shared_ptr<hal::IGraphics> m_graphics;

@@ -12,6 +12,19 @@ namespace ui::cli::robot
     using namespace pnm::meta::string::literals;
     namespace
     {
+        const char* model_name(ui::motion::Robot::Model model)
+        {
+            switch (model) {
+                case ui::motion::Robot::Model::Physical:
+                    return "physical";
+                case ui::motion::Robot::Model::Fixture180:
+                    return "180 simulation";
+                default:
+                    return "archived simulation";
+            }
+        }
+
+        constexpr double MILLIMETRES_PER_METRE{ 1000 };
         using namespace pnm::units;
         using namespace pnm::units::literals;
         using ui::motion::Robot;
@@ -72,14 +85,17 @@ namespace ui::cli::robot
                     return callback_failure("fixture must be 180 or archived; neither is a calibrated robot");
                 }
             }
-            for (const auto* name : { "start-shoulder", "start-elbow", "start-z" }) {
-                if (args.flagCount(name) != 1 || !args.flagValue(name)) {
-                    return callback_failure(std::string("--") + name + " is required exactly once");
+            const auto start_value{ [&](std::string_view name) {
+                const auto value{ args.flagValue(name) };
+                if (args.flagCount(name) != 1 || !value) {
+                    throw std::invalid_argument(std::string("--") + std::string(name) +
+                                                " is required exactly once");
                 }
-            }
-            request.start = { .shoulder = number(*args.flagValue("start-shoulder")) * 1_deg,
-                              .elbow = number(*args.flagValue("start-elbow")) * 1_deg,
-                              .z = number(*args.flagValue("start-z")) * 1_mm };
+                return number(*value);
+            } };
+            request.start = { .shoulder = start_value("start-shoulder") * 1_deg,
+                              .elbow = start_value("start-elbow") * 1_deg,
+                              .z = start_value("start-z") * 1_mm };
             const auto a{ number(args.require("a")) };
             const auto b{ number(args.require("b")) };
             const auto c{ number(args.require("c")) };
@@ -135,7 +151,7 @@ namespace ui::cli::robot
         [[
             = "Robot execution, planning previews and configuration diagnostics"_fs,
             = Name{ "robot"_fs }
-        ]] static CallbackResult overview(Robot&, const Arguments&, std::ostream& out)
+        ]] static CallbackResult overview(Robot& /*unused*/, const Arguments& /*unused*/, std::ostream& out)
         {
             out << "robot home / robot status / robot stop\n"
                    "robot jog x+|x-|y+|y-|z+|z- [--speed fraction] [--duration seconds|--continuous]\n"
@@ -207,7 +223,8 @@ namespace ui::cli::robot
             = Arg{ .name = "id"_fs, .description = "Optional job ID"_fs, .optional = true }
         ]] static CallbackResult jobs(Robot& robot, const Arguments& args, std::ostream& out)
         {
-            const auto selected{ args.get("id") ? identifier(*args.get("id")) : 0 };
+            const auto input{ args.get("id") };
+            const auto selected{ input ? identifier(*input) : 0 };
             bool found{ false };
             for (const auto id : robot.jobs()) {
                 if (!id || (selected && selected != id)) {
@@ -222,9 +239,7 @@ namespace ui::cli::robot
                                    id,
                                    state(job->state),
                                    ::motion::trajectory::name(job->error),
-                                   job->model == Robot::Model::Physical     ? "physical"
-                                   : job->model == Robot::Model::Fixture180 ? "180 simulation"
-                                                                            : "archived simulation");
+                                   model_name(job->model));
                 if (job->state != Robot::JobState::Preview) {
                     continue;
                 }
@@ -235,16 +250,16 @@ namespace ui::cli::robot
                   p.duration,
                   p.segments,
                   p.branch == ui::motion::ScaraKinematics::ElbowBranch::Positive ? "positive" : "negative",
-                  p.path_error_bound * 1000,
-                  p.quantization_bound * 1000);
+                  p.path_error_bound * MILLIMETRES_PER_METRE,
+                  p.quantization_bound * MILLIMETRES_PER_METRE);
                 out << std::format(
                   "  endpoint: {:.5f} deg, {:.5f} deg, {:.5f} mm; TCP {:.5f}, {:.5f}, {:.5f} mm\n",
                   job->endpoint.shoulder.get<AngleUnits::deg>(),
                   job->endpoint.elbow.get<AngleUnits::deg>(),
-                  job->endpoint.z.get() * 1000,
-                  job->tcp.x.get() * 1000,
-                  job->tcp.y.get() * 1000,
-                  job->tcp.z.get() * 1000);
+                  job->endpoint.z.get() * MILLIMETRES_PER_METRE,
+                  job->tcp.x.get() * MILLIMETRES_PER_METRE,
+                  job->tcp.y.get() * MILLIMETRES_PER_METRE,
+                  job->tcp.z.get() * MILLIMETRES_PER_METRE);
                 for (unsigned i{ 0 }; i < 3; ++i) {
                     out << std::format("  m{} peaks <= {:.3f} steps/s, {:.3f} steps/s^2, {:.3f} steps/s^3; "
                                        "endpoint={} steps\n",
@@ -279,7 +294,7 @@ namespace ui::cli::robot
     }
     void setup(Parser& parser, ui::motion::Robot& robot)
     {
-        std::call_once(parser.m_robotRegistration, [&] {
+        parser.registerModule(Parser::Module::Robot, [&] {
             register_commands<^^commands>(parser, [&robot](auto command) {
                 return [&robot, command](const Arguments& args, std::ostream& out) {
                     return command(robot, args, out);

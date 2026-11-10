@@ -9,6 +9,11 @@ namespace hal
     class RgbOutput final : public IRgbOutput
     {
       public:
+        RgbOutput(const RgbOutput&) = delete;
+        auto operator=(const RgbOutput&) -> RgbOutput& = delete;
+        RgbOutput(RgbOutput&&) = delete;
+        auto operator=(RgbOutput&&) -> RgbOutput& = delete;
+
         RgbOutput(LTDC_HandleTypeDef& lcd, TIM_HandleTypeDef& pwm, std::shared_ptr<IDigitalOutput> backlight);
         ~RgbOutput() override;
         auto initialize() -> util::Result<> override;
@@ -18,14 +23,15 @@ namespace hal
         auto state() const noexcept -> display::State override;
         void setCallback(display::Callback callback) noexcept override;
         void shutdown() noexcept override;
-        auto fill(unsigned slot, std::uint16_t rgb565) -> util::Result<> override;
+        auto fill(unsigned slot, std::uint16_t color) -> util::Result<> override;
         auto backlight(unsigned percent) -> util::Result<> override;
         auto underruns() const noexcept -> std::uint32_t override { return state().underruns; }
-        auto width() const noexcept -> unsigned override { return 1024; }
-        auto height() const noexcept -> unsigned override { return 600; }
+        auto width() const noexcept -> unsigned override { return WIDTH; }
+        auto height() const noexcept -> unsigned override { return HEIGHT; }
         void interrupt() noexcept;
 
       private:
+        static constexpr unsigned WIDTH{ 1024 }, HEIGHT{ 600 }, PERCENT{ 100 };
         LTDC_HandleTypeDef& m_lcd;
         TIM_HandleTypeDef& m_pwm;
         std::shared_ptr<IDigitalOutput> m_backlight;

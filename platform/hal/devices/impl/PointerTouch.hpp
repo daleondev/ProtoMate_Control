@@ -12,10 +12,11 @@ namespace hal::device
         }
         auto initialize() -> util::Result<> override { return {}; }
         auto read() -> util::Result<TouchReport> override { return m_read(); }
-        void setCallback(Callback, void*) noexcept override {}
+        void setCallback(Callback /*callback*/, void* /*context*/) noexcept override {}
         auto idlePeriod() const noexcept -> std::chrono::milliseconds override
         {
-            return std::chrono::milliseconds{ 8 };
+            constexpr auto poll_interval{ std::chrono::milliseconds{ 8 } };
+            return poll_interval;
         }
 
       private:

@@ -11,19 +11,24 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 namespace io::motion
 {
     namespace
     {
         using namespace std::chrono_literals;
+        constexpr std::uint8_t ALL_AXES{ 7 };
+        constexpr unsigned DIAGNOSTIC_PRIORITY{ 18 };
+        constexpr std::size_t ARM_POINTER_BYTES{ 4 }, ARM_DIAGNOSTIC_STACK{ 6144 },
+          HOST_DIAGNOSTIC_STACK{ 8192 }, ARM_EXECUTION_STACK{ 8192 }, HOST_EXECUTION_STACK{ 16384 };
         constexpr auto DRIVER_POLL_INTERVAL{ 100ms };
 
     }
 
     Controller::Controller(const Configuration& configuration,
                            const DriverFactory& driver_factory,
-                           std::shared_ptr<pnm::log::ISink> log_sink,
+                           const std::shared_ptr<pnm::log::ISink>& log_sink,
                            std::pmr::memory_resource* profile_memory,
                            const Hardware* hardware)
       : m_enable{ hardware && hardware->enable ? hardware->enable
@@ -86,15 +91,20 @@ namespace io::motion
         m_driverWorker = runtime::thread::create_jthread(
           // Physical TMC diagnostics peaked below 3.5 KiB; retain over 40%
           // headroom on ARM rather than budgeting from the synthetic driver.
-          { .name = "motion diagnostics", .priority = 18, .stack_size = sizeof(void*) == 4 ? 6144U : 8192U },
+          { .name = "motion diagnostics",
+            .priority = DIAGNOSTIC_PRIORITY,
+            .stack_size = sizeof(void*) == ARM_POINTER_BYTES ? ARM_DIAGNOSTIC_STACK : HOST_DIAGNOSTIC_STACK },
           [this](const std::stop_token& stop) { monitorDrivers(stop); });
         if (!m_generator->setRefillNotification([this] { m_executionNotification.signal(); })) {
             throw std::runtime_error("motion refill worker unavailable");
         }
         try {
             m_executionWorker = runtime::thread::create_jthread(
-              { .name = "motion executor", .priority = 1, .stack_size = sizeof(void*) == 4 ? 8192U : 16384U },
-              [this](std::stop_token stop) { executeMotions(stop); });
+              { .name = "motion executor",
+                .priority = 1,
+                .stack_size =
+                  sizeof(void*) == ARM_POINTER_BYTES ? ARM_EXECUTION_STACK : HOST_EXECUTION_STACK },
+              [this](const std::stop_token& stop) { executeMotions(stop); });
         } catch (...) {
             static_cast<void>(m_generator->setRefillNotification({}));
             throw;
@@ -167,15 +177,15 @@ namespace io::motion
     }
     bool Controller::velocityAllowed(MotorId id, pnm::units::AngularVelocity velocity) const
     {
-        const auto& config = m_configuration.at(static_cast<unsigned>(id));
+        const auto& config{ m_configuration.at(static_cast<unsigned>(id)) };
         return velocity.isFinite() && std::abs(velocity.get()) <= Executor::MAX_PRODUCTION_RATE *
                                                                     config.full_step_angle.get() /
-                                                                    config.microsteps;
+                                                                    static_cast<double>(config.microsteps);
     }
 
     void Controller::stopLocked(std::optional<MotorId> id)
     {
-        stopProgramsLocked(id ? std::uint8_t(1U << static_cast<unsigned>(*id)) : 7U, true);
+        stopProgramsLocked(id ? std::uint8_t(1U << static_cast<unsigned>(*id)) : ALL_AXES, true);
         if (id) {
             axis(*id).stopAndWait();
             return;
@@ -200,7 +210,7 @@ namespace io::motion
             m_enable->write(hal::gpio::Level::High);
         }
         m_controlNotification.signal();
-        const auto mask = id ? std::uint8_t(1U << static_cast<unsigned>(*id)) : 7U;
+        const auto mask{ id ? std::uint8_t(1U << static_cast<unsigned>(*id)) : ALL_AXES };
         bool group{};
         for (const auto& g : m_groups) {
             group |= (g.mask & mask) && g.executor && g.executor->reserved();
@@ -225,13 +235,14 @@ namespace io::motion
         if (id) {
             static_cast<void>(axis(*id));
         }
-        auto mask = id ? std::uint8_t(1U << static_cast<unsigned>(*id)) : std::uint8_t(7);
+        auto mask{ id ? std::uint8_t(1U << static_cast<unsigned>(*id)) : ALL_AXES };
         for (const auto& g : m_groups) {
-            if ((g.managed || (g.executor && g.executor->reserved())) && (g.mask & mask))
+            if ((g.managed || (g.executor && g.executor->reserved())) && (g.mask & mask)) {
                 mask |= g.mask;
+            }
         }
         stopProgramsLocked(mask, true);
-        for (unsigned i = 0; i < 3; ++i) {
+        for (unsigned i{ 0 }; i < 3; ++i) {
             if (mask & (1U << i)) {
                 m_motors[i]->requestStop();
                 m_motors[i]->invalidateReference();
@@ -270,12 +281,15 @@ namespace io::motion
             return;
         }
         if (std::ranges::any_of(m_motors, [](const auto& m) { return m->m_events->limit_fault.load(); })) {
-            for (auto& motor : m_motors)
+            for (auto& motor : m_motors) {
                 motor->m_events->limit_fault.store(true);
+            }
             try {
                 pnm::log::error("Hard limit: all motion inhibited, references invalidated; clear the switch, "
                                 "initialize and reference again");
-            } catch (...) {
+            } catch (...) { // NOLINT(bugprone-empty-catch): Hardware inhibition and reference invalidation
+                            // must proceed if logging fails.
+
                 // Fault cleanup must not depend on diagnostic allocation.
             }
         }
@@ -314,24 +328,121 @@ namespace io::motion
     bool Controller::renewExecution(std::uint64_t id)
     {
         std::scoped_lock lock{ m_mutex };
-        auto* const slot = std::ranges::find(m_groups, id, &Group::job);
+        auto* const slot{ std::ranges::find(m_groups, id, &Group::job) };
         return slot != m_groups.end() && slot->executor && slot->executor->renew(id);
     }
     bool Controller::stopExecution(std::uint64_t id)
     {
         std::scoped_lock lock{ m_mutex };
-        auto* const slot = std::ranges::find(m_groups, id, &Group::job);
-        const bool accepted = slot != m_groups.end() && slot->executor && slot->executor->stop(id);
+        auto* const slot{ std::ranges::find(m_groups, id, &Group::job) };
+        const bool accepted{ slot != m_groups.end() && slot->executor && slot->executor->stop(id) };
         m_executionNotification.signal();
         return accepted;
     }
     Executor::Status Controller::executionStatus(std::uint64_t id) const
     {
         std::scoped_lock lock{ m_mutex };
-        const auto* const slot = std::ranges::find(m_groups, id ? id : m_lastExecution, &Group::job);
+        const auto* const slot{ std::ranges::find(m_groups, id ? id : m_lastExecution, &Group::job) };
         return slot != m_groups.end() && slot->executor ? slot->executor->status() : Executor::Status{};
     }
-    void Controller::executeMotions(std::stop_token stop)
+    void Controller::maintainOwnerLocked(Group& g, Ownership::Clock::time_point now)
+    {
+        if (!g.managed) {
+            return;
+        }
+        auto* owner{ m_ownership.find(g.job) };
+        if (!owner || now >= owner->deadline || owner->state == ::motion::JobState::Stopping ||
+            now >= g.timeout) {
+            if (g.executor->stop(g.executor->status().id) && owner) {
+                if (now >= owner->deadline && owner->state != ::motion::JobState::Stopping) {
+                    g.error = ::motion::trajectory::Error::LeaseExpired;
+                }
+                owner->state = ::motion::JobState::Stopping;
+            }
+        }
+        else {
+            g.executor->renew(g.executor->status().id);
+        }
+    }
+    bool Controller::serviceGroupLocked(Group& g, Ownership::Clock::time_point now)
+    {
+        if (g.managed && g.homing && g.started && !g.home_finished) {
+            serviceHomeLocked(g);
+            return true;
+        }
+        if (!g.executor || !g.executor->active()) {
+            return false;
+        }
+        bool blocked{ m_faulted.load() };
+        for (unsigned i{}; i < m_motors.size(); ++i) {
+            blocked |=
+              (g.mask & (1U << i)) &&
+              (!m_motors[i]->isReferenced() || ((g.moving & (1U << i)) && m_motors[i]->coordinatedBlocked()));
+        }
+        if (blocked) {
+            g.executor->abort();
+            for (unsigned i{}; i < m_motors.size(); ++i) {
+                if (g.mask & (1U << i)) {
+                    m_motors[i]->invalidateReference();
+                }
+            }
+        }
+        else {
+            maintainOwnerLocked(g, now);
+            g.executor->service();
+        }
+        if (g.executor->status().state == Executor::State::Faulted) {
+            m_faulted.store(true);
+            m_enable->write(hal::gpio::Level::High);
+            m_driverNotification.signal();
+        }
+        return g.executor->active();
+    }
+    bool Controller::expireGroupLocked(const Ownership::Entry& entry)
+    {
+        bool group{};
+        for (auto& g : m_groups) {
+            if (!g.managed || g.job != entry.job) {
+                continue;
+            }
+            group = true;
+            g.error = ::motion::trajectory::Error::LeaseExpired;
+            if (g.executor) {
+                g.executor->stop(g.executor->status().id);
+            }
+            if (!g.started) {
+                g.managed = false;
+                g.homing = false;
+                g.completed = {};
+                m_ownership.release(entry.job);
+            }
+        }
+        return group;
+    }
+    bool Controller::expireOwnersLocked(Ownership::Clock::time_point now)
+    {
+        bool active{};
+        // Planning reservations and homing/raw jobs also have leases.
+        for (const auto& entry : m_ownership.entries()) {
+            if (!entry.job) {
+                continue;
+            }
+            active = true;
+            if (now < entry.deadline || entry.state >= ::motion::JobState::Stopping) {
+                continue;
+            }
+            auto* owner{ m_ownership.find(entry.job) };
+            owner->state = ::motion::JobState::Stopping;
+            if (!expireGroupLocked(entry)) {
+                stopMotorsLocked(entry.axes, false);
+                if (entry.family != ::motion::Family::Motor) {
+                    m_ownership.release(entry.job);
+                }
+            }
+        }
+        return active;
+    }
+    void Controller::executeMotions(const std::stop_token& stop)
     {
         const std::stop_callback wake{ stop, [this] { m_executionNotification.signal(); } };
         while (!stop.stop_requested()) {
@@ -339,98 +450,17 @@ namespace io::motion
             bool active{};
             {
                 std::scoped_lock lock{ m_mutex };
-                const auto now = std::chrono::steady_clock::now();
+                const auto now{ Ownership::Clock::now() };
                 for (auto& g : m_groups) {
-                    if (g.managed && g.homing && g.started && !g.home_finished) {
-                        serviceHomeLocked(g);
-                        active = true;
-                        continue;
-                    }
-                    if (!g.executor || !g.executor->active()) {
-                        continue;
-                    }
-                    bool blocked = m_faulted.load();
-                    for (unsigned i = 0; i < 3; ++i) {
-                        blocked |= (g.mask & (1U << i)) &&
-                                   (!m_motors[i]->isReferenced() ||
-                                    ((g.moving & (1U << i)) && m_motors[i]->coordinatedBlocked()));
-                    }
-                    if (blocked) {
-                        g.executor->abort();
-                        for (unsigned i = 0; i < 3; ++i) {
-                            if (g.mask & (1U << i))
-                                m_motors[i]->invalidateReference();
-                        }
-                    }
-                    else {
-                        if (g.managed) {
-                            auto* owner = m_ownership.find(g.job);
-                            if (!owner || now >= owner->deadline ||
-                                owner->state == ::motion::JobState::Stopping || now >= g.timeout) {
-                                if (g.executor->stop(g.executor->status().id) && owner) {
-                                    if (now >= owner->deadline &&
-                                        owner->state != ::motion::JobState::Stopping) {
-                                        g.error = ::motion::trajectory::Error::LeaseExpired;
-                                    }
-                                    owner->state = ::motion::JobState::Stopping;
-                                }
-                            }
-                            else {
-                                g.executor->renew(g.executor->status().id);
-                            }
-                        }
-                        g.executor->service();
-                    }
-                    if (g.executor->status().state == Executor::State::Faulted) {
-                        m_faulted.store(true);
-                        m_enable->write(hal::gpio::Level::High);
-                        m_driverNotification.signal();
-                    }
-                    active |= g.executor->active();
+                    active |= serviceGroupLocked(g, now);
                 }
                 finishProgramsLocked();
-                // Planning reservations and homing/raw jobs also have leases.
-                for (const auto& entry : m_ownership.entries()) {
-                    if (!entry.job) {
-                        continue;
-                    }
-                    active = true;
-                    if (now < entry.deadline || entry.state >= ::motion::JobState::Stopping) {
-                        continue;
-                    }
-                    auto* owner = m_ownership.find(entry.job);
-                    owner->state = ::motion::JobState::Stopping;
-                    bool group{};
-                    for (auto& g : m_groups) {
-                        if (g.managed && g.job == entry.job) {
-                            group = true;
-                            g.error = ::motion::trajectory::Error::LeaseExpired;
-                            if (g.executor) {
-                                g.executor->stop(g.executor->status().id);
-                            }
-                            if (!g.started) {
-                                g.managed = false;
-                                g.homing = false;
-                                g.completed = {};
-                                m_ownership.release(entry.job);
-                            }
-                        }
-                    }
-                    if (!group) {
-                        for (unsigned i = 0; i < 3; ++i) {
-                            if (entry.axes & (1U << i))
-                                m_motors[i]->requestStop();
-                        }
-                        if (entry.family != ::motion::Family::Motor) {
-                            m_ownership.release(entry.job);
-                        }
-                    }
-                }
+                active |= expireOwnersLocked(now);
             }
-            m_executionNotification.waitUntil(active ? std::chrono::steady_clock::now() + 1ms
-                                                     : std::chrono::steady_clock::time_point::max());
+            m_executionNotification.waitUntil(active ? Ownership::Clock::now() + 1ms
+                                                     : Ownership::Clock::time_point::max());
         }
         std::scoped_lock lock{ m_mutex };
-        stopProgramsLocked(7, true);
+        stopProgramsLocked(ALL_AXES, true);
     }
 }

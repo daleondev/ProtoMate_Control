@@ -115,7 +115,8 @@ namespace icc
             util::StoredFrame feedback;
             // Keep enough capacity for an error terminal even if encoding the
             // result runs out of memory. Its bytes survive until peer ACK.
-            util::StoredFrame terminal{ 64 };
+            static constexpr std::size_t TERMINAL_RESERVE_BYTES{ 64 };
+            util::StoredFrame terminal{ TERMINAL_RESERVE_BYTES };
         };
         struct IncomingGoal
         {

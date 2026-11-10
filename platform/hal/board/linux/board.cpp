@@ -73,6 +73,22 @@ namespace hal::board
         const gpio::Pin M3_REFERENCE_PIN{ simulation::client::connected()
                                             ? gpio::Pin{ .port = B, .number = 2U }
                                             : gpio::Pin{ .port = E, .number = 10U } };
+        constexpr std::array NATIVE_DIAGNOSTICS{ gpio::Pin{ .port = B, .number = 1 },
+                                                 gpio::Pin{ .port = C, .number = 3 },
+                                                 gpio::Pin{ .port = C, .number = 0 } };
+        constexpr std::array LOCAL_DIAGNOSTICS{ gpio::Pin{ .port = F, .number = 2 },
+                                                gpio::Pin{ .port = D, .number = 4 },
+                                                gpio::Pin{ .port = D, .number = 3 } };
+        constexpr std::array NATIVE_INDICES{ gpio::Pin{ .port = B, .number = 8 },
+                                             gpio::Pin{ .port = B, .number = 9 } };
+        constexpr std::array LOCAL_INDICES{ gpio::Pin{ .port = D, .number = 0 },
+                                            gpio::Pin{ .port = D, .number = 1 } };
+        constexpr device::display::PanelConfiguration DISPLAY_PINS{ .standby = { .port = I, .number = 0 },
+                                                                    .reset = { .port = I, .number = 2 },
+                                                                    .backlight = { .port = C, .number = 6 } };
+        constexpr device::display::TouchConfiguration TOUCH_PINS{ .reset = { .port = I, .number = 3 },
+                                                                  .interrupt = { .port = B, .number = 12 },
+                                                                  .address = 0x55 };
         constexpr gpio::Pin RED_LED_PIN{ .port = B, .number = 14U };
 
         [[nodiscard]] auto make_stepper_output(gpio::Pin pin, gpio::Level initial_level)
@@ -141,23 +157,13 @@ namespace hal::board
 
     auto create_stepper_diagnostic(MotorId id) -> std::shared_ptr<IDigitalInput>
     {
-        if (id == MotorId::Motor1) {
-            return gpio::create_input(
-              { .pin = { .port = simulation::client::connected() ? B : F,
-                         .number = static_cast<std::uint8_t>(simulation::client::connected() ? 1 : 2) },
-                .pull = gpio::Pull::Up,
-                .edge = gpio::Edge::Rising });
-        }
-        if (id != MotorId::Motor2 && id != MotorId::Motor3) {
+        if (id != MotorId::Motor1 && id != MotorId::Motor2 && id != MotorId::Motor3) {
             return {};
         }
-        return gpio::create_input(
-          { .pin = { .port = simulation::client::connected() ? C : D,
-                     .number = static_cast<std::uint8_t>(simulation::client::connected()
-                                                           ? (id == MotorId::Motor2 ? 3 : 0)
-                                                           : (id == MotorId::Motor2 ? 4 : 3)) },
-            .pull = gpio::Pull::Down,
-            .edge = gpio::Edge::Rising });
+        const auto& pins{ simulation::client::connected() ? NATIVE_DIAGNOSTICS : LOCAL_DIAGNOSTICS };
+        return gpio::create_input({ .pin = pins[std::to_underlying(id)],
+                                    .pull = id == MotorId::Motor1 ? gpio::Pull::Up : gpio::Pull::Down,
+                                    .edge = gpio::Edge::Rising });
     }
 
     auto create_stepper_index(MotorId id) -> std::shared_ptr<IDigitalInput>
@@ -165,13 +171,9 @@ namespace hal::board
         if (id != MotorId::Motor2 && id != MotorId::Motor3) {
             return {};
         }
+        const auto& pins{ simulation::client::connected() ? NATIVE_INDICES : LOCAL_INDICES };
         return gpio::create_input(
-          { .pin = { .port = simulation::client::connected() ? B : D,
-                     .number = static_cast<std::uint8_t>(simulation::client::connected()
-                                                           ? (id == MotorId::Motor2 ? 8 : 9)
-                                                           : (id == MotorId::Motor2 ? 0 : 1)) },
-            .pull = gpio::Pull::Down,
-            .edge = gpio::Edge::Both });
+          { .pin = pins[id == MotorId::Motor2 ? 0 : 1], .pull = gpio::Pull::Down, .edge = gpio::Edge::Both });
     }
 
     auto create_motor_feedback(MotorId id, const MotorFeedbackConfig& config)
@@ -371,14 +373,11 @@ namespace hal::board
     }
     auto create_display() -> std::shared_ptr<device::IDisplay>
     {
-        return device::display::create({ .standby = { gpio::Port::I, 0 },
-                                         .reset = { gpio::Port::I, 2 },
-                                         .backlight = { gpio::Port::C, 6 } });
+        return device::display::create(DISPLAY_PINS);
     }
     auto create_touch() -> std::shared_ptr<device::ITouch>
     {
-        return device::display::create_touch(
-          { .reset = { gpio::Port::I, 3 }, .interrupt = { gpio::Port::B, 12 }, .address = 0x55 });
+        return device::display::create_touch(TOUCH_PINS);
     }
     auto create_ethercat_reset() -> std::shared_ptr<IDigitalOutput> { return {}; }
     auto create_ethercat_interrupt() -> std::shared_ptr<IDigitalInput> { return {}; }

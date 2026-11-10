@@ -9,41 +9,50 @@ namespace hal
     class RemotePwm final : public IPwmOutput
     {
       public:
+        RemotePwm(const RemotePwm&) = delete;
+        auto operator=(const RemotePwm&) -> RemotePwm& = delete;
+        RemotePwm(RemotePwm&&) = delete;
+        auto operator=(RemotePwm&&) -> RemotePwm& = delete;
+
         RemotePwm(unsigned id,
                   pwm::Configuration configuration,
                   util::TimerLease lease,
                   std::shared_ptr<IDigitalOutput> pin)
           : m_id{ id }
-          , m_pin_id{ unsigned(std::to_underlying(configuration.pin.port)) * 16 + configuration.pin.number }
+          , m_pinId{ (unsigned(std::to_underlying(configuration.pin.port)) * PINS_PER_PORT) +
+                     configuration.pin.number }
           , m_lease{ std::move(lease) }
           , m_pin{ std::move(pin) }
         {
             simulation::client::Transaction transaction{};
-            simulation::client::registerTimer(
-              18 + id, this, [](void* p) { static_cast<RemotePwm*>(p)->dispatch(); });
+            simulation::client::register_timer(
+              CALLBACK_BASE + id, this, [](void* p) { static_cast<RemotePwm*>(p)->dispatch(); });
         }
         ~RemotePwm() override
         {
             simulation::client::Transaction transaction{};
             static_cast<void>(stop());
-            simulation::client::registerTimer(18 + m_id, nullptr, nullptr);
+            simulation::client::register_timer(CALLBACK_BASE + m_id, nullptr, nullptr);
         }
         util::Result<> configure(Timing requested) noexcept override
         {
             simulation::client::Transaction transaction{};
-            if (isRunning())
+            if (isRunning()) {
                 return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
-            auto value{ util::pwm_timing(requested, 240000000) };
-            if (!value)
+            }
+            auto value{ util::pwm_timing(requested, TIMER_HZ) };
+            if (!value) {
                 return std::unexpected(value.error());
+            }
             auto response{ simulation::client::command(
               simulation::Operation::PwmConfigure,
               { m_id,
-                m_pin_id,
+                m_pinId,
                 static_cast<std::uint64_t>(value->actual.period.count()),
                 static_cast<std::uint64_t>(value->actual.high_time.count()) }) };
-            if (response.status)
+            if (response.status) {
                 return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+            }
             m_timing = value->actual;
             return {};
         }
@@ -51,8 +60,9 @@ namespace hal
         util::Result<> start() noexcept override { return run(0, false); }
         util::Result<> startPulses(std::optional<PulseCount> count) noexcept override
         {
-            if (count == 0)
+            if (count == 0) {
                 return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+            }
             return run(count.value_or(0), true);
         }
         PulseCount pulseCount() const noexcept override
@@ -73,19 +83,22 @@ namespace hal
         util::Result<> setPulseCallback(PulseCallback callback) noexcept override
         {
             simulation::client::Transaction transaction{};
-            if (isRunning())
+            if (isRunning()) {
                 return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
+            }
             m_callback = std::move(callback);
             return {};
         }
 
       private:
+        static constexpr unsigned PINS_PER_PORT{ 16 }, CALLBACK_BASE{ 18 }, TIMER_HZ{ 240'000'000 };
         util::Result<> run(PulseCount count, bool counted)
         {
             simulation::client::Transaction transaction{};
             if (isRunning()) {
-                if (!m_counted && !counted)
+                if (!m_counted && !counted) {
                     return {};
+                }
                 return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
             }
             m_observed = 0;
@@ -101,11 +114,12 @@ namespace hal
             const auto count{ pulseCount() };
             if (count != m_observed) {
                 m_observed = count;
-                if (m_callback)
+                if (m_callback) {
                     m_callback(count);
+                }
             }
         }
-        unsigned m_id, m_pin_id;
+        unsigned m_id, m_pinId;
         util::TimerLease m_lease;
         std::shared_ptr<IDigitalOutput> m_pin;
         Timing m_timing{};

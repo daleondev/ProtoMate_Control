@@ -140,20 +140,20 @@ hal::console::Input hal::console::try_read() noexcept
         return {};
     }
     if (ready < 0 || (input.revents & (POLLERR | POLLNVAL)) != 0) {
-        return { InputState::Error };
+        return { .state = InputState::Error };
     }
     char byte{};
     const auto count{ ::read(STDIN_FILENO, &byte, 1) };
     if (count == 1) {
-        return { InputState::Character, byte };
+        return { .state = InputState::Character, .character = byte };
     }
     if (count == 0) {
-        return { InputState::Closed };
+        return { .state = InputState::Closed };
     }
     if (errno == EINTR || errno == EAGAIN) {
         return {};
     }
-    return { InputState::Error };
+    return { .state = InputState::Error };
 }
 
 namespace linux_console

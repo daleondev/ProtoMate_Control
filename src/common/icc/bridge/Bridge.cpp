@@ -109,8 +109,7 @@ namespace icc
             m_services.poll();
             m_actions.poll();
         }
-        if (m_shutdownRequested.load() && m_actions.drained() && !m_actionSending[0] &&
-            !m_actionSending[1]) {
+        if (m_shutdownRequested.load() && m_actions.drained() && !m_actionSending[0] && !m_actionSending[1]) {
             if (m_connection.goodbyeSent()) {
                 m_stopSource.request_stop();
                 return false;
@@ -119,7 +118,7 @@ namespace icc
             m_outgoingWakeup->signal(Lane::Urgent).notify();
         }
         if (auto frame{ takeReadyFrame(lane) }) {
-            outgoing = std::move(*frame);
+            outgoing = *frame;
             return true;
         }
         return false;
@@ -303,7 +302,7 @@ namespace icc
         // One frame per sender, allocated with the long-lived loop at startup.
         // A Task<optional<OutgoingFrame>> helper used to allocate another 4 KiB
         // on every message, including heartbeats, exhausting M4's motion budget.
-        OutgoingFrame frame;
+        OutgoingFrame frame{};
         while (!stop.stop_requested()) {
             if (!nextOutgoingFrame(lane, frame)) {
                 if (stop.stop_requested()) {
@@ -332,9 +331,11 @@ namespace icc
             const auto bytes{ std::span<const std::byte>(frame.bytes).first(frame.size) };
 #if defined(PROTOMATE_PROFILING)
             std::uint64_t trace_id{};
-            if (bytes.size() >= util::HEADER_BYTES)
-                for (unsigned i = 0; i < 8; ++i)
+            if (bytes.size() >= util::HEADER_BYTES) {
+                for (unsigned i{ 0 }; i < 8; ++i) {
                     trace_id |= std::uint64_t(std::to_integer<unsigned>(bytes[4 + i])) << (i * 8);
+                }
+            }
             profile_event(PROFILE_CAT_SYSTEM,
                           PROFILE_ICC_FRAME,
                           std::to_integer<unsigned>(bytes[1]) | (unsigned(lane) << 8),

@@ -13,8 +13,8 @@ namespace hal
     {
         if (auto* memory{ simulation::client::memory() }) {
             const auto ns{ simulation::acquire(memory->epoch_ns) + simulation::client::now() };
-            return Timestamp{ .seconds_since_epoch = static_cast<std::int64_t>(ns / 1'000'000'000),
-                              .nanoseconds = static_cast<std::uint32_t>(ns % 1'000'000'000) };
+            return Timestamp{ .seconds_since_epoch = static_cast<std::int64_t>(ns / NANOSECONDS_PER_SECOND),
+                              .nanoseconds = static_cast<std::uint32_t>(ns % NANOSECONDS_PER_SECOND) };
         }
         timespec now{};
         if (clock_gettime(CLOCK_REALTIME, &now) != 0) {

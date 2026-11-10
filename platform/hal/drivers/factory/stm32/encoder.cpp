@@ -8,6 +8,7 @@
 namespace
 {
     inline constexpr auto ENCODER_B_PIN_NUMBER{ 5U };
+    inline constexpr auto ENCODER_B_ALTERNATE_PIN_NUMBER{ 7U };
 }
 
 namespace hal::encoder
@@ -18,12 +19,12 @@ namespace hal::encoder
         if (configuration.timer != timer::Peripheral::Tim3 ||
             configuration.a != gpio::Pin{ .port = B, .number = 4U } ||
             (configuration.b != gpio::Pin{ .port = B, .number = ENCODER_B_PIN_NUMBER } &&
-             configuration.b != gpio::Pin{ .port = A, .number = 7U })) {
+             configuration.b != gpio::Pin{ .port = A, .number = ENCODER_B_ALTERNATE_PIN_NUMBER })) {
             return {};
         }
         util::TimerLease lease{ configuration.timer };
-        util::TimerLease samplerLease{ timer::Peripheral::Tim6 };
-        if (!lease || !samplerLease) {
+        util::TimerLease sampler_lease{ timer::Peripheral::Tim6 };
+        if (!lease || !sampler_lease) {
             return {};
         }
         auto a{ gpio::create_input({ .pin = configuration.a, .alternate_function = 2U }) };
@@ -35,7 +36,7 @@ namespace hal::encoder
             return {};
         }
         auto instance{ std::make_shared<QuadratureEncoder>(
-          std::move(lease), std::move(samplerLease), std::move(a), std::move(b)) };
+          std::move(lease), std::move(sampler_lease), std::move(a), std::move(b)) };
         return instance;
     }
 }

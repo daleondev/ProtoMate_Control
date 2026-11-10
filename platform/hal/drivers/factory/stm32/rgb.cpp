@@ -11,8 +11,8 @@ namespace hal::rgb
     auto create(Configuration configuration) -> std::shared_ptr<IRgbOutput>
     {
 #if defined(CORE_CM7)
-        if (configuration.peripheral != Peripheral::Ltdc ||
-            configuration.backlight != gpio::Pin{ gpio::Port::C, 6 }) {
+        constexpr gpio::Pin backlight{ .port = gpio::Port::C, .number = 6 };
+        if (configuration.peripheral != Peripheral::Ltdc || configuration.backlight != backlight) {
             return {};
         }
         auto pin{ gpio::create_output({ .pin = configuration.backlight, .alternate_function = 3 }) };

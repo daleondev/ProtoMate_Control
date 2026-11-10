@@ -22,7 +22,7 @@ namespace app
     inline constexpr std::chrono::milliseconds STATE_MAX_AGE{ 500 };
 
     // An orderly transport shutdown must not hide a latched worker/system fault.
-    constexpr int exitStatus(std::initializer_list<State> states, bool connection_failed = false) noexcept
+    constexpr int exit_status(std::initializer_list<State> states, bool connection_failed = false) noexcept
     {
         for (const auto state : states) {
             if (state == State::Fault) {

@@ -1,3 +1,5 @@
+// CMSIS/HAL register macros use fixed MMIO addresses and C pointer casts.
+// NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 #include "hal/drivers/factory/rng.hpp"
 #include "hal/drivers/impl/stm32/Rng.hpp"
 
@@ -16,3 +18,5 @@ namespace hal::rng
         return instance;
     }
 }
+
+// NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)

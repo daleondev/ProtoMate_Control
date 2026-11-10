@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
@@ -11,6 +12,20 @@ namespace motion::trajectory
 {
     namespace
     {
+        constexpr double RELATIVE_CONTINUITY_EPS{ 2e-12 };
+        constexpr std::uint32_t SEGMENT_DURATION_LIMIT_TICKS{ 600'000'000 };
+        constexpr double POSITION_LIMIT_EPS{ 1e-4 }, DYNAMIC_RELATIVE_EPS{ 1e-9 },
+          DYNAMIC_ABSOLUTE_EPS{ 1e-10 };
+        constexpr double JOIN_POSITION_EPS{ 1e-5 }, JOIN_VELOCITY_EPS{ 1e-4 }, JOIN_ACCELERATION_EPS{ 1e-3 };
+        constexpr double REST_VELOCITY_EPS{ 1e-5 }, REST_ACCELERATION_EPS{ 1e-4 };
+        constexpr double ROUND_HALF_UP{ 0.5 };
+        constexpr unsigned ALL_AXES{ 7 };
+        constexpr unsigned BYTE_BITS{ 8 };
+        constexpr unsigned BYTE_MASK{ 255 };
+        constexpr std::uint64_t FNV_OFFSET_BASIS{ 14695981039346656037ULL };
+        constexpr std::uint64_t FNV_PRIME{ 1099511628211ULL };
+        constexpr std::uint32_t CRC32_INITIAL{ 0xffffffffU };
+        constexpr std::uint32_t CRC32_POLYNOMIAL{ 0xedb88320U };
         struct Writer
         {
             Packet packet;
@@ -23,7 +38,7 @@ namespace motion::trajectory
                     throw std::length_error("trajectory frame");
                 }
                 for (std::size_t i{ 0 }; i < sizeof(T); ++i) {
-                    packet.bytes[packet.size++] = std::byte((bits >> (8 * i)) & 255U);
+                    packet.bytes[packet.size++] = std::byte((bits >> (BYTE_BITS * i)) & BYTE_MASK);
                 }
             }
             void number(double value) { integer(std::bit_cast<std::uint64_t>(value)); }
@@ -37,35 +52,36 @@ namespace motion::trajectory
         // or throwing overflow path. Fingerprints do not depend on packet capacity.
         struct HashWriter
         {
-            std::uint64_t hash{ 14695981039346656037ULL };
+            std::uint64_t hash{ FNV_OFFSET_BASIS };
             template<class T>
             void integer(T value) noexcept
             {
                 using U = std::make_unsigned_t<T>;
                 const U bits{ std::bit_cast<U>(value) };
-                for (std::size_t i = 0; i < sizeof(T); ++i) {
-                    hash ^= (bits >> (8U * i)) & 255U;
-                    hash *= 1099511628211ULL;
+                for (std::size_t i{ 0 }; i < sizeof(T); ++i) {
+                    hash ^= (bits >> (BYTE_BITS * i)) & BYTE_MASK;
+                    hash *= FNV_PRIME;
                 }
             }
             void number(double value) noexcept { integer(std::bit_cast<std::uint64_t>(value)); }
         };
         struct Reader
         {
-            const Packet& packet;
+            std::reference_wrapper<const Packet> packet;
             std::size_t position{};
             bool valid{ true };
             template<class T>
             T integer()
             {
                 using U = std::make_unsigned_t<T>;
-                if (position + sizeof(T) > packet.size) {
+                if (position + sizeof(T) > packet.get().size) {
                     valid = false;
                     return {};
                 }
                 U value{};
                 for (std::size_t i{ 0 }; i < sizeof(T); ++i) {
-                    value |= static_cast<U>(std::to_integer<unsigned>(packet.bytes[position++])) << (8 * i);
+                    value |= static_cast<U>(std::to_integer<unsigned>(packet.get().bytes[position++]))
+                             << (BYTE_BITS * i);
                 }
                 return std::bit_cast<T>(value);
             }
@@ -80,8 +96,8 @@ namespace motion::trajectory
             {
                 const auto size{ position };
                 const auto crc{ integer<std::uint32_t>() };
-                return valid && position == packet.size &&
-                       crc == checksum(std::span(packet.bytes).first(size));
+                return valid && position == packet.get().size &&
+                       crc == checksum(std::span(packet.get().bytes).first(size));
             }
         };
         void write(Writer& w, const KinematicState& s)
@@ -90,7 +106,7 @@ namespace motion::trajectory
             w.number(s.velocity);
             w.number(s.acceleration);
         }
-        KinematicState readState(Reader& r)
+        KinematicState read_state(Reader& r)
         {
             return { .position = r.number(), .velocity = r.number(), .acceleration = r.number() };
         }
@@ -101,7 +117,7 @@ namespace motion::trajectory
                 w.number(v);
             }
         }
-        Limits readLimits(Reader& r)
+        Limits read_limits(Reader& r)
         {
             return { .minimum = r.number(),
                      .maximum = r.number(),
@@ -122,7 +138,7 @@ namespace motion::trajectory
             w.number(s.path_begin);
             w.number(s.path_end);
         }
-        Segment readSegment(Reader& r)
+        Segment read_segment(Reader& r)
         {
             Segment s{};
             s.ticks = r.integer<std::uint64_t>();
@@ -159,7 +175,7 @@ namespace motion::trajectory
             w.integer(std::uint8_t(c.coordinated_execution));
             w.integer(c.reference_forward_mask);
         }
-        Capabilities readCapabilities(Reader& r)
+        Capabilities read_capabilities(Reader& r)
         {
             Capabilities c{};
             c.version = r.integer<std::uint16_t>();
@@ -171,7 +187,7 @@ namespace motion::trajectory
                 n = r.number();
             }
             for (auto& l : c.limits) {
-                l = readLimits(r);
+                l = read_limits(r);
             }
             c.hardware_fingerprint = r.integer<std::uint64_t>();
             c.minimum_period_ticks = r.integer<std::uint32_t>();
@@ -186,7 +202,8 @@ namespace motion::trajectory
         bool near(double a, double b, double absolute) noexcept
         {
             return std::isfinite(a) && std::isfinite(b) &&
-                   std::abs(a - b) <= absolute + (2e-12 * std::max(std::abs(a), std::abs(b)));
+                   std::abs(a - b) <=
+                     absolute + (RELATIVE_CONTINUITY_EPS * std::max(std::abs(a), std::abs(b)));
         }
     }
 
@@ -242,7 +259,7 @@ namespace motion::trajectory
     MotorStates Segment::at(double u) const noexcept
     {
         MotorStates result{};
-        const double duration{ ticks * TICK_SECONDS };
+        const double duration{ static_cast<double>(ticks) * TICK_SECONDS };
         for (std::size_t i{ 0 }; i < result.size(); ++i) {
             result[i] = { .position = motors[i].at(u),
                           .velocity = motors[i].at(u, 1) / duration,
@@ -253,11 +270,11 @@ namespace motion::trajectory
 
     Error validate(const Segment& s, const std::array<Limits, 3>& limits) noexcept
     {
-        if (!s.ticks || s.ticks > 600'000'000 || !std::isfinite(s.path_begin) || !std::isfinite(s.path_end) ||
-            s.path_begin < 0 || s.path_end < s.path_begin || s.path_end > 1) {
+        if (!s.ticks || s.ticks > SEGMENT_DURATION_LIMIT_TICKS || !std::isfinite(s.path_begin) ||
+            !std::isfinite(s.path_end) || s.path_begin < 0 || s.path_end < s.path_begin || s.path_end > 1) {
             return Error::InvalidInput;
         }
-        const double t{ s.ticks * TICK_SECONDS };
+        const double t{ static_cast<double>(s.ticks) * TICK_SECONDS };
         for (std::size_t i{ 0 }; i < 3; ++i) {
             const auto& p{ s.motors[i] };
             const auto& l{ limits[i] };
@@ -274,19 +291,22 @@ namespace motion::trajectory
                 return Error::Configuration;
             }
             const auto position{ p.range() };
-            if (!position.finite() || position.minimum < l.minimum - 1e-4 ||
-                position.maximum > l.maximum + 1e-4) {
+            if (!position.finite() || position.minimum < l.minimum - POSITION_LIMIT_EPS ||
+                position.maximum > l.maximum + POSITION_LIMIT_EPS) {
                 return Error::PositionLimit;
             }
             // Bernstein bounds are conservative even between sample points.
-            if (p.range(0, 1, 1).magnitude() > (l.velocity * t * (1 + 1e-9)) + 1e-10) {
+            if (p.range(0, 1, 1).magnitude() >
+                (l.velocity * t * (1 + DYNAMIC_RELATIVE_EPS)) + DYNAMIC_ABSOLUTE_EPS) {
                 return Error::VelocityLimit;
             }
             if (p.range(0, 1, 2).magnitude() >
-                (std::min(l.acceleration, l.deceleration) * t * t * (1 + 1e-9)) + 1e-10) {
+                (std::min(l.acceleration, l.deceleration) * t * t * (1 + DYNAMIC_RELATIVE_EPS)) +
+                  DYNAMIC_ABSOLUTE_EPS) {
                 return Error::AccelerationLimit;
             }
-            if (p.range(0, 1, 3).magnitude() > (l.jerk * t * t * t * (1 + 1e-9)) + 1e-10) {
+            if (p.range(0, 1, 3).magnitude() >
+                (l.jerk * t * t * t * (1 + DYNAMIC_RELATIVE_EPS)) + DYNAMIC_ABSOLUTE_EPS) {
                 return Error::JerkLimit;
             }
         }
@@ -296,17 +316,19 @@ namespace motion::trajectory
     bool continuous(const MotorStates& a, const MotorStates& b) noexcept
     {
         for (std::size_t i{ 0 }; i < 3; ++i) {
-            if (!near(a[i].position, b[i].position, 1e-5) || !near(a[i].velocity, b[i].velocity, 1e-4) ||
-                !near(a[i].acceleration, b[i].acceleration, 1e-3)) {
+            if (!near(a[i].position, b[i].position, JOIN_POSITION_EPS) ||
+                !near(a[i].velocity, b[i].velocity, JOIN_VELOCITY_EPS) ||
+                !near(a[i].acceleration, b[i].acceleration, JOIN_ACCELERATION_EPS)) {
                 return false;
             }
         }
         return true;
     }
-    bool atRest(const MotorStates& s) noexcept
+    bool at_rest(const MotorStates& s) noexcept
     {
         return std::ranges::all_of(s, [](const auto& a) {
-            return std::isfinite(a.position) && near(a.velocity, 0, 1e-5) && near(a.acceleration, 0, 1e-4);
+            return std::isfinite(a.position) && near(a.velocity, 0, REST_VELOCITY_EPS) &&
+                   near(a.acceleration, 0, REST_ACCELERATION_EPS);
         });
     }
     std::expected<std::int64_t, Error> quantize(double position) noexcept
@@ -314,16 +336,16 @@ namespace motion::trajectory
         if (!std::isfinite(position) || std::abs(position) > MAX_POSITION) {
             return std::unexpected(Error::PositionLimit);
         }
-        return static_cast<std::int64_t>(std::floor(position + 0.5));
+        return static_cast<std::int64_t>(std::floor(position + ROUND_HALF_UP));
     }
 
     std::uint32_t checksum(std::span<const std::byte> data) noexcept
     {
-        std::uint32_t crc{ 0xffffffffU };
+        std::uint32_t crc{ CRC32_INITIAL };
         for (const auto byte : data) {
             crc ^= std::to_integer<std::uint8_t>(byte);
-            for (unsigned i{ 0 }; i < 8; ++i) {
-                crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1U)));
+            for (unsigned i{ 0 }; i < BYTE_BITS; ++i) {
+                crc = (crc >> 1) ^ (CRC32_POLYNOMIAL & (0U - (crc & 1U)));
             }
         }
         return ~crc;
@@ -338,6 +360,95 @@ namespace motion::trajectory
         HashWriter writer{};
         write(writer, canonical);
         return writer.hash;
+    }
+    namespace
+    {
+        void write_paths(Writer& w, const FiniteProgram& p)
+        {
+            unsigned size{};
+            unsigned mask{};
+            std::array<double, ProgressPath::CAPACITY> ends{};
+            for (unsigned axis{ 0 }; axis < 3; ++axis) {
+                const auto& path{ p.path[axis] };
+                if (path.size > ProgressPath::CAPACITY) {
+                    throw std::length_error("path pieces");
+                }
+                if (!path.size) {
+                    continue;
+                }
+                if (size && (path.size != size || path.ends != ends)) {
+                    throw std::invalid_argument("path knots must be shared");
+                }
+                size = path.size;
+                ends = path.ends;
+                mask |= 1U << axis;
+            }
+            w.integer(std::uint8_t(size));
+            w.integer(std::uint8_t(mask));
+            for (unsigned i{ 0 }; i < size; ++i) {
+                w.number(ends[i]);
+            }
+            for (const auto& path : p.path) {
+                if (path.size) {
+                    for (unsigned i{ 0 }; i < size; ++i) {
+                        for (auto c : path.curves[i].coefficients) {
+                            w.number(c);
+                        }
+                    }
+                }
+            }
+        }
+        void write_home(Writer& w, const FiniteProgram& p)
+        {
+            for (const auto& h : p.home) {
+                w.number(h.seek_rpm);
+                w.number(h.latch_rpm);
+                w.number(h.timeout);
+            }
+            for (auto i : p.home_order) {
+                w.integer(i);
+            }
+            w.integer(std::uint8_t(p.home_to_neutral));
+            for (auto n : p.home_neutral) {
+                w.integer(n);
+            }
+        }
+        void write_program(Writer& w, const FiniteProgram& p)
+        {
+            if (p.progress.size > Profile::MAX_PHASES) {
+                throw std::length_error("profile phases");
+            }
+            w.integer(std::uint8_t(p.progress.size));
+            w.number(p.progress.distance);
+            w.number(p.progress.end_velocity);
+            for (unsigned i{ 0 }; i < p.progress.size; ++i) {
+                const auto& phase{ p.progress.phases[i] };
+                for (auto x :
+                     { phase.duration, phase.jerk, phase.position, phase.velocity, phase.acceleration }) {
+                    w.number(x);
+                }
+            }
+            for (auto x : { p.progress_limits.velocity,
+                            p.progress_limits.acceleration,
+                            p.progress_limits.deceleration,
+                            p.progress_limits.jerk }) {
+                w.number(x);
+            }
+            for (auto n : p.displacement) {
+                w.integer(n);
+            }
+            for (const auto& l : p.limits) {
+                write(w, l);
+            }
+            w.number(p.timeout);
+            w.integer(std::uint8_t(p.kind));
+            if (p.kind == ProgramKind::CartesianJog) {
+                write_paths(w, p);
+            }
+            if (p.kind == ProgramKind::Home) {
+                write_home(w, p);
+            }
+        }
     }
     Packet encode(const Request& r)
     {
@@ -368,76 +479,12 @@ namespace motion::trajectory
             w.integer(n);
         }
         if (r.operation == Operation::Renew) {
-            for (auto n : r.renew_jobs)
+            for (auto n : r.renew_jobs) {
                 w.integer(n);
+            }
         }
         if (r.operation == Operation::Prepare) {
-            const auto& p = r.program;
-            if (p.progress.size > Profile::MAX_PHASES) {
-                throw std::length_error("profile phases");
-            }
-            w.integer(std::uint8_t(p.progress.size));
-            w.number(p.progress.distance);
-            w.number(p.progress.end_velocity);
-            for (unsigned i = 0; i < p.progress.size; ++i) {
-                const auto& phase = p.progress.phases[i];
-                for (auto x :
-                     { phase.duration, phase.jerk, phase.position, phase.velocity, phase.acceleration }) {
-                    w.number(x);
-                }
-            }
-            for (auto x : { p.progress_limits.velocity,
-                            p.progress_limits.acceleration,
-                            p.progress_limits.deceleration,
-                            p.progress_limits.jerk }) {
-                w.number(x);
-            }
-            for (auto n : p.displacement) {
-                w.integer(n);
-            }
-            for (const auto& l : p.limits) {
-                write(w, l);
-            }
-            w.number(p.timeout);
-            w.integer(std::uint8_t(p.kind));
-            if (p.kind == ProgramKind::CartesianJog) {
-                unsigned size{}, mask{};
-                std::array<double, ProgressPath::CAPACITY> ends{};
-                for (unsigned axis = 0; axis < 3; ++axis) {
-                    const auto& path = p.path[axis];
-                    if (path.size > ProgressPath::CAPACITY)
-                        throw std::length_error("path pieces");
-                    if (!path.size)
-                        continue;
-                    if (size && (path.size != size || path.ends != ends))
-                        throw std::invalid_argument("path knots must be shared");
-                    size = path.size;
-                    ends = path.ends;
-                    mask |= 1U << axis;
-                }
-                w.integer(std::uint8_t(size));
-                w.integer(std::uint8_t(mask));
-                for (unsigned i = 0; i < size; ++i)
-                    w.number(ends[i]);
-                for (const auto& path : p.path)
-                    if (path.size)
-                        for (unsigned i = 0; i < size; ++i)
-                            for (auto c : path.curves[i].coefficients)
-                                w.number(c);
-            }
-            if (p.kind == ProgramKind::Home) {
-                for (const auto& h : p.home) {
-                    w.number(h.seek_rpm);
-                    w.number(h.latch_rpm);
-                    w.number(h.timeout);
-                }
-                for (auto i : p.home_order) {
-                    w.integer(i);
-                }
-                w.integer(std::uint8_t(p.home_to_neutral));
-                for (auto n : p.home_neutral)
-                    w.integer(n);
-            }
+            write_program(w, r.program);
         }
         return w.finish();
     }
@@ -481,7 +528,96 @@ namespace motion::trajectory
         }
         return w.finish();
     }
-    std::expected<Request, Error> decodeRequest(const Packet& p) noexcept
+    namespace
+    {
+        Error read_paths(Reader& r, FiniteProgram& p)
+        {
+            const auto size{ r.integer<std::uint8_t>() };
+            const auto mask{ r.integer<std::uint8_t>() };
+            if (size > ProgressPath::CAPACITY || mask > ALL_AXES || (size == 0) != (mask == 0)) {
+                return Error::Protocol;
+            }
+            std::array<double, ProgressPath::CAPACITY> ends{};
+            for (unsigned i{ 0 }; i < size; ++i) {
+                ends[i] = r.number();
+            }
+            for (unsigned axis{ 0 }; axis < 3; ++axis) {
+                auto& path{ p.path[axis] };
+                if (!(mask & (1U << axis))) {
+                    continue;
+                }
+                path.size = size;
+                path.ends = ends;
+                for (unsigned i{ 0 }; i < size; ++i) {
+                    for (auto& c : path.curves[i].coefficients) {
+                        c = r.number();
+                    }
+                }
+            }
+
+            return Error::None;
+        }
+        Error read_home(Reader& r, FiniteProgram& p)
+        {
+            for (auto& h : p.home) {
+                h = { .seek_rpm = r.number(), .latch_rpm = r.number(), .timeout = r.number() };
+            }
+            for (auto& i : p.home_order) {
+                i = r.integer<std::uint8_t>();
+            }
+            const auto neutral{ r.integer<std::uint8_t>() };
+            if (neutral > 1) {
+                return Error::InvalidInput;
+            }
+            p.home_to_neutral = neutral != 0;
+            for (auto& n : p.home_neutral) {
+                n = r.integer<std::int64_t>();
+            }
+
+            return Error::None;
+        }
+        Error read_program(Reader& r, FiniteProgram& p, unsigned count)
+        {
+            p.progress.size = r.integer<std::uint8_t>();
+            if (p.progress.size > Profile::MAX_PHASES || count) {
+                return Error::Protocol;
+            }
+            p.progress.distance = r.number();
+            p.progress.end_velocity = r.number();
+            for (unsigned i{ 0 }; i < p.progress.size; ++i) {
+                auto& phase{ p.progress.phases[i] };
+                phase = { .duration = r.number(),
+                          .jerk = r.number(),
+                          .position = r.number(),
+                          .velocity = r.number(),
+                          .acceleration = r.number() };
+            }
+            p.progress_limits = { .velocity = r.number(),
+                                  .acceleration = r.number(),
+                                  .deceleration = r.number(),
+                                  .jerk = r.number() };
+            for (auto& n : p.displacement) {
+                n = r.integer<std::int64_t>();
+            }
+            for (auto& l : p.limits) {
+                l = read_limits(r);
+            }
+            p.timeout = r.number();
+            p.kind = ProgramKind(r.integer<std::uint8_t>());
+            if (p.kind > ProgramKind::CartesianJog) {
+                return Error::Protocol;
+            }
+            if (p.kind == ProgramKind::CartesianJog) {
+                return read_paths(r, p);
+            }
+            if (p.kind == ProgramKind::Home) {
+                return read_home(r, p);
+            }
+
+            return Error::None;
+        }
+    }
+    std::expected<Request, Error> decode_request(const Packet& p) noexcept
     {
         if (p.size > p.bytes.size() || p.size < 4) {
             return std::unexpected(Error::Protocol);
@@ -511,7 +647,7 @@ namespace motion::trajectory
             return std::unexpected(Error::Protocol);
         }
         for (std::size_t i{ 0 }; i < v.count; ++i) {
-            v.segments[i] = readSegment(r);
+            v.segments[i] = read_segment(r);
         }
         v.family = Family(r.integer<std::uint8_t>());
         v.axes = r.integer<std::uint8_t>();
@@ -519,75 +655,17 @@ namespace motion::trajectory
         for (auto& n : v.axis_revisions) {
             n = r.integer<std::uint64_t>();
         }
-        if (v.family > Family::Robot || v.axes > 7) {
+        if (v.family > Family::Robot || v.axes > ALL_AXES) {
             return std::unexpected(Error::Protocol);
         }
         if (v.operation == Operation::Renew) {
-            for (auto& n : v.renew_jobs)
+            for (auto& n : v.renew_jobs) {
                 n = r.integer<std::uint64_t>();
+            }
         }
         if (v.operation == Operation::Prepare) {
-            auto& p = v.program;
-            p.progress.size = r.integer<std::uint8_t>();
-            if (p.progress.size > Profile::MAX_PHASES || v.count) {
-                return std::unexpected(Error::Protocol);
-            }
-            p.progress.distance = r.number();
-            p.progress.end_velocity = r.number();
-            for (unsigned i = 0; i < p.progress.size; ++i) {
-                auto& phase = p.progress.phases[i];
-                phase = { .duration = r.number(),
-                          .jerk = r.number(),
-                          .position = r.number(),
-                          .velocity = r.number(),
-                          .acceleration = r.number() };
-            }
-            p.progress_limits = { .velocity = r.number(),
-                                  .acceleration = r.number(),
-                                  .deceleration = r.number(),
-                                  .jerk = r.number() };
-            for (auto& n : p.displacement) {
-                n = r.integer<std::int64_t>();
-            }
-            for (auto& l : p.limits) {
-                l = readLimits(r);
-            }
-            p.timeout = r.number();
-            p.kind = ProgramKind(r.integer<std::uint8_t>());
-            if (p.kind > ProgramKind::CartesianJog) {
-                return std::unexpected(Error::Protocol);
-            }
-            if (p.kind == ProgramKind::CartesianJog) {
-                const auto size = r.integer<std::uint8_t>(), mask = r.integer<std::uint8_t>();
-                if (size > ProgressPath::CAPACITY || mask > 7 || (size == 0) != (mask == 0))
-                    return std::unexpected(Error::Protocol);
-                std::array<double, ProgressPath::CAPACITY> ends{};
-                for (unsigned i = 0; i < size; ++i)
-                    ends[i] = r.number();
-                for (unsigned axis = 0; axis < 3; ++axis) {
-                    auto& path = p.path[axis];
-                    if (!(mask & (1U << axis)))
-                        continue;
-                    path.size = size;
-                    path.ends = ends;
-                    for (unsigned i = 0; i < size; ++i)
-                        for (auto& c : path.curves[i].coefficients)
-                            c = r.number();
-                }
-            }
-            if (p.kind == ProgramKind::Home) {
-                for (auto& h : p.home) {
-                    h = { .seek_rpm = r.number(), .latch_rpm = r.number(), .timeout = r.number() };
-                }
-                for (auto& i : p.home_order) {
-                    i = r.integer<std::uint8_t>();
-                }
-                const auto neutral = r.integer<std::uint8_t>();
-                if (neutral > 1)
-                    return std::unexpected(Error::InvalidInput);
-                p.home_to_neutral = neutral != 0;
-                for (auto& n : p.home_neutral)
-                    n = r.integer<std::int64_t>();
+            if (const auto error{ read_program(r, v.program, v.count) }; error != Error::None) {
+                return std::unexpected(error);
             }
         }
         if (!r.finish()) {
@@ -595,17 +673,17 @@ namespace motion::trajectory
         }
         return v;
     }
-    std::expected<Reply, Error> decodeReply(const Packet& p) noexcept
+    std::expected<Reply, Error> decode_reply(const Packet& p) noexcept
     {
         if (p.size > p.bytes.size() || p.size < 4) {
             return std::unexpected(Error::Protocol);
         }
         Reader r{ .packet = p };
-        const auto kind = r.integer<std::uint8_t>();
+        const auto kind{ r.integer<std::uint8_t>() };
         if (kind == 3) {
-            Reply v;
+            Reply v{};
             v.acknowledgement = true;
-            const auto version = r.integer<std::uint16_t>();
+            const auto version{ r.integer<std::uint16_t>() };
             v.error = Error(r.integer<std::uint8_t>());
             v.boot = r.integer<std::uint64_t>();
             v.generation = r.integer<std::uint64_t>();
@@ -623,7 +701,7 @@ namespace motion::trajectory
         Reply v{};
         v.error = Error(r.integer<std::uint8_t>());
         v.state = State(r.integer<std::uint8_t>());
-        v.capabilities = readCapabilities(r);
+        v.capabilities = read_capabilities(r);
         v.boot = r.integer<std::uint64_t>();
         v.session = r.integer<std::uint64_t>();
         v.generation = r.integer<std::uint64_t>();
@@ -641,7 +719,7 @@ namespace motion::trajectory
             n = r.integer<std::int64_t>();
         }
         for (auto& s : v.boundary) {
-            s = readState(r);
+            s = read_state(r);
         }
         v.path = r.number();
         v.family = Family(r.integer<std::uint8_t>());
@@ -654,8 +732,8 @@ namespace motion::trajectory
         if (v.family > Family::Robot) {
             return std::unexpected(Error::Protocol);
         }
-        if (v.error > Error::ReferenceActive || v.state > State::Unknown || v.referenced > 7 ||
-            v.capabilities.version != VERSION || v.capabilities.reference_forward_mask > 7) {
+        if (v.error > Error::ReferenceActive || v.state > State::Unknown || v.referenced > ALL_AXES ||
+            v.capabilities.version != VERSION || v.capabilities.reference_forward_mask > ALL_AXES) {
             return std::unexpected(Error::Protocol);
         }
         if (!r.finish()) {

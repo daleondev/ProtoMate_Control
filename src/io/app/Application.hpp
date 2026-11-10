@@ -23,8 +23,9 @@ namespace io
       public:
         // Construction initializes logging; application workers start in start().
         // The endpoint must outlive the application.
-        using ControllerFactory = std::function<std::unique_ptr<motion::Controller>(
-          std::shared_ptr<pnm::log::ISink>, std::pmr::memory_resource*)>;
+        using ControllerFactory =
+          std::function<std::unique_ptr<motion::Controller>(std::shared_ptr<pnm::log::ISink>,
+                                                            std::pmr::memory_resource*)>;
         explicit Application(icc::ITransport& transport, ControllerFactory controller_factory = {});
         ~Application();
         Application(const Application&) = delete;
@@ -49,18 +50,21 @@ namespace io
         friend class runtime::ThreadGroup;
         // Measured ARM housekeeping peaks are below 3 KiB. Hosted Debug uses
         // wider C++ frames and retains its 16 KiB allowance.
-        static constexpr std::size_t HOUSEKEEPING_STACK_SIZE =
-          sizeof(void*) == 4 ? 4UZ * 1024UZ : 16UZ * 1024UZ;
+        static constexpr std::size_t HOUSEKEEPING_STACK_SIZE{ sizeof(void*) == 4 ? 4UZ * 1024UZ
+                                                                                 : 16UZ * 1024UZ };
         // ARM ICC high-water mark: 12,064 bytes; 20 KiB retains over 40%
         // headroom while budgeting three independent 10 KiB motor workers.
-        static constexpr runtime::thread::Definition ICC_THREAD{
-            .priority = 4, .stack_size = sizeof(void*) == 4 ? 20UZ * 1024UZ : 32UZ * 1024UZ };
+        static constexpr runtime::thread::Definition ICC_THREAD{ .priority = 4,
+                                                                 .stack_size = sizeof(void*) == 4
+                                                                                 ? 20UZ * 1024UZ
+                                                                                 : 32UZ * 1024UZ };
         // Bounded trajectory decode/response adds ~8 KiB to the service call
         // chain; this is separate from the preparation worker's stack.
         static constexpr runtime::thread::Definition APPLICATION_THREAD{ .priority = 3,
                                                                          .stack_size = 16UZ * 1024UZ };
         static constexpr runtime::thread::Definition DIAGNOSTIC_THREAD{ .priority = 20,
-                                                                        .stack_size = HOUSEKEEPING_STACK_SIZE };
+                                                                        .stack_size =
+                                                                          HOUSEKEEPING_STACK_SIZE };
 
         [[= ICC_THREAD]] void iccThread();
         [[= APPLICATION_THREAD]] void applicationThread();

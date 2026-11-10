@@ -54,7 +54,7 @@ class Elf:
 
 def destination(core, address, length, m4_sdram_code):
     regions = ([(0x10000000, 194 << 10), (0x30030800, 86 << 10), (0x24040000, 256 << 10)] +
-               ([(0xC0400000, 2 << 20)] if m4_sdram_code else [])) if core == 4 else [
+               ([(0xC0480000, 1536 << 10)] if m4_sdram_code else [])) if core == 4 else [
                    (0, 64 << 10), (0x20000000, 112 << 10), (0x24000000, 256 << 10)]
     return any(start <= address and address + length <= start + size for start, size in regions)
 
@@ -63,7 +63,7 @@ def image(path, core):
     elf = Elf(path)
     base, limit = PARTITIONS[core]
     vectors, stack = (0x10000000, 0x30048000) if core == 4 else (0x20000000, 0x20020000)
-    m4_sdram_code = core == 4 and 0xC0400000 <= elf.entry < 0xC0600000
+    m4_sdram_code = core == 4 and 0xC0480000 <= elf.entry < 0xC0600000
     chunks, records = [], []
     vector_contents = None
     for name, s in elf.sections:

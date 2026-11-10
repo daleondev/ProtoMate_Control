@@ -12,7 +12,7 @@ namespace io::motion
     {
       public:
         Server(pnm::msg::Bus& bus, Controller& controller);
-        void run(std::stop_token stop);
+        void run(const std::stop_token& stop);
         void peerLost(bool stopping) noexcept
         {
             if (stopping) {
@@ -50,8 +50,8 @@ namespace io::motion
             std::atomic_bool done{};
             bool started{};
             ProgramCommand(::motion::trajectory::Request r, ProgramReply response)
-              : request(r)
-              , reply(std::move(response))
+              : request{ r }
+              , reply{ std::move(response) }
             {
             }
         };
@@ -88,23 +88,24 @@ namespace io::motion
             std::atomic_bool done{};
             bool started{};
         };
-        ::motion::MotorResponse request(const ::motion::MotorRequest& request,
+        ::motion::MotorResponse request(const ::motion::MotorRequest& value,
                                         bool urgent,
-                                        std::stop_token stop);
-        void deferCommand(const ::motion::MotorRequest& request, Reply reply);
+                                        const std::stop_token& stop);
+        void deferCommand(const ::motion::MotorRequest& value, Reply reply);
         void finishCommand();
         void cancelCommand();
         void discardQueuedCommands();
-        void commandWorker(std::stop_token stop);
+        void prepareCommand(ProgramCommand& program);
+        void commandWorker(const std::stop_token& stop);
         ::motion::MotorSnapshot snapshot();
-        ::motion::MotorProgress progress(::motion::MotorId id) const;
+        ::motion::MotorProgress progress(::motion::MotorId motor) const;
         void admit(const ::motion::MotorGoal& goal, Execution execution);
         void dispatchJobs(bool feedback);
 
         ::motion::trajectory::Packet trajectory(const ::motion::trajectory::Packet& packet);
         Controller* m_controller;
         std::shared_ptr<runtime::Notification> m_notification{ std::make_shared<runtime::Notification>() };
-        std::array<std::optional<Job>, 8> m_jobs;
+        std::array<std::optional<Job>, ::motion::MOTOR_JOB_CAPACITY> m_jobs;
         std::array<std::optional<ProgramJob>, 3> m_programJobs;
         std::uint64_t m_commandGeneration{ 1 }, m_sequence{};
         std::stop_token m_stop;

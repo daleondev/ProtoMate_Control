@@ -124,6 +124,7 @@ namespace io::motion
         pnm::units::Angle feedbackResolution() const noexcept { return m_feedback->resolution(); }
 
       private:
+        void installCallbacks();
         friend class Controller;
         class CommandRunner;
         std::shared_ptr<pnm::log::ISink> logSink(pnm::log::Level level) const;
@@ -179,6 +180,12 @@ namespace io::motion
                              std::chrono::steady_clock::time_point deadline,
                              const std::stop_token& stop);
 
+        struct FinishReferencing;
+        Result seekReference(Direction direction,
+                             pnm::units::AngularVelocity speed,
+                             hal::gpio::Level level,
+                             std::chrono::steady_clock::time_point deadline,
+                             const std::stop_token& stop);
         Result performReference(pnm::units::AngularVelocity seek_velocity,
                                 pnm::units::AngularVelocity latch_velocity,
                                 pnm::units::Time timeout,
@@ -239,9 +246,9 @@ namespace io::motion
         // is always joined before this storage is reused.
         // Live velocity replacement needs over 7 KiB on ARM. 10 KiB
         // preserves measured headroom above 25% without three 16 KiB stacks.
-        static constexpr std::size_t WORKER_STACK_BYTES = sizeof(void*) == 4 ? 10240U : 16384U;
-        std::unique_ptr<std::byte[]> m_workerStack{ std::make_unique_for_overwrite<std::byte[]>(
-          WORKER_STACK_BYTES) };
+        static constexpr std::size_t WORKER_STACK_BYTES{ sizeof(void*) == 4 ? 10240U : 16384U };
+        using WorkerStack = std::array<std::byte, WORKER_STACK_BYTES>;
+        std::unique_ptr<WorkerStack> m_workerStack{ std::make_unique_for_overwrite<WorkerStack>() };
         std::jthread m_worker;
         mutable std::mutex m_queueMutex;
         Defaults m_motionDefaults;

@@ -5,22 +5,30 @@ namespace simulation::assets
     namespace
     {
         // These arrays deliberately have no trailing NUL; GL receives exact lengths.
+        // #embed determines the bound; keep the embedded bytes in one static array.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         constexpr char SURFACE_VERTEX[]{
 #embed "shaders/surface.vert"
         };
+        // #embed determines the bound; keep the embedded bytes in one static array.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         constexpr char SCENE_FRAGMENT[]{
 #embed "shaders/scene.frag"
         };
+        // #embed determines the bound; keep the embedded bytes in one static array.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         constexpr char MODEL_FRAGMENT[]{
 #embed "shaders/model.frag"
         };
     }
-    ShaderSources sceneShader() noexcept
+    ShaderSources scene_shader() noexcept
     {
-        return { { SURFACE_VERTEX, sizeof(SURFACE_VERTEX) }, { SCENE_FRAGMENT, sizeof(SCENE_FRAGMENT) } };
+        return { .vertex = { &SURFACE_VERTEX[0], sizeof(SURFACE_VERTEX) },
+                 .fragment = { &SCENE_FRAGMENT[0], sizeof(SCENE_FRAGMENT) } };
     }
-    ShaderSources modelShader() noexcept
+    ShaderSources model_shader() noexcept
     {
-        return { { SURFACE_VERTEX, sizeof(SURFACE_VERTEX) }, { MODEL_FRAGMENT, sizeof(MODEL_FRAGMENT) } };
+        return { .vertex = { &SURFACE_VERTEX[0], sizeof(SURFACE_VERTEX) },
+                 .fragment = { &MODEL_FRAGMENT[0], sizeof(MODEL_FRAGMENT) } };
     }
 }

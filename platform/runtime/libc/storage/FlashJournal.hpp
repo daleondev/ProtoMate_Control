@@ -12,9 +12,16 @@ namespace runtime::storage
     class FlashDevice
     {
       public:
+        static constexpr std::size_t WORD_BYTES{ 32 };
+        FlashDevice() = default;
+        FlashDevice(const FlashDevice&) = default;
+        auto operator=(const FlashDevice&) -> FlashDevice& = default;
+        FlashDevice(FlashDevice&&) = default;
+        auto operator=(FlashDevice&&) -> FlashDevice& = default;
+
         virtual ~FlashDevice() = default;
         virtual bool read(std::size_t offset, std::span<std::byte> output) noexcept = 0;
-        virtual bool program(std::size_t offset, std::span<const std::byte, 32> word) noexcept = 0;
+        virtual bool program(std::size_t offset, std::span<const std::byte, WORD_BYTES> word) noexcept = 0;
         virtual bool erase(std::size_t block) noexcept = 0;
     };
 
@@ -25,15 +32,21 @@ namespace runtime::storage
     class FlashJournal
     {
       public:
+        FlashJournal(const FlashJournal&) = delete;
+        FlashJournal& operator=(const FlashJournal&) = delete;
+        FlashJournal(FlashJournal&&) = delete;
+        FlashJournal& operator=(FlashJournal&&) = delete;
+        ~FlashJournal() = default;
+
         static constexpr std::size_t BLOCK_BYTES{ 128U * 1024U };
         static constexpr std::size_t BLOCKS{ 4 };
         static constexpr std::size_t BYTES{ BLOCK_BYTES * BLOCKS };
         static constexpr std::size_t SECTOR_BYTES{ 512 };
         static constexpr std::size_t SECTORS{ 512 }; // 256 KiB logical, 512 KiB physical.
-        static constexpr std::size_t RECORD_BYTES{ SECTOR_BYTES + 32 };
+        static constexpr std::size_t RECORD_BYTES{ SECTOR_BYTES + FlashDevice::WORD_BYTES };
         static constexpr std::size_t RECORDS_PER_BLOCK{ BLOCK_BYTES / RECORD_BYTES };
         static constexpr std::size_t RECORDS{ RECORDS_PER_BLOCK * BLOCKS };
-        enum class Mount
+        enum class Mount : std::uint8_t
         {
             Ready,
             Blank,
@@ -52,7 +65,7 @@ namespace runtime::storage
         std::uint32_t erases() const noexcept { return m_erases; }
         static constexpr std::size_t offset(std::size_t slot) noexcept
         {
-            return (slot / RECORDS_PER_BLOCK) * BLOCK_BYTES + (slot % RECORDS_PER_BLOCK) * RECORD_BYTES;
+            return ((slot / RECORDS_PER_BLOCK) * BLOCK_BYTES) + ((slot % RECORDS_PER_BLOCK) * RECORD_BYTES);
         }
 
       private:
@@ -69,7 +82,7 @@ namespace runtime::storage
                     bool deleted,
                     std::size_t slot) noexcept;
         bool reclaim() noexcept;
-        std::size_t freeSlot(std::size_t excludedBlock = BLOCKS) const noexcept;
+        std::size_t freeSlot(std::size_t excluded_block = BLOCKS) const noexcept;
         bool isEmpty(std::size_t block) const noexcept;
         FlashDevice& m_device;
         std::array<Entry, SECTORS> m_map{};

@@ -16,15 +16,16 @@ namespace ui::gui::util
                 clear();
                 return true;
             }
-            if (!report.wheel)
+            if (report.wheel == 0) {
                 return true;
+            }
             if (m_count == m_events.size()) {
                 clear();
                 ++m_dropped;
                 return false;
             }
             m_events[(m_head + m_count++) % m_events.size()] = {
-                now, report.wheel, report.pointerX, report.pointerY
+                .at = now, .delta = report.wheel, .x = report.pointer_x, .y = report.pointer_y
             };
             return true;
         }
@@ -32,14 +33,15 @@ namespace ui::gui::util
         {
             report.wheel = 0;
             while (m_count) {
-                const auto e = m_events[m_head];
+                const auto e{ m_events[m_head] };
                 m_head = (m_head + 1) % m_events.size();
                 --m_count;
-                if (now - e.at > std::chrono::milliseconds{ 100 })
+                if (now - e.at > MAX_AGE) {
                     continue;
+                }
                 report.wheel = e.delta;
-                report.pointerX = e.x;
-                report.pointerY = e.y;
+                report.pointer_x = e.x;
+                report.pointer_y = e.y;
                 return;
             }
         }
@@ -47,13 +49,15 @@ namespace ui::gui::util
         unsigned dropped() const { return m_dropped; }
 
       private:
+        static constexpr unsigned CAPACITY{ 8 };
+        static constexpr auto MAX_AGE{ std::chrono::milliseconds{ 100 } };
         struct Event
         {
             Clock::time_point at;
             float delta{};
             std::uint16_t x{}, y{};
         };
-        std::array<Event, 8> m_events{};
+        std::array<Event, CAPACITY> m_events{};
         unsigned m_head{}, m_count{}, m_dropped{};
     };
 }

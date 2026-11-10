@@ -1,3 +1,5 @@
+// CMSIS/HAL register macros use fixed MMIO addresses and C pointer casts.
+// NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
 #include "profiling/Trace.hpp"
 // CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
 // The line-specific exceptions below preserve the vendor register interface.
@@ -9,12 +11,13 @@
 #include "hal/stm32/InterruptGuard.hpp"
 #include "hal/stm32/TimerClock.hpp"
 
+#include <algorithm>
 #include <array>
 
 #if defined(CORE_CM4)
 #if defined(GIGA_MOTION_BENCH)
 extern "C" {
-volatile std::uint32_t giga_motion_bench_refill_ticks = UINT32_MAX;
+volatile std::uint32_t giga_motion_bench_refill_ticks{ UINT32_MAX };
 volatile std::uint32_t giga_motion_bench_worst_refill_cycles{};
 volatile std::uint32_t giga_motion_bench_worst_budget_ticks{};
 std::uint32_t giga_motion_bench_refill_index[3]{};
@@ -41,6 +44,10 @@ namespace
 
 namespace hal::stm32
 {
+    namespace
+    {
+        constexpr std::uint32_t TIMER_PRESCALER_VALUES{ 65'536U };
+    }
     namespace
     {
         struct alignas(DMA_CACHE_LINE_BYTES) DmaMemory
@@ -104,6 +111,8 @@ namespace hal::stm32
             auto& reg{
                 // NOLINT(clang-analyzer-core.FixedAddressDereference)
                 axis == 0U
+                  // CMSIS peripheral access uses the MCU fixed-address register map.
+                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                   ? TIM2->CCMR1
                   : TIM2->CCMR2 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             }; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -114,12 +123,14 @@ namespace hal::stm32
         }
 
     }
-    auto StepHardware::pin_mode(std::size_t axis, bool alternate) noexcept -> void
+    auto StepHardware::pinMode(std::size_t axis, bool alternate) noexcept -> void
     {
         const HardwareSemaphore shared{ 5 };
         if (!shared) {
             hal::panic("STEP GPIO configuration lock timeout");
         }
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         auto* port{ m_pins[axis].port == gpio::Port::A ? GPIOA : GPIOB };
         const auto pin{ static_cast<std::uint16_t>(1U << m_pins[axis].number) };
         HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
@@ -156,6 +167,8 @@ namespace hal::stm32
     auto StepHardware::reset() noexcept -> bool
     {
 #if defined(CORE_CM4)
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
         CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
         DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
         giga_step_irq_cycles_max = 0;
@@ -174,8 +187,8 @@ namespace hal::stm32
         // Preserve the common 100 ns scheduling unit across clock configurations.
         const auto hz{ apb1_timer_input_frequency_hz() };
         if (hz < STEP_TIMER_FREQUENCY_HZ || hz % STEP_TIMER_FREQUENCY_HZ != 0U ||
-            hz / STEP_TIMER_FREQUENCY_HZ > 65'536U || hz % GUARD_TIMER_FREQUENCY_HZ != 0U ||
-            hz / GUARD_TIMER_FREQUENCY_HZ > 65'536U) {
+            hz / STEP_TIMER_FREQUENCY_HZ > TIMER_PRESCALER_VALUES || hz % GUARD_TIMER_FREQUENCY_HZ != 0U ||
+            hz / GUARD_TIMER_FREQUENCY_HZ > TIMER_PRESCALER_VALUES) {
             return false;
         }
         TIM2->CR1 = 0U;  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -191,7 +204,7 @@ namespace hal::stm32
           (TIM_OCMODE_FORCED_INACTIVE
            << CAPTURE_COMPARE_FIELD_BITS); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM2->PSC = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          hz / STEP_TIMER_FREQUENCY_HZ -
+          (hz / STEP_TIMER_FREQUENCY_HZ) -
           1U;                   // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM2->ARR =             // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           util::STEP_ARR;       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -205,6 +218,8 @@ namespace hal::stm32
         TIM2->CCR4 =            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           util::STEP_PARK;      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM2->EGR = TIM_EGR_UG; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         while ((TIM2->SR &
                 TIM_SR_UIF) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                0U) {           // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -243,12 +258,14 @@ namespace hal::stm32
         TIM7->CR1 = 0U;  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM7->DIER = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM7->PSC =      // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-          hz / GUARD_TIMER_FREQUENCY_HZ -
+          (hz / GUARD_TIMER_FREQUENCY_HZ) -
           1U;                   // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM7->ARR =             // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           GUARD_TIMER_RELOAD;   // 1 ms completion monitor; no output pins. //
                                 // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM7->EGR = TIM_EGR_UG; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         while ((TIM7->SR &
                 TIM_SR_UIF) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                0U) {           // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -272,7 +289,7 @@ namespace hal::stm32
         disable(axis);
         compare(axis) = util::STEP_PARK;
         output_mode(axis, OutputMode::Inactive);
-        pin_mode(axis, true);
+        pinMode(axis, true);
         DMA1->LIFCR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           ALL_FLAGS
           << SHIFTS[axis]; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -294,14 +311,18 @@ namespace hal::stm32
         SET_BIT(stream->CR, DMA_SxCR_DBM | DMA_SxCR_CIRC | DMA_SxCR_MINC | DMA_SxCR_HTIE);
         const auto lead{ util::step_distance(
           TIM2->CNT, first) }; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        if ((TIM2->CR1 & TIM_CR1_CEN) == 0U ||
-            (first != util::STEP_PARK && (lead <
+        if (
+          // CMSIS peripheral access uses the MCU fixed-address register map.
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+          (TIM2->CR1 & TIM_CR1_CEN) == 0U ||
+          (first != util::STEP_PARK &&
+           (lead <
               util::
                 STEP_MIN_PHASE || // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             lead >
               util::
                 STEP_HORIZON))) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-            pin_mode(axis, false);
+            pinMode(axis, false);
             return false;
         }
         SET_BIT(stream->CR, DMA_SxCR_EN);
@@ -319,6 +340,8 @@ namespace hal::stm32
         SET_BIT(STREAMS[3]->CR, DMA_SxCR_EN);
         guard(deadline);
         __DSB();
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM2
           ->CR1 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           TIM_CR1_CEN; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -334,6 +357,8 @@ namespace hal::stm32
               util::STEP_PARK; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
         else {
+            // CMSIS peripheral access uses the MCU fixed-address register map.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             TIM2
               ->CCR2 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               tick; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -354,11 +379,15 @@ namespace hal::stm32
     auto StepHardware::completionWatch(bool enabled) noexcept -> void
     {
         if (!enabled) {
+            // CMSIS peripheral access uses the MCU fixed-address register map.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             TIM7
               ->CR1 = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
               0U; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             TIM7->DIER = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         }
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         else if ((TIM7->CR1 &
                   TIM_CR1_CEN) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                  0U) {            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -392,13 +421,19 @@ namespace hal::stm32
                 channel.tick =
                   TIM2->CNT; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                 channel.compare_pending =
+                  // CMSIS peripheral access uses the MCU fixed-address register map.
+                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                   (TIM2->SR &
                    CC_FLAGS[i]) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                   0U;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-                const auto* port = m_pins[i].port == gpio::Port::A ? GPIOA : GPIOB;
+                // CMSIS peripheral access uses the MCU fixed-address register map.
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
+                const auto* port{ m_pins[i].port == gpio::Port::A ? GPIOA : GPIOB };
                 channel.high = (port->IDR & (1U << m_pins[i].number)) != 0U;
                 after = stream->NDTR;
                 if (before == after && ((control ^ stream->CR) & DMA_SxCR_CT) == 0U &&
+                    // CMSIS peripheral access uses the MCU fixed-address register map.
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     ((flags ^ DMA1->LISR) &
                      (COMPLETE_FLAG << SHIFTS
                         [i])) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -418,6 +453,8 @@ namespace hal::stm32
         }
         result.tick = TIM2->CNT; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         result.running =
+          // CMSIS peripheral access uses the MCU fixed-address register map.
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           (TIM2->CR1 &
            TIM_CR1_CEN) != // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           0U;              // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -425,6 +462,8 @@ namespace hal::stm32
     }
     auto StepHardware::acknowledge(std::size_t axis) noexcept -> void
     {
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         DMA1
           ->LIFCR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           (COMPLETE_FLAG | HALF_FLAG) << SHIFTS
@@ -451,7 +490,7 @@ namespace hal::stm32
         CLEAR_BIT(          // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           TIM2->CCER,       // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           CC_ENABLE[axis]); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
-        pin_mode(axis, false);
+        pinMode(axis, false);
         output_mode(axis, OutputMode::Inactive);
         DMA1->LIFCR = // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           ALL_FLAGS
@@ -486,7 +525,7 @@ namespace hal::stm32
         }
         TIM2->CCER = 0U; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         for (std::size_t i{ 0 }; i < 3U; ++i) {
-            pin_mode(i, false);
+            pinMode(i, false);
         }
         return result;
     }
@@ -494,15 +533,20 @@ namespace hal::stm32
     auto step_interrupt() noexcept -> void
     {
 #if defined(CORE_CM4)
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference)
         const auto started{ DWT->CYCCNT };
 #if defined(GIGA_MOTION_BENCH)
         giga_motion_bench_refill_ticks = UINT32_MAX;
-        for (auto& index : giga_motion_bench_refill_index)
+        for (auto& index : giga_motion_bench_refill_index) {
             index = UINT32_MAX;
+        }
 #endif
 #endif
         const InterruptGuard lock{};
         // Clear HT flags only; the core consumes TC together with CT/NDTR.
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         DMA1
           ->LIFCR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           (HALF_FLAG << SHIFTS[0]) | (HALF_FLAG << SHIFTS[1]) |
@@ -512,6 +556,8 @@ namespace hal::stm32
             generator->service();
         }
         // Finished/failed generators must not leave a level-sensitive IRQ pending.
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         if ((TIM2->CR1 &
              TIM_CR1_CEN) == // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
             0U) {            // NOLINT(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
@@ -524,18 +570,17 @@ namespace hal::stm32
 #if defined(CORE_CM4)
         const auto elapsed{ DWT->CYCCNT - started };
 #if defined(GIGA_MOTION_BENCH)
-        const auto budget = giga_motion_bench_refill_ticks;
+        const auto budget{ giga_motion_bench_refill_ticks };
         if (budget != UINT32_MAX && (!giga_motion_bench_worst_refill_cycles ||
-            std::uint64_t(elapsed) * giga_motion_bench_worst_budget_ticks >
-            std::uint64_t(giga_motion_bench_worst_refill_cycles) * budget)) {
+                                     std::uint64_t(elapsed) * giga_motion_bench_worst_budget_ticks >
+                                       std::uint64_t(giga_motion_bench_worst_refill_cycles) * budget)) {
             giga_motion_bench_worst_refill_cycles = elapsed;
             giga_motion_bench_worst_budget_ticks = budget;
             std::copy_n(giga_motion_bench_refill_index, 3, giga_motion_bench_worst_refill_index);
         }
 #endif
-        if (elapsed > giga_step_irq_cycles_max) {
-            giga_step_irq_cycles_max = elapsed;
-        }
+        giga_step_irq_cycles_max =
+          std::max(static_cast<std::uint32_t>(elapsed), std::uint32_t{ giga_step_irq_cycles_max });
 #endif
     }
 }
@@ -567,9 +612,13 @@ extern "C" void DMA1_Stream3_IRQHandler()
 extern "C" void TIM7_IRQHandler()
 {
     profiling::interruptEnter();
+    // CMSIS peripheral access uses the MCU fixed-address register map.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     TIM7
       ->SR = // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
       0U; // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     hal::stm32::step_interrupt();
     profiling::interruptExit();
 }
+
+// NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)

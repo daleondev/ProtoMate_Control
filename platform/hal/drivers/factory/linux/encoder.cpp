@@ -10,6 +10,7 @@
 namespace
 {
     inline constexpr auto ENCODER_B_PIN_NUMBER{ 5U };
+    inline constexpr auto ENCODER_B_ALTERNATE_PIN_NUMBER{ 7U };
 }
 
 namespace hal::encoder
@@ -38,8 +39,9 @@ namespace hal::encoder
         using enum gpio::Port;
         if (configuration.timer != timer::Peripheral::Tim3 ||
             configuration.a != gpio::Pin{ .port = B, .number = 4U } ||
-            configuration.b !=
-              (simulation::client::connected() ? gpio::Pin{ A, 7 } : gpio::Pin{ B, ENCODER_B_PIN_NUMBER })) {
+            configuration.b != (simulation::client::connected()
+                                  ? gpio::Pin{ .port = A, .number = ENCODER_B_ALTERNATE_PIN_NUMBER }
+                                  : gpio::Pin{ .port = B, .number = ENCODER_B_PIN_NUMBER })) {
             return {};
         }
         util::TimerLease lease{ configuration.timer };

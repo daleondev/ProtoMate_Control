@@ -7,7 +7,8 @@ namespace io::motion
     namespace tr = ::motion::trajectory;
     void Server::deferProgram(const tr::Packet& packet, ProgramReply reply)
     {
-        const auto request = tr::decodeRequest(packet);
+
+        const auto request{ tr::decode_request(packet) };
         if (!request) {
             reply.respond(tr::encode(tr::Reply{ .error = request.error() }));
             return;
@@ -17,7 +18,7 @@ namespace io::motion
             return;
         }
         if (request->operation == tr::Operation::Inspect || request->operation == tr::Operation::Acquire) {
-            auto result = m_controller->control(*request);
+            auto result{ m_controller->control(*request) };
             result.generation = m_commandGeneration;
             reply.respond(tr::encode(result));
             return;
@@ -36,7 +37,7 @@ namespace io::motion
         pnm::log::debug("Queued preparation {}", request->job);
         m_programCommand->cancellation =
           pnm::msg::watch(m_programCommand->reply, [weak = std::weak_ptr{ m_programCommand }] {
-            if (const auto pending = weak.lock(); pending && !pending->reply.pending()) {
+            if (const auto pending{ weak.lock() }; pending && !pending->reply.pending()) {
                 pending->stop.request_stop();
             }
         });
@@ -44,7 +45,7 @@ namespace io::motion
     }
     void Server::finishProgramCommand()
     {
-        std::shared_ptr<ProgramCommand> command;
+        std::shared_ptr<ProgramCommand> command{};
         {
             std::scoped_lock lock{ m_commandMutex };
             if (!m_programCommand || !m_programCommand->done.load()) {
@@ -54,7 +55,7 @@ namespace io::motion
         }
         if (!command->reply.respond(command->result)) {
             pnm::log::warn("Preparation {} reply no longer pending", command->request.job);
-            auto release = command->request;
+            auto release{ command->request };
             release.operation = tr::Operation::Release;
             m_controller->control(release);
         }
@@ -64,14 +65,15 @@ namespace io::motion
     }
     void Server::admitProgram(const tr::Run& run, ProgramExecution execution)
     {
-        const auto release = [&] {
+
+        const auto release{ [&] {
             tr::Request request{ .operation = tr::Operation::Release,
                                  .boot = run.boot,
                                  .session = run.session };
             request.job = run.job;
             m_controller->control(request);
-        };
-        auto* slot = std::ranges::find_if(m_programJobs, [](const auto& job) { return !job; });
+        } };
+        auto* slot{ std::ranges::find_if(m_programJobs, [](const auto& job) { return !job; }) };
         if (slot == m_programJobs.end()) {
             execution.fail(pnm::msg::ActionError::Busy);
             release();
@@ -83,13 +85,13 @@ namespace io::motion
             release();
             return;
         }
-        auto finished = std::make_shared<ProgramFinished>();
-        auto cancellation = pnm::msg::watch(execution, [n = m_notification] { n->signal(); });
-        const auto error = m_controller->startProgram(run, [finished, n = m_notification](tr::Update result) {
+        auto finished{ std::make_shared<ProgramFinished>() };
+        auto cancellation{ pnm::msg::watch(execution, [n = m_notification] { n->signal(); }) };
+        const auto error{ m_controller->startProgram(run, [finished, n = m_notification](tr::Update result) {
             finished->result = result;
             finished->ready.store(true);
             n->signal();
-        });
+        }) };
         if (error != tr::Error::None) {
             execution.reject({ .job = run.job, .state = ::motion::JobState::Rejected, .error = error });
             release();
@@ -113,7 +115,7 @@ namespace io::motion
                 continue;
             }
             if (job->finished->ready.load()) {
-                const auto result = job->finished->result;
+                const auto result{ job->finished->result };
                 if (result.state == ::motion::JobState::Completed) {
                     job->execution.succeed(result);
                 }

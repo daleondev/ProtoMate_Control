@@ -4,6 +4,17 @@
 #include <utility>
 namespace hal::device
 {
+    namespace
+    {
+        constexpr auto RESET_HOLD{ std::chrono::milliseconds{ 2 } };
+        constexpr auto STARTUP_DELAY{ std::chrono::milliseconds{ 100 } };
+        constexpr auto PROBE_TIMEOUT{ std::chrono::milliseconds{ 2 } };
+        constexpr auto TRANSFER_TIMEOUT{ std::chrono::milliseconds{ 5 } };
+        constexpr unsigned STATUS_MASK{ 0xF }, NORMAL_STATUS{ 4 };
+        constexpr unsigned POINT_REGISTER{ 0x12 }, POINT_BYTES{ 4 };
+        constexpr unsigned ACTIVE_MASK{ 0x80 }, X_HIGH_MASK{ 0x70 }, Y_HIGH_MASK{ 7 };
+        constexpr unsigned X_HIGH_SHIFT{ 4 }, Y_HIGH_SHIFT{ 8 };
+    }
     St1633i::~St1633i()
     {
         if (m_interrupt) {
@@ -34,10 +45,10 @@ namespace hal::device
     {
         m_initialized = false;
         m_reset->write(gpio::Level::Low);
-        std::this_thread::sleep_for(std::chrono::milliseconds{ 2 });
+        std::this_thread::sleep_for(RESET_HOLD);
         m_reset->write(gpio::Level::High);
-        std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
-        auto result{ m_bus->probe(m_address, std::chrono::milliseconds{ 2 }) };
+        std::this_thread::sleep_for(STARTUP_DELAY);
+        auto result{ m_bus->probe(m_address, PROBE_TIMEOUT) };
         if (result) {
             m_initialized = true;
         }
@@ -49,26 +60,26 @@ namespace hal::device
             return std::unexpected(std::make_error_code(std::errc::not_connected));
         }
         std::array<std::uint8_t, 2> identity{};
-        auto result{ m_bus->readRegister(m_address, 0, identity, std::chrono::milliseconds{ 5 }) };
+        auto result{ m_bus->readRegister(m_address, 0, identity, TRANSFER_TIMEOUT) };
         if (!result) {
             return std::unexpected(result.error());
         }
-        if ((identity[1] & 0xFu) != 0 && (identity[1] & 0xFu) != 4) {
+        if ((identity[1] & STATUS_MASK) != 0 && (identity[1] & STATUS_MASK) != NORMAL_STATUS) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
-        std::array<std::uint8_t, 20> bytes{};
-        result = m_bus->readRegister(m_address, 0x12, bytes, std::chrono::milliseconds{ 5 });
+        std::array<std::uint8_t, TouchReport{}.points.size() * POINT_BYTES> bytes{};
+        result = m_bus->readRegister(m_address, POINT_REGISTER, bytes, TRANSFER_TIMEOUT);
         if (!result) {
             return std::unexpected(result.error());
         }
         TouchReport report{ .firmware = identity[0], .status = identity[1] };
         for (unsigned i{ 0 }; i < report.points.size(); ++i) {
-            const auto offset{ i * 4 };
-            report.points[i] = {
-                .active = (bytes[offset] & 0x80u) != 0,
-                .x = static_cast<std::uint16_t>(((bytes[offset] & 0x70u) << 4) | bytes[offset + 1]),
-                .y = static_cast<std::uint16_t>(((bytes[offset] & 7u) << 8) | bytes[offset + 2])
-            };
+            const auto offset{ i * POINT_BYTES };
+            report.points[i] = { .active = (bytes[offset] & ACTIVE_MASK) != 0,
+                                 .x = static_cast<std::uint16_t>(
+                                   ((bytes[offset] & X_HIGH_MASK) << X_HIGH_SHIFT) | bytes[offset + 1]),
+                                 .y = static_cast<std::uint16_t>(
+                                   ((bytes[offset] & Y_HIGH_MASK) << Y_HIGH_SHIFT) | bytes[offset + 2]) };
         }
         return report;
     }

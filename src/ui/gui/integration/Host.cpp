@@ -9,18 +9,18 @@ extern "C" int runtime_host_main(void (*kernel)())
 {
     const auto status{ hal::linux::display::run(kernel, hmi_native_observe) };
     hmi_native_close();
-    if (!hal::linux::display::cleanupComplete()) {
+    if (!hal::linux::display::cleanup_complete()) {
         return status;
     }
     for (;;) {
-        const timespec delay{ 0, 1000000 };
+        const timespec delay{ .tv_sec = 0, .tv_nsec = 1000000 };
         nanosleep(&delay, nullptr);
     }
 }
 extern "C" void runtime_host_completed(int status)
 {
     hal::linux::display::completed(status);
-    while (!hal::linux::display::cleanupComplete()) {
+    while (!hal::linux::display::cleanup_complete()) {
         tx_thread_sleep(1);
     }
 }

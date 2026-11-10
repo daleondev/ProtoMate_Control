@@ -6,6 +6,8 @@
 
 namespace hal::util
 {
+    // Fixed representation is part of the existing protocol/diagnostic contract.
+    // NOLINTNEXTLINE(performance-enum-size)
     enum class InterCoreStage : std::uint32_t
     {
         PublishBegin = 1,
@@ -27,17 +29,21 @@ namespace hal::util
 #if defined(GIGA_MOTION_BENCH) || defined(GIGA_MOTION_API_TEST)
     // Test images supply the recorder. No dependency on application contracts;
     // normal firmware compiles the hooks away entirely.
-    void intercoreTrace(InterCoreStage stage,
-                        unsigned lane = 0,
-                        std::span<const std::byte> bytes = {}) noexcept;
+    void intercore_trace(InterCoreStage stage,
+                         unsigned lane = 0,
+                         std::span<const std::byte> bytes = {}) noexcept;
 #elif defined(PROTOMATE_PROFILING)
-    inline void intercoreTrace(InterCoreStage stage,
-                               unsigned lane = 0,
-                               std::span<const std::byte> bytes = {}) noexcept
+    inline void intercore_trace(InterCoreStage stage,
+                                unsigned lane = 0,
+                                std::span<const std::byte> bytes = {}) noexcept
     {
         profile_event(PROFILE_CAT_SYSTEM, PROFILE_ICC_STAGE, unsigned(stage), lane, bytes.size(), 0);
     }
 #else
-    inline void intercoreTrace(InterCoreStage, unsigned = 0, std::span<const std::byte> = {}) noexcept {}
+    inline void intercore_trace(InterCoreStage /*unused*/,
+                                unsigned /*unused*/ = 0,
+                                std::span<const std::byte> /*unused*/ = {}) noexcept
+    {
+    }
 #endif
 }

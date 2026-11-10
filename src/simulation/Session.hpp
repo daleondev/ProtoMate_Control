@@ -10,8 +10,8 @@
 namespace simulation
 {
     class Machine;
-    bool stopRequested() noexcept;
-    void installSignalHandlers();
+    bool stop_requested() noexcept;
+    void install_signal_handlers();
     struct SessionOptions
     {
         Profile profile{};
@@ -20,6 +20,9 @@ namespace simulation
     class Session
     {
       public:
+        Session(Session&&) = delete;
+        auto operator=(Session&&) -> Session& = delete;
+
         explicit Session(SessionOptions options = {});
         ~Session();
         Session(const Session&) = delete;
@@ -30,14 +33,26 @@ namespace simulation
         void start();
         void stop() noexcept;
         bool running() const noexcept { return m_running.load(); }
-        int childStatus() const noexcept { return m_child_status.load(); }
+        int childStatus() const noexcept { return m_childStatus.load(); }
         PlantSnapshot snapshot() const;
         const Profile& profile() const noexcept { return m_options.profile; }
         SharedMemory& memory() noexcept { return m_mapping.memory(); }
 
       private:
-        void work(std::stop_token stop);
-        void execute(Machine& machine, std::stop_token stop);
+        void work(const std::stop_token& stop);
+        void execute(Machine& machine, const std::stop_token& stop);
+        struct ClockState
+        {
+            std::uint64_t next_wall{}, next_tick{};
+        };
+        struct PeerState
+        {
+            std::uint64_t wall{}, started{};
+            bool ready{}, had_client{};
+        };
+        void serviceRegisters(Machine& /*machine*/);
+        void advanceClock(Machine& /*machine*/, ClockState& /*clock*/, std::uint64_t wall, bool ready);
+        void checkPeer(const Machine& /*machine*/, PeerState /*state*/);
         void publishSnapshot(const Machine& machine);
         const SessionOptions m_options;
         const MechanicalConfiguration m_configuration;
@@ -45,8 +60,8 @@ namespace simulation
         ControllerProcess m_process;
         std::array<int, 4> m_events{ -1, -1, -1, -1 };
         std::atomic_bool m_running{};
-        std::atomic_int m_child_status{};
-        mutable std::mutex m_snapshot_mutex;
+        std::atomic_int m_childStatus{};
+        mutable std::mutex m_snapshotMutex;
         PlantSnapshot m_snapshot{};
         std::jthread m_worker;
     };

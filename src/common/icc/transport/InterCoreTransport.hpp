@@ -19,6 +19,11 @@ namespace icc
     class InterCoreTransport final : public ITransport
     {
       public:
+        InterCoreTransport(const InterCoreTransport&) = delete;
+        auto operator=(const InterCoreTransport&) -> InterCoreTransport& = delete;
+        InterCoreTransport(InterCoreTransport&&) = delete;
+        auto operator=(InterCoreTransport&&) -> InterCoreTransport& = delete;
+
         explicit InterCoreTransport(std::shared_ptr<hal::IInterCoreChannel> channel);
         ~InterCoreTransport() override;
         pnm::coro::Task<pnm::EmptyResult<Error>> send(std::span<const std::byte> frame,

@@ -5,6 +5,7 @@
 
 namespace diagnostics
 {
+    inline constexpr std::size_t THREAD_NAME_BYTES{ 32 }, THREAD_CAPACITY{ 32 };
     enum class MemoryQuery : std::uint8_t
     {
         Heap,
@@ -33,7 +34,7 @@ namespace diagnostics
 
     struct ThreadInfo
     {
-        std::array<char, 32> name{}; // NUL-terminated; overlong names end in '~'.
+        std::array<char, THREAD_NAME_BYTES> name{}; // NUL-terminated; overlong names end in '~'.
         std::uint32_t prio{};
         std::uint32_t stack_size{};
         std::uint32_t current_stack_usage{};
@@ -42,7 +43,7 @@ namespace diagnostics
 
     struct StackInfo
     {
-        std::array<ThreadInfo, 32> threads{};
+        std::array<ThreadInfo, THREAD_CAPACITY> threads{};
         std::uint32_t count{};
         std::uint32_t total{}; // Report omitted threads explicitly if the bound is exceeded.
     };
@@ -56,8 +57,8 @@ namespace diagnostics
     };
 
     // Thread context only. Collection and transport never format console output.
-    [[nodiscard]] MemorySnapshot collectMemory(MemoryQuery query);
+    [[nodiscard]] MemorySnapshot collect_memory(MemoryQuery query);
     // Periodic recorder sampling: visit one thread at a time, without placing
     // the full IPC response (32 thread records) on the collector's stack.
-    void sampleProfilingMemory();
+    void sample_profiling_memory();
 }

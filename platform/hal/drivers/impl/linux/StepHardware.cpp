@@ -1,16 +1,18 @@
 #include "StepHardware.hpp"
+#include <bit>
+
 namespace hal::util
 {
     LinuxStepHardware::~LinuxStepHardware() { stopService(); }
     void LinuxStepHardware::beginService(StepGenerator& generator)
     {
         simulation::client::Transaction guard{};
-        simulation::client::setStepCallback([&generator] { generator.service(); });
+        simulation::client::set_step_callback([&generator] { generator.service(); });
     }
     void LinuxStepHardware::stopService() noexcept
     {
         simulation::client::Transaction guard{};
-        simulation::client::setStepCallback({});
+        simulation::client::set_step_callback({});
     }
     auto LinuxStepHardware::reset() noexcept -> bool
     {
@@ -37,7 +39,7 @@ namespace hal::util
     }
     auto LinuxStepHardware::sample() noexcept -> StepSample
     {
-        auto result = simulation::client::sample();
+        auto result{ simulation::client::sample() };
         result.error |= m_publicationError;
         return result;
     }
@@ -70,22 +72,33 @@ namespace hal::util
     auto LinuxStepHardware::publish() noexcept -> void
     {
         auto* shared{ simulation::client::memory() };
-        if (!shared)
+        if (!shared) {
             return;
-        for (unsigned axis{}; axis < 3; ++axis)
+        }
+        for (unsigned axis{}; axis < 3; ++axis) {
             for (unsigned bank{}; bank < 2; ++bank) {
-                if (m_valid[axis][bank] && memory[axis][bank] == m_published[axis][bank])
+                if (m_valid[axis][bank] && m_memory[axis][bank] == m_published[axis][bank]) {
                     continue;
-                std::array<std::byte, sizeof(StepBuffer)> encoded{};
-                for (unsigned i{}; i < STEP_BUFFER_EDGES; ++i)
-                    simulation::put(encoded, i * 4, memory[axis][bank][i], 4);
-                if (simulation::client::publishBank(axis, bank, encoded, m_cut)) {
-                    m_published[axis][bank] = memory[axis][bank];
+                }
+                // STEP banks contain whole little-endian uint32_t words. Use
+                // the fixed-size bank directly, so noexcept publication cannot
+                // escape through the general protocol encoder's range exception.
+                StepBuffer encoded{ m_memory[axis][bank] };
+                if constexpr (std::endian::native == std::endian::big) {
+                    for (auto& word : encoded) {
+                        word = std::byteswap(word);
+                    }
+                }
+                if (simulation::client::publish_bank(
+                      axis, bank, std::as_bytes(std::span{ encoded }), m_cut)) {
+                    m_published[axis][bank] = m_memory[axis][bank];
                     m_valid[axis][bank] = true;
                 }
-                else
+                else {
                     m_publicationError = true;
+                }
             }
+        }
     }
 
 }

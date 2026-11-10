@@ -11,7 +11,7 @@
 
 namespace simulation::viewer
 {
-    enum class UpAxis
+    enum class UpAxis : std::uint8_t
     {
         Y,
         Z
@@ -20,7 +20,8 @@ namespace simulation::viewer
     {
         // Coordinates AFTER Assimp import. COLLADA Z_UP is normalized to Y-up
         // by Assimp; these metre exports therefore need the default conversion.
-        double millimetres_per_unit{ 1000 };
+        static constexpr double MILLIMETRES_PER_METRE{ 1000 };
+        double millimetres_per_unit{ MILLIMETRES_PER_METRE };
         UpAxis up{ UpAxis::Y };
         glm::mat4 matrix() const;
     };
@@ -28,7 +29,8 @@ namespace simulation::viewer
     {
         std::vector<Vertex> vertices{};
         std::vector<std::uint32_t> indices{};
-        glm::vec4 color{ 0.7F, 0.7F, 0.7F, 1.0F };
+        static constexpr glm::vec4 DEFAULT_COLOR{ 0.7F, 0.7F, 0.7F, 1.0F };
+        glm::vec4 color{ DEFAULT_COLOR };
     };
     struct ModelInstance
     {
@@ -57,6 +59,6 @@ namespace simulation::viewer
     };
     // Base + three articulated DAE frames, registered against evaluated STEP.
     // Joints are relative rotary radians and Z displacement from CAD rest in millimetres.
-    std::array<glm::mat4, 4> robotModelTransforms(const Profile& profile,
-                                                  const std::array<double, 3>& joints);
+    std::array<glm::mat4, 4> robot_model_transforms(const Profile& profile,
+                                                    const std::array<double, 3>& joints);
 }

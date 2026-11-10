@@ -8,11 +8,16 @@
 #include <tx_api.h>
 #include <tx_thread.h>
 
+enum
+{
+    CpuCounterAlignment = 8
+};
+
 // C hooks share this counter; every read/update is protected by PRIMASK.
 // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 #if defined(CORE_CM7)
 /* Keep read-only debugger sampling coherent without halting or flushing cache. */
-__attribute__((section(".dtcm_bss.profile_cpu"), aligned(8)))
+__attribute__((section(".dtcm_bss.profile_cpu"), aligned(CpuCounterAlignment)))
 #endif
 static runtime_cpu_clock_counter counter;
 static uint32_t counter_frequency;

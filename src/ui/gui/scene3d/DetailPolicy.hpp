@@ -11,8 +11,8 @@ namespace ui::gui::scene3d
     {
       public:
         using Clock = std::chrono::steady_clock;
-        static constexpr auto SETTLE_TIME = std::chrono::milliseconds{ 500 };
-        static constexpr unsigned INTERACTIVE_MAX_FPS = 10;
+        static constexpr auto SETTLE_TIME{ std::chrono::milliseconds{ 500 } };
+        static constexpr unsigned INTERACTIVE_MAX_FPS{ 10 };
 
         void changed(Clock::time_point now)
         {
@@ -22,8 +22,8 @@ namespace ui::gui::scene3d
         void invalidate() { m_dirty = true; }
         std::optional<RobotDetail> request(Clock::time_point now) const
         {
-            const auto detail =
-              m_changed && now - *m_changed < SETTLE_TIME ? RobotDetail::Interactive : RobotDetail::Full;
+            const auto detail{ m_changed && now - *m_changed < SETTLE_TIME ? RobotDetail::Interactive
+                                                                           : RobotDetail::Full };
             return m_dirty || detail != m_submitted ? std::optional{ detail } : std::nullopt;
         }
         void submitted(RobotDetail detail)

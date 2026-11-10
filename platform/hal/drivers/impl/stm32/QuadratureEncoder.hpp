@@ -19,7 +19,7 @@ namespace hal
         auto operator=(QuadratureEncoder&&) -> QuadratureEncoder& = delete;
 
         QuadratureEncoder(util::TimerLease lease,
-                          util::TimerLease samplerLease,
+                          util::TimerLease sampler_lease,
                           std::shared_ptr<IDigitalInput> a,
                           std::shared_ptr<IDigitalInput> b);
         ~QuadratureEncoder() override;

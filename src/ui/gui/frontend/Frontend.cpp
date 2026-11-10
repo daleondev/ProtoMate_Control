@@ -12,18 +12,34 @@ namespace ui::gui
 {
     namespace
     {
+#if defined(HAL_PLATFORM_LINUX)
+        constexpr unsigned KEY_BATCH_CAPACITY{ 32 };
+#endif
+#if defined(CORE_CM7)
+        constexpr unsigned STORAGE_ALIGNMENT{ 32 };
+#endif
+        // Fixed GUI arena; atomic claim enforces one frontend and releases it at teardown.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
         std::atomic_bool claimed{};
 #if defined(CORE_CM7)
-        alignas(32) __attribute__((section(".dtcm_bss"))) std::byte storage[sizeof(hmi::Model)];
+        // Fixed GUI arena; atomic claim enforces one frontend and releases it at teardown.
+        // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
+        alignas(STORAGE_ALIGNMENT)
+          __attribute__((section(".dtcm_bss"))) std::array<std::byte, sizeof(hmi::Model)> storage{};
+        // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 #else
-        alignas(hmi::Model) std::byte storage[sizeof(hmi::Model)];
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+        alignas(hmi::Model) std::array<std::byte, sizeof(hmi::Model)> storage{};
 #endif
     }
     hmi::Model& Frontend::reserveModel()
     {
-        if (claimed.exchange(true))
+        if (claimed.exchange(true)) {
             throw std::logic_error("TouchGFX frontend already active");
-        return *std::construct_at(reinterpret_cast<hmi::Model*>(storage));
+        }
+        // Placement construction in the correctly aligned, fixed frontend arena.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        return *std::construct_at(reinterpret_cast<hmi::Model*>(storage.data()));
     }
 
     Frontend::Frontend(scene3d::RenderService& renderer, hmi::Backend* backend)
@@ -50,21 +66,25 @@ namespace ui::gui
     void Frontend::handleTickEvent()
     {
 #if defined(HAL_PLATFORM_LINUX)
-        std::array<char, 32> keys{};
-        const auto count = hal::linux::display::keyboard(m_model.keypad ? m_model.editorRevision : 0, keys);
-        for (unsigned i = 0; i < count; ++i)
+        std::array<char, KEY_BATCH_CAPACITY> keys{};
+        const auto count{ hal::linux::display::keyboard(m_model.keypad ? m_model.editor_revision : 0, keys) };
+        for (unsigned i{ 0 }; i < count; ++i) {
             m_presenter.key(keys[i]);
+        }
 #endif
-        if (m_commands)
+        if (m_commands) {
             m_commands(m_context);
+        }
         touchgfx::MVPApplication::handleTickEvent();
 #if defined(HAL_PLATFORM_LINUX)
         // Closing or replacing a modal invalidates even keys arriving this tick.
-        hal::linux::display::keyboard(m_model.keypad ? m_model.editorRevision : 0, {});
-        if (hmi_observe_editor)
+        hal::linux::display::keyboard(m_model.keypad ? m_model.editor_revision : 0, {});
+        if (hmi_observe_editor) {
             hmi_observe_editor(m_model.keypad, m_model.number.data(), m_model.values[0]);
-        if (hmi_observe_presentation)
+        }
+        if (hmi_observe_presentation) {
             hmi_observe_presentation(&m_model.state);
+        }
 #endif
     }
 }

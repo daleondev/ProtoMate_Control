@@ -11,13 +11,15 @@ namespace
 }
 namespace hal::util
 {
-    void intercoreTrace(InterCoreStage stage, unsigned lane, std::span<const std::byte> bytes) noexcept
+    void intercore_trace(InterCoreStage stage, unsigned lane, std::span<const std::byte> bytes) noexcept
     {
-        if (!enabled.load(std::memory_order_relaxed))
+        if (!enabled.load(std::memory_order_relaxed)) {
             return;
+        }
         const stm32::InterruptGuard guard{};
-        if (!enabled.load(std::memory_order_relaxed))
+        if (!enabled.load(std::memory_order_relaxed)) {
             return;
+        }
         auto& entry = storage.entries[storage.count++ % storage.entries.size()];
         entry = { motion_bench::now(),         motion_bench::cycles(),
                   std::to_underlying(stage),   lane,
@@ -53,8 +55,9 @@ namespace motion_bench
                         (unsigned long)e.stage,
                         (unsigned long)e.lane,
                         (unsigned long)e.size);
-            for (auto byte : e.header)
+            for (auto byte : e.header) {
                 std::printf("%02x", std::to_integer<unsigned>(byte));
+            }
             std::puts("\"}");
             std::this_thread::sleep_for(2ms);
         }

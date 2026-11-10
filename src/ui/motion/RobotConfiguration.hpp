@@ -41,6 +41,8 @@ namespace ui::motion
     };
     struct RobotConfiguration
     {
+        // Preserve the configuration identity representation.
+        // NOLINTNEXTLINE(performance-enum-size)
         enum class Purpose
         {
             Simulation,
@@ -69,21 +71,23 @@ namespace ui::motion
 
     // Deliberately empty until this machine's mechanics have been calibrated.
     // Simulation fixtures are never substituted for a missing physical config.
-    [[nodiscard]] std::optional<RobotConfiguration> boardRobotConfiguration();
+    [[nodiscard]] std::optional<RobotConfiguration> board_robot_configuration();
     using ConfigurationProvider =
       std::function<std::optional<RobotConfiguration>(const ::motion::trajectory::Capabilities&)>;
     // Composition installs the native plant's profile before application workers
     // start. Hardware retains its explicit commissioning configuration.
-    void setSimulationConfigurationProvider(ConfigurationProvider provider);
-    [[nodiscard]] std::optional<RobotConfiguration> executionConfiguration(
+    void set_simulation_configuration_provider(ConfigurationProvider provider);
+    [[nodiscard]] std::optional<RobotConfiguration> execution_configuration(
       const ::motion::trajectory::Capabilities& hardware);
-    [[nodiscard]] RobotConfiguration simulationConfiguration(
+    [[nodiscard]] RobotConfiguration simulation_configuration(
       const ::motion::trajectory::Capabilities& hardware,
       bool archived_geometry = false);
 
     class RobotModel final
     {
       public:
+        // Preserve the configuration identity representation.
+        // NOLINTNEXTLINE(performance-enum-size)
         enum class Scope
         {
             Axes,
@@ -94,16 +98,16 @@ namespace ui::motion
                    Scope scope = Scope::Robot);
         [[nodiscard]] const RobotConfiguration& configuration() const noexcept { return m_configuration; }
         [[nodiscard]] bool hasKinematics() const noexcept { return m_kinematics.has_value(); }
-        [[nodiscard]] const ScaraKinematics& kinematics() const { return m_kinematics.value(); }
+        [[nodiscard]] const ScaraKinematics& kinematics() const;
         [[nodiscard]] const auto& hardware() const noexcept { return m_hardware; }
         [[nodiscard]] RobotError physicalAdmission() const noexcept;
         [[nodiscard]] std::uint64_t fingerprint() const noexcept;
-        [[nodiscard]] std::array<double, 3> joints(JointPosition p) const noexcept;
-        [[nodiscard]] JointPosition joints(const std::array<double, 3>& p) const noexcept;
-        [[nodiscard]] ::motion::trajectory::Positions toMotors(JointPosition joints) const;
-        [[nodiscard]] JointPosition toJoints(const ::motion::trajectory::Positions& motors) const;
+        [[nodiscard]] static std::array<double, 3> joints(JointPosition p) noexcept;
+        [[nodiscard]] static JointPosition joints(const std::array<double, 3>& p) noexcept;
+        [[nodiscard]] ::motion::trajectory::Positions toMotors(JointPosition p) const;
+        [[nodiscard]] JointPosition toJoints(const ::motion::trajectory::Positions& p) const;
         [[nodiscard]] ::motion::trajectory::MotorStates toMotors(
-          const std::array<::motion::KinematicState, 3>& joints) const;
+          const std::array<::motion::KinematicState, 3>& q) const;
         [[nodiscard]] std::array<double, 3> stepsPerJointUnit() const noexcept { return m_scale; }
         [[nodiscard]] std::array<::motion::trajectory::Limits, 3> jointLimits() const noexcept;
         [[nodiscard]] std::array<::motion::trajectory::Limits, 3> motorLimits() const noexcept;
@@ -112,6 +116,7 @@ namespace ui::motion
         [[nodiscard]] double quantizationBound() const noexcept;
 
       private:
+        void initializeJoint(unsigned joint);
         RobotConfiguration m_configuration;
         ::motion::trajectory::Capabilities m_hardware;
         std::array<RotaryAxisConversion, 2> m_rotary;

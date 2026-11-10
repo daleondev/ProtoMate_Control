@@ -18,12 +18,17 @@ namespace motion::visual
     };
     inline Frame relative(unsigned axis, double joint, const std::array<double, 3>& lengths = LENGTHS)
     {
-        if (axis >= 3 || !std::isfinite(joint))
+        if (axis >= 3 || !std::isfinite(joint)) {
             throw std::invalid_argument("invalid visual joint");
-        if (axis == 0)
-            return { { 0, 0, SHOULDER_Z }, std::remainder(joint, 2 * std::numbers::pi) };
-        if (axis == 1)
-            return { { lengths[0], 0, ELBOW_Z - SHOULDER_Z }, std::remainder(joint, 2 * std::numbers::pi) };
-        return { { lengths[1] + lengths[2], 0, CARRIAGE_Z - ELBOW_Z + joint }, 0 };
+        }
+        if (axis == 0) {
+            return { .translation = { 0, 0, SHOULDER_Z },
+                     .yaw = std::remainder(joint, 2 * std::numbers::pi) };
+        }
+        if (axis == 1) {
+            return { .translation = { lengths[0], 0, ELBOW_Z - SHOULDER_Z },
+                     .yaw = std::remainder(joint, 2 * std::numbers::pi) };
+        }
+        return { .translation = { lengths[1] + lengths[2], 0, CARRIAGE_Z - ELBOW_Z + joint }, .yaw = 0 };
     }
 }

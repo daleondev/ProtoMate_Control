@@ -3,7 +3,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void giga_console_connected(int connected);
+void giga_console_connected(int value);
 void giga_console_reset(void);
 void giga_console_suspend(void);
 void giga_console_resume(void);

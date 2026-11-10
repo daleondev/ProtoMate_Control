@@ -5,6 +5,10 @@
 #include <tx_api.h>
 namespace hal
 {
+    namespace
+    {
+        constexpr unsigned PRESENT_TIMEOUT_TICKS{ 100 };
+    }
     RgbOutput::~RgbOutput() { shutdown(); }
     auto RgbOutput::initialize() -> util::Result<>
     {
@@ -49,7 +53,7 @@ namespace hal
         if (!result) {
             return result;
         }
-        for (unsigned i{ 0 }; i < 100; ++i) {
+        for (unsigned i{ 0 }; i < PRESENT_TIMEOUT_TICKS; ++i) {
             service();
             const auto current{ state() };
             if (!current.pending) {
@@ -89,7 +93,7 @@ namespace hal
     }
     auto RgbOutput::backlight(unsigned percent) -> util::Result<>
     {
-        if (percent > 100) {
+        if (percent > PERCENT) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
         linux::display::brightness(percent);

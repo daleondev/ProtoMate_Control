@@ -37,23 +37,24 @@ namespace ui::gui::hmi
                       bool visible,
                       std::span<const Exclusion> exclusions = {})
         {
-            const auto allowed = [&](int x, int y) {
-                return inside(x, y) && std::none_of(exclusions.begin(), exclusions.end(), [&](const auto& r) {
-                    return r.contains(x, y);
-                });
-            };
-            Result result;
+            const auto allowed{ [&](int x, int y) {
+                return inside(x, y) &&
+                       std::ranges::none_of(exclusions, [&](const auto& r) { return r.contains(x, y); });
+            } };
+            Result result{};
             unsigned count{};
-            std::array<unsigned, 5> active{};
-            for (unsigned i = 0; i < report.points.size(); ++i) {
-                const auto& p = report.points[i];
+            std::array<unsigned, CONTACTS> active{};
+            for (unsigned i{ 0 }; i < report.points.size(); ++i) {
+                const auto& p{ report.points[i] };
                 if (p.active) {
                     active[count++] = i;
-                    if (!m_previous[i])
+                    if (!m_previous[i]) {
                         m_eligible[i] = allowed(p.x, p.y) && visible;
+                    }
                 }
-                else
+                else {
                     m_eligible[i] = false;
+                }
                 m_previous[i] = p.active;
             }
             if (!valid || !visible || report.cancelled) {
@@ -71,33 +72,16 @@ namespace ui::gui::hmi
                 return result;
             }
             if (count >= 2) {
-                result.captured = true;
-                if (count != 2 || !m_eligible[active[0]] || !m_eligible[active[1]]) {
-                    cancel();
-                    return result;
-                }
-                const auto& a = report.points[active[0]];
-                const auto& b = report.points[active[1]];
-                const float distance = std::hypot(float(a.x) - b.x, float(a.y) - b.y);
-                if (distance < 12) {
-                    m_distance = 0;
-                    m_pinching = true;
-                    return result;
-                }
-                if (m_pinching && m_distance > 0 && std::abs(distance - m_distance) >= 2) {
-                    result.scale = m_distance / distance;
-                    m_distance = distance;
-                }
-                if (!m_pinching || !m_distance)
-                    m_distance = distance;
-                m_pinching = true;
+                result = pinch(report, std::span(active).first(count));
             }
             else if (m_pinching) {
                 cancel();
                 result.captured = true;
             }
-            if (!result.captured && report.wheel && allowed(report.pointerX, report.pointerY))
-                result.scale = std::exp(-.12f * std::clamp(report.wheel, -20.f, 20.f));
+            if (!result.captured && report.wheel != 0 && allowed(report.pointer_x, report.pointer_y)) {
+                result.scale =
+                  std::exp(-WHEEL_SCALE * std::clamp(report.wheel, -MAX_WHEEL_DELTA, MAX_WHEEL_DELTA));
+            }
             return result;
         }
         static bool inside(int x, int y)
@@ -107,7 +91,35 @@ namespace ui::gui::hmi
         }
 
       private:
-        std::array<bool, 5> m_previous{}, m_eligible{};
+        static constexpr unsigned CONTACTS{ 5 };
+        static constexpr float MIN_SEPARATION{ 12 }, JITTER_PIXELS{ 2 }, WHEEL_SCALE{ .12f },
+          MAX_WHEEL_DELTA{ 20 };
+        Result pinch(const hal::device::TouchReport& report, std::span<const unsigned> active)
+        {
+            Result result{ .captured = true };
+            if (active.size() != 2 || !m_eligible[active[0]] || !m_eligible[active[1]]) {
+                cancel();
+                return result;
+            }
+            const auto& a{ report.points[active[0]] };
+            const auto& b{ report.points[active[1]] };
+            const float distance{ std::hypot(float(a.x) - float(b.x), float(a.y) - float(b.y)) };
+            if (distance < MIN_SEPARATION) {
+                m_distance = 0;
+                m_pinching = true;
+                return result;
+            }
+            if (m_pinching && m_distance > 0 && std::abs(distance - m_distance) >= JITTER_PIXELS) {
+                result.scale = m_distance / distance;
+                m_distance = distance;
+            }
+            if (!m_pinching || m_distance == 0) {
+                m_distance = distance;
+            }
+            m_pinching = true;
+            return result;
+        }
+        std::array<bool, CONTACTS> m_previous{}, m_eligible{};
         float m_distance{};
         bool m_pinching{}, m_locked{};
     };

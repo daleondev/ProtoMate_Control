@@ -3,8 +3,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 #include <optional>
+#include <span>
 
 namespace hal::util
 {
@@ -91,8 +91,8 @@ namespace hal::util
         virtual auto publish() noexcept -> void = 0;
         // Called only when both old and replacement compare are safely in the
         // future. Does not reset DMA, output phase or the timer.
-        virtual void retarget(std::size_t, std::uint32_t) noexcept {}
+        virtual void retarget(std::size_t /*unused*/, std::uint32_t /*unused*/) noexcept {}
         virtual bool supportsRetarget() const noexcept { return false; }
-        virtual void spliceWindow(std::optional<std::uint32_t>) noexcept {}
+        virtual void spliceWindow(std::optional<std::uint32_t> /*unused*/) noexcept {}
     };
 }

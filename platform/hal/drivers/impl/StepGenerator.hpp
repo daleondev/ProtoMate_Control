@@ -67,9 +67,37 @@ namespace hal::util
       private:
         struct SpliceWorkspace;
         struct RefillWorkspace;
+        struct AxisStart;
+        auto captureAxisStart(std::size_t index, AxisStart& start) noexcept -> util::Result<>;
+        auto writeStartBatch(std::size_t index,
+                             AxisStart& start,
+                             std::size_t half,
+                             std::uint32_t& entry,
+                             std::span<const step::Timing> timings) noexcept -> util::Result<>;
+        auto prepareAxisStart(std::size_t index, AxisStart& start) noexcept -> util::Result<>;
+        auto publishAxisStart(std::size_t index,
+                              const AxisStart& start,
+                              std::chrono::nanoseconds delay) noexcept -> util::Result<>;
+        struct PreparedStart;
+        struct RefillState;
+        bool captureRefill(std::size_t i, RefillState& state) noexcept;
+        bool calculateRefill(RefillState& state) noexcept;
+        bool commitRefill(std::size_t i, const RefillState& state, bool valid) noexcept;
+        auto capturePrepared(const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays,
+                             PreparedStart& start) noexcept -> util::Result<>;
+        auto buildStartHalf(std::size_t i, const PreparedStart& start, unsigned half) noexcept
+          -> util::Result<>;
+        auto prepareStartAxis(std::size_t i,
+                              const PreparedStart& start,
+                              std::chrono::nanoseconds delay) noexcept -> util::Result<>;
+        auto publishPrepared(const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays,
+                             const PreparedStart& start) noexcept -> util::Result<>;
         std::unique_ptr<SpliceWorkspace> m_splice;
         std::unique_ptr<RefillWorkspace> m_refill;
         std::atomic_flag m_splicing{};
+        // Initial calculations may run concurrently on distinct inactive channels.
+        // A channel remains unarmed until its revision is revalidated.
+        std::atomic_uint8_t m_starting{};
         // Caller owns m_splicing; scratch is never referenced by DMA.
         auto reserveScratch(std::uint32_t entries) noexcept -> util::Result<>;
         struct Timing
@@ -107,8 +135,31 @@ namespace hal::util
           const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays) noexcept -> util::Result<>;
         auto armPrepared(const std::array<std::optional<std::chrono::nanoseconds>, 3>& delays,
                          const StepSample& origin) noexcept -> util::Result<>;
+        auto copiedSpliceIntervals(unsigned i, const step::TimedSequence& sequence) const -> std::uint32_t;
+        auto captureSplice(const std::array<std::shared_ptr<const step::TimedSequence>, 3>& sequences)
+          -> util::Result<>;
+        auto prepareSplice(const std::array<std::shared_ptr<const step::TimedSequence>, 3>& sequences)
+          -> util::Result<>;
+        auto commitSplice(const std::array<std::shared_ptr<const step::TimedSequence>, 3>& sequences,
+                          std::uint32_t preserve_until) -> util::Result<>;
+        auto captureSpliceAxis(unsigned i, const step::TimedSequence& sequence) -> util::Result<>;
+        auto certifySpliceAxis(unsigned i, const step::TimedSequence& sequence, bool unchanged) -> bool;
+        auto stageSpliceAxis(unsigned i, const step::TimedSequence& sequence) -> util::Result<>;
+        auto validSplicePrefix(unsigned i, const step::TimedSequence& sequence) const -> bool;
+        auto validateSpliceAxis(unsigned i,
+                                const step::TimedSequence& sequence,
+                                const StepSample& sample,
+                                std::uint32_t preserve_until,
+                                std::uint32_t& compare,
+                                bool& restart) -> util::Result<>;
+        auto publishSpliceAxis(unsigned i,
+                               const std::shared_ptr<const step::TimedSequence>& sequence,
+                               const StepSample& sample,
+                               std::uint32_t compare,
+                               bool restart) -> util::Result<>;
         auto fill(std::size_t index, unsigned buffer) noexcept -> bool;
         auto observe(std::size_t index, const StepSample& sample) const noexcept -> Observed;
+        bool completeAxisIfDue(std::size_t i, const StepSample& sample, const Observed& observed) noexcept;
         auto updateCounts(const StepSample& sample) noexcept -> void;
         auto deadline(std::uint32_t now) const noexcept -> std::uint32_t;
         auto guard(std::uint32_t now) noexcept -> void;

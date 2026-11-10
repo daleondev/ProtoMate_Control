@@ -11,12 +11,50 @@ namespace ui::motion
     namespace tr = ::motion::trajectory;
     namespace
     {
+        constexpr std::uint64_t PREVIEW_PULSE_BUDGET{ 1'000'000 };
+        constexpr auto REQUEST_TIMEOUT{ std::chrono::seconds{ 3 } };
 #if defined(CORE_CM7)
+        constexpr std::size_t ARENA_BYTES{ 248 * 1024 }, ARENA_ALIGNMENT{ 32 };
         // Raw, explicitly initialized POD storage. No startup access to SDRAM,
         // no heap/mutex/runtime objects in the reserved motion region.
-        alignas(32) __attribute__((section(".motion_sdram"))) std::byte arenaStorage[248 * 1024];
-        std::atomic_bool arenaClaimed{};
+        alignas(ARENA_ALIGNMENT)
+          // Linker-reserved planning arena; atomic claim guarantees exclusive Robot ownership.
+          // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+          __attribute__((section(".motion_sdram"))) std::array<std::byte, ARENA_BYTES> arena_storage{};
+        // Linker-reserved planning arena; atomic claim guarantees exclusive Robot ownership.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+        std::atomic_bool arena_claimed{};
 #endif
+        RobotError validate_pulses(const Planner& planner,
+                                   const tr::Capabilities& hardware,
+                                   const tr::Counts& start,
+                                   const std::stop_token& stop)
+        {
+            tr::PulseCursor cursor{ hardware, start };
+            std::uint64_t pulse_budget{ PREVIEW_PULSE_BUDGET };
+            for (const auto& segment : planner.segments()) {
+                const auto error{ cursor.append(segment) };
+                if (error != RobotError::None) {
+                    return error;
+                }
+                for (;;) {
+                    if (stop.stop_requested()) {
+                        return RobotError::Cancelled;
+                    }
+                    const auto pulse{ cursor.next() };
+                    if (!pulse) {
+                        return pulse.error();
+                    }
+                    if (!*pulse) {
+                        break;
+                    }
+                    if (!pulse_budget--) {
+                        return RobotError::Capacity;
+                    }
+                }
+            }
+            return RobotError::None;
+        }
         bool terminal(Robot::JobState state)
         {
             return state != Robot::JobState::Queued && state != Robot::JobState::Planning;
@@ -25,12 +63,14 @@ namespace ui::motion
     std::unique_ptr<Robot::Arena, Robot::ReleaseArena> Robot::reserveArena()
     {
 #if defined(CORE_CM7)
-        static_assert(sizeof(Arena) <= sizeof(arenaStorage));
-        if (arenaClaimed.exchange(true)) {
+        static_assert(sizeof(Arena) <= sizeof(arena_storage));
+        if (arena_claimed.exchange(true)) {
             throw std::logic_error("robot planning arena already owned");
         }
+        // Placement construction in the linker-reserved, correctly aligned planning arena.
         return std::unique_ptr<Arena, ReleaseArena>{ std::construct_at(
-          reinterpret_cast<Arena*>(arenaStorage)) };
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          reinterpret_cast<Arena*>(arena_storage.data())) };
 #else
         return std::unique_ptr<Arena, ReleaseArena>{ new Arena{} };
 #endif
@@ -39,9 +79,9 @@ namespace ui::motion
     {
 #if defined(CORE_CM7)
         std::destroy_at(arena);
-        arenaClaimed = false;
+        arena_claimed = false;
 #else
-        delete arena;
+        std::default_delete<Arena>{}(arena);
 #endif
     }
     Robot::Robot(pnm::msg::Bus& bus)
@@ -50,14 +90,14 @@ namespace ui::motion
     {
     }
     Robot::Robot(pnm::msg::Bus& bus, Client& client)
-      : Robot(bus)
+      : Robot{ bus }
     {
         m_client = &client;
     }
     Robot::~Robot() = default; // Application joins the planning worker first.
     void Robot::setConnected(bool connected)
     {
-        std::optional<std::stop_source> cancel;
+        std::optional<std::stop_source> cancel{};
         {
             std::scoped_lock lock{ m_mutex };
             m_connected = connected;
@@ -143,17 +183,17 @@ namespace ui::motion
         }
         return out;
     }
-    Robot::Job Robot::calculate(PreviewRequest r, std::uint64_t id, std::stop_token stop)
+    Robot::Job Robot::calculate(PreviewRequest r, std::uint64_t id, const std::stop_token& stop)
     {
         Job result{ .id = id, .state = JobState::Rejected, .model = r.model };
-        auto call{ m_service.request(tr::encode(tr::Request{}), std::chrono::seconds{ 3 }, stop) };
+        auto call{ m_service.request(tr::encode(tr::Request{}), REQUEST_TIMEOUT, stop) };
         const auto response{ call.get() };
         if (!response) {
             result.state = JobState::Unknown;
             result.error = RobotError::Unknown;
             return result;
         }
-        const auto decoded{ tr::decodeReply(*response) };
+        const auto decoded{ tr::decode_reply(*response) };
         if (!decoded) {
             result.error = decoded.error();
             return result;
@@ -163,8 +203,8 @@ namespace ui::motion
             return result;
         }
         const auto configuration{ r.model == Model::Physical
-                                    ? boardRobotConfiguration()
-                                    : std::optional{ simulationConfiguration(
+                                    ? board_robot_configuration()
+                                    : std::optional{ simulation_configuration(
                                         decoded->capabilities, r.model == Model::FixtureArchived) } };
         if (!configuration) {
             result.error = RobotError::Configuration;
@@ -192,38 +232,17 @@ namespace ui::motion
                 result.error = compiled.error();
                 return result;
             }
-            // Numeric pulse preparation is a second gate after continuous path
-            // validation; impossible DIR/STEP timing is never stretched.
-            tr::PulseCursor cursor{ decoded->capabilities, start };
-            std::uint64_t pulseBudget{ 1'000'000 };
-            for (const auto& segment : planner.segments()) {
-                result.error = cursor.append(segment);
-                if (result.error != RobotError::None) {
-                    return result;
+            // Reject impossible pulse timing rather than stretching the path.
+            result.error = validate_pulses(planner, decoded->capabilities, start, stop);
+            if (result.error != RobotError::None) {
+                if (result.error == RobotError::Cancelled) {
+                    result.state = JobState::Cancelled;
                 }
-                for (;;) {
-                    if (stop.stop_requested()) {
-                        result.state = JobState::Cancelled;
-                        result.error = RobotError::Cancelled;
-                        return result;
-                    }
-                    const auto pulse{ cursor.next() };
-                    if (!pulse) {
-                        result.error = pulse.error();
-                        return result;
-                    }
-                    if (!*pulse) {
-                        break;
-                    }
-                    if (!pulseBudget--) {
-                        result.error = RobotError::Capacity;
-                        return result;
-                    }
-                }
+                return result;
             }
             tr::Positions endpoint{};
             for (unsigned i{ 0 }; i < 3; ++i) {
-                endpoint[i] = compiled->endpoint[i];
+                endpoint[i] = static_cast<double>(compiled->endpoint[i]);
             }
             result.endpoint = model.toJoints(endpoint);
             const auto fk{ model.kinematics().forward(result.endpoint) };
@@ -241,7 +260,7 @@ namespace ui::motion
         }
         return result;
     }
-    void Robot::run(std::stop_token stop)
+    void Robot::run(const std::stop_token& stop)
     {
         const std::stop_callback cancellation{ stop, [this] { m_changed.signal(); } };
         while (!stop.stop_requested()) {
@@ -251,7 +270,7 @@ namespace ui::motion
             }
             PreviewRequest request{};
             std::uint64_t id{ 0 };
-            std::stop_source jobStop{ std::nostopstate };
+            std::stop_source job_stop{ std::nostopstate };
             {
                 std::scoped_lock lock{ m_mutex };
                 Slot* selected{ nullptr };
@@ -266,15 +285,15 @@ namespace ui::motion
                     id = selected->job.id;
                     m_activeJob = id;
                     m_activeStop = std::stop_source{};
-                    jobStop = m_activeStop;
+                    job_stop = m_activeStop;
                 }
             }
             if (!id) {
                 m_changed.waitUntil(std::chrono::steady_clock::time_point::max());
                 continue;
             }
-            const std::stop_callback cancelJob{ stop, [&jobStop] { jobStop.request_stop(); } };
-            const auto result{ calculate(request, id, jobStop.get_token()) };
+            const std::stop_callback cancel_job{ stop, [&job_stop] { job_stop.request_stop(); } };
+            const auto result{ calculate(request, id, job_stop.get_token()) };
             {
                 std::scoped_lock lock{ m_mutex };
                 m_activeJob = 0;

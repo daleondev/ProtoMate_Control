@@ -9,12 +9,12 @@ namespace ui::cli
 
     // Selects ncurses/plain input on Linux, and the serial console on STM32.
     // Returns on EOF, Ctrl-C/Ctrl-D, or application shutdown.
-    void run(Parser& parser, std::stop_token stop);
+    void run(Parser& parser, const std::stop_token& stop);
 
     // Plain console frontend shared by redirected Linux input and STM32 UART.
     // Input waits yield through the runtime so ICC can continue independently.
-    void runStream(Parser& parser, std::stop_token stop, bool echo);
+    void run_stream(Parser& parser, const std::stop_token& stop, bool echo);
 
     // Already formatted remote records, written only from the UI log worker.
-    void writeLog(std::string_view line);
+    void write_log(std::string_view line);
 }

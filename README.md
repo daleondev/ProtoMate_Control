@@ -1921,7 +1921,8 @@ compatibility. No application filesystem writes to XIP flash.
 | 0x2001C000 / 0x2001E000 | 8 KiB bootstrap scratch; 8 KiB M7 MSP |
 | 0x38000000 / 0x3800F000 | 60 KiB ICC reservation; 4 KiB boot handoff |
 | 0xC0000000 / 0xC0200000 | Two 2 MiB framebuffer slots; each uses 1,228,800 bytes |
-| 0xC0400000 | 2 MiB reserved M4 ordinary application code with `GIGA_M4_SDRAM_CODE` |
+| 0xC0400000 | 512 KiB reserved for M4/M7 profiling; non-cacheable, execute-never |
+| 0xC0480000 | 1536 KiB M4 ordinary instructions, loaded from QSPI at boot |
 | 0xC0600000 | 2 MiB 3D colour/depth buffers and bounded planning storage |
 
 The onboard SDRAM is 8 MiB AS4C4M16SA-6BIN, bank 1, 16-bit, four banks, **12 row
@@ -2056,13 +2057,14 @@ cmake --build --preset giga-debug
 # and giga-io-ram-debug.
 ```
 
-`GIGA_M4_SDRAM_CODE=ON` selects the reserved 2 MiB SDRAM region for ordinary M4
-instructions in either Debug or Release. QSPI remains the persistent image
+Normal Debug/Release and profiling presets select `GIGA_M4_SDRAM_CODE=ON`:
+ordinary M4 instructions occupy the reserved 1536 KiB at `0xC0480000`. QSPI remains the persistent image
 storage, and the same bootstrap validates and copies the code before starting
 M4. Timing-critical code remains in internal instruction SRAM. This option is
-currently opt-in for normal firmware while the application motion workload is
-being qualified. The electrical motion fixture presets select it explicitly.
-For example, configure the existing paired test with
+enabled in normal firmware and the electrical motion fixtures. QSPI instruction
+fetches on the uncached M4 exceeded the unchanged command/lease budgets; the
+SDRAM application screening passes. The lower 512 KiB remains reserved for
+both cores' profiling data. For example, configure the paired test with
 `cmake --preset giga-motion-api-release -DGIGA_M4_SDRAM_CODE=ON`.
 Combined builds pass the selection to their normal IO child preset; it does not
 substitute another application or drop a test fixture. The `giga-ram-debug`
@@ -2154,7 +2156,7 @@ trigger the existing ICC connection-loss policy; reset both cores afterwards.
 Use `monitor giga_halt_both` before reset/maintenance; flash with the script,
 not GDB `load`. Ordinary M4 XIP code cannot use FPB hardware breakpoints at
 0x90xxxxxx. `GIGA_M4_SDRAM_CODE=ON` stores the image in QSPI but executes its ordinary
-M4 code in SDRAM at 0xC0400000, permitting **software** breakpoints after bootstrap
+M4 code in SDRAM at 0xC0480000, permitting **software** breakpoints after bootstrap
 has copied it. Read-only data and exception metadata remain in QSPI: prebuilt
 libc/C++ routines can use unaligned reads that FMC does not support
 ([ES0445 §2.7.3](https://www.st.com/resource/en/errata_sheet/es0445-stm32h745xig-stm32h755xi-stm32h747xig-stm32h757xi-device-errata-stmicroelectronics.pdf)).

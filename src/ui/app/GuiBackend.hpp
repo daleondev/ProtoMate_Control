@@ -12,21 +12,39 @@ namespace ui
     class GuiBackend final : public gui::hmi::Backend
     {
       public:
-        GuiBackend(pnm::msg::Bus&, motion::Client&, motion::Robot&, SystemState&);
+        GuiBackend(const GuiBackend&) = delete;
+        auto operator=(const GuiBackend&) -> GuiBackend& = delete;
+        GuiBackend(GuiBackend&&) = delete;
+        auto operator=(GuiBackend&&) -> GuiBackend& = delete;
+
+        GuiBackend(pnm::msg::Bus& /*bus*/,
+                   motion::Client& /*client*/,
+                   motion::Robot& /*robot*/,
+                   SystemState& /*system*/);
         ~GuiBackend() override;
-        void connection(icc::ConnectionStatus, const char* detail = nullptr);
-        void read(gui::hmi::Snapshot&) override;
-        gui::hmi::Outcome submit(const gui::hmi::Command&) override;
-        unsigned jobs(unsigned, std::span<gui::hmi::Job>, bool) override;
-        gui::hmi::Outcome hold(const gui::hmi::Command&, int, int, int, int) override;
-        void input(const gui::hmi::Input&) override;
+        void connection(icc::ConnectionStatus /*state*/, const char* detail = nullptr);
+        void read(gui::hmi::Snapshot& /*result*/) override;
+        gui::hmi::Outcome submit(const gui::hmi::Command& /*command*/) override;
+        unsigned jobs(unsigned /*offset*/, std::span<gui::hmi::Job> /*output*/, bool /*previews*/) override;
+        gui::hmi::Outcome hold(const gui::hmi::Command& /*command*/,
+                               gui::hmi::layout::Bounds /*bounds*/) override;
+        void input(const gui::hmi::Input& /*input*/) override;
         void release() override;
-        void diagnostics(unsigned, gui::hmi::DiagnosticPage&) override;
+        void diagnostics(unsigned /*unused*/, gui::hmi::DiagnosticPage& /*result*/) override;
 
       private:
         void update(); // existing client worker
-        gui::hmi::Outcome submitHeld(const gui::hmi::Command&, std::uint64_t gesture);
-        void outcome(std::uint64_t id, bool ok, const char* text, std::uint64_t job = 0);
+        void updateMemory();
+        unsigned previewJobs(unsigned offset, std::span<gui::hmi::Job> output);
+        void requestMemory(const gui::hmi::Command& c, std::uint64_t operation);
+        std::uint64_t submitPreview(const gui::hmi::Command& c, const gui::hmi::Snapshot& state);
+        std::uint64_t submitCartesianJog(const gui::hmi::Command& c);
+        std::uint64_t submitRobot(const gui::hmi::Command& c);
+        std::uint64_t submitAxis(const gui::hmi::Command& c);
+        std::uint64_t submitRaw(const gui::hmi::Command& c, const gui::hmi::Snapshot& state);
+        void submitControl(std::uint64_t id, const ::motion::MotorRequest& request);
+        gui::hmi::Outcome submitHeld(const gui::hmi::Command& /*c*/, std::uint64_t gesture);
+        void outcome(std::uint64_t id, bool ok, const char* message, std::uint64_t job = 0);
         motion::Client& m_client;
         motion::Robot& m_robot;
         SystemState& m_system;
@@ -45,6 +63,6 @@ namespace ui
         diagnostics::MemorySnapshot m_memoryData{};
         std::chrono::steady_clock::time_point m_memoryTime{};
         bool m_memoryAvailable{}, m_memoryIO{};
-        gui::hmi::Text<96> m_memoryError{};
+        gui::hmi::Text<gui::hmi::text_capacity::LABEL> m_memoryError{};
     };
 }

@@ -5,13 +5,115 @@
 #include <array>
 #include <cstring>
 #include <touchgfx/Bitmap.hpp>
+#include <utility>
 namespace ui::gui
 {
+    namespace
+    {
+        constexpr auto TRANSFER_TIMEOUT{ std::chrono::milliseconds{ 100 } };
+        constexpr std::size_t DISPLAY_WIDTH{ 1024 }, DISPLAY_STRIDE{ DISPLAY_WIDTH * sizeof(std::uint16_t) };
+        constexpr std::size_t VERIFY_SCRATCH{ 8192 }, VERIFY_SOURCE_START{ 4096 }, VERIFY_SOURCE_SIZE{ 2048 };
+        constexpr std::uint16_t VERIFY_GUARD{ 0x1234 };
+        constexpr std::uint32_t VERIFY_FILL{ 0xff31ad73 }, VERIFY_BLEND_FILL{ 0xffedf4f6 },
+          VERIFY_BLEND_PIXEL{ 0x809b47e3 };
+        constexpr unsigned VERIFY_FILL_ALPHA{ 80 }, VERIFY_BLEND_ALPHA{ 173 }, VERIFY_PIXEL_ALPHA{ 128 };
+        constexpr unsigned VERIFY_RED_FACTOR{ 7 }, VERIFY_GREEN_FACTOR{ 11 }, VERIFY_BLUE_FACTOR{ 13 };
+        constexpr int QUANTIZATION_MARGIN{ 8 };
+        hal::graphics::Operation operation_for(std::uint32_t operation)
+        {
+            using namespace touchgfx;
+            using enum hal::graphics::Operation;
+            switch (operation) {
+                case BLIT_OP_FILL_WITH_ALPHA:
+                    return BlendFill;
+                case BLIT_OP_FILL:
+                case BLIT_OP_FILL_16BIT:
+                    return Fill;
+                case BLIT_OP_COPY_WITH_ALPHA:
+                case BLIT_OP_COPY_ARGB8888:
+                case BLIT_OP_COPY_ARGB8888_WITH_ALPHA:
+                    return Blend;
+                default:
+                    return Copy;
+            }
+        }
+        std::uint32_t fill_color(std::uint32_t color, hal::graphics::Operation operation)
+        {
+            if (operation == hal::graphics::Operation::BlendFill) {
+                return hal::util::OPAQUE_ALPHA | color;
+            }
+            if (operation == hal::graphics::Operation::Fill) {
+                return hal::util::argb8888(static_cast<std::uint16_t>(color));
+            }
+            return color;
+        }
+        struct PixelRegion
+        {
+            unsigned width, height, stride;
+        };
+        struct BlendExpectation
+        {
+            std::uint32_t foreground, background;
+            unsigned alpha;
+        };
+        struct Foreground
+        {
+            std::uint32_t color;
+            unsigned alpha;
+        };
+        template<class Expected>
+        bool pixels_match(std::span<const std::uint16_t> pixels, PixelRegion region, Expected expected)
+        {
+            for (unsigned y{ 0 }; y < region.height; ++y) {
+                for (unsigned x{ 0 }; x < region.width; ++x) {
+                    if (pixels[(std::size_t(y) * region.stride) + x] != expected(x, y)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        bool blend_matches(std::uint32_t actual, BlendExpectation expected_blend)
+        {
+            using namespace hal::util;
+            return std::ranges::all_of(CHANNEL_SHIFTS, [&](unsigned shift) {
+                const int expected{ static_cast<int>(
+                  (((expected_blend.foreground >> shift) & CHANNEL_MAX) * expected_blend.alpha +
+                   ((expected_blend.background >> shift) & CHANNEL_MAX) *
+                     (CHANNEL_MAX - expected_blend.alpha)) /
+                  CHANNEL_MAX) };
+                const int error{ int((actual >> shift) & CHANNEL_MAX) - expected };
+                return error >= -QUANTIZATION_MARGIN && error <= QUANTIZATION_MARGIN;
+            });
+        }
+    }
+    namespace
+    {
+        template<class Background>
+        bool verify_blend(std::span<const std::uint16_t> pixels,
+                          PixelRegion region,
+                          Foreground foreground,
+                          Background background)
+        {
+            for (unsigned y{ 0 }; y < region.height; ++y) {
+                for (unsigned x{ 0 }; x < region.width; ++x) {
+                    const auto actual{ hal::util::argb8888(pixels[(std::size_t(y) * region.stride) + x]) };
+                    if (!blend_matches(actual,
+                                       { .foreground = foreground.color,
+                                         .background = background(x, y),
+                                         .alpha = foreground.alpha })) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
     GraphicsDMA::GraphicsDMA(std::shared_ptr<hal::IGraphics> graphics, std::stop_token stop)
       : DMA_Interface{ m_queue }
       , m_queue{ &m_storage, 1 }
       , m_graphics{ std::move(graphics) }
-      , m_stop{ stop }
+      , m_stop{ std::move(stop) }
     {
     }
     GraphicsDMA::~GraphicsDMA()
@@ -23,6 +125,10 @@ namespace ui::gui
     touchgfx::BlitOperations GraphicsDMA::getBlitCaps()
     {
         using namespace touchgfx;
+        // The TouchGFX ABI defines this enum as a bitmask, including zero for
+        // software-only rendering. Its representable range is 0..4095; these
+        // combinations are intentional, even though they are not named enumerators.
+        // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
         return static_cast<BlitOperations>(m_graphics
                                              ? BLIT_OP_FILL | BLIT_OP_FILL_16BIT | BLIT_OP_FILL_WITH_ALPHA |
                                                  BLIT_OP_COPY | BLIT_OP_COPY_16BIT | BLIT_OP_COPY_WITH_ALPHA |
@@ -38,76 +144,75 @@ namespace ui::gui
         if (!op.nSteps || !op.nLoops) {
             return;
         }
-        const bool alphaFill{ op.operation == BLIT_OP_FILL_WITH_ALPHA };
+        const bool alpha_fill{ op.operation == BLIT_OP_FILL_WITH_ALPHA };
         const bool fill{ (op.operation == BLIT_OP_FILL || op.operation == BLIT_OP_FILL_16BIT) };
-        const bool blend{ alphaFill || op.operation == BLIT_OP_COPY_WITH_ALPHA ||
+        const bool blend{ alpha_fill || op.operation == BLIT_OP_COPY_WITH_ALPHA ||
                           op.operation == BLIT_OP_COPY_ARGB8888 ||
                           op.operation == BLIT_OP_COPY_ARGB8888_WITH_ALPHA };
         // LCD16bpp can pack two RGB565 pixels into an ARGB8888-width
         // raw fill/copy. Normalize those word operations to our RGB565 HAL.
-        const unsigned packed{ op.dstFormat == Bitmap::ARGB8888 ? 2u : 1u };
+        const unsigned packed{ op.dstFormat == Bitmap::ARGB8888 ? 2U : 1U };
         if (packed == 2 && (blend || (!fill && op.operation != BLIT_OP_COPY))) {
             m_failed = true;
             return;
         }
-        const unsigned sourceBytes{ packed == 2 ? 2U : op.srcFormat == Bitmap::ARGB8888 ? 4U : 2U };
+        const unsigned source_bytes{ packed != 2 && op.srcFormat == Bitmap::ARGB8888 ? 4U : 2U };
         const auto width{ unsigned(op.nSteps) * packed };
-        const auto destinationStride{ std::size_t(op.dstLoopStride) * packed * 2 };
-        const auto sourceStride{ std::size_t(op.srcLoopStride) * packed * sourceBytes };
+        const auto destination_stride{ std::size_t(op.dstLoopStride) * packed * 2 };
+        const auto source_stride{ std::size_t(op.srcLoopStride) * packed * source_bytes };
         // Despite BlitOp.hpp's legacy comment, these strides are in pixels,
         // as used by the SDK's generated STM32 DMA adapter.
         hal::graphics::Transfer transfer{
-            .operation = alphaFill ? hal::graphics::Operation::BlendFill
-                         : fill    ? hal::graphics::Operation::Fill
-                         : blend   ? hal::graphics::Operation::Blend
-                                   : hal::graphics::Operation::Copy,
-            .destination = { reinterpret_cast<std::byte*>(op.pDst),
-                             (std::size_t(op.nLoops) - 1) * destinationStride + width * 2 },
-            .destinationStride = destinationStride,
+            .operation = operation_for(op.operation),
+            .destination = std::as_writable_bytes(
+              std::span{ op.pDst,
+                         (((std::size_t(op.nLoops) - 1) * destination_stride) + (std::size_t(width) * 2)) /
+                           sizeof(*op.pDst) }),
+            .destination_stride = destination_stride,
             .source = {},
-            .sourceStride = sourceStride,
-            .sourceFormat =
-              sourceBytes == 4 ? hal::graphics::Format::Argb8888 : hal::graphics::Format::Rgb565,
+            .source_stride = source_stride,
+            .source_format =
+              source_bytes == 4 ? hal::graphics::Format::Argb8888 : hal::graphics::Format::Rgb565,
             .width = width,
             .height = op.nLoops,
-            .color = alphaFill ? (0xff000000u | op.color)
-                     : fill    ? hal::util::argb8888(static_cast<std::uint16_t>(op.color))
-                               : static_cast<std::uint32_t>(op.color),
+            .color = fill_color(op.color, operation_for(op.operation)),
             .alpha = op.alpha
         };
-        if (!fill && !alphaFill) {
-            transfer.source = { reinterpret_cast<const std::byte*>(op.pSrc),
-                                (std::size_t(op.nLoops) - 1) * sourceStride + width * sourceBytes };
+        if (!fill && !alpha_fill) {
+            transfer.source = std::as_bytes(std::span{
+              op.pSrc,
+              (((std::size_t(op.nLoops) - 1) * source_stride) + (std::size_t(width) * source_bytes)) /
+                sizeof(*op.pSrc) });
         }
         const auto began{ std::chrono::steady_clock::now() };
-        if (!execute(transfer)) {
+        if (!performTransfer(transfer)) {
             m_failed = true;
         }
-        if (!fill && !alphaFill) {
+        if (!fill && !alpha_fill) {
             m_imageTransferUs +=
               std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - began)
                 .count();
             ++m_imageTransfers;
         }
     }
-    bool GraphicsDMA::execute(const hal::graphics::Transfer& transfer)
+    bool GraphicsDMA::performTransfer(const hal::graphics::Transfer& transfer)
     {
         profiling::Scope measurement{ PROFILE_SITE_GUI_DMA, PROFILE_CAT_GRAPHICS };
         m_done.store(false, std::memory_order_release);
         const std::stop_callback cancellation{ m_stop, [this] { m_completion.signal(); } };
         const auto result{ m_graphics->submit(
-          transfer, { [](void* pointer, hal::graphics::Completion completion) noexcept {
+          transfer, { .function = [](void* pointer, hal::graphics::Completion completion) noexcept {
             auto& self{ *static_cast<GraphicsDMA*>(pointer) };
             self.m_result.store(completion, std::memory_order_relaxed);
             self.m_done.store(true, std::memory_order_release);
             self.m_completion.signal();
-        }, this }) };
+        }, .context = this }) };
         if (!result) {
             return false;
         }
         // One in-flight operation. Suspend the GUI task while DMA2D runs;
         // no widget/engine code runs in the IRQ, and no per-operation allocation.
-        const auto deadline{ std::chrono::steady_clock::now() + std::chrono::milliseconds{ 100 } };
+        const auto deadline{ std::chrono::steady_clock::now() + TRANSFER_TIMEOUT };
         while (!m_done.load(std::memory_order_acquire) && !m_stop.stop_requested()) {
             if (!m_completion.waitUntil(deadline)) {
                 break;
@@ -124,130 +229,122 @@ namespace ui::gui
                                  std::span<std::uint16_t> destination,
                                  const touchgfx::Rect& region)
     {
-        const auto offset{ std::size_t(region.y) * 1024 + region.x };
-        const auto length{ std::size_t(region.height - 1) * 1024 + region.width };
-        return execute({ .operation = hal::graphics::Operation::Copy,
-                         .destination = std::as_writable_bytes(destination.subspan(offset, length)),
-                         .destinationStride = 2048,
-                         .source = std::as_bytes(source.subspan(offset, length)),
-                         .sourceStride = 2048,
-                         .width = unsigned(region.width),
-                         .height = unsigned(region.height) });
+        const auto offset{ (std::size_t(region.y) * DISPLAY_WIDTH) + region.x };
+        const auto length{ (std::size_t(region.height - 1) * DISPLAY_WIDTH) + region.width };
+        return performTransfer({ .operation = hal::graphics::Operation::Copy,
+                                 .destination = std::as_writable_bytes(destination.subspan(offset, length)),
+                                 .destination_stride = DISPLAY_STRIDE,
+                                 .source = std::as_bytes(source.subspan(offset, length)),
+                                 .source_stride = DISPLAY_STRIDE,
+                                 .width = unsigned(region.width),
+                                 .height = unsigned(region.height) });
     }
     bool GraphicsDMA::verify(std::span<std::uint16_t> scratch)
     {
-        if (!m_graphics || scratch.size() < 8192) {
+        if (!m_graphics || scratch.size() < VERIFY_SCRATCH) {
             return false;
         }
         using namespace hal::graphics;
-        constexpr unsigned width{ 33 }, height{ 17 }, stride{ 79 };
-        auto destination{ scratch.subspan(1, stride * height) };
-        auto source{ std::as_writable_bytes(scratch.subspan(4096, 2048)) };
-        std::ranges::fill(scratch.first(4096), 0x1234);
+        constexpr unsigned width{ 33 };
+        constexpr unsigned height{ 17 };
+        constexpr unsigned stride{ 79 };
+        auto destination{ scratch.subspan(1, static_cast<std::size_t>(stride) * height) };
+        auto source{ std::as_writable_bytes(scratch.subspan(VERIFY_SOURCE_START, VERIFY_SOURCE_SIZE)) };
+        std::ranges::fill(scratch.first(VERIFY_SOURCE_START), VERIFY_GUARD);
         Transfer transfer{ .operation = Operation::Fill,
                            .destination = std::as_writable_bytes(destination),
-                           .destinationStride = stride * 2,
+                           .destination_stride = static_cast<std::size_t>(stride) * 2,
                            .source = {},
                            .width = width,
                            .height = height,
-                           .color = 0xff31ad73 };
-        if (!execute(transfer)) {
+                           .color = VERIFY_FILL };
+        if (!performTransfer(transfer)) {
             return false;
         }
-        for (unsigned y{ 0 }; y < height; ++y) {
-            for (unsigned x{ 0 }; x < stride; ++x) {
-                if (destination[y * stride + x] != (x < width ? hal::util::rgb565(transfer.color) : 0x1234)) {
-                    return false;
-                }
-            }
+        if (!pixels_match(destination,
+                          { .width = stride, .height = height, .stride = stride },
+                          [&](unsigned x, unsigned /*y*/) {
+            return x < width ? hal::util::rgb565(transfer.color) : VERIFY_GUARD;
+        })) {
+            return false;
         }
-        if (scratch[0] != 0x1234 || scratch[1 + stride * height] != 0x1234) {
+        if (scratch[0] != VERIFY_GUARD || scratch[1 + (stride * height)] != VERIFY_GUARD) {
             return false;
         }
         // Solid translucent fills must use the fixed-foreground DMA path too.
         // CPU read/modify/write blending can starve LTDC's SDRAM read FIFO.
         const auto background{ hal::util::argb8888(hal::util::rgb565(transfer.color)) };
         transfer.operation = Operation::BlendFill;
-        transfer.color = 0xffedf4f6;
-        transfer.alpha = 80;
-        if (!execute(transfer)) {
+        transfer.color = VERIFY_BLEND_FILL;
+        transfer.alpha = VERIFY_FILL_ALPHA;
+        if (!performTransfer(transfer)) {
             return false;
         }
-        for (unsigned y{ 0 }; y < height; ++y) {
-            for (unsigned x{ 0 }; x < width; ++x) {
-                const auto actual{ hal::util::argb8888(destination[y * stride + x]) };
-                for (unsigned shift : { 0u, 8u, 16u }) {
-                    const int expected{ static_cast<int>(
-                      (((transfer.color >> shift) & 255) * 80 + ((background >> shift) & 255) * 175) / 255) };
-                    const int error{ int((actual >> shift) & 255) - expected };
-                    if (error < -8 || error > 8) {
-                        return false;
-                    }
-                }
-            }
+        if (!verify_blend(destination,
+                          { .width = width, .height = height, .stride = stride },
+                          { .color = transfer.color, .alpha = transfer.alpha },
+                          [&](unsigned /*x*/, unsigned /*y*/) { return background; })) {
+            return false;
         }
         for (unsigned i{ 0 }; i < width * height; ++i) {
-            const std::uint32_t pixel{ (i % 256) << 24 | ((i * 7) % 256) << 16 | ((i * 11) % 256) << 8 |
-                                       ((i * 13) % 256) };
-            std::memcpy(source.data() + i * 4, &pixel, 4);
+            const std::uint32_t pixel{ (i % (hal::util::CHANNEL_MAX + 1)) << hal::util::ALPHA_SHIFT |
+                                       ((i * VERIFY_RED_FACTOR) % (hal::util::CHANNEL_MAX + 1))
+                                         << hal::util::RED_SHIFT |
+                                       ((i * VERIFY_GREEN_FACTOR) % (hal::util::CHANNEL_MAX + 1))
+                                         << hal::util::GREEN_SHIFT |
+                                       ((i * VERIFY_BLUE_FACTOR) % (hal::util::CHANNEL_MAX + 1)) };
+            std::memcpy(source.data() + (static_cast<std::size_t>(i) * 4), &pixel, 4);
         }
         transfer.operation = Operation::Copy;
         transfer.source = source;
-        transfer.sourceStride = width * 4;
-        transfer.sourceFormat = Format::Argb8888;
-        if (!execute(transfer)) {
+        transfer.source_stride = static_cast<std::size_t>(width) * 4;
+        transfer.source_format = Format::Argb8888;
+        if (!performTransfer(transfer)) {
             return false;
         }
-        std::array<std::uint16_t, width * height> before{};
+        std::array<std::uint16_t, static_cast<std::size_t>(width) * height> before{};
         for (unsigned y{ 0 }; y < height; ++y) {
             for (unsigned x{ 0 }; x < width; ++x) {
                 std::uint32_t pixel{};
-                std::memcpy(&pixel, source.data() + (y * width + x) * 4, 4);
-                if (destination[y * stride + x] != hal::util::rgb565(pixel)) {
+                std::memcpy(&pixel, source.data() + ((std::size_t(y) * width + x) * sizeof(pixel)), 4);
+                if (destination[(y * stride) + x] != hal::util::rgb565(pixel)) {
                     return false;
                 }
-                before[y * width + x] = destination[y * stride + x];
+                before[(y * width) + x] = destination[(y * stride) + x];
             }
         }
         // Offset source values exercise per-pixel AND constant alpha.
         for (unsigned i{ 0 }; i < width * height; ++i) {
-            const std::uint32_t pixel{ 0x809b47e3 };
-            std::memcpy(source.data() + i * 4, &pixel, 4);
+            const std::uint32_t pixel{ VERIFY_BLEND_PIXEL };
+            std::memcpy(source.data() + (static_cast<std::size_t>(i) * 4), &pixel, 4);
         }
         transfer.operation = Operation::Blend;
-        transfer.alpha = 173;
-        if (!execute(transfer)) {
+        transfer.alpha = VERIFY_BLEND_ALPHA;
+        if (!performTransfer(transfer)) {
             return false;
         }
-        for (unsigned y{ 0 }; y < height; ++y) {
-            for (unsigned x{ 0 }; x < width; ++x) {
-                const auto background{ hal::util::argb8888(before[y * width + x]) };
-                const auto actual{ hal::util::argb8888(destination[y * stride + x]) };
-                constexpr unsigned alpha{ 128 * 173 / 255 };
-                for (unsigned shift : { 0u, 8u, 16u }) {
-                    const int expected{ static_cast<int>((
-                      (((0x9b47e3u >> shift) & 255) * alpha + ((background >> shift) & 255) * (255 - alpha)) /
-                      255)) };
-                    const int error{ int((actual >> shift) & 255) - expected };
-                    if (error < -8 || error > 8) {
-                        return false;
-                    } // one RGB565 quantization step
-                }
-            }
+        constexpr unsigned alpha{ VERIFY_PIXEL_ALPHA * VERIFY_BLEND_ALPHA / hal::util::CHANNEL_MAX };
+        if (!verify_blend(destination,
+                          { .width = width, .height = height, .stride = stride },
+                          { .color = VERIFY_BLEND_PIXEL, .alpha = alpha },
+                          [&](unsigned x, unsigned y) {
+            return hal::util::argb8888(before[(std::size_t(y) * width) + x]);
+        })) {
+            return false;
         }
         transfer.operation = Operation::Copy;
-        transfer.source = std::as_bytes(scratch.subspan(4096, 2048));
-        transfer.sourceFormat = Format::Rgb565;
-        transfer.sourceStride = width * 2;
-        if (!execute(transfer)) {
+        transfer.source = std::as_bytes(scratch.subspan(VERIFY_SOURCE_START, VERIFY_SOURCE_SIZE));
+        transfer.source_format = Format::Rgb565;
+        transfer.source_stride = static_cast<std::size_t>(width) * 2;
+        if (!performTransfer(transfer)) {
             return false;
         }
-        for (unsigned y{ 0 }; y < height; ++y) {
-            for (unsigned x{ 0 }; x < width; ++x) {
-                if (destination[y * stride + x] != scratch[4096 + y * width + x]) {
-                    return false;
-                }
-            }
+        if (!pixels_match(destination,
+                          { .width = width, .height = height, .stride = stride },
+                          [&](unsigned x, unsigned y) {
+            return scratch[VERIFY_SOURCE_START + (std::size_t(y) * width) + x];
+        })) {
+            return false;
         }
         return !m_graphics->busy() && !m_graphics->errors();
     }

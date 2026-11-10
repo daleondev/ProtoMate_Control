@@ -9,7 +9,7 @@ def test_native_and_controller_link_isolation(simulator, controller, request):
 
     host = symbols(simulator)
     firmware = symbols(controller)
-    for required in ("simulation::Machine::execute", "simulation::Session::start", "simulation::assets::controllerImage()"):
+    for required in ("simulation::Machine::execute", "simulation::Session::start", "simulation::assets::controller_image()"):
         assert required in host, f"native simulation is missing {required}"
     for forbidden in ("_tx_thread_schedule", "simulation::client::call", "touchgfx::", "runtime::thread::"):
         assert forbidden not in host, f"controller runtime leaked into native application: {forbidden}"

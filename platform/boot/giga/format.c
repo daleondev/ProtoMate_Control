@@ -22,7 +22,7 @@ static int destination(unsigned core, uint32_t address, uint32_t size, uint32_t 
         return within(address, size, 0x10000000, 194 * 1024) ||
                within(address, size, 0x30030800, 86 * 1024) ||
                within(address, size, 0x24040000, 256 * 1024) ||
-               ((flags & GIGA_M4_SDRAM_CODE) && within(address, size, 0xC0400000, 2 * 1024 * 1024));
+               ((flags & GIGA_M4_SDRAM_CODE) && within(address, size, 0xC0480000, 1536 * 1024));
     }
     /* Keep bootstrap scratch (0x2001C000) and both MSP stacks intact. */
     return within(address, size, 0, 64 * 1024) || within(address, size, 0x20000000, 112 * 1024) ||

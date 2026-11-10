@@ -15,6 +15,6 @@ namespace ui::cli
          * Run the ncurses frontend on a terminal, or the stream frontend when
          * stdin/stdout are redirected or the terminal is unsupported.
          */
-        auto run(Parser& parser, std::stop_token stop) -> void;
+        auto run(Parser& parser, const std::stop_token& stop) -> void;
     }
 }

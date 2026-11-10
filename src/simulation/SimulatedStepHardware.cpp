@@ -82,8 +82,9 @@ namespace hal::util
         if (high[axis] && trace_edges) {
             edges.push_back({ elapsed, axis, false });
         }
-        if (high[axis] && edge_callback)
-            edge_callback({ elapsed, axis, false });
+        if (high[axis] && edge_callback) {
+            edge_callback({ .tick = elapsed, .axis = axis, .high = false });
+        }
         high[axis] = false;
         return result;
     }
@@ -98,8 +99,9 @@ namespace hal::util
             if (high[i] && trace_edges) {
                 edges.push_back({ elapsed, i, false });
             }
-            if (high[i] && edge_callback)
-                edge_callback({ elapsed, i, false });
+            if (high[i] && edge_callback) {
+                edge_callback({ .tick = elapsed, .axis = i, .high = false });
+            }
             high[i] = false;
         }
         return result;
@@ -134,8 +136,9 @@ namespace hal::util
         auto& channel{ registers.channels[axis] };
         if (active[axis] && channel.compare != STEP_PARK) {
             high[axis] = !high[axis];
-            if (edge_callback)
-                edge_callback({ elapsed, axis, high[axis] });
+            if (edge_callback) {
+                edge_callback({ .tick = elapsed, .axis = axis, .high = high[axis] });
+            }
             if (trace_edges) {
                 edges.push_back({ elapsed, axis, high[axis] });
             }
@@ -198,8 +201,9 @@ namespace hal::util
             elapsed += next;
             registers.tick = step_add(registers.tick, static_cast<std::uint32_t>(next));
             dispatchEvents(matches, next, guard_match);
-            if (yield_requested)
+            if (yield_requested) {
                 return;
+            }
         }
     }
 }

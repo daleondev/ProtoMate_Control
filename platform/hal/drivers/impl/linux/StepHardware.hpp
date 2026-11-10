@@ -18,9 +18,9 @@ namespace hal::util
         auto operator=(LinuxStepHardware&&) -> LinuxStepHardware& = delete;
 
         LinuxStepHardware() = default;
-        auto buffers() noexcept -> StepBuffers& override { return memory; }
+        auto buffers() noexcept -> StepBuffers& override { return m_memory; }
         ~LinuxStepHardware() override;
-        void beginService(StepGenerator& generator);
+        static void beginService(StepGenerator& generator);
         void stopService() noexcept override;
         auto reset() noexcept -> bool override;
         auto arm(std::size_t axis, std::uint32_t first, std::uint32_t count) noexcept -> bool override;
@@ -40,7 +40,7 @@ namespace hal::util
       private:
         std::optional<std::uint32_t> m_cut;
         bool m_publicationError{};
-        StepBuffers memory{};
+        StepBuffers m_memory{};
         StepBuffers m_published{};
         std::array<std::array<bool, 2>, 3> m_valid{};
     };

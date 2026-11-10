@@ -13,46 +13,63 @@ namespace simulation
           , m_side{ side }
           , m_context{ context }
         {
-            if (side > 1)
+            if (side > 1) {
                 throw std::invalid_argument{ "invalid simulation transport side" };
+            }
         }
+        // Coroutine lowering diagnoses synthetic static awaiter members here.
+        // NOLINTNEXTLINE(readability-static-accessed-through-instance)
         pnm::coro::Task<pnm::EmptyResult<Error>> send(std::span<const std::byte> frame,
                                                       icc::Lane lane,
                                                       std::stop_token stop) override
         {
-            if (static_cast<unsigned>(lane) >= 3)
+            if (static_cast<unsigned>(lane) >= 3) {
                 co_return std::unexpected(Error::Disconnected);
+            }
             if (frame.size() >
-                (lane == icc::Lane::Background ? icc::MAX_BACKGROUND_FRAME_BYTES : FRAME_BYTES))
+                (lane == icc::Lane::Background ? icc::MAX_BACKGROUND_FRAME_BYTES : FRAME_BYTES)) {
                 co_return std::unexpected(Error::TooLarge);
+            }
             for (;;) {
-                if (stop.stop_requested())
+                if (stop.stop_requested()) {
                     co_return std::unexpected(Error::Cancelled);
-                if (acquire(m_memory.closed))
+                }
+                if (acquire(m_memory.closed)) {
                     co_return std::unexpected(Error::Disconnected);
+                }
                 auto result{ enqueue(m_memory.incoming[1 - m_side][static_cast<unsigned>(lane)], frame) };
-                if (result == QueueResult::Success)
+                if (result == QueueResult::Success) {
                     co_return pnm::EmptyResult<Error>{};
-                if (result != QueueResult::Full)
+                }
+                if (result != QueueResult::Full) {
                     co_return std::unexpected(Error::Disconnected);
+                }
+                // Coroutine lowering diagnoses synthetic static awaiter members here.
+                // NOLINTNEXTLINE(readability-static-accessed-through-instance)
                 co_await pnm::coro::sleep(m_context, std::chrono::milliseconds{ 1 }, stop);
             }
         }
+        // Coroutine lowering diagnoses synthetic static awaiter members here.
+        // NOLINTNEXTLINE(readability-static-accessed-through-instance)
         pnm::coro::Task<pnm::Result<std::size_t, Error>> receive(std::span<std::byte> buffer,
                                                                  icc::Lane lane,
                                                                  std::stop_token stop) override
         {
-            if (static_cast<unsigned>(lane) >= 3)
+            if (static_cast<unsigned>(lane) >= 3) {
                 co_return std::unexpected(Error::Disconnected);
+            }
             for (;;) {
-                if (stop.stop_requested())
+                if (stop.stop_requested()) {
                     co_return std::unexpected(Error::Cancelled);
-                if (acquire(m_memory.closed))
+                }
+                if (acquire(m_memory.closed)) {
                     co_return std::unexpected(Error::Disconnected);
+                }
                 bool higher{};
                 for (auto priority : icc::LANE_PRIORITY) {
-                    if (priority == lane)
+                    if (priority == lane) {
                         break;
+                    }
                     auto& q{ m_memory.incoming[m_side][static_cast<unsigned>(priority)] };
                     higher |= acquire(q.written) != acquire(q.read);
                 }
@@ -60,13 +77,18 @@ namespace simulation
                     std::size_t size{};
                     auto result{ dequeue(
                       m_memory.incoming[m_side][static_cast<unsigned>(lane)], buffer, size) };
-                    if (result == QueueResult::Success)
+                    if (result == QueueResult::Success) {
                         co_return size;
-                    if (result == QueueResult::BufferTooSmall)
+                    }
+                    if (result == QueueResult::BufferTooSmall) {
                         co_return std::unexpected(Error::BufferTooSmall);
-                    if (result != QueueResult::Empty)
+                    }
+                    if (result != QueueResult::Empty) {
                         co_return std::unexpected(Error::Disconnected);
+                    }
                 }
+                // Coroutine lowering diagnoses synthetic static awaiter members here.
+                // NOLINTNEXTLINE(readability-static-accessed-through-instance)
                 co_await pnm::coro::sleep(m_context, std::chrono::milliseconds{ 1 }, stop);
             }
         }

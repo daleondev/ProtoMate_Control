@@ -17,6 +17,20 @@ extern "C" void TIM7_IRQHandler();
 namespace
 {
     using namespace std::chrono_literals;
+    class PreparingSequence final : public hal::step::Sequence
+    {
+      public:
+        std::function<void()> prepare;
+        hal::step::PulseCount count() const noexcept override { return 3; }
+        std::chrono::nanoseconds maximumPeriod() const noexcept override { return 100us; }
+        hal::util::Result<hal::step::Timing> timing(hal::step::PulseCount) const noexcept override
+        {
+            prepare();
+            return hal::step::Timing{ 100us, 5us };
+        }
+    };
+
+    using namespace std::chrono_literals;
     using hal::step::State;
     class RegisterTest : public ::testing::Test
     {
@@ -45,15 +59,18 @@ namespace
                                              hal::gpio::Pin{ hal::gpio::Port::A, 3 } }) };
             engine = std::make_shared<hal::util::StepGenerator>(std::move(hardware));
             hal::stm32::register_step_generator(engine.get());
-            for (unsigned i = 0; i < 3; ++i)
+            for (unsigned i = 0; i < 3; ++i) {
                 axes[i] = engine->output(static_cast<hal::step::Axis>(i));
+            }
         }
         auto compare(unsigned i) -> uint32_t&
         {
-            if (i == 0)
+            if (i == 0) {
                 return timer.CCR1;
-            if (i == 1)
+            }
+            if (i == 1) {
                 return timer.CCR3;
+            }
             return timer.CCR4;
         }
         void start()
@@ -64,14 +81,16 @@ namespace
                     ASSERT_TRUE(axis->start(10us));
                 }
             }
-            for (unsigned i = 0; i < 4; ++i)
+            for (unsigned i = 0; i < 4; ++i) {
                 lengths[i] = dma_streams[i].NDTR;
+            }
         }
         void dmaTransfer(unsigned i)
         {
             auto& stream = dma_streams[i];
-            if (!(stream.CR & DMA_SxCR_EN) || (i < 3 && hold_dma[i]))
+            if (!(stream.CR & DMA_SxCR_EN) || (i < 3 && hold_dma[i])) {
                 return;
+            }
             lengths[i] = stream.reload_count;
             *reinterpret_cast<volatile uint32_t*>(stream.PAR) = stream.prefetched;
             --stream.NDTR;
@@ -81,16 +100,17 @@ namespace
                     stream.CR ^= DMA_SxCR_CT;
                     stream.NDTR = lengths[i];
                 }
-                else
+                else {
                     stream.CR &= ~DMA_SxCR_EN;
+                }
             }
             else if (stream.NDTR == lengths[i] / 2U && (stream.CR & DMA_SxCR_HTIE)) {
                 dma.LISR |= 0x10U << shifts[i];
             }
             if (stream.CR & DMA_SxCR_EN) {
                 const unsigned offset = (stream.CR & DMA_SxCR_MINC) ? lengths[i] - stream.NDTR : 0;
-                const auto* source = reinterpret_cast<const uint32_t*>(
-                  (stream.CR & DMA_SxCR_CT) ? stream.M1AR : stream.M0AR);
+                const auto* source =
+                  reinterpret_cast<const uint32_t*>((stream.CR & DMA_SxCR_CT) ? stream.M1AR : stream.M0AR);
                 stream.prefetched = source[offset];
             }
         }
@@ -111,8 +131,9 @@ namespace
                     next = std::min(next, events[i]);
                 }
                 const auto poll_tick{ (elapsed / 10'000U + 1U) * 10'000U };
-                if (TIM7->CR1 & TIM_CR1_CEN)
+                if (TIM7->CR1 & TIM_CR1_CEN) {
                     next = std::min(next, poll_tick - elapsed);
+                }
                 if (next > ticks) {
                     timer.CNT = hal::util::step_add(timer.CNT, ticks);
                     elapsed += ticks;
@@ -124,7 +145,7 @@ namespace
                 timer.CNT = hal::util::step_add(timer.CNT, next);
                 constexpr std::array flag{ 2U, 8U, 16U }, enable{ 1U, 256U, 4096U },
                   request{ 512U, 2048U, 4096U };
-                for (unsigned i = 0; i < 3; ++i)
+                for (unsigned i = 0; i < 3; ++i) {
                     if (events[i] == next) {
                         if (compare(i) != hal::util::STEP_PARK && (timer.CCER & enable[i])) {
                             auto* gpio = GPIOA;
@@ -134,21 +155,27 @@ namespace
                             (high[i] ? rising[i] : falling[i]).push_back(elapsed);
                         }
                         timer.SR |= flag[i];
-                        if (timer.DIER & request[i])
+                        if (timer.DIER & request[i]) {
                             dmaTransfer(i);
+                        }
                     }
-                if (guard && (timer.DIER & TIM_DIER_CC2DE))
+                }
+                if (guard && (timer.DIER & TIM_DIER_CC2DE)) {
                     dmaTransfer(3);
+                }
                 if (irqs && !primask) {
-                    if (elapsed == poll_tick && irq_enabled[TIM7_IRQn] && (TIM7->CR1 & TIM_CR1_CEN))
+                    if (elapsed == poll_tick && irq_enabled[TIM7_IRQn] && (TIM7->CR1 & TIM_CR1_CEN)) {
                         TIM7_IRQHandler();
+                    }
                     constexpr std::array handlers{ DMA1_Stream0_IRQHandler,
                                                    DMA1_Stream1_IRQHandler,
                                                    DMA1_Stream2_IRQHandler,
                                                    DMA1_Stream3_IRQHandler };
-                    for (unsigned i = 0; i < 4; ++i)
-                        if (irq_enabled[i] && (dma.LISR & (0x3DU << shifts[i])))
+                    for (unsigned i = 0; i < 4; ++i) {
+                        if (irq_enabled[i] && (dma.LISR & (0x3DU << shifts[i]))) {
                             handlers[i]();
+                        }
+                    }
                 }
             }
         }
@@ -157,8 +184,9 @@ namespace
 
 TEST_F(RegisterTest, ConfiguresRealAdapterForIndependentWordDmaAndHardwareGuard)
 {
-    for (auto& axis : axes)
+    for (auto& axis : axes) {
         ASSERT_TRUE(axis->prepare({ 100us, 5us }, 3));
+    }
     start();
     EXPECT_EQ(timer.PSC, 7U);
     EXPECT_EQ(service_timer.PSC, 79U);
@@ -190,19 +218,63 @@ namespace
     {
       public:
         explicit StartupSequence(std::uint32_t offset, bool empty = false)
-          : m_offset(offset), m_empty(empty) {}
+          : m_offset(offset)
+          , m_empty(empty)
+        {
+        }
         hal::step::PulseCount count() const noexcept override { return m_empty ? 0 : 3; }
         std::chrono::nanoseconds maximumPeriod() const noexcept override { return 1ms; }
         std::uint32_t initialOffset() const noexcept override { return m_offset; }
         std::optional<std::int64_t> endTickOffset() const noexcept override { return 100'000; }
         hal::util::Result<std::uint32_t> risingTick(hal::step::PulseCount i) const noexcept override
-        { return m_offset + std::uint32_t(i) * 10'000; }
+        {
+            return m_offset + std::uint32_t(i) * 10'000;
+        }
         hal::util::Result<hal::step::Timing> timing(hal::step::PulseCount) const noexcept override
-        { return hal::step::Timing{1ms, 5us}; }
+        {
+            return hal::step::Timing{ 1ms, 5us };
+        }
+
       private:
         std::uint32_t m_offset;
         bool m_empty;
     };
+}
+
+TEST_F(RegisterTest, RawPreparationLeavesInterruptsAvailableToAnActiveAxis)
+{
+    ASSERT_TRUE(axes[0]->prepare({ 100us, 5us }, 2000));
+    start();
+    auto sequence{ std::make_shared<PreparingSequence>() };
+    sequence->prepare = [this] {
+        EXPECT_EQ(primask, 0U);
+        advance(200'000); // Three calculations span an active axis's initial DMA window.
+    };
+    ASSERT_TRUE(axes[1]->prepareSequence(sequence));
+    ASSERT_TRUE(axes[1]->start(10us));
+    advance(3'000'000);
+    EXPECT_EQ(engine->status().state, State::Running);
+    ASSERT_EQ(rising[0].size(), 2000U);
+    ASSERT_EQ(rising[1].size(), 3U);
+    for (unsigned axis{}; axis < 2; ++axis) {
+        ASSERT_EQ(rising[axis].size(), falling[axis].size());
+        for (std::size_t pulse{}; pulse < rising[axis].size(); ++pulse) {
+            EXPECT_EQ(falling[axis][pulse] - rising[axis][pulse], 50U);
+        }
+    }
+}
+
+TEST_F(RegisterTest, StopDuringRawPreparationPreventsLateArming)
+{
+    ASSERT_TRUE(engine->start());
+    auto sequence{ std::make_shared<PreparingSequence>() };
+    sequence->prepare = [this] { static_cast<void>(axes[1]->stop()); };
+    ASSERT_TRUE(axes[1]->prepareSequence(sequence));
+    const auto result{ axes[1]->start(10us) };
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error(), std::errc::operation_canceled);
+    advance(10'000);
+    EXPECT_TRUE(rising[1].empty());
 }
 
 TEST_F(RegisterTest, RenewalReloadsPrefetchedFirstFallingEdge)
@@ -219,8 +291,9 @@ TEST_F(RegisterTest, RenewalReloadsPrefetchedFirstFallingEdge)
     advance(200'000);
     ASSERT_EQ(rising[2].size(), 3U);
     ASSERT_EQ(falling[2].size(), 3U);
-    for (unsigned i = 0; i < 3; ++i)
+    for (unsigned i = 0; i < 3; ++i) {
         EXPECT_EQ(falling[2][i] - rising[2][i], 50U);
+    }
 }
 
 TEST_F(RegisterTest, EmptyStoppingScheduleCanIntroduceFirstPulseWithoutCachedPark)
@@ -235,14 +308,16 @@ TEST_F(RegisterTest, EmptyStoppingScheduleCanIntroduceFirstPulseWithoutCachedPar
     advance(200'000);
     ASSERT_EQ(rising[2].size(), 3U);
     ASSERT_EQ(falling[2].size(), 3U);
-    for (unsigned i = 0; i < 3; ++i)
+    for (unsigned i = 0; i < 3; ++i) {
         EXPECT_EQ(falling[2][i] - rising[2][i], 50U);
+    }
 }
 
 TEST_F(RegisterTest, PendingCompareUsesTheConfiguredGigaPinsOnAllAxes)
 {
-    for (auto& axis : axes)
+    for (auto& axis : axes) {
         ASSERT_TRUE(axis->prepare({ 100us, 5us }, 3));
+    }
     start();
     hold_dma.fill(true);
     advance(100); // Rising compare occurred; the DMA transfer is still pending.
@@ -255,12 +330,14 @@ TEST_F(RegisterTest, PendingCompareUsesTheConfiguredGigaPinsOnAllAxes)
 
 TEST_F(RegisterTest, FatalShutdownStopsActiveDmaMotionWithoutDriverOrInterruptService)
 {
-    for (auto& axis : axes)
+    for (auto& axis : axes) {
         ASSERT_TRUE(axis->prepare({ 10us, 5us }));
+    }
     start();
     advance(100U); // All three outputs are in their first high phase.
-    for (const auto& edges : rising)
+    for (const auto& edges : rising) {
         ASSERT_EQ(edges.size(), 1U);
+    }
     gpio_c.level = 0U; // Drivers enabled.
     gpio_c.MODER = 0xAAAAAAAAU;
     gpio_c.OTYPER = 0xFFFFU;
@@ -281,11 +358,13 @@ TEST_F(RegisterTest, FatalShutdownStopsActiveDmaMotionWithoutDriverOrInterruptSe
     EXPECT_EQ(gpio_a.MODER & 3U, 1U);
     EXPECT_EQ((gpio_a.MODER >> 4U) & 15U, 5U);
     // Even an already pending DMA request cannot restart output generation.
-    for (unsigned i = 0; i < 4; ++i)
+    for (unsigned i = 0; i < 4; ++i) {
         dmaTransfer(i);
+    }
     advance(hal::util::STEP_PARK * 2ULL);
-    for (const auto& edges : rising)
+    for (const auto& edges : rising) {
         EXPECT_EQ(edges.size(), 1U);
+    }
 }
 
 TEST_F(RegisterTest, FatalShutdownBeforeInitializationEnablesGpioClocksAndIsIdempotent)
@@ -310,8 +389,9 @@ TEST_F(RegisterTest, FatalShutdownBeforeInitializationEnablesGpioClocksAndIsIdem
 
 TEST_F(RegisterTest, ThreeRealDmaStreamsCompleteAtDifferentRatesWithoutGaps)
 {
-    for (unsigned i = 0; i < 3; ++i)
+    for (unsigned i = 0; i < 3; ++i) {
         ASSERT_TRUE(axes[i]->prepare({ std::chrono::microseconds{ 10 + 10 * i }, 5us }, 1100 - i * 100));
+    }
     start();
     advance(1'000'000U);
     EXPECT_EQ(engine->status().state, State::Running);
@@ -470,8 +550,9 @@ TEST_F(RegisterTest, AxisStopAndRestartLeaveOtherChannelDmaAndPhaseUntouched)
     EXPECT_EQ(axes[1]->pulseCount(), 10U);
     EXPECT_EQ(axes[0]->pulseCount(), 3000U);
     ASSERT_EQ(rising[0].size(), 3000U);
-    for (std::size_t i = 1; i < rising[0].size(); ++i)
+    for (std::size_t i = 1; i < rising[0].size(); ++i) {
         EXPECT_EQ(rising[0][i] - rising[0][i - 1], 100U);
+    }
     EXPECT_TRUE(timer.CR1 & TIM_CR1_CEN);
     EXPECT_EQ(timer.DIER & TIM_DIER_CC2DE, 0U); // No guard request at idle wrap.
 }
@@ -491,8 +572,9 @@ TEST_F(RegisterTest, RuntimeTimingUpdatePreservesCountsAndOtherAxisWaveform)
     for (std::size_t i = 1; i < rising[0].size(); ++i) {
         EXPECT_EQ(rising[0][i] - rising[0][i - 1], i >= *update ? 100U : 200U);
     }
-    for (std::size_t i = 1; i < rising[1].size(); ++i)
+    for (std::size_t i = 1; i < rising[1].size(); ++i) {
         EXPECT_EQ(rising[1][i] - rising[1][i - 1], 100U);
+    }
 }
 
 TEST_F(RegisterTest, IdleWrapDoesNotProducePulsesAndFiniteCompletionLeavesClockRunning)

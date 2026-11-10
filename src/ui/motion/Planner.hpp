@@ -49,6 +49,7 @@ namespace ui::motion
     class Planner final
     {
       public:
+        static constexpr std::size_t PIECE_CAPACITY{ 128 }, WORKSPACE_BUDGET{ 256UZ * 1024 };
         struct Piece
         {
             double begin{}, end{};
@@ -58,20 +59,22 @@ namespace ui::motion
         // is placed there. The caller owns the arena and serializes its use.
         struct Workspace
         {
-            std::array<Piece, 128> pieces{};
+            std::array<Piece, PIECE_CAPACITY> pieces{};
             std::array<::motion::trajectory::Segment, ::motion::trajectory::UI_SEGMENTS> segments{};
         };
         Planner(const RobotModel& model, Workspace& workspace, std::stop_token stop = {});
-        [[nodiscard]] RobotError prepare(const Move& move, const ::motion::trajectory::Counts& start);
+        [[nodiscard]] RobotError prepare(const Move& move, const ::motion::trajectory::Counts& counts);
         [[nodiscard]] std::expected<PlanSummary, RobotError> compile(PathState start = {},
                                                                      double override = 1,
                                                                      bool stopping = false);
-        [[nodiscard]] std::expected<::motion::trajectory::FiniteProgram, RobotError>
-          finite(double acceleration = 1, double deceleration = 1, double jerk = 1,
-                 double* estimated_seconds = nullptr) const;
+        [[nodiscard]] std::expected<::motion::trajectory::FiniteProgram, RobotError> finite(
+          double acceleration = 1,
+          double deceleration = 1,
+          double jerk = 1,
+          double* estimated_seconds = nullptr) const;
         [[nodiscard]] std::span<const ::motion::trajectory::Segment> segments() const noexcept;
         [[nodiscard]] std::expected<::motion::trajectory::FiniteProgram, RobotError> cartesianJog(
-          const ::motion::trajectory::Counts& start,
+          const ::motion::trajectory::Counts& counts,
           std::array<double, 3> direction,
           double speed,
           double acceleration = 1,
@@ -86,10 +89,31 @@ namespace ui::motion
           const std::array<::motion::Polynomial, 3>* reference = nullptr) const;
 
       private:
+        RobotError preparePathJoint(::motion::trajectory::FiniteProgram& /*out*/, unsigned joint);
         [[nodiscard]] std::expected<::motion::trajectory::FiniteProgram, RobotError> pathProgram(
-          double acceleration,
-          double deceleration,
-          double jerk);
+          ::motion::Profile::Limits factors);
+        RobotError prepareCartesian(const std::array<double, 3>& q0);
+        RobotError prepareJoints(JointPosition target, const std::array<double, 3>& q0);
+        struct TickRange
+        {
+            std::uint64_t from{}, to{};
+        };
+        std::expected<::motion::trajectory::Segment, RobotError> makeSegment(TickRange /*ticks*/,
+                                                                             PathState /*a*/,
+                                                                             PathState /*b*/) const;
+        std::array<::motion::Polynomial, 3> timeReference(PathState /*a*/,
+                                                          PathState /*b*/,
+                                                          double duration) const;
+        struct Certification
+        {
+            bool proven{};
+            RobotError reason{};
+        };
+        std::expected<Certification, RobotError> certifyRange(
+          const std::array<::motion::Polynomial, 3>& /*q*/,
+          const std::array<::motion::Polynomial, 3>* /*desired*/,
+          ::motion::Interval /*interval*/) const;
+        RobotError appendSegment(const ::motion::trajectory::Segment& /*segment*/);
         using JointState = std::array<::motion::KinematicState, 3>;
         [[nodiscard]] std::expected<JointState, RobotError> inverseAt(double s) const;
         [[nodiscard]] RobotError build(double from, double to, unsigned depth);
@@ -99,7 +123,7 @@ namespace ui::motion
                                          double to,
                                          unsigned depth,
                                          unsigned& budget) const;
-        [[nodiscard]] JointState jointAt(double s, double velocity, double acceleration) const;
+        [[nodiscard]] JointState jointAt(PathState state) const;
         [[nodiscard]] RobotError compileInterval(std::uint64_t from, std::uint64_t to, unsigned depth);
         [[nodiscard]] RobotError certifyReference(const std::array<::motion::Polynomial, 3>& reference,
                                                   double start,
@@ -124,5 +148,5 @@ namespace ui::motion
         std::uint64_t m_durationTicks{};
     };
     static_assert(std::is_trivially_copyable_v<Planner::Workspace>);
-    static_assert(sizeof(Planner::Workspace) * 2 <= 256 * 1024);
+    static_assert(sizeof(Planner::Workspace) * 2 <= Planner::WORKSPACE_BUDGET);
 }

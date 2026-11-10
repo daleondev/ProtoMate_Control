@@ -21,6 +21,8 @@ namespace hal::timer
             case Peripheral::Tim5: {
                 static TIM_HandleTypeDef handle{};
                 static auto instance{ [] {
+                    // CMSIS peripheral access uses the MCU fixed-address register map.
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     handle.Instance = TIM5;
                     handle.State = HAL_TIM_STATE_READY;
                     return std::make_shared<Timer>(
@@ -33,6 +35,8 @@ namespace hal::timer
             case Peripheral::Tim12: {
                 static TIM_HandleTypeDef handle{};
                 static auto instance{ [] {
+                    // CMSIS peripheral access uses the MCU fixed-address register map.
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
                     handle.Instance = TIM12;
                     handle.State = HAL_TIM_STATE_READY;
                     return std::make_shared<Timer>(

@@ -12,12 +12,16 @@ namespace ui::cli::state
         using namespace pnm::meta::string::literals;
 
         [[= "Show UI, IO and combined application states, LED colour and IO freshness. Motor readiness is separate."_fs]] auto
-        state(const SystemState& system, const Arguments&, std::ostream& output) -> CallbackResult
+        state(const SystemState& system, const Arguments& /*unused*/, std::ostream& output) -> CallbackResult
         {
             const auto snapshot{ system.snapshot() };
-            const auto colour{ snapshot.combined == app::State::Ready   ? "green"
-                               : snapshot.combined == app::State::Fault ? "red"
-                                                                        : "yellow" };
+            const char* colour{ "yellow" };
+            if (snapshot.combined == app::State::Ready) {
+                colour = "green";
+            }
+            else if (snapshot.combined == app::State::Fault) {
+                colour = "red";
+            }
             output << "Combined: " << pnm::meta::enumeration::enumerator_name(snapshot.combined) << " ("
                    << colour << ")\n"
                    << "UI: " << pnm::meta::enumeration::enumerator_name(snapshot.ui) << '\n'
@@ -31,15 +35,16 @@ namespace ui::cli::state
             }
             output << "ICC: " << pnm::meta::enumeration::enumerator_name(snapshot.connection.state) << " ("
                    << pnm::meta::enumeration::enumerator_name(snapshot.connection.reason) << ")\n";
-            if (snapshot.failure[0])
+            if (snapshot.failure[0]) {
                 output << "Cause: " << snapshot.failure.data() << '\n';
+            }
             return output ? CallbackResult{ 0 } : callback_failure("cannot write command output");
         }
     }
 
     void setup(Parser& parser, const SystemState& system)
     {
-        std::call_once(parser.m_stateRegistration, [&parser, &system] {
+        parser.registerModule(Parser::Module::State, [&parser, &system] {
             register_commands<^^commands>(parser, [&system](auto command) {
                 return [&system, command](const Arguments& args, std::ostream& output) {
                     return command(system, args, output);

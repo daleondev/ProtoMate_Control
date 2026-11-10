@@ -293,9 +293,10 @@ namespace
                                         std::make_shared<Driver>(),
                                         std::make_shared<Driver>() };
         } };
-        for (const auto pin : { 7, 8, 10 })
+        for (const auto pin : { 7, 8, 10 }) {
             hal::gpio::simulated_input({ hal::gpio::Port::E, static_cast<std::uint8_t>(pin) })
               ->setSimulatedLevel(hal::gpio::Level::Low);
+        }
         controller.initializeDrivers();
         io::motion::Server server{ bus, controller };
         auto enabling{ bus.service<^^icc::Services::io_motor>().request(
@@ -387,12 +388,12 @@ namespace
         MotorGoal goal{ .motor = MotorId::M1,
                         .position = -10,
                         .velocity = 5,
-                        .commandGeneration = status.commandGeneration };
+                        .command_generation = status.command_generation };
         ASSERT_TRUE(command("motor stop"));
         auto result{ rejected(goal) };
         ASSERT_TRUE(result);
         EXPECT_EQ(result->error(), pnm::msg::ActionError::Rejected);
-        goal.commandGeneration = client.request({ .operation = MotorOperation::Stop }).commandGeneration;
+        goal.command_generation = client.request({ .operation = MotorOperation::Stop }).command_generation;
         goal.velocity = std::numeric_limits<double>::quiet_NaN();
         result = rejected(goal);
         ASSERT_TRUE(result);
@@ -415,7 +416,7 @@ namespace
           { .motor = MotorId::M1,
             .position = -90,
             .velocity = 5,
-            .commandGeneration = status.commandGeneration },
+            .command_generation = status.command_generation },
           { .accept_timeout = 2s },
           { .on_result = [&result](auto value) { result = value; } }) };
         ASSERT_TRUE(waitUntil([&] {
@@ -553,19 +554,19 @@ namespace
         start();
         expectUnavailable("awaiting");
         // The IO clock has a different epoch; freshness uses UI's receipt time.
-        topic.publish({ .commandGeneration = 1,
+        topic.publish({ .command_generation = 1,
                         .sequence = 10,
                         .sampled_at_us = std::numeric_limits<std::uint64_t>::max() });
         ASSERT_TRUE(waitUntil([&] { return received(10); }));
         std::this_thread::sleep_for(MOTOR_STATE_MAX_AGE + 30ms);
         expectUnavailable("stale");
-        topic.publish({ .commandGeneration = 1, .sequence = 10 });
+        topic.publish({ .command_generation = 1, .sequence = 10 });
         std::this_thread::sleep_for(20ms);
         expectUnavailable("stale");
-        topic.publish({ .commandGeneration = 1, .sequence = 9 });
+        topic.publish({ .command_generation = 1, .sequence = 9 });
         std::this_thread::sleep_for(20ms);
         expectUnavailable("stale");
-        topic.publish({ .commandGeneration = 1, .sequence = 11 });
+        topic.publish({ .command_generation = 1, .sequence = 11 });
         ASSERT_TRUE(waitUntil([&] { return received(11); }));
         client.setConnected(false);
         expectUnavailable("disconnected");
@@ -575,7 +576,7 @@ namespace
     TEST_F(MotorTelemetry, CacheReceivesLatestValueAfterConsumerWasNotRunning)
     {
         for (std::uint64_t sequence = 1; sequence <= 1000; ++sequence) {
-            topic.publish({ .commandGeneration = 1, .sequence = sequence });
+            topic.publish({ .command_generation = 1, .sequence = sequence });
         }
         start();
         ASSERT_TRUE(waitUntil([&] { return received(1000); }));
@@ -584,13 +585,13 @@ namespace
     TEST_F(MotorTelemetry, AcknowledgementsAdvanceGenerationWithoutWaitingForTelemetry)
     {
         start();
-        MotorResponse reply{ .message = {}, .commandGeneration = 7 };
+        MotorResponse reply{ .message = {}, .command_generation = 7 };
         auto commands{ bus.service<^^icc::Services::io_motor>().serve(
           [&](const MotorRequest&) { return reply; }) };
         std::uint64_t submitted{};
         auto actions{ bus.action<^^icc::Actions::io_motor_motion>().serveDeferred(
           [&](const MotorGoal& goal, pnm::msg::ActionExecution<MotorProgress, MotorResult> execution) {
-            submitted = goal.commandGeneration;
+            submitted = goal.command_generation;
             execution.accept();
             execution.succeed({ MotorOutcome::Completed, {} });
         }) };
@@ -601,21 +602,21 @@ namespace
             EXPECT_TRUE(waitUntil([&] { return commands.poll() != 0; }));
             return future.get();
         };
-        EXPECT_EQ(request().commandGeneration, 7U);
+        EXPECT_EQ(request().command_generation, 7U);
         expectUnavailable("awaiting");
         client.submit({ .position = 1, .velocity = 5 });
         ASSERT_TRUE(waitUntil([&] { return actions.poll() != 0; }));
         EXPECT_EQ(submitted, 7U);
 
         // A delayed snapshot must not undo the newer acknowledged generation.
-        topic.publish({ .commandGeneration = 1, .sequence = 1 });
+        topic.publish({ .command_generation = 1, .sequence = 1 });
         ASSERT_TRUE(waitUntil([&] { return received(1); }));
         client.submit({ .position = 1, .velocity = 5 });
         ASSERT_TRUE(waitUntil([&] { return actions.poll() != 0; }));
         EXPECT_EQ(submitted, 7U);
 
         // Initialization can invalidate commands and subsequently fail.
-        reply = { .ok = false, .message = "driver unavailable", .commandGeneration = 8 };
+        reply = { .ok = false, .message = "driver unavailable", .command_generation = 8 };
         EXPECT_THROW(request(), std::runtime_error);
         client.submit({ .position = 1, .velocity = 5 });
         ASSERT_TRUE(waitUntil([&] { return actions.poll() != 0; }));

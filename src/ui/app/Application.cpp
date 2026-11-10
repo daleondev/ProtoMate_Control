@@ -28,13 +28,22 @@ namespace ui
 {
     namespace
     {
-        void reportFailure(const char* worker) noexcept
+        constexpr unsigned LOG_PRIORITY{ 20 };
+        constexpr std::size_t LOG_STACK_BYTES{ 8192 };
+    }
+    namespace
+    {
+        void report_failure(const char* worker) noexcept
         {
             try {
                 throw;
             } catch (const std::exception& error) {
+                // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
                 std::fprintf(stderr, "UI %s failed: %s\n", worker, error.what());
             } catch (...) {
+                // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
                 std::fprintf(stderr, "UI %s failed: unknown exception\n", worker);
             }
         }
@@ -42,7 +51,7 @@ namespace ui
 #if defined(CORE_CM7)
     // A dedicated private stack preserves AXI heap for ICC/CLI. The linker
     // checks the DTCM budget; no runtime objects live in the SDRAM POD arena.
-    alignas(32) __attribute__((section(".dtcm_bss"))) std::byte Application::s_plannerStack[24UZ * 1024UZ];
+    __attribute__((section(".dtcm_bss"))) Application::PlannerStack Application::s_plannerStack{};
 #endif
     Application::Application(icc::ITransport& transport)
       : m_bridge{ m_bus, m_iccContext, transport }
@@ -50,7 +59,7 @@ namespace ui
       , m_ioState{ m_bus.topic<^^icc::Topics::io_controller_state>().subscribe(
           [this](app::State state) { m_systemState.receiveIo(state); },
           pnm::msg::SubscriptionOptions::latestOnly()) }
-      , m_logs{ m_bus, cli::writeLog }
+      , m_logs{ m_bus, cli::write_log }
       , m_motors{ m_bus }
       , m_robot{ m_bus, m_motors }
       , m_guiBackend{ m_bus, m_motors, m_robot, m_systemState }
@@ -66,19 +75,23 @@ namespace ui
             if (status.state == icc::ConnectionState::Failed ||
                 (status.reason == icc::ConnectionReason::PeerStopped && !m_stopSource.stop_requested())) {
                 m_systemState.setLocal(app::State::Fault);
+                // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
                 std::fprintf(stderr, "UI ICC failed: reason=%u\n", static_cast<unsigned>(status.reason));
-                if (const auto failure = m_bridge.failure()) {
-                    if (const auto* exception = std::get_if<std::exception_ptr>(&*failure)) {
+                if (const auto failure{ m_bridge.failure() }) {
+                    if (const auto* exception{ std::get_if<std::exception_ptr>(&*failure) }) {
                         try {
                             std::rethrow_exception(*exception);
                         } catch (const std::exception& error) {
                             m_systemState.setFailure(error.what());
                             m_guiBackend.connection(status, error.what());
+                            // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
                             std::fprintf(stderr, "ICC exception: %s\n", error.what());
                         } catch (...) {
                             m_systemState.setFailure("non-standard exception");
                             m_guiBackend.connection(status, "non-standard exception");
-                            reportFailure("ICC");
+                            report_failure("ICC");
                         }
                     }
                 }
@@ -89,7 +102,8 @@ namespace ui
             // loss-of-owner stop; losing ICC is not proof that hardware stopped.
         });
 
-        runtime::thread::publish_attributes({ .name = "ui.logging", .priority = 20, .stack_size = 8192U });
+        runtime::thread::publish_attributes(
+          { .name = "ui.logging", .priority = LOG_PRIORITY, .stack_size = LOG_STACK_BYTES });
         pnm::log::initialize();
         installLogSink();
         pnm::log::info("UI-Controller started");
@@ -160,7 +174,7 @@ namespace ui
             }
         } catch (...) {
             if (!m_stopSource.stop_requested()) {
-                reportFailure("state publication");
+                report_failure("state publication");
                 m_systemState.setLocal(app::State::Fault);
                 requestStop();
             }
@@ -180,10 +194,12 @@ namespace ui
             m_logs.run(m_stopSource.get_token());
         } catch (const std::exception& error) {
             m_systemState.setLocal(app::State::Fault);
+            // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
             std::fprintf(stderr, "Log subscriber failed: %s\n", error.what());
             requestStop();
         } catch (...) {
-            reportFailure("log subscriber");
+            report_failure("log subscriber");
             m_systemState.setLocal(app::State::Fault);
             requestStop();
         }
@@ -208,7 +224,7 @@ namespace ui
         try {
             cli::Parser parser{};
 #ifdef HAL_PLATFORM_LINUX
-            simulation::setupCommands(parser);
+            simulation::setup_commands(parser);
 #endif
             cli::filesystem::setup(parser);
             cli::display::setup(parser, m_gui);
@@ -221,6 +237,8 @@ namespace ui
             cli::run(parser, m_stopSource.get_token());
         } catch (const std::exception& error) {
             m_systemState.setLocal(app::State::Fault);
+            // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
             std::fprintf(stderr, "CLI failed: %s\n", error.what());
         } catch (...) {
             m_systemState.setLocal(app::State::Fault);
@@ -234,7 +252,7 @@ namespace ui
         try {
             m_robot.run(m_stopSource.get_token());
         } catch (...) {
-            reportFailure("planner");
+            report_failure("planner");
             m_systemState.setLocal(app::State::Fault);
             requestStop();
         }
@@ -249,6 +267,8 @@ namespace ui
             m_motors.run(m_stopSource.get_token());
         } catch (const std::exception& error) {
             m_systemState.setLocal(app::State::Fault);
+            // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
             std::fprintf(stderr, "Motor client failed: %s\n", error.what());
             requestStop();
         } catch (...) {

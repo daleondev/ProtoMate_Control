@@ -67,7 +67,7 @@ set_tests_properties(application.robot_api PROPERTIES TIMEOUT 45)
 
 # Native, deterministic tests of the production executor and the DMA register
 # boundary. No hosted scheduler or wall-clock sleeps in algorithm tests.
-add_executable(proto_executor_tests executor_test.cpp ../io/motion/Executor.cpp
+add_executable(proto_executor_tests executor_test.cpp ../io/motion/Executor.cpp ../io/motion/ExecutorSetup.cpp
     ../io/motion/ExecutorDiagnostic.cpp
     ../io/motion/ProfileSchedule.cpp ../common/motion/Profile.cpp
     ../common/motion/ProgressPath.cpp ../common/motion/Polynomial.cpp

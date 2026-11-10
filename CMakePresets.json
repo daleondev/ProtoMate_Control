@@ -59,7 +59,8 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "STM32_CORE": "CM4",
-                "RUNTIME_FILESYSTEM": true
+                "RUNTIME_FILESYSTEM": true,
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
@@ -81,7 +82,8 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "STM32_CORE": "CM4",
-                "RUNTIME_FILESYSTEM": true
+                "RUNTIME_FILESYSTEM": true,
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
@@ -101,7 +103,8 @@
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "GIGA_BUILD_BOTH": true
+                "GIGA_BUILD_BOTH": true,
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
@@ -110,7 +113,8 @@
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "GIGA_BUILD_BOTH": true
+                "GIGA_BUILD_BOTH": true,
+                "GIGA_M4_SDRAM_CODE": true
             }
         },
         {
@@ -131,63 +135,72 @@
             "name": "giga-io-bench-debug",
             "inherits": "giga-io-debug",
             "cacheVariables": {
-                "GIGA_STEP_BENCH": true
+                "GIGA_STEP_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {
             "name": "giga-ui-bench-debug",
             "inherits": "giga-ui-debug",
             "cacheVariables": {
-                "GIGA_STEP_BENCH": true
+                "GIGA_STEP_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {
             "name": "giga-bench-debug",
             "inherits": "giga-debug",
             "cacheVariables": {
-                "GIGA_STEP_BENCH": true
+                "GIGA_STEP_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {
             "name": "giga-io-motion-bench-debug",
             "inherits": "giga-io-debug",
             "cacheVariables": {
-                "GIGA_MOTION_BENCH": true
+                "GIGA_MOTION_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {
             "name": "giga-ui-motion-bench-debug",
             "inherits": "giga-ui-debug",
             "cacheVariables": {
-                "GIGA_MOTION_BENCH": true
+                "GIGA_MOTION_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {
             "name": "giga-motion-bench-debug",
             "inherits": "giga-debug",
             "cacheVariables": {
-                "GIGA_MOTION_BENCH": true
+                "GIGA_MOTION_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {
             "name": "giga-io-motion-bench-release",
             "inherits": "giga-io-release",
             "cacheVariables": {
-                "GIGA_MOTION_BENCH": true
+                "GIGA_MOTION_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {
             "name": "giga-ui-motion-bench-release",
             "inherits": "giga-ui-release",
             "cacheVariables": {
-                "GIGA_MOTION_BENCH": true
+                "GIGA_MOTION_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {
             "name": "giga-motion-bench-release",
             "inherits": "giga-release",
             "cacheVariables": {
-                "GIGA_MOTION_BENCH": true
+                "GIGA_MOTION_BENCH": true,
+                "GIGA_M4_SDRAM_CODE": false
             }
         },
         {

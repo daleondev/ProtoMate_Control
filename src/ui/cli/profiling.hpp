@@ -7,5 +7,5 @@ namespace ui::cli
 }
 namespace ui::cli::profiling
 {
-    void setup(Parser&, pnm::msg::Bus&, std::stop_token);
+    void setup(Parser& /*parser*/, pnm::msg::Bus& /*bus*/, std::stop_token /*stop*/);
 }

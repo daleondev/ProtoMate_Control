@@ -26,7 +26,7 @@ namespace io::motion
     // execution paths. Never called from an interrupt.
     void StepperMotor::reportFailure(const char* stage) const noexcept
     {
-        const auto failure = std::current_exception();
+        const auto failure{ std::current_exception() };
         try {
             try {
                 if (failure) {
@@ -119,7 +119,7 @@ namespace io::motion
         }
         try {
             m_worker = runtime::thread::create_jthread(
-              { .name = "motion", .stack_size = WORKER_STACK_BYTES, .stack_storage = m_workerStack.get() },
+              { .name = "motion", .stack_size = WORKER_STACK_BYTES, .stack_storage = m_workerStack->data() },
               [this, command](const std::stop_token& stop) { runCommands(command, stop); });
         } catch (...) {
             reportFailure("raw worker startup");
@@ -148,7 +148,7 @@ namespace io::motion
             // Joining the predecessor makes the reserved stack available for
             // reuse, including after homing cancellation.
             m_worker = runtime::thread::create_jthread(
-              { .name = "homing", .stack_size = WORKER_STACK_BYTES, .stack_storage = m_workerStack.get() },
+              { .name = "homing", .stack_size = WORKER_STACK_BYTES, .stack_storage = m_workerStack->data() },
               [this, task = std::move(task), completion, epoch](const std::stop_token& stop) mutable {
                 m_runEpoch = epoch;
                 Result result{ Result::Faulted };
@@ -174,6 +174,63 @@ namespace io::motion
         return future;
     }
 
+    struct StepperMotor::FinishReferencing
+    {
+        MotionEvents& events;
+        const hal::IDigitalInput& input;
+        bool restore_fault;
+        bool complete{};
+        explicit FinishReferencing(MotionEvents& value,
+                                   const hal::IDigitalInput& reference,
+                                   bool previous_fault)
+          : events{ value }
+          , input{ reference }
+          , restore_fault{ previous_fault }
+        {
+        }
+        FinishReferencing(const FinishReferencing&) = delete;
+        FinishReferencing& operator=(const FinishReferencing&) = delete;
+        FinishReferencing(FinishReferencing&&) = delete;
+        FinishReferencing& operator=(FinishReferencing&&) = delete;
+        ~FinishReferencing()
+        {
+            if (!complete) {
+                events.referenced.store(false);
+                if (restore_fault) {
+                    events.limit_fault.store(true);
+                }
+            }
+            events.referencing.store(false);
+            // Cancellation/timeout can leave the switch held without a new
+            // GPIO edge. Once homing ends, that is an ordinary hard limit.
+            if (input.read() == hal::gpio::Level::High) {
+                events.referenced.store(false);
+                events.limit_fault.store(true);
+                if (events.shutdown) {
+                    events.shutdown();
+                }
+                events.notification.signal();
+                if (auto* group{ events.group_notification.load() }) {
+                    group->signal();
+                }
+            }
+        }
+    };
+    StepperMotor::Result StepperMotor::seekReference(Direction direction,
+                                                     pnm::units::AngularVelocity speed,
+                                                     hal::gpio::Level level,
+                                                     std::chrono::steady_clock::time_point deadline,
+                                                     const std::stop_token& stop)
+    {
+        if (interrupted(stop)) {
+            return Result::Stopped;
+        }
+        const auto remaining{ deadline - std::chrono::steady_clock::now() };
+        if (remaining <= std::chrono::steady_clock::duration::zero()) {
+            return Result::TimedOut;
+        }
+        return performMotion(direction, speed, pnm::units::Time{ remaining }, stop, std::nullopt, level);
+    }
     StepperMotor::Result StepperMotor::performReference(pnm::units::AngularVelocity seek_velocity,
                                                         pnm::units::AngularVelocity latch_velocity,
                                                         pnm::units::Time timeout,
@@ -196,78 +253,31 @@ namespace io::motion
                            motor_id);
             return Result::Rejected;
         }
-        const bool previous_limit_fault = m_events->limit_fault.exchange(false);
+        const bool previous_limit_fault{ m_events->limit_fault.exchange(false) };
         m_events->referencing.store(true);
         m_events->referenced.store(false);
-        struct FinishReferencing
-        {
-            MotionEvents& events;
-            const hal::IDigitalInput& input;
-            bool restore_fault;
-            bool complete{};
-            explicit FinishReferencing(MotionEvents& value,
-                                       const hal::IDigitalInput& reference,
-                                       bool previous_fault)
-              : events{ value }
-              , input{ reference }
-              , restore_fault{ previous_fault }
-            {
-            }
-            FinishReferencing(const FinishReferencing&) = delete;
-            FinishReferencing& operator=(const FinishReferencing&) = delete;
-            FinishReferencing(FinishReferencing&&) = delete;
-            FinishReferencing& operator=(FinishReferencing&&) = delete;
-            ~FinishReferencing()
-            {
-                if (!complete) {
-                    events.referenced.store(false);
-                    if (restore_fault)
-                        events.limit_fault.store(true);
-                }
-                events.referencing.store(false);
-                // Cancellation/timeout can leave the switch held without a new
-                // GPIO edge. Once homing ends, that is an ordinary hard limit.
-                if (input.read() == hal::gpio::Level::High) {
-                    events.referenced.store(false);
-                    events.limit_fault.store(true);
-                    if (events.shutdown)
-                        events.shutdown();
-                    events.notification.signal();
-                    if (auto* group = events.group_notification.load())
-                        group->signal();
-                }
-            }
-        } finish{ *m_events, *m_referenceSwitchInput, previous_limit_fault };
+        FinishReferencing finish{ *m_events, *m_referenceSwitchInput, previous_limit_fault };
         // Catch activation racing the transition into homing; do not claim a
         // switch that was active before the seek as a new reference.
-        if (referenceSwitchActive() || m_events->limit_fault.load())
+        if (referenceSwitchActive() || m_events->limit_fault.load()) {
             return Result::Rejected;
+        }
 
         const auto deadline{ now + timeout.toChrono<std::chrono::steady_clock::duration>() };
         const std::stop_callback cancellation{ stop, [this] { m_events->notification.signal(); } };
-        const auto seek{ [&](Direction direction, pnm::units::AngularVelocity speed, hal::gpio::Level level) {
-            if (interrupted(stop)) {
-                return Result::Stopped;
-            }
-            const auto remaining{ deadline - std::chrono::steady_clock::now() };
-            if (remaining <= std::chrono::steady_clock::duration::zero()) {
-                return Result::TimedOut;
-            }
-            return performMotion(direction, speed, pnm::units::Time{ remaining }, stop, std::nullopt, level);
-        } };
-
-        const auto seek_direction = m_referenceDirection;
-        const auto release_direction =
-          seek_direction == Direction::Forward ? Direction::Backward : Direction::Forward;
+        const auto seek_direction{ m_referenceDirection };
+        const auto release_direction{ seek_direction == Direction::Forward ? Direction::Backward
+                                                                           : Direction::Forward };
         using enum hal::gpio::Level;
         pnm::log::debug(logSink(pnm::log::Level::Debug),
                         "Motor {} reference: seeking first contact {} at {} rpm",
                         motor_id,
                         seek_direction == Direction::Forward ? "Forward" : "Backward",
                         seek_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
-        const auto first = seek(seek_direction, seek_velocity, High);
-        if (first != Result::Completed)
+        const auto first{ seekReference(seek_direction, seek_velocity, High, deadline, stop) };
+        if (first != Result::Completed) {
             return first;
+        }
 
         pnm::log::debug(logSink(pnm::log::Level::Debug),
                         "Motor {} reference: confirming first contact (10 ms stable HIGH)",
@@ -282,7 +292,7 @@ namespace io::motion
                         motor_id,
                         release_direction == Direction::Forward ? "Forward" : "Backward",
                         seek_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
-        result = seek(release_direction, seek_velocity, Low);
+        result = seekReference(release_direction, seek_velocity, Low, deadline, stop);
         if (result != Result::Completed) {
             return result;
         }
@@ -300,7 +310,7 @@ namespace io::motion
                         motor_id,
                         seek_direction == Direction::Forward ? "Forward" : "Backward",
                         latch_velocity.get<pnm::units::AngularVelocityUnits::rpm>());
-        result = seek(seek_direction, latch_velocity, High);
+        result = seekReference(seek_direction, latch_velocity, High, deadline, stop);
         if (result != Result::Completed) {
             return result;
         }
@@ -318,20 +328,24 @@ namespace io::motion
                         motor_id,
                         m_referenceSwitchPosition.get<pnm::units::AngleUnits::deg>());
         result = applyReferencePosition(stop);
-        if (result != Result::Completed)
+        if (result != Result::Completed) {
             return result;
+        }
         pnm::log::debug(logSink(pnm::log::Level::Debug),
                         "Motor {} reference: releasing switch after latch; retaining latched coordinate",
                         motor_id);
-        result = seek(release_direction, latch_velocity, Low);
-        if (result != Result::Completed)
+        result = seekReference(release_direction, latch_velocity, Low, deadline, stop);
+        if (result != Result::Completed) {
             return result;
+        }
         result = waitReferenceLevel(Low, deadline, stop);
-        if (result != Result::Completed || interrupted(stop))
+        if (result != Result::Completed || interrupted(stop)) {
             return result == Result::Completed ? Result::Stopped : result;
+        }
         m_events->referencing.store(false);
-        if (referenceSwitchActive() || m_events->limit_fault.load())
+        if (referenceSwitchActive() || m_events->limit_fault.load()) {
             return Result::Faulted;
+        }
         finish.complete = true;
         return Result::Completed;
     }

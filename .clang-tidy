@@ -24,6 +24,10 @@ ExcludeHeaderFilterRegex: "(^|/)(test|tests|vendor)/"
 # Native check ported from LabServer, built against our exact Clang/P2996 ABI.
 # scripts/clang_tidy.py loads it for analysis and configuration verification.
 CheckOptions:
+  # An explicit void cast documents intentional best-effort teardown. Accidental
+  # ignored results remain diagnosed; operational errors still require handling.
+  - key: bugprone-unused-return-value.AllowCastToVoid
+    value: true
   - key: modernize-use-default-member-init.UseAssignment
     value: false
   - key: cppcoreguidelines-pro-type-member-init.UseAssignment
@@ -46,11 +50,11 @@ CheckOptions:
     value: lower_case
   # Hardware ISR symbols must match the CMSIS vector table.
   - key: readability-identifier-naming.FunctionIgnoredRegexp
-    value: "^(BSP_.*|Error_Handler|HAL_.*|MPU_Config_User|MX_.*|SCB_.*|SystemClock_Config|.*_IRQHandler|__.*)$"
+    value: "^(BSP_.*|Error_Handler|HAL_.*|MPU_Config_User|MX_.*|SCB_.*|SystemClock_Config|.*_IRQHandler|__.*|_tx_.*|_sbrk|.*_Handler)$"
   - key: readability-identifier-naming.VariableCase
     value: lower_case
   - key: readability-identifier-naming.VariableIgnoredRegexp
-    value: "^__.*$"
+    value: "^(__.*|_tx_.*)$"
   - key: readability-identifier-naming.ParameterCase
     value: lower_case
   - key: readability-identifier-naming.MethodCase

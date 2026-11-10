@@ -6,6 +6,11 @@ namespace hal
     class Graphics final : public IGraphics
     {
       public:
+        Graphics(const Graphics&) = delete;
+        auto operator=(const Graphics&) -> Graphics& = delete;
+        Graphics(Graphics&&) = delete;
+        auto operator=(Graphics&&) -> Graphics& = delete;
+
         explicit Graphics(DMA2D_TypeDef& registers);
         ~Graphics() override;
         auto submit(const graphics::Transfer& transfer, graphics::Callback callback)

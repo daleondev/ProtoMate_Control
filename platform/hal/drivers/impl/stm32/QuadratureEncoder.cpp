@@ -25,19 +25,25 @@ namespace hal
         }
     }
     QuadratureEncoder::QuadratureEncoder(util::TimerLease lease,
-                                         util::TimerLease samplerLease,
+                                         util::TimerLease sampler_lease,
                                          std::shared_ptr<IDigitalInput> a,
                                          std::shared_ptr<IDigitalInput> b)
       : m_lease{ std::move(lease) }
-      , m_samplerLease{ std::move(samplerLease) }
+      , m_samplerLease{ std::move(sampler_lease) }
       , m_a{ std::move(a) }
       , m_b{ std::move(b) }
     {
         const stm32::InterruptGuard guard{};
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         m_handle.Instance = TIM3;
         m_handle.State = HAL_TIM_STATE_READY;
         HAL_NVIC_DisableIRQ(TIM6_DAC_IRQn);
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM6->DIER = 0U;
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         CLEAR_BIT(TIM6->CR1, TIM_CR1_CEN);
         HAL_NVIC_ClearPendingIRQ(TIM6_DAC_IRQn);
         HAL_NVIC_DisableIRQ(TIM3_IRQn);
@@ -91,19 +97,31 @@ namespace hal
         __HAL_TIM_ENABLE_IT(&m_handle, SERVICE_INTERRUPTS);
         HAL_NVIC_SetPriority(TIM3_IRQn, ENCODER_IRQ_PRIORITY, 0U);
         HAL_NVIC_EnableIRQ(TIM3_IRQn);
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM6->CNT = 0U;
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM6->SR = 0U;
         HAL_NVIC_ClearPendingIRQ(TIM6_DAC_IRQn);
         HAL_NVIC_SetPriority(TIM6_DAC_IRQn, ENCODER_IRQ_PRIORITY, 0U);
         HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM6->DIER = TIM_DIER_UIE;
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         SET_BIT(TIM6->CR1, TIM_CR1_CEN);
         return {};
     }
     auto QuadratureEncoder::stop() noexcept -> util::Result<>
     {
         const stm32::InterruptGuard guard{};
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM6->DIER = 0U;
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         CLEAR_BIT(TIM6->CR1, TIM_CR1_CEN);
         HAL_NVIC_DisableIRQ(TIM6_DAC_IRQn);
         HAL_NVIC_ClearPendingIRQ(TIM6_DAC_IRQn);
@@ -162,12 +180,16 @@ namespace hal
     auto QuadratureEncoder::dispatchInterrupt() noexcept -> void
     {
         const stm32::InterruptGuard guard{};
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         const std::uint32_t pending{ TIM3->SR & TIM3->DIER & SERVICE_FLAGS };
         if (pending == 0U) {
             return;
         }
         // Clear before sampling. A later match stays pending and is serviced
         // again; bouncing across a wrap cannot corrupt an overflow-direction guess.
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM3->SR = ~pending;
         if (s_instance != nullptr && s_instance->m_running) {
             s_instance->sample();
@@ -185,7 +207,11 @@ extern "C" void TIM3_IRQHandler()
 extern "C" void TIM6_DAC_IRQHandler()
 {
     profiling::interruptEnter();
+    // CMSIS peripheral access uses the MCU fixed-address register map.
+    // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     if ((TIM6->SR & TIM6->DIER & TIM_SR_UIF) != 0U) {
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         TIM6->SR = ~TIM_SR_UIF;
         hal::QuadratureEncoder::dispatchTimebase();
     }

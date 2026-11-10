@@ -6,6 +6,11 @@ namespace ui::gui
     class Frontend final : public touchgfx::MVPApplication
     {
       public:
+        Frontend(const Frontend&) = delete;
+        auto operator=(const Frontend&) -> Frontend& = delete;
+        Frontend(Frontend&&) = delete;
+        auto operator=(Frontend&&) -> Frontend& = delete;
+
         Frontend(scene3d::RenderService& renderer, hmi::Backend* backend);
         ~Frontend() override;
         void changeToStartScreen() override;
@@ -18,7 +23,7 @@ namespace ui::gui
         }
         void diagnostics(bool enabled) { m_view.diagnostics(enabled); }
         void scene(unsigned triangles) { m_view.benchmark(triangles); }
-        void graphics(std::array<std::uint32_t, 8> value) { m_model.graphics = value; }
+        void graphics(std::array<std::uint32_t, hmi::GRAPHICS_METRICS> value) { m_model.graphics = value; }
         void rate(unsigned fps, bool interactive) { m_view.rate(fps, interactive); }
         bool input(const hal::device::TouchReport& report, bool valid) { return m_view.input(report, valid); }
         bool brightnessChanged() { return m_view.brightnessChanged(); }

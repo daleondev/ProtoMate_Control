@@ -63,6 +63,14 @@ class MpuTests(unittest.TestCase):
     def test_debug_code_only_executable_when_requested(self):
         self.assertEqual(self.regions('m4')[3].DisableExec,1)
         self.assertEqual(self.regions('m4',1)[3].DisableExec,0)
+    def test_profiling_reservations_are_excluded_from_executable_sdram(self):
+        for variant in self.libraries:
+            regions = self.regions(variant, 1)
+            code = regions[3]
+            self.assertEqual((code.BaseAddress, code.Size, code.SubRegionDisable),
+                             (0xC0400000, 2 * 1024 * 1024, 3))
+            self.assertEqual((regions[2].DisableExec, regions[2].IsCacheable), (1, 0))
+            self.assertEqual(code.BaseAddress + code.Size // 8 * 2, 0xC0480000)
     def test_m4_data_and_stack_are_xn_while_sram1_is_excluded(self):
         r=self.regions('m4')[7]
         self.assertEqual((r.BaseAddress,r.Size,r.SubRegionDisable,r.DisableExec),(0x30000000,512*1024,3,1))

@@ -438,7 +438,7 @@ namespace ui::cli
 
     auto Parser::registerCommand(Command command) -> std::expected<void, std::string>
     {
-        auto owned = std::make_unique<OwnedCommand>();
+        auto owned{ std::make_unique<OwnedCommand>() };
         owned->command = std::move(command);
         for (const auto& arg : owned->command.arguments) {
             owned->arguments.push_back({ arg.name, arg.description, arg.optional, arg.variadic });
@@ -457,7 +457,7 @@ namespace ui::cli
                           .callback = std::move(owned->command.callback) };
         m_ownedCommands.push_back(std::move(owned));
         try {
-            auto result = registerStaticCommand(std::move(view));
+            auto result{ registerStaticCommand(std::move(view)) };
             if (!result) {
                 m_ownedCommands.pop_back();
             }

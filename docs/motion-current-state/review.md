@@ -1,5 +1,38 @@
 # Current motion-control review
 
+## 2026-11-10 cleanup screening
+
+Two focused corrections have now passed short application-level checks; final
+lint/build/sanitizer qualification is still in progress.
+
+- Raw initial DMA preparation now evaluates bounded batches with interrupts
+  available. Publication checks the axis revision, including cancellation while
+  preparation is in progress. The register-model reproduction failed before this
+  change and passes afterward; all 21 STM32 register tests passed.
+- Correlated TIM5 traces found tens to hundreds of milliseconds between shared
+  memory publication and M4 dispatch/response under QSPI instruction fetches.
+  Shared-memory publication itself was about 0.05 ms. Numerical homing
+  preparation was about 1 ms in the failing QSPI run. No communication or motion
+  deadline was relaxed.
+- Ordinary M4 code now loads into SDRAM at `0xC0480000`, using at most 1536 KiB.
+  Complete STEP/IRQ call paths remain in internal instruction RAM. The lower
+  512 KiB remains reserved for profiling, with execute-never MPU coverage and
+  packer/bootstrap rejection of code segments in those buffers.
+- The SDRAM application fixture passed homing cancellation/restart, three
+  independent-axis overlap cycles, family exclusion, coordinated stopping,
+  jog, simultaneous raw moves, buffering/blending and active speed replacement.
+- Analyzer screening passed raw counts 800/800/400, coordinated 400/400/400 and
+  controlled-stop 374/374/374. High pulses were 120–121 samples at 24 MHz;
+  coordinated rising edges differed by at most one sample. Enable remained HIGH.
+- A subsequent capture setup was rejected by the existing ten-second homing
+  timeout because accumulated raw moves had displaced the synthetic Axis 3 too
+  far. Resetting the fixture restored the initial test positions; the fresh
+  coordinated capture passed. The failed setup is retained.
+
+Artifacts: `build/cleanup-validation-2026-11-10/`. These checks establish neither
+powered mechanical accuracy nor maximum-rate qualification. The earlier results
+below remain the record of the previous source state.
+
 ## 2026-11-10 pneumo integration follow-up
 
 This follow-up does **not** establish a complete hardware release. The previous

@@ -4,7 +4,7 @@
 
 namespace diagnostics
 {
-    ProfileResponse controlProfile(ProfileRequest request)
+    ProfileResponse control_profile(ProfileRequest request)
     {
         std::uint32_t result{};
         switch (request.operation) {
@@ -19,18 +19,19 @@ namespace diagnostics
             default:
                 result = 1;
         }
-        return { result, profile_status() };
+        return { .result = result, .status = profile_status() };
     }
-    void pollProfiling()
+    void poll_profiling()
     {
         profile_service();
         // On Linux UI owns the shared runtime's collection; the IO loop does
         // not call this function, avoiding a second collector and timer race.
-        static auto next = std::chrono::steady_clock::time_point{};
-        const auto now = std::chrono::steady_clock::now();
-        if (now < next)
+        static auto next{ std::chrono::steady_clock::time_point{} };
+        const auto now{ std::chrono::steady_clock::now() };
+        if (now < next) {
             return;
+        }
         next = now + std::chrono::seconds{ 1 };
-        sampleProfilingMemory();
+        sample_profiling_memory();
     }
 }

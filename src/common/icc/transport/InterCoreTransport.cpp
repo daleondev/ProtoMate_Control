@@ -7,6 +7,7 @@
 
 namespace
 {
+    constexpr std::size_t ARM_NOTIFICATION_STACK{ 2048 }, HOST_NOTIFICATION_STACK{ 8192 };
     icc::ITransport::Error transport_error(hal::IInterCoreChannel::Error error)
     {
         using Error = hal::IInterCoreChannel::Error;
@@ -35,9 +36,11 @@ namespace icc
         // This worker only transfers readiness notifications, never messages.
         // Notification-only ARM path peaked at 544 bytes. No frame encoding or
         // application callbacks run here; hosted Debug retains 8 KiB.
-        m_worker = runtime::thread::create({ .name = "intercore.notify", .priority = 3,
-                                             .stack_size = sizeof(void*) == 4 ? 2048UZ : 8192UZ },
-                                           [this] { notificationThread(); });
+        m_worker = runtime::thread::create(
+          { .name = "intercore.notify",
+            .priority = 3,
+            .stack_size = sizeof(void*) == 4 ? ARM_NOTIFICATION_STACK : HOST_NOTIFICATION_STACK },
+          [this] { notificationThread(); });
         m_channel->setNotification([this]() noexcept { m_notification.signal(); });
     }
 
@@ -55,7 +58,7 @@ namespace icc
     {
         while (!m_stopping.load()) {
             m_notification.waitUntil(std::chrono::steady_clock::time_point::max());
-            hal::util::intercoreTrace(hal::util::InterCoreStage::NotificationWorker);
+            hal::util::intercore_trace(hal::util::InterCoreStage::NotificationWorker);
             wakeWaiters();
         }
     }
@@ -75,7 +78,7 @@ namespace icc
                     if (waiter.waiting && !waiter.pending && (m_closed || available)) {
                         waiter.waiting = false;
                         waiter.pending = true;
-                        wake[2 * priority + operation] = waiter.ready;
+                        wake[(2 * priority) + operation] = waiter.ready;
                     }
                 }
             }
@@ -100,12 +103,14 @@ namespace icc
         m_notification.signal();
     }
 
+    // Coroutine lowering diagnoses synthetic static awaiter members here.
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     pnm::coro::Task<pnm::EmptyResult<ITransport::Error>> InterCoreTransport::send(
       std::span<const std::byte> frame,
       Lane lane,
       std::stop_token stop)
     {
-        hal::util::intercoreTrace(hal::util::InterCoreStage::TransportSend, unsigned(lane), frame);
+        hal::util::intercore_trace(hal::util::InterCoreStage::TransportSend, unsigned(lane), frame);
         const auto index{ 2 * static_cast<std::size_t>(lane) };
         if (index >= m_waiters.size()) {
             co_return std::unexpected(Error::Disconnected);
@@ -121,7 +126,7 @@ namespace icc
             }
             const auto result{ m_channel->trySend(frame, lane) };
             if (result) {
-                hal::util::intercoreTrace(hal::util::InterCoreStage::TransportSent, unsigned(lane), frame);
+                hal::util::intercore_trace(hal::util::InterCoreStage::TransportSent, unsigned(lane), frame);
                 co_return pnm::EmptyResult<Error>{};
             }
             if (result.error() != hal::IInterCoreChannel::Error::WouldBlock) {
@@ -131,6 +136,8 @@ namespace icc
             // a notification between the failed operation and arming the wait.
             waiter.waiting = true;
             lock.unlock();
+            // Coroutine lowering diagnoses synthetic static awaiter members here.
+            // NOLINTNEXTLINE(readability-static-accessed-through-instance)
             const auto notified{ co_await waiter.ready.wait(stop) };
             lock.lock();
             waiter.waiting = false;
@@ -140,12 +147,14 @@ namespace icc
         }
     }
 
+    // Coroutine lowering diagnoses synthetic static awaiter members here.
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     pnm::coro::Task<pnm::Result<std::size_t, ITransport::Error>> InterCoreTransport::receive(
       std::span<std::byte> buffer,
       Lane lane,
       std::stop_token stop)
     {
-        const auto index{ 2 * static_cast<std::size_t>(lane) + 1 };
+        const auto index{ (2 * static_cast<std::size_t>(lane)) + 1 };
         if (index >= m_waiters.size()) {
             co_return std::unexpected(Error::Disconnected);
         }
@@ -160,7 +169,8 @@ namespace icc
             }
             const auto result{ m_channel->tryReceive(buffer, lane) };
             if (result) {
-                hal::util::intercoreTrace(hal::util::InterCoreStage::TransportReceived, unsigned(lane), buffer.first(*result));
+                hal::util::intercore_trace(
+                  hal::util::InterCoreStage::TransportReceived, unsigned(lane), buffer.first(*result));
                 co_return *result;
             }
             if (result.error() != hal::IInterCoreChannel::Error::WouldBlock) {
@@ -168,6 +178,8 @@ namespace icc
             }
             waiter.waiting = true;
             lock.unlock();
+            // Coroutine lowering diagnoses synthetic static awaiter members here.
+            // NOLINTNEXTLINE(readability-static-accessed-through-instance)
             const auto notified{ co_await waiter.ready.wait(stop) };
             lock.lock();
             waiter.waiting = false;

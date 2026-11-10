@@ -5,6 +5,7 @@
 #include <cstdint>
 namespace hal::device
 {
+    inline constexpr std::size_t MAX_TOUCH_POINTS{ 5 };
     struct TouchPoint
     {
         bool active{};
@@ -13,15 +14,21 @@ namespace hal::device
     struct TouchReport
     {
         std::uint8_t firmware{}, status{};
-        std::array<TouchPoint, 5> points{};
+        std::array<TouchPoint, MAX_TOUCH_POINTS> points{};
         bool cancelled{};
-        std::uint32_t droppedReports{};
+        std::uint32_t dropped_reports{};
         float wheel{}; // Relative desktop input, consumed once; zero on touch hardware.
-        std::uint16_t pointerX{}, pointerY{};
+        std::uint16_t pointer_x{}, pointer_y{};
     };
     class ITouch
     {
       public:
+        ITouch() = default;
+        ITouch(const ITouch&) = delete;
+        auto operator=(const ITouch&) -> ITouch& = delete;
+        ITouch(ITouch&&) = delete;
+        auto operator=(ITouch&&) -> ITouch& = delete;
+
         using Callback = void (*)(void*) noexcept;
         virtual ~ITouch() = default;
         // Bounded I2C operations; absent panel returns an error without stopping UI.
@@ -32,7 +39,7 @@ namespace hal::device
         // IRQ-driven devices use a slow idle health check; pointer providers poll.
         virtual auto idlePeriod() const noexcept -> std::chrono::milliseconds
         {
-            return std::chrono::milliseconds{ 1000 };
+            return std::chrono::seconds{ 1 };
         }
     };
 }

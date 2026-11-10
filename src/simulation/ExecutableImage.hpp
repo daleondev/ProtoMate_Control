@@ -8,6 +8,9 @@ namespace simulation
     class ExecutableImage final
     {
       public:
+        ExecutableImage(ExecutableImage&&) = delete;
+        auto operator=(ExecutableImage&&) -> ExecutableImage& = delete;
+
         explicit ExecutableImage(std::span<const std::byte> bytes);
         ~ExecutableImage();
         ExecutableImage(const ExecutableImage&) = delete;

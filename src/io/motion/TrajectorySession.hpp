@@ -2,6 +2,7 @@
 
 #include "common/motion/Trajectory.hpp"
 #include <memory>
+#include <optional>
 
 namespace io::motion
 {
@@ -23,11 +24,17 @@ namespace io::motion
             return std::span(segments).subspan(continuation, stopping);
         }
     };
-    static_assert(sizeof(TrajectoryWindow::segments) * 2 <= 64 * 1024);
+    static_assert(sizeof(TrajectoryWindow::segments) * 2 <= ::motion::trajectory::IO_SEGMENT_BYTES);
 
     class ITrajectoryExecutor
     {
       public:
+        ITrajectoryExecutor() = default;
+        ITrajectoryExecutor(const ITrajectoryExecutor&) = delete;
+        auto operator=(const ITrajectoryExecutor&) -> ITrajectoryExecutor& = delete;
+        ITrajectoryExecutor(ITrajectoryExecutor&&) = delete;
+        auto operator=(ITrajectoryExecutor&&) -> ITrajectoryExecutor& = delete;
+
         virtual ~ITrajectoryExecutor() = default;
         // Calls are serialized on the IO application worker. The executor owns
         // hardware locking and must take a coherent position/epoch snapshot.
@@ -44,6 +51,12 @@ namespace io::motion
     class TrajectorySession final
     {
       public:
+        TrajectorySession(const TrajectorySession&) = delete;
+        TrajectorySession& operator=(const TrajectorySession&) = delete;
+        TrajectorySession(TrajectorySession&&) = delete;
+        TrajectorySession& operator=(TrajectorySession&&) = delete;
+        ~TrajectorySession() = default;
+
         explicit TrajectorySession(ITrajectoryExecutor& executor, std::uint64_t boot);
         [[nodiscard]] ::motion::trajectory::Reply request(const ::motion::trajectory::Request& request);
         [[nodiscard]] ::motion::trajectory::Packet request(const ::motion::trajectory::Packet& packet);
@@ -54,6 +67,13 @@ namespace io::motion
       private:
         ::motion::trajectory::Reply reply(
           ::motion::trajectory::Error error = ::motion::trajectory::Error::None);
+        ::motion::trajectory::Reply acquire(const ::motion::trajectory::Request& /*r*/,
+                                            const ::motion::trajectory::Reply& /*current*/);
+        std::expected<std::uint64_t, ::motion::trajectory::Error> validateChunk(
+          const ::motion::trajectory::Request& /*r*/,
+          const ::motion::trajectory::Capabilities& /*hardware*/) const;
+        std::optional<::motion::trajectory::Error> repeatedChunk(const ::motion::trajectory::Request& r,
+                                                                 std::uint32_t crc) const;
         ::motion::trajectory::Error upload(const ::motion::trajectory::Request& request);
         ::motion::trajectory::Error commit(const ::motion::trajectory::Request& request);
         ITrajectoryExecutor* m_executor;

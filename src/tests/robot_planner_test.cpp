@@ -24,7 +24,7 @@ namespace
     }
     struct Fixture
     {
-        ui::motion::RobotModel model{ ui::motion::simulationConfiguration(hardware()), hardware() };
+        ui::motion::RobotModel model{ ui::motion::simulation_configuration(hardware()), hardware() };
         std::unique_ptr<ui::motion::Planner::Workspace> arena =
           std::make_unique<ui::motion::Planner::Workspace>();
         ui::motion::Planner planner{ model, *arena };
@@ -35,7 +35,7 @@ namespace
 TEST(RobotConfiguration, AxisConversionDoesNotRequireRobotGeometry)
 {
     const auto h = hardware();
-    auto config = ui::motion::simulationConfiguration(h);
+    auto config = ui::motion::simulation_configuration(h);
     const ui::motion::RobotModel complete{ config, h };
     config.geometry.first_arm_length = 0_mm;
     config.geometry.second_arm_length = 0_mm;
@@ -45,17 +45,18 @@ TEST(RobotConfiguration, AxisConversionDoesNotRequireRobotGeometry)
     const ui::motion::RobotModel axes{ config, h, ui::motion::RobotModel::Scope::Axes };
     EXPECT_EQ(axes.toMotors({ 10_deg, 80_deg, 20_mm }), complete.toMotors({ 10_deg, 80_deg, 20_mm }));
     EXPECT_THROW((ui::motion::RobotModel{ config, h }), std::invalid_argument);
-    EXPECT_THROW(static_cast<void>(axes.kinematics()), std::bad_optional_access);
+    EXPECT_THROW(static_cast<void>(axes.kinematics()), std::logic_error);
 }
 
 TEST(RobotConfiguration, FractionalHomingDatumPreservesThePulseGridAndSoftLimits)
 {
     auto h = hardware();
     h.step_radians[2] *= 2; // M3 uses 1/8 microsteps.
-    for (unsigned i = 0; i < 3; ++i)
+    for (unsigned i = 0; i < 3; ++i) {
         h.reference_steps[i] = (3_deg).get() / h.step_radians[i];
+    }
     h.hardware_fingerprint = tr::fingerprint(h);
-    auto c = ui::motion::simulationConfiguration(h);
+    auto c = ui::motion::simulation_configuration(h);
     for (auto& rotary : c.rotary) {
         rotary.motor_revolutions_per_axis_revolution = 5;
         rotary.axis_reference = 70_deg;
@@ -66,8 +67,9 @@ TEST(RobotConfiguration, FractionalHomingDatumPreservesThePulseGridAndSoftLimits
       ui::motion::ScaraKinematics::JointLimits{ { -100_deg, 10_deg, 0_mm }, { 70_deg, 70_deg, 20_mm } };
     const ui::motion::RobotModel model{ c, h };
     tr::Counts home{};
-    for (unsigned i = 0; i < 3; ++i)
+    for (unsigned i = 0; i < 3; ++i) {
         home[i] = *tr::quantize(h.reference_steps[i]);
+    }
     const auto q = model.toJoints({ double(home[0]), double(home[1]), double(home[2]) });
     EXPECT_NEAR(q.shoulder.get(), (70_deg).get(), 1e-12);
     EXPECT_NEAR(q.elbow.get(), (70_deg).get(), 1e-12);
@@ -90,7 +92,7 @@ TEST(RobotConfiguration, NegativeAndHalfStepDatumsKeepTheirConfiguredJointPositi
         auto h = hardware();
         h.reference_steps.fill(reference);
         h.hardware_fingerprint = tr::fingerprint(h);
-        const auto c = ui::motion::simulationConfiguration(h);
+        const auto c = ui::motion::simulation_configuration(h);
         const ui::motion::RobotModel model{ c, h };
         const double count = *tr::quantize(reference);
         const auto q = model.toJoints({ count, count, count });
@@ -105,7 +107,7 @@ TEST(RobotConfiguration, GenuineFractionalSoftLimitIsNotRoundedOutward)
     auto h = hardware();
     h.reference_steps.fill(.25);
     h.hardware_fingerprint = tr::fingerprint(h);
-    auto c = ui::motion::simulationConfiguration(h);
+    auto c = ui::motion::simulation_configuration(h);
     c.geometry.limits->maximum.shoulder =
       c.rotary[0].axis_reference +
       Angle::create(.25 * h.step_radians[0] / c.rotary[0].motor_revolutions_per_axis_revolution);
@@ -179,7 +181,7 @@ TEST(RobotWire, MaximumUploadFitsTransportAndRoundTripsNegativeCoordinates)
     const auto packet = tr::encode(request);
     EXPECT_LT(packet.size + 16 + 64, 2048);
     EXPECT_EQ(std::to_integer<unsigned>(packet.bytes[4]), 8U);
-    const auto decoded = tr::decodeRequest(packet);
+    const auto decoded = tr::decode_request(packet);
     ASSERT_TRUE(decoded);
     EXPECT_EQ(decoded->boot, request.boot);
     EXPECT_EQ(decoded->expected_position, request.expected_position);
@@ -192,15 +194,15 @@ TEST(RobotWire, CorruptionTruncationAndTrailingBytesAreRejected)
 {
     auto p = tr::encode(tr::Request{});
     p.bytes[5] ^= std::byte{ 0x80 };
-    EXPECT_FALSE(tr::decodeRequest(p));
+    EXPECT_FALSE(tr::decode_request(p));
     p = tr::encode(tr::Request{});
     --p.size;
-    EXPECT_FALSE(tr::decodeRequest(p));
+    EXPECT_FALSE(tr::decode_request(p));
     p = tr::encode(tr::Request{});
     ++p.size;
-    EXPECT_FALSE(tr::decodeRequest(p));
+    EXPECT_FALSE(tr::decode_request(p));
     p.size = 65535;
-    EXPECT_FALSE(tr::decodeRequest(p));
+    EXPECT_FALSE(tr::decode_request(p));
 }
 TEST(RobotWire, ReplyAndExplicitSerializationAdapterRoundTrip)
 {
@@ -217,7 +219,7 @@ TEST(RobotWire, ReplyAndExplicitSerializationAdapterRoundTrip)
     pnm::utils::memory::SerializationAdapter<tr::Packet>::serialize(packet, out);
     tr::Packet restored;
     pnm::utils::memory::SerializationAdapter<tr::Packet>::deserialize(out, restored);
-    const auto decoded = tr::decodeReply(restored);
+    const auto decoded = tr::decode_reply(restored);
     ASSERT_TRUE(decoded);
     EXPECT_EQ(decoded->capabilities.reference_forward_mask, 4);
     EXPECT_EQ(decoded->position, reply.position);
@@ -231,13 +233,13 @@ TEST(RobotWire, LeaseAcknowledgementIsCompactVersionedAndChecksummed)
     value.acknowledgement = true;
     auto packet = tr::encode(value);
     EXPECT_LE(packet.size, 32);
-    auto decoded = tr::decodeReply(packet);
+    auto decoded = tr::decode_reply(packet);
     ASSERT_TRUE(decoded);
     EXPECT_TRUE(decoded->acknowledgement);
     EXPECT_EQ(decoded->boot, 123);
     EXPECT_EQ(decoded->generation, 456);
     packet.bytes[5] ^= std::byte{ 1 };
-    EXPECT_EQ(tr::decodeReply(packet).error(), tr::Error::Checksum);
+    EXPECT_EQ(tr::decode_reply(packet).error(), tr::Error::Checksum);
 }
 
 TEST(RobotPlanner, RoundedSmallMovePreservesConfiguredDynamics)
@@ -302,20 +304,20 @@ TEST(RobotTrajectory, BrakingIsMonotoneContinuousAndStopsAtFiniteDistance)
 }
 TEST(RobotConfiguration, NoPhysicalDefaultAndSimulationCannotEnableMotion)
 {
-    EXPECT_FALSE(ui::motion::boardRobotConfiguration());
+    EXPECT_FALSE(ui::motion::board_robot_configuration());
     Fixture f;
     EXPECT_EQ(f.model.physicalAdmission(), tr::Error::Configuration);
-    auto c = ui::motion::simulationConfiguration(hardware());
+    auto c = ui::motion::simulation_configuration(hardware());
     c.expected_hardware ^= 1;
     EXPECT_THROW((ui::motion::RobotModel{ c, hardware() }), std::invalid_argument);
 }
 TEST(RobotConfiguration, FingerprintCoversHomingAndFeedAndRejectsInvalidHardwareLimits)
 {
-    auto c = ui::motion::simulationConfiguration(hardware());
+    auto c = ui::motion::simulation_configuration(hardware());
     const auto original = ui::motion::RobotModel{ c, hardware() }.fingerprint();
     c.homing[1].positive = !c.homing[1].positive;
     EXPECT_NE(original, (ui::motion::RobotModel{ c, hardware() }.fingerprint()));
-    c = ui::motion::simulationConfiguration(hardware());
+    c = ui::motion::simulation_configuration(hardware());
     c.feed = 10_mm_s;
     EXPECT_NE(original, (ui::motion::RobotModel{ c, hardware() }.fingerprint()));
     auto h = hardware();
@@ -326,7 +328,7 @@ TEST(RobotConfiguration, FingerprintCoversHomingAndFeedAndRejectsInvalidHardware
 }
 TEST(RobotConfiguration, MotorMappingAndReversedReductionRoundTrip)
 {
-    auto c = ui::motion::simulationConfiguration(hardware());
+    auto c = ui::motion::simulation_configuration(hardware());
     c.motor_for_joint = { 2, 0, 1 };
     c.rotary[1].direction = ui::motion::AxisDirection::OppositeToMotor;
     ui::motion::RobotModel model{ c, hardware() };
@@ -351,7 +353,7 @@ TEST(RobotPlanner, JointMoveProducesContinuousBoundedMotorProfiles)
         EXPECT_TRUE(tr::continuous(previous, s.at(0)));
         previous = s.at(1);
     }
-    EXPECT_TRUE(tr::atRest(previous));
+    EXPECT_TRUE(tr::at_rest(previous));
     auto target = f.model.toMotors(command.joints);
     for (unsigned i = 0; i < 3; ++i) {
         EXPECT_EQ(plan->endpoint[i], *tr::quantize(target[i]));
@@ -405,7 +407,7 @@ TEST(RobotPlanner, RejectsUnsafeInteriorEvenWhenEndpointsAreReachable)
 }
 TEST(RobotPlanner, ApproximationToleranceIsIndependentOfStepQuantization)
 {
-    auto c = ui::motion::simulationConfiguration(hardware());
+    auto c = ui::motion::simulation_configuration(hardware());
     c.path_tolerance = 0.001_mm;
     ui::motion::RobotModel model{ c, hardware() };
     auto arena = std::make_unique<ui::motion::Planner::Workspace>();
@@ -432,7 +434,7 @@ TEST(RobotPlanner, StoppingContinuationPreservesBoundaryAndReservesTravel)
     ASSERT_TRUE(stopping) << tr::name(stopping.error());
     EXPECT_GT(stopping->final_progress, start.position);
     EXPECT_LE(stopping->final_progress, 1);
-    EXPECT_TRUE(tr::atRest(f.planner.segments().back().at(1)));
+    EXPECT_TRUE(tr::at_rest(f.planner.segments().back().at(1)));
     EXPECT_NEAR(f.planner.pathAt(0).velocity, start.velocity, 1e-10);
     EXPECT_NEAR(f.planner.pathAt(0).acceleration, start.acceleration, 1e-10);
     const auto impossible = f.planner.compile({ 0.9999, 1, 0 }, 1, true);
@@ -484,7 +486,7 @@ TEST(RobotPlanner, CartesianJogUsesContinuousCertifiedGeometryAndFitsTransport)
         request.program = *program;
         const auto packet = tr::encode(request);
         EXPECT_LE(packet.size, tr::Packet::CAPACITY);
-        const auto decoded = tr::decodeRequest(packet);
+        const auto decoded = tr::decode_request(packet);
         ASSERT_TRUE(decoded);
         ASSERT_EQ(decoded->program.kind, tr::ProgramKind::CartesianJog);
         const auto start = f.model.kinematics().forward(f.model.toJoints({ 1200, 1200, 1200 }));
@@ -508,10 +510,12 @@ TEST(RobotPlanner, CartesianJogUsesContinuousCertifiedGeometryAndFitsTransport)
             ASSERT_TRUE(fk);
             const auto xyz = std::array{ fk->position.x.get(), fk->position.y.get(), fk->position.z.get() };
             for (unsigned i = 0; i < 3; ++i) {
-                if (!direction[i])
+                if (!direction[i]) {
                     EXPECT_NEAR(xyz[i], initial[i], .0003);
-                else
+                }
+                else {
                     EXPECT_GE(direction[i] * (xyz[i] - initial[i]), -1e-6);
+                }
             }
         }
     }
@@ -534,7 +538,7 @@ TEST(TrajectoryProtocol, LargestCartesianJogProgramFitsAndRoundTrips)
     }
     const auto packet = tr::encode(request);
     EXPECT_LE(packet.size, tr::Packet::CAPACITY);
-    const auto result = tr::decodeRequest(packet);
+    const auto result = tr::decode_request(packet);
     ASSERT_TRUE(result);
     EXPECT_EQ(result->program.progress.size, motion::Profile::MAX_PHASES);
     EXPECT_EQ(result->program.path[2].curves[3].coefficients, p.path[2].curves[3].coefficients);
@@ -549,7 +553,7 @@ TEST(RobotWire, HomeProgramCarriesBoundedNeutralReturnAndDirectionIdentity)
     request.program.home_neutral = { -123, 456, 789 };
     request.program.home_order = { 2, 0, 1 };
     request.program.home[0] = { 10, 2, 30 };
-    const auto decoded = tr::decodeRequest(tr::encode(request));
+    const auto decoded = tr::decode_request(tr::encode(request));
     ASSERT_TRUE(decoded);
     EXPECT_TRUE(decoded->program.home_to_neutral);
     EXPECT_EQ(decoded->program.home_neutral, request.program.home_neutral);

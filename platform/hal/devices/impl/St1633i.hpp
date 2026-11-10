@@ -9,6 +9,11 @@ namespace hal::device
     class St1633i final : public ITouch
     {
       public:
+        St1633i(const St1633i&) = delete;
+        auto operator=(const St1633i&) -> St1633i& = delete;
+        St1633i(St1633i&&) = delete;
+        auto operator=(St1633i&&) -> St1633i& = delete;
+
         St1633i(std::shared_ptr<II2c> bus,
                 std::uint8_t address,
                 std::shared_ptr<IDigitalOutput> reset,

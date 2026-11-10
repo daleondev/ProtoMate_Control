@@ -18,7 +18,7 @@ namespace ui::logging
         const auto text{ std::string_view{ reinterpret_cast<const char*>(data.data()), data.size() } };
         std::string line{ "[UI] " };
         line += text;
-        cli::writeLog(line);
+        cli::write_log(line);
         return data.size();
     }
 }

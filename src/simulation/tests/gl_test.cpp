@@ -41,9 +41,38 @@ TEST_F(SimulationOpenGL, ShaderCompilerDiagnostics)
     ASSERT_TRUE((failed)) << "shader errors must include compiler log";
 }
 
+TEST_F(SimulationOpenGL, RequestedContextIsCreated)
+{
+    GLint major{}, minor{}, profile{};
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
+    glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profile);
+    EXPECT_GE(major * 10 + minor, REQUIRED_GL_VERSION);
+    EXPECT_NE(profile & GL_CONTEXT_CORE_PROFILE_BIT, 0);
+    int depth{};
+    ASSERT_EQ(SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &depth), 0);
+    EXPECT_GE(depth, 24);
+}
+
+TEST_F(SimulationOpenGL, ProgramSurvivesFailedShaderCompilation)
+{
+    EXPECT_THROW((Program{ context,
+                           { .vertex = { invalid_source, sizeof(invalid_source) },
+                             .fragment = { fragment, sizeof(fragment) } } }),
+                 std::runtime_error);
+    EXPECT_THROW((Program{ context,
+                           { .vertex = { vertex, sizeof(vertex) },
+                             .fragment = { invalid_source, sizeof(invalid_source) } } }),
+                 std::runtime_error);
+    Program valid{ context,
+                   { .vertex = { vertex, sizeof(vertex) }, .fragment = { fragment, sizeof(fragment) } } };
+    EXPECT_TRUE(glIsProgram(valid.get()));
+}
+
 TEST_F(SimulationOpenGL, ProgramMoveOwnership)
 {
-    Program original{ context, { vertex, sizeof(vertex) }, { fragment, sizeof(fragment) } };
+    Program original{ context,
+                      { .vertex = { vertex, sizeof(vertex) }, .fragment = { fragment, sizeof(fragment) } } };
     const auto id{ original.get() };
     Program program{ std::move(original) };
     ASSERT_TRUE((program.get() == id)) << "program move ownership";
@@ -76,7 +105,8 @@ TEST_F(SimulationOpenGL, InvalidResizePreservesFramebuffer)
 
 TEST_F(SimulationOpenGL, RejectsCrossThreadAccess)
 {
-    Program program{ context, { vertex, sizeof(vertex) }, { fragment, sizeof(fragment) } };
+    Program program{ context,
+                     { .vertex = { vertex, sizeof(vertex) }, .fragment = { fragment, sizeof(fragment) } } };
     RenderTarget target{ context, 64, 64 };
     unsigned rejected_accesses{};
     std::thread wrong_thread{ [&] {
@@ -98,7 +128,8 @@ TEST_F(SimulationOpenGL, RejectsCrossThreadAccess)
 
 TEST_F(SimulationOpenGL, ShaderDrawReadback)
 {
-    Program program{ context, { vertex, sizeof(vertex) }, { fragment, sizeof(fragment) } };
+    Program program{ context,
+                     { .vertex = { vertex, sizeof(vertex) }, .fragment = { fragment, sizeof(fragment) } } };
     RenderTarget target{ context, 64, 64 };
     std::array<Vertex, 3> vertices{ { { { -1, -1, 0 }, {} }, { { 1, -1, 0 }, {} }, { { 0, 1, 0 }, {} } } };
     Mesh mesh{ context, vertices };
@@ -130,7 +161,7 @@ TEST_F(SimulationOpenGL, IndexedRobotAndIndependentJointRendering)
                    glm::lookAt(eye, glm::vec3{ 200, 0, 200 }, glm::vec3{ 0, 0, 1 }) };
     const auto capture{ [&](std::array<double, 3> q) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        robot.draw(robotModelTransforms(simulation::Profile{}, q), vp, eye);
+        robot.draw(robot_model_transforms(simulation::Profile{}, q), vp, eye);
         std::vector<unsigned char> pixels{};
         pixels.resize(256 * 256 * 4);
         glReadPixels(0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
@@ -138,17 +169,21 @@ TEST_F(SimulationOpenGL, IndexedRobotAndIndependentJointRendering)
     } };
     const auto initial{ capture({ 0, 0, 30 }) };
     std::size_t visible{};
-    for (std::size_t i{}; i < initial.size(); i += 4)
-        if (initial[i] || initial[i + 1] || initial[i + 2])
+    for (std::size_t i{}; i < initial.size(); i += 4) {
+        if (initial[i] || initial[i + 1] || initial[i + 2]) {
             ++visible;
+        }
+    }
     ASSERT_TRUE((visible > 500)) << "imported indexed model must produce actual visible fragments";
     for (const auto q :
          std::array<std::array<double, 3>, 3>{ { { .4, 0, 30 }, { 0, .5, 30 }, { 0, 0, 100 } } }) {
         const auto moved{ capture(q) };
         std::size_t changed{};
-        for (std::size_t i{}; i < moved.size(); i += 4)
-            if (moved[i] != initial[i] || moved[i + 1] != initial[i + 1] || moved[i + 2] != initial[i + 2])
+        for (std::size_t i{}; i < moved.size(); i += 4) {
+            if (moved[i] != initial[i] || moved[i + 1] != initial[i + 1] || moved[i + 2] != initial[i + 2]) {
                 ++changed;
+            }
+        }
         ASSERT_TRUE((changed > 50)) << "each of the three joint states must change rendered model pixels";
     }
     ASSERT_TRUE((glGetError() == GL_NO_ERROR)) << "OpenGL errors";

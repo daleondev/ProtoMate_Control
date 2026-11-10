@@ -21,7 +21,8 @@ namespace ui::gui
         void update();
         touchgfx::Box m_background, m_focus;
         touchgfx::TextAreaWithOneWildcard m_label;
-        std::array<touchgfx::Unicode::UnicodeChar, 40> m_text{};
+        static constexpr std::size_t LABEL_CHARACTERS{ 40 };
+        std::array<touchgfx::Unicode::UnicodeChar, LABEL_CHARACTERS> m_text{};
         Callback m_callback{};
         void* m_context{};
         bool m_enabled{ true }, m_pressed{}, m_focused{};

@@ -13,8 +13,11 @@ namespace io::motion
     class ProfileMemory final : public std::pmr::memory_resource
     {
       public:
-        static constexpr std::size_t PROFILE_BYTES = 3072;
-        static constexpr std::size_t ALIGNMENT = 32;
+        static constexpr unsigned NOMINAL_SLOTS{ 3 }, STOP_SLOTS{ 6 },
+          TOTAL_SLOTS{ NOMINAL_SLOTS + STOP_SLOTS };
+        static constexpr std::size_t STORAGE_BUDGET{ 26176 };
+        static constexpr std::size_t PROFILE_BYTES{ 3072 };
+        static constexpr std::size_t ALIGNMENT{ 32 };
 
       private:
         template<std::size_t N>
@@ -24,12 +27,12 @@ namespace io::motion
         };
         // Only the three nominal profiles own geometric curves. Stopping
         // banks share them, so retain the original smaller six reservations.
-        static constexpr std::size_t STOP_BYTES = 2816;
-        std::array<Slot<STOP_BYTES>, 6> m_stops{};
-        std::array<Slot<PROFILE_BYTES>, 3> m_nominals{};
+        static constexpr std::size_t STOP_BYTES{ 2816 };
+        std::array<Slot<STOP_BYTES>, STOP_SLOTS> m_stops{};
+        std::array<Slot<PROFILE_BYTES>, NOMINAL_SLOTS> m_nominals{};
         void* slot(unsigned i) noexcept
         {
-            return i < 6 ? m_stops[i].bytes.data() : m_nominals[i - 6].bytes.data();
+            return i < STOP_SLOTS ? m_stops[i].bytes.data() : m_nominals[i - STOP_SLOTS].bytes.data();
         }
         std::atomic_uint m_used{};
         void* do_allocate(std::size_t bytes, std::size_t alignment) override
@@ -37,21 +40,23 @@ namespace io::motion
             if (alignment > ALIGNMENT || bytes > PROFILE_BYTES) {
                 throw std::bad_alloc();
             }
-            for (unsigned i = 0; i < 9; ++i) {
-                if (i < 6 && bytes > STOP_BYTES)
+            for (unsigned i{ 0 }; i < TOTAL_SLOTS; ++i) {
+                if (i < STOP_SLOTS && bytes > STOP_BYTES) {
                     continue;
-                const auto bit = 1U << i;
-                auto old = m_used.load(std::memory_order_relaxed);
+                }
+                const auto bit{ 1U << i };
+                auto old{ m_used.load(std::memory_order_relaxed) };
                 while (!(old & bit)) {
-                    if (m_used.compare_exchange_weak(old, old | bit, std::memory_order_acquire))
+                    if (m_used.compare_exchange_weak(old, old | bit, std::memory_order_acquire)) {
                         return slot(i);
+                    }
                 }
             }
             throw std::bad_alloc();
         }
-        void do_deallocate(void* pointer, std::size_t, std::size_t) override
+        void do_deallocate(void* pointer, std::size_t /*__bytes*/, std::size_t /*__alignment*/) override
         {
-            for (unsigned i = 0; i < 9; ++i) {
+            for (unsigned i{ 0 }; i < TOTAL_SLOTS; ++i) {
                 if (pointer == slot(i)) {
                     m_used.fetch_and(~(1U << i), std::memory_order_release);
                     return;
@@ -64,5 +69,5 @@ namespace io::motion
             return this == &other;
         }
     };
-    static_assert(sizeof(ProfileMemory) <= 26176);
+    static_assert(sizeof(ProfileMemory) <= ProfileMemory::STORAGE_BUDGET);
 }

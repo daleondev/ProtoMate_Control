@@ -39,7 +39,7 @@ namespace hal::stm32
 
       private:
         std::array<gpio::Pin, 3> m_pins;
-        auto pin_mode(std::size_t axis, bool alternate) noexcept -> void;
+        auto pinMode(std::size_t axis, bool alternate) noexcept -> void;
     };
 
     // Registration is protected by PRIMASK, before interrupts are armed.

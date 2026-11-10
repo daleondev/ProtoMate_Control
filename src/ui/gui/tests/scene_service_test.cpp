@@ -23,7 +23,8 @@ namespace
     }
     Frame request(unsigned n)
     {
-        Frame f{ &benchmarkScene(2000), benchmarkSnapshot(float(n) * .1f, n, n * 100) };
+        Frame f{ &benchmark_scene(2000),
+                 benchmark_snapshot(float(n) * .1f, { .revision = n, .time_us = n * 100 }) };
         f.anchors[0] = { 0, {}, float(n) };
         return f;
     }
@@ -43,7 +44,7 @@ TEST(SceneService, LatestPendingAndImmutableFrontUntilReleased)
     const auto front = service.acquire();
     ASSERT_TRUE(front);
     EXPECT_EQ(front->revision, 100U);
-    EXPECT_EQ(front->sourceTimeUs, 10000U);
+    EXPECT_EQ(front->source_time_us, 10000U);
     EXPECT_EQ(front->annotations[0].value, 100);
     const std::vector saved(front->pixels.begin(), front->pixels.end());
     ASSERT_TRUE(service.submit(request(101)));
@@ -88,9 +89,9 @@ TEST(SceneService, StopDuringRenderingAndRestartVisibility)
 TEST(RenderPacing, SamePolicyBoundsCadenceAndLeavesRestAfterExpensiveFrames)
 {
     const auto start = std::chrono::steady_clock::time_point{};
-    EXPECT_EQ(nextRender(start, start + 20ms, LIVE_MAX_FPS), start + 200ms);
-    EXPECT_EQ(nextRender(start, start + 400ms, LIVE_MAX_FPS), start + 500ms);
-    EXPECT_EQ(nextRender(start, start + 200ms, 2), start + 500ms);
+    EXPECT_EQ(next_render(start, start + 20ms, LIVE_MAX_FPS), start + 200ms);
+    EXPECT_EQ(next_render(start, start + 400ms, LIVE_MAX_FPS), start + 500ms);
+    EXPECT_EQ(next_render(start, start + 200ms, 2), start + 500ms);
 }
 
 TEST(RobotDetail, RendersOnChangeAndRefinesOnceAfterSettling)
@@ -137,13 +138,13 @@ TEST(SceneService, LatestPoseReplacesPendingWorkDuringPacingAndCancellationWakes
     auto worker = runtime::thread::create_jthread({ .priority = 16, .stack_size = 16384 },
                                                   [&](std::stop_token stop) { service.run(stop); });
     auto first = request(1);
-    first.maximumFps = 1;
+    first.maximum_fps = 1;
     ASSERT_TRUE(service.submit(first));
     ASSERT_TRUE(eventually([&] { return service.status().rendered == 1; }));
     ASSERT_TRUE(service.acquire());
     for (unsigned i = 2; i <= 8; ++i) {
         auto next = request(i);
-        next.maximumFps = 1;
+        next.maximum_fps = 1;
         ASSERT_TRUE(service.submit(next));
     }
     ASSERT_TRUE(eventually([&] { return service.status().rendered == 2; }));
@@ -159,8 +160,8 @@ TEST(SceneService, RejectsInvalidPacing)
     RenderService service;
     service.visible(true);
     auto frame = request(1);
-    frame.maximumFps = 0;
+    frame.maximum_fps = 0;
     EXPECT_FALSE(service.submit(frame));
-    frame.maximumFps = 31;
+    frame.maximum_fps = 31;
     EXPECT_FALSE(service.submit(frame));
 }

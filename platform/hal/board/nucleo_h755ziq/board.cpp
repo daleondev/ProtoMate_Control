@@ -38,15 +38,15 @@ namespace hal::board
     {
         switch (id) {
             case LedId::Green: {
-                static auto led = make_led(GREEN_LED);
+                static auto led{ make_led(GREEN_LED) };
                 return led;
             }
             case LedId::Yellow: {
-                static auto led = make_led(YELLOW_LED);
+                static auto led{ make_led(YELLOW_LED) };
                 return led;
             }
             case LedId::Red: {
-                static auto led = make_led(RED_LED);
+                static auto led{ make_led(RED_LED) };
                 return led;
             }
             default:

@@ -44,7 +44,7 @@ namespace io::motion
         // The optional sink is shared by all motor workers.
         explicit Controller(const Configuration& configuration,
                             const DriverFactory& driver_factory = {},
-                            std::shared_ptr<pnm::log::ISink> log_sink = {},
+                            const std::shared_ptr<pnm::log::ISink>& log_sink = {},
                             std::pmr::memory_resource* profile_memory = std::pmr::get_default_resource(),
                             const Hardware* hardware = nullptr);
         ~Controller();
@@ -56,22 +56,22 @@ namespace io::motion
         // Explicit recovery while disabled: cancel old work, invalidate references,
         // initialize all drivers and start the common timebase (without pulses).
         // Failure leaves the controller disabled and rejects motion until recovery.
-        void initializeDrivers(std::stop_token stop = {});
-        void enable(std::stop_token stop = {}); // Verification/settling is cancellable.
-        void abort(std::optional<MotorId> motor = std::nullopt);
+        void initializeDrivers(const std::stop_token& stop = {});
+        void enable(const std::stop_token& stop = {}); // Verification/settling is cancellable.
+        void abort(std::optional<MotorId> id = std::nullopt);
         void connectionLost();
         void disable(); // Stops/joins all work and invalidates references.
-        void stop(std::optional<MotorId> motor = std::nullopt); // Retains holding torque.
+        void stop(std::optional<MotorId> id = std::nullopt); // Retains holding torque.
         [[nodiscard]] bool enabled() const noexcept;
         [[nodiscard]] bool ready() const;
         [[nodiscard]] ::motion::trajectory::Reply trajectorySnapshot() const;
         ::motion::trajectory::Reply control(const ::motion::trajectory::Request& request);
         ::motion::trajectory::Reply prepareProgram(const ::motion::trajectory::Request& request,
-                                                   std::stop_token stop = {});
+                                                   const std::stop_token& stop = {});
         ::motion::trajectory::Error startProgram(const ::motion::trajectory::Run& run,
                                                  std::function<void(::motion::trajectory::Update)> completed);
         void releaseJob(std::uint64_t job);
-        Ownership::Admission reserveMotor(std::uint64_t job, MotorId motor);
+        Ownership::Admission reserveMotor(std::uint64_t job, MotorId id);
 
         // Inspection only: command submission goes through the controller so it
         // can serialize admission against disable, recovery and shared faults.
@@ -87,22 +87,22 @@ namespace io::motion
                                                   pnm::units::AngularJerk jerk = 0_rad_s3,
                                                   BufferMode buffer_mode = BufferMode::Aborting,
                                                   pnm::units::Time timeout = 0_s,
-                                                  std::function<void()> completed = {});
+                                                  const std::function<void()>& completed = {});
         std::future<StepperMotor::Result> moveAbs(MotorId id,
-                                                  pnm::units::Angle target,
+                                                  pnm::units::Angle position,
                                                   pnm::units::AngularVelocity velocity,
                                                   pnm::units::AngularAcceleration acceleration = 0_rad_s2,
                                                   pnm::units::AngularAcceleration deceleration = 0_rad_s2,
                                                   pnm::units::AngularJerk jerk = 0_rad_s3,
                                                   BufferMode buffer_mode = BufferMode::Aborting,
                                                   pnm::units::Time timeout = 0_s,
-                                                  std::function<void()> completed = {});
+                                                  const std::function<void()>& completed = {});
         std::future<StepperMotor::Result> reference(
           MotorId id,
           pnm::units::AngularVelocity seek_velocity = DEFAULT_REFERENCE_SEEK,
           pnm::units::AngularVelocity latch_velocity = DEFAULT_REFERENCE_LATCH,
           pnm::units::Time timeout = DEFAULT_REFERENCE_TIMEOUT,
-          std::function<void()> completed = {});
+          const std::function<void()>& completed = {});
         pnm::Result<hal::step::PulseCount> setVelocity(MotorId id, pnm::units::AngularVelocity velocity);
 
         // Small execution boundary for value-only, finite motor-space profiles.
@@ -119,15 +119,51 @@ namespace io::motion
         StepperMotor& axis(MotorId id) const;
         bool driversReady() const noexcept;
         bool canMoveLocked() const;
-        bool velocityAllowed(MotorId motor, pnm::units::AngularVelocity velocity) const;
-        void stopLocked(std::optional<MotorId> motor = std::nullopt);
+        bool velocityAllowed(MotorId id, pnm::units::AngularVelocity velocity) const;
+        void stopLocked(std::optional<MotorId> id = std::nullopt);
         void invalidateReferencesLocked();
         void handleFaultsLocked();
         void monitorDrivers(const std::stop_token& stop);
-        void executeMotions(std::stop_token stop);
+        void executeMotions(const std::stop_token& stop);
+        bool serviceGroupLocked(Group& /*g*/, Ownership::Clock::time_point now);
+        void maintainOwnerLocked(Group& /*g*/, Ownership::Clock::time_point now);
+        bool expireOwnersLocked(Ownership::Clock::time_point now);
+        bool expireGroupLocked(const Ownership::Entry& /*entry*/);
+        bool finishHomeStageLocked(Group& /*g*/);
+        void startHomeStageLocked(Group& /*g*/);
+        void cancelExpiredHomeLocked(Group& /*g*/);
         ::motion::trajectory::Reply trajectorySnapshotLocked() const;
         void initializeCapabilities();
+        void verifyEnable(std::uint64_t epoch, const std::stop_token& /*stop*/);
+        hal::util::Result<std::uint8_t> validateExecutionLocked(const Executor::Command& /*command*/) const;
         hal::util::Result<> prepareExecutionLocked(const Executor::Command& command, bool owned);
+        static ::motion::trajectory::Error validateNeutralLocked(
+          const ::motion::trajectory::FiniteProgram& /*program*/,
+          const Ownership::Entry& /*owner*/,
+          const ::motion::trajectory::Capabilities& /*capabilities*/);
+        ::motion::trajectory::Error prepareHomeLocked(const ::motion::trajectory::FiniteProgram& /*program*/,
+                                                      Ownership::Entry* /*owner*/,
+                                                      const ::motion::trajectory::Reply& /*result*/);
+        ::motion::trajectory::Error validatePreparationLocked(
+          const ::motion::trajectory::Request& /*request*/,
+          const ::motion::trajectory::Reply& /*result*/,
+          const std::stop_token& /*stop*/);
+        ::motion::trajectory::Error validateCommitLocked(const ::motion::trajectory::Request& /*request*/,
+                                                         std::uint64_t epoch,
+                                                         const std::stop_token& /*stop*/);
+        ::motion::trajectory::Error stageProgramLocked(const ::motion::trajectory::FiniteProgram& /*program*/,
+                                                       Ownership::Entry& /*owner*/,
+                                                       std::unique_ptr<Executor>&& /*compiled*/,
+                                                       bool moving);
+        ::motion::trajectory::Reply renewOwnersLocked(const ::motion::trajectory::Request& /*request*/);
+        ::motion::trajectory::Error acquireOwnerLocked(const ::motion::trajectory::Request& /*request*/,
+                                                       ::motion::trajectory::Reply& /*result*/);
+        ::motion::trajectory::Error releaseOwnerLocked(const ::motion::trajectory::Request& request);
+        ::motion::trajectory::Error controlStopLocked(const ::motion::trajectory::Request& /*request*/);
+        void stopMotorsLocked(std::uint8_t mask, bool invalidate);
+        void stopGroupLocked(Group& /*g*/, std::uint8_t mask, bool abort);
+        ::motion::trajectory::Error validateStartAxesLocked(const Group& /*slot*/,
+                                                            const Ownership::Entry& /*owner*/) const;
         void finishProgramsLocked();
         void serviceHomeLocked(Group& group);
         void stopProgramsLocked(std::uint8_t mask, bool abort);

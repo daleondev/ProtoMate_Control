@@ -5,8 +5,12 @@
 
 namespace simulation::viewer
 {
+    namespace
+    {
+        constexpr float OPAQUE_ALPHA{ .999F };
+    }
     ModelRenderer::ModelRenderer(const Context& context, const RobotModels& models)
-      : m_program{ context, assets::modelShader().vertex, assets::modelShader().fragment }
+      : m_program{ context, assets::model_shader() }
       , m_model{ m_program.location("model") }
       , m_view{ m_program.location("viewProjection") }
       , m_color{ m_program.location("color") }
@@ -14,12 +18,14 @@ namespace simulation::viewer
         for (std::size_t part{}; part < models.parts.size(); ++part) {
             const auto& asset{ models.parts[part] };
             const auto offset{ m_geometry.size() };
-            for (const auto& geometry : asset.geometries)
+            for (const auto& geometry : asset.geometries) {
                 m_geometry.push_back(
                   { Mesh{ context, geometry.vertices, geometry.indices }, geometry.color });
-            for (const auto& instance : asset.instances)
+            }
+            for (const auto& instance : asset.instances) {
                 m_instances.push_back(
                   { part, offset + instance.geometry, instance.transform, instance.center });
+            }
         }
         m_transparent.reserve(m_instances.size());
     }
@@ -44,20 +50,24 @@ namespace simulation::viewer
             const auto& geometry{ m_geometry[instance.geometry] };
             const auto frame{ frames[instance.part] };
             const auto delta{ glm::vec3{ frame * glm::vec4{ instance.center, 1 } } - eye };
-            const Draw item{ instance.geometry, frame * instance.local, glm::dot(delta, delta) };
-            if (geometry.color.a >= .999F)
+            const Draw item{ .geometry = instance.geometry,
+                             .transform = frame * instance.local,
+                             .distance = glm::dot(delta, delta) };
+            if (geometry.color[3] >= OPAQUE_ALPHA) {
                 render(item);
-            else if (geometry.color.a > 0)
+            }
+            else if (geometry.color[3] > 0) {
                 m_transparent.push_back(item);
+            }
         }
-        std::sort(m_transparent.begin(), m_transparent.end(), [](const Draw& a, const Draw& b) {
-            return a.distance > b.distance;
-        });
+        std::ranges::sort(m_transparent,
+                          [](const Draw& a, const Draw& b) { return a.distance > b.distance; });
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
-        for (const auto& item : m_transparent)
+        for (const auto& item : m_transparent) {
             render(item);
+        }
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
     }

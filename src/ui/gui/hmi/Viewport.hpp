@@ -10,11 +10,16 @@ namespace ui::gui::hmi
     class Viewport final : public touchgfx::Image
     {
       public:
+        Viewport(const Viewport&) = delete;
+        auto operator=(const Viewport&) -> Viewport& = delete;
+        Viewport(Viewport&&) = delete;
+        auto operator=(Viewport&&) -> Viewport& = delete;
+
         explicit Viewport(scene3d::RenderService& service);
         ~Viewport() override;
         void open();
         void close();
-        void pose(const std::array<double, 3>& joints, std::uint64_t sourceUs);
+        void pose(const std::array<double, 3>& joints, std::uint64_t source_us);
         void tick();
         bool posePending() const;
         std::uint64_t sourceTimeUs() const { return m_sourceTimeUs; }
@@ -26,7 +31,7 @@ namespace ui::gui::hmi
             m_select = cb;
             m_context = context;
         }
-        void draw(const touchgfx::Rect&) const override;
+        void draw(const touchgfx::Rect& /*invalidatedArea*/) const override;
         void rate(unsigned fps);
         void benchmark(unsigned triangles);
         void qualification(unsigned fps, bool interactive = false)
@@ -36,10 +41,14 @@ namespace ui::gui::hmi
             m_testInteractive = interactive;
             m_detail.invalidate();
         }
-        void handleClickEvent(const touchgfx::ClickEvent&) override;
-        void handleDragEvent(const touchgfx::DragEvent&) override;
+        void handleClickEvent(const touchgfx::ClickEvent& /*event*/) override;
+        void handleDragEvent(const touchgfx::DragEvent& /*event*/) override;
 
       private:
+        static constexpr unsigned CACHE_ALIGNMENT{ 32 }, BITMAP_CACHE_WORDS{ 512 };
+        void unregisterBitmaps() noexcept;
+        unsigned frameRate(scene3d::RobotDetail detail) const;
+        void requestFrame(scene3d::RobotDetail detail, std::chrono::steady_clock::time_point now);
         std::array<scene3d::ProjectedAnchor, 3> m_annotations{};
         std::array<touchgfx::Rect, 3> m_badges{};
         bool m_valid{}, m_fresh{};
@@ -49,7 +58,7 @@ namespace ui::gui::hmi
         scene3d::RenderService& m_service;
         scene3d::SceneSnapshot m_pose;
         std::array<double, 3> m_joints{};
-        alignas(32) std::array<std::uint16_t, 512> m_cache{};
+        alignas(CACHE_ALIGNMENT) std::array<std::uint16_t, BITMAP_CACHE_WORDS> m_cache{};
         std::array<touchgfx::BitmapId, 2> m_bitmaps{};
         bool m_qualification{};
         bool m_registered{}, m_open{}, m_dragging{}, m_testInteractive{};

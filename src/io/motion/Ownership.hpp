@@ -37,8 +37,9 @@ namespace io::motion
         {
             using enum ::motion::Family;
             using E = ::motion::trajectory::Error;
-            if (!job || family == None || family > Robot || !axes || axes > 7 ||
-                (family == Robot && axes != 7) || (family != Robot && std::popcount(axes) != 1)) {
+            if (!job || family == None || family > Robot || !axes || axes > ::motion::ALL_AXES_MASK ||
+                (family == Robot && axes != ::motion::ALL_AXES_MASK) ||
+                (family != Robot && std::popcount(axes) != 1)) {
                 return { .error = E::InvalidInput };
             }
             for (const auto& e : m_entries) {
@@ -52,7 +53,7 @@ namespace io::motion
                     return { .error = E::Busy, .token = 0, .busy_job = e.job };
                 }
             }
-            auto* slot = std::ranges::find_if(m_entries, [](const auto& e) { return !e.job; });
+            auto* slot{ std::ranges::find_if(m_entries, [](const auto& e) { return !e.job; }) };
             if (slot == m_entries.end()) {
                 return { .error = E::Capacity };
             }
@@ -70,16 +71,20 @@ namespace io::motion
             if (!job) {
                 return nullptr;
             }
-            auto* const i = std::ranges::find(m_entries, job, &Entry::job);
+            auto* const i{ std::ranges::find(m_entries, job, &Entry::job) };
             return i == m_entries.end() ? nullptr : &*i;
         }
         const Entry* find(std::uint64_t job) const noexcept
         {
-            return const_cast<Ownership*>(this)->find(job);
+            if (!job) {
+                return nullptr;
+            }
+            const auto* const i{ std::ranges::find(m_entries, job, &Entry::job) };
+            return i == m_entries.end() ? nullptr : &*i;
         }
         bool renew(std::uint64_t job, Clock::time_point now) noexcept
         {
-            auto* e = find(job);
+            auto* e{ find(job) };
             if (!e || now >= e->deadline || e->state >= ::motion::JobState::Stopping) {
                 return false;
             }
@@ -88,39 +93,43 @@ namespace io::motion
         }
         void release(std::uint64_t job) noexcept
         {
-            if (auto* e = find(job)) {
+            if (auto* e{ find(job) }) {
                 changed(e->axes);
                 *e = {};
             }
         }
         void changed(std::uint8_t axes) noexcept
         {
-            for (unsigned i = 0; i < 3; ++i) {
-                if (axes & (1U << i))
+            for (unsigned i{ 0 }; i < 3; ++i) {
+                if (axes & (1U << i)) {
                     ++m_revisions[i];
+                }
             }
         }
         void expire(Clock::time_point now) noexcept
         {
             for (auto& e : m_entries) {
-                if (e.job)
+                if (e.job) {
                     e.deadline = std::min(e.deadline, now);
+                }
             }
         }
         void invalidate() noexcept
         {
             // Preserve ownership until callbacks and cleanup finish.
-            changed(7);
+            changed(::motion::ALL_AXES_MASK);
             for (auto& e : m_entries) {
-                if (e.job)
+                if (e.job) {
                     e.state = ::motion::JobState::Stopping;
+                }
             }
         }
         ::motion::Family family() const noexcept
         {
             for (const auto& e : m_entries) {
-                if (e.job)
+                if (e.job) {
                     return e.family;
+                }
             }
             return ::motion::Family::None;
         }
@@ -128,10 +137,13 @@ namespace io::motion
         {
             std::array<std::uint64_t, 3> result{};
             for (const auto& e : m_entries) {
-                if (e.job)
-                    for (unsigned i = 0; i < 3; ++i)
-                        if ((e.axes & (1U << i)) && !result[i])
+                if (e.job) {
+                    for (unsigned i{ 0 }; i < 3; ++i) {
+                        if ((e.axes & (1U << i)) && !result[i]) {
                             result[i] = e.job;
+                        }
+                    }
+                }
             }
             return result;
         }
@@ -139,7 +151,7 @@ namespace io::motion
         const auto& entries() const noexcept { return m_entries; }
 
       private:
-        std::array<Entry, 8> m_entries{};
+        std::array<Entry, ::motion::MOTOR_JOB_CAPACITY> m_entries{};
         std::array<std::uint64_t, 3> m_revisions{ 1, 1, 1 };
         std::uint64_t m_next{};
     };

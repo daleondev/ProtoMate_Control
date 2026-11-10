@@ -7,13 +7,13 @@ namespace ui::gui
 
 #include "pneumo/meta.hpp"
 
-#include <concepts>
 #include <array>
+#include <concepts>
 #include <expected>
 #include <functional>
 #include <iosfwd>
-#include <meta>
 #include <memory>
+#include <meta>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -41,40 +41,6 @@ namespace ui::cli
 {
     class Parser;
 
-    namespace display
-    {
-        void setup(Parser& parser, ui::gui::Controller& gui);
-    }
-    namespace state
-    {
-        void setup(Parser& parser, const SystemState& system);
-    }
-    namespace filesystem
-    {
-        void setup(Parser& parser);
-    }
-    namespace utilities
-    {
-        void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);
-    }
-    namespace robot
-    {
-        void setup(Parser& parser, ui::motion::Robot& robot);
-    }
-    namespace motion
-    {
-        void setup(Parser&, ui::motion::Client&, ui::motion::Robot&, std::stop_token);
-    }
-    namespace motor
-    {
-        void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
-    }
-
-    namespace profiling
-    {
-        void setup(Parser&, pnm::msg::Bus&, std::stop_token);
-    }
-
     struct ArgumentSpec
     {
         std::string name;
@@ -93,13 +59,15 @@ namespace ui::cli
 
     // Borrowed metadata used by reflected commands: all strings and arrays
     // have static storage in flash. Dynamic Command registrations remain owning.
-    struct ArgumentView {
+    struct ArgumentView
+    {
         std::string_view name;
         std::string_view description;
         bool optional{};
         bool variadic{};
     };
-    struct FlagView {
+    struct FlagView
+    {
         std::string_view name;
         std::optional<char> short_name;
         std::string_view description;
@@ -227,7 +195,8 @@ namespace ui::cli
         Callback callback;
     };
 
-    struct CommandView {
+    struct CommandView
+    {
         std::string_view name;
         std::string_view description;
         std::span<const ArgumentView> arguments;
@@ -257,6 +226,27 @@ namespace ui::cli
     class Parser
     {
       public:
+        enum class Module : std::uint8_t
+        {
+            Filesystem,
+            Utilities,
+            Motor,
+            Motion,
+            Robot,
+            Display,
+            State,
+            Profiling,
+            Count
+        };
+        // One registration per module and parser. An exception leaves the flag
+        // retryable, preserving std::call_once's original setup semantics.
+        template<class Initialize>
+        void registerModule(Module module, Initialize&& initialize)
+        {
+            std::call_once(m_registrations.at(static_cast<std::size_t>(module)),
+                           std::forward<Initialize>(initialize));
+        }
+
         [[nodiscard]] auto registerCommand(Command command) -> std::expected<void, std::string>;
 
         // Metadata must outlive the parser; intended for compile-time catalogs.
@@ -273,33 +263,18 @@ namespace ui::cli
           -> std::string;
 
       private:
-        friend void profiling::setup(Parser&, pnm::msg::Bus&, std::stop_token);
-        friend void display::setup(Parser& parser, ui::gui::Controller& gui);
-        friend void state::setup(Parser& parser, const SystemState& system);
-        friend void filesystem::setup(Parser& parser);
-        friend void utilities::setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop);
-        friend void robot::setup(Parser& parser, ui::motion::Robot& robot);
-        friend void motion::setup(Parser&, ui::motion::Client&, ui::motion::Robot&, std::stop_token);
-        friend void motor::setup(Parser& parser, ui::motion::Client& client, std::stop_token stop);
-
         struct Executor;
         [[nodiscard]] auto find(std::string_view name) const noexcept -> const CommandView*;
 
-        struct OwnedCommand {
+        struct OwnedCommand
+        {
             Command command;
             std::vector<ArgumentView> arguments;
             std::vector<FlagView> flags;
         };
         std::vector<std::unique_ptr<OwnedCommand>> m_ownedCommands;
         std::vector<CommandView> m_commands;
-        std::once_flag m_filesystemRegistration;
-        std::once_flag m_utilitiesRegistration;
-        std::once_flag m_motorRegistration;
-        std::once_flag m_motionRegistration;
-        std::once_flag m_robotRegistration;
-        std::once_flag m_displayRegistration;
-        std::once_flag m_stateRegistration;
-        std::once_flag m_profileRegistration;
+        std::array<std::once_flag, static_cast<std::size_t>(Module::Count)> m_registrations{};
     };
 
     template<size_t N1, size_t N2>
@@ -397,51 +372,74 @@ namespace ui::cli
 
             // Build the immutable metadata once at compile time. The runtime
             // registration stores just views and the bound callback.
-            constexpr auto static_name = [=] {
-                auto result = name;
-                template for (constexpr auto annotation : std::span(annotations.data()+1,annotations.size()-1)) {
+            constexpr auto static_name{ [=] {
+                auto result{ name };
+                // The reflection compiler synthesizes __N/__range at this expansion header.
+                // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
+                template for (constexpr auto annotation :
+                              std::span(annotations.data() + 1, annotations.size() - 1))
+                // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
+                {
                     using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
                     if constexpr (util::IsName<Type>) {
-                        constexpr auto value = std::meta::extract<Type>(annotation);
+                        constexpr auto value{ std::meta::extract<Type>(annotation) };
                         result = std::define_static_string(std::string_view(value.name));
                     }
                 }
                 return result;
-            }();
-            static constexpr auto arguments = [=] {
-                std::array<ArgumentView,annotations.size()> result{};
+            }() };
+            static constexpr auto arguments{ [=] {
+                std::array<ArgumentView, annotations.size()> result{};
                 std::size_t count{};
-                template for (constexpr auto annotation : std::span(annotations.data()+1,annotations.size()-1)) {
+                // The reflection compiler synthesizes __N/__range at this expansion header.
+                // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
+                template for (constexpr auto annotation :
+                              std::span(annotations.data() + 1, annotations.size() - 1))
+                // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
+                {
                     using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
                     static_assert(util::IsName<Type> || util::IsArg<Type> || util::IsFlag<Type>);
                     if constexpr (util::IsArg<Type>) {
-                        constexpr auto value = std::meta::extract<Type>(annotation);
+                        constexpr auto value{ std::meta::extract<Type>(annotation) };
                         result[count++] = { std::define_static_string(std::string_view(value.name)),
-                          std::define_static_string(std::string_view(value.description)), value.optional, value.variadic };
+                                            std::define_static_string(std::string_view(value.description)),
+                                            value.optional,
+                                            value.variadic };
                     }
                 }
-                return std::pair{result,count};
-            }();
-            static constexpr auto flags = [=] {
-                std::array<FlagView,annotations.size()> result{};
+                return std::pair{ result, count };
+            }() };
+            static constexpr auto flags{ [=] {
+                std::array<FlagView, annotations.size()> result{};
                 std::size_t count{};
-                template for (constexpr auto annotation : std::span(annotations.data()+1,annotations.size()-1)) {
+                // The reflection compiler synthesizes __N/__range at this expansion header.
+                // NOLINTBEGIN(bugprone-reserved-identifier,readability-identifier-naming)
+                template for (constexpr auto annotation :
+                              std::span(annotations.data() + 1, annotations.size() - 1))
+                // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
+                {
                     using Type = std::remove_cvref_t<typename[:std::meta::type_of(annotation):]>;
                     if constexpr (util::IsFlag<Type>) {
-                        constexpr auto value = std::meta::extract<Type>(annotation);
+                        constexpr auto value{ std::meta::extract<Type>(annotation) };
                         result[count++] = { std::define_static_string(std::string_view(value.name)),
-                          value.short_name == '\0' ? std::nullopt : std::optional<char>{value.short_name},
-                          std::define_static_string(std::string_view(value.description)),
-                          value.value_name.empty() ? std::nullopt : std::optional<std::string_view>{
-                            std::define_static_string(std::string_view(value.value_name))} };
+                                            value.short_name == '\0'
+                                              ? std::nullopt
+                                              : std::optional<char>{ value.short_name },
+                                            std::define_static_string(std::string_view(value.description)),
+                                            value.value_name.empty()
+                                              ? std::nullopt
+                                              : std::optional<std::string_view>{ std::define_static_string(
+                                                  std::string_view(value.value_name)) } };
                     }
                 }
-                return std::pair{result,count};
-            }();
-            auto registration = parser.registerStaticCommand({ .name = static_name,
-              .description = std::define_static_string(std::string_view(description)),
-              .arguments = std::span{arguments.first}.first(arguments.second),
-              .flags = std::span{flags.first}.first(flags.second), .callback = bind([:CommandFunction:]) });
+                return std::pair{ result, count };
+            }() };
+            auto registration{ parser.registerStaticCommand(
+              { .name = static_name,
+                .description = std::define_static_string(std::string_view(description)),
+                .arguments = std::span{ arguments.first }.first(arguments.second),
+                .flags = std::span{ flags.first }.first(flags.second),
+                .callback = bind([:CommandFunction:]) }) };
             if (!registration) {
                 throw std::runtime_error{ registration.error() };
             }

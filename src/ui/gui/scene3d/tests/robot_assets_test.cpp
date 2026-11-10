@@ -24,7 +24,7 @@ namespace
         scene.nodes[2] = { &assets::robot_link_2, 1 };
         scene.nodes[3] = { &assets::robot_link_3, 2 };
         for (unsigned i = 0; i < scene.count; ++i) {
-            scene.nodes[i].material.useMeshMaterial = true;
+            scene.nodes[i].material.use_mesh_material = true;
         }
         return scene;
     }
@@ -40,8 +40,8 @@ namespace
         snapshot.transforms[3].translation = { .3584f, 0, -.061f + z };
         snapshot.camera.target = { .2f, 0, .21f };
         snapshot.camera.distance = .95f;
-        snapshot.camera.nearPlane = .01f;
-        snapshot.camera.farPlane = 4;
+        snapshot.camera.near_plane = .01f;
+        snapshot.camera.far_plane = 4;
         return snapshot;
     }
 
@@ -104,7 +104,7 @@ TEST(RobotVisuals, ArticulatedRendersAreDeterministicAndPreserveBufferGuards)
     }
     auto monochrome = scene;
     for (unsigned i = 0; i < monochrome.count; ++i) {
-        monochrome.nodes[i].material.useMeshMaterial = false;
+        monochrome.nodes[i].material.use_mesh_material = false;
     }
     ASSERT_TRUE(render(
       { &monochrome, poses[2] }, std::span(repeat).subspan(1, PIXELS), std::span(depth).subspan(1, PIXELS)));
@@ -113,21 +113,21 @@ TEST(RobotVisuals, ArticulatedRendersAreDeterministicAndPreserveBufferGuards)
 
 TEST(RobotVisuals, InteractiveDetailPreservesRegistrationAndReviewedSilhouette)
 {
-    auto full = robotScene(RobotDetail::Full);
-    auto low = robotScene(RobotDetail::Interactive);
+    auto full = robot_scene(RobotDetail::Full);
+    auto low = robot_scene(RobotDetail::Interactive);
     ASSERT_TRUE(full.valid());
     ASSERT_TRUE(low.valid());
     ASSERT_EQ(full.count, low.count);
     unsigned total{};
     for (unsigned i = 0; i < full.count; ++i) {
         EXPECT_EQ(full.nodes[i].parent, low.nodes[i].parent);
-        EXPECT_TRUE(low.nodes[i].material.useMeshMaterial);
+        EXPECT_TRUE(low.nodes[i].material.use_mesh_material);
         EXPECT_LT(low.nodes[i].mesh->triangles, full.nodes[i].mesh->triangles);
         total += low.nodes[i].mesh->triangles;
     }
     EXPECT_LT(total, 9000U);
     // Exclude the ground plane from the silhouette comparison.
-    full.groundGrid = low.groundGrid = false;
+    full.ground_grid = low.ground_grid = false;
     std::vector<std::uint16_t> a(PIXELS + 2, 0xa55a), b(a), da(a), db(a);
     const std::array<double, 3> joints[]{ { 0, 0, 0 }, { .7, -1.75, .04 }, { -1.2, 2.1, -.02 } };
     unsigned view{};
@@ -135,7 +135,7 @@ TEST(RobotVisuals, InteractiveDetailPreservesRegistrationAndReviewedSilhouette)
     for (auto q : joints) {
         for (float pitch : { .45f, -.45f, 1.25f }) {
             for (float yaw : { 0.f, 1.5707963f, 3.1415926f, 4.712389f }) {
-                auto snapshot = robotSnapshot(q);
+                auto snapshot = robot_snapshot(q);
                 snapshot.camera.pitch = pitch;
                 snapshot.camera.yaw = yaw;
                 ASSERT_TRUE(render(
@@ -168,29 +168,30 @@ TEST(RobotVisuals, InteractiveDetailPreservesRegistrationAndReviewedSilhouette)
 TEST(RobotVisuals, AxisIllustrationsUseTheRegisteredDetailedMesh)
 {
     const auto* directory = std::getenv("SCENE3D_AXIS_DIR");
-    if (!directory)
+    if (!directory) {
         return;
+    }
     std::filesystem::create_directories(directory);
     std::vector<std::uint16_t> color(PIXELS), depth(PIXELS);
     const Vec3 targets[]{ { .06f, 0, .18f }, { .25f, 0, .235f }, { .39f, 0, .235f } };
     for (unsigned axis = 0; axis < 3; ++axis) {
-        const auto& full = robotScene();
+        const auto& full = robot_scene();
         Scene scene;
         scene.count = 2;
         scene.nodes[0] = full.nodes[axis];
         scene.nodes[0].parent = -1;
         scene.nodes[1] = full.nodes[axis + 1];
         scene.nodes[1].parent = 0;
-        scene.groundGrid = false;
+        scene.ground_grid = false;
         // Preserve original materials on the stationary link; highlight only
         // the child that moves around/along the selected joint.
-        scene.nodes[1].material.useMeshMaterial = false;
+        scene.nodes[1].material.use_mesh_material = false;
         scene.nodes[1].material.color = 0x4b9de0;
-        ASSERT_TRUE(scene.nodes[0].material.useMeshMaterial);
+        ASSERT_TRUE(scene.nodes[0].material.use_mesh_material);
         ASSERT_EQ(scene.nodes[0].mesh, full.nodes[axis].mesh);
         ASSERT_EQ(scene.nodes[1].mesh, full.nodes[axis + 1].mesh);
-        const auto nominal = robotSnapshot({});
-        auto pose = robotSnapshot({});
+        const auto nominal = robot_snapshot({});
+        auto pose = robot_snapshot({});
         pose.transforms = {};
         // The nominal CAD registration has identity rotations. Accumulate the
         // omitted ancestors so cropping does not change either link's origin.
@@ -224,7 +225,8 @@ TEST(RobotVisuals, AxisIllustrationsUseTheRegisteredDetailedMesh)
             image.write(rgb, 3);
         }
         std::ofstream points(std::filesystem::path(directory) / ("axis-" + std::to_string(axis) + ".txt"));
-        for (auto a : anchors)
+        for (auto a : anchors) {
             points << a.x << ' ' << a.y << '\n';
+        }
     }
 }

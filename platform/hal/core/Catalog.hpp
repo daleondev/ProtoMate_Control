@@ -40,7 +40,7 @@ namespace hal::core
     // roles (IO/UI) outside HAL. Shared devices use synchronized implementations.
     struct Catalog
     {
-        [[= util::Core::M4]] static constexpr Devices m4{
+        [[= util::Core::M4]] static constexpr Devices M4{
             .runtime_timer = [] { return board::create_timer(timer::Peripheral::Tim5); },
             .rtc = board::create_rtc,
             .rng = board::create_rng,
@@ -61,7 +61,7 @@ namespace hal::core
 
         };
 
-        [[= util::Core::M7]] static constexpr Devices m7{
+        [[= util::Core::M7]] static constexpr Devices M7{
             .status_led = [] { return board::create_led(board::LedId::Green); },
             .error_led = [] { return board::create_led(board::LedId::Red); },
             .user_button = [] { return board::create_button(board::ButtonId::User); },
@@ -74,7 +74,7 @@ namespace hal::core
             .touch = board::create_touch,
         };
 
-        [[= util::Core::Host]] static constexpr Devices host{
+        [[= util::Core::Host]] static constexpr Devices HOST{
             .status_led = [] { return board::create_led(board::LedId::Green); },
             .error_led = [] { return board::create_led(board::LedId::Red); },
             .user_button = [] { return board::create_button(board::ButtonId::User); },

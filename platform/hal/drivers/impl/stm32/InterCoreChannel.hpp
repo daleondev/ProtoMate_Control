@@ -8,6 +8,11 @@ namespace hal
     class InterCoreChannel final : public IInterCoreChannel
     {
       public:
+        InterCoreChannel(const InterCoreChannel&) = delete;
+        auto operator=(const InterCoreChannel&) -> InterCoreChannel& = delete;
+        InterCoreChannel(InterCoreChannel&&) = delete;
+        auto operator=(InterCoreChannel&&) -> InterCoreChannel& = delete;
+
         InterCoreChannel();
         ~InterCoreChannel() override;
         std::expected<void, Error> trySend(std::span<const std::byte> frame, Lane lane) noexcept override;
@@ -22,7 +27,7 @@ namespace hal
         static void dispatchNotification(std::uint32_t mask) noexcept;
 
       private:
-        bool disconnected() const noexcept;
+        static bool disconnected() noexcept;
         static void notifyPeer() noexcept;
         Notification m_notification;
         inline static InterCoreChannel* s_instance{};

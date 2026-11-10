@@ -12,7 +12,9 @@
 #include "tx_thread_stack_info.hpp"
 #else
 extern "C" {
+// Required newlib/linker ABI symbol. NOLINTNEXTLINE(bugprone-reserved-identifier)
 extern std::byte __HeapBase;
+// Required newlib/linker ABI symbol. NOLINTNEXTLINE(bugprone-reserved-identifier)
 extern std::byte __HeapLimit;
 }
 #endif
@@ -33,7 +35,11 @@ namespace diagnostics
 #else
             const auto info{ ::mallinfo() };
             // These linker symbols denote addresses, not an array object.
+            // Inspect linker/ThreadX stack addresses; numerical bounds are checked before use.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             const auto base{ reinterpret_cast<std::uintptr_t>(&__HeapBase) };
+            // Inspect linker/ThreadX stack addresses; numerical bounds are checked before use.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             const auto limit{ reinterpret_cast<std::uintptr_t>(&__HeapLimit) };
             result.capacity = limit - base;
             result.reserved = info.arena;
@@ -65,7 +71,11 @@ namespace diagnostics
             }
             result.prio = thread.tx_thread_priority;
             result.stack_size = static_cast<std::uint32_t>(thread.tx_thread_stack_size);
+            // Inspect linker/ThreadX stack addresses; numerical bounds are checked before use.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             const auto top{ reinterpret_cast<std::uintptr_t>(thread.tx_thread_stack_end) + 1U };
+            // Inspect linker/ThreadX stack addresses; numerical bounds are checked before use.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             auto current{ reinterpret_cast<std::uintptr_t>(thread.tx_thread_stack_ptr) };
 #if defined(__arm__) || defined(__thumb__)
             // The running thread's saved pointer describes its last context switch.
@@ -80,9 +90,15 @@ namespace diagnostics
             result.current_stack_usage = used(current);
             result.peak_stack_usage = result.current_stack_usage;
 #if defined(TX_ENABLE_STACK_CHECKING)
+            // Inspect linker/ThreadX stack addresses; numerical bounds are checked before use.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             auto peak{ reinterpret_cast<std::uintptr_t>(thread.tx_thread_stack_highest_ptr) };
+            // Inspect linker/ThreadX stack addresses; numerical bounds are checked before use.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             const auto bottom{ reinterpret_cast<std::uintptr_t>(thread.tx_thread_stack_start) };
             if (current >= bottom && current < top && (peak == 0U || current < peak)) {
+                // Inspect linker/ThreadX stack addresses; numerical bounds are checked before use.
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
                 thread.tx_thread_stack_highest_ptr = reinterpret_cast<void*>(current);
                 peak = current;
             }
@@ -110,7 +126,7 @@ namespace diagnostics
         }
     }
 
-    MemorySnapshot collectMemory(MemoryQuery query)
+    MemorySnapshot collect_memory(MemoryQuery query)
     {
         MemorySnapshot result{};
         result.query = query;
@@ -130,20 +146,23 @@ namespace diagnostics
         return result;
     }
 
-    void sampleProfilingMemory()
+    void sample_profiling_memory()
     {
-        const auto heap = collect_heap();
+        const auto heap{ collect_heap() };
         profile_heap(static_cast<std::uint32_t>(heap.available), static_cast<std::uint32_t>(heap.used));
 #if defined(PROTOMATE_PROFILING)
-        if (profile_status().state != PROFILE_RECORDING)
+        if (profile_status().state != PROFILE_RECORDING) {
             return;
+        }
         TX_INTERRUPT_SAVE_AREA
         TX_DISABLE
-        auto* thread = _tx_thread_created_ptr;
-        const auto count = _tx_thread_created_count;
+        auto* thread{ _tx_thread_created_ptr };
+        const auto count{ _tx_thread_created_count };
         for (ULONG i = 0; thread != nullptr && i < count; ++i) {
             ThreadInfo entry{};
             copy_thread(*thread, entry);
+            // Inspect linker/ThreadX stack addresses; numerical bounds are checked before use.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             profile_stack(reinterpret_cast<std::uintptr_t>(thread),
                           entry.name.data(),
                           entry.prio,

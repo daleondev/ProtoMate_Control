@@ -54,7 +54,7 @@ namespace motion::trajectory
         m_started = true;
         for (unsigned i{ 0 }; i < 3; ++i) {
             auto& a{ m_axes[i] };
-            std::array<double, 5> roots{};
+            std::array<double, Polynomial::DEGREE> roots{};
             const auto count{ s.motors[i].derivative().roots(roots) };
             a.divisions[0] = 0;
             std::copy_n(roots.begin(), count, a.divisions.begin() + 1);
@@ -67,6 +67,44 @@ namespace motion::trajectory
             }
         }
         return Error::None;
+    }
+    namespace
+    {
+        constexpr unsigned BISECTION_ITERATIONS{ 52 };
+        constexpr double MIDPOINT{ .5 };
+        std::uint64_t crossing_tick(const Polynomial& p,
+                                    Interval bounds,
+                                    double crossing,
+                                    bool forward,
+                                    std::uint64_t duration) noexcept
+        {
+            double low{ bounds.minimum };
+            double high{ bounds.maximum };
+            // Fixed iterations, independent of displacement. Bracketing retains
+            // the selected monotone branch even for zero endpoint derivatives.
+            for (unsigned iteration{ 0 }; iteration < BISECTION_ITERATIONS; ++iteration) {
+                const double middle{ low + ((high - low) * MIDPOINT) };
+                if ((p.at(middle) < crossing) == forward) {
+                    low = middle;
+                }
+                else {
+                    high = middle;
+                }
+            }
+            const double relative{ high * static_cast<double>(duration) };
+            auto relative_tick{ static_cast<std::uint64_t>(std::ceil(relative)) };
+            // The bisection bracket can lie a few ulps above an exact tick.
+            // Test the preceding integer tick against the original polynomial;
+            // never accumulate rounded inter-pulse periods.
+            if (relative_tick) {
+                const double previous{ p.at(static_cast<double>(relative_tick - 1) /
+                                            static_cast<double>(duration)) };
+                if (forward ? previous >= crossing : previous < crossing) {
+                    --relative_tick;
+                }
+            }
+            return relative_tick;
+        }
     }
     Error PulseCursor::advance(unsigned axis) noexcept
     {
@@ -83,32 +121,10 @@ namespace motion::trajectory
                 continue;
             }
             const bool forward{ *endpoint > m_position[axis] };
-            const double crossing{ static_cast<double>(m_position[axis]) + (forward ? 0.5 : -0.5) };
-            double low{ a.divisions[a.interval] };
-            double high{ to };
-            // Fixed iterations, independent of displacement. Bracketing retains
-            // the selected monotone branch even for zero endpoint derivatives.
-            for (unsigned iteration{ 0 }; iteration < 52; ++iteration) {
-                const double middle{ low + ((high - low) * 0.5) };
-                if ((p.at(middle) < crossing) == forward) {
-                    low = middle;
-                }
-                else {
-                    high = middle;
-                }
-            }
-            const double relative{ high * static_cast<double>(m_segment.ticks) };
-            auto relativeTick{ static_cast<std::uint64_t>(std::ceil(relative)) };
-            // The bisection bracket can lie a few ulps above an exact tick.
-            // Test the preceding integer tick against the original polynomial;
-            // never accumulate rounded inter-pulse periods.
-            if (relativeTick) {
-                const double previous{ p.at(static_cast<double>(relativeTick - 1) / m_segment.ticks) };
-                if (forward ? previous >= crossing : previous < crossing) {
-                    --relativeTick;
-                }
-            }
-            const auto tick{ m_begin + relativeTick };
+            const double crossing{ static_cast<double>(m_position[axis]) + (forward ? MIDPOINT : -MIDPOINT) };
+            const auto relative_tick{ crossing_tick(
+              p, { .minimum = a.divisions[a.interval], .maximum = to }, crossing, forward, m_segment.ticks) };
+            const auto tick{ m_begin + relative_tick };
             if (tick > m_end || tick < m_begin) {
                 return Error::Timing;
             }
@@ -142,7 +158,7 @@ namespace motion::trajectory
         }
         std::optional<Pulse> next_pulse{};
         for (const auto& axis : m_axes) {
-            const auto pending = axis.pending;
+            const auto pending{ axis.pending };
             if (pending && (!next_pulse || pending->tick < next_pulse->tick)) {
                 next_pulse = pending;
             }
@@ -151,8 +167,8 @@ namespace motion::trajectory
             m_active = false;
             return std::optional<Pulse>{};
         }
-        const auto pulse = *next_pulse;
-        const auto selected = pulse.axis;
+        const auto pulse{ *next_pulse };
+        const auto selected{ pulse.axis };
         auto& a{ m_axes[selected] };
         m_position[selected] += pulse.forward ? 1 : -1;
         a.last_tick = pulse.tick;

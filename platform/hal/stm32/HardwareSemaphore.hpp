@@ -11,10 +11,13 @@ namespace hal::stm32
     class HardwareSemaphore final
     {
       public:
+        HardwareSemaphore(HardwareSemaphore&&) = delete;
+        auto operator=(HardwareSemaphore&&) -> HardwareSemaphore& = delete;
+
         explicit HardwareSemaphore(std::uint32_t id) noexcept
           : m_id{ id }
         {
-            for (std::uint32_t attempt{}; attempt < 100'000; ++attempt) {
+            for (std::uint32_t attempt{}; attempt < ACQUISITION_ATTEMPTS; ++attempt) {
                 if (HAL_HSEM_FastTake(id) == HAL_OK) {
                     __DMB();
                     m_owned = true;
@@ -34,6 +37,7 @@ namespace hal::stm32
         explicit operator bool() const noexcept { return m_owned; }
 
       private:
+        static constexpr std::uint32_t ACQUISITION_ATTEMPTS{ 100'000 };
         std::uint32_t m_id;
         bool m_owned{};
     };

@@ -14,12 +14,15 @@ namespace io::motion
     class Executor final
     {
       public:
+        Executor(Executor&&) = delete;
+        auto operator=(Executor&&) -> Executor& = delete;
+
         // Initial production ceiling; numerical/HAL stress tests may use 25 kHz.
-        static constexpr std::uint32_t MAX_PRODUCTION_RATE = ::motion::operating::STEP_RATE;
-        static constexpr std::uint32_t DMA_HALF_PULSES = 64;
-        static constexpr std::uint32_t HORIZON = ::motion::operating::COMMIT_TICKS;
-        static constexpr std::uint32_t RENEW_PERIOD = ::motion::operating::CHECKPOINT_TICKS;
-        static constexpr std::uint32_t LEASE = ::motion::operating::LEASE_TICKS;
+        static constexpr std::uint32_t MAX_PRODUCTION_RATE{ ::motion::operating::STEP_RATE };
+        static constexpr std::uint32_t DMA_HALF_PULSES{ 64 };
+        static constexpr std::uint32_t HORIZON{ ::motion::operating::COMMIT_TICKS };
+        static constexpr std::uint32_t RENEW_PERIOD{ ::motion::operating::CHECKPOINT_TICKS };
+        static constexpr std::uint32_t LEASE{ ::motion::operating::LEASE_TICKS };
         enum class State : std::uint8_t
         {
             Idle,
@@ -80,7 +83,8 @@ namespace io::motion
             Diagnostic diagnostic{};
         };
         using Prepare = std::function<bool(unsigned, bool, std::shared_ptr<const hal::step::Sequence>)>;
-        Executor(std::shared_ptr<hal::IStepGenerator> generator, Prepare prepare,
+        Executor(std::shared_ptr<hal::IStepGenerator> generator,
+                 Prepare prepare,
                  std::pmr::memory_resource* memory = std::pmr::get_default_resource());
         ~Executor();
         Executor(const Executor&) = delete;
@@ -97,8 +101,9 @@ namespace io::motion
         // stopped command. Call service at least every millisecond while active.
         bool renew(std::uint64_t id);
         bool stop(std::uint64_t id);
-        void abort(unsigned site=std::source_location::current().line()) noexcept; // Immediate local fault response, not a brake.
-        bool recover();        // Explicit stopped-only recovery after HAL reinitialization.
+        void abort(unsigned site = std::source_location::current()
+                                     .line()) noexcept; // Immediate local fault response, not a brake.
+        bool recover(); // Explicit stopped-only recovery after HAL reinitialization.
         void service();
         Status status() const noexcept { return m_status; }
         bool active() const noexcept
@@ -111,8 +116,20 @@ namespace io::motion
         {
             std::optional<ProfileSchedule> schedule;
         };
+        struct BuildRequest
+        {
+            unsigned bank{};
+            std::uint64_t cut{};
+        };
+        bool buildAxis(unsigned i,
+                       BuildRequest request,
+                       const std::optional<::motion::Profile>& shared_brake);
         bool build(unsigned bank, std::uint64_t cut);
-        bool failed(ScheduleFailure failure, std::uint64_t cut, unsigned axis = 3,
+        std::optional<bool> finishAxes(const hal::step::Status& hw);
+        void replaceFuture(std::uint64_t elapsed);
+        bool failed(ScheduleFailure failure,
+                    std::uint64_t cut,
+                    unsigned axis = 3,
                     double brake_distance = -1) noexcept;
         std::optional<std::uint64_t> elapsed(std::uint32_t tick) noexcept;
         bool prepareProfiles(const Command& command);

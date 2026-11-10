@@ -1,10 +1,11 @@
 #pragma once
 #include "hal/drivers/itf/GpioTypes.hpp"
 #include "hal/drivers/itf/IRgbOutput.hpp"
+#include <cstdint>
 #include <memory>
 namespace hal::rgb
 {
-    enum class Peripheral
+    enum class Peripheral : std::uint8_t
     {
         Ltdc
     };

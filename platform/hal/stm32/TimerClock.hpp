@@ -15,6 +15,8 @@ namespace hal::stm32
 
         std::uint64_t frequency{ HAL_RCC_GetPCLK1Freq() };
         if (
+          // CMSIS peripheral access uses the MCU fixed-address register map.
+          // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           (RCC->CFGR &
            RCC_CFGR_TIMPRE) != // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
           0U) { // NOLINT(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)

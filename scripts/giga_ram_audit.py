@@ -40,7 +40,7 @@ for n,label in labels.items():
           '_tx_execution_thread_enter','_tx_execution_thread_exit'):roots.append(n)
  if 'thread_stack_error_handler(' in label or label == 'std::chrono::_V2::steady_clock::now()':roots.append(n)
  if re.match(r'^(DMA1_Stream[0-3]|TIM[3567](?:_DAC)?|EXTI[0-9_]+)_IRQHandler$',n):roots.append(n)
- if '_S_call_storage' in label and '_Base_invoker<true' in label and any(c in label for c in ['StepperMotor::StepperMotor','Controller::Controller','IndexFeedback::IndexFeedback','QuadratureEncoderFeedback::subscribe','DriverFaultMonitor::DriverFaultMonitor']):roots.append(n)
+ if '_S_call_storage' in label and '_Base_invoker<true' in label and any(c in label for c in ['StepperMotor::installCallbacks','Controller::Controller','IndexFeedback::IndexFeedback','QuadratureEncoderFeedback::subscribe','DriverFaultMonitor::DriverFaultMonitor']):roots.append(n)
  if (any(x in label for x in ['::Sequence::generate(', '::Sequence::timing(', '::Sequence::count(', '::Sequence::maximumPeriod(', '::accountProgress(', '::accountFeedback(', '::IndexFeedback::motion(', '::IndexFeedback::invalidate(', '::QuadratureEncoderFeedback::motion(', '::QuadratureEncoderFeedback::invalidate(', '::GpioOutput::write(', '::GpioInput::read(']) and '~' not in label and 'veneer' not in label):roots.append(n)
  # Benchmark virtual sequence methods and progress callback are real ISR paths
  # too. In particular, a weak inline numeric fallback may be selected from a

@@ -59,7 +59,7 @@ namespace
         std::atomic_uint inspected{}, mutated{};
         pnm::msg::ServiceServer<tr::Packet, tr::Packet> service{
             io.service<^^icc::Services::io_trajectory>().serve([this](const tr::Packet& packet) {
-            const auto r = tr::decodeRequest(packet);
+            const auto r = tr::decode_request(packet);
             tr::Reply reply;
             reply.capabilities = caps();
             if (r && r->operation == tr::Operation::Inspect) {
@@ -268,7 +268,7 @@ TEST(MotionCancellation, QueuedAcceptanceCannotUndoAnAlreadyRequestedStop)
     Client client{ bus };
     client.setConnected(true);
     auto commands = bus.service<^^icc::Services::io_motor>().serve([](const motion::MotorRequest&) {
-        return motion::MotorResponse{ .message = {}, .commandGeneration = 1 };
+        return motion::MotorResponse{ .message = {}, .command_generation = 1 };
     });
     auto initialized = std::async(std::launch::async, [&] {
         return client.request({ .operation = motion::MotorOperation::Initialize });
@@ -299,7 +299,7 @@ TEST(MotionAdmission, AcquireUsesTheKnownBootAndReturnsOneAuthoritativeSnapshot)
     client.setConnected(true);
     std::vector<tr::Operation> operations;
     auto service = bus.service<^^icc::Services::io_trajectory>().serve([&](const tr::Packet& packet) {
-        const auto request = tr::decodeRequest(packet);
+        const auto request = tr::decode_request(packet);
         EXPECT_TRUE(request);
         tr::Reply reply{ .boot = 7 };
         if (request) {
@@ -319,7 +319,8 @@ TEST(MotionAdmission, AcquireUsesTheKnownBootAndReturnsOneAuthoritativeSnapshot)
     }));
     EXPECT_EQ(inspection.get().boot, 7U);
     const auto job = client.create(motion::Family::Axis, 1);
-    auto admission = std::async(std::launch::async, [&] { return client.acquire(job, 123); });
+    auto admission =
+      std::async(std::launch::async, [&] { return client.acquire({ .id = job, .configuration = 123 }); });
     ASSERT_TRUE(waitUntil([&] {
         service.poll();
         return admission.wait_for(0ms) == std::future_status::ready;
@@ -347,31 +348,37 @@ TEST(MotionLease, ValidatesAcknowledgementsWithoutClaimingThatFailedRenewalsStop
     client.setConnected(true);
     std::atomic response{ Response::Corrupt };
     auto trajectory = bus.service<^^icc::Services::io_trajectory>().serve([](const tr::Packet& packet) {
-        const auto request = tr::decodeRequest(packet);
+        const auto request = tr::decode_request(packet);
         EXPECT_TRUE(request);
         tr::Reply reply{ .boot = 17, .session = 5 };
         return tr::encode(reply);
     });
     auto control = bus.service<^^icc::Services::io_trajectory_control>().serve([&](const tr::Packet& packet) {
-        const auto request = tr::decodeRequest(packet);
+        const auto request = tr::decode_request(packet);
         EXPECT_TRUE(request);
         EXPECT_EQ(request->operation, tr::Operation::Renew);
         EXPECT_EQ(request->boot, 17U);
         tr::Reply reply{ .boot = 17, .acknowledgement = true };
         const auto selected = response.load();
-        if (selected == Response::ServiceFailure)
+        if (selected == Response::ServiceFailure) {
             throw std::runtime_error("test service failure");
-        if (selected == Response::WrongBoot)
+        }
+        if (selected == Response::WrongBoot) {
             reply.boot = 18;
-        if (selected == Response::Rejected)
+        }
+        if (selected == Response::Rejected) {
             reply.error = tr::Error::LeaseExpired;
-        if (selected == Response::FullSnapshot)
+        }
+        if (selected == Response::FullSnapshot) {
             reply.acknowledgement = false;
+        }
         auto encoded = tr::encode(reply);
-        if (selected == Response::Corrupt)
+        if (selected == Response::Corrupt) {
             encoded.bytes[4] ^= std::byte{ 1 };
-        if (selected == Response::WrongVersion)
+        }
+        if (selected == Response::WrongVersion) {
             encoded.bytes[1] ^= std::byte{ 1 };
+        }
         return encoded;
     });
     std::jthread server([&](std::stop_token stop) {
@@ -382,7 +389,7 @@ TEST(MotionLease, ValidatesAcknowledgementsWithoutClaimingThatFailedRenewalsStop
         }
     });
     const auto job = client.create(motion::Family::Axis, 1);
-    ASSERT_EQ(client.acquire(job, 123).error, tr::Error::None);
+    ASSERT_EQ(client.acquire({ .id = job, .configuration = 123 }).error, tr::Error::None);
     std::jthread worker([&](std::stop_token stop) { client.run(stop); });
     const std::array cases{ std::pair{ Response::Corrupt, tr::Error::Checksum },
                             std::pair{ Response::WrongBoot, tr::Error::Stale },
@@ -424,15 +431,18 @@ TEST(MotionGuiControls, DisableHasReservedCapacityAndCancelsQueuedEnable)
         EXPECT_EQ(r.operation, motion::MotorOperation::Disable);
         return motion::MotorResponse{};
     });
-    for (unsigned i = 0; i < 4; ++i)
+    for (unsigned i = 0; i < 4; ++i) {
         ASSERT_TRUE(client.requestAsync({ .operation = motion::MotorOperation::Enable }, [&](auto result) {
-            if (!result && result.error() == pnm::msg::ServiceError::Cancelled)
+            if (!result && result.error() == pnm::msg::ServiceError::Cancelled) {
                 ++cancelled;
+            }
         }));
+    }
     EXPECT_FALSE(client.requestAsync({ .operation = motion::MotorOperation::Enable }, {}));
     ASSERT_TRUE(client.requestAsync({ .operation = motion::MotorOperation::Disable }, [&](auto result) {
-        if (result && result->ok)
+        if (result && result->ok) {
             ++disabled;
+        }
     }));
     EXPECT_FALSE(client.requestAsync({ .operation = motion::MotorOperation::Enable }, {}));
     std::jthread worker([&](std::stop_token stop) { client.run(stop); });

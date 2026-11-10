@@ -1,341 +1,473 @@
+#include "Text.hpp"
 #include "View.hpp"
 #include "ui/gui/frontend/Theme.hpp"
 #include <algorithm>
-#include <cstdio>
+#include <array>
 namespace ui::gui::hmi
 {
     namespace
     {
+        constexpr unsigned INPUT_LABEL_BYTES{ 80 }, DRIVER_BUTTON_BYTES{ 12 };
+        constexpr unsigned AXIS_COUNT{ 3 }, NOTE_CAPACITY{ 96 };
+        constexpr unsigned DRIVER_COLUMNS{ 4 };
+        constexpr unsigned STACK_COLUMNS{ 6 };
+        constexpr unsigned VISIBLE_MESSAGES{ 4 };
+        constexpr unsigned PERCENT{ 100 };
+        constexpr double MILLIS_PER_SECOND{ 1000. };
+        constexpr std::uint32_t INACTIVE_LAMP{ 0x405565 };
+        constexpr unsigned HEAP_USED_ROW{ 2 };
+        constexpr unsigned HEAP_USAGE_ROW{ 8 };
+        constexpr unsigned STACK_SIZE_COLUMN{ 1 };
+        constexpr unsigned STACK_PEAK_COLUMN{ 3 };
+        constexpr unsigned STACK_PERCENT_COLUMN{ 4 };
+        const char* reported(bool available, const char* known, const char* unknown = "Unknown")
+        {
+            return available ? known : unknown;
+        }
+        std::uint32_t lamp_color(bool available, bool active)
+        {
+            if (!available) {
+                return theme::MUTED;
+            }
+            return active ? theme::GREEN : INACTIVE_LAMP;
+        }
+        Severity system_severity(const Snapshot& state)
+        {
+            if (state.failed || std::ranges::any_of(state.axes, [](const Axis& a) { return a.fault; })) {
+                return Severity::Error;
+            }
+            if (!state.connected || !state.fresh || !state.configured || !state.initialized ||
+                !state.enabled ||
+                std::ranges::any_of(state.axes, [](const Axis& a) { return a.warning || !a.referenced; })) {
+                return Severity::Warning;
+            }
+            return Severity::Info;
+        }
+        const char* severity_name(Severity value)
+        {
+            switch (value) {
+                case Severity::Error:
+                    return "ERROR";
+                case Severity::Warning:
+                    return "WARN";
+                default:
+                    return "INFO";
+            }
+        }
+        const char* allocator_name(unsigned allocator)
+        {
+            switch (allocator) {
+                case 0:
+                    return "newlib";
+                case 1:
+                    return "glibc";
+                default:
+                    return "Unknown allocator";
+            }
+        }
         template<std::size_t N>
         void text(std::array<char, N>& dst, const char* src)
         {
-            std::snprintf(dst.data(), dst.size(), "%s", src);
+            format(dst, "{}", src);
         }
-        void number(std::array<char, 24>& dst, std::uint64_t value)
+        void number(std::array<char, text_capacity::NUMBER>& dst, std::uint64_t value)
         {
-            std::snprintf(dst.data(), dst.size(), "%llu", (unsigned long long)value);
+            format(dst, "{}", value);
+        }
+        void populate_memory_rows(Table::Data& d, const DiagnosticPage& page, unsigned offset)
+        {
+            for (unsigned i{ 0 }; i < d.count; ++i) {
+                auto& row{ d.rows[i] };
+                const auto& in{ page.rows[i] };
+                text(row.name, in.name.data());
+                for (unsigned j{ 0 }; j < (page.stacks ? STACK_PERCENT_COLUMN : 1U); ++j) {
+                    number(row.values[j], in.values[j]);
+                }
+                if (page.stacks) {
+                    if (in.values[STACK_SIZE_COLUMN]) {
+                        row.percent = int(std::min<std::uint64_t>(
+                          PERCENT, in.values[STACK_PEAK_COLUMN] * PERCENT / in.values[STACK_SIZE_COLUMN]));
+                        format(row.values[STACK_PERCENT_COLUMN], "{} %", row.percent);
+                    }
+                    else {
+                        text(row.values[STACK_PERCENT_COLUMN], "--");
+                    }
+                }
+                else if ((offset + i == HEAP_USED_ROW || offset + i == HEAP_USAGE_ROW) && page.capacity) {
+                    row.percent = int(std::min<std::uint64_t>(PERCENT, page.used * PERCENT / page.capacity));
+                }
+                else if (offset + i == 0 && page.shared) {
+                    text(row.values[0], "Dynamic");
+                }
+            }
         }
     }
     void View::maintenancePage()
     {
-        const auto& s = m_model.state;
-        const bool usable = s.connected && s.fresh && !s.failed;
         if (m_model.page == Page::Settings) {
             settingsPage();
             return;
         }
         if (m_model.page == Page::IO) {
-            control(IODigital, "Digital I/O", 112, 84, 440, true, m_model.ioTab == 0);
-            control(IODrivers, "Drivers & feedback", 564, 84, 444, true, m_model.ioTab == 1);
-            if (m_model.ioTab == 0) {
-                card(0, 112, 148, 440, 376);
-                card(1, 564, 148, 444, 376);
-                label("Inputs", 132, 168, 400, 36, true);
-                label("Outputs", 584, 168, 400, 36, true);
-                for (unsigned i = 0; i < 3; ++i) {
-                    char t[80];
-                    const auto& a = s.motor(i);
-                    std::snprintf(t, sizeof(t), "M%u reference", i + 1);
-                    lamp(132,
-                         234 + int(i) * 80,
-                         !usable       ? theme::MUTED
-                         : a.reference ? theme::GREEN
-                                       : 0x405565);
-                    label(t, 156, 224 + int(i) * 80, 216);
-                    value(!usable       ? "Unknown"
-                          : a.reference ? "ACTIVE"
-                                        : "Released",
-                          372,
-                          224 + int(i) * 80,
-                          160);
-                    m_labels[m_labelCount - 1].setColor(!usable       ? theme::MUTED
-                                                        : a.reference ? theme::GREEN
-                                                                      : theme::MUTED);
-                    std::snprintf(t,
-                                  sizeof(t),
-                                  "Driver alarm: %s",
-                                  !usable   ? "unknown"
-                                  : a.fault ? "ACTIVE"
-                                            : "clear");
-                    label(t, 132, 254 + int(i) * 80, 380, 28);
-                    m_labels[m_labelCount - 1].setColor(a.fault ? theme::RED : theme::MUTED);
-                }
-                lamp(584, 234, !usable ? theme::MUTED : s.enabled ? theme::GREEN : 0x405565);
-                label("Enable command", 608, 224, 226);
-                value(!usable ? "Unknown" : s.enabled ? "ON" : "OFF", 844, 224, 144);
-                m_labels[m_labelCount - 1].setColor(usable && s.enabled ? theme::GREEN : theme::MUTED);
-            }
-            else if (m_model.ioTab == 1) {
-                Table::Data d;
-                d.columns = 4;
-                d.count = 3;
-                text(d.heading.name, "Motor / driver");
-                text(d.heading.values[0], "Ready");
-                text(d.heading.values[1], "Fault");
-                text(d.heading.values[2], "Feedback");
-                for (unsigned i = 0; i < 3; ++i) {
-                    auto& r = d.rows[i];
-                    const auto& a = s.motor(i);
-                    std::snprintf(r.name.data(), r.name.size(), "M%u %s", i + 1, a.driver.data());
-                    text(r.values[0], !usable ? "Unknown" : a.ready ? "Yes" : "No");
-                    text(r.values[1], !usable ? "Unknown" : a.fault ? "ACTIVE" : "Clear");
-                    text(r.values[2], !usable || !a.valid ? "Invalid" : a.encoder ? "Encoder" : "INDEX");
-                    r.color = a.fault ? theme::RED : theme::TEXT;
-                }
-                m_table.setPosition(120, 156, 880, 224);
-                m_table.data(d);
-                m_table.setVisible(true);
-                for (unsigned i = 0; i < 3; ++i) {
-                    char t[12];
-                    std::snprintf(t, sizeof(t), "M%u details", i + 1);
-                    control(Driver0 + i, t, 124 + int(i) * 292, 390, 280, true, m_model.driverDetail == i);
-                }
-                const auto& a = s.motor(m_model.driverDetail);
-                char t[96];
-                std::snprintf(t,
-                              sizeof(t),
-                              "Fault code %u  ·  Warning %s  ·  %s",
-                              a.faultCode,
-                              !usable     ? "unknown"
-                              : a.warning ? "active"
-                                          : "clear",
-                              a.encoder ? "Encoder feedback" : "Driver-phase estimate");
-                label(t, 132, 464, 860, 48);
-            }
+            ioPage();
             return;
         }
-        card(0, 112, 84, 896, 440);
+        card(0, layout::maintenance::DETAILS_CARD);
         if (m_model.page == Page::Jobs) {
-            control(TogglePreviews, m_model.previews ? "Previews" : "Execution history", 128, 96, 292);
-            control(PrevJobs, "Previous", 712, 96, 132);
-            control(NextJobs, "Next", 856, 96, 136);
-            for (unsigned i = 0; i < m_model.jobCount; ++i) {
-                card(1 + i, 128, 160 + int(i) * 84, 864, 80);
-                const auto& j = m_model.jobs[i];
-                char t[96];
-                std::snprintf(
-                  t, sizeof(t), "#%llu  %s  ·  %.2f s", (unsigned long long)j.id, j.status.data(), j.seconds);
-                label(t, 136, 168 + int(i) * 84, 680);
-                std::snprintf(t,
-                              sizeof(t),
-                              "%.0f / %.0f / %.0f pulses · %.48s",
-                              j.endpoint[0],
-                              j.endpoint[1],
-                              j.endpoint[2],
-                              j.detail.data());
-                label(t, 136, 200 + int(i) * 84, 680, 42);
-                control(Cancel0 + i, "Cancel", 844, 174 + int(i) * 84, 144, !j.terminal && usable);
-            }
-            if (!m_model.jobCount) {
-                label("No jobs yet", 160, 244, 800, 44, true);
-                label("CLI and GUI share the same execution history.", 160, 306, 800);
-            }
+            jobsPage();
             return;
         }
         if (m_model.page == Page::Alarms) {
-            const auto severity =
-              s.failed || std::ranges::any_of(s.axes, [](const Axis& a) { return a.fault; }) ? Severity::Error
-              : !s.connected || !s.fresh || !s.configured || !s.initialized || !s.enabled ||
-                  std::ranges::any_of(s.axes, [](const Axis& a) { return a.warning || !a.referenced; })
-                ? Severity::Warning
-                : Severity::Info;
-            label(s.condition.data(), 136, 104, 856, 68, true);
-            m_labels[m_labelCount - 1].setColor(severityColor(severity));
-            control(ToggleInfo,
-                    m_model.showInfo ? "Info: shown" : "Info: hidden",
-                    768,
-                    176,
-                    224,
-                    true,
-                    m_model.showInfo);
-            label("Recent messages", 136, 188, 600);
-            for (unsigned i = 0; i < 4; ++i) {
-                const auto* message = m_model.visibleMessage(i);
-                if (!message)
-                    break;
-                card(1 + i, 128, 240 + int(i) * 50, 864, 46);
-                const auto color = severityColor(message->severity);
-                const auto* name = message->severity == Severity::Error     ? "ERROR"
-                                   : message->severity == Severity::Warning ? "WARN"
-                                                                            : "INFO";
-                label(name, 140, 242 + int(i) * 50, 72, 42);
-                m_labels[m_labelCount - 1].setColor(color);
-                label(message->text.data(), 220, 242 + int(i) * 50, 760, 42);
-                m_labels[m_labelCount - 1].setColor(color);
-            }
-            if (!m_model.visibleMessage(0))
-                label(m_model.showInfo ? "No messages" : "No warnings or errors", 136, 290, 832);
-            control(Acknowledge, "Acknowledge messages", 128, 460, 352);
-            label("Hardware faults remain active until resolved.", 500, 468, 488, 48);
+            alarmsPage();
             return;
         }
         label(m_model.page == Page::Programs ? "Your programs will live here" : "Position presets",
-              160,
-              228,
-              800,
-              48,
+              layout::maintenance::EMPTY_PAGE_TITLE,
               true);
-        label("Not implemented yet", 160, 296, 800);
-        label("No commands are generated by this page.", 160, 342, 800);
+        label("Not implemented yet", layout::maintenance::LABEL_NOT_IMPLEMENTED_YET);
+        label("No commands are generated by this page.", layout::maintenance::EMPTY_PAGE_HELP);
     }
     void View::settingsPage()
     {
-        control(SettingsGeneral, "General", 112, 84, 288, true, m_model.settingsTab == 0);
-        control(SettingsRobot, "Robot", 416, 84, 288, true, m_model.settingsTab == 1);
-        control(SettingsDiagnostics, "Diagnostics", 720, 84, 288, true, m_model.settingsTab == 2);
-        card(0, 112, 148, 896, 376);
-        if (m_model.settingsTab == 0) {
-            label("Screen brightness", 136, 184, 500, 36, true);
-            char t[32];
-            std::snprintf(t, sizeof(t), "%.0f %%", m_model.values[11]);
-            value(t, 804, 184, 180, true);
-            m_brightness.setPosition(136, 250, 840, 56);
-            m_brightness.value(unsigned(m_model.values[11]));
-            m_brightness.setVisible(true);
-            label("Display controls are local to the UI controller.", 136, 344, 832);
-            control(Presets, "Position presets", 136, 444, 300);
+        control(SettingsGeneral,
+                "General",
+                layout::settings::CONTROL_SETTINGS_GENERAL,
+                true,
+                m_model.settings_tab == 0);
+        control(
+          SettingsRobot, "Robot", layout::settings::CONTROL_SETTINGS_ROBOT, true, m_model.settings_tab == 1);
+        control(SettingsDiagnostics,
+                "Diagnostics",
+                layout::settings::CONTROL_SETTINGS_DIAGNOSTICS,
+                true,
+                m_model.settings_tab == 2);
+        card(0, layout::settings::CONTENTS_CARD);
+        if (m_model.settings_tab == 0) {
+            generalSettingsPage();
             return;
         }
-        if (m_model.settingsTab == 1) {
-            label(m_model.state.configured ? "Configuration · read only" : "Physical calibration required",
-                  136,
-                  176,
-                  832,
-                  40,
-                  true);
-            char t[96];
-            std::snprintf(t, sizeof(t), "Identity  %llu", (unsigned long long)m_model.state.configuration);
-            label(t, 136, 228, 832);
-            Table::Data d;
-            d.count = 3;
-            d.columns = 4;
-            text(d.heading.name, "Axis / units");
-            text(d.heading.values[0], "Minimum");
-            text(d.heading.values[1], "Maximum");
-            text(d.heading.values[2], "Speed /s");
-            for (unsigned i = 0; i < 3; ++i) {
-                auto& r = d.rows[i];
-                const auto& a = m_model.state.axes[i];
-                std::snprintf(r.name.data(), r.name.size(), "Axis %u [%s]", i + 1, i == 2 ? "mm" : "°");
-                const double values[]{ a.minimum, a.maximum, a.maxSpeed };
-                for (unsigned j = 0; j < 3; ++j)
-                    std::snprintf(r.values[j].data(),
-                                  r.values[j].size(),
-                                  m_model.state.configured ? "%.2f" : "--",
-                                  values[j]);
-            }
-            m_table.setPosition(128, 270, 864, 164);
-            m_table.data(d);
-            m_table.setVisible(true);
-            control(Motors, "Motor defaults", 136, 444, 300);
-            label("Changes require an idle motor.", 460, 460, 500);
+        if (m_model.settings_tab == 1) {
+            robotSettingsPage();
             return;
         }
-        control(DiagnosticUI, "UI", 124, 156, 92, true, !m_model.diagnosticIO);
-        control(DiagnosticIO, "IO", 224, 156, 92, m_model.diagnosticTab != 2, m_model.diagnosticIO);
-        control(DiagnosticHeap, "Heap", 332, 156, 168, true, m_model.diagnosticTab == 0);
-        control(DiagnosticStacks, "Stacks", 508, 156, 168, true, m_model.diagnosticTab == 1);
-        control(DiagnosticGraphics, "Graphics", 684, 156, 168, true, m_model.diagnosticTab == 2);
-        control(DiagnosticRefresh, "Refresh", 860, 156, 136);
-        Table::Data d;
-        d.columns = m_model.diagnosticTab == 1 ? 6 : 2;
-        char note[96]{};
-        if (m_model.diagnosticTab == 2) {
-            text(d.heading.name, "Graphics");
-            text(d.heading.values[0], "Value");
-            constexpr const char* names[]{ "Presented frames", "LTDC underruns",     "DMA errors",
-                                           "3D images",        "Render [us]",        "Replaced requests",
-                                           "Frame age [us]",   "Maximum render [us]" };
-            for (unsigned i = m_model.diagnosticOffset; i < 8 && d.count < 6; ++i) {
-                auto& row = d.rows[d.count++];
-                text(row.name, names[i]);
-                number(row.values[0], m_model.graphics[i]);
+        diagnosticsPage();
+    }
+
+    void View::ioPage()
+    {
+        control(IODigital, "Digital I/O", layout::maintenance::CONTROL_IODIGITAL, true, m_model.io_tab == 0);
+        control(
+          IODrivers, "Drivers & feedback", layout::maintenance::CONTROL_IODRIVERS, true, m_model.io_tab == 1);
+        if (m_model.io_tab == 0) {
+            ioDigitalPage();
+        }
+        else if (m_model.io_tab == 1) {
+            ioDriversPage();
+        }
+    }
+
+    void View::jobsPage()
+    {
+        const bool usable{ m_model.state.connected && m_model.state.fresh && !m_model.state.failed };
+        control(TogglePreviews,
+                m_model.previews ? "Previews" : "Execution history",
+                layout::maintenance::CONTROL_TOGGLE_PREVIEWS);
+        control(PrevJobs, "Previous", layout::maintenance::CONTROL_PREV_JOBS);
+        control(NextJobs, "Next", layout::maintenance::CONTROL_NEXT_JOBS);
+        for (unsigned i{ 0 }; i < m_model.job_count; ++i) {
+            card(1 + i, layout::maintenance::JOB_CARDS[i]);
+            const auto& j{ m_model.jobs[i] };
+            std::array<char, text_capacity::LABEL> t{};
+            format(t, "#{}  {}  ·  {:.2f} s", j.id, j.status.data(), j.seconds);
+            label(t.data(), layout::maintenance::JOB_HEADINGS[i]);
+            format(t,
+                   "{:.0f} / {:.0f} / {:.0f} pulses · {:.48}",
+                   j.endpoint[0],
+                   j.endpoint[1],
+                   j.endpoint[2],
+                   j.detail.data());
+            label(t.data(), layout::maintenance::JOB_DETAILS[i]);
+            control(Cancel0 + i, "Cancel", layout::maintenance::JOB_CANCELS[i], !j.terminal && usable);
+        }
+        if (!m_model.job_count) {
+            label("No jobs yet", layout::maintenance::LABEL_NO_JOBS_YET, true);
+            label("CLI and GUI share the same execution history.", layout::maintenance::JOBS_HELP);
+        }
+    }
+
+    void View::alarmsPage()
+    {
+        const auto& s{ m_model.state };
+        const auto severity{ system_severity(s) };
+        label(s.condition.data(), layout::maintenance::LABEL_S_CONDITION_DATA, true);
+        m_labels[m_labelCount - 1].setColor(severity_color(severity));
+        control(ToggleInfo,
+                m_model.show_info ? "Info: shown" : "Info: hidden",
+                layout::maintenance::CONTROL_TOGGLE_INFO,
+                true,
+                m_model.show_info);
+        label("Recent messages", layout::maintenance::LABEL_RECENT_MESSAGES);
+        for (unsigned i{ 0 }; i < VISIBLE_MESSAGES; ++i) {
+            const auto* message{ m_model.visibleMessage(i) };
+            if (!message) {
+                break;
             }
-            m_table.setPosition(124, 220, 872, 238);
-            m_table.data(d);
-            m_table.setVisible(true);
-            label("UI graphics · live counters", 136, 472, 544);
-            control(DiagnosticPrevious, "Previous", 700, 464, 140);
-            control(DiagnosticNext, "Next", 852, 464, 144, m_model.diagnosticOffset + d.count < 8);
+            card(1 + i, layout::maintenance::MESSAGE_CARDS[i]);
+            const auto color{ severity_color(message->severity) };
+            const auto* name{ severity_name(message->severity) };
+            label(name, layout::maintenance::MESSAGE_LEVELS[i]);
+            m_labels[m_labelCount - 1].setColor(color);
+            label(message->text.data(), layout::maintenance::MESSAGE_TEXTS[i]);
+            m_labels[m_labelCount - 1].setColor(color);
+        }
+        if (!m_model.visibleMessage(0)) {
+            label(m_model.show_info ? "No messages" : "No warnings or errors",
+                  layout::maintenance::EMPTY_MESSAGES);
+        }
+        control(Acknowledge, "Acknowledge messages", layout::maintenance::CONTROL_ACKNOWLEDGE);
+        label("Hardware faults remain active until resolved.", layout::maintenance::FAULTS_HELP);
+    }
+
+    void View::ioDigitalPage()
+    {
+        const auto& s{ m_model.state };
+        const bool usable{ s.connected && s.fresh && !s.failed };
+        card(0, layout::maintenance::INPUTS_CARD);
+        card(1, layout::maintenance::OUTPUTS_CARD);
+        label("Inputs", layout::maintenance::LABEL_INPUTS, true);
+        label("Outputs", layout::maintenance::LABEL_OUTPUTS, true);
+        for (unsigned i{ 0 }; i < AXIS_COUNT; ++i) {
+            std::array<char, INPUT_LABEL_BYTES> t{};
+            const auto& a{ s.motor(i) };
+            format(t, "M{} reference", i + 1);
+            lamp(layout::maintenance::REFERENCE_LAMPS[i], lamp_color(usable, a.reference));
+            label(t.data(), layout::maintenance::REFERENCE_LABELS[i]);
+            value(reported(usable, a.reference ? "ACTIVE" : "Released"),
+                  layout::maintenance::REFERENCE_VALUES[i]);
+            m_labels[m_labelCount - 1].setColor(usable && a.reference ? theme::GREEN : theme::MUTED);
+            format(t, "Driver alarm: {}", reported(usable, a.fault ? "ACTIVE" : "clear", "unknown"));
+            label(t.data(), layout::maintenance::ALARM_LABELS[i]);
+            m_labels[m_labelCount - 1].setColor(a.fault ? theme::RED : theme::MUTED);
+        }
+        lamp(layout::maintenance::ENABLE_LAMP, lamp_color(usable, s.enabled));
+        label("Enable command", layout::maintenance::LABEL_ENABLE_COMMAND);
+        value(reported(usable, s.enabled ? "ON" : "OFF"),
+              layout::maintenance::VALUE_USABLE_UNKNOWN_S_ENABLED_ON_OFF);
+        m_labels[m_labelCount - 1].setColor(usable && s.enabled ? theme::GREEN : theme::MUTED);
+    }
+
+    void View::ioDriversPage()
+    {
+        const auto& s{ m_model.state };
+        const bool usable{ s.connected && s.fresh && !s.failed };
+        Table::Data d{};
+        d.columns = DRIVER_COLUMNS;
+        d.count = AXIS_COUNT;
+        text(d.heading.name, "Motor / driver");
+        text(d.heading.values[0], "Ready");
+        text(d.heading.values[1], "Fault");
+        text(d.heading.values[2], "Feedback");
+        for (unsigned i{ 0 }; i < AXIS_COUNT; ++i) {
+            auto& r{ d.rows[i] };
+            const auto& a{ s.motor(i) };
+            format(r.name, "M{} {}", i + 1, a.driver.data());
+            text(r.values[0], reported(usable, a.ready ? "Yes" : "No"));
+            text(r.values[1], reported(usable, a.fault ? "ACTIVE" : "Clear"));
+            text(r.values[2], reported(usable && a.valid, a.encoder ? "Encoder" : "INDEX", "Invalid"));
+            r.color = a.fault ? theme::RED : theme::TEXT;
+        }
+        layout::position(m_table, layout::maintenance::DRIVER_TABLE);
+        m_table.data(d);
+        m_table.setVisible(true);
+        for (unsigned i{ 0 }; i < AXIS_COUNT; ++i) {
+            std::array<char, DRIVER_BUTTON_BYTES> t{};
+            format(t, "M{} details", i + 1);
+            control(Driver0 + i,
+                    t.data(),
+                    layout::maintenance::DRIVER_BUTTONS[i],
+                    true,
+                    m_model.driver_detail == i);
+        }
+        const auto& a{ s.motor(m_model.driver_detail) };
+        std::array<char, text_capacity::LABEL> t{};
+        format(t,
+               "Fault code {}  ·  Warning {}  ·  {}",
+               a.fault_code,
+               reported(usable, a.warning ? "active" : "clear", "unknown"),
+               a.encoder ? "Encoder feedback" : "Driver-phase estimate");
+        label(t.data(), layout::maintenance::LABEL_T);
+    }
+
+    void View::generalSettingsPage()
+    {
+        label("Screen brightness", layout::settings::LABEL_SCREEN_BRIGHTNESS, true);
+        std::array<char, text_capacity::SHORT> t{};
+        format(t, "{:.0f} %", m_model.values[fields::BRIGHTNESS]);
+        value(t.data(), layout::settings::BRIGHTNESS_VALUE, true);
+        layout::position(m_brightness, layout::settings::BRIGHTNESS_TRACK);
+        m_brightness.value(unsigned(m_model.values[fields::BRIGHTNESS]));
+        m_brightness.setVisible(true);
+        label("Display controls are local to the UI controller.", layout::settings::BRIGHTNESS_HELP);
+        control(Presets, "Position presets", layout::settings::CONTROL_PRESETS);
+    }
+
+    void View::robotSettingsPage()
+    {
+        label(m_model.state.configured ? "Configuration · read only" : "Physical calibration required",
+              layout::settings::CONFIGURATION_STATE,
+              true);
+        std::array<char, text_capacity::LABEL> t{};
+        format(t, "Identity  {}", m_model.state.configuration);
+        label(t.data(), layout::settings::CONFIGURATION_ID);
+        Table::Data d{};
+        d.count = AXIS_COUNT;
+        d.columns = DRIVER_COLUMNS;
+        text(d.heading.name, "Axis / units");
+        text(d.heading.values[0], "Minimum");
+        text(d.heading.values[1], "Maximum");
+        text(d.heading.values[2], "Speed /s");
+        for (unsigned i{ 0 }; i < AXIS_COUNT; ++i) {
+            auto& r{ d.rows[i] };
+            const auto& a{ m_model.state.axes[i] };
+            format(r.name, "Axis {} [{}]", i + 1, i == 2 ? "mm" : "°");
+            const std::array values{ a.minimum, a.maximum, a.max_speed };
+            for (unsigned j{ 0 }; j < values.size(); ++j) {
+                if (m_model.state.configured) {
+                    format(r.values[j], "{:.2f}", values[j]);
+                }
+                else {
+                    text(r.values[j], "--");
+                }
+            }
+        }
+        layout::position(m_table, layout::settings::CONFIGURATION_TABLE);
+        m_table.data(d);
+        m_table.setVisible(true);
+        control(Motors, "Motor defaults", layout::settings::CONTROL_MOTORS);
+        label("Changes require an idle motor.", layout::settings::LABEL_CHANGES_REQUIRE_AN_IDLE_MOTOR);
+    }
+
+    void View::diagnosticsPage()
+    {
+        control(DiagnosticUI, "UI", layout::settings::CONTROL_DIAGNOSTIC_UI, true, !m_model.diagnostic_io);
+        control(DiagnosticIO,
+                "IO",
+                layout::settings::CONTROL_DIAGNOSTIC_IO,
+                m_model.diagnostic_tab != 2,
+                m_model.diagnostic_io);
+        control(DiagnosticHeap,
+                "Heap",
+                layout::settings::CONTROL_DIAGNOSTIC_HEAP,
+                true,
+                m_model.diagnostic_tab == 0);
+        control(DiagnosticStacks,
+                "Stacks",
+                layout::settings::CONTROL_DIAGNOSTIC_STACKS,
+                true,
+                m_model.diagnostic_tab == 1);
+        control(DiagnosticGraphics,
+                "Graphics",
+                layout::settings::CONTROL_DIAGNOSTIC_GRAPHICS,
+                true,
+                m_model.diagnostic_tab == 2);
+        control(DiagnosticRefresh, "Refresh", layout::settings::CONTROL_DIAGNOSTIC_REFRESH);
+        if (m_model.diagnostic_tab == 2) {
+            graphicsDiagnosticsPage();
             return;
         }
         DiagnosticPage page{};
-        if (m_model.backend)
-            m_model.backend->diagnostics(m_model.diagnosticOffset, page);
-        const bool matching = page.io == m_model.diagnosticIO && page.stacks == (m_model.diagnosticTab == 1);
+        if (m_model.backend) {
+            m_model.backend->diagnostics(m_model.diagnostic_offset, page);
+        }
+        const bool matching{ page.io == m_model.diagnostic_io &&
+                             page.stacks == (m_model.diagnostic_tab == 1) };
         if (page.busy) {
-            label("Retrieving diagnostic snapshot…", 136, 248, 832, 40, true);
+            label("Retrieving diagnostic snapshot…",
+                  layout::settings::LABEL_RETRIEVING_DIAGNOSTIC_SNAPSHOT,
+                  true);
             return;
         }
         if (!page.available || !matching) {
-            label(page.error[0] ? page.error.data() : "No snapshot. Select Refresh.", 136, 248, 832, 72);
+            label(page.error[0] ? page.error.data() : "No snapshot. Select Refresh.",
+                  layout::settings::SNAPSHOT_ERROR);
             return;
         }
+        memoryDiagnosticTable(page);
+    }
+
+    void View::graphicsDiagnosticsPage()
+    {
+        Table::Data d{};
+        d.columns = 2;
+        text(d.heading.name, "Graphics");
+        text(d.heading.values[0], "Value");
+        constexpr std::array names{ "Presented frames", "LTDC underruns",     "DMA errors",
+                                    "3D images",        "Render [us]",        "Replaced requests",
+                                    "Frame age [us]",   "Maximum render [us]" };
+        for (unsigned i{ m_model.diagnostic_offset }; i < names.size() && d.count < d.rows.size(); ++i) {
+            auto& row{ d.rows[d.count++] };
+            text(row.name, names[i]);
+            number(row.values[0], m_model.graphics[i]);
+        }
+        layout::position(m_table, layout::settings::DIAGNOSTIC_TABLE);
+        m_table.data(d);
+        m_table.setVisible(true);
+        label("UI graphics · live counters", layout::settings::LABEL_UI_GRAPHICS_LIVE_COUNTERS);
+        control(DiagnosticPrevious, "Previous", layout::settings::CONTROL_DIAGNOSTIC_PREVIOUS);
+        control(DiagnosticNext,
+                "Next",
+                layout::settings::CONTROL_DIAGNOSTIC_NEXT,
+                m_model.diagnostic_offset + d.count < names.size());
+    }
+
+    void View::memoryDiagnosticTable(const DiagnosticPage& page)
+    {
+        Table::Data d{};
+        d.columns = page.stacks ? STACK_COLUMNS : 2;
+        std::array<char, NOTE_CAPACITY> note{};
+        const auto* snapshot_name{ m_model.diagnostic_io ? "IO snapshot" : "UI snapshot" };
+        const auto* core_name{ page.io ? "IO" : "UI" };
         d.count = std::min<unsigned>(page.count, d.rows.size());
         text(d.heading.name, page.stacks ? "Thread" : "Metric");
         if (page.stacks) {
-            constexpr const char* heads[]{ "Prio", "Size [B]", "Now [B]", "Peak [B]", "Peak %" };
-            for (unsigned i = 0; i < 5; ++i)
+            constexpr std::array heads{ "Prio", "Size [B]", "Now [B]", "Peak [B]", "Peak %" };
+            for (unsigned i{ 0 }; i < heads.size(); ++i) {
                 text(d.heading.values[i], heads[i]);
+            }
         }
-        else
+        else {
             text(d.heading.values[0], "Value");
-        for (unsigned i = 0; i < d.count; ++i) {
-            auto& row = d.rows[i];
-            const auto& in = page.rows[i];
-            text(row.name, in.name.data());
-            for (unsigned j = 0; j < (page.stacks ? 4U : 1U); ++j)
-                number(row.values[j], in.values[j]);
-            if (page.stacks) {
-                if (in.values[1]) {
-                    row.percent = int(std::min<std::uint64_t>(100, in.values[3] * 100 / in.values[1]));
-                    std::snprintf(row.values[4].data(), row.values[4].size(), "%d %%", row.percent);
-                }
-                else
-                    text(row.values[4], "--");
-            }
-            else if ((m_model.diagnosticOffset + i == 2 || m_model.diagnosticOffset + i == 8) &&
-                     page.capacity) {
-                row.percent = int(std::min<std::uint64_t>(100, page.used * 100 / page.capacity));
-            }
-            else if (m_model.diagnosticOffset + i == 0 && page.shared)
-                text(row.values[0], "Dynamic");
         }
-        m_table.setPosition(124, 220, 872, 238);
+        populate_memory_rows(d, page, m_model.diagnostic_offset);
+        layout::position(m_table, layout::settings::DIAGNOSTIC_TABLE);
         m_table.data(d);
         m_table.setVisible(true);
-        std::snprintf(note,
-                      sizeof(note),
-                      "%s · %.1f s old · %u rows%s",
-                      page.shared            ? "Shared Linux runtime"
-                      : m_model.diagnosticIO ? "IO snapshot"
-                                             : "UI snapshot",
-                      page.ageMs / 1000.,
-                      page.total,
-                      page.omitted ? " (truncated)" : "");
-        if (page.stacks && page.omitted)
-            std::snprintf(note,
-                          sizeof(note),
-                          "%s · %.1f s · %u rows, %u omitted",
-                          page.shared ? "Shared Linux runtime"
-                          : page.io   ? "IO"
-                                      : "UI",
-                          page.ageMs / 1000.,
-                          page.total,
-                          page.omitted);
-        if (!page.stacks)
-            std::snprintf(note,
-                          sizeof(note),
-                          "%s · %s · %.1f s old",
-                          page.allocator == 0   ? "newlib"
-                          : page.allocator == 1 ? "glibc"
-                                                : "Unknown allocator",
-                          page.shared ? "Shared Linux runtime"
-                          : page.io   ? "IO"
-                                      : "UI",
-                          page.ageMs / 1000.);
-        label(note, 136, 472, 544, 44);
-        control(DiagnosticPrevious, "Previous", 700, 464, 140, true);
-        control(DiagnosticNext, "Next", 852, 464, 144, m_model.diagnosticOffset + page.count < page.total);
+        format(note,
+               "{} · {:.1f} s old · {} rows{}",
+               page.shared ? "Shared Linux runtime" : snapshot_name,
+               static_cast<double>(page.age_ms) / MILLIS_PER_SECOND,
+               page.total,
+               page.omitted ? " (truncated)" : "");
+        if (page.stacks && page.omitted) {
+            format(note,
+                   "{} · {:.1f} s · {} rows, {} omitted",
+                   page.shared ? "Shared Linux runtime" : core_name,
+                   static_cast<double>(page.age_ms) / MILLIS_PER_SECOND,
+                   page.total,
+                   page.omitted);
+        }
+        if (!page.stacks) {
+            format(note,
+                   "{} · {} · {:.1f} s old",
+                   allocator_name(page.allocator),
+                   page.shared ? "Shared Linux runtime" : core_name,
+                   static_cast<double>(page.age_ms) / MILLIS_PER_SECOND);
+        }
+        label(note.data(), layout::settings::LABEL_NOTE);
+        control(DiagnosticPrevious, "Previous", layout::settings::CONTROL_DIAGNOSTIC_PREVIOUS, true);
+        control(DiagnosticNext,
+                "Next",
+                layout::settings::CONTROL_DIAGNOSTIC_NEXT,
+                m_model.diagnostic_offset + page.count < page.total);
     }
 }

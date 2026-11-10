@@ -20,8 +20,9 @@ namespace
     {
         const auto deadline{ std::chrono::steady_clock::now() + 2s };
         while (!ready()) {
-            if (std::chrono::steady_clock::now() >= deadline)
+            if (std::chrono::steady_clock::now() >= deadline) {
                 return false;
+            }
             std::this_thread::sleep_for(1ms);
         }
         return true;
@@ -29,8 +30,9 @@ namespace
 
     void observe(void*, const hal::display::State& state, std::uint32_t)
     {
-        if (!state.vsyncs || inputSent.exchange(true))
+        if (!state.vsyncs || inputSent.exchange(true)) {
             return;
+        }
         SDL_Event event{};
         event.type = SDL_MOUSEBUTTONDOWN;
         event.button.button = SDL_BUTTON_LEFT;
@@ -44,7 +46,7 @@ namespace
         EXPECT_TRUE(display::acquire(clock));
         EXPECT_TRUE(until([] { return display::snapshot().vsyncs == 1; }));
         EXPECT_TRUE(until([] { return display::pointer().down; }));
-        EXPECT_EQ(display::pointer().timeNs, simulatedTime.load());
+        EXPECT_EQ(display::pointer().time_ns, simulatedTime.load());
 
         // Wall time and SDL input continue while the simulated peripheral stops.
         // No VSYNC/presentation is allowed until the same peripheral clock advances.
@@ -80,5 +82,5 @@ namespace
 TEST(SimulatedDisplay, RefreshAndPointerUsePeripheralClock)
 {
     EXPECT_EQ(display::run(controller, observe), 0);
-    EXPECT_TRUE(display::cleanupComplete());
+    EXPECT_TRUE(display::cleanup_complete());
 }

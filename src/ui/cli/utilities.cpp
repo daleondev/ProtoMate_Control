@@ -106,7 +106,7 @@ namespace ui::cli::utilities
             {
                 const auto controller{ args.require("controller") };
                 if (controller == "ui") {
-                    return diagnostics::collectMemory(query);
+                    return diagnostics::collect_memory(query);
                 }
                 if (controller != "io") {
                     return std::unexpected(CallbackError{ .message = "controller must be 'ui' or 'io'" });
@@ -123,7 +123,7 @@ namespace ui::cli::utilities
                     result->stack.total < result->stack.count) {
                     return std::unexpected(CallbackError{ .message = "IO diagnostics: invalid response" });
                 }
-                return std::move(*result);
+                return *result;
             }
 
             std::string_view thread_name(const ThreadInfo& info)
@@ -547,7 +547,7 @@ namespace ui::cli::utilities
             io.output << "Resetting both controllers; motion is aborted, references cleared, and motors "
                          "remain disabled after restart.\n";
             io.output.flush();
-            const auto result = hal::reset_system();
+            const auto result{ hal::reset_system() };
             if (!result) {
                 return callback_failure(
                   "Hardware reset is unavailable in Linux. Close and restart the simulation.");
@@ -681,9 +681,9 @@ namespace ui::cli::utilities
         }
     }
 
-    void setup(Parser& parser, pnm::msg::Bus& bus, std::stop_token stop)
+    void setup(Parser& parser, pnm::msg::Bus& bus, const std::stop_token& stop)
     {
-        std::call_once(parser.m_utilitiesRegistration, [&parser, &bus, stop] {
+        parser.registerModule(Parser::Module::Utilities, [&parser, &bus, stop] {
             const commands::Context context{ .parser = &parser,
                                              .memory = bus.service<^^icc::Services::io_memory>(),
                                              .stop = stop };

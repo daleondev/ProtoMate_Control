@@ -125,9 +125,16 @@ namespace runtime
             // Retain the exact failure for debugger inspection without logging or
             // allocating on an already resource-constrained error path. A later
             // successful creation deliberately does not erase this evidence.
+            // Fixed representation is part of the existing protocol/diagnostic contract.
+            // NOLINTNEXTLINE(performance-enum-size)
             enum class ThreadCreationStage : std::uint32_t
             {
-                None, ControlAllocation, StackAllocation, LifecycleMutex, CompletionSemaphore, ThreadX
+                None,
+                ControlAllocation,
+                StackAllocation,
+                LifecycleMutex,
+                CompletionSemaphore,
+                ThreadX
             };
             struct ThreadCreationFailure
             {
@@ -139,16 +146,18 @@ namespace runtime
             };
             volatile ThreadCreationFailure thread_creation_failure{};
 
-            void record_thread_creation_failure(ThreadCreationStage stage, UINT status,
-                                                std::size_t requested_bytes, std::string_view name) noexcept
+            void record_thread_creation_failure(ThreadCreationStage stage,
+                                                UINT status,
+                                                std::size_t requested_bytes,
+                                                std::string_view name) noexcept
             {
                 const ULONG posture{ tx_interrupt_control(TX_INT_DISABLE) };
                 thread_creation_failure.stage = stage;
                 thread_creation_failure.status = status;
                 thread_creation_failure.requested_bytes = requested_bytes;
-                for (std::size_t i = 0; i < sizeof(thread_creation_failure.name); ++i) {
-                    thread_creation_failure.name[i] = i < name.size() && i + 1 < sizeof(thread_creation_failure.name)
-                                                       ? name[i] : '\0';
+                for (std::size_t i{ 0 }; i < sizeof(thread_creation_failure.name); ++i) {
+                    thread_creation_failure.name[i] =
+                      i < name.size() && i + 1 < sizeof(thread_creation_failure.name) ? name[i] : '\0';
                 }
                 thread_creation_failure.count = thread_creation_failure.count + 1U;
                 static_cast<void>(tx_interrupt_control(posture));
@@ -839,8 +848,8 @@ namespace runtime
 
             auto* control{ new (std::nothrow) ThreadControl{} };
             if (control == nullptr) {
-                record_thread_creation_failure(ThreadCreationStage::ControlAllocation, 0U,
-                                               sizeof(ThreadControl), attributes.name);
+                record_thread_creation_failure(
+                  ThreadCreationStage::ControlAllocation, 0U, sizeof(ThreadControl), attributes.name);
                 return EAGAIN;
             }
             control->owns_stack = attributes.stack_storage == nullptr;
@@ -849,8 +858,8 @@ namespace runtime
                 ? ::operator new[](static_cast<std::size_t>(normalized_stack_size), std::nothrow)
                 : attributes.stack_storage;
             if (control->stack == nullptr) {
-                record_thread_creation_failure(ThreadCreationStage::StackAllocation, 0U,
-                                               normalized_stack_size, attributes.name);
+                record_thread_creation_failure(
+                  ThreadCreationStage::StackAllocation, 0U, normalized_stack_size, attributes.name);
                 delete control;
                 return EAGAIN;
             }
@@ -876,10 +885,11 @@ namespace runtime
                                                 converted_name.data()));
             }
 
-            const UINT mutex_status{ tx_mutex_create(&control->lifecycle_mutex, lifecycle_mutex_name, TX_INHERIT) };
+            const UINT mutex_status{ tx_mutex_create(
+              &control->lifecycle_mutex, lifecycle_mutex_name, TX_INHERIT) };
             if (mutex_status != TX_SUCCESS) {
-                record_thread_creation_failure(ThreadCreationStage::LifecycleMutex, mutex_status,
-                                               sizeof(TX_MUTEX), attributes.name);
+                record_thread_creation_failure(
+                  ThreadCreationStage::LifecycleMutex, mutex_status, sizeof(TX_MUTEX), attributes.name);
                 if (control->owns_stack) {
                     ::operator delete[](control->stack);
                 }
@@ -888,8 +898,10 @@ namespace runtime
             }
             const UINT semaphore_status{ tx_semaphore_create(&control->completion, completion_name, 0U) };
             if (semaphore_status != TX_SUCCESS) {
-                record_thread_creation_failure(ThreadCreationStage::CompletionSemaphore, semaphore_status,
-                                               sizeof(TX_SEMAPHORE), attributes.name);
+                record_thread_creation_failure(ThreadCreationStage::CompletionSemaphore,
+                                               semaphore_status,
+                                               sizeof(TX_SEMAPHORE),
+                                               attributes.name);
                 static_cast<void>(tx_mutex_delete(&control->lifecycle_mutex));
                 if (control->owns_stack) {
                     ::operator delete[](control->stack);
@@ -911,8 +923,8 @@ namespace runtime
                                                 TX_NO_TIME_SLICE,
                                                 TX_AUTO_START) };
             if (status != TX_SUCCESS) {
-                record_thread_creation_failure(ThreadCreationStage::ThreadX, status,
-                                               normalized_stack_size, attributes.name);
+                record_thread_creation_failure(
+                  ThreadCreationStage::ThreadX, status, normalized_stack_size, attributes.name);
                 unregister_thread(control);
                 static_cast<void>(tx_semaphore_delete(&control->completion));
                 static_cast<void>(tx_mutex_delete(&control->lifecycle_mutex));
@@ -1004,7 +1016,8 @@ namespace runtime
         int thread_yield() noexcept
         {
 #if defined(GIGA_MOTION_BENCH)
-            hal::util::intercoreTrace(hal::util::InterCoreStage::Yield,
+            hal::util::intercore_trace(
+              hal::util::InterCoreStage::Yield,
               static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(__builtin_return_address(0))));
 #endif
             if (require_thread_context() != 0) {

@@ -24,7 +24,8 @@ namespace ui
             app::State combined{ app::State::Starting };
             bool io_fresh{};
             icc::ConnectionStatus connection{};
-            std::array<char, 96> failure{};
+            static constexpr std::size_t FAILURE_BYTES{ 96 };
+            std::array<char, FAILURE_BYTES> failure{};
         };
 
         SystemState(std::shared_ptr<hal::device::ILed> red, std::shared_ptr<hal::device::ILed> green);

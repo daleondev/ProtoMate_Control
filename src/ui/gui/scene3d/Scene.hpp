@@ -7,7 +7,7 @@
 namespace ui::gui::scene3d
 {
     inline constexpr unsigned WIDTH{ 640 }, HEIGHT{ 400 }, MAX_NODES{ 32 };
-    inline constexpr std::size_t PIXELS{ WIDTH * HEIGHT };
+    inline constexpr std::size_t PIXELS{ static_cast<std::size_t>(WIDTH) * HEIGHT };
     struct Vec3
     {
         float x{}, y{}, z{};
@@ -34,12 +34,16 @@ namespace ui::gui::scene3d
         unsigned triangles{};
         Bounds bounds{};
     };
+    inline constexpr std::uint32_t DEFAULT_MATERIAL_COLOR{ 0x54dbc3 };
+    inline constexpr float DEFAULT_AMBIENT{ .25f }, DEFAULT_DIFFUSE{ .7f };
+    inline constexpr float DEFAULT_YAW{ .55f }, DEFAULT_PITCH{ .45f }, DEFAULT_DISTANCE{ 7.5F };
+    inline constexpr float DEFAULT_FIELD_OF_VIEW{ 40 }, DEFAULT_NEAR_PLANE{ .1f }, DEFAULT_FAR_PLANE{ 50 };
     struct Material
     {
-        std::uint32_t color{ 0x54dbc3 };
-        float ambient{ .25f }, diffuse{ .7f };
+        std::uint32_t color{ DEFAULT_MATERIAL_COLOR };
+        float ambient{ DEFAULT_AMBIENT }, diffuse{ DEFAULT_DIFFUSE };
         // Opt in to OBJ/MTL colours without a separate node for each material.
-        bool useMeshMaterial{ false };
+        bool use_mesh_material{ false };
     };
     struct Node
     {
@@ -51,20 +55,22 @@ namespace ui::gui::scene3d
     {
         std::array<Node, MAX_NODES> nodes{};
         unsigned count{};
-        bool groundGrid{};
+        bool ground_grid{};
         bool valid() const noexcept;
     };
     struct Camera
     {
         Vec3 target{};
-        float yaw{ .55f }, pitch{ .45f }, distance{ 7.5f }; // radians; right-handed Z-up
-        float fieldOfView{ 40 }, nearPlane{ .1f }, farPlane{ 50 };
+        float yaw{ DEFAULT_YAW }, pitch{ DEFAULT_PITCH },
+          distance{ DEFAULT_DISTANCE }; // radians; right-handed Z-up
+        float field_of_view{ DEFAULT_FIELD_OF_VIEW }, near_plane{ DEFAULT_NEAR_PLANE },
+          far_plane{ DEFAULT_FAR_PLANE };
     };
     struct SceneSnapshot
     {
         std::array<Transform, MAX_NODES> transforms{};
         Camera camera{};
-        std::uint64_t revision{}, sourceTimeUs{};
+        std::uint64_t revision{}, source_time_us{};
         bool valid(const Scene& scene) const noexcept;
     };
     struct Anchor
@@ -83,10 +89,14 @@ namespace ui::gui::scene3d
     {
         const Scene* scene{};
         SceneSnapshot snapshot{};
-        unsigned maximumFps{ LIVE_MAX_FPS };
+        unsigned maximum_fps{ LIVE_MAX_FPS };
         std::array<Anchor, 3> anchors{};
     };
     Quaternion rotation(Vec3 axis, float radians) noexcept;
-    const Scene& benchmarkScene(unsigned triangles) noexcept;
-    SceneSnapshot benchmarkSnapshot(float phase, std::uint64_t revision, std::uint64_t timeUs) noexcept;
+    const Scene& benchmark_scene(unsigned triangles) noexcept;
+    struct SnapshotStamp
+    {
+        std::uint64_t revision{}, time_us{};
+    };
+    SceneSnapshot benchmark_snapshot(float phase, SnapshotStamp stamp) noexcept;
 }

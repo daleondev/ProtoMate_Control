@@ -127,9 +127,12 @@ namespace runtime
         [[nodiscard]] std::uint64_t steady_ticks() noexcept;
         void initialize_steady_clock() noexcept;
         [[nodiscard]] std::int64_t ticks_to_nanoseconds(std::uint64_t ticks) noexcept;
-        [[nodiscard]] std::uint64_t extend_tick_counter(std::uint64_t& epoch,
-                                                        std::uint32_t& previous,
-                                                        std::uint32_t current) noexcept;
+        struct TickExtension
+        {
+            std::uint64_t epoch{};
+            std::uint32_t previous{};
+        };
+        [[nodiscard]] std::uint64_t extend_tick_counter(TickExtension& state, std::uint32_t current) noexcept;
         [[nodiscard]] std::int64_t steady_time_nanoseconds() noexcept;
         [[nodiscard]] std::int64_t system_time_nanoseconds() noexcept;
         using threadx::duration_to_ticks;

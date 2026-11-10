@@ -3,14 +3,19 @@
 #include <chrono>
 namespace hal::device
 {
+    namespace
+    {
+        constexpr unsigned MAX_BRIGHTNESS{ 100 };
+        constexpr auto SERVICE_PERIOD{ std::chrono::milliseconds{ 10 } };
+    }
     SmartwinDisplay::SmartwinDisplay(std::shared_ptr<IRgbOutput> output,
                                      std::shared_ptr<IDigitalOutput> standby,
                                      std::shared_ptr<IDigitalOutput> reset,
-                                     std::shared_ptr<IDigitalInput> powerReady)
+                                     std::shared_ptr<IDigitalInput> power_ready)
       : m_output{ std::move(output) }
       , m_standby{ std::move(standby) }
       , m_reset{ std::move(reset) }
-      , m_powerReady{ std::move(powerReady) }
+      , m_powerReady{ std::move(power_ready) }
     {
     }
     SmartwinDisplay::~SmartwinDisplay() { shutdown(); }
@@ -45,7 +50,7 @@ namespace hal::device
     }
     auto SmartwinDisplay::backlight(unsigned percent) -> util::Result<>
     {
-        if (percent > 100) {
+        if (percent > MAX_BRIGHTNESS) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
         m_brightness = percent;
@@ -53,7 +58,7 @@ namespace hal::device
     }
     auto SmartwinDisplay::servicePeriod() const noexcept -> std::chrono::milliseconds
     {
-        return std::min(m_output->servicePeriod(), std::chrono::milliseconds{ 10 });
+        return std::min(m_output->servicePeriod(), SERVICE_PERIOD);
     }
     void SmartwinDisplay::service() noexcept
     {

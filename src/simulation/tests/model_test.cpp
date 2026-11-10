@@ -21,8 +21,9 @@ namespace
         Directory()
         {
             std::snprintf(name.data(), name.size(), "/tmp/protomate-model-test-XXXXXX");
-            if (!mkdtemp(name.data()))
+            if (!mkdtemp(name.data())) {
                 throw std::runtime_error{ "temporary model directory" };
+            }
         }
         ~Directory()
         {
@@ -55,8 +56,9 @@ TEST(SimulationModels, EmbeddedCadBoundsMaterialsAndNormals)
         bool colored{};
         for (const auto& geometry : part.geometries) {
             colored |= std::abs(geometry.color.r - geometry.color.b) > .1F;
-            for (const auto& vertex : geometry.vertices)
+            for (const auto& vertex : geometry.vertices) {
                 ASSERT_TRUE((std::abs(glm::length(vertex.normal) - 1) < .001F)) << "unit normals";
+            }
         }
         ASSERT_TRUE((colored)) << "CAD material colors preserved";
     }
@@ -67,7 +69,7 @@ TEST(SimulationModels, ArticulationAndSensorRegistration)
     const Profile profile{};
     for (const auto q : std::array<std::array<double, 3>, 4>{
            { { 0, 0, 0 }, { .4, -.8, 73 }, { 7, -9, -15 }, { -12, 14, 190 } } }) {
-        const auto transforms{ robotModelTransforms(profile, q) };
+        const auto transforms{ robot_model_transforms(profile, q) };
         const float a{ static_cast<float>(q[0]) }, b{ static_cast<float>(q[0] + q[1]) };
         const glm::vec3 elbow{ 205 * std::cos(a), 205 * std::sin(a), 369.9F };
         ASSERT_TRUE((near(glm::vec3{ transforms[0] * glm::vec4{ 10, 20, 30, 1 } }, { 10, 20, 30 })))
@@ -82,7 +84,7 @@ TEST(SimulationModels, ArticulationAndSensorRegistration)
         ASSERT_TRUE((near(glm::vec3{ transforms[3] * glm::vec4{ 0, 0, -280, 1 } }, expected)))
           << "actual exported cutter tip matches FK for all joints/multiple turns";
     }
-    const auto rest{ robotModelTransforms(profile, { 0, 0, 0 }) };
+    const auto rest{ robot_model_transforms(profile, { 0, 0, 0 }) };
     ASSERT_TRUE((near(glm::vec3{ rest[3] * glm::vec4{ 0, 0, 0, 1 } }, { 563.4F, 0, 308.9F })))
       << "export rest pose reproduces STEP carriage datum";
     // Independent STEP plunger centers: each sensor follows its proper parent link.
@@ -141,7 +143,7 @@ TEST(SimulationModels, RejectsInvalidInputs)
       std::exception)
       << "corrupt model rejection";
     EXPECT_THROW(
-      ([&] { robotModelTransforms(profile, { 0, std::numeric_limits<double>::quiet_NaN(), 0 }); })(),
+      ([&] { robot_model_transforms(profile, { 0, std::numeric_limits<double>::quiet_NaN(), 0 }); })(),
       std::exception)
       << "invalid pose rejection";
 }
@@ -152,7 +154,7 @@ TEST(SimulationModels, ExternalOverrideMatchesEmbeddedCad)
     Directory directory{};
     EXPECT_THROW(([&] { RobotModels::load(directory.name.data()); })(), std::exception)
       << "no fallback for missing requested CAD files";
-    const auto embedded{ assets::robotModels() };
+    const auto embedded{ assets::robot_models() };
     constexpr std::array names{ "base_link", "link_1", "link_2", "link_3" };
     for (std::size_t i{}; i < names.size(); ++i) {
         const auto dir{ std::filesystem::path{ directory.name.data() } / names[i] };
@@ -165,10 +167,11 @@ TEST(SimulationModels, ExternalOverrideMatchesEmbeddedCad)
     }
     const auto external{ RobotModels::load(directory.name.data()) };
     ASSERT_TRUE((external.external)) << "explicit external source";
-    for (std::size_t i{}; i < names.size(); ++i)
+    for (std::size_t i{}; i < names.size(); ++i) {
         ASSERT_TRUE((near(external.parts[i].minimum, models.parts[i].minimum) &&
                      near(external.parts[i].maximum, models.parts[i].maximum)))
           << "external/embedded DAE parity; collision STLs ignored";
+    }
 }
 
 TEST(SimulationModels, ObjSidecarColorAndAlpha)

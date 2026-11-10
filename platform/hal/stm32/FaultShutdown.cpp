@@ -1,3 +1,5 @@
+// CMSIS/HAL register macros use fixed MMIO addresses and C pointer casts.
+// NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 // CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
 // The line-specific exceptions below preserve the vendor register interface.
 #include "FaultShutdown.hpp"
@@ -38,7 +40,7 @@ namespace hal::stm32
         }
         // A pending step DMA transfer can only write a CCR or clear CR1; it
         // cannot restart this timer. Do not wait for DMA or call driver stop().
-        BOARD_MOTOR_GPIO_CLOCKS();
+        board_motor_gpio_clocks();
         __DSB();
         force_output(BOARD_ENABLE_PORT, BOARD_ENABLE_PIN, true);
         std::uint32_t pins{ BOARD_STEP_PINS };
@@ -50,3 +52,5 @@ namespace hal::stm32
         __DSB();
     }
 }
+
+// NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)

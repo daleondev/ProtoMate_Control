@@ -6,6 +6,10 @@
 namespace io::motion
 {
     namespace tr = ::motion::trajectory;
+    namespace
+    {
+        constexpr std::uint8_t ALL_AXES{ 0b111 };
+    }
     TrajectorySession::TrajectorySession(ITrajectoryExecutor& executor, std::uint64_t boot)
       : m_executor{ &executor }
       , m_boot{ boot }
@@ -45,8 +49,48 @@ namespace io::motion
     }
     tr::Packet TrajectorySession::request(const tr::Packet& packet)
     {
-        const auto decoded{ tr::decodeRequest(packet) };
+        const auto decoded{ tr::decode_request(packet) };
         return tr::encode(decoded ? request(*decoded) : reply(decoded.error()));
+    }
+    tr::Reply TrajectorySession::acquire(const tr::Request& r, const tr::Reply& current)
+    {
+        if (m_session || !r.configuration) {
+            return reply(tr::Error::Busy);
+        }
+        if (!current.capabilities.coordinated_execution) {
+            return reply(tr::Error::Unsupported);
+        }
+        if (!current.enabled || current.state != tr::State::Ready || !current.counts_exact) {
+            return reply(tr::Error::Fault);
+        }
+        if (current.referenced != ALL_AXES) {
+            return reply(tr::Error::Unreferenced);
+        }
+        if (current.position != r.expected_position) {
+            return reply(tr::Error::Stale);
+        }
+        const auto session{ m_nextSession++ };
+        const auto error{ m_executor->acquire(session) };
+        if (error != tr::Error::None) {
+            return reply(error);
+        }
+        m_session = session;
+        m_generation = r.generation;
+        m_configuration = r.configuration;
+        m_anchor = current.position;
+        m_revision = 0;
+        m_chunkCount = 0;
+        for (auto& bank : m_banks) {
+            if (bank.use_count() != 1) {
+                invalidate();
+                m_executor->release(session);
+                return reply(tr::Error::Busy);
+            }
+            bank->continuation = bank->stopping = 0;
+            bank->continuation_final = bank->stopping_final = false;
+            bank->continuation_ticks = bank->total_ticks = bank->revision = 0;
+        }
+        return reply();
     }
     tr::Reply TrajectorySession::request(const tr::Request& r)
     {
@@ -69,44 +113,9 @@ namespace io::motion
             return reply(tr::Error::Stale);
         }
         if (r.operation == tr::Operation::Acquire) {
-            if (m_session || !r.configuration) {
-                return reply(tr::Error::Busy);
-            }
-            if (!current.capabilities.coordinated_execution) {
-                return reply(tr::Error::Unsupported);
-            }
-            if (!current.enabled || current.state != tr::State::Ready || !current.counts_exact) {
-                return reply(tr::Error::Fault);
-            }
-            if (current.referenced != 7) {
-                return reply(tr::Error::Unreferenced);
-            }
-            if (current.position != r.expected_position) {
-                return reply(tr::Error::Stale);
-            }
-            const auto session{ m_nextSession++ };
-            const auto error{ m_executor->acquire(session) };
-            if (error != tr::Error::None) {
-                return reply(error);
-            }
-            m_session = session;
-            m_generation = r.generation;
-            m_configuration = r.configuration;
-            m_anchor = current.position;
-            m_revision = 0;
-            m_chunkCount = 0;
-            for (auto& bank : m_banks) {
-                if (bank.use_count() != 1) {
-                    invalidate();
-                    m_executor->release(session);
-                    return reply(tr::Error::Busy);
-                }
-                bank->continuation = bank->stopping = 0;
-                bank->continuation_final = bank->stopping_final = false;
-                bank->continuation_ticks = bank->total_ticks = bank->revision = 0;
-            }
-            return reply();
+            return acquire(r, current);
         }
+
         if (!m_session || r.session != m_session || r.configuration != m_configuration ||
             r.generation != m_generation) {
             return reply(tr::Error::Stale);
@@ -126,6 +135,54 @@ namespace io::motion
         }
         return reply(m_executor->control(r.operation));
     }
+    std::expected<std::uint64_t, tr::Error> TrajectorySession::validateChunk(
+      const tr::Request& r,
+      const tr::Capabilities& hardware) const
+    {
+        const auto& w{ *m_banks[m_staging] };
+        const auto first{ std::size_t(w.continuation) + w.stopping };
+        std::uint64_t added_ticks{ 0 };
+        // Validate the complete chunk before making any of it visible.
+        for (unsigned i{ 0 }; i < r.count; ++i) {
+            const auto& segment{ r.segments[i] };
+            const auto error{ tr::validate(segment, hardware.limits) };
+            if (error != tr::Error::None) {
+                return std::unexpected(error);
+            }
+            const tr::Segment* preceding{};
+            if (i) {
+                preceding = &r.segments[i - 1];
+            }
+            else if (first) {
+                preceding = &w.segments[first - 1];
+            }
+            if (preceding && !tr::continuous(preceding->at(1), segment.at(0))) {
+                return std::unexpected(tr::Error::Discontinuity);
+            }
+            if (!preceding && m_revision == 0) {
+                tr::MotorStates anchor{};
+                for (unsigned j{ 0 }; j < anchor.size(); ++j) {
+                    anchor[j].position = static_cast<double>(m_anchor[j]);
+                }
+                if (!tr::continuous(anchor, segment.at(0))) {
+                    return std::unexpected(tr::Error::Discontinuity);
+                }
+            }
+            added_ticks += segment.ticks;
+        }
+        return added_ticks;
+    }
+    std::optional<tr::Error> TrajectorySession::repeatedChunk(const tr::Request& r, std::uint32_t crc) const
+    {
+        for (std::size_t i{ 0 }; i < m_chunkCount; ++i) {
+            const auto& c{ m_chunks[i] };
+            if (c.branch == r.branch && c.index == r.index) {
+                return c.count == r.count && c.crc == crc && c.final == r.final ? tr::Error::None
+                                                                                : tr::Error::Order;
+            }
+        }
+        return std::nullopt;
+    }
     tr::Error TrajectorySession::upload(const tr::Request& r)
     {
         if (!r.count || r.count > tr::UPLOAD_SEGMENTS || r.branch > tr::Branch::Stopping) {
@@ -138,13 +195,9 @@ namespace io::motion
             return tr::Error::Busy;
         }
         const auto packet{ tr::encode(r) };
-        const auto crc{ tr::checksum(std::span(packet.bytes).first(packet.size - 4)) };
-        for (std::size_t i{ 0 }; i < m_chunkCount; ++i) {
-            const auto& c{ m_chunks[i] };
-            if (c.branch == r.branch && c.index == r.index) {
-                return c.count == r.count && c.crc == crc && c.final == r.final ? tr::Error::None
-                                                                                : tr::Error::Order;
-            }
+        const auto crc{ tr::checksum(std::span(packet.bytes).first(packet.size - sizeof(std::uint32_t))) };
+        if (const auto repeated{ repeatedChunk(r, crc) }) {
+            return *repeated;
         }
         auto& w{ *m_banks[m_staging] };
         const bool stopping{ r.branch == tr::Branch::Stopping };
@@ -160,33 +213,15 @@ namespace io::motion
             return tr::Error::Capacity;
         }
         const auto hardware{ m_executor->snapshot().capabilities };
-        std::uint64_t addedTicks{ 0 };
-        // Validate the complete chunk before making any of it visible.
-        for (unsigned i{ 0 }; i < r.count; ++i) {
-            const auto& segment{ r.segments[i] };
-            const auto error{ tr::validate(segment, hardware.limits) };
-            if (error != tr::Error::None) {
-                return error;
-            }
-            const tr::Segment* preceding{ i ? &r.segments[i - 1] : first ? &w.segments[first - 1] : nullptr };
-            if (preceding && !tr::continuous(preceding->at(1), segment.at(0))) {
-                return tr::Error::Discontinuity;
-            }
-            if (!preceding && m_revision == 0) {
-                tr::MotorStates anchor{};
-                for (unsigned j{ 0 }; j < 3; ++j) {
-                    anchor[j].position = static_cast<double>(m_anchor[j]);
-                }
-                if (!tr::continuous(anchor, segment.at(0))) {
-                    return tr::Error::Discontinuity;
-                }
-            }
-            addedTicks += segment.ticks;
+        const auto validated_ticks{ validateChunk(r, hardware) };
+        if (!validated_ticks) {
+            return validated_ticks.error();
         }
-        if (!stopping && w.continuation_ticks + addedTicks > tr::CHECKPOINT_TICKS) {
+        const auto added_ticks{ *validated_ticks };
+        if (!stopping && w.continuation_ticks + added_ticks > tr::CHECKPOINT_TICKS) {
             return tr::Error::Timing;
         }
-        if (stopping && r.final && !tr::atRest(r.segments[r.count - 1].at(1))) {
+        if (stopping && r.final && !tr::at_rest(r.segments[r.count - 1].at(1))) {
             return tr::Error::NoStoppingPath;
         }
         std::copy_n(r.segments.begin(), r.count, w.segments.begin() + static_cast<std::ptrdiff_t>(first));
@@ -196,10 +231,10 @@ namespace io::motion
         }
         else {
             w.continuation += r.count;
-            w.continuation_ticks += addedTicks;
+            w.continuation_ticks += added_ticks;
             w.continuation_final = r.final;
         }
-        w.total_ticks += addedTicks;
+        w.total_ticks += added_ticks;
         w.revision = r.revision;
         m_chunks[m_chunkCount++] = {
             .index = r.index, .crc = crc, .count = r.count, .branch = r.branch, .final = r.final
@@ -215,7 +250,7 @@ namespace io::motion
         if (!w.continuation || !w.continuation_final) {
             return tr::Error::Order;
         }
-        if (w.stopping ? !w.stopping_final : !tr::atRest(w.nominal().back().at(1))) {
+        if (w.stopping ? !w.stopping_final : !tr::at_rest(w.nominal().back().at(1))) {
             return tr::Error::NoStoppingPath;
         }
         // The other bank must already have been retired by the executor. An

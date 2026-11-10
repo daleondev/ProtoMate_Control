@@ -77,7 +77,7 @@ class Fig:
             return
         self.footer(sources)
         hashes={p:hashlib.sha256(Path(p if p.startswith('/') else ROOT/p).read_bytes()).hexdigest() for p in proofs if Path(p if p.startswith('/') else ROOT/p).exists()}
-        self.s.append('<metadata>'+escape(json.dumps({'date':'2026-11-08','normal_release_pair':manifest['pair_id'],'evidence_sha256':hashes,'scope':'Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.'}))+'</metadata></svg>')
+        self.s.append('<metadata>'+escape(json.dumps({'date':'2026-11-10','normal_release_pair':manifest['pair_id'],'evidence_sha256':hashes,'scope':'Current source and normal Release linked memory. Hardware fixture is distinguished explicitly.'}))+'</metadata></svg>')
         (OUT/(name+'.svg')).write_text('\n'.join(self.s))
 
 # 1 — private applications and shared serialized transport
@@ -176,9 +176,9 @@ f.text(1264,499,'Framebuffers · 4 MiB reserved',23,C['shared'],True)
 f.text(1264,530,'0xC0000000 · non-cacheable',18,mono=True)
 f.text(1264,555,'Two images, 1,228,800 B each',19)
 f.rect(1244,583,472,103,C['white'],C['line'])
-f.text(1264,615,'M4 RAM-debug code · 2 MiB',23,C['io'],True)
-f.text(1264,646,'0xC0400000 · optional debug image',18,mono=True)
-f.text(1264,671,'Normal Release uses QSPI for cold code',18,C['muted'])
+f.text(1264,615,'M4 code + profiling · 2 MiB',23,C['io'],True)
+f.text(1264,646,'0xC0480000 · code: 1536 KiB',18,mono=True)
+f.text(1264,671,'0xC0400000 · profiling: 512 KiB',18,C['muted'])
 f.rect(1244,699,472,159,C['white'],C['line'])
 f.text(1264,731,'UI working arena · 2 MiB',23,C['ui'],True)
 f.text(1264,762,'0xC0600000 · cacheable',18,mono=True)
@@ -215,9 +215,9 @@ for i,(a,b) in enumerate(items):
 f.text(108,634,f'{fast:,} / 196,608 B · {100*fast/196608:.2f}% · {196608-fast:,} B remain',20,C['red'],True)
 f.bar(108,648,716,fast/196608,'io',10)
 f.rect(84,690,764,207,C['white'],C['line'])
-f.text(108,729,'QSPI · ordinary M4 code',27,C['io'],True)
-f.text(108,765,'0x90100000 · image partition',20,C['muted'],mono=True)
-f.para(108,805,'Server dispatch, admission, worker construction and cold helpers run from QSPI. Timing-sensitive execution stays in internal SRAM; constructors do not consume the fast-code budget.',716,21)
+f.text(108,729,'SDRAM · ordinary M4 code',27,C['io'],True)
+f.text(108,765,'0xC0480000 · 1536 KiB reserved',20,C['muted'],mono=True)
+f.para(108,805,'Server dispatch, admission, worker construction and cold helpers now run from SDRAM. Bootstrap copies them from QSPI. STEP and interrupt call paths remain in internal SRAM.',716,21)
 f.rect(84,915,764,127,C['white'],C['line'])
 f.text(108,952,'QSPI · remaining read-only material',26,C['purple'],True)
 f.para(108,990,'Ordinary constants generally remain in flash; constants selected with fast code move to internal SRAM.',716,21)
@@ -239,7 +239,7 @@ f.para(956,986,'A fast stack does not place the planner’s functions in ITCM.',
 # exact distinction
 f.rect(60,1091,1680,145,C['sharedl'],C['line'])
 f.text(84,1132,'Important configuration distinction',27,C['shared'],True)
-f.para(84,1175,'Normal Release: GIGA_M4_SDRAM_CODE=OFF. The motor-disconnected test fixture enables SDRAM cold code. Link audits trace fast roots and selected indirect calls; memory placement is not a timing guarantee.',1632,23)
+f.para(84,1175,'Normal Debug, Release and profiling builds enable M4 SDRAM code, as does the electrical fixture. The first 512 KiB of this SDRAM allocation remains profiling data, execute-never. Linked audits check internal-RAM interrupt paths; they are not timing guarantees.',1632,23)
 f.save('03-function-placement','Sources: cmake/giga_fast_code.cmake; application_giga.cmake; linked ELF symbols / manifest; CMake cache for flashed test pair.', ['cmake/giga_fast_code.cmake','cmake/application_giga.cmake','CMakeLists.txt','build/giga-io-release/CMakeCache.txt','build/giga-release/images/manifest.json','build/motion-review/ram-audit.json'])
 
 # 4 — evidence and remaining limits, never historical failures presented as current
@@ -247,9 +247,9 @@ f=Fig(4,'Motion baseline: evidence and remaining limits','Software correctness, 
 f.box(60,220,812,262,'Admission and ownership','One exclusive Motor / Axis / Robot family. Reservations include preparation and cleanup. Protocol, configuration, session, axis revisions and positions are checked before outputs are armed.','io','iol',ts=29,bs=24)
 f.box(908,220,832,262,'Execution and stopping','M4 maintains immutable schedules with an installed brake. Explicit stop and lease loss select that branch locally. Abort / guard inhibition are separate fault paths and can invalidate referencing.','ui','uil',ts=29,bs=24)
 f.box(60,510,812,291,'Memory remains a constraint','M4 fast code and D2 data are close to their linker limits. Each raw/homing worker reuses its reserved stack after joining. Command and executor stacks are budgeted separately; no steady-state motion buffers use the UI heap.','shared','sharedl',ts=29,bs=24)
-f.box(908,510,832,291,'Concurrent motion: ICC allocation fixed','Each sender reuses one startup-allocated frame. No 4,228-byte coroutine is allocated for each heartbeat. Repeated overlapping jog / move / stop tests pass without deadline changes. On link failure the UI stays read-only and preserves uncertainty.','io','iol',ts=28,bs=23)
-f.box(60,829,812,275,'Overlap capture passes','Shoulder jog: 9 pulses; independent elbow move: 44; Z: 0. HIGH time: 5.00–5.04 µs. Exact terminal counts agree; ENABLE stays inactive. Earlier synchronized captures pass too. These are short, low-rate electrical checks.','io','iol',ts=28,bs=23)
-f.box(908,829,832,275,'Remaining verification gaps','All 79 Linux Debug suites pass, including the real HMI and simulated motion workflow. Lint and sanitizers were not rerun for this correction. The 6,250-pulse/s ceiling, worst-case latency and powered mechanics remain unqualified.','purple','purplel',ts=28,bs=23)
+f.box(908,510,832,291,'Concurrent motion: ICC allocation fixed','Senders reuse their frame buffers. M4 admission/dispatch now run from SDRAM after traces identified QSPI stalls. Short overlap tests pass without deadline changes; final cleanup qualification is recorded separately.','io','iol',ts=28,bs=23)
+f.box(60,829,812,275,'Startup correction: screening','Initial DMA calculations run with interrupts available in bounded batches. Publication rechecks cancellation and revision. Earlier screening passed raw 800/800/400 pulses and coordinated starts; final source retesting remains pending.','io','iol',ts=28,bs=23)
+f.box(908,829,832,275,'Remaining verification gaps','Source cleanup is in progress. Previous 85/85 normal and sanitizer suite results do not qualify the latest edits. Final lint, linked-memory audits and electrical checks must use the same source revision. Powered mechanics remain separate.','purple','purplel',ts=28,bs=23)
 f.rect(60,1132,1680,104,C['white'],C['line'])
 f.para(84,1170,'Use the review report for exact test outcomes and capture hashes. No diagram claims that a passing short capture proves a full-rate or mechanically safe operating envelope.',1632,24,C['ink'])
 f.save('04-current-problems','Sources: Controller / Ownership / StepperMotor; OperatingEnvelope; review report and hardware captures.', ['src/io/motion/Controller.cpp','src/io/motion/ControllerAdmission.cpp','src/io/motion/StepperMotorCommands.cpp','src/common/motion/OperatingEnvelope.hpp','docs/motion-current-state/review.json'])

@@ -8,22 +8,30 @@ namespace ui::gui::scene3d
 {
     namespace
     {
-        struct alignas(32) Storage
+        constexpr unsigned CACHE_LINE_BYTES{ 32 }, MAX_FPS{ 30 };
+        struct alignas(CACHE_LINE_BYTES) Storage
         {
-            std::uint16_t color[2][PIXELS];
-            std::uint16_t depth[PIXELS];
+            std::array<std::array<std::uint16_t, PIXELS>, 2> color;
+            std::array<std::uint16_t, PIXELS> depth;
         };
 #if defined(CORE_CM7)
+        // Linker-reserved render buffers; the atomic claim permits one active renderer.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
         __attribute__((section(".gui_sdram"))) Storage buffers{};
 #else
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
         Storage buffers{};
 #endif
+        // Linker-reserved render buffers; the atomic claim permits one active renderer.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
         std::atomic_bool claimed{};
     }
+    // The view belongs to this service lifetime; linker placement is an implementation detail.
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     std::span<const std::uint16_t> RenderService::pixels(unsigned slot) const
     {
-        return slot < 2 ? std::span<const std::uint16_t>{ buffers.color[slot] }
-                        : std::span<const std::uint16_t>{};
+        return slot < buffers.color.size() ? std::span<const std::uint16_t>{ buffers.color[slot] }
+                                           : std::span<const std::uint16_t>{};
     }
     Status RenderService::status() const
     {
@@ -32,8 +40,8 @@ namespace ui::gui::scene3d
     }
     bool RenderService::submit(const Frame& frame)
     {
-        if (!frame.scene || !frame.snapshot.valid(*frame.scene) || !frame.maximumFps ||
-            frame.maximumFps > 30) {
+        if (!frame.scene || !frame.snapshot.valid(*frame.scene) || !frame.maximum_fps ||
+            frame.maximum_fps > MAX_FPS) {
             std::scoped_lock lock{ m_mutex };
             ++m_status.rejected;
             return false;
@@ -51,8 +59,9 @@ namespace ui::gui::scene3d
             m_pending = frame;
             m_hasPending = true;
         }
-        if (wake)
+        if (wake) {
             m_changed.signal();
+        }
         return true;
     }
     void RenderService::visible(bool value)
@@ -81,10 +90,14 @@ namespace ui::gui::scene3d
                 m_ready.reset();
                 const auto& f{ m_frames[*m_front] };
                 ++m_status.acquired;
-                m_status.acquiredRevision = f.revision;
-                m_status.sourceTimeUs = f.sourceTimeUs;
-                m_status.acquiredTriangles = f.triangles;
-                result = Image{ pixels(*m_front), *m_front, f.revision, f.sourceTimeUs, f.annotations };
+                m_status.acquired_revision = f.revision;
+                m_status.source_time_us = f.source_time_us;
+                m_status.acquired_triangles = f.triangles;
+                result = Image{ .pixels = pixels(*m_front),
+                                .slot = *m_front,
+                                .revision = f.revision,
+                                .source_time_us = f.source_time_us,
+                                .annotations = f.annotations };
             }
         }
         if (result) {
@@ -106,18 +119,69 @@ namespace ui::gui::scene3d
     void RenderService::presented()
     {
         std::scoped_lock lock{ m_mutex };
-        if (m_status.visible && m_front && m_status.presentedRevision != m_status.acquiredRevision) {
+        if (m_status.visible && m_front && m_status.presented_revision != m_status.acquired_revision) {
             ++m_status.presented;
-            m_status.presentedRevision = m_status.acquiredRevision;
+            m_status.presented_revision = m_status.acquired_revision;
             const auto now{ std::chrono::duration_cast<std::chrono::microseconds>(
                               std::chrono::steady_clock::now().time_since_epoch())
                               .count() };
-            m_status.lastLatencyUs = static_cast<std::uint32_t>(
-              std::min<std::uint64_t>(std::uint64_t(now) - m_status.sourceTimeUs, UINT32_MAX));
-            m_status.maximumLatencyUs = std::max(m_status.maximumLatencyUs, m_status.lastLatencyUs);
+            m_status.last_latency_us = static_cast<std::uint32_t>(
+              std::min<std::uint64_t>(std::uint64_t(now) - m_status.source_time_us, UINT32_MAX));
+            m_status.maximum_latency_us = std::max(m_status.maximum_latency_us, m_status.last_latency_us);
         }
     }
-    void RenderService::run(std::stop_token stop)
+    bool RenderService::selectFrameLocked(Work& work, std::chrono::steady_clock::time_point next)
+    {
+        if (!m_status.visible || !m_hasPending || std::chrono::steady_clock::now() < next) {
+            return false;
+        }
+        for (unsigned i{ 0 }; i < buffers.color.size(); ++i) {
+            if (m_front == i || m_ready == i) {
+                continue;
+            }
+            work.frame = m_pending;
+            work.slot = i;
+            work.generation = m_visibilityGeneration;
+            m_hasPending = false;
+            return true;
+        }
+        return false;
+    }
+    bool RenderService::completeFrame(const Work& work, const Rendered& rendered, const std::stop_token& stop)
+    {
+        std::scoped_lock lock{ m_mutex };
+        m_status.last_render_us = rendered.elapsed;
+        m_status.clear_us = rendered.timings.clear_us;
+        m_status.geometry_us = rendered.timings.geometry_us;
+        m_status.grid_us = rendered.timings.grid_us;
+        m_status.node_us = rendered.timings.node_us;
+        m_status.maximum_render_us = std::max(m_status.maximum_render_us, rendered.elapsed);
+        m_status.total_render_us += rendered.elapsed;
+        if (!rendered.ok) {
+            m_status.failed = true;
+            return false;
+        }
+        ++m_status.rendered;
+        m_status.completed_revision = work.frame.snapshot.revision;
+        unsigned triangles{};
+        for (unsigned i{ 0 }; i < work.frame.scene->count; ++i) {
+            triangles += work.frame.scene->nodes[i].mesh->triangles;
+        }
+        m_status.completed_triangles = triangles;
+        if (m_status.visible && work.generation == m_visibilityGeneration && !m_stop &&
+            !stop.stop_requested()) {
+            m_frames[work.slot] = { .revision = work.frame.snapshot.revision,
+                                    .source_time_us = work.frame.snapshot.source_time_us,
+                                    .triangles = triangles,
+                                    .annotations = rendered.annotations };
+            m_ready = work.slot;
+        }
+        else {
+            ++m_status.discarded;
+        }
+        return true;
+    }
+    void RenderService::run(const std::stop_token& stop)
     {
         const std::stop_callback cancellation{ stop, [this] { m_changed.signal(); } };
         {
@@ -135,29 +199,16 @@ namespace ui::gui::scene3d
             util::FrameTimer timer{ hal::core::create_runtime_timer() };
             auto next{ std::chrono::steady_clock::now() };
             for (;;) {
-                Frame frame{};
-                std::optional<unsigned> slot{};
-                std::uint64_t generation{};
+                Work work{};
+                bool selected{};
                 {
                     std::scoped_lock lock{ m_mutex };
                     if (m_stop || stop.stop_requested()) {
                         break;
                     }
-                    if (m_status.visible && m_hasPending && std::chrono::steady_clock::now() >= next) {
-                        for (unsigned i{ 0 }; i < 2; ++i) {
-                            if (m_front != i && m_ready != i) {
-                                slot = i;
-                                break;
-                            }
-                        }
-                        if (slot) {
-                            frame = m_pending;
-                            m_hasPending = false;
-                            generation = m_visibilityGeneration;
-                        }
-                    }
+                    selected = selectFrameLocked(work, next);
                 }
-                if (!slot) {
+                if (!selected) {
                     if (std::chrono::steady_clock::now() < next) {
                         m_changed.waitUntil(next);
                     }
@@ -168,43 +219,19 @@ namespace ui::gui::scene3d
                 }
                 const auto began{ std::chrono::steady_clock::now() };
                 timer.start();
-                RenderTimings timings{};
-                std::array<ProjectedAnchor, 3> annotations{};
-                const auto ok{ render(frame, buffers.color[*slot], buffers.depth, &timings, &annotations) };
-                const auto elapsed{ static_cast<std::uint32_t>(timer.elapsed().count()) };
-                {
-                    std::scoped_lock lock{ m_mutex };
-                    m_status.lastRenderUs = elapsed;
-                    m_status.clearUs = timings.clearUs;
-                    m_status.geometryUs = timings.geometryUs;
-                    m_status.gridUs = timings.gridUs;
-                    m_status.nodeUs = timings.nodeUs;
-                    m_status.maximumRenderUs = std::max(m_status.maximumRenderUs, elapsed);
-                    m_status.totalRenderUs += elapsed;
-                    if (!ok) {
-                        m_status.failed = true;
-                        break;
-                    }
-                    ++m_status.rendered;
-                    m_status.completedRevision = frame.snapshot.revision;
-                    unsigned triangles{};
-                    for (unsigned i = 0; i < frame.scene->count; ++i)
-                        triangles += frame.scene->nodes[i].mesh->triangles;
-                    m_status.completedTriangles = triangles;
-                    if (m_status.visible && generation == m_visibilityGeneration && !m_stop &&
-                        !stop.stop_requested()) {
-                        m_frames[*slot] = {
-                            frame.snapshot.revision, frame.snapshot.sourceTimeUs, triangles, annotations
-                        };
-                        m_ready = slot;
-                    }
-                    else {
-                        ++m_status.discarded;
-                    }
+                Rendered rendered{};
+                rendered.ok = render(work.frame,
+                                     buffers.color[work.slot],
+                                     buffers.depth,
+                                     &rendered.timings,
+                                     &rendered.annotations);
+                rendered.elapsed = static_cast<std::uint32_t>(timer.elapsed().count());
+                if (!completeFrame(work, rendered, stop)) {
+                    break;
                 }
                 // A bounded rate and at least one tick off also let lower
                 // priority logging workers run when rendering is overloaded.
-                next = nextRender(began, std::chrono::steady_clock::now(), frame.maximumFps);
+                next = next_render(began, std::chrono::steady_clock::now(), work.frame.maximum_fps);
             }
         } catch (...) {
             std::scoped_lock lock{ m_mutex };

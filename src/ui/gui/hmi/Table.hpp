@@ -5,18 +5,19 @@ namespace ui::gui::hmi
     class Table final : public touchgfx::Widget
     {
       public:
+        static constexpr unsigned VALUE_COLUMNS{ 5 };
         struct Row
         {
-            std::array<char, 40> name{};
-            std::array<std::array<char, 24>, 5> values{};
-            std::uint32_t color{ 0xedf3f8 };
+            std::array<char, text_capacity::NAME> name{};
+            std::array<std::array<char, text_capacity::NUMBER>, VALUE_COLUMNS> values{};
+            std::uint32_t color{ theme::TEXT };
             int percent{ -1 };
             bool operator==(const Row&) const = default;
         };
         struct Data
         {
             Row heading{};
-            std::array<Row, 6> rows{};
+            std::array<Row, DIAGNOSTIC_ROWS> rows{};
             unsigned count{}, columns{ 2 };
             bool operator==(const Data&) const = default;
         };
@@ -27,10 +28,16 @@ namespace ui::gui::hmi
                 invalidate();
             }
         }
-        void draw(const touchgfx::Rect&) const override;
+        void draw(const touchgfx::Rect& /*invalidatedArea*/) const override;
         touchgfx::Rect getSolidRect() const override { return { 0, 0, getWidth(), getHeight() }; }
 
       private:
+        struct RowGeometry
+        {
+            int y{}, height{}, name_width{}, cell_width{};
+            bool header{};
+        };
+        void drawRow(const touchgfx::Rect& area, const Row& row, RowGeometry geometry) const;
         Data m_data{};
     };
     class Slider final : public touchgfx::Widget
@@ -44,10 +51,10 @@ namespace ui::gui::hmi
             m_context = context;
             setTouchable(true);
         }
-        void draw(const touchgfx::Rect&) const override;
+        void draw(const touchgfx::Rect& /*invalidatedArea*/) const override;
         touchgfx::Rect getSolidRect() const override { return { 0, 0, 0, 0 }; }
-        void handleClickEvent(const touchgfx::ClickEvent&) override;
-        void handleDragEvent(const touchgfx::DragEvent&) override;
+        void handleClickEvent(const touchgfx::ClickEvent& /*event*/) override;
+        void handleDragEvent(const touchgfx::DragEvent& /*event*/) override;
 
       private:
         void input(int x);

@@ -34,8 +34,9 @@ namespace
                                                                    { 3, 0, 4 },
                                                                    { 3, 4, 7 } } };
         std::vector<simulation::CollisionMesh::Triangle> result{};
-        for (auto f : faces)
+        for (auto f : faces) {
             result.push_back({ v[f[0]], v[f[1]], v[f[2]] });
+        }
         return result;
     }
     TEST(CollisionMeshTest, ClosedSolidsAndInvalidGeometry)
@@ -77,8 +78,9 @@ namespace
         ASSERT_TRUE((cube.intersects(disconnected, glm::translate(glm::dmat4{ 1 }, glm::dvec3{ -20, 0, 0 }))))
           << "reverse containment in disconnected component";
         auto reversed{ box(1) };
-        for (auto& t : reversed)
+        for (auto& t : reversed) {
             std::swap(t.b, t.c);
+        }
         ASSERT_TRUE((CollisionMesh{ reversed }.contains({ 0, 0, 0 }))) << "winding-independent containment";
         auto open{ box(1) };
         open.pop_back();
@@ -134,8 +136,9 @@ TEST(ContactSensorsTest, RestPoseReleasesAllSwitches)
 {
     const Profile profile{};
     ContactSensors contacts{ profile };
-    for (unsigned i{}; i < 3; ++i)
+    for (unsigned i{}; i < 3; ++i) {
         ASSERT_TRUE((!contacts.update(i, 0))) << "straight rest pose releases all switches";
+    }
 }
 
 class ContactAxisTest : public testing::TestWithParam<unsigned>
@@ -170,16 +173,21 @@ TEST_P(ContactAxisTest, GeometryHysteresisCachingAndRepeatability)
                 const double q{ coordinate(release - .02 + fraction * (operate - release + .04)) };
                 oracle =
                   oracle
-                    ? ContactSensors::clearance(profile, axis, q, 0) <=
+                    ? ContactSensors::clearance(profile, { .axis = axis, .joint = q, .deflection = 0 }) <=
                         profile.sensor_release_clearance_mm[axis]
-                    : ContactSensors::contact(profile, axis, q, profile.sensor_operate_deflection_deg[axis]);
+                    : ContactSensors::contact(profile,
+                                              { .axis = axis,
+                                                .joint = q,
+                                                .deflection = profile.sensor_operate_deflection_deg[axis] });
                 ASSERT_TRUE((cached.update(axis, q) == oracle))
                   << "clearance cache agrees with exact queries across approach/backoff/reversal";
             }
         }
-        if (axis < 2)
-            ASSERT_TRUE((ContactSensors::contact(profile, axis, coordinate(operate + .01 + 360), 2)))
+        if (axis < 2) {
+            ASSERT_TRUE((ContactSensors::contact(
+              profile, { .axis = axis, .joint = coordinate(operate + .01 + 360), .deflection = 2 })))
               << "rotary contacts repeat with physical orientation";
+        }
     }
 }
 
@@ -190,18 +198,24 @@ TEST(ContactSensorsTest, DisplacedGeometryRemovesContact)
     const Profile profile{};
     Profile displaced{ profile };
     displaced.geometry_mm[0] += 1000;
-    ASSERT_TRUE((ContactSensors::contact(profile, 1, 115 * std::numbers::pi / 180, 2)));
-    ASSERT_TRUE((!ContactSensors::contact(displaced, 1, 115 * std::numbers::pi / 180, 2)))
+    ASSERT_TRUE((ContactSensors::contact(
+      profile, { .axis = 1, .joint = 115 * std::numbers::pi / 180, .deflection = 2 })));
+    ASSERT_TRUE((!ContactSensors::contact(
+      displaced, { .axis = 1, .joint = 115 * std::numbers::pi / 180, .deflection = 2 })))
       << "moving the joint away removes contact; no fixed angle shortcut";
 }
 
 TEST(ContactSensorsTest, LinkHullMustNotFillTheEmptySpaceBetweenAxis2Cams)
 {
     const Profile profile{};
-    for (const double angle : { -47., 56. })
-        EXPECT_FALSE(ContactSensors::contact(profile, 1, angle * std::numbers::pi / 180, 2));
-    for (const double angle : { -103., 115. })
-        EXPECT_TRUE(ContactSensors::contact(profile, 1, angle * std::numbers::pi / 180, 2));
+    for (const double angle : { -47., 56. }) {
+        EXPECT_FALSE(ContactSensors::contact(
+          profile, { .axis = 1, .joint = angle * std::numbers::pi / 180, .deflection = 2 }));
+    }
+    for (const double angle : { -103., 115. }) {
+        EXPECT_TRUE(ContactSensors::contact(
+          profile, { .axis = 1, .joint = angle * std::numbers::pi / 180, .deflection = 2 }));
+    }
 }
 
 TEST(ContactSensorsTest, BothRotaryCamsBoundTheConnectedTravelInterval)
@@ -232,8 +246,9 @@ TEST(ContactSensorsTest, BothRotaryCamsBoundTheConnectedTravelInterval)
         }
         for (unsigned n = 1; n < 100; ++n) {
             const double q = lower.release + (upper.release - lower.release) * n / 100.;
-            EXPECT_FALSE(
-              ContactSensors::contact(profile, axis, q, profile.sensor_operate_deflection_deg[axis]));
+            EXPECT_FALSE(ContactSensors::contact(
+              profile,
+              { .axis = axis, .joint = q, .deflection = profile.sensor_operate_deflection_deg[axis] }));
         }
     }
 }

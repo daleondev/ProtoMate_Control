@@ -4,6 +4,7 @@
 
 #include "hal/drivers/impl/stm32/StepHardware.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
+#include <algorithm>
 
 namespace hal::step
 {
@@ -11,9 +12,15 @@ namespace hal::step
     {
         using enum gpio::Port;
         const auto& pins{ configuration.pins };
-        if ((pins[0] != gpio::Pin{ A, 0 } && pins[0] != gpio::Pin{ A, 5 } && pins[0] != gpio::Pin{ A, 15 }) ||
-            (pins[1] != gpio::Pin{ A, 2 } && pins[1] != gpio::Pin{ B, 10 }) ||
-            (pins[2] != gpio::Pin{ A, 3 } && pins[2] != gpio::Pin{ B, 11 })) {
+        constexpr std::array channel1{ gpio::Pin{ .port = A, .number = 0 },
+                                       gpio::Pin{ .port = A, .number = 5 },
+                                       gpio::Pin{ .port = A, .number = 15 } };
+        constexpr std::array channel3{ gpio::Pin{ .port = A, .number = 2 },
+                                       gpio::Pin{ .port = B, .number = 10 } };
+        constexpr std::array channel4{ gpio::Pin{ .port = A, .number = 3 },
+                                       gpio::Pin{ .port = B, .number = 11 } };
+        if (!std::ranges::contains(channel1, pins[0]) || !std::ranges::contains(channel3, pins[1]) ||
+            !std::ranges::contains(channel4, pins[2])) {
             return {};
         }
         std::array<std::shared_ptr<IDigitalOutput>, 3> owners{};

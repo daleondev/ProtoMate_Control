@@ -32,8 +32,9 @@ namespace icc
         }
         profile_event(
           PROFILE_CAT_SYSTEM, PROFILE_ICC_STATE, unsigned(value.state), unsigned(value.reason), 0, 0);
-        if (value.state == ConnectionState::Failed)
+        if (value.state == ConnectionState::Failed) {
             profile_failure(PROFILE_CONNECTION, unsigned(value.reason), 0, 0);
+        }
         // The immutable registration and its captured state outlive stop().
         // Throwing callbacks fail the connection; Bridge protects final cleanup.
         if (m_callback) {

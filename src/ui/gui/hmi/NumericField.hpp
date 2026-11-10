@@ -11,7 +11,7 @@ namespace ui::gui::hmi
         const char* name{ "Position" };
         double minimum{ -std::numeric_limits<double>::max() };
         double maximum{ std::numeric_limits<double>::max() };
-        bool minimumExclusive{}, maximumExclusive{};
+        bool minimum_exclusive{}, maximum_exclusive{};
         static NumericField forModel(const Model& model);
         bool signedValue() const { return minimum < 0; }
         std::optional<double> parse(const char* text) const;

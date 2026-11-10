@@ -8,7 +8,7 @@ namespace runtime::storage
     {
       public:
         bool read(std::size_t offset, std::span<std::byte> output) noexcept override;
-        bool program(std::size_t offset, std::span<const std::byte, 32> word) noexcept override;
+        bool program(std::size_t offset, std::span<const std::byte, WORD_BYTES> word) noexcept override;
         bool erase(std::size_t block) noexcept override;
         std::uint32_t error() const noexcept { return m_error; }
 

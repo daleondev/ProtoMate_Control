@@ -28,13 +28,21 @@
 /* The linker deliberately places the C/C++ heap in private RAM while the
  * main/interrupt stack occupies its own reserved region. CubeMX's generated _sbrk()
  * assumes both share one bank, so use explicit linker bounds instead. */
+// Newlib/linker heap ABI; allocation calls are serialized by the runtime malloc lock.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,bugprone-reserved-identifier)
 extern uint8_t __HeapBase;
+// Newlib/linker heap ABI; allocation calls are serialized by the runtime malloc lock.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables,bugprone-reserved-identifier)
 extern uint8_t __HeapLimit;
 
+// Newlib/linker heap ABI; allocation calls are serialized by the runtime malloc lock.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static uint8_t* heap_end;
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier) -- required newlib ABI.
 void* _sbrk(ptrdiff_t increment);
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier) -- required newlib ABI.
 void* _sbrk(ptrdiff_t increment)
 {
     const uintptr_t heap_base = (uintptr_t)&__HeapBase;
@@ -45,13 +53,13 @@ void* _sbrk(ptrdiff_t increment)
     }
 
     const uintptr_t current = (uintptr_t)heap_end;
-    uintptr_t next;
+    uintptr_t next = 0;
 
     if (increment >= 0) {
         const uintptr_t growth = (uintptr_t)increment;
         if ((current > heap_limit) || (growth > (heap_limit - current))) {
             errno = ENOMEM;
-            return (void*)-1;
+            return (void*)-1; // NOLINT(performance-no-int-to-ptr): newlib sbrk failure sentinel.
         }
         next = current + growth;
     }
@@ -60,13 +68,13 @@ void* _sbrk(ptrdiff_t increment)
         const uintptr_t shrink = (uintptr_t)(-(increment + 1)) + 1U;
         if ((current < heap_base) || (shrink > (current - heap_base))) {
             errno = ENOMEM;
-            return (void*)-1;
+            return (void*)-1; // NOLINT(performance-no-int-to-ptr): newlib sbrk failure sentinel.
         }
         next = current - shrink;
     }
 
-    heap_end = (uint8_t*)next;
-    return (void*)current;
+    heap_end = (uint8_t*)next; // NOLINT(performance-no-int-to-ptr): validated numerical linker bounds.
+    return (void*)current;     // NOLINT(performance-no-int-to-ptr): return the previous program break.
 }
 
 #if defined(__PICOLIBC__)

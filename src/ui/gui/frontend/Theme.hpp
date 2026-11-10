@@ -11,6 +11,7 @@ namespace ui::gui::theme
     inline constexpr std::uint32_t DANGER{ 0x74333d }, DANGER_BORDER{ 0xb35762 }, DISABLED_TEXT{ 0x718493 };
     inline constexpr std::uint32_t GREEN{ 0x48ce86 }, AMBER{ 0xf2bd62 }, RED{ 0xe56873 };
     inline constexpr std::uint32_t X_AXIS{ 0xa63247 }, Y_AXIS{ 0x207a4b }, Z_AXIS{ 0x185fb2 };
+    inline constexpr int CONTROL_RADIUS{ 10 }, LABEL_HEIGHT{ 32 }, FIELD_WIDTH{ 200 };
     inline constexpr int SPACING{ 16 }, RADIUS{ 12 }, TOUCH_TARGET{ 56 }, ANIMATION_FRAMES{ 120 };
     inline constexpr int NAV_WIDTH{ 88 }, CONTENT_X{ 104 }, CONTENT_WIDTH{ 912 };
     inline constexpr int VIEW_X{ 104 }, VIEW_Y{ 100 }, VIEW_WIDTH{ 640 }, VIEW_HEIGHT{ 400 };

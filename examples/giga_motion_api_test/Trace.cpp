@@ -8,27 +8,24 @@
 // Each core owns a private, fixed-size trace. SWD reads these symbols without
 // halting the processors. Recording stops when full; no logging or heap work is
 // performed here. TIM5 is the common 1 MHz timestamp source on both processors.
-extern "C"
+extern "C" {
+struct MotionTraceEntry
 {
-    struct MotionTraceEntry
-    {
-        std::uint32_t time, stage, id, kind;
-    };
-    std::array<MotionTraceEntry, 256> motion_api_trace{};
-    std::atomic<std::uint32_t> motion_api_trace_count{};
+    std::uint32_t time, stage, id, kind;
+};
+std::array<MotionTraceEntry, 256> motion_api_trace{};
+std::atomic<std::uint32_t> motion_api_trace_count{};
 }
 
 namespace hal::util
 {
-    void intercoreTrace(InterCoreStage stage, unsigned lane, std::span<const std::byte> bytes) noexcept
+    void intercore_trace(InterCoreStage stage, unsigned lane, std::span<const std::byte> bytes) noexcept
     {
-        if (bytes.size() < icc::util::HEADER_BYTES ||
-            bytes[0] != std::byte{ icc::util::FRAME_VERSION }) {
+        if (bytes.size() < icc::util::HEADER_BYTES || bytes[0] != std::byte{ icc::util::FRAME_VERSION }) {
             return;
         }
         const auto kind = std::to_integer<unsigned>(bytes[1]);
-        if (kind == unsigned(icc::util::FrameKind::Topic) ||
-            kind >= unsigned(icc::util::FrameKind::Hello)) {
+        if (kind == unsigned(icc::util::FrameKind::Topic) || kind >= unsigned(icc::util::FrameKind::Hello)) {
             return;
         }
         std::uint32_t id{};

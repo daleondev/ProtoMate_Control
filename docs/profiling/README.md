@@ -28,8 +28,12 @@ the native simulator coordinator does not contain another ThreadX recorder.
 These addresses are in the GIGA's **external AS4C4M16SA SDRAM**, not M4 SRAM.
 The existing MPU maps this region as normal, non-cacheable, shareable and
 execute-never. There is one writer per buffer; the other core does not use it
-as a queue. Linker regions/assertions reserve it explicitly. Profiling cannot
-be combined with M4 SDRAM-code, motion-benchmark, or other overlapping presets.
+as a queue. Linker regions/assertions reserve it explicitly. Ordinary M4 code
+starts at `0xC0480000`, leaving the lower 512 KiB for profiling. MPU subregion
+masking keeps these buffers execute-never even when the code region is enabled.
+Profiling and normal Release now share this instruction placement. Dedicated
+motion/STEP benchmark presets still have overlapping experimental reservations
+and cannot be combined with profiling.
 
 Small recorder state, a first-failure record, allocator recursion guards, and
 per-thread cycle counters remain in internal RAM. IRQ/scheduler hooks update
@@ -47,7 +51,8 @@ memory/call-path review. Ordinary Release uses 193,264 bytes in that region.
 
 M4 insertion, accounting, IRQ and fault paths remain in instruction RAM and are
 included in the linked-image RAM audit. Recorder setup, summary aggregation,
-registry maintenance and allocator wrappers execute from QSPI. No original
+registry maintenance and allocator wrappers execute from SDRAM on M4 and QSPI
+on M7. No original
 motion call path was moved out of instruction RAM to make profiling fit.
 
 Normal builds retain allocation-failure/heap health and the internal failure

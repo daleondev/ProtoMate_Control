@@ -14,6 +14,19 @@ namespace ui::cli::motor
 {
     namespace
     {
+        const char* motion_name(::motion::MotorMotion motion)
+        {
+            switch (motion) {
+                case ::motion::MotorMotion::Home:
+                    return "home";
+                case ::motion::MotorMotion::Absolute:
+                    return "moveto";
+                default:
+                    return "move";
+            }
+        }
+
+        constexpr double DEFAULT_HOME_SEEK_RPM{ 5 }, DEFAULT_HOME_TIMEOUT_SECONDS{ 30 };
         using namespace ::motion;
         struct Context
         {
@@ -21,7 +34,7 @@ namespace ui::cli::motor
             std::stop_token stop;
         };
 
-        MotorId motorId(std::string_view value)
+        MotorId motor_id(std::string_view value)
         {
             if (value == "m1" || value == "1") {
                 return MotorId::M1;
@@ -37,10 +50,15 @@ namespace ui::cli::motor
         MotorId selection(const Arguments& args)
         {
             const auto name{ args.get("motor") };
-            return !name || *name == "all" ? MotorId::All : motorId(*name);
+            return !name || *name == "all" ? MotorId::All : motor_id(*name);
         }
-        double number(std::string_view text, std::string_view name)
+        struct NumericArgument
         {
+            std::string_view text, name;
+        };
+        double number(NumericArgument argument)
+        {
+            const auto [text, name]{ argument };
             double value{};
             const auto parsed{ std::from_chars(text.data(), text.data() + text.size(), value) };
             if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() ||
@@ -63,12 +81,12 @@ namespace ui::cli::motor
             }
             return args.flagValue(name);
         }
-        double numericOption(const Arguments& args, std::string_view name, double fallback, bool zero = true)
+        double numeric_option(const Arguments& args, std::string_view name, double fallback, bool zero = true)
         {
             const auto value{ option(args, name) };
-            return value ? magnitude(number(*value, name), name, zero) : fallback;
+            return value ? magnitude(number({ .text = *value, .name = name }), name, zero) : fallback;
         }
-        MotorBuffer bufferMode(const Arguments& args)
+        MotorBuffer buffer_mode(const Arguments& args)
         {
             constexpr std::array names{ "aborting",          "buffered",      "blending-low",
                                         "blending-previous", "blending-next", "blending-high" };
@@ -80,7 +98,7 @@ namespace ui::cli::motor
             }
             throw std::invalid_argument("invalid buffer mode; see 'help motor move'");
         }
-        const char* jobState(ui::motion::Client::JobState state)
+        const char* job_state(ui::motion::Client::JobState state)
         {
             using enum ui::motion::Client::JobState;
             switch (state) {
@@ -123,17 +141,18 @@ namespace ui::cli::motor
             if (!speed) {
                 return callback_failure("--speed <rpm> is required");
             }
-            return submit(context,
-                          { .motor = motorId(args.require("motor")),
-                            .motion = absolute ? MotorMotion::Absolute : MotorMotion::Relative,
-                            .position = number(args.require("degrees"), "degrees"),
-                            .velocity = magnitude(number(*speed, "speed"), "speed", false),
-                            .acceleration = numericOption(args, "accel", 0),
-                            .deceleration = numericOption(args, "decel", 0),
-                            .jerk = numericOption(args, "jerk", 0),
-                            .timeout = numericOption(args, "timeout", 0),
-                            .buffer = bufferMode(args) },
-                          out);
+            return submit(
+              context,
+              { .motor = motor_id(args.require("motor")),
+                .motion = absolute ? MotorMotion::Absolute : MotorMotion::Relative,
+                .position = number({ .text = args.require("degrees"), .name = "degrees" }),
+                .velocity = magnitude(number({ .text = *speed, .name = "speed" }), "speed", false),
+                .acceleration = numeric_option(args, "accel", 0),
+                .deceleration = numeric_option(args, "decel", 0),
+                .jerk = numeric_option(args, "jerk", 0),
+                .timeout = numeric_option(args, "timeout", 0),
+                .buffer = buffer_mode(args) },
+              out);
         }
         CallbackResult status(const Context& context, const Arguments& args, std::ostream& out, bool drivers)
         {
@@ -213,7 +232,8 @@ namespace ui::cli::motor
         [[
             = "Motor-shaft control through the IO controller; help motor <command> for options"_fs,
             = Name{ "motor"_fs }
-        ]] static auto overview(const Context&, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto overview(const Context& /*unused*/, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             out << "Motor control: motor-shaft degrees and rpm, including m3.\n"
                    "  motor status [m1|m2|m3|all]\n"
@@ -245,7 +265,7 @@ namespace ui::cli::motor
             = "Common driver readiness, alarm and latched fault state"_fs,
             = Name{ "motor driver status"_fs },
             = SELECTION
-        ]] static auto driverStatus(const Context& context, const Arguments& args, std::ostream& out)
+        ]] static auto driver_status(const Context& context, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
             return status(context, args, out, true);
@@ -254,7 +274,7 @@ namespace ui::cli::motor
         [[
             = "Initialize/recover all drivers and STEP timebase while disabled"_fs,
             = Name{ "motor driver init"_fs }
-        ]] static auto initialize(const Context& context, const Arguments&, std::ostream& out)
+        ]] static auto initialize(const Context& context, const Arguments& /*unused*/, std::ostream& out)
           -> CallbackResult
         {
             context.client->request({ .operation = MotorOperation::Initialize }, context.stop);
@@ -264,7 +284,8 @@ namespace ui::cli::motor
         [[
             = "Verify and enable all drivers; wait for enable settling"_fs,
             = Name{ "motor enable"_fs }
-        ]] static auto enable(const Context& context, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto enable(const Context& context, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             context.client->request({ .operation = MotorOperation::Enable }, context.stop);
             out << "All drivers enabled and settled.\n";
@@ -273,7 +294,8 @@ namespace ui::cli::motor
         [[
             = "Stop all motions, disable holding torque and invalidate references"_fs,
             = Name{ "motor disable"_fs }
-        ]] static auto disable(const Context& context, const Arguments&, std::ostream& out) -> CallbackResult
+        ]] static auto disable(const Context& context, const Arguments& /*unused*/, std::ostream& out)
+          -> CallbackResult
         {
             context.client->request({ .operation = MotorOperation::Disable }, context.stop);
             out << "All drivers disabled; references invalidated.\n";
@@ -339,16 +361,16 @@ namespace ui::cli::motor
         ]] static auto home(const Context& context, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const auto seek{ numericOption(args, "seek", 5, false) };
-            const auto latch{ numericOption(args, "latch", 0.5, false) };
+            const auto seek{ numeric_option(args, "seek", DEFAULT_HOME_SEEK_RPM, false) };
+            const auto latch{ numeric_option(args, "latch", MotorGoal::DEFAULT_LATCH_RPM, false) };
             if (latch >= seek) {
                 return callback_failure("latch speed must be slower than seek speed");
             }
             return submit(context,
-                          { .motor = motorId(args.require("motor")),
+                          { .motor = motor_id(args.require("motor")),
                             .motion = MotorMotion::Home,
                             .velocity = seek,
-                            .timeout = numericOption(args, "timeout", 30, false),
+                            .timeout = numeric_option(args, "timeout", DEFAULT_HOME_TIMEOUT_SECONDS, false),
                             .latch_velocity = latch },
                           out);
         }
@@ -362,8 +384,9 @@ namespace ui::cli::motor
         {
             const auto result{ context.client->request(
               { .operation = MotorOperation::Speed,
-                .motor = motorId(args.require("motor")),
-                .velocity = magnitude(number(args.require("rpm"), "speed"), "speed", false) },
+                .motor = motor_id(args.require("motor")),
+                .velocity =
+                  magnitude(number({ .text = args.require("rpm"), .name = "speed" }), "speed", false) },
               context.stop) };
             out << "Speed update scheduled from pulse " << result.pulse << " (1-based).\n";
             return 0;
@@ -384,13 +407,13 @@ namespace ui::cli::motor
         ]] static auto defaults(const Context& context, const Arguments& args, std::ostream& out)
           -> CallbackResult
         {
-            const auto motor{ motorId(args.require("motor")) };
+            const auto motor{ motor_id(args.require("motor")) };
             const auto result{ context.client->request(
               { .operation = MotorOperation::Defaults,
                 .motor = motor,
-                .acceleration = numericOption(args, "accel", 0, false),
-                .deceleration = numericOption(args, "decel", 0, false),
-                .jerk = numericOption(args, "jerk", 0),
+                .acceleration = numeric_option(args, "accel", 0, false),
+                .deceleration = numeric_option(args, "decel", 0, false),
+                .jerk = numeric_option(args, "jerk", 0),
                 .dynamics_fields = static_cast<std::uint8_t>((args.hasFlag("accel") ? 1 : 0) |
                                                              (args.hasFlag("decel") ? 2 : 0) |
                                                              (args.hasFlag("jerk") ? 4 : 0)) },
@@ -428,10 +451,8 @@ namespace ui::cli::motor
                 out << std::format("{} m{} {}: {} | position={:.4f} deg velocity={:.3f} rpm\n",
                                    job.id,
                                    static_cast<unsigned>(job.motor) + 1,
-                                   job.motion == MotorMotion::Home       ? "home"
-                                   : job.motion == MotorMotion::Absolute ? "moveto"
-                                                                         : "move",
-                                   jobState(job.state),
+                                   motion_name(job.motion),
+                                   job_state(job.state),
                                    job.progress.position,
                                    job.progress.velocity);
             }
@@ -445,9 +466,9 @@ namespace ui::cli::motor
         }
     }
 
-    void setup(Parser& parser, ui::motion::Client& client, std::stop_token stop)
+    void setup(Parser& parser, ui::motion::Client& client, const std::stop_token& stop)
     {
-        std::call_once(parser.m_motorRegistration, [&parser, &client, stop] {
+        parser.registerModule(Parser::Module::Motor, [&parser, &client, stop] {
             const Context context{ .client = &client, .stop = stop };
             register_commands<^^commands>(parser, [context](auto command) {
                 return [context, command](const Arguments& args, std::ostream& out) {

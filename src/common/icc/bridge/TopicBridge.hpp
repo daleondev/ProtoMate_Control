@@ -31,7 +31,7 @@ namespace icc
         friend class Bridge;
         using OutgoingFrame = util::OutgoingFrame;
         using FrameKind = util::FrameKind;
-        static constexpr std::size_t MAX_TOPICS{ 16 };
+        static constexpr std::size_t MAX_TOPICS{ 16 }, MAX_TOPIC_QUEUE{ 64 };
 
         TopicBridge(pnm::msg::Bus& bus, std::shared_ptr<util::OutgoingWakeup> wakeup);
         ~TopicBridge() = default;
@@ -46,6 +46,9 @@ namespace icc
         template<typename Catalog, typename Publisher>
             requires std::is_enum_v<Publisher>
         void registerCatalog(Publisher local_publisher);
+        template<std::meta::info Member, typename Publisher>
+            requires std::is_enum_v<Publisher>
+        void registerMember(Publisher local_publisher);
         template<pnm::utils::memory::Serializable T>
             requires std::default_initializable<T>
         void registerOutgoing(std::string_view topic, Lane lane, pnm::msg::SubscriptionOptions options);
@@ -109,54 +112,61 @@ namespace icc
         template for (constexpr auto member : members)
         {
             // NOLINTEND(bugprone-reserved-identifier,readability-identifier-naming)
-            constexpr auto publishers{ std::define_static_array(
-              util::annotations_of_type<Publisher>(member)) };
-            if constexpr (!publishers.empty()) {
-                static_assert(publishers.size() == 1, "A topic must have exactly one publisher");
-                static_assert(std::meta::is_nonstatic_data_member(member),
-                              "Annotate nonstatic topic fields, not static declarations");
-                constexpr auto publisher{ std::meta::extract<Publisher>(publishers[0]) };
-                static_assert(publisher == first || publisher == second, "Unknown annotated topic publisher");
+            registerMember<member>(local_publisher);
+        }
+    }
+    template<std::meta::info Member, typename Publisher>
+        requires std::is_enum_v<Publisher>
+    void TopicBridge::registerMember(Publisher local_publisher)
+    {
+        static constexpr auto enumerators{ pnm::meta::enumeration::enumerators<Publisher>() };
+        constexpr auto first{ enumerators[0] };
+        constexpr auto second{ enumerators[1] };
+        constexpr auto publishers{ std::define_static_array(util::annotations_of_type<Publisher>(Member)) };
+        if constexpr (!publishers.empty()) {
+            static_assert(publishers.size() == 1, "A topic must have exactly one publisher");
+            static_assert(std::meta::is_nonstatic_data_member(Member),
+                          "Annotate nonstatic topic fields, not static declarations");
+            constexpr auto publisher{ std::meta::extract<Publisher>(publishers[0]) };
+            static_assert(publisher == first || publisher == second, "Unknown annotated topic publisher");
 
-                if constexpr (std::meta::is_nonstatic_data_member(member)) {
-                    using Metadata = pnm::msg::TopicMetadata<member>;
-                    using Message = typename Metadata::Message;
-                    static constexpr auto lanes{ std::define_static_array(
-                      util::annotations_of_type<Lane>(member)) };
-                    static_assert(lanes.size() <= 1, "A topic may select only one transport lane");
-                    constexpr auto lane{ [] {
-                        if constexpr (lanes.empty()) {
-                            return Lane::Normal;
-                        }
-                        else {
-                            return std::meta::extract<Lane>(lanes[0]);
-                        }
-                    }() };
-                    static_assert(lane == Lane::Normal || lane == Lane::Background,
-                                  "Topics use Normal or Background; urgent capacity is reserved for control");
-                    static constexpr auto configurations{ std::define_static_array(
-                      util::annotations_of_type<pnm::msg::SubscriptionOptions>(member)) };
-                    static_assert(configurations.size() <= 1,
-                                  "A topic may select only one queue configuration");
-                    constexpr auto options{ [] {
-                        if constexpr (configurations.empty()) {
-                            return pnm::msg::SubscriptionOptions::latestOnly();
-                        }
-                        else {
-                            return std::meta::extract<pnm::msg::SubscriptionOptions>(configurations[0]);
-                        }
-                    }() };
-                    static_assert(options.capacity >= 1 && options.capacity <= 64,
-                                  "Bridge topic queues must hold 1 to 64 records");
-                    static_assert(options.overflow == pnm::msg::OverflowPolicy::DropOldest ||
-                                    options.overflow == pnm::msg::OverflowPolicy::DropNewest,
-                                  "Unknown topic overflow policy");
-                    if (publisher == local_publisher) {
-                        registerOutgoing<Message>(Metadata::name, lane, options);
+            if constexpr (std::meta::is_nonstatic_data_member(Member)) {
+                using Metadata = pnm::msg::TopicMetadata<Member>;
+                using Message = typename Metadata::Message;
+                static constexpr auto lanes{ std::define_static_array(
+                  util::annotations_of_type<Lane>(Member)) };
+                static_assert(lanes.size() <= 1, "A topic may select only one transport lane");
+                constexpr auto lane{ [] {
+                    if constexpr (lanes.empty()) {
+                        return Lane::Normal;
                     }
                     else {
-                        registerIncoming<Message>(Metadata::name, lane);
+                        return std::meta::extract<Lane>(lanes[0]);
                     }
+                }() };
+                static_assert(lane == Lane::Normal || lane == Lane::Background,
+                              "Topics use Normal or Background; urgent capacity is reserved for control");
+                static constexpr auto configurations{ std::define_static_array(
+                  util::annotations_of_type<pnm::msg::SubscriptionOptions>(Member)) };
+                static_assert(configurations.size() <= 1, "A topic may select only one queue configuration");
+                constexpr auto options{ [] {
+                    if constexpr (configurations.empty()) {
+                        return pnm::msg::SubscriptionOptions::latestOnly();
+                    }
+                    else {
+                        return std::meta::extract<pnm::msg::SubscriptionOptions>(configurations[0]);
+                    }
+                }() };
+                static_assert(options.capacity >= 1 && options.capacity <= MAX_TOPIC_QUEUE,
+                              "Bridge topic queues must hold 1 to 64 records");
+                static_assert(options.overflow == pnm::msg::OverflowPolicy::DropOldest ||
+                                options.overflow == pnm::msg::OverflowPolicy::DropNewest,
+                              "Unknown topic overflow policy");
+                if (publisher == local_publisher) {
+                    registerOutgoing<Message>(Metadata::name, lane, options);
+                }
+                else {
+                    registerIncoming<Message>(Metadata::name, lane);
                 }
             }
         }

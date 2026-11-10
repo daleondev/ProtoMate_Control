@@ -19,10 +19,10 @@ namespace hal::board
 
     namespace
     {
-        constexpr gpio::Pin GREEN_LED{ gpio::Port::J, 13 };
-        constexpr gpio::Pin BLUE_LED{ gpio::Port::E, 3 };
-        constexpr gpio::Pin RED_LED{ gpio::Port::I, 12 };
-        constexpr gpio::Pin USER_BUTTON{ gpio::Port::C, 13 };
+        constexpr gpio::Pin GREEN_LED{ .port = gpio::Port::J, .number = 13 };
+        constexpr gpio::Pin BLUE_LED{ .port = gpio::Port::E, .number = 3 };
+        constexpr gpio::Pin RED_LED{ .port = gpio::Port::I, .number = 12 };
+        constexpr gpio::Pin USER_BUTTON{ .port = gpio::Port::C, .number = 13 };
 
         auto make_led(gpio::Pin pin) -> std::shared_ptr<device::ILed>
         {

@@ -3,9 +3,13 @@
 #include "hal/stm32/HalResult.hpp"
 namespace hal
 {
+    namespace
+    {
+        constexpr std::uint8_t MAX_SEVEN_BIT_ADDRESS{ 0x7F };
+    }
     auto I2c::probe(std::uint8_t address, std::chrono::milliseconds timeout) -> util::Result<>
     {
-        if (__get_IPSR() || address > 0x7F || !util::valid_transfer_timeout(timeout)) {
+        if (__get_IPSR() || address > MAX_SEVEN_BIT_ADDRESS || !util::valid_transfer_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
         return make_result(HAL_I2C_IsDeviceReady(&m_handle, address << 1, 1, timeout.count()));
@@ -15,8 +19,8 @@ namespace hal
                            std::span<std::uint8_t> bytes,
                            std::chrono::milliseconds timeout) -> util::Result<>
     {
-        if (__get_IPSR() || address > 0x7F || bytes.empty() || !util::valid_transfer_size(bytes.size()) ||
-            !util::valid_transfer_timeout(timeout)) {
+        if (__get_IPSR() || address > MAX_SEVEN_BIT_ADDRESS || bytes.empty() ||
+            !util::valid_transfer_size(bytes.size()) || !util::valid_transfer_timeout(timeout)) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
         // HAL's memory-read entry otherwise spins for a fixed 25 ms, even

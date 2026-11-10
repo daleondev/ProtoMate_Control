@@ -27,17 +27,19 @@ namespace ui::gui::util
                                                                                      m_coarse) };
             const auto frequency{ m_timer->getTickFrequencyHz() };
             const auto period{ std::uint64_t(m_timer->getAutoReload()) + 1 };
-            if (!frequency || m_timer->getStateVersion() != m_version || period * 1000 / frequency < 4) {
+            if (!frequency || m_timer->getStateVersion() != m_version ||
+                period * MS_PER_SECOND / frequency < 4) {
                 return coarse;
             }
             const auto delta{ (std::uint64_t(end) + period - m_ticks) % period };
-            const auto approximate{ std::uint64_t(coarse.count()) * frequency / 1000000 };
-            const auto wraps{ approximate + period / 2 > delta ? (approximate + period / 2 - delta) / period
-                                                               : 0 };
-            return std::chrono::microseconds{ (wraps * period + delta) * 1000000 / frequency };
+            const auto approximate{ std::uint64_t(coarse.count()) * frequency / US_PER_SECOND };
+            const auto wraps{ approximate + (period / 2) > delta ? (approximate + period / 2 - delta) / period
+                                                                 : 0 };
+            return std::chrono::microseconds{ (wraps * period + delta) * US_PER_SECOND / frequency };
         }
 
       private:
+        static constexpr std::uint64_t MS_PER_SECOND{ 1000 }, US_PER_SECOND{ 1'000'000 };
         std::shared_ptr<hal::ITimer> m_timer;
         typename Clock::time_point m_coarse;
         hal::ITimer::Tick m_ticks{};

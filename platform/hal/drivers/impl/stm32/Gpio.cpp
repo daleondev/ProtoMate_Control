@@ -1,3 +1,5 @@
+// CMSIS/HAL register macros use fixed MMIO addresses and C pointer casts.
+// NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 #include "profiling/Trace.hpp"
 // CMSIS/HAL macros intentionally use C casts, fixed MMIO addresses and do-while wrappers.
 // The line-specific exceptions below preserve the vendor register interface.
@@ -374,8 +376,12 @@ namespace
     void core_exti(std::uint16_t pin)
     {
 #if defined(CORE_CM4)
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         const auto mask{ EXTI_D2->IMR1 };
 #else
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         const auto mask{ EXTI_D1->IMR1 };
 #endif
         if ((mask & pin) != 0U) {
@@ -436,3 +442,5 @@ extern "C" void EXTI15_10_IRQHandler()
     core_exti(GPIO_PIN_15);
     profiling::interruptExit();
 }
+
+// NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)

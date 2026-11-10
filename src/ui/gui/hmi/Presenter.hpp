@@ -1,133 +1,49 @@
 #pragma once
+#include "Actions.hpp"
 #include "Model.hpp"
 #include <mvp/Presenter.hpp>
 namespace ui::gui::hmi
 {
-    enum Action : unsigned
-    {
-        Home,
-        Move,
-        Programs,
-        IO,
-        Settings,
-        Jobs,
-        Alarms,
-        GlobalStop,
-        Axes,
-        Robot,
-        Cartesian,
-        Preview,
-        Motors,
-        Presets,
-        Axis1,
-        Axis2,
-        Axis3,
-        StepSmall,
-        StepMedium,
-        StepLarge,
-        Minus,
-        Plus,
-        Reference,
-        Execute,
-        Relative,
-        Absolute,
-        Timed,
-        Continuous,
-        JogMinus,
-        JogPlus,
-        Initialize,
-        Enable,
-        Disable,
-        Abort,
-        ZoomIn,
-        ZoomOut,
-        ResetView,
-        XMinus,
-        XPlus,
-        YMinus,
-        YPlus,
-        ZMinus,
-        ZPlus,
-        PreviewJoints,
-        PreviewPoint,
-        PreviewLine,
-        NextBuffer,
-        ApplyDefaults,
-        ActiveSpeed,
-        PrevJobs,
-        NextJobs,
-        TogglePreviews,
-        Cancel0,
-        Cancel1,
-        Cancel2,
-        Cancel3,
-        MemoryUI,
-        MemoryIO,
-        Acknowledge,
-        AxisDynamics,
-        AxisStop,
-        AxisJogPage,
-        MemoryUIStack,
-        MemoryIOStack,
-        RunPreview,
-        Field0 = 100,
-        FieldLast = 111,
-        Key0 = 200,
-        Key9 = 209,
-        KeyDot,
-        KeySign,
-        KeyBack,
-        KeyApply,
-        KeyCancel,
-        Confirm,
-        Reject,
-        More = 300,
-        AxisPosition,
-        StepMode,
-        Advanced,
-        MotorMoveTab,
-        MotorHomeTab,
-        MotorDefaultsTab,
-        SettingsGeneral,
-        SettingsRobot,
-        SettingsDiagnostics,
-        IODigital,
-        IODrivers,
-        Driver0,
-        Driver1,
-        Driver2,
-        DiagnosticUI,
-        DiagnosticIO,
-        DiagnosticHeap,
-        DiagnosticStacks,
-        DiagnosticGraphics,
-        DiagnosticRefresh,
-        DiagnosticPrevious,
-        DiagnosticNext,
-        CartesianJogPage,
-        CartesianPosition,
-        CartesianDynamics,
-        ToggleInfo
-    };
     class Presenter final : public touchgfx::Presenter
     {
       public:
+        Presenter(const Presenter&) = delete;
+        Presenter& operator=(const Presenter&) = delete;
+        Presenter(Presenter&&) = delete;
+        Presenter& operator=(Presenter&&) = delete;
+        ~Presenter() override = default;
+
         explicit Presenter(Model& model)
           : m_model{ model }
         {
         }
         void tick();
         void navigate(Page page);
-        void act(unsigned action, bool pressed);
+        void act(Action action, bool pressed);
         void key(char key);
         Command command(Kind kind) const;
         void send(Command command);
         void requestDiagnostics();
-        bool changed{};
-        bool cameraReset{}, cameraIn{}, cameraOut{}, brightnessChanged{};
-        int holdX{}, holdY{}, holdWidth{}, holdHeight{};
+        struct Updates
+        {
+            bool changed{};
+            bool camera_reset{}, camera_in{}, camera_out{}, brightness_changed{};
+            int hold_x{}, hold_y{}, hold_width{}, hold_height{};
+        };
+        Updates& pending() noexcept { return m_pending; }
 
       private:
+        void editNumber(Action action);
+        bool navigation(Action action);
+        void releaseHeld() const;
+        bool movementModes(Action action);
+        bool diagnosticActions(Action action);
+        bool motionActions(Action action);
+        bool historyActions(Action action);
+        void jogAxis(Action action);
+        void executeMove(Action action);
+        void jogCartesian(Action action);
+        Updates m_pending{};
         Model& m_model;
         Command m_confirmation{};
     };

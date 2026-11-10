@@ -312,6 +312,8 @@ namespace hal
 extern "C" void TIM5_IRQHandler()
 {
     profiling::interruptEnter();
+    // CMSIS peripheral access uses the MCU fixed-address register map.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     hal::Timer::dispatchInterrupt(TIM5);
     profiling::interruptExit();
 }
@@ -319,6 +321,8 @@ extern "C" void TIM5_IRQHandler()
 extern "C" void TIM8_BRK_TIM12_IRQHandler()
 {
     profiling::interruptEnter();
+    // CMSIS peripheral access uses the MCU fixed-address register map.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
     hal::Timer::dispatchInterrupt(TIM12);
     profiling::interruptExit();
 }

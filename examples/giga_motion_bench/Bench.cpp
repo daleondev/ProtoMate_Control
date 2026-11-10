@@ -13,7 +13,9 @@
 #include <ctime>
 #include <exception>
 
-extern "C" { std::uint32_t giga_motion_bench_buffer_edges = 512; }
+extern "C" {
+std::uint32_t giga_motion_bench_buffer_edges = 512;
+}
 
 namespace motion_bench
 {
@@ -57,16 +59,25 @@ namespace motion_bench
         std::printf("\"maximum_backlog\":%lu,", (unsigned long)r.maximum_backlog);
         std::printf("\"auxiliary\":%lu,", (unsigned long)r.clock);
         std::printf("\"refill_cycles\":%lu,\"refill_budget_ticks\":%lu,",
-                    (unsigned long)r.refill_cycles, (unsigned long)r.refill_budget_ticks);
+                    (unsigned long)r.refill_cycles,
+                    (unsigned long)r.refill_budget_ticks);
         std::printf("\"minimum_stack_thread\":\"%s\",", r.minimum_stack_thread.data());
-        std::printf("\"executor_build_us\":%lu,\"executor_splice_us\":%lu,\"executor_error\":%lu,\"executor_cut\":%lu,\"executor_reason\":%lu,\"executor_request\":%lu,",
-                    (unsigned long)r.executor_build_us,(unsigned long)r.executor_splice_us,(unsigned long)r.executor_error,(unsigned long)r.executor_cut,(unsigned long)r.executor_reason,(unsigned long)r.executor_request);
-        std::printf("\"icc_state\":%lu,\"icc_reason\":%lu,",
-                    (unsigned long)r.icc_state, (unsigned long)r.icc_reason);
+        std::printf("\"executor_build_us\":%lu,\"executor_splice_us\":%lu,\"executor_error\":%lu,\"executor_"
+                    "cut\":%lu,\"executor_reason\":%lu,\"executor_request\":%lu,",
+                    (unsigned long)r.executor_build_us,
+                    (unsigned long)r.executor_splice_us,
+                    (unsigned long)r.executor_error,
+                    (unsigned long)r.executor_cut,
+                    (unsigned long)r.executor_reason,
+                    (unsigned long)r.executor_request);
+        std::printf(
+          "\"icc_state\":%lu,\"icc_reason\":%lu,", (unsigned long)r.icc_state, (unsigned long)r.icc_reason);
         std::printf("\"startup\":[");
-        for (unsigned axis=0;axis<3;++axis) {
-            std::printf("%s[",axis ? "," : "");
-            for (unsigned n=0;n<8;++n) std::printf("%s%lu",n ? "," : "",(unsigned long)r.startup[axis][n]);
+        for (unsigned axis = 0; axis < 3; ++axis) {
+            std::printf("%s[", axis ? "," : "");
+            for (unsigned n = 0; n < 8; ++n) {
+                std::printf("%s%lu", n ? "," : "", (unsigned long)r.startup[axis][n]);
+            }
             std::printf("]");
         }
         std::printf("],");
@@ -102,7 +113,7 @@ namespace motion_bench
                     auto t1 = now();
                     report.processing.add(t1 - t0);
                     auto t2 = now();
-                    hal::util::intercoreTrace(hal::util::InterCoreStage::Handler);
+                    hal::util::intercore_trace(hal::util::InterCoreStage::Handler);
                     report.latency.add(now() - t2);
                 }
                 break;
@@ -182,11 +193,13 @@ int main()
 #if defined(CORE_CM4)
         motorEnable = hal::core::create_steppers_enable_output();
         const auto& enable = motorEnable;
-        if (!enable || enable->read() != hal::gpio::Level::High)
+        if (!enable || enable->read() != hal::gpio::Level::High) {
             hal::panic("Motion bench motor enable active");
+        }
         auto& memory = *reinterpret_cast<hal::util::InterCoreMemory*>(0x38000000U);
-        while (acquire(memory.state[1]) != 1)
+        while (acquire(memory.state[1]) != 1) {
             std::this_thread::sleep_for(1ms);
+        }
         release(shared.ready, 1);
         std::uint32_t previous{};
         for (;;) {
@@ -202,8 +215,9 @@ int main()
             report = {};
             run(request, report, channel);
             marker->write(hal::gpio::Level::Low);
-            if (enable->read() != hal::gpio::Level::High)
+            if (enable->read() != hal::gpio::Level::High) {
                 hal::panic("Motion bench enabled motor");
+            }
             release(shared.done, next);
         }
 #else
@@ -219,8 +233,9 @@ int main()
         auto render = runtime::thread::create_jthread(
           { .name = "bench.render", .priority = 16, .stack_size = 16U * 1024 },
           [&](std::stop_token s) { gui.render3d(s); });
-        while (!acquire(shared.ready))
+        while (!acquire(shared.ready)) {
             std::this_thread::sleep_for(1ms);
+        }
         std::printf("[motion-bench] READY boot=%lu TIM5_PSC=%lu ARR=%lu; enable inactive\n",
                     (unsigned long)shared.boot,
                     (unsigned long)TIM5->PSC,
@@ -237,12 +252,14 @@ int main()
                 continue;
             }
             if (input.character != '\n' && input.character != '\r') {
-                if (length + 1 < line.size())
+                if (length + 1 < line.size()) {
                     line[length++] = input.character;
+                }
                 continue;
             }
-            if (!length)
+            if (!length) {
                 continue;
+            }
             line[length] = 0;
             length = 0;
             unsigned priority{}, fixture{}, count{ 1000 }, bytes{ 32 }, rate{ 1000 }, direction{}, lane{};
@@ -268,41 +285,81 @@ int main()
             if (std::string_view(line.data()) == "identity") {
                 const volatile auto* pair = reinterpret_cast<const volatile unsigned char*>(0x90e00010);
                 std::printf("{\"test\":\"identity\",\"boot\":%lu,\"pair_id\":\"", (unsigned long)shared.boot);
-                for (unsigned i = 0; i < 32; ++i)
+                for (unsigned i = 0; i < 32; ++i) {
                     std::printf("%02x", unsigned(pair[i]));
+                }
                 std::puts("\"}");
                 std::puts("[motion-bench] DONE");
                 continue;
             }
-            unsigned profileShape{}, profileHalf{64}, traffic{};
+            unsigned profileShape{}, profileHalf{ 64 }, traffic{};
             if (std::sscanf(line.data(), "startup %u %u %u", &bytes, &direction, &count) == 3) {
                 if (!bytes || bytes > 7 || direction > 1 || !count || count > 20) {
-                    std::puts("[motion-bench] invalid startup"); continue;
+                    std::puts("[motion-bench] invalid startup");
+                    continue;
                 }
-                r.operation=Operation::Executor; r.startup_mask=bytes; r.immutable=direction;
-                r.count=count; r.rate=motion::operating::STEP_RATE; r.lane=1; r.fixture=0; phase=2; name="executor";
+                r.operation = Operation::Executor;
+                r.startup_mask = bytes;
+                r.immutable = direction;
+                r.count = count;
+                r.rate = motion::operating::STEP_RATE;
+                r.lane = 1;
+                r.fixture = 0;
+                phase = 2;
+                name = "executor";
                 gui.bars();
                 std::this_thread::sleep_for(100ms);
             }
             else if (std::string_view(line.data()) == "gui") {
                 gui.showcase();
-                std::puts("[motion-bench] DONE"); continue;
+                std::puts("[motion-bench] DONE");
+                continue;
             }
-            else if (std::sscanf(line.data(), "executor %u %u %u %u %u %u", &count, &bytes, &direction, &fixture, &profileShape, &traffic) >= 4) {
-                if (!count || count > 1000 || bytes > 500 || direction > 3 || profileShape>2 || traffic>1 || (fixture != 0 && fixture != 20)) {
-                    std::puts("[motion-bench] invalid executor"); continue;
+            else if (std::sscanf(line.data(),
+                                 "executor %u %u %u %u %u %u",
+                                 &count,
+                                 &bytes,
+                                 &direction,
+                                 &fixture,
+                                 &profileShape,
+                                 &traffic) >= 4) {
+                if (!count || count > 1000 || bytes > 500 || direction > 3 || profileShape > 2 ||
+                    traffic > 1 || (fixture != 0 && fixture != 20)) {
+                    std::puts("[motion-bench] invalid executor");
+                    continue;
                 }
-                r.operation=Operation::Executor; r.count=count; r.bytes=bytes; r.direction=direction;
-                r.fixture=fixture; r.rate=motion::operating::STEP_RATE; r.lane=profileShape; r.traffic=traffic; phase=2; name="executor";
+                r.operation = Operation::Executor;
+                r.count = count;
+                r.bytes = bytes;
+                r.direction = direction;
+                r.fixture = fixture;
+                r.rate = motion::operating::STEP_RATE;
+                r.lane = profileShape;
+                r.traffic = traffic;
+                phase = 2;
+                name = "executor";
             }
-            else if (std::sscanf(line.data(), "profile %u %u %u %u %u", &rate, &count, &fixture, &profileShape, &profileHalf) >= 3) {
-                if (rate < 1000 || rate > 25000 || !count || count > 1000 || profileShape>1 ||
-                    (profileHalf!=64 && profileHalf!=128 && profileHalf!=256) || (fixture != 0 && fixture != 20 && fixture != 40)) {
-                    std::puts("[motion-bench] invalid profile"); continue;
+            else if (std::sscanf(line.data(),
+                                 "profile %u %u %u %u %u",
+                                 &rate,
+                                 &count,
+                                 &fixture,
+                                 &profileShape,
+                                 &profileHalf) >= 3) {
+                if (rate < 1000 || rate > 25000 || !count || count > 1000 || profileShape > 1 ||
+                    (profileHalf != 64 && profileHalf != 128 && profileHalf != 256) ||
+                    (fixture != 0 && fixture != 20 && fixture != 40)) {
+                    std::puts("[motion-bench] invalid profile");
+                    continue;
                 }
-                r.operation=Operation::Profile; r.rate=rate; r.count=count; r.fixture=fixture;
-                r.direction=profileShape; r.bytes=profileHalf;
-                phase=2; name="profile";
+                r.operation = Operation::Profile;
+                r.rate = rate;
+                r.count = count;
+                r.fixture = fixture;
+                r.direction = profileShape;
+                r.bytes = profileHalf;
+                phase = 2;
+                name = "profile";
             }
             else if (std::sscanf(line.data(), "stopping %u %u %u", &rate, &count, &fixture) == 3) {
                 if (rate < 1000 || rate > 100000 || !count || count > 1000 || fixture > 1) {
@@ -438,8 +495,9 @@ int main()
                 }
                 phase = requested;
             }
-            else if (std::string_view(line.data()) == "clock")
+            else if (std::string_view(line.data()) == "clock") {
                 r.operation = Operation::Clock;
+            }
             else if (std::string_view(line.data()) == "reset") {
                 NVIC_SystemReset();
             }
@@ -473,10 +531,12 @@ int main()
             const auto end =
               std::chrono::steady_clock::now() +
               std::chrono::microseconds{ r.rate ? std::uint64_t(r.count) * 1000000 / r.rate : 0 } + 60s;
-            while (acquire(shared.done) != sequence && std::chrono::steady_clock::now() < end)
+            while (acquire(shared.done) != sequence && std::chrono::steady_clock::now() < end) {
                 std::this_thread::sleep_for(1ms);
-            if (acquire(shared.done) != sequence)
+            }
+            if (acquire(shared.done) != sequence) {
                 hal::panic("Motion benchmark peer timeout");
+            }
             marker->write(hal::gpio::Level::Low);
             std::printf("{\"test\":\"case\",\"boot\":%lu,\"sequence\":%lu,\"fixture\":%u,\"bytes\":%u,"
                         "\"rate\":%u,\"count\":%u,\"direction\":%u,\"lane\":%u}\n",

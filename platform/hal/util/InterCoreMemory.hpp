@@ -150,6 +150,7 @@ namespace hal::util
     static_assert(std::is_trivially_default_constructible_v<InterCoreMemory> &&
                   std::is_trivially_copyable_v<InterCoreMemory> &&
                   std::is_standard_layout_v<InterCoreMemory>);
-    static_assert(sizeof(InterCoreMemory) == 49312);
-    static_assert(sizeof(InterCoreMemory) <= 64 * 1024);
+    inline constexpr std::size_t ICC_LAYOUT_BYTES{ 49312 }, SRAM4_BYTES{ 64 * 1024 };
+    static_assert(sizeof(InterCoreMemory) == ICC_LAYOUT_BYTES);
+    static_assert(sizeof(InterCoreMemory) <= SRAM4_BYTES);
 }

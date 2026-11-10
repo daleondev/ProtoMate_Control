@@ -978,6 +978,7 @@ namespace ui::cli::filesystem
 
     void setup(Parser& parser)
     {
-        std::call_once(parser.m_filesystemRegistration, [&parser] { register_commands<^^commands>(parser); });
+        parser.registerModule(Parser::Module::Filesystem,
+                              [&parser] { register_commands<^^commands>(parser); });
     }
 }

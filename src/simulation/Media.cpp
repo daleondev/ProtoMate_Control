@@ -7,126 +7,164 @@
 #include <sys/stat.h>
 #include <system_error>
 #include <unistd.h>
+#include <utility>
 namespace simulation
 {
     namespace
     {
-        constexpr std::array<std::size_t, 2> sizes{ 16U * 1024U * 1024U, 64U * 1024U * 1024U };
+        constexpr std::size_t BLOCK_BYTES{ 512 }, ERASE_BYTES{ 4096 };
+        constexpr std::byte ERASED{ 0xFF };
+        constexpr std::size_t TEMP_NAME_BYTES{ 32 };
+        constexpr std::array<std::size_t, 2> SIZES{ 16UZ * 1024UZ * 1024UZ, 64UZ * 1024UZ * 1024UZ };
+        bool can_program(int fd, std::uint64_t offset, std::span<const std::byte> bytes)
+        {
+            const auto count{ bytes.size() };
+
+            std::array<std::byte, PAYLOAD_BYTES> original{};
+            if (pread(fd, original.data(), count, static_cast<off_t>(offset)) !=
+                static_cast<ssize_t>(count)) {
+                return false;
+            }
+            for (std::size_t i{}; i < count; ++i) {
+                if ((original[i] & bytes[i]) != bytes[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
-    Media::Media(const std::filesystem::path& directory)
-      : m_directory{ directory }
+    Media::Media(std::filesystem::path directory)
+      : m_directory{ std::move(directory) }
     {
     }
     Media::~Media()
     {
-        for (int fd : m_fd)
+        for (int fd : m_fd) {
             if (fd >= 0) {
                 fsync(fd);
                 close(fd);
             }
+        }
     }
     void Media::open(unsigned device)
     {
-        if (m_fd[device] >= 0)
+        if (m_fd[device] >= 0) {
             return;
+        }
         int fd{ -1 };
         bool created{};
         if (m_directory.empty()) {
-            std::array<char, 32> name{};
+            std::array<char, TEMP_NAME_BYTES> name{};
             const std::string pattern{ "/tmp/protomate-media-XXXXXX" };
-            std::copy(pattern.begin(), pattern.end(), name.begin());
+            std::ranges::copy(pattern, name.begin());
             fd = mkstemp(name.data());
-            if (fd >= 0)
+            if (fd >= 0) {
                 unlink(name.data());
+            }
             created = true;
         }
         else {
             std::filesystem::create_directories(m_directory);
             auto path{ m_directory / (device ? "sd.img" : "flash.img") };
-            fd = ::open(path.c_str(), O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+            // POSIX open takes the creation mode through its variadic ABI.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+            fd = ::open(path.c_str(), O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, S_IRUSR | S_IWUSR);
             created = fd >= 0;
-            if (fd < 0 && errno == EEXIST)
+            if (fd < 0 && errno == EEXIST) {
+                // POSIX open retains its variadic signature without O_CREAT.
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
                 fd = ::open(path.c_str(), O_RDWR | O_CLOEXEC);
+            }
         }
-        if (fd < 0)
+        if (fd < 0) {
             throw std::system_error{ errno, std::generic_category(), "open simulator media" };
+        }
         if (flock(fd, LOCK_EX | LOCK_NB) != 0) {
             close(fd);
             throw std::runtime_error{ "simulator image is already in use" };
         }
         struct stat st{};
-        if (fstat(fd, &st) || (!created && static_cast<std::size_t>(st.st_size) != sizes[device])) {
+        if (fstat(fd, &st) || (!created && !std::cmp_equal(st.st_size, SIZES[device]))) {
             close(fd);
             throw std::runtime_error{ "incorrect simulator image size" };
         }
         if (created) {
-            std::array<std::byte, 4096> block{};
-            if (!device)
-                block.fill(std::byte{ 255 });
-            for (std::size_t offset{}; offset < sizes[device]; offset += block.size())
+            std::array<std::byte, ERASE_BYTES> block{};
+            if (!device) {
+                block.fill(ERASED);
+            }
+            for (std::size_t offset{}; offset < SIZES[device]; offset += block.size()) {
                 if (pwrite(fd, block.data(), block.size(), static_cast<off_t>(offset)) !=
                     static_cast<ssize_t>(block.size())) {
                     close(fd);
                     throw std::runtime_error{ "initialize simulator media" };
                 }
+            }
         }
         m_fd[device] = fd;
         m_created[device] = created;
     }
+    void Media::write(const Packet& q, Packet& r)
+    {
+        const auto device{ q.arguments[0] };
+        const auto offset{ q.arguments[1] };
+        const auto count{ q.arguments[2] };
+        auto bytes{ q.data };
+        if (q.operation == Operation::MediaErase) {
+            bytes.fill(ERASED);
+        }
+        else {
+            if (q.size != count) {
+                r.status = EINVAL;
+                return;
+            }
+            if (!device && !can_program(m_fd[device], offset, std::span{ bytes }.first(count))) {
+                r.status = EIO;
+                return;
+            }
+        }
+        if (pwrite(m_fd[device], bytes.data(), count, static_cast<off_t>(offset)) !=
+            static_cast<ssize_t>(count)) {
+            r.status = EIO;
+        }
+    }
     void Media::execute(const Packet& q, Packet& r)
     {
-        const auto device{ q.arguments[0] }, offset{ q.arguments[1] }, count{ q.arguments[2] };
+        const auto device{ q.arguments[0] };
+        const auto offset{ q.arguments[1] };
+        const auto count{ q.arguments[2] };
         if (device > 1) {
             r.status = EINVAL;
             return;
         }
         open(static_cast<unsigned>(device));
         if (q.operation == Operation::MediaInfo) {
-            r.arguments = { sizes[device], m_created[device], 512, device ? 512U : 4096U };
+            r.arguments = {
+                SIZES[device], m_created[device], BLOCK_BYTES, device ? BLOCK_BYTES : ERASE_BYTES
+            };
             return;
         }
         if (q.operation == Operation::MediaFlush) {
-            if (fsync(m_fd[device]))
+            if (fsync(m_fd[device])) {
                 r.status = EIO;
+            }
             return;
         }
-        if (count > PAYLOAD_BYTES || offset > sizes[device] || count > sizes[device] - offset) {
+        if (count > PAYLOAD_BYTES || offset > SIZES[device] || count > SIZES[device] - offset) {
             r.status = EINVAL;
             return;
         }
         if (q.operation == Operation::MediaRead) {
             if (pread(m_fd[device], r.data.data(), count, static_cast<off_t>(offset)) !=
-                static_cast<ssize_t>(count))
+                static_cast<ssize_t>(count)) {
                 r.status = EIO;
-            else
+            }
+            else {
                 r.size = static_cast<std::uint32_t>(count);
+            }
         }
         else {
-            auto bytes{ q.data };
-            if (q.operation == Operation::MediaErase)
-                bytes.fill(std::byte{ 255 });
-            else {
-                if (q.size != count) {
-                    r.status = EINVAL;
-                    return;
-                }
-                if (!device) {
-                    std::array<std::byte, PAYLOAD_BYTES> original{};
-                    if (pread(m_fd[device], original.data(), count, static_cast<off_t>(offset)) !=
-                        static_cast<ssize_t>(count)) {
-                        r.status = EIO;
-                        return;
-                    }
-                    for (std::size_t i{}; i < count; ++i)
-                        if ((original[i] & bytes[i]) != bytes[i]) {
-                            r.status = EIO;
-                            return;
-                        }
-                }
-            }
-            if (pwrite(m_fd[device], bytes.data(), count, static_cast<off_t>(offset)) !=
-                static_cast<ssize_t>(count))
-                r.status = EIO;
+            write(q, r);
         }
     }
 }

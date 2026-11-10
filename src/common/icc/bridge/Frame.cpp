@@ -8,14 +8,17 @@ namespace icc::util
 {
     StoredFrame::StoredFrame(std::size_t reserve)
     {
-        if (reserve > MAX_FRAME_BYTES) throw std::length_error("Invalid retained frame capacity");
+        if (reserve > MAX_FRAME_BYTES) {
+            throw std::length_error("Invalid retained frame capacity");
+        }
         m_bytes.reserve(reserve);
     }
     StoredFrame::StoredFrame(const OutgoingFrame& frame) { *this = frame; }
     StoredFrame& StoredFrame::operator=(const OutgoingFrame& frame)
     {
-        if (frame.size == 0 || frame.size > MAX_FRAME_BYTES)
+        if (frame.size == 0 || frame.size > MAX_FRAME_BYTES) {
             throw std::length_error("Invalid retained frame size");
+        }
         m_bytes.resize(frame.size);
         std::copy_n(frame.bytes.begin(), frame.size, m_bytes.begin());
         return *this;
@@ -29,7 +32,7 @@ namespace icc::util
     }
     OutgoingFrame StoredFrame::take() noexcept
     {
-        auto frame = copy();
+        auto frame{ copy() };
         reset();
         return frame;
     }

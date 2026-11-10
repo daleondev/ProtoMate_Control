@@ -413,7 +413,7 @@ namespace
         {
         }
 
-        auto run(std::stop_token stop) -> void
+        auto run(const std::stop_token& stop) -> void
         {
             bool running{ true };
             bool dirty{ true };
@@ -840,12 +840,12 @@ namespace ui::cli::terminal
         linux_console::publish(linux_console::Channel::Log, line);
     }
 
-    auto run(Parser& parser, std::stop_token stop) -> void
+    auto run(Parser& parser, const std::stop_token& stop) -> void
     {
         TerminalSession terminal{};
         if (!terminal.active()) {
             linux_console::activate_plain();
-            runStream(parser, stop, false);
+            run_stream(parser, stop, false);
             return;
         }
 

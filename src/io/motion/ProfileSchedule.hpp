@@ -13,14 +13,24 @@ namespace io::motion
     class ProfileSchedule final : public hal::step::TimedSequence
     {
       public:
+        static constexpr std::uint32_t HALF_PULSES{ 64 };
+        static constexpr std::uint32_t HIGH_TICKS{ 50 };
+        ProfileSchedule(ProfileSchedule&&) = delete;
+        auto operator=(ProfileSchedule&&) -> ProfileSchedule& = delete;
+        ~ProfileSchedule() override = default;
+
         // Shared once per axis. Renewed banks retain this immutable source;
         // only the stopping continuation is stored separately in each bank.
         struct Nominal final
         {
+            Nominal(Nominal&&) = delete;
+            auto operator=(Nominal&&) -> Nominal& = delete;
+            ~Nominal() = default;
+
             explicit Nominal(const ::motion::Profile& value,
-                             std::uint32_t half_pulses = 64,
+                             std::uint32_t half_pulses = HALF_PULSES,
                              bool rolling = false,
-                             const ::motion::ProgressPath& path = {});
+                             const ::motion::ProgressPath& mapped = {});
             Nominal(const Nominal&) = delete;
             Nominal& operator=(const Nominal&) = delete;
             ::motion::Profile profile;
@@ -38,7 +48,9 @@ namespace io::motion
         using Source = std::shared_ptr<const Nominal>;
         explicit ProfileSchedule(const ::motion::Profile& profile);
         explicit ProfileSchedule(Source nominal);
-        ProfileSchedule(Source nominal, std::uint64_t cut, ::motion::Profile::Limits limits,
+        ProfileSchedule(Source source,
+                        std::uint64_t cut,
+                        ::motion::Profile::Limits limits,
                         const ::motion::Profile* shared_brake = nullptr);
         ProfileSchedule(const ProfileSchedule& nominal, std::uint64_t cut, ::motion::Profile::Limits limits);
         ProfileSchedule(const ProfileSchedule&) = delete;
@@ -48,16 +60,19 @@ namespace io::motion
         std::uint64_t firstTick() const noexcept { return m_first; }
         std::uint64_t endTick() const noexcept { return m_end; }
         std::uint64_t cutTick() const noexcept { return m_cut; }
-        std::uint64_t timeBase() const noexcept override { return m_source ? m_first-m_source->first : 0; }
+        std::uint64_t timeBase() const noexcept override { return m_source ? m_first - m_source->first : 0; }
         std::uint32_t initialOffset() const noexcept override;
         const ::motion::Profile& profile() const noexcept { return m_source->profile; }
         std::optional<std::int64_t> commonPrefix(const hal::step::Sequence& previous) const noexcept override;
         hal::step::PulseCount count() const noexcept override { return m_count; }
-        std::uint32_t bufferPulses() const noexcept override { return m_source ? m_source->half_pulses : 64; }
+        std::uint32_t bufferPulses() const noexcept override
+        {
+            return m_source ? m_source->half_pulses : HALF_PULSES;
+        }
         std::chrono::nanoseconds maximumPeriod() const noexcept override;
         std::optional<std::int64_t> endTickOffset() const noexcept override
         {
-            return std::int64_t(m_end) - std::int64_t(m_first) + 50;
+            return std::int64_t(m_end) - std::int64_t(m_first) + HIGH_TICKS;
         }
         hal::util::Result<std::uint32_t> risingTick(hal::step::PulseCount pulse) const noexcept override;
         hal::util::Result<hal::step::Timing> timing(hal::step::PulseCount pulse) const noexcept override;

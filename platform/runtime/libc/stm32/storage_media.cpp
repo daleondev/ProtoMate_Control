@@ -13,15 +13,30 @@ runtime::storage::Diagnostics runtime_storage_diagnostics{};
 
 namespace
 {
+    constexpr unsigned CACHE_ALIGNMENT{ 32 }, CACHE_BYTES{ 4096 }, ROOT_DIRECTORY_ENTRIES{ 128 };
     using runtime::storage::FlashJournal;
+    // Fixed FileX driver state; FileX serializes device operations. No DMA accesses these objects.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     runtime::storage::InternalFlash device{};
     // CPU-only storage state: no DMA accesses these objects. Use private DTCM
     // instead of consuming the AXI RAM needed by the CLI and ICC thread heaps.
+    // Fixed FileX driver state; FileX serializes device operations. No DMA accesses these objects.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     [[gnu::section(".dtcm_bss")]] FlashJournal journal{ device };
+    // Fixed FileX driver state; FileX serializes device operations. No DMA accesses these objects.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     [[gnu::section(".dtcm_bss")]] FX_MEDIA flash{};
-    [[gnu::section(".dtcm_bss")]] alignas(32) std::array<UCHAR, 4096> cache{};
-    [[gnu::section(".dtcm_bss")]] alignas(32) std::array<UCHAR, 4096> recovery{};
+    // Fixed FileX driver state; FileX serializes device operations. No DMA accesses these objects.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    [[gnu::section(".dtcm_bss")]] alignas(CACHE_ALIGNMENT) std::array<UCHAR, CACHE_BYTES> cache{};
+    // Fixed FileX driver state; FileX serializes device operations. No DMA accesses these objects.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    [[gnu::section(".dtcm_bss")]] alignas(CACHE_ALIGNMENT) std::array<UCHAR, CACHE_BYTES> recovery{};
+    // Fixed FileX driver state; FileX serializes device operations. No DMA accesses these objects.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     bool attempted{};
+    // Fixed FileX driver state; FileX serializes device operations. No DMA accesses these objects.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     bool mounted{};
 
     void driver(FX_MEDIA* media) noexcept
@@ -55,6 +70,8 @@ namespace
         if (!runtime::storage::detail::valid_sector_range(sector, 0, count, FlashJournal::SECTORS)) {
             return;
         }
+        // Linker-reserved storage is exposed as a byte span by the flash backend.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto* buffer{ reinterpret_cast<std::byte*>(media->fx_media_driver_buffer) };
         for (std::size_t i{}; i < count; ++i) {
             bool ok{};
@@ -63,7 +80,7 @@ namespace
             }
             else {
                 auto bytes{ std::span<std::byte, FlashJournal::SECTOR_BYTES>{
-                  buffer + i * FlashJournal::SECTOR_BYTES, FlashJournal::SECTOR_BYTES } };
+                  buffer + (i * FlashJournal::SECTOR_BYTES), FlashJournal::SECTOR_BYTES } };
                 ok = write ? journal.write(sector + i, bytes) : journal.read(sector + i, bytes);
             }
             runtime_storage_diagnostics.internal_flash_error = device.error();
@@ -102,7 +119,7 @@ namespace runtime::storage
                                                       cache.size(),
                                                       name.data(),
                                                       1,
-                                                      128,
+                                                      ROOT_DIRECTORY_ENTRIES,
                                                       0,
                                                       FlashJournal::SECTORS,
                                                       FlashJournal::SECTOR_BYTES,
@@ -140,8 +157,8 @@ namespace runtime::storage
 namespace runtime::storage
 {
     bool initialize() noexcept { return false; }
-    FX_MEDIA* media(Volume) noexcept { return nullptr; }
-    bool mounted(Volume) noexcept { return false; }
+    FX_MEDIA* media(Volume /*unused*/) noexcept { return nullptr; }
+    bool mounted(Volume /*unused*/) noexcept { return false; }
     const Diagnostics& diagnostics() noexcept { return runtime_storage_diagnostics; }
 }
 #endif

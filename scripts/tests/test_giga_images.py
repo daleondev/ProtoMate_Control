@@ -112,13 +112,16 @@ class ManifestTests(unittest.TestCase):
         words[18] = 2
         words[24:28] = [0x90100080, 0x10000020, 32, 1]
         self.assertFalse(self.valid(seal(words)))
-        words[25] = 0xC0400000
-        words[15] = 0xC0400001
+        words[25] = 0xC0480000
+        words[15] = 0xC0480001
         self.assertFalse(self.valid(seal(words)))
         words[19] = 1
         self.assertTrue(self.valid(seal(words)))
-        words[25] = 0xC0600000
-        self.assertFalse(self.valid(seal(words)))
+        for address in (0xC0400000, 0xC0420000, 0xC0440000, 0xC0460000,
+                        0xC047FFFF, 0xC0600000):
+            words[25] = address
+            self.assertFalse(self.valid(seal(words)), hex(address))
+            self.assertFalse(images.destination(4, address, 32, True))
 
     def test_m4_instruction_and_data_alias_ownership(self):
         # SRAM2's lower half belongs to instruction RAM. Its 0x3002xxxx

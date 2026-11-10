@@ -10,8 +10,10 @@ namespace io::motion
 {
     namespace
     {
-        constexpr auto ENABLE_SETTLING_TIME = std::chrono::milliseconds(200);
-        std::future<StepperMotor::Result> rejectedMotion(const std::function<void()>& notify)
+        constexpr std::uint8_t ALL_AXES{ 7 };
+        constexpr double MAX_ACCELERATION{ 1e8 }, MAX_JERK{ 1e10 };
+        constexpr auto ENABLE_SETTLING_TIME{ std::chrono::milliseconds(200) };
+        std::future<StepperMotor::Result> rejected_motion(const std::function<void()>& notify)
         {
             std::promise<StepperMotor::Result> completion{};
             completion.set_value(StepperMotor::Result::Rejected);
@@ -25,18 +27,20 @@ namespace io::motion
     {
         namespace tr = ::motion::trajectory;
         m_capabilities.reference_forward_mask = 0;
-        for (unsigned i = 0; i < 3; ++i) {
-            const auto step = m_configuration[i].full_step_angle.get() / m_configuration[i].microsteps;
-            if (m_configuration[i].reference_direction == StepperMotor::Direction::Forward)
+        for (unsigned i{ 0 }; i < 3; ++i) {
+            const auto step{ m_configuration[i].full_step_angle.get() /
+                             static_cast<double>(m_configuration[i].microsteps) };
+            if (m_configuration[i].reference_direction == StepperMotor::Direction::Forward) {
                 m_capabilities.reference_forward_mask |= 1U << i;
+            }
             m_capabilities.step_radians[i] = step;
             m_capabilities.reference_steps[i] = m_configuration[i].reference_position.get() / step;
             m_capabilities.limits[i] = { .minimum = -tr::MAX_POSITION,
                                          .maximum = tr::MAX_POSITION,
                                          .velocity = Executor::MAX_PRODUCTION_RATE,
-                                         .acceleration = 1e8,
-                                         .deceleration = 1e8,
-                                         .jerk = 1e10 };
+                                         .acceleration = MAX_ACCELERATION,
+                                         .deceleration = MAX_ACCELERATION,
+                                         .jerk = MAX_JERK };
         }
         m_capabilities.coordinated_execution = true;
         m_capabilities.hardware_fingerprint = tr::fingerprint(m_capabilities);
@@ -62,7 +66,7 @@ namespace io::motion
         result.counts_exact = generator.counts_exact;
         result.state = result.enabled ? tr::State::Unreferenced : tr::State::Disabled;
         for (unsigned i{ 0 }; i < 3; ++i) {
-            const auto step = m_capabilities.step_radians[i];
+            const auto step{ m_capabilities.step_radians[i] };
             const auto count{ tr::quantize(m_motors[i]->setpointPosition().get() / step) };
             if (count) {
                 result.position[i] = *count;
@@ -70,13 +74,13 @@ namespace io::motion
             else {
                 result.counts_exact = false;
             }
-            result.boundary[i].position = result.position[i];
+            result.boundary[i].position = static_cast<double>(result.position[i]);
             result.boundary[i].velocity = m_motors[i]->setpointVelocity().get() / step;
             if (m_motors[i]->isReferenced()) {
                 result.referenced |= static_cast<std::uint8_t>(1U << i);
             }
         }
-        if (result.enabled && result.referenced == 7) {
+        if (result.enabled && result.referenced == ALL_AXES) {
             result.state = tr::State::Ready;
         }
         if (m_faulted.load() || !result.counts_exact) {
@@ -106,7 +110,7 @@ namespace io::motion
         return result;
     }
 
-    void Controller::initializeDrivers(std::stop_token stop)
+    void Controller::initializeDrivers(const std::stop_token& stop)
     {
         std::scoped_lock operation{ m_operationMutex };
         std::uint64_t epoch{};
@@ -149,12 +153,56 @@ namespace io::motion
         m_initialized = true;
         m_admissionLost = false;
         for (auto& g : m_groups) {
-            if (g.executor && !g.executor->recover())
+            if (g.executor && !g.executor->recover()) {
                 throw std::runtime_error("executor recovery failed");
+            }
         }
     }
 
-    void Controller::enable(std::stop_token stop)
+    void Controller::verifyEnable(std::uint64_t epoch, const std::stop_token& stop)
+    {
+        for (auto& motor : m_motors) {
+            const bool verified{ motor->driver().verify().has_value() };
+            std::scoped_lock lock{ m_mutex };
+            if (stop.stop_requested() || epoch != m_controlEpoch) {
+                throw std::runtime_error("motor enable cancelled");
+            }
+            if (!verified) {
+                m_faulted.store(true);
+            }
+        }
+    }
+    hal::util::Result<std::uint8_t> Controller::validateExecutionLocked(
+      const Executor::Command& command) const
+    {
+        const auto fail{ [](std::errc e) { return std::unexpected(std::make_error_code(e)); } };
+        std::uint8_t mask{};
+        for (unsigned i{ 0 }; i < 3; ++i) {
+            const auto& a{ command.axes[i] };
+            if (!a.profile) {
+                continue;
+            }
+            mask |= 1U << i;
+            if (!std::isfinite(a.limits.velocity) || a.limits.velocity > Executor::MAX_PRODUCTION_RATE) {
+                return fail(std::errc::invalid_argument);
+            }
+            const auto& motor{ *m_motors[i] };
+            std::scoped_lock queue{ motor.m_queueMutex };
+            if (motor.m_busy || motor.m_homing || motor.m_pending) {
+                return fail(std::errc::device_or_resource_busy);
+            }
+            if (!motor.isReferenced() || motor.referenceSwitchActive()) {
+                return fail(std::errc::operation_not_permitted);
+            }
+            for (const auto& g : m_groups) {
+                if ((g.mask & (1U << i)) && g.executor && g.executor->reserved()) {
+                    return fail(std::errc::device_or_resource_busy);
+                }
+            }
+        }
+        return mask;
+    }
+    void Controller::enable(const std::stop_token& stop)
     {
         profile_allow_arm(0);
         std::scoped_lock operation{ m_operationMutex };
@@ -176,16 +224,7 @@ namespace io::motion
             m_enabling = true;
         }
         try {
-            for (auto& motor : m_motors) {
-                const bool verified{ motor->driver().verify().has_value() };
-                std::scoped_lock lock{ m_mutex };
-                if (stop.stop_requested() || epoch != m_controlEpoch) {
-                    throw std::runtime_error("motor enable cancelled");
-                }
-                if (!verified) {
-                    m_faulted.store(true);
-                }
-            }
+            verifyEnable(epoch, stop);
             {
                 std::scoped_lock lock{ m_mutex };
                 if (stop.stop_requested() || epoch != m_controlEpoch) {
@@ -244,7 +283,7 @@ namespace io::motion
         if (m_ownership.family() != ::motion::Family::None) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
-        auto result = axis(id).setMotionDefaults(defaults);
+        auto result{ axis(id).setMotionDefaults(defaults) };
         if (result) {
             ++m_controlEpoch;
             m_ownership.changed(1U << unsigned(id));
@@ -260,12 +299,12 @@ namespace io::motion
                                                           pnm::units::AngularJerk jerk,
                                                           BufferMode buffer_mode,
                                                           pnm::units::Time timeout,
-                                                          std::function<void()> completed)
+                                                          const std::function<void()>& completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
         if (!canMoveLocked() || !velocityAllowed(id, velocity)) {
-            return rejectedMotion(completed);
+            return rejected_motion(completed);
         }
         auto future{ target.moveRel(
           distance, velocity, acceleration, deceleration, jerk, buffer_mode, timeout) };
@@ -281,12 +320,12 @@ namespace io::motion
                                                           pnm::units::AngularJerk jerk,
                                                           BufferMode buffer_mode,
                                                           pnm::units::Time timeout,
-                                                          std::function<void()> completed)
+                                                          const std::function<void()>& completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
         if (!canMoveLocked() || !velocityAllowed(id, velocity)) {
-            return rejectedMotion(completed);
+            return rejected_motion(completed);
         }
         auto future{ target.moveAbs(
           position, velocity, acceleration, deceleration, jerk, buffer_mode, timeout) };
@@ -298,12 +337,12 @@ namespace io::motion
                                                             pnm::units::AngularVelocity seek_velocity,
                                                             pnm::units::AngularVelocity latch_velocity,
                                                             pnm::units::Time timeout,
-                                                            std::function<void()> completed)
+                                                            const std::function<void()>& completed)
     {
         std::scoped_lock lock{ m_mutex };
         auto& target{ axis(id) };
         if (!canMoveLocked() || !velocityAllowed(id, seek_velocity) || !velocityAllowed(id, latch_velocity)) {
-            return rejectedMotion(completed);
+            return rejected_motion(completed);
         }
         auto future{ target.reference(seek_velocity, latch_velocity, timeout) };
         target.m_lastCompletion.then(completed);
@@ -313,7 +352,7 @@ namespace io::motion
     pnm::Result<hal::step::PulseCount> Controller::setVelocity(MotorId id,
                                                                pnm::units::AngularVelocity velocity)
     {
-        std::future<pnm::Result<hal::step::PulseCount>> result;
+        std::future<pnm::Result<hal::step::PulseCount>> result{};
         {
             std::scoped_lock lock{ m_mutex };
             auto& target{ axis(id) };
@@ -327,7 +366,7 @@ namespace io::motion
     }
     hal::util::Result<> Controller::execute(const Executor::Command& command)
     {
-        const auto result = prepareExecution(command);
+        const auto result{ prepareExecution(command) };
         return result ? startExecution(command.id) : result;
     }
     hal::util::Result<> Controller::prepareExecution(const Executor::Command& command)
@@ -337,41 +376,24 @@ namespace io::motion
     }
     hal::util::Result<> Controller::prepareExecutionLocked(const Executor::Command& command, bool owned)
     {
-        const auto fail = [](std::errc e) { return std::unexpected(std::make_error_code(e)); };
+        const auto fail{ [](std::errc e) { return std::unexpected(std::make_error_code(e)); } };
         if ((!owned && !canMoveLocked()) || !m_initialized || m_enabling || !enabled() || !driversReady()) {
             return fail(std::errc::operation_not_permitted);
         }
-        std::uint8_t mask{};
-        for (unsigned i = 0; i < 3; ++i) {
-            const auto& a = command.axes[i];
-            if (!a.profile) {
-                continue;
-            }
-            mask |= 1U << i;
-            if (!std::isfinite(a.limits.velocity) || a.limits.velocity > Executor::MAX_PRODUCTION_RATE) {
-                return fail(std::errc::invalid_argument);
-            }
-            const auto& motor = *m_motors[i];
-            std::scoped_lock queue{ motor.m_queueMutex };
-            if (motor.m_busy || motor.m_homing || motor.m_pending) {
-                return fail(std::errc::device_or_resource_busy);
-            }
-            if (!motor.isReferenced() || motor.referenceSwitchActive()) {
-                return fail(std::errc::operation_not_permitted);
-            }
-            for (const auto& g : m_groups) {
-                if ((g.mask & (1U << i)) && g.executor && g.executor->reserved())
-                    return fail(std::errc::device_or_resource_busy);
-            }
+        const auto selected{ validateExecutionLocked(command) };
+        if (!selected) {
+            return std::unexpected(selected.error());
         }
-        auto* slot = std::ranges::find_if(
-          m_groups, [](const auto& g) { return !g.managed && (!g.executor || !g.executor->reserved()); });
+        const auto mask{ *selected };
+        auto* slot{ std::ranges::find_if(
+          m_groups, [](const auto& g) { return !g.managed && (!g.executor || !g.executor->reserved()); }) };
         if (slot == m_groups.end()) {
             return fail(std::errc::device_or_resource_busy);
         }
-        for (unsigned i = 0; i < 3; ++i) {
-            if (mask & (1U << i))
+        for (unsigned i{ 0 }; i < 3; ++i) {
+            if (mask & (1U << i)) {
                 m_motors[i]->stopAndWait();
+            }
         }
         if (!slot->executor) {
             slot->executor = std::make_unique<Executor>(
@@ -389,7 +411,7 @@ namespace io::motion
         for (auto& motor : m_motors) {
             motor->m_events->group_notification.store(&m_executionNotification);
         }
-        const auto result = slot->executor->prepare(command);
+        const auto result{ slot->executor->prepare(command) };
         if (result) {
             slot->job = command.id;
             slot->mask = slot->moving = mask;
@@ -404,17 +426,18 @@ namespace io::motion
     hal::util::Result<> Controller::startExecution(std::uint64_t id)
     {
         std::scoped_lock lock{ m_mutex };
-        auto* slot = std::ranges::find(m_groups, id, &Group::job);
+        auto* slot{ std::ranges::find(m_groups, id, &Group::job) };
         if (slot == m_groups.end() || !slot->executor || !m_initialized || m_enabling || !enabled() ||
             !driversReady()) {
             return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
         }
-        for (unsigned i = 0; i < 3; ++i) {
+        for (unsigned i{ 0 }; i < 3; ++i) {
             if ((slot->mask & (1U << i)) &&
-                (!m_motors[i]->isReferenced() || m_motors[i]->coordinatedBlocked()))
+                (!m_motors[i]->isReferenced() || m_motors[i]->coordinatedBlocked())) {
                 return std::unexpected(std::make_error_code(std::errc::operation_not_permitted));
+            }
         }
-        const auto result = slot->executor->start(id);
+        const auto result{ slot->executor->start(id) };
         slot->started = bool(result);
         m_executionNotification.signal();
         return result;

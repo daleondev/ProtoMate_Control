@@ -7,7 +7,7 @@ target_sources(proto_io_motion
         Limits.hpp
         Controller.hpp
         Controller.cpp
-    ControllerSetup.cpp
+        ControllerSetup.cpp
         ControllerAdmission.cpp
         ControllerHoming.cpp
         Ownership.hpp
@@ -17,6 +17,7 @@ target_sources(proto_io_motion
         TrajectorySession.cpp
         Executor.hpp
         Executor.cpp
+        ExecutorSetup.cpp
         ExecutorDiagnostic.cpp
         ScheduleFailure.hpp
         ProfileSchedule.hpp
@@ -26,6 +27,7 @@ target_sources(proto_io_motion
         ProfileMemory.hpp
         StepperMotor.hpp
         StepperMotor.cpp
+        StepperMotorSetup.cpp
         StepperMotorCommands.cpp
         Sequence.hpp
         Sequence.cpp

@@ -7,15 +7,19 @@
 #include <array>
 #include <ctime>
 #include <gtest/gtest.h>
+#include <optional>
 #include <random>
+#include <stdexcept>
 #include <thread>
 #include <touchgfx/Bitmap.hpp>
+#include <touchgfx/hal/OSWrappers.hpp>
 namespace
 {
     class GuiGraphics : public ::testing::Test
     {
-        void SetUp() override { ui::gui::os::prepare({}); }
-        void TearDown() override { ui::gui::os::finish(); }
+        std::optional<ui::gui::os::Session> session;
+        void SetUp() override { session.emplace(std::stop_token{}); }
+        void TearDown() override { session.reset(); }
     };
     class Graphics final : public hal::IGraphics
     {
@@ -66,6 +70,25 @@ namespace
         op.color = 0xffff;
         return op;
     }
+}
+TEST(GuiSynchronization, FailedConstructionReleasesOwnershipAndAllowsReinitialization)
+{
+    struct FailedEngine
+    {
+        ui::gui::os::Session session{ std::stop_token{} };
+        FailedEngine() { throw std::runtime_error("injected initialization failure"); }
+    };
+    EXPECT_THROW(FailedEngine{}, std::runtime_error);
+    {
+        ui::gui::os::Session session{ std::stop_token{} };
+        EXPECT_THROW(ui::gui::os::Session{ std::stop_token{} }, std::logic_error);
+        touchgfx::OSWrappers::takeFrameBufferSemaphore();
+        touchgfx::OSWrappers::giveFrameBufferSemaphore();
+        touchgfx::OSWrappers::signalVSync();
+        EXPECT_TRUE(touchgfx::OSWrappers::isVSyncAvailable());
+        EXPECT_FALSE(touchgfx::OSWrappers::isVSyncAvailable());
+    }
+    EXPECT_NO_THROW(ui::gui::os::Session{ std::stop_token{} });
 }
 TEST_F(GuiGraphics, InlineCompletionIsNotLost)
 {
@@ -171,17 +194,20 @@ TEST(DirtyRegions, NestedAndAdjacentDamageIsCopiedOnce)
 TEST(DirtyRegions, OverflowRetainsCoverageWithoutFullScreenFallback)
 {
     ui::gui::util::DirtyRegions dirty;
-    for (unsigned i = 0; i < 17; ++i)
+    for (unsigned i = 0; i < 17; ++i) {
         dirty.add({ static_cast<int16_t>(i * 30), 10, 10, 10 });
+    }
     ASSERT_LE(dirty.regions().size(), 16U);
     unsigned pixels{};
-    for (const auto& r : dirty.regions())
+    for (const auto& r : dirty.regions()) {
         pixels += unsigned(r.width) * r.height;
+    }
     EXPECT_LT(pixels, 3000U);
     for (int i = 0; i < 17; ++i) {
         bool covered{};
-        for (const auto& r : dirty.regions())
+        for (const auto& r : dirty.regions()) {
             covered |= r.x <= i * 30 && r.right() >= i * 30 + 10 && r.y <= 10 && r.bottom() >= 20;
+        }
         EXPECT_TRUE(covered);
     }
 }
@@ -202,13 +228,15 @@ TEST(DirtyRegions, RandomizedCoverageClippingAndDisjointCopies)
         }
         EXPECT_LE(dirty.regions().size(), 16U);
         for (const auto& r : input) {
-            if (r.isEmpty())
+            if (r.isEmpty()) {
                 continue;
+            }
             // The algorithm merges whole rectangles, never splits one.
             bool covered{};
-            for (const auto& out : dirty.regions())
+            for (const auto& out : dirty.regions()) {
                 covered |=
                   out.x <= r.x && out.y <= r.y && out.right() >= r.right() && out.bottom() >= r.bottom();
+            }
             EXPECT_TRUE(covered);
         }
         for (unsigned i = 0; i < dirty.regions().size(); ++i) {

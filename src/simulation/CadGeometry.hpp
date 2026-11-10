@@ -27,6 +27,8 @@ namespace simulation::cad
         { { 0, 0, -1 }, { 0, 0, -1 }, { -1, 0, 0 } }
     };
 
+    // Fixed representation is part of the existing protocol/diagnostic contract.
+    // NOLINTNEXTLINE(performance-enum-size)
     enum class Link : unsigned
     {
         Base,
@@ -43,8 +45,12 @@ namespace simulation::cad
     // Positions in the corresponding DAE link frame, at the supplier's free
     // plunger position. These are NOT electrical trigger points/home offsets.
     inline constexpr std::array<SensorMount, 3> HOME_SENSOR_MOUNTS{
-        { { Link::Base, { -78.7, 0.4, 195.2 }, { 1, 0, 0 } },
-          { Link::Shoulder, { 154.1, 0.4, 221.8 }, { 1, 0, 0 } },
-          { Link::Forearm, { 321.6, 49.7, -106.5 }, { 0, -1, 0 } } }
+        { { .parent = Link::Base, .plunger_center_mm = { -78.7, 0.4, 195.2 }, .outward_axis = { 1, 0, 0 } },
+          { .parent = Link::Shoulder,
+            .plunger_center_mm = { 154.1, 0.4, 221.8 },
+            .outward_axis = { 1, 0, 0 } },
+          { .parent = Link::Forearm,
+            .plunger_center_mm = { 321.6, 49.7, -106.5 },
+            .outward_axis = { 0, -1, 0 } } }
     };
 }

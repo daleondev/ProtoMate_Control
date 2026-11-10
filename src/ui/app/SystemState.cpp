@@ -1,5 +1,6 @@
 #include "SystemState.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <stdexcept>
 #include <utility>
@@ -32,8 +33,6 @@ namespace ui
                 m_local.stopped();
                 break;
             case app::State::Fault:
-                m_local.fail();
-                break;
             default:
                 m_local.fail();
                 break;
@@ -44,6 +43,8 @@ namespace ui
     void SystemState::setFailure(const char* text)
     {
         std::scoped_lock lock{ m_mutex };
+        // Failure reporting must remain bounded and allocation-free.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
         std::snprintf(m_snapshot.failure.data(), m_snapshot.failure.size(), "%s", text);
     }
 
@@ -77,9 +78,7 @@ namespace ui
         if (m_connection.state != icc::ConnectionState::Connected) {
             return;
         }
-        if (state > app::State::Fault) {
-            state = app::State::Fault;
-        }
+        state = std::min(state, app::State::Fault);
         m_snapshot.io = state;
         m_receivedAt = now;
         if (state == app::State::Fault) {

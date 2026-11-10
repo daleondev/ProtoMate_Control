@@ -4,6 +4,8 @@
 
 namespace diagnostics
 {
+    // Fixed representation is part of the existing protocol/diagnostic contract.
+    // NOLINTNEXTLINE(performance-enum-size)
     enum class ProfileOperation : std::uint32_t
     {
         Status,
@@ -20,7 +22,7 @@ namespace diagnostics
         std::uint32_t result{};
         ProfileStatus status{};
     };
-    ProfileResponse controlProfile(ProfileRequest request);
+    ProfileResponse control_profile(ProfileRequest request);
     // Existing maintenance workers call this; samples at most once per second.
-    void pollProfiling();
+    void poll_profiling();
 }

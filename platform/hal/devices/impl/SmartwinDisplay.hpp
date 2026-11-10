@@ -3,16 +3,22 @@
 #include "hal/drivers/itf/IDigitalInput.hpp"
 #include "hal/drivers/itf/IDigitalOutput.hpp"
 #include "hal/drivers/itf/IRgbOutput.hpp"
+#include <cstdint>
 #include <memory>
 namespace hal::device
 {
     class SmartwinDisplay final : public IDisplay
     {
       public:
+        SmartwinDisplay(const SmartwinDisplay&) = delete;
+        auto operator=(const SmartwinDisplay&) -> SmartwinDisplay& = delete;
+        SmartwinDisplay(SmartwinDisplay&&) = delete;
+        auto operator=(SmartwinDisplay&&) -> SmartwinDisplay& = delete;
+
         SmartwinDisplay(std::shared_ptr<IRgbOutput> output,
                         std::shared_ptr<IDigitalOutput> standby,
                         std::shared_ptr<IDigitalOutput> reset,
-                        std::shared_ptr<IDigitalInput> powerReady = {});
+                        std::shared_ptr<IDigitalInput> power_ready = {});
         ~SmartwinDisplay() override;
         auto initialize() -> util::Result<> override;
         auto framebuffer(unsigned slot) -> std::span<std::uint16_t> override
@@ -45,7 +51,7 @@ namespace hal::device
         std::shared_ptr<IRgbOutput> m_output;
         std::shared_ptr<IDigitalOutput> m_standby, m_reset;
         std::shared_ptr<IDigitalInput> m_powerReady;
-        enum class Phase
+        enum class Phase : std::uint8_t
         {
             Unpowered,
             ResetHold,

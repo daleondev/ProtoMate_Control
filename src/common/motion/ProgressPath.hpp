@@ -12,7 +12,7 @@ namespace motion
     // Empty means the existing linear joint path. Curves use local u=[0,1].
     struct ProgressPath
     {
-        static constexpr unsigned CAPACITY = 4;
+        static constexpr unsigned CAPACITY{ 4 };
         std::array<Polynomial, CAPACITY> curves{};
         std::array<double, CAPACITY> ends{};
         unsigned size{};

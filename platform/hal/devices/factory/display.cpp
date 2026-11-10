@@ -21,15 +21,15 @@ namespace hal::device::display
         if (!standby || !reset) {
             return {};
         }
-        std::shared_ptr<IDigitalInput> powerReady{};
+        std::shared_ptr<IDigitalInput> power_ready{};
 #if !defined(HAL_PLATFORM_LINUX)
-        powerReady = gpio::create_input({ .pin = configuration.powerReady, .pull = gpio::Pull::Down });
-        if (!powerReady) {
+        power_ready = gpio::create_input({ .pin = configuration.power_ready, .pull = gpio::Pull::Down });
+        if (!power_ready) {
             return {};
         }
 #endif
         return std::make_shared<SmartwinDisplay>(
-          std::move(output), std::move(standby), std::move(reset), std::move(powerReady));
+          std::move(output), std::move(standby), std::move(reset), std::move(power_ready));
     }
     auto create_touch(TouchConfiguration configuration) -> std::shared_ptr<ITouch>
     {
@@ -43,15 +43,16 @@ namespace hal::device::display
             TouchReport report{};
             report.cancelled = point.cancelled;
             report.wheel = point.wheel;
-            report.pointerX = point.x;
-            report.pointerY = point.y;
-            report.droppedReports = hal::linux::display::inputDrops();
+            report.pointer_x = point.x;
+            report.pointer_y = point.y;
+            report.dropped_reports = hal::linux::display::input_drops();
             report.points[0] = { .active = point.down, .x = point.x, .y = point.y };
             return report;
         });
 #else
+        constexpr std::uint16_t maximum_i2c_address{ 0x7F };
         auto bus{ i2c::create(i2c::Peripheral::I2c4) };
-        if (!bus || configuration.address > 0x7F) {
+        if (!bus || configuration.address > maximum_i2c_address) {
             return {};
         }
         auto reset{ gpio::create_output({ .pin = configuration.reset }) };

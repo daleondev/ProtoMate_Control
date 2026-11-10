@@ -137,8 +137,12 @@ extern "C" [[noreturn]] void hal_error_handler() noexcept { hal::panic("HAL init
 extern "C" [[noreturn]] void hal_fault_handler(const char* fault) noexcept
 {
     hal::stm32::shutdown_motion_on_fault();
-    profile_failure(
-      PROFILE_FATAL, __get_IPSR(), 0, reinterpret_cast<std::uintptr_t>(__builtin_return_address(0)));
+    profile_failure(PROFILE_FATAL,
+                    __get_IPSR(),
+                    0,
+                    // Record the return address as diagnostic data, never dereference it.
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                    reinterpret_cast<std::uintptr_t>(__builtin_return_address(0)));
     hal::panic(fault);
 }
 extern "C" void Error_Handler() { hal_error_handler(); }

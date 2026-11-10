@@ -4,6 +4,7 @@
 #include <format>
 #include <pneumo/logging.hpp>
 #include <stdexcept>
+#include <utility>
 
 namespace ui::motion
 {
@@ -11,7 +12,7 @@ namespace ui::motion
     using namespace std::chrono_literals;
     std::shared_ptr<Client::Job> Client::findLocked(std::uint64_t id) const
     {
-        const auto it = std::ranges::find_if(m_jobs, [&](const auto& j) { return j->info.id == id; });
+        const auto it{ std::ranges::find_if(m_jobs, [&](const auto& j) { return j->info.id == id; }) };
         if (it == m_jobs.end()) {
             throw std::invalid_argument("unknown motion job");
         }
@@ -22,23 +23,24 @@ namespace ui::motion
         if (m_stopped || !m_connected) {
             throw std::runtime_error("IO controller unavailable");
         }
-        if (!axes || axes > 7 || family == ::motion::Family::None || family > ::motion::Family::Robot) {
+        if (!axes || axes > ::motion::ALL_AXES_MASK || family == ::motion::Family::None ||
+            family > ::motion::Family::Robot) {
             throw std::invalid_argument("invalid motion selection");
         }
         if (!m_nextId) {
             throw std::overflow_error("motion job identifiers exhausted");
         }
         retireJobsLocked();
-        if (m_jobs.size() >= 8) {
+        if (m_jobs.size() >= MAX_JOBS) {
             throw std::runtime_error("motion admission capacity is full; stop or wait for a job");
         }
-        if (m_jobs.size() + m_history->count >= 32) {
+        if (m_jobs.size() + m_history->count >= HISTORY_CAPACITY) {
             std::move(m_history->jobs.begin() + 1,
                       m_history->jobs.begin() + m_history->count,
                       m_history->jobs.begin());
             --m_history->count;
         }
-        auto job = std::make_shared<Job>();
+        auto job{ std::make_shared<Job>() };
         job->info.id = m_nextId++;
         job->info.family = family;
         job->info.axes = axes;
@@ -56,17 +58,17 @@ namespace ui::motion
         std::scoped_lock lock{ m_mutex };
         return findLocked(id)->stop.get_token();
     }
-    tr::Reply Client::exchange(const tr::Request& value, bool urgent, std::stop_token stop)
+    tr::Reply Client::exchange(const tr::Request& value, bool urgent, const std::stop_token& stop)
     {
-        auto call = (urgent ? m_control : m_trajectory).request(tr::encode(value), 3s, stop);
-        const auto encoded = call.get();
+        auto call{ (urgent ? m_control : m_trajectory).request(tr::encode(value), REQUEST_TIMEOUT, stop) };
+        const auto encoded{ call.get() };
         if (!encoded) {
             throw std::runtime_error(
               std::format("motion operation {} failed (service error {}); hardware stop unconfirmed",
                           unsigned(value.operation),
                           unsigned(encoded.error())));
         }
-        const auto decoded = tr::decodeReply(*encoded);
+        const auto decoded{ tr::decode_reply(*encoded) };
         if (!decoded) {
             throw std::runtime_error("invalid motion response");
         }
@@ -76,19 +78,17 @@ namespace ui::motion
         }
         return *decoded;
     }
-    tr::Reply Client::inspect(std::stop_token stop)
+    tr::Reply Client::inspect(const std::stop_token& stop)
     {
-        auto result = exchange({}, false, stop);
+        auto result{ exchange({}, false, stop) };
         std::scoped_lock lock{ m_mutex };
         m_boot = result.boot;
         return result;
     }
-    tr::Reply Client::acquire(std::uint64_t id,
-                              std::uint64_t configuration,
-                              std::stop_token stop,
-                              std::uint8_t axes)
+    tr::Reply Client::acquire(Reservation reservation, const std::stop_token& stop)
     {
-        std::uint64_t boot = 0;
+        const auto [id, configuration, axes]{ reservation };
+        std::uint64_t boot{ 0 };
         {
             std::scoped_lock lock{ m_mutex };
             boot = m_boot;
@@ -104,7 +104,7 @@ namespace ui::motion
                              .configuration = configuration };
         {
             std::scoped_lock lock{ m_mutex };
-            auto job = findLocked(id);
+            auto job{ findLocked(id) };
             if (job->stop.stop_requested()) {
                 throw std::runtime_error("motion preparation cancelled");
             }
@@ -116,14 +116,14 @@ namespace ui::motion
             request.job = id;
             job->info.state = JobState::Planning;
         }
-        auto result = exchange(request, false, stop);
+        auto result{ exchange(request, false, stop) };
         if (result.error != tr::Error::None) {
             reject(id, result.error, result.job);
             return result;
         }
         {
             std::scoped_lock lock{ m_mutex };
-            auto job = findLocked(id);
+            auto job{ findLocked(id) };
             job->boot = result.boot;
             job->reservation = result.session;
         }
@@ -132,7 +132,7 @@ namespace ui::motion
     }
     void Client::releaseReservation(const std::shared_ptr<Job>& job)
     {
-        tr::Request request;
+        tr::Request request{};
         {
             std::scoped_lock lock{ m_mutex };
             request.operation = tr::Operation::Release;
@@ -143,7 +143,9 @@ namespace ui::motion
         if (request.session) {
             try {
                 exchange(request, true);
-            } catch (...) { /* IO lease remains authoritative. */
+            } catch (...) { // NOLINT(bugprone-empty-catch): The IO lease remains authoritative if reservation
+                            // release cannot be delivered.
+                            /* IO lease remains authoritative. */
             }
         }
         std::scoped_lock lock{ m_mutex };
@@ -151,15 +153,23 @@ namespace ui::motion
     }
     void Client::reject(std::uint64_t id, tr::Error error, std::uint64_t busy)
     {
-        std::shared_ptr<Job> job;
+        std::shared_ptr<Job> job{};
         {
             std::scoped_lock lock{ m_mutex };
             job = findLocked(id);
             job->info.error = error;
             job->info.busy_job = busy;
-            job->info.state = error == tr::Error::Unknown     ? JobState::Unknown
-                              : error == tr::Error::Cancelled ? JobState::Stopped
-                                                              : JobState::Rejected;
+            switch (error) {
+                case tr::Error::Unknown:
+                    job->info.state = JobState::Unknown;
+                    break;
+                case tr::Error::Cancelled:
+                    job->info.state = JobState::Stopped;
+                    break;
+                default:
+                    job->info.state = JobState::Rejected;
+                    break;
+            }
             m_jobChanged.notify_all();
         }
         releaseReservation(job);
@@ -168,7 +178,7 @@ namespace ui::motion
                          const tr::Reply& reservation,
                          std::uint64_t configuration,
                          const tr::FiniteProgram& program,
-                         std::stop_token stop)
+                         const std::stop_token& stop)
     {
         tr::Request request{ .operation = tr::Operation::Prepare,
                              .boot = reservation.boot,
@@ -182,35 +192,36 @@ namespace ui::motion
             std::scoped_lock lock{ m_mutex };
             findLocked(id)->info.state = JobState::Preparing;
         }
-        const auto reply = exchange(request, false, stop);
+        const auto reply{ exchange(request, false, stop) };
         if (reply.error != tr::Error::None) {
             reject(id, reply.error, reply.job);
             return;
         }
         std::scoped_lock lock{ m_mutex };
-        const auto job = findLocked(id);
+        const auto job{ findLocked(id) };
         if (job->stop.stop_requested()) {
             // The planning worker catches cancellation and releases its reservation.
             throw std::runtime_error("motion preparation cancelled");
         }
-        const std::weak_ptr<Job> weak = job;
-        for (unsigned i = 0; i < 3; ++i) {
+        const std::weak_ptr<Job> weak{ job };
+        for (unsigned i{ 0 }; i < 3; ++i) {
             job->info.endpoint[i] = program.kind == tr::ProgramKind::Home && program.home_to_neutral
                                       ? program.home_neutral[i]
                                       : reservation.position[i] + program.displacement[i];
         }
-        job->program.emplace(m_programs.sendGoal(
-          { reservation.boot, reservation.session, id }, { .accept_timeout = 3s }, { .on_accepted = [weak] {
-            if (auto j = weak.lock(); j && j->info.state == JobState::Preparing) {
+        job->program.emplace(m_programs.sendGoal({ reservation.boot, reservation.session, id },
+                                                 { .accept_timeout = REQUEST_TIMEOUT },
+                                                 { .on_accepted = [weak] {
+            if (auto j{ weak.lock() }; j && j->info.state == JobState::Preparing) {
                 j->info.state = JobState::Running;
             }
         }, .on_feedback = [weak](const tr::Update& update) {
-            if (auto j = weak.lock();
+            if (auto j{ weak.lock() };
                 j && !terminal(j->info.state) && update.state == ::motion::JobState::Stopping) {
                 j->info.state = JobState::Stopping;
             }
         }, .on_result = [weak](pnm::msg::ActionResult<tr::Update> result) {
-            if (auto j = weak.lock()) {
+            if (auto j{ weak.lock() }) {
                 if (!result) {
                     j->info.state = JobState::Unknown;
                     j->info.error = tr::Error::Unknown;
@@ -241,15 +252,16 @@ namespace ui::motion
     }
     void Client::cancel(std::uint64_t id)
     {
-        std::optional<std::stop_source> source;
-        tr::Request request;
+        std::optional<std::stop_source> source{};
+        tr::Request request{};
         {
             std::scoped_lock lock{ m_mutex };
-            for (unsigned i = 0; i < m_history->count; ++i) {
-                if (m_history->jobs[i].id == id)
+            for (unsigned i{ 0 }; i < m_history->count; ++i) {
+                if (m_history->jobs[i].id == id) {
                     return;
+                }
             }
-            auto job = findLocked(id);
+            auto job{ findLocked(id) };
             if (terminal(job->info.state)) {
                 return;
             }
@@ -274,23 +286,24 @@ namespace ui::motion
     }
     void Client::cancelFamily(::motion::Family family)
     {
-        std::array<std::uint64_t, 8> jobs{};
+        std::array<std::uint64_t, MAX_JOBS> jobs{};
         unsigned count{};
         {
             std::scoped_lock lock{ m_mutex };
             for (const auto& job : m_jobs) {
-                if (job->info.family == family && !terminal(job->info.state))
+                if (job->info.family == family && !terminal(job->info.state)) {
                     jobs[count++] = job->info.id;
+                }
             }
         }
-        for (unsigned i = 0; i < count; ++i) {
+        for (unsigned i{ 0 }; i < count; ++i) {
             cancel(jobs[i]);
         }
     }
     void Client::stop(std::uint8_t axes, bool abort)
     {
-        std::uint64_t boot = 0;
-        std::array<std::optional<std::stop_source>, 8> cancel;
+        std::uint64_t boot{ 0 };
+        std::array<std::optional<std::stop_source>, MAX_JOBS> cancel{};
         unsigned n{};
         {
             std::scoped_lock lock{ m_mutex };
@@ -304,20 +317,24 @@ namespace ui::motion
                 }
             }
         }
-        for (unsigned i = 0; i < n; ++i) {
-            cancel[i]->request_stop();
+        for (auto& source : cancel) {
+            if (source) {
+                source->request_stop();
+            }
         }
         if (!boot) {
             boot = inspect().boot;
         }
         tr::Request request{ .operation = abort ? tr::Operation::Abort : tr::Operation::Stop, .boot = boot };
         request.axes = axes;
-        const auto result = exchange(request, true);
+        const auto result{ exchange(request, true) };
         if (result.error != tr::Error::None) {
             throw std::runtime_error(std::string(tr::name(result.error)));
         }
     }
-    Client::JobInfo Client::wait(std::uint64_t id, std::chrono::milliseconds timeout, std::stop_token stop)
+    Client::JobInfo Client::wait(std::uint64_t id,
+                                 std::chrono::milliseconds timeout,
+                                 const std::stop_token& stop)
     {
         // Serialize cancellation with the predicate check and wait registration.
         const std::stop_callback wake{ stop, [this] {
@@ -325,13 +342,14 @@ namespace ui::motion
             m_jobChanged.notify_all();
         } };
         std::unique_lock lock{ m_mutex };
-        for (unsigned i = 0; i < m_history->count; ++i) {
-            if (m_history->jobs[i].id == id)
+        for (unsigned i{ 0 }; i < m_history->count; ++i) {
+            if (m_history->jobs[i].id == id) {
                 return m_history->jobs[i];
+            }
         }
-        auto job = findLocked(id);
-        const auto deadline = timeout.count() > 0 ? std::chrono::steady_clock::now() + timeout
-                                                  : std::chrono::steady_clock::time_point::max();
+        auto job{ findLocked(id) };
+        const auto deadline{ timeout.count() > 0 ? std::chrono::steady_clock::now() + timeout
+                                                 : std::chrono::steady_clock::time_point::max() };
         if (!m_jobChanged.wait_until(lock, deadline, [&] {
             return terminal(job->info.state) || stop.stop_requested() || m_stopped;
         })) {
@@ -345,14 +363,12 @@ namespace ui::motion
         }
         return job->info;
     }
-    void Client::renewJobs()
+    void Client::completeRenewalLocked(std::chrono::steady_clock::time_point now)
     {
-        std::scoped_lock lock{ m_mutex };
-        const auto now = std::chrono::steady_clock::now();
         if (m_renewal && m_renewal->ready()) {
             // ready() makes get() nonblocking. Decode on the client worker under
             // its mutex, not in an ICC callback; a failed reply never proves stop.
-            const auto response = m_renewal->get();
+            const auto response{ m_renewal->get() };
             m_renewalReady = {};
             m_renewal.reset();
             m_leaseStatus.transport_error.reset();
@@ -361,11 +377,19 @@ namespace ui::motion
                 m_leaseStatus.error = tr::Error::Unknown;
             }
             else {
-                const auto ack = tr::decodeReply(*response); // Includes CRC and wire-version validation.
-                m_leaseStatus.error = !ack                    ? ack.error()
-                                      : !ack->acknowledgement ? tr::Error::Protocol
-                                      : ack->boot != m_renewalBoot || ack->boot != m_boot ? tr::Error::Stale
-                                                                                          : ack->error;
+                const auto ack{ tr::decode_reply(*response) }; // Includes CRC and wire-version validation.
+                if (!ack) {
+                    m_leaseStatus.error = ack.error();
+                }
+                else if (!ack->acknowledgement) {
+                    m_leaseStatus.error = tr::Error::Protocol;
+                }
+                else if (ack->boot != m_renewalBoot || ack->boot != m_boot) {
+                    m_leaseStatus.error = tr::Error::Stale;
+                }
+                else {
+                    m_leaseStatus.error = ack->error;
+                }
             }
             if (m_leaseStatus.error == tr::Error::None) {
                 ++m_leaseStatus.acknowledgements;
@@ -380,6 +404,12 @@ namespace ui::motion
                 }
             }
         }
+    }
+    void Client::renewJobs()
+    {
+        std::scoped_lock lock{ m_mutex };
+        const auto now{ std::chrono::steady_clock::now() };
+        completeRenewalLocked(now);
         if (now < m_nextRenew) {
             return;
         }
@@ -390,14 +420,15 @@ namespace ui::motion
         tr::Request request{ .operation = tr::Operation::Renew, .boot = m_boot };
         unsigned n{};
         for (const auto& job : m_jobs) {
-            if (!terminal(job->info.state) && (job->handle || job->reservation))
+            if (!terminal(job->info.state) && (job->handle || job->reservation)) {
                 request.renew_jobs[n++] = job->info.id;
+            }
         }
         if (!n) {
             return;
         }
         m_renewalBoot = request.boot;
-        m_renewal.emplace(m_control.request(tr::encode(request), 150ms));
+        m_renewal.emplace(m_control.request(tr::encode(request), RENEW_TIMEOUT));
         m_renewalReady = pnm::msg::watch(*m_renewal, [n = m_notification] { n->signal(); });
     }
     Client::LeaseStatus Client::leaseStatus() const

@@ -7,20 +7,24 @@
 
 namespace hal
 {
+    namespace
+    {
+        constexpr unsigned PINS_PER_PORT{ 16 };
+        constexpr unsigned pin_index(gpio::Pin pin) noexcept
+        {
+            return (unsigned(std::to_underlying(pin.port)) * PINS_PER_PORT) + pin.number;
+        }
+    }
     GpioInput::GpioInput(gpio::InputConfiguration configuration)
       : m_configuration{ configuration }
       , m_level{ configuration.pull == gpio::Pull::Up ? gpio::Level::High : gpio::Level::Low }
     {
         if (simulation::client::connected()) {
             simulation::client::Transaction guard{};
-            simulation::client::command(
-              simulation::Operation::GpioConfigure,
-              { std::to_underlying(configuration.pin.port) * 16U + configuration.pin.number, 0 });
-            simulation::client::registerInput(
-              std::to_underlying(configuration.pin.port) * 16U + configuration.pin.number, this);
-            m_level = simulation::acquire(
-                        simulation::client::memory()
-                          ->gpio[std::to_underlying(configuration.pin.port) * 16U + configuration.pin.number])
+            simulation::client::command(simulation::Operation::GpioConfigure,
+                                        { pin_index(configuration.pin), 0 });
+            simulation::client::register_input(pin_index(configuration.pin), this);
+            m_level = simulation::acquire(simulation::client::memory()->gpio[pin_index(configuration.pin)])
                         ? gpio::Level::High
                         : gpio::Level::Low;
         }
@@ -30,18 +34,16 @@ namespace hal
     {
         if (simulation::client::connected()) {
             simulation::client::Transaction guard{};
-            simulation::client::registerInput(
-              std::to_underlying(m_configuration.pin.port) * 16U + m_configuration.pin.number, nullptr);
+            simulation::client::register_input(pin_index(m_configuration.pin), nullptr);
         }
     }
 
     auto GpioInput::read() const noexcept -> gpio::Level
     {
-        if (auto* shared{ simulation::client::memory() })
-            return simulation::acquire(shared->gpio[std::to_underlying(m_configuration.pin.port) * 16U +
-                                                    m_configuration.pin.number])
-                     ? gpio::Level::High
-                     : gpio::Level::Low;
+        if (auto* shared{ simulation::client::memory() }) {
+            return simulation::acquire(shared->gpio[pin_index(m_configuration.pin)]) ? gpio::Level::High
+                                                                                     : gpio::Level::Low;
+        }
         return m_level.load(std::memory_order_acquire);
     }
 
@@ -68,9 +70,10 @@ namespace hal
             return;
         }
 
-        if (simulation::client::inInterrupt()) {
-            if (m_edgeCallback && *m_edgeCallback)
+        if (simulation::client::in_interrupt()) {
+            if (m_edgeCallback && *m_edgeCallback) {
                 (*m_edgeCallback)(level);
+            }
             return;
         }
         std::shared_ptr<EdgeCallback> callback{};
@@ -108,10 +111,9 @@ namespace hal
     {
         if (simulation::client::connected()) {
             simulation::client::Transaction guard{};
-            simulation::client::command(simulation::Operation::GpioConfigure,
-                                        { std::to_underlying(m_pin.port) * 16U + m_pin.number,
-                                          1,
-                                          configuration.initial_level == gpio::Level::High });
+            simulation::client::command(
+              simulation::Operation::GpioConfigure,
+              { pin_index(m_pin), 1, configuration.initial_level == gpio::Level::High });
         }
     }
 
@@ -121,9 +123,8 @@ namespace hal
     {
         if (simulation::client::connected()) {
             simulation::client::Transaction guard{};
-            simulation::client::command(
-              simulation::Operation::GpioWrite,
-              { std::to_underlying(m_pin.port) * 16U + m_pin.number, level == gpio::Level::High });
+            simulation::client::command(simulation::Operation::GpioWrite,
+                                        { pin_index(m_pin), level == gpio::Level::High });
         }
         m_level.store(level, std::memory_order_release);
     }

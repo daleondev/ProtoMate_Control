@@ -16,8 +16,10 @@ namespace hal::step
     {
         using enum gpio::Port;
         const std::array pins{ gpio::Pin{ .port = A, .number = 0U },
-                               simulation::client::connected() ? gpio::Pin{ A, 2 } : gpio::Pin{ B, 10 },
-                               simulation::client::connected() ? gpio::Pin{ A, 3 } : gpio::Pin{ B, 11 } };
+                               simulation::client::connected() ? gpio::Pin{ .port = A, .number = 2 }
+                                                               : gpio::Pin{ .port = B, .number = 10 },
+                               simulation::client::connected() ? gpio::Pin{ .port = A, .number = 3 }
+                                                               : gpio::Pin{ .port = B, .number = 11 } };
         std::array<std::shared_ptr<IDigitalOutput>, 3> owners{};
         for (std::size_t i{ 0 }; i < pins.size(); ++i) {
             owners[i] = gpio::create_output({ .pin = pins[i], .pull = gpio::Pull::Down });
@@ -26,18 +28,23 @@ namespace hal::step
             }
         }
         std::unique_ptr<util::StepHardware> hardware{};
-        if (simulation::client::connected())
+        if (simulation::client::connected()) {
             hardware = std::make_unique<util::LinuxStepHardware>();
-        else if (util::make_fixture_step)
+        }
+        else if (util::make_fixture_step) {
             hardware = util::make_fixture_step();
-        else
+        }
+        else {
             return {};
+        }
         auto* model{ hardware.get() };
         auto generator{ std::make_shared<util::StepGenerator>(std::move(hardware), std::move(owners)) };
-        if (simulation::client::connected())
-            static_cast<util::LinuxStepHardware*>(model)->beginService(*generator);
-        else if (util::start_fixture_step)
+        if (simulation::client::connected()) {
+            util::LinuxStepHardware::beginService(*generator);
+        }
+        else if (util::start_fixture_step) {
             util::start_fixture_step(*model, *generator);
+        }
 
         return generator;
     }

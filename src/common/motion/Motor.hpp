@@ -2,16 +2,33 @@
 
 #include <array>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
 namespace motion
 {
-    enum class Family : std::uint8_t { None, Motor, Axis, Robot };
+    inline constexpr std::uint8_t ALL_AXES_MASK{ 0b111 };
+    inline constexpr std::size_t MOTOR_JOB_CAPACITY{ 8 };
+    enum class Family : std::uint8_t
+    {
+        None,
+        Motor,
+        Axis,
+        Robot
+    };
     enum class JobState : std::uint8_t
     {
-        Submitting, Planning, Preparing, Running, Stopping,
-        Completed, Stopped, Rejected, Faulted, Unknown
+        Submitting,
+        Planning,
+        Preparing,
+        Running,
+        Stopping,
+        Completed,
+        Stopped,
+        Rejected,
+        Faulted,
+        Unknown
     };
     constexpr bool terminal(JobState state) noexcept { return state >= JobState::Completed; }
     // ICC values describe motor shafts only: degrees, rpm, degrees/s^2,
@@ -88,7 +105,7 @@ namespace motion
     struct MotorSnapshot
     {
         bool enabled{}, ready{};
-        std::uint64_t commandGeneration{}, sequence{};
+        std::uint64_t command_generation{}, sequence{};
         // IO steady-clock timestamp. UI freshness uses its own receive clock;
         // the cores' steady clocks need not share an epoch.
         std::uint64_t sampled_at_us{};
@@ -108,7 +125,7 @@ namespace motion
         bool ok{ true };
         std::string message;
         // Acknowledgements also carry the generation when a command fails.
-        std::uint64_t commandGeneration{}, pulse{};
+        std::uint64_t command_generation{}, pulse{};
         MotorDefaults defaults{}; // Only populated for Defaults requests.
     };
 
@@ -117,10 +134,11 @@ namespace motion
         MotorId motor{ MotorId::M1 };
         MotorMotion motion{ MotorMotion::Relative };
         double position{}, velocity{}, acceleration{}, deceleration{}, jerk{}, timeout{};
-        double latch_velocity{ 0.5 };
+        static constexpr double DEFAULT_LATCH_RPM{ 0.5 };
+        double latch_velocity{ DEFAULT_LATCH_RPM };
         MotorBuffer buffer{ MotorBuffer::Aborting };
         // A stop/recovery invalidates submissions made from an earlier snapshot.
-        std::uint64_t commandGeneration{};
+        std::uint64_t command_generation{};
         std::uint64_t job{};
     };
 

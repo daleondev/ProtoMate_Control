@@ -73,7 +73,8 @@ namespace hal
             virtual ~Sequence() = default;
             virtual PulseCount count() const noexcept = 0;
             virtual std::chrono::nanoseconds maximumPeriod() const noexcept = 0;
-            virtual std::uint32_t bufferPulses() const noexcept { return 256; }
+            static constexpr std::uint32_t DEFAULT_BUFFER_PULSES{ 256 };
+            virtual std::uint32_t bufferPulses() const noexcept { return DEFAULT_BUFFER_PULSES; }
             virtual std::optional<std::int64_t> endTickOffset() const noexcept { return {}; }
             // Rolling schedules can advance their timestamp origin while retaining
             // cumulative pulse ordinals. Splice publishes the origin atomically.
@@ -101,10 +102,14 @@ namespace hal
         {
           public:
             virtual util::Result<std::uint32_t> risingTick(PulseCount pulse) const noexcept = 0;
-            std::uint32_t bufferPulses() const noexcept override { return 64; }
+            static constexpr std::uint32_t REPLACEABLE_BUFFER_PULSES{ 64 };
+            std::uint32_t bufferPulses() const noexcept override { return REPLACEABLE_BUFFER_PULSES; }
             // Optional certificate: every edge through this signed offset from
             // first rise is identical in both immutable sequences.
-            virtual std::optional<std::int64_t> commonPrefix(const Sequence&) const noexcept { return {}; }
+            virtual std::optional<std::int64_t> commonPrefix(const Sequence& /*unused*/) const noexcept
+            {
+                return {};
+            }
         };
         struct ScheduleCursor
         {
@@ -238,15 +243,19 @@ namespace hal
         // are stopped. The notification may run in an IRQ and only wakes that
         // thread; preparePending() evaluates sequences with interrupts enabled.
         using RefillNotification = std::function<void()>;
-        [[nodiscard]] virtual util::Result<> setRefillNotification(RefillNotification)
-        { return std::unexpected(std::make_error_code(std::errc::not_supported)); }
+        // Implementations take ownership of the callback; keep the owning virtual signature.
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
+        [[nodiscard]] virtual util::Result<> setRefillNotification(RefillNotification /*unused*/)
+        {
+            return std::unexpected(std::make_error_code(std::errc::not_supported));
+        }
         virtual void preparePending() noexcept {}
         // Thread context only. Atomically replace the selected timed sequences.
         // Changed edges must be strictly after preserve_until; that boundary
         // must still be >= 2 ms away when publishing. Preparation runs outside
         // the interrupt lock. Busy/timeout leaves every channel unchanged.
         [[nodiscard]] virtual util::Result<> splice(
-          const std::array<std::shared_ptr<const step::TimedSequence>, 3>&,
+          const std::array<std::shared_ptr<const step::TimedSequence>, 3>& /*unused*/,
           std::uint32_t /*preserve_until*/)
         {
             return std::unexpected(std::make_error_code(std::errc::not_supported));

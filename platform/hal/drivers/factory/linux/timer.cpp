@@ -11,6 +11,7 @@ namespace hal::timer
 {
     namespace
     {
+        constexpr unsigned TIMER_5_ID{ 5 }, TIMER_12_ID{ 12 };
         constexpr std::uint32_t TIMER_5_INPUT_FREQUENCY_HZ{ 240'000'000U };
         constexpr ITimer::Tick TIMER_5_PRESCALER{ 239U };
         constexpr ITimer::Tick TIMER_5_AUTO_RELOAD{ std::numeric_limits<ITimer::Tick>::max() };
@@ -24,7 +25,8 @@ namespace hal::timer
         switch (configuration.peripheral) {
             case Peripheral::Tim5: {
                 if (simulation::client::connected()) {
-                    static auto remote{ std::make_shared<RemoteTimer>(5, 240000000, 239, UINT32_MAX) };
+                    static auto remote{ std::make_shared<RemoteTimer>(
+                      TIMER_5_ID, TIMER_5_INPUT_FREQUENCY_HZ, TIMER_5_PRESCALER, TIMER_5_AUTO_RELOAD) };
                     return remote;
                 }
                 static auto timer{ std::make_shared<Timer>(
@@ -35,7 +37,8 @@ namespace hal::timer
             }
             case Peripheral::Tim12: {
                 if (simulation::client::connected()) {
-                    static auto remote{ std::make_shared<RemoteTimer>(12, 64000000, 63, 65535) };
+                    static auto remote{ std::make_shared<RemoteTimer>(
+                      TIMER_12_ID, TIMER_12_INPUT_FREQUENCY_HZ, TIMER_12_PRESCALER, TIMER_12_AUTO_RELOAD) };
                     return remote;
                 }
                 static auto timer{ std::make_shared<Timer>(

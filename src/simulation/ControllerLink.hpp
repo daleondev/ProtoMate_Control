@@ -9,6 +9,9 @@ namespace simulation
     class ControllerLink final
     {
       public:
+        ControllerLink(ControllerLink&&) = delete;
+        auto operator=(ControllerLink&&) -> ControllerLink& = delete;
+
         ControllerLink();
         ~ControllerLink();
         ControllerLink(const ControllerLink&) = delete;
@@ -18,5 +21,5 @@ namespace simulation
         struct Impl;
         std::unique_ptr<Impl> m_impl;
     };
-    void setupCommands(ui::cli::Parser& parser);
+    void setup_commands(ui::cli::Parser& parser);
 }

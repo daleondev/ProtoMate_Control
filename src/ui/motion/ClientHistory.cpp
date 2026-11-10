@@ -9,20 +9,30 @@ namespace ui::motion
     namespace
     {
 #if defined(CORE_CM7)
+        constexpr std::size_t HISTORY_ALIGNMENT{ 32 }, HISTORY_STORAGE_BYTES{ 8192 };
         // Completed jobs are POD records. Keep them in the existing motion
         // reservation; only live handles/cancellation state use internal RAM.
-        alignas(32) __attribute__((section(".motion_sdram"))) std::byte historyStorage[8192];
-        std::atomic_bool historyClaimed{};
+        // Linker-reserved history arena; atomic claim guarantees exclusive client ownership.
+        // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
+        alignas(HISTORY_ALIGNMENT) __attribute__((
+          section(".motion_sdram"))) std::array<std::byte, HISTORY_STORAGE_BYTES> history_storage{};
+        // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+        // Linker-reserved history arena; atomic claim guarantees exclusive client ownership.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+        std::atomic_bool history_claimed{};
 #endif
     }
     auto Client::reserveHistory() -> std::unique_ptr<History, ReleaseHistory>
     {
 #if defined(CORE_CM7)
-        static_assert(sizeof(History) <= sizeof(historyStorage));
-        if (historyClaimed.exchange(true))
+        static_assert(sizeof(History) <= sizeof(history_storage));
+        if (history_claimed.exchange(true)) {
             throw std::logic_error("motion history already owned");
-        return std::unique_ptr<History, ReleaseHistory>{ std::construct_at(
-          reinterpret_cast<History*>(historyStorage)) };
+        }
+        // Construct the owned history in its aligned, linker-reserved arena.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        auto* history{ std::construct_at(reinterpret_cast<History*>(history_storage.data())) };
+        return std::unique_ptr<History, ReleaseHistory>{ history };
 #else
         return std::unique_ptr<History, ReleaseHistory>{ new History{} };
 #endif
@@ -31,9 +41,9 @@ namespace ui::motion
     {
 #if defined(CORE_CM7)
         std::destroy_at(history);
-        historyClaimed = false;
+        history_claimed = false;
 #else
-        delete history;
+        std::default_delete<History>{}(history);
 #endif
     }
     Client::~Client() = default;

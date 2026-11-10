@@ -17,17 +17,18 @@ namespace motion
     // with respect to u; divide by physical duration^order for SI rates.
     struct Polynomial
     {
-        std::array<double, 6> coefficients{};
-        [[nodiscard]] double at(double u, unsigned derivative = 0) const noexcept;
+        static constexpr unsigned DEGREE{ 5 };
+        std::array<double, DEGREE + 1> coefficients{};
+        [[nodiscard]] double at(double u, unsigned order = 0) const noexcept;
         [[nodiscard]] bool finite() const noexcept;
         [[nodiscard]] Polynomial derivative() const noexcept;
         [[nodiscard]] Polynomial restrict(double from, double to) const noexcept;
         // Bernstein convex-hull enclosure, including a floating-point margin.
-        [[nodiscard]] Interval range(double from = 0, double to = 1, unsigned derivative = 0) const noexcept;
+        [[nodiscard]] Interval range(double from = 0, double to = 1, unsigned order = 0) const noexcept;
         // Ordered real roots strictly inside (from,to), including even roots.
         // The caller supplies space for five roots. No allocation or recursion
         // dependent on input magnitude; degree bounds all recursion.
-        [[nodiscard]] std::size_t roots(std::span<double, 5> output,
+        [[nodiscard]] std::size_t roots(std::span<double, DEGREE> output,
                                         double from = 0,
                                         double to = 1) const noexcept;
     };
@@ -36,5 +37,5 @@ namespace motion
     {
         double position{}, velocity{}, acceleration{};
     };
-    [[nodiscard]] Polynomial hermite(KinematicState start, KinematicState end, double seconds) noexcept;
+    [[nodiscard]] Polynomial hermite(KinematicState start, KinematicState end, double t) noexcept;
 }

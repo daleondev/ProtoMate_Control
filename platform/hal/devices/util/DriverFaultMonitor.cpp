@@ -34,8 +34,9 @@ namespace hal::device::util
             explicit Guard(Mutex& mutex)
               : lock{ mutex, std::defer_lock }
             {
-                if (!simulation::client::connected())
+                if (!simulation::client::connected()) {
                     lock.lock();
+                }
             }
         };
 #else

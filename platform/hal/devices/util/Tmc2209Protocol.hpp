@@ -22,6 +22,8 @@ namespace hal::device::util::tmc2209
 
     inline constexpr std::uint8_t GCONF{ 0x00 }, GSTAT{ 0x01 }, IFCNT{ 0x02 }, NODECONF{ 0x03 };
     inline constexpr std::uint8_t IOIN{ 0x06 }, SG_RESULT{ 0x41 }, DRV_STATUS{ 0x6F };
+    inline constexpr std::uint8_t FACTORY_CONF{ 0x07 }, IHOLD_IRUN{ 0x10 }, TPOWERDOWN{ 0x11 },
+      TPWMTHRS{ 0x13 }, TCOOLTHRS{ 0x14 }, VACTUAL{ 0x22 }, SGTHRS{ 0x40 }, COOLCONF{ 0x42 }, MSCNT{ 0x6A };
     inline constexpr std::uint8_t CHOPCONF{ 0x6C }, PWMCONF{ 0x70 };
     inline constexpr std::uint32_t IC_VERSION{ 0x21 }, VERSION_SHIFT{ 24 };
     inline constexpr std::uint32_t IOIN_SPREAD{ 1U << 8U };
@@ -32,7 +34,7 @@ namespace hal::device::util::tmc2209
     inline constexpr std::uint32_t GCONF_SPREADCYCLE{ 1U << 2U };
     inline constexpr std::uint32_t CHOPCONF_BASE{ 0x00020053U };
     inline constexpr std::uint32_t CHOPCONF_INTERPOLATE{ 1U << 28U };
-    inline constexpr std::uint32_t MRES_SHIFT{ 24 }, MRES_EXPONENT{ 8 };
+    inline constexpr std::uint32_t MRES_SHIFT{ 24 }, MRES_EXPONENT{ 8 }, MRES_MASK{ 15 };
     inline constexpr std::uint32_t GCONF_RESET{ 0x101 }, IOIN_RESET{ 0x21000001 };
     inline constexpr std::uint32_t CHOPCONF_RESET{ 0x10000053 }, DRV_STATUS_RESET{ 0x80000000 };
     inline constexpr std::uint32_t PWMCONF_DEFAULT{ 0xC10D0024 }, LOAD_MASK{ 0x3FF };

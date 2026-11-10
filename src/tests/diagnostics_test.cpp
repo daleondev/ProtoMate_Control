@@ -210,7 +210,7 @@ namespace
     TEST(MemoryDiagnostics, SnapshotFitsWireFrameAndCollectionHasSaneBounds)
     {
         for (auto query : { MemoryQuery::Heap, MemoryQuery::Stack }) {
-            const auto snapshot{ diagnostics::collectMemory(query) };
+            const auto snapshot{ diagnostics::collect_memory(query) };
             const auto frame{ icc::util::encode_frame(
               icc::util::FrameKind::Response, "io/memory", 1, snapshot) };
             EXPECT_LE(frame.size, icc::util::MAX_FRAME_BYTES);
@@ -227,7 +227,7 @@ namespace
                 EXPECT_LE(thread.peak_stack_usage, thread.stack_size);
             }
         }
-        EXPECT_THROW(static_cast<void>(diagnostics::collectMemory(static_cast<MemoryQuery>(99))),
+        EXPECT_THROW(static_cast<void>(diagnostics::collect_memory(static_cast<MemoryQuery>(99))),
                      std::invalid_argument);
     }
 }

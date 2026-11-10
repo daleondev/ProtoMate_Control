@@ -1,12 +1,20 @@
+// CMSIS/HAL register macros use fixed MMIO addresses and C pointer casts.
+// NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
 #include "RgbOutput.hpp"
 #include "hal/stm32/HalResult.hpp"
 #include "hal/stm32/InterruptGuard.hpp"
 #include "profiling/Trace.hpp"
 #include <algorithm>
+#include <array>
 #include <exception>
 #include <utility>
 namespace
 {
+    constexpr unsigned LTDC_READ_QOS{ 15 }, LTDC_IRQ_PRIORITY{ 10 };
+    constexpr std::uintptr_t FRAMEBUFFER_BASE{ 0xC0000000U }, FRAMEBUFFER_STRIDE{ 0x200000U };
+    constexpr auto PRESENT_TIMEOUT{ std::chrono::milliseconds{ 100 } };
+    // LTDC IRQ dispatch pointer; installed/removed under the STM32 interrupt guard.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     hal::RgbOutput* instance{};
 }
 extern "C" void LTDC_IRQHandler()
@@ -26,8 +34,8 @@ namespace hal
       , m_pwm{ pwm }
       , m_backlight{ std::move(backlight) }
     {
-        static char name[]{ "LTDC completion" };
-        if (tx_semaphore_create(&m_completion, name, 0) != TX_SUCCESS) {
+        static auto name{ std::to_array("LTDC completion") };
+        if (tx_semaphore_create(&m_completion, name.data(), 0) != TX_SUCCESS) {
             std::terminate();
         }
     }
@@ -39,7 +47,7 @@ namespace hal
     void RgbOutput::shutdown() noexcept
     {
         stm32::InterruptGuard guard{};
-        __HAL_TIM_SET_COMPARE(&m_pwm, TIM_CHANNEL_1, 0);
+        m_pwm.Instance->CCR1 = 0;
         __HAL_LTDC_DISABLE(&m_lcd);
         m_lcd.Instance->IER = 0;
         HAL_NVIC_DisableIRQ(LTDC_IRQn);
@@ -57,14 +65,14 @@ namespace hal
         if (m_initialized) {
             return {};
         }
-        __HAL_TIM_SET_COMPARE(&m_pwm, TIM_CHANNEL_1, 0);
+        m_pwm.Instance->CCR1 = 0;
         __HAL_LTDC_DISABLE(&m_lcd);
         for (unsigned slot{ 0 }; slot < 2; ++slot) {
             std::ranges::fill(framebuffer(slot), 0);
         }
         // RM0399: AXI initiator 6 is LTDC. Its FIFO has a hard pixel-clock
         // deadline; CPU/DMA rendering can wait for SDRAM arbitration.
-        GPV->AXI_INI6_READ_QOS = 15;
+        GPV->AXI_INI6_READ_QOS = LTDC_READ_QOS;
         // Timing/VSYNC runs immediately; fetch pixels only after the first
         // completed framebuffer is committed at vertical blank.
         __HAL_LTDC_LAYER_DISABLE(&m_lcd, 0);
@@ -83,7 +91,7 @@ namespace hal
             // First line of vertical front porch; no active pixels are scanned.
             m_lcd.Instance->LIPCR = m_lcd.Init.AccumulatedActiveH + 1;
             m_lcd.Instance->IER = LTDC_IT_FU | LTDC_IT_TE | LTDC_IT_LI | LTDC_IT_RR;
-            HAL_NVIC_SetPriority(LTDC_IRQn, 10, 0);
+            HAL_NVIC_SetPriority(LTDC_IRQn, LTDC_IRQ_PRIORITY, 0);
             HAL_NVIC_EnableIRQ(LTDC_IRQn);
             __HAL_LTDC_ENABLE(&m_lcd);
             m_initialized = true;
@@ -99,7 +107,8 @@ namespace hal
         if (slot > 1) {
             return {};
         }
-        return { reinterpret_cast<std::uint16_t*>(0xC0000000u + slot * 0x200000u), 1024 * 600 };
+        return { reinterpret_cast<std::uint16_t*>(FRAMEBUFFER_BASE + (slot * FRAMEBUFFER_STRIDE)),
+                 WIDTH * HEIGHT };
     }
     auto RgbOutput::state() const noexcept -> display::State
     {
@@ -166,7 +175,7 @@ namespace hal
         if (!result) {
             return result;
         }
-        const auto deadline{ std::chrono::steady_clock::now() + std::chrono::milliseconds{ 100 } };
+        const auto deadline{ std::chrono::steady_clock::now() + PRESENT_TIMEOUT };
         while (state().pending) {
             const auto remaining{ std::chrono::duration_cast<std::chrono::milliseconds>(
                                     deadline - std::chrono::steady_clock::now())
@@ -191,10 +200,12 @@ namespace hal
     }
     auto RgbOutput::backlight(unsigned percent) -> util::Result<>
     {
-        if (!m_initialized || percent > 100) {
+        if (!m_initialized || percent > PERCENT) {
             return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
-        __HAL_TIM_SET_COMPARE(&m_pwm, TIM_CHANNEL_1, (m_pwm.Instance->ARR + 1u) * percent / 100u);
+        m_pwm.Instance->CCR1 = (m_pwm.Instance->ARR + 1U) * percent / PERCENT;
         return {};
     }
 }
+
+// NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)

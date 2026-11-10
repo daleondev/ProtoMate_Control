@@ -12,19 +12,28 @@ namespace io
 {
     namespace
     {
+        constexpr unsigned LOG_PRIORITY{ 20 };
+        constexpr std::size_t LOG_STACK_BYTES{ 8192 };
+    }
+    namespace
+    {
         using namespace pnm::units::literals;
         // Motor-shaft units, retaining the previous application's placeholder
         // reference coordinates until the mechanics are calibrated.
         constexpr motion::Controller::Configuration MOTOR_CONFIGURATION{
-            motion::Controller::MotorConfiguration{ 135_deg,
-                                                    1.8_deg,
-                                                    ::motion::operating::MICROSTEPS[0],
-                                                    motion::StepperMotor::Direction::Backward },
-            motion::Controller::MotorConfiguration{ 135_deg,
-                                                    1.8_deg,
-                                                    ::motion::operating::MICROSTEPS[1],
-                                                    motion::StepperMotor::Direction::Backward },
-            motion::Controller::MotorConfiguration{ 135_deg, 1.8_deg, ::motion::operating::MICROSTEPS[2] }
+            motion::Controller::MotorConfiguration{ .reference_position = 135_deg,
+                                                    .full_step_angle = 1.8_deg,
+                                                    .microsteps = ::motion::operating::MICROSTEPS[0],
+                                                    .reference_direction =
+                                                      motion::StepperMotor::Direction::Backward },
+            motion::Controller::MotorConfiguration{ .reference_position = 135_deg,
+                                                    .full_step_angle = 1.8_deg,
+                                                    .microsteps = ::motion::operating::MICROSTEPS[1],
+                                                    .reference_direction =
+                                                      motion::StepperMotor::Direction::Backward },
+            motion::Controller::MotorConfiguration{ .reference_position = 135_deg,
+                                                    .full_step_angle = 1.8_deg,
+                                                    .microsteps = ::motion::operating::MICROSTEPS[2] }
         };
     }
 
@@ -44,12 +53,14 @@ namespace io
             }
             if (status.state == icc::ConnectionState::Failed ||
                 status.reason == icc::ConnectionReason::PeerStopped) {
-                if (m_motorServer)
+                if (m_motorServer) {
                     m_motorServer->peerLost(status.reason == icc::ConnectionReason::PeerStopped);
+                }
             }
         });
 
-        runtime::thread::publish_attributes({ .name = "io.logging", .priority = 20, .stack_size = 8192U });
+        runtime::thread::publish_attributes(
+          { .name = "io.logging", .priority = LOG_PRIORITY, .stack_size = LOG_STACK_BYTES });
         pnm::log::initialize();
         pnm::log::info(m_logSink, "IO-Controller started");
     }
@@ -70,12 +81,12 @@ namespace io
         m_started = true;
         try {
             // Static storage maps to M4 local D2 SRAM, unlike the AXI heap.
-            static motion::ProfileMemory profileMemory;
+            static motion::ProfileMemory profile_memory{};
             m_motion =
               m_controllerFactory
-                ? m_controllerFactory(m_logSink, &profileMemory)
+                ? m_controllerFactory(m_logSink, &profile_memory)
                 : std::make_unique<motion::Controller>(
-                    MOTOR_CONFIGURATION, motion::Controller::DriverFactory{}, m_logSink, &profileMemory);
+                    MOTOR_CONFIGURATION, motion::Controller::DriverFactory{}, m_logSink, &profile_memory);
             m_controllerFactory = {};
             m_motorServer = std::make_unique<motion::Server>(m_bus, *m_motion);
             // The lifecycle entry waits on m_mutex until bridge startup finishes.
@@ -177,7 +188,8 @@ namespace io
         // still governs shutdown when this final publication cannot be delivered.
         try {
             m_stateTopic.publish(state());
-        } catch (...) {
+        } catch (...) { // NOLINT(bugprone-empty-catch): Final state is best effort; peer goodbye and link
+                        // health still report shutdown.
         }
         // Keep the context alive until bridge shutdown has drained its work.
         m_bridge.stop();

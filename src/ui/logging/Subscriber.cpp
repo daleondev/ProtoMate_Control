@@ -5,6 +5,10 @@
 
 namespace ui::logging
 {
+    namespace
+    {
+        constexpr auto IDLE_POLL_INTERVAL{ std::chrono::milliseconds{ 100 } };
+    }
     Subscriber::Subscriber(pnm::msg::Bus& bus, Output output)
       : m_subscription{ bus.topic<^^icc::Topics::io_logs>().subscribe(
           [output = std::move(output)](const std::string& record) {
@@ -20,7 +24,7 @@ namespace ui::logging
     {
     }
 
-    void Subscriber::run(std::stop_token stop)
+    void Subscriber::run(const std::stop_token& stop)
     {
         // A readiness callback already in flight may finish after unregistering.
         // Its shared notification remains alive until that callback returns.
@@ -28,9 +32,9 @@ namespace ui::logging
         const auto ready{ pnm::msg::watch(m_subscription, [notification] { notification->signal(); }) };
         const std::stop_callback cancellation{ stop, [notification] { notification->signal(); } };
         while (!stop.stop_requested()) {
-            diagnostics::pollProfiling();
+            diagnostics::poll_profiling();
 #if defined(PROTOMATE_PROFILING)
-            const auto stats = m_subscription.statistics();
+            const auto stats{ m_subscription.statistics() };
             profile_subscription(
               6,
               unsigned(stats.queued),
@@ -38,7 +42,7 @@ namespace ui::logging
               static_cast<std::uint32_t>(std::min<std::uint64_t>(stats.dropped, UINT32_MAX)));
 #endif
             if (m_subscription.pollSome(1) == 0) {
-                notification->waitUntil(std::chrono::steady_clock::now() + std::chrono::milliseconds{ 100 });
+                notification->waitUntil(std::chrono::steady_clock::now() + IDLE_POLL_INTERVAL);
             }
         }
     }

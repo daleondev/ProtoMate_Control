@@ -1,5 +1,6 @@
 #pragma once
 #include "simulation/Protocol.hpp"
+#include <cstdint>
 #include <pneumo/messaging.hpp>
 
 namespace pnm::utils::memory
@@ -7,13 +8,17 @@ namespace pnm::utils::memory
     template<>
     struct SerializationAdapter<simulation::Packet>
     {
-        static std::size_t bufferSize(const simulation::Packet&) { return simulation::PACKET_BYTES; }
+        static std::size_t bufferSize(const simulation::Packet& /*unused*/)
+        {
+            return simulation::PACKET_BYTES;
+        }
         static bool serialize(const simulation::Packet& value, std::span<std::byte> output)
         {
-            if (output.size() != simulation::PACKET_BYTES)
+            if (output.size() != simulation::PACKET_BYTES) {
                 return false;
+            }
             const auto bytes{ simulation::encode(value) };
-            std::copy(bytes.begin(), bytes.end(), output.begin());
+            std::ranges::copy(bytes, output.begin());
             return true;
         }
         static bool deserialize(std::span<const std::byte> input, simulation::Packet& value)
@@ -30,7 +35,7 @@ namespace pnm::utils::memory
 
 namespace simulation
 {
-    enum class Provider
+    enum class Provider : std::uint8_t
     {
         Machine,
         Controller

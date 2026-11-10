@@ -9,42 +9,56 @@
 #include <string_view>
 #include <thread>
 
+namespace
+{
+    constexpr auto POLL_PERIOD{ std::chrono::milliseconds{ 20 } };
+    double number(std::string_view input)
+    {
+        double value{};
+        const auto result{ std::from_chars(input.data(), input.data() + input.size(), value) };
+        if (result.ec != std::errc{} || result.ptr != input.data() + input.size() || !std::isfinite(value)) {
+            throw std::invalid_argument{ "invalid numeric model option" };
+        }
+        return value;
+    }
+    simulation::viewer::UpAxis up_axis(std::string_view value)
+    {
+        if (value == "y") {
+            return simulation::viewer::UpAxis::Y;
+        }
+        if (value == "z") {
+            return simulation::viewer::UpAxis::Z;
+        }
+        throw std::invalid_argument{ "--model-up expects y or z" };
+    }
+}
+
 int main(int argc, char** argv)
 try {
-    simulation::installSignalHandlers();
+    simulation::install_signal_handlers();
     bool headless{};
     simulation::SessionOptions options{};
     simulation::viewer::ViewerOptions viewer_options{};
-    const auto number{ [](std::string_view input) {
-        double value{};
-        const auto result{ std::from_chars(input.data(), input.data() + input.size(), value) };
-        if (result.ec != std::errc{} || result.ptr != input.data() + input.size() || !std::isfinite(value))
-            throw std::invalid_argument{ "invalid numeric model option" };
-        return value;
-    } };
     int first_argument{ argc };
     for (int i{ 1 }; i < argc; ++i) {
         const std::string_view argument{ argv[i] };
-        if (argument == "--headless")
+        if (argument == "--headless") {
             headless = true;
+        }
         else if (argument == "--trace" && i + 1 < argc) {
             options.trace_path = argv[++i];
         }
         else if (argument == "--media-dir" && i + 1 < argc) {
             options.media_directory = argv[++i];
         }
-        else if (argument == "--robot-models" && i + 1 < argc)
+        else if (argument == "--robot-models" && i + 1 < argc) {
             viewer_options.model_directory = argv[++i];
-        else if (argument == "--model-scale" && i + 1 < argc)
+        }
+        else if (argument == "--model-scale" && i + 1 < argc) {
             viewer_options.coordinates.millimetres_per_unit = number(argv[++i]);
+        }
         else if (argument == "--model-up" && i + 1 < argc) {
-            const std::string_view up{ argv[++i] };
-            if (up == "y")
-                viewer_options.coordinates.up = simulation::viewer::UpAxis::Y;
-            else if (up == "z")
-                viewer_options.coordinates.up = simulation::viewer::UpAxis::Z;
-            else
-                throw std::invalid_argument{ "--model-up expects y or z" };
+            viewer_options.coordinates.up = up_axis(argv[++i]);
         }
         else if (argument == "--") {
             first_argument = i + 1;
@@ -62,12 +76,13 @@ try {
               "Close the robot window to continue headless.");
             return 0;
         }
-        else
+        else {
             throw std::invalid_argument{ "unknown simulator argument" };
+        }
     }
     viewer_options.coordinates.matrix();
-    simulation::viewer::robotModelTransforms(options.profile, { 0, 0, 0 });
-    simulation::ExecutableImage controller{ simulation::assets::controllerImage() };
+    simulation::viewer::robot_model_transforms(options.profile, { 0, 0, 0 });
+    simulation::ExecutableImage controller{ simulation::assets::controller_image() };
     simulation::Session session{ std::move(options) };
     session.launch(controller.fd(),
                    std::span{ argv + first_argument, static_cast<std::size_t>(argc - first_argument) });
@@ -76,13 +91,18 @@ try {
         try {
             simulation::viewer::run(session, viewer_options);
         } catch (const std::exception& e) {
+            // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
             std::fprintf(stderr, "simulation viewer unavailable: %s; continuing headless\n", e.what());
         }
     }
-    while (session.running())
-        std::this_thread::sleep_for(std::chrono::milliseconds{ 20 });
+    while (session.running()) {
+        std::this_thread::sleep_for(POLL_PERIOD);
+    }
     return session.childStatus();
 } catch (const std::exception& e) {
+    // Keep failure diagnostics nonthrowing, including allocation-failure paths.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,modernize-use-std-print)
     std::fprintf(stderr, "Application: %s\n", e.what());
     return 1;
 }

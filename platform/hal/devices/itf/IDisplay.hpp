@@ -8,6 +8,12 @@ namespace hal::device
     class IDisplay
     {
       public:
+        IDisplay() = default;
+        IDisplay(const IDisplay&) = delete;
+        auto operator=(const IDisplay&) -> IDisplay& = delete;
+        IDisplay(IDisplay&&) = delete;
+        auto operator=(IDisplay&&) -> IDisplay& = delete;
+
         virtual ~IDisplay() = default;
         // Two RGB565 framebuffers; only render to the inactive buffer.
         virtual auto initialize() -> util::Result<> = 0;

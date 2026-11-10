@@ -12,6 +12,8 @@ namespace hal::graphics
             return {};
         }
         static util::ExclusiveInstances<1> instances{};
+        // CMSIS peripheral access uses the MCU fixed-address register map.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
         return instances.create<Graphics>(0, *DMA2D);
 #else
         static_cast<void>(peripheral);

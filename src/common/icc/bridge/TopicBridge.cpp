@@ -40,7 +40,7 @@ namespace icc
                 continue;
             }
 #if defined(PROTOMATE_PROFILING)
-            const auto stats = m_outgoingTopics[index].statistics();
+            const auto stats{ m_outgoingTopics[index].statistics() };
             profile_subscription(
               16 + unsigned(index),
               unsigned(stats.queued),

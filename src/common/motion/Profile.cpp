@@ -8,6 +8,8 @@ namespace motion
 {
     namespace
     {
+        constexpr double ACCELERATION_ROUNDOFF_ULPS{ 8 };
+        constexpr double BRAKING_ACCELERATION_TOLERANCE{ 1e-8 };
         constexpr double HALF{ 0.5 };
         constexpr double QUADRATIC_FACTOR{ 2.0 };
         constexpr double CUBIC_INTEGRATION_FACTOR{ 6.0 };
@@ -349,9 +351,10 @@ std::optional<motion::Profile> motion::Profile::brake(double velocity,
     // Analytic phase evaluation/scaling can place an at-limit acceleration a
     // few binary64 ulps above its limit. Preserve the incoming state (C2 join),
     // allowing only arithmetic roundoff, not the broader admission tolerance.
-    const auto exceeds = [](double value, double limit) {
-        return value > limit && value - limit > 8 * std::numeric_limits<double>::epsilon() * limit;
-    };
+    const auto exceeds{ [](double value, double limit) {
+        return value > limit &&
+               value - limit > ACCELERATION_ROUNDOFF_ULPS * std::numeric_limits<double>::epsilon() * limit;
+    } };
     if (!std::isfinite(velocity) || velocity < 0 || !std::isfinite(acceleration) ||
         !std::isfinite(limits.deceleration) || limits.deceleration <= 0 ||
         !std::isfinite(limits.acceleration) || limits.acceleration <= 0 || !std::isfinite(limits.jerk) ||
@@ -452,11 +455,11 @@ std::optional<motion::Profile> motion::Profile::scaled(double scale) const noexc
     if (!std::isfinite(scale) || scale <= 0) {
         return {};
     }
-    auto d = description();
+    auto d{ description() };
     d.distance *= scale;
     d.end_velocity *= scale;
-    for (unsigned i = 0; i < d.size; ++i) {
-        auto& p = d.phases[i];
+    for (unsigned i{ 0 }; i < d.size; ++i) {
+        auto& p{ d.phases[i] };
         p.position *= scale;
         p.velocity *= scale;
         p.acceleration *= scale;
@@ -470,10 +473,11 @@ bool motion::Profile::brakingToRest(double time) const noexcept
     if (m_endVelocity != 0 || at(time).acceleration >= 0) {
         return false;
     }
-    for (unsigned i = 0; i < m_size; ++i) {
-        const auto& p = m_phases[i];
+    for (unsigned i{ 0 }; i < m_size; ++i) {
+        const auto& p{ m_phases[i] };
         if (p.start + p.duration > time &&
-            (p.state.acceleration > 1e-8 || p.state.acceleration + (p.jerk * p.duration) > 1e-8)) {
+            (p.state.acceleration > BRAKING_ACCELERATION_TOLERANCE ||
+             p.state.acceleration + (p.jerk * p.duration) > BRAKING_ACCELERATION_TOLERANCE)) {
             return false;
         }
     }

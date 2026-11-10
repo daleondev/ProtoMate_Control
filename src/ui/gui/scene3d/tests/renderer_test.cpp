@@ -29,9 +29,9 @@ namespace
 TEST(Scene3D, ShadedDeterministicAndBounded)
 {
     Buffers a, b;
-    auto pose = benchmarkSnapshot(1, 1, 0);
-    ASSERT_TRUE(a.draw(benchmarkScene(2000), pose));
-    ASSERT_TRUE(b.draw(benchmarkScene(2000), pose));
+    auto pose = benchmark_snapshot(1, { .revision = 1, .time_us = 0 });
+    ASSERT_TRUE(a.draw(benchmark_scene(2000), pose));
+    ASSERT_TRUE(b.draw(benchmark_scene(2000), pose));
     EXPECT_EQ(a.color, b.color);
     EXPECT_GT(std::count_if(a.color.begin(), a.color.end(), [](auto c) { return c != 0x10c4; }), 60000);
     EXPECT_GT(std::set(a.color.begin(), a.color.end()).size(), 128U);
@@ -41,8 +41,8 @@ TEST(Scene3D, ShadedDeterministicAndBounded)
 TEST(Scene3D, HierarchyAndDepthDoNotDependOnRootDrawOrder)
 {
     Buffers a, b;
-    Scene scene = benchmarkScene(2000);
-    auto pose = benchmarkSnapshot(.7f, 1, 0);
+    Scene scene = benchmark_scene(2000);
+    auto pose = benchmark_snapshot(.7f, { .revision = 1, .time_us = 0 });
     ASSERT_TRUE(a.draw(scene, pose));
     std::reverse(scene.nodes.begin(), scene.nodes.begin() + scene.count);
     std::reverse(pose.transforms.begin(), pose.transforms.begin() + scene.count);
@@ -53,8 +53,8 @@ TEST(Scene3D, HierarchyAndDepthDoNotDependOnRootDrawOrder)
     }
     // Intersecting surfaces can tie after 16-bit depth quantization.
     EXPECT_LT(differences, 64U);
-    scene = benchmarkScene(2000);
-    pose = benchmarkSnapshot(.7f, 1, 0);
+    scene = benchmark_scene(2000);
+    pose = benchmark_snapshot(.7f, { .revision = 1, .time_us = 0 });
     // Parent at origin: the same local pose must produce identical pixels.
     scene.count = 2;
     scene.nodes[1] = scene.nodes[0];
@@ -69,22 +69,24 @@ TEST(Scene3D, HierarchyAndDepthDoNotDependOnRootDrawOrder)
 TEST(Scene3D, NearPlaneAndViewportClippingPreserveGuards)
 {
     Buffers b;
-    auto pose = benchmarkSnapshot(.3f, 1, 0);
+    auto pose = benchmark_snapshot(.3f, { .revision = 1, .time_us = 0 });
     pose.camera.distance = .8f;
-    pose.camera.nearPlane = .5f;
-    ASSERT_TRUE(b.draw(benchmarkScene(5000), pose));
+    pose.camera.near_plane = .5f;
+    ASSERT_TRUE(b.draw(benchmark_scene(5000), pose));
     b.guards();
 }
 TEST(Scene3D, RejectsInvalidHierarchyAndTransformsBeforeDrawing)
 {
     Buffers b;
-    Scene scene = benchmarkScene(2000);
-    auto pose = benchmarkSnapshot(0, 1, 0);
+    Scene scene = benchmark_scene(2000);
+    auto pose = benchmark_snapshot(0, { .revision = 1, .time_us = 0 });
     scene.nodes[0].parent = 1;
     EXPECT_FALSE(b.draw(scene, pose));
-    scene = benchmarkScene(2000);
+    scene = benchmark_scene(2000);
     pose.transforms[0].scale = std::numeric_limits<float>::quiet_NaN();
     EXPECT_FALSE(b.draw(scene, pose));
     EXPECT_TRUE(std::ranges::all_of(b.color, [](auto c) { return c == 0xa55a; }));
-    EXPECT_FALSE(render({ &scene, benchmarkSnapshot(0, 1, 0) }, std::span(b.color).first(3), b.depth));
+    EXPECT_FALSE(render({ &scene, benchmark_snapshot(0, { .revision = 1, .time_us = 0 }) },
+                        std::span(b.color).first(3),
+                        b.depth));
 }

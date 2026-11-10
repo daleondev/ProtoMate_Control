@@ -8,6 +8,13 @@ namespace hal
     class IRgbOutput
     {
       public:
+        static constexpr auto DEFAULT_SERVICE_PERIOD{ std::chrono::milliseconds{ 50 } };
+        IRgbOutput() = default;
+        IRgbOutput(const IRgbOutput&) = delete;
+        auto operator=(const IRgbOutput&) -> IRgbOutput& = delete;
+        IRgbOutput(IRgbOutput&&) = delete;
+        auto operator=(IRgbOutput&&) -> IRgbOutput& = delete;
+
         virtual ~IRgbOutput() = default;
         // Two RGB565 framebuffers; only render to the inactive buffer.
         virtual auto initialize() -> util::Result<> = 0;
@@ -23,7 +30,7 @@ namespace hal
         virtual void service() noexcept {}
         virtual auto servicePeriod() const noexcept -> std::chrono::milliseconds
         {
-            return std::chrono::milliseconds{ 50 };
+            return DEFAULT_SERVICE_PERIOD;
         }
         virtual auto fill(unsigned slot, std::uint16_t rgb565) -> util::Result<> = 0;
         virtual auto backlight(unsigned percent) -> util::Result<> = 0;

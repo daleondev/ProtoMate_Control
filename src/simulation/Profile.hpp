@@ -7,6 +7,8 @@ namespace simulation
 {
     struct Profile
     {
+        static constexpr double RELEASE_CLEARANCE_MM{ .05 };
+        static constexpr unsigned DM542_MICROSTEPS{ 16 };
         static constexpr const char* NAME{ "fusion-cad-v4" };
         std::array<double, 3> geometry_mm{ cad::LINK_LENGTHS_MM };
         std::array<double, 3> ratio{ cad::MOTOR_REDUCTION };
@@ -18,8 +20,10 @@ namespace simulation
         // Nominal lever flexion; CAD contains no electrical actuation specification.
         // These are lever deflections, NOT joint-angle reference thresholds.
         std::array<double, 3> sensor_operate_deflection_deg{ 2, 2, 2 };
-        std::array<double, 3> sensor_release_clearance_mm{ .05, .05, .05 };
-        unsigned dm542_microsteps{ 16 };
+        std::array<double, 3> sensor_release_clearance_mm{ RELEASE_CLEARANCE_MM,
+                                                           RELEASE_CLEARANCE_MM,
+                                                           RELEASE_CLEARANCE_MM };
+        unsigned dm542_microsteps{ DM542_MICROSTEPS };
         void validate() const;
     };
 }

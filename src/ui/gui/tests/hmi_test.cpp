@@ -19,7 +19,7 @@ namespace
             return { .job = 17, .accepted = true };
         }
         unsigned jobs(unsigned, std::span<Job>, bool) override { return 0; }
-        Outcome hold(const Command& c, int, int, int, int) override
+        Outcome hold(const Command& c, ui::gui::hmi::layout::Bounds) override
         {
             last = c;
             ++holds;
@@ -71,8 +71,8 @@ TEST(Hmi, HeldJogUsesTenPercentAndReleaseDoesNotWaitForAcceptance)
     BackendFixture b;
     m.backend = &b;
     m.page = Page::Axes;
-    EXPECT_EQ(m.jogMode, 2U);
-    m.state.axes[0].maxSpeed = 40;
+    EXPECT_EQ(m.jog_mode, 2U);
+    m.state.axes[0].max_speed = 40;
     Presenter p{ m };
     p.act(JogMinus, true);
     EXPECT_EQ(b.holds, 1U);
@@ -104,7 +104,7 @@ TEST(Hmi, CartesianHoldSubmitsDirectionIndependentOfStepSize)
     BackendFixture b;
     m.backend = &b;
     m.page = Page::Cartesian;
-    m.cartesianStep = 10;
+    m.cartesian_step = 10;
     Presenter p{ m };
     p.act(YMinus, true);
     EXPECT_EQ(b.last.kind, Kind::PointJog);
@@ -184,7 +184,7 @@ TEST(Hmi, RobotUnitsFactorsAndRawBufferAreExplicit)
 TEST(Hmi, MotorMetadataRemainsInMotorOrderWithPermutedAxes)
 {
     Snapshot s;
-    s.jointForMotor = { 2, 0, 1 };
+    s.joint_for_motor = { 2, 0, 1 };
     s.axes[2].owner = 99;
     s.axes[0].owner = 7;
     EXPECT_EQ(s.motor(0).owner, 99U);
@@ -196,7 +196,7 @@ TEST(Hmi, SupportedControlsUseTheSharedBackendOperations)
     struct Case
     {
         Page page;
-        unsigned action;
+        Action action;
         Kind kind;
     };
     constexpr Case cases[]{ { Page::Home, Initialize, Kind::Initialize },
@@ -252,19 +252,20 @@ TEST(Hmi, AllCartesianStepDirectionsAndJobCancellationHaveExplicitIdentity)
         BackendFixture b;
         m.backend = &b;
         m.page = Page::Cartesian;
-        m.cartesianStep = .1;
+        m.cartesian_step = .1;
         Presenter p{ m };
         p.act(StepMode, true);
         p.act(XMinus + i, true);
         EXPECT_EQ(b.last.kind, Kind::PointRelative);
-        for (unsigned axis = 0; axis < 3; ++axis)
+        for (unsigned axis = 0; axis < 3; ++axis) {
             EXPECT_DOUBLE_EQ(b.last.position[axis], axis == i / 2 ? (i % 2 ? .1 : -.1) : 0);
+        }
     }
     Model m;
     BackendFixture b;
     m.backend = &b;
     m.page = Page::Jobs;
-    m.jobCount = 2;
+    m.job_count = 2;
     m.jobs[1].id = 123;
     Presenter p{ m };
     p.act(Cancel1, true);
@@ -330,31 +331,31 @@ TEST(Gestures, WheelOnlyZoomsVisibleViewportAndHonorsFocus)
 {
     Gestures g;
     hal::device::TouchReport r{};
-    r.pointerX = 300;
-    r.pointerY = 300;
+    r.pointer_x = 300;
+    r.pointer_y = 300;
     r.wheel = .5f;
     EXPECT_NEAR(g.update(r, true, true).scale, std::exp(-.06f), 1e-6);
     r.wheel = -1;
     EXPECT_GT(g.update(r, true, true).scale, 1);
-    r.pointerX = 800;
+    r.pointer_x = 800;
     EXPECT_EQ(g.update(r, true, true).scale, 1);
-    r.pointerX = 300;
+    r.pointer_x = 300;
     EXPECT_EQ(g.update(r, false, true).scale, 1);
     EXPECT_EQ(g.update(r, true, false).scale, 1);
 }
 TEST(Hmi, ChangingModesAndTabsCancelsHeldInput)
 {
-    for (unsigned action : { AxisJogPage,
-                             AxisPosition,
-                             AxisDynamics,
-                             StepMode,
-                             Timed,
-                             Continuous,
-                             Axis1,
-                             Axis2,
-                             Axis3,
-                             More,
-                             Advanced }) {
+    for (Action action : { AxisJogPage,
+                           AxisPosition,
+                           AxisDynamics,
+                           StepMode,
+                           Timed,
+                           Continuous,
+                           Axis1,
+                           Axis2,
+                           Axis3,
+                           More,
+                           Advanced }) {
         Model m;
         BackendFixture backend;
         m.backend = &backend;
@@ -372,8 +373,8 @@ TEST(Gestures, OverlayControlsNeverStartPinchOrWheelZoom)
     ui::gui::hmi::Gestures gesture;
     hal::device::TouchReport report{};
     const ui::gui::hmi::Gestures::Exclusion overlay{ 200, 200, 100, 56 };
-    report.pointerX = 220;
-    report.pointerY = 220;
+    report.pointer_x = 220;
+    report.pointer_y = 220;
     report.wheel = 1;
     EXPECT_EQ(gesture.update(report, true, true, { &overlay, 1 }).scale, 1);
     report.points[0] = { .active = true, .x = 220, .y = 220 };
@@ -385,22 +386,25 @@ TEST(Gestures, OverlayControlsNeverStartPinchOrWheelZoom)
 TEST(Annotations, CrowdedAnchorsStayInsideAndDoNotOverlap)
 {
     using namespace ui::gui;
-    for (int x : { 0, 320, 639 })
+    for (int x : { 0, 320, 639 }) {
         for (int y : { 0, 200, 399 }) {
             std::array<scene3d::ProjectedAnchor, 3> anchors{};
-            for (auto& a : anchors)
+            for (auto& a : anchors) {
                 a = { int16_t(x), int16_t(y), 12.5f, true };
-            const auto boxes = hmi::layoutBadges(anchors);
+            }
+            const auto boxes = hmi::layout_badges(anchors);
             for (unsigned i = 0; i < 3; ++i) {
                 ASSERT_TRUE(anchors[i].visible);
                 EXPECT_GE(boxes[i].x, 0);
                 EXPECT_GE(boxes[i].y, 56); // below the scene's top controls
                 EXPECT_LE(boxes[i].right(), 640);
                 EXPECT_LE(boxes[i].bottom(), 356); // above Reset View
-                for (unsigned j = 0; j < i; ++j)
+                for (unsigned j = 0; j < i; ++j) {
                     EXPECT_FALSE(boxes[i].intersect(boxes[j]));
+                }
             }
         }
+    }
 }
 #include "ui/gui/util/WheelQueue.hpp"
 TEST(Gestures, WheelQueueKeepsCoordinatesAndConsumesEachDeltaOnce)
@@ -410,17 +414,17 @@ TEST(Gestures, WheelQueueKeepsCoordinatesAndConsumesEachDeltaOnce)
     const auto now = ui::gui::util::WheelQueue::Clock::now();
     hal::device::TouchReport r{};
     r.wheel = .25;
-    r.pointerX = 900;
-    r.pointerY = 300;
+    r.pointer_x = 900;
+    r.pointer_y = 300;
     ASSERT_TRUE(q.push(r, now));
-    r.pointerX = 400;
+    r.pointer_x = 400;
     r.wheel = -.5;
     ASSERT_TRUE(q.push(r, now));
     q.consume(r, now + 1ms);
-    EXPECT_EQ(r.pointerX, 900);
+    EXPECT_EQ(r.pointer_x, 900);
     EXPECT_EQ(r.wheel, .25);
     q.consume(r, now + 2ms);
-    EXPECT_EQ(r.pointerX, 400);
+    EXPECT_EQ(r.pointer_x, 400);
     EXPECT_EQ(r.wheel, -.5);
     q.consume(r, now + 3ms);
     EXPECT_EQ(r.wheel, 0);
@@ -429,8 +433,9 @@ TEST(Gestures, WheelQueueKeepsCoordinatesAndConsumesEachDeltaOnce)
     q.consume(r, now + 101ms);
     EXPECT_EQ(r.wheel, 0);
     r.wheel = 1;
-    for (unsigned i = 0; i < 8; ++i)
+    for (unsigned i = 0; i < 8; ++i) {
         ASSERT_TRUE(q.push(r, now));
+    }
     EXPECT_FALSE(q.push(r, now));
     EXPECT_EQ(q.dropped(), 1);
     q.consume(r, now);
@@ -451,7 +456,7 @@ TEST(Hmi, CartesianTimedJogUsesDurationAndFactorsWithoutInputSupervision)
     Presenter p{ m };
     p.navigate(Page::Cartesian);
     p.act(Timed, true);
-    m.cartesianStep = 10;
+    m.cartesian_step = 10;
     m.values[8] = 2.5;
     m.values[10] = .2;
     m.values[4] = .5;
@@ -465,9 +470,9 @@ TEST(Hmi, CartesianTimedJogUsesDurationAndFactorsWithoutInputSupervision)
     EXPECT_FALSE(b.last.continuous);
     EXPECT_EQ(b.holds, 0U);
     EXPECT_EQ(b.submissions, 1U);
-    EXPECT_EQ(m.jogMode, 2U);
+    EXPECT_EQ(m.jog_mode, 2U);
     p.act(StepSmall, true);
-    EXPECT_DOUBLE_EQ(m.cartesianStep, .1);
+    EXPECT_DOUBLE_EQ(m.cartesian_step, .1);
     EXPECT_DOUBLE_EQ(m.step, 1);
 }
 TEST(Hmi, CartesianMoveToUsesPointCoordinatesAndSettings)
@@ -478,14 +483,14 @@ TEST(Hmi, CartesianMoveToUsesPointCoordinatesAndSettings)
     Presenter p{ m };
     p.navigate(Page::Cartesian);
     p.act(CartesianDynamics, true);
-    EXPECT_EQ(m.cartesianTab, 2U);
+    EXPECT_EQ(m.cartesian_tab, 2U);
     p.act(Field0 + 4, true);
     std::snprintf(m.number.data(), m.number.size(), "2");
     p.act(KeyApply, true);
     EXPECT_TRUE(m.keypad);
     p.act(KeyCancel, true);
     p.act(CartesianPosition, true);
-    EXPECT_EQ(m.cartesianTab, 1U);
+    EXPECT_EQ(m.cartesian_tab, 1U);
     m.values[0] = -25;
     m.values[1] = 200;
     m.values[2] = 15;
@@ -502,7 +507,7 @@ TEST(Hmi, CartesianMoveToUsesPointCoordinatesAndSettings)
     p.act(Execute, true);
     EXPECT_EQ(b.last.kind, Kind::PointRelative);
     p.act(CartesianJogPage, true);
-    EXPECT_EQ(m.cartesianTab, 0U);
+    EXPECT_EQ(m.cartesian_tab, 0U);
     EXPECT_GE(b.releases, 4U);
 }
 
@@ -513,14 +518,14 @@ TEST(Hmi, NumericEditorStartsEmptyAndCancelPreservesTheForm)
     m.values[0] = 42.5;
     p.act(Field0, true);
     EXPECT_STREQ(m.number.data(), "");
-    const auto session = m.editorRevision;
+    const auto session = m.editor_revision;
     p.key('1');
     p.key('2');
     p.key('\x1b');
     EXPECT_FALSE(m.keypad);
     EXPECT_DOUBLE_EQ(m.values[0], 42.5);
     p.act(Field0, true);
-    EXPECT_NE(m.editorRevision, session);
+    EXPECT_NE(m.editor_revision, session);
     EXPECT_STREQ(m.number.data(), "");
     p.key('\n');
     EXPECT_TRUE(m.keypad);
@@ -550,14 +555,16 @@ TEST(Hmi, KeyboardUsesTheSameRulesAndNeverSubmitsMotion)
     EXPECT_DOUBLE_EQ(m.values[10], .23);
     EXPECT_EQ(b.submissions, 0U);
     p.act(Field0, true);
-    for (char k : std::string_view{ "-12.5" })
+    for (char k : std::string_view{ "-12.5" }) {
         p.key(k);
+    }
     p.key('-'); // minus sets sign, it does not toggle a typed negative back to positive
     EXPECT_STREQ(m.number.data(), "-12.5");
     p.key('\x7f');
     EXPECT_STREQ(m.number.data(), "");
-    for (char k : std::string_view{ "-2.5" })
+    for (char k : std::string_view{ "-2.5" }) {
         p.key(k);
+    }
     p.key('\n');
     EXPECT_DOUBLE_EQ(m.values[0], -2.5);
 }
@@ -566,7 +573,7 @@ TEST(Hmi, FieldValidationChecksNumericSyntaxLimitsAndDefaults)
     Model m;
     m.page = Page::Axes;
     m.state.configured = m.state.fresh = true;
-    m.state.axes[0] = { .commanded = 20, .minimum = -100, .maximum = 100, .maxSpeed = 30 };
+    m.state.axes[0] = { .commanded = 20, .minimum = -100, .maximum = 100, .max_speed = 30 };
     m.field = 0;
     auto r = NumericField::forModel(m);
     EXPECT_TRUE(r.parse("80"));
@@ -577,8 +584,9 @@ TEST(Hmi, FieldValidationChecksNumericSyntaxLimitsAndDefaults)
     r = NumericField::forModel(m);
     EXPECT_TRUE(r.parse("100"));
     EXPECT_FALSE(r.parse("101"));
-    for (const auto* text : { "", "-", ".", "-.", "nan", "inf", "0x10", "1e2", " 1", "1.2.3" })
+    for (const auto* text : { "", "-", ".", "-.", "nan", "inf", "0x10", "1e2", " 1", "1.2.3" }) {
         EXPECT_FALSE(r.parse(text)) << text;
+    }
     m.page = Page::Preview;
     m.absolute = false; // previews are destinations regardless of the move-page selection
     r = NumericField::forModel(m);
@@ -613,7 +621,7 @@ TEST(Hmi, FieldValidationChecksNumericSyntaxLimitsAndDefaults)
     EXPECT_TRUE(r.parse("100"));
     EXPECT_FALSE(r.parse("100.01"));
     m.page = Page::Motors;
-    m.motorTab = 1;
+    m.motor_tab = 1;
     m.values[3] = 10;
     m.values[9] = .5;
     m.field = 3;
@@ -631,7 +639,7 @@ TEST(Hmi, FieldValidationChecksNumericSyntaxLimitsAndDefaults)
     r = NumericField::forModel(m);
     EXPECT_FALSE(r.parse("0"));
     EXPECT_TRUE(r.parse("10"));
-    m.motorTab = 2;
+    m.motor_tab = 2;
     for (unsigned f : { 4U, 5U }) {
         m.field = f;
         r = NumericField::forModel(m);
@@ -660,7 +668,7 @@ TEST(Hmi, MessageSeverityAndInfoFilterSurviveRingWrap)
     EXPECT_EQ(m.visibleMessage(2), nullptr);
     p.navigate(Page::Home);
     p.navigate(Page::Alarms);
-    EXPECT_FALSE(m.showInfo);
+    EXPECT_FALSE(m.show_info);
     p.act(ToggleInfo, true);
     EXPECT_STREQ(m.visibleMessage(0)->text.data(), "Ready");
     EXPECT_NE(m.visibleMessage(7), nullptr);
@@ -668,5 +676,19 @@ TEST(Hmi, MessageSeverityAndInfoFilterSurviveRingWrap)
     m.state.failed = true;
     p.act(Acknowledge, true);
     EXPECT_TRUE(m.state.failed);
-    EXPECT_EQ(m.messageCount, 1U);
+    EXPECT_EQ(m.message_count, 1U);
+}
+
+TEST(HmiText, BoundedFormattingTerminatesAndPreservesNumericPresentation)
+{
+    std::array<char, 64> text{};
+    ui::gui::hmi::format(text, "{:.1f} ° / {:.2f} mm / {}", -12.25, 0.125, 18446744073709551615ULL);
+    EXPECT_STREQ(text.data(), "-12.2 ° / 0.12 mm / 18446744073709551615");
+    std::array<char, 4> small{};
+    ui::gui::hmi::format(small, "{}", "abcdef");
+    EXPECT_STREQ(small.data(), "abc");
+    std::array<char, 1> terminator{ 'x' };
+    ui::gui::hmi::format(terminator, "{}", 42);
+    EXPECT_EQ(terminator[0], '\0');
+    ui::gui::hmi::format(std::span<char>{}, "{}", 42);
 }

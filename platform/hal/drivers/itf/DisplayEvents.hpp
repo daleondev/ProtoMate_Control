@@ -6,7 +6,7 @@
 
 namespace hal::display
 {
-    enum class Event
+    enum class Event : std::uint8_t
     {
         VSync,
         Presented,

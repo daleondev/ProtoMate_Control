@@ -25,6 +25,11 @@ static void region(uint32_t number,
     r.IsShareable = cache ? MPU_ACCESS_NOT_SHAREABLE : MPU_ACCESS_SHAREABLE;
     r.IsCacheable = cache ? MPU_ACCESS_CACHEABLE : MPU_ACCESS_NOT_CACHEABLE;
     r.IsBufferable = cache ? MPU_ACCESS_BUFFERABLE : MPU_ACCESS_NOT_BUFFERABLE;
+    /* Exclude the lower 512 KiB from the M4 code mapping. Both profiling
+       reservations inherit the underlying normal, non-cacheable, XN region. */
+    if (number == 3) {
+        r.SubRegionDisable = 0x03;
+    }
 #if defined(CORE_CM4)
     /* Cover data/MSP and the SRAM2 data alias as XN. Execution uses the
        separate 0x10000000 instruction alias for SRAM1 and part of SRAM2. */

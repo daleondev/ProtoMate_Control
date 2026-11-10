@@ -53,8 +53,9 @@ namespace hal
             return std::unexpected(value.error());
         }
         if (!m_running) {
-            if (simulation::client::connected())
+            if (simulation::client::connected()) {
                 simulation::client::command(simulation::Operation::EncoderRun, { 1 });
+            }
             m_running = true;
             m_sampler.publish({ .position = value, .timestamp = now(), .running = true });
         }
@@ -83,8 +84,9 @@ namespace hal
         simulation::client::Transaction transaction{};
         const std::scoped_lock lock{ m_mutex };
         if (auto* memory{ simulation::client::memory() }) {
-            if (simulation::client::failed())
+            if (simulation::client::failed()) {
                 return std::unexpected(std::make_error_code(std::errc::io_error));
+            }
             return std::bit_cast<std::int64_t>(simulation::acquire(memory->encoder_count));
         }
         return m_counter.position();
@@ -96,9 +98,10 @@ namespace hal
         if (m_running) {
             return std::unexpected(std::make_error_code(std::errc::device_or_resource_busy));
         }
-        if (simulation::client::connected())
+        if (simulation::client::connected()) {
             simulation::client::command(simulation::Operation::EncoderReset,
                                         { std::bit_cast<std::uint64_t>(count) });
+        }
         m_counter.reset({ .count = count, .raw = m_raw });
         return {};
     }

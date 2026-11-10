@@ -5,12 +5,13 @@
 #include <span>
 namespace hal::graphics
 {
-    enum class Format
+    inline constexpr std::uint8_t OPAQUE{ 255 };
+    enum class Format : std::uint8_t
     {
         Rgb565,
         Argb8888
     };
-    enum class Operation
+    enum class Operation : std::uint8_t
     {
         Fill,
         Copy,
@@ -22,15 +23,15 @@ namespace hal::graphics
         Operation operation{};
         // Destination is RGB565. Strides are bytes, including the written row.
         std::span<std::byte> destination;
-        std::size_t destinationStride{};
+        std::size_t destination_stride{};
         std::span<const std::byte> source;
-        std::size_t sourceStride{};
-        Format sourceFormat{ Format::Rgb565 };
+        std::size_t source_stride{};
+        Format source_format{ Format::Rgb565 };
         unsigned width{}, height{};
-        std::uint32_t color{};     // ARGB8888 for Fill/BlendFill
-        std::uint8_t alpha{ 255 }; // combined with pixel alpha for Blend
+        std::uint32_t color{};        // ARGB8888 for Fill/BlendFill
+        std::uint8_t alpha{ OPAQUE }; // combined with pixel alpha for Blend
     };
-    enum class Completion
+    enum class Completion : std::uint8_t
     {
         Complete,
         Error,
@@ -53,6 +54,12 @@ namespace hal
     class IGraphics
     {
       public:
+        IGraphics() = default;
+        IGraphics(const IGraphics&) = delete;
+        auto operator=(const IGraphics&) -> IGraphics& = delete;
+        IGraphics(IGraphics&&) = delete;
+        auto operator=(IGraphics&&) -> IGraphics& = delete;
+
         virtual ~IGraphics() = default;
         // One operation; buffers remain owned by the operation until callback.
         // A cached DMA destination must own complete cache lines (32-byte

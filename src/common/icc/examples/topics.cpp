@@ -47,11 +47,12 @@ int main()
             received_status = value;
             std::cout << "IO received demo/ui/status: " << value << '\n';
         }) };
+        constexpr std::size_t log_capacity{ 16 };
         std::vector<std::string> received_logs{};
         auto log_subscription{ ui_bus.topic<^^Topics::demo_io_logs>().subscribe([&](const auto& value) {
             received_logs.push_back(value);
             std::cout << "UI received IO log: " << value << '\n';
-        }, { .capacity = 16 }) };
+        }, { .capacity = log_capacity }) };
 
         // Startup messages can queue before the peer is ready, within the bound.
         io_bus.topic<^^Topics::demo_io_logs>().publish("Motor initialized");
@@ -75,10 +76,11 @@ int main()
         while (received_logs.size() < 3 && std::chrono::steady_clock::now() < deadline) {
             log_subscription.poll(10ms);
         }
+        const auto statistics{ io_bridge.topicStatistics("demo/io/logs") };
         if (received_logs != std::vector<std::string>{ "Motor initialized",
                                                        "Reference switch activated",
                                                        "Motion stopped" } ||
-            io_bridge.topicStatistics("demo/io/logs")->dropped != 0) {
+            !statistics || statistics->dropped != 0) {
             throw std::runtime_error("Background FIFO lost or reordered records");
         }
 

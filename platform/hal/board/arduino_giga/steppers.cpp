@@ -23,6 +23,10 @@ namespace hal::board
         constexpr std::array<std::uint16_t, 2> NOMINAL_CURRENT_MA{ 650, 550 };
         constexpr std::array<std::uint16_t, 2> RATED_CURRENT_MA{ 700, 590 };
         using enum gpio::Port;
+        constexpr gpio::Pin TMC_TX{ .port = D, .number = 5 };
+        constexpr gpio::Pin TMC_RX{ .port = D, .number = 6 };
+        constexpr gpio::Pin M2_INDEX{ .port = B, .number = 8 };
+        constexpr gpio::Pin M3_INDEX{ .port = B, .number = 9 };
         constexpr gpio::Pin M1_DIRECTION_PIN{ .port = J, .number = 8U };
         constexpr gpio::Pin M2_DIRECTION_PIN{ .port = D, .number = 13U };
         constexpr gpio::Pin M3_DIRECTION_PIN{ .port = H, .number = 13U };
@@ -50,7 +54,9 @@ namespace hal::board
 
     auto create_stepper_generator() -> std::shared_ptr<IStepGenerator>
     {
-        return step::create({ .pins = { gpio::Pin{ A, 0 }, gpio::Pin{ A, 2 }, gpio::Pin{ A, 3 } } });
+        return step::create({ .pins = { gpio::Pin{ .port = A, .number = 0 },
+                                        gpio::Pin{ .port = A, .number = 2 },
+                                        gpio::Pin{ .port = A, .number = 3 } } });
     }
 
     auto create_stepper_driver_bus() -> std::shared_ptr<IUart>
@@ -60,8 +66,8 @@ namespace hal::board
         return device::tmc2209::create_transport({
           .peripheral = uart::Peripheral::Usart2,
           .transport = { .local_echo = true, .settle_time = std::chrono::milliseconds{ 1 } },
-          .tx = { D, 5 },
-          .rx = { D, 6 },
+          .tx = TMC_TX,
+          .rx = TMC_RX,
         });
     }
 
@@ -85,10 +91,9 @@ namespace hal::board
         if (id != MotorId::Motor2 && id != MotorId::Motor3) {
             return {};
         }
-        return gpio::create_input(
-          { .pin = { .port = B, .number = static_cast<std::uint8_t>(id == MotorId::Motor2 ? 8 : 9) },
-            .pull = gpio::Pull::Down,
-            .edge = gpio::Edge::Both });
+        return gpio::create_input({ .pin = id == MotorId::Motor2 ? M2_INDEX : M3_INDEX,
+                                    .pull = gpio::Pull::Down,
+                                    .edge = gpio::Edge::Both });
     }
 
     auto create_motor_feedback(MotorId id, const MotorFeedbackConfig& config)

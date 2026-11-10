@@ -89,7 +89,7 @@ namespace
         addEcho(parser);
         send("say onX\be\r\nsay two\nsay three");
         eof();
-        ui::cli::runStream(parser, {}, false);
+        ui::cli::run_stream(parser, {}, false);
         EXPECT_EQ(output.str(), "> one\n> two\n> three\n");
     }
 
@@ -98,7 +98,7 @@ namespace
         ui::cli::Parser parser;
         addEcho(parser);
         send("say must-not-execute");
-        std::jthread worker([&](std::stop_token stop) { ui::cli::runStream(parser, stop, false); });
+        std::jthread worker([&](std::stop_token stop) { ui::cli::run_stream(parser, stop, false); });
         std::this_thread::sleep_for(30ms);
         worker.request_stop();
         worker.join();
@@ -110,7 +110,7 @@ namespace
         ui::cli::Parser parser;
         addEcho(parser);
         send("say must-not-execute\x03");
-        ui::cli::runStream(parser, {}, false);
+        ui::cli::run_stream(parser, {}, false);
         EXPECT_EQ(output.str(), "> \n");
     }
 

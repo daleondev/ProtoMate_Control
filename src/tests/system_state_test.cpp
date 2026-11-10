@@ -121,7 +121,7 @@ namespace
         system.setLocal(Stopped, now);
         EXPECT_EQ(system.snapshot().combined, Fault);
         const auto stopped{ system.snapshot() };
-        EXPECT_EQ(app::exitStatus({ stopped.ui, *stopped.io, stopped.combined }), EXIT_FAILURE);
+        EXPECT_EQ(app::exit_status({ stopped.ui, *stopped.io, stopped.combined }), EXIT_FAILURE);
         expectColor(true, false);
     }
 
@@ -166,7 +166,7 @@ namespace
         system.setLocal(Stopped, now + 2s);
         EXPECT_EQ(system.snapshot().combined, Stopped);
         EXPECT_EQ(system.snapshot().io, Stopped);
-        EXPECT_EQ(app::exitStatus({ Stopped, Stopped, system.snapshot().combined }), EXIT_SUCCESS);
+        EXPECT_EQ(app::exit_status({ Stopped, Stopped, system.snapshot().combined }), EXIT_SUCCESS);
         expectColor(true, true);
     }
 
@@ -177,8 +177,8 @@ namespace
         failed.fail();
         failed.stopping();
         failed.stopped();
-        EXPECT_EQ(app::exitStatus({ failed.get(), Stopped }), EXIT_FAILURE);
-        EXPECT_EQ(app::exitStatus({ Stopped, failed.get() }), EXIT_FAILURE);
-        EXPECT_EQ(app::exitStatus({ Stopped, Stopped }, true), EXIT_FAILURE);
+        EXPECT_EQ(app::exit_status({ failed.get(), Stopped }), EXIT_FAILURE);
+        EXPECT_EQ(app::exit_status({ Stopped, failed.get() }), EXIT_FAILURE);
+        EXPECT_EQ(app::exit_status({ Stopped, Stopped }, true), EXIT_FAILURE);
     }
 }

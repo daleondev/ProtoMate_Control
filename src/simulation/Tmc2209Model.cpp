@@ -11,14 +11,16 @@ namespace hal::device
         std::uint8_t crc(std::span<const std::uint8_t> bytes)
         {
             std::uint8_t result{};
-            for (auto byte : bytes)
-                for (unsigned i{}; i < 8; ++i) {
-                    const bool bit{ bool((result >> 7U) ^ (byte & 1U)) };
+            for (auto byte : bytes) {
+                for (unsigned i{}; i < BYTE_BITS; ++i) {
+                    const bool bit{ bool((result >> (BYTE_BITS - 1)) ^ (byte & 1U)) };
                     result = static_cast<std::uint8_t>(result << 1U);
-                    if (bit)
-                        result ^= 7U;
+                    if (bit) {
+                        result ^= CRC_POLYNOMIAL;
+                    }
                     byte >>= 1U;
                 }
+            }
             return result;
         }
     }
@@ -32,8 +34,8 @@ namespace hal::device
         for (auto& reg : m_registers.at(address)) {
             reg = 0;
         }
-        m_registers[address][0x00] = GCONF_RESET;
-        m_registers[address][0x01] = 1;
+        m_registers[address][GCONF] = GCONF_RESET;
+        m_registers[address][GSTAT] = 1;
         m_registers[address][IOIN] = IOIN_RESET | (address << 2U);
         m_registers[address][CHOPCONF] = CHOPCONF_RESET;
         m_registers[address][DRV_STATUS] = DRV_STATUS_RESET;
@@ -49,14 +51,14 @@ namespace hal::device
     }
     unsigned Tmc2209Model::microsteps(unsigned address) const
     {
-        if (!(getRegister(address, 0x00) & GCONF_MSTEP_REG_SELECT)) {
+        if (!(getRegister(address, GCONF) & GCONF_MSTEP_REG_SELECT)) {
             // MS2/MS1 also select the UART address. They remain authoritative
             // after reset until firmware explicitly selects the MRES register.
             constexpr std::array<unsigned, 4> pin_resolution{ 8, 32, 64, 16 };
             return pin_resolution[(getRegister(address, IOIN) >> 2U) & 3U];
         }
-        const auto mres{ (getRegister(address, CHOPCONF) >> MRES_SHIFT) & 15U };
-        return 256U >> std::min(8U, mres);
+        const auto mres{ (getRegister(address, CHOPCONF) >> MRES_SHIFT) & MRES_MASK };
+        return MAX_MICROSTEPS >> std::min(MRES_EXPONENT, mres);
     }
     void Tmc2209Model::setConnected(unsigned address, bool connected) { m_connected.at(address) = connected; }
     hal::util::Result<> Tmc2209Model::exchange(std::span<const std::uint8_t> request,
@@ -81,30 +83,30 @@ namespace hal::device
                 return error(std::errc::protocol_error);
             }
             auto value{ read_word(request.subspan<DATA_OFFSET, REGISTER_BYTES>()) };
-            if (reg == 1) {
+            if (reg == GSTAT) {
                 m_registers[address][reg].fetch_and(~value);
             }
             else {
                 switch (reg) {
-                    case 0x00:
-                    case 0x03:
-                    case 0x07:
-                    case 0x10:
-                    case 0x11:
-                    case 0x13:
-                    case 0x14:
-                    case 0x22:
-                    case 0x40:
-                    case 0x42:
-                    case 0x6C:
-                    case 0x70:
+                    case GCONF:
+                    case NODECONF:
+                    case FACTORY_CONF:
+                    case IHOLD_IRUN:
+                    case TPOWERDOWN:
+                    case TPWMTHRS:
+                    case TCOOLTHRS:
+                    case VACTUAL:
+                    case SGTHRS:
+                    case COOLCONF:
+                    case CHOPCONF:
+                    case PWMCONF:
                         m_registers[address][reg] = value;
                         break;
                     default:
                         return {}; // Read-only/reserved writes do not acknowledge through IFCNT.
                 }
             }
-            m_registers[address][2] = (m_registers[address][2] + 1U) & MASTER_ADDRESS;
+            m_registers[address][IFCNT] = (m_registers[address][IFCNT] + 1U) & MASTER_ADDRESS;
             return {};
         }
         if (request.size() != READ_REQUEST_BYTES || reply.size() != FRAME_BYTES) {

@@ -1,3 +1,5 @@
+// CMSIS/HAL register macros use fixed MMIO addresses and C pointer casts.
+// NOLINTBEGIN(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)
 #include "InterCoreChannel.hpp"
 #include "hal/util/InterCoreTrace.hpp"
 #include "profiling/Trace.h"
@@ -11,10 +13,13 @@
 
 namespace
 {
+    constexpr unsigned CACHE_LINE_BYTES{ 32 }, ICC_IRQ_PRIORITY{ 6 };
     // Both linkers reserve the same NOLOAD section. Neither startup clears it.
     // Only M7 initializes it, while M4 is still stopped. Whole-board reset is
     // required to reopen a closed endpoint; a live peer's queues are never reset.
-    __attribute__((section(".intercore"), aligned(32))) hal::util::InterCoreMemory memory{};
+    // Linker-placed shared SRAM ABI; atomic publication and HSEM coordinate the two cores.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    __attribute__((section(".intercore"), aligned(CACHE_LINE_BYTES))) hal::util::InterCoreMemory memory{};
 #if defined(CORE_CM4)
     constexpr std::size_t SIDE{ 0 };
     constexpr auto INTERRUPT{ HSEM2_IRQn };
@@ -53,7 +58,7 @@ namespace hal
         s_instance = this;
         std::atomic_ref(memory.state[SIDE]).store(1, std::memory_order_release);
         __HAL_HSEM_CLEAR_FLAG(LOCAL_MASK);
-        HAL_NVIC_SetPriority(INTERRUPT, 6, 0);
+        HAL_NVIC_SetPriority(INTERRUPT, ICC_IRQ_PRIORITY, 0);
         HAL_NVIC_EnableIRQ(INTERRUPT);
         HAL_HSEM_ActivateNotification(LOCAL_MASK);
         notifyPeer();
@@ -70,7 +75,7 @@ namespace hal
         s_instance = nullptr;
     }
 
-    bool InterCoreChannel::disconnected() const noexcept
+    bool InterCoreChannel::disconnected() noexcept
     {
         return std::atomic_ref(memory.state[SIDE]).load(std::memory_order_acquire) == 2 ||
                std::atomic_ref(memory.state[1 - SIDE]).load(std::memory_order_acquire) == 2;
@@ -94,11 +99,11 @@ namespace hal
         if (disconnected()) {
             return std::unexpected(Error::Disconnected);
         }
-        util::intercoreTrace(util::InterCoreStage::PublishBegin, unsigned(lane), frame);
+        util::intercore_trace(util::InterCoreStage::PublishBegin, unsigned(lane), frame);
         auto result{ memory.push(1 - SIDE, frame, lane) };
 #if defined(PROTOMATE_PROFILING)
-        auto& q = memory.inbox[1U - SIDE][unsigned(lane)];
-        const auto used = std::atomic_ref(q.written).load() - std::atomic_ref(q.read).load();
+        auto& q{ memory.inbox[1U - SIDE][unsigned(lane)] };
+        const auto used{ std::atomic_ref(q.written).load() - std::atomic_ref(q.read).load() };
         profile_queue(unsigned(lane),
                       std::min(used, q.CAPACITY),
                       q.CAPACITY,
@@ -107,7 +112,7 @@ namespace hal
                       0);
 #endif
         if (result) {
-            util::intercoreTrace(util::InterCoreStage::Published, unsigned(lane), frame);
+            util::intercore_trace(util::InterCoreStage::Published, unsigned(lane), frame);
             notifyPeer();
         }
         return result;
@@ -122,12 +127,12 @@ namespace hal
         }
         auto result{ memory.pop(SIDE, buffer, lane) };
 #if defined(PROTOMATE_PROFILING)
-        auto& q = memory.inbox[SIDE][unsigned(lane)];
-        const auto used = std::atomic_ref(q.written).load() - std::atomic_ref(q.read).load();
+        auto& q{ memory.inbox[SIDE][unsigned(lane)] };
+        const auto used{ std::atomic_ref(q.written).load() - std::atomic_ref(q.read).load() };
         profile_queue(3U + unsigned(lane), std::min(used, q.CAPACITY), q.CAPACITY, 0, 0, 0);
 #endif
         if (result) {
-            util::intercoreTrace(util::InterCoreStage::Received, unsigned(lane), buffer.first(*result));
+            util::intercore_trace(util::InterCoreStage::Received, unsigned(lane), buffer.first(*result));
         }
         if (result) {
             notifyPeer();
@@ -163,7 +168,7 @@ namespace hal
     void InterCoreChannel::dispatchNotification(std::uint32_t mask) noexcept
     {
         if ((mask & LOCAL_MASK) && s_instance) {
-            util::intercoreTrace(util::InterCoreStage::Interrupt);
+            util::intercore_trace(util::InterCoreStage::Interrupt);
             // HAL disabled notification before calling us. Rearm before waking
             // the worker; queue counters are authoritative, interrupts coalesce.
             HAL_HSEM_ActivateNotification(LOCAL_MASK);
@@ -199,3 +204,5 @@ extern "C" void HAL_HSEM_FreeCallback(std::uint32_t mask)
     motion_bench_doorbell(mask);
 #endif
 }
+
+// NOLINTEND(clang-analyzer-core.FixedAddressDereference,cppcoreguidelines-pro-type-cstyle-cast,performance-no-int-to-ptr)

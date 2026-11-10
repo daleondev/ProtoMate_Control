@@ -35,24 +35,24 @@ class ScreenFixture final : public ui::gui::hmi::Backend
         s.connected = n >= 0;
         s.fresh = n >= 0 && n < 4;
         s.configured = n >= 0 && n != 3;
-        s.robotConfigured = s.configured;
+        s.robot_configured = s.configured;
         s.initialized = n >= 0;
         s.enabled = n >= 0 && n != 1;
         s.failed = n == 5;
-        s.poseValid = n >= 0 && n != 3;
-        s.feedbackValid = s.poseValid;
+        s.pose_valid = n >= 0 && n != 3;
+        s.feedback_valid = s.pose_valid;
         s.commanded = s.feedback = { .3, .5, .03 };
-        s.tcp = s.feedbackTcp = { 310, 120, 59 };
-        s.combinedState = n == 5 ? 4 : 1;
+        s.tcp = s.feedback_tcp = { 310, 120, 59 };
+        s.combined_state = n == 5 ? 4 : 1;
         for (unsigned i = 0; i < 3; ++i) {
             auto& a = s.axes[i];
             a.commanded = a.feedback = i == 2 ? 30 : (i == 0 ? .3 : .5) * 180 / 3.141592653589793;
             a.minimum = i == 2 ? 0 : -170;
             a.maximum = i == 2 ? 120 : 170;
-            a.maxSpeed = 30;
+            a.max_speed = 30;
             std::snprintf(a.driver.data(), a.driver.size(), "%s", i == 0 ? "DM542T" : "TMC2209");
-            a.referenced = s.poseValid;
-            a.valid = s.poseValid;
+            a.referenced = s.pose_valid;
+            a.valid = s.pose_valid;
             a.encoder = i == 0;
             a.owner = n == 2 ? 42 : 0;
         }
@@ -78,7 +78,7 @@ class ScreenFixture final : public ui::gui::hmi::Backend
         p.available = true;
         p.shared = true;
         p.allocator = 1;
-        p.ageMs = 1200;
+        p.age_ms = 1200;
         p.total = 8;
         p.io = diagnosticKind == MemoryIO || diagnosticKind == MemoryIOStack;
         p.stacks = diagnosticKind == MemoryIOStack || diagnosticKind == MemoryUIStack;
@@ -116,7 +116,10 @@ class ScreenFixture final : public ui::gui::hmi::Backend
         }
         return count;
     }
-    ui::gui::hmi::Outcome hold(const ui::gui::hmi::Command&, int, int, int, int) override { return {}; }
+    ui::gui::hmi::Outcome hold(const ui::gui::hmi::Command&, ui::gui::hmi::layout::Bounds) override
+    {
+        return {};
+    }
     void input(const ui::gui::hmi::Input&) override {}
     void release() override {}
 };
@@ -124,7 +127,7 @@ extern "C" bool gui_test_pixels_correct();
 extern "C" void runtime_host_completed(int status)
 {
     hal::linux::display::completed(status);
-    while (!hal::linux::display::cleanupComplete()) {
+    while (!hal::linux::display::cleanup_complete()) {
         tx_thread_sleep(1);
     }
 }
@@ -160,20 +163,23 @@ int main()
     }
     auto scene = runtime::thread::create({ .name = "scene.test", .priority = 16, .stack_size = 16384 },
                                          [&] { gui.render3d(stop.get_token()); });
-    const auto deadline = std::chrono::steady_clock::now() + 35s;
+    const auto deadline = std::chrono::steady_clock::now() + (std::getenv("GUI_TEST_PAGES") ? 60s : 35s);
     const bool detailTest = std::getenv("GUI_TEST_DETAIL");
     bool interactive{}, refined{};
     unsigned idleCount{};
     while (!stop.stop_requested() && std::chrono::steady_clock::now() < deadline) {
         if (detailTest) {
             const auto state = gui.sceneStatus();
-            if (gui_test_phase() == 1 && state.acquiredTriangles && state.acquiredTriangles < 9000)
+            if (gui_test_phase() == 1 && state.acquired_triangles && state.acquired_triangles < 9000) {
                 interactive = true;
-            if (gui_test_phase() >= 2 && state.acquiredTriangles == 36376)
+            }
+            if (gui_test_phase() >= 2 && state.acquired_triangles == 36376) {
                 refined = true;
+            }
             if (gui_test_phase() == 3) {
-                if (!idleCount)
+                if (!idleCount) {
                     idleCount = state.rendered;
+                }
                 passed &= state.rendered == idleCount;
             }
         }
@@ -197,39 +203,43 @@ int main()
                     passed ? "PASS" : "FAIL");
         return passed ? 0 : 1;
     }
-    if (std::getenv("GUI_TEST_MESSAGES"))
+    if (std::getenv("GUI_TEST_MESSAGES")) {
         return renderingPassed && gui_test_pixels_correct() && gui_test_phase() == 25 &&
                    s.state == ui::gui::State::Stopped && !s.errors
                  ? 0
                  : 1;
-    if (std::getenv("GUI_TEST_KEYBOARD"))
+    }
+    if (std::getenv("GUI_TEST_KEYBOARD")) {
         return renderingPassed && gui_test_pixels_correct() && gui_test_phase() == 24 &&
                    s.state == ui::gui::State::Stopped && !s.errors
                  ? 0
                  : 1;
-    if (std::getenv("GUI_TEST_WHEEL"))
+    }
+    if (std::getenv("GUI_TEST_WHEEL")) {
         return renderingPassed && gui_test_pixels_correct() && gui_test_phase() == 23 &&
                    s.state == ui::gui::State::Stopped && !s.errors
                  ? 0
                  : 1;
-    if (std::getenv("GUI_TEST_PAGES"))
+    }
+    if (std::getenv("GUI_TEST_PAGES")) {
         return renderingPassed && gui_test_pixels_correct() && gui_test_phase() == 22 &&
                    s.state == ui::gui::State::Stopped && !s.errors
                  ? 0
                  : 1;
+    }
     passed &= gui_test_pixels_correct() && renderingPassed && gui_test_phase() == 21 &&
-              s.state == ui::gui::State::Stopped && s.presented > 40 && s.queueOverflow == 1;
+              s.state == ui::gui::State::Stopped && s.presented > 40 && s.queue_overflow == 1;
     std::printf("checks: pixels=%d run=%d phase=%d state=%u overflow=%u\n",
                 gui_test_pixels_correct(),
                 renderingPassed,
                 gui_test_phase(),
                 unsigned(s.state),
-                s.queueOverflow);
+                s.queue_overflow);
     std::printf("GUI test %s: frames=%u presentations=%u max_render_us=%u errors=%u\n",
                 passed ? "PASS" : "FAIL",
                 s.frames,
                 s.presented,
-                s.maximumRenderUs,
+                s.maximum_render_us,
                 s.errors);
     return passed ? 0 : 1;
 }
