@@ -24,6 +24,89 @@ motion are explicit CLI operations. Display/touch bring-up uses `display`
 commands. The shared TouchGFX robot HMI opens Home on M7 and Linux, using the same
 motion client and job history as the CLI. See the [HMI guide](docs/gui/hmi/README.md).
 
+## Future remote-control and supervision ideas
+
+Recorded 2026-11-11; neither feature is implemented or part of the current release.
+This is a hobby project: certification and SIL/PL claims are outside the scope.
+The independent shutdown behavior below remains an engineering requirement.
+
+### OPC UA interface on M7 using open62541
+
+Add an open62541 server as a third frontend alongside GUI and CLI:
+
+```text
+Remote OPC UA client -> M7 server/adapter -> existing motion client and jobs
+                                        -> ICC -> M4 motion execution
+```
+
+- Reuse the application-owned motion client, Robot, axis APIs and job registry.
+  Existing M4 admission and family-exclusion rules apply to every frontend.
+- Expose cached positions, estimated TCP with feedback provenance, readiness,
+  faults and diagnostics as variables/subscriptions. Expose motion and lifecycle
+  commands as methods returning job IDs, with submission, IO acceptance and
+  completion reported separately.
+- Run network processing in a dedicated M7 worker. Callbacks enqueue bounded
+  application work; they do not block on planning/motion or manipulate widgets.
+- Add explicit remote-control authority and disconnect behavior. Continuous jog
+  needs its own remote-input deadline: the existing M7-to-M4 lease does not detect
+  a vanished remote client while M7 remains alive. No reconnect replay or resume.
+- Integrate a network driver and TCP/IP stack with our ThreadX environment;
+  GIGA's Arduino/Mbed Wi-Fi support is not already available in this firmware.
+  Evaluate onboard Wi-Fi versus a wired interface before choosing the port.
+- Budget server, networking and security memory explicitly; do not assume the
+  remaining UI heap is sufficient. Bound sessions, subscriptions and buffers,
+  and provide authenticated/encrypted control connections.
+- First verify the same adapter/model on Linux, then a small GIGA server under
+  normal GUI/ICC load. This is supervisory remote control; STEP timing remains
+  local to M4.
+
+References: [open62541 platform/event-loop integration](https://open62541.org/doc/master/plugin_eventloop.html)
+and [server configuration](https://open62541.org/doc/master/server.html).
+
+### LAN9255 SAM E53 supervisor with FSoE
+
+Explore using the integrated SAM E53 as a dedicated supervisor and EtherCAT
+gateway, including an FSoE endpoint for a remote FSoE controller. This would
+replace the erased-SAM/direct-GIGA-to-ESC arrangement for this future variant:
+
+```text
+EtherCAT + FSoE -> LAN9255 ESC -> SAM E53 -> separate SPI -> GIGA M4
+                                  |
+                                  +-> independent motor shutdown hardware
+```
+
+- Restore SAM firmware and move EtherCAT slave application ownership there.
+  Process FSoE locally; forward ordinary command/status data to M4 through a
+  bounded SPI protocol. FSoE requires a corresponding remote FSoE main instance;
+  an ordinary EtherCAT master alone does not supply that logic.
+- Investigate the separate SPI exposed at mikroBUS J18 for the GIGA link.
+  J3 taps the ESC bus and must not be driven by two independent masters. The
+  current documented J3 wiring stays unchanged until this variant is implemented.
+- Give the supervisor physical authority to withdraw motion permission without
+  GIGA cooperation. A GIGA enable request may only enable motion while the
+  supervisor, watchdog and local protective inputs also permit it.
+- Default to inhibited operation during reset, power loss or watchdog expiry;
+  latch trips and require deliberate recovery. Include an external watchdog
+  driven by completed supervision cycles, not an autonomous timer heartbeat.
+- Evaluate independent driver-enable inhibition and monitored switching of the
+  motor-power branch while keeping controller power available. Select the output
+  topology after checking failure behavior, stored energy and regeneration.
+  DM542T/TMC2209 enable inputs are ordinary controls, not documented STO inputs;
+  account for the existing interface polarity rather than simply disconnecting
+  an enable wire. A stop message to M4 alone cannot provide this authority.
+- Determine whether Axis 3 needs a brake or other load-retention mechanism before
+  removing holding torque. Controlled deceleration through M4 is useful, but
+  independent shutdown must still work if M4 fails.
+- Verify with motors disconnected first: GIGA/SAM stalls and resets, lost/stale
+  FSoE and SPI traffic, broken supervision, shutdown-output faults and prevention
+  of unintended restart. Later validate actual stopping and load retention.
+
+FSoE protects communication integrity; it does not by itself make the SAM,
+outputs or mechanics fault tolerant. The intended outcome is a tested hobby
+supervisor with independent shutdown, without a certification program.
+References: [EVB schematic, page 22](docs/ethercat/EVB-LAN9255-Evaluation-Board-Users-Guide-50003106.pdf)
+and [ETG FSoE overview](https://www.ethercat.org/safety/).
+
 ## Motion API: motors, axes and robot
 
 M7 owns the motion client, bounded job history, axis conversion and robot planning.
