@@ -1,0 +1,101 @@
+Open On-Chip Debugger 0.12.0-01004-g9ea7f3d64-dirty (2026-08-27-22:55)
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+giga_halt_both
+Info : CMSIS-DAP: SWD supported
+Info : CMSIS-DAP: JTAG supported
+Info : CMSIS-DAP: FW Version = 1.0
+Info : CMSIS-DAP: Serial# = J42700063820
+Info : CMSIS-DAP: Interface Initialised (SWD)
+Info : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 1 nTRST = 0 nRESET = 1
+Info : Connecting under reset
+Info : CMSIS-DAP: Interface ready
+Info : clock speed 1000 kHz
+Info : SWD DPIDR 0x6ba02477
+Info : [giga.cpu0] Cortex-M7 r1p1 processor detected
+Info : [giga.cpu0] target has 8 breakpoints, 4 watchpoints
+Info : [giga.cpu1] Cortex-M4 r0p1 processor detected
+Info : [giga.cpu1] target has 6 breakpoints, 4 watchpoints
+Info : gdb port disabled
+Info : starting gdb server for giga.cpu0 on 3333
+Info : Listening on port 3333 for gdb connections
+Info : starting gdb server for giga.cpu1 on 3334
+Info : Listening on port 3334 for gdb connections
+[giga.cpu0] halted due to debug-request, current mode: Thread 
+xPSR: 0x01000000 pc: 0x08000640 msp: 0x20020000
+[giga.cpu1] halted due to debug-request, current mode: Thread 
+xPSR: 0x01000000 pc: 0x0810057c msp: 0x30048000
+    TargetName         Type       Endian TapName            State       
+--  ------------------ ---------- ------ ------------------ ------------
+ 0  giga.ap2           mem_ap     little giga.cpu           halted
+ 1* giga.cpu0          cortex_m   little giga.cpu           halted
+ 2  giga.cpu1          cortex_m   little giga.cpu           halted
+
+#0 : giga.bank1.cpu0 (stm32h7x) at 0x08000000, size 0x00000000, buswidth 0, chipwidth 0
+#1 : giga.bank2.cpu0 (stm32h7x) at 0x08100000, size 0x00000000, buswidth 0, chipwidth 0
+#2 : giga.bank1.cpu1 (stm32h7x) at 0x08000000, size 0x00000000, buswidth 0, chipwidth 0
+#3 : giga.bank2.cpu1 (stm32h7x) at 0x08100000, size 0x00000000, buswidth 0, chipwidth 0
+#4 : giga.qspi (stmqspi) at 0x90000000, size 0x00000000, buswidth 0, chipwidth 0
+
+0x5c001000: 20036450 
+
+0x1ff1e800: 0049002d 33335116 32363530 
+
+Info : Device: STM32H74x/75x
+Info : flash size probed value 2048k
+Info : STM32H7 flash has dual banks
+Info : Bank (0) size is 1024 kb, base address is 0x08000000
+Option Register: <0x5200201c> = 0xbc6aaf0
+
+Option Register: <0x52002040> = 0x1ff00800
+
+Option Register: <0x52002048> = 0x8100810
+
+[giga.cpu0] halted due to debug-request, current mode: Thread 
+xPSR: 0x01000000 pc: 0x08000640 msp: 0x20020000
+[giga.cpu1] halted due to debug-request, current mode: Thread 
+xPSR: 0x01000000 pc: 0x0810057c msp: 0x30048000
+[giga.cpu0] halted due to breakpoint, current mode: Thread 
+xPSR: 0x21000000 pc: 0x24000530 msp: 0x2001ffd8
+SDRAM: phase=0 address=0x00000000 expected=0x00000000 actual=0x00000000 elapsed=1571 ms bytes=8388608
+Info : valid SFDP detected
+Info : flash1 'sfdp' id = 0x01891f size = 16384 KiB
+Invalidating application activation record
+Info : Device: STM32H74x/75x
+Info : flash size probed value 2048k
+Info : STM32H7 flash has dual banks
+Info : Bank (1) size is 1024 kb, base address is 0x08100000
+Programming and verifying io.bin
+Warn : Adding extra erase range, 0x9011b66c .. 0x9011ffff
+auto erase enabled
+wrote 112236 bytes from file /home/david/Dokumente/ProtoMate_Control/build/giga-opcua-sample-release/images/io.bin in 2.512954s (43.616 KiB/s)
+
+verified 112236 bytes in 0.076232s (1437.788 KiB/s)
+
+Programming and verifying ui.bin
+Warn : Adding extra erase range, 0x904d6d34 .. 0x904dffff
+auto erase enabled
+wrote 879924 bytes from file /home/david/Dokumente/ProtoMate_Control/build/giga-opcua-sample-release/images/ui.bin in 11.569435s (74.273 KiB/s)
+
+verified 879924 bytes in 0.464639s (1849.394 KiB/s)
+
+Programming and verifying bootstrap-io.bin
+Info : Padding image section 0 at 0x08100a34 with 12 bytes (bank write end alignment)
+Warn : Adding extra erase range, 0x08100a40 .. 0x0811ffff
+auto erase enabled
+wrote 2624 bytes from file /home/david/Dokumente/ProtoMate_Control/build/giga-io-opcua-release/bootstrap-io.bin in 1.208132s (2.121 KiB/s)
+
+verified 2612 bytes in 0.020483s (124.532 KiB/s)
+
+Programming and verifying bootstrap-ui.bin
+Warn : Adding extra erase range, 0x08004740 .. 0x0801ffff
+auto erase enabled
+wrote 18240 bytes from file /home/david/Dokumente/ProtoMate_Control/build/giga-ui-opcua-release/bootstrap-ui.bin in 1.434019s (12.421 KiB/s)
+
+verified 18240 bytes in 0.028490s (625.219 KiB/s)
+
+Configuring boot addresses and activating the verified pair
+Error: [giga.cpu1] clearing lockup after double fault
+shutdown command invoked
+Both applications and bootstraps verified; activation written last. Power-cycle to verify cold startup.

@@ -8,6 +8,7 @@ endif()
 option(GIGA_BUILD_BOTH "Build both GIGA controller applications" OFF)
 option(GIGA_MOTION_BENCH "Build the isolated dual-core motion architecture benchmark" OFF)
 option(GIGA_STEP_BENCH "Build the isolated dual-core STEP hardware bench" OFF)
+option(PROTOMATE_OPCUA_SAMPLE "Build the isolated Wi-Fi OPC UA sample" OFF)
 # Preserve existing build-directory settings while migrating the option name.
 if(DEFINED GIGA_M4_RAM_DEBUG AND NOT DEFINED GIGA_M4_SDRAM_CODE)
     set(GIGA_M4_SDRAM_CODE "${GIGA_M4_RAM_DEBUG}" CACHE BOOL
@@ -48,6 +49,10 @@ elseif(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 include(CTest)
+if(PROTOMATE_OPCUA_SAMPLE)
+    add_subdirectory(examples/opcua_sample)
+    return()
+endif()
 # Instrumentation changes host execution cost, not controller timing. Keep
 # wall-time watchdogs and performance qualification separate in test harnesses.
 set(PROTOMATE_TEST_INSTRUMENTED OFF)

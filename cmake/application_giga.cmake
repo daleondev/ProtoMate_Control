@@ -322,7 +322,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 
 include(${PROJECT_SOURCE_DIR}/cmake/memory_usage.cmake)
 firmware_memory_usage(${PROJECT_NAME} ${CMAKE_CURRENT_BINARY_DIR}/${application_role}-controller.map)
-if(STM32_CORE STREQUAL "CM4" AND NOT GIGA_STEP_BENCH)
+if(STM32_CORE STREQUAL "CM4" AND NOT GIGA_STEP_BENCH AND NOT PROTOMATE_OPCUA_SAMPLE)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_custom_target(ram-audit ALL
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/giga_ram_audit.py

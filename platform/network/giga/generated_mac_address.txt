@@ -1,0 +1,3 @@
+/* Replaced with a locally administered, UID-derived address in Board.c before
+ * radio startup. The vendor resource stays immutable in QSPI. */
+#define NVRAM_GENERATED_MAC_ADDRESS "macaddr=02:00:00:00:00:00"

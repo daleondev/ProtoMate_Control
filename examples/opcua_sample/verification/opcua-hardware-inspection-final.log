@@ -1,0 +1,36 @@
+Open On-Chip Debugger 0.12.0-01004-g9ea7f3d64-dirty (2026-08-27-22:55)
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+giga_halt_both
+Info : CMSIS-DAP: SWD supported
+Info : CMSIS-DAP: JTAG supported
+Info : CMSIS-DAP: FW Version = 1.0
+Info : CMSIS-DAP: Serial# = J42700063820
+Info : CMSIS-DAP: Interface Initialised (SWD)
+Info : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 1 nTRST = 0 nRESET = 1
+Info : CMSIS-DAP: Interface ready
+Info : clock speed 1000 kHz
+Info : SWD DPIDR 0x6ba02477
+Info : [giga.cpu0] Cortex-M7 r1p1 processor detected
+Info : [giga.cpu0] target has 8 breakpoints, 4 watchpoints
+Info : [giga.cpu1] Cortex-M4 r0p1 processor detected
+Info : [giga.cpu1] target has 6 breakpoints, 4 watchpoints
+Info : gdb port disabled
+Info : gdb port disabled
+Info : gdb port disabled
+[giga.cpu0] halted due to debug-request, current mode: Handler PendSV
+xPSR: 0x410f000e pc: 0x904004ba msp: 0x2001ffc8
+THREAD 0 604183340 604184359 604184188 1020 2420444348
+THREAD 15 536935224 536943411 536941560 8188 603980038
+THREAD 31 536968768 536970811 536970740 2044 603980284
+THREAD 20 536943424 536947515 536947332 4092 603980116
+THREAD 20 536873128 536885411 536881276 12284 604188243
+THREAD 9 604197992 604204131 604203668 6140 2420439296
+THREAD 13 604204976 604215211 604214936 10236 2420439311
+THREAD 2 604175352 604177395 604176696 2044 2420439282
+THREAD 3 604172392 604174435 604174016 2044 2420444248
+POOL 11 11 0 0
+POOL 11 11 0 0
+PINS 49152 4032
+shutdown command invoked

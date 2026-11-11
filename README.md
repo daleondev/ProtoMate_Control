@@ -32,6 +32,12 @@ The independent shutdown behavior below remains an engineering requirement.
 
 ### OPC UA interface on M7 using open62541
 
+The isolated [Wi-Fi OPC UA sample](examples/opcua_sample/README.md) now provides
+the networking/model implementation for measurement. It has separate Linux
+and GIGA presets and does not link the robot application. Its qualification
+status is recorded with the sample; production integration below remains future
+work.
+
 Add an open62541 server as a third frontend alongside GUI and CLI:
 
 ```text
@@ -50,9 +56,8 @@ Remote OPC UA client -> M7 server/adapter -> existing motion client and jobs
 - Add explicit remote-control authority and disconnect behavior. Continuous jog
   needs its own remote-input deadline: the existing M7-to-M4 lease does not detect
   a vanished remote client while M7 remains alive. No reconnect replay or resume.
-- Integrate a network driver and TCP/IP stack with our ThreadX environment;
-  GIGA's Arduino/Mbed Wi-Fi support is not already available in this firmware.
-  Evaluate onboard Wi-Fi versus a wired interface before choosing the port.
+- Use the standalone sample's native ThreadX/NetX Duo onboard-Wi-Fi port as the
+  initial networking baseline; evaluate coexistence before linking it to motion.
 - Budget server, networking and security memory explicitly; do not assume the
   remaining UI heap is sufficient. Bound sessions, subscriptions and buffers,
   and provide authenticated/encrypted control connections.

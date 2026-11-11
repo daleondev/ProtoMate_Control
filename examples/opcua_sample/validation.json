@@ -1,0 +1,301 @@
+{
+  "date": "2026-11-11",
+  "status": "Standalone Release sample qualification passed. Normal Release firmware restored and verified Ready.",
+  "dependencies": {
+    "netxduo": "8b6e03ac30ab688bec02c69d42f2304b7f72a202",
+    "open62541": "93c3bdfc9ea4718b503c6cbf57876237addd0f2c",
+    "infineon-stm32": "94101f0710c28b8348f502c7cb04a13d0b70c748"
+  },
+  "builds": {
+    "sample_linux_debug": "passed",
+    "sample_linux_release": "passed",
+    "sample_giga_debug": "passed",
+    "sample_giga_release": "passed",
+    "normal_linux_debug": "passed",
+    "normal_giga_release": "passed"
+  },
+  "host_tests": {
+    "configuration": [
+      "Debug",
+      "Release"
+    ],
+    "google_test_cases": 12,
+    "pytest_workflows": 6,
+    "result": "passed"
+  },
+  "initial_hardware": {
+    "pair_id": "25ce03e8aa34a02ca41d00eb95bf74831fe62644d34a7f34652db5ef02c5d1bf",
+    "cold_start": "User power-cycled with debugger closed, then provisioned over USB successfully.",
+    "pytest_workflows": 6,
+    "connection_cycles": 20,
+    "server_stop_restart_cycles": 10,
+    "endurance_seconds": 600.1092015879995,
+    "counter_notifications": 601,
+    "maximum_notification_gap_seconds": 1.1308462310007599,
+    "steady_heap_used_bytes": 29968,
+    "heap_available_bytes": 25936,
+    "ua_pool_bytes": 131072,
+    "ua_peak_bytes": 58240,
+    "ua_allocation_failures": 0,
+    "invalid_packet_releases": 0,
+    "worker_stack_peak_bytes": 4136,
+    "worker_stack_storage_bytes": 12288,
+    "stack_measurement": "ThreadX high-water metadata; minimum measured free fraction 54.4% across nine M7 threads.",
+    "outputs": "SWD GPIO IDR verified all STEP pins LOW and PC7 enable inactive HIGH; no waveform or reset-state qualification implied.",
+    "missing_ap": "WHD_NETWORK_NOT_FOUND, recovery with RAM credentials passed.",
+    "wrong_password": "Initial supplied AP name was absent; this was NOT an authentication-failure test.",
+    "known_failure": "32 pending read requests with paused receive path exhausted two-buffer send queue. Adapter returned error without starting close; server shutdown waited for client disconnect."
+  },
+  "fix": {
+    "file": "platform/opcua/NetX.c",
+    "behavior": "Failed sends now initiate transport closure, releasing queued data after the existing one-second drain deadline. The engine otherwise marks SecureChannel CLOSING and does not request another close.",
+    "regressions": [
+      "PendingSendsRetainOwnershipAndRejectOverflow",
+      "OverflowClosesEvenWhenPeerNeverConsumesPendingOutput"
+    ]
+  },
+  "final_images": {
+    "format": 1,
+    "pair_id": "30e867c9fa26eaf5b5b726ee8fdf6a60d3ae723ae79f070c9a2fad09865f003a",
+    "images": [
+      {
+        "core": 4,
+        "storage": 2416967680,
+        "size": 112236,
+        "crc": 744199825,
+        "entry": 2417004237,
+        "vectors": 268435456,
+        "stack": 805601280,
+        "flags": 0,
+        "segments": [
+          {
+            "load": 2416967680,
+            "run": 268435456,
+            "size": 664,
+            "flags": 1
+          },
+          {
+            "load": 2416968344,
+            "run": 268437504,
+            "size": 30896,
+            "flags": 1
+          },
+          {
+            "load": 2416999240,
+            "run": 604241920,
+            "size": 1276,
+            "flags": 1
+          },
+          {
+            "load": 2417077580,
+            "run": 805505024,
+            "size": 2304,
+            "flags": 1
+          },
+          {
+            "load": 0,
+            "run": 805507328,
+            "size": 17376,
+            "flags": 2
+          }
+        ]
+      },
+      {
+        "core": 7,
+        "storage": 2420113408,
+        "size": 879924,
+        "crc": 4109090353,
+        "entry": 2420119705,
+        "vectors": 536870912,
+        "stack": 537001984,
+        "flags": 0,
+        "segments": [
+          {
+            "load": 2420113408,
+            "run": 536870912,
+            "size": 664,
+            "flags": 1
+          },
+          {
+            "load": 2420114072,
+            "run": 536872960,
+            "size": 168,
+            "flags": 1
+          },
+          {
+            "load": 0,
+            "run": 536873128,
+            "size": 97688,
+            "flags": 2
+          },
+          {
+            "load": 2420942624,
+            "run": 603979776,
+            "size": 50676,
+            "flags": 1
+          },
+          {
+            "load": 0,
+            "run": 604030464,
+            "size": 155552,
+            "flags": 2
+          }
+        ]
+      }
+    ]
+  },
+  "final_hardware": {
+    "paused_reader_and_pending_shutdown": "passed",
+    "stop_allocation_bytes": 0,
+    "restart_and_read": "passed",
+    "stop_free_restart_cycles": 10,
+    "echo_to_opcua_switch": "passed",
+    "scan_results": 1,
+    "missing_ap_and_recovery": "passed",
+    "wrong_password_and_recovery": "passed",
+    "wrong_password_result": "0x020003ff",
+    "pytest_workflows": 6,
+    "connection_cycles": 20,
+    "queue_overflow_peak_bytes": 75304,
+    "pending_reader_cleanup_note": "Connection failure is intentional under bounded send-queue saturation; callback/cleanup and restart succeed. No claim of preserving every request under overload.",
+    "wrong_password_note": "The AP was present in the radio scan. A deliberately incorrect random key failed (WHD result 0x020003ff); reconnect using the retained correct RAM credentials succeeded. This SDK code is not presented as a precise authentication diagnosis.",
+    "endurance_seconds": 600.0716323750003,
+    "counter_notifications": 599,
+    "maximum_notification_gap_seconds": 1.1308010029997604,
+    "steady_heap_used_bytes": 29968,
+    "heap_available_bytes": 25936,
+    "ua_pool_bytes": 131072,
+    "endurance_ua_peak_bytes": 56840,
+    "ua_allocation_failures": 0,
+    "invalid_packet_releases": 0,
+    "packet_pools_after_endurance": [
+      {
+        "total": 11,
+        "available": 11,
+        "empty_requests": 0,
+        "invalid_releases": 0
+      },
+      {
+        "total": 11,
+        "available": 11,
+        "empty_requests": 0,
+        "invalid_releases": 0
+      }
+    ],
+    "worker_stack_peak_bytes": 4136,
+    "worker_stack_storage_bytes": 12288,
+    "minimum_current_thread_headroom_percent": 65.75342465753424,
+    "step_low": true,
+    "enable_inactive": true,
+    "ua_allocation_bytes_after_stop": 0,
+    "usb_disconnect_reconnect_status_samples": 20
+  },
+  "remaining_manual_checks": [
+    "Unsolicited access-point power loss and automatic reassociation; explicit disconnect/reconnect and absent-AP recovery have been tested."
+  ],
+  "out_of_scope": [
+    "GUI/motion coexistence and production memory restructuring",
+    "Authentication/encryption and production OPC UA control",
+    "Logic-analyzer or powered motor qualification"
+  ],
+  "normal_firmware_restoration": {
+    "result": "programmed and verified",
+    "pair_id": "6bb2cd35b1b7e73a839d1a8d0b3dc59b112b9ea7e7627c46a7e32b2d0700ab44",
+    "usb_checks": [
+      "Combined: Ready",
+      "UI: Ready",
+      "IO: Ready (fresh)",
+      "ICC: Connected (None)",
+      "GUI running; underruns=0; errors=0; DMA errors=0"
+    ]
+  },
+  "image_sha256": {
+    "io": "aa4be8d5a46d8ce862d0ce44b4b1bd75d306388b448477ceba2374d869cbe8e3",
+    "ui": "e44fa9857ba43ddc6a7623eed063be3032ee2e5638f2eacdd4e9fdc6690f1592"
+  },
+  "linked_memory_release": {
+    "m7_qspi_image_bytes": 879924,
+    "m4_qspi_image_bytes": 112236,
+    "m7_axi_linker_usage_bytes": 222624,
+    "m7_axi_region_bytes": 262144,
+    "m7_dtcm_linker_usage_bytes": 97856,
+    "m7_dtcm_application_region_bytes": 112640,
+    "m7_msp_bytes": 8192,
+    "m7_gui_sdram_bytes": 0,
+    "comment": "AXI linker usage includes the 16 KiB minimum heap reservation; runtime heap extends to its linker limit. OPC UA arena is included in these regions, not additional memory."
+  },
+  "radio_assets": {
+    "firmware/COMPONENT_4343W/4343WA1_bin.c": "41ce05f430e9addb80a05ceb2725d1ea495effb889184f4b4ab9b5269eff9a27",
+    "clm/COMPONENT_4343W/COMPONENT_MURATA-1DX/4343WA1_clm_blob.c": "1a3c4d588917ee6ef71615683f2bec7f91dd27b18bbca14116e5f8c862a7bc81",
+    "nvram/COMPONENT_4343W/COMPONENT_MURATA-1DX/cyfmac43430-sdio.1DX.txt": "18f0a96a8e5fad35d045f6f841db18a901d55cd3f9f2eff71dde0f8213799dba",
+    "nvram/COMPONENT_4343W/COMPONENT_MURATA-1DX/wifi_nvram_image.h": "6a58855c3fc63ed1cfeb8bb7bcf190525fe18708c28597409f0449dedb6f4151"
+  },
+  "source_sha256": {
+    "CMakeLists.txt": "6d855d8e13acc370f1642de71e671ddf390e81200ae6322dbcfb20ecb105b3a2",
+    "CMakePresets.json": "12de7f9e5a254dffff4e2e0aa561f5fadcb9e8bdc6aee9a482aabdbc3123d56b",
+    "cmake/application_giga.cmake": "8d9c959f03a7c6199f13c9f3443962a824919bb847c28c39c486d56c37c2aab7",
+    "cmake/controllers_giga.cmake": "3fabc67aa18ee60a0b8c5d08036a94660abf287a385dff0db880223a5abd052d",
+    "cmake/opcua.cmake": "6ff3c1cb43c48bb680d7d0d3331df1d8671576dadd42cd0d10d7ff1a1ea60c51",
+    "examples/opcua_sample/CMakeLists.txt": "fdabe7c7fa612d8e26426915161f074d9210c19296a998a2688570479d179f8c",
+    "examples/opcua_sample/Echo.c": "709c429bd7ed217001c4d03967dc3f07b17458eee9e9359fab068542441b7c37",
+    "examples/opcua_sample/Echo.h": "fecc45a5caaf4dd2942d336b14d6a80800659be7550874bc36f1dd5d35c4059b",
+    "examples/opcua_sample/Giga.cpp": "cdfd3b6bb5bc2ae880b4b7b01ec8e92d4345034cdaf1bb240f850a24b0f72540",
+    "examples/opcua_sample/Io.cpp": "eb19400cea312d43cbd36f66aa030b604d3ca6be9b9d4d49434a58affda167f2",
+    "examples/opcua_sample/Linux.c": "277d9e3b924eab3a227c7453eb5d5ae4e5e34ff20e4fc80d4608022812772899",
+    "examples/opcua_sample/Model.c": "d008b28f0ec2c4b9798f9d57cac6a7a5be737b230f63ca4f2801f907a4b5335a",
+    "examples/opcua_sample/Model.h": "9299b7893f6569ccd6d980c46f802028270cee7c268446fda295de370b75a922",
+    "examples/opcua_sample/Server.cpp": "6cecc3a487666356ce94b9d2a181ec754d428bc5b2fe9b4d834363433aec3c5a",
+    "examples/opcua_sample/Server.hpp": "7a0de90f0336a48eb9e357b172921e81275469f00314be8fc90f927211b45bcb",
+    "examples/opcua_sample/hardware_checks.py": "71174719982cc62f7e06e09bb0a4682b277df9582951366bbd5bd1af6f6ce9bb",
+    "examples/opcua_sample/inspect_hardware.py": "06f1ef07992f3e839d994e7ae9bf0936a0a135e03e3eae605a4b248e253be53b",
+    "examples/opcua_sample/pending_cleanup.py": "8c2a508371fe98d2c0829e5e07a32e5cb2399758f10eb388b6980b39b5e4e5af",
+    "examples/opcua_sample/provision.py": "32cf9e8060c3e38d4c494979c87d4ed5d29594dec928c0f9f18279bf3d359134",
+    "examples/opcua_sample/qualify.py": "a06a66035347a507514c809b3b1c9821297186565529318e246a8048f9466664",
+    "examples/opcua_sample/requirements.txt": "8d13e72553d0df870a62a2968b90c233dcc03cbd1bb7c5cbdfe4cafe26185028",
+    "examples/opcua_sample/tests/MemoryTest.cpp": "a8d0a0a2852ebfcf5f235549f785a04ed6b7a1271af8548abd4f05960f7f2f2d",
+    "examples/opcua_sample/tests/NetXTest.cpp": "24d14a51d9f3623fdc8a626101f2df4adb04c1352f8a1f76a6f862cec0f77358",
+    "examples/opcua_sample/tests/conftest.py": "6254f68d9bd79e8ece7206acba14458d40fcd135904ebc09fa8cfbd5bd951ed7",
+    "examples/opcua_sample/tests/fakes/nx_api.h": "2853d7c1ec0651acad4681d6849ac8ce08248a8002bca06099ad3275c987d739",
+    "examples/opcua_sample/tests/test_server.py": "5b5019e1a3643aa9c911faf4afc24287e660bf32fb6a381e8700bf39de6cdfaf",
+    "examples/opcua_sample/tests/test_tcp.py": "97e4d202d3ff1114b25027dc395edbc05c3b794227a8d691a9d164718679a683",
+    "platform/network/CMakeLists.txt": "86d98f17dc520e7742c4fecf132e01eaf6feb8d85b44c3c9f1083ede3e020e11",
+    "platform/network/Wifi.c": "0a9a97d541d9d6f93660a130997297ed9350804af01119c172a58a5fa98bf6f8",
+    "platform/network/Wifi.h": "7514cba1c3dcef9fccb55c977f39e092881c6a6ef19c17690a04e80a8919a9e6",
+    "platform/network/giga/Board.c": "b882b3ec9a93d148c02bf8055e2ab29961219369fd96fa427872a7ff6301b6e6",
+    "platform/network/giga/RTE_Components.h": "2a22e2b6e3a8ba17c2b945b9eb84f11ec71db2104caad9be59ca85f30557507c",
+    "platform/network/giga/cybsp.h": "7e01f57bc7296efad8571ee19361d0cf5ba57f0ddd5b71cd151b8341c8fa8152",
+    "platform/network/giga/generated_mac_address.txt": "b5f5b2b9c4f7ee7afbcd45f80178ad417cccddd4228768beec0759e5ad2a8108",
+    "platform/network/nx_user.h": "d509b47a1e29e31ace352c6a357819325f3770efa08f0590ff76485a80826dda",
+    "platform/network/prepare_sdio.py": "3992e3ebda639e88bf971476c561888b9e12b096b216a097087e3c94ae29bd99",
+    "platform/opcua/CMakeLists.txt": "ed76b831890e8dd94c55a63db85998409492e3a2e766bb2360551502b9316251",
+    "platform/opcua/Clock.cpp": "45c83d2dfd7a15ed9b196b00707777e986600fdc03eb7b1483d06369deb93445",
+    "platform/opcua/Memory.c": "46a56b6ac3ec260ac77828eab22643680d2a850c289249c815e173c77330e818",
+    "platform/opcua/Memory.h": "59f85be87988095c54ffb3fbc3f4e2f46a881bc1ea7702754c57c8f64a501869",
+    "platform/opcua/NetX.c": "f6b8b84712d532fecf307bfd574123e30b2bbe93bddd19f3216523777416b06d",
+    "platform/opcua/NetX.h": "44d1e11ec2820008afda47901fdbc47a08f6667df043e37c56eb106fa36ddc41",
+    "platform/opcua/Posix.c": "fe7c7ec0d917b04afab4cf038d2dd7231b5ea62a6287cd1454cc29d8608627dc",
+    "platform/opcua/prepare_netx.py": "cf8528e7e22a5689aed06ce2da48fef4a30b7262fb3dadbf8fe9c85741416dea",
+    "src/CMakeLists.txt": "b62484af859588d53d8e526b577bf45a4b1150be7def9d6e4d21edcc267211cc"
+  },
+  "evidence_sha256": {
+    "verification/initial-opcua-giga-endurance.json": "abb71121ddadbd7c7b33d0b1726108fd75d8dc15771299f8042250a77c1afbec",
+    "verification/initial-opcua-giga-release-test.log": "1bac96d910b461d2da790769c923542059071466d7517b97113e599564a1287f",
+    "verification/initial-opcua-hardware-checks.json": "ef246a78309a4baf736240b6302b3cac1a755a3a8ba1451e3fced56288e4c6bd",
+    "verification/initial-opcua-hardware-inspection.json": "065c1b79d052cbad9ebb843f399747a273d0956e525298480a82741fc15101f7",
+    "verification/initial-opcua-pending-cleanup.log": "45a295986340f42c51004e2c4a3d57e179dd2c76692adf45759bc45dba234b94",
+    "verification/opcua-final-stop.json": "e79d5d07e78af1e340ccc8f7480a2c35da7a8318512830f869b9a9603b6fa2c1",
+    "verification/opcua-giga-endurance-final.json": "f979352abea99083804b1b3740a5e4ddb96bbf9b69e677237c58821d36bd509a",
+    "verification/opcua-giga-endurance-final.log": "cf08115bc3321ac47dddc6bf35cdd12b09eb829a8da2ba90e73b1a94d3d71c94",
+    "verification/opcua-giga-release-test-final.log": "07f2d7d6ae2e748963e39e4e78ccccc9f82c46a5fc3d06a25f7f6f75a73c1fd2",
+    "verification/opcua-hardware-checks-final.json": "1cca973134d83875bead3fc6b82b3e0bd69aa77e8013342268731fb78b9a361e",
+    "verification/opcua-hardware-inspection-final.json": "7ccc121865f1b7f20d6077dcc53e0d0f1321e3a2b7e19259e73a0b9a56b0634f",
+    "verification/opcua-hardware-inspection-final.log": "89b32cfd82b4e55fbaa5b43f516d73138a53122e74d692cda33626acc85a5d29",
+    "verification/opcua-linux-release-test-final.log": "402eef59e35a50f35c41dc023205b6b3ef474cb1ee71c03c03dd6b76a6be8f2d",
+    "verification/opcua-linux-test-final.log": "e92c0d8f729103df0c488044d7a041063c4f15279031ac7ee02afb74432b9a61",
+    "verification/opcua-normal-restoration.log": "a6fecbf56b75fd8d7250408d1d050f0162007e6832401b3ec8129e994e32af2a",
+    "verification/opcua-normal-restored-console.log": "4165359fc4a2ff5c4f03006f33784399791a8bf91f500fd43ede4318fa0653db",
+    "verification/opcua-pending-cleanup-final.log": "65ea5a091be8412d016242805ce08b496dc7dc5cd2b1c0003db2ccabcf3b635f",
+    "verification/opcua-pending-cleanup.json": "817cb41151205e8dccf2547887cbd74e73fc06f1661eec457a7201fc8faf4df3",
+    "verification/protomate-opcua-final-flash.log": "0797546772dbea90f9c116dd0a25a24f107b4ea947c71e898a3052dcfbed0451"
+  }
+}

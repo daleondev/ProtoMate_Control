@@ -1,0 +1,13 @@
+{
+  "bounded_read_burst": 32,
+  "nodes_per_read": 32,
+  "receive_paused_seconds": 2,
+  "stop_with_work_pending": "passed",
+  "restart_read": "passed",
+  "status": [
+    "[2000-01-01 00:02:49.859 (UTC+0000)] warn/channel\tTCP 2\t| SC 1\t| Processing the message failed with error BadResourceUnavailable\nstatus\r\n[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936\r\n[opcua] address=192.168.2.120\r\n[opcua] server=1 ua_used=38728 ua_peak=75304 ua_capacity=131072 ua_failures=0\r\n[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=0 stack_peak=4136/12288\r\n> ",
+    "status\r\n[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936\r\n[opcua] address=192.168.2.120\r\n[opcua] server=0 ua_used=0 ua_peak=75304 ua_capacity=131072 ua_failures=0\r\n[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=0 stack_peak=4136/12288\r\n> ",
+    "status\r\n[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936\r\n[opcua] address=192.168.2.120\r\n[opcua] server=1 ua_used=37896 ua_peak=39800 ua_capacity=131072 ua_failures=0\r\n[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=0 stack_peak=4136/12288\r\n> ",
+    "status\r\n[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936\r\n[opcua] address=192.168.2.120\r\n[opcua] server=1 ua_used=38248 ua_peak=48080 ua_capacity=131072 ua_failures=0\r\n[opcua] packets=11 free=10 low=9 empty=0 invalid_release=0 echo_bytes=0 stack_peak=4136/12288\r\n> "
+  ]
+}

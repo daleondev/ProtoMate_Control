@@ -1,0 +1,4 @@
+Requested session timeout to be 600000ms, got 30000ms instead
+Revised values returned differ from subscription values: CreateSubscriptionResult(SubscriptionId=1, RevisedPublishingInterval=100.0, RevisedLifetimeCount=10000, RevisedMaxKeepAliveCount=100)
+ServiceFault (BadNoSubscription, diagnostics: DiagnosticInfo(SymbolicId=None, NamespaceURI=None, Locale=None, LocalizedText=None, AdditionalInfo=None, InnerStatusCode=None, InnerDiagnosticInfo=None)) from server received  in response to PublishRequest
+PASS: 599 notifications in 600.1 seconds; report build/opcua-giga-endurance-final.json

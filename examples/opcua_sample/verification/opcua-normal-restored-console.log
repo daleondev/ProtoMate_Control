@@ -1,0 +1,15 @@
+state
+Combined: Ready (green)
+UI: Ready
+IO: Ready (fresh)
+ICC: Connected (None)
+> 
+display status
+GUI running; rendered=1114; presented=2; buffer=0; max render=142680 us; late=7; underruns=0; errors=0; queue overflow=0; graphics verified=1; interactions=0; value=42; animating=0
+DMA errors=0; render failures=0; input overflow=0
+GUI draw us=1975; synchronization us=0
+GUI total draw us=1335085; total sync us=62176; image transfer us=22000; image transfers=18
+3D running=1; visible=1; failed=0; rendered=1; acquired=1; presented=1; presented revision=1; latency us=431000; max latency us=431000; last us=293740; max us=293740; clear us=48000; geometry us=239000; total us=293740; completed revision=1; acquired revision=1; replaced=0; rejected=0
+3D grid us=8000; base us=59000; shoulder us=52000; elbow us=105000; tool us=15000
+3D completed triangles=36376; acquired triangles=36376
+> 

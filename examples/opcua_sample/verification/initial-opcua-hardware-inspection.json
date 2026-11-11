@@ -1,0 +1,71 @@
+{
+  "threads": [
+    {
+      "priority": 0,
+      "capacity": 1020,
+      "peak": 172,
+      "free": 848,
+      "name_address": 2420444332
+    },
+    {
+      "priority": 15,
+      "capacity": 8188,
+      "peak": 1804,
+      "free": 6384,
+      "name_address": 603980038
+    },
+    {
+      "priority": 31,
+      "capacity": 2044,
+      "peak": 72,
+      "free": 1972,
+      "name_address": 603980284
+    },
+    {
+      "priority": 20,
+      "capacity": 4092,
+      "peak": 184,
+      "free": 3908,
+      "name_address": 603980116
+    },
+    {
+      "priority": 20,
+      "capacity": 12284,
+      "peak": 4136,
+      "free": 8148,
+      "name_address": 604188243
+    },
+    {
+      "priority": 9,
+      "capacity": 6140,
+      "peak": 464,
+      "free": 5676,
+      "name_address": 2420439280
+    },
+    {
+      "priority": 13,
+      "capacity": 10236,
+      "peak": 276,
+      "free": 9960,
+      "name_address": 2420439295
+    },
+    {
+      "priority": 2,
+      "capacity": 2044,
+      "peak": 932,
+      "free": 1112,
+      "name_address": 2420439266
+    },
+    {
+      "priority": 3,
+      "capacity": 2044,
+      "peak": 420,
+      "free": 1624,
+      "name_address": 2420444232
+    }
+  ],
+  "step_low": true,
+  "enable_inactive": true,
+  "gpioa_idr": 49152,
+  "gpioc_idr": 8128
+}

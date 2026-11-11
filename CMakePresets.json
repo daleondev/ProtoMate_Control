@@ -276,6 +276,74 @@
             "cacheVariables": {
                 "PROTOMATE_PROFILING": true
             }
+        },
+        {
+            "name": "opcua-sample-linux-debug",
+            "inherits": "debug-linux",
+            "cacheVariables": {
+                "PROTOMATE_OPCUA_SAMPLE": true,
+                "Python3_EXECUTABLE": "${sourceDir}/build/opcua-venv/bin/python"
+            }
+        },
+        {
+            "name": "opcua-sample-linux-release",
+            "inherits": "release-linux",
+            "cacheVariables": {
+                "PROTOMATE_OPCUA_SAMPLE": true,
+                "Python3_EXECUTABLE": "${sourceDir}/build/opcua-venv/bin/python"
+            }
+        },
+        {
+            "name": "giga-io-opcua-debug",
+            "inherits": "giga-io-debug",
+            "cacheVariables": {
+                "PROTOMATE_OPCUA_SAMPLE": true,
+                "RUNTIME_FILESYSTEM": false,
+                "GIGA_M4_SDRAM_CODE": false
+            }
+        },
+        {
+            "name": "giga-ui-opcua-debug",
+            "inherits": "giga-ui-debug",
+            "cacheVariables": {
+                "PROTOMATE_OPCUA_SAMPLE": true,
+                "RUNTIME_FILESYSTEM": false,
+                "GIGA_M4_SDRAM_CODE": false
+            }
+        },
+        {
+            "name": "giga-opcua-sample-debug",
+            "inherits": "giga-debug",
+            "cacheVariables": {
+                "PROTOMATE_OPCUA_SAMPLE": true,
+                "GIGA_M4_SDRAM_CODE": false
+            }
+        },
+        {
+            "name": "giga-io-opcua-release",
+            "inherits": "giga-io-release",
+            "cacheVariables": {
+                "PROTOMATE_OPCUA_SAMPLE": true,
+                "RUNTIME_FILESYSTEM": false,
+                "GIGA_M4_SDRAM_CODE": false
+            }
+        },
+        {
+            "name": "giga-ui-opcua-release",
+            "inherits": "giga-ui-release",
+            "cacheVariables": {
+                "PROTOMATE_OPCUA_SAMPLE": true,
+                "RUNTIME_FILESYSTEM": false,
+                "GIGA_M4_SDRAM_CODE": false
+            }
+        },
+        {
+            "name": "giga-opcua-sample-release",
+            "inherits": "giga-release",
+            "cacheVariables": {
+                "PROTOMATE_OPCUA_SAMPLE": true,
+                "GIGA_M4_SDRAM_CODE": false
+            }
         }
     ],
     "buildPresets": [
@@ -405,6 +473,38 @@
         {
             "name": "profile-linux",
             "configurePreset": "profile-linux"
+        },
+        {
+            "name": "opcua-sample-linux-debug",
+            "configurePreset": "opcua-sample-linux-debug"
+        },
+        {
+            "name": "opcua-sample-linux-release",
+            "configurePreset": "opcua-sample-linux-release"
+        },
+        {
+            "name": "giga-io-opcua-debug",
+            "configurePreset": "giga-io-opcua-debug"
+        },
+        {
+            "name": "giga-ui-opcua-debug",
+            "configurePreset": "giga-ui-opcua-debug"
+        },
+        {
+            "name": "giga-opcua-sample-debug",
+            "configurePreset": "giga-opcua-sample-debug"
+        },
+        {
+            "name": "giga-io-opcua-release",
+            "configurePreset": "giga-io-opcua-release"
+        },
+        {
+            "name": "giga-ui-opcua-release",
+            "configurePreset": "giga-ui-opcua-release"
+        },
+        {
+            "name": "giga-opcua-sample-release",
+            "configurePreset": "giga-opcua-sample-release"
         }
     ],
     "testPresets": [
@@ -415,6 +515,20 @@
                 "ASAN_OPTIONS": "use_sigaltstack=0",
                 "UBSAN_OPTIONS": "print_stacktrace=1"
             },
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "opcua-sample-linux-debug",
+            "configurePreset": "opcua-sample-linux-debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "opcua-sample-linux-release",
+            "configurePreset": "opcua-sample-linux-release",
             "output": {
                 "outputOnFailure": true
             }

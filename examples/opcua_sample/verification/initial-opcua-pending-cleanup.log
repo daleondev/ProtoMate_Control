@@ -1,0 +1,148 @@
+Requested session timeout to be 600000ms, got 30000ms instead
+Paused-reader status received; requesting server stop
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+status
+[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936
+[opcua] address=192.168.2.120
+[opcua] server=1 ua_used=42168 ua_peak=76248 ua_capacity=131072 ua_failures=0
+[opcua] packets=11 free=11 low=9 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288
+> 
+Traceback (most recent call last):
+  File "/home/david/Dokumente/ProtoMate_Control/examples/opcua_sample/pending_cleanup.py", line 66, in <module>
+    asyncio.run(main(args))
+    ~~~~~~~~~~~^^^^^^^^^^^^
+  File "/usr/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/david/Dokumente/ProtoMate_Control/examples/opcua_sample/pending_cleanup.py", line 38, in main
+    stopped=await asyncio.to_thread(stop_and_observe)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/asyncio/threads.py", line 26, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/usr/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/david/Dokumente/ProtoMate_Control/examples/opcua_sample/pending_cleanup.py", line 37, in stop_and_observe
+    raise AssertionError('Server cleanup did not complete within 12 seconds')
+AssertionError: Server cleanup did not complete within 12 seconds

@@ -1,0 +1,4 @@
+{
+  "status": "status\r\n[opcua] network=3 result=0x00000000 heap_used=29968 heap_available=25936\r\n[opcua] address=192.168.2.120\r\n[opcua] server=0 ua_used=0 ua_peak=56840 ua_capacity=131072 ua_failures=0\r\n[opcua] packets=11 free=11 low=7 empty=0 invalid_release=0 echo_bytes=4096 stack_peak=4136/12288\r\n> ",
+  "ua_allocation_bytes_after_stop": 0
+}

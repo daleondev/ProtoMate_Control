@@ -1,5 +1,10 @@
 add_compile_options("$<$<COMPILE_LANGUAGE:C,CXX>:-Wall;-Wextra;-Wpedantic>")
 
+if(PROTOMATE_OPCUA_SAMPLE)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/examples/opcua_sample ${PROJECT_BINARY_DIR}/opcua_sample)
+    return()
+endif()
+
 add_subdirectory(common)
 
 if(GIGA_MOTION_BENCH)
