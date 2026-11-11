@@ -17,6 +17,7 @@ int wifi_scan_stop(void);
 void wifi_scan_snapshot(WifiScan *result);
 NX_IP *wifi_ip(void);
 NX_PACKET_POOL *wifi_packet_pool(void);
+NX_PACKET_POOL *wifi_receive_pool(void);
 #ifdef __cplusplus
 }
 #endif

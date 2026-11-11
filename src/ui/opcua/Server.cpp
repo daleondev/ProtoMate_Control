@@ -53,7 +53,7 @@ namespace ui::opcua
     {
         m_services.remotePermission(false);
         std::scoped_lock lock{m_mutex};
-        m_enabled = false; m_status.running = false;
+        m_enabled = false; m_status.running = false; m_status.clients = 0;
         m_status.error = UA_STATUSCODE_BADINTERNALERROR;
         m_status.used = opcua_memory_stats().used;
     }

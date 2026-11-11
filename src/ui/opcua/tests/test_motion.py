@@ -105,6 +105,39 @@ def test_remote_axis_robot_and_session_loss(application):
                 assert (await job(coordinated.job)).state == 6
                 final = await actual()
                 assert [math.degrees(final[0][1]), math.degrees(final[1][1]), final[2][1]] == pytest.approx([10, -50, 10], abs=.05)
+                # All preview kinds expose typed endpoints and separate error budgets.
+                before_preview = await actual()
+                targets = [('PreviewJoints', [11., -49., 11.]),
+                           ('PreviewPoint', [final[i][2] + (1 if i == 2 else 0) for i in range(3)]),
+                           ('PreviewLine', [final[i][2] + (1 if i == 2 else 0) for i in range(3)])]
+                for kind, position in targets:
+                    preview = await command('Planning/' + kind, record('RobotMove', position=position, speed=.25,
+                                            acceleration=1., deceleration=1., jerk=1.))
+                    deadline = time.monotonic() + 20
+                    while True:
+                        result = await node('Planning').call_method(node('Planning/ReadResult'), u64(preview.job))
+                        if result.available and result.state not in (1, 2): break
+                        assert time.monotonic() < deadline, result
+                        await asyncio.sleep(.05)
+                    if kind == 'PreviewLine' and result.state == 4:
+                        # The existing general line planner may reject this
+                        # fixture's jerk certification. Preserve that result;
+                        # remote preview must not waive the planner's limit.
+                        assert result.error == 11, result
+                        continue
+                    assert result.state == 3 and result.error == 0, result
+                    assert result.segments > 0 and result.duration > 0, result
+                    assert result.approximation_mm >= 0 and result.quantization_mm >= 0
+                assert await actual() == before_preview
+                point = await command('Robot/MovePointRelative', record('RobotMove', position=[0.,0.,1.], speed=.25,
+                                      acceleration=1., deceleration=1., jerk=1.))
+                assert (await job(point.job)).state == 6
+                after_point = await actual()
+                assert [after_point[i][2]-final[i][2] for i in range(3)] == pytest.approx([0,0,1],abs=.08)
+                cartesian = await command('Robot/Jog', record('CartesianJog', direction=[0.,0.,1.],
+                                          speed=.05, duration=.2, held=False, acceleration=1., deceleration=1., jerk=1.))
+                assert (await job(cartesian.job)).state in (6,7)
+                assert (await actual())[2][2] > after_point[2][2]
                 continuous = await command('Axes/Axis1/Jog', record('RotaryJog', speed=1., duration=0., held=True))
                 held.add(continuous.job)
                 await job(continuous.job, state=4)

@@ -21,6 +21,7 @@ namespace ui::opcua::catalog
         Receipt submit(std::uint64_t generation, std::uint64_t request, const services::Command& command);
         Receipt result(std::uint64_t operation);
         JobPage jobs(std::uint32_t offset, bool previews);
+        PreviewResult preview(std::uint64_t job);
         DiagnosticPage diagnostics(std::uint32_t offset);
         bool refreshDiagnostics(bool io, bool stacks);
         MessagePage messages(std::uint32_t offset);

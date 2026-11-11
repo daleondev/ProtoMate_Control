@@ -508,5 +508,17 @@
   "messages-filtered": {
     "ignore": [],
     "include": []
+  },
+  "page-settings-network": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-network-ssid": {
+    "ignore": [],
+    "include": []
+  },
+  "page-settings-network-password": {
+    "ignore": [],
+    "include": []
   }
 }

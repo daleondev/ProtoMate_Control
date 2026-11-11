@@ -191,30 +191,36 @@ namespace ui
     Services::~Services() { m_client.setObserver({}); }
     void Services::connection(icc::ConnectionStatus state, const char* detail)
     {
-        std::scoped_lock lock{ m_mutex };
-        m_storage->state.connected = state.state == icc::ConnectionState::Connected;
-        if (state.state == icc::ConnectionState::Failed ||
-            state.reason == icc::ConnectionReason::PeerStopped) {
-            m_storage->state.failed = true;
-            m_storage->state.fresh = false;
-            for (auto& operation : m_storage->operations) {
-                if (!operation.pending) continue;
-                operation.pending = false;
-                operation.value.phase = hmi::Outcome::Phase::Unknown;
-                operation.value.severity = hmi::Severity::Error;
-                operation.value.sequence = ++m_outcomeSequence;
-                text(operation.value.message, "ICC lost; hardware outcome unknown; no automatic retry");
-            }
-            hmi::format(m_storage->state.condition,
-                        "ICC failure {}: restart required; physical stop unconfirmed",
-                        unsigned(state.reason));
-            if (detail && *detail) {
+        services::Text<services::text_capacity::MESSAGE> failure{};
+        {
+            std::scoped_lock lock{ m_mutex };
+            m_storage->state.connected = state.state == icc::ConnectionState::Connected;
+            if (state.state == icc::ConnectionState::Failed ||
+                state.reason == icc::ConnectionReason::PeerStopped) {
+                m_storage->state.failed = true;
+                m_storage->state.fresh = false;
+                for (auto& operation : m_storage->operations) {
+                    if (!operation.pending) continue;
+                    operation.pending = false;
+                    operation.value.phase = hmi::Outcome::Phase::Unknown;
+                    operation.value.severity = hmi::Severity::Error;
+                    operation.value.sequence = ++m_outcomeSequence;
+                    text(operation.value.message, "ICC lost; hardware outcome unknown; no automatic retry");
+                }
                 hmi::format(m_storage->state.condition,
-                            "ICC failure {}: {:.96}; restart required",
-                            unsigned(state.reason),
-                            detail);
+                            "ICC failure {}: restart required; physical stop unconfirmed",
+                            unsigned(state.reason));
+                if (detail && *detail) {
+                    hmi::format(m_storage->state.condition,
+                                "ICC failure {}: {:.96}; restart required",
+                                unsigned(state.reason),
+                                detail);
+                }
+                text(failure, m_storage->state.condition.data());
             }
         }
+        if (failure[0]) message(failure.data(), services::Severity::Error);
+        else notifySubscribers();
     }
     void Services::read(hmi::Snapshot& result)
     {
@@ -963,14 +969,16 @@ namespace ui
 
     unsigned Services::detailedJobs(unsigned offset, std::span<services::DetailedJob> output, bool previews)
     {
-        const auto limit{std::min<unsigned>(output.size(), JOB_PAGE_SIZE)};
+        // A caller builds its bounded page one record at a time. This keeps
+        // large job copies off the OPC UA worker's nested conversion stack.
+        const auto limit{std::min<unsigned>(output.size(), 1)};
         if (previews) {
-            std::array<services::Job, JOB_PAGE_SIZE> rows{};
+            std::array<services::Job, 1> rows{};
             const auto count{previewJobs(offset, std::span(rows).first(limit))};
             for (unsigned i{}; i < count; ++i) {output[i] = {}; static_cast<services::Job&>(output[i]) = rows[i];}
             return count;
         }
-        std::array<motion::Client::JobInfo, JOB_PAGE_SIZE> rows{};
+        std::array<motion::Client::JobInfo, 1> rows{};
         const auto count{m_client.copyJobs(offset, std::span(rows).first(limit))};
         for (unsigned i{}; i < count; ++i) {
             auto& out{output[i]}; out = {};
@@ -999,6 +1007,26 @@ namespace ui
             }
         }
         return count;
+    }
+
+    services::PreviewResult Services::previewResult(std::uint64_t id) const
+    {
+        services::PreviewResult out{};
+        const auto job{m_robot.job(id)};
+        if (!job) return out;
+        out.available = true; out.id = id; out.source = job->source;
+        out.state = unsigned(job->state); out.error = unsigned(job->error); out.segments = job->plan.segments;
+        out.duration = job->plan.duration;
+        out.approximation_mm = job->plan.path_error_bound * 1000;
+        out.quantization_mm = job->plan.quantization_bound * 1000;
+        const auto joints{motion::RobotModel::joints(job->endpoint)};
+        out.endpoint_joints = {joints[0] / RAD, joints[1] / RAD, joints[2] * 1000};
+        out.endpoint_tcp = {job->tcp.x.get() * 1000, job->tcp.y.get() * 1000, job->tcp.z.get() * 1000};
+        // Planner extrema describe the motor polynomials in pulse units.
+        out.peak_velocity = job->plan.peak_velocity;
+        out.peak_acceleration = job->plan.peak_acceleration;
+        out.peak_jerk = job->plan.peak_jerk;
+        return out;
     }
 
 }

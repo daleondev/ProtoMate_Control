@@ -38,6 +38,7 @@ namespace ui
         bool remoteAuthorized(std::uint64_t source) const { return m_client.remoteAuthorized(source); }
         unsigned jobs(unsigned /*offset*/, std::span<services::Job> /*output*/, bool /*previews*/);
         unsigned detailedJobs(unsigned offset, std::span<services::DetailedJob> output, bool previews);
+        services::PreviewResult previewResult(std::uint64_t id) const;
         void diagnostics(unsigned /*unused*/, services::DiagnosticPage& /*result*/);
         bool refreshDiagnostics(bool io, bool stacks);
         void message(const char* text, services::Severity severity, std::uint64_t operation = 0);

@@ -23,7 +23,11 @@ namespace ui::opcua::catalog
         [[= Field{"Signed joint velocity", Axis == 2 ? Unit::MillimetresPerSecond : Unit::DegreesPerSecond}, = Bounds{-1e6,1e6}]] double speed{};
         [[= Field{"Seconds before deceleration is requested"}, = Bounds{0,3600}]] double duration{1};
         [[= Field{"Requires explicit held-job heartbeat supervision"}]] bool held{};
-        services::Command command() const {return {.kind=services::Kind::AxisJog, .axis=Axis, .speed=speed, .duration=duration, .continuous=held};}
+        [[= Field{"Joint units / s^2; zero selects default"}, = Bounds{0,1e12}]] double acceleration{}, deceleration{};
+        [[= Field{"Joint units / s^3; zero selects default"}, = Bounds{0,1e15}]] double jerk{};
+        [[= Field{"Seconds; zero selects default"}, = Bounds{0,3600}]] double timeout{};
+        services::Command command() const {return {.kind=services::Kind::AxisJog, .axis=Axis, .speed=speed,
+            .acceleration=acceleration, .deceleration=deceleration, .jerk=jerk, .timeout=timeout, .duration=duration, .continuous=held};}
     };
     struct [[= Record{"RobotMove", true}]] RobotMove
     {
@@ -43,7 +47,10 @@ namespace ui::opcua::catalog
         [[= Field{"Configured velocity factor"}, = Bounds{0,1}]] double speed{.1};
         [[= Field{"Seconds before deceleration is requested"}, = Bounds{0,3600}]] double duration{1};
         [[= Field{"Requires held-job heartbeat supervision"}]] bool held{};
-        services::Command command() const {return {.kind=services::Kind::PointJog, .position=direction, .speed=speed, .duration=duration, .continuous=held};}
+        [[= Field{"Configured dynamics factors; zero selects default"}, = Bounds{0,1}]] double acceleration{1}, deceleration{1}, jerk{1};
+        [[= Field{"Seconds; zero selects default"}, = Bounds{0,3600}]] double timeout{};
+        services::Command command() const {return {.kind=services::Kind::PointJog, .position=direction, .speed=speed,
+            .acceleration=acceleration, .deceleration=deceleration, .jerk=jerk, .timeout=timeout, .duration=duration, .continuous=held};}
     };
     struct [[= Record{"MotorMove", true}]] MotorMove
     {

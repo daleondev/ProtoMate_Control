@@ -163,7 +163,7 @@ namespace ui::motion
             std::scoped_lock lock{ m_mutex };
             job = findLocked(id);
             job->info.error = error;
-            job->info.busy_job = busy;
+            job->info.busy_job = error == tr::Error::Busy ? busy : 0;
             switch (error) {
                 case tr::Error::Unknown:
                     job->info.state = JobState::Unknown;
@@ -199,7 +199,7 @@ namespace ui::motion
         }
         const auto reply{ exchange(request, false, stop) };
         if (reply.error != tr::Error::None) {
-            reject(id, reply.error, reply.job);
+            reject(id, reply.error, reply.error == tr::Error::Busy ? reply.job : 0);
             return;
         }
         std::scoped_lock lock{ m_mutex };

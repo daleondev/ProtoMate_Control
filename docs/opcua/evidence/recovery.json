@@ -1,0 +1,6 @@
+{
+  "baseline": 406080,
+  "after_slow_reader": 406080,
+  "after_reconnect": 406080,
+  "after_restart": 406080
+}

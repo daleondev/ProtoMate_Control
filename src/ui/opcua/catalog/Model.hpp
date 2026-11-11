@@ -186,6 +186,8 @@ namespace ui::opcua::catalog
 
         [[= Method{"ReadPage", "At most eight preview records; previews are not execution jobs", Access::ReadOnly}]]
         static JobPage page(Call& call, std::uint32_t offset) {return call.jobs(offset, true);}
+        [[= Method{"ReadResult", "Preview endpoints and certified bounds; never executable, motor peaks in pulse units", Access::ReadOnly}]]
+        static PreviewResult result(Call& call, std::uint64_t job) {return call.preview(job);}
         [[= Method{"Cancel", "Cancel an existing preview"}]]
         static Receipt cancel(Call& call, std::uint64_t generation, std::uint64_t request, std::uint64_t job) {return call.submit(generation, request, {.kind=services::Kind::CancelPreview, .job=job});}
     };

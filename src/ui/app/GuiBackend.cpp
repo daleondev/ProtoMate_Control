@@ -150,7 +150,7 @@ namespace ui
             case Forget: return m_network->forget();
             case StartServer: m_server->enabled(true); return true;
             case StopServer: m_server->enabled(false); return true;
-            case AllowRemote: m_services.remotePermission(true); return true;
+            case AllowRemote: m_services.remotePermission(true); return m_services.remotePermission();
             case RevokeRemote: m_services.remotePermission(false); return true;
         }
         return false;

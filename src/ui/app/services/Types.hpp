@@ -120,6 +120,14 @@ namespace ui::services
         Text<text_capacity::SHORT> requested_space{}, requested_units{};
         bool relative{};
     };
+    struct PreviewResult
+    {
+        bool available{};
+        unsigned state{}, error{}, segments{};
+        std::uint64_t id{}, source{};
+        double duration{}, approximation_mm{}, quantization_mm{};
+        std::array<double,3> endpoint_joints{}, endpoint_tcp{}, peak_velocity{}, peak_acceleration{}, peak_jerk{};
+    };
     struct DiagnosticRow
     {
         Text<text_capacity::NAME> name{};
@@ -166,5 +174,6 @@ namespace ui::services
         std::int32_t error{};
         std::uint64_t capacity{}, used{}, peak{}, failures{}, packets{}, available_packets{},
           empty_packet_requests{}, packet_suspensions{}, invalid_packet_releases{};
+        std::uint64_t receive_packets{}, receive_available{}, receive_empty_requests{};
     };
 }

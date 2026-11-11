@@ -9,12 +9,15 @@ extern "C" {
 typedef unsigned int UINT;
 typedef unsigned long ULONG;
 typedef struct { ULONG flags; } TX_EVENT_FLAGS_GROUP;
-typedef struct { int unused; } NX_IP;
+typedef struct { unsigned depth; } TX_MUTEX;
+typedef struct { TX_MUTEX nx_ip_protection; } NX_IP;
 typedef struct { int unused; } NX_PACKET_POOL;
 typedef struct { ULONG nx_packet_length; void *payload; } NX_PACKET;
 typedef struct NX_TCP_SOCKET_STRUCT {
     void *nx_tcp_socket_reserved_ptr;
     UINT nx_tcp_socket_state;
+    struct NX_TCP_SOCKET_STRUCT *nx_tcp_socket_bound_next;
+    struct { unsigned nxd_ip_version; } nx_tcp_socket_connect_ip;
     ULONG nx_tcp_socket_transmit_sent_count, nx_tcp_socket_receive_queue_count;
     void *test;
 } NX_TCP_SOCKET;
@@ -22,13 +25,15 @@ enum {NX_SUCCESS=0, NX_CONNECTION_PENDING=1, NX_SIZE_ERROR=2, NX_NO_WAIT=0,
       NX_TCP_CLOSED=10, NX_TCP_LISTEN_STATE=11, NX_TCP_SYN_RECEIVED=12,
       NX_TCP_ESTABLISHED=13, NX_TCP_CLOSE_WAIT=14, NX_IP_NORMAL=0,
       NX_FRAGMENT_OKAY=1, NX_IP_TIME_TO_LIVE=64, NX_TCP_PACKET=1,
-      TX_SUCCESS=0, TX_OR=1, TX_OR_CLEAR=2, TX_INT_DISABLE=1,
+      TX_SUCCESS=0, TX_OR=1, TX_OR_CLEAR=2, TX_INT_DISABLE=1, TX_WAIT_FOREVER=~0U,
       TX_TIMER_TICKS_PER_SECOND=1000};
 UINT tx_event_flags_create(TX_EVENT_FLAGS_GROUP*, char*);
 UINT tx_event_flags_delete(TX_EVENT_FLAGS_GROUP*);
 UINT tx_event_flags_set(TX_EVENT_FLAGS_GROUP*, ULONG, UINT);
 UINT tx_event_flags_get(TX_EVENT_FLAGS_GROUP*, ULONG, UINT, ULONG*, ULONG);
 UINT tx_interrupt_control(UINT);
+UINT tx_mutex_get(TX_MUTEX*, ULONG);
+UINT tx_mutex_put(TX_MUTEX*);
 UINT nx_tcp_socket_create(NX_IP*, NX_TCP_SOCKET*, char*, ULONG, ULONG, UINT, ULONG,
                           void(*)(NX_TCP_SOCKET*), void(*)(NX_TCP_SOCKET*));
 UINT nx_tcp_socket_delete(NX_TCP_SOCKET*);

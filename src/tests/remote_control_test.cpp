@@ -89,3 +89,24 @@ TEST_F(RemoteControl, GuiGestureDeadlineRemainsIndependent) {
     ASSERT_TRUE(wait(cancellation));
     EXPECT_LT(std::chrono::steady_clock::now() - start, 500ms);
 }
+TEST_F(RemoteControl, TerminalJogInFlightHeartbeatDoesNotExpireOtherJobs) {
+    client.remotePermission(true);
+    const auto source = client.openRemote();
+    const auto ended = client.create(motion::Family::Axis, 1, source, true);
+    const auto active = client.create(motion::Family::Axis, 2, source, true);
+    client.reject(ended, motion::trajectory::Error::Cancelled);
+    const std::array held{ended, active};
+    EXPECT_TRUE(client.renewRemote(source, held));
+    EXPECT_TRUE(client.remoteAuthorized(source));
+    EXPECT_FALSE(client.cancellation(active).stop_requested());
+    const std::array invalid{std::uint64_t{99999}};
+    EXPECT_FALSE(client.renewRemote(source, invalid));
+}
+TEST_F(RemoteControl, PreparationFaultDoesNotReportItsOwnJobAsBusyOwner) {
+    const auto job = client.create(motion::Family::Axis, 1);
+    client.reject(job, motion::trajectory::Error::Fault, job);
+    std::array<Client::JobInfo, 1> result;
+    ASSERT_EQ(client.copyJobs(0, result), 1);
+    EXPECT_EQ(result[0].error, motion::trajectory::Error::Fault);
+    EXPECT_EQ(result[0].busy_job, 0);
+}

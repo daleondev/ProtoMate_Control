@@ -47,6 +47,19 @@ def test_two_sessions_four_subscriptions_sixty_four_items():
                 while any(len(handles) != 16 for handles in received):
                     assert asyncio.get_running_loop().time() < deadline, received
                     await asyncio.sleep(.05)
+                # Exhaustion must be an explicit protocol error, not pool
+                # corruption or starvation of existing sessions.
+                third = Client(endpoint, timeout=10)
+                try:
+                    with pytest.raises(ua.UaStatusCodeError) as rejected:
+                        await third.connect()
+                    assert rejected.value.code == ua.StatusCodes.BadTooManySessions
+                finally:
+                    with contextlib.suppress(Exception):
+                        await third.disconnect()
+                with pytest.raises(ua.UaStatusCodeError) as rejected:
+                    await subscriptions[0].subscribe_data_change(node(clients[0], "System/Age"))
+                assert rejected.value.code == ua.StatusCodes.BadTooManyMonitoredItems
                 # Capacity includes useful monitoring while subscriptions are
                 # active, not just their initial registration and notification.
                 for parent, method in (("Jobs", "ReadPage"), ("Messages", "ReadPage"), ("Diagnostics", "ReadPage")):

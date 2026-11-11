@@ -16,7 +16,7 @@ typedef struct {
     NX_TCP_SOCKET socket;
     Manager *owner;
     uintptr_t id;
-    UA_Boolean created, accepted, closing;
+    UA_Boolean created, accepted, closing, acceptStarted;
     UA_DateTime closeDeadline;
     void *context;
     UA_ByteString outgoing[SEND_QUEUE];
@@ -226,14 +226,33 @@ static UA_StatusCode sendBuffer(UA_ConnectionManager *api, uintptr_t id, const U
 
 static void service(Manager *m) {
     Connection *pending = m->listening;
-    if(pending && nx_tcp_server_socket_accept(&pending->socket, NX_NO_WAIT) == NX_SUCCESS) {
+    UA_Boolean established = false, abandoned = false;
+    if(pending) {
+        /* NetX accept arms a passive open; it is not a BSD-style queue poll.
+         * After a SYN timeout/RST, block_cleanup returns to LISTEN with the
+         * old binding but clears connect_ip. Re-accepting that socket asserts
+         * in the TCP checksum while holding the IP mutex. Retire it instead.
+         * Check and arm under the same recursive IP lock so a peer reset
+         * cannot invalidate the address between inspection and accept. */
+        tx_mutex_get(&m->ip->nx_ip_protection, TX_WAIT_FOREVER);
+        UINT state = pending->socket.nx_tcp_socket_state;
+        abandoned = state == NX_TCP_CLOSED || state == NX_TCP_CLOSE_WAIT ||
+            (state == NX_TCP_LISTEN_STATE && (pending->acceptStarted ||
+             (pending->socket.nx_tcp_socket_bound_next &&
+              pending->socket.nx_tcp_socket_connect_ip.nxd_ip_version == 0)));
+        if(!abandoned && !pending->acceptStarted) {
+            pending->acceptStarted = true;
+            established = nx_tcp_server_socket_accept(&pending->socket, NX_NO_WAIT) == NX_SUCCESS;
+        } else if(!abandoned) established = state == NX_TCP_ESTABLISHED;
+        tx_mutex_put(&m->ip->nx_ip_protection);
+    }
+    if(pending && established) {
         m->listening = NULL;
         pending->accepted = true;
         pending->id = ++m->nextId;
         pending->context = m->listenContext;
         report(m, pending, UA_CONNECTIONSTATE_ESTABLISHED, UA_BYTESTRING_NULL);
-    } else if(pending && (pending->socket.nx_tcp_socket_state == NX_TCP_CLOSED ||
-                         pending->socket.nx_tcp_socket_state == NX_TCP_CLOSE_WAIT)) {
+    } else if(pending && abandoned) {
         /* A peer can finish its handshake and disconnect before our next turn.
          * accept(NO_WAIT) then reports NOT_LISTEN_STATE, not success. Reclaim
          * this unpublished socket or it permanently consumes the listener. */

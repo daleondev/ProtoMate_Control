@@ -62,6 +62,10 @@ namespace ui::cli::network
                           << " busy=" << s.busy << " saved=" << s.saved << " ssid=" << s.ssid.data() << '\n';
                 if (s.address) io.output << "address=" << (s.address >> 24) << '.' << ((s.address >> 16) & 255)
                     << '.' << ((s.address >> 8) & 255) << '.' << (s.address & 255) << " port=4840\n";
+                const auto d{context.network.diagnostics()};
+                io.output << "network memory=" << d.used << '/' << d.capacity << " peak=" << d.peak << " failures=" << d.failures
+                    << "; TX packets=" << d.available_packets << '/' << d.packets << " empty=" << d.empty_packet_requests
+                    << "; RX packets=" << d.receive_available << '/' << d.receive_packets << " empty=" << d.receive_empty_requests << '\n';
                 return 0;
             }
             if (operation == "setup") {

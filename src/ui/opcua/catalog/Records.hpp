@@ -4,6 +4,19 @@
 
 namespace ui::opcua::catalog
 {
+    struct [[= Record{"PreviewResult"}]] PreviewResult
+    {
+        [[= Field{}]] bool available{};
+        [[= Field{}]] std::uint32_t state{}, error{}, segments{};
+        [[= Field{}]] std::uint64_t id{}, source{};
+        [[= Field{"Seconds"}]] double duration{};
+        [[= Field{"Separate approximation and step-quantization bounds", Unit::Millimetres}]] double approximation_mm{}, quantization_mm{};
+        [[= Field{"Axis 1/2 degrees, Axis 3 millimetres"}]] std::array<double,3> endpoint_joints{};
+        [[= Field{"Work-frame TCP", Unit::Millimetres}]] std::array<double,3> endpoint_tcp{};
+        [[= Field{"M1/M2/M3 pulses per second"}]] std::array<double,3> peak_velocity{};
+        [[= Field{"M1/M2/M3 pulses per second squared"}]] std::array<double,3> peak_acceleration{};
+        [[= Field{"M1/M2/M3 pulses per second cubed"}]] std::array<double,3> peak_jerk{};
+    };
     struct [[= Record{"FrontendQueues"}]] FrontendQueues
     {
         [[= Field{}]] std::uint32_t pending{}, urgent{}, capacity{}, urgent_capacity{}, peak{};
@@ -17,6 +30,7 @@ namespace ui::opcua::catalog
         [[= Field{"Driver result"}]] std::int32_t error{};
         [[= Field{"Dedicated network allocator bytes", Unit::Bytes}]] std::uint64_t capacity{}, used{}, peak{};
         [[= Field{}]] std::uint64_t failures{}, packets{}, available_packets{}, empty_packet_requests{}, packet_suspensions{}, invalid_packet_releases{};
+        [[= Field{}]] std::uint64_t receive_packets{}, receive_available{}, receive_empty_requests{};
     };
     struct [[= Record{"ApplicationMessage"}]] Message
     {

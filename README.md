@@ -26,85 +26,47 @@ motion client and job history as the CLI. See the [HMI guide](docs/gui/hmi/READM
 
 ## Remote-control integration and future supervision
 
-Recorded 2026-11-11. OPC UA application integration is in progress; the LAN9255
-supervisor remains a future feature. Remote motion is not yet qualified.
-This is a hobby project: certification and SIL/PL claims are outside the scope.
-The independent shutdown behavior below remains an engineering requirement.
+OPC UA is integrated as a third UI frontend alongside GUI and CLI. The LAN9255
+supervisor remains future work. This hobby project makes no certification or
+SIL/PL claims. Powered robot commissioning remains separate from software and
+motor-disconnected electrical tests.
 
 ### OPC UA interface on M7 using open62541
 
-The reusable port now lives in `src/ui/opcua` (`proto::ui::opcua`); physical
-Wi-Fi/SDIO/NetX integration stays in `platform/network`. The isolated
-[Wi-Fi OPC UA sample](examples/opcua_sample/README.md) remains buildable. Normal
-application builds also start an integrated server alongside GUI, CLI and ICC.
-This integration is **not release-qualified**: the full subscription capacity,
-complete command workflows and local GUI network setup are still being verified
-or implemented.
+**Remote-motion endurance is not yet qualified:** intermittent network/server latency
+can exceed the unchanged 500 ms control-source deadline. Read-only monitoring and
+short electrical workflows pass; normal firmware starts with remote permission OFF.
+See the measured blocker in the qualification report linked below.
 
-```text
-Remote OPC UA client -> M7 server/adapter -> existing motion client and jobs
-                                        -> ICC -> M4 motion execution
-```
+The server uses the existing motion client, planner, source-aware execution jobs
+and M4 admission. Its explicit reflection catalog publishes 187 application nodes
+(68 methods), with stable string NodeIds and bounded typed records. The namespace
+is `urn:protomate:control`; default subscriptions publish at 100 ms (50 ms minimum).
+No network read requests fresh IO work.
 
-- Reuse the application-owned motion client, Robot, axis APIs and job registry.
-  Existing M4 admission and family-exclusion rules apply to every frontend.
-- Expose cached positions, estimated TCP with feedback provenance, readiness,
-  faults and diagnostics as variables/subscriptions. Expose motion and lifecycle
-  commands as methods returning job IDs, with submission, IO acceptance and
-  completion reported separately.
-- Run network processing in a dedicated M7 worker. Callbacks enqueue bounded
-  application work; they do not block on planning/motion or manipulate widgets.
-- Add explicit remote-control authority and disconnect behavior. Continuous jog
-  needs its own remote-input deadline: the existing M7-to-M4 lease does not detect
-  a vanished remote client while M7 remains alive. No reconnect replay or resume.
-- Use the standalone sample's native ThreadX/NetX Duo onboard-Wi-Fi port as the
-  initial networking baseline; evaluate coexistence before linking it to motion.
-- This integration uses anonymous SecurityPolicy None on a trusted LAN. Remote
-  command permission starts OFF and can only be enabled locally. Authentication
-  and encryption are subsequent work.
-- First verify the same adapter/model on Linux, then a small GIGA server under
-  normal GUI/ICC load. This is supervisory remote control; STEP timing remains
-  local to M4.
+- `src/ui/opcua` (`proto::ui::opcua`) owns the catalog, server, NetX/POSIX ports and
+  allocator. `platform/network` owns Wi-Fi/SDIO/NetX. M4 links neither stack.
+- GUI and OPC UA share `ui::Services`; CLI retains the same application-owned
+  motion client and job history. Existing ownership, units, planning and stop
+  semantics apply to all frontends.
+- Remote commands require local permission, **OFF on every boot**. Anonymous
+  SecurityPolicy None is intended for the trusted LAN. The client worker checks
+  500 ms remote expiry independently of networking/rendering, using 100 ms
+  heartbeats and explicit held-jog supervision. Disconnect never replays motion.
+- Settings → Network and USB `network setup` provide local setup. One Wi-Fi
+  profile is saved on internal flash; passwords are not exposed remotely or logged.
+  Linux uses OS networking. `opcua status|start|stop|restart` and
+  `opcua remote on|off` expose local management.
+- Dedicated SDRAM reservations provide 512 KiB for OPC UA, 256 KiB for networking
+  and 128 KiB for presentation snapshots/USB byte rings, preserving active
+  framebuffers, M4 memory and ICC SRAM4. Another 128 KiB remains unassigned.
+  The server's internal stack is 14 KiB, based on measured complete-catalog use.
 
-References: [open62541 platform/event-loop integration](https://open62541.org/doc/master/plugin_eventloop.html)
-and [server configuration](https://open62541.org/doc/master/server.html).
-
-The annotated catalog is in `src/ui/opcua/catalog/Model.hpp`; `Wire.hpp` generates
-separate OPC UA record layouts and validates bounded inputs. Exporting is explicit;
-ordinary C++ members do not become nodes. The namespace is `urn:protomate:control`.
-`opcua-model-manifest` emits the draft interface manifest. Its published-ID freeze
-and complete generated reference remain pending.
-
-Local commands are `network status|setup|connect|disconnect|forget` and
-`opcua status|start|stop|restart`, plus `opcua remote on|off`.
-`python3 scripts/opcua_provision.py` performs private USB credential entry.
-One versioned Wi-Fi profile is retained on internal flash; passwords are not
-logged or exposed over OPC UA. Linux uses OS networking and does not provision
-the host Wi-Fi adapter. A failed server restart revokes remote permission.
-
-Dedicated M7 reservations preserve the two active framebuffer regions:
-
-| Reservation | Address | Budget |
-|---|---|---:|
-| OPC UA arena | `0xC0180000` | 512 KiB |
-| Network pools, stacks and storage | `0xC0380000` | 256 KiB |
-| Shared presentation snapshots / USB byte rings | `0xC03C0000` | 128 KiB |
-| Unassigned integration headroom | `0xC03E0000` | 128 KiB |
-
-These SDRAM regions are cacheable and execute-never, with explicit byte-safe
-vendor memory operations. SDIO DMA bounce storage and the application-owned
-network/server stacks remain internal. The Linux server arena is 1 MiB to allow
-for its wider pointers and allocator headers; that is not a GIGA memory budget.
-
-Current verification: SDRAM patterns/alignment checks passed on GIGA; Linux
-read/subscription, typed-method permission/deduplication and repeated server
-restart tests pass. The dedicated arena returns to zero on shutdown. A checked
-build-tree compatibility fix releases string method-argument NodeIds leaked by
-open62541 1.5.10; upstream sources remain unchanged. Neighbour-only free-block
-coalescing reduced measured GIGA catalog startup from 90.9 s to 1.46 s and fixed
-the discovery timeout. The 172-node draft catalog and two-client subscription
-capacity still need a complete memory qualification before release. Hardware
-remote permission remains OFF; no remote hardware motion acceptance is claimed.
+See the [integration guide](docs/opcua/README.md),
+[generated node reference](docs/opcua/nodes.md),
+[architecture and memory diagrams](docs/opcua/architecture.md), and
+[measured qualification status](docs/opcua/verification.md).
+The [standalone Wi-Fi sample](examples/opcua_sample/README.md) remains buildable.
 
 ### LAN9255 SAM E53 supervisor with FSoE
 

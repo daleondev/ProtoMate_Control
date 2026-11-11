@@ -1,0 +1,319 @@
+{
+  "passing": {
+    "capture-raw": {
+      "passed": true,
+      "failures": [],
+      "sample_rate": 24000000,
+      "samples": 28575232,
+      "axes": [
+        {
+          "axis": 1,
+          "rises": 18,
+          "falls": 18,
+          "high_min_samples": 120,
+          "high_max_samples": 120,
+          "low_min_samples": 81133
+        },
+        {
+          "axis": 2,
+          "rises": 18,
+          "falls": 18,
+          "high_min_samples": 120,
+          "high_max_samples": 120,
+          "low_min_samples": 81133
+        },
+        {
+          "axis": 3,
+          "rises": 9,
+          "falls": 9,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 162385
+        }
+      ],
+      "enable_low_samples": 0,
+      "maximum_rising_edge_spread_samples": null,
+      "case": "raw",
+      "expected": [
+        18,
+        18,
+        9
+      ],
+      "terminal": 6,
+      "submission_roundtrip_ms": 307.580336000683,
+      "sha256_raw": "4a782d8f0f085b51950fb066f80642b24752a3acf1d00cdfbaf889c432d0839e"
+    },
+    "capture-coordinated": {
+      "passed": true,
+      "failures": [],
+      "sample_rate": 24000000,
+      "samples": 46584832,
+      "axes": [
+        {
+          "axis": 1,
+          "rises": 400,
+          "falls": 400,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        },
+        {
+          "axis": 2,
+          "rises": 400,
+          "falls": 400,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        },
+        {
+          "axis": 3,
+          "rises": 400,
+          "falls": 400,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        }
+      ],
+      "enable_low_samples": 0,
+      "maximum_rising_edge_spread_samples": 1,
+      "case": "coordinated",
+      "expected": [
+        400,
+        400,
+        400
+      ],
+      "terminal": 6,
+      "submission_roundtrip_ms": 76.0333019970858,
+      "sha256_raw": "eac8d8b150f78ca85e2aec059976008444d062a1d30e27e487c1de7c6efe05fb"
+    },
+    "capture-stop-clean": {
+      "passed": true,
+      "failures": [],
+      "sample_rate": 24000000,
+      "samples": 52347904,
+      "axes": [
+        {
+          "axis": 1,
+          "rises": 41,
+          "falls": 41,
+          "high_min_samples": 120,
+          "high_max_samples": 120,
+          "low_min_samples": 539805
+        },
+        {
+          "axis": 2,
+          "rises": 0,
+          "falls": 0
+        },
+        {
+          "axis": 3,
+          "rises": 0,
+          "falls": 0
+        }
+      ],
+      "enable_low_samples": 0,
+      "maximum_rising_edge_spread_samples": null,
+      "case": "stop",
+      "expected": [
+        41,
+        0,
+        0
+      ],
+      "terminal": 7,
+      "submission_roundtrip_ms": 84.3750319982064,
+      "sha256_raw": "35e56dd61b1610cb9521dd204b278ee21ad2044bf5f741cdb2049e14e49f3e21"
+    },
+    "capture-loss": {
+      "passed": true,
+      "failures": [],
+      "sample_rate": 24000000,
+      "samples": 55709696,
+      "axes": [
+        {
+          "axis": 1,
+          "rises": 52,
+          "falls": 52,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 539805
+        },
+        {
+          "axis": 2,
+          "rises": 0,
+          "falls": 0
+        },
+        {
+          "axis": 3,
+          "rises": 0,
+          "falls": 0
+        }
+      ],
+      "enable_low_samples": 0,
+      "maximum_rising_edge_spread_samples": null,
+      "case": "loss",
+      "expected": [
+        52,
+        0,
+        0
+      ],
+      "terminal": 7,
+      "submission_roundtrip_ms": 20.30971600106568,
+      "sha256_raw": "b458439b48efe78430ca6f196226ad9b46f01a133fc9945efba863c270b3292f"
+    },
+    "rehome-screen-one": {
+      "passed": true,
+      "failures": [],
+      "sample_rate": 24000000,
+      "samples": 428868608,
+      "axes": [
+        {
+          "axis": 1,
+          "rises": 2288,
+          "falls": 2288,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        },
+        {
+          "axis": 2,
+          "rises": 2288,
+          "falls": 2288,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        },
+        {
+          "axis": 3,
+          "rises": 2288,
+          "falls": 2288,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        }
+      ],
+      "enable_low_samples": 0,
+      "maximum_rising_edge_spread_samples": null,
+      "case": "session",
+      "expected": [
+        2288,
+        2288,
+        2288
+      ],
+      "terminal": 6,
+      "submission_roundtrip_ms": 36.06368499822565,
+      "sha256_raw": "97c5e44671fafcfdeab190ce75cba0f6c512d80461518e6eb6788d397d8e777a"
+    },
+    "rehome-screen-two": {
+      "passed": true,
+      "failures": [],
+      "sample_rate": 24000000,
+      "samples": 387086336,
+      "axes": [
+        {
+          "axis": 1,
+          "rises": 1902,
+          "falls": 1902,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        },
+        {
+          "axis": 2,
+          "rises": 1902,
+          "falls": 1902,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        },
+        {
+          "axis": 3,
+          "rises": 1902,
+          "falls": 1902,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        }
+      ],
+      "enable_low_samples": 0,
+      "maximum_rising_edge_spread_samples": null,
+      "case": "session",
+      "expected": [
+        1902,
+        1902,
+        1902
+      ],
+      "terminal": 6,
+      "submission_roundtrip_ms": 28.597276999789756,
+      "sha256_raw": "59bbb69aa9818a815d42cc93d69e74b60de46a1df36665e111165a59a00be018"
+    },
+    "periodic-client-screen": {
+      "passed": true,
+      "failures": [],
+      "sample_rate": 24000000,
+      "samples": 798425600,
+      "axes": [
+        {
+          "axis": 1,
+          "rises": 3100,
+          "falls": 3100,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        },
+        {
+          "axis": 2,
+          "rises": 3100,
+          "falls": 3100,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        },
+        {
+          "axis": 3,
+          "rises": 3100,
+          "falls": 3100,
+          "high_min_samples": 120,
+          "high_max_samples": 121,
+          "low_min_samples": 33624
+        }
+      ],
+      "enable_low_samples": 0,
+      "maximum_rising_edge_spread_samples": null,
+      "case": "session",
+      "expected": [
+        3100,
+        3100,
+        3100
+      ],
+      "terminal": 6,
+      "submission_roundtrip_ms": 54.83400199955213,
+      "sha256_raw": "a0c55f47ad4e763db7c70c89865887027733022a0d27fbd6267fa24e34e2d232"
+    }
+  },
+  "failed": {
+    "session-ten-minute": {
+      "accepted": false,
+      "heartbeat_count": 48,
+      "rejected_heartbeats": 0,
+      "max_roundtrip_ms": 512.2885839991795,
+      "max_submission_gap_ms": 512.3011380019307,
+      "compressed_capture_sha256": "c76069d52a3f1123431cfc6cca8d2d81824d993a41c90246bba0ed45549f5e6e"
+    },
+    "session-final": {
+      "accepted": false,
+      "heartbeat_count": 957,
+      "rejected_heartbeats": 1,
+      "max_roundtrip_ms": 720.0348019978264,
+      "max_submission_gap_ms": 720.2331309999863,
+      "compressed_capture_sha256": "4f51f9d18723e4c60c84f135bf9261d8385a28b271275d3b9b0dc4a2004e32bc"
+    },
+    "session-periodic-final": {
+      "accepted": false,
+      "heartbeat_count": 32,
+      "rejected_heartbeats": 6,
+      "max_roundtrip_ms": 757.6286170005915,
+      "max_submission_gap_ms": 143.38994799982174,
+      "compressed_capture_sha256": "7ee80d7e892f92f3882198ee3604775503b3c5ecb8d3ff32ab197ed29387b4a5"
+    }
+  }
+}

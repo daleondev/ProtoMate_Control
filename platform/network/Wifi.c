@@ -99,3 +99,9 @@ NX_PACKET_POOL *wifi_packet_pool(void) {
     NX_IP *ip = wifi_ip();
     return ip ? ip->nx_ip_default_packet_pool : NULL;
 }
+
+NX_PACKET_POOL *wifi_receive_pool(void) {
+    void *pool = NULL;
+    if(cy_network_get_packet_pool(CY_NETWORK_PACKET_RX, &pool) != CY_RSLT_SUCCESS) return NULL;
+    return pool;
+}

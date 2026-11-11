@@ -51,7 +51,18 @@ namespace ui::motion
             const auto found{ std::ranges::find_if(m_jobs, [=](const auto& job) {return job->info.id == id && job->info.source == source;}) };
             // An expired gesture cannot be revived even if the worker has not
             // yet processed its deadline. Completed jobs may leave the list.
-            if (found == m_jobs.end() || !(*found)->inputDeadline || now >= *(*found)->inputDeadline) return false;
+            if (found == m_jobs.end()) {
+                // A completion can race the client's next heartbeat. A known
+                // terminal job from this generation needs no renewal and must
+                // not invalidate supervision of its other active jobs.
+                const auto history = std::span(m_history->jobs).first(m_history->count);
+                if (std::ranges::any_of(history, [=](const auto& job) {
+                        return job.id == id && job.source == source && terminal(job.state);
+                    })) continue;
+                return false;
+            }
+            if (terminal((*found)->info.state)) continue;
+            if (!(*found)->inputDeadline || now >= *(*found)->inputDeadline) return false;
         }
         for (auto& remote : m_remote) if (remote.source == source) remote.deadline = now + REMOTE_TIMEOUT;
         for (auto& job : m_jobs) if (job->info.source == source && job->inputDeadline) {

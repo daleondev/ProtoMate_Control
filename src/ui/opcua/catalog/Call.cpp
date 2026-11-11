@@ -64,7 +64,7 @@ namespace ui::opcua::catalog
     {
         if (offset > 32) check(UA_STATUSCODE_BADOUTOFRANGE);
         JobPage page{}; page.offset = offset;
-        std::array<services::DetailedJob,4> rows{};
+        std::array<services::DetailedJob,1> rows{};
         while (page.count < page.records.size()) {
             const auto count{m_services.detailedJobs(offset + page.count, rows, previews)};
             for (unsigned i{}; i < count; ++i) {
@@ -89,6 +89,13 @@ namespace ui::opcua::catalog
         out.age = source.age_ms; out.capacity = source.capacity; out.used = source.used; copy(out.error, source.error);
         for (unsigned i{}; i < out.count; ++i) {copy(out.rows[i].name, source.rows[i].name); out.rows[i].values = source.rows[i].values;}
         return out;
+    }
+    PreviewResult Call::preview(std::uint64_t job)
+    {
+        const auto value{m_services.previewResult(job)};
+        return {value.available, value.state, value.error, value.segments, value.id, value.source,
+            value.duration, value.approximation_mm, value.quantization_mm, value.endpoint_joints,
+            value.endpoint_tcp, value.peak_velocity, value.peak_acceleration, value.peak_jerk};
     }
     bool Call::refreshDiagnostics(bool io, bool stacks) {return m_services.refreshDiagnostics(io, stacks);}
     MessagePage Call::messages(std::uint32_t offset)
@@ -140,6 +147,6 @@ namespace ui::opcua::catalog
     {
         const auto n{m_services.network()};
         return {n.wifi, n.connected, n.busy, n.saved, n.state, n.address, n.error, n.capacity, n.used, n.peak,
-            n.failures, n.packets, n.available_packets, n.empty_packet_requests, n.packet_suspensions, n.invalid_packet_releases};
+            n.failures, n.packets, n.available_packets, n.empty_packet_requests, n.packet_suspensions, n.invalid_packet_releases, n.receive_packets, n.receive_available, n.receive_empty_requests};
     }
 }

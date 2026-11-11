@@ -60,6 +60,12 @@ namespace ui::opcua
                     out.packet_suspensions = suspensions; out.invalid_packet_releases = invalid;
                 }
             }
+            if (auto* pool{wifi_receive_pool()}) {
+                ULONG total{}, available{}, empty{}, suspensions{}, invalid{};
+                if (nx_packet_pool_info_get(pool, &total, &available, &empty, &suspensions, &invalid) == NX_SUCCESS) {
+                    out.receive_packets = total; out.receive_available = available; out.receive_empty_requests = empty;
+                }
+            }
         }
 #endif
         return out;

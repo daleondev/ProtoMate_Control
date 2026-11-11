@@ -102,21 +102,24 @@ namespace hal::util
             std::optional<std::int64_t> prefix;
         };
         std::array<Channel, 3> axes;
-        static constexpr std::size_t WORDS_PER_ENTRY{ 18 }; // 3 axes × (4 edges + 4 half-sized periods).
+        static constexpr std::size_t WORDS_PER_AXIS_ENTRY{ 6 }; // 4 edges + 4 half-sized periods.
         std::uint32_t capacity;
-        std::vector<std::uint32_t> words;
+        std::array<std::vector<std::uint32_t>, 3> words;
         std::vector<step::Timing> timings;
         explicit SpliceWorkspace(std::uint32_t entries)
           : capacity{ entries } // Count constructors: braces would create two-element initializer lists.
-                                // NOLINTNEXTLINE(protomate-brace-initialization)
-          , words(std::size_t(entries) * WORDS_PER_ENTRY)
           // NOLINTNEXTLINE(protomate-brace-initialization)
           , timings(std::size_t(entries) * 2)
         {
             // Scratch buffers are not DMA-owned. Size them for the actual
             // prepared window, instead of reserving the maximum legacy window.
-            auto remaining{ std::span(words) };
-            for (auto& axis : axes) {
+            // Each axis is independent scratch, not one DMA-contiguous block.
+            // Separate allocations avoid requiring a 9 KiB contiguous hole
+            // after homing workers have fragmented the small M4 heap.
+            for (unsigned i{}; i < axes.size(); ++i) {
+                words[i].resize(std::size_t(entries) * WORDS_PER_AXIS_ENTRY);
+                auto remaining{ std::span(words[i]) };
+                auto& axis{ axes[i] };
                 for (auto& edge : axis.edges) {
                     edge = remaining.first(entries);
                     remaining = remaining.subspan(entries);

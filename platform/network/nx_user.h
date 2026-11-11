@@ -1,6 +1,9 @@
 #ifndef PROTOMATE_NX_USER_H
 #define PROTOMATE_NX_USER_H
 #define NX_DISABLE_IPV6
+/* Cortex-M7 nx_port.h otherwise selects its legacy 100 Hz default before
+ * nx_api.h can derive this from our 1 kHz ThreadX clock. */
+#define NX_IP_PERIODIC_RATE TX_TIMER_TICKS_PER_SECOND
 #define NX_ENABLE_DUAL_PACKET_POOL
 #define NX_PACKET_ALIGNMENT 32
 #define NX_PHYSICAL_HEADER 64

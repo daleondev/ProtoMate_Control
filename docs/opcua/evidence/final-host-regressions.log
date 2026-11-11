@@ -1,0 +1,179 @@
+Test project /home/david/Dokumente/ProtoMate_Control/build/debug-linux
+      Start  1: hal.architecture
+ 1/87 Test  #1: hal.architecture ...........................   Passed    0.11 sec
+      Start  2: tooling.clang_tidy
+ 2/87 Test  #2: tooling.clang_tidy .........................   Passed    0.08 sec
+      Start  3: tooling.memory_usage
+ 3/87 Test  #3: tooling.memory_usage .......................   Passed    0.05 sec
+      Start  4: tooling.profiling
+ 4/87 Test  #4: tooling.profiling ..........................   Passed    0.15 sec
+      Start  5: boot.giga_images
+ 5/87 Test  #5: boot.giga_images ...........................   Passed    0.11 sec
+      Start  6: boot.giga_mpu
+ 6/87 Test  #6: boot.giga_mpu ..............................   Passed    0.14 sec
+      Start  7: runtime
+ 7/87 Test  #7: runtime ....................................   Passed    0.37 sec
+      Start  8: runtime.thread_group
+ 8/87 Test  #8: runtime.thread_group .......................   Passed    0.00 sec
+      Start  9: runtime.storage.corrupt_images
+ 9/87 Test  #9: runtime.storage.corrupt_images .............   Passed    0.12 sec
+      Start 10: runtime.terminate.application
+10/87 Test #10: runtime.terminate.application ..............   Passed    0.09 sec
+      Start 11: runtime.terminate.thread
+11/87 Test #11: runtime.terminate.thread ...................   Passed    0.08 sec
+      Start 12: runtime.terminate.static_initialization
+12/87 Test #12: runtime.terminate.static_initialization ....   Passed    0.07 sec
+      Start 13: runtime.terminate.non_std_exception
+13/87 Test #13: runtime.terminate.non_std_exception ........   Passed    0.07 sec
+      Start 14: runtime.terminate.explicit
+14/87 Test #14: runtime.terminate.explicit .................   Passed    0.07 sec
+      Start 15: runtime.terminate.bad_alloc
+15/87 Test #15: runtime.terminate.bad_alloc ................   Passed    0.07 sec
+      Start 16: runtime.panic.error_handler
+16/87 Test #16: runtime.panic.error_handler ................   Passed    0.07 sec
+      Start 17: runtime.panic.fault_handler
+17/87 Test #17: runtime.panic.fault_handler ................   Passed    0.07 sec
+      Start 18: runtime.panic.override
+18/87 Test #18: runtime.panic.override .....................   Passed    0.01 sec
+      Start 19: runtime.storage.startup.both
+19/87 Test #19: runtime.storage.startup.both ...............   Passed    0.07 sec
+      Start 20: runtime.storage.startup.flash
+20/87 Test #20: runtime.storage.startup.flash ..............   Passed    0.06 sec
+      Start 21: runtime.storage.startup.sd
+21/87 Test #21: runtime.storage.startup.sd .................   Passed    0.04 sec
+      Start 22: runtime.storage.startup.none
+22/87 Test #22: runtime.storage.startup.none ...............   Passed    0.03 sec
+      Start 23: runtime.storage.startup.corrupt
+23/87 Test #23: runtime.storage.startup.corrupt ............   Passed    0.09 sec
+      Start 24: runtime.storage.startup.flash-corrupt-sd
+24/87 Test #24: runtime.storage.startup.flash-corrupt-sd ...   Passed    0.10 sec
+      Start 25: runtime.storage.startup.sd-corrupt-flash
+25/87 Test #25: runtime.storage.startup.sd-corrupt-flash ...   Passed    0.06 sec
+      Start 26: runtime.storage.startup.warning-failure
+26/87 Test #26: runtime.storage.startup.warning-failure ....   Passed    0.03 sec
+      Start 27: runtime.flash_journal
+27/87 Test #27: runtime.flash_journal ......................   Passed    1.24 sec
+      Start 28: application.icc.service_example
+28/87 Test #28: application.icc.service_example ............   Passed    0.00 sec
+      Start 29: application.icc.example
+29/87 Test #29: application.icc.example ....................   Passed    0.00 sec
+      Start 30: application.icc.action_example
+30/87 Test #30: application.icc.action_example .............   Passed    0.01 sec
+      Start 31: application.icc.transport
+31/87 Test #31: application.icc.transport ..................   Passed    0.18 sec
+      Start 32: application.icc.services
+32/87 Test #32: application.icc.services ...................   Passed    0.10 sec
+      Start 33: application.icc.urgent
+33/87 Test #33: application.icc.urgent .....................   Passed    0.02 sec
+      Start 34: application.icc.background
+34/87 Test #34: application.icc.background .................   Passed    0.63 sec
+      Start 35: application.icc.actions
+35/87 Test #35: application.icc.actions ....................   Passed    0.35 sec
+      Start 36: application.icc.connection
+36/87 Test #36: application.icc.connection .................   Passed    2.67 sec
+      Start 37: opcua.catalog
+37/87 Test #37: opcua.catalog ..............................   Passed    0.00 sec
+      Start 38: gui.hmi
+38/87 Test #38: gui.hmi ....................................   Passed    0.00 sec
+      Start 39: gui.graphics
+39/87 Test #39: gui.graphics ...............................   Passed    0.20 sec
+      Start 40: gui.scene3d.service
+40/87 Test #40: gui.scene3d.service ........................   Passed    1.46 sec
+      Start 41: gui.integration
+41/87 Test #41: gui.integration ............................   Passed   17.41 sec
+      Start 42: gui.presentation_timeout
+42/87 Test #42: gui.presentation_timeout ...................   Passed    0.78 sec
+      Start 43: gui.detail
+43/87 Test #43: gui.detail .................................   Passed    4.10 sec
+      Start 44: gui.pages
+44/87 Test #44: gui.pages ..................................   Passed   22.71 sec
+      Start 45: gui.wheel
+45/87 Test #45: gui.wheel ..................................   Passed   18.38 sec
+      Start 46: gui.messages
+46/87 Test #46: gui.messages ...............................   Passed    2.57 sec
+      Start 47: gui.keyboard
+47/87 Test #47: gui.keyboard ...............................   Passed    5.79 sec
+      Start 48: gui.screenshots
+48/87 Test #48: gui.screenshots ............................   Passed    0.71 sec
+      Start 49: gui.x11
+49/87 Test #49: gui.x11 ....................................   Passed   20.67 sec
+      Start 50: gui.scene3d.renderer
+50/87 Test #50: gui.scene3d.renderer .......................   Passed    0.04 sec
+      Start 51: gui.scene3d.robot
+51/87 Test #51: gui.scene3d.robot ..........................   Passed    0.16 sec
+      Start 52: gui.scene3d.robot_sources
+52/87 Test #52: gui.scene3d.robot_sources ..................   Passed    0.92 sec
+      Start 53: application.cli
+53/87 Test #53: application.cli ............................   Passed    0.04 sec
+      Start 54: application.diagnostics
+54/87 Test #54: application.diagnostics ....................   Passed    2.07 sec
+      Start 55: application.lifecycle
+55/87 Test #55: application.lifecycle ......................   Passed    6.24 sec
+      Start 56: application.intercore
+56/87 Test #56: application.intercore ......................   Passed    5.36 sec
+      Start 57: application.motion_controller
+57/87 Test #57: application.motion_controller ..............   Passed   11.86 sec
+      Start 58: application.logging
+58/87 Test #58: application.logging ........................   Passed    0.14 sec
+      Start 59: application.motor_cli
+59/87 Test #59: application.motor_cli ......................   Passed    8.81 sec
+      Start 60: application.robot_math
+60/87 Test #60: application.robot_math .....................   Passed    0.03 sec
+      Start 61: application.robot_execution
+61/87 Test #61: application.robot_execution ................   Passed    0.00 sec
+      Start 62: application.robot_api
+62/87 Test #62: application.robot_api ......................   Passed    0.63 sec
+      Start 63: application.executor
+63/87 Test #63: application.executor .......................   Passed    0.96 sec
+      Start 64: application.remote_control
+64/87 Test #64: application.remote_control .................   Passed    0.74 sec
+      Start 65: simulation.display_clock
+65/87 Test #65: simulation.display_clock ...................   Passed    0.19 sec
+      Start 66: simulation.cad_assets
+66/87 Test #66: simulation.cad_assets ......................   Passed    0.38 sec
+      Start 67: simulation.architecture
+67/87 Test #67: simulation.architecture ....................   Passed    0.40 sec
+      Start 68: simulation.contacts
+68/87 Test #68: simulation.contacts ........................   Passed    4.13 sec
+      Start 69: simulation.regressions
+69/87 Test #69: simulation.regressions .....................   Passed    0.13 sec
+      Start 70: simulation.session
+70/87 Test #70: simulation.session .........................   Passed    7.22 sec
+      Start 71: simulation.models
+71/87 Test #71: simulation.models ..........................   Passed    1.53 sec
+      Start 72: simulation.client
+72/87 Test #72: simulation.client ..........................   Passed    8.63 sec
+      Start 73: simulation.storage
+73/87 Test #73: simulation.storage .........................   Passed   11.94 sec
+      Start 74: simulation.lifecycle
+74/87 Test #74: simulation.lifecycle .......................   Passed   11.94 sec
+      Start 75: simulation.launch
+75/87 Test #75: simulation.launch ..........................   Passed    1.58 sec
+      Start 76: simulation.packaging
+76/87 Test #76: simulation.packaging .......................   Passed    2.54 sec
+      Start 77: simulation.opengl
+77/87 Test #77: simulation.opengl ..........................   Passed    4.21 sec
+      Start 78: simulation.machine
+78/87 Test #78: simulation.machine .........................   Passed    3.30 sec
+      Start 79: simulation.hmi
+79/87 Test #79: simulation.hmi .............................   Passed  201.78 sec
+      Start 80: simulation.motion_api
+80/87 Test #80: simulation.motion_api ......................   Passed  171.75 sec
+      Start 81: simulation.integration
+81/87 Test #81: simulation.integration .....................   Passed   53.27 sec
+      Start 82: hal
+82/87 Test #82: hal ........................................   Passed    2.01 sec
+      Start 83: step_stm32
+83/87 Test #83: step_stm32 .................................   Passed    0.04 sec
+      Start 84: encoder_stm32
+84/87 Test #84: encoder_stm32 ..............................   Passed    0.01 sec
+      Start 85: usb_console
+85/87 Test #85: usb_console ................................   Passed    0.00 sec
+      Start 86: motion_bench.metrics
+86/87 Test #86: motion_bench.metrics .......................   Passed    0.15 sec
+      Start 87: motion_bench.capture
+87/87 Test #87: motion_bench.capture .......................   Passed    6.15 sec
+
+100% tests passed out of 87
+
+Total Test time (real) = 633.46 sec

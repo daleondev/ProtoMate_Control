@@ -30,6 +30,8 @@ UINT tx_event_flags_get(TX_EVENT_FLAGS_GROUP* f,ULONG bits,UINT,ULONG* value,ULO
     *value=f->flags&bits;f->flags&=~bits;return 0;
 }
 UINT tx_interrupt_control(UINT) { return 0; }
+UINT tx_mutex_get(TX_MUTEX* m,ULONG) {++m->depth;return 0;}
+UINT tx_mutex_put(TX_MUTEX* m) {--m->depth;return 0;}
 UINT nx_tcp_socket_create(NX_IP*,NX_TCP_SOCKET* s,char*,ULONG,ULONG,UINT,ULONG,
                           void(*)(NX_TCP_SOCKET*),void(*)(NX_TCP_SOCKET*)) {
     s->test=new Socket;s->nx_tcp_socket_state=NX_TCP_CLOSED;sockets.push_back(s);return 0;
@@ -55,6 +57,9 @@ UINT nx_tcp_server_socket_unlisten(NX_IP*,UINT) {
     listener=nullptr;portBound=false;return 0;
 }
 UINT nx_tcp_server_socket_accept(NX_TCP_SOCKET* s,ULONG) {
+    EXPECT_FALSE(s->nx_tcp_socket_state==NX_TCP_LISTEN_STATE &&
+        s->nx_tcp_socket_bound_next && !s->nx_tcp_socket_connect_ip.nxd_ip_version)
+        << "Would trigger NetX TCP checksum assertion";
     if(finishDuringAccept) {finishDuringAccept=false;s->nx_tcp_socket_state=NX_TCP_ESTABLISHED;return 99;}
     if(s->nx_tcp_socket_state==NX_TCP_ESTABLISHED)return 0;
     if(s->nx_tcp_socket_state==NX_TCP_LISTEN_STATE)s->nx_tcp_socket_state=NX_TCP_SYN_RECEIVED;
@@ -169,6 +174,28 @@ TEST_F(NetXAdapter, ShutdownUnacceptsIdleSocketBeforeRemovingListenPort) {
     EXPECT_EQ(listener->nx_tcp_socket_state,NX_TCP_SYN_RECEIVED);
     loop->stop(loop);loop->run(loop,0);
     EXPECT_FALSE(portBound);
+}
+TEST_F(NetXAdapter, AbandonedHandshakeIsRetiredInsteadOfReaccepted) {
+    for(unsigned attempt=0;attempt<20;++attempt) {
+        loop->run(loop,0);
+        ASSERT_NE(listener,nullptr);
+        ASSERT_EQ(listener->nx_tcp_socket_state,NX_TCP_SYN_RECEIVED);
+        listener->nx_tcp_socket_bound_next=listener;
+        listener->nx_tcp_socket_connect_ip.nxd_ip_version=0;
+        listener->nx_tcp_socket_state=NX_TCP_LISTEN_STATE;
+        loop->run(loop,0);
+        EXPECT_EQ(sockets.size(),1);
+        EXPECT_EQ(listener->nx_tcp_socket_bound_next,nullptr);
+    }
+    accept(); EXPECT_EQ(accepted.size(),1);
+}
+TEST_F(NetXAdapter, ResetBeforeFirstAcceptCannotUseClearedPeerAddress) {
+    listener->nx_tcp_socket_bound_next=listener;
+    listener->nx_tcp_socket_connect_ip.nxd_ip_version=0;
+    loop->run(loop,0);
+    EXPECT_EQ(sockets.size(),1);
+    EXPECT_EQ(listener->nx_tcp_socket_bound_next,nullptr);
+    accept(); EXPECT_EQ(accepted.size(),1);
 }
 TEST_F(NetXAdapter, PendingSendsRetainOwnershipAndRejectOverflow) {
     accept();blocked=true;

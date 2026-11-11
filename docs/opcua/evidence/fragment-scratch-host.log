@@ -1,0 +1,15 @@
+Test project /home/david/Dokumente/ProtoMate_Control/build/debug-linux
+    Start 62: application.robot_api
+1/5 Test #62: application.robot_api ............   Passed    0.63 sec
+    Start 63: application.executor
+2/5 Test #63: application.executor .............   Passed    0.96 sec
+    Start 64: application.remote_control
+3/5 Test #64: application.remote_control .......   Passed    0.74 sec
+    Start 82: hal
+4/5 Test #82: hal ..............................   Passed    1.99 sec
+    Start 83: step_stm32
+5/5 Test #83: step_stm32 .......................   Passed    0.04 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =   4.35 sec
