@@ -40,12 +40,14 @@ namespace ui::motion
         }
         return written;
     }
-    bool Client::requestAsync(const ::motion::MotorRequest& value, Completion completion)
+    bool Client::requestAsync(const ::motion::MotorRequest& value, Completion completion, std::uint64_t source)
     {
         std::scoped_lock lock{ m_mutex };
-        if (m_stopped || !m_connected) {
+        if (m_stopped || !m_connected || (source && !remoteAuthorizedLocked(source))) {
             return false;
         }
+        if (value.operation == ::motion::MotorOperation::Speed || value.operation == ::motion::MotorOperation::Defaults)
+            checkRawOwnerLocked(value.motor == ::motion::MotorId::All ? ALL_AXES : std::uint8_t(1U << unsigned(value.motor)), source);
         if (value.operation == ::motion::MotorOperation::Disable) {
             if (m_disable) {
                 return false;
@@ -58,7 +60,7 @@ namespace ui::motion
                 }
             }
             m_disable.emplace(ControlCall{
-              .request = value, .completion = std::move(completion), .handle = {}, .readiness = {} });
+              .request = value, .completion = std::move(completion), .source = source, .handle = {}, .readiness = {} });
             m_notification->signal();
             return true;
         }
@@ -68,7 +70,7 @@ namespace ui::motion
         for (auto& slot : m_calls) {
             if (!slot) {
                 slot.emplace(ControlCall{
-                  .request = value, .completion = std::move(completion), .handle = {}, .readiness = {} });
+                  .request = value, .completion = std::move(completion), .source = source, .handle = {}, .readiness = {} });
                 m_notification->signal();
                 return true;
             }
@@ -137,37 +139,12 @@ namespace ui::motion
         }
         m_notification->signal();
     }
-    void Client::superviseJog(std::uint64_t id)
-    {
-        std::scoped_lock lock{ m_mutex };
-        m_inputJob = id;
-        m_inputDeadline = std::chrono::steady_clock::now() + INPUT_TIMEOUT;
-        m_notification->signal();
-    }
-    void Client::renewJogInput(std::uint64_t id)
-    {
-        std::scoped_lock lock{ m_mutex };
-        if (m_inputJob == id && std::chrono::steady_clock::now() < m_inputDeadline) {
-            m_inputDeadline = std::chrono::steady_clock::now() + INPUT_TIMEOUT;
-        }
-    }
-    void Client::releaseJogInput()
-    {
-        std::uint64_t id{};
-        {
-            std::scoped_lock lock{ m_mutex };
-            id = std::exchange(m_inputJob, 0);
-        }
-        if (id) {
-            cancelAsync(id);
-        }
-    }
     void Client::serviceCallLocked(std::optional<ControlCall>& slot, bool urgent, ControlBatch& batch)
     {
         if (!slot) {
             return;
         }
-        if (slot->cancelled) {
+        if (slot->cancelled || (slot->source && !remoteAuthorizedLocked(slot->source))) {
             batch.results[batch.count] = std::unexpected(pnm::msg::ServiceError::Cancelled);
         }
         else if (!m_connected || m_stopped) {
@@ -232,20 +209,14 @@ namespace ui::motion
     void Client::serviceControls()
     {
         ControlBatch batch{};
-        std::uint64_t expired{};
+        expireInputs();
         {
             std::scoped_lock lock{ m_mutex };
-            if (m_inputJob && std::chrono::steady_clock::now() >= m_inputDeadline) {
-                expired = std::exchange(m_inputJob, 0);
-            }
             serviceCallLocked(m_disable, true, batch);
             for (auto& slot : m_calls) {
                 serviceCallLocked(slot, false, batch);
             }
             serviceStopLocked();
-        }
-        if (expired) {
-            cancelAsync(expired);
         }
         for (unsigned i{ 0 }; i < batch.count; ++i) {
             if (batch.callbacks[i]) {

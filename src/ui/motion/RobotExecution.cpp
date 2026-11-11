@@ -125,7 +125,7 @@ namespace ui::motion
         if (slot == m_arena->pending.end()) {
             throw std::runtime_error("planning queue full");
         }
-        const auto id{ m_client->create(request.family, request.axes) };
+        const auto id{ m_client->create(request.family, request.axes, request.source, request.continuous) };
         Client::Requested description{};
         description.relative = request.relative;
         if (request.kind == ExecutionRequest::Kind::Home) {
@@ -134,7 +134,8 @@ namespace ui::motion
         else if ((request.kind == ExecutionRequest::Kind::Jog ||
                   request.kind == ExecutionRequest::Kind::CartesianJog)) {
             description.space = Client::RequestSpace::Jog;
-            description.values[0] = request.speed;
+            description.values = request.kind == ExecutionRequest::Kind::CartesianJog ? request.direction :
+                std::array<double,3>{request.speed, request.duration, request.continuous ? 1. : 0.};
         }
         else if (request.family == ::motion::Family::Axis) {
             description.space =

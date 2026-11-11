@@ -23,6 +23,7 @@ extern "C" UA_Int64 UA_DateTime_localTimeUtcOffset() { return 0; }
 
 // The standalone image omits FileX, which currently supplies this Newlib ABI
 // entry point together with filesystem calls in the full application.
+#if defined(PROTOMATE_OPCUA_SAMPLE)
 extern "C" int _gettimeofday(timeval* value, void*)
 {
     if (!value) { errno = EFAULT; return -1; }
@@ -31,3 +32,4 @@ extern "C" int _gettimeofday(timeval* value, void*)
     value->tv_usec = (time % UA_DATETIME_SEC) / UA_DATETIME_USEC;
     return 0;
 }
+#endif

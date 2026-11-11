@@ -54,8 +54,9 @@ namespace ui::gui::hmi
             return;
         }
         m_model.backend->read(m_model.state);
-        if (m_model.state.outcome.operation != m_model.last_operation) {
-            m_model.last_operation = m_model.state.outcome.operation;
+        const auto outcomeRevision{ m_model.state.outcome.sequence ? m_model.state.outcome.sequence : m_model.state.outcome.operation };
+        if (outcomeRevision && outcomeRevision != m_model.last_operation) {
+            m_model.last_operation = outcomeRevision;
             m_model.report(m_model.state.outcome.message.data(), m_model.state.outcome.severity);
         }
         if (m_model.watched_job && !m_model.previews) {
@@ -74,6 +75,19 @@ namespace ui::gui::hmi
         }
         if (m_model.page == Page::Jobs) {
             m_model.job_count = m_model.backend->jobs(m_model.job_offset, m_model.jobs, m_model.previews);
+        }
+        const auto messagesRevision{m_model.backend->messageRevision()};
+        if (messagesRevision != m_model.message_revision) {
+            m_model.message_revision = messagesRevision;
+            m_model.message_count = 0;
+            services::Message item{};
+            // The shared history is newest-first; the presentation ring is oldest-first.
+            for (unsigned offset{MESSAGE_HISTORY_CAPACITY}; offset > 0; --offset) {
+                if (m_model.backend->message(offset - 1, item) && !item.acknowledged) {
+                    auto& row{m_model.messages[m_model.message_count++]};
+                    row.text = item.text; row.severity = item.severity;
+                }
+            }
         }
     }
     void Presenter::navigate(Page page)
@@ -94,6 +108,7 @@ namespace ui::gui::hmi
             }
         }
         m_model.page = page;
+        m_model.network.clear();
         m_model.keypad = false;
         m_model.confirmation = false;
         m_model.coordinates = 0;
@@ -152,6 +167,7 @@ namespace ui::gui::hmi
     }
     void Presenter::key(char key)
     {
+        if (m_model.network.editing) { editText(key); return; }
         if (!m_model.keypad) {
             return;
         }
@@ -233,6 +249,7 @@ namespace ui::gui::hmi
             return;
         }
         ++m_model.interactions;
+        if (networkActions(a)) return;
         if (a >= Field0 && a <= FieldLast) {
             if (m_model.backend) {
                 m_model.backend->release();
@@ -418,6 +435,7 @@ namespace ui::gui::hmi
             case SettingsGeneral:
             case SettingsRobot:
             case SettingsDiagnostics:
+                m_model.network.clear();
                 m_model.settings_tab = a - SettingsGeneral;
                 if (a == SettingsDiagnostics) {
                     requestDiagnostics();
@@ -614,6 +632,7 @@ namespace ui::gui::hmi
                 m_pending.changed = true;
                 break;
             case Acknowledge:
+                if (m_model.backend) m_model.backend->acknowledgeMessages();
                 m_model.message_count = 0;
                 m_model.notice.fill(0);
                 m_model.report("Messages acknowledged locally; active faults remain");

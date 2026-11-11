@@ -3,7 +3,7 @@ add_subdirectory(scene3d)
 add_library(proto_ui_gui STATIC
     Controller.hpp Controller.cpp util/FrameTimer.hpp util/DirtyRegions.hpp util/WheelQueue.hpp
     hmi/Actions.hpp hmi/Text.hpp hmi/Backend.hpp hmi/Model.hpp hmi/Presenter.hpp hmi/Presenter.cpp
-    hmi/NumericField.hpp hmi/NumericField.cpp
+    hmi/NumericField.hpp hmi/NumericField.cpp hmi/Network.hpp hmi/NetworkPage.cpp hmi/NetworkPresenter.cpp
     hmi/Layout.hpp hmi/Gestures.hpp hmi/Annotations.hpp hmi/Table.hpp hmi/Table.cpp hmi/HomePage.cpp hmi/MovePage.cpp hmi/MaintenancePage.cpp
     hmi/View.hpp hmi/View.cpp hmi/Viewport.hpp hmi/Viewport.cpp hmi/Widgets.hpp hmi/Widgets.cpp
     frontend/Frontend.hpp frontend/Frontend.cpp

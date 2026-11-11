@@ -131,16 +131,17 @@ namespace ui::gui::hmi
     {
         control(SettingsGeneral,
                 "General",
-                layout::settings::CONTROL_SETTINGS_GENERAL,
+                {112, 84, 212, 56},
                 true,
                 m_model.settings_tab == 0);
         control(
-          SettingsRobot, "Robot", layout::settings::CONTROL_SETTINGS_ROBOT, true, m_model.settings_tab == 1);
+          SettingsRobot, "Robot", {340, 84, 212, 56}, true, m_model.settings_tab == 1);
         control(SettingsDiagnostics,
                 "Diagnostics",
-                layout::settings::CONTROL_SETTINGS_DIAGNOSTICS,
+                {568, 84, 212, 56},
                 true,
                 m_model.settings_tab == 2);
+        control(SettingsNetwork, "Network", {796, 84, 212, 56}, true, m_model.settings_tab == 3);
         card(0, layout::settings::CONTENTS_CARD);
         if (m_model.settings_tab == 0) {
             generalSettingsPage();
@@ -150,7 +151,8 @@ namespace ui::gui::hmi
             robotSettingsPage();
             return;
         }
-        diagnosticsPage();
+        if (m_model.settings_tab == 3) networkPage();
+        else diagnosticsPage();
     }
 
     void View::ioPage()

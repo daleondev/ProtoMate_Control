@@ -54,7 +54,7 @@ namespace ui::motion
         };
         struct JobInfo
         {
-            std::uint64_t id{};
+            std::uint64_t id{}, source{}; // zero: local GUI/CLI; otherwise a remote control generation
             ::motion::MotorId motor{};
             ::motion::MotorMotion motion{};
             JobState state{ JobState::Submitting };
@@ -87,23 +87,29 @@ namespace ui::motion
         ::motion::MotorSnapshot state() const;
         ::motion::MotorResponse request(const ::motion::MotorRequest& value,
                                         const std::stop_token& stop = {});
-        std::uint64_t submit(::motion::MotorGoal goal, const std::stop_token& stop = {});
+        std::uint64_t submit(::motion::MotorGoal goal, const std::stop_token& stop = {}, std::uint64_t source = 0);
         std::vector<JobInfo> jobs() const;
         unsigned copyJobs(unsigned offset, std::span<JobInfo> output) const;
         using Completion =
           std::function<void(std::expected<::motion::MotorResponse, pnm::msg::ServiceError>)>;
         // Bounded normal requests; completion runs on run(), never the caller or ICC.
-        bool requestAsync(const ::motion::MotorRequest& /*value*/, Completion completion);
+        bool requestAsync(const ::motion::MotorRequest& /*value*/, Completion completion, std::uint64_t source = 0);
         void stopAsync(std::uint8_t axes = ALL_AXES, bool abort = false);
         void cancelAsync(std::uint64_t id);
         void superviseJog(std::uint64_t id);
         void renewJogInput(std::uint64_t id);
         void releaseJogInput();
+        void remotePermission(bool enabled); // local frontends only
+        bool remotePermission() const;
+        std::uint64_t openRemote();
+        bool renewRemote(std::uint64_t source, std::span<const std::uint64_t> heldJobs);
+        void closeRemote(std::uint64_t source);
+        bool remoteAuthorized(std::uint64_t source) const;
         void notify() { m_notification->signal(); }
         void setObserver(std::function<void()> observer); // install before run(), cleared after join
         std::chrono::steady_clock::time_point receivedAt() const;
         LeaseStatus leaseStatus() const;
-        std::uint64_t create(::motion::Family family, std::uint8_t axes);
+        std::uint64_t create(::motion::Family family, std::uint8_t axes, std::uint64_t source = 0, bool held = false);
         std::stop_token cancellation(std::uint64_t id) const;
         void reject(std::uint64_t id, ::motion::trajectory::Error error, std::uint64_t busy_job = 0);
         ::motion::trajectory::Reply inspect(const std::stop_token& stop = {});
@@ -148,12 +154,14 @@ namespace ui::motion
             std::stop_source stop;
             std::uint64_t boot{}, reservation{};
             bool preparing{};
+            std::optional<std::chrono::steady_clock::time_point> inputDeadline;
         };
         struct ControlCall
         {
             ::motion::MotorRequest request;
             Completion completion;
             bool cancelled{};
+            std::uint64_t source{};
             std::optional<pnm::msg::PendingCall<::motion::MotorResponse>> handle;
             pnm::msg::ReadinessRegistration readiness;
         };
@@ -162,8 +170,18 @@ namespace ui::motion
         std::optional<pnm::msg::PendingCall<::motion::trajectory::Packet>> m_stopCall;
         pnm::msg::ReadinessRegistration m_stopReady;
         std::uint8_t m_stopAxes{}, m_abortAxes{};
-        std::uint64_t m_inputJob{};
-        std::chrono::steady_clock::time_point m_inputDeadline{};
+        struct Remote {
+            std::uint64_t source{};
+            std::chrono::steady_clock::time_point deadline{};
+            bool active{};
+        };
+        static constexpr auto REMOTE_TIMEOUT{ std::chrono::milliseconds{500} };
+        std::array<Remote, 2> m_remote;
+        std::uint64_t m_nextRemote{1};
+        bool m_remotePermission{};
+        bool remoteAuthorizedLocked(std::uint64_t source) const;
+        void expireInputs();
+        void checkRawOwnerLocked(std::uint8_t axes, std::uint64_t source) const;
         std::function<void()> m_observer;
         void serviceControls();
         void serviceCallLocked(std::optional<ControlCall>& /*slot*/, bool urgent, ControlBatch& /*batch*/);
@@ -187,7 +205,7 @@ namespace ui::motion
         std::unique_ptr<History, ReleaseHistory> m_history;
         void retireJobsLocked();
         std::shared_ptr<Job> findLocked(std::uint64_t id) const;
-        std::shared_ptr<Job> createLocked(::motion::Family family, std::uint8_t axes);
+        std::shared_ptr<Job> createLocked(::motion::Family family, std::uint8_t axes, std::uint64_t source);
         ::motion::trajectory::Reply exchange(const ::motion::trajectory::Request& /*value*/,
                                              bool urgent,
                                              const std::stop_token& stop = {});

@@ -16,6 +16,8 @@ target_sources(proto_ui_cli INTERFACE
     display.cpp
     profiling.hpp
     profiling.cpp
+    network.hpp
+    network.cpp
     state.hpp
     state.cpp
     motor.hpp 

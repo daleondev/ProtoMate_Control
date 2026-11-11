@@ -90,4 +90,11 @@ class MpuTests(unittest.TestCase):
         for variant in ['m7','helper']:
             self.regions(variant)
             self.assertEqual(ctypes.c_uint32.in_dll(self.libraries[variant],'control').value,6)
+    def test_network_regions_are_private_cacheable_xn_and_clear_of_pixels(self):
+        for index,base,framebuffer in [(10,0xC0180000,0xC0000000),(11,0xC0380000,0xC0200000)]:
+            r=self.regions('m7')[index]
+            self.assertEqual((r.BaseAddress,r.Size,r.TypeExtField,r.IsCacheable,r.IsShareable,r.DisableExec),
+                             (base,512*1024,1,1,0,1))
+            self.assertLessEqual(framebuffer+1024*600*2,base)
+            self.assertEqual(self.regions('m4')[index].Enable,0)
 if __name__=='__main__':unittest.main()

@@ -83,6 +83,10 @@ void giga_configure_mpu(uint32_t m4_sdram_code)
        in SDRAM; the lower half retains the renderer's executable fast paths. */
     region(9, 0x00008000, MPU_REGION_SIZE_32KB, 0, 0, MPU_REGION_FULL_ACCESS);
 #endif
+    /* Private M7 networking storage occupies only unused framebuffer-slot
+       tails. The 1024x600 RGB565 scanout regions remain non-cacheable. */
+    region(10, 0xC0180000, MPU_REGION_SIZE_512KB, 0, 1, MPU_REGION_FULL_ACCESS);
+    region(11, 0xC0380000, MPU_REGION_SIZE_512KB, 0, 1, MPU_REGION_FULL_ACCESS);
 #endif
 #if defined(CORE_CM7)
     /* Keep attributes in effect at FAULTMASK/HardFault priority too. Storage

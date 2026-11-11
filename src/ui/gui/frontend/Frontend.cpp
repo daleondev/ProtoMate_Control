@@ -67,7 +67,7 @@ namespace ui::gui
     {
 #if defined(HAL_PLATFORM_LINUX)
         std::array<char, KEY_BATCH_CAPACITY> keys{};
-        const auto count{ hal::linux::display::keyboard(m_model.keypad ? m_model.editor_revision : 0, keys) };
+        const auto count{ hal::linux::display::keyboard(m_model.keypad || m_model.network.editing ? m_model.editor_revision : 0, keys) };
         for (unsigned i{ 0 }; i < count; ++i) {
             m_presenter.key(keys[i]);
         }
@@ -78,7 +78,7 @@ namespace ui::gui
         touchgfx::MVPApplication::handleTickEvent();
 #if defined(HAL_PLATFORM_LINUX)
         // Closing or replacing a modal invalidates even keys arriving this tick.
-        hal::linux::display::keyboard(m_model.keypad ? m_model.editor_revision : 0, {});
+        hal::linux::display::keyboard(m_model.keypad || m_model.network.editing ? m_model.editor_revision : 0, {});
         if (hmi_observe_editor) {
             hmi_observe_editor(m_model.keypad, m_model.number.data(), m_model.values[0]);
         }

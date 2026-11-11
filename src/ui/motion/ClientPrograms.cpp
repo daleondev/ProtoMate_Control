@@ -18,8 +18,10 @@ namespace ui::motion
         }
         return *it;
     }
-    std::shared_ptr<Client::Job> Client::createLocked(::motion::Family family, std::uint8_t axes)
+    std::shared_ptr<Client::Job> Client::createLocked(::motion::Family family, std::uint8_t axes, std::uint64_t source)
     {
+        if (source && !remoteAuthorizedLocked(source)) throw std::runtime_error("Remote control expired or permission revoked");
+        if (family == ::motion::Family::Motor) checkRawOwnerLocked(axes, source);
         if (m_stopped || !m_connected) {
             throw std::runtime_error("IO controller unavailable");
         }
@@ -42,16 +44,19 @@ namespace ui::motion
         }
         auto job{ std::make_shared<Job>() };
         job->info.id = m_nextId++;
+        job->info.source = source;
         job->info.family = family;
         job->info.axes = axes;
         job->preparing = family != ::motion::Family::Motor;
         m_jobs.push_back(job);
         return job;
     }
-    std::uint64_t Client::create(::motion::Family family, std::uint8_t axes)
+    std::uint64_t Client::create(::motion::Family family, std::uint8_t axes, std::uint64_t source, bool held)
     {
         std::scoped_lock lock{ m_mutex };
-        return createLocked(family, axes)->info.id;
+        auto job{ createLocked(family, axes, source) };
+        if (held && source) job->inputDeadline = std::chrono::steady_clock::now() + REMOTE_TIMEOUT;
+        return job->info.id;
     }
     std::stop_token Client::cancellation(std::uint64_t id) const
     {

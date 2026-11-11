@@ -16,6 +16,12 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/prepar
     ${sdio_source} ${sdio_adapted} COMMAND_ERROR_IS_FATAL ANY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     ${sdio_source} ${CMAKE_CURRENT_SOURCE_DIR}/prepare_sdio.py)
+set(netx_source ${sdk}/netxduo-network-interface-integration/source/cy_netxduo.c)
+set(netx_adapted ${CMAKE_CURRENT_BINARY_DIR}/cy_netxduo.c)
+execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/prepare_netx.py
+    ${netx_source} ${netx_adapted} COMMAND_ERROR_IS_FATAL ANY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${netx_source} ${CMAKE_CURRENT_SOURCE_DIR}/prepare_netx.py)
 file(GLOB whd_sources CONFIGURE_DEPENDS ${whd}/src/*.c)
 add_library(platform_wifi_vendor STATIC
     ${whd_sources}
@@ -27,7 +33,7 @@ add_library(platform_wifi_vendor STATIC
     ${whd}/resources/clm/COMPONENT_4343W/COMPONENT_MURATA-1DX/4343WA1_clm_blob.c
     ${sdk}/whd-bsp-integration/cybsp_wifi.c
     ${sdk}/whd-bsp-integration/COMPONENT_NETXDUO/cy_network_buffer_netxduo.c
-    ${sdk}/netxduo-network-interface-integration/source/cy_netxduo.c
+    ${netx_adapted}
     ${sdk}/wifi-connection-manager/source/cy_wcm.c
     ${sdk}/connectivity-utilities/cy_log/cy_log.c
     ${sdk}/connectivity-utilities/cy_string/cy_string_utils.c
@@ -67,11 +73,23 @@ target_compile_definitions(platform_wifi_vendor PUBLIC
     CY_RTOS_AWARE CY_USING_HAL HAL_SD_MODULE_ENABLED WHD_DYNAMIC_NVRAM
     CY_NETWORK_DISABLE_DHCP_SERVER
     CY_WIFI_HOST_WAKE_SW_FORCE=0 CY_WIFI_COUNTRY=WHD_COUNTRY_GERMANY
-    TX_PACKET_POOL_SIZE=12 RX_PACKET_POOL_SIZE=12 CY_WIFI_THREAD_STACK_SIZE=6144)
+    TX_PACKET_POOL_SIZE=12 RX_PACKET_POOL_SIZE=12 CY_WIFI_THREAD_STACK_SIZE=6144
+    CY_WIFI_THREAD_PRIORITY=9)
 set_property(TARGET platform_wifi_vendor PROPERTY COMPILE_OPTIONS -Os -ffunction-sections -fdata-sections)
 target_link_libraries(platform_wifi_vendor PUBLIC netxduo threadx)
+add_library(platform_network_memory STATIC Memory.c ByteAccess.c)
+target_include_directories(platform_network_memory PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(platform_network_memory PRIVATE threadx)
+target_compile_options(platform_network_memory PRIVATE -Wall -Wextra -Wpedantic -mno-unaligned-access)
+target_link_libraries(platform_wifi_vendor PRIVATE platform_network_memory)
+target_compile_definitions(platform_wifi_vendor PRIVATE NETWORK_ALLOCATOR_OVERRIDE NETWORK_BYTE_ACCESS_OVERRIDE)
+target_compile_options(platform_wifi_vendor PRIVATE -mno-unaligned-access
+    "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/Memory.h -include ${CMAKE_CURRENT_SOURCE_DIR}/ByteAccess.h")
+target_compile_definitions(netxduo PRIVATE NETWORK_BYTE_ACCESS_OVERRIDE)
+target_compile_options(netxduo PRIVATE -mno-unaligned-access -include ${CMAKE_CURRENT_SOURCE_DIR}/ByteAccess.h)
+target_link_libraries(netxduo PRIVATE platform_network_memory)
 add_library(platform_network STATIC giga/Board.c Wifi.c)
 add_library(platform::network ALIAS platform_network)
 target_include_directories(platform_network PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(platform_network PUBLIC platform_wifi_vendor)
+target_link_libraries(platform_network PUBLIC platform_wifi_vendor platform_network_memory)
 target_compile_options(platform_network PRIVATE -Wall -Wextra -Wpedantic)

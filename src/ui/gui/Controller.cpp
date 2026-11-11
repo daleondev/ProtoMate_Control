@@ -310,6 +310,10 @@ namespace ui::gui
             else if (!m_display->backlight(request.value)) {
                 m_renderFailed = true;
             }
+            else {
+                engine.frontend.brightness(request.value);
+                std::scoped_lock lock{m_mutex}; m_status.brightness = request.value;
+            }
         }
     }
     bool Controller::waitPresentation(unsigned slot, const std::stop_token& stop)
@@ -344,12 +348,12 @@ namespace ui::gui
         }
         m_engine->port.frame();
         if (m_engine->frontend.brightnessChanged()) {
-            static_cast<void>(m_display->backlight(
-              static_cast<unsigned>(m_engine->frontend.model().values[BRIGHTNESS_FIELD])));
+            const auto value{static_cast<unsigned>(m_engine->frontend.model().values[BRIGHTNESS_FIELD])};
+            if (m_display->backlight(value)) {std::scoped_lock lock{m_mutex}; m_status.brightness = value;}
         }
         state = m_display->state();
         if (!illuminated && state.presentations && !m_renderFailed) {
-            static_cast<void>(m_display->backlight(STARTUP_BRIGHTNESS));
+            if (m_display->backlight(STARTUP_BRIGHTNESS)) {std::scoped_lock lock{m_mutex}; m_status.brightness = STARTUP_BRIGHTNESS;}
             illuminated = true;
         }
         std::scoped_lock lock{ m_mutex };

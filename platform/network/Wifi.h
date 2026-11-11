@@ -9,9 +9,11 @@ int wifi_join(const char *ssid, const char *password);
 int wifi_connected(void);
 int wifi_disconnect(void);
 int wifi_reconnect(void); /* Uses the last successful credentials, RAM only. */
+void wifi_forget_credentials(void); /* Network owner; after disconnect. */
 typedef struct { char ssid[33]; int rssi; unsigned channel; } WifiScanEntry;
 typedef struct { WifiScanEntry entries[16]; unsigned count, omitted; int running; } WifiScan;
 int wifi_scan_start(void);
+int wifi_scan_stop(void);
 void wifi_scan_snapshot(WifiScan *result);
 NX_IP *wifi_ip(void);
 NX_PACKET_POOL *wifi_packet_pool(void);

@@ -70,6 +70,8 @@ namespace ui::motion
             }
             m_connected = connected;
             if (!connected) {
+                m_remotePermission = false;
+                for (auto& remote : m_remote) remote.active = false;
                 m_boot = 0;
                 for (const auto& job : m_jobs) {
                     if (!terminal(job->info.state)) {
@@ -209,7 +211,7 @@ namespace ui::motion
             }
         } };
     }
-    std::uint64_t Client::submit(MotorGoal goal, const std::stop_token& stop)
+    std::uint64_t Client::submit(MotorGoal goal, const std::stop_token& stop, std::uint64_t source)
     {
         std::scoped_lock lock{ m_mutex };
         if (goal.motor >= MotorId::All) {
@@ -227,7 +229,7 @@ namespace ui::motion
         // IO authoritatively checks readiness and the stop generation. Cached
         // display state must not admit a move or delay one after an acknowledgement.
         goal.command_generation = *m_commandGeneration;
-        auto job{ createLocked(Family::Motor, std::uint8_t(1U << unsigned(goal.motor))) };
+        auto job{ createLocked(Family::Motor, std::uint8_t(1U << unsigned(goal.motor)), source) };
         job->info.motor = goal.motor;
         job->info.motion = goal.motion;
         job->info.requested = { .values = { goal.position, 0, 0 },
@@ -334,9 +336,8 @@ namespace ui::motion
             auto deadline{ m_nextRenew };
             {
                 std::scoped_lock lock{ m_mutex };
-                if (m_inputJob) {
-                    deadline = std::min(deadline, m_inputDeadline);
-                }
+                for (const auto& job : m_jobs) if (job->inputDeadline) deadline = std::min(deadline, *job->inputDeadline);
+                for (const auto& remote : m_remote) if (remote.active) deadline = std::min(deadline, remote.deadline);
             }
             m_notification->waitUntil(deadline);
         }

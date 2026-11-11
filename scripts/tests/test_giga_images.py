@@ -154,6 +154,19 @@ class ManifestTests(unittest.TestCase):
         words[96:100] = [0x90400080, 0x24040000, 64, 1]
         self.assertFalse(self.valid(seal(words)))
 
+    def test_m7_initialized_ui_storage_ownership(self):
+        for address, size, expected in [
+                (0xC03C0000, 64, True), (0xC03DFFC0, 64, True),
+                (0xC03DFFC0, 65, False), (0xC03E0000, 64, False),
+                (0xC0000000, 64, False), (0xC0200000, 64, False),
+                (0xC0180000, 64, False), (0xC0380000, 64, False)]:
+            words = manifest()
+            words[90] = 2
+            words[96:100] = [0x90400080, address, size, 1]
+            self.assertEqual(self.valid(seal(words)), expected, hex(address))
+            self.assertEqual(images.destination(7, address, size, False), expected)
+            self.assertFalse(images.destination(4, address, size, False))
+
     def test_payload_crc_and_matching_pair_footer(self):
         pair = bytes(range(32))
         payload = bytes(range(64)) + pair

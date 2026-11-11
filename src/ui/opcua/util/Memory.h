@@ -10,6 +10,8 @@ typedef struct {
     size_t peak;
     size_t failures;
     size_t allocations;
+    size_t failed_size;
+    size_t largest_free_at_failure;
 } OpcUaMemoryStats;
 /* Single server-owner thread. Install before any open62541 allocation.
  * Storage must be max_align_t aligned and remain alive until all UA objects die. */

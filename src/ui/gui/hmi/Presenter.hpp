@@ -40,6 +40,8 @@ namespace ui::gui::hmi
         bool diagnosticActions(Action action);
         bool motionActions(Action action);
         bool historyActions(Action action);
+        bool networkActions(Action action);
+        void editText(char key);
         void jogAxis(Action action);
         void executeMove(Action action);
         void jogCartesian(Action action);

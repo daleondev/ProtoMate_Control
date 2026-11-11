@@ -35,6 +35,7 @@ namespace ui::gui
         std::uint16_t touch_x{}, touch_y{};
         std::chrono::steady_clock::time_point touch_time{};
         unsigned active_buffer{};
+        unsigned brightness{};
         std::uint32_t draw_us{}, synchronize_us{};
         std::uint64_t total_draw_us{}, total_synchronize_us{}, image_transfer_us{};
         unsigned image_transfers{};

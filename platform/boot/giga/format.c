@@ -26,7 +26,8 @@ static int destination(unsigned core, uint32_t address, uint32_t size, uint32_t 
     }
     /* Keep bootstrap scratch (0x2001C000) and both MSP stacks intact. */
     return within(address, size, 0, 64 * 1024) || within(address, size, 0x20000000, 112 * 1024) ||
-           within(address, size, 0x24000000, 256 * 1024);
+           within(address, size, 0x24000000, 256 * 1024) ||
+           within(address, size, 0xC03C0000, 128 * 1024);
 }
 int giga_manifest_valid(const GigaManifest* m)
 {

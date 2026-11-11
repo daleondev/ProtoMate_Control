@@ -24,21 +24,22 @@ motion are explicit CLI operations. Display/touch bring-up uses `display`
 commands. The shared TouchGFX robot HMI opens Home on M7 and Linux, using the same
 motion client and job history as the CLI. See the [HMI guide](docs/gui/hmi/README.md).
 
-## Future remote-control and supervision ideas
+## Remote-control integration and future supervision
 
-Recorded 2026-11-11; neither feature is implemented or part of the current release.
+Recorded 2026-11-11. OPC UA application integration is in progress; the LAN9255
+supervisor remains a future feature. Remote motion is not yet qualified.
 This is a hobby project: certification and SIL/PL claims are outside the scope.
 The independent shutdown behavior below remains an engineering requirement.
 
 ### OPC UA interface on M7 using open62541
 
-The isolated [Wi-Fi OPC UA sample](examples/opcua_sample/README.md) now provides
-the networking/model implementation for measurement. It has separate Linux
-and GIGA presets and does not link the robot application. Its qualification
-status is recorded with the sample; production integration below remains future
-work.
-
-Add an open62541 server as a third frontend alongside GUI and CLI:
+The reusable port now lives in `src/ui/opcua` (`proto::ui::opcua`); physical
+Wi-Fi/SDIO/NetX integration stays in `platform/network`. The isolated
+[Wi-Fi OPC UA sample](examples/opcua_sample/README.md) remains buildable. Normal
+application builds also start an integrated server alongside GUI, CLI and ICC.
+This integration is **not release-qualified**: the full subscription capacity,
+complete command workflows and local GUI network setup are still being verified
+or implemented.
 
 ```text
 Remote OPC UA client -> M7 server/adapter -> existing motion client and jobs
@@ -58,15 +59,52 @@ Remote OPC UA client -> M7 server/adapter -> existing motion client and jobs
   a vanished remote client while M7 remains alive. No reconnect replay or resume.
 - Use the standalone sample's native ThreadX/NetX Duo onboard-Wi-Fi port as the
   initial networking baseline; evaluate coexistence before linking it to motion.
-- Budget server, networking and security memory explicitly; do not assume the
-  remaining UI heap is sufficient. Bound sessions, subscriptions and buffers,
-  and provide authenticated/encrypted control connections.
+- This integration uses anonymous SecurityPolicy None on a trusted LAN. Remote
+  command permission starts OFF and can only be enabled locally. Authentication
+  and encryption are subsequent work.
 - First verify the same adapter/model on Linux, then a small GIGA server under
   normal GUI/ICC load. This is supervisory remote control; STEP timing remains
   local to M4.
 
 References: [open62541 platform/event-loop integration](https://open62541.org/doc/master/plugin_eventloop.html)
 and [server configuration](https://open62541.org/doc/master/server.html).
+
+The annotated catalog is in `src/ui/opcua/catalog/Model.hpp`; `Wire.hpp` generates
+separate OPC UA record layouts and validates bounded inputs. Exporting is explicit;
+ordinary C++ members do not become nodes. The namespace is `urn:protomate:control`.
+`opcua-model-manifest` emits the draft interface manifest. Its published-ID freeze
+and complete generated reference remain pending.
+
+Local commands are `network status|setup|connect|disconnect|forget` and
+`opcua status|start|stop|restart`, plus `opcua remote on|off`.
+`python3 scripts/opcua_provision.py` performs private USB credential entry.
+One versioned Wi-Fi profile is retained on internal flash; passwords are not
+logged or exposed over OPC UA. Linux uses OS networking and does not provision
+the host Wi-Fi adapter. A failed server restart revokes remote permission.
+
+Dedicated M7 reservations preserve the two active framebuffer regions:
+
+| Reservation | Address | Budget |
+|---|---|---:|
+| OPC UA arena | `0xC0180000` | 512 KiB |
+| Network pools, stacks and storage | `0xC0380000` | 256 KiB |
+| Shared presentation snapshots / USB byte rings | `0xC03C0000` | 128 KiB |
+| Unassigned integration headroom | `0xC03E0000` | 128 KiB |
+
+These SDRAM regions are cacheable and execute-never, with explicit byte-safe
+vendor memory operations. SDIO DMA bounce storage and the application-owned
+network/server stacks remain internal. The Linux server arena is 1 MiB to allow
+for its wider pointers and allocator headers; that is not a GIGA memory budget.
+
+Current verification: SDRAM patterns/alignment checks passed on GIGA; Linux
+read/subscription, typed-method permission/deduplication and repeated server
+restart tests pass. The dedicated arena returns to zero on shutdown. A checked
+build-tree compatibility fix releases string method-argument NodeIds leaked by
+open62541 1.5.10; upstream sources remain unchanged. Neighbour-only free-block
+coalescing reduced measured GIGA catalog startup from 90.9 s to 1.46 s and fixed
+the discovery timeout. The 172-node draft catalog and two-client subscription
+capacity still need a complete memory qualification before release. Hardware
+remote permission remains OFF; no remote hardware motion acceptance is claimed.
 
 ### LAN9255 SAM E53 supervisor with FSoE
 

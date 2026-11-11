@@ -236,6 +236,7 @@ namespace ui::cli
             Display,
             State,
             Profiling,
+            Network,
             Count
         };
         // One registration per module and parser. An exception leaves the flag

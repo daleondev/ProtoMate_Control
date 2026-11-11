@@ -55,7 +55,8 @@ class Elf:
 def destination(core, address, length, m4_sdram_code):
     regions = ([(0x10000000, 194 << 10), (0x30030800, 86 << 10), (0x24040000, 256 << 10)] +
                ([(0xC0480000, 1536 << 10)] if m4_sdram_code else [])) if core == 4 else [
-                   (0, 64 << 10), (0x20000000, 112 << 10), (0x24000000, 256 << 10)]
+                   (0, 64 << 10), (0x20000000, 112 << 10), (0x24000000, 256 << 10),
+                   (0xC03C0000, 128 << 10)]
     return any(start <= address and address + length <= start + size for start, size in regions)
 
 

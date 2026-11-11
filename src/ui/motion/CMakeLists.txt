@@ -7,6 +7,7 @@ target_sources(proto_ui_motion INTERFACE
     ClientPrograms.cpp
     ClientHistory.cpp
     ClientControls.cpp
+        ClientSupervision.cpp
     Axis.hpp
     AxisConversion.hpp
     AxisConversion.cpp

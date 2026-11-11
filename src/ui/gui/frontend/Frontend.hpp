@@ -28,6 +28,7 @@ namespace ui::gui
         bool input(const hal::device::TouchReport& report, bool valid) { return m_view.input(report, valid); }
         bool brightnessChanged() { return m_view.brightnessChanged(); }
         const hmi::Model& model() const { return m_model; }
+        void brightness(unsigned value) { m_model.values[hmi::fields::BRIGHTNESS] = value; }
 
       private:
         static hmi::Model& reserveModel();

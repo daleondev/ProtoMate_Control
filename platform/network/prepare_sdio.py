@@ -15,5 +15,10 @@ if text.count(needle) != 2 or text.count("SCB_CleanInvalidateDCache_by_Addr(") !
     raise SystemExit("SDIO cache implementation changed; review adaptation")
 text = text.replace(needle, "((length + __SCB_DCACHE_LINE_SIZE - 1U) & ~(__SCB_DCACHE_LINE_SIZE - 1U))")
 text = text.replace("SCB_CleanInvalidateDCache_by_Addr(", "SCB_InvalidateDCache_by_Addr(")
+# Keep both reads and writes on the internal, DMA-accessible bounce buffer.
+# Network pools can now reside in SDRAM; no external-memory DMA is implicit.
+begin = text.index('bool use_temp_dma_buffer = ')
+end = text.index(';', begin)
+text = text[:begin] + 'bool use_temp_dma_buffer = true' + text[end:]
 if not output.exists() or output.read_text() != text:
     output.write_text(text)

@@ -1,4 +1,5 @@
 #include "Wifi.h"
+#include "Memory.h"
 #include "cy_wcm.h"
 #include "cy_network_mw_core.h"
 #include "whd_wifi_api.h"
@@ -11,17 +12,28 @@ cy_rslt_t cy_wcm_get_whd_interface(cy_wcm_interface_t type, whd_interface_t *int
 static cy_wcm_connect_params_t retained_credentials;
 static int have_credentials;
 static WifiScan scan;
+static int initialization_attempted;
+static int initialization_result;
 
 int wifi_initialize(void) {
+    /* The network owner calls this from one worker. Never clear live pools on
+     * a later start/restart request, including after a partial SDK failure. */
+    if(initialization_attempted) return initialization_result;
+    initialization_attempted = 1;
+    initialization_result = -4;
+    /* NOLOAD network statics are owned here, not cleared after workers start. */
+    extern unsigned char __network_sdram_start[], __network_sdram_end[];
+    for(volatile unsigned char *p=__network_sdram_start; p<__network_sdram_end; ++p) *p=0;
+    if(!network_memory_initialize()) return initialization_result;
     int status = wifi_board_initialize();
-    if(status) return status;
+    if(status) return initialization_result = status;
     cy_wcm_config_t config = {.interface = CY_WCM_INTERFACE_TYPE_STA};
     status = (int)cy_wcm_init(&config);
-    if(status) return status;
+    if(status) return initialization_result = status;
     whd_interface_t interface;
     status = (int)cy_wcm_get_whd_interface(CY_WCM_INTERFACE_TYPE_STA, &interface);
-    if(status) return status;
-    return (int)whd_wifi_disable_powersave(interface);
+    if(status) return initialization_result = status;
+    return initialization_result = (int)whd_wifi_disable_powersave(interface);
 }
 
 int wifi_join(const char *ssid, const char *password) {
@@ -41,6 +53,11 @@ int wifi_join(const char *ssid, const char *password) {
 
 int wifi_connected(void) { return cy_wcm_is_connected_to_ap(); }
 int wifi_disconnect(void) { return (int)cy_wcm_disconnect_ap(); }
+void wifi_forget_credentials(void) {
+    have_credentials = 0;
+    volatile unsigned char *clear = (volatile unsigned char *)&retained_credentials;
+    for(size_t i=0; i<sizeof(retained_credentials); ++i) clear[i]=0;
+}
 int wifi_reconnect(void) {
     if(!have_credentials) return -1;
     cy_wcm_ip_address_t address;
@@ -76,6 +93,7 @@ void wifi_scan_snapshot(WifiScan *result) {
     *result = scan;
     tx_interrupt_control(previous);
 }
+int wifi_scan_stop(void) { return (int)cy_wcm_stop_scan(); }
 NX_IP *wifi_ip(void) { return cy_network_get_nw_interface(CY_NETWORK_WIFI_STA_INTERFACE, 0); }
 NX_PACKET_POOL *wifi_packet_pool(void) {
     NX_IP *ip = wifi_ip();

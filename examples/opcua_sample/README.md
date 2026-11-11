@@ -143,7 +143,7 @@ with a UID-derived locally administered address; factory flash remains intact.
 
 Two checked build-output adaptations are maintained locally:
 
-1. `platform/opcua/prepare_netx.py`: supplies a NetX-specific generated config
+1. `src/ui/opcua/util/prepare_netx.py`: supplies a NetX-specific generated config
    header and removes default POSIX event-loop construction. The caller must
    supply the native backend. The unused POSIX address parser is excluded.
 2. `platform/network/prepare_sdio.py`: bounds cache invalidation to rounded-up

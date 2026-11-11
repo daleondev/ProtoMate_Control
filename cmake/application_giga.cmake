@@ -78,6 +78,10 @@ else()
         endforeach()
     endif()
     set(GIGA_GUI_MEMORY "GUI (rw) : ORIGIN = 0xC0600000, LENGTH = 2M")
+    string(APPEND GIGA_GUI_MEMORY "
+    OPCUA (rw) : ORIGIN = 0xC0180000, LENGTH = 512K
+    NETWORK (rw) : ORIGIN = 0xC0380000, LENGTH = 256K
+    UI_BUFFERS (rw) : ORIGIN = 0xC03C0000, LENGTH = 128K")
     if(GIGA_MOTION_BENCH)
         # This explicit benchmark variant already reserves all ITCM for code.
         set(giga_gui_metadata_region RAM)
@@ -104,6 +108,30 @@ else()
     ASSERT(SIZEOF(.gui_sdram) + SIZEOF(.motion_sdram) <= 2097152, \"UI SDRAM reservations overlap region end\")
     ASSERT(SIZEOF(.fast) + SIZEOF(.ARM.fast_extab) + SIZEOF(.ARM.fast_exidx) <= ${giga_m7_fast_limit}, \"M7 ITCM reservation exceeded\")
     ASSERT(SIZEOF(.gui_sdram) <= 1601536, \"3D buffers exceed their budget\")")
+    string(APPEND GIGA_GUI_SECTIONS "
+    .opcua_sdram (NOLOAD) : ALIGN(32) {
+      __opcua_sdram_start = .; *(.opcua_sdram .opcua_sdram.*) . = ALIGN(32);
+      __opcua_sdram_end = .;
+    } >OPCUA
+    .network_sdram (NOLOAD) : ALIGN(32) {
+      __network_sdram_start = .; *(.network_sdram .network_sdram.*)
+      *libplatform_wifi_vendor.a:cy_netxduo.c.obj(.bss .bss.*)
+      *libplatform_wifi_vendor.a:whd_resources.c.obj(.bss .bss.*)
+      *libplatform_network.a:Board.c.obj(.bss.nvram)
+      . = ALIGN(32); __network_sdram_end = .;
+    } >NETWORK
+    .ui_data : ALIGN(32) {
+      __ui_data_start = .;
+      *libopen62541.a:*(.data .data.*)
+      . = ALIGN(32); __ui_data_end = .;
+    } >UI_BUFFERS AT>FLASH
+    .ui_buffers (NOLOAD) : ALIGN(32) {
+      __ui_buffers_start = .; *(.ui_buffers .ui_buffers.*) . = ALIGN(32);
+      __ui_buffers_end = .;
+    } >UI_BUFFERS AT>UI_BUFFERS
+    ASSERT(0xC0000000 + 1228800 <= ORIGIN(OPCUA), \"OPC UA overlaps framebuffer 0\")
+    ASSERT(0xC0200000 + 1228800 <= ORIGIN(NETWORK), \"Network overlaps framebuffer 1\")
+    ASSERT(ORIGIN(UI_BUFFERS) + LENGTH(UI_BUFFERS) <= 0xC03E0000, \"Integration headroom consumed\")")
     # CPU-only metadata, console rings and runtime stacks use private DTCM.
     # USB FS uses FIFO copies (no DMA); its Cube buffers remain in AXI SRAM.
     # Keep the general heap in AXI, so arbitrary application buffers remain

@@ -14,12 +14,12 @@ namespace
       WORKER_STACK_BYTES{ 4096 }, STACK_ALIGNMENT{ 8 };
     // Fixed USB callback/worker storage; access is serialized by the interrupt guard.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::array<std::uint8_t, INPUT_BYTES> input{};
+    alignas(32) __attribute__((section(".ui_buffers.console"))) std::array<std::uint8_t, INPUT_BYTES> input;
     // A complete `stack ui` table with the GUI/touch workers exceeds 8 KiB.
     // Keep one bounded burst without waiting for a host or truncating its prompt.
     // Fixed USB callback/worker storage; access is serialized by the interrupt guard.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    std::array<std::uint8_t, OUTPUT_BYTES> output{};
+    alignas(32) __attribute__((section(".ui_buffers.console"))) std::array<std::uint8_t, OUTPUT_BYTES> output;
     // Fixed USB callback/worker storage; access is serialized by the interrupt guard.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::array<std::uint8_t, PACKET_BYTES> packet{};

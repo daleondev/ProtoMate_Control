@@ -1,8 +1,15 @@
+include_guard(GLOBAL)
 # Isolated vendor configuration; no reflection flags or application dependencies.
 set(UA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(UA_BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(UA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-set(UA_NAMESPACE_ZERO MINIMAL CACHE STRING "" FORCE)
+if(PROTOMATE_OPCUA_SAMPLE)
+    set(UA_NAMESPACE_ZERO MINIMAL CACHE STRING "" FORCE)
+else()
+    # Structured records and engineering-unit/enum metadata require the standard
+    # DataType hierarchy omitted by MINIMAL.
+    set(UA_NAMESPACE_ZERO REDUCED CACHE STRING "" FORCE)
+endif()
 set(UA_MULTITHREADING 0 CACHE STRING "" FORCE)
 set(UA_ENABLE_ENCRYPTION OFF CACHE STRING "" FORCE)
 set(UA_ENABLE_PUBSUB OFF CACHE BOOL "" FORCE)
@@ -10,6 +17,10 @@ set(UA_ENABLE_SUBSCRIPTIONS_EVENTS OFF CACHE BOOL "" FORCE)
 set(UA_ENABLE_SUBSCRIPTIONS ON CACHE BOOL "" FORCE)
 set(UA_ENABLE_METHODCALLS ON CACHE BOOL "" FORCE)
 set(UA_ENABLE_DISCOVERY OFF CACHE BOOL "" FORCE)
+# We publish base variables with engineering-unit properties, not AnalogItem,
+# DiscreteItem or axis-scale types. Runtime installs the required standard
+# EUInformation type/encoding from the SDK descriptor.
+set(UA_ENABLE_DA OFF CACHE BOOL "" FORCE)
 set(UA_ENABLE_JSON_ENCODING OFF CACHE BOOL "" FORCE)
 set(UA_ENABLE_XML_ENCODING OFF CACHE BOOL "" FORCE)
 set(UA_ENABLE_NODESET_COMPILER_DESCRIPTIONS OFF CACHE BOOL "" FORCE)
@@ -36,11 +47,27 @@ endblock()
 set_property(TARGET open62541-object open62541-plugins PROPERTY COMPILE_OPTIONS "")
 # Upstream caches its warning and C99 flags globally. Keep them vendor-local.
 set(CMAKE_C_FLAGS "${opcua_parent_c_flags}" CACHE STRING "C compiler flags" FORCE)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(ua_node_source ${PROJECT_SOURCE_DIR}/external/open62541/src/server/ua_services_nodemanagement.c)
+set(ua_node_fixed ${PROJECT_BINARY_DIR}/open62541/ua_services_nodemanagement.c)
+execute_process(COMMAND ${Python3_EXECUTABLE}
+    ${PROJECT_SOURCE_DIR}/src/ui/opcua/util/prepare_nodemanagement.py
+    ${ua_node_source} ${ua_node_fixed} COMMAND_ERROR_IS_FATAL ANY)
+get_target_property(ua_core_sources open62541-object SOURCES)
+list(REMOVE_ITEM ua_core_sources ${ua_node_source})
+list(APPEND ua_core_sources ${ua_node_fixed})
+set_property(TARGET open62541-object PROPERTY SOURCES ${ua_core_sources})
+target_include_directories(open62541-object PRIVATE
+    ${PROJECT_SOURCE_DIR}/external/open62541/src
+    ${PROJECT_SOURCE_DIR}/external/open62541/src/server
+    ${PROJECT_SOURCE_DIR}/external/open62541/src/pubsub)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${ua_node_source} ${PROJECT_SOURCE_DIR}/src/ui/opcua/util/prepare_nodemanagement.py)
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(netx_config ${PROJECT_BINARY_DIR}/open62541/ua_config_netx.c)
     execute_process(COMMAND ${Python3_EXECUTABLE}
-        ${PROJECT_SOURCE_DIR}/platform/opcua/prepare_netx.py
+        ${PROJECT_SOURCE_DIR}/src/ui/opcua/util/prepare_netx.py
         ${PROJECT_SOURCE_DIR}/external/open62541
         ${PROJECT_BINARY_DIR}/open62541/src_generated ${netx_config}
         COMMAND_ERROR_IS_FATAL ANY)
@@ -59,7 +86,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
         target_include_directories(${ua_target} BEFORE PUBLIC
             $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/open62541/netx-include>)
     endforeach()
+    foreach(ua_target open62541-object open62541-plugins)
+        target_compile_options(${ua_target} PRIVATE -mno-unaligned-access
+            -include ${PROJECT_SOURCE_DIR}/platform/network/ByteAccess.h)
+        target_compile_definitions(${ua_target} PRIVATE NETWORK_BYTE_ACCESS_OVERRIDE)
+    endforeach()
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-        ${PROJECT_SOURCE_DIR}/platform/opcua/prepare_netx.py)
+        ${PROJECT_SOURCE_DIR}/src/ui/opcua/util/prepare_netx.py)
 endif()
-add_subdirectory(${PROJECT_SOURCE_DIR}/platform/opcua ${PROJECT_BINARY_DIR}/opcua)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/ui/opcua ${PROJECT_BINARY_DIR}/opcua)

@@ -41,6 +41,8 @@ namespace ui::gui::hmi
         void motorPage();
         void maintenancePage();
         void settingsPage();
+        void networkPage();
+        void networkDialog();
         void ioPage();
         void jobsPage();
         void alarmsPage();

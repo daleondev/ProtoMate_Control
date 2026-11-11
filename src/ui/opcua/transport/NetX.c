@@ -3,9 +3,11 @@
 #include <open62541/plugin/log_stdout.h>
 #include <string.h>
 
-#define CONNECTIONS 3
+#define CONNECTIONS 4
 #define BUFFER_SIZE 8192
 #define SEND_QUEUE 2
+#define RECEIVE_SLICE 64
+#define RECEIVE_BUDGET 64
 #define WAKE 1UL
 
 typedef struct Loop Loop;
@@ -19,6 +21,8 @@ typedef struct {
     void *context;
     UA_ByteString outgoing[SEND_QUEUE];
     size_t sent;
+    NX_PACKET *incoming;
+    ULONG received;
     unsigned first, count;
 } Connection;
 
@@ -99,6 +103,7 @@ static void report(Manager *m, Connection *c, UA_ConnectionState state, UA_ByteS
 }
 
 static void destroyConnection(Manager *m, Connection *c) {
+    if(c->incoming) { nx_packet_release(c->incoming); c->incoming = NULL; }
     nx_tcp_socket_disconnect(&c->socket, NX_NO_WAIT);
     nx_tcp_server_socket_unaccept(&c->socket);
     nx_tcp_socket_delete(&c->socket);
@@ -172,11 +177,38 @@ static UA_StatusCode allocateBuffer(UA_ConnectionManager *api, uintptr_t id, UA_
 static void freeBuffer(UA_ConnectionManager *api, uintptr_t id, UA_ByteString *buffer) {
     (void)api; (void)id; UA_ByteString_clear(buffer);
 }
+/* Drain without waiting, including from a send callback. The engine may emit
+ * several replies while decoding one coalesced TCP packet. Deferring every send
+ * until after receive dispatch incorrectly treats that ordinary burst as a slow
+ * reader. Real backpressure retains the same bounded two-buffer queue. */
+static void flushOutput(Manager *m, Connection *c) {
+        for(unsigned packets = 0; packets < 8 && c->count; ++packets) {
+            UA_ByteString *buffer = &c->outgoing[c->first];
+            ULONG length = (ULONG)(buffer->length - c->sent);
+            if(length > 1024) length = 1024;
+            NX_PACKET *packet = NULL;
+            if(nx_packet_allocate(m->pool, &packet, NX_TCP_PACKET, NX_NO_WAIT) != NX_SUCCESS) break;
+            UINT result = nx_packet_data_append(packet, buffer->data + c->sent, length, m->pool, NX_NO_WAIT);
+            if(result == NX_SUCCESS) result = nx_tcp_socket_send(&c->socket, packet, NX_NO_WAIT);
+            if(result != NX_SUCCESS) { nx_packet_release(packet); break; }
+            c->sent += length;
+            if(c->sent == buffer->length) {
+                UA_ByteString_clear(buffer);
+                c->first = (c->first + 1) % SEND_QUEUE;
+                --c->count;
+                c->sent = 0;
+            }
+        }
+}
+
 static UA_StatusCode sendBuffer(UA_ConnectionManager *api, uintptr_t id, const UA_KeyValueMap *params, UA_ByteString *buffer) {
     (void)params;
     Manager *m = (Manager *)api;
     Connection *c = lookup(m, id);
     if(!c || c->closing || c->count == SEND_QUEUE || buffer->length > BUFFER_SIZE) {
+        UA_LOG_WARNING(loopOf(m)->api.logger, UA_LOGCATEGORY_NETWORK,
+            "NetX reply rejected: connection=%u queued=%u closing=%u bytes=%u",
+            (unsigned)id, c ? c->count : 0, c ? c->closing : 1, (unsigned)buffer->length);
         UA_ByteString_clear(buffer);
         /* The engine marks its SecureChannel CLOSING on send failure and
          * expects the transport to deliver the eventual closing callback.
@@ -187,6 +219,7 @@ static UA_StatusCode sendBuffer(UA_ConnectionManager *api, uintptr_t id, const U
     c->outgoing[(c->first + c->count) % SEND_QUEUE] = *buffer;
     *buffer = UA_BYTESTRING_NULL;
     ++c->count;
+    flushOutput(m, c);
     wake(loopOf(m));
     return UA_STATUSCODE_GOOD;
 }
@@ -214,37 +247,32 @@ static void service(Manager *m) {
             destroyConnection(m, c);
             continue;
         }
-        /* A bounded number of packets per event-loop turn keeps timers live. */
-        for(unsigned packets = 0; packets < 8 && !c->closing; ++packets) {
-            NX_PACKET *packet = NULL;
-            if(nx_tcp_socket_receive(&c->socket, &packet, NX_NO_WAIT) != NX_SUCCESS) break;
-            ULONG length = packet->nx_packet_length;
+        flushOutput(m, c);
+        /* Leave incoming packets with NetX while output is backpressured.
+         * TCP receive-window flow control bounds memory without losing input. */
+        /* Deliver small stream slices so a coalesced request burst cannot
+         * create several replies before output backpressure is observed. Keep
+         * the remaining bytes in their original NetX packet, not another heap
+         * buffer. A turn still has a fixed 4 KiB receive-work budget. */
+        for(unsigned slices = 0; slices < RECEIVE_BUDGET && !c->closing && !c->count; ++slices) {
+            if(!c->incoming) {
+                if(nx_tcp_socket_receive(&c->socket, &c->incoming, NX_NO_WAIT) != NX_SUCCESS) break;
+                c->received = 0;
+            }
+            ULONG length = c->incoming->nx_packet_length - c->received;
+            if(length > RECEIVE_SLICE) length = RECEIVE_SLICE;
             ULONG copied = 0;
-            UINT result = length <= BUFFER_SIZE
-                ? nx_packet_data_extract_offset(packet, 0, m->receiveBuffer, length, &copied) : NX_SIZE_ERROR;
-            nx_packet_release(packet);
+            UINT result = nx_packet_data_extract_offset(c->incoming, c->received, m->receiveBuffer, length, &copied);
             if(result != NX_SUCCESS || copied != length) { closeConnection(&m->api, c->id); break; }
+            c->received += length;
+            if(c->received == c->incoming->nx_packet_length) {
+                nx_packet_release(c->incoming); c->incoming = NULL;
+            }
             report(m, c, UA_CONNECTIONSTATE_ESTABLISHED, (UA_ByteString){length, m->receiveBuffer});
         }
-        if(c->socket.nx_tcp_socket_state == NX_TCP_CLOSE_WAIT &&
+        if(c->socket.nx_tcp_socket_state == NX_TCP_CLOSE_WAIT && !c->incoming &&
            !c->socket.nx_tcp_socket_receive_queue_count) closeConnection(&m->api, c->id);
-        for(unsigned packets = 0; packets < 8 && c->count; ++packets) {
-            UA_ByteString *buffer = &c->outgoing[c->first];
-            ULONG length = (ULONG)(buffer->length - c->sent);
-            if(length > 1024) length = 1024;
-            NX_PACKET *packet = NULL;
-            if(nx_packet_allocate(m->pool, &packet, NX_TCP_PACKET, NX_NO_WAIT) != NX_SUCCESS) break;
-            UINT result = nx_packet_data_append(packet, buffer->data + c->sent, length, m->pool, NX_NO_WAIT);
-            if(result == NX_SUCCESS) result = nx_tcp_socket_send(&c->socket, packet, NX_NO_WAIT);
-            if(result != NX_SUCCESS) { nx_packet_release(packet); break; }
-            c->sent += length;
-            if(c->sent == buffer->length) {
-                UA_ByteString_clear(buffer);
-                c->first = (c->first + 1) % SEND_QUEUE;
-                --c->count;
-                c->sent = 0;
-            }
-        }
+        flushOutput(m, c);
         if(c->closing && ((!c->count && !c->socket.nx_tcp_socket_transmit_sent_count) ||
                          UA_DateTime_nowMonotonic() >= c->closeDeadline)) destroyConnection(m, c);
     }

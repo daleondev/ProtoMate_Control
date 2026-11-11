@@ -1,5 +1,5 @@
 #include "Model.h"
-#include "Memory.h"
+#include "ui/opcua/util/Memory.h"
 #include <open62541/plugin/log_stdout.h>
 #include <signal.h>
 #include <stdio.h>

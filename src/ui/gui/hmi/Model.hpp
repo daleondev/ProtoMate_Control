@@ -71,11 +71,12 @@ namespace ui::gui::hmi
         std::array<Message, MESSAGE_HISTORY_CAPACITY> messages{};
         Severity notice_severity{ Severity::Info };
         unsigned message_count{};
-        std::uint64_t last_operation{};
+        std::uint64_t last_operation{}, message_revision{};
         std::uint32_t ticks{}, interactions{};
         // Kept for CLI graphics diagnostic compatibility.
         unsigned value{ INITIAL_GRAPHICS_VALUE };
         bool animating{};
+        NetworkForm network;
         void report(const char* text, Severity severity = Severity::Info)
         {
             if (!*text ||
@@ -84,6 +85,7 @@ namespace ui::gui::hmi
             }
             format(notice, "{}", text);
             notice_severity = severity;
+            if (backend) backend->recordMessage(text, severity);
             auto& slot{ messages[message_count++ % messages.size()] };
             format(slot.text, "{}", text);
             slot.severity = severity;

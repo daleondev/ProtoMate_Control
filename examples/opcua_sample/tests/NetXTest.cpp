@@ -1,5 +1,5 @@
 #include "NetX.h"
-#include "Memory.h"
+#include "ui/opcua/util/Memory.h"
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <array>
@@ -8,6 +8,7 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <span>
 
 namespace {
 struct Socket { std::deque<NX_PACKET*> received; };
@@ -97,11 +98,23 @@ protected:
     UA_EventLoop* loop{}; UA_ConnectionManager* manager{};
     std::vector<uintptr_t> accepted, closed;
     std::vector<unsigned char> received;
+    bool echo{};
     static void callback(UA_ConnectionManager*,uintptr_t id,void* app,void**,UA_ConnectionState state,
                          const UA_KeyValueMap*,UA_ByteString bytes) {
         auto& self=*static_cast<NetXAdapter*>(app);
         if(state==UA_CONNECTIONSTATE_CLOSING)self.closed.push_back(id);
-        else if(bytes.length) self.received.insert(self.received.end(),bytes.data,bytes.data+bytes.length);
+        else if(bytes.length) {
+            self.received.insert(self.received.end(),bytes.data,bytes.data+bytes.length);
+            if(self.echo) {
+                // Model multiple protocol replies from one TCP packet.
+                for(auto byte : std::span(bytes.data, bytes.length)) {
+                    UA_ByteString reply{};
+                    ASSERT_EQ(self.manager->allocNetworkBuffer(self.manager,id,&reply,1),UA_STATUSCODE_GOOD);
+                    reply.data[0]=byte;
+                    EXPECT_EQ(self.manager->sendWithConnection(self.manager,id,&UA_KEYVALUEMAP_NULL,&reply),UA_STATUSCODE_GOOD);
+                }
+            }
+        }
         else if(id!=1)self.accepted.push_back(id);
     }
     void SetUp() override {
@@ -241,4 +254,47 @@ TEST(NetXConstruction, AllocationFailureLeavesNoLoopOrResources) {
     EXPECT_EQ(config.eventLoop,nullptr);
     EXPECT_EQ(opcua_memory_stats().used,0);
     EXPECT_TRUE(sockets.empty());EXPECT_FALSE(portBound);
+}
+
+TEST_F(NetXAdapter, CoalescedReplyBurstDoesNotExhaustQueueWhenTcpAcceptsData) {
+    auto* socket=accept(); echo=true;
+    NX_PACKET* packet{}; nx_packet_allocate(&pool,&packet,0,0);
+    constexpr char input[]{"abcdefghijklmnop"};
+    nx_packet_data_append(packet,input,sizeof(input)-1,&pool,0);
+    data(socket).received.push_back(packet);socket->nx_tcp_socket_receive_queue_count=1;
+    loop->run(loop,0);
+    EXPECT_EQ(transmitted,received);EXPECT_EQ(transmitted.size(),16);
+    EXPECT_TRUE(closed.empty());
+}
+TEST_F(NetXAdapter, BackpressureLeavesUnreadPacketsWithNetXUntilOutputDrains) {
+    auto* socket=accept();blocked=true;echo=true;
+    for(unsigned i=0;i<4;++i) {
+        NX_PACKET* packet{};nx_packet_allocate(&pool,&packet,0,0);
+        nx_packet_data_append(packet,"x",1,&pool,0);data(socket).received.push_back(packet);
+        ++socket->nx_tcp_socket_receive_queue_count;
+    }
+    loop->run(loop,0);
+    EXPECT_EQ(received.size(),1);EXPECT_EQ(socket->nx_tcp_socket_receive_queue_count,3);
+    EXPECT_TRUE(closed.empty());blocked=false;loop->run(loop,0);
+    EXPECT_EQ(transmitted.size(),4);EXPECT_EQ(received.size(),4);EXPECT_TRUE(closed.empty());
+}
+
+TEST_F(NetXAdapter, FragmentedDeliveryPreservesEveryByteOfLargeTcpPacket) {
+    auto* socket=accept();NX_PACKET* packet{};nx_packet_allocate(&pool,&packet,0,0);
+    std::vector<unsigned char> input(6144);
+    for(unsigned i=0;i<input.size();++i)input[i]=i%251;
+    nx_packet_data_append(packet,input.data(),input.size(),&pool,0);
+    data(socket).received.push_back(packet);socket->nx_tcp_socket_receive_queue_count=1;
+    loop->run(loop,0);EXPECT_EQ(received.size(),4096);
+    loop->run(loop,0);EXPECT_EQ(received,input);EXPECT_EQ(packets,0);
+    EXPECT_TRUE(closed.empty());
+}
+TEST_F(NetXAdapter, CloseReleasesPartiallyConsumedReceivePacket) {
+    auto* socket=accept();NX_PACKET* packet{};nx_packet_allocate(&pool,&packet,0,0);
+    std::array<unsigned char,6144> input{};
+    nx_packet_data_append(packet,input.data(),input.size(),&pool,0);
+    data(socket).received.push_back(packet);socket->nx_tcp_socket_receive_queue_count=1;
+    loop->run(loop,0);ASSERT_EQ(packets,1);
+    manager->closeConnection(manager,accepted[0]);loop->run(loop,0);
+    EXPECT_EQ(packets,0);EXPECT_EQ(closed.size(),1);
 }

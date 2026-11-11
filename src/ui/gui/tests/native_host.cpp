@@ -409,7 +409,7 @@ namespace
                                                { 780, 118, "io-drivers" },
                                                { 50, 538, "settings-general" },
                                                { 544, 118, "settings-robot" },
-                                               { 890, 118, "settings-heap" },
+                                               { 670, 118, "settings-heap" },
                                                { 920, 184, "settings-heap" },
                                                { 920, 490, "settings-heap-next" },
                                                { 270, 184, "settings-io-heap" },
@@ -417,6 +417,11 @@ namespace
                                                { 920, 490, "settings-io-stacks-next" },
                                                { 770, 184, "settings-graphics" },
                                                { 920, 490, "settings-graphics-next" },
+                                               { 890, 118, "settings-network" },
+                                               { 300, 322, "settings-network-ssid" },
+                                               { 922, 474, "settings-network" },
+                                               { 710, 322, "settings-network-password" },
+                                               { 922, 474, "settings-network" },
                                                { 50, 58, "home-return" } };
             // VSync advances on the native thread even while sanitizer work
             // delays the GUI. Hold each edge until the GUI has processed it;

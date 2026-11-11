@@ -4,6 +4,43 @@
 #include <gtest/gtest.h>
 #include <numbers>
 using namespace ui::gui::hmi;
+TEST(HmiNetwork, CredentialsAreBoundedAndErasedOnNavigation)
+{
+    Model model;
+    Presenter presenter{model};
+    presenter.navigate(Page::Settings);
+    presenter.act(SettingsNetwork, true);
+    presenter.act(NetworkSSID, true);
+    for (unsigned i{}; i < 40; ++i) presenter.key('s');
+    EXPECT_EQ(std::strlen(model.network.editor.data()), 32U);
+    presenter.key('\n');
+    EXPECT_EQ(std::strlen(model.network.ssid.data()), 32U);
+    EXPECT_EQ(model.network.editing, 0);
+    presenter.act(NetworkPassword, true);
+    for (unsigned i{}; i < 7; ++i) presenter.key('x');
+    presenter.key('\n');
+    EXPECT_EQ(model.network.editing, 2);
+    presenter.key('y'); presenter.key('\n');
+    EXPECT_STREQ(model.network.password.data(), "xxxxxxxy");
+    EXPECT_EQ(model.network.editing, 0);
+    EXPECT_EQ(model.network.editor, (std::array<char,64>{}));
+    presenter.navigate(Page::Home);
+    EXPECT_EQ(model.network.password, (std::array<char,64>{}));
+    EXPECT_EQ(model.network.ssid, (std::array<char,33>{}));
+}
+TEST(HmiNetwork, CancelAndSettingsChangesErasePrivateText)
+{
+    Model model; Presenter presenter{model};
+    presenter.navigate(Page::Settings); presenter.act(SettingsNetwork, true);
+    presenter.act(NetworkPassword, true); presenter.key('x');
+    presenter.key('\x1b');
+    EXPECT_EQ(model.network.editor, (std::array<char,64>{}));
+    EXPECT_EQ(model.network.editing, 0);
+    presenter.act(NetworkPassword, true); presenter.key('q');
+    presenter.act(SettingsGeneral, true);
+    EXPECT_EQ(model.network.editor, (std::array<char,64>{}));
+    EXPECT_EQ(model.network.editing, 0);
+}
 namespace
 {
     class BackendFixture : public Backend

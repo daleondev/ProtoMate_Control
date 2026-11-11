@@ -17,6 +17,8 @@
 #include "ui/cli/robot.hpp"
 #include "ui/cli/state.hpp"
 #include "ui/cli/utilities.hpp"
+#include "ui/cli/network.hpp"
+#include "ui/opcua/util/Storage.hpp"
 #include "ui/logging/Sink.hpp"
 
 #include <cstdio>
@@ -52,6 +54,7 @@ namespace ui
     // A dedicated private stack preserves AXI heap for ICC/CLI. The linker
     // checks the DTCM budget; no runtime objects live in the SDRAM POD arena.
     __attribute__((section(".dtcm_bss"))) Application::PlannerStack Application::s_plannerStack{};
+    __attribute__((section(".dtcm_bss"))) Application::NetworkStacks Application::s_networkStacks{};
 #endif
     Application::Application(icc::ITransport& transport)
       : m_bridge{ m_bus, m_iccContext, transport }
@@ -62,9 +65,20 @@ namespace ui
       , m_logs{ m_bus, cli::write_log }
       , m_motors{ m_bus }
       , m_robot{ m_bus, m_motors }
-      , m_guiBackend{ m_bus, m_motors, m_robot, m_systemState }
+      , m_services{ m_bus, m_motors, m_robot, m_systemState }
+      , m_guiBackend{ m_services, m_motors }
     {
         m_gui.backend(m_guiBackend);
+        m_guiBackend.networking(m_network, m_opcua);
+        m_services.networkHook([this] {return m_network.diagnostics();});
+        m_services.graphicsHooks([this] {
+            const auto gui{m_gui.status()}; const auto scene{m_gui.sceneStatus()};
+            return services::Graphics{.available = gui.state == gui::State::Running,
+                .brightness = gui.brightness, .frames = gui.frames, .presented = gui.presented,
+                .underruns = gui.underruns, .dma_errors = gui.dma_errors, .render_failures = gui.render_failures,
+                .queue_overflow = gui.queue_overflow, .maximum_render_us = gui.maximum_render_us,
+                .scene_presented = scene.presented, .scene_latency_us = scene.last_latency_us};
+        }, [this](unsigned percent) {return m_gui.backlight(percent);});
         hal::console::initialize();
         m_bridge.registerTopics<icc::Topics>(icc::TopicPublisher::UI);
         m_bridge.registerServices<icc::Services>(icc::ServiceProvider::UI);
@@ -123,6 +137,7 @@ namespace ui
         }
         m_started = true;
         try {
+            if (!opcua::initialize_storage()) throw std::runtime_error("OPC UA SDRAM integrity/alignment test failed");
             m_threads.start(*this, "ui");
             m_bridge.start();
             m_systemState.setLocal(app::State::Ready);
@@ -229,6 +244,7 @@ namespace ui
             cli::filesystem::setup(parser);
             cli::display::setup(parser, m_gui);
             cli::state::setup(parser, m_systemState);
+            cli::network::setup(parser, m_network, m_opcua, m_services, m_stopSource.get_token());
             cli::utilities::setup(parser, m_bus, m_stopSource.get_token());
             cli::profiling::setup(parser, m_bus, m_stopSource.get_token());
             cli::motor::setup(parser, m_motors, m_stopSource.get_token());
@@ -255,6 +271,28 @@ namespace ui
             report_failure("planner");
             m_systemState.setLocal(app::State::Fault);
             requestStop();
+        }
+    }
+
+    void Application::opcuaThread()
+    {
+        { std::scoped_lock lock{ m_mutex }; }
+        try { m_opcua.run(m_stopSource.get_token()); }
+        catch (...) {
+            m_opcua.failed();
+            m_services.message("OPC UA worker failed; remote admission revoked; local controls remain available", services::Severity::Error);
+            report_failure("OPC UA");
+        }
+    }
+    void Application::networkThread()
+    {
+        { std::scoped_lock lock{ m_mutex }; }
+        try { m_network.run(m_stopSource.get_token()); }
+        catch (...) {
+            m_network.failed();
+            m_services.remotePermission(false);
+            m_services.message("Network worker failed; remote admission revoked; local controls remain available", services::Severity::Error);
+            report_failure("network");
         }
     }
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "Memory.h"
+#include "ui/opcua/util/Memory.h"
 #include <cstdint>
 namespace sample {
     // Called only by the network/server worker, never USB or network callbacks.

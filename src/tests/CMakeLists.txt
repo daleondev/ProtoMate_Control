@@ -79,3 +79,10 @@ target_link_libraries(proto_executor_tests PRIVATE hal_register_gtest project_co
 target_link_libraries(proto_executor_tests PRIVATE platform::profiling_unavailable)
 add_test(NAME application.executor COMMAND proto_executor_tests)
 set_tests_properties(application.executor PROPERTIES TIMEOUT 30)
+
+add_executable(proto_remote_control_tests remote_control_test.cpp)
+target_link_libraries(proto_remote_control_tests PRIVATE proto::ui GTest::gtest_main)
+target_compile_definitions(proto_remote_control_tests PRIVATE RUNTIME_APPLICATION_THREAD_STACK_SIZE=65536U)
+runtime_attach(proto_remote_control_tests)
+add_test(NAME application.remote_control COMMAND proto_remote_control_tests)
+set_tests_properties(application.remote_control PROPERTIES TIMEOUT 15)

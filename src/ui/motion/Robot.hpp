@@ -41,10 +41,12 @@ namespace ui::motion
             Move move;
             Model model{ Model::Physical };
             JointPosition start{};
+            std::uint64_t source{};
         };
         struct Job
         {
             std::uint64_t id{};
+            std::uint64_t source{};
             JobState state{ JobState::Empty };
             RobotError error{ RobotError::None };
             Model model{ Model::Physical };
@@ -68,6 +70,7 @@ namespace ui::motion
                 Jog,
                 CartesianJog
             };
+            std::uint64_t source{};
             ::motion::Family family{ ::motion::Family::Robot };
             Kind kind{};
             std::uint8_t axes{ ::motion::ALL_AXES_MASK };
@@ -102,6 +105,7 @@ namespace ui::motion
         void setConnected(bool connected);
         [[nodiscard]] std::expected<std::uint64_t, RobotError> preview(PreviewRequest request);
         [[nodiscard]] RobotError cancel(std::uint64_t id);
+        void expireRemotePreviews();
         [[nodiscard]] std::optional<Job> job(std::uint64_t id) const;
         [[nodiscard]] std::array<std::uint64_t, ::motion::trajectory::COMMANDS> jobs() const;
         void run(const std::stop_token& stop);

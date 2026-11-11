@@ -1,3 +1,7 @@
+if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
+    add_subdirectory(${PROJECT_SOURCE_DIR}/platform/network ${PROJECT_BINARY_DIR}/network)
+endif()
+include(${PROJECT_SOURCE_DIR}/cmake/opcua.cmake)
 add_subdirectory(gui)
 add_subdirectory(app)
 add_subdirectory(logging)
@@ -16,6 +20,7 @@ target_link_libraries(proto_ui
         proto::ui::logging
         proto::ui::cli
         proto::ui::motion
+        proto::ui::opcua
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")

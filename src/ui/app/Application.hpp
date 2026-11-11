@@ -9,6 +9,7 @@
 #include "ui/logging/Subscriber.hpp"
 #include "ui/motion/Client.hpp"
 #include "ui/motion/Robot.hpp"
+#include "ui/opcua/Server.hpp"
 
 #include <mutex>
 #include <stop_token>
@@ -81,6 +82,25 @@ namespace ui
         [[= APPLICATION_THREAD]] void applicationThread();
         [[= CLI_THREAD]] void cliThread();
         [[= LOG_THREAD]] void logThread();
+#if defined(CORE_CM7)
+        struct NetworkStacks
+        {
+            // The measured 12 KiB stack peaked at 78.5% before paginated
+            // records. Use the remaining private DTCM for bounded call depth.
+            alignas(8) std::array<std::byte, 14UZ * 1024UZ> opcua;
+            alignas(8) std::array<std::byte, 8UZ * 1024UZ> network;
+        };
+        static NetworkStacks s_networkStacks;
+        static constexpr runtime::thread::Definition OPCUA_THREAD{ .priority = 12, .stack_size = sizeof(s_networkStacks.opcua),
+            .stack_storage = s_networkStacks.opcua.data() };
+        static constexpr runtime::thread::Definition NETWORK_THREAD{ .priority = 14, .stack_size = 8UZ * 1024UZ,
+            .stack_storage = s_networkStacks.network.data() };
+#else
+        static constexpr runtime::thread::Definition OPCUA_THREAD{ .priority = 12, .stack_size = 32UZ * 1024UZ };
+        static constexpr runtime::thread::Definition NETWORK_THREAD{ .priority = 14, .stack_size = 8UZ * 1024UZ };
+#endif
+        [[= OPCUA_THREAD]] void opcuaThread();
+        [[= NETWORK_THREAD]] void networkThread();
         void refreshState();
 
         pnm::msg::Bus m_bus;
@@ -92,8 +112,11 @@ namespace ui
         logging::Subscriber m_logs;
         motion::Client m_motors;
         motion::Robot m_robot;
+        Services m_services;
         GuiBackend m_guiBackend;
         gui::Controller m_gui;
+        opcua::Network m_network;
+        opcua::Server m_opcua{ m_network, m_services };
         std::mutex m_mutex;
         bool m_started{};
         bool m_stopping{};

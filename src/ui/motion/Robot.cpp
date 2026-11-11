@@ -118,6 +118,7 @@ namespace ui::motion
     }
     std::expected<std::uint64_t, RobotError> Robot::preview(PreviewRequest r)
     {
+        if (r.source && (!m_client || !m_client->remoteAuthorized(r.source))) return std::unexpected(RobotError::Cancelled);
         std::scoped_lock lock{ m_mutex };
         if (!m_connected || m_stopped) {
             return std::unexpected(RobotError::Unknown);
@@ -141,7 +142,7 @@ namespace ui::motion
         const auto id{ m_next++ };
         r.move.job = id;
         selected->request = r;
-        selected->job = { .id = id, .state = JobState::Queued, .model = r.model };
+        selected->job = { .id = id, .source = r.source, .state = JobState::Queued, .model = r.model };
         m_changed.signal();
         return id;
     }
@@ -164,6 +165,19 @@ namespace ui::motion
         }
         return RobotError::InvalidInput;
     }
+    void Robot::expireRemotePreviews()
+    {
+        if (!m_client) return;
+        std::array<std::pair<std::uint64_t, std::uint64_t>, tr::COMMANDS> active{};
+        unsigned count{};
+        {
+            std::scoped_lock lock{m_mutex};
+            for (const auto& slot : m_arena->slots)
+                if (slot.job.source && !terminal(slot.job.state)) active[count++] = {slot.job.id, slot.job.source};
+        }
+        for (unsigned i{}; i < count; ++i)
+            if (!m_client->remoteAuthorized(active[i].second)) static_cast<void>(cancel(active[i].first));
+    }
     std::optional<Robot::Job> Robot::job(std::uint64_t id) const
     {
         std::scoped_lock lock{ m_mutex };
@@ -185,7 +199,7 @@ namespace ui::motion
     }
     Robot::Job Robot::calculate(PreviewRequest r, std::uint64_t id, const std::stop_token& stop)
     {
-        Job result{ .id = id, .state = JobState::Rejected, .model = r.model };
+        Job result{ .id = id, .source = r.source, .state = JobState::Rejected, .model = r.model };
         auto call{ m_service.request(tr::encode(tr::Request{}), REQUEST_TIMEOUT, stop) };
         const auto response{ call.get() };
         if (!response) {
@@ -203,7 +217,7 @@ namespace ui::motion
             return result;
         }
         const auto configuration{ r.model == Model::Physical
-                                    ? board_robot_configuration()
+                                    ? execution_configuration(decoded->capabilities)
                                     : std::optional{ simulation_configuration(
                                         decoded->capabilities, r.model == Model::FixtureArchived) } };
         if (!configuration) {

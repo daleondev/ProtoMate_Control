@@ -105,6 +105,7 @@ namespace ui::gui::hmi
             m_model.backend->release();
         }
         m_viewport.close();
+        m_model.network.clear();
         m_visible = false;
     }
     Control& View::button(Action id,
@@ -252,7 +253,10 @@ namespace ui::gui::hmi
             }
             m_visible = home;
         }
-        if (m_model.keypad || m_model.confirmation) {
+        if (m_model.network.editing) {
+            networkDialog();
+        }
+        else if (m_model.keypad || m_model.confirmation) {
             dialog();
         }
         else if (m_model.page == Page::Home) {

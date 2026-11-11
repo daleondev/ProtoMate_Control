@@ -15,6 +15,10 @@ extern "C" int gui_test_scenario();
 class ScreenFixture final : public ui::gui::hmi::Backend
 {
   public:
+    ui::gui::hmi::NetworkStatus networkStatus() const override
+    {
+        return {.wifi=true, .connected=true, .saved=true, .server=true, .address=0xC0000201};
+    }
     void read(ui::gui::hmi::Snapshot& s) override
     {
         const bool messages = std::getenv("GUI_TEST_MESSAGES");
